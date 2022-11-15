@@ -1,0 +1,3 @@
+.DS_Store
+Kernel/Sources/build/**
+Kernel/Kernel.xcodeproj/project.xcworkspace/xcuserdata/**
