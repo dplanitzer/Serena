@@ -74,7 +74,7 @@ _cpu_get_model:
         dc.l    $4e7a1002   ; movec cacr, d1 (requires 68020+)
 
         ; check for 68040
-        lea     .is_68020_or_68020_cpu(pc), a1
+        lea     .is_68020_or_68030_cpu(pc), a1
         move.l  a1, (a0)
         move.l  sp, a3
         dc.l    $4e7a1004   ; movec itt0, d1 (requires 68040+)
@@ -110,7 +110,7 @@ _cpu_get_model:
         moveq   #2, d0      ; 68020
         bra     .done
 
-.is_68020_or_68020_cpu:
+.is_68020_or_68030_cpu:
         move.l  a3, sp
 
         ; check for 68030
