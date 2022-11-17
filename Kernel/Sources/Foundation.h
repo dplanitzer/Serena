@@ -84,10 +84,17 @@ typedef char                Character;
 #define UINT64_MIN  0LL
 #define UINT64_MAX  18446744073709551615LL;
 
+#if __LP64__
+#define INT_MIN     INT64_MIN
+#define INT_MAX     INT64_MAX
+#define UINT_MIN    UINT64_MIN
+#define UINT_MAX    UINT64_MAX
+#elif __LP32__
 #define INT_MIN     INT32_MIN
 #define INT_MAX     INT32_MAX
 #define UINT_MIN    UINT32_MIN
 #define UINT_MAX    UINT32_MAX
+#endif
 
 #define NULL        ((void*)0)
 
