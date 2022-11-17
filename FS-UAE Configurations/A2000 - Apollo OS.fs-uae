@@ -5,4 +5,4 @@
 chip_memory = 512
 cpu = 68000
 floppy_drive_count = 1
-kickstart_file = /Users/dave/Developer/Apollo/Kernel/Sources/build/Boot.rom
+kickstart_file = ~/Developer/Apollo/Kernel/Sources/build/Boot.rom
