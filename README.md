@@ -30,7 +30,7 @@ The following kernel services are implemented at this time:
 * Basic 32bit and 64bit math routines
 * Interrupt handling
 
-The level of completness and correctness varies at this time. Things are generically planned to improve over time :)
+Note that there is no support for a file system or shell at this time. Also the level of completness and correctness varies substantially. Things are generically planned to improve over time :)
 
 ## Getting Started
 
@@ -49,6 +49,8 @@ Download the FS-UAE and FS-UAE-Launcher apps and place them at `Emulators/Amiga`
 Next download and install the C compiler and assembler that you need to build the operating system. You can find the compiler and assembler at [http://www.compilers.de/vbcc.html](http://www.compilers.de/vbcc.html)
 
 The version that I'm using for my development and that I know works correctly on macOS 12.6 is 0.9f.
+
+Next make sure that you have Python 3 installed and that it can be invoked from the command line with the "python" command.
 
 Create a `SDK` folder inside the `Emulators/Amiga` folder and then place the `vbcc` folder inside of that. The final result should look like this:
 
@@ -94,6 +96,8 @@ The make file creates a `build` folder inside the sources directory where it pla
    ```
    
 The run.sh shell script will automatically fire up the FS-UAE Amiga emulator and configure it to emulate an A4000 machine.
+
+It may be that if you invoke the makefile or run.sh script that it looks like as if nothing is happening. A likely reason for this effect is that the Gatekeeper process in macOS is blocking one of the tools that the makefile or run.sh is trying to invoke from running. You will have to give permission to macOS to run those tools. Go to the General tab in the Security & Privacy pane in the macOS System Preferences application to grant permission.
 
 ## License
 
