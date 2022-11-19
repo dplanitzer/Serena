@@ -61,8 +61,8 @@ int nlz(unsigned int x) {
  that the dividend be at least as long as the divisor.  (In his terms,
  m >= 0 (unstated).  Therefore m+n >= n.) */
 
-ErrorCode divmnu(unsigned short _Nonnull q[], unsigned short _Nonnull r[],
-           const unsigned short _Nonnull u[], const unsigned short _Nonnull v[],
+ErrorCode divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
+                 const unsigned short  * _Nonnull u, const unsigned short  * _Nonnull v,
            int m, int n) {
 
     const unsigned int b = 65536;   // Number base (16 bits).

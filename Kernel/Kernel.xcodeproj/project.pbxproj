@@ -94,7 +94,7 @@
 		55C5A2D7224C8AA800C6BD3F /* Lock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Lock.h; sourceTree = "<group>"; };
 		55C5A2D8224C8AA800C6BD3F /* Lock.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Lock.c; sourceTree = "<group>"; };
 		55C5A2DE22571CFC00C6BD3F /* sysscalls_asm.s */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm; path = sysscalls_asm.s; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
-		55C5A2E022571EC800C6BD3F /* syscalls.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = syscalls.i; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
+		55C5A2E022571EC800C6BD3F /* syscalls.i */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; path = syscalls.i; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
 		55C5A2E2225AC70400C6BD3F /* ConditionVariable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConditionVariable.h; sourceTree = "<group>"; };
 		55C5A2E3225AC70400C6BD3F /* ConditionVariable.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ConditionVariable.c; sourceTree = "<group>"; };
 		55C5A2E52263F9BE00C6BD3F /* VirtualProcessorPool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VirtualProcessorPool.h; sourceTree = "<group>"; };
@@ -108,13 +108,13 @@
 		55C87B33227F8BD20074168F /* InterruptController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InterruptController.h; sourceTree = "<group>"; };
 		55C87B34227F8BD20074168F /* InterruptController.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = InterruptController.c; sourceTree = "<group>"; };
 		55CF17E3220828DA009B9A2D /* chipset_asm.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = chipset_asm.s; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
-		55CF17E4220828E1009B9A2D /* chipset.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = chipset.i; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
+		55CF17E4220828E1009B9A2D /* chipset.i */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; path = chipset.i; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
 		55CF17E5220828E6009B9A2D /* finalizerom.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = finalizerom.py; sourceTree = "<group>"; };
 		55CF17E6220828EB009B9A2D /* Foundation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Foundation.h; sourceTree = "<group>"; };
 		55CF17E7220828F4009B9A2D /* Int64_asm.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = Int64_asm.s; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
 		55CF17E8220828F4009B9A2D /* Int32_asm.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = Int32_asm.s; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
 		55CF17E9220828F4009B9A2D /* Int64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Int64.c; sourceTree = "<group>"; };
-		55CF17EA220828FA009B9A2D /* lowmem.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = lowmem.i; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
+		55CF17EA220828FA009B9A2D /* lowmem.i */ = {isa = PBXFileReference; explicitFileType = sourcecode.asm; path = lowmem.i; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
 		55CF17EB220828FE009B9A2D /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; usesTabs = 1; };
 		55CF17ED22082911009B9A2D /* run.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 		55CF17EE22082916009B9A2D /* traps.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = traps.s; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.asm.arm; };
