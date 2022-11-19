@@ -35,7 +35,7 @@ static inline Byte* _Nonnull ExecutionStack_GetInitialTop(ExecutionStack* _Nonnu
 
 // The current state of a virtual processor
 typedef enum _VirtualProcessorState {
-    kVirtualProcessorState_Ready = 0,       // VP is able to run but currently sitting on the ready queue
+    kVirtualProcessorState_Ready = 0,       // VP is able to run and is currently sitting on the ready queue
     kVirtualProcessorState_Running,         // VP is running
     kVirtualProcessorState_Waiting,         // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
     kVirtualProcessorState_Suspended,       // VP is suspended (rewa links are NULL)
@@ -81,7 +81,7 @@ typedef enum _VirtualProcessorState {
 struct _VirtualProcessor;
 
 
-// Type of the first function a VP will run
+// Type of the first function a VP will run when it is resumed
 typedef void (* _Nonnull VirtualProcessor_Closure)(Byte* _Nullable pContext);
 
 
@@ -115,7 +115,7 @@ typedef struct _VirtualProcessor {
     ExecutionStack                          kernel_stack;
     ExecutionStack                          user_stack;
     UInt32                                  syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
-    AtomicInt                               vpid;                   // unqiue VP id (>= 1; 0 is reserved to indicate the absence of a VPID)
+    AtomicInt                               vpid;                   // unique VP id (>= 1; 0 is reserved to indicate the absence of a VPID)
     
     // VP owner
     VirtualProcessorOwner                   owner;
@@ -127,8 +127,8 @@ typedef struct _VirtualProcessor {
     Int8                                    wakeup_reason;
     
     // Scheduling related state
-    Int8                                    priority;               // nominal / base priority
-    Int8                                    effectivePriority;      // priority used for scheduling
+    Int8                                    priority;               // base priority
+    Int8                                    effectivePriority;      // computed priority used for scheduling
     UInt8                                   state;
     UInt8                                   flags;
     Int8                                    quantum_allowance;      // How many continuous quantums this VP may run for before the scheduler will consider scheduling some other VP

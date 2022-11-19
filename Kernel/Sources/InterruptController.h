@@ -71,7 +71,7 @@ extern Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef
 extern void InterruptController_OnInterrupt(struct _InterruptHandlerArray* _Nonnull pArray);
 
 // Returns the number of spurious interrupts that have happened since boot. A
-// spurious interrupt is a interrupt request that was not acknowledged by the
+// spurious interrupt is an interrupt request that was not acknowledged by the
 // hardware.
 extern Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController);
 

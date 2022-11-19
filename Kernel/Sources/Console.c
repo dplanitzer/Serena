@@ -187,7 +187,7 @@ void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy)
     Console_MoveCursorTo(pConsole, pConsole->x + dx, pConsole->y + dy);
 }
 
-// Sets the console position. The next con_print() will start printing at this
+// Sets the console position. The next print() will start printing at this
 // location.
 // \param pConsole the console
 // \param x the X position

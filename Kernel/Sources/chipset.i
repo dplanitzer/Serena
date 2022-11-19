@@ -78,7 +78,7 @@ RTC_BASE    equ     $dc0000
 
 
 ; Base adress of the custom chips.
-; The custom chip register symbols are all relative to this base address.
+; The custom chip register numbers are all relative to this base address.
 CUSTOM_BASE equ     $dff000
 
 

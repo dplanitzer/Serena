@@ -25,8 +25,8 @@
 
 ;-------------------------------------------------------------------------------
 ; void chipset_reset(void)
-; Disables all chip set interrupts and DMAs. This function is called before we
-; jump into the kernel.
+; Disables all chipset interrupts and DMAs. This function is called before we
+; jump into the kernel proper.
 _chipset_reset:
     lea     CUSTOM_BASE, a0
     move.w  #$7fff, INTENA(a0)  ; disable interrupts
@@ -46,7 +46,7 @@ _chipset_reset:
     move.b  CIAAICR, d0
     move.b  CIABICR, d0
 
-    ; configure port direction registers
+    ; configure the CIA chips port direction registers
     move.b  #$03, CIAADDRA
     move.b  #$ff, CIAADDRB
     move.b  #$ff, CIABDDRA
@@ -78,11 +78,11 @@ _chipset_get_version:
 
 ;-------------------------------------------------------------------------------
 ; void chipset_enable_interrupt(Int interruptId)
-; Enables the generation of the given interrupt type. This implicitly turns on
-; the master IRQ switch.
-; NOte that we always turn on the master IRQ switch, external IRQs and the Ports
+; Enables generation of the given interrupt type. This implicitly turns on the
+; master IRQ switch.
+; Note that we always turn on the master IRQ switch, external IRQs and the ports
 ; IRQs because it makes things simpler. External & ports IRQs are masked in the
-; chips that are the IRQ sources. CIA A/B chips.
+; chips that are the source of an IRQ. CIA A/B chips.
 _chipset_enable_interrupt:
     cargs cei_interrupt_id.l
     move.l  cei_interrupt_id(sp), d0
@@ -130,8 +130,8 @@ cei_done:
 
 ;-------------------------------------------------------------------------------
 ; void chipset_disable_interrupt(Int interruptId)
-; Disables the generation of the given interrupt type. THis function leaves the
-; master IRQ switch enabled. It doesn't matter 'cause we turn the irq source off
+; Disables the generation of the given interrupt type. This function leaves the
+; master IRQ switch enabled. It doesn't matter 'cause we turn the IRQ source off
 ; anyway.
 _chipset_disable_interrupt:
     cargs cdi_interrupt_id.l
@@ -174,8 +174,8 @@ cdi_done:
 
 ;-------------------------------------------------------------------------------
 ; void chipset_start_quantum_timer(void)
-; Starts the quantum timer running.
-; Uses CIA A timer B.
+; Starts the quantum timer running. This timer is used to implement context switching.
+; Uses timer B in CIA A.
 ;
 ; Amiga system clock:
 ;   NTSC    28.63636 MHz
@@ -249,7 +249,11 @@ _chipset_get_quantum_timer_elapsed_ns:
 
 ;-------------------------------------------------------------------------------
 ; void copper_schedule_program(const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg, Int progId)
-; Returns the amount of nanoseconds that have elapsed in the current quantum.
+; Schedules the given odd and even field Copper programs for execution. The
+; programs will start executing at the next vertical blank. Expects at least
+; an odd field program if the current video mode is non-interlaced and both
+; and odd and an even field program if the video mode is interlaced. The video
+; display is turned off if the odd field program is NULL.
 _copper_schedule_program:
     cargs   csp_odd_field_prog_ptr.l, csp_even_field_prog_ptr.l, csp_prog_id.l
 

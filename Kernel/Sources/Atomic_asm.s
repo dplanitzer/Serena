@@ -18,7 +18,7 @@
 ; AtomicInt AtomicInt_Add(volatile AtomicInt* _Nonnull pValue, Int increment)
 ; Atomically adds the 'increment' value to the integer stored in the given
 ; memory location and returns the new value.
-; IRQ routine safe
+; IRQ safe
 _AtomicInt_Add:
     inline
     cargs iaa_value_ptr.l, iaa_increment.l
@@ -36,7 +36,7 @@ _AtomicInt_Add:
 ; AtomicInt AtomicInt_Increment(volatile AtomicInt* _Nonnull pValue)
 ; Atomically increments the integer in the given memory location and returns the
 ; new value.
-; IRQ routine safe
+; IRQ safe
 _AtomicInt_Increment:
     inline
     cargs iai_value_ptr.l
@@ -54,7 +54,7 @@ _AtomicInt_Increment:
 ; Int AtomicInt_Decrement(volatile AtomicInt* _Nonnull pValue)
 ; Atomically decrements the integer in the given memory location and returns the
 ; new value.
-; IRQ routine safe
+; IRQ safe
 _AtomicInt_Decrement:
     inline
     cargs iad_value_ptr.l

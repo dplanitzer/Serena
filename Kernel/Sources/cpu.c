@@ -16,7 +16,7 @@ Bool cpu_is32bit(void)
     return SystemDescription_GetShared()->cpu_model >= CPU_MODEL_68020;
 }
 
-// Returns the model name for the CPU
+// Returns the model name of the CPU
 const Character* _Nonnull cpu_get_model_name(void)
 {
     switch (SystemDescription_GetShared()->cpu_model) {
@@ -43,7 +43,7 @@ const Character* _Nonnull cpu_get_model_name(void)
     }
 }
 
-// Returns the model name for the FPU
+// Returns the model name of the FPU
 const Character* _Nonnull fpu_get_model_name(void)
 {
     switch (SystemDescription_GetShared()->fpu_model) {

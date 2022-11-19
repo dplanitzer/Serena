@@ -134,6 +134,7 @@ Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, Int rounding)
             
         default:
             abort();
+            return 0;
     }
 }
 

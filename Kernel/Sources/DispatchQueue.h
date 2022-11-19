@@ -34,7 +34,7 @@
 #define DISPATCH_PRIORITY_COUNT     12
 
 
-// Type of the first function a dispatch queue invokes
+// Type of the function a dispatch queue invokes
 typedef void (* _Nonnull DispatchQueue_Closure)(Byte* _Nullable pContext);
 
 struct _WorkItem;
@@ -53,7 +53,8 @@ typedef struct _DispatchQueue* DispatchQueueRef;
 //
 
 
-// Creates a work item which will invoke the given closure.
+// Creates a work item which will invoke the given closure. Note that work items
+// are one-shot: they execute their closure and then the work item is destroyed.
 extern WorkItemRef _Nullable WorkItem_Create(DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
 
 // Deallocates the given work item.

@@ -22,11 +22,11 @@ typedef struct _RingBuffer {
 } RingBuffer;
 
 
-// Initializes an ring buffer to empty. 'capacity' is the buffer capacity in bytes.
+// Initializes the ring buffer to empty. 'capacity' is the buffer capacity in bytes.
 // This value is rounded up to the next power of 2.
 extern Bool RingBuffer_Init(RingBuffer* _Nonnull pBuffer, Int capacity);
 
-// Frees a ring buffer. This frees the ring buffer storage but not the elements
+// Frees the ring buffer. This frees the ring buffer storage but not the elements
 // stored inside the buffer.
 extern void RingBuffer_Deinit(RingBuffer* _Nonnull pBuffer);
 

@@ -345,7 +345,7 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 }
 
 // Returns the number of spurious interrupts that have happened since boot. A
-// spurious interrupt is a interrupt request that was not acknowledged by the
+// spurious interrupt is an interrupt request that was not acknowledged by the
 // hardware.
 Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController)
 {

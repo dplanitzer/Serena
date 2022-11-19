@@ -20,11 +20,13 @@ typedef enum _ColorType {
 } ColorType;
 
 
-// A color
+// A RGB color
 typedef struct _RGBColor {
     Int8    r, g, b;
 } RGBColor;
 
+
+// A color type
 typedef struct _Color {
     ColorType   tag;
     union {
@@ -67,9 +69,9 @@ typedef struct _VideoConfiguration {
     UInt8       diw_stop_v;
     UInt8       ddf_start;          // data fetch start
     UInt8       ddf_stop;           // data fetch stop
-    UInt8       ddf_mod;            // module bytes stored in memory between scan lines
+    UInt8       ddf_mod;            // number of padding bytes stored in memory between scan lines
     UInt16      bplcon0;            // BPLCON0 template value
-    UInt8       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert from screen coords to sprite coords [h:4,v:4]
+    UInt8       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert them from screen coords to sprite coords [h:4,v:4]
     Int8        pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
 } VideoConfiguration;
@@ -91,8 +93,9 @@ struct _GraphicsDriver;
 typedef struct _GraphicsDriver* GraphicsDriverRef;
 
 
-// Returns the raphics device for the main screen.
+// Returns the graphics device for the main screen.
 extern GraphicsDriverRef _Nonnull GraphicsDriver_GetMain(void);
+
 
 extern GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
 extern void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver);

@@ -65,7 +65,7 @@ CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 ;
 ; The low memory region of the Kernel. Low memory starts at address 0 and includes
 ; fundamental data structures and objects like the CPU vector table, system
-; description, and the system globals which point to the monotonic clock, Kernel
+; description, and the system globals which point to the monotonic clock, kernel
 ; heap, etc.
 ; This memory region is set up at reset / boot time.
 ;

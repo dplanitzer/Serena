@@ -76,7 +76,7 @@ void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack)
 
 
 // Initializes a scheduler virtual processor. This is the virtual processor which
-// is used to grandfather in the initial execution thread. It is the first VP that
+// is used to grandfather in the initial thread of execution. It is the first VP that
 // is created for a physical processor. It then takes over duties for the scheduler.
 // \param pVP the boot virtual processor record
 // \param pSysDesc the system description
@@ -393,7 +393,7 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
     }
 }
 
-// Reconfigures the execution flow in the given virtual processor such that the
+// Reconfigures the flow of execution in the given virtual processor such that the
 // closure 'pClousre' will be invoked like a subroutine call in user space. The
 // interrupted flow of execution will be resumed at the point of interruption
 // when 'pClosure' returns. The async call of 'pClosure' is arranged such that:

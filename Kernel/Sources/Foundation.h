@@ -23,8 +23,10 @@
 #endif
 
 
-// The Byte type represents raw, untyped memory. Bytes may be converted into
-// structured types but this requires that we run some kind of code.
+// The Byte type represents raw, untyped memory. Raw memory may be reinterpreted
+// or converted to typed memory but this requires the execution of some piece of
+// code that knows how to interpret or rearrange the bits in untyped memory to
+// make them conforming to the semantics of the desired type.
 typedef unsigned char Byte;
 
 
@@ -44,7 +46,10 @@ typedef unsigned long       UInt32;
 typedef long long           Int64;
 typedef unsigned long long  UInt64;
 
-// Integer types which represent the natural word size of the processor
+// Integer types which represent the natural word size of the processor.
+// These are the preferred integer types. You should only use integer
+// types with specific bit-width guarantees (eg Int8) if there is a clear
+// technical reason that you want this specific size over another size.
 #if __LP64__
 typedef Int64               Int;
 typedef UInt64              UInt;

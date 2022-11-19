@@ -23,7 +23,7 @@ static void OnStartup(const SystemDescription* _Nonnull pSysDesc);
 
 
 // Called by Reset() after OnReset() has returned. This function should initialize
-// the boot virtual processor and the scheduler. Reset() will then do a singular
+// the boot virtual processor and the scheduler. Reset() will then do a single
 // context switch to the boot virtual processor which will then continue with the
 // initialization of the kernel.
 void OnBoot(SystemDescription* _Nonnull pSysDesc)

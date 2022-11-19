@@ -42,8 +42,8 @@ void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar)
     List_Deinit(&pCondVar->wait_queue);
 }
 
-// Signals the given condition variable. Atomically unlock 'pLock' at the same
-// time if 'pLock' is not null. As many VPs are woken up as there are cores in
+// Signals the given condition variable. Atomically and simultaneously unlocks
+// 'pLock' if it is not null. As many VPs are woken up as there are cores in
 // the machine.
 void ConditionVariable_Signal(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock)
 {
@@ -58,8 +58,8 @@ void ConditionVariable_Signal(ConditionVariable* _Nonnull pCondVar, Lock* _Nulla
     VirtualProcessorScheduler_RestorePreemption(sps);
 }
 
-// Wakes up all VPs that are waiting on 'pCondVar'. Atomically unlocks 'pLock'
-// at the same time if 'pLock' is not null.
+// Wakes up all VPs that are waiting on 'pCondVar'. Atomically and simultaneously
+// unlocks 'pLock' if it is not null.
 void ConditionVariable_Broadcast(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock)
 {
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
@@ -73,7 +73,7 @@ void ConditionVariable_Broadcast(ConditionVariable* _Nonnull pCondVar, Lock* _Nu
     VirtualProcessorScheduler_RestorePreemption(sps);
 }
 
-// Unlock 'pLock' and blocks teh caller until the condition variable is signaled.
+// Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
 ErrorCode ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, TimeInterval deadline)
 {

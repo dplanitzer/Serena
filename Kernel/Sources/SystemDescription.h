@@ -12,7 +12,7 @@
 #include "Foundation.h"
 
 
-// Defines that describe who can access a memory range
+// Specifies who can access a specific memory range
 #define MEM_ACCESS_CPU     1
 #define MEM_ACCESS_CHIPSET 2
 
@@ -105,7 +105,7 @@ typedef struct _SystemDescription {
     Int8                cpu_model;
     Int8                fpu_model;
     Int8                chipset_version;
-    Int8                chipset_ramsey_version;      // RAMSEY custom chip version. 0 means no RAMSEY and thus a 16bit Amiga (A500 / A2000)
+    Int8                chipset_ramsey_version;     // RAMSEY custom chip version. 0 means no RAMSEY and thus a 16bit Amiga (A500 / A2000)
     
     Int32               quantum_duration_ns;        // Quantum duration in terms of nenoseconds
     Int16               quantum_duration_cycles;    // Quantum duration in terms of timer cycles

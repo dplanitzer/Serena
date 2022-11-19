@@ -229,8 +229,9 @@ _cpu_get_bus_error_frame_size:
 ;-------------------------------------------------------------------------------
 ; Int cpu_guarded_read(Byte* src, Byte* buffer, Int buffer_size)
 ; Reads the bytes starting at 'src' and writes them into 'buffer'. 'buffer_size'
-; bytes are read and copied. Catches bus errors and returns -1. Returns 0 if the
-; bytes have been successfully read. Must be called from supervisor mode.
+; bytes are read and copied. Catches bus errors and returns -1 in such an event.
+; Returns 0 if the all bytes have been successfully read. Must be called from
+; supervisor mode.
 _cpu_guarded_read:
     inline
     cargs   mgr_src.l, mgr_buffer.l, mgr_buffer_size.l
@@ -280,8 +281,8 @@ _cpu_guarded_read:
 ;-------------------------------------------------------------------------------
 ; Int cpu_guarded_write(Byte* dst, Byte* buffer, Int buffer_size)
 ; Writes the bytes starting at 'buffer' to 'dst'. 'buffer_size' bytes are written.
-; Catches bus errors and returns -1. Returns 0 if the ytes have been successfully
-; written. Must be called from supervisor mode.
+; Catches bus errors and returns -1 in such an event. Returns 0 if all bytes have
+; been successfully written. Must be called from supervisor mode.
 _cpu_guarded_write:
     inline
     cargs   mgw_dst.l, mgw_buffer.l, mgw_buffer_size.l
@@ -330,7 +331,7 @@ _cpu_guarded_write:
 
 ;-------------------------------------------------------------------------------
 ; void cpu_sleep(void)
-; Puts the CPU to sleep until an interrupt occurs.
+; Moves the CPU to (a low power) sleep state until an interrupt occurs.
 _cpu_sleep:
     cmp.b   #CPU_MODEL_68060, SYS_DESC_BASE + sd_cpu_model
     beq.s   .cpu_sleep_68060
@@ -350,8 +351,8 @@ _cpu_sleep:
 ; 'pClosure' will be invoked with 'pContext' in user space the next time the
 ; VP which owns the user stack is scheduled for execution. This function must be
 ; called while the VP is suspended. This call can be used to inject a call to
-; some user space function into the normal flow of the VP. The APC will return
-; to the previous flow when done. The APC call is completely transparent to the
+; some user space function into the normal flow of the VP. The AUCI will return
+; to the previous flow when done. The AUCI call is completely transparent to the
 ; surrounding user space code.
 ;
 ; NOTE: this function assumes that the USP is correctly aligned for a return address (2 byte alignment)
@@ -385,7 +386,7 @@ _cpu_push_async_user_closure_invocation:
 ; void cpu_async_user_closure_trampoline(void)
 ; This function implements the transparent invocation of the asynchronous user
 ; closure. The VP PC must be set to point to this function and the cpu_push_auci()
-; function must have been called to push the necessary AUCI frame on the user stack.
+; function must have been called to push the required AUCI frame on the user stack.
 ; This function removes the frame that was pushed by cpu_push_auci()
 ;
 ; Note that this code runs in user space.

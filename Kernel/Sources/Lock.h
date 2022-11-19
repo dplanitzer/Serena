@@ -31,7 +31,7 @@ extern Lock* _Nullable Lock_Create(void);
 // Deallocates a lock.
 extern void Lock_Destroy(Lock* _Nullable pLock);
 
-// Blocks the caller until the lock can be taken.
+// Blocks the caller until the lock can be taken successfully.
 extern void Lock_Lock(Lock* _Nonnull pLock);
 
 // Unlocks the lock.

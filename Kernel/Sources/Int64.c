@@ -232,7 +232,9 @@ failed:
     return err;
 }
 
-// The following functions are expected to exist by the vbcc C compiler
+
+// The code that the vbcc C compiler generates expects the following functions
+// to exist
 Int64 _divsint64(Int64 dividend, Int64 divisor)
 {
     Int64 quo;

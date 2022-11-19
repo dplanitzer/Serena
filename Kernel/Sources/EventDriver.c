@@ -22,11 +22,12 @@
 
 
 // The event driver runs a deticated virtual processor which processes events
-// from low-level input drivers. It creates HID events and distributes them to
-// the current front client (application).
+// from low-level input drivers. It creates HID events and makes them available
+// via the EventDriver_GetEvents() call.
 //
 // The event VP runs a loop which is driven by the vertical blank interrupt. The
-// driver sleeps until a VB interrupt and it then gathers the low-level events.
+// driver sleeps until the next vertical blank interrupt occurs and it then
+// gathers all queued up low-level events.
 //
 // Low-level input drivers provide low-level events in two different ways:
 //
@@ -234,8 +235,8 @@ void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver)
 }
 
 // Obscures the mouse cursor. This hides the mouse cursor until the user moves
-// the mouse or clicks a button. The operation is carried out at the next
-// vertical blank.
+// the mouse or clicks a button. The change is carried out at the next vertical
+// blank.
 void EventDriver_ObscureMouseCursor(EventDriverRef _Nonnull pDriver)
 {
     Lock_Lock(&pDriver->lock);
@@ -333,9 +334,9 @@ void EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* 
     *nKeysDown = oi;
 }
 
-// Posts a copy of the given event to the event queue. The event time is set to
-// the current time. The oldest queued event is removed and replaced by the new
-// event if the event queue is full.
+// Posts a copy of the given event to the event queue. The oldest queued event
+// is removed and effectively replaced by the new event if the event queue is
+// full.
 // 1) Expects that the caller has already locked the event queue.
 // 2) Expects that the event contains the appropriate eventTime
 //
@@ -352,8 +353,8 @@ void EventDriver_PutEvent_Locked(EventDriverRef _Nonnull pDriver, HIDEvent* _Non
 }
 
 // Posts a copy of the given event to the event queue. The event time is set to
-// the current time. The oldest queued event is removed and replaced by the new
-// event if the event queue is full.
+// the current time. The oldest queued event is removed and effectively replaced
+// by the new event if the event queue is full.
 void EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Nonnull pEvent)
 {
     HIDEvent newEvent = *pEvent;
@@ -366,9 +367,9 @@ void EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Non
 
 // Blocks the caller until either events have arrived or 'deadline' has passed
 // (whatever happens earlier). Then copies at most 'pEventCount' events to the
-// provided buffer 'pEvents'. 'pEventCount' is set to the actual number of events
-// copied out on return. An error is returned if the wait was interrupted or a
-// timeout has occured.
+// provided buffer 'pEvents'. On return 'pEventCount' is set to the actual
+// number of events copied out. An error is returned if the wait was interrupted
+// or a timeout has occured.
 ErrorCode EventDriver_GetEvents(EventDriverRef _Nonnull pDriver, HIDEvent* _Nonnull pEvents, Int* _Nonnull pEventCount, TimeInterval deadline)
 {
     ErrorCode err = EOK;
@@ -400,7 +401,7 @@ ErrorCode EventDriver_GetEvents(EventDriverRef _Nonnull pDriver, HIDEvent* _Nonn
 ////////////////////////////////////////////////////////////////////////////////
 
 
-// Returns true if the given key is eligble for auto-repeat
+// Returns true if the given key should be auto-repeated
 static EventDriver_ShouldAutoRepeatKeycode(EventDriver* _Nonnull pDriver, HIDKeyCode usbcode)
 {
     // Everything except:
@@ -435,8 +436,8 @@ static EventDriver_ShouldAutoRepeatKeycode(EventDriver* _Nonnull pDriver, HIDKey
     }
 }
 
-// Returns the repeater for the given key code. Null is returned if there is no
-// repeater for this keycode.
+// Returns the auto-repeater for the given key code. Null is returned if there is no
+// auto-repeater for this keycode.
 inline KeyRepeater* _Nullable EventDriver_GetKeyRepeaterForKeycode(EventDriver* _Nonnull pDriver, HIDKeyCode usbcode)
 {
     for (Int i = 0; i < KEY_REPEATERS_COUNT; i++) {
@@ -448,8 +449,8 @@ inline KeyRepeater* _Nullable EventDriver_GetKeyRepeaterForKeycode(EventDriver* 
     return NULL;
 }
 
-// Returns the first available repeater. Null is returned if no more repeater is
-// available.
+// Returns the first available auto-repeater. Null is returned if no more auto-repeater
+// is available.
 inline KeyRepeater* _Nullable EventDriver_GetAvailableKeyRepeater(EventDriver* _Nonnull pDriver)
 {
     for (Int i = 0; i < KEY_REPEATERS_COUNT; i++) {
@@ -461,7 +462,7 @@ inline KeyRepeater* _Nullable EventDriver_GetAvailableKeyRepeater(EventDriver* _
     return NULL;
 }
 
-// Initializes a key repeater and moves it to the initial repeat delay state.
+// Initializes a key auto-repeater and moves it to the initial auto-repeat delay state.
 static void KeyRepeater_StartInitDelay(KeyRepeater* _Nonnull pRepeater, HIDKeyCode usbcode, UInt32 funcFlags, TimeInterval curTime)
 {
     pRepeater->state = kKeyRepeaterState_InitialDelay;
@@ -471,7 +472,7 @@ static void KeyRepeater_StartInitDelay(KeyRepeater* _Nonnull pRepeater, HIDKeyCo
     pRepeater->start_time_nanoseconds = curTime.nanoseconds;
 }
 
-// Cancels a key repeater and makes it available again.
+// Cancels a key auto-repeater and makes it available for reuse.
 static void KeyRepeater_Cancel(KeyRepeater* _Nonnull pRepeater)
 {
     pRepeater->state = kKeyRepeaterState_Available;
@@ -481,7 +482,7 @@ static void KeyRepeater_Cancel(KeyRepeater* _Nonnull pRepeater)
     pRepeater->start_time_nanoseconds = 0;
 }
 
-// Update the key repeater state and return true if an auto-repeat event should
+// Update the key auto-repeater state and return true if an auto-repeat event should
 // be generated.
 static Bool KeyRepeater_ShouldRepeat(KeyRepeater* _Nonnull pRepeater, EventDriver* _Nonnull pDriver, TimeInterval _Nonnull curTime)
 {
@@ -578,7 +579,7 @@ static void EventDriver_ProcessKeyInput(EventDriverRef _Nonnull pDriver, TimeInt
     KeyboardReport report;
     HIDEvent evt;
     
-    // Process the key codes
+    // Process queued up low-level key code events
     while (true) {
         if (!KeyboardDriver_GetReport(pDriver->keyboard_driver, &report)) {
             break;
@@ -592,7 +593,7 @@ static void EventDriver_ProcessKeyInput(EventDriverRef _Nonnull pDriver, TimeInt
             const UInt32 funcFlags = keyFunc;
             const Bool isCapsLockPair = (report.keycode == KEY_CAPSLOCK && pDriver->last_keycode == KEY_CAPSLOCK);
             
-            // We may receive a caps-lock key down / up twice in a row. Coalasce it
+            // We may receive a caps-lock key down / up twice in a row. Coalasce it into one
             if (isCapsLockPair) {
                 pDriver->last_keycode = KEY_NONE;
                 continue;
@@ -611,7 +612,7 @@ static void EventDriver_ProcessKeyInput(EventDriverRef _Nonnull pDriver, TimeInt
             
             
             // Key auto-repeater setup:
-            // - start an auto-repeater if we have one avilable and the key is a key down and eligible for auto-repeat
+            // - start an auto-repeater if we have one available and the key is a key down and eligible for auto-repeat
             // - cancel an auto-repeater if one exists for the key code and this is a key up or key down
             //   (key down means we lost the key up; this allows the user to get the key unstuck by hitting it again)
             KeyRepeater* pRepeater = EventDriver_GetKeyRepeaterForKeycode(pDriver, report.keycode);
@@ -646,7 +647,7 @@ static void EventDriver_ProcessKeyInput(EventDriverRef _Nonnull pDriver, TimeInt
     }
     
     
-    // generate auto-repeated key events if necessary
+    // Generate auto-repeated key events if necessary
     for (Int i = 0; i < KEY_REPEATERS_COUNT; i++) {
         KeyRepeater* pRepeater = &pDriver->key_repeater[i];
         
@@ -667,7 +668,7 @@ static void EventDriver_ProcessMouseInput(EventDriverRef _Nonnull pDriver, TimeI
     const UInt32 old_buttons = pDriver->mouse_prev_buttons_state;
     const UInt32 new_buttons = pDriver->mouse_buttons;
 
-    // Generate a mouse up/down events
+    // Generate mouse button up/down events
     if (new_buttons != old_buttons) {
         // XXX should be able to ask the mouse input driver how many buttons it supports
         for (Int i = 0; i < 3; i++) {

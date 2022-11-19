@@ -74,7 +74,7 @@ static void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver)
     const UInt8 keycode = ksb_receive_key();
     
     if (RingBuffer_PutByte(&pDriver->key_queue, (Byte)keycode) == 0) {
-        // The key queue is full. Flush it, push an overflow error and then the keycode
+        // The key queue is full. Flush it, push an overflow error and then the new keycode
         RingBuffer_RemoveAll(&pDriver->key_queue);
         RingBuffer_PutByte(&pDriver->key_queue, 0xfa);
         RingBuffer_PutByte(&pDriver->key_queue, keycode);

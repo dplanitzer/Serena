@@ -15,7 +15,7 @@ Bool chipset_is_ntsc(void)
     return (chipset_get_version() & (1 << 4)) != 0;
 }
 
-// Returns the first address that the on-board chipset can not access via DMA.
+// Returns the first memory address that the on-board chipset can not access via DMA.
 Byte* _Nonnull chipset_get_mem_limit(void)
 {
     switch (chipset_get_version()) {

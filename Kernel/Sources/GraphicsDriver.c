@@ -138,7 +138,8 @@ const VideoConfiguration kVideoConfig_PAL_640_512_25 = {7, 640, 512, 25,
 static const UInt8 BPLxPTH[MAX_PLANE_COUNT] = {BPL1PTH, BPL2PTH, BPL3PTH, BPL4PTH, BPL5PTH, BPL6PTH};
 static const UInt8 BPLxPTL[MAX_PLANE_COUNT] = {BPL1PTL, BPL2PTL, BPL3PTL, BPL4PTL, BPL5PTL, BPL6PTL};
 
-// Computes the size of a copper program in terms of instructions.
+// Computes the size of a Copper program. The size is given in terms of the
+// number of Copper instruction words.
 static Int CopperCompiler_GetScreenRefreshProgramInstructionCount(const VideoConfiguration* _Nonnull pConfig, Int nplanes)
 {
     return 3                // BPLCONx
@@ -150,7 +151,7 @@ static Int CopperCompiler_GetScreenRefreshProgramInstructionCount(const VideoCon
             + 1;            // DMACON
 }
 
-// Compiles a screen refresh copper program into the given buffer (which must be
+// Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
 static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, const VideoConfiguration* _Nonnull pConfig, Surface* _Nonnull pSurface, Bool isOddField, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled)
 {
@@ -214,7 +215,7 @@ static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnu
 //    pCode[ip++] = COP_MOVE(DMACON, 0x8320);
 }
 
-// Compiles a copper program to display a non-interlaced screen or a single field
+// Compiles a Copper program to display a non-interlaced screen or a single field
 // of an interlaced screen.
 static CopperInstruction* CopperProgram_CreateScreenRefresh(const VideoConfiguration* _Nonnull pConfig, Surface* _Nonnull pSurface, Bool isOddField, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled)
 {
@@ -236,7 +237,7 @@ failed:
     return NULL;
 }
 
-// Frees the given copper program.
+// Frees the given Copper program.
 static void CopperProgram_Destroy(CopperInstruction* _Nullable pCode)
 {
     kfree((Byte*)pCode);
@@ -308,7 +309,7 @@ static Display* _Nullable Display_Create(const VideoConfiguration* _Nonnull pCon
     FailFalse(okLocked);
     
     
-    // Compile the copper program
+    // Compile the Copper program
     FailFalse(Display_CompileCopperPrograms(pDisplay));
     
     return pDisplay;
@@ -372,7 +373,7 @@ extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
 
 
-// Returns the graphics device for the main screen.
+// Returns the graphics driver for the main screen.
 GraphicsDriverRef _Nonnull GraphicsDriver_GetMain(void)
 {
     return SystemGlobals_Get()->main_screen_gdevice;
@@ -440,7 +441,7 @@ failed:
     return NULL;
 }
 
-// Deallocates the given graphics device.
+// Deallocates the given graphics driver.
 void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
 {
     if (pDriver) {
@@ -482,12 +483,12 @@ Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDri
 }
 
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
-// that it will wait for some vblank to occur after this function has been invoked.
+// that it will wait for some vblank to happen after this function has been invoked.
 // No vblank that occured before this function was called will make it return.
 static void GraphicsDriver_WaitForVerticalBlank(GraphicsDriverRef _Nonnull pDriver)
 {
-    // First purge the vblank sema to ensure that we don't accidentaly pick some
-    // vblank that happened before this function was called.
+    // First purge the vblank sema to ensure that we don't accidentaly pick up some
+    // vblank that has happened before this function has been called.
     BinarySemaphore_TryAcquire(&pDriver->vblank_sema);
     
     // Now wait for the next vblank.
@@ -495,7 +496,7 @@ static void GraphicsDriver_WaitForVerticalBlank(GraphicsDriverRef _Nonnull pDriv
 }
 
 // Changes the video configuration. The driver allocates an appropriate framebuffer
-// and activates video refresh.
+// and activates the video refresh hardware.
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
 // \return the error code
@@ -539,7 +540,7 @@ void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
     }
 }
 
-// Fills the given rectangular area in the framebuffer with the given color.
+// Fills the pixels in the given rectangular framebuffer area with the given color.
 void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color)
 {
     const Surface* pSurface = GraphicsDriver_GetFramebuffer(pDriver);
@@ -567,7 +568,7 @@ void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Colo
     }
 }
 
-// Copies the given rectangular area from the framebuffer to a different location in the framebuffer.
+// Copies the given rectangular framebuffer area to a different location in the framebuffer.
 // Parts of the source rectangle which are outside the bounds of the framebuffer are treated as
 // transparent. This means that the corresponding destination pixels will be left alone and not
 // overwritten.
@@ -622,7 +623,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
     }
 }
 
-// Blits a monochromatic 8x8 pixel glyph to the given glyph cell in the framebuffer.
+// Blits a monochromatic 8x8 pixel glyph to the given position in the framebuffer.
 void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, Int x, Int y)
 {
     const Surface* pSurface = GraphicsDriver_GetFramebuffer(pDriver);
@@ -676,7 +677,7 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
     if (posr0 == posr1) {
         if ((posr0 & 0x0000ffff) < 0x10500) {
             *pPosX = (posr0 & 0x000000ff) << 1;
-            *pPosY = (posr0 & 0x1FF00) >> 8;
+            *pPosY = (posr0 & 0x1ff00) >> 8;
             
             if (pDriver->display->isInterlaced && posr0 < 0) {
                 // long frame (odd field) is offset in Y by one

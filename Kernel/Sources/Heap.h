@@ -14,7 +14,7 @@
 #include "SystemDescription.h"
 
 
-// A heap block structure describes the free or allocated block of memory. The
+// A heap block structure describes a freed or allocated block of memory. The
 // structure is placed right in front of the memory block. Note that the block
 // size includes the header size.
 typedef struct _Heap_Block {
@@ -57,10 +57,10 @@ typedef struct _Heap {
 //
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
-// allocated. 'options' is a combination of the HEAP_OPTION_XXX flags.
+// allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
 extern Byte* _Nullable kalloc(Int nbytes, UInt options);
 
-// Frees kernel memory allocated with teh kalloc() function.
+// Frees kernel memory allocated with the kalloc() function.
 extern void kfree(Byte* _Nullable ptr);
 
 
@@ -68,7 +68,7 @@ extern void kfree(Byte* _Nullable ptr);
 // Heap functions
 //
 
-// Returns a reference to the shared system heap
+// Returns a reference to the shared kernel heap
 extern Heap* _Nonnull Heap_GetShared(void);
 
 extern Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDesc, Int nMemDescs);

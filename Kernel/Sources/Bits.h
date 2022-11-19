@@ -13,8 +13,8 @@
 
 
 typedef struct _BitPointer {
-    Byte*   bytePointer;    // Pointer to byte which holds the bit
-    Int     bitIndex;       // Index of bit in the byte. Range [0, 7] with 0 == left-most bit and 7 == right-most bit
+    Byte*   bytePointer;    // Pointer to the byte which holds the bit at bit location 'bitIndex'
+    Int     bitIndex;       // Index of the bit in the byte. Range [0, 7] with 0 == left-most bit and 7 == right-most bit
 } BitPointer;
 
 
@@ -115,16 +115,16 @@ static inline Bool Bits_IsSet(const BitPointer pBits)
     return *pBits.bytePointer & (1 << (7 - pBits.bitIndex)) ? true : false;
 }
 
-// Scans the given bit array and returns the index to the first set bit. The
-// bits in the array are numbered from 0 to nbits-1 with 0 the first bit at 'pBits'.
+// Scans the given bit array and returns the index to the first bit set. The
+// bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
 // -1 is returned if no set bit is found.
 extern Int Bits_FindFirstSet(const BitPointer pBits, Int nbits);
 
 // Similar to Bits_FindFIrstSet() but scans from right to left.
 extern Int Bits_FindLastSet(const BitPointer pBits, Int nbits);
 
-// Scans the given bit array and returns the index to the first cleared bit. The
-// bits in the array are numbered from 0 to nbits-1 with 0 the first bit at 'pBits'.
+// Scans the given bit array and returns the index to the first bit cleared. The
+// bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
 // -1 is returned if no set bit is found.
 extern Int Bits_FindFirstCleared(const BitPointer pBits, Int nbits);
 

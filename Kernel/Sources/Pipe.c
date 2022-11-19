@@ -63,7 +63,7 @@ void Pipe_Destroy(PipeRef _Nullable pPipe)
 }
 
 // Closes the specified side of the pipe.
-void Pipe_Close(PipeRef _Nullable pPipe, PipeSide side)
+void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
 {
     Lock_Lock(&pPipe->lock);
     switch (side) {
@@ -83,7 +83,7 @@ void Pipe_Close(PipeRef _Nullable pPipe, PipeSide side)
 // Returns the number of bytes that can be read from the pipe without blocking if
 // 'side' is kPipe_Reader and the number of bytes the can be written without blocking
 // otherwise.
-Int Pipe_GetByteCount(PipeRef _Nullable pPipe, PipeSide side)
+Int Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side)
 {
     Int nbytes;
     
@@ -122,7 +122,7 @@ Int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
 // is read from the pipe and the amount of data read is returned. If blocking is
 // allowed and the pipe has to wait for data to arrive, then the wait will time out
 // after 'deadline' and a timeout error will be returned.
-Int Pipe_Read(PipeRef _Nullable pPipe, ErrorCode* _Nonnull pError, Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline)
+Int Pipe_Read(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline)
 {
     Int nBytesRead = 0;
 
@@ -172,7 +172,7 @@ Int Pipe_Read(PipeRef _Nullable pPipe, ErrorCode* _Nonnull pError, Byte* _Nonnul
     return nBytesRead;
 }
 
-Int Pipe_Write(PipeRef _Nullable pPipe, ErrorCode* _Nonnull pError, const Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline)
+Int Pipe_Write(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, const Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline)
 {
     Int nBytesWritten = 0;
 

@@ -55,8 +55,8 @@ static inline Int index_of_last_0_in_byte(Byte byte, Int high_idx_incl, Int low_
 }
 
 
-// Scans the given bit array and returns the index to the first set bit. The
-// bits in the array are numbered from 0 to nbits-1 with 0 the first bit at 'pBits'.
+// Scans the given bit array and returns the index to the first bit set. The
+// bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
 // -1 is returned if no set bit is found.
 Int Bits_FindFirstSet(const BitPointer pBits, Int nbits)
 {
@@ -135,8 +135,8 @@ Int Bits_FindLastSet(const BitPointer pBits, Int nbits)
     }
 }
 
-// Scans the given bit array and returns the index to the first cleared bit. The
-// bits in the array are numbered from 0 to nbits-1 with 0 the first bit at 'pBits'.
+// Scans the given bit array and returns the index to the first bit cleared. The
+// bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
 // -1 is returned if no set bit is found.
 Int Bits_FindFirstCleared(const BitPointer pBits, Int nbits)
 {

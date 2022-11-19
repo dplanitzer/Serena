@@ -21,13 +21,13 @@
 
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
-// allocated. 'options' is a combination of the HEAP_OPTION_XXX flags.
+// allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
 Byte* _Nullable kalloc(Int nbytes, UInt options)
 {
     return Heap_AllocateBytes(Heap_GetShared(), nbytes, options);
 }
 
-// Frees kernel memory allocated with teh kalloc() function.
+// Frees kernel memory allocated with the kalloc() function.
 void kfree(Byte* _Nullable ptr)
 {
     Heap_DeallocateBytes(Heap_GetShared(), ptr);
@@ -111,7 +111,7 @@ Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMem
 }
 
 // Returns the correct memory region access mode for the given heap options.
-// Assumes CPU access if no explicit access options was specified.
+// Assumes CPU access if no explicit access options were specified.
 // Note that chipset access always also implies CPU access on the Amiga.
 static UInt8 mem_access_mode_from_options(Int options)
 {

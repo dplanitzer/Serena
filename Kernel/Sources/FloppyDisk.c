@@ -164,7 +164,9 @@ typedef struct _ADF_SectorHeader
 // The MFM decoder/encoder code is based on:
 // see http://lclevy.free.fr/adflib/adf_info.html
 //
-// Copyright notice:
+// The following copyright notice applies to the functions:
+// mfm_decode_sector(), mfm_encode_sector()
+//
 //
 // This document is Copyright (C) 1997-1999 by Laurent Clévy, but may be freely distributed, provided the author name and addresses are included and no money is charged for this document.
 //
@@ -308,7 +310,7 @@ void FloppyDisk_Destroy(FloppyDisk* _Nullable pDisk)
     }
 }
 
-// Computes and returns afloppy status from the given fdc drive status.
+// Computes and returns the floppy status from the given fdc drive status.
 static inline ErrorCode FloppyDisk_StatusFromDriveStatus(UInt drvstat)
 {
     if ((drvstat & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
@@ -342,7 +344,7 @@ static ErrorCode FloppyDisk_WaitDriveReady(FloppyDisk* _Nonnull pDisk)
 // Seeks to track #0 and selects head #0. Returns true if the function seeked at
 // least once.
 // Note that this function is expected to implicitly acknowledge a disk change if
-// it actually seeked.
+// it has actually seeked.
 static Bool FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
 {
     Bool did_step_once = false;
@@ -352,7 +354,7 @@ static Bool FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
-    // we have to wait or not. So just wait to be safe.
+    // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
     VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18));
     
     for(;;) {
@@ -368,7 +370,7 @@ static Bool FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
     }
     fdc_select_head(&pDisk->ciabprb, 0);
     
-    // Settle time (includes the 100us settle time for the head select)
+    // Head settle time (includes the 100us settle time for the head select)
     VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(15));
     
     pDisk->head = 0;
@@ -447,12 +449,12 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
 }
 
 // Resets the floppy drive. This function figures out whether there is an actual
-// physical floppy drive connected, whether it responds to commands and it moves
-// the disk heads to track 0.
+// physical floppy drive connected and whether it responds to commands and it then
+// moves the disk head to track #0.
 // Note that this function leaves the floppy motor turned on and that it implicitly
 // acknowledges any pending disk change.
 // Upper layer code should treat this function like a disk change.
-void Floppy_Reset(FloppyDisk* _Nonnull pDisk)
+void FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk)
 {
     FloppyDisk_InvalidateTrackBuffer(pDisk);
     pDisk->head = -1;
@@ -486,13 +488,14 @@ ErrorCode FloppyDisk_GetStatus(FloppyDisk* _Nonnull pDisk)
 }
 
 // The following functions may return an EDISKCHANGE error when called:
-// - floppy_get_status()
-// - floppy_read_sector()
-// - floppy_write_sector()
-// You MUST either call floppy_acknowledge_diskchange() or floppy_reset() in this
-// to acknowledge the disk change. If floppy_get_status() continues to return
-// EDISKCHANGE after acking the disk change, then this means that there is no disk
-// in the drive.
+// - FloppyDisk_GetStatus()
+// - FloppyDisk_ReadSector()
+// - FloppyDisk_WriteSector()
+//
+// You MUST either call FloppyDisk_AcknowledgeDiskChange() or FloppyDisk_Reset()
+// in this case to acknowledge the disk change. If the FloppyDisk_GetStatus()
+// function continues to return EDISKCHANGE after acking' the disk change, then
+// you know that there is no disk in the disk drive.
 void FloppyDisk_AcknowledgeDiskChange(FloppyDisk* _Nonnull pDisk)
 {
     // Step by one track. This clears the disk change drive state if there is a
@@ -585,7 +588,7 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDisk* _Nonnull pDisk, Int head, Int 
             break;
         }
         
-        // MFM decode the header info
+        // MFM decode the sector header
         mfm_decode_sector((const UInt32*)&track_buffer[i], (UInt32*)&header.format, 1);
         
         // Validate the sector header. We record valid sectors only.
@@ -594,7 +597,7 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDisk* _Nonnull pDisk, Int head, Int 
         }
         
         // Record the sector. Note that a sector may appear more than once because
-        // we may have read more data from teh disk than fits in a single track. We
+        // we may have read more data from the disk than fits in a single track. We
         // keep the first occurence of a sector.
         if (sector_table[header.sector] == 0) {
             sector_table[header.sector] = i;

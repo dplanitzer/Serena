@@ -99,5 +99,5 @@ InvalidSystemCall:
     ; NOT REACHED
 
 .invsyscall_errmsg:
-    dc.b    "Invalid sys call", 0
+    dc.b    "Invalid syscall", 0
     align   2

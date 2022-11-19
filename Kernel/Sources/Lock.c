@@ -46,7 +46,7 @@ void Lock_Destroy(Lock* _Nullable pLock)
     }
 }
 
-// Blocks the caller until the lock can be taken.
+// Blocks the caller until the lock can be taken successfully.
 void Lock_Lock(Lock* _Nonnull pLock)
 {
     BinarySemaphore_Acquire(&pLock->sema, kTimeInterval_Infinity);

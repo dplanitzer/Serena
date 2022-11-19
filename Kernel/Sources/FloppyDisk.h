@@ -54,18 +54,18 @@ typedef struct _FloppyDMA {
 extern FloppyDMA* _Nonnull FloppyDMA_GetShared(void);
 
 // Creates the floppy DMA singleton
-extern FloppyDMA* _Nonnull FloppyDMA_Create(void);
+extern FloppyDMA* _Nullable FloppyDMA_Create(void);
 
 
 
-// Stores the state for a floppy drive.
+// Stores the state of a single floppy drive.
 // !!! Keep in sync with memory.i !!!
 typedef struct _FloppyDisk {
     UInt16* _Nonnull    track_buffer;                               // cached track data (MFM encoded)
     Int16               track_size;                                 // cache size in words
     Int16               track_sectors[FLOPPY_SECTORS_CAPACITY];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist
-    Int8                head;                                       // currently selected drive head; -1 means unknown -> need to call floppy_reset()
-    Int8                cylinder;                                   // currently selected drive cylinder; -1 means unknown -> need to call floppy_reset()
+    Int8                head;                                       // currently selected drive head; -1 means unknown -> need to call FloppyDisk_Reset()
+    Int8                cylinder;                                   // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_Reset()
     Int8                drive;                                      // drive number that this fd object represents
     UInt8               flags;
     FdcControlByte      ciabprb;                                    // shadow copy of the CIA BPRB register for this floppy drive
@@ -76,7 +76,7 @@ typedef struct _FloppyDisk {
 extern FloppyDisk* _Nullable FloppyDisk_Create(Int drive);
 extern void FloppyDisk_Destroy(FloppyDisk* _Nullable pDisk);
 
-extern void Floppy_Reset(FloppyDisk* _Nonnull pDisk);
+extern void FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk);
 
 extern ErrorCode FloppyDisk_GetStatus(FloppyDisk* _Nonnull pDisk);
 
@@ -86,6 +86,6 @@ extern void FloppyDisk_MotorOff(FloppyDisk* _Nonnull pDisk);
 extern void FloppyDisk_AcknowledgeDiskChange(FloppyDisk* _Nonnull pDisk);
 
 extern ErrorCode FloppyDisk_ReadSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder, Int sector, Byte* _Nonnull pBuffer);
-extern ErrorCode Floppy_WriteSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder, Int sector, const Byte* _Nonnull pBuffer);
+extern ErrorCode FloppyDisk_WriteSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder, Int sector, const Byte* _Nonnull pBuffer);
 
 #endif /* FloppyDisk_h */

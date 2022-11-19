@@ -13,7 +13,7 @@
 #include "Geometry.h"
 
 
-// Pixel formats supported by the framebuffers
+// The pixel formats supported by framebuffers
 typedef enum _PixelFormat {
     kPixelFormat_RGB_Indexed1,      // planar indexed RGB with 1 plane
     kPixelFormat_RGB_Indexed2,      // planar indexed RGB with 2 planes

@@ -17,7 +17,7 @@ extern void zorro3_auto_config(SystemDescription* pSysDesc);
 
 Bool mem_probe(Byte* addr)
 {
-    static const char* MEM_PATTERN = "HbGtF1J8";
+    static const Byte* MEM_PATTERN = (const Byte*)"HbGtF1J8";
     Byte saved_bytes[8];
     Byte read_bytes[8];
     

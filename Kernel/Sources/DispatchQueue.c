@@ -44,11 +44,11 @@ typedef struct _Timer {
 typedef struct _DispatchQueue {
     List                item_queue;     // Queue of work items that should be executed as soon as possible
     List                timer_queue;    // Queue of items that should be executed on or after their deadline
-    WorkItem*           item_cache[MAX_ITEM_CACHE_COUNT];   // Small cache of immediate items
+    WorkItem*           item_cache[MAX_ITEM_CACHE_COUNT];   // Small cache of reusable work items
     Int                 item_cache_count;
     Lock                lock;
     ConditionVariable   cond_var;
-    Array               vps;            // 'maxConcurrency' virtual processors
+    Array               vps;            // 'maxConcurrency' virtual processors providing processing power to the queue
     Int8                maxConcurrency;
     Int8                qos;
     Int8                priority;
@@ -69,7 +69,8 @@ static void WorkItem_Init(WorkItem* _Nonnull pItem, enum ItemType type, Dispatch
     pItem->type = type;
 }
 
-// Creates a work item which will invoke the given closure.
+// Creates a work item which will invoke the given closure. Note that work items
+// are one-shot: they execute their closure and then the work item is destroyed.
 WorkItemRef _Nullable WorkItem_Create(DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     WorkItem* pItem = (WorkItem*) kalloc(sizeof(WorkItem), HEAP_ALLOC_OPTION_CPU);
@@ -146,7 +147,7 @@ void Timer_Destroy(TimerRef _Nullable pTimer)
 // MARK: Dispatch Queue
 
 
-// Called at kernel startup time in order to create all Kernel queues. Aborts
+// Called at kernel startup time in order to create all kernel queues. Aborts
 // if creation of a queue fails.
 void DispatchQueue_CreateKernelQueues(const SystemDescription* _Nonnull pSysDesc)
 {
@@ -245,7 +246,7 @@ void DispatchQueue_DispatchWorkItem(DispatchQueueRef _Nonnull pQueue, WorkItemRe
     ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
 }
 
-// Adds the given timer to the timer queue. Expects that the queu is already
+// Adds the given timer to the timer queue. Expects that the queue is already
 // locked. Does not wake up the queue.
 static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Timer* _Nonnull pTimer)
 {
@@ -343,11 +344,11 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         Lock_Lock(&pQueue->lock);
 
         // Rearm a repeating timer if we executed a repeating timer in the previous
-        // iteration and it hasn't been cancelled in the meantime.
+        // iteration and it's not been cancelled in meanwhile.
         if (pTimerToRearm) {
             if (!pTimerToRearm->item.cancelled) {
-                // Repeating timer: rearm it with the next fire date which is
-                // in the future (the next fire date we haven't already missed).
+                // Repeating timer: rearm it with the next fire date that's in
+                // the future (the next fire date we haven't already missed).
                 const TimeInterval curTime = MonotonicClock_GetCurrentTime();
                 
                 do  {
@@ -360,14 +361,14 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
         
         
-        // Wait for a work items to arrive or for timers to fire
+        // Wait for work items to arrive or for timers to fire
         while (true) {
             if (pQueue->item_queue.first) {
                 break;
             }
             
-            // Compute the deadline for the wait. We do not wait if the deadline
-            // is now or was in the past
+            // Compute a deadline for the wait. We do not wait if the deadline
+            // is equal to the current time or it's in the past
             TimeInterval deadline;
 
             if (pQueue->timer_queue.first) {

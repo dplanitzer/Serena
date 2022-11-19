@@ -14,9 +14,9 @@
 
 typedef Int32 Quantums;             // Time unit of the scheduler clock which increments monotonically and once per quantum interrupt
 
-// Represents metric time based on seconds and nanoseconds in a second. All TimeInterval
-// functions expect time interval inputs in canonical form meaning that the nanoseconds
-// field is in the range [0..1000_000_000). Negative time interval values are represented
+// Represents time as measured in seconds and nanoseconds. All TimeInterval functions
+// expect time interval inputs in canonical form - meaning the nanoseconds field
+// is in the range [0..1000_000_000). Negative time interval values are represented
 // with a negative seconds field if seconds != 0 and a negative nanoseconds field if
 // seconds == 0 and nanoseconds != 0.
 // The TimeInterval type is a saturating type. This means that a time value is set to

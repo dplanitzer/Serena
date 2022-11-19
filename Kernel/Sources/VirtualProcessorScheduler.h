@@ -15,8 +15,8 @@
 #include "VirtualProcessor.h"
 
 
-// Set if the context switcher should activate the VP set in 'running' and
-// deactivate the VP set in 'runnerup'.
+// Set if the context switcher should activate the VP set in 'scheduled' and
+// deactivate the VP set in 'running'.
 #define CSW_SIGNAL_SWITCH   0x01
 
 
@@ -41,7 +41,7 @@ typedef struct _ReadyQueue {
 typedef struct _VirtualProcessorScheduler {
     volatile VirtualProcessor* _Nonnull running;                        // Currently running VP
     VirtualProcessor* _Nullable         scheduled;                      // The VP that should be moved to the running state by the context switcher
-    VirtualProcessor* _Nonnull          idleVirtualProcessor;           // THis is VP is scheduled if there is no other VP to schedule
+    VirtualProcessor* _Nonnull          idleVirtualProcessor;           // This VP is scheduled if there is no other VP to schedule
     ReadyQueue                          ready_queue;
     volatile UInt32                     csw_scratch;                    // Used by the CSW to temporarily save A0
     volatile UInt8                      csw_signals;                    // Signals to the context switcher
@@ -49,7 +49,7 @@ typedef struct _VirtualProcessorScheduler {
     UInt8                               flags;                          // Scheduler flags
     Int8                                reserved[1];
     Quantums                            quantums_per_quater_second;     // 1/4 second in terms of quantums
-    List                                timeout_queue;                  // Timeout queue managed by the scheduler. Sorted descending
+    List                                timeout_queue;                  // Timeout queue managed by the scheduler. Sorted ascending
     List                                sleep_queue;                    // VPs which use a sleep() call wait on this wait queue
     List                                scheduler_wait_queue;           // The scheduler VP waits on this queue
     List                                finalizer_queue;
@@ -66,7 +66,7 @@ extern void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorSchedu
 extern void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler* _Nonnull pScheduler);
 
 // Put the currently running VP (the caller) on the given wait queue. Then runs
-// the scheduler to select another VP to run and context switches to that new VP
+// the scheduler to select another VP to run and context switches to the new VP
 // right away.
 // Expects to be called with preemption disabled. Temporarily reenables
 // preemption when context switching to another VP. Returns to the caller with

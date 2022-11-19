@@ -12,6 +12,10 @@
 #include "Foundation.h"
 
 
+//
+// A type generic array
+//
+
 typedef struct _Array {
     Byte* _Nonnull  bytes;
     Int             capacity;
@@ -128,6 +132,9 @@ do {\
 } while(0)
 
 
+//
+// A specialization of the type generic array which stores pointers to untyped memory
+//
 
 extern Array* _Nullable PointerArray_Create(Int minCapacity);
 extern void PointerArray_Init(Array* _Nonnull pArray, Int minCapacity);

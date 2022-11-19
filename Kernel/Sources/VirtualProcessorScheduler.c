@@ -231,7 +231,7 @@ static void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _
 }
 
 // Put the currently running VP (the caller) on the given wait queue. Then runs
-// the scheduler to select another VP to run and context switches to that new VP
+// the scheduler to select another VP to run and context switches to the new VP
 // right away.
 // Expects to be called with preemption disabled. Temporarily reenables
 // preemption when context switching to another VP. Returns to the caller with
@@ -366,7 +366,7 @@ ErrorCode VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnu
 // Wakes up a specific VP waiting on the wait queue 'pWaitQueue'. The woken up
 // VP is removed from the wait queue. Expects to be called with preemption
 // disabled.
-// Rteurns EBUSY if the wakeup reason is interrupt but the VP is in an uninterruptable
+// Returns EBUSY if the wakeup reason is interrupt but the VP is in an uninterruptable
 // sleep.
 ErrorCode VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
 {
@@ -375,7 +375,7 @@ ErrorCode VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnul
     // fact that it wanted to wake up the VP is noted somehwere. Eg by using a semaphore.
     if (InterruptController_IsServicingInterrupt(InterruptController_GetShared())) {
         if (pScheduler->running == pVP) {
-            return;
+            return EOK;
         }
     }
     
@@ -527,7 +527,7 @@ ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
 Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 {
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const pri = pVP->priority;
+    const Int pri = pVP->priority;
     
     VirtualProcessorScheduler_RestorePreemption(sps);
     return pri;

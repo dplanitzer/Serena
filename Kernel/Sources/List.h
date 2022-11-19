@@ -13,7 +13,7 @@
 
 
 //
-// A double linked list.
+// A doubly linked list.
 //
 
 typedef struct _ListNode {

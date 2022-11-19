@@ -9,9 +9,9 @@
 #include "Bytes.h"
 
 
-// Scans the 'nbytes' consecutive bytes starting at 'p' and returns the offset
-// to the first byte that is equal to 'mark'. -1 if 'mark' does not appear in
-// the given range.
+// Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
+// the offset to the first byte that is equal to 'mark'. -1 if 'mark' does
+// not appear in the given range.
 Int Bytes_FindFirst(const Byte* _Nonnull p, Int nbytes, Byte mark)
 {
     const Byte* cur_p = p;
@@ -27,9 +27,9 @@ Int Bytes_FindFirst(const Byte* _Nonnull p, Int nbytes, Byte mark)
     return -1;
 }
 
-// Scans the 'nbytes' consecutive bytes starting at 'p' and returns the offset
-// to the first byte that is not equal to 'mark'. -1 if 'mark' appears in the
-// given range.
+// Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
+// the offset to the first byte that is not equal to 'mark'. -1 if 'mark'
+// appears in the given range.
 Int Bytes_FindFirstNotEquals(const Byte* _Nonnull p, Int nbytes, Byte mark)
 {
     const Byte* cur_p = p;
@@ -45,9 +45,9 @@ Int Bytes_FindFirstNotEquals(const Byte* _Nonnull p, Int nbytes, Byte mark)
     return -1;
 }
 
-// Scans the 'nbytes' consecutive bytes starting at 'p' and returns the offset
-// to the last byte that is equal to 'mark'. -1 if 'mark' does not appear in
-// the given range.
+// Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
+// the offset to the last byte that is equal to 'mark'. -1 if 'mark' does not
+// appear in the given range.
 Int Bytes_FindLast(const Byte* _Nonnull p, Int nbytes, Byte mark)
 {
     const Byte* cur_p = p + nbytes - 1;
@@ -62,9 +62,9 @@ Int Bytes_FindLast(const Byte* _Nonnull p, Int nbytes, Byte mark)
     return -1;
 }
 
-// Scans the 'nbytes' consecutive bytes starting at 'p' and returns the offset
-// to the last byte that is not equal to 'mark'. -1 if 'mark' appears in the
-// given range.
+// Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
+// the offset to the last byte that is not equal to 'mark'. -1 if 'mark'
+// appears in the given range.
 Int Bytes_FindLastNotEquals(const Byte* _Nonnull p, Int nbytes, Byte mark)
 {
     const Byte* cur_p = p;
@@ -99,7 +99,7 @@ Int Bytes_FindFirstDifference(const Byte* _Nonnull s1, const Byte* _Nonnull s2, 
     return -1;
 }
 
-// Copies 'n' consecutive bytes from 'src' to 'dst'.
+// Copies 'n' contiguous bytes in memory from 'src' to 'dst'.
 void Bytes_CopyRange(Byte* _Nonnull dst, const Byte* _Nonnull src, Int n)
 {
     assert(n >= 0);
@@ -153,7 +153,7 @@ void Bytes_CopyRange(Byte* _Nonnull dst, const Byte* _Nonnull src, Int n)
     }
 }
 
-// Zeros out 'len' consectuive bytes starting at 'p'
+// Zeros out 'len' contiguous bytes in memory starting at 'p'
 void Bytes_ClearRange(Byte* _Nonnull p, Int len)
 {
     assert(len >= 0);
