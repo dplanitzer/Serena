@@ -42,7 +42,7 @@
       allowLocationSimulation = "YES">
       <PathRunnable
          runnableDebuggingMode = "0"
-         FilePath = "/Users/dave/Developer/Apollo/XcodeRunner">
+         FilePath = "~/Developer/Apollo/XcodeRunner">
       </PathRunnable>
       <MacroExpansion>
          <BuildableReference
