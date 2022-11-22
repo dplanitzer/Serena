@@ -402,7 +402,7 @@ ErrorCode EventDriver_GetEvents(EventDriverRef _Nonnull pDriver, HIDEvent* _Nonn
 
 
 // Returns true if the given key should be auto-repeated
-static EventDriver_ShouldAutoRepeatKeycode(EventDriver* _Nonnull pDriver, HIDKeyCode usbcode)
+static Bool EventDriver_ShouldAutoRepeatKeycode(EventDriver* _Nonnull pDriver, HIDKeyCode usbcode)
 {
     // Everything except:
     // - modifier keys
@@ -484,7 +484,7 @@ static void KeyRepeater_Cancel(KeyRepeater* _Nonnull pRepeater)
 
 // Update the key auto-repeater state and return true if an auto-repeat event should
 // be generated.
-static Bool KeyRepeater_ShouldRepeat(KeyRepeater* _Nonnull pRepeater, EventDriver* _Nonnull pDriver, TimeInterval _Nonnull curTime)
+static Bool KeyRepeater_ShouldRepeat(KeyRepeater* _Nonnull pRepeater, EventDriver* _Nonnull pDriver, TimeInterval curTime)
 {
     switch (pRepeater->state) {
         case kKeyRepeaterState_InitialDelay: {

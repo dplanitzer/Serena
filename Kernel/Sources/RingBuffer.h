@@ -43,8 +43,7 @@ static inline Int RingBuffer_ReadableCount(RingBuffer* _Nonnull pBuffer) {
     return pBuffer->writeIdx - pBuffer->readIdx;
 }
 
-// Returns the number of bytes that can still be written to the ring buffer. Also
-// know as the space that is available for writing.
+// Returns the number of bytes that can be written to the ring buffer.
 static inline Int RingBuffer_WritableCount(RingBuffer* _Nonnull pBuffer) {
     return pBuffer->capacity - (pBuffer->writeIdx - pBuffer->readIdx);
 }
