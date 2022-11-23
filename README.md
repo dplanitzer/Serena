@@ -1,4 +1,4 @@
-## About The Project
+  ## About The Project
 
 Apollo is an experimental operating system for the Amiga 4000 computer with support for user and kernel space concurrency and reentracy.
 
@@ -102,3 +102,9 @@ It may be that if you invoke the makefile or run.sh script that it looks like as
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
+
+## Contact
+
+Dietmar Planitzer - [@linkedin](https://www.linkedin.com/in/dplanitzer)
+
+Project link: [https://github.com/dplanitzer/Apollo](https://github.com/dplanitzer/Apollo)
