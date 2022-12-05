@@ -10,6 +10,7 @@
 
 
 const Point Point_Zero = {0, 0};
+const Vector Vector_Zero = {0, 0};
 const Size Size_Zero = {0, 0};
 const Rect Rect_Empty = { 0, 0, 0, 0 };
 

@@ -25,7 +25,10 @@ enum {
     kHIDEventType_FlagsChanged,
     kHIDEventType_MouseDown,
     kHIDEventType_MouseUp,
-    kHIDEventType_MouseMoved
+    kHIDEventType_MouseMoved,
+    kHIDEventType_JoystickDown,
+    kHIDEventType_JoystickUp,
+    kHIDEventType_JoystickMotion
 };
 
 
@@ -70,6 +73,18 @@ typedef union _HIDEventData {
     struct _HIDEventData_MouseMove {
         Point       location;
     }   mouseMoved;
+    
+    struct _HIDEventData_JoystickButton {
+        Int         port;           // Input controller port number
+        Int         buttonNumber;
+        UInt32      flags;          // modifier keys
+        Vector      direction;      // Joystick direction when the button was pressed / released
+    }   joystick;
+    
+    struct _HIDEventData_JoystickMotion {
+        Int         port;           // Input controller port number
+        Vector      direction;
+    }   joystickMotion;
 } HIDEventData;
 
 
@@ -81,10 +96,23 @@ typedef struct _HIDEvent {
 } HIDEvent;
 
 
+// Input controller types
+typedef enum _InputControllerType {
+    kInputControllerType_None = 0,      // No input controller configured for the port
+    kInputControllerType_Mouse,
+    kInputControllerType_DigitalJoystick,
+    kInputControllerType_AnalogJoystick,
+    kInputControllerType_LightPen
+} InputControllerType;
+
+
 extern EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice);
 extern void EventDriver_Destroy(EventDriverRef _Nullable pDriver);
 
 extern GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull pDriver);
+
+extern InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId);
+extern void EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
 
 extern void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
 extern void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay);

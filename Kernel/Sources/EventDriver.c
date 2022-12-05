@@ -45,6 +45,32 @@
 // delivery is done once per vertical blank, this model minimizes overhead.
 
 
+// Per port input controller state
+typedef struct _InputControllerState {
+    InputControllerType     type;
+    union {
+        struct _MouseState {
+            MouseDriverRef _Nonnull driver;
+        }   mouse;
+        
+        struct _DigitalJoystickState {
+            DigitalJoystickDriverRef _Nonnull   driver;
+            JoystickReport                      previous;       // hardware state corresponding to most recently posted events
+        }   digitalJoystick;
+        
+        struct _AnalogJoystickState {
+            AnalogJoystickDriverRef _Nonnull    driver;
+            JoystickReport                      previous;       // hardware state corresponding to most recently posted events
+        }   analogJoystick;
+        
+        struct _LightPenState {
+            LightPenDriverRef _Nonnull  driver;
+            // XXX is state per light pen or map to mouse state?
+        }   lightPen;
+    }                       u;
+} InputControllerState;
+
+
 // State to handle auto-repeat for a single key. We support up to 5 simultaneously
 // auto-repeating keys
 #define KEY_REPEATERS_COUNT 5
@@ -66,11 +92,12 @@ typedef struct _KeyRepeater {
 } KeyRepeater;
 
 
-#define EVENT_QUEUE_MAX_EVENTS  32
-#define KEY_MAP_INTS_COUNT      (256/32)
+#define EVENT_QUEUE_MAX_EVENTS      32
+#define KEY_MAP_INTS_COUNT          (256/32)
+#define MAX_INPUT_CONTROLLER_PORTS  2
 typedef struct _EventDriver {
     KeyboardDriverRef _Nonnull  keyboard_driver;
-    MouseDriverRef _Nonnull     mouse_driver;
+    InputControllerState        port[MAX_INPUT_CONTROLLER_PORTS];
     
     VirtualProcessor* _Nonnull  event_vp;
     Lock                        lock;
@@ -94,14 +121,16 @@ typedef struct _EventDriver {
     Int16                       screen_rect_h;
     Int16                       mouse_x;
     Int16                       mouse_y;
-    UInt32                      mouse_buttons;
-    UInt32                      mouse_prev_buttons_state;   // state of the mouse buttons at the previous vblank
+    UInt32                      mouse_buttons;              // most recent state of the mouse buttons as reported by the mouse driver
+    UInt32                      mouse_prev_buttons_state;   // state of the mouse buttons corresponding to the most recently posted  button events
     volatile Int                mouseCursorHiddenCounter;
     volatile Bool               isMouseCursorObscured;      // hidden until the mouse moves
     volatile Bool               mouseConfigDidChange;       // tells the event VP to apply the new mouse config to the graphics driver
 } EventDriver;
 
 
+static void EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
+static void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
 static void EventDriver_Run(EventDriver* _Nonnull pDriver);
 
 
@@ -158,8 +187,11 @@ EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
     pDriver->keyboard_driver = KeyboardDriver_Create(pDriver);
     assert(pDriver->keyboard_driver != NULL);
 
-    pDriver->mouse_driver = MouseDriver_Create(pDriver, 0);
-    assert(pDriver->mouse_driver != NULL);
+    for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+        pDriver->port[i].type = kInputControllerType_None;
+    }
+    
+    EventDriver_CreateInputControllerForPort(pDriver, kInputControllerType_Mouse, 0);
 
     InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->vb_irq, true);
     VirtualProcessor_Resume(pDriver->event_vp, false);
@@ -175,7 +207,9 @@ void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
 {
     if (pDriver) {
         KeyboardDriver_Destroy(pDriver->keyboard_driver);
-        MouseDriver_Destroy(pDriver->mouse_driver);
+        for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+            EventDriver_DestroyInputControllerForPort(pDriver, i);
+        }
         
         pDriver->gdevice = NULL;
         InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq);
@@ -188,9 +222,108 @@ void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
     }
 }
 
+// Creates a new input controller driver instance for the port 'portId'. Expects that the port
+// is currently unassigned (aka type is == 'none').
+static void EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
+{
+    switch (type) {
+        case kInputControllerType_None:
+            break;
+            
+        case kInputControllerType_Mouse:
+            pDriver->port[portId].u.mouse.driver = MouseDriver_Create(pDriver, portId);
+            assert(pDriver->port[portId].u.mouse.driver != NULL);
+            break;
+            
+        case kInputControllerType_DigitalJoystick:
+            pDriver->port[portId].u.digitalJoystick.driver = DigitalJoystickDriver_Create(pDriver, portId);
+            assert(pDriver->port[portId].u.digitalJoystick.driver != NULL);
+            pDriver->port[portId].u.digitalJoystick.previous.buttonsDown = 0;
+            pDriver->port[portId].u.digitalJoystick.previous.xAbs = 0;
+            pDriver->port[portId].u.digitalJoystick.previous.yAbs = 0;
+            break;
+            
+        case kInputControllerType_AnalogJoystick:
+            pDriver->port[portId].u.analogJoystick.driver = AnalogJoystickDriver_Create(pDriver, portId);
+            assert(pDriver->port[portId].u.analogJoystick.driver != NULL);
+            pDriver->port[portId].u.analogJoystick.previous.buttonsDown = 0;
+            pDriver->port[portId].u.analogJoystick.previous.xAbs = 0;
+            pDriver->port[portId].u.analogJoystick.previous.yAbs = 0;
+            break;
+            
+        case kInputControllerType_LightPen:
+            pDriver->port[portId].u.lightPen.driver = LightPenDriver_Create(pDriver, portId);
+            assert(pDriver->port[portId].u.lightPen.driver != NULL);
+            break;
+            
+        default:
+            abort();
+    }
+    
+    pDriver->port[portId].type = type;
+}
+
+// Destroys the input controller that is configured for port 'portId'. This frees the input controller
+// specific driver and all associated state
+static void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId)
+{
+    switch (pDriver->port[portId].type) {
+        case kInputControllerType_None:
+            break;
+            
+        case kInputControllerType_Mouse:
+            MouseDriver_Destroy(pDriver->port[portId].u.mouse.driver);
+            pDriver->port[portId].u.mouse.driver = NULL;
+            break;
+            
+        case kInputControllerType_DigitalJoystick:
+            DigitalJoystickDriver_Destroy(pDriver->port[portId].u.digitalJoystick.driver);
+            pDriver->port[portId].u.digitalJoystick.driver = NULL;
+            break;
+            
+        case kInputControllerType_AnalogJoystick:
+            AnalogJoystickDriver_Destroy(pDriver->port[portId].u.analogJoystick.driver);
+            pDriver->port[portId].u.analogJoystick.driver = NULL;
+            break;
+            
+        case kInputControllerType_LightPen:
+            LightPenDriver_Destroy(pDriver->port[portId].u.lightPen.driver);
+            pDriver->port[portId].u.lightPen.driver = NULL;
+            break;
+            
+        default:
+            abort();
+    }
+    
+    pDriver->port[portId].type = kInputControllerType_None;
+}
+
 GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull pDriver)
 {
     return pDriver->gdevice;
+}
+
+InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId)
+{
+    InputControllerType type;
+    
+    assert(portId >= 0 && portId < MAX_INPUT_CONTROLLER_PORTS);
+    
+    Lock_Lock(&pDriver->lock);
+    type = pDriver->port[portId].type;
+    Lock_Unlock(&pDriver->lock);
+    
+    return type;
+}
+
+void EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
+{
+    assert(portId >= 0 && portId < MAX_INPUT_CONTROLLER_PORTS);
+
+    Lock_Lock(&pDriver->lock);
+    EventDriver_DestroyInputControllerForPort(pDriver, portId);
+    EventDriver_CreateInputControllerForPort(pDriver, type, portId);
+    Lock_Unlock(&pDriver->lock);
 }
 
 void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
@@ -574,7 +707,7 @@ static Bool EventDriver_UpdateFlags(EventDriverRef _Nonnull pDriver, const Keybo
     return false;
 }
 
-static void EventDriver_ProcessKeyInput(EventDriverRef _Nonnull pDriver, TimeInterval curTime)
+static void EventDriver_GenerateKeyboardEvents(EventDriverRef _Nonnull pDriver, TimeInterval curTime)
 {
     KeyboardReport report;
     HIDEvent evt;
@@ -662,7 +795,7 @@ static void EventDriver_ProcessKeyInput(EventDriverRef _Nonnull pDriver, TimeInt
     }
 }
 
-static void EventDriver_ProcessMouseInput(EventDriverRef _Nonnull pDriver, TimeInterval curTime)
+static void EventDriver_GenerateMouseEvents(EventDriverRef _Nonnull pDriver, TimeInterval curTime)
 {
     HIDEvent evt;
     const UInt32 old_buttons = pDriver->mouse_prev_buttons_state;
@@ -690,6 +823,8 @@ static void EventDriver_ProcessMouseInput(EventDriverRef _Nonnull pDriver, TimeI
             }
         }
     }
+    
+    pDriver->mouse_prev_buttons_state = pDriver->mouse_buttons;
 }
 
 static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
@@ -705,15 +840,27 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
     const Int16 mouse_max_y = mouse_min_y + max((pDriver->screen_rect_h - 1) - mouse_cursor_hotspot.y, 0);
     
     
-    // Update the mouse position
-    MouseReport report;
-    MouseDriver_GetReport(pDriver->mouse_driver, &report);
-    pDriver->mouse_x += report.xDelta;
-    pDriver->mouse_y += report.yDelta;
-    pDriver->mouse_x = min(max(pDriver->mouse_x, mouse_min_x), mouse_max_x);
-    pDriver->mouse_y = min(max(pDriver->mouse_y, mouse_min_y), mouse_max_y);
-    pDriver->mouse_prev_buttons_state = pDriver->mouse_buttons;
-    pDriver->mouse_buttons = report.buttonsDown;
+    // Update the mouse position and buttons
+    Bool hasMouseStateChanged = false;
+    
+    pDriver->mouse_buttons = 0;
+    
+    for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+        if (pDriver->port[i].type == kInputControllerType_Mouse) {
+            MouseReport report;
+            
+            MouseDriver_GetReport(pDriver->port[i].u.mouse.driver, &report);
+            pDriver->mouse_x += report.xDelta;
+            pDriver->mouse_y += report.yDelta;
+            pDriver->mouse_x = min(max(pDriver->mouse_x, mouse_min_x), mouse_max_x);
+            pDriver->mouse_y = min(max(pDriver->mouse_y, mouse_min_y), mouse_max_y);
+            pDriver->mouse_buttons |= report.buttonsDown;
+            
+            if (report.xDelta != 0 || report.yDelta != 0 || report.buttonsDown != 0) {
+                hasMouseStateChanged = true;
+            }
+        }
+    }
     
     
     if (pDriver->mouse_x != old_mouse_x || pDriver->mouse_y != old_mouse_y) {
@@ -726,7 +873,7 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
         pDriver->mouseConfigDidChange = false;
         
         // Unobscure the mouse cursor if it is obscured, supposed to be visible and the mouse has moved or the user has clicked
-        if (pDriver->isMouseCursorObscured && pDriver->mouseCursorHiddenCounter == 0 && (report.xDelta != 0 || report.yDelta != 0 || report.buttonsDown != 0)) {
+        if (pDriver->isMouseCursorObscured && pDriver->mouseCursorHiddenCounter == 0 && hasMouseStateChanged) {
             pDriver->isMouseCursorObscured = false;
             doShow = true;
         }
@@ -743,6 +890,84 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
     }
 }
 
+static void EventDriver_GenerateEventsForJoystickState(EventDriverRef _Nonnull pDriver, const JoystickReport* pCurrent, const JoystickReport* pPrevious, Int portId, TimeInterval curTime)
+{
+    HIDEvent evt;
+        
+    // Generate joystick button up/down events
+    const UInt32 old_buttons = pPrevious->buttonsDown;
+    const UInt32 new_buttons = pCurrent->buttonsDown;
+
+    if (new_buttons != old_buttons) {
+        // XXX should be able to ask the joystick input driver how many buttons it supports
+        for (Int i = 0; i < 2; i++) {
+            const UInt32 old_down = old_buttons & (1 << i);
+            const UInt32 new_down = new_buttons & (1 << i);
+                
+            if (old_down ^ new_down) {
+                if (old_down == 0 && new_down != 0) {
+                    evt.type = kHIDEventType_JoystickDown;
+                } else {
+                    evt.type = kHIDEventType_JoystickUp;
+                }
+                evt.eventTime = curTime;
+                evt.data.joystick.port = portId;
+                evt.data.joystick.buttonNumber = i;
+                evt.data.joystick.flags = pDriver->key_modifierFlags;
+                evt.data.joystick.direction.dx = pCurrent->xAbs;
+                evt.data.joystick.direction.dy = pCurrent->yAbs;
+                EventDriver_PutEvent_Locked(pDriver, &evt);
+            }
+        }
+    }
+    
+    
+    // Generate motion events
+    const Int16 diffX = pCurrent->xAbs - pPrevious->xAbs;
+    const Int16 diffY = pCurrent->yAbs - pPrevious->yAbs;
+    
+    if (diffX != 0 || diffY != 0) {
+        evt.type = kHIDEventType_JoystickMotion;
+        evt.eventTime = curTime;
+        evt.data.joystickMotion.port = portId;
+        evt.data.joystickMotion.direction.dx = pCurrent->xAbs;
+        evt.data.joystickMotion.direction.dy = pCurrent->yAbs;
+        EventDriver_PutEvent_Locked(pDriver, &evt);
+    }
+}
+
+static void EventDriver_GenerateJoysticksEvents(EventDriverRef _Nonnull pDriver, TimeInterval curTime)
+{
+    for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+        JoystickReport current;
+        
+        switch (pDriver->port[i].type) {
+            case kInputControllerType_AnalogJoystick:
+                AnalogJoystickDriver_GetReport(pDriver->port[i].u.analogJoystick.driver, &current);
+
+                EventDriver_GenerateEventsForJoystickState(pDriver,
+                                                           &current,
+                                                           &pDriver->port[i].u.analogJoystick.previous,
+                                                           i, curTime);
+                pDriver->port[i].u.analogJoystick.previous = current;
+                break;
+                
+            case kInputControllerType_DigitalJoystick:
+                DigitalJoystickDriver_GetReport(pDriver->port[i].u.digitalJoystick.driver, &current);
+
+                EventDriver_GenerateEventsForJoystickState(pDriver,
+                                                           &current,
+                                                           &pDriver->port[i].u.digitalJoystick.previous,
+                                                           i, curTime);
+                pDriver->port[i].u.digitalJoystick.previous = current;
+                break;
+                
+            default:
+                break;
+        }
+    }
+}
+
 static void EventDriver_Run(EventDriverRef _Nonnull pDriver)
 {
     while(true) {
@@ -753,16 +978,19 @@ static void EventDriver_Run(EventDriverRef _Nonnull pDriver)
 
         // Process mouse input
         EventDriver_UpdateMouseState(pDriver);
-
         
-        // Process keys
-        EventDriver_ProcessKeyInput(pDriver, curTime);
-
+        
+        // Generate keyboard events
+        EventDriver_GenerateKeyboardEvents(pDriver, curTime);
         
         // Generate mouse events
-        EventDriver_ProcessMouseInput(pDriver, curTime);
-
+        EventDriver_GenerateMouseEvents(pDriver, curTime);
         
+        // Generate joystick events
+        EventDriver_GenerateJoysticksEvents(pDriver, curTime);
+        
+        
+        // Wake up the event queue consumer
         ConditionVariable_Broadcast(&pDriver->event_queue_cv, &pDriver->lock);
     }
 }

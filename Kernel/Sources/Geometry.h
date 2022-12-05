@@ -33,6 +33,27 @@ static inline Bool Point_Equals(Point a, Point b) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
+typedef struct _Vector {
+    Int dx, dy;
+} Vector;
+
+
+extern const Vector Vector_Zero;
+
+static inline Vector Vector_Make(Int dx, Int dy) {
+    Vector vec;
+    vec.dx = dx; vec.dy = dy;
+    return vec;
+}
+
+static inline Bool Vector_Equals(Vector a, Vector b) {
+    return a.dx == b.dx && a.dy == b.dy;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
 typedef struct _Size {
     Int width, height;
 } Size;
