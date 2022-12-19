@@ -82,7 +82,7 @@ static void OnStartup(const SystemDescription* _Nonnull pSysDesc)
     cpu_enable_irqs();
 
     
-    // Initialize I/O dervices which are needed by the console
+    // Initialize I/O services needed by the console
     pGlobals->rtc = RealtimeClock_Create(pSysDesc);
     
     const VideoConfiguration* pVideoConfig;
@@ -94,6 +94,7 @@ static void OnStartup(const SystemDescription* _Nonnull pSysDesc)
     
     pGlobals->main_screen_gdevice = GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1);
     assert(pGlobals->main_screen_gdevice != NULL);
+    
     
     // Initialize the console
     pGlobals->console = Console_Create(pGlobals->main_screen_gdevice);

@@ -10,9 +10,9 @@
 #include "Platform.h"
 
 
-// Called from the Reset() function at system reset. Only a very minimal
-// environment is set up at this time. IRQs and DMAs are off, CPU vectors are
-// set up and a small reset stack is set up.
+// Called from the Reset() function at system reset time. Only a very minimal
+// environment is set up at this point. IRQs and DMAs are off, CPU vectors are
+// set up and a small reset stack exists.
 // OnReset() must finish the initialization of the provided system description.
 // The 'stack_base' and 'stack_size' fields are set up with the reset stack. All
 // other fields must be initialized before OnReset() returns.

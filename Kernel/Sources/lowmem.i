@@ -69,7 +69,7 @@ CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 ; heap, etc.
 ; This memory region is set up at reset / boot time.
 ;
-; This is how the memory map looks at reset time:
+; This is what the memory map looks like at reset time:
 ;
 ; -----------------------------------------------------------------------
 ; | CPU vectors | low memory | reset stack | chip RAM ...
@@ -83,14 +83,14 @@ CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 ; that should be managed by the heap.
 ; _Reset then calls OnReset() which takes care of finializing the initialization
 ; of the system description.
-; Once OnReset() returns _Reset calls OnBoot(). OnBoot() figure out where the
-; kernel stack should live and how big it should be. It tries to put the kernel
-; stack into fast RAM. It then updates the system description the information
+; Once OnReset() returns, _Reset calls OnBoot(). OnBoot() figures out where the
+; kernel stack should live in memory and how big it should be. It tries to put the
+; kernel stack into fast RAM. It then updates the system description with information
 ; about the new kernel stack and it then returns to _Reset.
 ; Once OnBoot() has returned, _Reset next switches to the new kernel stack and it
 ; then finally invokes OnStartup() which initializes the kernel.
 ; Note that OnStartup() is not allowed to return. If it does then _Reset will treat
-; this as a bug and panic the machine.
+; this as a bug and halt the machine.
 ;
 CPU_VECTORS_BASE            equ     0
 CPU_VECTORS_SIZEOF          equ     256*4
@@ -375,7 +375,7 @@ sg_SIZEOF                   so
     move.w  \1, sr
     endm
 
-; Disable voluntary context switches. This are context switches which are triggered
+; Disable voluntary context switches. These are context switches which are triggered
 ; by a call to wakeup()
     macro DISABLE_COOPERATION
     bclr    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, SCHEDULER_BASE + vps_flags

@@ -86,8 +86,8 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
 // Blocks the caller until 'deadline'. Returns true if the function did the
 // necessary delay and false if the caller should do something else instead to
 // achieve the desired delay. Eg context switch to another virtual processor.
-// Note that this function is only willing to block the caller for at most a few
-// milliseconds. Longer delays should be done via a scheduler wait().
+// Note that this function is only willing to block the caller for at most a
+// millisecond. Longer delays should be done via a scheduler wait().
 Bool MonotonicClock_DelayUntil(TimeInterval deadline)
 {
     const TimeInterval t_start = MonotonicClock_GetCurrentTime();

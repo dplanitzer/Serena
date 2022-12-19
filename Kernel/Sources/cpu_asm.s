@@ -174,10 +174,10 @@ _fpu_get_model:
 ; CPU type is given by 'cpu_type'.
 _cpu_get_bus_error_frame_size:
     inline
-    ; 68000  7 words                                         (68000UM page 6-17)
+    ; 68000   7 words                                        (68000UM page 6-17)
     ; 68010  29 words (format $8)                            (68000UM page 6-18)
-    ; 68020  16 words (format $a)  or  46 words (format $B)  (68020UM page 6-28)
-    ; 68030  16 words (format $a)  or  46 words (format $B)  (68030UM page 8-34)
+    ; 68020  16 words (format $a)  or  46 words (format $b)  (68020UM page 6-28)
+    ; 68030  16 words (format $a)  or  46 words (format $b)  (68030UM page 8-34)
     ; 68040  30 words (format $7)
     ; 68060   8 words (format $4)                            (UM68060 page 8-21)
         cmp.b   #0, d0
@@ -228,9 +228,9 @@ _cpu_get_bus_error_frame_size:
 
 ;-------------------------------------------------------------------------------
 ; Int cpu_guarded_read(Byte* src, Byte* buffer, Int buffer_size)
-; Reads the bytes starting at 'src' and writes them into 'buffer'. 'buffer_size'
+; Reads the bytes starting at 'src' and writes them to 'buffer'. 'buffer_size'
 ; bytes are read and copied. Catches bus errors and returns -1 in such an event.
-; Returns 0 if the all bytes have been successfully read. Must be called from
+; Returns 0 if all bytes have been successfully read. Must be called from
 ; supervisor mode.
 _cpu_guarded_read:
     inline

@@ -76,8 +76,9 @@ void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack)
 
 
 // Initializes a scheduler virtual processor. This is the virtual processor which
-// is used to grandfather in the initial thread of execution. It is the first VP that
-// is created for a physical processor. It then takes over duties for the scheduler.
+// is used to grandfather in the initial thread of execution at boot time. It is the
+// first VP that is created for a physical processor. It then takes over duties for
+// the scheduler.
 // \param pVP the boot virtual processor record
 // \param pSysDesc the system description
 // \param pClosure the closure that should be invoked by the virtual processor
@@ -106,13 +107,13 @@ void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemD
     pVP->kernel_stack.base = pStackBase;
     pVP->kernel_stack.size = nStackSize;
     VirtualProcessor_SetClosure(pVP, pClosure, pContext, false);
-    pVP->save_area.sr |= 0x0700;    // IRQs should be disabled
+    pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->state = kVirtualProcessorState_Ready;
     pVP->suspension_count = 0;
 }
 
 // Has to be called from the scheduler virtual processor context as early as possible
-// and after the heap has been initialized.
+// at kernel initialization time and right after the heap has been initialized.
 void SchedulerVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP)
 {
     SystemGlobals* pGlobals = SystemGlobals_Get();
@@ -137,7 +138,7 @@ void SchedulerVirtualProcessor_Run(Byte* _Nullable pContext)
         }
         
         // Got some work to do. Save off the needed data in local vars and then
-        // reenable preemption to do the actual work.
+        // reenable preemption before we go and do the actual work.
         dead_vps = pScheduler->finalizer_queue;
         List_Deinit(&pScheduler->finalizer_queue);
         
@@ -394,20 +395,22 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
 }
 
 // Reconfigures the flow of execution in the given virtual processor such that the
-// closure 'pClousre' will be invoked like a subroutine call in user space. The
+// closure 'pClosure' will be invoked like a subroutine call in user space. The
 // interrupted flow of execution will be resumed at the point of interruption
-// when 'pClosure' returns. The async call of 'pClosure' is arranged such that:
+// when 'pClosure' returns. The async call for 'pClosure' is arranged such that:
 // 1) if VP is running in user space: 'pClosure' is invoked right away (like a subroutine)
 // 2) if the VP is running in kernel space: 'pClosure' is invoked once the currently
-//    active system call has completed. 'pClosure' is then called from the syscall
-//    RTE and 'pClosure' then returns control back to the original user space code
-//    which triggered the system call.
+//    active system call has completed. 'pClosure' is invoked by the syscall RTE
+//    instruction and 'pClosure' in turn will return to the code that did the original
+//    system call invocation. The invocation of 'pClosure' is completely transparent
+//    to the user space code that originally invoked the system call. It does not
+//    know that 'pClosure' was executed as a side effect of doing the system call.
 //
 // \param isNoReturn true if the closure does not return. This allows this function
-//        to reset the user stack before invoking 'pClosure' which has teh advantage
+//        to reset the user stack before invoking 'pClosure' which has the advantage
 //        that the 'pClosure' call is guaranteed to work and that it will not run into
 //        the end of the user stack. ONLY use this option if 'pClosure' is guranateed
-//        to not return since it destroys the user stack content.
+//        to not return since it destroys the user stack state.
 ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isNoReturn)
 {
     UInt auci_options = 0;

@@ -115,8 +115,8 @@ _Reset:
         dbra    d0, .L2
 
         ; initialize the SystemDescription with the reset stack and memory
-        ; descriptor #0 which describes the statis reset time memory map. This
-        ; excludes the low memory area from teh description but the reset stack
+        ; descriptor #0 which describes the static reset time memory map. This
+        ; excludes the low memory area from the description but the reset stack
         ; is inside the memory area
         lea     SYS_DESC_BASE, a0
         move.l  #RESET_STACK_BASE, sd_stack_base(a0)
@@ -136,7 +136,7 @@ _Reset:
         jsr     _OnBoot
         addq    #4, sp
 
-        ; Let the context switcher switch to the virtual processor #0 (the boot VP)
+        ; Let the context switcher switch to virtual processor #0 (the boot VP)
         jmp     __rtecall_VirtualProcessorScheduler_RestoreContext
         ; NEVER REACHED
     einline
@@ -366,7 +366,7 @@ MMUAccessLevelErrorHandler:
 ;-------------------------------------------------------------------------------
 ; We disable IRQs altogether inside of IRQ handlers because we do not supported
 ; nested IRQ handling. This is the same as disabling preemption. Preemption is
-; re-enabled when we do the RTE Note that the CPU has already saved the original
+; re-enabled when we do the RTE. Note that the CPU has already saved the original
 ; status register contents on the stack
     macro DISABLE_ALL_IRQS
     or.w    #$0700, sr      ; equal to DISABLE_PREEMPTION
@@ -475,7 +475,7 @@ IRQHandler_L3:
     beq.s   irq_handler_copper
     ; Run the Copper scheduler now because we want to minimize the delay between
     ; vblank IRQ and kicking off the right Copper program. Most importantly we
-    ; want to make sure that now IRQ handler callback is able to delay the start
+    ; want to make sure that no IRQ handler callback is able to delay the start
     ; of the Copper program
     jsr     _copper_run
     CALL_IRQ_HANDLERS irc_handlers_VERTICAL_BLANK
@@ -599,8 +599,8 @@ irq_handler_L6_done:
 
 ;-----------------------------------------------------------------------
 ; IRQ done
-; check whether we should do a context switch. If not then just do an rte.
-; Otherwise do the context switch which will implicitly do the rte
+; check whether we should do a context switch. If not then just do a rte.
+; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
     subq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
     btst    #0, (SCHEDULER_BASE + vps_csw_signals)

@@ -39,7 +39,7 @@ _VirtualProcessorScheduler_RestorePreemption:
 
 ;-------------------------------------------------------------------------------
 ; Int VirtualProcessorScheduler_DisableCooperation(void)
-; Disable voluntary context switches. This are context switches which are triggered
+; Disable voluntary context switches. These are context switches which are triggered
 ; by a call to wakeup()
 _VirtualProcessorScheduler_DisableCooperation:
     DISABLE_COOPERATION d0
@@ -159,12 +159,15 @@ __rtecall_VirtualProcessorScheduler_RestoreContext:
     move.l  cpu_a7(a0), sp
     move.l  cpu_usp(a0), a1
     move.l  a1, usp
-
-; Stack frame at this point:
-; SP +  2: PC
-; SP +  0: SR
+    
+    ; build a stack frame for the RTE below which will cause the CPU to start
+    ; execution of the code that we want to run next:
+    ; SP +  2: PC
+    ; SP +  0: SR
     move.l  cpu_pc(a0), 2(sp)
     move.w  cpu_sr(a0), 0(sp)
+    
+    ; restore the integer state
     movem.l (a0), d0 - d7 / a0 - a6
 
     rte
