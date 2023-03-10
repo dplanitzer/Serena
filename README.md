@@ -2,9 +2,9 @@
 
 Apollo is an experimental operating system for the Amiga 4000 computer with support for user and kernel space concurrency and reentracy.
 
-One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues similar to Apple's Grand Central Dispatch rather than threads. So there is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept and it maintains a pool of virtual processors. The size of the pool is dynamically and automatically adjusted based on the needs of the dispatch queues. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to a dispatch queue. Work items are from the viewpoint of the user just closures (function callbacks plus state).
+One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues similar to Apple's Grand Central Dispatch rather than threads. So there is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept and it maintains a pool of virtual processors. The size of the pool is dynamically adjusted based on the needs of the dispatch queues. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to dispatch queues. Work items are from the viewpoint of the user just closures (function callbacks plus state).
 
-Another interesting aspect is interrupt handling. Code which wants to react to an interrupt registers either a binary or a counting semaphore with the interrupt controller for the interrupt it wants to handle. The interrupt system will then signal the semaphore when an interrupt occures. You would use a counting semaphore if it is important that you do not miss any interrupt occurences and a binary semaphore when you only care about the fact that at least one interrupt has occured. The advantage of translating interrupts into signals on a semaphore is that the interrupt handling code executes in a well-defined context that is the same kind of context that any other kind of code runs in. It also gives the interrupt handling code more flexibility since it does not have to immediately react to an interrupt. The information that an interrupt has happened is never lost whether the interrupt handler code happened to be busy with other things at the time the interrupt occured or not.
+Another interesting aspect is interrupt handling. Code which wants to react to an interrupt registers either a binary or a counting semaphore with the interrupt controller for the interrupt it wants to handle. The interrupt system will then signal the semaphore when an interrupt occures. You would use a counting semaphore if it is important that you do not miss any interrupt occurences and a binary semaphore when you only care about the fact that at least one interrupt has occured. The advantage of translating interrupts into signals on a semaphore is that the interrupt handling code executes in a well-defined context that is the same kind of context that any other kind of code runs in. It also gives the interrupt handling code more flexibility since it does not have to immediately react to an interrupt. The information that an interrupt has happened is never lost whether the interrupt handler code happened to be busy with other things at the time of the interrupt or not.
 
 The kernel itself is fully reentrant and supports permanent concurrency. This means that virtual processors continue to be scheduled and context switched even while the CPU is executing inside kernel space. There is also a full set of (counting/binary) semaphores, condition variables and locks available inside the kernel. The API of those objects closely resembles what you would find in a user space implementation of a typical OS.
 
@@ -34,70 +34,31 @@ Note that there is no support for a file system or shell at this time. Also the 
 
 ## Getting Started
 
-Setting the project up for development and running the OS is a bit involved. The instructions below are for macOS. It should be relatively straight forward to make development work on Linux and Windows. However I haven't spent any time looking into this.
+Setting the project up for development and running the OS is a bit involved. The instructions below are for Windows but they should work pretty much the same on Linux and macOS.
 
 ### Prerequisites
 
-The first thing you will need is an Amiga computer emulator. I'm using FS-UAE which you can find at [https://fs-uae.net/download#macosx](https://fs-uae.net/download#macosx)
+The first thing you will need is an Amiga computer emulator. I'm using WinUAE which you can download from [https://www.winuae.net/download](https://www.winuae.net/download)
 
-Download the FS-UAE and FS-UAE-Launcher apps and place them at `Emulators/Amiga` inside the `Applications` folder inside your home directory. The FS-UAE application should be at this file system location:
+Download the WinUAE installer and run it. This will place the emulator inside the 'Program Files' directory on your boot drive.
 
-```sh
-   $HOME/Applications/Emulators/Amiga/FS-UAE.app
-   ```
+Next download and install the VBCC compiler and assembler needed to build the operating system. You can find the project homepage is at [http://www.compilers.de/vbcc.html](http://www.compilers.de/vbcc.html) and the download page for the tools at [http://sun.hasenbraten.de/vbcc](http://sun.hasenbraten.de/vbcc).
 
-Next download and install the C compiler and assembler that you need to build the operating system. You can find the compiler and assembler at [http://www.compilers.de/vbcc.html](http://www.compilers.de/vbcc.html)
-
-The version that I'm using for my development and that I know works correctly on macOS 12.6 is 0.9f.
+The version that I'm using for my development and that I know works correctly on Windows 11 is 0.9h. Be sure to add an environment variable with the name `VBCC` which points to the VBCC folder on your disk and add the `vbcc\bin` folder to the `PATH` environment variable.
 
 Next make sure that you have Python 3 installed and that it can be invoked from the command line with the "python" command.
 
-Create a `SDK` folder inside the `Emulators/Amiga` folder and then place the `vbcc` folder inside of that. The final result should look like this:
-
-```sh
-   $HOME/Applications/Emulators/Amiga/SDK/vbcc
-   ```
-
-Check out the Apollo code and place it inside a `Developer` folder inside your home directory:
-
-```sh
-   git clone https://github.com/dplanitzer/Apollo.git
-   ```
-
-The final result should look like this:
-
-```sh
-   $HOME/Developer/Apollo
-   ```
-   
-The reason for this is that the FS-UAE configuration files contain a home directory relative path to the boot ROM generated by the make file.
+Finally install make for Windows and make sure that it is in the `PATH` environment variable. An simple way to do this is by taking advantage of winget: `winget install GnuWin32.Make`.
 
 ### Building Apollo
 
-Open the Xcode project inside the `Apollo/Kernel` folder and select `Product/Run` from the menubar. This should build Apollo and then run it inside of the FS-UAE Amiga emulator.
+Open the Apollo project folder in Visual Studio Code and select `Build Kernel` from the `Run Build Task...` menu. This will build the kernel and and generate a `Boot.rom` file insde the `Apollo/Kernel/Sources/build` folder.
 
-At least in theory. In actual practice Xcode has a strong tendency to produce bogus error messages when you try to build the project inside of it. It seems that newer Xcode versions are getting worse in that respect.
+### Running Apollo
 
-If Xcode refuses to build the project because of some obscure error then build and run it from the command line like this:
+You first need to create a suitable Amiga 4000 configuration in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file to point to the `Boot.rom` in the `Apollo/Kernel/Sources/build` folder. Finally assign at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
-1. Open Terminal.app and cd inside the Sources folder:
-```sh
-   cd Apollo/Kernel/Sources
-   ```
-2. Use make to build Apollo:
-```sh
-   make
-   ```
-The make file creates a `build` folder inside the sources directory where it places all object files and the final boot ROM file named `Boot.rom`.
-
-3. Finally run Apollo inside the Amiga emulator with the help of the run.sh shell script:
-```sh
-   ../run.sh
-   ```
-   
-The run.sh shell script will automatically fire up the FS-UAE Amiga emulator and configure it to emulate an A4000 machine.
-
-It may be that if you invoke the makefile or run.sh script that it looks like as if nothing is happening. A likely reason for this effect is that the Gatekeeper process in macOS is blocking one of the tools that the makefile or run.sh is trying to invoke from running. You will have to give permission to macOS to run those tools. Go to the General tab in the Security & Privacy pane in the macOS System Preferences application to grant permission.
+Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS.
 
 ## License
 

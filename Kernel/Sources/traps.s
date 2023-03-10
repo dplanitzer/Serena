@@ -25,6 +25,7 @@
     xref _copper_run
 
     xdef _SetTrap
+    xdef _mem_non_recoverable_error
 
 
 ; ROM vector table for 68000 CPUs
@@ -145,9 +146,9 @@ _Reset:
 ;-------------------------------------------------------------------------------
 ; Invoked if we encountered a non-recoverable memory error. Eg a bus error. Sets
 ; the screen color to red and halts the machine
+    align 2
 _mem_non_recoverable_error:
     inline
-        align 2
         lea     CUSTOM_BASE, a0
         move.w  #$0f00, COLOR00(a0)
 .L1:    bra     .L1

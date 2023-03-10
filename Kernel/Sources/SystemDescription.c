@@ -192,9 +192,12 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
     if (pSysDesc->chipset_ramsey_version > 0) {
         zorro3_auto_config(pSysDesc);
     }
-    if (pSysDesc->expansion_board_count == 0) {
-        zorro2_auto_config(pSysDesc);
-    }
+    // XXX disabled for now since it breaks startup on A4000 hardware
+    //if (pSysDesc->expansion_board_count == 0) {
+    //    zorro2_auto_config(pSysDesc);
+    //}
+    //      mem_non_recoverable_error();
+    // XXX
 
     
     // Find and add expansion board RAM

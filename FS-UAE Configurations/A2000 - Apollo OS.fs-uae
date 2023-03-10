@@ -1,8 +1,0 @@
-# FS-UAE configuration saved by FS-UAE Launcher
-# Last saved: 2022-11-03 17:03:49
-
-[fs-uae]
-chip_memory = 512
-cpu = 68000
-floppy_drive_count = 1
-kickstart_file = ~/Developer/Apollo/Kernel/Sources/build/Boot.rom

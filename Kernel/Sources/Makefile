@@ -1,20 +1,8 @@
-# --------------------------------------------------------------------------
-# SDK paths
+# Expects that an environment variable 'VBCC' exists and that it points to the vbcc tool chain directory.
+# Eg VBCC='C:\Program Files\vbcc'
 #
-
-export VBCC = $(HOME)/Applications/Emulators/Amiga/SDK/vbcc
-export PATH := $(VBCC)/bin:$(PATH)
-
-
-# --------------------------------------------------------------------------
-# Build tools
+# Expects that the vbcc tool chain 'bin' folder is listed in the PATH environment variable.
 #
-
-AS = $(VBCC)/bin/vasmm68k_mot -Fhunk -spaces -nosym -quiet -m68060
-CC = $(VBCC)/bin/vc
-LD = $(VBCC)/bin/vlink
-RM = rm -f
-PY = python
 
 
 # --------------------------------------------------------------------------
@@ -68,15 +56,59 @@ ASM_OBJECTS	= $(patsubst $(SOURCES_DIR)/%.s,$(BUILD_DIR)/%.o,$(ASM_SOURCES))
 ROM_FILE = $(BUILD_DIR)/Boot.rom
 BIN_FILE = $(BUILD_DIR)/rom.bin
 
+ifeq ($(OS),Windows_NT)
+VC_CONFIG = vc_windows_host.config
+else
+VC_CONFIG = vc_posix_host.config
+endif
+
+
+# --------------------------------------------------------------------------
+# Functions
+#
+
+# Create a directory if it doesn't exist
+ifeq ($(OS),Windows_NT)
+define mkdir_if_needed
+	powershell If (!(Test-Path '$(1)')) { [void](New-Item -ItemType Directory -Path '$(1)') }
+endef
+else
+define mkdir_if_needed
+	mkdir -p '$(1)'
+endef
+endif
+
+
+# Delete a file if it exists and do nothing otherwise
+ifeq ($(OS),Windows_NT)
+define rm_if_exists
+	powershell If (Test-Path '$(1)') { Remove-Item -Recurse -Force '$(1)' }
+endef
+else
+define rm_if_exists
+	rm -rf '$(1)'
+endef
+endif
+
+
+# --------------------------------------------------------------------------
+# Build tools
+#
+
+AS = $(VBCC)/bin/vasmm68k_mot -Fhunk -spaces -nosym -quiet -m68060
+CC = $(VBCC)/bin/vc +$(VC_CONFIG)
+LD = $(VBCC)/bin/vlink
+PY = python
+
 
 # --------------------------------------------------------------------------
 # Build rules
 #
 
-run:	build_dir $(ROM_FILE)
+build:	build_dir $(ROM_FILE)
 
 build_dir:
-	mkdir -p $(BUILD_DIR)
+	$(call mkdir_if_needed,$(BUILD_DIR))
 
 $(ROM_FILE):	$(BIN_FILE) ../finalizerom.py
 	$(PY) ../finalizerom.py $(BIN_FILE) $(ROM_FILE)
@@ -93,4 +125,4 @@ $(ASM_OBJECTS): $(BUILD_DIR)/%.o : $(SOURCES_DIR)/%.s
 	@$(AS) -I$(INCLUDE_DIR) -o $@ $<
 
 clean:
-	$(RM) -rf $(BUILD_DIR)
+	$(call rm_if_exists,$(BUILD_DIR))

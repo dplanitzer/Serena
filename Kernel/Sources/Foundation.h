@@ -206,4 +206,6 @@ extern void fatalError(const Character* _Nonnull filename, int line);
 #define assert(cond)
 #endif
 
+extern void mem_non_recoverable_error(void);
+
 #endif /* Foundation_h */
