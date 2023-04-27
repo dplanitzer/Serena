@@ -42,12 +42,12 @@ void DispatchQueue_RunTests(void)
 // MARK: True Sleep time
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = SystemDescription_GetShared();
     const SystemGlobals* pGlobals = SystemGlobals_Get();
-    
+    /*
     if (pGlobals->rtc) {
         GregorianDate date;
         Int i = 0;
@@ -65,7 +65,7 @@ void DispatchQueue_RunTests(void)
     }
 
     print("---------\n");
-    
+    */
     for(Int i = 0; i < pSysDesc->memory_descriptor_count; i++) {
         print("start: 0x%p, size: %u,  type: %s\n",
               pSysDesc->memory_descriptor[i].lower,
@@ -89,13 +89,15 @@ void DispatchQueue_RunTests(void)
     } else {
         print("No expansion boards found!\n");
     }
-
+    while (true) { cpu_sleep(); }
+/*
     const TimeInterval t_start = MonotonicClock_GetCurrentTime();
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1*1000));
     //VirtualProcessor_Sleep(kTimeInterval_Infinity);
     const TimeInterval t_stop = MonotonicClock_GetCurrentTime();
     const TimeInterval t_delta = TimeInterval_Subtract(t_stop, t_start);
-    print("t_delta: %dus\n", t_delta.nanoseconds / 1000)
+    print("t_delta: %dus\n", t_delta.nanoseconds / 1000);
+    */
 }
 #endif
 
@@ -145,7 +147,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pDriver = SystemGlobals_Get()->event_driver;

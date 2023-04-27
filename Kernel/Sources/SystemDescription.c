@@ -109,7 +109,7 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
-    if (is32bit) {
+    if (is32bit && pSysDesc->chipset_ramsey_version > 0) {
         mem_check_region(pSysDesc, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU, step_size);
     }
 }
