@@ -197,5 +197,6 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
 
     
     // Find and add expansion board RAM
-    mem_check_expanion_boards(pSysDesc);
+    // XXX disabled for now because adding expansion RAM causes boot to hang
+    //mem_check_expanion_boards(pSysDesc);
 }
