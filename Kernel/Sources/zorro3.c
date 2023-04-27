@@ -12,8 +12,7 @@
 
 
 // Space for Zorro III auto configuration
-#define ZORRO_3_CONFIG_LOW          ((Byte*)0xff000000)
-#define ZORRO_3_CONFIG_HIGH         ((Byte*)0xff010000)
+#define ZORRO_3_CONFIG_BASE         ((Byte*)0xff000000)
 
 // Space for Zorro III (memory and I/O) expansion boards
 #define ZORRO_3_EXPANSION_LOW       ((Byte*)0x10000000)
@@ -58,9 +57,12 @@ static Byte zorro3_read(volatile Byte* addr, Bool invert)
 // if a board was found and false otherwise. 'board' contains information about
 // the board that was found. The contents of 'board' is undefined if no board was
 // found.
+// NOTE: We do not check whether cards actually return 0 for auto config locations
+// for which they are supposed to retur 0 according to the spec because at least
+// some cards do in fact return non-zero values. Eg Commodore A2091 SCSI card.
 static Bool zorro3_read_config_space(Zorro3_Configuration* config)
 {
-    register Byte* pAutoConfigBase = ZORRO_3_CONFIG_LOW;
+    register Byte* pAutoConfigBase = ZORRO_3_CONFIG_BASE;
     
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C7.html
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C8.html
@@ -132,17 +134,14 @@ static Bool zorro3_read_config_space(Zorro3_Configuration* config)
     }
     
     
-    // Reserved
-    if (zorro3_read(pAutoConfigBase + 0x0c, true) != 0) {
-        return false;
-    }
-    
-    
     // Manufacturer
     const UInt8 manuHigh = (UInt8)zorro3_read(pAutoConfigBase + 0x10, true);
     const UInt8 manuLow = (UInt8)zorro3_read(pAutoConfigBase + 0x14, true);
     
     config->manufacturer = (manuHigh << 8) | manuLow;
+    if (config->manufacturer == 0) {
+        return false;
+    }
     
     
     // Serial number
@@ -154,56 +153,8 @@ static Bool zorro3_read_config_space(Zorro3_Configuration* config)
     config->serial_number = (sernum3 << 24) | (sernum2 << 16) | (sernum1 << 8) | sernum0;
     
     
-    // Reserved
-    if (zorro3_read(pAutoConfigBase + 0x30, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x34, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x38, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x3c, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x50, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x54, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x58, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x5c, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x60, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x64, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x68, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x6c, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x70, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x74, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x78, true) != 0) {
-        return false;
-    }
-    if (zorro3_read(pAutoConfigBase + 0x7c, true) != 0) {
-        return false;
-    }
-    
+    // 0x28 & 0x2c -> optional ROM vector
+
     return true;
 }
 
@@ -213,9 +164,9 @@ static Bool zorro3_read_config_space(Zorro3_Configuration* config)
 // system reset.
 static void zorro3_auto_config_shutup(void)
 {
-    volatile UInt16* pAddr = ((UInt16*)(ZORRO_3_CONFIG_LOW + 0x4c));
+    volatile Byte* pAddr = ((Byte*)(ZORRO_3_CONFIG_BASE + 0x4c));
     
-    *pAddr = 0xdead;
+    pAddr[0] = 0;
 }
 
 // Assigns the given address as the base address to the board currently visible
@@ -225,16 +176,13 @@ static void zorro3_auto_config_assign_base_address(Byte* addr)
 {
     UInt16 top16 = ((UInt) addr) >> 16;
     
-    volatile UInt16* pWord = ((UInt16*)(ZORRO_3_CONFIG_LOW + 0x44));
+    volatile Byte* pByte1 = ((Byte*)(ZORRO_3_CONFIG_BASE + 0x44));
+    volatile Byte* pByte0  = ((Byte*)(ZORRO_3_CONFIG_BASE + 0x48));
+    Byte byte1 = (top16 >> 8) & 0x00ff;
+    Byte byte0  = (top16 >> 0) & 0x00ff;
     
-    volatile Byte* pHigh8 = ((Byte*)(ZORRO_3_CONFIG_LOW + 0x44));
-    volatile Byte* pLow8  = ((Byte*)(ZORRO_3_CONFIG_LOW + 0x48));
-    Byte high8 = (top16 >> 8) & 0x00ff;
-    Byte low8  = (top16 >> 0) & 0x00ff;
-    
-    *pLow8 = low8;
-    *pHigh8 = high8;
-    *pWord = top16;
+    pByte0[0] = byte0;
+    pByte1[0] = byte1;
 }
 
 // Dynamically determines the size of the given memory expansion board.
