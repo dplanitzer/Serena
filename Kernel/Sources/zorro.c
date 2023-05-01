@@ -362,7 +362,6 @@ static UInt zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
 void zorro_auto_config(SystemDescription* pSysDesc)
 {
     const Bool isZorro3Machine = pSysDesc->chipset_ramsey_version > 0;
-    UInt8 busToScan = EXPANSION_BUS_ZORRO_2;
     UInt8 prev_config_flags = ZORRO_FLAG_NEXT_IS_RELATED;
     Int slot = 0;
     
@@ -370,13 +369,8 @@ void zorro_auto_config(SystemDescription* pSysDesc)
     while (pSysDesc->expansion_board_count < EXPANSION_BOARDS_CAPACITY) {
         Zorro_BoardConfiguration config;
         
-        const Bool isValid = zorro_read_config_space(&config, busToScan);
-        if (!isValid) {
-            if (isZorro3Machine && busToScan == EXPANSION_BUS_ZORRO_2) {
-                // Scan the Z3 bus once we're done with the Z2 bus and the machine has a Z3 bus
-                busToScan = EXPANSION_BUS_ZORRO_3;
-                continue;
-            } else {
+        if (!zorro_read_config_space(&config, EXPANSION_BUS_ZORRO_2)) {
+            if (!isZorro3Machine || (isZorro3Machine && !zorro_read_config_space(&config, EXPANSION_BUS_ZORRO_3))) {
                 break;
             }
         }
@@ -395,13 +389,7 @@ void zorro_auto_config(SystemDescription* pSysDesc)
                 zorro_auto_config_shutup(config.bus);
                 continue;
             } else {
-                if (isZorro3Machine && busToScan == EXPANSION_BUS_ZORRO_2) {
-                    // Scan the Z3 bus once we're done with the Z2 bus and the machine has a Z3 bus
-                    busToScan = EXPANSION_BUS_ZORRO_3;
-                    continue;
-                } else {
-                    break;
-                }
+                break;
             }
         }
         
