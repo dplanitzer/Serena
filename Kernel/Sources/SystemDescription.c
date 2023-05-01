@@ -11,8 +11,7 @@
 #include "Platform.h"
 
 
-extern void zorro2_auto_config(SystemDescription* pSysDesc);
-extern void zorro3_auto_config(SystemDescription* pSysDesc);
+extern void zorro_auto_config(SystemDescription* pSysDesc);
 
 
 Bool mem_probe(Byte* addr)
@@ -127,7 +126,7 @@ void mem_check_expanion_boards(SystemDescription* pSysDesc)
             continue;
         }
         
-        if (!mem_check_region(pSysDesc, board->start, board->start + board->size, MEM_ACCESS_CPU, step_size)) {
+        if (!mem_check_region(pSysDesc, board->start, board->start + board->logical_size, MEM_ACCESS_CPU, step_size)) {
             break;
         }
     }
@@ -189,11 +188,7 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
 
     
     // Auto config the Zorro bus
-    if (pSysDesc->chipset_ramsey_version > 0) {
-        zorro3_auto_config(pSysDesc);
-    } else {
-        zorro2_auto_config(pSysDesc);
-    }
+    zorro_auto_config(pSysDesc);
 
     
     // Find and add expansion board RAM

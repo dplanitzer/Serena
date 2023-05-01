@@ -37,7 +37,8 @@ typedef struct _MemoryDescriptor {
 // An expansion board
 typedef struct _ExpansionBoard {
     Byte* _Nonnull  start;          // base address
-    UInt            size;           // memory / register file size
+    UInt            physical_size;  // size of memory space reserved for this board
+    UInt            logical_size;   // size of memory space actually occupied by the board
     Int8            type;
     Int8            bus;
     Int8            slot;

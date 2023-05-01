@@ -76,12 +76,10 @@ void DispatchQueue_RunTests(void)
     
     if (pSysDesc->expansion_board_count > 0) {
         for(Int i = 0; i < pSysDesc->expansion_board_count; i++) {
-            print("start: 0x%p, size: %u\n", pSysDesc->expansion_board[i].start, pSysDesc->expansion_board[i].size);
-            print("type: %s\n", pSysDesc->expansion_board[i].type == EXPANSION_TYPE_RAM ? "RAM" : "I/O");
-            print("bus: %s\n", pSysDesc->expansion_board[i].bus == EXPANSION_BUS_ZORRO_2 ? "Zorro 2" : "Zorro 3");
+            print("start: 0x%p, psize: %u, lsize: %u\n", pSysDesc->expansion_board[i].start, pSysDesc->expansion_board[i].physical_size, pSysDesc->expansion_board[i].logical_size);
+            print("type: %s %s\n", pSysDesc->expansion_board[i].type == EXPANSION_TYPE_RAM ? "RAM" : "I/O", pSysDesc->expansion_board[i].bus == EXPANSION_BUS_ZORRO_2 ? "[Z2]" : "[Z3]");
             print("slot: %d\n", pSysDesc->expansion_board[i].slot);
-            print("manu: $%x\n", pSysDesc->expansion_board[i].manufacturer);
-            print("prod: $%x\n", pSysDesc->expansion_board[i].product);
+            print("manu: $%x, prod: $%x\n", pSysDesc->expansion_board[i].manufacturer, pSysDesc->expansion_board[i].product);
             print("ser#: $%x\n", pSysDesc->expansion_board[i].serial_number);
             
             print("---\n");

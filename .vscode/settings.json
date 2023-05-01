@@ -9,6 +9,9 @@
     ],
     "files.associations": {
         "platform.h": "c",
-        "foundation.h": "c"
+        "foundation.h": "c",
+        "initializer_list": "c",
+        "type_traits": "c",
+        "xutility": "c"
     }
 }
