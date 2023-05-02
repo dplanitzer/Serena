@@ -116,12 +116,11 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
 // Finds out how much RAM is installed in expansion boards, tests it and adds it
 // to the mem range table.
 void mem_check_expanion_boards(SystemDescription* pSysDesc)
-{
-    Int step_size = 256 * 1024;    // Scan chip and motherboard RAM in 256KB steps
-    
+{    
     for (Int i = 0; i < pSysDesc->expansion_board_count; i++) {
         const ExpansionBoard* board = &pSysDesc->expansion_board[i];
-        
+        const Int step_size = min(board->logical_size / 4, SIZE_KB(256));
+       
         if (board->type != EXPANSION_TYPE_RAM) {
             continue;
         }
