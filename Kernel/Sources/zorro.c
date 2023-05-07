@@ -259,15 +259,15 @@ static Byte* _Nonnull zorro2_align_board_address(Byte* _Nonnull base_ptr, UInt b
 {
     if (isMemory && board_size == SIZE_MB(8)) {
         // Can fit one board
-        return (base_ptr == ZORRO_2_MEMORY_LOW) ? base_ptr : ZORRO_2_MEMORY_HIGH;
+        return (base_ptr == ZORRO_2_MEMORY_LOW) ? ZORRO_2_MEMORY_LOW : ZORRO_2_MEMORY_HIGH;
     } else if (isMemory && board_size == SIZE_MB(4)) {
         // Can fit up to two boards
         if (base_ptr == ZORRO_2_MEMORY_LOW) {
-            return base_ptr;
+            return ZORRO_2_MEMORY_LOW;
         } else if (base_ptr <= ZORRO_2_MEMORY_LOW + SIZE_MB(2)) {
-            return base_ptr + SIZE_MB(2);
+            return ZORRO_2_MEMORY_LOW + SIZE_MB(2);
         } else if (base_ptr <= ZORRO_2_MEMORY_LOW + SIZE_MB(4)) {
-            return base_ptr + SIZE_MB(4);
+            return ZORRO_2_MEMORY_LOW + SIZE_MB(4);
         } else {
             return ZORRO_2_MEMORY_HIGH;
         }
