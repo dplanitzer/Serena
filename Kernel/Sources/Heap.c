@@ -66,10 +66,10 @@ Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMem
     // of fast RAM. If there is none then we put it at the bottom of chip RAM
     // (just above lowmem).
     Int idxOfMemRgnWithHeapStruct = (nMemDescs > 1) ? 1 : 0;
-    Byte* pHeapBase = align_byte_ptr(pMemDescs[idxOfMemRgnWithHeapStruct].lower, HEAP_ALIGNMENT);
+    Byte* pHeapBase = align_up_byte_ptr(pMemDescs[idxOfMemRgnWithHeapStruct].lower, HEAP_ALIGNMENT);
     Heap_Block* pAllocedBlock = (Heap_Block*)pHeapBase;
     Heap* pHeap = (Heap*)(pHeapBase + sizeof(Heap_Block));
-    Byte* pHeapMemDescsBase = align_byte_ptr(pHeapBase + sizeof(Heap_Block) + sizeof(Heap), HEAP_ALIGNMENT);
+    Byte* pHeapMemDescsBase = align_up_byte_ptr(pHeapBase + sizeof(Heap_Block) + sizeof(Heap), HEAP_ALIGNMENT);
     
     pAllocedBlock->next = NULL;
     pAllocedBlock->size = pHeapMemDescsBase - pHeapBase;
@@ -86,7 +86,7 @@ Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMem
         pHeap->descriptors[i].accessibility = pMemDescs[i].accessibility;
         pAllocedBlock->size += sizeof(Heap_MemoryDescriptor);
     }
-    pAllocedBlock->size = align_uint(pAllocedBlock->size, HEAP_ALIGNMENT);
+    pAllocedBlock->size = UInt_RoundUpToPowerOf2(pAllocedBlock->size, HEAP_ALIGNMENT);
     
     
     // Create a free list for each memory region. Each region is covered by a
@@ -98,7 +98,7 @@ Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMem
         if (i == idxOfMemRgnWithHeapStruct) {
             pFreeLower = pCurMemDesc->lower + pAllocedBlock->size;
         } else {
-            pFreeLower = align_byte_ptr(pCurMemDesc->lower, HEAP_ALIGNMENT);
+            pFreeLower = align_up_byte_ptr(pCurMemDesc->lower, HEAP_ALIGNMENT);
         }
 
         Heap_Block* pFreeBlock = (Heap_Block*)pFreeLower;
@@ -202,7 +202,7 @@ Byte* _Nullable Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt option
     
     
     // Compute how many bytes we have to take from free memory
-    const Int nBytesToAlloc = align_int(sizeof(Heap_Block) + nbytes, HEAP_ALIGNMENT);
+    const Int nBytesToAlloc = Int_RoundUpToPowerOf2(sizeof(Heap_Block) + nbytes, HEAP_ALIGNMENT);
     
     
     // NOte that the code here assumes desc 0 is chip RAM and all the others are
@@ -243,11 +243,11 @@ Byte* _Nullable Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr,
 {
     assert(pAddr != NULL);
     assert(nbytes > 0);
-    assert(align_byte_ptr(pAddr, HEAP_ALIGNMENT) == pAddr);
+    assert(align_up_byte_ptr(pAddr, HEAP_ALIGNMENT) == pAddr);
     
     
     // Compute how many bytes we have to take from free memory
-    const Int nBytesToAlloc = align_int(sizeof(Heap_Block) + nbytes, HEAP_ALIGNMENT);
+    const Int nBytesToAlloc = Int_RoundUpToPowerOf2(sizeof(Heap_Block) + nbytes, HEAP_ALIGNMENT);
     
     
     // Compute the block lower and upper bounds

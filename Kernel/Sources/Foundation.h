@@ -119,15 +119,22 @@ typedef char                Character;
 #define min(x, y) (((x) < (y) ? (x) : (y)))
 #define max(x, y) (((x) > (y) ? (x) : (y)))
 
-#define __ALIGN_MASK(x, mask)   (((x) + (mask)) & ~(mask))
-#define align_int(x, a)             __ALIGN_MASK(x, (Int)(a) - 1)
-#define align_uint(x, a)            __ALIGN_MASK(x, (UInt)(a) - 1)
+#define __ROUND_UP_TO_POWER_OF_2(x, mask)   (((x) + (mask)) & ~(mask))
+#define __ROUND_DOWN_TO_POWER_OF_2(x, mask) ((x) & ~(mask))
+
 #if __LP64__
-#define align_byte_ptr(x, a)        (Byte*)(__ALIGN_MASK((UInt64)(x), (UInt64)(a) - 1))
+#define align_up_byte_ptr(x, a)     (Byte*)(__ROUND_UP_TO_POWER_OF_2((UInt64)(x), (UInt64)(a) - 1))
 #elif __LP32__
-#define align_byte_ptr(x, a)        (Byte*)(__ALIGN_MASK((UInt32)(x), (UInt32)(a) - 1))
+#define align_up_byte_ptr(x, a)     (Byte*)(__ROUND_UP_TO_POWER_OF_2((UInt32)(x), (UInt32)(a) - 1))
 #else
-#error "don't know how to define align_byte_ptr()"
+#error "don't know how to define align_up_byte_ptr()"
+#endif
+#if __LP64__
+#define align_down_byte_ptr(x, a)     (Byte*)(__ROUND_DOWN_TO_POWER_OF_2((UInt64)(x), (UInt64)(a) - 1))
+#elif __LP32__
+#define align_down_byte_ptr(x, a)     (Byte*)(__ROUND_DOWN_TO_POWER_OF_2((UInt32)(x), (UInt32)(a) - 1))
+#else
+#error "don't know how to define align_down_byte_ptr()"
 #endif
 
 #define SIZE_GB(x)  ((Int)(x) * 1024 * 1024 * 1024)
@@ -177,9 +184,15 @@ typedef Int ErrorCode;
 // Int
 extern Int Int_NextPowerOf2(Int n);
 
+#define Int_RoundUpToPowerOf2(x, a)     __ROUND_UP_TO_POWER_OF_2(x, (Int)(a) - 1)
+#define Int_RoundDownToPowerOf2(x, a)   __ROUND_DOWN_TO_POWER_OF_2(x, (Int)(a) - 1)
+
 
 // UInt
 extern UInt UInt_NextPowerOf2(UInt n);
+
+#define UInt_RoundUpToPowerOf2(x, a)    __ROUND_UP_TO_POWER_OF_2(x, (UInt)(a) - 1)
+#define UInt_RoundDownToPowerOf2(x, a)  __ROUND_DOWN_TO_POWER_OF_2(x, (UInt)(a) - 1)
 
 
 // Int64

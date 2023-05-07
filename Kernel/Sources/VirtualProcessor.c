@@ -42,7 +42,7 @@ ErrorCode ExecutionStack_Init(ExecutionStack* _Nonnull pStack, Int size)
 // the content of the existing stack.
 ErrorCode ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, Int size)
 {
-    const Int newSize = (size > 0) ? align_int(size, STACK_ALIGNMENT) : 0;
+    const Int newSize = (size > 0) ? Int_RoundUpToPowerOf2(size, STACK_ALIGNMENT) : 0;
     
     if (pStack->size != newSize) {
         kfree(pStack->base);

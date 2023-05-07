@@ -28,10 +28,31 @@ Bool mem_probe(Byte* addr)
     return Bytes_FindFirstDifference(read_bytes, MEM_PATTERN, 8) == -1;
 }
 
-static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upper, UInt8 accessibility, Int stepSize)
+// Checks the physical CPU page that contains 'addr'. Returns true if the page exists
+// and false if not.
+static Bool mem_probe_cpu_page(Byte* addr)
 {
-    Byte* p = lower;
-    Int halfStepSize = stepSize / 2;
+    Byte* pBaseAddr = align_down_byte_ptr(addr, CPU_PAGE_SIZE);
+    Byte* pTopAddr = pBaseAddr + CPU_PAGE_SIZE - 8;
+    Byte* pMiddleAddr = pBaseAddr + CPU_PAGE_SIZE / 2;
+
+    if (!mem_probe(pBaseAddr)) {
+        return false;
+    }
+    if (!mem_probe(pMiddleAddr)) {
+        return false;
+    }
+    if (!mem_probe(pTopAddr)) {
+        return false;
+    }
+
+    return true;
+}
+
+static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upper, UInt8 accessibility)
+{
+    Byte* p = align_up_byte_ptr(lower, CPU_PAGE_SIZE);
+    Byte* pLimit = align_down_byte_ptr(upper, CPU_PAGE_SIZE);
     UInt nbytes = 0;
     Bool hasMemory = false;
     Bool hadMemory = false;
@@ -40,10 +61,10 @@ static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upp
         return false;
     }
     
-    while (p < upper) {
-        hasMemory = (mem_probe(p + halfStepSize) != 0);
-        
-        if (hasMemory) { nbytes += stepSize; }
+    while (p < pLimit) {
+        hasMemory = mem_probe_cpu_page(p) != 0;
+
+        if (hasMemory) { nbytes += CPU_PAGE_SIZE; }
         
         if (!hadMemory && hasMemory) {
             // Transitioning from no memory to memory
@@ -60,7 +81,7 @@ static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upp
         }
         
         hadMemory = hasMemory;
-        p += stepSize;
+        p += CPU_PAGE_SIZE;
     }
     
     if (hasMemory) {
@@ -69,13 +90,7 @@ static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upp
         pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count].upper += nbytes;
         pSysDesc->memory_descriptor_count++;
     }
-    
-    // Enforce the upper bound. We may have overshot it because 'lower' > 0 and
-    // we scan memory in 'stepSize' increments.
-    if (pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count - 1].upper > upper) {
-        pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count - 1].upper = upper;
-    }
-    
+
     return true;
 }
 
@@ -86,7 +101,6 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
 {
     Byte* chip_ram_lower_p = pSysDesc->memory_descriptor[0].lower;  // set up by _Reset in traps.s
     Byte* chip_ram_upper_p = chipset_get_mem_limit();
-    UInt step_size = 256 * 1024;    // Scan chip and motherboard RAM in 256KB steps
     Bool is32bit = cpu_is32bit();
     
     // Forget the memory map set up by traps.s 'cause we'll build our own map here
@@ -100,16 +114,16 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(pSysDesc, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_ACCESS_CPU | MEM_ACCESS_CHIPSET, step_size);
+    mem_check_region(pSysDesc, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_ACCESS_CPU | MEM_ACCESS_CHIPSET);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(pSysDesc, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_ACCESS_CPU, step_size);
+    mem_check_region(pSysDesc, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_ACCESS_CPU);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
     if (is32bit && pSysDesc->chipset_ramsey_version > 0) {
-        mem_check_region(pSysDesc, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU, step_size);
+        mem_check_region(pSysDesc, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU);
     }
 }
 
@@ -119,13 +133,12 @@ void mem_check_expanion_boards(SystemDescription* pSysDesc)
 {    
     for (Int i = 0; i < pSysDesc->expansion_board_count; i++) {
         const ExpansionBoard* board = &pSysDesc->expansion_board[i];
-        const Int step_size = min(board->logical_size / 4, SIZE_KB(256));
        
         if (board->type != EXPANSION_TYPE_RAM) {
             continue;
         }
         
-        if (!mem_check_region(pSysDesc, board->start, board->start + board->logical_size, MEM_ACCESS_CPU, step_size)) {
+        if (!mem_check_region(pSysDesc, board->start, board->start + board->logical_size, MEM_ACCESS_CPU)) {
             break;
         }
     }
@@ -191,6 +204,5 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
 
     
     // Find and add expansion board RAM
-    // XXX disabled for now because adding expansion RAM causes boot to hang
-    //mem_check_expanion_boards(pSysDesc);
+    mem_check_expanion_boards(pSysDesc);
 }
