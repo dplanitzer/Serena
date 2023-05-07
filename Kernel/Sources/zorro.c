@@ -201,9 +201,9 @@ static void zorro3_auto_config_shutup(void)
 static void zorro_auto_config_shutup(UInt8 bus)
 {
     if (bus == EXPANSION_BUS_ZORRO_3) {
-        zorro2_auto_config_shutup();
-    } else {
         zorro3_auto_config_shutup();
+    } else {
+        zorro2_auto_config_shutup();
     }
 }
 
@@ -314,7 +314,7 @@ static Byte* _Nullable zorro_calculate_base_address_for_board_in_range(const Zor
     }
     Byte* board_top_addr = board_base_addr + pConfig->physical_size;
     
-    return (board_top_addr < board_space_top_addr) ? board_base_addr : NULL;
+    return (board_top_addr <= board_space_top_addr) ? board_base_addr : NULL;
 }
 
 static Byte* _Nullable zorro_calculate_base_address_for_board(const Zorro_BoardConfiguration* _Nonnull pConfig, const SystemDescription* _Nonnull pSysDesc)
@@ -377,7 +377,7 @@ void zorro_auto_config(SystemDescription* pSysDesc)
 
         // calculate the base address for RAM or I/O. Growing bottom to top
         Byte* board_base_addr = zorro_calculate_base_address_for_board(&config, pSysDesc);
-        
+
         
         // check whether we still got enough space left to map the board. If not then
         // shut the board up and move on to the next one.
