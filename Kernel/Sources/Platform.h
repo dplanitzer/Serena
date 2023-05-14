@@ -269,9 +269,6 @@ extern Bool mem_probe(Byte* _Nonnull addr);
 //
 typedef void (*TrapHandler)(void);
 
-extern void SystemCallHandler_68000(void);
-extern void SystemCallHandler_68020_plus(void);
-
 extern TrapHandler _Nonnull SetTrap(Int idx, TrapHandler _Nonnull pFunc);
 
 #endif /* Platform_h */

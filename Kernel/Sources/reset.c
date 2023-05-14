@@ -19,8 +19,4 @@
 void OnReset(SystemDescription* _Nonnull pSysDesc)
 {
     SystemDescription_Init(pSysDesc);
-    
-    if (pSysDesc->cpu_model > CPU_MODEL_68000) {
-        SetTrap(32, SystemCallHandler_68020_plus);
-    }
 }

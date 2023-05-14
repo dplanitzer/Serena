@@ -20,9 +20,11 @@
     xref _OnBoot
     xref __rtecall_VirtualProcessorScheduler_SwitchContext
     xref __rtecall_VirtualProcessorScheduler_RestoreContext
-    xref _SystemCallHandler_68000
+    xref _SystemCallHandler
     xref _InterruptController_OnInterrupt
     xref _copper_run
+    xref _cpu_get_model
+    xref _fpu_get_model
 
     xdef _SetTrap
     xdef _mem_non_recoverable_error
@@ -55,7 +57,7 @@ cpu_vector_table:
     dc.l IRQHandler_L5              ; 29, Level 5 (Disk, Serial port)
     dc.l IRQHandler_L6              ; 30, Level 6 (External INT6, CIAB)
     dc.l IgnoreTrap                 ; 31, Level 7 (NMI - Unused)
-    dc.l _SystemCallHandler_68000   ; 32, Trap 0 System Call
+    dc.l _SystemCallHandler         ; 32, Trap 0 System Call
     dc.l IgnoreTrap                 ; 33, Trap 1 (Unused)
     dc.l IgnoreTrap                 ; 34, Trap 2 (Unused)
     dc.l IgnoreTrap                 ; 35, Trap 3 (Unused)
@@ -127,6 +129,21 @@ _Reset:
         move.l  #(RESET_STACK_BASE + RESET_STACK_SIZEOF), sd_memory_descriptor + memdesc_upper(a0)
         move.b  #(MEM_ACCESS_CPU + MEM_ACCESS_CHIPSET), sd_memory_descriptor + memdesc_accessibility(a0)
 
+        ; figure out which type of CPU this is. The required minimum is:
+        ; CPU: MC68030
+        ; FPU: none
+        jsr     _cpu_get_model
+        cmp.b   #CPU_MODEL_68030, d0
+        bge     .L3
+        jmp     _cpu_non_recoverable_error
+.L3:
+        lea     SYS_DESC_BASE, a0
+        move.b  d0, sd_cpu_model(a0)
+
+        jsr     _fpu_get_model
+        lea     SYS_DESC_BASE, a0
+        move.b  d0, sd_fpu_model(a0)
+
         ; call the OnReset(SystemDescription*) routine
         move.l  a0, -(sp)
         jsr     _OnReset
@@ -140,6 +157,18 @@ _Reset:
         ; Let the context switcher switch to virtual processor #0 (the boot VP)
         jmp     __rtecall_VirtualProcessorScheduler_RestoreContext
         ; NEVER REACHED
+    einline
+
+
+;-------------------------------------------------------------------------------
+; Invoked if we encountered a non-recoverable CPU error. Eg the CPU type isn't
+; supported. Sets the screen color to yellow and halts the machine
+    align 2
+_cpu_non_recoverable_error:
+    inline
+        lea     CUSTOM_BASE, a0
+        move.w  #$0ff0, COLOR00(a0)
+.L1:    bra     .L1
     einline
 
 

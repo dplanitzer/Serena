@@ -118,7 +118,7 @@ $(BIN_FILE):	$(C_OBJECTS) $(ASM_OBJECTS)
 
 $(C_OBJECTS): $(BUILD_DIR)/%.o : $(SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) -c -c99 -cpp-comments -nostdlib -cpu=68020 $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(INCLUDE_DIR) -o $@ $<
+	@$(CC) -c -c99 -cpp-comments -nostdlib -cpu=68030 $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(INCLUDE_DIR) -o $@ $<
 
 $(ASM_OBJECTS): $(BUILD_DIR)/%.o : $(SOURCES_DIR)/%.s
 	@echo $<

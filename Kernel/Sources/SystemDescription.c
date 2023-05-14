@@ -150,8 +150,6 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
 {
     volatile UInt8* pRAMSEY = (volatile UInt8*)RAMSEY_CHIP_BASE;
     
-    pSysDesc->cpu_model = cpu_get_model();
-    pSysDesc->fpu_model = fpu_get_model();
     pSysDesc->chipset_version = (Int8)chipset_get_version();
     
     // Figure out whether a RAMSEY chip is available

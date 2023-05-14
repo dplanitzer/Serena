@@ -105,6 +105,8 @@ typedef struct _SystemDescription {
     Int                 stack_size;
     Int8                cpu_model;
     Int8                fpu_model;
+    // All fields above this point are filled in before OnReset() is called.
+    // All fields below this point are initialized by the SystemDescription_Init() function
     Int8                chipset_version;
     Int8                chipset_ramsey_version;     // RAMSEY custom chip version. 0 means no RAMSEY and thus a 16bit Amiga (A500 / A2000)
     

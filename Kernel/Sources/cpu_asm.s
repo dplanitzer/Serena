@@ -55,7 +55,7 @@ _cpu_restore_irqs:
 _cpu_get_model:
     inline
         movem.l d3 / a2 - a3, -(sp)
-        moveq   #6, d0      ; assume a 68060 by default
+        moveq   #CPU_MODEL_68060, d0    ; assume a 68060 by default
         move.l  #16, a0     ; save the default illegal instruction handler
         move.l  (a0), -(sp)
         move.l  #44, a2     ; save the default line 1111 emulator handler
@@ -97,24 +97,24 @@ _cpu_get_model:
 
 .is_68000_cpu:
         move.l  a3, sp      ; restore the stack pointer
-        moveq   #0, d0      ; 68000
+        moveq   #CPU_MODEL_68000, d0
         bra     .done
 
 .is_68010_cpu:
         move.l  a3, sp
-        moveq   #1, d0      ; 68010
+        moveq   #CPU_MODEL_68010, d0
         bra     .done
 
 .is_68020_cpu:
         move.l  a3, sp
-        moveq   #2, d0      ; 68020
+        moveq   #CPU_MODEL_68020, d0
         bra     .done
 
 .is_68020_or_68030_cpu:
         move.l  a3, sp
 
         ; check for 68030
-        moveq   #3, d0      ; assume 68030
+        moveq   #CPU_MODEL_68030, d0
         lea     .is_68020_cpu(pc), a1
         move.l  a1, (a2)
         move.l  sp, a3
@@ -124,7 +124,7 @@ _cpu_get_model:
 
 .is_68040_cpu:
         move.l  a3, sp
-        moveq   #4, d0      ; 68040
+        moveq   #CPU_MODEL_68040, d0
         bra     .done
     einline
 
