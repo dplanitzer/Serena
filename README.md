@@ -1,6 +1,6 @@
   ## About The Project
 
-Apollo is an experimental operating system for the Amiga 4000 computer with support for user and kernel space concurrency and reentracy.
+Apollo is an experimental operating system for Amiga 3000/4000 computers with support for user and kernel space concurrency and reentracy.
 
 One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues similar to Apple's Grand Central Dispatch rather than threads. So there is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept and it maintains a pool of virtual processors. The size of the pool is dynamically adjusted based on the needs of the dispatch queues. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to dispatch queues. Work items are from the viewpoint of the user just closures (function callbacks plus state).
 
@@ -56,7 +56,7 @@ Open the Apollo project folder in Visual Studio Code and select `Build Kernel` f
 
 ### Running Apollo
 
-You first need to create a suitable Amiga 4000 configuration in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file to point to the `Boot.rom` in the `Apollo/Kernel/Sources/build` folder. Finally assign at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
+You first need to create a suitable Amiga 3000 or 4000 configuration in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file to point to the `Boot.rom` in the `Apollo/Kernel/Sources/build` folder. Finally assign at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
 Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS.
 
