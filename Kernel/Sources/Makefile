@@ -24,7 +24,7 @@
 
 	CC_OPT_SETTING = -O=1163 -schedule
 	CC_GENERATE_DEBUG_INFO =
-	CC_PREPROCESSOR_DEFINITIONS = -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__LP32__=1
+	CC_PREPROCESSOR_DEFINITIONS = -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__LP32__=1 -DTARGET_CPU_68030=1
 #else ifeq ($(BUILD_CONFIGURATION), "debug")
 #	echo "debug build"
 #
@@ -95,7 +95,7 @@ endif
 # Build tools
 #
 
-AS = $(VBCC)/bin/vasmm68k_mot -Fhunk -spaces -nosym -quiet -m68060
+AS = $(VBCC)/bin/vasmm68k_mot -Fhunk -spaces -nosym -quiet -m68060 -DTARGET_CPU_68030
 CC = $(VBCC)/bin/vc +$(VC_CONFIG)
 LD = $(VBCC)/bin/vlink
 PY = python

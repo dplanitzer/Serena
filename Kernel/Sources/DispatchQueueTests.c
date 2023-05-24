@@ -18,17 +18,16 @@
 #include "RealtimeClock.h"
 
 
-#if 0
+#if 1
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
     Int val = (Int)pValue;
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)(val + 1));
-    //DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), OnPrintClosure, (Byte*)(val + 1));
+    //DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)(val + 1));
+    DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), OnPrintClosure, (Byte*)(val + 1));
 }
-
 
 void DispatchQueue_RunTests(void)
 {
@@ -42,7 +41,7 @@ void DispatchQueue_RunTests(void)
 // MARK: True Sleep time
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = SystemDescription_GetShared();

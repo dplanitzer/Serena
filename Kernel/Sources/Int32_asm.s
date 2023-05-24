@@ -19,9 +19,10 @@
     xdef __lmulu
     xdef __l3muls
     xdef __l3mulu
+    ifnd TARGET_CPU_68030
     xdef __ui32_mul
+    endif
     xdef __ui32_64_mul
-
 
 
 ;-------------------------------------------------------------------------------
@@ -29,9 +30,15 @@
 __ldivs:
     inline
     cargs ldivs_dividend.l, ldivs_divisor
+    ifd TARGET_CPU_68030
+        move.l  ldivs_dividend(sp), d1
+        divsl.l ldivs_divisor(sp), d1:d0
+        rts
+    else
         move.l  ldivs_dividend(sp), d0
         move.l  ldivs_divisor(sp), d1
         jmp     i32_divmod
+    endif
     einline
 
 
@@ -40,11 +47,17 @@ __ldivs:
 __lmods:
     inline
     cargs lmods_dividend.l, lmods_divisor
+    ifd TARGET_CPU_68030
+        move.l  lmods_dividend(sp), d0
+        divsl.l lmods_divisor(sp), d0:d1
+        rts
+    else
         move.l  lmods_dividend(sp), d0
         move.l  lmods_divisor(sp), d1
         jsr     i32_divmod
         move.l  d1, d0
         rts
+    endif
     einline
 
 
@@ -53,9 +66,15 @@ __lmods:
 __ldivu:
     inline
     cargs ldivu_dividend.l, ldivu_divisor
+    ifd TARGET_CPU_68030
+        move.l  ldivu_dividend(sp), d1
+        divul.l ldivu_divisor(sp), d1:d0
+        rts
+    else
         move.l  ldivu_dividend(sp), d0
         move.l  ldivu_divisor(sp), d1
         jmp     ui32_divmod
+    endif
     einline
 
 
@@ -64,33 +83,73 @@ __ldivu:
 __lmodu:
     inline
     cargs lmodu_dividend.l, lmodu_divisor
+    ifd TARGET_CPU_68030
+        move.l  lmodu_dividend(sp), d0
+        divul.l lmodu_divisor(sp), d0:d1
+        rts
+    else
         move.l  lmodu_dividend(sp), d0
         move.l  lmodu_divisor(sp), d1
         jsr     ui32_divmod
         move.l  d1, d0
         rts
+    endif
     einline
+
+
 
 
 ;-------------------------------------------------------------------------------
 ; Int32  __lmuls(Int32, Int32)
-; UInt32 __lmulu(UInt32, UInt32)
-; 32bit by 32bit signed / unsigned multiplication with 32bit result
+; 32bit by 32bit signed multiplication with 32bit result
 __lmuls:
+    inline
+    cargs lmuls_a.l, lmuls_b.l
+    ifd TARGET_CPU_68030
+        move.l  lmuls_b(sp), d0
+        muls.l  lmuls_a(sp), d0
+        rts
+    else
+        move.l  lmuls_a(sp), d0
+        move.l  lmuls_b(sp), d1
+        jmp     __ui32_mul
+    endif
+    einline
+
+
+;-------------------------------------------------------------------------------
+; UInt32 __lmulu(UInt32, UInt32)
+; 32bit by 32bit unsigned multiplication with 32bit result
 __lmulu:
     inline
     cargs lmul_a.l, lmul_b.l
+    ifd TARGET_CPU_68030
+        move.l  lmul_b(sp), d0
+        mulu.l  lmul_a(sp), d0
+        rts
+    else
         move.l  lmul_a(sp), d0
         move.l  lmul_b(sp), d1
         jmp     __ui32_mul
+    endif
     einline
 
 
 ;-------------------------------------------------------------------------------
 ; Int64  __l3muls(Int32, Int32)
-; UInt64 __l3mulu(UInt32, UInt32)
-; 32bit by 32bit signed / unsigned multiplication with 32bit result
+; 32bit by 32bit signed multiplication with 64bit result
 __l3muls:
+    inline
+    cargs l3muls_a.l, l3muls_b.l
+        move.l  l3muls_a(sp), d0
+        move.l  l3muls_b(sp), d1
+        jmp     __ui32_64_mul
+    einline
+
+
+;-------------------------------------------------------------------------------
+; UInt64 __l3mulu(UInt32, UInt32)
+; 32bit by 32bit unsigned multiplication with 64bit result
 __l3mulu:
     inline
     cargs l3mul_a.l, l3mul_b.l
@@ -99,6 +158,10 @@ __l3mulu:
         jmp     __ui32_64_mul
     einline
 
+
+
+
+    ifnd TARGET_CPU_68030
 
 ;-------------------------------------------------------------------------------
 ; __ui32_mul(A: d0, B: d1) -> d0
@@ -132,6 +195,7 @@ __ui32_mul:
         rts
     einline
 
+    endif
 
 ;-------------------------------------------------------------------------------
 ; __ui32_64_mul(A: d0, B: d1) -> d0:d1
@@ -174,6 +238,10 @@ __ui32_64_mul:
     rts
 
 
+
+
+    ifnd TARGET_CPU_68030
+    
 ;-------------------------------------------------------------------------------
 ; i32_divmod(numerator: d0, denominator: d1) -> (quotient: d0, remainder: d1)
 ; 32bit signed division and modulos. The actual work is done by the unsigned
@@ -223,7 +291,7 @@ ui32_divmod:
         swap    d2              ; d2 = $0000ffff
         tst.w   d2
         bne.s   .BigDivisor     ; no -> use the full division algorithm
-        move.l  d0, d2          ; is high(divident) >= divisor ?
+        move.l  d0, d2          ; is high(dividend) >= divisor ?
         swap    d2
         cmp.w   d2, d1
         bhs.s   .BigDivisor     ; yes -> use the full division algorithm
@@ -263,3 +331,5 @@ udiv5:  move.l  d3, d0          ; put the quotient in d0
         movem.l (sp)+, d2 - d4
         rts
     einline
+
+    endif

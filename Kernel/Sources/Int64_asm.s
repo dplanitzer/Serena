@@ -211,7 +211,11 @@ __mulint64_020:
         bra.s   .L2
 .L1:
         move.l  muli64_yl(sp), d1
+    ifd TARGET_CPU_68030
+        mulu.l  d1, d0
+    else
         jsr     __ui32_mul
+    endif
         move.l  d0, d2              ; d2 = x_h*y_l
 
 .L2:
@@ -221,7 +225,11 @@ __mulint64_020:
         bra.s   .L4
 .L3:
         move.l  muli64_xl(sp), d0
+    ifd TARGET_CPU_68030
+        mulu.l  d1, d0              ; d0 = x_l*y_h
+    else
         jsr     __ui32_mul          ; d0 = x_l*y_h
+    endif
 
 .L4:
         add.l   d0, d2              ; d2 = (x_h*y_l + x_l*y_h)*2^32
