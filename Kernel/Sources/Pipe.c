@@ -186,14 +186,14 @@ Int Pipe_Write(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, const Byte* _
             nBytesWritten += nChunkSize;
             if (nChunkSize == 0) {
                 if (pPipe->readSideState == kPipeState_Closed) {
-                    // Only way for us to observe here that the writer closed is that this happend
+                    // Only way for us to observe here that the reader closed is that this happend
                     // while we were waiting in a previous loop iteration.
                     break;
                 }
 
                 if (allowBlocking) {
                     // Be sure to wake the reader before we go to sleep and drop the lock
-                    // so that it can consume data and make space available for us.
+                    // so that it can consume data and make space available to us.
                     ConditionVariable_Broadcast(&pPipe->reader, NULL);
                     
                     // Wait for the reader to make space available

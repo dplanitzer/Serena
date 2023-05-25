@@ -181,7 +181,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
 
     register VirtualProcessor* pBestReady = VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler);
     if (pBestReady == NULL || pBestReady->effectivePriority <= curRunning->effectivePriority) {
-        // We did'nt find anything better to run. Continue running the currently
+        // We didn't find anything better to run. Continue running the currently
         // running VP.
         return;
     }
@@ -291,7 +291,7 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
                                        VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler));
     
     switch (pVP->wakeup_reason) {
-        case WAKEUP_REASON_INTERRUPT:   return EINTR;
+        case WAKEUP_REASON_INTERRUPTED: return EINTR;
         case WAKEUP_REASON_TIMEOUT:     return ETIMEOUT;
         default:                        return EOK;
     }
@@ -379,7 +379,7 @@ ErrorCode VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnul
         }
     }
     
-    if (wakeUpReason == WAKEUP_REASON_INTERRUPT && (pVP->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
+    if (wakeUpReason == WAKEUP_REASON_INTERRUPTED && (pVP->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
         return EBUSY;
     }
     
@@ -488,7 +488,7 @@ void VirtualProcessor_ScheduleFinalization(VirtualProcessor* _Nonnull pVP)
         VirtualProcessorScheduler_WakeUpOne(pScheduler,
                                             &pScheduler->scheduler_wait_queue,
                                             SchedulerVirtualProcessor_GetShared(),
-                                            WAKEUP_REASON_INTERRUPT,
+                                            WAKEUP_REASON_INTERRUPTED,
                                             true);
     } else {
         // Do a forced context switch to whoever is ready
@@ -603,7 +603,7 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
             break;
             
         case kVirtualProcessorState_Waiting:
-            VirtualProcessorScheduler_WakeUpOne(pScheduler, pVP->waiting_on_wait_queue, pVP, WAKEUP_REASON_INTERRUPT, false);
+            VirtualProcessorScheduler_WakeUpOne(pScheduler, pVP->waiting_on_wait_queue, pVP, WAKEUP_REASON_INTERRUPTED, false);
             break;
             
         case kVirtualProcessorState_Suspended:

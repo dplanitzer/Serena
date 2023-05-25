@@ -74,7 +74,7 @@ typedef enum _VirtualProcessorState {
 // WAKEUP_REASON_NONE means that we are still waiting for a wake up
 #define WAKEUP_REASON_NONE          0
 #define WAKEUP_REASON_FINISHED      1
-#define WAKEUP_REASON_INTERRUPT     2
+#define WAKEUP_REASON_INTERRUPTED   2
 #define WAKEUP_REASON_TIMEOUT       3
 
 

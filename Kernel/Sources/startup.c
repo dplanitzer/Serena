@@ -22,6 +22,18 @@
 static void OnStartup(const SystemDescription* _Nonnull pSysDesc);
 
 
+// Called from the Reset() function at system reset time. Only a very minimal
+// environment is set up at this point. IRQs and DMAs are off, CPU vectors are
+// set up and a small reset stack exists.
+// OnReset() must finish the initialization of the provided system description.
+// The 'stack_base' and 'stack_size' fields are set up with the reset stack. All
+// other fields must be initialized before OnReset() returns.
+void OnReset(SystemDescription* _Nonnull pSysDesc)
+{
+    SystemDescription_Init(pSysDesc);
+}
+
+
 // Called by Reset() after OnReset() has returned. This function should initialize
 // the boot virtual processor and the scheduler. Reset() will then do a single
 // context switch to the boot virtual processor which will then continue with the
@@ -43,11 +55,14 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Init(VirtualProcessorScheduler_GetShared(), pSysDesc, pVP);
 }
 
+
 // XXX
 void VirtualProcessor_RunTests(void);
 void DispatchQueue_RunTests(void);
 // XXX
 
+// Called by the boot virtual processor after onBoot() has returned. This is the thread
+// of execution that was started by the Reset() function.
 static void OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
     SystemGlobals* pGlobals = SystemGlobals_Get();
