@@ -83,9 +83,7 @@ enum {
 
 
 typedef struct _KeyRepeater {
-    // XXX Should be TimeInterval. However vbcc generates incorrect code if we use TimeInterval here (accesses the wrong struct fields)
-    Int32           start_time_seconds;
-    Int32           start_time_nanoseconds;
+    TimeInterval    start_time;
     HIDKeyCode      usbcode;
     UInt16          state;
     UInt32          func_flags;
@@ -601,8 +599,8 @@ static void KeyRepeater_StartInitDelay(KeyRepeater* _Nonnull pRepeater, HIDKeyCo
     pRepeater->state = kKeyRepeaterState_InitialDelay;
     pRepeater->usbcode = usbcode;
     pRepeater->func_flags = funcFlags;
-    pRepeater->start_time_seconds = curTime.seconds;
-    pRepeater->start_time_nanoseconds = curTime.nanoseconds;
+    pRepeater->start_time.seconds = curTime.seconds;
+    pRepeater->start_time.nanoseconds = curTime.nanoseconds;
 }
 
 // Cancels a key auto-repeater and makes it available for reuse.
@@ -611,8 +609,8 @@ static void KeyRepeater_Cancel(KeyRepeater* _Nonnull pRepeater)
     pRepeater->state = kKeyRepeaterState_Available;
     pRepeater->usbcode = 0;
     pRepeater->func_flags = 0;
-    pRepeater->start_time_seconds = 0;
-    pRepeater->start_time_nanoseconds = 0;
+    pRepeater->start_time.seconds = 0;
+    pRepeater->start_time.nanoseconds = 0;
 }
 
 // Update the key auto-repeater state and return true if an auto-repeat event should
@@ -621,21 +619,19 @@ static Bool KeyRepeater_ShouldRepeat(KeyRepeater* _Nonnull pRepeater, EventDrive
 {
     switch (pRepeater->state) {
         case kKeyRepeaterState_InitialDelay: {
-            const TimeInterval diff = TimeInterval_Subtract(curTime, TimeInterval_Make(pRepeater->start_time_seconds, pRepeater->start_time_nanoseconds));
+            const TimeInterval diff = TimeInterval_Subtract(curTime, pRepeater->start_time);
             if (TimeInterval_GreaterEquals(diff, pDriver->key_initial_repeat_delay)) {
                 pRepeater->state = kKeyRepeaterState_Repeating;
-                pRepeater->start_time_seconds = curTime.seconds;
-                pRepeater->start_time_nanoseconds = curTime.nanoseconds;
+                pRepeater->start_time = curTime;
                 return true;
             }
             break;
         }
 
         case kKeyRepeaterState_Repeating: {
-            const TimeInterval diff = TimeInterval_Subtract(curTime, TimeInterval_Make(pRepeater->start_time_seconds, pRepeater->start_time_nanoseconds));
+            const TimeInterval diff = TimeInterval_Subtract(curTime, pRepeater->start_time);
             if (TimeInterval_GreaterEquals(diff, pDriver->key_repeat_delay)) {
-                pRepeater->start_time_seconds = curTime.seconds;
-                pRepeater->start_time_nanoseconds = curTime.nanoseconds;
+                pRepeater->start_time = curTime;
                 return true;
             }
             break;

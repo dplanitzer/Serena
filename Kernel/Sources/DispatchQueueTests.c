@@ -18,7 +18,7 @@
 #include "RealtimeClock.h"
 
 
-#if 1
+#if 0
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
     Int val = (Int)pValue;
@@ -145,7 +145,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 0
+#if 1
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pDriver = SystemGlobals_Get()->event_driver;

@@ -19,19 +19,16 @@
 #ifeq ($(BUILD_CONFIGURATION), "release")
 #	echo "release build"
 
-# we keep Common Subexpression Elimnation turned off because the compiler has a bug where
-# this optimization breaks code if you nest structs more than one level deep
-
-	CC_OPT_SETTING = -O=1163 -schedule
+	CC_OPT_SETTING = -O=23999 -schedule
 	CC_GENERATE_DEBUG_INFO =
-	CC_PREPROCESSOR_DEFINITIONS = -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__LP32__=1 -DTARGET_CPU_68030=1
 #else ifeq ($(BUILD_CONFIGURATION), "debug")
 #	echo "debug build"
-#
-#	CC_OPT_SETTING =
+
+#	CC_OPT_SETTING = -O0
 #	CC_GENERATE_DEBUG_INFO = -g
-#	CC_PREPROCESSOR_DEFINITIONS = -DDEBUG=1
 #endif
+
+CC_PREPROCESSOR_DEFINITIONS = -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__LP32__=1 -DTARGET_CPU_68030=1
 
 
 # --------------------------------------------------------------------------
@@ -39,8 +36,6 @@
 #
 
 SOURCES_DIR = .
-# Allow Xcode to specify the build directory location
-# XXX using the Xcode build directory suddenly stopped at one point and leads to a compile error...
 #ifndef BUILD_DIR
 	BUILD_DIR = build
 #endif
