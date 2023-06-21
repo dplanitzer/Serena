@@ -19,7 +19,7 @@
 #ifeq ($(BUILD_CONFIGURATION), "release")
 #	echo "release build"
 
-	CC_OPT_SETTING = -O=23999 -schedule
+	CC_OPT_SETTING = -O3 -schedule
 	CC_GENERATE_DEBUG_INFO =
 #else ifeq ($(BUILD_CONFIGURATION), "debug")
 #	echo "debug build"
