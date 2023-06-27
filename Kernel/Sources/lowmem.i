@@ -77,8 +77,8 @@ CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 ;
 ; The _Reset function initializes the CPU vector table and it clears the low memory
 ; region. It then initializes the system description with the reset stack and a
-; memory description which spans just the reset stack area. Note that the lower
-; bound of this memory description is right at the end of low memory. This allows
+; memory descriptor which spans just the reset stack area. Note that the lower
+; bound of this memory descriptor is right at the end of low memory. This allows
 ; the high-level language code to easily figure out where the memory area starts
 ; that should be managed by the heap.
 ; _Reset then calls OnReset() which takes care of finializing the initialization

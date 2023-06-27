@@ -9,40 +9,33 @@
 #include "EventDriver.h"
 #include "Console.h"
 #include "ConditionVariable.h"
+#include "DispatchQueue.h"
 #include "Heap.h"
-#include "InterruptController.h"
 #include "InputDriver.h"
 #include "Lock.h"
 #include "MonotonicClock.h"
 #include "RingBuffer.h"
 #include "USBHIDKeys.h"
-#include "VirtualProcessor.h"
-#include "VirtualProcessorPool.h"
-#include "VirtualProcessorScheduler.h"
 
 
-// The event driver runs a deticated virtual processor which processes events
-// from low-level input drivers. It creates HID events and makes them available
-// via the EventDriver_GetEvents() call.
-//
-// The event VP runs a loop which is driven by the vertical blank interrupt. The
-// driver sleeps until the next vertical blank interrupt occurs and it then
-// gathers all queued up low-level events.
+// The event driver creates a high-priority serial dispatch queue which is used
+// to periodically run a closure that gathers low-level events. The closure runs
+// every 16ms. Low-level events are post-processed and converted to high-level
+// events which are made available to applications via the EventDriver_GetEvents()
+// call.
 //
 // Low-level input drivers provide low-level events in two different ways:
 //
 // 1) via a ring buffer: the keyboard driver posts key codes to a key queue which
-//    is a ring buffer. The event driver collects those key codes at the next
-//    vertical blank.
+//    is a ring buffer. The event driver dispatch queue code then collects those
+//    key codes and post processes them.
 //
 // 2) via querying for a report: the mouse, joystick, etc input drivers provide
-//    the current device state to the event driver when it asks for it at the
-//    next vertical blank.
+//    the current device state to the event driver when it asks for it.
 //
 // This model has the advantages that it makes the implementation simpler and that
 // it is very lightweight because low-level events do not cause context switches.
-// We only need to do a single context switch per vertical blank. Since event
-// delivery is done once per vertical blank, this model minimizes overhead.
+// We only need to do a single context switch per dispatch closure invocation.
 
 
 // Per port input controller state
@@ -97,13 +90,11 @@ typedef struct _EventDriver {
     KeyboardDriverRef _Nonnull  keyboard_driver;
     InputControllerState        port[MAX_INPUT_CONTROLLER_PORTS];
     
-    VirtualProcessor* _Nonnull  event_vp;
+    DispatchQueueRef _Nonnull   dispatchQueue;
+    TimerRef _Nonnull           timer;
     Lock                        lock;
     ConditionVariable           event_queue_cv;
     RingBuffer                  event_queue;
-    
-    BinarySemaphore             vb_sema;    // Vertical blank semaphore
-    InterruptHandlerID          vb_irq;
 
     UInt32                      key_map[KEY_MAP_INTS_COUNT];    // keycode is the bit index. 1 -> key down; 0 -> key up
     UInt32                      key_modifierFlags;
@@ -129,7 +120,7 @@ typedef struct _EventDriver {
 
 static void EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
 static void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
-static void EventDriver_Run(EventDriver* _Nonnull pDriver);
+static void EventDriver_GatherLowLevelEvents(EventDriver* _Nonnull pDriver);
 
 
 EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
@@ -137,17 +128,15 @@ EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
     EventDriver* pDriver = (EventDriver*)kalloc(sizeof(EventDriver), HEAP_ALLOC_OPTION_CLEAR);
     FailNULL(pDriver);
     
-    VirtualProcessorAttributes attribs;
-    VirtualProcessorAttributes_Init(&attribs);
-    attribs.priority = VP_PRIORITY_REALTIME + 4;
-    attribs.userStackSize = 0;
-    pDriver->event_vp = VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPool_GetShared(), &attribs, (VirtualProcessor_Closure)EventDriver_Run, (Byte*)pDriver, false);
-    FailNULL(pDriver->event_vp);
+    pDriver->dispatchQueue = DispatchQueue_Create(1, DISPATCH_QOS_REALTIME, DISPATCH_PRIORITY_NORMAL);
+    FailNULL(pDriver->dispatchQueue);
+
+    pDriver->timer = Timer_Create(TimeInterval_MakeMilliseconds(0), TimeInterval_MakeMilliseconds(16), (DispatchQueue_Closure)EventDriver_GatherLowLevelEvents, (Byte*)pDriver);
+    FailNULL(pDriver->timer);
 
     FailFalse((RingBuffer_Init(&pDriver->event_queue, EVENT_QUEUE_MAX_EVENTS * sizeof(HIDEvent))));
     
     ConditionVariable_Init(&pDriver->event_queue_cv);
-    BinarySemaphore_Init(&pDriver->vb_sema, true);
     Lock_Init(&pDriver->lock);
     
     pDriver->key_modifierFlags = 0;
@@ -174,13 +163,6 @@ EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
         pDriver->key_repeater[i].state = kKeyRepeaterState_Available;
     }
     
-    pDriver->vb_irq = InterruptController_AddBinarySemaphoreInterruptHandler(InterruptController_GetShared(),
-                                                                             INTERRUPT_ID_VERTICAL_BLANK,
-                                                                             INTERRUPT_HANDLER_PRIORITY_HIGHEST - 1,
-                                                                             &pDriver->vb_sema);
-    FailZero(pDriver->vb_irq);
-    
-    
     // Open the input devices
     pDriver->keyboard_driver = KeyboardDriver_Create(pDriver);
     assert(pDriver->keyboard_driver != NULL);
@@ -191,8 +173,8 @@ EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
     
     EventDriver_CreateInputControllerForPort(pDriver, kInputControllerType_Mouse, 0);
 
-    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->vb_irq, true);
-    VirtualProcessor_Resume(pDriver->event_vp, false);
+    // Kick off the low-level event gathering
+    DispatchQueue_DispatchTimer(pDriver->dispatchQueue, pDriver->timer);
 
     return pDriver;
     
@@ -204,17 +186,26 @@ failed:
 void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
 {
     if (pDriver) {
+        // XXX All the destroy code should actually run in the context of the
+        // XXX dispatch queue to guarantee exclusivity. We need a
+        // XXX DispatchQueue_Sync() to make this work.
+        Timer_Cancel(pDriver->timer);
+
         KeyboardDriver_Destroy(pDriver->keyboard_driver);
         for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
             EventDriver_DestroyInputControllerForPort(pDriver, i);
         }
         
         pDriver->gdevice = NULL;
-        InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq);
         Lock_Deinit(&pDriver->lock);
-        BinarySemaphore_Deinit(&pDriver->vb_sema);
         ConditionVariable_Deinit(&pDriver->event_queue_cv);
         RingBuffer_Deinit(&pDriver->event_queue);
+
+        Timer_Destroy(pDriver->timer);
+        pDriver->timer = NULL;
+
+        DispatchQueue_Destroy(pDriver->dispatchQueue);
+        pDriver->dispatchQueue = NULL;
         
         kfree((Byte*)pDriver);
     }
@@ -326,18 +317,22 @@ void EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, 
 
 void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
+    Lock_Lock(&pDriver->lock);
     if (pInitialDelay) {
         *pInitialDelay = pDriver->key_initial_repeat_delay;
     }
     if (pRepeatDelay) {
         *pRepeatDelay = pDriver->key_repeat_delay;
     }
+    Lock_Unlock(&pDriver->lock);
 }
 
 void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay)
 {
+    Lock_Lock(&pDriver->lock);
     pDriver->key_initial_repeat_delay = initialDelay;
     pDriver->key_repeat_delay = repeatDelay;
+    Lock_Unlock(&pDriver->lock);
 }
 
 // Show the mouse cursor. This decrements the hidden counter. The mouse cursor
@@ -964,29 +959,25 @@ static void EventDriver_GenerateJoysticksEvents(EventDriverRef _Nonnull pDriver,
     }
 }
 
-static void EventDriver_Run(EventDriverRef _Nonnull pDriver)
+static void EventDriver_GatherLowLevelEvents(EventDriverRef _Nonnull pDriver)
 {
-    while(true) {
-        BinarySemaphore_Acquire(&pDriver->vb_sema, kTimeInterval_Infinity);
+    Lock_Lock(&pDriver->lock);
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
 
-        Lock_Lock(&pDriver->lock);
-        const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-
-        // Process mouse input
-        EventDriver_UpdateMouseState(pDriver);
+    // Process mouse input
+    EventDriver_UpdateMouseState(pDriver);
         
         
-        // Generate keyboard events
-        EventDriver_GenerateKeyboardEvents(pDriver, curTime);
+    // Generate keyboard events
+    EventDriver_GenerateKeyboardEvents(pDriver, curTime);
         
-        // Generate mouse events
-        EventDriver_GenerateMouseEvents(pDriver, curTime);
+    // Generate mouse events
+    EventDriver_GenerateMouseEvents(pDriver, curTime);
         
-        // Generate joystick events
-        EventDriver_GenerateJoysticksEvents(pDriver, curTime);
+    // Generate joystick events
+    EventDriver_GenerateJoysticksEvents(pDriver, curTime);
         
         
-        // Wake up the event queue consumer
-        ConditionVariable_Broadcast(&pDriver->event_queue_cv, &pDriver->lock);
-    }
+    // Wake up the event queue consumer
+    ConditionVariable_Broadcast(&pDriver->event_queue_cv, &pDriver->lock);
 }
