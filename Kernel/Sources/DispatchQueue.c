@@ -400,7 +400,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         Lock_Lock(&pQueue->lock);
 
         // Rearm a repeating timer if we executed a repeating timer in the previous
-        // iteration and it's not been cancelled in meanwhile.
+        // iteration and it's not been cancelled in the meantime.
         if (pTimerToRearm) {
             if (!pTimerToRearm->item.cancelled) {
                 // Repeating timer: rearm it with the next fire date that's in

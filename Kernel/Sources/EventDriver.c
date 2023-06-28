@@ -115,6 +115,8 @@ typedef struct _EventDriver {
     volatile Int                mouseCursorHiddenCounter;
     volatile Bool               isMouseCursorObscured;      // hidden until the mouse moves
     volatile Bool               mouseConfigDidChange;       // tells the event VP to apply the new mouse config to the graphics driver
+
+    Bool                        isReady;                    // set to true once the event driver object has been initialized enough to run the dispatch queue
 } EventDriver;
 
 
@@ -174,6 +176,7 @@ EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
     EventDriver_CreateInputControllerForPort(pDriver, kInputControllerType_Mouse, 0);
 
     // Kick off the low-level event gathering
+    pDriver->isReady = true;
     DispatchQueue_DispatchTimer(pDriver->dispatchQueue, pDriver->timer);
 
     return pDriver;
@@ -208,7 +211,11 @@ void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
         // Free the resources in the context of the dispatch queue. This guarantees
         // that we'll only start freeing resources after the last timer invocation
         // has completed.
-        DispatchQueue_DispatchSync(pDriver->dispatchQueue, (DispatchQueue_Closure)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver);
+        if (pDriver->isReady) {
+            DispatchQueue_DispatchSync(pDriver->dispatchQueue, (DispatchQueue_Closure)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver);
+        } else {
+            EventDriver_FreeResourcesOnDispatchQueue(pDriver);
+        }
 
         // The dispatch queue is no longer executing any of our closures. It's
         // now safe to destroy it.
