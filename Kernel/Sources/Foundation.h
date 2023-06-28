@@ -22,6 +22,10 @@
 #endif
 #endif
 
+#ifndef _Weak
+#define _Weak
+#endif
+
 
 // The Byte type represents raw, untyped memory. Raw memory may be reinterpreted
 // or converted to typed memory but this requires the execution of some piece of

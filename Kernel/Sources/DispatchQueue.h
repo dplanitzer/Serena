@@ -124,18 +124,34 @@ static inline DispatchQueueRef _Nonnull DispatchQueue_GetIdle(void) {
 
 extern void DispatchQueue_CreateKernelQueues(const SystemDescription* _Nonnull pSysDesc);
 
+
 extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority);
+
 extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
 
-// Dispatches the given work item to the given queue. The work item is executed
-// as soon as possible.
-extern void DispatchQueue_DispatchWorkItem(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+// Synchronously executes the given work item. The work item is executed as
+// soon as possible and the caller remains blocked until the work item has finished
+// execution.
+extern void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
+// Synchronously executes the given closure. The closure is executed as soon as
+// possible and the caller remains blocked until the closure has finished execution.
+extern void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+
+// Asynchronously executes the given work item. The work item is executed as
+// soon as possible.
+extern void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+
+// Asynchronously executes the given closure. The closure is executed as soon as
+// possible.
 extern void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
-extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
 
-// Dispatches the given timer.
+// Asynchronously executes the given timer when it comes due.
 extern void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
+
+// Asynchronously executes the given closure on or after 'deadline'. The dispatch
+// queue will try to execute the closure as close to 'deadline' as possible.
+extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
 
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 

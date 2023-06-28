@@ -25,12 +25,13 @@ enum ItemType {
 
 
 typedef struct _WorkItem {
-    ListNode                queue_entry;
-    DispatchQueue_Closure   closure;
-    Byte* _Nullable         context;
-    AtomicBool              cancelled;
-    Int8                    type;
-    Int8                    reserved[2];
+    ListNode                            queue_entry;
+    DispatchQueue_Closure               closure;
+    Byte* _Nullable _Weak               context;
+    BinarySemaphore * _Nullable _Weak   completion_sema;
+    AtomicBool                          cancelled;
+    Int8                                type;
+    Int8                                reserved[2];
 } WorkItem;
 
 typedef struct _Timer {
@@ -86,6 +87,7 @@ static void WorkItem_Deinit(WorkItem* _Nonnull pItem)
     ListNode_Deinit(&pItem->queue_entry);
     pItem->closure = NULL;
     pItem->context = NULL;
+    pItem->completion_sema = NULL;
     pItem->cancelled = false;
 }
 
@@ -217,7 +219,7 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
     }
 }
 
-static void DispatchQueue_SpawnWorkerIfNeeded_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_Closure _Nonnull pWorkerFunc)
+static void DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_Closure _Nonnull pWorkerFunc)
 {
     if (PointerArray_Count(&pQueue->vps) < pQueue->maxConcurrency) {
         VirtualProcessorAttributes attribs;
@@ -236,14 +238,83 @@ static void DispatchQueue_SpawnWorkerIfNeeded_Locked(DispatchQueueRef _Nonnull p
     }
 }
 
-// Dispatches the given work item to the given queue. The work item is executed
-// as soon as possible.
-void DispatchQueue_DispatchWorkItem(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+// Creates a work item for the given closure and closure context. Tries to reuse
+// an existing work item from the work item cache whenever possible. Expects that
+// the caller holds the dispatch queue lock.
+static WorkItem* _Nullable DispatchQueue_CreateWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    WorkItem* pItem = NULL;
+
+    if (pQueue->item_cache_count > 0) {
+        for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
+            if (pQueue->item_cache[i]) {
+                pItem = pQueue->item_cache[i];
+                WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext);
+                pQueue->item_cache[i] = NULL;
+                pQueue->item_cache_count--;
+                break;
+            }
+        }
+    } else {
+        pItem = WorkItem_Create(pClosure, pContext);
+    }
+    
+    return pItem;
+}
+
+// Asynchronously executes the given work item. The work item is executed as
+// soon as possible. Expects to be called with the dispatch queue held.
+static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    List_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
+    DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
+    ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
+}
+
+// Synchronously executes the given work item. The work item is executed as
+// soon as possible and the caller remains blocked until the work item has finished
+// execution. Expects that the caller holds the dispatch queue lock.
+static void DispatchQueue_DispatchWorkItemSync_Lock(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    BinarySemaphore* pCompletionSema = BinarySemaphore_Create(false);
+    assert(pCompletionSema != NULL);
+
+    // Keep in mind that the work item may null out its completion_sema field
+    // before BinarySemaphore_Acquire() returns. So we have to keep a local
+    // reference to the semaphore around.
+    pItem->completion_sema = pCompletionSema;
+
+    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
+    BinarySemaphore_Acquire(pCompletionSema, kTimeInterval_Infinity);
+    BinarySemaphore_Destroy(pCompletionSema);
+}
+
+// Synchronously executes the given work item. The work item is executed as
+// soon as possible and the caller remains blocked until the work item has finished
+// execution.
+void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     Lock_Lock(&pQueue->lock);
-    List_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
-    DispatchQueue_SpawnWorkerIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
-    ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
+    DispatchQueue_DispatchWorkItemSync_Lock(pQueue, pItem);
+}
+
+// Synchronously executes the given closure. The closure is executed as soon as
+// possible and the caller remains blocked until the closure has finished execution.
+void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    Lock_Lock(&pQueue->lock);
+    WorkItem* pItem = DispatchQueue_CreateWorkItem_Locked(pQueue, pClosure, pContext);
+    assert(pItem != NULL);
+    DispatchQueue_DispatchWorkItemSync_Lock(pQueue, pItem);
+}
+
+
+// Asynchronously executes the given work item. The work item is executed as
+// soon as possible.
+void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    Lock_Lock(&pQueue->lock);
+    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
 }
 
 // Adds the given timer to the timer queue. Expects that the queue is already
@@ -265,44 +336,29 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
     List_InsertAfter(&pQueue->timer_queue, &pTimer->item.queue_entry, &pPrevTimer->item.queue_entry);
 }
 
-// Dispatches the given timer.
+// Asynchronously executes the given timer when it comes due.
 void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
     Lock_Lock(&pQueue->lock);
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
-    DispatchQueue_SpawnWorkerIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
+    DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
     ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
 }
 
-// Dispatches the given closure to the given queue. The closure is executed as
-// soon as possible.
+// Asynchronously executes the given closure. The closure is executed as soon as
+// possible.
 void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
-    WorkItem* pItem = NULL;
-
     Lock_Lock(&pQueue->lock);
+
+    WorkItem* pItem = DispatchQueue_CreateWorkItem_Locked(pQueue, pClosure, pContext);
+    assert(pItem != NULL);
     
-    if (pQueue->item_cache_count > 0) {
-        for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
-            if (pQueue->item_cache[i]) {
-                pItem = pQueue->item_cache[i];
-                WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext);
-                pQueue->item_cache[i] = NULL;
-                pQueue->item_cache_count--;
-                break;
-            }
-        }
-    } else {
-        pItem = WorkItem_Create(pClosure, pContext);
-    }
-    
-    List_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
-    DispatchQueue_SpawnWorkerIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
-    ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
+    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
 }
 
-// Dispatches the given closure to the given queue. The closure is executed on
-// or as soon as possible after the given deadline.
+// Asynchronously executes the given closure on or after 'deadline'. The dispatch
+// queue will try to execute the closure as close to 'deadline' as possible.
 void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Timer* pTimer = Timer_Create(deadline, kTimeInterval_Zero, pClosure, pContext);
@@ -418,6 +474,13 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // Execute the work item
         DispatchQueue_Closure pClosure = pItem->closure;
         Byte* pContext = pItem->context;
+        BinarySemaphore* pCompletionSema = pItem->completion_sema;
+
+
+        // Null out the (weak) completion semaphore reference now. That way we
+        // do not have to care about whether we ow the item or we don't. The
+        // semaphore is only good for this invocation anyway.
+        pItem->completion_sema = NULL;
 
         switch (pItem->type) {
             case kItemType_Immediate:
@@ -447,7 +510,12 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
             default:
                 abort();
                 break;
-                
+        }
+
+
+        // Signal the work item's completion semaphore if needed
+        if (pCompletionSema != NULL) {
+            BinarySemaphore_Release(pCompletionSema);
         }
     }
 }

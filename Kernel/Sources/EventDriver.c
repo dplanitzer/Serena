@@ -183,27 +183,35 @@ failed:
     return NULL;
 }
 
+static void EventDriver_FreeResourcesOnDispatchQueue(EventDriverRef _Nullable pDriver)
+{
+    KeyboardDriver_Destroy(pDriver->keyboard_driver);
+    for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+        EventDriver_DestroyInputControllerForPort(pDriver, i);
+    }
+    
+    pDriver->gdevice = NULL;
+    Lock_Deinit(&pDriver->lock);
+    ConditionVariable_Deinit(&pDriver->event_queue_cv);
+    RingBuffer_Deinit(&pDriver->event_queue);
+
+    Timer_Destroy(pDriver->timer);
+    pDriver->timer = NULL;
+}
+
 void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        // XXX All the destroy code should actually run in the context of the
-        // XXX dispatch queue to guarantee exclusivity. We need a
-        // XXX DispatchQueue_Sync() to make this work.
+        // Make sure that we stop sampling the low-level input devices
         Timer_Cancel(pDriver->timer);
 
-        KeyboardDriver_Destroy(pDriver->keyboard_driver);
-        for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
-            EventDriver_DestroyInputControllerForPort(pDriver, i);
-        }
-        
-        pDriver->gdevice = NULL;
-        Lock_Deinit(&pDriver->lock);
-        ConditionVariable_Deinit(&pDriver->event_queue_cv);
-        RingBuffer_Deinit(&pDriver->event_queue);
+        // Free the resources in the context of the dispatch queue. This guarantees
+        // that we'll only start freeing resources after the last timer invocation
+        // has completed.
+        DispatchQueue_DispatchSync(pDriver->dispatchQueue, (DispatchQueue_Closure)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver);
 
-        Timer_Destroy(pDriver->timer);
-        pDriver->timer = NULL;
-
+        // The dispatch queue is no longer executing any of our closures. It's
+        // now safe to destroy it.
         DispatchQueue_Destroy(pDriver->dispatchQueue);
         pDriver->dispatchQueue = NULL;
         
