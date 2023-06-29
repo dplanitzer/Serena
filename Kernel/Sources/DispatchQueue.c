@@ -29,10 +29,12 @@ typedef struct _WorkItem {
     DispatchQueue_Closure               closure;
     Byte* _Nullable _Weak               context;
     BinarySemaphore * _Nullable _Weak   completion_sema;
-    AtomicBool                          cancelled;
+    Bool                                is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
+    AtomicBool                          is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
+    AtomicBool                          cancelled;              // shared between dispatch queue and queue user
     Int8                                type;
-    Int8                                reserved[2];
 } WorkItem;
+
 
 typedef struct _Timer {
     WorkItem        item;
@@ -61,25 +63,36 @@ typedef struct _DispatchQueue {
 // MARK: Work Items
 
 
-static void WorkItem_Init(WorkItem* _Nonnull pItem, enum ItemType type, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+static void WorkItem_Init(WorkItem* _Nonnull pItem, enum ItemType type, Bool isOwnedByQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     ListNode_Init(&pItem->queue_entry);
     pItem->closure = pClosure;
     pItem->context = pContext;
+    pItem->is_owned_by_queue = isOwnedByQueue;
+    pItem->is_being_dispatched = false;
     pItem->cancelled = false;
     pItem->type = type;
 }
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
-WorkItemRef _Nullable WorkItem_Create(DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+static WorkItemRef _Nullable WorkItem_Create_Internal(DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
     WorkItem* pItem = (WorkItem*) kalloc(sizeof(WorkItem), HEAP_ALLOC_OPTION_CPU);
     
     if (pItem) {
-        WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext);
+        WorkItem_Init(pItem, kItemType_Immediate, isOwnedByQueue, pClosure, pContext);
     }
     return pItem;
+}
+
+// Creates a work item which will invoke the given closure. Note that work items
+// are one-shot: they execute their closure and then the work item is destroyed.
+// This is the creation method for parties that are external to the dispatch
+// queue implementation.
+WorkItemRef _Nullable WorkItem_Create(DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    return WorkItem_Create_Internal(pClosure, pContext, false);
 }
 
 static void WorkItem_Deinit(WorkItem* _Nonnull pItem)
@@ -88,6 +101,8 @@ static void WorkItem_Deinit(WorkItem* _Nonnull pItem)
     pItem->closure = NULL;
     pItem->context = NULL;
     pItem->completion_sema = NULL;
+    // Leave is_owned_by_queue alone
+    pItem->is_being_dispatched = false;
     pItem->cancelled = false;
 }
 
@@ -122,17 +137,26 @@ Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem)
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
-TimerRef _Nullable Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+static TimerRef _Nullable Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
     enum ItemType type = TimeInterval_Greater(interval, kTimeInterval_Zero) ? kItemType_RepeatingTimer : kItemType_OneShotTimer;
     Timer* pTimer = (Timer*) kalloc(sizeof(Timer), HEAP_ALLOC_OPTION_CPU);
     
     if (pTimer) {
-        WorkItem_Init((WorkItem*)pTimer, type, pClosure, pContext);
+        WorkItem_Init((WorkItem*)pTimer, type, isOwnedByQueue, pClosure, pContext);
         pTimer->deadline = deadline;
         pTimer->interval = interval;
     }
     return pTimer;
+}
+
+// Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
+// is greater than 0 then the timer will repeat until cancelled.
+// This is the creation method for parties that are external to the dispatch
+// queue implementation.
+TimerRef _Nullable Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    return Timer_Create_Internal(deadline, interval, pClosure, pContext, false);
 }
 
 void Timer_Destroy(TimerRef _Nullable pTimer)
@@ -249,14 +273,14 @@ static WorkItem* _Nullable DispatchQueue_CreateWorkItem_Locked(DispatchQueueRef 
         for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
             if (pQueue->item_cache[i]) {
                 pItem = pQueue->item_cache[i];
-                WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext);
+                WorkItem_Init(pItem, kItemType_Immediate, true, pClosure, pContext);
                 pQueue->item_cache[i] = NULL;
                 pQueue->item_cache_count--;
                 break;
             }
         }
     } else {
-        pItem = WorkItem_Create(pClosure, pContext);
+        pItem = WorkItem_Create_Internal(pClosure, pContext, true);
     }
     
     return pItem;
@@ -294,6 +318,11 @@ static void DispatchQueue_DispatchWorkItemSync_Lock(DispatchQueueRef _Nonnull pQ
 // execution.
 void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
+    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
+        // Some other queue is already dispatching this work item
+        abort();
+    }
+
     Lock_Lock(&pQueue->lock);
     DispatchQueue_DispatchWorkItemSync_Lock(pQueue, pItem);
 }
@@ -313,6 +342,11 @@ void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_
 // soon as possible.
 void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
+    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
+        // Some other queue is already dispatching this work item
+        abort();
+    }
+
     Lock_Lock(&pQueue->lock);
     DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
 }
@@ -339,6 +373,11 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
 // Asynchronously executes the given timer when it comes due.
 void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
+    if (AtomicBool_Set(&pTimer->item.is_being_dispatched, true)) {
+        // Some other queue is already dispatching this timer
+        abort();
+    }
+
     Lock_Lock(&pQueue->lock);
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
     DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
@@ -361,7 +400,7 @@ void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue
 // queue will try to execute the closure as close to 'deadline' as possible.
 void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
-    Timer* pTimer = Timer_Create(deadline, kTimeInterval_Zero, pClosure, pContext);
+    Timer* pTimer = Timer_Create_Internal(deadline, kTimeInterval_Zero, pClosure, pContext, true);
     assert(pTimer != NULL);
     
     DispatchQueue_DispatchTimer(pQueue, pTimer);
@@ -472,50 +511,46 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
 
         // Execute the work item
-        DispatchQueue_Closure pClosure = pItem->closure;
-        Byte* pContext = pItem->context;
-        BinarySemaphore* pCompletionSema = pItem->completion_sema;
+        pItem->closure(pItem->context);
 
 
-        // Null out the (weak) completion semaphore reference now. That way we
-        // do not have to care about whether we ow the item or we don't. The
-        // semaphore is only good for this invocation anyway.
-        pItem->completion_sema = NULL;
+        // Signal the work item's completion semaphore if needed
+        if (pItem->completion_sema != NULL) {
+            BinarySemaphore_Release(pItem->completion_sema);
+            pItem->completion_sema = NULL;
+        }
 
+
+        // Move the work item back to the item cache if possible or destroy it
         switch (pItem->type) {
             case kItemType_Immediate:
-                if (!DispatchQueue_MoveWorkItemToCacheIfPossible(pQueue, pItem)) {
-                    WorkItem_Destroy(pItem);
+                if (pItem->is_owned_by_queue) {
+                    if (!DispatchQueue_MoveWorkItemToCacheIfPossible(pQueue, pItem)) {
+                        WorkItem_Destroy(pItem);
+                    }
                 }
-                pClosure(pContext);
                 break;
                 
             case kItemType_OneShotTimer:
-                Timer_Destroy((Timer*)pItem);
-                pClosure(pContext);
+                if (pItem->is_owned_by_queue) {
+                    Timer_Destroy((Timer*)pItem);
+                }
                 break;
                 
             case kItemType_RepeatingTimer: {
                 Timer* pTimer = (Timer*)pItem;
                 
-                if (pTimer->item.cancelled) {
+                if (pTimer->item.cancelled && pItem->is_owned_by_queue) {
                     Timer_Destroy(pTimer);
                 } else {
                     pTimerToRearm = pTimer;
                 }
-                pClosure(pContext);
                 break;
             }
                 
             default:
                 abort();
                 break;
-        }
-
-
-        // Signal the work item's completion semaphore if needed
-        if (pCompletionSema != NULL) {
-            BinarySemaphore_Release(pCompletionSema);
         }
     }
 }

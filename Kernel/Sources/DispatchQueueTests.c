@@ -247,8 +247,8 @@ void DispatchQueue_RunTests(void)
 //    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), (VirtualProcessor_Closure)OnReadFromPipe, pipe);
 //    DispatchQueue_DispatchAsync(DispatchQueue_GetUtility(), (VirtualProcessor_Closure)OnWriteToPipe, pipe);
     
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), (VirtualProcessor_Closure)OnWriteToPipe, pipe);
-    DispatchQueue_DispatchAsync(DispatchQueue_GetUtility(), (VirtualProcessor_Closure)OnReadFromPipe, pipe);
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), (DispatchQueue_Closure)OnWriteToPipe, (Byte*)pipe);
+    DispatchQueue_DispatchAsync(DispatchQueue_GetUtility(), (DispatchQueue_Closure)OnReadFromPipe, (Byte*)pipe);
 
 }
 #endif
