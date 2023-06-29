@@ -85,6 +85,28 @@ void List_Remove(List* _Nonnull pList, ListNode* _Nonnull pNode)
     pNode->next = NULL;
 }
 
+ListNode* _Nullable List_RemoveFirst(List* _Nonnull pList)
+{
+    ListNode* pFirstNode = pList->first;
+
+    if (pFirstNode != NULL) {
+        if (pFirstNode != pList->last) {
+            ListNode* pNewFirstNode = pFirstNode->next;
+
+            pNewFirstNode->prev = NULL;
+            pList->first = pNewFirstNode;
+            
+            pFirstNode->prev = NULL;
+            pFirstNode->next = NULL;
+        } else {
+            pList->first = NULL;
+            pList->last = NULL;
+        }
+    }
+
+    return pFirstNode;
+}
+
 // Splits 'pList' into two separate lists: a head list 'pHeadList' and a tail
 // list 'pTailList'. The node 'pFirstNodeOfTail' will be the first node of the
 // tail list and its predecessor (if any) will be the last node of the head list.

@@ -52,6 +52,7 @@ extern void List_InsertAfterLast(List* _Nonnull pList, ListNode* _Nonnull pNode)
 extern void List_InsertAfter(List* _Nonnull pList, ListNode* _Nonnull pNode, ListNode* _Nullable pAfterNode);
 
 extern void List_Remove(List* _Nonnull pList, ListNode* _Nonnull pNode);
+extern ListNode* _Nullable List_RemoveFirst(List* _Nonnull pList);
 
 extern void List_Split(List* _Nonnull pList, ListNode* _Nullable pFirstNodeOfTail, List* _Nonnull pHeadList, List* _Nonnull pTailList);
 

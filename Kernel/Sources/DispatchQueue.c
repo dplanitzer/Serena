@@ -43,18 +43,18 @@ typedef struct _Timer {
 } Timer;
 
 
-#define MAX_ITEM_CACHE_COUNT    4
+#define MAX_ITEM_CACHE_COUNT    8
 typedef struct _DispatchQueue {
-    List                item_queue;     // Queue of work items that should be executed as soon as possible
-    List                timer_queue;    // Queue of items that should be executed on or after their deadline
-    WorkItem*           item_cache[MAX_ITEM_CACHE_COUNT];   // Small cache of reusable work items
-    Int                 item_cache_count;
+    List                item_queue;         // Queue of work items that should be executed as soon as possible
+    List                timer_queue;        // Queue of items that should be executed on or after their deadline
+    List                item_cache_queue;   // Cache of reusable work items
     Lock                lock;
     ConditionVariable   cond_var;
-    Array               vps;            // 'maxConcurrency' virtual processors providing processing power to the queue
+    Array               vps;                // 'maxConcurrency' virtual processors providing processing power to the queue
     Int8                maxConcurrency;
     Int8                qos;
     Int8                priority;
+    Int8                item_cache_count;
 } DispatchQueue;
 
 
@@ -204,18 +204,14 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
     if (pQueue) {
         List_Init(&pQueue->item_queue);
         List_Init(&pQueue->timer_queue);
+        List_Init(&pQueue->item_cache_queue);
         Lock_Init(&pQueue->lock);
         ConditionVariable_Init(&pQueue->cond_var);
         PointerArray_Init(&pQueue->vps, maxConcurrency);
-
-        pQueue->item_cache_count = 0;
-        for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
-            pQueue->item_cache[i] = NULL;
-        }
-
         pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
         pQueue->qos = qos;
         pQueue->priority = priority;
+        pQueue->item_cache_count = 0;
     }
     
     return pQueue;
@@ -224,17 +220,15 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
 void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
 {
     if (pQueue) {
-        // XXX do an orderly shutdown of the VPs somehow
-        
-        Lock_Lock(&pQueue->lock);
-        for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
-            WorkItem_Destroy(pQueue->item_cache[i]);
-            pQueue->item_cache[i] = NULL;
-        }
-        Lock_Unlock(&pQueue->lock);
-        
+        // XXX fix the queue shutdown:
+        // - DispatchQueue_Destroy should mark the queue as being destroyed/shut down
+        // - this means that the queue should no longer accept new dispatch requests
+        // - we should synchronously schedule the freeing of the resources on the dispatch queue
+        // - or so
+        // - then kfree the dispatch queue data structure here
         List_Deinit(&pQueue->item_queue);
         List_Deinit(&pQueue->timer_queue);
+        List_Deinit(&pQueue->item_cache_queue);
         Lock_Deinit(&pQueue->lock);
         ConditionVariable_Deinit(&pQueue->cond_var);
         PointerArray_Deinit(&pQueue->vps);
@@ -265,25 +259,34 @@ static void DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(DispatchQueueRef 
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static WorkItem* _Nullable DispatchQueue_CreateWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+static WorkItem* _Nullable DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
-    WorkItem* pItem = NULL;
+    WorkItem* pItem = (WorkItem*) List_RemoveFirst(&pQueue->item_cache_queue);
 
-    if (pQueue->item_cache_count > 0) {
-        for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
-            if (pQueue->item_cache[i]) {
-                pItem = pQueue->item_cache[i];
-                WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext, true);
-                pQueue->item_cache[i] = NULL;
-                pQueue->item_cache_count--;
-                break;
-            }
-        }
+    if (pItem != NULL) {
+        WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext, true);
+        pQueue->item_cache_count--;
     } else {
         pItem = WorkItem_Create_Internal(pClosure, pContext, true);
     }
     
     return pItem;
+}
+
+// Reqlinquishes the given work item back to the item cache if possible. The
+// item is freed if the cache is at capacity. The item must be owned by the
+// dispatch queue.
+static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItem* _Nonnull pItem)
+{
+    assert(pItem->is_owned_by_queue);
+
+    if (pQueue->item_cache_count < MAX_ITEM_CACHE_COUNT) {
+        WorkItem_Deinit(pItem);
+        List_InsertBeforeFirst(&pQueue->item_cache_queue, &pItem->queue_entry);
+        pQueue->item_cache_count++;
+    } else {
+        WorkItem_Destroy(pItem);
+    }
 }
 
 // Asynchronously executes the given work item. The work item is executed as
@@ -332,7 +335,7 @@ void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkIt
 void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Lock_Lock(&pQueue->lock);
-    WorkItem* pItem = DispatchQueue_CreateWorkItem_Locked(pQueue, pClosure, pContext);
+    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
     assert(pItem != NULL);
     DispatchQueue_DispatchWorkItemSync_Lock(pQueue, pItem);
 }
@@ -390,7 +393,7 @@ void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue
 {
     Lock_Lock(&pQueue->lock);
 
-    WorkItem* pItem = DispatchQueue_CreateWorkItem_Locked(pQueue, pClosure, pContext);
+    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
     assert(pItem != NULL);
     
     DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
@@ -404,28 +407,6 @@ void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInte
     assert(pTimer != NULL);
     
     DispatchQueue_DispatchTimer(pQueue, pTimer);
-}
-
-static Bool DispatchQueue_MoveWorkItemToCacheIfPossible(DispatchQueue* _Nonnull pQueue, WorkItem* _Nonnull pItem)
-{
-    Bool success = false;
-    
-    Lock_Lock(&pQueue->lock);
-    
-    if (pQueue->item_cache_count < MAX_ITEM_CACHE_COUNT) {
-        for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
-            if (pQueue->item_cache[i] == NULL) {
-                WorkItem_Deinit(pItem);
-                pQueue->item_cache[i] = pItem;
-                pQueue->item_cache_count++;
-                success = true;
-                break;
-            }
-        }
-    }
-    
-    Lock_Unlock(&pQueue->lock);
-    return success;
 }
 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
@@ -490,21 +471,19 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
 
         
-        // Grab the first timer that's due
-        if (pQueue->timer_queue.first) {
-            Timer* pFirstTimer = (Timer*)pQueue->timer_queue.first;
-            
-            if (TimeInterval_LessEquals(pFirstTimer->deadline, MonotonicClock_GetCurrentTime())) {
-                pItem = (WorkItem*)pFirstTimer;
-                List_Remove(&pQueue->timer_queue, &pItem->queue_entry);
-            }
+        // Grab the first timer that's due. We give preference to timers because
+        // they are tied to a specific deadline time while immediate work items
+        // do not guarantee that they will execute at a specific time. So it's
+        // acceptable to push them back on the timeline.
+        Timer* pFirstTimer = (Timer*)pQueue->timer_queue.first;
+        if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->deadline, MonotonicClock_GetCurrentTime())) {
+            pItem = (WorkItem*) List_RemoveFirst(&pQueue->timer_queue);
         }
 
         
         // Grab the first work item if no timer is due
-        if (pItem == NULL && pQueue->item_queue.first) {
-            pItem = (WorkItem*)pQueue->item_queue.first;
-            List_Remove(&pQueue->item_queue, &pItem->queue_entry);
+        if (pItem == NULL) {
+            pItem = (WorkItem*) List_RemoveFirst(&pQueue->item_queue);
         }
 
         Lock_Unlock(&pQueue->lock);
@@ -525,9 +504,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         switch (pItem->type) {
             case kItemType_Immediate:
                 if (pItem->is_owned_by_queue) {
-                    if (!DispatchQueue_MoveWorkItemToCacheIfPossible(pQueue, pItem)) {
-                        WorkItem_Destroy(pItem);
-                    }
+                    Lock_Lock(&pQueue->lock);
+                    DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
+                    Lock_Unlock(&pQueue->lock);
                 }
                 break;
                 
