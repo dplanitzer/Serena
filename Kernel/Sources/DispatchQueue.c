@@ -63,7 +63,7 @@ typedef struct _DispatchQueue {
 // MARK: Work Items
 
 
-static void WorkItem_Init(WorkItem* _Nonnull pItem, enum ItemType type, Bool isOwnedByQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+static void WorkItem_Init(WorkItem* _Nonnull pItem, enum ItemType type, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
     ListNode_Init(&pItem->queue_entry);
     pItem->closure = pClosure;
@@ -81,7 +81,7 @@ static WorkItemRef _Nullable WorkItem_Create_Internal(DispatchQueue_Closure _Non
     WorkItem* pItem = (WorkItem*) kalloc(sizeof(WorkItem), HEAP_ALLOC_OPTION_CPU);
     
     if (pItem) {
-        WorkItem_Init(pItem, kItemType_Immediate, isOwnedByQueue, pClosure, pContext);
+        WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext, isOwnedByQueue);
     }
     return pItem;
 }
@@ -143,7 +143,7 @@ static TimerRef _Nullable Timer_Create_Internal(TimeInterval deadline, TimeInter
     Timer* pTimer = (Timer*) kalloc(sizeof(Timer), HEAP_ALLOC_OPTION_CPU);
     
     if (pTimer) {
-        WorkItem_Init((WorkItem*)pTimer, type, isOwnedByQueue, pClosure, pContext);
+        WorkItem_Init((WorkItem*)pTimer, type, pClosure, pContext, isOwnedByQueue);
         pTimer->deadline = deadline;
         pTimer->interval = interval;
     }
@@ -273,7 +273,7 @@ static WorkItem* _Nullable DispatchQueue_CreateWorkItem_Locked(DispatchQueueRef 
         for (Int i = 0; i < MAX_ITEM_CACHE_COUNT; i++) {
             if (pQueue->item_cache[i]) {
                 pItem = pQueue->item_cache[i];
-                WorkItem_Init(pItem, kItemType_Immediate, true, pClosure, pContext);
+                WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext, true);
                 pQueue->item_cache[i] = NULL;
                 pQueue->item_cache_count--;
                 break;
