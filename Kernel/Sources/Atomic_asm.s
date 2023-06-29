@@ -9,9 +9,36 @@
     include "lowmem.i"
 
 
+    xdef _AtomicBool_Set
     xdef _AtomicInt_Add
-    xdef _AtomicInt_Increment
-    xdef _AtomicInt_Decrement
+    xdef _AtomicInt_Subtract
+
+
+; Note that read-modify-write instructions are not supported by the Amiga hardware.
+; See this discussion thread: https://eab.abime.net/showthread.php?t=58493
+
+
+;-------------------------------------------------------------------------------
+; AtomicBool AtomicBool_Set(volatile AtomicBool* _Nonnull pValue, Bool newValue)
+; Atomically assign 'newValue' to the atomic bool stored in the given memory
+; location and returns the previous value.
+; IRQ safe
+_AtomicBool_Set:
+    inline
+    cargs bas_value_ptr.l, bas_new_value.l
+        move.l  bas_value_ptr(sp), a0
+        DISABLE_PREEMPTION d1
+        move.b  (a0), d0
+        tst.l   bas_new_value(sp)
+        bne.s   .L1
+        move.b  #$00, (a0)
+        bra.s   .L2
+.L1:
+        move.b  #$ff, (a0)
+.L2:
+        RESTORE_PREEMPTION d1
+        rts
+    einline
 
 
 ;-------------------------------------------------------------------------------
@@ -33,35 +60,17 @@ _AtomicInt_Add:
 
 
 ;-------------------------------------------------------------------------------
-; AtomicInt AtomicInt_Increment(volatile AtomicInt* _Nonnull pValue)
-; Atomically increments the integer in the given memory location and returns the
-; new value.
+; AtomicInt AtomicInt_Subtract(volatile AtomicInt* _Nonnull pValue, Int decrement)
+; Atomically subtracts the 'decrement' value from the integer stored in the given
+; memory location and returns the new value.
 ; IRQ safe
-_AtomicInt_Increment:
+_AtomicInt_Subtract:
     inline
-    cargs iai_value_ptr.l
-        move.l  iai_value_ptr(sp), a0
+    cargs ias_value_ptr.l, ias_decrement.l
+        move.l  ias_value_ptr(sp), a0
         DISABLE_PREEMPTION d1
         move.l  (a0), d0
-        addq.l  #1, d0
-        move.l  d0, (a0)
-        RESTORE_PREEMPTION d1
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
-; Int AtomicInt_Decrement(volatile AtomicInt* _Nonnull pValue)
-; Atomically decrements the integer in the given memory location and returns the
-; new value.
-; IRQ safe
-_AtomicInt_Decrement:
-    inline
-    cargs iad_value_ptr.l
-    move.l  iad_value_ptr(sp), a0
-        DISABLE_PREEMPTION d1
-        move.l  (a0), d0
-        subq.l  #1, d0
+        sub.l   ias_decrement(sp), d0
         move.l  d0, (a0)
         RESTORE_PREEMPTION d1
         rts

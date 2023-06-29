@@ -36,7 +36,7 @@ typedef unsigned char Byte;
 
 // Boolean type
 typedef unsigned char   Bool;
-#define true    0x01
+#define true    0xff
 #define false   0x00
 
 
