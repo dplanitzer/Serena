@@ -7,12 +7,12 @@
 //
 
 #include "DispatchQueue.h"
-#include "Array.h"
 #include "ConditionVariable.h"
 #include "Heap.h"
 #include "List.h"
 #include "Lock.h"
 #include "MonotonicClock.h"
+#include "Semaphore.h"
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
 
@@ -25,14 +25,14 @@ enum ItemType {
 
 
 typedef struct _WorkItem {
-    ListNode                            queue_entry;
-    DispatchQueue_Closure               closure;
-    Byte* _Nullable _Weak               context;
-    BinarySemaphore * _Nullable _Weak   completion_sema;
-    Bool                                is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
-    AtomicBool                          is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
-    AtomicBool                          cancelled;              // shared between dispatch queue and queue user
-    Int8                                type;
+    ListNode                    queue_entry;
+    DispatchQueue_Closure       closure;
+    Byte* _Nullable _Weak       context;
+    Semaphore * _Nullable _Weak completion_sema;
+    Bool                        is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
+    AtomicBool                  is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
+    AtomicBool                  cancelled;              // shared between dispatch queue and queue user
+    Int8                        type;
 } WorkItem;
 
 
@@ -41,6 +41,15 @@ typedef struct _Timer {
     TimeInterval    deadline;           // Time when the timer closure should be executed
     TimeInterval    interval;
 } Timer;
+
+
+// A concurrency lane is a virtual processor and all associated resources. The
+// resources are specific to this virtual processor and shall only be used in
+// connection with this virtual processor. There's one concurrency lane per
+// dispatch queue concurrency level.
+typedef struct _ConcurrencyLane {
+    VirtualProcessor* _Nullable  vp;     // The virtual processor assigned to this concurrency lane
+} ConcurrencyLane;
 
 
 #define MAX_ITEM_CACHE_COUNT    8
@@ -52,13 +61,14 @@ typedef struct _DispatchQueue {
     List                timer_cache_queue;  // Cache of reusable timers
     Lock                lock;
     ConditionVariable   cond_var;
-    Array               vps;                // 'maxConcurrency' virtual processors providing processing power to the queue
-    Int8                maxConcurrency;
+    Int8                maxConcurrency;         // maximum number of concurrency lanes we are allowed to allocate and use
+    Int8                availableConcurrency;   // number of concurrency lanes we have acquired and are available for use
     Int8                qos;
     Int8                priority;
     Int8                item_cache_count;
     Int8                timer_cache_count;
-    Int8                reserved[3];
+    Int8                reserved[2];
+    ConcurrencyLane     concurrency_lanes[1];   // up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
 
@@ -212,10 +222,10 @@ void DispatchQueue_CreateKernelQueues(const SystemDescription* _Nonnull pSysDesc
 
 DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority)
 {
-    DispatchQueue* pQueue = (DispatchQueue*) kalloc(sizeof(DispatchQueue), HEAP_ALLOC_OPTION_CPU);
-    
     assert(maxConcurrency >= 1);
-    
+
+    DispatchQueue* pQueue = (DispatchQueue*) kalloc(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), HEAP_ALLOC_OPTION_CPU);
+        
     if (pQueue) {
         List_Init(&pQueue->item_queue);
         List_Init(&pQueue->timer_queue);
@@ -223,15 +233,29 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         List_Init(&pQueue->timer_cache_queue);
         Lock_Init(&pQueue->lock);
         ConditionVariable_Init(&pQueue->cond_var);
-        PointerArray_Init(&pQueue->vps, maxConcurrency);
         pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
+        pQueue->availableConcurrency = 0;
         pQueue->qos = qos;
         pQueue->priority = priority;
         pQueue->item_cache_count = 0;
         pQueue->timer_cache_count = 0;
+
+        for (Int i = 0; i < maxConcurrency; i++) {
+            pQueue->concurrency_lanes[i].vp = NULL;
+        }
     }
     
     return pQueue;
+}
+
+static void DispatchQueue_DestroyConcurrencyLane_Locked(DispatchQueueRef _Nonnull pQueue, Int idx)
+{
+    assert(idx >= 0 && idx < pQueue->maxConcurrency);
+
+    // XXX do nothing with the VP right now. We'll fix the whole VP relinquishing
+    // XXX story soon
+    pQueue->concurrency_lanes[idx].vp = NULL;
+    pQueue->availableConcurrency--;
 }
 
 void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
@@ -249,15 +273,30 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
         List_Deinit(&pQueue->timer_cache_queue);
         Lock_Deinit(&pQueue->lock);
         ConditionVariable_Deinit(&pQueue->cond_var);
-        PointerArray_Deinit(&pQueue->vps);
-        
+
+        for (Int i = 0; i < pQueue->maxConcurrency; i++) {
+            DispatchQueue_DestroyConcurrencyLane_Locked(pQueue, i);
+        }
+
         kfree((Byte*) pQueue);
     }
 }
 
+static Int DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor* pVP)
+{
+    for (Int i = 0; i < pQueue->maxConcurrency; i++) {
+        if (pQueue->concurrency_lanes[i].vp == pVP) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 static void DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_Closure _Nonnull pWorkerFunc)
 {
-    if (PointerArray_Count(&pQueue->vps) < pQueue->maxConcurrency) {
+    // XXX be smarter here and defer spinning u a new VP until we really need one
+    if (pQueue->availableConcurrency < pQueue->maxConcurrency) {
         VirtualProcessorAttributes attribs;
         
         VirtualProcessorAttributes_Init(&attribs);
@@ -269,7 +308,18 @@ static void DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(DispatchQueueRef 
                                                                             (Byte*)pQueue,
                                                                             false);
         
-        PointerArray_Add(&pQueue->vps, (Byte*)pVP);
+        ConcurrencyLane* pConLane = NULL;
+        for (Int i = 0; i < pQueue->maxConcurrency; i++) {
+            if (pQueue->concurrency_lanes[i].vp == NULL) {
+                pConLane = &pQueue->concurrency_lanes[i];
+                break;
+            }
+        }
+        assert(pConLane != NULL);
+        
+        pConLane->vp = pVP;
+        pQueue->availableConcurrency++;
+
         VirtualProcessor_Resume(pVP, false);
     }
 }
@@ -352,19 +402,16 @@ static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has finished
 // execution. Expects that the caller holds the dispatch queue lock.
-static void DispatchQueue_DispatchWorkItemSync_Lock(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+static void DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
-    BinarySemaphore* pCompletionSema = BinarySemaphore_Create(false);
-    assert(pCompletionSema != NULL);
+    Semaphore* pCompletionSema = Semaphore_Create(0);
 
-    // Keep in mind that the work item may null out its completion_sema field
-    // before BinarySemaphore_Acquire() returns. So we have to keep a local
-    // reference to the semaphore around.
+    // The work item maintains a weak reference to the cached completion semaphore
     pItem->completion_sema = pCompletionSema;
 
     DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
-    BinarySemaphore_Acquire(pCompletionSema, kTimeInterval_Infinity);
-    BinarySemaphore_Destroy(pCompletionSema);
+    Semaphore_Acquire(pCompletionSema, kTimeInterval_Infinity);
+    Semaphore_Destroy(pCompletionSema);
 }
 
 // Synchronously executes the given work item. The work item is executed as
@@ -378,7 +425,7 @@ void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkIt
     }
 
     Lock_Lock(&pQueue->lock);
-    DispatchQueue_DispatchWorkItemSync_Lock(pQueue, pItem);
+    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
 }
 
 // Synchronously executes the given closure. The closure is executed as soon as
@@ -389,7 +436,7 @@ void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_
 
     WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
     assert(pItem != NULL);
-    DispatchQueue_DispatchWorkItemSync_Lock(pQueue, pItem);
+    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
 }
 
 
@@ -526,7 +573,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // Exit this VP if we've waited for work for some time but haven't received
         // any new work
         if (List_IsEmpty(&pQueue->timer_queue) && List_IsEmpty(&pQueue->item_queue)) {
-            PointerArray_RemoveIdenticalTo(&pQueue->vps, (Byte*)VirtualProcessor_GetCurrent());
+            DispatchQueue_DestroyConcurrencyLane_Locked(pQueue, DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent()));
             Lock_Unlock(&pQueue->lock);
             break;
         }
@@ -556,7 +603,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
         // Signal the work item's completion semaphore if needed
         if (pItem->completion_sema != NULL) {
-            BinarySemaphore_Release(pItem->completion_sema);
+            Semaphore_Release(pItem->completion_sema);
             pItem->completion_sema = NULL;
         }
 

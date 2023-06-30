@@ -18,6 +18,11 @@
 #include "RealtimeClock.h"
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: DispatchAsync/DispatchAsyncAfter
+////////////////////////////////////////////////////////////////////////////////
+
 #if 0
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
@@ -25,13 +30,41 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    //DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)(val + 1));
-    DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), OnPrintClosure, (Byte*)(val + 1));
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)(val + 1));
+    //DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), OnPrintClosure, (Byte*)(val + 1));
 }
 
 void DispatchQueue_RunTests(void)
 {
     DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)0);
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: DispatchSync
+////////////////////////////////////////////////////////////////////////////////
+
+#if 0
+static void OnPrintClosure(Byte* _Nonnull pValue)
+{
+    Int val = (Int)pValue;
+    
+    VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(500));
+    print("%d\n", val);
+}
+
+void DispatchQueue_RunTests(void)
+{
+    DispatchQueueRef pQueue = DispatchQueue_GetMain();
+    Int i = 0;
+
+    while (true) {
+        DispatchQueue_DispatchSync(pQueue, OnPrintClosure, (Byte*) i);
+        print("--------\n");
+        i++;
+    }
 }
 #endif
 
