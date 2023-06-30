@@ -27,16 +27,18 @@ _AtomicBool_Set:
     inline
     cargs bas_value_ptr.l, bas_new_value.l
         move.l  bas_value_ptr(sp), a0
-        DISABLE_PREEMPTION d1
-        move.b  (a0), d0
         tst.l   bas_new_value(sp)
         bne.s   .L1
-        move.b  #$00, (a0)
+        bclr.b  #0, (a0)    ; atomically tests and clears
         bra.s   .L2
 .L1:
-        move.b  #$ff, (a0)
+        bset.b  #0, (a0)    ; atomically tests and sets
 .L2:
-        RESTORE_PREEMPTION d1
+        bne.s   .L3
+        moveq.l #0, d0
+        rts
+.L3:
+        moveq.l #1, d0
         rts
     einline
 

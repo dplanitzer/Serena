@@ -761,7 +761,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
 
 
-        // Reaquire the lock
+        // Reacquire the lock
         Lock_Lock(&pQueue->lock);
 
 
