@@ -43,6 +43,14 @@ typedef struct _Timer {
 } Timer;
 
 
+// Completion signalers are semaphores that are used to signal the completion of
+// a work item to DispatchQueue_DispatchSync()
+typedef struct _CompletionSignaler {
+    ListNode    queue_entry;
+    Semaphore   semaphore;
+} CompletionSignaler;
+
+
 // A concurrency lane is a virtual processor and all associated resources. The
 // resources are specific to this virtual processor and shall only be used in
 // connection with this virtual processor. There's one concurrency lane per
@@ -54,21 +62,24 @@ typedef struct _ConcurrencyLane {
 
 #define MAX_ITEM_CACHE_COUNT    8
 #define MAX_TIMER_CACHE_COUNT   8
+#define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
 typedef struct _DispatchQueue {
     List                item_queue;         // Queue of work items that should be executed as soon as possible
     List                timer_queue;        // Queue of items that should be executed on or after their deadline
     List                item_cache_queue;   // Cache of reusable work items
     List                timer_cache_queue;  // Cache of reusable timers
+    List                completion_signaler_cache_queue;    // Cache of reusable completion signalers
     Lock                lock;
     ConditionVariable   cond_var;
-    Int8                maxConcurrency;         // maximum number of concurrency lanes we are allowed to allocate and use
-    Int8                availableConcurrency;   // number of concurrency lanes we have acquired and are available for use
+    Int8                maxConcurrency;         // Maximum number of concurrency lanes we are allowed to allocate and use
+    Int8                availableConcurrency;   // Number of concurrency lanes we have acquired and are available for use
     Int8                qos;
     Int8                priority;
     Int8                item_cache_count;
     Int8                timer_cache_count;
-    Int8                reserved[2];
-    ConcurrencyLane     concurrency_lanes[1];   // up to 'maxConcurrency' concurrency lanes
+    Int8                completion_signaler_count;
+    Int8                reserved;
+    ConcurrencyLane     concurrency_lanes[1];   // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
 
@@ -92,7 +103,7 @@ static void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, Dispat
 // are one-shot: they execute their closure and then the work item is destroyed.
 static WorkItemRef _Nullable WorkItem_Create_Internal(DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
-    WorkItem* pItem = (WorkItem*) kalloc(sizeof(WorkItem), HEAP_ALLOC_OPTION_CPU);
+    WorkItemRef pItem = (WorkItemRef) kalloc(sizeof(WorkItem), HEAP_ALLOC_OPTION_CPU);
     
     if (pItem) {
         WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext, isOwnedByQueue);
@@ -162,7 +173,7 @@ static void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline
 // is greater than 0 then the timer will repeat until cancelled.
 static TimerRef _Nullable Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
-    Timer* pTimer = (Timer*) kalloc(sizeof(Timer), HEAP_ALLOC_OPTION_CPU);
+    TimerRef pTimer = (TimerRef) kalloc(sizeof(Timer), HEAP_ALLOC_OPTION_CPU);
     
     if (pTimer) {
         Timer_Init(pTimer, deadline, interval, pClosure, pContext, isOwnedByQueue);
@@ -189,6 +200,44 @@ void Timer_Destroy(TimerRef _Nullable pTimer)
     if (pTimer) {
         Timer_Deinit(pTimer);
         kfree((Byte*) pTimer);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Completion Signalers
+
+
+static inline void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem)
+{
+    ListNode_Init(&pItem->queue_entry);
+}
+
+// Creates a completion signaler.
+static CompletionSignaler* _Nullable CompletionSignaler_Create(void)
+{
+    CompletionSignaler* pItem = (CompletionSignaler*) kalloc(sizeof(CompletionSignaler), HEAP_ALLOC_OPTION_CPU);
+    
+    if (pItem) {
+        CompletionSignaler_Init(pItem);
+        Semaphore_Init(&pItem->semaphore, 0);
+    }
+    return pItem;
+}
+
+static inline void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull pItem)
+{
+    ListNode_Deinit(&pItem->queue_entry);
+}
+
+// Deallocates the given completion signaler.
+void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem)
+{
+    if (pItem) {
+        CompletionSignaler_Deinit(pItem);
+        Semaphore_Deinit(&pItem->semaphore);
+        kfree((Byte*) pItem);
     }
 }
 
@@ -390,6 +439,36 @@ static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue,
     }
 }
 
+// Creates a completion signaler. Tries to reusean existing completion signaler
+// from the completion signaler cache whenever possible. Expects that
+// the caller holds the dispatch queue lock.
+static CompletionSignaler* _Nullable DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue)
+{
+    CompletionSignaler* pItem = (CompletionSignaler*) List_RemoveFirst(&pQueue->completion_signaler_cache_queue);
+
+    if (pItem != NULL) {
+        CompletionSignaler_Init(pItem);
+        pQueue->completion_signaler_count--;
+    } else {
+        pItem = CompletionSignaler_Create();
+    }
+    
+    return pItem;
+}
+
+// Reqlinquishes the given completion signaler back to the completion signaler
+// cache if possible. The completion signaler is freed if the cache is at capacity.
+static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _Nonnull pQueue, CompletionSignaler* _Nonnull pItem)
+{
+    if (pQueue->completion_signaler_count < MAX_COMPLETION_SIGNALER_CACHE_COUNT) {
+        CompletionSignaler_Deinit(pItem);
+        List_InsertBeforeFirst(&pQueue->completion_signaler_cache_queue, &pItem->queue_entry);
+        pQueue->completion_signaler_count++;
+    } else {
+        CompletionSignaler_Destroy(pItem);
+    }
+}
+
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible. Expects to be called with the dispatch queue held.
 static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
@@ -404,14 +483,18 @@ static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull
 // execution. Expects that the caller holds the dispatch queue lock.
 static void DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
-    Semaphore* pCompletionSema = Semaphore_Create(0);
+    CompletionSignaler* pCompSignaler = DispatchQueue_AcquireCompletionSignaler_Locked(pQueue);
+    Semaphore* pCompSema = &pCompSignaler->semaphore;
 
     // The work item maintains a weak reference to the cached completion semaphore
-    pItem->completion_sema = pCompletionSema;
+    pItem->completion_sema = pCompSema;
 
     DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
-    Semaphore_Acquire(pCompletionSema, kTimeInterval_Infinity);
-    Semaphore_Destroy(pCompletionSema);
+    Semaphore_Acquire(pCompSema, kTimeInterval_Infinity);
+
+    Lock_Lock(&pQueue->lock);
+    DispatchQueue_RelinquishCompletionSignaler_Locked(pQueue, pCompSignaler);
+    Lock_Unlock(&pQueue->lock);
 }
 
 // Synchronously executes the given work item. The work item is executed as
