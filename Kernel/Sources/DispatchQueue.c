@@ -78,7 +78,7 @@ typedef struct _DispatchQueue {
     Int8                item_cache_count;
     Int8                timer_cache_count;
     Int8                completion_signaler_count;
-    Int8                reserved;
+    Bool                isShuttingDown;
     ConcurrencyLane     concurrency_lanes[1];   // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
@@ -273,13 +273,14 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
 {
     assert(maxConcurrency >= 1);
 
-    DispatchQueue* pQueue = (DispatchQueue*) kalloc(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), HEAP_ALLOC_OPTION_CPU);
+    DispatchQueueRef pQueue = (DispatchQueueRef) kalloc(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), HEAP_ALLOC_OPTION_CPU);
         
     if (pQueue) {
         List_Init(&pQueue->item_queue);
         List_Init(&pQueue->timer_queue);
         List_Init(&pQueue->item_cache_queue);
         List_Init(&pQueue->timer_cache_queue);
+        List_Init(&pQueue->completion_signaler_cache_queue);
         Lock_Init(&pQueue->lock);
         ConditionVariable_Init(&pQueue->cond_var);
         pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
@@ -288,6 +289,8 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         pQueue->priority = priority;
         pQueue->item_cache_count = 0;
         pQueue->timer_cache_count = 0;
+        pQueue->completion_signaler_count = 0;
+        pQueue->isShuttingDown = false;
 
         for (Int i = 0; i < maxConcurrency; i++) {
             pQueue->concurrency_lanes[i].vp = NULL;
@@ -307,19 +310,49 @@ static void DispatchQueue_DestroyConcurrencyLane_Locked(DispatchQueueRef _Nonnul
     pQueue->availableConcurrency--;
 }
 
+static void DispatchQueue_NopRun(Byte* _Nullable pContext)
+{
+    // do nothing
+}
+
 void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
 {
     if (pQueue) {
-        // XXX fix the queue shutdown:
-        // - DispatchQueue_Destroy should mark the queue as being destroyed/shut down
-        // - this means that the queue should no longer accept new dispatch requests
-        // - we should synchronously schedule the freeing of the resources on the dispatch queue
-        // - or so
-        // - then kfree the dispatch queue data structure here
-        List_Deinit(&pQueue->item_queue);
-        List_Deinit(&pQueue->timer_queue);
+        // Mark the queue as shutting down. This will stop all dispatch calls
+        // from accepting new work items and repeatable timers from rescheduling
+        Lock_Lock(&pQueue->lock);
+        pQueue->isShuttingDown = true;
+        Lock_Unlock(&pQueue->lock);
+
+
+        // Dispatch our NopRun() function which does nothing. We block until it
+        // is done. The point of doing this is to guarantee that no item or timer
+        // is running anymore once DispatchSync() returns.
+        DispatchQueue_DispatchSync(pQueue, (DispatchQueue_Closure) DispatchQueue_NopRun, NULL);
+
+
+        // Free all resources.
+        List_Deinit(&pQueue->item_queue);       // guaranteed to be empty at this point
+        List_Deinit(&pQueue->timer_queue);      // guaranteed to be empty at this point
+
+        WorkItemRef pItem;
+        while ((pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_cache_queue)) != NULL) {
+            WorkItem_Destroy(pItem);
+        }
         List_Deinit(&pQueue->item_cache_queue);
+        
+        TimerRef pTimer;
+        while ((pTimer = (TimerRef) List_RemoveFirst(&pQueue->timer_cache_queue)) != NULL) {
+            Timer_Destroy(pTimer);
+        }
         List_Deinit(&pQueue->timer_cache_queue);
+
+        CompletionSignaler* pCompSignaler;
+        while((pCompSignaler = (CompletionSignaler*) List_RemoveFirst(&pQueue->completion_signaler_cache_queue)) != NULL) {
+            CompletionSignaler_Destroy(pCompSignaler);
+        }
+        List_Deinit(&pQueue->completion_signaler_cache_queue);
+        
         Lock_Deinit(&pQueue->lock);
         ConditionVariable_Deinit(&pQueue->cond_var);
 
@@ -330,6 +363,8 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
         kfree((Byte*) pQueue);
     }
 }
+
+
 
 static Int DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor* pVP)
 {
@@ -497,56 +532,6 @@ static void DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Nonnull 
     Lock_Unlock(&pQueue->lock);
 }
 
-// Synchronously executes the given work item. The work item is executed as
-// soon as possible and the caller remains blocked until the work item has finished
-// execution.
-void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
-{
-    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
-        // Some other queue is already dispatching this work item
-        abort();
-    }
-
-    Lock_Lock(&pQueue->lock);
-    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
-}
-
-// Synchronously executes the given closure. The closure is executed as soon as
-// possible and the caller remains blocked until the closure has finished execution.
-void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
-{
-    Lock_Lock(&pQueue->lock);
-
-    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
-    assert(pItem != NULL);
-    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
-}
-
-
-// Asynchronously executes the given work item. The work item is executed as
-// soon as possible.
-void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
-{
-    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
-        // Some other queue is already dispatching this work item
-        abort();
-    }
-
-    Lock_Lock(&pQueue->lock);
-    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
-}
-
-// Asynchronously executes the given closure. The closure is executed as soon as
-// possible.
-void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
-{
-    Lock_Lock(&pQueue->lock);
-
-    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
-    assert(pItem != NULL);
-    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
-}
-
 // Adds the given timer to the timer queue. Expects that the queue is already
 // locked. Does not wake up the queue.
 static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
@@ -575,6 +560,76 @@ void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerR
     ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
 }
 
+
+
+// Synchronously executes the given work item. The work item is executed as
+// soon as possible and the caller remains blocked until the work item has finished
+// execution.
+void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
+        // Some other queue is already dispatching this work item
+        abort();
+    }
+
+    Lock_Lock(&pQueue->lock);
+    if (pQueue->isShuttingDown) {
+        Lock_Unlock(&pQueue->lock);
+        return;
+    }
+
+    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
+}
+
+// Synchronously executes the given closure. The closure is executed as soon as
+// possible and the caller remains blocked until the closure has finished execution.
+void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    Lock_Lock(&pQueue->lock);
+    if (pQueue->isShuttingDown) {
+        Lock_Unlock(&pQueue->lock);
+        return;
+    }
+
+    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
+    assert(pItem != NULL);
+    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
+}
+
+
+// Asynchronously executes the given work item. The work item is executed as
+// soon as possible.
+void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
+        // Some other queue is already dispatching this work item
+        abort();
+    }
+
+    Lock_Lock(&pQueue->lock);
+    if (pQueue->isShuttingDown) {
+        Lock_Unlock(&pQueue->lock);
+        return;
+    }
+
+    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
+}
+
+// Asynchronously executes the given closure. The closure is executed as soon as
+// possible.
+void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    Lock_Lock(&pQueue->lock);
+    if (pQueue->isShuttingDown) {
+        Lock_Unlock(&pQueue->lock);
+        return;
+    }
+
+    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
+    assert(pItem != NULL);
+    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
+}
+
 // Asynchronously executes the given timer when it comes due.
 void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
@@ -584,6 +639,11 @@ void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Non
     }
 
     Lock_Lock(&pQueue->lock);
+    if (pQueue->isShuttingDown) {
+        Lock_Unlock(&pQueue->lock);
+        return;
+    }
+
     DispatchQueue_DispatchTimer_Locked(pQueue, pTimer);
 }
 
@@ -592,6 +652,10 @@ void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Non
 void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Lock_Lock(&pQueue->lock);
+    if (pQueue->isShuttingDown) {
+        Lock_Unlock(&pQueue->lock);
+        return;
+    }
 
     Timer* pTimer = DispatchQueue_AcquireTimer_Locked(pQueue, deadline, kTimeInterval_Zero, pClosure, pContext);
     assert(pTimer != NULL);
@@ -602,8 +666,8 @@ void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInte
 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 {
-    WorkItem* pItem = NULL;
-    Timer* pTimerToRearm = NULL;
+    WorkItemRef pItem = NULL;
+    TimerRef pTimerToRearm = NULL;
 
     while (true) {
         pItem = NULL;
@@ -611,8 +675,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         Lock_Lock(&pQueue->lock);
 
         // Rearm a repeating timer if we executed a repeating timer in the previous
-        // iteration and it's not been cancelled in the meantime.
-        if (pTimerToRearm) {
+        // iteration and it's not been cancelled in the meantime and the queue isn't
+        // in shutdown mode.
+        if (pTimerToRearm && !pQueue->isShuttingDown) {
             if (!pTimerToRearm->item.cancelled) {
                 // Repeating timer: rearm it with the next fire date that's in
                 // the future (the next fire date we haven't already missed).
@@ -639,7 +704,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
             TimeInterval deadline;
 
             if (pQueue->timer_queue.first) {
-                deadline = ((Timer*)pQueue->timer_queue.first)->deadline;
+                deadline = ((TimerRef)pQueue->timer_queue.first)->deadline;
             } else {
                 deadline = TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(2));
             }
@@ -668,13 +733,13 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // acceptable to push them back on the timeline.
         Timer* pFirstTimer = (Timer*)pQueue->timer_queue.first;
         if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->deadline, MonotonicClock_GetCurrentTime())) {
-            pItem = (WorkItem*) List_RemoveFirst(&pQueue->timer_queue);
+            pItem = (WorkItemRef) List_RemoveFirst(&pQueue->timer_queue);
         }
 
         
         // Grab the first work item if no timer is due
         if (pItem == NULL) {
-            pItem = (WorkItem*) List_RemoveFirst(&pQueue->item_queue);
+            pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_queue);
         }
 
         Lock_Unlock(&pQueue->lock);
