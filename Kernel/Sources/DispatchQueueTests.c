@@ -30,8 +30,8 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    //DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)(val + 1));
-    DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), OnPrintClosure, (Byte*)(val + 1));
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)(val + 1));
+    //DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), OnPrintClosure, (Byte*)(val + 1));
 }
 
 void DispatchQueue_RunTests(void)
@@ -65,6 +65,45 @@ void DispatchQueue_RunTests(void)
         print("--------\n");
         i++;
     }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Repeating timer
+////////////////////////////////////////////////////////////////////////////////
+
+
+#if 0
+struct State {
+    TimerRef    timer;
+    Int         value;
+};
+
+static void OnPrintClosure(Byte* _Nonnull pValue)
+{
+    struct State* pState = (struct State*)pValue;
+
+    if (pState->value < 10) {
+        print("%d\n", pState->value);
+    } else {
+        print("Cancelled\n");
+        Timer_Cancel(pState->timer);
+    }
+    pState->value++;
+}
+
+
+void DispatchQueue_RunTests(void)
+{
+    struct State* pState = (struct State*)kalloc(sizeof(struct State), 0);
+    
+    pState->timer = Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), (VirtualProcessor_Closure)OnPrintClosure, (Byte*)pState);
+    pState->value = 0;
+
+    print("Repeating timer\n");
+    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), pState->timer);
 }
 #endif
 
@@ -129,45 +168,6 @@ void DispatchQueue_RunTests(void)
     const TimeInterval t_delta = TimeInterval_Subtract(t_stop, t_start);
     print("t_delta: %dus\n", t_delta.nanoseconds / 1000);
     */
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Repeating timer
-////////////////////////////////////////////////////////////////////////////////
-
-
-#if 0
-struct State {
-    TimerRef    timer;
-    Int         value;
-};
-
-static void OnPrintClosure(Byte* _Nonnull pValue)
-{
-    struct State* pState = (struct State*)pValue;
-
-    if (pState->value < 10) {
-        print("%d\n", pState->value);
-    } else {
-        print("Cancelled\n");
-        Timer_Cancel(pState->timer);
-    }
-    pState->value++;
-}
-
-
-void DispatchQueue_RunTests(void)
-{
-    struct State* pState = (struct State*)kalloc(sizeof(struct State), 0);
-    
-    pState->timer = Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), (VirtualProcessor_Closure)OnPrintClosure, (Byte*)pState);
-    pState->value = 0;
-
-    print("Repeating timer\n");
-    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), pState->timer);
 }
 #endif
 

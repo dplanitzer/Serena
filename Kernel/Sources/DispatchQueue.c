@@ -669,11 +669,14 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
     WorkItemRef pItem = NULL;
     TimerRef pTimerToRearm = NULL;
 
+    // We hold the lock at all times except:
+    // - while waiting for work
+    // - while executing a work item
+    Lock_Lock(&pQueue->lock);
+
     while (true) {
         pItem = NULL;
         
-        Lock_Lock(&pQueue->lock);
-
         // Rearm a repeating timer if we executed a repeating timer in the previous
         // iteration and it's not been cancelled in the meantime and the queue isn't
         // in shutdown mode.
@@ -710,7 +713,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
             }
             
             
-            // Wait for work
+            // Wait for work. This drops the queue lock while we're waiting.
             const Int err = ConditionVariable_Wait(&pQueue->cond_var, &pQueue->lock, deadline);
             if (err == ETIMEOUT) {
                 break;
@@ -722,7 +725,6 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // any new work
         if (List_IsEmpty(&pQueue->timer_queue) && List_IsEmpty(&pQueue->item_queue)) {
             DispatchQueue_DestroyConcurrencyLane_Locked(pQueue, DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent()));
-            Lock_Unlock(&pQueue->lock);
             break;
         }
 
@@ -742,6 +744,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
             pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_queue);
         }
 
+
+        // Drop the lock. We do not want to hold it while the closure is executing
+        // and we are (if needed) signaling completion.
         Lock_Unlock(&pQueue->lock);
 
 
@@ -756,21 +761,21 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
 
 
+        // Reaquire the lock
+        Lock_Lock(&pQueue->lock);
+
+
         // Move the work item back to the item cache if possible or destroy it
         switch (pItem->type) {
             case kItemType_Immediate:
                 if (pItem->is_owned_by_queue) {
-                    Lock_Lock(&pQueue->lock);
                     DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
-                    Lock_Unlock(&pQueue->lock);
                 }
                 break;
                 
             case kItemType_OneShotTimer:
                 if (pItem->is_owned_by_queue) {
-                    Lock_Lock(&pQueue->lock);
                     DispatchQueue_RelinquishTimer_Locked(pQueue, (TimerRef) pItem);
-                    Lock_Unlock(&pQueue->lock);
                 }
                 break;
                 
@@ -779,9 +784,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
                 
                 if (pTimer->item.cancelled) {
                     if (pItem->is_owned_by_queue) {
-                        Lock_Lock(&pQueue->lock);
                         DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
-                        Lock_Unlock(&pQueue->lock);
                     }
                 } else {
                     pTimerToRearm = pTimer;
@@ -794,4 +797,6 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
                 break;
         }
     }
+
+    Lock_Unlock(&pQueue->lock);
 }
