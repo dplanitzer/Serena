@@ -129,6 +129,7 @@ extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int q
 
 extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
 
+
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has finished
 // execution.
@@ -138,6 +139,7 @@ extern void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue,
 // possible and the caller remains blocked until the closure has finished execution.
 extern void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
 
+
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible.
 extern void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
@@ -146,12 +148,14 @@ extern void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue
 // possible.
 extern void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
 
-// Asynchronously executes the given timer when it comes due.
-extern void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
-
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+
+
+// Asynchronously executes the given timer when it comes due.
+extern void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
+
 
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 

@@ -44,10 +44,12 @@ typedef struct _Timer {
 
 
 #define MAX_ITEM_CACHE_COUNT    8
+#define MAX_TIMER_CACHE_COUNT   8
 typedef struct _DispatchQueue {
     List                item_queue;         // Queue of work items that should be executed as soon as possible
     List                timer_queue;        // Queue of items that should be executed on or after their deadline
     List                item_cache_queue;   // Cache of reusable work items
+    List                timer_cache_queue;  // Cache of reusable timers
     Lock                lock;
     ConditionVariable   cond_var;
     Array               vps;                // 'maxConcurrency' virtual processors providing processing power to the queue
@@ -55,6 +57,8 @@ typedef struct _DispatchQueue {
     Int8                qos;
     Int8                priority;
     Int8                item_cache_count;
+    Int8                timer_cache_count;
+    Int8                reserved[3];
 } DispatchQueue;
 
 
@@ -63,7 +67,7 @@ typedef struct _DispatchQueue {
 // MARK: Work Items
 
 
-static void WorkItem_Init(WorkItem* _Nonnull pItem, enum ItemType type, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
+static void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
     ListNode_Init(&pItem->queue_entry);
     pItem->closure = pClosure;
@@ -95,7 +99,7 @@ WorkItemRef _Nullable WorkItem_Create(DispatchQueue_Closure _Nonnull pClosure, B
     return WorkItem_Create_Internal(pClosure, pContext, false);
 }
 
-static void WorkItem_Deinit(WorkItem* _Nonnull pItem)
+static void WorkItem_Deinit(WorkItemRef _Nonnull pItem)
 {
     ListNode_Deinit(&pItem->queue_entry);
     pItem->closure = NULL;
@@ -135,17 +139,23 @@ Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem)
 // MARK: Timers
 
 
+static void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
+{
+    enum ItemType type = TimeInterval_Greater(interval, kTimeInterval_Zero) ? kItemType_RepeatingTimer : kItemType_OneShotTimer;
+
+    WorkItem_Init((WorkItem*)pTimer, type, pClosure, pContext, isOwnedByQueue);
+    pTimer->deadline = deadline;
+    pTimer->interval = interval;
+}
+
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
 static TimerRef _Nullable Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
-    enum ItemType type = TimeInterval_Greater(interval, kTimeInterval_Zero) ? kItemType_RepeatingTimer : kItemType_OneShotTimer;
     Timer* pTimer = (Timer*) kalloc(sizeof(Timer), HEAP_ALLOC_OPTION_CPU);
     
     if (pTimer) {
-        WorkItem_Init((WorkItem*)pTimer, type, pClosure, pContext, isOwnedByQueue);
-        pTimer->deadline = deadline;
-        pTimer->interval = interval;
+        Timer_Init(pTimer, deadline, interval, pClosure, pContext, isOwnedByQueue);
     }
     return pTimer;
 }
@@ -159,10 +169,15 @@ TimerRef _Nullable Timer_Create(TimeInterval deadline, TimeInterval interval, Di
     return Timer_Create_Internal(deadline, interval, pClosure, pContext, false);
 }
 
+static inline void Timer_Deinit(TimerRef pTimer)
+{
+    WorkItem_Deinit((WorkItemRef) pTimer);
+}
+
 void Timer_Destroy(TimerRef _Nullable pTimer)
 {
     if (pTimer) {
-        WorkItem_Deinit((WorkItem *)pTimer);
+        Timer_Deinit(pTimer);
         kfree((Byte*) pTimer);
     }
 }
@@ -205,6 +220,7 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         List_Init(&pQueue->item_queue);
         List_Init(&pQueue->timer_queue);
         List_Init(&pQueue->item_cache_queue);
+        List_Init(&pQueue->timer_cache_queue);
         Lock_Init(&pQueue->lock);
         ConditionVariable_Init(&pQueue->cond_var);
         PointerArray_Init(&pQueue->vps, maxConcurrency);
@@ -212,6 +228,7 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         pQueue->qos = qos;
         pQueue->priority = priority;
         pQueue->item_cache_count = 0;
+        pQueue->timer_cache_count = 0;
     }
     
     return pQueue;
@@ -229,6 +246,7 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
         List_Deinit(&pQueue->item_queue);
         List_Deinit(&pQueue->timer_queue);
         List_Deinit(&pQueue->item_cache_queue);
+        List_Deinit(&pQueue->timer_cache_queue);
         Lock_Deinit(&pQueue->lock);
         ConditionVariable_Deinit(&pQueue->cond_var);
         PointerArray_Deinit(&pQueue->vps);
@@ -259,9 +277,9 @@ static void DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(DispatchQueueRef 
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static WorkItem* _Nullable DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+static WorkItemRef _Nullable DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
-    WorkItem* pItem = (WorkItem*) List_RemoveFirst(&pQueue->item_cache_queue);
+    WorkItemRef pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_cache_queue);
 
     if (pItem != NULL) {
         WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext, true);
@@ -276,7 +294,7 @@ static WorkItem* _Nullable DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef
 // Reqlinquishes the given work item back to the item cache if possible. The
 // item is freed if the cache is at capacity. The item must be owned by the
 // dispatch queue.
-static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItem* _Nonnull pItem)
+static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     assert(pItem->is_owned_by_queue);
 
@@ -286,6 +304,39 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQue
         pQueue->item_cache_count++;
     } else {
         WorkItem_Destroy(pItem);
+    }
+}
+
+// Creates a timer for the given closure and closure context. Tries to reuse
+// an existing timer from the timer cache whenever possible. Expects that the
+// caller holds the dispatch queue lock.
+static TimerRef _Nullable DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    TimerRef pTimer = (TimerRef) List_RemoveFirst(&pQueue->timer_cache_queue);
+
+    if (pTimer != NULL) {
+        Timer_Init(pTimer, deadline, interval, pClosure, pContext, true);
+        pQueue->timer_cache_count--;
+    } else {
+        pTimer = Timer_Create_Internal(deadline, interval, pClosure, pContext, true);
+    }
+    
+    return pTimer;
+}
+
+// Reqlinquishes the given timer back to the timer cache if possible. The timer
+// is freed if the cache is at capacity. The timer must be owned by the dispatch
+// queue.
+static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer)
+{
+    assert(pTimer->item.is_owned_by_queue);
+
+    if (pQueue->timer_cache_count < MAX_TIMER_CACHE_COUNT) {
+        Timer_Deinit(pTimer);
+        List_InsertBeforeFirst(&pQueue->timer_cache_queue, &pTimer->item.queue_entry);
+        pQueue->timer_cache_count++;
+    } else {
+        Timer_Destroy(pTimer);
     }
 }
 
@@ -335,6 +386,7 @@ void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkIt
 void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Lock_Lock(&pQueue->lock);
+
     WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
     assert(pItem != NULL);
     DispatchQueue_DispatchWorkItemSync_Lock(pQueue, pItem);
@@ -354,12 +406,23 @@ void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkI
     DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
 }
 
+// Asynchronously executes the given closure. The closure is executed as soon as
+// possible.
+void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    Lock_Lock(&pQueue->lock);
+
+    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
+    assert(pItem != NULL);
+    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
+}
+
 // Adds the given timer to the timer queue. Expects that the queue is already
 // locked. Does not wake up the queue.
-static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Timer* _Nonnull pTimer)
+static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
-    Timer* pPrevTimer = NULL;
-    Timer* pCurTimer = (Timer*)pQueue->timer_queue.first;
+    TimerRef pPrevTimer = NULL;
+    TimerRef pCurTimer = (TimerRef)pQueue->timer_queue.first;
     
     while (pCurTimer) {
         if (TimeInterval_Greater(pCurTimer->deadline, pTimer->deadline)) {
@@ -367,10 +430,19 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
         }
         
         pPrevTimer = pCurTimer;
-        pCurTimer = (Timer*)pCurTimer->item.queue_entry.next;
+        pCurTimer = (TimerRef)pCurTimer->item.queue_entry.next;
     }
     
     List_InsertAfter(&pQueue->timer_queue, &pTimer->item.queue_entry, &pPrevTimer->item.queue_entry);
+}
+
+// Asynchronously executes the given timer when it comes due. Expects that the
+// caller holds the dispatch queue lock.
+void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
+{
+    DispatchQueue_AddTimer_Locked(pQueue, pTimer);
+    DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
+    ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
 }
 
 // Asynchronously executes the given timer when it comes due.
@@ -382,32 +454,21 @@ void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Non
     }
 
     Lock_Lock(&pQueue->lock);
-    DispatchQueue_AddTimer_Locked(pQueue, pTimer);
-    DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
-    ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
-}
-
-// Asynchronously executes the given closure. The closure is executed as soon as
-// possible.
-void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
-{
-    Lock_Lock(&pQueue->lock);
-
-    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, pClosure, pContext);
-    assert(pItem != NULL);
-    
-    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
+    DispatchQueue_DispatchTimer_Locked(pQueue, pTimer);
 }
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
-    Timer* pTimer = Timer_Create_Internal(deadline, kTimeInterval_Zero, pClosure, pContext, true);
+    Lock_Lock(&pQueue->lock);
+
+    Timer* pTimer = DispatchQueue_AcquireTimer_Locked(pQueue, deadline, kTimeInterval_Zero, pClosure, pContext);
     assert(pTimer != NULL);
-    
-    DispatchQueue_DispatchTimer(pQueue, pTimer);
+    DispatchQueue_DispatchTimer_Locked(pQueue, pTimer);
 }
+
+
 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 {
@@ -512,15 +573,21 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
                 
             case kItemType_OneShotTimer:
                 if (pItem->is_owned_by_queue) {
-                    Timer_Destroy((Timer*)pItem);
+                    Lock_Lock(&pQueue->lock);
+                    DispatchQueue_RelinquishTimer_Locked(pQueue, (TimerRef) pItem);
+                    Lock_Unlock(&pQueue->lock);
                 }
                 break;
                 
             case kItemType_RepeatingTimer: {
-                Timer* pTimer = (Timer*)pItem;
+                Timer* pTimer = (TimerRef)pItem;
                 
-                if (pTimer->item.cancelled && pItem->is_owned_by_queue) {
-                    Timer_Destroy(pTimer);
+                if (pTimer->item.cancelled) {
+                    if (pItem->is_owned_by_queue) {
+                        Lock_Lock(&pQueue->lock);
+                        DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
+                        Lock_Unlock(&pQueue->lock);
+                    }
                 } else {
                     pTimerToRearm = pTimer;
                 }
