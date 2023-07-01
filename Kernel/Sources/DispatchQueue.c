@@ -352,6 +352,10 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         while ((pTimer0 = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
             Timer_Destroy(pTimer0);
         }
+
+
+        // We want to wake _all_ VPs up here since all of them need to relinquish
+        // themselves.
         ConditionVariable_Broadcast(&pQueue->work_available_signaler, &pQueue->lock);
 
 
@@ -558,7 +562,7 @@ static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull
     pQueue->items_queued_count++;
 
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
-    ConditionVariable_Broadcast(&pQueue->work_available_signaler, &pQueue->lock);
+    ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
 // Synchronously executes the given work item. The work item is executed as
@@ -605,7 +609,7 @@ void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerR
 {
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
-    ConditionVariable_Broadcast(&pQueue->work_available_signaler, &pQueue->lock);
+    ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
 
