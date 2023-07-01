@@ -60,6 +60,12 @@ typedef struct _ConcurrencyLane {
 } ConcurrencyLane;
 
 
+enum QueueState {
+    kQueueState_Running,                // Queue is running and willing to accept and execute closures
+    kQueueState_ShuttingDown            // DispatchQueue_Destroy() was called. The VPs should be relinquished and the queue freed 
+};
+
+
 #define MAX_ITEM_CACHE_COUNT    8
 #define MAX_TIMER_CACHE_COUNT   8
 #define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
@@ -70,16 +76,17 @@ typedef struct _DispatchQueue {
     SList               timer_cache_queue;  // Cache of reusable timers
     SList               completion_signaler_cache_queue;    // Cache of reusable completion signalers
     Lock                lock;
-    ConditionVariable   cond_var;
-    Int                 items_queued_count;     // Number of work items queued up (item_queue)
-    Int8                maxConcurrency;         // Maximum number of concurrency lanes we are allowed to allocate and use
-    Int8                availableConcurrency;   // Number of concurrency lanes we have acquired and are available for use
+    ConditionVariable   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has bbeen enqueued
+    ConditionVariable   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinqushed itself because the queue is in the process of shutting down
+    Int                 items_queued_count;         // Number of work items queued up (item_queue)
+    Int8                state;                      // The current dispatch queue state
+    Int8                maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
+    Int8                availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
     Int8                qos;
     Int8                priority;
     Int8                item_cache_count;
     Int8                timer_cache_count;
     Int8                completion_signaler_count;
-    Bool                isShuttingDown;
     ConcurrencyLane     concurrency_lanes[1];   // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
@@ -283,8 +290,10 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         SList_Init(&pQueue->timer_cache_queue);
         SList_Init(&pQueue->completion_signaler_cache_queue);
         Lock_Init(&pQueue->lock);
-        ConditionVariable_Init(&pQueue->cond_var);
+        ConditionVariable_Init(&pQueue->work_available_signaler);
+        ConditionVariable_Init(&pQueue->vp_shutdown_signaler);
         pQueue->items_queued_count = 0;
+        pQueue->state = kQueueState_Running;
         pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
         pQueue->availableConcurrency = 0;
         pQueue->qos = qos;
@@ -292,7 +301,6 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         pQueue->item_cache_count = 0;
         pQueue->timer_cache_count = 0;
         pQueue->completion_signaler_count = 0;
-        pQueue->isShuttingDown = false;
 
         for (Int i = 0; i < maxConcurrency; i++) {
             pQueue->concurrency_lanes[i].vp = NULL;
@@ -302,28 +310,62 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
     return pQueue;
 }
 
-static void DispatchQueue_NopRun(Byte* _Nullable pContext)
-{
-    // do nothing
-}
-
+// Destroys the dispatch queue after all still pending work items have finished
+// executing. Pending one-shot and repeatable timers are cancelled and get no
+// more chance to run. Blocks the caller until the queue has been drained and
+// deallocated.
 void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
 {
+    DispatchQueue_DestroyAndFlush(pQueue, false);
+}
+
+// Similar to DispatchQueue_Destroy() but allows you to specify whether still
+// pending work items should be flushed or executed.
+// \param flush true means that still pending work items are executed before the
+//              queue shuts down; false means that all pending work items are
+//              flushed out from the queue and not executed
+void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush)
+{
     if (pQueue) {
-        // Mark the queue as shutting down. This will stop all dispatch calls
-        // from accepting new work items and repeatable timers from rescheduling
+        // Request queue shutdown. This will stop all dispatch calls from
+        // accepting new work items and repeatable timers from rescheduling. This
+        // will also cause the VPs to drain the existing work item queue and to
+        // relinquish themselves.
         Lock_Lock(&pQueue->lock);
-        pQueue->isShuttingDown = true;
+        pQueue->state = kQueueState_ShuttingDown;
+
+        if (flush) {
+            // Free the still pending work items now
+            WorkItemRef pItem;
+            while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
+                WorkItem_Destroy(pItem);
+            }
+        }
+
+
+        // Free the scheduled timers now. We do not run them anymore no matter
+        // what because (a) their deadline may be far out in the future but the
+        // queue is dying now and (b) because of that code that shuts down a
+        // queue can not assume that a scheduled timer may get one last chance
+        // to run.
+        TimerRef pTimer0;
+        while ((pTimer0 = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
+            Timer_Destroy(pTimer0);
+        }
+        ConditionVariable_Broadcast(&pQueue->work_available_signaler, &pQueue->lock);
+
+
+        // Wait until all VPs have relinquished and detached themselves from the
+        // dispatch queue.
+        Lock_Lock(&pQueue->lock);
+        while (pQueue->availableConcurrency > 0) {
+            ConditionVariable_Wait(&pQueue->vp_shutdown_signaler, &pQueue->lock, kTimeInterval_Infinity);
+        }
         Lock_Unlock(&pQueue->lock);
 
 
-        // Dispatch our NopRun() function which does nothing. We block until it
-        // is done. The point of doing this is to guarantee that no item or timer
-        // is running anymore once DispatchSync() returns.
-        DispatchQueue_DispatchSync(pQueue, (DispatchQueue_Closure) DispatchQueue_NopRun, NULL);
-
-
-        // Free all resources.
+        // No more VPs are attached to this queue. We can now go ahead and free
+        // all resources.
         SList_Deinit(&pQueue->item_queue);       // guaranteed to be empty at this point
         SList_Deinit(&pQueue->timer_queue);      // guaranteed to be empty at this point
 
@@ -346,7 +388,8 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
         SList_Deinit(&pQueue->completion_signaler_cache_queue);
         
         Lock_Deinit(&pQueue->lock);
-        ConditionVariable_Deinit(&pQueue->cond_var);
+        ConditionVariable_Deinit(&pQueue->work_available_signaler);
+        ConditionVariable_Deinit(&pQueue->vp_shutdown_signaler);
 
         kfree((Byte*) pQueue);
     }
@@ -515,7 +558,7 @@ static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull
     pQueue->items_queued_count++;
 
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
-    ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
+    ConditionVariable_Broadcast(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
 // Synchronously executes the given work item. The work item is executed as
@@ -562,7 +605,7 @@ void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerR
 {
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
-    ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
+    ConditionVariable_Broadcast(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
 
@@ -578,7 +621,7 @@ void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkIt
     }
 
     Lock_Lock(&pQueue->lock);
-    if (pQueue->isShuttingDown) {
+    if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
         return;
     }
@@ -591,7 +634,7 @@ void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkIt
 void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Lock_Lock(&pQueue->lock);
-    if (pQueue->isShuttingDown) {
+    if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
         return;
     }
@@ -612,7 +655,7 @@ void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkI
     }
 
     Lock_Lock(&pQueue->lock);
-    if (pQueue->isShuttingDown) {
+    if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
         return;
     }
@@ -625,7 +668,7 @@ void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkI
 void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Lock_Lock(&pQueue->lock);
-    if (pQueue->isShuttingDown) {
+    if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
         return;
     }
@@ -644,7 +687,7 @@ void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Non
     }
 
     Lock_Lock(&pQueue->lock);
-    if (pQueue->isShuttingDown) {
+    if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
         return;
     }
@@ -657,7 +700,7 @@ void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Non
 void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Lock_Lock(&pQueue->lock);
-    if (pQueue->isShuttingDown) {
+    if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
         return;
     }
@@ -695,7 +738,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // Rearm a repeating timer if we executed a repeating timer in the previous
         // iteration and it's not been cancelled in the meantime and the queue isn't
         // in shutdown mode.
-        if (pTimerToRearm && !pQueue->isShuttingDown) {
+        if (pTimerToRearm && pQueue->state == kQueueState_Running) {
             if (!pTimerToRearm->item.cancelled) {
                 // Repeating timer: rearm it with the next fire date that's in
                 // the future (the next fire date we haven't already missed).
@@ -727,17 +770,27 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
                 deadline = TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(2));
             }
             
-            
+            if (pQueue->state >= kQueueState_ShuttingDown) {
+                break;
+            }
+
             // Wait for work. This drops the queue lock while we're waiting.
-            const Int err = ConditionVariable_Wait(&pQueue->cond_var, &pQueue->lock, deadline);
+            const Int err = ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline);
             if (err == ETIMEOUT) {
                 break;
             }
         }
         
         
-        // Exit this VP if we've waited for work for some time but haven't received
-        // any new work
+        // Relinquish this VP if the queue shuts down and there are no more work
+        // items left (timers are already gone at this point)
+        if (pQueue->state >= kQueueState_ShuttingDown && SList_IsEmpty(&pQueue->item_queue)) {
+            break;
+        }
+
+
+        // Relinquish this VP if we've waited for work for some time but haven't
+        // received any new work
         if (SList_IsEmpty(&pQueue->timer_queue) && SList_IsEmpty(&pQueue->item_queue)) {
             break;
         }
@@ -814,5 +867,10 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
     }
 
     DispatchQueue_RelinquishVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent());
-    Lock_Unlock(&pQueue->lock);
+
+    if (pQueue->state >= kQueueState_ShuttingDown) {
+        ConditionVariable_Signal(&pQueue->vp_shutdown_signaler, &pQueue->lock);
+    } else {
+        Lock_Unlock(&pQueue->lock);
+    }
 }

@@ -127,7 +127,18 @@ extern void DispatchQueue_CreateKernelQueues(const SystemDescription* _Nonnull p
 
 extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority);
 
+// Destroys the dispatch queue after all still pending work items have finished
+// executing. Pending one-shot and repeatable timers are cancelled and get no
+// more chance to run. Blocks the caller until the queue has been drained and
+// deallocated.
 extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
+
+// Similar to DispatchQueue_Destroy() but allows you to specify whether still
+// pending work items should be flushed or executed.
+// \param flush true means that still pending work items are executed before the
+//              queue shuts down; false means that all pending work items are
+//              flushed out from the queue and not executed
+extern void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush);
 
 
 // Synchronously executes the given work item. The work item is executed as
