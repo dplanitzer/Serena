@@ -25,7 +25,7 @@ enum ItemType {
 
 
 typedef struct _WorkItem {
-    ListNode                    queue_entry;
+    SListNode                   queue_entry;
     DispatchQueue_Closure       closure;
     Byte* _Nullable _Weak       context;
     Semaphore * _Nullable _Weak completion_sema;
@@ -46,7 +46,7 @@ typedef struct _Timer {
 // Completion signalers are semaphores that are used to signal the completion of
 // a work item to DispatchQueue_DispatchSync()
 typedef struct _CompletionSignaler {
-    ListNode    queue_entry;
+    SListNode   queue_entry;
     Semaphore   semaphore;
 } CompletionSignaler;
 
@@ -64,11 +64,11 @@ typedef struct _ConcurrencyLane {
 #define MAX_TIMER_CACHE_COUNT   8
 #define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
 typedef struct _DispatchQueue {
-    List                item_queue;         // Queue of work items that should be executed as soon as possible
-    List                timer_queue;        // Queue of items that should be executed on or after their deadline
-    List                item_cache_queue;   // Cache of reusable work items
-    List                timer_cache_queue;  // Cache of reusable timers
-    List                completion_signaler_cache_queue;    // Cache of reusable completion signalers
+    SList               item_queue;         // Queue of work items that should be executed as soon as possible
+    SList               timer_queue;        // Queue of items that should be executed on or after their deadline
+    SList               item_cache_queue;   // Cache of reusable work items
+    SList               timer_cache_queue;  // Cache of reusable timers
+    SList               completion_signaler_cache_queue;    // Cache of reusable completion signalers
     Lock                lock;
     ConditionVariable   cond_var;
     Int                 items_queued_count;     // Number of work items queued up (item_queue)
@@ -91,7 +91,7 @@ typedef struct _DispatchQueue {
 
 static void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isOwnedByQueue)
 {
-    ListNode_Init(&pItem->queue_entry);
+    SListNode_Init(&pItem->queue_entry);
     pItem->closure = pClosure;
     pItem->context = pContext;
     pItem->is_owned_by_queue = isOwnedByQueue;
@@ -123,7 +123,7 @@ WorkItemRef _Nullable WorkItem_Create(DispatchQueue_Closure _Nonnull pClosure, B
 
 static void WorkItem_Deinit(WorkItemRef _Nonnull pItem)
 {
-    ListNode_Deinit(&pItem->queue_entry);
+    SListNode_Deinit(&pItem->queue_entry);
     pItem->closure = NULL;
     pItem->context = NULL;
     pItem->completion_sema = NULL;
@@ -212,7 +212,7 @@ void Timer_Destroy(TimerRef _Nullable pTimer)
 
 static inline void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem)
 {
-    ListNode_Init(&pItem->queue_entry);
+    SListNode_Init(&pItem->queue_entry);
 }
 
 // Creates a completion signaler.
@@ -229,7 +229,7 @@ static CompletionSignaler* _Nullable CompletionSignaler_Create(void)
 
 static inline void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull pItem)
 {
-    ListNode_Deinit(&pItem->queue_entry);
+    SListNode_Deinit(&pItem->queue_entry);
 }
 
 // Deallocates the given completion signaler.
@@ -277,11 +277,11 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
     DispatchQueueRef pQueue = (DispatchQueueRef) kalloc(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), HEAP_ALLOC_OPTION_CPU);
         
     if (pQueue) {
-        List_Init(&pQueue->item_queue);
-        List_Init(&pQueue->timer_queue);
-        List_Init(&pQueue->item_cache_queue);
-        List_Init(&pQueue->timer_cache_queue);
-        List_Init(&pQueue->completion_signaler_cache_queue);
+        SList_Init(&pQueue->item_queue);
+        SList_Init(&pQueue->timer_queue);
+        SList_Init(&pQueue->item_cache_queue);
+        SList_Init(&pQueue->timer_cache_queue);
+        SList_Init(&pQueue->completion_signaler_cache_queue);
         Lock_Init(&pQueue->lock);
         ConditionVariable_Init(&pQueue->cond_var);
         pQueue->items_queued_count = 0;
@@ -334,26 +334,26 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
 
 
         // Free all resources.
-        List_Deinit(&pQueue->item_queue);       // guaranteed to be empty at this point
-        List_Deinit(&pQueue->timer_queue);      // guaranteed to be empty at this point
+        SList_Deinit(&pQueue->item_queue);       // guaranteed to be empty at this point
+        SList_Deinit(&pQueue->timer_queue);      // guaranteed to be empty at this point
 
         WorkItemRef pItem;
-        while ((pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_cache_queue)) != NULL) {
+        while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_cache_queue)) != NULL) {
             WorkItem_Destroy(pItem);
         }
-        List_Deinit(&pQueue->item_cache_queue);
+        SList_Deinit(&pQueue->item_cache_queue);
         
         TimerRef pTimer;
-        while ((pTimer = (TimerRef) List_RemoveFirst(&pQueue->timer_cache_queue)) != NULL) {
+        while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_cache_queue)) != NULL) {
             Timer_Destroy(pTimer);
         }
-        List_Deinit(&pQueue->timer_cache_queue);
+        SList_Deinit(&pQueue->timer_cache_queue);
 
         CompletionSignaler* pCompSignaler;
-        while((pCompSignaler = (CompletionSignaler*) List_RemoveFirst(&pQueue->completion_signaler_cache_queue)) != NULL) {
+        while((pCompSignaler = (CompletionSignaler*) SList_RemoveFirst(&pQueue->completion_signaler_cache_queue)) != NULL) {
             CompletionSignaler_Destroy(pCompSignaler);
         }
-        List_Deinit(&pQueue->completion_signaler_cache_queue);
+        SList_Deinit(&pQueue->completion_signaler_cache_queue);
         
         Lock_Deinit(&pQueue->lock);
         ConditionVariable_Deinit(&pQueue->cond_var);
@@ -419,7 +419,7 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
 // the caller holds the dispatch queue lock.
 static WorkItemRef _Nullable DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
-    WorkItemRef pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_cache_queue);
+    WorkItemRef pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_cache_queue);
 
     if (pItem != NULL) {
         WorkItem_Init(pItem, kItemType_Immediate, pClosure, pContext, true);
@@ -440,7 +440,7 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQue
 
     if (pQueue->item_cache_count < MAX_ITEM_CACHE_COUNT) {
         WorkItem_Deinit(pItem);
-        List_InsertBeforeFirst(&pQueue->item_cache_queue, &pItem->queue_entry);
+        SList_InsertBeforeFirst(&pQueue->item_cache_queue, &pItem->queue_entry);
         pQueue->item_cache_count++;
     } else {
         WorkItem_Destroy(pItem);
@@ -452,7 +452,7 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQue
 // caller holds the dispatch queue lock.
 static TimerRef _Nullable DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
-    TimerRef pTimer = (TimerRef) List_RemoveFirst(&pQueue->timer_cache_queue);
+    TimerRef pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_cache_queue);
 
     if (pTimer != NULL) {
         Timer_Init(pTimer, deadline, interval, pClosure, pContext, true);
@@ -473,7 +473,7 @@ static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue,
 
     if (pQueue->timer_cache_count < MAX_TIMER_CACHE_COUNT) {
         Timer_Deinit(pTimer);
-        List_InsertBeforeFirst(&pQueue->timer_cache_queue, &pTimer->item.queue_entry);
+        SList_InsertBeforeFirst(&pQueue->timer_cache_queue, &pTimer->item.queue_entry);
         pQueue->timer_cache_count++;
     } else {
         Timer_Destroy(pTimer);
@@ -485,7 +485,7 @@ static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue,
 // the caller holds the dispatch queue lock.
 static CompletionSignaler* _Nullable DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue)
 {
-    CompletionSignaler* pItem = (CompletionSignaler*) List_RemoveFirst(&pQueue->completion_signaler_cache_queue);
+    CompletionSignaler* pItem = (CompletionSignaler*) SList_RemoveFirst(&pQueue->completion_signaler_cache_queue);
 
     if (pItem != NULL) {
         CompletionSignaler_Init(pItem);
@@ -503,7 +503,7 @@ static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _No
 {
     if (pQueue->completion_signaler_count < MAX_COMPLETION_SIGNALER_CACHE_COUNT) {
         CompletionSignaler_Deinit(pItem);
-        List_InsertBeforeFirst(&pQueue->completion_signaler_cache_queue, &pItem->queue_entry);
+        SList_InsertBeforeFirst(&pQueue->completion_signaler_cache_queue, &pItem->queue_entry);
         pQueue->completion_signaler_count++;
     } else {
         CompletionSignaler_Destroy(pItem);
@@ -514,7 +514,7 @@ static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _No
 // soon as possible. Expects to be called with the dispatch queue held.
 static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
-    List_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
+    SList_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
     pQueue->items_queued_count++;
 
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
@@ -556,7 +556,7 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
         pCurTimer = (TimerRef)pCurTimer->item.queue_entry.next;
     }
     
-    List_InsertAfter(&pQueue->timer_queue, &pTimer->item.queue_entry, &pPrevTimer->item.queue_entry);
+    SList_InsertAfter(&pQueue->timer_queue, &pTimer->item.queue_entry, &pPrevTimer->item.queue_entry);
 }
 
 // Asynchronously executes the given timer when it comes due. Expects that the
@@ -731,7 +731,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         
         // Exit this VP if we've waited for work for some time but haven't received
         // any new work
-        if (List_IsEmpty(&pQueue->timer_queue) && List_IsEmpty(&pQueue->item_queue)) {
+        if (SList_IsEmpty(&pQueue->timer_queue) && SList_IsEmpty(&pQueue->item_queue)) {
             DispatchQueue_DestroyConcurrencyLane_Locked(pQueue, DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent()));
             break;
         }
@@ -743,13 +743,13 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // acceptable to push them back on the timeline.
         Timer* pFirstTimer = (Timer*)pQueue->timer_queue.first;
         if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->deadline, MonotonicClock_GetCurrentTime())) {
-            pItem = (WorkItemRef) List_RemoveFirst(&pQueue->timer_queue);
+            pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->timer_queue);
         }
 
         
         // Grab the first work item if no timer is due
         if (pItem == NULL) {
-            pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_queue);
+            pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue);
             pQueue->items_queued_count--;
         }
 
