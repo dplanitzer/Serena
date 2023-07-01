@@ -71,6 +71,7 @@ typedef struct _DispatchQueue {
     List                completion_signaler_cache_queue;    // Cache of reusable completion signalers
     Lock                lock;
     ConditionVariable   cond_var;
+    Int                 items_queued_count;     // Number of work items queued up (item_queue)
     Int8                maxConcurrency;         // Maximum number of concurrency lanes we are allowed to allocate and use
     Int8                availableConcurrency;   // Number of concurrency lanes we have acquired and are available for use
     Int8                qos;
@@ -283,6 +284,7 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         List_Init(&pQueue->completion_signaler_cache_queue);
         Lock_Init(&pQueue->lock);
         ConditionVariable_Init(&pQueue->cond_var);
+        pQueue->items_queued_count = 0;
         pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
         pQueue->availableConcurrency = 0;
         pQueue->qos = qos;
@@ -377,10 +379,14 @@ static Int DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(Dispat
     return -1;
 }
 
-static void DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_Closure _Nonnull pWorkerFunc)
+static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_Closure _Nonnull pWorkerFunc)
 {
-    // XXX be smarter here and defer spinning u a new VP until we really need one
-    if (pQueue->availableConcurrency < pQueue->maxConcurrency) {
+    // Acquire a new virtual processor if we haven't already filled up all
+    // concurrency lanes available to us and one of the following is true:
+    // - we don't own a virtual processor at all
+    // - we've queued up at least 4 work items
+    if (pQueue->availableConcurrency < pQueue->maxConcurrency
+        && (pQueue->availableConcurrency == 0 || pQueue->items_queued_count > 4)) {
         VirtualProcessorAttributes attribs;
         
         VirtualProcessorAttributes_Init(&attribs);
@@ -509,7 +515,9 @@ static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _No
 static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     List_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
-    DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
+    pQueue->items_queued_count++;
+
+    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
     ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
 }
 
@@ -556,7 +564,7 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
 void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
-    DispatchQueue_SpawnVirtualProcessorIfNeeded_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
+    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
     ConditionVariable_Signal(&pQueue->cond_var, &pQueue->lock);
 }
 
@@ -742,6 +750,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // Grab the first work item if no timer is due
         if (pItem == NULL) {
             pItem = (WorkItemRef) List_RemoveFirst(&pQueue->item_queue);
+            pQueue->items_queued_count--;
         }
 
 
