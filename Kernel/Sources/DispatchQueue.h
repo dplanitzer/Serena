@@ -157,6 +157,13 @@ extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, T
 extern void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
 
 
+// Returns the dispatch queue that is associated with the virtual processor that
+// is running the calling code. This will always return a dispatch queue for
+// callers that are running in a dispatch queue context. It returns NULL though
+// for callers that are running on a virtual processor that was directly acquired
+// from the virtual processor pool.
+extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
+
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 
 #endif /* DispatchQueue_h */

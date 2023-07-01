@@ -229,9 +229,13 @@ static const VirtualProcessorVTable gVirtualProcessorVTable = {
 };
 
 
-static void VirtualProcesssor_ReturnFromSuperuserSpace(void)
+// Relinquishes the virtual processor which means that it is finished executing
+// code and that it should be moved back to the virtual processor pool. This
+// function does not return to the caller. This function should only be invoked
+// from the bottom-most frame on the virtual processor's kernel stack.
+void VirtualProcesssor_Relinquish(void)
 {
-    VirtualProcessor_Exit(VirtualProcessor_GetCurrent());
+    VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPool_GetShared(), VirtualProcessor_GetCurrent());
     /* NOT REACHED */
 }
 
@@ -266,6 +270,9 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
     
     SystemGlobals* pGlobals = SystemGlobals_Get();
     pVP->vpid = AtomicInt_Add(&pGlobals->next_available_vpid, 1);
+
+    pVP->dispatchQueue = NULL;
+    pVP->dispatchQueueConcurrenyLaneIndex = -1;
 }
 
 // Creates a new virtual processor.
@@ -284,6 +291,22 @@ VirtualProcessor* _Nullable VirtualProcessor_Create(void)
 failed:
     kfree((Byte*)pVP);
     return NULL;
+}
+
+void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
+{
+    if (pVP) {
+        pVP->vtable->destroy(pVP);
+    }
+}
+
+// Sets the dispatch queue that has acquired the virtual processor and owns it
+// until the virtual processor is relinquished back to the virtual processor
+// pool.
+void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrenyLaneIndex)
+{
+    pVP->dispatchQueue = pQueue;
+    pVP->dispatchQueueConcurrenyLaneIndex = concurrenyLaneIndex;
 }
 
 // Sets the max size of the kernel stack. Changing the stack size of a VP is only
@@ -363,13 +386,13 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
     // Initial kernel stack frame looks like this:
     // 68000:
     // SP + 10: pContext
-    // SP +  6: RTS address (VirtualProcesssor_ReturnFromSuperuserSpace() entry point)
+    // SP +  6: RTS address (VirtualProcesssor_Relinquish() entry point)
     // SP +  2: PC
     // SP +  0: SR
     //
     // 68010+:
     // SP + 12: pContext
-    // SP +  8: RTS address (VirtualProcesssor_ReturnFromSuperuserSpace() entry point)
+    // SP +  8: RTS address (VirtualProcesssor_Relinquish() entry point)
     // SP +  6: Stack frame format for RTE (0 -> 8 byte frame size)
     // SP +  2: PC
     // SP +  0: SR
@@ -378,7 +401,7 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
     // function expects to find an RTE frame on the kernel stack on entry
     Byte* sp = (Byte*) pVP->save_area.a[7];
     sp -= 4; *((Byte**)sp) = pContext;
-    sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_ReturnFromSuperuserSpace;
+    sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_Relinquish;
     if (SystemDescription_GetShared()->cpu_model >= CPU_MODEL_68010) {
         // 68010+ require the format word on the stack. 0 is the 8 byte stack frame format
         sp -= 2; *((UInt16*)sp) = 0;

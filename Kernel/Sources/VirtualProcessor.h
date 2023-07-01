@@ -134,6 +134,11 @@ typedef struct _VirtualProcessor {
     Int8                                    quantum_allowance;      // How many continuous quantums this VP may run for before the scheduler will consider scheduling some other VP
     Int8                                    suspension_count;       // > 0 -> VP is suspended
     Int8                                    reserved[1];
+
+    // Dispatch queue state
+    void* _Nullable _Weak                   dispatchQueue;                      // Dispatch queue this VP is currently assigned to
+    Int8                                    dispatchQueueConcurrenyLaneIndex;   // Index of the concurrency lane in the dispatch queue this VP is assigned to
+    Int8                                    reserved2[3];
 } VirtualProcessor;
 
 
@@ -144,11 +149,8 @@ extern VirtualProcessor* _Nonnull VirtualProcessor_GetCurrent(void);
 // \return the new virtual processor; NULL if creation has failed
 extern VirtualProcessor* _Nullable VirtualProcessor_Create(void);
 
-inline void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP) {
-    if (pVP) {
-        pVP->vtable->destroy(pVP);
-    }
-}
+void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP);
+
 
 // Sleep for the given number of seconds
 extern ErrorCode VirtualProcessor_Sleep(TimeInterval delay);
@@ -172,6 +174,11 @@ extern ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP);
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
 extern ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force);
+
+// Sets the dispatch queue that has acquired the virtual processor and owns it
+// until the virtual processor is relinquished back to the virtual processor
+// pool.
+extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrenyLaneIndex);
 
 // Sets the max size of the kernel stack. Changing the stack size of a VP is only
 // allowed while the VP is suspended. Note that you must call SetClosure() on the
@@ -203,6 +210,12 @@ extern ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProc
 // Exits the calling virtual processor. If possible then the virtual processor is
 // moved back to the reuse cache. Otherwise it is destroyed for good.
 extern void VirtualProcessor_Exit(VirtualProcessor* _Nonnull pVP);
+
+// Relinquishes the virtual processor which means that it is finished executing
+// code and that it should be moved back to the virtual processor pool. This
+// function does not return to the caller. This function should only be invoked
+// from the bottom-most frame on the virtual processor's kernel stack.
+extern void VirtualProcesssor_Relinquish(void);
 
 // Schedules the calling virtual processor for finalization. Does not return.
 extern void VirtualProcessor_ScheduleFinalization(VirtualProcessor* _Nonnull pVP);

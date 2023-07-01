@@ -129,7 +129,13 @@ failed:
 void VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessor* _Nonnull pVP)
 {
     Bool didReuse = false;
-    
+
+    // Null out the dispatch queue reference in any case since the VP should no
+    // longer be associated with a queue.
+    VirtualProcessor_SetDispatchQueue(pVP, NULL, -1);
+
+
+    // Try to cache the VP
     Lock_Lock(&pool->lock);
     
     List_Remove(&pool->inuse_queue, &pVP->owner.queue_entry);
@@ -142,6 +148,9 @@ void VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _No
     }
     Lock_Unlock(&pool->lock);
     
+
+    // Suspend the VP if we decided to reuse it and schedule it for finalization
+    // (termination) otherwise.
     if (didReuse) {
         VirtualProcessor_Suspend(pVP);
     } else {

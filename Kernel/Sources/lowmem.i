@@ -242,37 +242,40 @@ kVirtualProcessorState_Waiting      equ 2   ; VP is blocked waiting for a resour
 kVirtualProcessorState_Suspended    equ 3   ; VP is suspended (rewa links are NULL)
 
     clrso
-vp_rewa_queue_entry_next        so.l    1           ; 4
-vp_rewa_queue_entry_prev        so.l    1           ; 4
-vp_vtable                       so.l    1           ; 4
-vp_save_area                    so.b    cpu_SIZEOF  ; 400
-vp_kernel_stack_base            so.l    1           ; 4
-vp_kernel_stack_size            so.l    1           ; 4
-vp_user_stack_base              so.l    1           ; 4
-vp_user_stack_size              so.l    1           ; 4
-vp_syscall_entry_ksp            so.l    1           ; 4
-vp_vpid                         so.l    1           ; 4
-vp_owner_queue_entry_next       so.l    1           ; 4
-vp_owner_queue_entry_prev       so.l    1           ; 4
-vp_owner_self                   so.l    1           ; 4
-vp_timeout_queue_entry_next     so.l    1           ; 4
-vp_timeout_queue_entry_prev     so.l    1           ; 4
-vp_timeout_deadline             so.l    1           ; 4
-vp_timeout_owner                so.l    1           ; 4
-vp_timeout_is_valid             so.b    1           ; 1
-vp_timeout_reserved             so.b    3           ; 3
-vp_waiting_on_wait_queue        so.l    1           ; 4
-vp_wait_start_time              so.l    1           ; 4
-vp_wakeup_reason                so.b    1           ; 1
-vp_priority                     so.b    1           ; 1
-vp_effectivePriority            so.b    1           ; 1
-vp_state                        so.b    1           ; 1
-vp_flags                        so.b    1           ; 1
-vp_quantum_allowance            so.b    1           ; 1
-vp_suspension_count             so.b    1           ; 1
-vp_reserved                     so.b    1           ; 1
+vp_rewa_queue_entry_next                so.l    1           ; 4
+vp_rewa_queue_entry_prev                so.l    1           ; 4
+vp_vtable                               so.l    1           ; 4
+vp_save_area                            so.b    cpu_SIZEOF  ; 400
+vp_kernel_stack_base                    so.l    1           ; 4
+vp_kernel_stack_size                    so.l    1           ; 4
+vp_user_stack_base                      so.l    1           ; 4
+vp_user_stack_size                      so.l    1           ; 4
+vp_syscall_entry_ksp                    so.l    1           ; 4
+vp_vpid                                 so.l    1           ; 4
+vp_owner_queue_entry_next               so.l    1           ; 4
+vp_owner_queue_entry_prev               so.l    1           ; 4
+vp_owner_self                           so.l    1           ; 4
+vp_timeout_queue_entry_next             so.l    1           ; 4
+vp_timeout_queue_entry_prev             so.l    1           ; 4
+vp_timeout_deadline                     so.l    1           ; 4
+vp_timeout_owner                        so.l    1           ; 4
+vp_timeout_is_valid                     so.b    1           ; 1
+vp_timeout_reserved                     so.b    3           ; 3
+vp_waiting_on_wait_queue                so.l    1           ; 4
+vp_wait_start_time                      so.l    1           ; 4
+vp_wakeup_reason                        so.b    1           ; 1
+vp_priority                             so.b    1           ; 1
+vp_effectivePriority                    so.b    1           ; 1
+vp_state                                so.b    1           ; 1
+vp_flags                                so.b    1           ; 1
+vp_quantum_allowance                    so.b    1           ; 1
+vp_suspension_count                     so.b    1           ; 1
+vp_reserved                             so.b    1           ; 1
+vp_dispatchQueue                        so.l    1           ; 4
+vp_dispatchQueueConcurrencyLaneIndex    so.b    1           ; 1
+vp_reserved2                            so.b    3           ; 3
 vp_SIZEOF                       so
-    ifeq (vp_SIZEOF == 484)
+    ifeq (vp_SIZEOF == 492)
         fail "VirtualProcessor structure size is incorrect."
     endif
 

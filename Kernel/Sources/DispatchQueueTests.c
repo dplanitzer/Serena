@@ -52,7 +52,7 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
     Int val = (Int)pValue;
     
     VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(500));
-    print("%d\n", val);
+    print("%d  (Queue: %p, VP: %p)\n", val, DispatchQueue_GetCurrent(), VirtualProcessor_GetCurrent());
 }
 
 void DispatchQueue_RunTests(void)

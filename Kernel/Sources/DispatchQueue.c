@@ -302,16 +302,6 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
     return pQueue;
 }
 
-static void DispatchQueue_DestroyConcurrencyLane_Locked(DispatchQueueRef _Nonnull pQueue, Int idx)
-{
-    assert(idx >= 0 && idx < pQueue->maxConcurrency);
-
-    // XXX do nothing with the VP right now. We'll fix the whole VP relinquishing
-    // XXX story soon
-    pQueue->concurrency_lanes[idx].vp = NULL;
-    pQueue->availableConcurrency--;
-}
-
 static void DispatchQueue_NopRun(Byte* _Nullable pContext)
 {
     // do nothing
@@ -358,27 +348,16 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
         Lock_Deinit(&pQueue->lock);
         ConditionVariable_Deinit(&pQueue->cond_var);
 
-        for (Int i = 0; i < pQueue->maxConcurrency; i++) {
-            DispatchQueue_DestroyConcurrencyLane_Locked(pQueue, i);
-        }
-
         kfree((Byte*) pQueue);
     }
 }
 
 
 
-static Int DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor* pVP)
-{
-    for (Int i = 0; i < pQueue->maxConcurrency; i++) {
-        if (pQueue->concurrency_lanes[i].vp == pVP) {
-            return i;
-        }
-    }
-
-    return -1;
-}
-
+// Makes sure that we have enough virtual processors attached to the dispatch queue
+// and acquires a virtual processor from the virtual processor pool if necessary.
+// The virtual processor is attached to the dispatch queue and remains attached
+// until it is relinqushed by the queue.
 static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_Closure _Nonnull pWorkerFunc)
 {
     // Acquire a new virtual processor if we haven't already filled up all
@@ -388,7 +367,16 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
     if (pQueue->availableConcurrency < pQueue->maxConcurrency
         && (pQueue->availableConcurrency == 0 || pQueue->items_queued_count > 4)) {
         VirtualProcessorAttributes attribs;
-        
+
+        Int conLaneIdx = -1;
+        for (Int i = 0; i < pQueue->maxConcurrency; i++) {
+            if (pQueue->concurrency_lanes[i].vp == NULL) {
+                conLaneIdx = i;
+                break;
+            }
+        }
+        assert(conLaneIdx != -1);
+
         VirtualProcessorAttributes_Init(&attribs);
         attribs.priority = pQueue->qos * DISPATCH_PRIORITY_COUNT + (pQueue->priority + DISPATCH_PRIORITY_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
         VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(
@@ -397,21 +385,30 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
                                                                             pWorkerFunc,
                                                                             (Byte*)pQueue,
                                                                             false);
-        
-        ConcurrencyLane* pConLane = NULL;
-        for (Int i = 0; i < pQueue->maxConcurrency; i++) {
-            if (pQueue->concurrency_lanes[i].vp == NULL) {
-                pConLane = &pQueue->concurrency_lanes[i];
-                break;
-            }
-        }
-        assert(pConLane != NULL);
-        
-        pConLane->vp = pVP;
+        assert(pVP != NULL);
+
+        VirtualProcessor_SetDispatchQueue(pVP, pQueue, conLaneIdx);
+        pQueue->concurrency_lanes[conLaneIdx].vp = pVP;
         pQueue->availableConcurrency++;
 
         VirtualProcessor_Resume(pVP, false);
     }
+}
+
+// Relinquishes the given virtual processor. The associated concurrency lane is
+// freed up and the virtual processor is returned to the virtual processor pool
+// after it has been detached from the dispatch queue. This method should only
+// be called right before returning from the Dispatch_Run() method which is the
+// method that runs on the virtual processor to execute work items.
+static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor* _Nonnull pVP)
+{
+    Int conLaneIdx = pVP->dispatchQueueConcurrenyLaneIndex;
+
+    assert(conLaneIdx >= 0 && conLaneIdx < pQueue->maxConcurrency);
+
+    VirtualProcessor_SetDispatchQueue(pVP, NULL, -1);
+    pQueue->concurrency_lanes[conLaneIdx].vp = NULL;
+    pQueue->availableConcurrency--;
 }
 
 // Creates a work item for the given closure and closure context. Tries to reuse
@@ -670,6 +667,16 @@ void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInte
     DispatchQueue_DispatchTimer_Locked(pQueue, pTimer);
 }
 
+// Returns the dispatch queue that is associated with the virtual processor that
+// is running the calling code. This will always return a dispatch queue for
+// callers that are running in a dispatch queue context. It returns NULL though
+// for callers that are running on a virtual processor that was directly acquired
+// from the virtual processor pool.
+DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
+{
+    return (DispatchQueueRef) VirtualProcessor_GetCurrent()->dispatchQueue;
+}
+
 
 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
@@ -732,7 +739,6 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // Exit this VP if we've waited for work for some time but haven't received
         // any new work
         if (SList_IsEmpty(&pQueue->timer_queue) && SList_IsEmpty(&pQueue->item_queue)) {
-            DispatchQueue_DestroyConcurrencyLane_Locked(pQueue, DispatchQueue_IndexOfConcurrencyLaneForVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent()));
             break;
         }
 
@@ -807,5 +813,6 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
     }
 
+    DispatchQueue_RelinquishVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent());
     Lock_Unlock(&pQueue->lock);
 }
