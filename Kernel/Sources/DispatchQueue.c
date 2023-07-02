@@ -724,41 +724,32 @@ DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
 
 
 
+static void DispatchQueue_RearmTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
+{
+    // Repeating timer: rearm it with the next fire date that's in
+    // the future (the next fire date we haven't already missed).
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+                
+    do  {
+        pTimer->deadline = TimeInterval_Add(pTimer->deadline, pTimer->interval);
+    } while (TimeInterval_Less(pTimer->deadline, curTime));
+    
+    DispatchQueue_AddTimer_Locked(pQueue, pTimer);
+}
+
 void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 {
-    WorkItemRef pItem = NULL;
-    TimerRef pTimerToRearm = NULL;
-
     // We hold the lock at all times except:
     // - while waiting for work
     // - while executing a work item
     Lock_Lock(&pQueue->lock);
 
     while (true) {
-        pItem = NULL;
+        WorkItemRef pItem = NULL;
         
-        // Rearm a repeating timer if we executed a repeating timer in the previous
-        // iteration and it's not been cancelled in the meantime and the queue isn't
-        // in shutdown mode.
-        if (pTimerToRearm && pQueue->state == kQueueState_Running) {
-            if (!pTimerToRearm->item.cancelled) {
-                // Repeating timer: rearm it with the next fire date that's in
-                // the future (the next fire date we haven't already missed).
-                const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-                
-                do  {
-                    pTimerToRearm->deadline = TimeInterval_Add(pTimerToRearm->deadline, pTimerToRearm->interval);
-                } while (TimeInterval_Less(pTimerToRearm->deadline, curTime));
-                DispatchQueue_AddTimer_Locked(pQueue, pTimerToRearm);
-            }
-
-            pTimerToRearm = NULL;
-        }
-
-
         // Wait for work items to arrive or for timers to fire
         while (true) {
-            if (pQueue->item_queue.first) {
+            if (pQueue->item_queue.first || pQueue->state >= kQueueState_ShuttingDown) {
                 break;
             }
             
@@ -771,14 +762,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
             } else {
                 deadline = TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(2));
             }
-            
-            if (pQueue->state >= kQueueState_ShuttingDown) {
-                break;
-            }
 
             // Wait for work. This drops the queue lock while we're waiting.
-            const Int err = ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline);
-            if (err == ETIMEOUT) {
+            if (ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline) == ETIMEOUT) {
                 break;
             }
         }
@@ -859,8 +845,8 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
                     if (pItem->is_owned_by_queue) {
                         DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
                     }
-                } else {
-                    pTimerToRearm = pTimer;
+                } else if (pQueue->state == kQueueState_Running) {
+                    DispatchQueue_RearmTimer_Locked(pQueue, pTimer);
                 }
                 break;
             }

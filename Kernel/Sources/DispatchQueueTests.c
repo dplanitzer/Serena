@@ -46,7 +46,7 @@ void DispatchQueue_RunTests(void)
 // MARK: DispatchAsync/DispatchAsyncAfter in **User Space**
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 extern void OnUserSpaceHelloWorld(Byte* _Nullable pContext);
 
 void DispatchQueue_RunTests(void)
@@ -194,7 +194,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 0
+#if 1
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pDriver = SystemGlobals_Get()->event_driver;
