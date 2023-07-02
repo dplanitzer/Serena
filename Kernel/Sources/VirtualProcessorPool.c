@@ -72,7 +72,7 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pool)
     }
 }
 
-VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, const VirtualProcessorAttributes* _Nonnull pAttribs, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isUser)
+VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, const VirtualProcessorAttributes* _Nonnull pAttribs, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     VirtualProcessor* pVP = NULL;
 
@@ -115,7 +115,7 @@ VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualP
     VirtualProcessor_SetPriority(pVP, pAttribs->priority);
     VirtualProcessor_SetMaxKernelStackSize(pVP, pAttribs->kernelStackSize);
     VirtualProcessor_SetMaxUserStackSize(pVP, pAttribs->userStackSize);
-    VirtualProcessor_SetClosure(pVP, pClosure, pContext, isUser);
+    VirtualProcessor_SetClosure(pVP, pClosure, pContext);
 
     return pVP;
 

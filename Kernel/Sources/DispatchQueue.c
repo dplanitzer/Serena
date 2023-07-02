@@ -429,8 +429,7 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
                                                                             VirtualProcessorPool_GetShared(),
                                                                             &attribs,
                                                                             pWorkerFunc,
-                                                                            (Byte*)pQueue,
-                                                                            false);
+                                                                            (Byte*)pQueue);
         assert(pVP != NULL);
 
         VirtualProcessor_SetDispatchQueue(pVP, pQueue, conLaneIdx);

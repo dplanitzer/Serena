@@ -194,7 +194,7 @@ extern ErrorCode VirtualProcessor_SetMaxUserStackSize(VirtualProcessor*_Nonnull 
 
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
-extern void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isUser);
+extern void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext);
 
 // Reconfigures the execution flow in the given virtual processor such that the
 // closure 'pClousre' will be invoked like a subroutine call in user space. The

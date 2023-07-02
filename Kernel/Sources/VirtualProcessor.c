@@ -106,7 +106,7 @@ void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemD
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_HIGHEST);
     pVP->kernel_stack.base = pStackBase;
     pVP->kernel_stack.size = nStackSize;
-    VirtualProcessor_SetClosure(pVP, pClosure, pContext, false);
+    VirtualProcessor_SetClosure(pVP, pClosure, pContext);
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->state = kVirtualProcessorState_Ready;
     pVP->suspension_count = 0;
@@ -186,7 +186,7 @@ VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription*
     
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
     VirtualProcessor_SetMaxKernelStackSize(pVP, VP_DEFAULT_KERNEL_STACK_SIZE);
-    VirtualProcessor_SetClosure(pVP, (VirtualProcessor_Closure)IdleVirtualProcessor_Run, NULL, false);
+    VirtualProcessor_SetClosure(pVP, (VirtualProcessor_Closure)IdleVirtualProcessor_Run, NULL);
     
     return pVP;
     
@@ -209,9 +209,6 @@ void IdleVirtualProcessor_Run(Byte* _Nullable pContext)
 // MARK: -
 // MARK: VirtualProcessor
 ////////////////////////////////////////////////////////////////////////////////
-
-
-extern void VirtualProcessor_ReturnFromUserSpace(void);
 
 
 // Frees a virtual processor.
@@ -344,11 +341,10 @@ ErrorCode VirtualProcessor_SetMaxUserStackSize(VirtualProcessor*_Nonnull pVP, In
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
 //
-// \param pVP the boot virtual processor record
-// \param pClosure the closure that should be invoked by the virtual processor
+// \param pVP the virtual processor
+// \param pClosure the closure that should be invoked
 // \param pContext the context that should be passed to the closure
-// \param isUser true if the closure is a user space closure; false if a superuser space closure
-void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isUser)
+void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext)
 {
     Bytes_ClearRange((Byte*)&pVP->save_area, sizeof(CpuContext));
     
@@ -356,41 +352,18 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
     pVP->save_area.a[7] = (UInt32) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
     pVP->save_area.pc = (UInt32) pClosure;
 
-    if (isUser) {
-        assert(pVP->user_stack.base && pVP->user_stack.size > 0);
-    }
-    
-    
-    // Initialize the user stack if the VP got one
-    if (pVP->user_stack.size > 0) {
-        assert(pVP->user_stack.base != NULL);
-        assert(pVP->user_stack.size >= 16);
-        
-        // Initial user stack frame looks like this:
-        //
-        // SP + 4: pContext (optional)
-        // SP + 0: RTS address (VirtualProcessor_ReturnFromUserSpace() entry point)
-        Byte* sp = (Byte*) pVP->save_area.usp;
-        if (isUser) {
-            sp -= 4; *((Byte**)sp) = pContext;
-        }
-        sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcessor_ReturnFromUserSpace;
-        pVP->save_area.usp = (UInt32)sp;
-    }
 
-
+    // Note that we do not set up an initial stack frame on the user stack because
+    // user space calls have to be done via cpu_call_as_user() and this function
+    // takes care of setting up a frame on the user stack that will eventually
+    // lead the user space code back to kernel space.
+    
+     
     // Every VP has a kernel stack. Set it up
     assert(pVP->kernel_stack.base != NULL);
     assert(pVP->kernel_stack.size >= 16);
 
     // Initial kernel stack frame looks like this:
-    // 68000:
-    // SP + 10: pContext
-    // SP +  6: RTS address (VirtualProcesssor_Relinquish() entry point)
-    // SP +  2: PC
-    // SP +  0: SR
-    //
-    // 68010+:
     // SP + 12: pContext
     // SP +  8: RTS address (VirtualProcesssor_Relinquish() entry point)
     // SP +  6: Stack frame format for RTE (0 -> 8 byte frame size)
@@ -402,19 +375,11 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
     Byte* sp = (Byte*) pVP->save_area.a[7];
     sp -= 4; *((Byte**)sp) = pContext;
     sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_Relinquish;
-    if (SystemDescription_GetShared()->cpu_model >= CPU_MODEL_68010) {
-        // 68010+ require the format word on the stack. 0 is the 8 byte stack frame format
-        sp -= 2; *((UInt16*)sp) = 0;
-    }
+    sp -= 2; *((UInt16*)sp) = 0;    // RTE frame format
     sp -= 4; *((UInt32*)sp) = pVP->save_area.pc;
     sp -= 2; *((UInt16*)sp) = pVP->save_area.sr;
     pVP->save_area.a[7] = (UInt32)sp;
-    
-    
-    // Start in superuser mode if the closure is a superuser closure and user otherwise
-    if (!isUser) {
-        pVP->save_area.sr |= 0x2000;
-    }
+    pVP->save_area.sr |= 0x2000;
 }
 
 // Reconfigures the flow of execution in the given virtual processor such that the

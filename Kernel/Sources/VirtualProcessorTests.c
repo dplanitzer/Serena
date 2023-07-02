@@ -35,7 +35,7 @@ void VirtualProcessor_RunTests(void)
     
     VirtualProcessorAttributes_Init(&attribs);
     attribs.userStackSize = 0;
-    VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPool_GetShared(), &attribs, OnHelloWorld, NULL, false);
+    VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPool_GetShared(), &attribs, OnHelloWorld, NULL);
     VirtualProcessor_Resume(pVP, false);
 }
 #endif
@@ -61,62 +61,14 @@ void VirtualProcessor_RunTests(void)
     VirtualProcessorAttributes_Init(&attribs);
     attribs.userStackSize = 0;
     
-    VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(pPool, &attribs, OnHelloWorld, NULL, false);
+    VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(pPool, &attribs, OnHelloWorld, NULL);
     VirtualProcessor_Resume(pVP, false);
     
     VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
     print("\nreuse\n\n");
 
-    VirtualProcessor* pVP2 = VirtualProcessorPool_AcquireVirtualProcessor(pPool, &attribs, OnHelloWorld, NULL, false);
+    VirtualProcessor* pVP2 = VirtualProcessorPool_AcquireVirtualProcessor(pPool, &attribs, OnHelloWorld, NULL);
     VirtualProcessor_Resume(pVP2, false);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: User space call
-////////////////////////////////////////////////////////////////////////////////
-
-
-#if 0
-extern void OnUserSpaceCallTest(Byte* _Nullable pContext);
-
-void VirtualProcessor_RunTests(void)
-{
-    VirtualProcessorAttributes attribs;
-    
-    VirtualProcessorAttributes_Init(&attribs);
-    VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPool_GetShared(), &attribs, OnUserSpaceCallTest, NULL, true);
-    VirtualProcessor_Resume(pVP, false);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Async user space call
-////////////////////////////////////////////////////////////////////////////////
-
-
-#if 1
-extern void OnAsyncUserSpaceCallTest_RunningInKernelSpace(Byte* _Nullable pContext);
-extern void OnAsyncUserSpaceCallTest_RunningInUserSpace(Byte* _Nullable pContext);
-extern void OnInjectedHelloWorld(Byte* _Nullable pContext);
-
-
-void VirtualProcessor_RunTests(void)
-{
-    VirtualProcessorAttributes attribs;
-    
-    VirtualProcessorAttributes_Init(&attribs);
-    
-    VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPool_GetShared(), &attribs, OnAsyncUserSpaceCallTest_RunningInKernelSpace, NULL, true);
-    //VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPool_GetShared(), &attribs, OnAsyncUserSpaceCallTest_RunningInUserSpace, NULL, true);
-    VirtualProcessor_Resume(pVP, false);
-    
-    VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(100));
-    VirtualProcessor_ScheduleAsyncUserClosureInvocation(pVP, OnInjectedHelloWorld, (Byte*)0x1234, false);
 }
 #endif
 
