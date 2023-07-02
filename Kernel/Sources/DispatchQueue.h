@@ -35,7 +35,7 @@
 
 
 // Type of the function a dispatch queue invokes
-typedef void (* _Nonnull DispatchQueue_Closure)(Byte* _Nullable pContext);
+typedef void (* _Nonnull DispatchQueue_ClosureFunc)(Byte* _Nullable pContext);
 
 struct _WorkItem;
 typedef struct _WorkItem* WorkItemRef;
@@ -49,13 +49,41 @@ typedef struct _DispatchQueue* DispatchQueueRef;
 
 
 //
+// Closures
+//
+
+typedef struct _DispatchQueueClosure {
+    DispatchQueue_ClosureFunc _Nonnull  func;
+    Byte* _Nullable _Weak               context;
+    Bool                                isUser;
+    Int8                                reserved[3];
+} DispatchQueueClosure;
+
+static inline DispatchQueueClosure DispatchQueueClosure_Make(DispatchQueue_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
+    DispatchQueueClosure c;
+    c.func = pFunc;
+    c.context = pContext;
+    c.isUser = false;
+    return c;
+}
+
+static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(DispatchQueue_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
+    DispatchQueueClosure c;
+    c.func = pFunc;
+    c.context = pContext;
+    c.isUser = true;
+    return c;
+}
+
+
+//
 // Work Items
 //
 
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
-extern WorkItemRef _Nullable WorkItem_Create(DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern WorkItemRef _Nullable WorkItem_Create(DispatchQueueClosure closure);
 
 // Deallocates the given work item.
 extern void WorkItem_Destroy(WorkItemRef _Nullable pItem);
@@ -75,7 +103,7 @@ extern Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem);
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
-extern TimerRef _Nullable Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern TimerRef _Nullable Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure);
 
 extern void Timer_Destroy(TimerRef _Nullable pTimer);
 
@@ -148,7 +176,7 @@ extern void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue,
 
 // Synchronously executes the given closure. The closure is executed as soon as
 // possible and the caller remains blocked until the closure has finished execution.
-extern void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
 
 
 // Asynchronously executes the given work item. The work item is executed as
@@ -157,11 +185,11 @@ extern void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
-extern void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
-extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueue_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
 
 
 // Asynchronously executes the given timer when it comes due.

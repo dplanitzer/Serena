@@ -17,6 +17,8 @@
     xdef _cpu_guarded_read
     xdef _cpu_guarded_write
     xdef _cpu_sleep
+    xdef _cpu_call_as_user
+    xdef _cpu_return_from_call_as_user
     xdef _cpu_push_async_user_closure_invocation
     xdef _cpu_async_user_closure_trampoline
     xdef _fpu_get_model
@@ -343,6 +345,40 @@ _cpu_sleep:
     ;lpstop  #$2000
     stop    #$2000
     rts
+
+
+;-----------------------------------------------------------------------
+; void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext)
+; Invokes the given closure in user space.
+_cpu_call_as_user:
+    inline
+    cargs cau_closure_ptr.l, cau_context_ptr.l
+        move.l  cau_closure_ptr(sp), a0
+        move.l  cau_context_ptr(sp), a1
+        and.w   #$dfff, sr                      ; drop the superuser bit (bit 13)
+        ; we are now in user mode
+        move.l  a1, -(sp)
+        jsr     (a0)
+        addq.l  #4, sp
+        ; go back to superuser mode
+        trap    #1
+        ; NOT REACHED
+    einline
+
+
+;-----------------------------------------------------------------------
+; void cpu_return_from_call_as_user(void)
+; Invoked from trap#1 to switch us back into superuser mode and to return from
+; the cpu_call_as_user() call.
+_cpu_return_from_call_as_user:
+    inline
+        ; dismiss the (8 byte, format 0) exception stack frame
+        addq.l  #8, sp
+        ; return with a rts. The sp register now points to the return address
+        ; from which _cpu_call_as_user was called
+        rts
+    einline
+
 
 
 ;-----------------------------------------------------------------------

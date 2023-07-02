@@ -133,7 +133,7 @@ EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
     pDriver->dispatchQueue = DispatchQueue_Create(1, DISPATCH_QOS_REALTIME, DISPATCH_PRIORITY_NORMAL);
     FailNULL(pDriver->dispatchQueue);
 
-    pDriver->timer = Timer_Create(TimeInterval_MakeMilliseconds(0), TimeInterval_MakeMilliseconds(16), (DispatchQueue_Closure)EventDriver_GatherLowLevelEvents, (Byte*)pDriver);
+    pDriver->timer = Timer_Create(TimeInterval_MakeMilliseconds(0), TimeInterval_MakeMilliseconds(16), DispatchQueueClosure_Make((DispatchQueue_ClosureFunc)EventDriver_GatherLowLevelEvents, (Byte*)pDriver));
     FailNULL(pDriver->timer);
 
     FailFalse((RingBuffer_Init(&pDriver->event_queue, EVENT_QUEUE_MAX_EVENTS * sizeof(HIDEvent))));
@@ -212,7 +212,7 @@ void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
         // that we'll only start freeing resources after the last timer invocation
         // has completed.
         if (pDriver->isReady) {
-            DispatchQueue_DispatchSync(pDriver->dispatchQueue, (DispatchQueue_Closure)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver);
+            DispatchQueue_DispatchSync(pDriver->dispatchQueue, DispatchQueueClosure_Make((DispatchQueue_ClosureFunc)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver));
         } else {
             EventDriver_FreeResourcesOnDispatchQueue(pDriver);
         }

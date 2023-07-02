@@ -49,6 +49,7 @@ extern Bool cpu_is32bit(void);
 extern Int cpu_guarded_read(Byte* _Nonnull src, Byte* _Nonnull buffer, Int buffer_size);
 extern Int cpu_guarded_write(Byte* _Nonnull dst, const Byte* _Nonnull buffer, Int buffer_size);
 extern void cpu_sleep(void);
+extern void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext);
 
 #define CPU_AUCI_SAVE_FP_STATE  0x01
 extern void cpu_push_async_user_closure_invocation(UInt options, UInt32* _Nonnull usp, UInt32 pReturnAddress, Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext);

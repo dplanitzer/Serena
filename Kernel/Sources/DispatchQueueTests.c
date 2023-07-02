@@ -30,13 +30,30 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)(val + 1));
-    //DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), OnPrintClosure, (Byte*)(val + 1));
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    //DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
 }
 
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), OnPrintClosure, (Byte*)0);
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)0));
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: DispatchAsync/DispatchAsyncAfter in **User Space**
+////////////////////////////////////////////////////////////////////////////////
+
+#if 1
+extern void OnUserSpaceCallTest(Byte* _Nullable pContext);
+extern void OnInjectedHelloWorld(Byte* _Nullable pContext);
+
+void DispatchQueue_RunTests(void)
+{
+//    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_MakeUser(OnInjectedHelloWorld, (Byte*)0));
+    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser(OnInjectedHelloWorld, (Byte*)0)));
 }
 #endif
 
@@ -61,7 +78,7 @@ void DispatchQueue_RunTests(void)
     Int i = 0;
 
     while (true) {
-        DispatchQueue_DispatchSync(pQueue, OnPrintClosure, (Byte*) i);
+        DispatchQueue_DispatchSync(pQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*) i));
         print("--------\n");
         i++;
     }
@@ -99,7 +116,7 @@ void DispatchQueue_RunTests(void)
 {
     struct State* pState = (struct State*)kalloc(sizeof(struct State), 0);
     
-    pState->timer = Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), (VirtualProcessor_Closure)OnPrintClosure, (Byte*)pState);
+    pState->timer = Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState));
     pState->value = 0;
 
     print("Repeating timer\n");
@@ -178,7 +195,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pDriver = SystemGlobals_Get()->event_driver;
@@ -228,7 +245,7 @@ static void OnMainClosure(Byte* _Nonnull pValue)
 
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), (VirtualProcessor_Closure)OnMainClosure, NULL);
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnMainClosure, NULL));
 }
 #endif
 
@@ -280,8 +297,8 @@ void DispatchQueue_RunTests(void)
 //    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), (VirtualProcessor_Closure)OnReadFromPipe, pipe);
 //    DispatchQueue_DispatchAsync(DispatchQueue_GetUtility(), (VirtualProcessor_Closure)OnWriteToPipe, pipe);
     
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), (DispatchQueue_Closure)OnWriteToPipe, (Byte*)pipe);
-    DispatchQueue_DispatchAsync(DispatchQueue_GetUtility(), (DispatchQueue_Closure)OnReadFromPipe, (Byte*)pipe);
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnWriteToPipe, (Byte*)pipe));
+    DispatchQueue_DispatchAsync(DispatchQueue_GetUtility(), DispatchQueueClosure_Make(OnReadFromPipe, (Byte*)pipe));
 
 }
 #endif

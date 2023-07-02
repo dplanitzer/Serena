@@ -23,6 +23,7 @@
     xref _SystemCallHandler
     xref _InterruptController_OnInterrupt
     xref _copper_run
+    xref _cpu_return_from_call_as_user
     xref _cpu_get_model
     xref _fpu_get_model
 
@@ -32,60 +33,60 @@
 
 ; ROM vector table for 68000 CPUs
 cpu_vector_table:
-    dc.l RESET_STACK_BASE           ; 0,  Reset SSP
-    dc.l _Reset                     ; 1,  Reset PC
-    dc.l BusErrorHandler            ; 2,  Bus error
-    dc.l AddressErrorHandler        ; 3,  Address error
-    dc.l IllegalInstructionHandler  ; 4,  Illegal Instruction
-    dc.l IntDivByZeroHandler        ; 5,  Divide by 0
-    dc.l ChkHandler                 ; 6,  CHK Instruction
-    dc.l TrapvHandler               ; 7,  TRAPV Instruction
-    dc.l PrivilegeHandler           ; 8,  Privilege Violation
-    dc.l TraceHandler               ; 9,  Trace
-    dc.l Line1010Handler            ; 10, Line 1010 Emu
-    dc.l Line1111Handler            ; 11, Line 1111 Emu
-    dc.l IgnoreTrap                 ; 12, Reserved
-    dc.l CoProcViolationHandler     ; 13, Coprocessor Protocol Violation
-    dc.l FormatErrorHandler         ; 14, Format Error
-    dc.l IgnoreTrap                 ; 15, Uninit. Int. Vector.
-    dcb.l 8, IgnoreTrap             ; 16, Reserved (8)
-    dc.l IRQHandler_Spurious        ; 24, Spurious Interrupt
-    dc.l IRQHandler_L1              ; 25, Level 1 (Soft-IRQ, Disk, Serial port)
-    dc.l IRQHandler_L2              ; 26, Level 2 (External INT2, CIAA)
-    dc.l IRQHandler_L3              ; 27, Level 3 (Blitter, VBL, Copper)
-    dc.l IRQHandler_L4              ; 28, Level 4 (Audio)
-    dc.l IRQHandler_L5              ; 29, Level 5 (Disk, Serial port)
-    dc.l IRQHandler_L6              ; 30, Level 6 (External INT6, CIAB)
-    dc.l IgnoreTrap                 ; 31, Level 7 (NMI - Unused)
-    dc.l _SystemCallHandler         ; 32, Trap 0 System Call
-    dc.l IgnoreTrap                 ; 33, Trap 1 (Unused)
-    dc.l IgnoreTrap                 ; 34, Trap 2 (Unused)
-    dc.l IgnoreTrap                 ; 35, Trap 3 (Unused)
-    dc.l IgnoreTrap                 ; 36, Trap 4 (Unused)
-    dc.l IgnoreTrap                 ; 37, Trap 5 (Unused)
-    dc.l IgnoreTrap                 ; 38, Trap 6 (Unused)
-    dc.l IgnoreTrap                 ; 39, Trap 7 (Unused)
-    dc.l IgnoreTrap                 ; 40, Trap 8 (Unused)
-    dc.l IgnoreTrap                 ; 41, Trap 9 (Unused)
-    dc.l IgnoreTrap                 ; 42, Trap 10 (Unused)
-    dc.l IgnoreTrap                 ; 43, Trap 11 (Unused)
-    dc.l IgnoreTrap                 ; 44, Trap 12 (Unused)
-    dc.l IgnoreTrap                 ; 45, Trap 13 (Unused)
-    dc.l IgnoreTrap                 ; 46, Trap 14 (Unused)
-    dc.l IgnoreTrap                 ; 47, Trap 15 (Unused)
-    dc.l IgnoreTrap                 ; 48, FP Branch or Set on Unordered Condition
-    dc.l IgnoreTrap                 ; 49, FP Inexact Result
-    dc.l IgnoreTrap                 ; 50, FP Divide by Zero
-    dc.l IgnoreTrap                 ; 51, FP Underflow
-    dc.l IgnoreTrap                 ; 52, FP Operand Error
-    dc.l IgnoreTrap                 ; 53, FP Overflow
-    dc.l IgnoreTrap                 ; 54, FP Signaling NAN
-    dc.l FpUnimpDataTypeHandler     ; 55, FP Unimplemented Data Type (Defined for MC68040)
-    dc.l MMUConfigErrorHandler      ; 56, MMU Configuration Error
-    dc.l MMUIllegalOpErrorHandler   ; 57, MMU Illegal Operation Error
-    dc.l MMUAccessLevelErrorHandler ; 58, MMU Access Level Violation Error
-    dcb.l 6, IgnoreTrap             ; 59, Reserved
-    dcb.l 192, IgnoreTrap           ; 64, User Defined Vector (192)
+    dc.l RESET_STACK_BASE               ; 0,  Reset SSP
+    dc.l _Reset                         ; 1,  Reset PC
+    dc.l BusErrorHandler                ; 2,  Bus error
+    dc.l AddressErrorHandler            ; 3,  Address error
+    dc.l IllegalInstructionHandler      ; 4,  Illegal Instruction
+    dc.l IntDivByZeroHandler            ; 5,  Divide by 0
+    dc.l ChkHandler                     ; 6,  CHK Instruction
+    dc.l TrapvHandler                   ; 7,  TRAPV Instruction
+    dc.l PrivilegeHandler               ; 8,  Privilege Violation
+    dc.l TraceHandler                   ; 9,  Trace
+    dc.l Line1010Handler                ; 10, Line 1010 Emu
+    dc.l Line1111Handler                ; 11, Line 1111 Emu
+    dc.l IgnoreTrap                     ; 12, Reserved
+    dc.l CoProcViolationHandler         ; 13, Coprocessor Protocol Violation
+    dc.l FormatErrorHandler             ; 14, Format Error
+    dc.l IgnoreTrap                     ; 15, Uninit. Int. Vector.
+    dcb.l 8, IgnoreTrap                 ; 16, Reserved (8)
+    dc.l IRQHandler_Spurious            ; 24, Spurious Interrupt
+    dc.l IRQHandler_L1                  ; 25, Level 1 (Soft-IRQ, Disk, Serial port)
+    dc.l IRQHandler_L2                  ; 26, Level 2 (External INT2, CIAA)
+    dc.l IRQHandler_L3                  ; 27, Level 3 (Blitter, VBL, Copper)
+    dc.l IRQHandler_L4                  ; 28, Level 4 (Audio)
+    dc.l IRQHandler_L5                  ; 29, Level 5 (Disk, Serial port)
+    dc.l IRQHandler_L6                  ; 30, Level 6 (External INT6, CIAB)
+    dc.l IgnoreTrap                     ; 31, Level 7 (NMI - Unused)
+    dc.l _SystemCallHandler             ; 32, Trap 0 System Call
+    dc.l _cpu_return_from_call_as_user  ; 33, Trap 1 _cpu_return_from_call_as_user
+    dc.l IgnoreTrap                     ; 34, Trap 2 (Unused)
+    dc.l IgnoreTrap                     ; 35, Trap 3 (Unused)
+    dc.l IgnoreTrap                     ; 36, Trap 4 (Unused)
+    dc.l IgnoreTrap                     ; 37, Trap 5 (Unused)
+    dc.l IgnoreTrap                     ; 38, Trap 6 (Unused)
+    dc.l IgnoreTrap                     ; 39, Trap 7 (Unused)
+    dc.l IgnoreTrap                     ; 40, Trap 8 (Unused)
+    dc.l IgnoreTrap                     ; 41, Trap 9 (Unused)
+    dc.l IgnoreTrap                     ; 42, Trap 10 (Unused)
+    dc.l IgnoreTrap                     ; 43, Trap 11 (Unused)
+    dc.l IgnoreTrap                     ; 44, Trap 12 (Unused)
+    dc.l IgnoreTrap                     ; 45, Trap 13 (Unused)
+    dc.l IgnoreTrap                     ; 46, Trap 14 (Unused)
+    dc.l IgnoreTrap                     ; 47, Trap 15 (Unused)
+    dc.l IgnoreTrap                     ; 48, FP Branch or Set on Unordered Condition
+    dc.l IgnoreTrap                     ; 49, FP Inexact Result
+    dc.l IgnoreTrap                     ; 50, FP Divide by Zero
+    dc.l IgnoreTrap                     ; 51, FP Underflow
+    dc.l IgnoreTrap                     ; 52, FP Operand Error
+    dc.l IgnoreTrap                     ; 53, FP Overflow
+    dc.l IgnoreTrap                     ; 54, FP Signaling NAN
+    dc.l FpUnimpDataTypeHandler         ; 55, FP Unimplemented Data Type (Defined for MC68040)
+    dc.l MMUConfigErrorHandler          ; 56, MMU Configuration Error
+    dc.l MMUIllegalOpErrorHandler       ; 57, MMU Illegal Operation Error
+    dc.l MMUAccessLevelErrorHandler     ; 58, MMU Access Level Violation Error
+    dcb.l 6, IgnoreTrap                 ; 59, Reserved
+    dcb.l 192, IgnoreTrap               ; 64, User Defined Vector (192)
 
 
 ;-------------------------------------------------------------------------------

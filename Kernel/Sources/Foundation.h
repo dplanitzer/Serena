@@ -169,14 +169,14 @@ typedef unsigned char *va_list;
 #define va_copy(new,old) ((new)=(old))
 
 
-// Macros to detect errors and to jump to teh 'failed:' label if an error is detected.
+// Macros to detect errors and to jump to the 'failed:' label if an error is detected.
 #define FailErr(x)      if ((x) != EOK) goto failed
 #define FailFalse(p)    if (!(p)) goto failed
 #define FailNULL(p)     if ((p) == NULL) goto failed
 #define FailZero(p)     if ((p) == 0) goto failed
 
 
-// The error codes
+// Error code definitions
 typedef Int ErrorCode;
 #define EOK         0
 #define ENOMEM      1
