@@ -326,6 +326,10 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
 void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush)
 {
     if (pQueue) {
+        CompletionSignaler* pCompSignaler;
+        WorkItemRef pItem;
+        TimerRef pTimer;
+
         // Request queue shutdown. This will stop all dispatch calls from
         // accepting new work items and repeatable timers from rescheduling. This
         // will also cause the VPs to drain the existing work item queue and to
@@ -335,7 +339,6 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
 
         if (flush) {
             // Free the still pending work items now
-            WorkItemRef pItem;
             while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
                 WorkItem_Destroy(pItem);
             }
@@ -347,9 +350,8 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         // queue is dying now and (b) because of that code that shuts down a
         // queue can not assume that a scheduled timer may get one last chance
         // to run.
-        TimerRef pTimer0;
-        while ((pTimer0 = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
-            Timer_Destroy(pTimer0);
+        while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
+            Timer_Destroy(pTimer);
         }
 
 
@@ -369,22 +371,19 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
 
         // No more VPs are attached to this queue. We can now go ahead and free
         // all resources.
-        SList_Deinit(&pQueue->item_queue);       // guaranteed to be empty at this point
-        SList_Deinit(&pQueue->timer_queue);      // guaranteed to be empty at this point
+        SList_Deinit(&pQueue->item_queue);      // guaranteed to be empty at this point
+        SList_Deinit(&pQueue->timer_queue);     // guaranteed to be empty at this point
 
-        WorkItemRef pItem;
         while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_cache_queue)) != NULL) {
             WorkItem_Destroy(pItem);
         }
         SList_Deinit(&pQueue->item_cache_queue);
         
-        TimerRef pTimer;
         while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_cache_queue)) != NULL) {
             Timer_Destroy(pTimer);
         }
         SList_Deinit(&pQueue->timer_cache_queue);
 
-        CompletionSignaler* pCompSignaler;
         while((pCompSignaler = (CompletionSignaler*) SList_RemoveFirst(&pQueue->completion_signaler_cache_queue)) != NULL) {
             CompletionSignaler_Destroy(pCompSignaler);
         }
@@ -746,13 +745,35 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
     while (true) {
         WorkItemRef pItem = NULL;
+        Bool mayRelinquish = false;
         
         // Wait for work items to arrive or for timers to fire
         while (true) {
-            if (pQueue->item_queue.first || pQueue->state >= kQueueState_ShuttingDown) {
+            // Grab the first timer that's due. We give preference to timers because
+            // they are tied to a specific deadline time while immediate work items
+            // do not guarantee that they will execute at a specific time. So it's
+            // acceptable to push them back on the timeline.
+            Timer* pFirstTimer = (Timer*)pQueue->timer_queue.first;
+            if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->deadline, MonotonicClock_GetCurrentTime())) {
+                pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->timer_queue);
+            }
+
+
+            // Grab the first work item if no timer is due
+            if (pItem == NULL) {
+                pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue);
+                pQueue->items_queued_count--;
+            }
+
+
+
+            // We're done with this loop if we got an item to execute or we got
+            // no item and we're supposed to shut down
+            if (pItem != NULL || (pItem == NULL && (mayRelinquish || pQueue->state >= kQueueState_ShuttingDown))) {
                 break;
             }
             
+
             // Compute a deadline for the wait. We do not wait if the deadline
             // is equal to the current time or it's in the past
             TimeInterval deadline;
@@ -763,41 +784,21 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
                 deadline = TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(2));
             }
 
-            // Wait for work. This drops the queue lock while we're waiting.
-            if (ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline) == ETIMEOUT) {
-                break;
+
+            // Wait for work. This drops the queue lock while we're waiting. This
+            // call may return with a ETIMEOUT error. This is fine. Either some
+            // new work has arrived in the meantime or if not then we'll relinquish
+            // the VP since it hasn't done anything for a long enough time.
+            const Int err = ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline);
+            if (err == ETIMEOUT) {
+                mayRelinquish = true;
             }
         }
-        
-        
-        // Relinquish this VP if the queue shuts down and there are no more work
-        // items left (timers are already gone at this point)
-        if (pQueue->state >= kQueueState_ShuttingDown && SList_IsEmpty(&pQueue->item_queue)) {
-            break;
-        }
-
-
-        // Relinquish this VP if we've waited for work for some time but haven't
-        // received any new work
-        if (SList_IsEmpty(&pQueue->timer_queue) && SList_IsEmpty(&pQueue->item_queue)) {
-            break;
-        }
 
         
-        // Grab the first timer that's due. We give preference to timers because
-        // they are tied to a specific deadline time while immediate work items
-        // do not guarantee that they will execute at a specific time. So it's
-        // acceptable to push them back on the timeline.
-        Timer* pFirstTimer = (Timer*)pQueue->timer_queue.first;
-        if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->deadline, MonotonicClock_GetCurrentTime())) {
-            pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->timer_queue);
-        }
-
-        
-        // Grab the first work item if no timer is due
+        // Relinquish this VP if we did not get an item to execute
         if (pItem == NULL) {
-            pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue);
-            pQueue->items_queued_count--;
+            break;
         }
 
 
