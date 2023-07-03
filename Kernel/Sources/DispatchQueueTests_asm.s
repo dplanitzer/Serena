@@ -37,5 +37,5 @@ _OnUserSpaceHelloWorld:
     rts
 
 .msg:
-    dc.b    "Hello World from injected user space!", 10, 0
+    dc.b    "Hello World from user space!", 10, 0
     align   2

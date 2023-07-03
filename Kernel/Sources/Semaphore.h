@@ -14,39 +14,7 @@
 #include "MonotonicClock.h"
 
 
-// A binary semaphore
-typedef struct _BinarySemaphore {
-    volatile UInt   value;
-    List            wait_queue;
-} BinarySemaphore;
-
-
-// Initializes a new binary semaphore. If 'isAvailable' is true then the semaphore
-// starts out in released state.
-extern void BinarySemaphore_Init(BinarySemaphore* _Nonnull pSema, Bool isAvailable);
-
-// Deinitializes a binary semaphore.
-extern void BinarySemaphore_Deinit(BinarySemaphore* _Nonnull pSema);
-
-// Allocates a new binary semaphore.
-extern BinarySemaphore* _Nullable BinarySemaphore_Create(Bool isAvailable);
-
-// Deallocates a binary semaphore.
-extern void BinarySemaphore_Destroy(BinarySemaphore* _Nullable pSema);
-
-// Acquires the binary semaphore. Blocks the caller until the semaphore becomes available.
-extern ErrorCode BinarySemaphore_Acquire(BinarySemaphore* _Nonnull pSema, TimeInterval deadline);
-
-// Try to acquire the semaphore. Returns true on success and false otherwise. Never blocks.
-extern Bool BinarySemaphore_TryAcquire(BinarySemaphore* _Nonnull sema);
-
-// Releases the semaphore.
-extern void BinarySemaphore_Release(BinarySemaphore* _Nonnull pSema);
-
-
-
-
-// A counting semaphore
+// A (counting) semaphore
 typedef struct _Semaphore {
     volatile Int    value;
     List            wait_queue;

@@ -353,7 +353,7 @@ static void Display_SetLightPenEnabled(Display* _Nonnull pDisplay, Bool enabled)
 typedef struct _GraphicsDriver {
     Display* _Nonnull       display;
     InterruptHandlerID      vb_irq_handler;
-    BinarySemaphore         vblank_sema;
+    Semaphore               vblank_sema;
     UInt16* _Nonnull        sprite_null;
     UInt16* _Nonnull        sprite_mouse;
     Int16                   mouse_cursor_width;
@@ -409,11 +409,11 @@ GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Non
     pDriver->sprite_mouse[1] = (pConfig->diw_start_v + pDriver->mouse_cursor_height) << 8;
     
     // Initialize vblank tools
-    BinarySemaphore_Init(&pDriver->vblank_sema, true);
-    pDriver->vb_irq_handler = InterruptController_AddBinarySemaphoreInterruptHandler(InterruptController_GetShared(),
-                                                                                     INTERRUPT_ID_VERTICAL_BLANK,
-                                                                                     INTERRUPT_HANDLER_PRIORITY_HIGHEST,
-                                                                                     &pDriver->vblank_sema);
+    Semaphore_Init(&pDriver->vblank_sema, 0);
+    pDriver->vb_irq_handler = InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
+                                                                                INTERRUPT_ID_VERTICAL_BLANK,
+                                                                                INTERRUPT_HANDLER_PRIORITY_HIGHEST,
+                                                                                &pDriver->vblank_sema);
     FailZero(pDriver->vb_irq_handler);
 
     
@@ -451,7 +451,7 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq_handler);
         pDriver->vb_irq_handler = 0;
         
-        BinarySemaphore_Deinit(&pDriver->vblank_sema);
+        Semaphore_Deinit(&pDriver->vblank_sema);
         
         Display_Destroy(pDriver->display);
         pDriver->display = NULL;
@@ -489,10 +489,10 @@ static void GraphicsDriver_WaitForVerticalBlank(GraphicsDriverRef _Nonnull pDriv
 {
     // First purge the vblank sema to ensure that we don't accidentaly pick up some
     // vblank that has happened before this function has been called.
-    BinarySemaphore_TryAcquire(&pDriver->vblank_sema);
+    Semaphore_TryAcquire(&pDriver->vblank_sema);
     
     // Now wait for the next vblank.
-    BinarySemaphore_Acquire(&pDriver->vblank_sema, kTimeInterval_Infinity);
+    Semaphore_Acquire(&pDriver->vblank_sema, kTimeInterval_Infinity);
 }
 
 // Changes the video configuration. The driver allocates an appropriate framebuffer

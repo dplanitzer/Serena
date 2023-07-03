@@ -45,10 +45,6 @@ extern void InterruptController_Init(InterruptControllerRef _Nonnull pController
 // NOTE: The closure is invoked in the interrupt context.
 extern InterruptHandlerID InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext);
 
-// Registers a binary semaphore which will receive a release call for every
-// occurence of an interrupt with ID 'interruptId'.
-extern InterruptHandlerID InterruptController_AddBinarySemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, BinarySemaphore* _Nonnull pSemaphore);
-
 // Registers a counting semaphore which will receive a release call for every
 // occurence of an interrupt with ID 'interruptId'.
 extern InterruptHandlerID InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore);

@@ -14,7 +14,8 @@
 
 
 typedef struct _Lock {
-    BinarySemaphore sema;
+    volatile UInt   value;
+    List            wait_queue;
     Int             owner_vpid;     // ID of the VP that is currently holding the lock
 } Lock;
 

@@ -64,7 +64,7 @@ static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
         pDma->irqHandler = 0;
         
         Semaphore_Deinit(&pDma->inuse);
-        BinarySemaphore_Deinit(&pDma->done);
+        Semaphore_Deinit(&pDma->done);
         
         kfree((Byte*)pDma);
     }
@@ -77,12 +77,12 @@ FloppyDMA* _Nullable FloppyDMA_Create(void)
     FailNULL(pDma);
 
     Semaphore_Init(&pDma->inuse, 1);
-    BinarySemaphore_Init(&pDma->done, true);
+    Semaphore_Init(&pDma->done, 0);
         
-    pDma->irqHandler = InterruptController_AddBinarySemaphoreInterruptHandler(InterruptController_GetShared(),
-                                                                                INTERRUPT_ID_DISK_BLOCK,
-                                                                                INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                                                &pDma->done);
+    pDma->irqHandler = InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
+                                                                            INTERRUPT_ID_DISK_BLOCK,
+                                                                            INTERRUPT_HANDLER_PRIORITY_NORMAL,
+                                                                            &pDma->done);
     FailZero(pDma->irqHandler);
     InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDma->irqHandler, true);
     return pDma;
@@ -102,7 +102,7 @@ static ErrorCode FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnu
     Semaphore_Acquire(&pDma->inuse, kTimeInterval_Infinity);
     
     fdc_io_begin(pFdc, pData, nwords, 0);
-    err = BinarySemaphore_Acquire(&pDma->done, TimeInterval_MakeSeconds(10));
+    err = Semaphore_Acquire(&pDma->done, TimeInterval_MakeSeconds(10));
     if (err == EOK) {
         const UInt status = fdc_get_io_status(pFdc);
         

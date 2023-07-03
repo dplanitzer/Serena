@@ -45,7 +45,7 @@ typedef UInt8   FdcControlByte;       // shadow copy of the CIABRPB register
 // which is shared by all drives.
 typedef struct _FloppyDMA {
     Semaphore           inuse;  // Semaphore indicating whether the DMA is in use
-    BinarySemaphore     done;   // Semaphore indicating whether the DMA is done
+    Semaphore           done;   // Semaphore indicating whether the DMA is done
     InterruptHandlerID  irqHandler;
 } FloppyDMA;
 

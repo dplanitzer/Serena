@@ -51,7 +51,7 @@ extern void OnUserSpaceHelloWorld(Byte* _Nullable pContext);
 
 void DispatchQueue_RunTests(void)
 {
-//    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_MakeUser(OnInjectedHelloWorld, (Byte*)0));
+//    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_MakeUser(OnUserSpaceHelloWorld, (Byte*)0));
     DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser(OnUserSpaceHelloWorld, (Byte*)0)));
 }
 #endif

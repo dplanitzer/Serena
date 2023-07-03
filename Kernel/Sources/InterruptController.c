@@ -12,8 +12,7 @@
 
 
 #define INTERRUPT_HANDLER_TYPE_DIRECT               0
-#define INTERRUPT_HANDLER_TYPE_BINARY_SEMAPHORE     1
-#define INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE   2
+#define INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE   1
 
 #define INTERRUPT_HANDLER_FLAG_ENABLED  0x01
 
@@ -28,9 +27,6 @@ typedef struct _InterruptHandler {
             InterruptHandler_Closure _Nonnull   closure;
             Byte* _Nullable                     context;
         }   direct;
-        struct {
-            BinarySemaphore* _Nonnull semaphore;
-        }   binsema;
         struct {
             Semaphore* _Nonnull semaphore;
         }   sema;
@@ -157,24 +153,6 @@ InterruptHandlerID InterruptController_AddDirectInterruptHandler(InterruptContro
     handler.type = INTERRUPT_HANDLER_TYPE_DIRECT;
     handler.u.direct.closure = pClosure;
     handler.u.direct.context = pContext;
-    
-    return InterruptController_AddInterruptHandler(pController, interruptId, &handler);
-}
-
-// Registers a binary semaphore which will receive a release call for every
-// occurence of an interrupt with ID 'interruptId'.
-InterruptHandlerID InterruptController_AddBinarySemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, BinarySemaphore* _Nonnull pSemaphore)
-{
-    InterruptHandler handler;
-    
-    assert(pSemaphore != NULL);
-    
-    handler.identity = 0;
-    handler.priority = priority;
-    handler.flags = 0;
-    handler.reserved = 0;
-    handler.type = INTERRUPT_HANDLER_TYPE_BINARY_SEMAPHORE;
-    handler.u.binsema.semaphore = pSemaphore;
     
     return InterruptController_AddInterruptHandler(pController, interruptId, &handler);
 }
@@ -326,10 +304,6 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
                     print("    direct[%d, %d] = {0x%p, 0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].u.direct.closure, pHandlers[h].u.direct.context);
                     break;
 
-                case INTERRUPT_HANDLER_TYPE_BINARY_SEMAPHORE:
-                    print("    binsema[%d, %d] = {0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].u.binsema.semaphore);
-                    break;
-
                 case INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE:
                     print("    sema[%d, %d] = {0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].u.sema.semaphore);
                     break;
@@ -369,10 +343,6 @@ void InterruptController_OnInterrupt(InterruptHandlerArray* _Nonnull pArray)
             switch (pHandler->type) {
                 case INTERRUPT_HANDLER_TYPE_DIRECT:
                     pHandler->u.direct.closure(pHandler->u.direct.context);
-                    break;
-
-                case INTERRUPT_HANDLER_TYPE_BINARY_SEMAPHORE:
-                    BinarySemaphore_Release(pHandler->u.binsema.semaphore);
                     break;
 
                 case INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE:
