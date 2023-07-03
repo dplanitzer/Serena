@@ -64,7 +64,7 @@ _Lock_Lock:
 
 .la_acquired_lock:
     ; validate that the lock has no bogus owner. Eg memory corruption could have
-    ; caused the owner and other field to get populated with random bytes 
+    ; caused the owner and other fields to get populated with random bytes 
     tst.l   lock_owner_vpid(a0)
     beq.s   .la_done
     move.l  a0, -(sp)

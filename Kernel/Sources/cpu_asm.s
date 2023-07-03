@@ -349,17 +349,42 @@ _cpu_sleep:
 
 ;-----------------------------------------------------------------------
 ; void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext)
-; Invokes the given closure in user space.
+; Invokes the given closure in user space. Preserves the kernel integer register
+; state. Note however that this function does not preserve the floating point 
+; register state.
 _cpu_call_as_user:
     inline
     cargs cau_closure_ptr.l, cau_context_ptr.l
         move.l  cau_closure_ptr(sp), a0
         move.l  cau_context_ptr(sp), a1
-        and.w   #$dfff, sr                      ; drop the superuser bit (bit 13)
+        movem.l d2 - d7 / a2 - a6, -(sp)
+
+        ; zero out all integer registers to ensure that we do not leak kernel
+        ; state into user space. We do not need to zero a0 and a1 because they
+        ; hold the closure and context pointers which the userspace knows about
+        ; anyway.
+        moveq.l #0, d0
+        moveq.l #0, d1
+        moveq.l #0, d2
+        moveq.l #0, d3
+        moveq.l #0, d4
+        moveq.l #0, d5
+        moveq.l #0, d6
+        moveq.l #0, d7
+        move.l  d0, a2
+        move.l  d0, a3
+        move.l  d0, a4
+        move.l  d0, a5
+        move.l  d0, a6
+
+        ; switch to user mode by dropping bit #13 in the SR register
+        and.w   #$dfff, sr
+        
         ; we are now in user mode
         move.l  a1, -(sp)
         jsr     (a0)
         addq.l  #4, sp
+
         ; go back to superuser mode
         trap    #1
         ; NOT REACHED
@@ -374,6 +399,9 @@ _cpu_return_from_call_as_user:
     inline
         ; dismiss the (8 byte, format 0) exception stack frame
         addq.l  #8, sp
+        ; restore the saved registers
+        movem.l (sp)+, d2 - d7 / a2 - a6
+
         ; return with a rts. The sp register now points to the return address
         ; from which _cpu_call_as_user was called
         rts
