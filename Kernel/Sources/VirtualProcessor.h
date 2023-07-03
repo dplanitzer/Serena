@@ -143,7 +143,13 @@ typedef struct _VirtualProcessor {
 
 
 extern VirtualProcessor* _Nonnull SchedulerVirtualProcessor_GetShared(void);
+
+// Returns a reference to the currently running virtual processor. This is the
+// virtual processor that is executing the caller.
 extern VirtualProcessor* _Nonnull VirtualProcessor_GetCurrent(void);
+
+// Returns the VPID of the currently running virtual processor.
+extern Int VirtualProcessor_GetCurrentVpid(void);
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed

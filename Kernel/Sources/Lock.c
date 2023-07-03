@@ -12,10 +12,6 @@
 #include "VirtualProcessorScheduler.h"
 
 
-extern void _Lock_Lock(Lock* _Nonnull pLock);
-extern void _Lock_Unlock(Lock* _Nonnull pLock);
-
-
 // Initializes a new lock.
 void Lock_Init(Lock*_Nonnull pLock)
 {
@@ -53,28 +49,12 @@ void Lock_Destroy(Lock* _Nullable pLock)
     }
 }
 
-// Blocks the caller until the lock can be taken successfully.
-void Lock_Lock(Lock* _Nonnull pLock)
+// Invoked when the Lock_Lock() or Lock_Unlock() functions detected a lock
+// ownership violation. Eg VP A has the lock locked but VP B attempts to unlock
+// it. Note that this function may not return.
+void Lock_OnOwnershipViolation(Lock* _Nonnull pLock)
 {
-    _Lock_Lock(pLock);
-
-    if (pLock->owner_vpid == 0) {
-        pLock->owner_vpid = VirtualProcessor_GetCurrent()->vpid;
-    } else {
-        abort();
-    }
-}
-
-// Unlocks the lock.
-void Lock_Unlock(Lock* _Nonnull pLock)
-{
-    if (pLock->owner_vpid != 0) {
-        pLock->owner_vpid = 0;
-    } else {
-        abort();
-    }
-
-    _Lock_Unlock(pLock);
+    abort();
 }
 
 // Invoked by Lock_Lock() if the lock is currently being held by some other VP.

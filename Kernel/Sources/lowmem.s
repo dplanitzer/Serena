@@ -13,6 +13,7 @@
     xdef _VirtualProcessorScheduler_GetShared
     xdef _SchedulerVirtualProcessor_GetShared
     xdef _VirtualProcessor_GetCurrent
+    xdef _VirtualProcessor_GetCurrentVpid
     xdef _InterruptController_GetShared
     xdef _SystemGlobals_Get
 
@@ -51,6 +52,15 @@ _SchedulerVirtualProcessor_GetShared:
 ; Returns a reference to the currently running virtual processor.
 _VirtualProcessor_GetCurrent:
     move.l  SCHEDULER_BASE + vps_running, d0
+    rts
+
+
+;-------------------------------------------------------------------------------
+; Int VirtualProcessor_GetCurrentVpid(void)
+; Returns the VPID of the currently running virtual processor.
+_VirtualProcessor_GetCurrentVpid:
+    move.l  SCHEDULER_BASE + vps_running, a0
+    move.l  vp_vpid(a0), d0
     rts
 
 
