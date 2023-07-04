@@ -17,19 +17,59 @@
 #include "SystemDescription.h"
 
 
+// A kernel or user execution stack
 typedef struct _ExecutionStack {
     Byte* _Nullable base;
     Int             size;
 } ExecutionStack;
 
 
-extern ErrorCode ExecutionStack_Init(ExecutionStack* _Nonnull pStack, Int size);
+extern void ExecutionStack_Init(ExecutionStack* _Nonnull pStack);
 extern void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack);
 
 extern ErrorCode ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, Int size);
 
 static inline Byte* _Nonnull ExecutionStack_GetInitialTop(ExecutionStack* _Nonnull pStack) {
     return pStack->base + pStack->size;
+}
+
+
+// Type of the first function a VP will run when it is resumed
+typedef void (* _Nonnull VirtualProcessor_ClosureFunc)(Byte* _Nullable pContext);
+
+
+// This structure describes a virtual processor closure which is a function entry
+// point, a context parameter that will be passed to the closure function and the
+// kernel plus user stack size.
+typedef struct _VirtualProcessorClosure {
+    VirtualProcessor_ClosureFunc _Nonnull   func;
+    Byte* _Nullable _Weak                   context;
+    Byte* _Nullable                         kernelStackBase;    // Optional base address of a pre-allocated kernel stack
+    Int                                     kernelStackSize;
+    Int                                     userStackSize;
+} VirtualProcessorClosure;
+
+static inline VirtualProcessorClosure VirtualProcessorClosure_Make(VirtualProcessor_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext, Int kernelStackSize, Int userStackSize) {
+    VirtualProcessorClosure c;
+    c.func = pFunc;
+    c.context = pContext;
+    c.kernelStackBase = NULL;
+    c.kernelStackSize = kernelStackSize;
+    c.userStackSize = userStackSize;
+    return c;
+}
+
+// Creates a virtua processor closure with the given function and context parameter.
+// The closure will run on a pre-allocated kernel stack. Note that the kernel stack
+// must stay allocated until the virtual processor is terminated.
+static inline VirtualProcessorClosure VirtualProcessorClosure_MakeWithPreallocatedKernelStack(VirtualProcessor_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext, Byte* _Nonnull pKernelStackBase, Int kernelStackSize) {
+    VirtualProcessorClosure c;
+    c.func = pFunc;
+    c.context = pContext;
+    c.kernelStackBase = pKernelStackBase;
+    c.kernelStackSize = kernelStackSize;
+    c.userStackSize = 0;
+    return c;
 }
 
 
@@ -44,8 +84,14 @@ typedef enum _VirtualProcessorState {
 
 // The virtual processor flags
 
+// Minimum size for a kernel stack
+#define VP_MIN_KERNEL_STACK_SIZE        16
+
 // Default stack size for kernel space
 #define VP_DEFAULT_KERNEL_STACK_SIZE    CPU_PAGE_SIZE
+
+// Minimum size for a user stack
+#define VP_MIN_USER_STACK_SIZE          0
 
 // Default stack size for user space
 #define VP_DEFAULT_USER_STACK_SIZE      CPU_PAGE_SIZE
@@ -79,10 +125,6 @@ typedef enum _VirtualProcessorState {
 
 
 struct _VirtualProcessor;
-
-
-// Type of the first function a VP will run when it is resumed
-typedef void (* _Nonnull VirtualProcessor_Closure)(Byte* _Nullable pContext);
 
 
 // A timeout
@@ -186,21 +228,9 @@ extern ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool fo
 // pool.
 extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrenyLaneIndex);
 
-// Sets the max size of the kernel stack. Changing the stack size of a VP is only
-// allowed while the VP is suspended. Note that you must call SetClosure() on the
-// VP after changing its stack to correctly initialize the stack pointers. A VP
-// must always have a kernel stack.
-extern ErrorCode VirtualProcessor_SetMaxKernelStackSize(VirtualProcessor*_Nonnull pVP, Int size);
-
-// Sets the max size of the user stack. Changing the stack size of a VP is only
-// allowed while the VP is suspended. Note that you must call SetClosure() on the
-// VP after changing its stack to correctly initialize the stack pointers. You may
-// remove the user stack altogether by passing 0.
-extern ErrorCode VirtualProcessor_SetMaxUserStackSize(VirtualProcessor*_Nonnull pVP, Int size);
-
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
-extern void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure);
 
 // Reconfigures the execution flow in the given virtual processor such that the
 // closure 'pClousre' will be invoked like a subroutine call in user space. The
@@ -211,7 +241,7 @@ extern void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualPr
 //    active system call has completed. 'pClosure' is then called from the syscall
 //    RTE and 'pClosure' then returns control back to the original user space code
 //    which triggered the system call.
-extern ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isNoReturn);
+extern ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProcessor*_Nonnull pVP, VirtualProcessor_ClosureFunc _Nonnull pClosure, Byte* _Nullable pContext, Bool isNoReturn);
 
 // Exits the calling virtual processor. If possible then the virtual processor is
 // moved back to the reuse cache. Otherwise it is destroyed for good.
@@ -235,7 +265,7 @@ extern void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP);
 
 
 // The scheduler virtual processor
-extern void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
 extern void SchedulerVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP);
 
 extern void SchedulerVirtualProcessor_Run(Byte* _Nullable pContext);

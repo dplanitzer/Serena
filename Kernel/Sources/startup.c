@@ -34,6 +34,25 @@ void OnReset(SystemDescription* _Nonnull pSysDesc)
 }
 
 
+// Find a suitable memory region for the boot kernel stack. We try to allocate
+// the stack region from fast RAM and we try to put it as far up in RAM as
+// possible. We only allocate from chip RAM if there is no fast RAM.
+static Byte* _Nullable boot_allocate_kernel_stack(SystemDescription* _Nonnull pSysDesc, Int stackSize)
+{
+    Byte* pStackBase = NULL;
+    
+    for (Int i = pSysDesc->memory_descriptor_count - 1; i >= 0; i--) {
+        const Int nAvailBytes = pSysDesc->memory_descriptor[i].upper - pSysDesc->memory_descriptor[i].lower;
+        
+        if (nAvailBytes >= stackSize) {
+            pStackBase = pSysDesc->memory_descriptor[i].upper - stackSize;
+            break;
+        }
+    }
+
+    return pStackBase;
+}
+
 // Called by Reset() after OnReset() has returned. This function should initialize
 // the boot virtual processor and the scheduler. Reset() will then do a single
 // context switch to the boot virtual processor which will then continue with the
@@ -46,9 +65,15 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
     pGlobals->next_available_vpid = 1;
     
     
+    // Allocate the kernel stack in high mem
+    const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
+    Byte* pKernelStackBase = boot_allocate_kernel_stack(pSysDesc, kernelStackSize);
+    assert(pKernelStackBase != NULL);
+
+
     // Initialize the scheduler virtual processor
     VirtualProcessor* pVP = SchedulerVirtualProcessor_GetShared();
-    SchedulerVirtualProcessor_Init(pVP, pSysDesc, (VirtualProcessor_Closure)OnStartup, (Byte*)pSysDesc);
+    SchedulerVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VirtualProcessor_ClosureFunc)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
 
     
     // Initialize the scheduler

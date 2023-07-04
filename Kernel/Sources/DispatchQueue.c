@@ -403,7 +403,7 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
 // and acquires a virtual processor from the virtual processor pool if necessary.
 // The virtual processor is attached to the dispatch queue and remains attached
 // until it is relinqushed by the queue.
-static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_Closure _Nonnull pWorkerFunc)
+static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_ClosureFunc _Nonnull pWorkerFunc)
 {
     // Acquire a new virtual processor if we haven't already filled up all
     // concurrency lanes available to us and one of the following is true:
@@ -411,9 +411,8 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
     // - we've queued up at least 4 work items
     if (pQueue->availableConcurrency < pQueue->maxConcurrency
         && (pQueue->availableConcurrency == 0 || pQueue->items_queued_count > 4)) {
-        VirtualProcessorAttributes attribs;
-
         Int conLaneIdx = -1;
+
         for (Int i = 0; i < pQueue->maxConcurrency; i++) {
             if (pQueue->concurrency_lanes[i].vp == NULL) {
                 conLaneIdx = i;
@@ -422,13 +421,10 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
         }
         assert(conLaneIdx != -1);
 
-        VirtualProcessorAttributes_Init(&attribs);
-        attribs.priority = pQueue->qos * DISPATCH_PRIORITY_COUNT + (pQueue->priority + DISPATCH_PRIORITY_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+        const Int priority = pQueue->qos * DISPATCH_PRIORITY_COUNT + (pQueue->priority + DISPATCH_PRIORITY_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
         VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(
                                                                             VirtualProcessorPool_GetShared(),
-                                                                            &attribs,
-                                                                            pWorkerFunc,
-                                                                            (Byte*)pQueue);
+                                                                            VirtualProcessorParameters_Make(pWorkerFunc, (Byte*)pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority));
         assert(pVP != NULL);
 
         VirtualProcessor_SetDispatchQueue(pVP, pQueue, conLaneIdx);
@@ -558,7 +554,7 @@ static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull
     SList_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
     pQueue->items_queued_count++;
 
-    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
+    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_ClosureFunc)DispatchQueue_Run);
     ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
@@ -605,7 +601,7 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
 void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
-    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_Closure)DispatchQueue_Run);
+    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_ClosureFunc)DispatchQueue_Run);
     ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
 }
 

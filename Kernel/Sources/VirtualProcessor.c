@@ -27,15 +27,14 @@ extern void IdleVirtualProcessor_Run(Byte* _Nullable pContext);
 
 
 
-// Allocates an execution stack.
+// Initializes an execution stack struct. The execution stack is empty by default
+// and you need to call ExecutionStack_SetMaxSize() to allocate the stack with
+// the required size.
 // \param pStack the stack object (filled in on return)
-// \param size the stack size
-// \return the status
-ErrorCode ExecutionStack_Init(ExecutionStack* _Nonnull pStack, Int size)
+void ExecutionStack_Init(ExecutionStack* _Nonnull pStack)
 {
     pStack->base = NULL;
     pStack->size = 0;
-    return ExecutionStack_SetMaxSize(pStack, size);
 }
 
 // Sets the size of the execution stack to the given size. Does not attempt to preserve
@@ -81,32 +80,12 @@ void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack)
 // the scheduler.
 // \param pVP the boot virtual processor record
 // \param pSysDesc the system description
-// \param pClosure the closure that should be invoked by the virtual processor
-// \param pContext the context that should be passed to the closure
-void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+// \param closure the closure that should be invoked by the virtual processor
+void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure)
 {
-    // Find a suitable memory region for the boot kernel stack. We try to allocate
-    // the stack region from fast RAM and we try to put it as far up in RAM as
-    // possible. We only allocate from chip RAM if there is no fast RAM.
-    const Int nStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    Byte* pStackBase = NULL;
-    
-    for (Int i = pSysDesc->memory_descriptor_count - 1; i >= 0; i--) {
-        const Int nAvailBytes = pSysDesc->memory_descriptor[i].upper - pSysDesc->memory_descriptor[i].lower;
-        
-        if (nAvailBytes >= nStackSize) {
-            pStackBase = pSysDesc->memory_descriptor[i].upper - nStackSize;
-            break;
-        }
-    }
-    
-    assert(pStackBase != NULL);
-
     Bytes_ClearRange((Byte*)pVP, sizeof(VirtualProcessor));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_HIGHEST);
-    pVP->kernel_stack.base = pStackBase;
-    pVP->kernel_stack.size = nStackSize;
-    VirtualProcessor_SetClosure(pVP, pClosure, pContext);
+    VirtualProcessor_SetClosure(pVP, closure);
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->state = kVirtualProcessorState_Ready;
     pVP->suspension_count = 0;
@@ -185,8 +164,7 @@ VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription*
     FailNULL(pVP);
     
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
-    VirtualProcessor_SetMaxKernelStackSize(pVP, VP_DEFAULT_KERNEL_STACK_SIZE);
-    VirtualProcessor_SetClosure(pVP, (VirtualProcessor_Closure)IdleVirtualProcessor_Run, NULL);
+    VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(IdleVirtualProcessor_Run, NULL, VP_DEFAULT_KERNEL_STACK_SIZE, 0));
     
     return pVP;
     
@@ -243,9 +221,11 @@ void VirtualProcesssor_Relinquish(void)
 // \param priority the initial VP priority
 void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
 {
+    Bytes_ClearRange((Byte*)&pVP->save_area, sizeof(CpuContext));
+
     ListNode_Init(&pVP->rewa_queue_entry);
-    ExecutionStack_Init(&pVP->kernel_stack, 0);
-    ExecutionStack_Init(&pVP->user_stack, 0);
+    ExecutionStack_Init(&pVP->kernel_stack);
+    ExecutionStack_Init(&pVP->user_stack);
 
     pVP->vtable = &gVirtualProcessorVTable;
     
@@ -306,63 +286,41 @@ void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nul
     pVP->dispatchQueueConcurrenyLaneIndex = concurrenyLaneIndex;
 }
 
-// Sets the max size of the kernel stack. Changing the stack size of a VP is only
-// allowed while the VP is suspended. Note that you must call SetClosure() on the
-// VP after changing its stack to correctly initialize the stack pointers. A VP
-// must always have a kernel stack.
-ErrorCode VirtualProcessor_SetMaxKernelStackSize(VirtualProcessor*_Nonnull pVP, Int size)
-{
-    if (size < CPU_PAGE_SIZE) {
-        return EPARAM;
-    }
-    if (pVP->state != kVirtualProcessorState_Suspended) {
-        return EBUSY;
-    }
-    
-    return ExecutionStack_SetMaxSize(&pVP->kernel_stack, size);
-}
-
-// Sets the max size of the user stack. Changing the stack size of a VP is only
-// allowed while the VP is suspended. Note that you must call SetClosure() on the
-// VP after changing its stack to correctly initialize the stack pointers. You may
-// remove the user stack altogether by passing 0.
-ErrorCode VirtualProcessor_SetMaxUserStackSize(VirtualProcessor*_Nonnull pVP, Int size)
-{
-    if (size < 0) {
-        return EPARAM;
-    }
-    if (pVP->state != kVirtualProcessorState_Suspended) {
-        return EBUSY;
-    }
-    
-    return ExecutionStack_SetMaxSize(&pVP->user_stack, size);
-}
-
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.
 //
 // \param pVP the virtual processor
-// \param pClosure the closure that should be invoked
-// \param pContext the context that should be passed to the closure
-void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+// \param closure the closure description
+ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure)
 {
-    Bytes_ClearRange((Byte*)&pVP->save_area, sizeof(CpuContext));
+    assert(pVP->state == kVirtualProcessorState_Suspended);
+    assert(closure.kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
+
+    ErrorCode err;
+
+    if (closure.kernelStackBase == NULL) {
+        if ((err = ExecutionStack_SetMaxSize(&pVP->kernel_stack, closure.kernelStackSize)) != EOK) {
+            return err;
+        }
+    } else {
+        ExecutionStack_SetMaxSize(&pVP->kernel_stack, 0);
+        pVP->kernel_stack.base = closure.kernelStackBase;
+        pVP->kernel_stack.size = closure.kernelStackSize;
+    }
+    if ((err = ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize)) != EOK) {
+        return err;
+    }
     
     pVP->save_area.usp = (UInt32) ExecutionStack_GetInitialTop(&pVP->user_stack);
     pVP->save_area.a[7] = (UInt32) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
-    pVP->save_area.pc = (UInt32) pClosure;
+    pVP->save_area.pc = (UInt32) closure.func;
 
 
     // Note that we do not set up an initial stack frame on the user stack because
     // user space calls have to be done via cpu_call_as_user() and this function
     // takes care of setting up a frame on the user stack that will eventually
     // lead the user space code back to kernel space.
-    
-     
-    // Every VP has a kernel stack. Set it up
-    assert(pVP->kernel_stack.base != NULL);
-    assert(pVP->kernel_stack.size >= 16);
-
+    //
     // Initial kernel stack frame looks like this:
     // SP + 12: pContext
     // SP +  8: RTS address (VirtualProcesssor_Relinquish() entry point)
@@ -373,13 +331,15 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
     // Note that the RTE frame is necessary because the VirtualProcessorScheduler_SwitchContext
     // function expects to find an RTE frame on the kernel stack on entry
     Byte* sp = (Byte*) pVP->save_area.a[7];
-    sp -= 4; *((Byte**)sp) = pContext;
+    sp -= 4; *((Byte**)sp) = closure.context;
     sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_Relinquish;
     sp -= 2; *((UInt16*)sp) = 0;    // RTE frame format
     sp -= 4; *((UInt32*)sp) = pVP->save_area.pc;
     sp -= 2; *((UInt16*)sp) = pVP->save_area.sr;
     pVP->save_area.a[7] = (UInt32)sp;
     pVP->save_area.sr |= 0x2000;
+
+    return EOK;
 }
 
 // Reconfigures the flow of execution in the given virtual processor such that the
@@ -399,7 +359,7 @@ void VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessor
 //        that the 'pClosure' call is guaranteed to work and that it will not run into
 //        the end of the user stack. ONLY use this option if 'pClosure' is guranateed
 //        to not return since it destroys the user stack state.
-ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProcessor*_Nonnull pVP, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext, Bool isNoReturn)
+ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProcessor*_Nonnull pVP, VirtualProcessor_ClosureFunc _Nonnull pClosure, Byte* _Nullable pContext, Bool isNoReturn)
 {
     UInt auci_options = 0;
     

@@ -13,20 +13,6 @@
 #include "VirtualProcessorScheduler.h"
 
 
-void VirtualProcessorAttributes_Init(VirtualProcessorAttributes* _Nonnull pAttribs)
-{
-    pAttribs->kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    pAttribs->userStackSize = VP_DEFAULT_USER_STACK_SIZE;
-    pAttribs->priority = VP_PRIORITY_NORMAL;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Pool
-////////////////////////////////////////////////////////////////////////////////
-
-
 #define REUSE_CACHE_CAPACITY    16
 typedef struct _VirtualProcessorPool {
     Lock    lock;
@@ -72,7 +58,7 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pool)
     }
 }
 
-VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, const VirtualProcessorAttributes* _Nonnull pAttribs, VirtualProcessor_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params)
 {
     VirtualProcessor* pVP = NULL;
 
@@ -112,10 +98,8 @@ VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualP
     
     
     // Configure the VP
-    VirtualProcessor_SetPriority(pVP, pAttribs->priority);
-    VirtualProcessor_SetMaxKernelStackSize(pVP, pAttribs->kernelStackSize);
-    VirtualProcessor_SetMaxUserStackSize(pVP, pAttribs->userStackSize);
-    VirtualProcessor_SetClosure(pVP, pClosure, pContext);
+    VirtualProcessor_SetPriority(pVP, params.priority);
+    FailErr(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
 
     return pVP;
 
