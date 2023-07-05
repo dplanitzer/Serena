@@ -208,7 +208,7 @@ static const VirtualProcessorVTable gVirtualProcessorVTable = {
 // code and that it should be moved back to the virtual processor pool. This
 // function does not return to the caller. This function should only be invoked
 // from the bottom-most frame on the virtual processor's kernel stack.
-void VirtualProcesssor_Relinquish(void)
+_Noreturn VirtualProcesssor_Relinquish(void)
 {
     VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPool_GetShared(), VirtualProcessor_GetCurrent());
     /* NOT REACHED */
@@ -282,6 +282,7 @@ void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
 // pool.
 void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrenyLaneIndex)
 {
+    VP_ASSERT_ALIVE(pVP);
     pVP->dispatchQueue = pQueue;
     pVP->dispatchQueueConcurrenyLaneIndex = concurrenyLaneIndex;
 }
@@ -293,6 +294,7 @@ void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nul
 // \param closure the closure description
 ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure)
 {
+    VP_ASSERT_ALIVE(pVP);
     assert(pVP->state == kVirtualProcessorState_Suspended);
     assert(closure.kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
 

@@ -457,9 +457,14 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
 ////////////////////////////////////////////////////////////////////////////////
 
 
-// Schedules the calling virtual processor for finalization. Does not return.
-void VirtualProcessor_ScheduleFinalization(VirtualProcessor* _Nonnull pVP)
+// Terminates the virtual processor that is executing the caller. Does not return
+// to the caller. Note that the actual termination of the virtual processor is
+// handled by the virtual processor scheduler.
+_Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP)
 {
+    VP_ASSERT_ALIVE(pVP)
+    pVP->flags |= VP_FLAG_TERMINATED;
+
     VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     assert(pVP == pScheduler->running);
     
@@ -526,6 +531,7 @@ ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
 // Returns the priority of the given VP.
 Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 {
+    VP_ASSERT_ALIVE(pVP);
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
     const Int pri = pVP->priority;
     
@@ -539,6 +545,7 @@ Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 // XXX might want to change that in the future?
 void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
 {
+    VP_ASSERT_ALIVE(pVP);
     VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     Int sps = VirtualProcessorScheduler_DisablePreemption();
     
@@ -569,6 +576,7 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
 // Returns true if the given virtual processor is currently suspended; false otherwise.
 Bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
 {
+    VP_ASSERT_ALIVE(pVP);
     Bool isSuspended;
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
     
@@ -580,6 +588,7 @@ Bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
 // Suspends the calling virtual processor. This function supports nested calls.
 ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 {
+    VP_ASSERT_ALIVE(pVP);
     VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
     
@@ -624,6 +633,7 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 // count is > 1.
 ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
 {
+    VP_ASSERT_ALIVE(pVP);
     VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
     

@@ -26,6 +26,10 @@
 #define _Weak
 #endif
 
+#ifndef _Noreturn
+#define _Noreturn   void
+#endif
+
 
 // The Byte type represents raw, untyped memory. Raw memory may be reinterpreted
 // or converted to typed memory but this requires the execution of some piece of
@@ -223,7 +227,7 @@ extern void print(const Character* _Nonnull format, ...);
 
 
 // Asserts
-extern void fatalError(const Character* _Nonnull filename, int line);
+extern _Noreturn fatalError(const Character* _Nonnull filename, int line);
 
 #define abort() fatalError(__func__, __LINE__)
 
@@ -233,6 +237,6 @@ extern void fatalError(const Character* _Nonnull filename, int line);
 #define assert(cond)
 #endif
 
-extern void mem_non_recoverable_error(void);
+extern _Noreturn mem_non_recoverable_error(void);
 
 #endif /* Foundation_h */

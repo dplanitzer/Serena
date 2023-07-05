@@ -114,6 +114,7 @@ typedef enum _VirtualProcessorState {
 
 // VP flags
 #define VP_FLAG_INTERRUPTABLE_WAIT  0x01
+#define VP_FLAG_TERMINATED          0x02    // VirtualProcessor_Terminate() was called on the VP
 
 
 // Reason for a wake up
@@ -184,6 +185,9 @@ typedef struct _VirtualProcessor {
 } VirtualProcessor;
 
 
+#define VP_ASSERT_ALIVE(p)   assert((p->flags & VP_FLAG_TERMINATED) == 0)
+
+
 extern VirtualProcessor* _Nonnull SchedulerVirtualProcessor_GetShared(void);
 
 // Returns a reference to the currently running virtual processor. This is the
@@ -251,10 +255,12 @@ extern void VirtualProcessor_Exit(VirtualProcessor* _Nonnull pVP);
 // code and that it should be moved back to the virtual processor pool. This
 // function does not return to the caller. This function should only be invoked
 // from the bottom-most frame on the virtual processor's kernel stack.
-extern void VirtualProcesssor_Relinquish(void);
+extern _Noreturn VirtualProcesssor_Relinquish(void);
 
-// Schedules the calling virtual processor for finalization. Does not return.
-extern void VirtualProcessor_ScheduleFinalization(VirtualProcessor* _Nonnull pVP);
+// Terminates the virtual processor that is executing the caller. Does not return
+// to the caller. Note that the actual termination of the virtual processor is
+// handled by the virtual processor scheduler.
+extern _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP);
 
 extern void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP);
 

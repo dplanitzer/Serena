@@ -23,7 +23,7 @@ void print(const Character* _Nonnull format, ...)
     va_end(ap);
 }
 
-void fatalError(const Character* _Nonnull filename, int line)
+_Noreturn fatalError(const Character* _Nonnull filename, int line)
 {
     Console* pConsole = Console_GetMain();
     Character buf[32];

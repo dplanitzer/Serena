@@ -110,7 +110,7 @@ failed:
 // Relinquishes the given VP back to the reuse pool if possible. If the reuse
 // pool is full then the given VP is suspended and scheduled for finalization
 // instead. Note that the VP is suspended in any case.
-void VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessor* _Nonnull pVP)
+_Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessor* _Nonnull pVP)
 {
     Bool didReuse = false;
 
@@ -138,7 +138,7 @@ void VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _No
     if (didReuse) {
         VirtualProcessor_Suspend(pVP);
     } else {
-        VirtualProcessor_ScheduleFinalization(pVP);
+        VirtualProcessor_Terminate(pVP);
     }
     /* NOT REACHED */
 }

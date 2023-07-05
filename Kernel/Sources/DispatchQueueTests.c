@@ -30,8 +30,8 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
-    //DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    //DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
 }
 
 void DispatchQueue_RunTests(void)
