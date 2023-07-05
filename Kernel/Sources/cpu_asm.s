@@ -18,9 +18,8 @@
     xdef _cpu_guarded_write
     xdef _cpu_sleep
     xdef _cpu_call_as_user
+    xdef _cpu_abort_call_as_user
     xdef _cpu_return_from_call_as_user
-    xdef _cpu_push_async_user_closure_invocation
-    xdef _cpu_async_user_closure_trampoline
     xdef _fpu_get_model
 
 
@@ -388,6 +387,7 @@ _cpu_call_as_user:
         ; go back to superuser mode
         trap    #1
         ; NOT REACHED
+        ; (the return happens through _cpu_return_from_call_as_user)
     einline
 
 
@@ -408,95 +408,16 @@ _cpu_return_from_call_as_user:
     einline
 
 
-
 ;-----------------------------------------------------------------------
-; void cpu_push_async_user_closure_invocation(UInt options, UInt32* _Nonnull usp, UInt32 pReturnAddress, Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext)
-; Pushes an AUCI (asynchonous user closure invocation) frame on the given user stack.
-; 'pClosure' will be invoked with 'pContext' in user space the next time the
-; VP which owns the user stack is scheduled for execution. This function must be
-; called while the VP is suspended. This call can be used to inject a call to
-; some user space function into the normal flow of the VP. The AUCI will return
-; to the previous flow when done. The AUCI call is completely transparent to the
-; surrounding user space code.
-;
-; NOTE: this function assumes that the USP is correctly aligned for a return address (2 byte alignment)
-CPU_AUCI_SAVE_FP_STATE_BIT  equ 0
-_cpu_push_async_user_closure_invocation:
-    cargs cpa_options.l, cpa_usp_ptr.l, cpa_return_address.l, cpa_closure_ptr.l, cpa_context_ptr.l
-
-    ; The AUCI frame looks like this:
-    ; 4 return adress
-    ; 4 pClosure
-    ; 4 pContext
-    ; 2 trampoline control word
-    move.l  cpa_usp_ptr(sp), a0
-    move.l  (a0), a0
-    move.l  cpa_return_address(sp), a1
-    move.l  a1, -(a0)
-    move.l  cpa_closure_ptr(sp), a1
-    move.l  a1, -(a0)
-    move.l  cpa_context_ptr(sp), a1
-    move.l  a1, -(a0)
-    move.l  cpa_options(sp), d0
-    move.w  d0, -(a0)
-
-    move.l  cpa_usp_ptr(sp), a1
-    move.l  a0, (a1)
-
-    rts
-
-
-;-----------------------------------------------------------------------
-; void cpu_async_user_closure_trampoline(void)
-; This function implements the transparent invocation of the asynchronous user
-; closure. The VP PC must be set to point to this function and the cpu_push_auci()
-; function must have been called to push the required AUCI frame on the user stack.
-; This function removes the frame that was pushed by cpu_push_auci()
-;
-; Note that this code runs in user space.
-_cpu_async_user_closure_trampoline:
-    move        ccr, -(sp)
-    movem.l     d0 - d7 / a0 - a6, -(sp)
-
-    move.w      (15 * 4 + 2 + 0 + 0)(sp), d7
-    btst        #CPU_AUCI_SAVE_FP_STATE_BIT, d7
-    beq.s       .Lno_fp_save
-    fmovem      fp0 - fp7, -(sp)
-    fmovem.l    fpcr, -(sp)
-    fmovem.l    fpsr, -(sp)
-    fmovem.l    fpiar, -(sp)
-    move.l      (15 * 4 + 2 + 2 + 8 * 12 + 3 * 4 + 0)(sp), a1
-    move.l      (15 * 4 + 2 + 2 + 8 * 12 + 3 * 4 + 4)(sp), a0
-    bra.s       .Lfp_save_done
-
-.Lno_fp_save:
-    move.l      (15 * 4 + 2 + 2 + 0)(sp), a1
-    move.l      (15 * 4 + 2 + 2 + 4)(sp), a0
-
-.Lfp_save_done:
-    move.l      a1, -(sp)
-    ; user stack frame at this point:
-    ; 4  return address
-    ; 4  pClosure  (a0)
-    ; 4  pContext  (a1)
-    ; 2  trampoline control word (d0)
-    ; 2  CCR
-    ; 4* d0 - d7 / a0 - a6
-    ; 4* fp0 - fp7, fpcr, fpsr, fpiar
-    ; 4  pContext
-    jsr         (a0)
-
-    addq.l      #4, sp
-    btst        #CPU_AUCI_SAVE_FP_STATE_BIT, d7
-    beq.s       .Lfp_restore_done
-    fmovem.l    (sp)+, fpiar
-    fmovem.l    (sp)+, fpsr
-    fmovem.l    (sp)+, fpcr
-    fmovem      (sp)+, fp0 - fp7
-
-.Lfp_restore_done:
-    movem.l     (sp)+, d0 - d7 / a0 - a6
-    move        (sp)+, ccr
-    adda        #10, sp      ; note that this instruction does not update the CCR
-    rts
-
+; void cpu_abort_call_as_user(void)
+; Aborts the currently active user space call that is running on the same virtual
+; processor that executes cpu_abort_call_as_user. This is the CPU specific low-
+; level half of the VirtualProcessor_AbortCallAsUser() function. Note that aborting
+; a user space call leaves the user space stack in an indeterminate state since
+; the stack is not unrolled.
+_cpu_abort_call_as_user:
+    inline
+        trap    #1
+        ; NOT REACHED
+        ; (the return happens through _cpu_return_from_call_as_user)
+    einline

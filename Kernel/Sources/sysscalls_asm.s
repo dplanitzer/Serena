@@ -13,7 +13,6 @@
     xref _fatalError
     xref __syscall_VirtualProcessor_Sleep
     xref __syscall_VirtualProcessor_Print
-    xref __syscall_VirtualProcessor_Exit
 
     xdef _SystemCallHandler
 
@@ -24,7 +23,6 @@ syscall_table_desc:
     dc.l    SC_COUNT-1
 
 syscall_table:
-    dc.l __syscall_VirtualProcessor_Exit
     dc.l __syscall_VirtualProcessor_Sleep
     dc.l __syscall_VirtualProcessor_Print
 

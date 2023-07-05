@@ -236,20 +236,25 @@ extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, voi
 // This function may only be called while the VP is suspended.
 extern ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure);
 
-// Reconfigures the execution flow in the given virtual processor such that the
-// closure 'pClousre' will be invoked like a subroutine call in user space. The
-// interrupted flow of execution will be resumed at the point of interruption
-// when 'pClosure' returns. The async call of 'pClosure' is arranged such that:
-// 1) if VP is running in user space: 'pClosure' is invoked right away (like a subroutine)
-// 2) if the VP is running in kernel space: 'pClosure' is invoked once the currently
-//    active system call has completed. 'pClosure' is then called from the syscall
-//    RTE and 'pClosure' then returns control back to the original user space code
-//    which triggered the system call.
-extern ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProcessor*_Nonnull pVP, VirtualProcessor_ClosureFunc _Nonnull pClosure, Byte* _Nullable pContext, Bool isNoReturn);
-
-// Exits the calling virtual processor. If possible then the virtual processor is
-// moved back to the reuse cache. Otherwise it is destroyed for good.
-extern void VirtualProcessor_Exit(VirtualProcessor* _Nonnull pVP);
+// Aborts an on-going call-as-user invocation and causes the cpu_call_as_user()
+// invocation to return. Note that aborting a call-as-user invocation leaves the
+// virtual processor's userspace stack in an indeterminate state. Consequently
+// a call-as-user invocation should only be aborted if you no longer care about
+// the state of the userspace. Eg if the goal is to terminate a process that may
+// be in the middle of executing userspace code.
+// What exactly happens when userspace code execution is aborted depends on
+// whether the userspace code is currently executing in userspace or a system
+// call:
+// 1) running in userspace: execution is immediately aborted and no attempt is
+//                          made to unwind the userspace stack or free any
+//                          userspace resources.
+// 2) executing a system call: the system call is allowed to run to completion.
+//                             An additional mechanism is needed if the system
+//                             call should be effectively cancelled. However the
+//                             system call stack frame is altered such that the
+//                             return from the system call will abort the
+//                             call-as-user invocation.
+extern ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP);
 
 // Relinquishes the virtual processor which means that it is finished executing
 // code and that it should be moved back to the virtual processor pool. This

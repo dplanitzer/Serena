@@ -24,10 +24,9 @@ ERANGE      equ 10
 
 
 ; System call numbers
-SC_EXIT_VP      equ     0       ; exitvp() -> noreturn
-SC_SLEEP        equ     1       ; sleep(seconds: d1, nanoseconds: d2) -> Void
-SC_PRINT        equ     2       ; print(string: a1) -> Void
-SC_COUNT        equ     3       ; number of system calls
+SC_SLEEP        equ     0       ; sleep(seconds: d1, nanoseconds: d2) -> Void
+SC_PRINT        equ     1       ; print(string: a1) -> Void
+SC_COUNT        equ     2       ; number of system calls
 
 
 ; System call ABI

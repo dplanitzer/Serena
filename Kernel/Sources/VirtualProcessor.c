@@ -344,63 +344,44 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     return EOK;
 }
 
-// Reconfigures the flow of execution in the given virtual processor such that the
-// closure 'pClosure' will be invoked like a subroutine call in user space. The
-// interrupted flow of execution will be resumed at the point of interruption
-// when 'pClosure' returns. The async call for 'pClosure' is arranged such that:
-// 1) if VP is running in user space: 'pClosure' is invoked right away (like a subroutine)
-// 2) if the VP is running in kernel space: 'pClosure' is invoked once the currently
-//    active system call has completed. 'pClosure' is invoked by the syscall RTE
-//    instruction and 'pClosure' in turn will return to the code that did the original
-//    system call invocation. The invocation of 'pClosure' is completely transparent
-//    to the user space code that originally invoked the system call. It does not
-//    know that 'pClosure' was executed as a side effect of doing the system call.
-//
-// \param isNoReturn true if the closure does not return. This allows this function
-//        to reset the user stack before invoking 'pClosure' which has the advantage
-//        that the 'pClosure' call is guaranteed to work and that it will not run into
-//        the end of the user stack. ONLY use this option if 'pClosure' is guranateed
-//        to not return since it destroys the user stack state.
-ErrorCode VirtualProcessor_ScheduleAsyncUserClosureInvocation(VirtualProcessor*_Nonnull pVP, VirtualProcessor_ClosureFunc _Nonnull pClosure, Byte* _Nullable pContext, Bool isNoReturn)
+// Aborts an on-going call-as-user invocation and causes the cpu_call_as_user()
+// invocation to return. Note that aborting a call-as-user invocation leaves the
+// virtual processor's userspace stack in an indeterminate state. Consequently
+// a call-as-user invocation should only be aborted if you no longer care about
+// the state of the userspace. Eg if the goal is to terminate a process that may
+// be in the middle of executing userspace code.
+// What exactly happens when userspace code execution is aborted depends on
+// whether the userspace code is currently executing in userspace or a system
+// call:
+// 1) running in userspace: execution is immediately aborted and no attempt is
+//                          made to unwind the userspace stack or free any
+//                          userspace resources.
+// 2) executing a system call: the system call is allowed to run to completion.
+//                             An additional mechanism is needed if the system
+//                             call should be effectively cancelled. However the
+//                             system call stack frame is altered such that the
+//                             return from the system call will abort the
+//                             call-as-user invocation.
+ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
 {
-    UInt auci_options = 0;
-    
-    if (SystemDescription_GetShared()->fpu_model != FPU_MODEL_NONE) {
-        auci_options |= CPU_AUCI_SAVE_FP_STATE;
-    }
-    
     VirtualProcessor_Suspend(pVP);
 
-    if (isNoReturn) {
-        pVP->save_area.usp = (UInt32) ExecutionStack_GetInitialTop(&pVP->user_stack);
-    }
-    
     if ((pVP->save_area.sr & 0x2000) != 0) {
         // Kernel space:
         // let the currently active system call finish and intercept the RTE
         // back out from the system call
         UInt32* pReturnAddress = (UInt32*)(pVP->syscall_entry_ksp + 2);
         
-        cpu_push_async_user_closure_invocation(auci_options, &pVP->save_area.usp, *pReturnAddress, pClosure, pContext);
-        *pReturnAddress = (UInt32)cpu_async_user_closure_trampoline;
+        *pReturnAddress = (UInt32)cpu_abort_call_as_user;
     } else {
         // User space:
         // redirect the VP to the new call
-        cpu_push_async_user_closure_invocation(auci_options, &pVP->save_area.usp, pVP->save_area.pc, pClosure, pContext);
-        pVP->save_area.pc = (UInt32)cpu_async_user_closure_trampoline;
+        pVP->save_area.pc = (UInt32)cpu_abort_call_as_user;
     }
 
     VirtualProcessor_Resume(pVP, false);
     
     return EOK;
-}
-
-// Exits the calling virtual processor. If possible then the virtual processor is
-// moved back to the reuse cache. Otherwise it is destroyed for good.
-void VirtualProcessor_Exit(VirtualProcessor* _Nonnull pVP)
-{
-    VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPool_GetShared(), pVP);
-    /* NOT REACHED */
 }
 
 void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP)
