@@ -8,7 +8,6 @@
 
 #include "MonotonicClock.h"
 #include "Platform.h"
-#include "SystemDescription.h"
 #include "InterruptController.h"
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);
@@ -25,12 +24,9 @@ const TimeInterval kTimeInterval_MinusInfinity = {INT32_MIN, ONE_SECOND_IN_NANOS
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-void MonotonicClock_Init(void)
+void MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc)
 {
-    MonotonicClock* pClock = MonotonicClock_GetShared();
-    const SystemDescription* pSysDesc = SystemDescription_GetShared();
-
-    pClock->current_time = TimeInterval_Make(0, 0);
+    pClock->current_time = kTimeInterval_Zero;
     pClock->current_quantum = 0;
     pClock->ns_per_quantum = pSysDesc->quantum_duration_ns;
 

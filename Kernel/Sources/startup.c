@@ -102,7 +102,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Initialize the monotonic clock
-    MonotonicClock_Init();
+    MonotonicClock_Init(MonotonicClock_GetShared(), pSysDesc);
 
     
     // Inform the scheduler that the heap exists now and that it should finish

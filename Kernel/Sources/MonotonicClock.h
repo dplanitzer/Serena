@@ -10,6 +10,7 @@
 #define MonotonicClock_h
 
 #include "Foundation.h"
+#include "SystemDescription.h"
 
 
 typedef Int32 Quantums;             // Time unit of the scheduler clock which increments monotonically and once per quantum interrupt
@@ -103,7 +104,7 @@ typedef struct _MonotonicClock {
 
 
 extern MonotonicClock* _Nonnull MonotonicClock_GetShared(void);
-extern void MonotonicClock_Init(void);
+extern void MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc);
 
 extern Quantums MonotonicClock_GetCurrentQuantums(void);
 extern TimeInterval MonotonicClock_GetCurrentTime(void);
