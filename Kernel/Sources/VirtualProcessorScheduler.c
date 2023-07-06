@@ -20,7 +20,6 @@ extern void VirtualProcessorScheduler_SwitchContext(void);
 static void VirtualProcessorScheduler_FinishWait(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason);
 static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull pScheduler);
 
-static void BootVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP);
 static VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc);
 
 
@@ -62,13 +61,25 @@ void VirtualProcessorScheduler_Init(VirtualProcessorScheduler* _Nonnull pSchedul
 // initialization.
 void VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler)
 {
+    SystemGlobals* pGlobals = SystemGlobals_Get();
+
+    // Mark the boot virtual processor kernel stack area as allocated.
+    // Note that the boot virtual processor has no user stack since it will never
+    // execute userspace code.
+    assert(Heap_AllocateBytesAt(pGlobals->heap, 
+            pScheduler->bootVirtualProcessor->kernel_stack.base,
+            pScheduler->bootVirtualProcessor->kernel_stack.size) != NULL);
+
     pScheduler->quantums_per_quarter_second = Quantums_MakeFromTimeInterval(TimeInterval_MakeMilliseconds(250), QUANTUM_ROUNDING_AWAY_FROM_ZERO);
-    BootVirtualProcessor_FinishBoot(pScheduler->bootVirtualProcessor);
-    
+
+
+    // Allocate the idle virtual processor
     pScheduler->idleVirtualProcessor = IdleVirtualProcessor_Create(SystemDescription_GetShared());
     assert(pScheduler->idleVirtualProcessor != NULL);
     VirtualProcessor_Resume(pScheduler->idleVirtualProcessor, false);
     
+
+    // Hook us up with the quantum timer interrupt
     const Int irqHandler = InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
                                                   INTERRUPT_ID_QUANTUM_TIMER,
                                                   INTERRUPT_HANDLER_PRIORITY_HIGHEST - 1,
@@ -569,16 +580,6 @@ void BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescri
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->state = kVirtualProcessorState_Ready;
     pVP->suspension_count = 0;
-}
-
-// Has to be called from the boot virtual processor context as early as possible
-// at kernel initialization time and right after the heap has been initialized.
-static void BootVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP)
-{
-    SystemGlobals* pGlobals = SystemGlobals_Get();
-    
-    // Mark the boot kernel + user stack areas as allocated.
-    assert(Heap_AllocateBytesAt(pGlobals->heap, pVP->kernel_stack.base, pVP->kernel_stack.size) != NULL);
 }
 
 
