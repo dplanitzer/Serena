@@ -56,6 +56,21 @@ typedef struct _VirtualProcessorScheduler {
 } VirtualProcessorScheduler;
 
 
+#define QuantumAllowanceForPriority(pri)    ((VP_PRIORITY_HIGHEST - (pri)) >> 3) + 1
+
+
+// The boot virtual processor
+extern VirtualProcessor* _Nonnull BootVirtualProcessor_GetShared(void);
+
+extern void BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
+extern void BootVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP);
+
+extern void BootVirtualProcessor_Run(Byte* _Nullable pContext);
+
+// The idle virtual processor
+extern VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc);
+
+
 extern VirtualProcessorScheduler* _Nonnull VirtualProcessorScheduler_GetShared(void);
 
 extern void VirtualProcessorScheduler_Init(VirtualProcessorScheduler* _Nonnull pScheduler, SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nonnull pBootVP);
@@ -97,5 +112,18 @@ extern void VirtualProcessorScheduler_RestorePreemption(Int sps);
 extern Int VirtualProcessorScheduler_DisableCooperation(void);
 extern void VirtualProcessorScheduler_RestoreCooperation(Int sps);
 extern Int VirtualProcessorScheduler_IsCooperationEnabled(void);
+
+
+//
+// The following functions are for use by the VirtualProcessor implementation.
+//
+
+extern void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP, Int effectivePriority);
+extern void VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
+
+extern VirtualProcessor* _Nullable VirtualProcessorScheduler_GetHighestPriorityReady(VirtualProcessorScheduler* _Nonnull pScheduler);
+
+extern void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
+extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 
 #endif /* VirtualProcessorScheduler_h */

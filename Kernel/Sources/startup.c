@@ -72,8 +72,8 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 
 
     // Initialize the scheduler virtual processor
-    VirtualProcessor* pVP = SchedulerVirtualProcessor_GetShared();
-    SchedulerVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VirtualProcessor_ClosureFunc)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
+    VirtualProcessor* pVP = BootVirtualProcessor_GetShared();
+    BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VirtualProcessor_ClosureFunc)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
 
     
     // Initialize the scheduler
@@ -157,5 +157,5 @@ static void OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Enter the scheduler VP loop
-    SchedulerVirtualProcessor_Run(NULL);
+    BootVirtualProcessor_Run(NULL);
 }

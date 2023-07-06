@@ -11,7 +11,7 @@
     xdef _SystemDescription_GetShared
     xdef _MonotonicClock_GetShared
     xdef _VirtualProcessorScheduler_GetShared
-    xdef _SchedulerVirtualProcessor_GetShared
+    xdef _BootVirtualProcessor_GetShared
     xdef _VirtualProcessor_GetCurrent
     xdef _VirtualProcessor_GetCurrentVpid
     xdef _InterruptController_GetShared
@@ -40,9 +40,9 @@ _VirtualProcessorScheduler_GetShared:
     rts
 
 ;-------------------------------------------------------------------------------
-; VirtualProcessor* SchedulerVirtualProcessor_GetShared(void)
-; Returns a reference to the scheduler virtual processor.
-_SchedulerVirtualProcessor_GetShared:
+; VirtualProcessor* BootVirtualProcessor_GetShared(void)
+; Returns a reference to the boot virtual processor.
+_BootVirtualProcessor_GetShared:
     move.l  #SCHEDULER_VP_BASE, d0
     rts
 

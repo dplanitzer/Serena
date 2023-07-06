@@ -13,19 +13,6 @@
 #include "Platform.h"
 #include "SystemGlobals.h"
 
-#if __LP64__
-#define STACK_ALIGNMENT  16
-#elif __LP32__
-#define STACK_ALIGNMENT  4
-#else
-#error "don't know how to align stack pointers"
-#endif
-
-
-
-extern void IdleVirtualProcessor_Run(Byte* _Nullable pContext);
-
-
 
 // Initializes an execution stack struct. The execution stack is empty by default
 // and you need to call ExecutionStack_SetMaxSize() to allocate the stack with
@@ -64,121 +51,6 @@ void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack)
         kfree(pStack->base);
         pStack->base = NULL;
         pStack->size = 0;
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Scheduler
-////////////////////////////////////////////////////////////////////////////////
-
-
-// Initializes a scheduler virtual processor. This is the virtual processor which
-// is used to grandfather in the initial thread of execution at boot time. It is the
-// first VP that is created for a physical processor. It then takes over duties for
-// the scheduler.
-// \param pVP the boot virtual processor record
-// \param pSysDesc the system description
-// \param closure the closure that should be invoked by the virtual processor
-void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure)
-{
-    Bytes_ClearRange((Byte*)pVP, sizeof(VirtualProcessor));
-    VirtualProcessor_CommonInit(pVP, VP_PRIORITY_HIGHEST);
-    VirtualProcessor_SetClosure(pVP, closure);
-    pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
-    pVP->state = kVirtualProcessorState_Ready;
-    pVP->suspension_count = 0;
-}
-
-// Has to be called from the scheduler virtual processor context as early as possible
-// at kernel initialization time and right after the heap has been initialized.
-void SchedulerVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP)
-{
-    SystemGlobals* pGlobals = SystemGlobals_Get();
-    
-    // Mark the boot kernel + user stack areas as allocated.
-    assert(Heap_AllocateBytesAt(pGlobals->heap, pVP->kernel_stack.base, pVP->kernel_stack.size) != NULL);
-}
-
-void SchedulerVirtualProcessor_Run(Byte* _Nullable pContext)
-{
-    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
-    List dead_vps;
-
-    while (true) {
-        List_Init(&dead_vps);
-        const Int sps = VirtualProcessorScheduler_DisablePreemption();
-
-        // Continue to wait as long as there's nothing to finalize
-        while (List_IsEmpty(&pScheduler->finalizer_queue)) {
-            (void)VirtualProcessorScheduler_WaitOn(pScheduler, &pScheduler->scheduler_wait_queue,
-                                             TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), true);
-        }
-        
-        // Got some work to do. Save off the needed data in local vars and then
-        // reenable preemption before we go and do the actual work.
-        dead_vps = pScheduler->finalizer_queue;
-        List_Deinit(&pScheduler->finalizer_queue);
-        
-        VirtualProcessorScheduler_RestorePreemption(sps);
-        
-        
-        // XXX
-        // XXX Should boost the priority of VPs that have been sitting on the
-        // XXX ready queue for some time. Goal is to prevent a VP from getting
-        // XXX starved to death because it's a very low priority one and there's
-        // XXX always some higher priority VP sneaking in. Now a low priority
-        // XXX VP which blocks will receive a boost once it is unblocked but this
-        // XXX doesn't help background VPs which block rarely or not at all
-        // XXX because blocking isn't a natural part of the algorithm they are
-        // XXX executing. Eg a VP that scales an image in the background.
-        // XXX Boost could be +1 priority every 1/4 second
-        // XXX
-        
-        // Finalize VPs which have exited
-        VirtualProcessor* pCurVP = (VirtualProcessor*)dead_vps.first;
-        while (pCurVP) {
-            VirtualProcessor* pNextVP = (VirtualProcessor*)pCurVP->rewa_queue_entry.next;
-            
-            VirtualProcessor_Destroy(pCurVP);
-            pCurVP = pNextVP;
-        }
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Idle
-////////////////////////////////////////////////////////////////////////////////
-
-
-// Creates an idle virtual processor. The scheduler schedules this VP if no other
-// one is in state ready.
-VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc)
-{
-    VirtualProcessor* pVP = NULL;
-    
-    pVP = (VirtualProcessor*)kalloc(sizeof(VirtualProcessor), HEAP_ALLOC_OPTION_CLEAR);
-    FailNULL(pVP);
-    
-    VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
-    VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(IdleVirtualProcessor_Run, NULL, VP_DEFAULT_KERNEL_STACK_SIZE, 0));
-    
-    return pVP;
-    
-failed:
-    kfree((Byte*)pVP);
-    return NULL;
-}
-
-// Puts the CPU to sleep until an interrupt occurs. The interrupt will give the
-// scheduler a chance to run some other virtual processor if one is ready.
-void IdleVirtualProcessor_Run(Byte* _Nullable pContext)
-{
-    while (true) {
-        cpu_sleep();
     }
 }
 
@@ -393,4 +265,200 @@ void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP)
     print("                usp: %p\n", pVP->save_area.usp);
     print("                 pc: %p\n", pVP->save_area.pc);
     print("                 sr: %p\n", pVP->save_area.sr);
+}
+
+// Terminates the virtual processor that is executing the caller. Does not return
+// to the caller. Note that the actual termination of the virtual processor is
+// handled by the virtual processor scheduler.
+_Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP)
+{
+    VP_ASSERT_ALIVE(pVP)
+    pVP->flags |= VP_FLAG_TERMINATED;
+
+    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
+    assert(pVP == pScheduler->running);
+    
+    // We don't need to save the old preemption state because this VP is going away
+    // and we will never contrext switch back to it
+    (void) VirtualProcessorScheduler_DisablePreemption();
+    
+    // Put the VP on the finalization queue
+    List_InsertAfterLast(&pScheduler->finalizer_queue, &pVP->rewa_queue_entry);
+    
+    
+    // Check whether there are too many VPs on the finalizer queue. If so then we
+    // try to context switch to the scheduler VP otherwise we'll context switch to
+    // whoever else is the bestz camdidate to run.
+    VirtualProcessor* newRunning;
+    const Int FINALIZE_NOW_THRESHOLD = 4;
+    Int dead_vps_count = 0;
+    ListNode* pCurNode = pScheduler->finalizer_queue.first;
+    while (pCurNode != NULL && dead_vps_count < FINALIZE_NOW_THRESHOLD) {
+        pCurNode = pCurNode->next;
+        dead_vps_count++;
+    }
+    
+    if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && pScheduler->scheduler_wait_queue.first != NULL) {
+        // The scheduler VP is currently waiting for work. Let's wake it up.
+        VirtualProcessorScheduler_WakeUpOne(pScheduler,
+                                            &pScheduler->scheduler_wait_queue,
+                                            BootVirtualProcessor_GetShared(),
+                                            WAKEUP_REASON_INTERRUPTED,
+                                            true);
+    } else {
+        // Do a forced context switch to whoever is ready
+        // NOTE: we do NOT put the currently running VP back on the ready queue
+        // because it is dead.
+        VirtualProcessorScheduler_SwitchTo(pScheduler,
+                                           VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler));
+    }
+    
+    // NOT REACHED
+}
+
+// Sleep for the given number of seconds.
+ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
+{
+    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval deadline = TimeInterval_Add(curTime, delay);
+
+    
+    // Use the DelayUntil() facility for short waits and context switching for medium and long waits
+    if (MonotonicClock_DelayUntil(deadline)) {
+        return EOK;
+    }
+    
+    
+    // This is a medium or long wait -> context switch away
+    Int sps = VirtualProcessorScheduler_DisablePreemption();
+    const Int err = VirtualProcessorScheduler_WaitOn(pScheduler, &pScheduler->sleep_queue, deadline, true);
+    VirtualProcessorScheduler_RestorePreemption(sps);
+    
+    return (err == EINTR) ? EINTR : EOK;
+}
+
+// Returns the priority of the given VP.
+Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
+{
+    VP_ASSERT_ALIVE(pVP);
+    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    const Int pri = pVP->priority;
+    
+    VirtualProcessorScheduler_RestorePreemption(sps);
+    return pri;
+}
+
+// Changes the priority of a virtual processor. Does not immediately reschedule
+// the VP if it is currently running. Instead the VP is allowed to finish its
+// current quanta.
+// XXX might want to change that in the future?
+void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
+{
+    VP_ASSERT_ALIVE(pVP);
+    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
+    Int sps = VirtualProcessorScheduler_DisablePreemption();
+    
+    if (pVP->priority != priority) {
+        switch (pVP->state) {
+            case kVirtualProcessorState_Ready: {
+                VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(pScheduler, pVP);
+                pVP->priority = priority;
+                VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, pVP->priority);
+                break;
+            }
+                
+            case kVirtualProcessorState_Waiting:
+            case kVirtualProcessorState_Suspended:
+                pVP->priority = priority;
+                break;
+                
+            case kVirtualProcessorState_Running:
+                pVP->priority = priority;
+                pVP->effectivePriority = priority;
+                pVP->quantum_allowance = QuantumAllowanceForPriority(pVP->effectivePriority);
+                break;
+        }
+    }
+    VirtualProcessorScheduler_RestorePreemption(sps);
+}
+
+// Returns true if the given virtual processor is currently suspended; false otherwise.
+Bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
+{
+    VP_ASSERT_ALIVE(pVP);
+    Bool isSuspended;
+    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    
+    isSuspended = pVP->state == kVirtualProcessorState_Suspended;
+    VirtualProcessorScheduler_RestorePreemption(sps);
+    return isSuspended;
+}
+
+// Suspends the calling virtual processor. This function supports nested calls.
+ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
+{
+    VP_ASSERT_ALIVE(pVP);
+    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
+    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    
+    if (pVP->suspension_count == INT8_MAX) {
+        VirtualProcessorScheduler_RestorePreemption(sps);
+        return EPARAM;
+    }
+    
+    const Int8 oldState = pVP->state;
+    pVP->suspension_count++;
+    pVP->state = kVirtualProcessorState_Suspended;
+    
+    switch (oldState) {
+        case kVirtualProcessorState_Ready:
+            VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(pScheduler, pVP);
+            break;
+            
+        case kVirtualProcessorState_Running:
+            VirtualProcessorScheduler_SwitchTo(pScheduler,
+                                               VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler));
+            break;
+            
+        case kVirtualProcessorState_Waiting:
+            VirtualProcessorScheduler_WakeUpOne(pScheduler, pVP->waiting_on_wait_queue, pVP, WAKEUP_REASON_INTERRUPTED, false);
+            break;
+            
+        case kVirtualProcessorState_Suspended:
+            // We are already suspended
+            break;
+            
+        default:
+            abort();
+            
+    }
+    
+    VirtualProcessorScheduler_RestorePreemption(sps);
+    return EOK;
+}
+
+// Resumes the given virtual processor. The virtual processor is forcefully
+// resumed if 'force' is true. This means that it is resumed even if the suspension
+// count is > 1.
+ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
+{
+    VP_ASSERT_ALIVE(pVP);
+    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
+    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    
+    if (pVP->suspension_count == 0) {
+        VirtualProcessorScheduler_RestorePreemption(sps);
+        return EPARAM;
+    }
+    
+    pVP->suspension_count = force ? 0 : pVP->suspension_count - 1;
+    
+    if (pVP->suspension_count == 0) {
+        VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, pVP->priority);
+        VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pVP);
+    }
+    
+    VirtualProcessorScheduler_RestorePreemption(sps);
+    return EOK;
 }

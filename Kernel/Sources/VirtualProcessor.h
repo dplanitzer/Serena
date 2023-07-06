@@ -188,8 +188,6 @@ typedef struct _VirtualProcessor {
 #define VP_ASSERT_ALIVE(p)   assert((p->flags & VP_FLAG_TERMINATED) == 0)
 
 
-extern VirtualProcessor* _Nonnull SchedulerVirtualProcessor_GetShared(void);
-
 // Returns a reference to the currently running virtual processor. This is the
 // virtual processor that is executing the caller.
 extern VirtualProcessor* _Nonnull VirtualProcessor_GetCurrent(void);
@@ -273,15 +271,5 @@ extern void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP);
 extern void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority);
 
 extern void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP);
-
-
-// The scheduler virtual processor
-extern void SchedulerVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
-extern void SchedulerVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP);
-
-extern void SchedulerVirtualProcessor_Run(Byte* _Nullable pContext);
-
-// The idle virtual processot
-extern VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc);
 
 #endif /* VirtualProcessor_h */

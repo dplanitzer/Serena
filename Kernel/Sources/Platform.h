@@ -19,6 +19,15 @@
 #define CPU_PAGE_SIZE   4096
 
 
+#if __LP64__
+#define STACK_ALIGNMENT  16
+#elif __LP32__
+#define STACK_ALIGNMENT  4
+#else
+#error "don't know how to align stack pointers"
+#endif
+
+
 // CPU register state
 typedef struct _CpuContext {
     // 68000 or better
