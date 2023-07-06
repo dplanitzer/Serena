@@ -25,7 +25,7 @@ const TimeInterval kTimeInterval_MinusInfinity = {INT32_MIN, ONE_SECOND_IN_NANOS
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-void MonotonicCock_Init(void)
+void MonotonicClock_Init(void)
 {
     MonotonicClock* pClock = MonotonicClock_GetShared();
     const SystemDescription* pSysDesc = SystemDescription_GetShared();

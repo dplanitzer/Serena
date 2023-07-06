@@ -103,7 +103,7 @@ typedef struct _MonotonicClock {
 
 
 extern MonotonicClock* _Nonnull MonotonicClock_GetShared(void);
-extern void MonotonicCock_Init(void);
+extern void MonotonicClock_Init(void);
 
 extern Quantums MonotonicClock_GetCurrentQuantums(void);
 extern TimeInterval MonotonicClock_GetCurrentTime(void);
