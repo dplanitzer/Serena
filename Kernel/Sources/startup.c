@@ -71,7 +71,7 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
     assert(pKernelStackBase != NULL);
 
 
-    // Initialize the scheduler virtual processor
+    // Initialize the boot virtual processor
     VirtualProcessor* pVP = BootVirtualProcessor_GetShared();
     BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VirtualProcessor_ClosureFunc)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
 
@@ -88,7 +88,7 @@ void DispatchQueue_RunTests(void);
 
 // Called by the boot virtual processor after onBoot() has returned. This is the thread
 // of execution that was started by the Reset() function.
-static void OnStartup(const SystemDescription* _Nonnull pSysDesc)
+static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
@@ -156,6 +156,6 @@ static void OnStartup(const SystemDescription* _Nonnull pSysDesc)
     // XXX
 
     
-    // Enter the scheduler VP loop
-    BootVirtualProcessor_Run(NULL);
+    // Run the scheduler.
+    VirtualProcessorScheduler_Run(VirtualProcessorScheduler_GetShared());
 }

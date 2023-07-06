@@ -275,44 +275,7 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP)
     VP_ASSERT_ALIVE(pVP)
     pVP->flags |= VP_FLAG_TERMINATED;
 
-    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
-    assert(pVP == pScheduler->running);
-    
-    // We don't need to save the old preemption state because this VP is going away
-    // and we will never contrext switch back to it
-    (void) VirtualProcessorScheduler_DisablePreemption();
-    
-    // Put the VP on the finalization queue
-    List_InsertAfterLast(&pScheduler->finalizer_queue, &pVP->rewa_queue_entry);
-    
-    
-    // Check whether there are too many VPs on the finalizer queue. If so then we
-    // try to context switch to the scheduler VP otherwise we'll context switch to
-    // whoever else is the bestz camdidate to run.
-    VirtualProcessor* newRunning;
-    const Int FINALIZE_NOW_THRESHOLD = 4;
-    Int dead_vps_count = 0;
-    ListNode* pCurNode = pScheduler->finalizer_queue.first;
-    while (pCurNode != NULL && dead_vps_count < FINALIZE_NOW_THRESHOLD) {
-        pCurNode = pCurNode->next;
-        dead_vps_count++;
-    }
-    
-    if (dead_vps_count >= FINALIZE_NOW_THRESHOLD && pScheduler->scheduler_wait_queue.first != NULL) {
-        // The scheduler VP is currently waiting for work. Let's wake it up.
-        VirtualProcessorScheduler_WakeUpOne(pScheduler,
-                                            &pScheduler->scheduler_wait_queue,
-                                            BootVirtualProcessor_GetShared(),
-                                            WAKEUP_REASON_INTERRUPTED,
-                                            true);
-    } else {
-        // Do a forced context switch to whoever is ready
-        // NOTE: we do NOT put the currently running VP back on the ready queue
-        // because it is dead.
-        VirtualProcessorScheduler_SwitchTo(pScheduler,
-                                           VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler));
-    }
-    
+    VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorScheduler_GetShared(), pVP);
     // NOT REACHED
 }
 

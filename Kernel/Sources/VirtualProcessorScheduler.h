@@ -42,33 +42,22 @@ typedef struct _VirtualProcessorScheduler {
     volatile VirtualProcessor* _Nonnull running;                        // Currently running VP
     VirtualProcessor* _Nullable         scheduled;                      // The VP that should be moved to the running state by the context switcher
     VirtualProcessor* _Nonnull          idleVirtualProcessor;           // This VP is scheduled if there is no other VP to schedule
+    VirtualProcessor* _Nonnull          bootVirtualProcessor;           // This is the first VP that was created at boot time for a CPU. It takes care of scheduler chores like destroying terminated VPs
     ReadyQueue                          ready_queue;
     volatile UInt32                     csw_scratch;                    // Used by the CSW to temporarily save A0
     volatile UInt8                      csw_signals;                    // Signals to the context switcher
     UInt8                               csw_hw;                         // Hardware characteristics relevant for context switches
     UInt8                               flags;                          // Scheduler flags
     Int8                                reserved[1];
-    Quantums                            quantums_per_quater_second;     // 1/4 second in terms of quantums
-    List                                timeout_queue;                  // Timeout queue managed by the scheduler. Sorted ascending
-    List                                sleep_queue;                    // VPs which use a sleep() call wait on this wait queue
+    Quantums                            quantums_per_quarter_second;    // 1/4 second in terms of quantums
+    List                                timeout_queue;                  // Timeout queue managed by the scheduler. Sorted ascending by timer deadlines
+    List                                sleep_queue;                    // VPs which block in a sleep() call wait on this wait queue
     List                                scheduler_wait_queue;           // The scheduler VP waits on this queue
     List                                finalizer_queue;
 } VirtualProcessorScheduler;
 
 
 #define QuantumAllowanceForPriority(pri)    ((VP_PRIORITY_HIGHEST - (pri)) >> 3) + 1
-
-
-// The boot virtual processor
-extern VirtualProcessor* _Nonnull BootVirtualProcessor_GetShared(void);
-
-extern void BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
-extern void BootVirtualProcessor_FinishBoot(VirtualProcessor*_Nonnull pVP);
-
-extern void BootVirtualProcessor_Run(Byte* _Nullable pContext);
-
-// The idle virtual processor
-extern VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc);
 
 
 extern VirtualProcessorScheduler* _Nonnull VirtualProcessorScheduler_GetShared(void);
@@ -113,10 +102,19 @@ extern Int VirtualProcessorScheduler_DisableCooperation(void);
 extern void VirtualProcessorScheduler_RestoreCooperation(Int sps);
 extern Int VirtualProcessorScheduler_IsCooperationEnabled(void);
 
+// Gives the virtual processor scheduler opportunities to run tasks that take
+// care of internal duties. This function must be called from the boot virtual
+// processor. This function does not return to the caller. 
+extern _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull pScheduler);
+
 
 //
 // The following functions are for use by the VirtualProcessor implementation.
 //
+
+// Terminates the given virtual processor that is executing the caller. Does not
+// return to the caller. The VP must already have been marked as terminating.
+extern _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 
 extern void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP, Int effectivePriority);
 extern void VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
@@ -125,5 +123,15 @@ extern VirtualProcessor* _Nullable VirtualProcessorScheduler_GetHighestPriorityR
 
 extern void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
+
+
+//
+// The following functions are defined for the scheduler internal VPs: boot and idle.
+//
+
+// The boot virtual processor
+extern VirtualProcessor* _Nonnull BootVirtualProcessor_GetShared(void);
+
+extern void BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
 
 #endif /* VirtualProcessorScheduler_h */
