@@ -52,11 +52,11 @@ Finally install make for Windows and make sure that it is in the `PATH` environm
 
 ### Building Apollo
 
-Open the Apollo project folder in Visual Studio Code and select `Build Kernel` from the `Run Build Task...` menu. This will build the kernel and and generate a `Boot.rom` file insde the `Apollo/Kernel/Sources/build` folder.
+Open the Apollo project folder in Visual Studio Code and select `Build Kernel` from the `Run Build Task...` menu. This will build the kernel and and generate a `Boot.rom` file insde the `Apollo/build/Kernel/` folder.
 
 ### Running Apollo
 
-You first need to create a suitable Amiga 3000 or 4000 configuration in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file to point to the `Boot.rom` in the `Apollo/Kernel/Sources/build` folder. Finally assign at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
+You first need to create an Amiga configuration with at least a 68030 CPU (eg Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file to point to the `Boot.rom` in the `Apollo/build/Kernel/` folder. Finally assign at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
 Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS.
 

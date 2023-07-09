@@ -10,5 +10,6 @@
         "TARGET_CPU_68030=1"
     ],
     "files.associations": {
-    }
+    },
+    "C_Cpp.autoAddFileAssociations": false
 }
