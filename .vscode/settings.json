@@ -4,14 +4,11 @@
         "**/build": true
     },
     "C_Cpp.default.defines": [
+        "DEBUG=1",
         "__LP32__=1",
-        "__BIG_ENDIAN__=1"
+        "__BIG_ENDIAN__=1",
+        "TARGET_CPU_68030=1"
     ],
     "files.associations": {
-        "platform.h": "c",
-        "foundation.h": "c",
-        "initializer_list": "c",
-        "type_traits": "c",
-        "xutility": "c"
     }
 }

@@ -14,7 +14,7 @@
 // http://www.hackersdelight.org/hdcodetxt/divmnu.c.txt
 //
 
-#include "Foundation.h"
+#include "Runtime.h"
 
 extern Int64 _modsint64(Int64 dividend, Int64 divisor);
 extern Int64 _divsint64(Int64 dividend, Int64 divisor);
@@ -61,7 +61,7 @@ int nlz(unsigned int x) {
  that the dividend be at least as long as the divisor.  (In his terms,
  m >= 0 (unstated).  Therefore m+n >= n.) */
 
-ErrorCode divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
+int divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
                  const unsigned short  * _Nonnull u, const unsigned short  * _Nonnull v,
            int m, int n) {
 
@@ -74,7 +74,7 @@ ErrorCode divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
     int s, i, j, t, k;
 
     if (m < n || n <= 0 || v[n-1] == 0)
-        return EPARAM;              // Return if invalid param.
+        return 1;                   // Return if invalid param.
 
     if (n == 1) {                        // Take care of
         k = 0;                            // the case of a
@@ -83,7 +83,7 @@ ErrorCode divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
             k = (k*b + u[j]) - q[j]*v[0];
         }
         if (r != NULL) r[0] = k;
-        return EOK;
+        return 0;
     }
 
     // Normalize by shifting v left just enough so that
@@ -141,11 +141,11 @@ ErrorCode divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
         for (i = 0; i < n; i++)
             r[i] = (un[i] >> s) | (un[i+1] << (16-s));
     }
-    return EOK;
+    return 0;
 }
 
 
-ErrorCode Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64* _Nullable remainder)
+Int Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64* _Nullable remainder)
 {
     i64_t x, y, qx, rx;
     unsigned short q[4], r[4];
@@ -197,8 +197,12 @@ ErrorCode Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient,
     }
 #endif
 
-    ErrorCode err = divmnu(q, r, u, v, m, n);
-    FailErr(err);
+    const int err = divmnu(q, r, u, v, m, n);
+    if (err != 0) {
+        if (quotient) *quotient = 0;
+        if (remainder) *remainder = 0;
+        return err;
+    }
     
     if (quotient) {
         qx.i = 0LL;
@@ -226,10 +230,7 @@ ErrorCode Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient,
         *remainder = rx.i;
     }
 
-    return EOK;
-    
-failed:
-    return err;
+    return 0;
 }
 
 
@@ -269,40 +270,4 @@ Int64 _modsint64_20(Int64 dividend, Int64 divisor)
     Int64_DivMod(dividend, divisor, &quo, &rem);
     
     return rem;
-}
-
-UInt64 _divuint64(UInt64 dividend, UInt64 divisor)
-{
-    Int64 quo;
-
-    Int64_DivMod(dividend, divisor, &quo, NULL);
-
-    return (UInt64) quo;
-}
-
-UInt64 _divuint64_20(UInt64 dividend, UInt64 divisor)
-{
-    Int64 quo;
-    
-    Int64_DivMod(dividend, divisor, &quo, NULL);
-    
-    return (UInt64) quo;
-}
-
-UInt64 _moduint64(UInt64 dividend, UInt64 divisor)
-{
-    Int64 quo, rem;
-
-    Int64_DivMod(dividend, divisor, &quo, &rem);
-
-    return (UInt64) rem;
-}
-
-UInt64 _moduint64_20(UInt64 dividend, UInt64 divisor)
-{
-    Int64 quo, rem;
-    
-    Int64_DivMod(dividend, divisor, &quo, &rem);
-    
-    return (UInt64) rem;
 }

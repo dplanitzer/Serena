@@ -19,7 +19,7 @@
 #include "VirtualProcessorPool.h"
 
 
-static void OnStartup(const SystemDescription* _Nonnull pSysDesc);
+static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 
 
 // Called from the Reset() function at system reset time. Only a very minimal

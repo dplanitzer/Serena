@@ -8,6 +8,7 @@
             "args": [
                 "make",
                 "build",
+                "-s",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {
@@ -27,6 +28,7 @@
             "args": [
                 "make",
                 "clean",
+                "-s",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {

@@ -108,33 +108,3 @@ const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, 
     
     return max(p, p0);
 }
-
-Int Int_NextPowerOf2(Int n)
-{
-    if (n && !(n & (n - 1))) {
-        return n;
-    } else {
-        Int p = 1;
-
-        while (p < n) {
-            p <<= 1;
-        }
-    
-        return p;
-    }
-}
-
-UInt UInt_NextPowerOf2(UInt n)
-{
-    if (n && !(n & (n - 1))) {
-        return n;
-    } else {
-        UInt p = 1;
-        
-        while (p < n) {
-            p <<= 1;
-        }
-        
-        return p;
-    }
-}
