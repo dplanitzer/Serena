@@ -46,13 +46,15 @@ void DispatchQueue_RunTests(void)
 // MARK: DispatchAsync/DispatchAsyncAfter in **User Space**
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 extern void OnUserSpaceHelloWorld(Byte* _Nullable pContext);
 
 void DispatchQueue_RunTests(void)
 {
-//    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_MakeUser(OnUserSpaceHelloWorld, (Byte*)0));
-    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser(OnUserSpaceHelloWorld, (Byte*)0)));
+    //DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_MakeUser(OnUserSpaceHelloWorld, (Byte*)0));
+    //DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser(OnUserSpaceHelloWorld, (Byte*)0)));
+    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser((DispatchQueue_ClosureFunc)0xfe0000, (Byte*)0)));
+    //DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(0), DispatchQueueClosure_MakeUser((DispatchQueue_ClosureFunc)0xfe0000, (Byte*)0)));
 }
 #endif
 
@@ -194,7 +196,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pDriver = SystemGlobals_Get()->event_driver;

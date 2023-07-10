@@ -24,7 +24,7 @@ _OnUserSpaceHelloWorldAndSleep:
     rts
 
 .msg:
-    dc.b    "Hello World from user space!", 10, 0
+    dc.b    "Hello World from user space! (old)", 10, 0
     align   2
 
 
@@ -37,5 +37,5 @@ _OnUserSpaceHelloWorld:
     rts
 
 .msg:
-    dc.b    "Hello World from user space!", 10, 0
+    dc.b    "Hello World from user space! (old)", 10, 0
     align   2

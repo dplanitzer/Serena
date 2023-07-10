@@ -4,12 +4,18 @@
 
 SOURCES_DIR = .
 INCLUDE_DIR := .
+TESTS_SOURCES_DIR := $(PROJECT_DIR)/Kernel/Tests
 RUNTIME_INCLUDE_DIR := $(PROJECT_DIR)/Library/Runtime/Sources
+SYSTEM_LIB_DIR := $(PROJECT_DIR)/Library/System/Sources
 
 KERNEL_BUILD_DIR := $(BUILD_DIR)/Kernel
+TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
 RUNTIME_BUILD_DIR := $(BUILD_DIR)/Library/Runtime
+SYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/System
 
+TESTS_BIN_FILE := $(TESTS_BUILD_DIR)/rom_tests.bin
 RUNTIME_LIB_FILE := $(RUNTIME_BUILD_DIR)/librt.a
+SYSTEM_LIB_FILE := $(SYSTEM_BUILD_DIR)/libsystem.a
 
 C_SOURCES := $(wildcard $(SOURCES_DIR)/*.c)
 ASM_SOURCES := $(wildcard $(SOURCES_DIR)/*.s)
@@ -35,18 +41,22 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(ROM_FILE)
+build: build_dir $(SYSTEM_LIB_FILE) $(ROM_FILE)
 
 build_dir:
 	$(call mkdir_if_needed,$(KERNEL_BUILD_DIR))
 
 
-$(ROM_FILE): $(BIN_FILE) ../finalizerom.py
-	$(PY) ../finalizerom.py $(BIN_FILE) $(ROM_FILE)
+$(ROM_FILE): $(BIN_FILE) $(TESTS_BIN_FILE) ../finalizerom.py
+	$(PY) ../finalizerom.py $(BIN_FILE) $(TESTS_BIN_FILE) $(ROM_FILE)
+
 
 $(BIN_FILE): $(RUNTIME_LIB_FILE) $(C_OBJECTS) $(ASM_OBJECTS)
 	@echo Linking
 	@$(LD) -s -brawbin1 -Ttext 0xfc0000 -o $@ $(KERNEL_BUILD_DIR)/traps.o $(filter-out $(KERNEL_BUILD_DIR)/traps.o, $^)
+
+$(TESTS_BIN_FILE):
+	+$(MAKE) build -C $(TESTS_SOURCES_DIR)
 
 
 $(C_OBJECTS): $(KERNEL_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.c
@@ -62,6 +72,12 @@ $(RUNTIME_LIB_FILE):
 	+$(MAKE) build -C $(RUNTIME_INCLUDE_DIR)
 
 
+$(SYSTEM_LIB_FILE):
+	+$(MAKE) build -C $(SYSTEM_LIB_DIR)
+
+
 clean:
 	$(call rm_if_exists,$(KERNEL_BUILD_DIR))
+	+$(MAKE) clean -C $(SYSTEM_LIB_DIR)
+	+$(MAKE) clean -C $(TESTS_SOURCES_DIR)
 	+$(MAKE) clean -C $(RUNTIME_INCLUDE_DIR)
