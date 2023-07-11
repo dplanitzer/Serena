@@ -84,15 +84,17 @@ export SYSTEM_LIB_FILE := $(SYSTEM_BUILD_DIR)/libsystem.a
 # Build rules
 #
 
-.PHONY: build clean
+.PHONY: build build_all_kernel_projects clean
+.POSIX: build
 
-build: build_all_projects $(ROM_FILE)
+
+build: build_all_kernel_projects $(ROM_FILE)
 
 $(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
 	@echo Making ROM
 	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
 
-build_all_projects:
+build_all_kernel_projects:
 	@echo Building ($(BUILD_CONFIGURATION))
 	+$(MAKE) build -C $(RUNTIME_PROJECT_DIR)
 	+$(MAKE) build -C $(SYSTEM_PROJECT_DIR)
