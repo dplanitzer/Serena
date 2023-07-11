@@ -5,17 +5,11 @@
 SOURCES_DIR = .
 INCLUDE_DIR := .
 TESTS_SOURCES_DIR := $(PROJECT_DIR)/Kernel/Tests
-RUNTIME_INCLUDE_DIR := $(PROJECT_DIR)/Library/Runtime/Sources
-SYSTEM_LIB_DIR := $(PROJECT_DIR)/Library/System/Sources
 
 KERNEL_BUILD_DIR := $(BUILD_DIR)/Kernel
 TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
-RUNTIME_BUILD_DIR := $(BUILD_DIR)/Library/Runtime
-SYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/System
 
 TESTS_BIN_FILE := $(TESTS_BUILD_DIR)/rom_tests.bin
-RUNTIME_LIB_FILE := $(RUNTIME_BUILD_DIR)/librt.a
-SYSTEM_LIB_FILE := $(SYSTEM_BUILD_DIR)/libsystem.a
 
 C_SOURCES := $(wildcard $(SOURCES_DIR)/*.c)
 ASM_SOURCES := $(wildcard $(SOURCES_DIR)/*.s)
@@ -24,7 +18,7 @@ C_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.c, $(KERNEL_BUILD_DIR)/%.o, $(C_SOURCES
 ASM_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.s, $(KERNEL_BUILD_DIR)/%.o, $(ASM_SOURCES))
 
 ROM_FILE := $(KERNEL_BUILD_DIR)/Boot.rom
-BIN_FILE := $(KERNEL_BUILD_DIR)/rom.bin
+BIN_FILE := $(KERNEL_BUILD_DIR)/rom_kernel.bin
 
 
 # --------------------------------------------------------------------------
@@ -41,7 +35,7 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(SYSTEM_LIB_FILE) $(ROM_FILE)
+build: build_dir $(ROM_FILE)
 
 build_dir:
 	$(call mkdir_if_needed,$(KERNEL_BUILD_DIR))
@@ -68,16 +62,6 @@ $(ASM_OBJECTS): $(KERNEL_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.s
 	@$(AS) -I$(INCLUDE_DIR) -o $@ $<
 
 
-$(RUNTIME_LIB_FILE):
-	+$(MAKE) build -C $(RUNTIME_INCLUDE_DIR)
-
-
-$(SYSTEM_LIB_FILE):
-	+$(MAKE) build -C $(SYSTEM_LIB_DIR)
-
-
 clean:
 	$(call rm_if_exists,$(KERNEL_BUILD_DIR))
-	+$(MAKE) clean -C $(SYSTEM_LIB_DIR)
 	+$(MAKE) clean -C $(TESTS_SOURCES_DIR)
-	+$(MAKE) clean -C $(RUNTIME_INCLUDE_DIR)

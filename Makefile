@@ -56,6 +56,24 @@ export PY = python
 
 
 # --------------------------------------------------------------------------
+# Project definitions
+#
+
+KERNEL_PROJECT_DIR := $(PROJECT_DIR)/Kernel/Sources
+export KERNEL_INCLUDE_DIR := $(PROJECT_DIR)/Kernel/Sources
+
+RUNTIME_PROJECT_DIR := $(PROJECT_DIR)/Library/Runtime/Sources
+export RUNTIME_INCLUDE_DIR := $(RUNTIME_PROJECT_DIR)
+export RUNTIME_BUILD_DIR := $(BUILD_DIR)/Library/Runtime
+export RUNTIME_LIB_FILE := $(RUNTIME_BUILD_DIR)/librt.a
+
+SYSTEM_PROJECT_DIR := $(PROJECT_DIR)/Library/System/Sources
+export SYSTEM_INCLUDE_DIR := $(SYSTEM_PROJECT_DIR)
+export SYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/System
+export SYSTEM_LIB_FILE := $(SYSTEM_BUILD_DIR)/libsystem.a
+
+
+# --------------------------------------------------------------------------
 # Build rules
 #
 
@@ -63,11 +81,15 @@ export PY = python
 
 build:
 	@echo Building ($(BUILD_CONFIGURATION))
-	+$(MAKE) build -C ./Kernel/Sources/
+	+$(MAKE) build -C $(RUNTIME_PROJECT_DIR)
+	+$(MAKE) build -C $(SYSTEM_PROJECT_DIR)
+	+$(MAKE) build -C $(KERNEL_PROJECT_DIR)
 	@echo Done
 
 clean:
 	@echo Cleaning
-	+$(MAKE) clean -C ./Kernel/Sources/
+	+$(MAKE) clean -C $(KERNEL_PROJECT_DIR)
+	+$(MAKE) clean -C $(SYSTEM_PROJECT_DIR)
+	+$(MAKE) clean -C $(RUNTIME_PROJECT_DIR)
 	@echo Done
 	

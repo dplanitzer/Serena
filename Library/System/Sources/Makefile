@@ -4,17 +4,12 @@
 
 SOURCES_DIR = .
 INCLUDE_DIR := .
-KERNEL_INCLUDE_DIR := $(PROJECT_DIR)/Kernel/Sources
-
-SYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/System
 
 C_SOURCES := $(wildcard $(SOURCES_DIR)/*.c)
 ASM_SOURCES := $(wildcard $(SOURCES_DIR)/*.s)
 
 C_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.c, $(SYSTEM_BUILD_DIR)/%.o, $(C_SOURCES))
 ASM_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.s, $(SYSTEM_BUILD_DIR)/%.o, $(ASM_SOURCES))
-
-LIB_FILE := $(SYSTEM_BUILD_DIR)/libsystem.a
 
 
 # --------------------------------------------------------------------------
@@ -31,13 +26,13 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(LIB_FILE)
+build: build_dir $(SYSTEM_LIB_FILE)
 
 build_dir:
 	$(call mkdir_if_needed,$(SYSTEM_BUILD_DIR))
 
 
-$(LIB_FILE): $(C_OBJECTS) $(ASM_OBJECTS)
+$(SYSTEM_LIB_FILE): $(C_OBJECTS) $(ASM_OBJECTS)
 	@echo Linking
 	@$(LD) -baoutnull -r -o $@ $^
 

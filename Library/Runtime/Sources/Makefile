@@ -5,15 +5,11 @@
 SOURCES_DIR = .
 INCLUDE_DIR := .
 
-RUNTIME_BUILD_DIR := $(BUILD_DIR)/Library/Runtime
-
 C_SOURCES := $(wildcard $(SOURCES_DIR)/*.c)
 ASM_SOURCES := $(wildcard $(SOURCES_DIR)/*.s)
 
 C_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.c, $(RUNTIME_BUILD_DIR)/%.o, $(C_SOURCES))
 ASM_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.s, $(RUNTIME_BUILD_DIR)/%.o, $(ASM_SOURCES))
-
-LIB_FILE := $(RUNTIME_BUILD_DIR)/librt.a
 
 
 # --------------------------------------------------------------------------
@@ -30,13 +26,13 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(LIB_FILE)
+build: build_dir $(RUNTIME_LIB_FILE)
 
 build_dir:
 	$(call mkdir_if_needed,$(RUNTIME_BUILD_DIR))
 
 
-$(LIB_FILE): $(C_OBJECTS) $(ASM_OBJECTS)
+$(RUNTIME_LIB_FILE): $(C_OBJECTS) $(ASM_OBJECTS)
 	@echo Linking
 	@$(LD) -baoutnull -r -o $@ $^
 
