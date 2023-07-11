@@ -2,14 +2,11 @@
 # Build variables
 #
 
-SOURCES_DIR = .
-INCLUDE_DIR := .
+C_SOURCES := $(wildcard *.c)
+ASM_SOURCES := $(wildcard *.s)
 
-C_SOURCES := $(wildcard $(SOURCES_DIR)/*.c)
-ASM_SOURCES := $(wildcard $(SOURCES_DIR)/*.s)
-
-C_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.c, $(RUNTIME_BUILD_DIR)/%.o, $(C_SOURCES))
-ASM_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.s, $(RUNTIME_BUILD_DIR)/%.o, $(ASM_SOURCES))
+C_OBJECTS	:= $(patsubst %.c, $(RUNTIME_BUILD_DIR)/%.o, $(C_SOURCES))
+ASM_OBJECTS	:= $(patsubst %.s, $(RUNTIME_BUILD_DIR)/%.o, $(ASM_SOURCES))
 
 
 # --------------------------------------------------------------------------
@@ -37,13 +34,13 @@ $(RUNTIME_LIB_FILE): $(C_OBJECTS) $(ASM_OBJECTS)
 	@$(LD) -baoutnull -r -o $@ $^
 
 
-$(C_OBJECTS): $(RUNTIME_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.c
+$(C_OBJECTS): $(RUNTIME_BUILD_DIR)/%.o : %.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(INCLUDE_DIR) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I. -o $@ $<
 
-$(ASM_OBJECTS): $(RUNTIME_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.s
+$(ASM_OBJECTS): $(RUNTIME_BUILD_DIR)/%.o : %.s
 	@echo $<
-	@$(AS) -I$(INCLUDE_DIR) -o $@ $<
+	@$(AS) -I. -o $@ $<
 
 
 clean:

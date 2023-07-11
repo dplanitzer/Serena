@@ -2,8 +2,6 @@
 # Build variables
 #
 
-SOURCES_DIR = .
-INCLUDE_DIR := .
 TESTS_SOURCES_DIR := $(PROJECT_DIR)/Kernel/Tests
 
 KERNEL_BUILD_DIR := $(BUILD_DIR)/Kernel
@@ -11,11 +9,11 @@ TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
 
 TESTS_BIN_FILE := $(TESTS_BUILD_DIR)/rom_tests.bin
 
-C_SOURCES := $(wildcard $(SOURCES_DIR)/*.c)
-ASM_SOURCES := $(wildcard $(SOURCES_DIR)/*.s)
+C_SOURCES := $(wildcard *.c)
+ASM_SOURCES := $(wildcard *.s)
 
-C_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.c, $(KERNEL_BUILD_DIR)/%.o, $(C_SOURCES))
-ASM_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.s, $(KERNEL_BUILD_DIR)/%.o, $(ASM_SOURCES))
+C_OBJECTS	:= $(patsubst %.c, $(KERNEL_BUILD_DIR)/%.o, $(C_SOURCES))
+ASM_OBJECTS	:= $(patsubst %.s, $(KERNEL_BUILD_DIR)/%.o, $(ASM_SOURCES))
 
 ROM_FILE := $(KERNEL_BUILD_DIR)/Boot.rom
 BIN_FILE := $(KERNEL_BUILD_DIR)/rom_kernel.bin
@@ -53,13 +51,13 @@ $(TESTS_BIN_FILE):
 	+$(MAKE) build -C $(TESTS_SOURCES_DIR)
 
 
-$(C_OBJECTS): $(KERNEL_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.c
+$(C_OBJECTS): $(KERNEL_BUILD_DIR)/%.o : %.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(INCLUDE_DIR) -I$(RUNTIME_INCLUDE_DIR) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I. -I$(RUNTIME_INCLUDE_DIR) -o $@ $<
 
-$(ASM_OBJECTS): $(KERNEL_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.s
+$(ASM_OBJECTS): $(KERNEL_BUILD_DIR)/%.o : %.s
 	@echo $<
-	@$(AS) -I$(INCLUDE_DIR) -o $@ $<
+	@$(AS) -I. -o $@ $<
 
 
 clean:

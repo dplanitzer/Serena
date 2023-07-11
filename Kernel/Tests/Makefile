@@ -2,16 +2,13 @@
 # Build variables
 #
 
-SOURCES_DIR = .
-INCLUDE_DIR := .
-
 TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
 
-C_SOURCES := $(wildcard $(SOURCES_DIR)/*.c)
-ASM_SOURCES := $(wildcard $(SOURCES_DIR)/*.s)
+C_SOURCES := $(wildcard *.c)
+ASM_SOURCES := $(wildcard *.s)
 
-C_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.c, $(TESTS_BUILD_DIR)/%.o, $(C_SOURCES))
-ASM_OBJECTS	:= $(patsubst $(SOURCES_DIR)/%.s, $(TESTS_BUILD_DIR)/%.o, $(ASM_SOURCES))
+C_OBJECTS	:= $(patsubst %.c, $(TESTS_BUILD_DIR)/%.o, $(C_SOURCES))
+ASM_OBJECTS	:= $(patsubst %.s, $(TESTS_BUILD_DIR)/%.o, $(ASM_SOURCES))
 
 BIN_FILE := $(TESTS_BUILD_DIR)/rom_tests.bin
 
@@ -41,13 +38,13 @@ $(BIN_FILE): $(RUNTIME_LIB_FILE) $(SYSTEM_LIB_FILE) $(C_OBJECTS) $(ASM_OBJECTS)
 	@$(LD) -s -brawbin1 -Ttext 0xfe0000 -o $@ $(TESTS_BUILD_DIR)/HelloWorld.o $(filter-out $(TESTS_BUILD_DIR)/HelloWorld.o, $^)
 
 
-$(C_OBJECTS): $(TESTS_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.c
+$(C_OBJECTS): $(TESTS_BUILD_DIR)/%.o : %.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(INCLUDE_DIR) -I$(RUNTIME_INCLUDE_DIR) -I$(SYSTEM_INCLUDE_DIR) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I. -I$(RUNTIME_INCLUDE_DIR) -I$(SYSTEM_INCLUDE_DIR) -o $@ $<
 
-$(ASM_OBJECTS): $(TESTS_BUILD_DIR)/%.o : $(SOURCES_DIR)/%.s
+$(ASM_OBJECTS): $(TESTS_BUILD_DIR)/%.o : %.s
 	@echo $<
-	@$(AS) -I$(INCLUDE_DIR) -o $@ $<
+	@$(AS) -I. -o $@ $<
 
 
 clean:
