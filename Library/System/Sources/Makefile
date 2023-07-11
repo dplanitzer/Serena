@@ -25,9 +25,11 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(SYSTEM_LIB_FILE)
+build: $(SYSTEM_LIB_FILE)
 
-build_dir:
+$(OBJS): | $(SYSTEM_BUILD_DIR)
+
+$(SYSTEM_BUILD_DIR):
 	$(call mkdir_if_needed,$(SYSTEM_BUILD_DIR))
 
 

@@ -27,9 +27,11 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(BIN_FILE)
+build: $(BIN_FILE)
 
-build_dir:
+$(OBJS): | $(TESTS_BUILD_DIR)
+
+$(TESTS_BUILD_DIR):
 	$(call mkdir_if_needed,$(TESTS_BUILD_DIR))
 
 

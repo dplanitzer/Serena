@@ -23,14 +23,15 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(RUNTIME_LIB_FILE)
+build: $(RUNTIME_LIB_FILE)
 
-build_dir:
+$(OBJS): | $(RUNTIME_BUILD_DIR)
+
+$(RUNTIME_BUILD_DIR):
 	$(call mkdir_if_needed,$(RUNTIME_BUILD_DIR))
 
 
 $(RUNTIME_LIB_FILE): $(OBJS)
-	@echo Linking
 	@$(LD) -baoutnull -r -o $@ $^
 
 

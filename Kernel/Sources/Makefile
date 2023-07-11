@@ -33,9 +33,11 @@ include $(PROJECT_DIR)/common.mk
 .PHONY: clean
 
 
-build: build_dir $(ROM_FILE)
+build: $(ROM_FILE)
 
-build_dir:
+$(OBJS): | $(KERNEL_BUILD_DIR)
+
+$(KERNEL_BUILD_DIR):
 	$(call mkdir_if_needed,$(KERNEL_BUILD_DIR))
 
 
