@@ -60,7 +60,14 @@ export PY = python
 #
 
 KERNEL_PROJECT_DIR := $(PROJECT_DIR)/Kernel/Sources
+KERNEL_TESTS_PROJECT_DIR := $(PROJECT_DIR)/Kernel/Tests
 export KERNEL_INCLUDE_DIR := $(PROJECT_DIR)/Kernel/Sources
+export KERNEL_BUILD_DIR := $(BUILD_DIR)/Kernel
+export KERNEL_TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
+
+ROM_FILE := $(KERNEL_BUILD_DIR)/Boot.rom
+export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/rom_kernel.bin
+export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/rom_tests.bin
 
 RUNTIME_PROJECT_DIR := $(PROJECT_DIR)/Library/Runtime/Sources
 export RUNTIME_INCLUDE_DIR := $(RUNTIME_PROJECT_DIR)
@@ -79,16 +86,24 @@ export SYSTEM_LIB_FILE := $(SYSTEM_BUILD_DIR)/libsystem.a
 
 .PHONY: build clean
 
-build:
+build: build_all_projects $(ROM_FILE)
+
+$(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
+	@echo Making ROM
+	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
+
+build_all_projects:
 	@echo Building ($(BUILD_CONFIGURATION))
 	+$(MAKE) build -C $(RUNTIME_PROJECT_DIR)
 	+$(MAKE) build -C $(SYSTEM_PROJECT_DIR)
 	+$(MAKE) build -C $(KERNEL_PROJECT_DIR)
+	+$(MAKE) build -C $(KERNEL_TESTS_PROJECT_DIR)
 	@echo Done
 
 clean:
 	@echo Cleaning
 	+$(MAKE) clean -C $(KERNEL_PROJECT_DIR)
+	+$(MAKE) clean -C $(KERNEL_TESTS_PROJECT_DIR)
 	+$(MAKE) clean -C $(SYSTEM_PROJECT_DIR)
 	+$(MAKE) clean -C $(RUNTIME_PROJECT_DIR)
 	@echo Done

@@ -32,6 +32,7 @@ $(RUNTIME_BUILD_DIR):
 
 
 $(RUNTIME_LIB_FILE): $(OBJS)
+	@echo Linking
 	@$(LD) -baoutnull -r -o $@ $^
 
 
