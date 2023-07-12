@@ -28,11 +28,7 @@ typedef struct _SystemGlobals {
     FloppyDMA* _Nonnull                 floppy_dma;                 // Floppy DMA singleton
     volatile Int                        next_available_vpid;        // Next available virtual processor ID
     VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;
-    void* _Nonnull                      dispatch_queue_main;
-    void* _Nonnull                      dispatch_queue_realtime;
-    void* _Nonnull                      dispatch_queue_utility;
-    void* _Nonnull                      dispatch_queue_background;
-    void* _Nonnull                      dispatch_queue_idle;
+    void* _Nonnull                      kernel_main_dispatch_queue;
     EventDriverRef _Nonnull             event_driver;
 } SystemGlobals;
 

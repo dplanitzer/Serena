@@ -125,32 +125,10 @@ static inline Bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
 // Dispatch Queues
 //
 
-// Concurrent queue
-static inline DispatchQueueRef _Nonnull DispatchQueue_GetRealtime(void) {
-    return SystemGlobals_Get()->dispatch_queue_realtime;
-}
-
 // Serial queue
 static inline DispatchQueueRef _Nonnull DispatchQueue_GetMain(void) {
-    return SystemGlobals_Get()->dispatch_queue_main;
+    return SystemGlobals_Get()->kernel_main_dispatch_queue;
 }
-
-// Concurrent queue
-static inline DispatchQueueRef _Nonnull DispatchQueue_GetUtility(void) {
-    return SystemGlobals_Get()->dispatch_queue_utility;
-}
-
-// Concurrent queue
-static inline DispatchQueueRef _Nonnull DispatchQueue_GetBackground(void) {
-    return SystemGlobals_Get()->dispatch_queue_background;
-}
-
-// Concurrent queue
-static inline DispatchQueueRef _Nonnull DispatchQueue_GetIdle(void) {
-    return SystemGlobals_Get()->dispatch_queue_main;
-}
-
-extern void DispatchQueue_CreateKernelQueues(const SystemDescription* _Nonnull pSysDesc);
 
 
 extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority);

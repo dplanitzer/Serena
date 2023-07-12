@@ -19,7 +19,8 @@
 #include "VirtualProcessorPool.h"
 
 
-static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
+static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc);
+static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc);
 
 
 // Called from the Reset() function at system reset time. Only a very minimal
@@ -73,22 +74,19 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Initialize the boot virtual processor
     VirtualProcessor* pVP = BootVirtualProcessor_GetShared();
-    BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VirtualProcessor_ClosureFunc)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
+    BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VirtualProcessor_ClosureFunc)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
 
     
     // Initialize the scheduler
     VirtualProcessorScheduler_Init(VirtualProcessorScheduler_GetShared(), pSysDesc, pVP);
 }
 
-
-// XXX
-void VirtualProcessor_RunTests(void);
-void DispatchQueue_RunTests(void);
-// XXX
-
 // Called by the boot virtual processor after onBoot() has returned. This is the thread
 // of execution that was started by the Reset() function.
-static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
+//
+// Phase 1 initialization is responsible for bringing up the interrupt handling,
+// basic memort management, monotonic clock and the kernel main dispatch queue.
+static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 {
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
@@ -112,16 +110,41 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     
     // Initialize the virtual processor pool
     pGlobals->virtual_processor_pool = VirtualProcessorPool_Create();
+    assert(pGlobals->virtual_processor_pool != NULL);
     
     
     // Initialize the dispatch queue services
-    DispatchQueue_CreateKernelQueues(pSysDesc);
+    pGlobals->kernel_main_dispatch_queue = DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0);
+    assert(pGlobals->kernel_main_dispatch_queue != NULL);
     
     
     // Enable interrupt handling
     cpu_enable_irqs();
 
     
+    // Continue the kernel startup on the kernel main queue
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make((DispatchQueue_ClosureFunc)OnStartup_Phase2, (Byte*)pSysDesc));
+
+    
+    // The boot virtual processor now takes over the duties of running the
+    // virtual processor scheduler service tasks.
+    VirtualProcessorScheduler_Run(VirtualProcessorScheduler_GetShared());
+}
+
+
+// XXX
+void DispatchQueue_RunTests(void);
+// XXX
+
+// Called by the boot virtual processor after it has finished initializing all
+// dispatch queue related services.
+//
+// Phase 2 initialization is responsible for bringing up the device manager and
+// the first process.
+static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
+{
+    SystemGlobals* pGlobals = SystemGlobals_Get();
+
     // Initialize I/O services needed by the console
     pGlobals->rtc = RealtimeClock_Create(pSysDesc);
     
@@ -151,11 +174,6 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     // XXX Unit tests
     //InterruptController_Dump(InterruptController_GetShared());
-    //VirtualProcessor_RunTests();
     DispatchQueue_RunTests();
     // XXX
-
-    
-    // Run the scheduler.
-    VirtualProcessorScheduler_Run(VirtualProcessorScheduler_GetShared());
 }

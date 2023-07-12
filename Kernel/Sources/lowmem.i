@@ -343,14 +343,10 @@ sg_rtc                          so.l    1       ; 4
 sg_floppy_dma                   so.l    1       ; 4
 sg_next_available_vpid          so.l    1       ; 4
 sg_virtual_processor_pool       so.l    1       ; 4
-sg_dispatch_queue_main          so.l    1       ; 4
-sg_dispatch_queue_realtime      so.l    1       ; 4
-sg_dispatch_queue_utility       so.l    1       ; 4
-sg_dispatch_queue_background    so.l    1       ; 4
-sg_dispatch_queue_idle          so.l    1       ; 4
+sg_kernel_main_dispatch_queue   so.l    1       ; 4
 sg_event_driver                 so.l    1       ; 4
 sg_SIZEOF                   so
-    ifeq (sg_SIZEOF == 52)
+    ifeq (sg_SIZEOF == 36)
         fail "SystemGlobals structure size is incorrect."
     endif
 

@@ -254,28 +254,6 @@ void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem)
 // MARK: Dispatch Queue
 
 
-// Called at kernel startup time in order to create all kernel queues. Aborts
-// if creation of a queue fails.
-void DispatchQueue_CreateKernelQueues(const SystemDescription* _Nonnull pSysDesc)
-{
-    SystemGlobals* pSysGlobals = SystemGlobals_Get();
-    
-    pSysGlobals->dispatch_queue_realtime = DispatchQueue_Create(4, DISPATCH_QOS_REALTIME, 0);
-    assert(pSysGlobals->dispatch_queue_realtime != NULL);
-    
-    pSysGlobals->dispatch_queue_main = DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0);
-    assert(pSysGlobals->dispatch_queue_main != NULL);
-    
-    pSysGlobals->dispatch_queue_utility = DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0);
-    assert(pSysGlobals->dispatch_queue_utility != NULL);
-    
-    pSysGlobals->dispatch_queue_background = DispatchQueue_Create(4, DISPATCH_QOS_BACKGROUND, 0);
-    assert(pSysGlobals->dispatch_queue_background != NULL);
-    
-    pSysGlobals->dispatch_queue_idle = DispatchQueue_Create(2, DISPATCH_QOS_IDLE, 0);
-    assert(pSysGlobals->dispatch_queue_idle != NULL);
-}
-
 DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority)
 {
     assert(maxConcurrency >= 1);
