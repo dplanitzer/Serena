@@ -34,22 +34,18 @@ static inline Byte* _Nonnull ExecutionStack_GetInitialTop(ExecutionStack* _Nonnu
 }
 
 
-// Type of the first function a VP will run when it is resumed
-typedef void (* _Nonnull VirtualProcessor_ClosureFunc)(Byte* _Nullable pContext);
-
-
 // This structure describes a virtual processor closure which is a function entry
 // point, a context parameter that will be passed to the closure function and the
 // kernel plus user stack size.
 typedef struct _VirtualProcessorClosure {
-    VirtualProcessor_ClosureFunc _Nonnull   func;
-    Byte* _Nullable _Weak                   context;
-    Byte* _Nullable                         kernelStackBase;    // Optional base address of a pre-allocated kernel stack
-    Int                                     kernelStackSize;
-    Int                                     userStackSize;
+    Closure1Arg_Func _Nonnull   func;
+    Byte* _Nullable _Weak       context;
+    Byte* _Nullable             kernelStackBase;    // Optional base address of a pre-allocated kernel stack
+    Int                         kernelStackSize;
+    Int                         userStackSize;
 } VirtualProcessorClosure;
 
-static inline VirtualProcessorClosure VirtualProcessorClosure_Make(VirtualProcessor_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext, Int kernelStackSize, Int userStackSize) {
+static inline VirtualProcessorClosure VirtualProcessorClosure_Make(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext, Int kernelStackSize, Int userStackSize) {
     VirtualProcessorClosure c;
     c.func = pFunc;
     c.context = pContext;
@@ -62,7 +58,7 @@ static inline VirtualProcessorClosure VirtualProcessorClosure_Make(VirtualProces
 // Creates a virtua processor closure with the given function and context parameter.
 // The closure will run on a pre-allocated kernel stack. Note that the kernel stack
 // must stay allocated until the virtual processor is terminated.
-static inline VirtualProcessorClosure VirtualProcessorClosure_MakeWithPreallocatedKernelStack(VirtualProcessor_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext, Byte* _Nonnull pKernelStackBase, Int kernelStackSize) {
+static inline VirtualProcessorClosure VirtualProcessorClosure_MakeWithPreallocatedKernelStack(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext, Byte* _Nonnull pKernelStackBase, Int kernelStackSize) {
     VirtualProcessorClosure c;
     c.func = pFunc;
     c.context = pContext;

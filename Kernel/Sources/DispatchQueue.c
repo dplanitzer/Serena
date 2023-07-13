@@ -13,6 +13,7 @@
 #include "Lock.h"
 #include "MonotonicClock.h"
 #include "Semaphore.h"
+#include "SystemGlobals.h"
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
 
@@ -69,24 +70,25 @@ enum QueueState {
 #define MAX_TIMER_CACHE_COUNT   8
 #define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
 typedef struct _DispatchQueue {
-    SList               item_queue;         // Queue of work items that should be executed as soon as possible
-    SList               timer_queue;        // Queue of items that should be executed on or after their deadline
-    SList               item_cache_queue;   // Cache of reusable work items
-    SList               timer_cache_queue;  // Cache of reusable timers
-    SList               completion_signaler_cache_queue;    // Cache of reusable completion signalers
-    Lock                lock;
-    ConditionVariable   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has bbeen enqueued
-    ConditionVariable   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinqushed itself because the queue is in the process of shutting down
-    Int                 items_queued_count;         // Number of work items queued up (item_queue)
-    Int8                state;                      // The current dispatch queue state
-    Int8                maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
-    Int8                availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
-    Int8                qos;
-    Int8                priority;
-    Int8                item_cache_count;
-    Int8                timer_cache_count;
-    Int8                completion_signaler_count;
-    ConcurrencyLane     concurrency_lanes[1];   // Up to 'maxConcurrency' concurrency lanes
+    SList                       item_queue;         // Queue of work items that should be executed as soon as possible
+    SList                       timer_queue;        // Queue of items that should be executed on or after their deadline
+    SList                       item_cache_queue;   // Cache of reusable work items
+    SList                       timer_cache_queue;  // Cache of reusable timers
+    SList                       completion_signaler_cache_queue;    // Cache of reusable completion signalers
+    Lock                        lock;
+    ConditionVariable           work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has bbeen enqueued
+    ConditionVariable           vp_shutdown_signaler;       // Used by a VP to indicate that it has relinqushed itself because the queue is in the process of shutting down
+    ProcessRef _Nullable _Weak  owning_process;             // The process that owns this queue
+    Int                         items_queued_count;         // Number of work items queued up (item_queue)
+    Int8                        state;                      // The current dispatch queue state
+    Int8                        maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
+    Int8                        availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
+    Int8                        qos;
+    Int8                        priority;
+    Int8                        item_cache_count;
+    Int8                        timer_cache_count;
+    Int8                        completion_signaler_count;
+    ConcurrencyLane             concurrency_lanes[1];   // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
 
@@ -253,8 +255,14 @@ void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem)
 // MARK: -
 // MARK: Dispatch Queue
 
+// Serial queue
+DispatchQueueRef _Nonnull DispatchQueue_GetMain(void)
+{
+    return SystemGlobals_Get()->kernel_main_dispatch_queue;
+}
 
-DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority)
+
+DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, ProcessRef _Nullable _Weak pProc)
 {
     assert(maxConcurrency >= 1);
 
@@ -269,6 +277,7 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
         Lock_Init(&pQueue->lock);
         ConditionVariable_Init(&pQueue->work_available_signaler);
         ConditionVariable_Init(&pQueue->vp_shutdown_signaler);
+        pQueue->owning_process = pProc;
         pQueue->items_queued_count = 0;
         pQueue->state = kQueueState_Running;
         pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
@@ -370,9 +379,18 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         Lock_Deinit(&pQueue->lock);
         ConditionVariable_Deinit(&pQueue->work_available_signaler);
         ConditionVariable_Deinit(&pQueue->vp_shutdown_signaler);
+        pQueue->owning_process = NULL;
 
         kfree((Byte*) pQueue);
     }
+}
+
+
+// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
+// queue is not owned by any particular process. Eg the kernel main dispatch queue.
+ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue)
+{
+    return pQueue->owning_process;
 }
 
 
@@ -381,7 +399,7 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
 // and acquires a virtual processor from the virtual processor pool if necessary.
 // The virtual processor is attached to the dispatch queue and remains attached
 // until it is relinqushed by the queue.
-static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor_ClosureFunc _Nonnull pWorkerFunc)
+static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, Closure1Arg_Func _Nonnull pWorkerFunc)
 {
     // Acquire a new virtual processor if we haven't already filled up all
     // concurrency lanes available to us and one of the following is true:
@@ -532,7 +550,7 @@ static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull
     SList_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
     pQueue->items_queued_count++;
 
-    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_ClosureFunc)DispatchQueue_Run);
+    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
     ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
@@ -579,7 +597,7 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
 void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
-    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (VirtualProcessor_ClosureFunc)DispatchQueue_Run);
+    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
     ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
 }
 

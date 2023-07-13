@@ -344,9 +344,11 @@ sg_floppy_dma                   so.l    1       ; 4
 sg_next_available_vpid          so.l    1       ; 4
 sg_virtual_processor_pool       so.l    1       ; 4
 sg_kernel_main_dispatch_queue   so.l    1       ; 4
+sg_next_available_pid           so.l    1       ; 4
+sg_root_process                 so.l    1       ; 4
 sg_event_driver                 so.l    1       ; 4
 sg_SIZEOF                   so
-    ifeq (sg_SIZEOF == 36)
+    ifeq (sg_SIZEOF == 44)
         fail "SystemGlobals structure size is incorrect."
     endif
 

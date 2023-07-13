@@ -10,8 +10,9 @@
 #define DispatchQueue_h
 
 #include "Foundation.h"
+#include "MonotonicClock.h"
+#include "Process.h"
 #include "SystemDescription.h"
-#include "SystemGlobals.h"
 
 
 // Quality of Service level. From highest to lowest.
@@ -34,9 +35,6 @@
 #define DISPATCH_PRIORITY_COUNT     12
 
 
-// Type of the function a dispatch queue invokes
-typedef void (* _Nonnull DispatchQueue_ClosureFunc)(Byte* _Nullable pContext);
-
 struct _WorkItem;
 typedef struct _WorkItem* WorkItemRef;
 
@@ -53,13 +51,13 @@ typedef struct _DispatchQueue* DispatchQueueRef;
 //
 
 typedef struct _DispatchQueueClosure {
-    DispatchQueue_ClosureFunc _Nonnull  func;
-    Byte* _Nullable _Weak               context;
-    Bool                                isUser;
-    Int8                                reserved[3];
+    Closure1Arg_Func _Nonnull   func;
+    Byte* _Nullable _Weak       context;
+    Bool                        isUser;
+    Int8                        reserved[3];
 } DispatchQueueClosure;
 
-static inline DispatchQueueClosure DispatchQueueClosure_Make(DispatchQueue_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
+static inline DispatchQueueClosure DispatchQueueClosure_Make(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
     DispatchQueueClosure c;
     c.func = pFunc;
     c.context = pContext;
@@ -67,7 +65,7 @@ static inline DispatchQueueClosure DispatchQueueClosure_Make(DispatchQueue_Closu
     return c;
 }
 
-static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(DispatchQueue_ClosureFunc _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
+static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
     DispatchQueueClosure c;
     c.func = pFunc;
     c.context = pContext;
@@ -126,18 +124,20 @@ static inline Bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
 //
 
 // Serial queue
-static inline DispatchQueueRef _Nonnull DispatchQueue_GetMain(void) {
-    return SystemGlobals_Get()->kernel_main_dispatch_queue;
-}
+extern DispatchQueueRef _Nonnull DispatchQueue_GetMain(void);
 
 
-extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority);
+extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, ProcessRef _Nullable _Weak pProc);
 
 // Destroys the dispatch queue after all still pending work items have finished
 // executing. Pending one-shot and repeatable timers are cancelled and get no
 // more chance to run. Blocks the caller until the queue has been drained and
 // deallocated.
 extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
+
+// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
+// queue is not owned by any particular process. Eg the kernel main dispatch queue.
+extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue);
 
 // Similar to DispatchQueue_Destroy() but allows you to specify whether still
 // pending work items should be flushed or executed.

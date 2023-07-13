@@ -9,6 +9,7 @@
     include <syscalls.i>
 
     xdef _print
+    xdef _dispatchAsync
     xdef _sleep
 
 
@@ -17,7 +18,16 @@
 _print:
     cargs prt_string_ptr.l
     move.l  prt_string_ptr(sp), a1
-    SYSCALL SC_PRINT
+    SYSCALL SC_print
+    rts
+
+
+;-------------------------------------------------------------------------------
+; void dispatchAsync(void* _Nonnull pUserClosure)
+_dispatchAsync:
+    cargs dspasync_closure_ptr.l
+    move.l  dspasync_closure_ptr(sp), a1
+    SYSCALL SC_dispatchAsync
     rts
 
 
@@ -28,6 +38,6 @@ _sleep:
     move.l  d2, -(sp)
     move.l  slp_seconds(sp), d1
     move.l  slp_nanoseconds(sp), d2
-    SYSCALL SC_SLEEP
+    SYSCALL SC_sleep
     move.l  (sp)+, d2
     rts

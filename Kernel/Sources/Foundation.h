@@ -43,6 +43,10 @@ typedef Int ErrorCode;
 #define EBUSY       14
 
 
+// A callback function that takes a single (context) pointer argument
+typedef void (* _Nonnull Closure1Arg_Func)(Byte* _Nullable pContext);
+
+
 // Int64
 extern const Character* _Nonnull Int64_ToString(Int64 val, Int base, Int fieldWidth, Character paddingChar, Character* _Nonnull pString, Int maxLength);
 

@@ -10,11 +10,13 @@
 #define SystemGlobals_h
 
 #include "Foundation.h"
+#include "Atomic.h"
 #include "Console.h"
 #include "EventDriver.h"
 #include "FloppyDisk.h"
 #include "GraphicsDriver.h"
 #include "Heap.h"
+#include "Process.h"
 #include "RealtimeClock.h"
 #include "VirtualProcessorPool.h"
 
@@ -29,6 +31,8 @@ typedef struct _SystemGlobals {
     volatile Int                        next_available_vpid;        // Next available virtual processor ID
     VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;
     void* _Nonnull                      kernel_main_dispatch_queue;
+    AtomicInt                           next_available_pid;
+    ProcessRef _Nonnull                 root_process;
     EventDriverRef _Nonnull             event_driver;
 } SystemGlobals;
 

@@ -32,6 +32,7 @@ typedef Int ErrorCode;
 
 
 extern void print(Character* _Nonnull pString);
+extern void dispatchAsync(void* _Nonnull pClosure);
 extern void sleep(Int seconds, Int nanoseconds);
 
 #endif /* System_h */

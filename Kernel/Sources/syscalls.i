@@ -24,9 +24,10 @@ ERANGE      equ 10
 
 
 ; System call numbers
-SC_SLEEP        equ     0       ; sleep(seconds: d1, nanoseconds: d2) -> Void
-SC_PRINT        equ     1       ; print(string: a1) -> Void
-SC_COUNT        equ     2       ; number of system calls
+SC_sleep            equ     0       ; sleep(seconds: d1, nanoseconds: d2) -> Void
+SC_print            equ     1       ; print(pString: a1) -> Void
+SC_dispatchAsync    equ     2       ; dispatchAsync(pUserClosure: a1) -> Void
+SC_numberOfCalls    equ     3       ; number of system calls
 
 
 ; System call ABI

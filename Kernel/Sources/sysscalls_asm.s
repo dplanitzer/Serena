@@ -11,8 +11,9 @@
     include "syscalls.i"
 
     xref _fatalError
-    xref __syscall_VirtualProcessor_Sleep
-    xref __syscall_VirtualProcessor_Print
+    xref __syscall_sleep
+    xref __syscall_print
+    xref __syscall_dispatchAsync
 
     xdef _SystemCallHandler
 
@@ -20,11 +21,12 @@
 ; System call table
 syscall_table_desc:
     dc.l    0
-    dc.l    SC_COUNT-1
+    dc.l    SC_numberOfCalls-1
 
 syscall_table:
-    dc.l __syscall_VirtualProcessor_Sleep
-    dc.l __syscall_VirtualProcessor_Print
+    dc.l __syscall_sleep
+    dc.l __syscall_print
+    dc.l __syscall_dispatchAsync
 
 
 ;-------------------------------------------------------------------------------

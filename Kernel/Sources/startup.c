@@ -14,6 +14,7 @@
 #include "InterruptController.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
+#include "Process.h"
 #include "SystemGlobals.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
@@ -74,7 +75,7 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Initialize the boot virtual processor
     VirtualProcessor* pVP = BootVirtualProcessor_GetShared();
-    BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VirtualProcessor_ClosureFunc)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
+    BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
 
     
     // Initialize the scheduler
@@ -114,7 +115,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
     
     // Initialize the dispatch queue services
-    pGlobals->kernel_main_dispatch_queue = DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0);
+    pGlobals->kernel_main_dispatch_queue = DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, NULL);
     assert(pGlobals->kernel_main_dispatch_queue != NULL);
     
     
@@ -123,18 +124,13 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Continue the kernel startup on the kernel main queue
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make((DispatchQueue_ClosureFunc)OnStartup_Phase2, (Byte*)pSysDesc));
+    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make((Closure1Arg_Func)OnStartup_Phase2, (Byte*)pSysDesc));
 
     
     // The boot virtual processor now takes over the duties of running the
     // virtual processor scheduler service tasks.
     VirtualProcessorScheduler_Run(VirtualProcessorScheduler_GetShared());
 }
-
-
-// XXX
-void DispatchQueue_RunTests(void);
-// XXX
 
 // Called by the boot virtual processor after it has finished initializing all
 // dispatch queue related services.
@@ -172,8 +168,18 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
     assert(pGlobals->event_driver != NULL);
         
 
+#if 1
+    // Create the root process and kick it off running
+    pGlobals->root_process = Process_Create(Process_GetNextAvailablePID());
+    assert(pGlobals->root_process);
+
+    Process_DispatchAsyncUser(pGlobals->root_process, (Closure1Arg_Func)0xfe0000);
+#else
     // XXX Unit tests
+    void DispatchQueue_RunTests(void);
+
     //InterruptController_Dump(InterruptController_GetShared());
     DispatchQueue_RunTests();
     // XXX
+#endif
 }
