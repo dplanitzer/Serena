@@ -236,7 +236,11 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
 //                             call-as-user invocation.
 ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
 {
-    VirtualProcessor_Suspend(pVP);
+    const Bool isCallerRunningOnVpToManipulate = (VirtualProcessor_GetCurrent() == pVP);
+
+    if (!isCallerRunningOnVpToManipulate) {
+        VirtualProcessor_Suspend(pVP);
+    }
 
     if ((pVP->save_area.sr & 0x2000) != 0) {
         // Kernel space:
@@ -248,10 +252,17 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
     } else {
         // User space:
         // redirect the VP to the new call
+        if (isCallerRunningOnVpToManipulate) {
+            // Can not change the PC while we are executing on the VP that we are
+            // suposed to manipulate
+            abort();
+        }
         pVP->save_area.pc = (UInt32)cpu_abort_call_as_user;
     }
 
-    VirtualProcessor_Resume(pVP, false);
+    if (!isCallerRunningOnVpToManipulate) {
+        VirtualProcessor_Resume(pVP, false);
+    }
     
     return EOK;
 }

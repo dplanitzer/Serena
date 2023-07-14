@@ -92,6 +92,9 @@ typedef struct _DispatchQueue {
 } DispatchQueue;
 
 
+static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Work Items
@@ -327,7 +330,9 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         if (flush) {
             // Free the still pending work items now
             while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
-                WorkItem_Destroy(pItem);
+                if (pItem->is_owned_by_queue) {
+                    WorkItem_Destroy(pItem);
+                }
             }
         }
 
@@ -338,7 +343,9 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         // queue can not assume that a scheduled timer may get one last chance
         // to run.
         while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
-            Timer_Destroy(pTimer);
+            if (pTimer->item.is_owned_by_queue) {
+                Timer_Destroy(pTimer);
+            }
         }
 
 
@@ -713,6 +720,31 @@ DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
     return (DispatchQueueRef) VirtualProcessor_GetCurrent()->dispatchQueue;
 }
 
+// Removes all queued work items, one-shot and repeatable timers from the queue.
+void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
+{
+    Lock_Lock(&pQueue->lock);
+
+    // Flush the work item queue
+    WorkItemRef pItem;
+    while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
+        if (pItem->is_owned_by_queue) {
+            DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
+        }
+    }
+
+
+    // Flush the timers
+    TimerRef pTimer;
+    while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
+        if (pTimer->item.is_owned_by_queue) {
+            DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
+        }
+    }
+
+    Lock_Unlock(&pQueue->lock);
+}
+
 
 
 static void DispatchQueue_RearmTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
@@ -728,7 +760,7 @@ static void DispatchQueue_RearmTimer_Locked(DispatchQueueRef _Nonnull pQueue, Ti
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
 }
 
-void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
+static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 {
     // We hold the lock at all times except:
     // - while waiting for work

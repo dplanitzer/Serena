@@ -27,3 +27,9 @@ ErrorCode _syscall_print(__reg("a1") const Character* pString)
     print("%s", pString);
     return EOK;
 }
+
+ErrorCode _syscall_exit(__reg("d1") Int status)
+{
+    Process_Exit(Process_GetCurrent());
+    return EOK;
+}

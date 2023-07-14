@@ -135,10 +135,6 @@ extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int q
 // deallocated.
 extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
 
-// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
-// queue is not owned by any particular process. Eg the kernel main dispatch queue.
-extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue);
-
 // Similar to DispatchQueue_Destroy() but allows you to specify whether still
 // pending work items should be flushed or executed.
 // \param flush true means that still pending work items are executed before the
@@ -146,6 +142,10 @@ extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRe
 //              flushed out from the queue and not executed
 extern void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush);
 
+
+// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
+// queue is not owned by any particular process. Eg the kernel main dispatch queue.
+extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue);
 
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has finished
@@ -171,6 +171,8 @@ extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, T
 
 
 // Asynchronously executes the given timer when it comes due.
+// XXX want to think about the case when this function is called with a cancelled
+// XXX timer.
 extern void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
 
 
@@ -181,6 +183,8 @@ extern void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerR
 // from the virtual processor pool.
 extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 
-extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
+
+// Removes all queued work items, one-shot and repeatable timers from the queue.
+extern void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
 
 #endif /* DispatchQueue_h */

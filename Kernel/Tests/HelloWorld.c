@@ -9,9 +9,15 @@
 #include <System.h>
 
 
-void hello_world(void)
+static void helloWorld(void)
 {
     print("Hello World from user space!\n");
     sleep(0, 250*1000*1000);
-    dispatchAsync((void*)hello_world);
+    dispatchAsync((void*)helloWorld);
+}
+
+int main(void)
+{
+    helloWorld();
+    return 0;
 }

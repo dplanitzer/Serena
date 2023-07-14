@@ -14,6 +14,7 @@
     xref __syscall_sleep
     xref __syscall_print
     xref __syscall_dispatchAsync
+    xref __syscall_exit
 
     xdef _SystemCallHandler
 
@@ -27,6 +28,7 @@ syscall_table:
     dc.l __syscall_sleep
     dc.l __syscall_print
     dc.l __syscall_dispatchAsync
+    dc.l __syscall_exit
 
 
 ;-------------------------------------------------------------------------------

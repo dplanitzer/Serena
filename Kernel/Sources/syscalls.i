@@ -27,7 +27,8 @@ ERANGE      equ 10
 SC_sleep            equ     0       ; sleep(seconds: d1, nanoseconds: d2) -> Void
 SC_print            equ     1       ; print(pString: a1) -> Void
 SC_dispatchAsync    equ     2       ; dispatchAsync(pUserClosure: a1) -> Void
-SC_numberOfCalls    equ     3       ; number of system calls
+SC_exit             equ     3       ; exit(status: d1) -> Never
+SC_numberOfCalls    equ     4       ; number of system calls
 
 
 ; System call ABI

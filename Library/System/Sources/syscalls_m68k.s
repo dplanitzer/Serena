@@ -11,6 +11,7 @@
     xdef _print
     xdef _dispatchAsync
     xdef _sleep
+    xdef _exit
 
 
 ;-------------------------------------------------------------------------------
@@ -40,4 +41,13 @@ _sleep:
     move.l  slp_nanoseconds(sp), d2
     SYSCALL SC_sleep
     move.l  (sp)+, d2
+    rts
+
+
+;-------------------------------------------------------------------------------
+; _Noreturn exit(Int status)
+_exit:
+    cargs exit_status.l
+    move.l  exit_status(sp), d1
+    SYSCALL SC_exit
     rts
