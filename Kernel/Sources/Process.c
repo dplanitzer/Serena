@@ -83,7 +83,9 @@ static void Process_ExitCompletion(ProcessRef _Nonnull pProc)
 
 // Continues the process exit sequence by enqueuing the final exit stage on the
 // kernel main dispatch queue. The trampoline is executed right after we have
-// aborted the user space invocation that triggered the process exit.
+// aborted the user space invocation that triggered the process exit. This
+// function is the last function that executes on any of the process dispatch
+// queues.
 static void Process_ExitTrampoline(ProcessRef _Nonnull pProc)
 {
     // Bounce over to the kernel main queue to destroy the process.
@@ -113,13 +115,13 @@ void Process_Exit(ProcessRef _Nonnull pProc)
     // is where we are going to destroy the process. We do things this way because
     // it gives us the guarantee that the destruction of the process object will
     // only start once all dispatch queues owned by the process have stopped doing
-    // work and we have aborted teh user space invocation that got us here.
+    // work and we have aborted the user space invocation that got us here.
     DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_Make((Closure1Arg_Func) Process_ExitTrampoline, (Byte*) pProc));
 
 
     // Abort the user space invocation. This will cause us to drop back into the
     // main loop of the dispatch queue that orignally initiated the call-as-user
     // (userspace) invocation that ultimately got us here. This in turn will then
-    // cause this dispatch queue to execute the Process_ExitContinuation.
+    // cause this dispatch queue to execute the Process_ExitTrampoline.
     VirtualProcessor_AbortCallAsUser(VirtualProcessor_GetCurrent());
 }

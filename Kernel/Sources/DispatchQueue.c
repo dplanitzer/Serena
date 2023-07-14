@@ -92,6 +92,8 @@ typedef struct _DispatchQueue {
 } DispatchQueue;
 
 
+static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer);
 static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 
 
@@ -308,6 +310,29 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
     DispatchQueue_DestroyAndFlush(pQueue, false);
 }
 
+// Removes all queued work items, one-shot and repeatable timers from the queue.
+static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue, Bool flushWorkItems)
+{
+    // Flush the work item queue
+    if (flushWorkItems) {
+        WorkItemRef pItem;
+        while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
+            if (pItem->is_owned_by_queue) {
+                DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
+            }
+        }
+    }
+
+
+    // Flush the timers
+    TimerRef pTimer;
+    while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
+        if (pTimer->item.is_owned_by_queue) {
+            DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
+        }
+    }
+}
+
 // Similar to DispatchQueue_Destroy() but allows you to specify whether still
 // pending work items should be flushed or executed.
 // \param flush true means that still pending work items are executed before the
@@ -327,26 +352,13 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         Lock_Lock(&pQueue->lock);
         pQueue->state = kQueueState_ShuttingDown;
 
-        if (flush) {
-            // Free the still pending work items now
-            while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
-                if (pItem->is_owned_by_queue) {
-                    WorkItem_Destroy(pItem);
-                }
-            }
-        }
 
-
-        // Free the scheduled timers now. We do not run them anymore no matter
-        // what because (a) their deadline may be far out in the future but the
-        // queue is dying now and (b) because of that code that shuts down a
-        // queue can not assume that a scheduled timer may get one last chance
-        // to run.
-        while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
-            if (pTimer->item.is_owned_by_queue) {
-                Timer_Destroy(pTimer);
-            }
-        }
+        // Note that we free the scheduled timers in any case now. We do not run
+        // them anymore no matter what because (a) their deadline may be far out
+        // in the future but the queue is dying now and (b) because of that code
+        // that shuts down a queue can not assume that a scheduled timer may get
+        // one last chance to run.
+        DispatchQueue_Flush_Locked(pQueue, flush);
 
 
         // We want to wake _all_ VPs up here since all of them need to relinquish
@@ -724,24 +736,7 @@ DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
 void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
 {
     Lock_Lock(&pQueue->lock);
-
-    // Flush the work item queue
-    WorkItemRef pItem;
-    while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
-        if (pItem->is_owned_by_queue) {
-            DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
-        }
-    }
-
-
-    // Flush the timers
-    TimerRef pTimer;
-    while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
-        if (pTimer->item.is_owned_by_queue) {
-            DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
-        }
-    }
-
+    DispatchQueue_Flush_Locked(pQueue, true);
     Lock_Unlock(&pQueue->lock);
 }
 
