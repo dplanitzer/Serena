@@ -102,9 +102,9 @@ void Process_Exit(ProcessRef _Nonnull pProc)
 
 
     // We do not allow exiting the root process
-//    if (pProc == SystemGlobals_Get()->root_process) {
-//        abort();
-//    }
+    if (pProc == SystemGlobals_Get()->root_process) {
+        abort();
+    }
 
 
     // Get rid of all queued up work items and timers.
