@@ -9,23 +9,9 @@
     ifnd SYSCALLS_I
 SYSCALLS_I    set 1
 
-; Error codes
-EOK         equ 0
-ENOMEM      equ 1
-ENODATA     equ 2
-ENOTCDF     equ 3
-ENOBOOT     equ 4
-ENODRIVE    equ 5
-EDISKCHANGE equ 6
-ETIMEOUT    equ 7
-ENODEVICE   equ 8
-EPARAM      equ 9
-ERANGE      equ 10
-
-
 ; System call numbers
-SC_sleep            equ     0       ; sleep(seconds: d1, nanoseconds: d2) -> Void
-SC_print            equ     1       ; print(pString: a1) -> Void
+SC_write            equ     0       ; write(pString: a1) -> Void
+SC_sleep            equ     1       ; sleep(seconds: d1, nanoseconds: d2) -> Void
 SC_dispatchAsync    equ     2       ; dispatchAsync(pUserClosure: a1) -> Void
 SC_exit             equ     3       ; exit(status: d1) -> Never
 SC_numberOfCalls    equ     4       ; number of system calls
@@ -33,20 +19,19 @@ SC_numberOfCalls    equ     4       ; number of system calls
 
 ; System call ABI
 ;
-; d0 - d1 / a0 - a1 -> volatile registers (NOT preserved across syscall)
-; d2 - d7 / a2 - a6 -> non-volatile (preserved across syscall)
+; 
+; d1 - d7 / a0 - a7 -> non-volatile (register contents is preserved across syscall)
+;
+; The reason for preserving all CPU registers is that the kernel does not want to
+; accidently leak superuser only information to user space.
 ;
 ; trap #0
 ; -> d0:        system call number
-; -> d1...d7:   first 7 integer parameters in order from left to right. Extra parameters are passed on the stack from left to right
-; -> a1...a5:   first 5 pointer parameters in order from left to right. Extra parameters are passed on the stack from left to right
-; -> fp0...fp7: ditto for floating point values
+; -> d1...d7:   up to 7 integer/pointer parameters in the order of left-most to right-most argument
 ;
-; <- d0:        0 if sucdess; > 0 if an error occured with d0 holding the error number
-; <- d1:        32bit integer return value
+; <- d0:        0 if success; > 0 if an error occured with d0 holding the error number (always returned)
+; <- d1:        32bit integer or pointer return value
 ; <- d1/d2:     64bit integer return value
-; <- a0:        32bit pointer return value
-; <- fp0:       96bit floating point return value
 
     ; Invoke the system call 'num'
     macro SYSCALL num

@@ -11,7 +11,7 @@
 
 static void helloWorld(void)
 {
-    print("Hello World from user space!\n");
+    write("Hello World from user space!\n");
     sleep(0, 250*1000*1000);
     dispatchAsync((void*)helloWorld);
 }

@@ -10,25 +10,25 @@
 #include "VirtualProcessor.h"
 
 
-ErrorCode _syscall_sleep(__reg("d1") Int seconds, __reg("d2") Int nanoseconds)
-{
-    VirtualProcessor_Sleep(TimeInterval_Make(seconds, nanoseconds));
-    return EOK;
-}
-
-ErrorCode _syscall_dispatchAsync(__reg("a1") const Closure1Arg_Func pUserClosure)
-{
-    Process_DispatchAsyncUser(Process_GetCurrent(), pUserClosure);
-    return EOK;
-}
-
-ErrorCode _syscall_print(__reg("a1") const Character* pString)
+ErrorCode _syscall_write(const Character* pString)
 {
     print("%s", pString);
     return EOK;
 }
 
-ErrorCode _syscall_exit(__reg("d1") Int status)
+ErrorCode _syscall_sleep(Int seconds, Int nanoseconds)
+{
+    VirtualProcessor_Sleep(TimeInterval_Make(seconds, nanoseconds));
+    return EOK;
+}
+
+ErrorCode _syscall_dispatchAsync(const Closure1Arg_Func pUserClosure)
+{
+    Process_DispatchAsyncUser(Process_GetCurrent(), pUserClosure);
+    return EOK;
+}
+
+ErrorCode _syscall_exit(Int status)
 {
     Process_Exit(Process_GetCurrent());
     return EOK;

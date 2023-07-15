@@ -8,32 +8,32 @@
 
     include <syscalls.i>
 
-    xdef _print
+    xdef _write
     xdef _dispatchAsync
     xdef _sleep
     xdef _exit
 
 
 ;-------------------------------------------------------------------------------
-; void print(Character* _Nonnull pString)
-_print:
+; ErrorCode write(Character* _Nonnull pString)
+_write:
     cargs prt_string_ptr.l
-    move.l  prt_string_ptr(sp), a1
-    SYSCALL SC_print
+    move.l  prt_string_ptr(sp), d1
+    SYSCALL SC_write
     rts
 
 
 ;-------------------------------------------------------------------------------
-; void dispatchAsync(void* _Nonnull pUserClosure)
+; ErrorCode dispatchAsync(void* _Nonnull pUserClosure)
 _dispatchAsync:
     cargs dspasync_closure_ptr.l
-    move.l  dspasync_closure_ptr(sp), a1
+    move.l  dspasync_closure_ptr(sp), d1
     SYSCALL SC_dispatchAsync
     rts
 
 
 ;-------------------------------------------------------------------------------
-; void sleep(Int seconds, Int nanoseconds)
+; ErrorCode sleep(Int seconds, Int nanoseconds)
 _sleep:
     cargs slp_saved_d2.l, slp_seconds.l, slp_nanoseconds.l
     move.l  d2, -(sp)

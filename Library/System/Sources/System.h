@@ -29,11 +29,12 @@ typedef Int ErrorCode;
 #define EAGAIN      12
 #define EPIPE       13
 #define EBUSY       14
+#define ENOSYS      15
 
 
-extern void print(Character* _Nonnull pString);
-extern void dispatchAsync(void* _Nonnull pClosure);
-extern void sleep(Int seconds, Int nanoseconds);
+extern ErrorCode write(Character* _Nonnull pString);
+extern ErrorCode dispatchAsync(void* _Nonnull pClosure);
+extern ErrorCode sleep(Int seconds, Int nanoseconds);
 extern _Noreturn exit(Int status);
 
 #endif /* System_h */

@@ -41,6 +41,7 @@ typedef Int ErrorCode;
 #define EAGAIN      12
 #define EPIPE       13
 #define EBUSY       14
+#define ENOSYS      15
 
 
 // A callback function that takes a single (context) pointer argument
