@@ -23,13 +23,15 @@ typedef struct _Lock {
 // Initializes a new lock.
 extern void Lock_Init(Lock*_Nonnull pLock);
 
-// Deinitializes a lock.
+// Deinitializes a lock. The lock is automatically unlocked if the calling code
+// is holding the lock.
 extern void Lock_Deinit(Lock* _Nonnull pLock);
 
 // Allocates a new lock.
 extern Lock* _Nullable Lock_Create(void);
 
-// Deallocates a lock.
+// Deallocates a lock. The lock is automatically unlocked if the calling code
+// is holding the lock.
 extern void Lock_Destroy(Lock* _Nullable pLock);
 
 // Blocks the caller until the lock can be taken successfully.
@@ -37,5 +39,9 @@ extern void Lock_Lock(Lock* _Nonnull pLock);
 
 // Unlocks the lock.
 extern void Lock_Unlock(Lock* _Nonnull pLock);
+
+// Returns the ID of the virtual processor that is currently holding the lock.
+// Zero is returned if none is holding the lock.
+extern Int Lock_GetOwnerVpid(Lock* _Nonnull pLock);
 
 #endif /* Lock_h */

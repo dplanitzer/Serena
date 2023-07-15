@@ -15,6 +15,7 @@
 
     xdef _Lock_Lock
     xdef _Lock_Unlock
+    xdef _Lock_GetOwnerVpid
 
 
     clrso
@@ -116,4 +117,16 @@ _Lock_Unlock:
     RESTORE_PREEMPTION d7
 
     move.l  (sp)+, d7
+    rts
+
+
+;-------------------------------------------------------------------------------
+; Int Lock_GetOwnerVpid(Lock* _Nonnull pLock)
+; Returns the ID of the virtual processor that is currently holding the lock.
+; Zero is returned if none is holding the lock.
+_Lock_GetOwnerVpid:
+    cargs lgovpid_lock_ptr.l
+
+    move.l  lgovpid_lock_ptr(sp), a0
+    move.l  lock_owner_vpid(a0), d0     ; this is atomic on a 68k single CPU system
     rts

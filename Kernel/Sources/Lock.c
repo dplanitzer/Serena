@@ -19,9 +19,20 @@ void Lock_Init(Lock*_Nonnull pLock)
     pLock->owner_vpid = 0;
 }
 
-// Deinitializes a lock.
+// Deinitializes a lock. The lock is automatically unlocked if the calling code
+// is holding the lock.
 void Lock_Deinit(Lock* _Nonnull pLock)
 {
+    // Unlock the lock if it is currently held by the virtual processor on which
+    // we are executing. Abort if the virtual processor which isn't holding the
+    // lock tries to destroy it.
+    const Int ownerId = Lock_GetOwnerVpid(pLock);
+    if (ownerId == VirtualProcessor_GetCurrentVpid()) {
+        Lock_Unlock(pLock);
+    } else if (ownerId > 0) {
+        abort();
+    }
+
     pLock->value = 0;
     List_Deinit(&pLock->wait_queue);
     pLock->owner_vpid = 0;
@@ -39,7 +50,8 @@ Lock* _Nullable Lock_Create(void)
     return pLock;
 }
 
-// Deallocates a lock.
+// Deallocates a lock. The lock is automatically unlocked if the calling code
+// is holding the lock.
 void Lock_Destroy(Lock* _Nullable pLock)
 {
     if (pLock) {
