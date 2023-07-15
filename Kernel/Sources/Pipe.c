@@ -76,8 +76,8 @@ void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
             break;
     }
 
-    ConditionVariable_Broadcast(&pPipe->reader, &pPipe->lock);
-    ConditionVariable_Broadcast(&pPipe->writer, &pPipe->lock);
+    ConditionVariable_BroadcastAndUnlock(&pPipe->reader, &pPipe->lock);
+    ConditionVariable_BroadcastAndUnlock(&pPipe->writer, &pPipe->lock);
 }
 
 // Returns the number of bytes that can be read from the pipe without blocking if
@@ -144,7 +144,7 @@ Int Pipe_Read(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, Byte* _Nonnull
                 if (allowBlocking) {
                     // Be sure to wake the writer before we go to sleep and drop the lock
                     // so that it can produce and add data for us.
-                    ConditionVariable_Broadcast(&pPipe->writer, NULL);
+                    ConditionVariable_BroadcastAndUnlock(&pPipe->writer, NULL);
                     
                     // Wait for the writer to make data available
                     const ErrorCode err = ConditionVariable_Wait(&pPipe->reader, &pPipe->lock, deadline);
@@ -160,7 +160,7 @@ Int Pipe_Read(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, Byte* _Nonnull
         }
 
         // Make sure that the writer is awake so that it can produce new data
-        ConditionVariable_Broadcast(&pPipe->writer, &pPipe->lock);
+        ConditionVariable_BroadcastAndUnlock(&pPipe->writer, &pPipe->lock);
         
         
         // Return 0 bytes and EOK on EOF
@@ -194,7 +194,7 @@ Int Pipe_Write(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, const Byte* _
                 if (allowBlocking) {
                     // Be sure to wake the reader before we go to sleep and drop the lock
                     // so that it can consume data and make space available to us.
-                    ConditionVariable_Broadcast(&pPipe->reader, NULL);
+                    ConditionVariable_BroadcastAndUnlock(&pPipe->reader, NULL);
                     
                     // Wait for the reader to make space available
                     const ErrorCode err = ConditionVariable_Wait(&pPipe->writer, &pPipe->lock, deadline);
@@ -210,7 +210,7 @@ Int Pipe_Write(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, const Byte* _
         }
         
         // Make sure that the reader is awake so that it can consume the new data
-        ConditionVariable_Broadcast(&pPipe->reader, &pPipe->lock);
+        ConditionVariable_BroadcastAndUnlock(&pPipe->reader, &pPipe->lock);
         
         
         // Return 0 bytes and EOK on EOF

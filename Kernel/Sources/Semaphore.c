@@ -45,11 +45,13 @@ void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore)
     if (!List_IsEmpty(&pSemaphore->wait_queue)) {
         // Wake up all the guys that are still waiting on us and tell them that the
         // wait has been interrupted.
+        const Int sps = VirtualProcessorScheduler_DisablePreemption();
         VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler_GetShared(),
                                              &pSemaphore->wait_queue,
                                              INT_MAX,
                                              WAKEUP_REASON_INTERRUPTED,
                                              true);
+        VirtualProcessorScheduler_RestorePreemption(sps);
     }
 
     List_Deinit(&pSemaphore->wait_queue);

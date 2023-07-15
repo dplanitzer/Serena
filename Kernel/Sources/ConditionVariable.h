@@ -25,11 +25,15 @@ typedef struct _ConditionVariable {
 extern ConditionVariable* _Nullable ConditionVariable_Create(void);
 extern void ConditionVariable_Destroy(ConditionVariable* _Nullable pCondVar);
 
+// Initializes a new condition variable.
 extern void ConditionVariable_Init(ConditionVariable* _Nonnull pCondVar);
+
+// Deinitializes the condition variables. All virtual processors that are still
+// waiting on the conditional variable are woken up with an EINTR error.
 extern void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar);
 
-extern void ConditionVariable_Signal(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock);
-extern void ConditionVariable_Broadcast(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock);
+extern void ConditionVariable_SignalAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock);
+extern void ConditionVariable_BroadcastAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock);
 extern ErrorCode ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, TimeInterval deadline);
 
 #endif /* ConditionVariable_h */

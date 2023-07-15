@@ -503,7 +503,7 @@ void EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Non
     
     Lock_Lock(&pDriver->lock);
     EventDriver_PutEvent_Locked(pDriver, &newEvent);
-    ConditionVariable_Broadcast(&pDriver->event_queue_cv, &pDriver->lock);
+    ConditionVariable_BroadcastAndUnlock(&pDriver->event_queue_cv, &pDriver->lock);
 }
 
 // Blocks the caller until either events have arrived or 'deadline' has passed
@@ -994,5 +994,5 @@ static void EventDriver_GatherLowLevelEvents(EventDriverRef _Nonnull pDriver)
         
         
     // Wake up the event queue consumer
-    ConditionVariable_Broadcast(&pDriver->event_queue_cv, &pDriver->lock);
+    ConditionVariable_BroadcastAndUnlock(&pDriver->event_queue_cv, &pDriver->lock);
 }

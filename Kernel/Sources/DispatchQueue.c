@@ -363,7 +363,7 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
 
         // We want to wake _all_ VPs up here since all of them need to relinquish
         // themselves.
-        ConditionVariable_Broadcast(&pQueue->work_available_signaler, &pQueue->lock);
+        ConditionVariable_BroadcastAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
 
 
         // Wait until all VPs have relinquished and detached themselves from the
@@ -570,7 +570,7 @@ static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull
     pQueue->items_queued_count++;
 
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
-    ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
+    ConditionVariable_SignalAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
 // Synchronously executes the given work item. The work item is executed as
@@ -617,7 +617,7 @@ void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerR
 {
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
-    ConditionVariable_Signal(&pQueue->work_available_signaler, &pQueue->lock);
+    ConditionVariable_SignalAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
 }
 
 
@@ -880,7 +880,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
     DispatchQueue_RelinquishVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent());
 
     if (pQueue->state >= kQueueState_ShuttingDown) {
-        ConditionVariable_Signal(&pQueue->vp_shutdown_signaler, &pQueue->lock);
+        ConditionVariable_SignalAndUnlock(&pQueue->vp_shutdown_signaler, &pQueue->lock);
     } else {
         Lock_Unlock(&pQueue->lock);
     }
