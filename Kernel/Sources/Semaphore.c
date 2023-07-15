@@ -38,8 +38,20 @@ void Semaphore_Init(Semaphore* _Nonnull pSemaphore, Int value)
     List_Init(&pSemaphore->wait_queue);
 }
 
+// Deinitializes the semaphore. All virtual processors that are still waiting
+// for permits on this semaphore are woken up with an EINTR error.
 void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore)
 {
+    if (!List_IsEmpty(&pSemaphore->wait_queue)) {
+        // Wake up all the guys that are still waiting on us and tell them that the
+        // wait has been interrupted.
+        VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler_GetShared(),
+                                             &pSemaphore->wait_queue,
+                                             INT_MAX,
+                                             WAKEUP_REASON_INTERRUPTED,
+                                             true);
+    }
+
     List_Deinit(&pSemaphore->wait_queue);
 }
 
@@ -63,14 +75,16 @@ Bool Semaphore_TryAcquire(Semaphore* _Nonnull pSemaphore)
 // Expects to be called with preemption disabled.
 ErrorCode Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, VirtualProcessorScheduler* _Nonnull pScheduler, TimeInterval deadline)
 {
-    return VirtualProcessorScheduler_WaitOn(pScheduler, &pSemaphore->wait_queue, deadline, true);
+    return VirtualProcessorScheduler_WaitOn(pScheduler,
+                                            &pSemaphore->wait_queue,
+                                            deadline,
+                                            true);
 }
 
-// Invoked by Semaphore_Release(). Expects to be called with preemption disabled.
+// Invoked by Semaphore_Release().
+// Expects to be called with preemption disabled.
 void Semaphore_WakeUp(Semaphore* _Nullable pSemaphore, VirtualProcessorScheduler* _Nonnull pScheduler)
 {
-    // Do not allow an immediate context switch if we are running in the interrupt
-    // context. We'll do the context switch on the way out from the IRQ handler.
     VirtualProcessorScheduler_WakeUpAll(pScheduler,
                                         &pSemaphore->wait_queue,
                                         true);

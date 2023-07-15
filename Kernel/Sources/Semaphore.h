@@ -26,6 +26,9 @@ extern void Semaphore_Destroy(Semaphore* _Nullable pSemaphore);
 
 // Initializes a new semaphore with 'value' permits
 extern void Semaphore_Init(Semaphore* _Nonnull pSemaphore, Int value);
+
+// Deinitializes the semaphore. All virtual processors that are still waiting
+// for permits on this semaphore are woken up with an EINTR error.
 extern void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore);
 
 extern void Semaphore_Release(Semaphore* _Nonnull pSemaphore);
