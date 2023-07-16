@@ -10,7 +10,7 @@
 #define Lock_h
 
 #include "Foundation.h"
-#include "Semaphore.h"
+#include "List.h"
 
 
 typedef struct _Lock {
@@ -34,8 +34,10 @@ extern Lock* _Nullable Lock_Create(void);
 // is holding the lock.
 extern void Lock_Destroy(Lock* _Nullable pLock);
 
-// Blocks the caller until the lock can be taken successfully.
-extern void Lock_Lock(Lock* _Nonnull pLock);
+// Blocks the caller until the lock can be taken successfully. Note that this
+// function may return EINTR which means that the Lock_Lock() call is happening
+// in the context of a system call that should be aborted.
+extern ErrorCode Lock_Lock(Lock* _Nonnull pLock);
 
 // Unlocks the lock.
 extern void Lock_Unlock(Lock* _Nonnull pLock);

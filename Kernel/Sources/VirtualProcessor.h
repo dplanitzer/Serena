@@ -109,8 +109,7 @@ typedef enum _VirtualProcessorState {
 
 
 // VP flags
-#define VP_FLAG_INTERRUPTABLE_WAIT  0x01
-#define VP_FLAG_TERMINATED          0x02    // VirtualProcessor_Terminate() was called on the VP
+#define VP_FLAG_TERMINATED          0x01    // VirtualProcessor_Terminate() was called on the VP
 
 
 // Reason for a wake up

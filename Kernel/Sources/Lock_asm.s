@@ -27,7 +27,7 @@ lock_SIZEOF             so
 
 
 ;-------------------------------------------------------------------------------
-; void Lock_Lock(Lock* _Nonnull pLock)
+; ErrorCode Lock_Lock(Lock* _Nonnull pLock)
 ; Acquires the lock. Blocks the caller if the lock is not available.
 _Lock_Lock:
     inline
@@ -58,6 +58,10 @@ _Lock_Lock:
     jsr     _Lock_OnWait
     addq.l  #8, sp
 
+    ; give up if the OnWait came back with an error
+    tst.l   d0
+    bne.s   .la_wait_failed
+
     bra.s   .la_retry
 
 .la_acquired_slow:
@@ -67,18 +71,28 @@ _Lock_Lock:
     ; validate that the lock has no bogus owner. Eg memory corruption could have
     ; caused the owner and other fields to get populated with random bytes 
     tst.l   lock_owner_vpid(a0)
-    beq.s   .la_done
+    beq.s   .la_acquired_lock_done
     move.l  a0, -(sp)
     jsr     _Lock_OnOwnershipViolation
     ; NOT REACHED
 
-.la_done:
+.la_acquired_lock_done:
     jsr     _VirtualProcessor_GetCurrentVpid
     move.l  la_lock_ptr(sp), a0
     move.l  d0, lock_owner_vpid(a0)
 
+    ; return EOK
+    moveq.l #0, d0
+
+.la_done:
     move.l  (sp)+, d7
     rts
+
+.la_wait_failed:
+    ; d0 holds the error code at this point
+    RESTORE_PREEMPTION d7
+    bra.s   .la_done
+
     einline
 
 

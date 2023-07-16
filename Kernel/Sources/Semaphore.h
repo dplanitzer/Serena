@@ -34,6 +34,10 @@ extern void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore);
 extern void Semaphore_Release(Semaphore* _Nonnull pSemaphore);
 extern void Semaphore_ReleaseMultiple(Semaphore* _Nonnull sema, Int npermits);
 
+// Blocks the caller until the semaphore has at least one permit available or
+// the wait has timed out. Note that this function may return EINTR which means
+// that the Semaphore_Acquire() call is happening in the context of a system
+// call that should be aborted.
 extern ErrorCode Semaphore_Acquire(Semaphore* _Nonnull pSemaphore, TimeInterval deadline);
 extern ErrorCode Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, Int npermits, TimeInterval deadline);
 extern ErrorCode Semaphore_AcquireAll(Semaphore* _Nonnull pSemaphore, TimeInterval deadline, Int* _Nonnull pOutPermitCount);

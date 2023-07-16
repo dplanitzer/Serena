@@ -306,7 +306,7 @@ ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
     
     // This is a medium or long wait -> context switch away
     Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Int err = VirtualProcessorScheduler_WaitOn(pScheduler, &pScheduler->sleep_queue, deadline, true);
+    const Int err = VirtualProcessorScheduler_WaitOn(pScheduler, &pScheduler->sleep_queue, deadline);
     VirtualProcessorScheduler_RestorePreemption(sps);
     
     return (err == EINTR) ? EINTR : EOK;

@@ -79,8 +79,7 @@ ErrorCode Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, VirtualProc
 {
     return VirtualProcessorScheduler_WaitOn(pScheduler,
                                             &pSemaphore->wait_queue,
-                                            deadline,
-                                            true);
+                                            deadline);
 }
 
 // Invoked by Semaphore_Release().

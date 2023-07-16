@@ -75,25 +75,23 @@ extern void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler* 
 // Expects to be called with preemption disabled. Temporarily reenables
 // preemption when context switching to another VP. Returns to the caller with
 // preemption disabled.
-// XXX
-// \param isInterruptable true if teh sleep should be interruptable; false otherwise
-//        Every sleep should be interruptable. But Lock_Lock() currently isn't because
-//        handling interrupted Lock_Lock() is an aboslute pita in C because it has no
-//        error model whatsoever...
-extern ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline, Bool isInterruptable);
+extern ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline);
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue.
-extern ErrorCode VirtualProcessorScheduler_WakeUpAll(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, Bool allowContextSwitch);
+extern void VirtualProcessorScheduler_WakeUpAll(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, Bool allowContextSwitch);
 
 // Wakes up up to 'count' waiters on the wait queue 'pWaitQueue'. The woken up
 // VPs are removed from the wait queue. Expects to be called with preemption
 // disabled.
-extern ErrorCode VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, Int count, Int wakeUpReason, Bool allowContextSwitch);
+extern void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, Int count, Int wakeUpReason, Bool allowContextSwitch);
 
 // Adds the given VP from the given wait queue to the ready queue. The VP is removed
-// from the wait queue.
-extern ErrorCode VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch);
+// from the wait queue. The scheduler guarantees that a wakeup operation will never
+// fail with an error. This doesn't mean that calling this function will always
+// result in a virtual processor wakeup. If the wait queue is empty then no wakeups
+// will happen.
+extern void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch);
 
 extern Int VirtualProcessorScheduler_DisablePreemption(void);
 extern void VirtualProcessorScheduler_RestorePreemption(Int sps);
