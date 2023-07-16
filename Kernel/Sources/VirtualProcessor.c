@@ -33,7 +33,7 @@ ErrorCode ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, Int size)
     if (pStack->size != newSize) {
         kfree(pStack->base);
         pStack->size = newSize;
-        pStack->base = kalloc(pStack->size);
+        kalloc(pStack->size, (Byte**) &pStack->base);
         if (pStack->base == NULL) {
             pStack->size = 0;
             return ENOMEM;
@@ -130,9 +130,7 @@ VirtualProcessor* _Nullable VirtualProcessor_Create(void)
 {
     VirtualProcessor* pVP = NULL;
     
-    pVP = (VirtualProcessor*)kalloc_cleared(sizeof(VirtualProcessor));
-    FailNULL(pVP);
-    
+    FailErr(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_NORMAL);
     
     return pVP;

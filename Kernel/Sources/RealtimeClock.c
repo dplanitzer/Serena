@@ -40,9 +40,9 @@ Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* 
 // object ifg that's the case; otherwise NULL is returned
 RealtimeClock* _Nullable RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc)
 {
-    RealtimeClock* pClock = (RealtimeClock*)kalloc_cleared(sizeof(RealtimeClock));
-    FailNULL(pClock);
+    RealtimeClock* pClock;
     
+    FailErr(kalloc_cleared(sizeof(RealtimeClock), (Byte**) &pClock));
     Lock_Init(&pClock->lock);
     
     return pClock;

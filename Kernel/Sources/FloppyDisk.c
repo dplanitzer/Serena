@@ -73,8 +73,9 @@ static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
 // Creates the floppy DMA singleton
 FloppyDMA* _Nullable FloppyDMA_Create(void)
 {
-    FloppyDMA* pDma = (FloppyDMA*) kalloc_cleared(sizeof(FloppyDMA));
-    FailNULL(pDma);
+    FloppyDMA* pDma;
+    
+    FailErr(kalloc_cleared(sizeof(FloppyDMA), (Byte**) &pDma));
 
     Semaphore_Init(&pDma->inuse, 1);
     Semaphore_Init(&pDma->done, 0);
@@ -278,11 +279,10 @@ static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk)
 // floppy drive 'drive'.
 FloppyDisk* _Nullable FloppyDisk_Create(Int drive)
 {
-    FloppyDisk* pDisk = (FloppyDisk*)kalloc_cleared(sizeof(FloppyDisk));
-    FailNULL(pDisk);
+    FloppyDisk* pDisk;
     
-    pDisk->track_buffer = (UInt16*)kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, HEAP_ALLOC_OPTION_CHIPSET);
-    FailNULL(pDisk->track_buffer);
+    FailErr(kalloc_cleared(sizeof(FloppyDisk), (Byte**) &pDisk));
+    FailErr(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;
     pDisk->head = -1;

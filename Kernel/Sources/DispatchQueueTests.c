@@ -112,7 +112,9 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
 
 void DispatchQueue_RunTests(void)
 {
-    struct State* pState = (struct State*)kalloc(sizeof(struct State));
+    struct State* pState;
+    
+    assert(kalloc(sizeof(struct State), &pState) == EOK);
     
     pState->timer = Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState));
     pState->value = 0;

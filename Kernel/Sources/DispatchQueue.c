@@ -116,9 +116,9 @@ static void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, Dispat
 // are one-shot: they execute their closure and then the work item is destroyed.
 static WorkItemRef _Nullable WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue)
 {
-    WorkItemRef pItem = (WorkItemRef) kalloc(sizeof(WorkItem));
+    WorkItemRef pItem;
     
-    if (pItem) {
+    if (kalloc(sizeof(WorkItem), (Byte**) &pItem) == EOK) {
         WorkItem_Init(pItem, kItemType_Immediate, closure, isOwnedByQueue);
     }
     return pItem;
@@ -187,9 +187,9 @@ static void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline
 // is greater than 0 then the timer will repeat until cancelled.
 static TimerRef _Nullable Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue)
 {
-    TimerRef pTimer = (TimerRef) kalloc(sizeof(Timer));
+    TimerRef pTimer;
     
-    if (pTimer) {
+    if (kalloc(sizeof(Timer), (Byte**) &pTimer) == EOK) {
         Timer_Init(pTimer, deadline, interval, closure, isOwnedByQueue);
     }
     return pTimer;
@@ -231,9 +231,9 @@ static inline void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem)
 // Creates a completion signaler.
 static CompletionSignaler* _Nullable CompletionSignaler_Create(void)
 {
-    CompletionSignaler* pItem = (CompletionSignaler*) kalloc(sizeof(CompletionSignaler));
+    CompletionSignaler* pItem;
     
-    if (pItem) {
+    if (kalloc(sizeof(CompletionSignaler), (Byte**) &pItem) == EOK) {
         CompletionSignaler_Init(pItem);
         Semaphore_Init(&pItem->semaphore, 0);
     }
@@ -271,9 +271,9 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
 {
     assert(maxConcurrency >= 1);
 
-    DispatchQueueRef pQueue = (DispatchQueueRef) kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1));
-        
-    if (pQueue) {
+    DispatchQueueRef pQueue;
+    
+    if (kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (Byte**) &pQueue) == EOK) {
         SList_Init(&pQueue->item_queue);
         SList_Init(&pQueue->timer_queue);
         SList_Init(&pQueue->item_cache_queue);

@@ -55,7 +55,7 @@ typedef struct _InterruptController {
 void InterruptController_Init(InterruptControllerRef _Nonnull pController)
 {
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
-        pController->handlers[i].data = (InterruptHandler*)kalloc(0);
+        kalloc(0, (Byte**) &pController->handlers[i].data);
         pController->handlers[i].size = 0;
     }
     
@@ -93,8 +93,9 @@ static InterruptHandlerID InterruptController_AddInterruptHandler(InterruptContr
     const Int oldSize = pController->handlers[interruptId].size;
     const Int newSize = oldSize + 1;
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].data;
-    InterruptHandler* pNewHandlers = (InterruptHandler*) kalloc(sizeof(InterruptHandler) * newSize);
-    FailNULL(pNewHandlers);
+    InterruptHandler* pNewHandlers;
+    
+    FailErr(kalloc(sizeof(InterruptHandler) * newSize, (Byte**) &pNewHandlers));
 
     
     // Allocate a new handler ID
@@ -205,7 +206,9 @@ void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull 
     const Int oldSize = pController->handlers[interruptId].size;
     const Int newSize = oldSize - 1;
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].data;
-    InterruptHandler* pNewHandlers = (InterruptHandler*) kalloc(sizeof(InterruptHandler) * newSize);
+    InterruptHandler* pNewHandlers;
+    
+    FailErr(kalloc(sizeof(InterruptHandler) * newSize, (Byte**) &pNewHandlers));
     
     
     // Copy over the handlers that we want to retain
@@ -233,6 +236,7 @@ void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull 
     kfree((Byte*) pOldHandlers);
     
 done:
+failed:
     Lock_Unlock(&pController->lock);
 }
 

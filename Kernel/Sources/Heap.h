@@ -60,14 +60,14 @@ typedef struct _Heap {
 // NULL if the memory could not be allocated. The returned memory is not
 // necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
 // suitable option if DMA accessability is desired.
-extern Byte* _Nullable kalloc(Int nbytes);
+extern ErrorCode kalloc(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr);
 
 // Same as kalloc() but allocated memory that is filled with zeros.
-extern Byte* _Nullable kalloc_cleared(Int nbytes);
+extern ErrorCode kalloc_cleared(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr);
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-extern Byte* _Nullable kalloc_options(Int nbytes, UInt options);
+extern ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
 
 // Frees kernel memory allocated with the kalloc() function.
 extern void kfree(Byte* _Nullable ptr);
@@ -80,10 +80,10 @@ extern void kfree(Byte* _Nullable ptr);
 // Returns a reference to the shared kernel heap
 extern Heap* _Nonnull Heap_GetShared(void);
 
-extern Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDesc, Int nMemDescs);
+extern ErrorCode Heap_Create(const MemoryDescriptor* _Nonnull pMemDesc, Int nMemDescs, Heap* _Nullable * _Nonnull pOutHeap);
 
-extern Byte* _Nullable Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt options);
-extern Byte* _Nullable Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr, Int nbytes);
+extern ErrorCode Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
+extern ErrorCode Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr, Int nbytes);
 extern void Heap_DeallocateBytes(Heap* _Nonnull pHeap, Byte* _Nullable ptr);
 
 extern void Heap_Dump(Heap* _Nonnull pHeap);

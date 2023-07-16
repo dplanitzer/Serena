@@ -41,9 +41,9 @@ void Lock_Deinit(Lock* _Nonnull pLock)
 // Allocates a new lock.
 Lock* _Nullable Lock_Create(void)
 {
-    Lock* pLock = (Lock*)kalloc(sizeof(Lock));
+    Lock* pLock;
     
-    if (pLock) {
+    if (kalloc(sizeof(Lock), (Byte**) &pLock) == EOK) {
         Lock_Init(pLock);
     }
     

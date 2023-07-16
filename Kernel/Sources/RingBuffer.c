@@ -17,7 +17,7 @@ Bool RingBuffer_Init(RingBuffer* _Nonnull pBuffer, Int capacity)
     pBuffer->capacity = Int_NextPowerOf2(capacity);
     pBuffer->readIdx = 0;
     pBuffer->writeIdx = 0;
-    pBuffer->data = kalloc(pBuffer->capacity);
+    kalloc(pBuffer->capacity, &pBuffer->data);
     
     return pBuffer->data != NULL;
 }

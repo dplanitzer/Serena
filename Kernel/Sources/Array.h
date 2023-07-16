@@ -23,11 +23,12 @@ typedef struct _Array {
 } Array;
 
 
+// XXX need error code back
 #define GenericArray_Init(Type, pArray, minCapacity) \
 do { \
     pArray->count = 0;\
     pArray->capacity = max(minCapacity, 0);\
-    pArray->bytes = kalloc(sizeof(Type) * pArray->capacity);\
+    kalloc(sizeof(Type) * pArray->capacity, (Byte**) &pArray->bytes);\
 } while(0)
 
 #define GenericArray_Deinit(Type, pArray) \
@@ -38,11 +39,11 @@ do {\
     pArray->count = 0;\
 } while(0)
 
+// XXX need error code back
 #define GenericArray_Create(Type, minCapacity, pOutArray) \
 do {\
-    pOutArray = (Array*)kalloc(sizeof(Array));\
-    if (pOutArray) {\
-        GenericArray_Init(Type, pOutArray, minCapacity);\
+    if (kalloc(sizeof(Array), (Byte**) pOutArray) == EOK) {\
+        GenericArray_Init(Type, *pOutArray, minCapacity);\
     }\
 } while(0)
 
@@ -76,6 +77,7 @@ do {\
     GenericArray_InsertAt(Type, pArray, pArray->count, element)
 
 
+// XXX need error handling
 #define GenericArray_InsertAt(Type, pArray, index, element)\
 do {\
     assert(index >= 0 && index <= pArray->count); \
@@ -83,7 +85,8 @@ do {\
     if (pArray->count == pArray->capacity) {\
         const Int newCapacity = pArray->capacity + 1;\
         Type* pOldElements = (Type*)pArray->bytes;\
-        Type* pNewElements = (Type*)kalloc(sizeof(Type) * newCapacity);\
+        Type* pNewElements = NULL;\
+        (void)kalloc(sizeof(Type) * newCapacity, (Byte**) &pNewElements);\
         \
         for (Int i = 0; i < index; i++) {\
             pNewElements[i] = pOldElements[i];\
@@ -126,7 +129,7 @@ do {\
     pArray->count = 0;\
     if (!keepCapacity) {\
         kfree(pArray->bytes);\
-        pArray->bytes = kalloc(0);\
+        kalloc(0, (Byte**) &pArray->bytes);\
         pArray->capacity = 0;\
     }\
 } while(0)

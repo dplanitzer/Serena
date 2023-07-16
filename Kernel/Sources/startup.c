@@ -92,8 +92,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
     // Initialize the global heap
-    pGlobals->heap = Heap_Create(pSysDesc->memory_descriptor, pSysDesc->memory_descriptor_count);
-    assert(pGlobals->heap != NULL);
+    assert(Heap_Create(pSysDesc->memory_descriptor, pSysDesc->memory_descriptor_count, &pGlobals->heap) == EOK);
     
 
     // Initialize the interrupt controller

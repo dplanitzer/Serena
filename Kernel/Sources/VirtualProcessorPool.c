@@ -32,29 +32,29 @@ VirtualProcessorPoolRef _Nonnull VirtualProcessorPool_GetShared(void)
 
 VirtualProcessorPoolRef _Nullable VirtualProcessorPool_Create(void)
 {
-    VirtualProcessorPool* pool = (VirtualProcessorPool*)kalloc_cleared(sizeof(VirtualProcessorPool));
-    FailNULL(pool);
+    VirtualProcessorPool* pPool;
     
-    List_Init(&pool->inuse_queue);
-    List_Init(&pool->reuse_queue);
-    Lock_Init(&pool->lock);
-    pool->inuse_count = 0;
-    pool->reuse_count = 0;
-    pool->reuse_capacity = REUSE_CACHE_CAPACITY;
-    return pool;
+    FailErr(kalloc_cleared(sizeof(VirtualProcessorPool), (Byte**) &pPool));
+    List_Init(&pPool->inuse_queue);
+    List_Init(&pPool->reuse_queue);
+    Lock_Init(&pPool->lock);
+    pPool->inuse_count = 0;
+    pPool->reuse_count = 0;
+    pPool->reuse_capacity = REUSE_CACHE_CAPACITY;
+    return pPool;
     
 failed:
-    VirtualProcessorPool_Destroy(pool);
+    VirtualProcessorPool_Destroy(pPool);
     return NULL;
 }
 
-void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pool)
+void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pPool)
 {
-    if (pool) {
-        List_Deinit(&pool->inuse_queue);
-        List_Deinit(&pool->reuse_queue);
-        Lock_Deinit(&pool->lock);
-        kfree((Byte*)pool);
+    if (pPool) {
+        List_Deinit(&pPool->inuse_queue);
+        List_Deinit(&pPool->reuse_queue);
+        Lock_Deinit(&pPool->lock);
+        kfree((Byte*)pPool);
     }
 }
 

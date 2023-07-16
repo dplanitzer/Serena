@@ -36,8 +36,9 @@ static void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver);
 
 KeyboardDriverRef _Nullable KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver)
 {
-    KeyboardDriver* pDriver = (KeyboardDriver*)kalloc_cleared(sizeof(KeyboardDriver));
-    FailNULL(pDriver);
+    KeyboardDriver* pDriver;
+    
+    FailErr(kalloc_cleared(sizeof(KeyboardDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->irq_handler = InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
@@ -141,8 +142,9 @@ MouseDriverRef _Nullable MouseDriver_Create(EventDriverRef _Nonnull pEventDriver
 {
     assert(port >= 0 && port <= 1);
     
-    MouseDriver* pDriver = (MouseDriver*)kalloc_cleared(sizeof(MouseDriver));
-    FailNULL(pDriver);
+    MouseDriver* pDriver;
+     
+    FailErr(kalloc_cleared(sizeof(MouseDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
@@ -260,8 +262,9 @@ DigitalJoystickDriverRef _Nullable DigitalJoystickDriver_Create(EventDriverRef _
 {
     assert(port >= 0 && port <= 1);
     
-    DigitalJoystickDriver* pDriver = (DigitalJoystickDriver*)kalloc_cleared(sizeof(DigitalJoystickDriver));
-    FailNULL(pDriver);
+    DigitalJoystickDriver* pDriver;
+    
+    FailErr(kalloc_cleared(sizeof(DigitalJoystickDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
@@ -364,8 +367,9 @@ AnalogJoystickDriverRef _Nullable AnalogJoystickDriver_Create(EventDriverRef _No
 {
     assert(port >= 0 && port <= 1);
     
-    AnalogJoystickDriver* pDriver = (AnalogJoystickDriver*)kalloc_cleared(sizeof(AnalogJoystickDriver));
-    FailNULL(pDriver);
+    AnalogJoystickDriver* pDriver;
+    
+    FailErr(kalloc_cleared(sizeof(AnalogJoystickDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
@@ -475,8 +479,9 @@ LightPenDriverRef _Nullable LightPenDriver_Create(EventDriverRef _Nonnull pEvent
 {
     assert(port >= 0 && port <= 1);
     
-    LightPenDriver* pDriver = (LightPenDriver*)kalloc_cleared(sizeof(LightPenDriver));
-    FailNULL(pDriver);
+    LightPenDriver* pDriver;
+    
+    FailErr(kalloc_cleared(sizeof(LightPenDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_potgor = (volatile UInt16*)0xdff016;

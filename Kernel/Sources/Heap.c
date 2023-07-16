@@ -24,22 +24,22 @@
 // NULL if the memory could not be allocated. The returned memory is not
 // necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
 // suitable option if DMA accessability is desired.
-Byte* _Nullable kalloc(Int nbytes)
+ErrorCode kalloc(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
-    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CPU);
+    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CPU, pOutPtr);
 }
 
 // Same as kalloc() but allocated memory that is filled with zeros.
-Byte* _Nullable kalloc_cleared(Int nbytes)
+ErrorCode kalloc_cleared(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
-    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CLEAR | HEAP_ALLOC_OPTION_CPU);
+    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CLEAR | HEAP_ALLOC_OPTION_CPU, pOutPtr);
 }
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-Byte* _Nullable kalloc_options(Int nbytes, UInt options)
+ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
 {
-    return Heap_AllocateBytes(Heap_GetShared(), nbytes, options);
+    return Heap_AllocateBytes(Heap_GetShared(), nbytes, options, pOutPtr);
 }
 
 // Frees kernel memory allocated with the kalloc() function.
@@ -62,7 +62,7 @@ Heap* _Nonnull Heap_GetShared(void)
 // \param pMemDescs the memory descriptors
 // \param nMemDescs the number of memory descriptors
 // \return the heap
-Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMemDescs)
+ErrorCode Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMemDescs, Heap* _Nullable * _Nonnull pOutHeap)
 {
     assert(pMemDescs != NULL);
     
@@ -122,7 +122,8 @@ Heap* _Nullable Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMem
         pHeap->descriptors[i].first_free_block = pFreeBlock;
     }
     
-    return pHeap;
+    *pOutHeap = pHeap;
+    return EOK;
 }
 
 // Returns the correct memory region access mode for the given heap options.
@@ -204,11 +205,12 @@ static Byte* _Nullable Heap_AllocateBytesFromMemoryRegion(Heap* _Nonnull pHeap, 
     return (Byte*)pAllocedBlock + sizeof(Heap_Block);
 }
 
-Byte* _Nullable Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt options)
+ErrorCode Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
-        return BYTE_PTR_MAX;
+        *pOutPtr = BYTE_PTR_MAX;
+        return EOK;
     }
     
     
@@ -223,8 +225,13 @@ Byte* _Nullable Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt option
     // NOte that the code here assumes desc 0 is chip RAM and all the others are
     // fast RAM. This is enforced by Heap_Create().
     Byte* ptr = NULL;
+    ErrorCode err;
 
-    Lock_Lock(&pHeap->lock);
+    if ((err = Lock_Lock(&pHeap->lock)) != EOK) {
+        *pOutPtr = NULL;
+        return err; 
+    }
+
     if (access == MEM_ACCESS_CPU) {
         for (Int i = 1; i < pHeap->descriptors_count; i++) {
             ptr = Heap_AllocateBytesFromMemoryRegion(pHeap, i, nBytesToAlloc);
@@ -241,6 +248,7 @@ Byte* _Nullable Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt option
     else {
         ptr = Heap_AllocateBytesFromMemoryRegion(pHeap, 0, nBytesToAlloc);
     }
+
     Lock_Unlock(&pHeap->lock);
 
     
@@ -251,10 +259,11 @@ Byte* _Nullable Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt option
     
     
     // Return the allocated bytes
-    return ptr;
+    *pOutPtr = ptr;
+    return EOK;
 }
 
-Byte* _Nullable Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr, Int nbytes)
+ErrorCode Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr, Int nbytes)
 {
     assert(pAddr != NULL);
     assert(nbytes > 0);
@@ -266,7 +275,12 @@ Byte* _Nullable Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr,
     
     
     // Compute the block lower and upper bounds
-    Lock_Lock(&pHeap->lock);
+    ErrorCode err;
+
+    if ((err = Lock_Lock(&pHeap->lock)) != EOK) {
+        return err;
+    }
+
     Byte* pBlockLower = pAddr - sizeof(Heap_Block);
     Byte* pBlockUpper = pBlockLower + nBytesToAlloc;
     
@@ -312,7 +326,7 @@ Byte* _Nullable Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr,
     }
     
     
-    // Okay we found the free block which contains teh requested range. Carve out
+    // Okay we found the free block which contains the requested range. Carve out
     // the requested range. This means that we may cut off bytes from the start or
     // the end or we have to split the free block.
     Byte* pFoundLower = (Byte*)pFoundBlock;
@@ -355,11 +369,11 @@ Byte* _Nullable Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr,
     
     Lock_Unlock(&pHeap->lock);
 
-    return pAddr;
+    return EOK;
     
 failed:
     Lock_Unlock(&pHeap->lock);
-    return NULL;
+    return ENOMEM;
 }
 
 void Heap_DeallocateBytes(Heap* _Nonnull pHeap, Byte* _Nullable ptr)

@@ -68,7 +68,7 @@ void VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pS
     // execute userspace code.
     assert(Heap_AllocateBytesAt(pGlobals->heap, 
             pScheduler->bootVirtualProcessor->kernel_stack.base,
-            pScheduler->bootVirtualProcessor->kernel_stack.size) != NULL);
+            pScheduler->bootVirtualProcessor->kernel_stack.size) == EOK);
 
     pScheduler->quantums_per_quarter_second = Quantums_MakeFromTimeInterval(TimeInterval_MakeMilliseconds(250), QUANTUM_ROUNDING_AWAY_FROM_ZERO);
 
@@ -578,9 +578,7 @@ static VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescr
 {
     VirtualProcessor* pVP = NULL;
     
-    pVP = (VirtualProcessor*)kalloc_cleared(sizeof(VirtualProcessor));
-    FailNULL(pVP);
-    
+    FailErr(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
     VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(IdleVirtualProcessor_Run, NULL, VP_DEFAULT_KERNEL_STACK_SIZE, 0));
     

@@ -127,8 +127,9 @@ static void EventDriver_GatherLowLevelEvents(EventDriver* _Nonnull pDriver);
 
 EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
 {
-    EventDriver* pDriver = (EventDriver*)kalloc_cleared(sizeof(EventDriver));
-    FailNULL(pDriver);
+    EventDriver* pDriver;
+    
+    FailErr(kalloc_cleared(sizeof(EventDriver), (Byte**) &pDriver));
     
     pDriver->dispatchQueue = DispatchQueue_Create(1, DISPATCH_QOS_REALTIME, DISPATCH_PRIORITY_NORMAL, NULL);
     FailNULL(pDriver->dispatchQueue);

@@ -33,8 +33,9 @@ static Int PixelFormat_GetPlaneCount(PixelFormat format)
 // \return the surface; NULL on failure
 Surface* _Nullable Surface_Create(Int width, Int height, PixelFormat pixelFormat)
 {
-    Surface* pSurface = (Surface*) kalloc_cleared(sizeof(Surface));
-    FailNULL(pSurface);
+    Surface* pSurface;
+    
+    FailErr(kalloc_cleared(sizeof(Surface), (Byte**) &pSurface));
     
     pSurface->width = width;
     pSurface->height = height;
@@ -48,7 +49,7 @@ Surface* _Nullable Surface_Create(Int width, Int height, PixelFormat pixelFormat
     const Int bytesPerPlane = pSurface->bytesPerRow * pSurface->height;
     
     for (Int i = 0; i < pSurface->planeCount; i++) {
-        pSurface->planes[i] = kalloc_options(bytesPerPlane, HEAP_ALLOC_OPTION_CPU|HEAP_ALLOC_OPTION_CHIPSET);
+        kalloc_options(bytesPerPlane, HEAP_ALLOC_OPTION_CPU|HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pSurface->planes[i]);
         if (pSurface->planes[i] == NULL) goto failed;
     }
     

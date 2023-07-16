@@ -15,7 +15,7 @@ Array* _Nullable PointerArray_Create(Int minCapacity)
 {
     Array* pArray = NULL;
     
-    GenericArray_Create(Byte*, minCapacity, pArray);
+    GenericArray_Create(Byte*, minCapacity, &pArray);
     return pArray;
 }
 

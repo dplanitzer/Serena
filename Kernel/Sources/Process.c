@@ -39,8 +39,9 @@ ProcessRef _Nullable Process_GetCurrent(void)
 
 ProcessRef _Nullable Process_Create(Int pid)
 {
-    Process* pProc = (Process*)kalloc_cleared(sizeof(Process));
-    FailNULL(pProc);
+    Process* pProc;
+    
+    FailErr(kalloc_cleared(sizeof(Process), (Byte**) &pProc));
     
     pProc->pid = pid;
     pProc->mainDispatchQueue = DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, pProc);

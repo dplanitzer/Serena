@@ -34,8 +34,9 @@ PipeRef _Nullable Pipe_Create(Int bufferSize)
 {
     assert(bufferSize > 0);
     
-    PipeRef pPipe = (PipeRef)kalloc(sizeof(Pipe));
-    FailNULL(pPipe);
+    PipeRef pPipe;
+    
+    FailErr(kalloc(sizeof(Pipe), (Byte**) &pPipe));
     
     Lock_Init(&pPipe->lock);
     ConditionVariable_Init(&pPipe->reader);

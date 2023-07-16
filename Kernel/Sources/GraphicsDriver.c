@@ -222,8 +222,9 @@ static CopperInstruction* CopperProgram_CreateScreenRefresh(const VideoConfigura
     Int ip = 0;
     const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pConfig, pSurface->planeCount);
     const Int nInstructions = nFrameInstructions + 1;
-    CopperInstruction* pCode = (CopperInstruction*) kalloc_options(nInstructions * sizeof(CopperInstruction), HEAP_ALLOC_OPTION_CHIPSET|HEAP_ALLOC_OPTION_CPU);
-    FailNULL(pCode);
+    CopperInstruction* pCode;
+    
+    FailErr(kalloc_options(nInstructions * sizeof(CopperInstruction), HEAP_ALLOC_OPTION_CHIPSET|HEAP_ALLOC_OPTION_CPU, (Byte**) &pCode));
     
     CopperCompiler_CompileScreenRefreshProgram(&pCode[ip], pConfig, pSurface, isOddField, pNullSprite, pSprite, isLightPenEnabled);
     ip += nFrameInstructions;
@@ -288,8 +289,9 @@ static void Display_Destroy(Display* _Nullable pDisplay)
 // \return the display or null
 static Display* _Nullable Display_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled)
 {
-    Display* pDisplay = (Display*)kalloc_cleared(sizeof(Display));
-    FailNULL(pDisplay);
+    Display* pDisplay;
+    
+    FailErr(kalloc_cleared(sizeof(Display), (Byte**) &pDisplay));
     
     pDisplay->videoConfig = pConfig;
     pDisplay->pixelFormat = pixelFormat;
@@ -383,12 +385,13 @@ GraphicsDriverRef _Nonnull GraphicsDriver_GetMain(void)
 // configuration and pixel format.
 GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat)
 {
-    GraphicsDriver* pDriver = (GraphicsDriver*)kalloc_cleared(sizeof(GraphicsDriver));
-    FailNULL(pDriver);
+    GraphicsDriver* pDriver;
+    
+    FailErr(kalloc_cleared(sizeof(GraphicsDriver), (Byte**) &pDriver));
 
     
     // Initialize sprites
-    pDriver->sprite_null = (UInt16*)kalloc_options(sizeof(UInt16)*2, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET);
+    FailErr(kalloc_options(sizeof(UInt16)*2, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_null));
     pDriver->sprite_null[0] = 0;
     pDriver->sprite_null[1] = 0;
 
@@ -399,8 +402,7 @@ GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Non
 
     const Int sprsiz = (pDriver->mouse_cursor_height + 2)*2;
     Int i, j;
-    pDriver->sprite_mouse = (UInt16*)kalloc_options(sizeof(UInt16) * sprsiz, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET);
-    FailNULL(pDriver->sprite_mouse);
+    FailErr(kalloc_options(sizeof(UInt16) * sprsiz, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_mouse));
     for (i = 0, j = 0; i < sprsiz; i += 2, j++) {
         pDriver->sprite_mouse[i + 0] = gArrow_Plane0[j];
         pDriver->sprite_mouse[i + 1] = gArrow_Plane1[j];
