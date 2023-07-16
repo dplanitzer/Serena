@@ -55,7 +55,7 @@ typedef struct _InterruptController {
 void InterruptController_Init(InterruptControllerRef _Nonnull pController)
 {
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
-        pController->handlers[i].data = (InterruptHandler*)kalloc(0, 0);
+        pController->handlers[i].data = (InterruptHandler*)kalloc(0);
         pController->handlers[i].size = 0;
     }
     
@@ -93,7 +93,7 @@ static InterruptHandlerID InterruptController_AddInterruptHandler(InterruptContr
     const Int oldSize = pController->handlers[interruptId].size;
     const Int newSize = oldSize + 1;
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].data;
-    InterruptHandler* pNewHandlers = (InterruptHandler*) kalloc(sizeof(InterruptHandler) * newSize, 0);
+    InterruptHandler* pNewHandlers = (InterruptHandler*) kalloc(sizeof(InterruptHandler) * newSize);
     FailNULL(pNewHandlers);
 
     
@@ -205,7 +205,7 @@ void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull 
     const Int oldSize = pController->handlers[interruptId].size;
     const Int newSize = oldSize - 1;
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].data;
-    InterruptHandler* pNewHandlers = (InterruptHandler*) kalloc(sizeof(InterruptHandler) * newSize, 0);
+    InterruptHandler* pNewHandlers = (InterruptHandler*) kalloc(sizeof(InterruptHandler) * newSize);
     
     
     // Copy over the handlers that we want to retain

@@ -14,7 +14,7 @@
 // Creates a new condition variable.
 ConditionVariable* _Nullable ConditionVariable_Create(void)
 {
-    ConditionVariable* pCondVar = (ConditionVariable*)kalloc(sizeof(ConditionVariable), 0);
+    ConditionVariable* pCondVar = (ConditionVariable*)kalloc(sizeof(ConditionVariable));
     
     if (pCondVar) {
         ConditionVariable_Init(pCondVar);

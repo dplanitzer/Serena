@@ -20,9 +20,24 @@
 #endif
 
 
+// Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
+// NULL if the memory could not be allocated. The returned memory is not
+// necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
+// suitable option if DMA accessability is desired.
+Byte* _Nullable kalloc(Int nbytes)
+{
+    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CPU);
+}
+
+// Same as kalloc() but allocated memory that is filled with zeros.
+Byte* _Nullable kalloc_cleared(Int nbytes)
+{
+    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CLEAR | HEAP_ALLOC_OPTION_CPU);
+}
+
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-Byte* _Nullable kalloc(Int nbytes, UInt options)
+Byte* _Nullable kalloc_options(Int nbytes, UInt options)
 {
     return Heap_AllocateBytes(Heap_GetShared(), nbytes, options);
 }

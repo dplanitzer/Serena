@@ -42,7 +42,7 @@ Console* _Nullable Console_Create(GraphicsDriverRef _Nonnull pGDevice)
 {
     const Surface* pFramebuffer = GraphicsDriver_GetFramebuffer(pGDevice);
 
-    Console* pConsole = (Console*)kalloc(sizeof(Console), HEAP_ALLOC_OPTION_CLEAR);
+    Console* pConsole = (Console*)kalloc_cleared(sizeof(Console));
     FailNULL(pConsole);
     
     pConsole->pGDevice = pGDevice;

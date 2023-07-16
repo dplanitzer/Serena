@@ -56,9 +56,18 @@ typedef struct _Heap {
 // Convenience memory management functions
 //
 
+// Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
+// NULL if the memory could not be allocated. The returned memory is not
+// necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
+// suitable option if DMA accessability is desired.
+extern Byte* _Nullable kalloc(Int nbytes);
+
+// Same as kalloc() but allocated memory that is filled with zeros.
+extern Byte* _Nullable kalloc_cleared(Int nbytes);
+
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-extern Byte* _Nullable kalloc(Int nbytes, UInt options);
+extern Byte* _Nullable kalloc_options(Int nbytes, UInt options);
 
 // Frees kernel memory allocated with the kalloc() function.
 extern void kfree(Byte* _Nullable ptr);

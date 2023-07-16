@@ -39,7 +39,7 @@ ProcessRef _Nullable Process_GetCurrent(void)
 
 ProcessRef _Nullable Process_Create(Int pid)
 {
-    Process* pProc = (Process*)kalloc(sizeof(Process), HEAP_ALLOC_OPTION_CLEAR);
+    Process* pProc = (Process*)kalloc_cleared(sizeof(Process));
     FailNULL(pProc);
     
     pProc->pid = pid;

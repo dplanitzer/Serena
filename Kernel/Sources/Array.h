@@ -27,7 +27,7 @@ typedef struct _Array {
 do { \
     pArray->count = 0;\
     pArray->capacity = max(minCapacity, 0);\
-    pArray->bytes = kalloc(sizeof(Type) * pArray->capacity, 0);\
+    pArray->bytes = kalloc(sizeof(Type) * pArray->capacity);\
 } while(0)
 
 #define GenericArray_Deinit(Type, pArray) \
@@ -40,7 +40,7 @@ do {\
 
 #define GenericArray_Create(Type, minCapacity, pOutArray) \
 do {\
-    pOutArray = (Array*)kalloc(sizeof(Array), 0);\
+    pOutArray = (Array*)kalloc(sizeof(Array));\
     if (pOutArray) {\
         GenericArray_Init(Type, pOutArray, minCapacity);\
     }\
@@ -83,7 +83,7 @@ do {\
     if (pArray->count == pArray->capacity) {\
         const Int newCapacity = pArray->capacity + 1;\
         Type* pOldElements = (Type*)pArray->bytes;\
-        Type* pNewElements = (Type*)kalloc(sizeof(Type) * newCapacity, 0);\
+        Type* pNewElements = (Type*)kalloc(sizeof(Type) * newCapacity);\
         \
         for (Int i = 0; i < index; i++) {\
             pNewElements[i] = pOldElements[i];\
@@ -126,7 +126,7 @@ do {\
     pArray->count = 0;\
     if (!keepCapacity) {\
         kfree(pArray->bytes);\
-        pArray->bytes = kalloc(0, 0);\
+        pArray->bytes = kalloc(0);\
         pArray->capacity = 0;\
     }\
 } while(0)

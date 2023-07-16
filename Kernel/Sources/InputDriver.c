@@ -36,7 +36,7 @@ static void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver);
 
 KeyboardDriverRef _Nullable KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver)
 {
-    KeyboardDriver* pDriver = (KeyboardDriver*)kalloc(sizeof(KeyboardDriver), HEAP_ALLOC_OPTION_CLEAR);
+    KeyboardDriver* pDriver = (KeyboardDriver*)kalloc_cleared(sizeof(KeyboardDriver));
     FailNULL(pDriver);
     
     pDriver->event_driver = pEventDriver;
@@ -141,7 +141,7 @@ MouseDriverRef _Nullable MouseDriver_Create(EventDriverRef _Nonnull pEventDriver
 {
     assert(port >= 0 && port <= 1);
     
-    MouseDriver* pDriver = (MouseDriver*)kalloc(sizeof(MouseDriver), HEAP_ALLOC_OPTION_CLEAR);
+    MouseDriver* pDriver = (MouseDriver*)kalloc_cleared(sizeof(MouseDriver));
     FailNULL(pDriver);
     
     pDriver->event_driver = pEventDriver;
@@ -260,7 +260,7 @@ DigitalJoystickDriverRef _Nullable DigitalJoystickDriver_Create(EventDriverRef _
 {
     assert(port >= 0 && port <= 1);
     
-    DigitalJoystickDriver* pDriver = (DigitalJoystickDriver*)kalloc(sizeof(DigitalJoystickDriver), HEAP_ALLOC_OPTION_CLEAR);
+    DigitalJoystickDriver* pDriver = (DigitalJoystickDriver*)kalloc_cleared(sizeof(DigitalJoystickDriver));
     FailNULL(pDriver);
     
     pDriver->event_driver = pEventDriver;
@@ -364,7 +364,7 @@ AnalogJoystickDriverRef _Nullable AnalogJoystickDriver_Create(EventDriverRef _No
 {
     assert(port >= 0 && port <= 1);
     
-    AnalogJoystickDriver* pDriver = (AnalogJoystickDriver*)kalloc(sizeof(AnalogJoystickDriver), HEAP_ALLOC_OPTION_CLEAR);
+    AnalogJoystickDriver* pDriver = (AnalogJoystickDriver*)kalloc_cleared(sizeof(AnalogJoystickDriver));
     FailNULL(pDriver);
     
     pDriver->event_driver = pEventDriver;
@@ -475,7 +475,7 @@ LightPenDriverRef _Nullable LightPenDriver_Create(EventDriverRef _Nonnull pEvent
 {
     assert(port >= 0 && port <= 1);
     
-    LightPenDriver* pDriver = (LightPenDriver*)kalloc(sizeof(LightPenDriver), HEAP_ALLOC_OPTION_CLEAR);
+    LightPenDriver* pDriver = (LightPenDriver*)kalloc_cleared(sizeof(LightPenDriver));
     FailNULL(pDriver);
     
     pDriver->event_driver = pEventDriver;

@@ -116,7 +116,7 @@ static void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, Dispat
 // are one-shot: they execute their closure and then the work item is destroyed.
 static WorkItemRef _Nullable WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue)
 {
-    WorkItemRef pItem = (WorkItemRef) kalloc(sizeof(WorkItem), HEAP_ALLOC_OPTION_CPU);
+    WorkItemRef pItem = (WorkItemRef) kalloc(sizeof(WorkItem));
     
     if (pItem) {
         WorkItem_Init(pItem, kItemType_Immediate, closure, isOwnedByQueue);
@@ -187,7 +187,7 @@ static void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline
 // is greater than 0 then the timer will repeat until cancelled.
 static TimerRef _Nullable Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue)
 {
-    TimerRef pTimer = (TimerRef) kalloc(sizeof(Timer), HEAP_ALLOC_OPTION_CPU);
+    TimerRef pTimer = (TimerRef) kalloc(sizeof(Timer));
     
     if (pTimer) {
         Timer_Init(pTimer, deadline, interval, closure, isOwnedByQueue);
@@ -231,7 +231,7 @@ static inline void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem)
 // Creates a completion signaler.
 static CompletionSignaler* _Nullable CompletionSignaler_Create(void)
 {
-    CompletionSignaler* pItem = (CompletionSignaler*) kalloc(sizeof(CompletionSignaler), HEAP_ALLOC_OPTION_CPU);
+    CompletionSignaler* pItem = (CompletionSignaler*) kalloc(sizeof(CompletionSignaler));
     
     if (pItem) {
         CompletionSignaler_Init(pItem);
@@ -271,7 +271,7 @@ DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int
 {
     assert(maxConcurrency >= 1);
 
-    DispatchQueueRef pQueue = (DispatchQueueRef) kalloc(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), HEAP_ALLOC_OPTION_CPU);
+    DispatchQueueRef pQueue = (DispatchQueueRef) kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1));
         
     if (pQueue) {
         SList_Init(&pQueue->item_queue);

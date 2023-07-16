@@ -15,7 +15,7 @@
 // Creates a new semaphore with the given starting value.
 Semaphore* _Nullable Semaphore_Create(Int value)
 {
-    Semaphore* pSemaphore = (Semaphore*)kalloc(sizeof(Semaphore), 0);
+    Semaphore* pSemaphore = (Semaphore*)kalloc(sizeof(Semaphore));
     
     if (pSemaphore) {
         Semaphore_Init(pSemaphore, value);

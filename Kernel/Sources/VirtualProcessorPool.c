@@ -32,7 +32,7 @@ VirtualProcessorPoolRef _Nonnull VirtualProcessorPool_GetShared(void)
 
 VirtualProcessorPoolRef _Nullable VirtualProcessorPool_Create(void)
 {
-    VirtualProcessorPool* pool = (VirtualProcessorPool*)kalloc(sizeof(VirtualProcessorPool), 0);
+    VirtualProcessorPool* pool = (VirtualProcessorPool*)kalloc_cleared(sizeof(VirtualProcessorPool));
     FailNULL(pool);
     
     List_Init(&pool->inuse_queue);

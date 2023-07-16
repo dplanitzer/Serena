@@ -578,7 +578,7 @@ static VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescr
 {
     VirtualProcessor* pVP = NULL;
     
-    pVP = (VirtualProcessor*)kalloc(sizeof(VirtualProcessor), HEAP_ALLOC_OPTION_CLEAR);
+    pVP = (VirtualProcessor*)kalloc_cleared(sizeof(VirtualProcessor));
     FailNULL(pVP);
     
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
