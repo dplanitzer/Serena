@@ -12,15 +12,20 @@
 
 
 // Creates a new condition variable.
-ConditionVariable* _Nullable ConditionVariable_Create(void)
+ErrorCode ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar)
 {
     ConditionVariable* pCondVar;
-    
-    if (kalloc(sizeof(ConditionVariable), (Byte**) &pCondVar) == EOK) {
-        ConditionVariable_Init(pCondVar);
-        pCondVar->name[0] = '\0';
-    }
-    return pCondVar;
+    decl_try_err();
+
+    try(kalloc(sizeof(ConditionVariable), (Byte**) &pCondVar));
+    ConditionVariable_Init(pCondVar);
+    pCondVar->name[0] = '\0';
+    *pOutCondVar = pCondVar;
+    return EOK;
+
+catch:
+    *pOutCondVar = NULL;
+    return err;
 }
 
 void ConditionVariable_Destroy(ConditionVariable* _Nullable pCondVar)

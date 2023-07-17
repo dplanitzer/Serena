@@ -23,6 +23,12 @@
 #define FailNULL(p)     if ((p) == NULL) goto failed
 #define FailZero(p)     if ((p) == 0) goto failed
 
+#define decl_try_err()      ErrorCode err = EOK
+#define try(f)              if ((err = (f)) != EOK) goto catch
+#define try_null(p, f, e)   if ((p = (f)) == NULL) { err = e; goto catch; }
+#define try_false(f, e)     if (!(f)) { err = e; goto catch; }
+#define try_zero(f, e)      if ((f) == 0) { err = e; goto catch; }
+
 
 // Error code definitions
 typedef Int ErrorCode;
@@ -33,8 +39,8 @@ typedef Int ErrorCode;
 #define ENOBOOT     4
 #define ENODRIVE    5
 #define EDISKCHANGE 6
-#define ETIMEOUT    7
-#define ENODEVICE   8
+#define ETIMEDOUT   7
+#define ENODEV      8
 #define EPARAM      9
 #define ERANGE      10
 #define EINTR       11
@@ -42,6 +48,8 @@ typedef Int ErrorCode;
 #define EPIPE       13
 #define EBUSY       14
 #define ENOSYS      15
+#define EINVAL      16
+#define EIO         17
 
 
 // A callback function that takes a single (context) pointer argument

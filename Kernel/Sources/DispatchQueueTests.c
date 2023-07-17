@@ -46,10 +46,13 @@ void DispatchQueue_RunTests(void)
 // MARK: DispatchAsync/DispatchAsyncAfter in **User Space**
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser((Closure1Arg_Func)0xfe0000, (Byte*)0)));
+    TimerRef pTimer;
+    
+    Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser((Closure1Arg_Func)0xfe0000, (Byte*)0), &pTimer);
+    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), pTimer);
 }
 #endif
 
@@ -72,7 +75,8 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
 // XXX blocking on itself. This is expected behavior.
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueueRef pQueue = DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL);
+    DispatchQueueRef pQueue;
+    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL, &pQueue);
     Int i = 0;
 
     while (true) {
@@ -195,7 +199,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 0
+#if 1
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pDriver = SystemGlobals_Get()->event_driver;
@@ -293,7 +297,8 @@ void DispatchQueue_RunTests(void)
 {
 //    PipeRef pipe = Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE);
     PipeRef pipe = Pipe_Create(4);
-    DispatchQueueRef pUtilityQueue = DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL);
+    DispatchQueueRef pUtilityQueue;
+    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL, &pUtilityQueue);
 
     DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnWriteToPipe, (Byte*)pipe));
     DispatchQueue_DispatchAsync(pUtilityQueue, DispatchQueueClosure_Make(OnReadFromPipe, (Byte*)pipe));

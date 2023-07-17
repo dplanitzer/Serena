@@ -92,7 +92,7 @@ Int RealtimeClock_ReadNonVolatileData(RealtimeClock* _Nonnull pClock, ErrorCode*
     Lock_Lock(&pClock->lock);
     // XXX not yet
     nBytesRead = 0;
-    *pError = ENODEVICE;
+    *pError = ENODEV;
     Lock_Unlock(&pClock->lock);
     
     return nBytesRead;
@@ -106,7 +106,7 @@ Int RealtimeClock_WriteNonVolatileData(RealtimeClock* _Nonnull pClock, ErrorCode
     Lock_Lock(&pClock->lock);
     // XXX not yet
     nBytesWritten = 0;
-    *pError = ENODEVICE;
+    *pError = ENODEV;
     Lock_Unlock(&pClock->lock);
     
     return nBytesWritten;

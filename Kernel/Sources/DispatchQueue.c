@@ -114,23 +114,28 @@ static void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, Dispat
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
-static WorkItemRef _Nullable WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue)
+static ErrorCode WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem)
 {
+    decl_try_err();
     WorkItemRef pItem;
     
-    if (kalloc(sizeof(WorkItem), (Byte**) &pItem) == EOK) {
-        WorkItem_Init(pItem, kItemType_Immediate, closure, isOwnedByQueue);
-    }
-    return pItem;
+    try(kalloc(sizeof(WorkItem), (Byte**) &pItem));
+    WorkItem_Init(pItem, kItemType_Immediate, closure, isOwnedByQueue);
+    *pOutItem = pItem;
+    return EOK;
+
+catch:
+    *pOutItem = NULL;
+    return err;
 }
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
 // This is the creation method for parties that are external to the dispatch
 // queue implementation.
-WorkItemRef _Nullable WorkItem_Create(DispatchQueueClosure closure)
+ErrorCode WorkItem_Create(DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem)
 {
-    return WorkItem_Create_Internal(closure, false);
+    return WorkItem_Create_Internal(closure, false, pOutItem);
 }
 
 static void WorkItem_Deinit(WorkItemRef _Nonnull pItem)
@@ -185,23 +190,28 @@ static void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
-static TimerRef _Nullable Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue)
+static ErrorCode Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer)
 {
+    decl_try_err();
     TimerRef pTimer;
     
-    if (kalloc(sizeof(Timer), (Byte**) &pTimer) == EOK) {
-        Timer_Init(pTimer, deadline, interval, closure, isOwnedByQueue);
-    }
-    return pTimer;
+    try(kalloc(sizeof(Timer), (Byte**) &pTimer));
+    Timer_Init(pTimer, deadline, interval, closure, isOwnedByQueue);
+    *pOutTimer = pTimer;
+    return EOK;
+
+catch:
+    *pOutTimer = NULL;
+    return err;
 }
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
 // This is the creation method for parties that are external to the dispatch
 // queue implementation.
-TimerRef _Nullable Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure)
+ErrorCode Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer)
 {
-    return Timer_Create_Internal(deadline, interval, closure, false);
+    return Timer_Create_Internal(deadline, interval, closure, false, pOutTimer);
 }
 
 static inline void Timer_Deinit(TimerRef pTimer)
@@ -229,15 +239,20 @@ static inline void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem)
 }
 
 // Creates a completion signaler.
-static CompletionSignaler* _Nullable CompletionSignaler_Create(void)
+static ErrorCode CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp)
 {
+    decl_try_err();
     CompletionSignaler* pItem;
     
-    if (kalloc(sizeof(CompletionSignaler), (Byte**) &pItem) == EOK) {
-        CompletionSignaler_Init(pItem);
-        Semaphore_Init(&pItem->semaphore, 0);
-    }
-    return pItem;
+    try(kalloc(sizeof(CompletionSignaler), (Byte**) &pItem));
+    CompletionSignaler_Init(pItem);
+    Semaphore_Init(&pItem->semaphore, 0);
+    *pOutComp = pItem;
+    return EOK;
+
+catch:
+    *pOutComp = NULL;
+    return err;
 }
 
 static inline void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull pItem)
@@ -267,38 +282,44 @@ DispatchQueueRef _Nonnull DispatchQueue_GetMain(void)
 }
 
 
-DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, ProcessRef _Nullable _Weak pProc)
+ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
     assert(maxConcurrency >= 1);
 
+    decl_try_err();
     DispatchQueueRef pQueue;
     
-    if (kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (Byte**) &pQueue) == EOK) {
-        SList_Init(&pQueue->item_queue);
-        SList_Init(&pQueue->timer_queue);
-        SList_Init(&pQueue->item_cache_queue);
-        SList_Init(&pQueue->timer_cache_queue);
-        SList_Init(&pQueue->completion_signaler_cache_queue);
-        Lock_Init(&pQueue->lock);
-        ConditionVariable_Init(&pQueue->work_available_signaler);
-        ConditionVariable_Init(&pQueue->vp_shutdown_signaler);
-        pQueue->owning_process = pProc;
-        pQueue->items_queued_count = 0;
-        pQueue->state = kQueueState_Running;
-        pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
-        pQueue->availableConcurrency = 0;
-        pQueue->qos = qos;
-        pQueue->priority = priority;
-        pQueue->item_cache_count = 0;
-        pQueue->timer_cache_count = 0;
-        pQueue->completion_signaler_count = 0;
+    try(kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (Byte**) &pQueue));
+    SList_Init(&pQueue->item_queue);
+    SList_Init(&pQueue->timer_queue);
+    SList_Init(&pQueue->item_cache_queue);
+    SList_Init(&pQueue->timer_cache_queue);
+    SList_Init(&pQueue->completion_signaler_cache_queue);
+    Lock_Init(&pQueue->lock);
+    ConditionVariable_Init(&pQueue->work_available_signaler);
+    ConditionVariable_Init(&pQueue->vp_shutdown_signaler);
+    pQueue->owning_process = pProc;
+    pQueue->items_queued_count = 0;
+    pQueue->state = kQueueState_Running;
+    pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
+    pQueue->availableConcurrency = 0;
+    pQueue->qos = qos;
+    pQueue->priority = priority;
+    pQueue->item_cache_count = 0;
+    pQueue->timer_cache_count = 0;
+    pQueue->completion_signaler_count = 0;
 
-        for (Int i = 0; i < maxConcurrency; i++) {
-            pQueue->concurrency_lanes[i].vp = NULL;
-        }
+    for (Int i = 0; i < maxConcurrency; i++) {
+        pQueue->concurrency_lanes[i].vp = NULL;
     }
     
-    return pQueue;
+    *pOutQueue = pQueue;
+    return EOK;
+
+catch:
+    DispatchQueue_Destroy(pQueue);
+    *pOutQueue = NULL;
+    return err;
 }
 
 // Destroys the dispatch queue after all still pending work items have finished
@@ -349,7 +370,7 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         // accepting new work items and repeatable timers from rescheduling. This
         // will also cause the VPs to drain the existing work item queue and to
         // relinquish themselves.
-        Lock_Lock(&pQueue->lock);
+        assert(Lock_Lock(&pQueue->lock) == EOK);
         pQueue->state = kQueueState_ShuttingDown;
 
 
@@ -368,7 +389,7 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
 
         // Wait until all VPs have relinquished and detached themselves from the
         // dispatch queue.
-        Lock_Lock(&pQueue->lock);
+        assert(Lock_Lock(&pQueue->lock) == EOK);
         while (pQueue->availableConcurrency > 0) {
             ConditionVariable_Wait(&pQueue->vp_shutdown_signaler, &pQueue->lock, kTimeInterval_Infinity);
         }
@@ -469,18 +490,23 @@ static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _No
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static WorkItemRef _Nullable DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure)
+static ErrorCode DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem)
 {
+    decl_try_err();
     WorkItemRef pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_cache_queue);
 
     if (pItem != NULL) {
         WorkItem_Init(pItem, kItemType_Immediate, closure, true);
         pQueue->item_cache_count--;
+        *pOutItem = pItem;
     } else {
-        pItem = WorkItem_Create_Internal(closure, true);
+        try(WorkItem_Create_Internal(closure, true, pOutItem));
     }
-    
-    return pItem;
+    return EOK;
+
+catch:
+    *pOutItem = NULL;
+    return err;
 }
 
 // Reqlinquishes the given work item back to the item cache if possible. The
@@ -502,18 +528,23 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQue
 // Creates a timer for the given closure and closure context. Tries to reuse
 // an existing timer from the timer cache whenever possible. Expects that the
 // caller holds the dispatch queue lock.
-static TimerRef _Nullable DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure)
+static ErrorCode DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer)
 {
+    decl_try_err();
     TimerRef pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_cache_queue);
 
     if (pTimer != NULL) {
         Timer_Init(pTimer, deadline, interval, closure, true);
         pQueue->timer_cache_count--;
+        *pOutTimer = pTimer;
     } else {
-        pTimer = Timer_Create_Internal(deadline, interval, closure, true);
+        try(Timer_Create_Internal(deadline, interval, closure, true, pOutTimer));
     }
-    
-    return pTimer;
+    return EOK;
+
+catch:
+    *pOutTimer = NULL;
+    return err;
 }
 
 // Reqlinquishes the given timer back to the timer cache if possible. The timer
@@ -535,18 +566,23 @@ static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue,
 // Creates a completion signaler. Tries to reusean existing completion signaler
 // from the completion signaler cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static CompletionSignaler* _Nullable DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue)
+static ErrorCode DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue, CompletionSignaler* _Nullable * _Nonnull pOutComp)
 {
+    decl_try_err();
     CompletionSignaler* pItem = (CompletionSignaler*) SList_RemoveFirst(&pQueue->completion_signaler_cache_queue);
 
     if (pItem != NULL) {
         CompletionSignaler_Init(pItem);
         pQueue->completion_signaler_count--;
+        *pOutComp = pItem;
     } else {
-        pItem = CompletionSignaler_Create();
+        try(CompletionSignaler_Create(pOutComp));
     }
-    
-    return pItem;
+    return EOK;
+
+catch:
+    *pOutComp = NULL;
+    return err;
 }
 
 // Reqlinquishes the given completion signaler back to the completion signaler
@@ -564,32 +600,45 @@ static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _No
 
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible. Expects to be called with the dispatch queue held.
-static void DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+static ErrorCode DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     SList_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
     pQueue->items_queued_count++;
 
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
     ConditionVariable_SignalAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
+    
+    return EOK;
 }
 
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has finished
 // execution. Expects that the caller holds the dispatch queue lock.
-static void DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+static ErrorCode DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
-    CompletionSignaler* pCompSignaler = DispatchQueue_AcquireCompletionSignaler_Locked(pQueue);
+    decl_try_err();
+    CompletionSignaler* pCompSignaler = NULL;
+
+    try(DispatchQueue_AcquireCompletionSignaler_Locked(pQueue, &pCompSignaler));
     Semaphore* pCompSema = &pCompSignaler->semaphore;
 
     // The work item maintains a weak reference to the cached completion semaphore
     pItem->completion_sema = pCompSema;
 
-    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
-    Semaphore_Acquire(pCompSema, kTimeInterval_Infinity);
+    try(DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem));
+    try(Semaphore_Acquire(pCompSema, kTimeInterval_Infinity));
 
-    Lock_Lock(&pQueue->lock);
+    try(Lock_Lock(&pQueue->lock));
     DispatchQueue_RelinquishCompletionSignaler_Locked(pQueue, pCompSignaler);
     Lock_Unlock(&pQueue->lock);
+
+    return EOK;
+
+catch:
+    if (pCompSignaler) {
+        DispatchQueue_RelinquishCompletionSignaler_Locked(pQueue, pCompSignaler);
+    }
+    return err;
 }
 
 // Adds the given timer to the timer queue. Expects that the queue is already
@@ -613,11 +662,13 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
 
 // Asynchronously executes the given timer when it comes due. Expects that the
 // caller holds the dispatch queue lock.
-void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
+ErrorCode DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
     DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
     ConditionVariable_SignalAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
+
+    return EOK;
 }
 
 
@@ -625,101 +676,176 @@ void DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerR
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has finished
 // execution.
-void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
+    decl_try_err();
+    Bool needsUnlock = false;
+
     if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
         // Some other queue is already dispatching this work item
         abort();
     }
 
-    Lock_Lock(&pQueue->lock);
+    try(Lock_Lock(&pQueue->lock));
+    needsUnlock = true;
     if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
-        return;
+        return EOK;
     }
 
-    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
+    try(DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem));
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
 }
 
 // Synchronously executes the given closure. The closure is executed as soon as
 // possible and the caller remains blocked until the closure has finished execution.
-void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure)
+ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure)
 {
-    Lock_Lock(&pQueue->lock);
+    decl_try_err();
+    WorkItem* pItem = NULL;
+    Bool needsUnlock = false;
+
+    try(Lock_Lock(&pQueue->lock));
+    needsUnlock = true;
     if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
-        return;
+        return EOK;
     }
 
-    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, closure);
-    assert(pItem != NULL);
-    DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem);
+    try(DispatchQueue_AcquireWorkItem_Locked(pQueue, closure, &pItem));
+    try(DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem));
+    return EOK;
+
+catch:
+    if (pItem) {
+        DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
+    }
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
 }
 
 
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible.
-void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
+    decl_try_err();
+    Bool needsUnlock = false;
+
     if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
         // Some other queue is already dispatching this work item
         abort();
     }
 
-    Lock_Lock(&pQueue->lock);
+    try(Lock_Lock(&pQueue->lock));
+    needsUnlock = true;
     if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
-        return;
+        return EOK;
     }
 
-    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
+    try(DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem));
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
 }
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
-void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure)
+ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure)
 {
-    Lock_Lock(&pQueue->lock);
+    decl_try_err();
+    WorkItem* pItem = NULL;
+    Bool needsUnlock = false;
+
+    try(Lock_Lock(&pQueue->lock));
+    needsUnlock = true;
     if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
-        return;
+        return EOK;
     }
 
-    WorkItem* pItem = DispatchQueue_AcquireWorkItem_Locked(pQueue, closure);
-    assert(pItem != NULL);
-    DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem);
+    try(DispatchQueue_AcquireWorkItem_Locked(pQueue, closure, &pItem));
+    try(DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem));
+    return EOK;
+
+catch:
+    if (pItem) {
+        DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
+    }
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
 }
 
 // Asynchronously executes the given timer when it comes due.
-void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
+ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
+    decl_try_err();
+    Bool needsUnlock = false;
+
     if (AtomicBool_Set(&pTimer->item.is_being_dispatched, true)) {
         // Some other queue is already dispatching this timer
         abort();
     }
 
-    Lock_Lock(&pQueue->lock);
+    try(Lock_Lock(&pQueue->lock));
+    needsUnlock = true;
     if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
-        return;
+        return EOK;
     }
 
-    DispatchQueue_DispatchTimer_Locked(pQueue, pTimer);
+    try(DispatchQueue_DispatchTimer_Locked(pQueue, pTimer));
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
 }
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
-void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure)
+ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure)
 {
-    Lock_Lock(&pQueue->lock);
+    decl_try_err();
+    Timer* pTimer = NULL;
+    Bool needsUnlock = false;
+
+    try(Lock_Lock(&pQueue->lock));
+    needsUnlock = true;
     if (pQueue->state >= kQueueState_ShuttingDown) {
         Lock_Unlock(&pQueue->lock);
-        return;
+        return EOK;
     }
 
-    Timer* pTimer = DispatchQueue_AcquireTimer_Locked(pQueue, deadline, kTimeInterval_Zero, closure);
-    assert(pTimer != NULL);
-    DispatchQueue_DispatchTimer_Locked(pQueue, pTimer);
+    try(DispatchQueue_AcquireTimer_Locked(pQueue, deadline, kTimeInterval_Zero, closure, &pTimer));
+    try(DispatchQueue_DispatchTimer_Locked(pQueue, pTimer));
+    return EOK;
+
+catch:
+    if (pTimer) {
+        DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
+    }
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
 }
 
 // Returns the dispatch queue that is associated with the virtual processor that
@@ -733,11 +859,17 @@ DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
 }
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
-void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
+ErrorCode DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
 {
-    Lock_Lock(&pQueue->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pQueue->lock));
     DispatchQueue_Flush_Locked(pQueue, true);
     Lock_Unlock(&pQueue->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 
@@ -760,7 +892,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
     // We hold the lock at all times except:
     // - while waiting for work
     // - while executing a work item
-    Lock_Lock(&pQueue->lock);
+    assert(Lock_Lock(&pQueue->lock) == EOK);
 
     while (true) {
         WorkItemRef pItem = NULL;
@@ -805,11 +937,11 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
 
             // Wait for work. This drops the queue lock while we're waiting. This
-            // call may return with a ETIMEOUT error. This is fine. Either some
+            // call may return with a ETIMEDOUT error. This is fine. Either some
             // new work has arrived in the meantime or if not then we'll relinquish
             // the VP since it hasn't done anything for a long enough time.
             const Int err = ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline);
-            if (err == ETIMEOUT) {
+            if (err == ETIMEDOUT) {
                 mayRelinquish = true;
             }
         }
@@ -841,7 +973,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
 
         // Reacquire the lock
-        Lock_Lock(&pQueue->lock);
+        assert(Lock_Lock(&pQueue->lock) == EOK);
 
 
         // Move the work item back to the item cache if possible or destroy it

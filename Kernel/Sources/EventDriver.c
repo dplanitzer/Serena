@@ -120,24 +120,20 @@ typedef struct _EventDriver {
 } EventDriver;
 
 
-static void EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
+static ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
 static void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
 static void EventDriver_GatherLowLevelEvents(EventDriver* _Nonnull pDriver);
 
 
-EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
+ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
 {
+    decl_try_err();
     EventDriver* pDriver;
     
-    FailErr(kalloc_cleared(sizeof(EventDriver), (Byte**) &pDriver));
-    
-    pDriver->dispatchQueue = DispatchQueue_Create(1, DISPATCH_QOS_REALTIME, DISPATCH_PRIORITY_NORMAL, NULL);
-    FailNULL(pDriver->dispatchQueue);
-
-    pDriver->timer = Timer_Create(TimeInterval_MakeMilliseconds(0), TimeInterval_MakeMilliseconds(16), DispatchQueueClosure_Make((Closure1Arg_Func)EventDriver_GatherLowLevelEvents, (Byte*)pDriver));
-    FailNULL(pDriver->timer);
-
-    FailFalse((RingBuffer_Init(&pDriver->event_queue, EVENT_QUEUE_MAX_EVENTS * sizeof(HIDEvent))));
+    try(kalloc_cleared(sizeof(EventDriver), (Byte**) &pDriver));
+    try(DispatchQueue_Create(1, DISPATCH_QOS_REALTIME, DISPATCH_PRIORITY_NORMAL, NULL, &pDriver->dispatchQueue));
+    try(Timer_Create(TimeInterval_MakeMilliseconds(0), TimeInterval_MakeMilliseconds(16), DispatchQueueClosure_Make((Closure1Arg_Func)EventDriver_GatherLowLevelEvents, (Byte*)pDriver), &pDriver->timer));
+    try_false((RingBuffer_Init(&pDriver->event_queue, EVENT_QUEUE_MAX_EVENTS * sizeof(HIDEvent))), ENOMEM);
     
     ConditionVariable_Init(&pDriver->event_queue_cv);
     Lock_Init(&pDriver->lock);
@@ -167,24 +163,25 @@ EventDriverRef _Nullable EventDriver_Create(GraphicsDriverRef _Nonnull gdevice)
     }
     
     // Open the input devices
-    pDriver->keyboard_driver = KeyboardDriver_Create(pDriver);
-    assert(pDriver->keyboard_driver != NULL);
+    try(KeyboardDriver_Create(pDriver, &pDriver->keyboard_driver));
 
     for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
         pDriver->port[i].type = kInputControllerType_None;
     }
     
-    EventDriver_CreateInputControllerForPort(pDriver, kInputControllerType_Mouse, 0);
+    try(EventDriver_CreateInputControllerForPort(pDriver, kInputControllerType_Mouse, 0));
 
     // Kick off the low-level event gathering
     pDriver->isReady = true;
-    DispatchQueue_DispatchTimer(pDriver->dispatchQueue, pDriver->timer);
+    try(DispatchQueue_DispatchTimer(pDriver->dispatchQueue, pDriver->timer));
 
-    return pDriver;
+    *pOutDriver = pDriver;
+    return EOK;
     
-failed:
+catch:
     EventDriver_Destroy(pDriver);
-    return NULL;
+    *pOutDriver = NULL;
+    return err;
 }
 
 static void EventDriver_FreeResourcesOnDispatchQueue(EventDriverRef _Nullable pDriver)
@@ -213,7 +210,7 @@ void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
         // that we'll only start freeing resources after the last timer invocation
         // has completed.
         if (pDriver->isReady) {
-            DispatchQueue_DispatchSync(pDriver->dispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver));
+            assert(DispatchQueue_DispatchSync(pDriver->dispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver)) == EOK);
         } else {
             EventDriver_FreeResourcesOnDispatchQueue(pDriver);
         }
@@ -229,36 +226,34 @@ void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
 
 // Creates a new input controller driver instance for the port 'portId'. Expects that the port
 // is currently unassigned (aka type is == 'none').
-static void EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
+static ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
 {
+    decl_try_err();
+
     switch (type) {
         case kInputControllerType_None:
             break;
             
         case kInputControllerType_Mouse:
-            pDriver->port[portId].u.mouse.driver = MouseDriver_Create(pDriver, portId);
-            assert(pDriver->port[portId].u.mouse.driver != NULL);
+            try(MouseDriver_Create(pDriver, portId, &pDriver->port[portId].u.mouse.driver));
             break;
             
         case kInputControllerType_DigitalJoystick:
-            pDriver->port[portId].u.digitalJoystick.driver = DigitalJoystickDriver_Create(pDriver, portId);
-            assert(pDriver->port[portId].u.digitalJoystick.driver != NULL);
+            try(DigitalJoystickDriver_Create(pDriver, portId, &pDriver->port[portId].u.digitalJoystick.driver));
             pDriver->port[portId].u.digitalJoystick.previous.buttonsDown = 0;
             pDriver->port[portId].u.digitalJoystick.previous.xAbs = 0;
             pDriver->port[portId].u.digitalJoystick.previous.yAbs = 0;
             break;
             
         case kInputControllerType_AnalogJoystick:
-            pDriver->port[portId].u.analogJoystick.driver = AnalogJoystickDriver_Create(pDriver, portId);
-            assert(pDriver->port[portId].u.analogJoystick.driver != NULL);
+            try(AnalogJoystickDriver_Create(pDriver, portId, &pDriver->port[portId].u.analogJoystick.driver));
             pDriver->port[portId].u.analogJoystick.previous.buttonsDown = 0;
             pDriver->port[portId].u.analogJoystick.previous.xAbs = 0;
             pDriver->port[portId].u.analogJoystick.previous.yAbs = 0;
             break;
             
         case kInputControllerType_LightPen:
-            pDriver->port[portId].u.lightPen.driver = LightPenDriver_Create(pDriver, portId);
-            assert(pDriver->port[portId].u.lightPen.driver != NULL);
+            try(LightPenDriver_Create(pDriver, portId, &pDriver->port[portId].u.lightPen.driver));
             break;
             
         default:
@@ -266,6 +261,10 @@ static void EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDr
     }
     
     pDriver->port[portId].type = type;
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Destroys the input controller that is configured for port 'portId'. This frees the input controller
@@ -308,32 +307,47 @@ GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull
     return pDriver->gdevice;
 }
 
-InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId)
+ErrorCode EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId, InputControllerType * _Nonnull pOutType)
 {
-    InputControllerType type;
-    
+    decl_try_err();
     assert(portId >= 0 && portId < MAX_INPUT_CONTROLLER_PORTS);
     
-    Lock_Lock(&pDriver->lock);
-    type = pDriver->port[portId].type;
+    try(Lock_Lock(&pDriver->lock));
+    *pOutType = pDriver->port[portId].type;
     Lock_Unlock(&pDriver->lock);
-    
-    return type;
+    return EOK;
+
+catch:
+    *pOutType = kInputControllerType_None;
+    return err;
 }
 
-void EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
+ErrorCode EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
 {
+    decl_try_err();
+    Bool needsUnlock = false;
+
     assert(portId >= 0 && portId < MAX_INPUT_CONTROLLER_PORTS);
 
-    Lock_Lock(&pDriver->lock);
+    try(Lock_Lock(&pDriver->lock));
+    needsUnlock = true;
     EventDriver_DestroyInputControllerForPort(pDriver, portId);
-    EventDriver_CreateInputControllerForPort(pDriver, type, portId);
+    try(EventDriver_CreateInputControllerForPort(pDriver, type, portId));
     Lock_Unlock(&pDriver->lock);
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pDriver->lock);
+    }
+    return err;
 }
 
-void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
+ErrorCode EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
-    Lock_Lock(&pDriver->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pDriver->lock));
     if (pInitialDelay) {
         *pInitialDelay = pDriver->key_initial_repeat_delay;
     }
@@ -341,75 +355,111 @@ void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterva
         *pRepeatDelay = pDriver->key_repeat_delay;
     }
     Lock_Unlock(&pDriver->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
-void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay)
+ErrorCode EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay)
 {
-    Lock_Lock(&pDriver->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pDriver->lock));
     pDriver->key_initial_repeat_delay = initialDelay;
     pDriver->key_repeat_delay = repeatDelay;
     Lock_Unlock(&pDriver->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Show the mouse cursor. This decrements the hidden counter. The mouse cursor
 // is only shown if this counter reaches zero. The operation is carried out at
 // the next vertical blank.
-void EventDriver_ShowMouseCursor(EventDriverRef _Nonnull pDriver)
+ErrorCode EventDriver_ShowMouseCursor(EventDriverRef _Nonnull pDriver)
 {
-    Lock_Lock(&pDriver->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pDriver->lock));
     pDriver->mouseCursorHiddenCounter--;
     if (pDriver->mouseCursorHiddenCounter < 0) {
         pDriver->mouseCursorHiddenCounter = 0;
     }
     pDriver->mouseConfigDidChange = true;
     Lock_Unlock(&pDriver->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Hides the mouse cursor. This increments the hidden counter. The mouse remains
 // hidden as long as the counter does not reach the value zero. The operation is
 // carried out at the next vertical blank.
-void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver)
+ErrorCode EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver)
 {
-    Lock_Lock(&pDriver->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pDriver->lock));
     pDriver->mouseCursorHiddenCounter++;
     pDriver->mouseConfigDidChange = true;
     Lock_Unlock(&pDriver->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Obscures the mouse cursor. This hides the mouse cursor until the user moves
 // the mouse or clicks a button. The change is carried out at the next vertical
 // blank.
-void EventDriver_ObscureMouseCursor(EventDriverRef _Nonnull pDriver)
+ErrorCode EventDriver_ObscureMouseCursor(EventDriverRef _Nonnull pDriver)
 {
-    Lock_Lock(&pDriver->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pDriver->lock));
     pDriver->isMouseCursorObscured = true;
     pDriver->mouseConfigDidChange = true;
     Lock_Unlock(&pDriver->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Returns the current mouse location in screen space.
-Point EventDriver_GetMouseLocation(EventDriverRef _Nonnull pDriver)
+ErrorCode EventDriver_GetMouseLocation(EventDriverRef _Nonnull pDriver, Point* _Nonnull pOutPoint)
 {
+    decl_try_err();
     Point loc;
     
-    Lock_Lock(&pDriver->lock);
+    try(Lock_Lock(&pDriver->lock));
     loc.x = pDriver->mouse_x;
     loc.y = pDriver->mouse_y;
     Lock_Unlock(&pDriver->lock);
-    
-    return loc;
+    *pOutPoint = loc;
+    return EOK;
+
+catch:
+    *pOutPoint = Point_Zero;
+    return err;
 }
 
 // Returns a bit mask of all the mouse buttons that are currently pressed.
-UInt32 EventDriver_GetMouseButtonsDown(EventDriverRef _Nonnull pDriver)
+ErrorCode EventDriver_GetMouseButtonsDown(EventDriverRef _Nonnull pDriver, UInt32* _Nonnull pOutButtonsMask)
 {
+    decl_try_err();
     UInt32 buttons;
     
-    Lock_Lock(&pDriver->lock);
-    buttons = pDriver->mouse_buttons;
+    try(Lock_Lock(&pDriver->lock));
+    *pOutButtonsMask = pDriver->mouse_buttons;
     Lock_Unlock(&pDriver->lock);
-    
-    return buttons;
+    return EOK;
+
+catch:
+    return err;
 }
 
 inline void KeyMap_SetKeyDown(UInt32* _Nonnull pKeyMap, HIDKeyCode keycode)
@@ -437,7 +487,7 @@ void EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* 
 {
     Int oi = 0;
     
-    Lock_Lock(&pDriver->lock);
+    assert(Lock_Lock(&pDriver->lock) == EOK);
     if (nKeysToCheck > 0 && pKeysToCheck) {
         if (pKeysDown) {
             // Returns at most 'nKeysDown' keys which are in the set 'pKeysToCheck'
@@ -497,14 +547,19 @@ void EventDriver_PutEvent_Locked(EventDriverRef _Nonnull pDriver, HIDEvent* _Non
 // Posts a copy of the given event to the event queue. The event time is set to
 // the current time. The oldest queued event is removed and effectively replaced
 // by the new event if the event queue is full.
-void EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Nonnull pEvent)
+ErrorCode EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Nonnull pEvent)
 {
+    decl_try_err();
     HIDEvent newEvent = *pEvent;
     newEvent.eventTime = MonotonicClock_GetCurrentTime();
     
-    Lock_Lock(&pDriver->lock);
+    try(Lock_Lock(&pDriver->lock));
     EventDriver_PutEvent_Locked(pDriver, &newEvent);
     ConditionVariable_BroadcastAndUnlock(&pDriver->event_queue_cv, &pDriver->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Blocks the caller until either events have arrived or 'deadline' has passed
@@ -517,20 +572,21 @@ ErrorCode EventDriver_GetEvents(EventDriverRef _Nonnull pDriver, HIDEvent* _Nonn
     ErrorCode err = EOK;
     
     if (*pEventCount > 0) {
-        Lock_Lock(&pDriver->lock);
-        
-        while (RingBuffer_IsEmpty(&pDriver->event_queue) && err == EOK) {
-            err = ConditionVariable_Wait(&pDriver->event_queue_cv, &pDriver->lock, deadline);
-        }
-        
-        if (err == EOK) {
-            const Int nEventsToCopy = min(RingBuffer_ReadableCount(&pDriver->event_queue), *pEventCount);
-            const Int nCopiedBytes = RingBuffer_GetBytes(&pDriver->event_queue, (Byte*)pEvents, nEventsToCopy*sizeof(HIDEvent));
+        if ((err = Lock_Lock(&pDriver->lock)) == EOK) {
+
+            while (RingBuffer_IsEmpty(&pDriver->event_queue) && err == EOK) {
+                err = ConditionVariable_Wait(&pDriver->event_queue_cv, &pDriver->lock, deadline);
+            }
+
+            if (err == EOK) {
+                const Int nEventsToCopy = min(RingBuffer_ReadableCount(&pDriver->event_queue), *pEventCount);
+                const Int nCopiedBytes = RingBuffer_GetBytes(&pDriver->event_queue, (Byte*)pEvents, nEventsToCopy*sizeof(HIDEvent));
             
-            *pEventCount = nEventsToCopy;
-        }
+                *pEventCount = nEventsToCopy;
+            }
         
-        Lock_Unlock(&pDriver->lock);
+            Lock_Unlock(&pDriver->lock);
+        }
     }
     
     return err;
@@ -977,7 +1033,7 @@ static void EventDriver_GenerateJoysticksEvents(EventDriverRef _Nonnull pDriver,
 
 static void EventDriver_GatherLowLevelEvents(EventDriverRef _Nonnull pDriver)
 {
-    Lock_Lock(&pDriver->lock);
+    assert(Lock_Lock(&pDriver->lock) == EOK);
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
 
     // Process mouse input

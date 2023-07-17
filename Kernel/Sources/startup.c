@@ -114,8 +114,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
     
     // Initialize the dispatch queue services
-    pGlobals->kernel_main_dispatch_queue = DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, NULL);
-    assert(pGlobals->kernel_main_dispatch_queue != NULL);
+    assert(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, NULL, (DispatchQueueRef*)&pGlobals->kernel_main_dispatch_queue) == EOK);
     
     
     // Enable interrupt handling
@@ -150,21 +149,16 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
         pVideoConfig = &kVideoConfig_PAL_640_256_50;
     }
     
-    pGlobals->main_screen_gdevice = GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1);
-    assert(pGlobals->main_screen_gdevice != NULL);
+    assert(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &pGlobals->main_screen_gdevice) == EOK);
     
     
     // Initialize the console
-    pGlobals->console = Console_Create(pGlobals->main_screen_gdevice);
-    assert(pGlobals->console != NULL);
+    assert(Console_Create(pGlobals->main_screen_gdevice, &pGlobals->console) == EOK);
 
     
     // Initialize all other I/O dervices
-    pGlobals->floppy_dma = FloppyDMA_Create();
-    assert(pGlobals->floppy_dma != NULL);
-
-    pGlobals->event_driver = EventDriver_Create(pGlobals->main_screen_gdevice);
-    assert(pGlobals->event_driver != NULL);
+    assert(FloppyDMA_Create(&pGlobals->floppy_dma) == EOK);
+    assert(EventDriver_Create(pGlobals->main_screen_gdevice, &pGlobals->event_driver) == EOK);
         
 
 #if 1

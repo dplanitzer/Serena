@@ -18,14 +18,12 @@ ErrorCode _syscall_write(const Character* pString)
 
 ErrorCode _syscall_sleep(Int seconds, Int nanoseconds)
 {
-    VirtualProcessor_Sleep(TimeInterval_Make(seconds, nanoseconds));
-    return EOK;
+    return VirtualProcessor_Sleep(TimeInterval_Make(seconds, nanoseconds));
 }
 
 ErrorCode _syscall_dispatchAsync(const Closure1Arg_Func pUserClosure)
 {
-    Process_DispatchAsyncUser(Process_GetCurrent(), pUserClosure);
-    return EOK;
+    return Process_DispatchAsyncUser(Process_GetCurrent(), pUserClosure);
 }
 
 ErrorCode _syscall_exit(Int status)

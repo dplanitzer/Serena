@@ -29,7 +29,7 @@ extern ProcessRef _Nullable Process_Create(Int pid);
 extern void Process_Destroy(ProcessRef _Nullable pProc);
 
 extern Int Process_GetPID(ProcessRef _Nonnull pProc);
-extern void Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
+extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
 
 // Voluntarily exits the given process. Assumes that this function is called from
 // a system call originating in user space and that this call is made from one of

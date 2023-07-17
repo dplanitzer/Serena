@@ -34,30 +34,32 @@ extern void ksb_acknowledge_key(void);
 static void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver);
 
 
-KeyboardDriverRef _Nullable KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver)
+ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver)
 {
+    decl_try_err();
     KeyboardDriver* pDriver;
     
-    FailErr(kalloc_cleared(sizeof(KeyboardDriver), (Byte**) &pDriver));
+    try(kalloc_cleared(sizeof(KeyboardDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->irq_handler = InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
-                                                                         INTERRUPT_ID_CIA_A_SP,
-                                                                         INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                                         (InterruptHandler_Closure)KeyboardDriver_OnInterrupt,
-                                                                         (Byte*)pDriver);
-    FailZero(pDriver->irq_handler);
+                                                      INTERRUPT_ID_CIA_A_SP,
+                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL,
+                                                      (InterruptHandler_Closure)KeyboardDriver_OnInterrupt,
+                                                      (Byte*)pDriver);
     
-    FailFalse(RingBuffer_Init(&pDriver->key_queue, KEY_QUEUE_MAX_LENGTH));
+    try_false(RingBuffer_Init(&pDriver->key_queue, KEY_QUEUE_MAX_LENGTH), ENOMEM);
     InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->irq_handler, true);
 
     ksb_init();
 
-    return pDriver;
-    
-failed:
+    *pOutDriver = pDriver;
+    return EOK;
+
+catch:
     KeyboardDriver_Destroy(pDriver);
-    return NULL;
+    *pOutDriver = NULL;
+    return err;
 }
 
 void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver)
@@ -138,13 +140,14 @@ typedef struct _MouseDriver {
 } MouseDriver;
 
 
-MouseDriverRef _Nullable MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port)
+ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver)
 {
-    assert(port >= 0 && port <= 1);
-    
+    decl_try_err();
     MouseDriver* pDriver;
-     
-    FailErr(kalloc_cleared(sizeof(MouseDriver), (Byte**) &pDriver));
+
+    assert(port >= 0 && port <= 1);
+         
+    try(kalloc_cleared(sizeof(MouseDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
@@ -163,11 +166,13 @@ MouseDriverRef _Nullable MouseDriver_Create(EventDriverRef _Nonnull pEventDriver
     volatile UInt8* pPotGo = (volatile UInt8*)0xdff034;
     *pPotGo &= 0x0f00;
 
-    return pDriver;
+    *pOutDriver = pDriver;
+    return EOK;
     
-failed:
+catch:
     MouseDriver_Destroy(pDriver);
-    return NULL;
+    *pOutDriver = NULL;
+    return err;
 }
 
 void MouseDriver_Destroy(MouseDriverRef _Nullable pDriver)
@@ -258,13 +263,14 @@ typedef struct _DigitalJoystickDriver {
 } DigitalJoystickDriver;
 
 
-DigitalJoystickDriverRef _Nullable DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port)
+ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver)
 {
-    assert(port >= 0 && port <= 1);
-    
+    decl_try_err();
     DigitalJoystickDriver* pDriver;
-    
-    FailErr(kalloc_cleared(sizeof(DigitalJoystickDriver), (Byte**) &pDriver));
+
+    assert(port >= 0 && port <= 1);
+        
+    try(kalloc_cleared(sizeof(DigitalJoystickDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
@@ -282,11 +288,13 @@ DigitalJoystickDriverRef _Nullable DigitalJoystickDriver_Create(EventDriverRef _
     volatile UInt8* pPotGo = (volatile UInt8*)0xdff034;
     *pPotGo &= 0x0f00;
 
-    return pDriver;
+    *pOutDriver = pDriver;
+    return EOK;
     
-failed:
+catch:
     DigitalJoystickDriver_Destroy(pDriver);
-    return NULL;
+    *pOutDriver = NULL;
+    return err;
 }
 
 void DigitalJoystickDriver_Destroy(DigitalJoystickDriverRef _Nullable pDriver)
@@ -363,13 +371,14 @@ typedef struct _AnalogJoystickDriver {
 } AnalogJoystickDriver;
 
 
-AnalogJoystickDriverRef _Nullable AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port)
+ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver)
 {
-    assert(port >= 0 && port <= 1);
-    
+    decl_try_err();
     AnalogJoystickDriver* pDriver;
-    
-    FailErr(kalloc_cleared(sizeof(AnalogJoystickDriver), (Byte**) &pDriver));
+
+    assert(port >= 0 && port <= 1);
+        
+    try(kalloc_cleared(sizeof(AnalogJoystickDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
@@ -383,11 +392,13 @@ AnalogJoystickDriverRef _Nullable AnalogJoystickDriver_Create(EventDriverRef _No
     pDriver->smoothedX = 0;
     pDriver->smoothedY = 0;
     
-    return pDriver;
+    *pOutDriver = pDriver;
+    return EOK;
     
-failed:
+catch:
     AnalogJoystickDriver_Destroy(pDriver);
-    return NULL;
+    *pOutDriver = NULL;
+    return err;
 }
 
 void AnalogJoystickDriver_Destroy(AnalogJoystickDriverRef _Nullable pDriver)
@@ -475,13 +486,14 @@ typedef struct _LightPenDriver {
 } LightPenDriver;
 
 
-LightPenDriverRef _Nullable LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port)
+ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver)
 {
-    assert(port >= 0 && port <= 1);
-    
+    decl_try_err();
     LightPenDriver* pDriver;
-    
-    FailErr(kalloc_cleared(sizeof(LightPenDriver), (Byte**) &pDriver));
+
+    assert(port >= 0 && port <= 1);
+        
+    try(kalloc_cleared(sizeof(LightPenDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
     pDriver->reg_potgor = (volatile UInt16*)0xdff016;
@@ -501,11 +513,13 @@ LightPenDriverRef _Nullable LightPenDriver_Create(EventDriverRef _Nonnull pEvent
     volatile UInt8* pPotGo = (volatile UInt8*)0xdff034;
     *pPotGo &= 0x0f00;
     
-    return pDriver;
+    *pOutDriver = pDriver;
+    return EOK;
     
-failed:
+catch:
     LightPenDriver_Destroy(pDriver);
-    return NULL;
+    *pOutDriver = NULL;
+    return err;
 }
 
 void LightPenDriver_Destroy(LightPenDriverRef _Nullable pDriver)

@@ -44,8 +44,7 @@ ProcessRef _Nullable Process_Create(Int pid)
     FailErr(kalloc_cleared(sizeof(Process), (Byte**) &pProc));
     
     pProc->pid = pid;
-    pProc->mainDispatchQueue = DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, pProc);
-    FailNULL(pProc->mainDispatchQueue);
+    FailErr(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, pProc, &pProc->mainDispatchQueue));
 
     return pProc;
 
@@ -69,9 +68,9 @@ Int Process_GetPID(ProcessRef _Nonnull pProc)
     return pProc->pid;
 }
 
-void Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
+ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
 {
-    DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
+    return DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
 }
 
 // Finalizes the destruction of the given process. This is done on the kernel

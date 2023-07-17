@@ -71,26 +71,30 @@ static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
 }
 
 // Creates the floppy DMA singleton
-FloppyDMA* _Nullable FloppyDMA_Create(void)
+ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
 {
+    decl_try_err();
     FloppyDMA* pDma;
     
-    FailErr(kalloc_cleared(sizeof(FloppyDMA), (Byte**) &pDma));
+    try(kalloc_cleared(sizeof(FloppyDMA), (Byte**) &pDma));
 
     Semaphore_Init(&pDma->inuse, 1);
     Semaphore_Init(&pDma->done, 0);
         
     pDma->irqHandler = InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
-                                                                            INTERRUPT_ID_DISK_BLOCK,
-                                                                            INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                                            &pDma->done);
-    FailZero(pDma->irqHandler);
-    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDma->irqHandler, true);
-    return pDma;
+                                                         INTERRUPT_ID_DISK_BLOCK,
+                                                         INTERRUPT_HANDLER_PRIORITY_NORMAL,
+                                                         &pDma->done);
+    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(),
+                                                       pDma->irqHandler,
+                                                       true);
+    *pOutFloppyDma = pDma;
+    return EOK;
 
-failed:
+catch:
     FloppyDMA_Destroy(pDma);
-    return NULL;
+    *pOutFloppyDma = NULL;
+    return err;
 }
 
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
@@ -98,9 +102,9 @@ failed:
 // disk.
 static ErrorCode FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, UInt16* _Nonnull pData, Int nwords, Int readwrite)
 {
-    ErrorCode err = EOK;
+    decl_try_err();
     
-    Semaphore_Acquire(&pDma->inuse, kTimeInterval_Infinity);
+    try(Semaphore_Acquire(&pDma->inuse, kTimeInterval_Infinity));
     
     fdc_io_begin(pFdc, pData, nwords, 0);
     err = Semaphore_Acquire(&pDma->done, TimeInterval_MakeSeconds(10));
@@ -121,7 +125,10 @@ static ErrorCode FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnu
     
     Semaphore_Release(&pDma->inuse);
     
-    return (err == ETIMEOUT) ? ENODRIVE : err;
+    return (err == ETIMEDOUT) ? ENODRIVE : err;
+
+catch:
+    return err;
 }
 
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
@@ -277,12 +284,13 @@ static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk)
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-FloppyDisk* _Nullable FloppyDisk_Create(Int drive)
+ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk)
 {
+    decl_try_err();
     FloppyDisk* pDisk;
     
-    FailErr(kalloc_cleared(sizeof(FloppyDisk), (Byte**) &pDisk));
-    FailErr(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDisk->track_buffer));
+    try(kalloc_cleared(sizeof(FloppyDisk), (Byte**) &pDisk));
+    try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;
     pDisk->head = -1;
@@ -293,11 +301,13 @@ FloppyDisk* _Nullable FloppyDisk_Create(Int drive)
     
     FloppyDisk_InvalidateTrackBuffer(pDisk);
     
-    return pDisk;
+    *pOutDisk = pDisk;
+    return EOK;
     
-failed:
+catch:
     FloppyDisk_Destroy(pDisk);
-    return NULL;
+    *pOutDisk = NULL;
+    return err;
 }
 
 void FloppyDisk_Destroy(FloppyDisk* _Nullable pDisk)
@@ -325,28 +335,34 @@ static inline ErrorCode FloppyDisk_StatusFromDriveStatus(UInt drvstat)
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
 // waits for at most 500ms for the disk to become ready.
-// Returns S_OK if the drive is ready; ETIMEOUT  if the drive failed to become
+// Returns S_OK if the drive is ready; ETIMEDOUT  if the drive failed to become
 // ready in time.
 static ErrorCode FloppyDisk_WaitDriveReady(FloppyDisk* _Nonnull pDisk)
 {
+    decl_try_err();
+
     for (Int ntries = 0; ntries < 50; ntries++) {
         const UInt status = fdc_get_drive_status(&pDisk->ciabprb);
         
         if ((status & (1 << CIABPRA_BIT_DSKRDY)) == 0) {
             return EOK;
         }
-        VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(10));
+        try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(10)));
     }
     
-    return ETIMEOUT;
+    return ETIMEDOUT;
+
+catch:
+    return err;
 }
 
-// Seeks to track #0 and selects head #0. Returns true if the function seeked at
+// Seeks to track #0 and selects head #0. Returns EOK if the function seeked at
 // least once.
 // Note that this function is expected to implicitly acknowledge a disk change if
 // it has actually seeked.
-static Bool FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
+static ErrorCode FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
 {
+    decl_try_err();
     Bool did_step_once = false;
     
     FloppyDisk_InvalidateTrackBuffer(pDisk);
@@ -355,7 +371,7 @@ static Bool FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
     // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
-    VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18));
+    try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18)));
     
     for(;;) {
         const UInt status = fdc_get_drive_status(&pDisk->ciabprb);
@@ -366,18 +382,21 @@ static Bool FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
         
         fdc_step_head(&pDisk->ciabprb, -1);
         did_step_once = true;
-        VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3));
+        try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
     }
     fdc_select_head(&pDisk->ciabprb, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
-    VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(15));
+    try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(15)));
     
     pDisk->head = 0;
     pDisk->cylinder = 0;
     pDisk->flags &= ~FLOPPY_FLAG_PREV_STEP_INWARD;
     
-    return did_step_once;
+    return (did_step_once) ? EOK : EIO;
+
+catch:
+    return err;
 }
 
 // Seeks to the specified cylinder and selects the specified drive head.
@@ -389,6 +408,7 @@ static Bool FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
 // handle it in a sensible way.
 static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int head)
 {
+    decl_try_err();
     const Int diff = cylinder - pDisk->cylinder;
     const Int cur_dir = (diff >= 0) ? 1 : -1;
     const Int last_dir = (pDisk->flags & FLOPPY_FLAG_PREV_STEP_INWARD) ? 1 : -1;
@@ -404,17 +424,14 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
     const Int pre_wait_ms = max(seek_pre_wait_ms, side_pre_wait_ms);
     
     if (pre_wait_ms > 0) {
-        VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(pre_wait_ms));
+        try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(pre_wait_ms)));
     }
     
     
     // Seek if necessary
     if (nsteps > 0) {
         for (Int i = nsteps; i > 0; i--) {
-            const ErrorCode status = FloppyDisk_GetStatus(pDisk);
-            if (status != EOK) {
-                return status;
-            }
+            try(FloppyDisk_GetStatus(pDisk));
             
             fdc_step_head(&pDisk->ciabprb, cur_dir);
             pDisk->cylinder += cur_dir;
@@ -425,7 +442,7 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
                 pDisk->flags &= ~FLOPPY_FLAG_PREV_STEP_INWARD;
             }
             
-            VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3));
+            try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
         }
     }
     
@@ -442,10 +459,13 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
     const Int settle_us = max(seek_settle_us, side_settle_us);
     
     if (settle_us > 0) {
-        VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(settle_us));
+        try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(settle_us)));
     }
     
     return EOK;
+
+catch:
+    return err;
 }
 
 // Resets the floppy drive. This function figures out whether there is an actual
@@ -454,8 +474,10 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
 // Note that this function leaves the floppy motor turned on and that it implicitly
 // acknowledges any pending disk change.
 // Upper layer code should treat this function like a disk change.
-void FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk)
+ErrorCode FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk)
 {
+    decl_try_err();
+
     FloppyDisk_InvalidateTrackBuffer(pDisk);
     pDisk->head = -1;
     pDisk->cylinder = -1;
@@ -463,22 +485,24 @@ void FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk)
     
     // Turn the motor on to see whether there is an actual drive connected
     FloppyDisk_MotorOn(pDisk);
-    const ErrorCode status = FloppyDisk_GetStatus(pDisk);
-    if (status != EOK) {
-        return;
-    }
+    try(FloppyDisk_GetStatus(pDisk));
     
     
     // Move the head to track #0
-    const Bool did_step_once = FloppyDisk_SeekToTrack_0(pDisk);
+    err = FloppyDisk_SeekToTrack_0(pDisk);
     
     
     // We didn't seek if we were already at track #0. So step to track #1 and
     // then back to #0 to acknowledge a disk change.
-    if (!did_step_once) {
+    if (err != EOK) {
         fdc_step_head(&pDisk->ciabprb,  1);
         fdc_step_head(&pDisk->ciabprb, -1);
     }
+
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Returns the current floppy drive status.
@@ -514,7 +538,7 @@ void FloppyDisk_MotorOn(FloppyDisk* _Nonnull pDisk)
     fdc_set_drive_motor(&pDisk->ciabprb, 1);
     
     const ErrorCode err = FloppyDisk_WaitDriveReady(pDisk);
-    if (err == ETIMEOUT) {
+    if (err == ETIMEDOUT) {
         fdc_set_drive_motor(&pDisk->ciabprb, 0);
         return;
     }
@@ -528,14 +552,11 @@ void FloppyDisk_MotorOff(FloppyDisk* _Nonnull pDisk)
 
 static ErrorCode FloppyDisk_ReadTrack(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder)
 {
-    ErrorCode status = EOK;
+    decl_try_err();
     
     // Seek to the required cylinder and select the required head
     if (pDisk->cylinder != cylinder || pDisk->head != head) {
-        status = FloppyDisk_SeekTo(pDisk, cylinder, head);
-        if (status != EOK) {
-            return status;
-        }
+        try(FloppyDisk_SeekTo(pDisk, cylinder, head));
     }
     
     
@@ -547,17 +568,11 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDisk* _Nonnull pDisk, Int head, Int 
     
     // Validate that the drive is still there, motor turned on and that there was
     // no disk change
-    status = FloppyDisk_GetStatus(pDisk);
-    if (status != EOK) {
-        return status;
-    }
+    try(FloppyDisk_GetStatus(pDisk));
     
     
     // Read the track
-    status = FloppyDMA_Read(FloppyDMA_GetShared(), &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size);
-    if (status != EOK) {
-        return status;
-    }
+    try(FloppyDMA_Read(FloppyDMA_GetShared(), &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size));
     
     
     // Clear out the sector table
@@ -607,17 +622,17 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDisk* _Nonnull pDisk, Int head, Int 
     pDisk->flags |= FLOPPY_FLAG_TRACK_BUFFER_VALID;
     
     return EOK;
+
+catch:
+    return err;
 }
 
 ErrorCode FloppyDisk_ReadSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder, Int sector, Byte* _Nonnull pBuffer)
 {
-    ErrorCode err;
+    decl_try_err();
     
     // Read the track
-    err = FloppyDisk_ReadTrack(pDisk, head, cylinder);
-    if (err != EOK) {
-        return err;
-    }
+    try(FloppyDisk_ReadTrack(pDisk, head, cylinder));
     
     
     // Get the sector
@@ -642,11 +657,14 @@ ErrorCode FloppyDisk_ReadSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylind
      }
      */
     return EOK;
+
+catch:
+    return err;
 }
 
 static ErrorCode FloppyDisk_WriteTrack(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder)
 {
-    ErrorCode status = EOK;
+    decl_try_err();
     
     // There must be a valid track cache
     assert((pDisk->flags & FLOPPY_FLAG_TRACK_BUFFER_VALID) != 0);
@@ -654,39 +672,30 @@ static ErrorCode FloppyDisk_WriteTrack(FloppyDisk* _Nonnull pDisk, Int head, Int
     
     // Seek to the required cylinder and select the required head
     if (pDisk->cylinder != cylinder || pDisk->head != head) {
-        status = FloppyDisk_SeekTo(pDisk, cylinder, head);
-        if (status != EOK) {
-            return status;
-        }
+        try(FloppyDisk_SeekTo(pDisk, cylinder, head));
     }
     
     
     // Validate that the drive is still there, motor turned on and that there was
     // no disk change
-    status = FloppyDisk_GetStatus(pDisk);
-    if (status != EOK) {
-        return status;
-    }
+    try(FloppyDisk_GetStatus(pDisk));
     
     
     // write the track
-    status = FloppyDMA_Write(FloppyDMA_GetShared(), &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size);
-    if (status != EOK) {
-        return status;
-    }
+    try(FloppyDMA_Write(FloppyDMA_GetShared(), &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size));
     
     return EOK;
+
+catch:
+    return err;
 }
 
 ErrorCode FloppyDisk_WriteSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder, Int sector, const Byte* pBuffer)
 {
-    ErrorCode err;
+    decl_try_err();
     
     // Make sure that we have the track in memory
-    err = FloppyDisk_ReadTrack(pDisk, head, cylinder);
-    if (err != EOK) {
-        return err;
-    }
+    try(FloppyDisk_ReadTrack(pDisk, head, cylinder));
     
     
     // Override the sector with the new data
@@ -706,7 +715,10 @@ ErrorCode FloppyDisk_WriteSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylin
     // XXX should just mark the track buffer as dirty
     // XXX the cache_invalidate() function should then write the cache back to disk before we seek / switch heads
     // XXX there should be a floppy_is_cache_dirty() and floppy_flush_cache() which writes the cache to disk
-    FloppyDisk_WriteTrack(pDisk, head, cylinder);
+    try(FloppyDisk_WriteTrack(pDisk, head, cylinder));
     
     return EOK;
+
+catch:
+    return err;
 }

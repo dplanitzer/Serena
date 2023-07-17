@@ -21,8 +21,8 @@ typedef Int ErrorCode;
 #define ENOBOOT     4
 #define ENODRIVE    5
 #define EDISKCHANGE 6
-#define ETIMEOUT    7
-#define ENODEVICE   8
+#define ETIMEDOUT   7
+#define ENODEV      8
 #define EPARAM      9
 #define ERANGE      10
 #define EINTR       11
@@ -30,6 +30,8 @@ typedef Int ErrorCode;
 #define EPIPE       13
 #define EBUSY       14
 #define ENOSYS      15
+#define EINVAL      16
+#define EIO         17
 
 
 extern ErrorCode write(Character* _Nonnull pString);

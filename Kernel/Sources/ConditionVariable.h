@@ -22,7 +22,7 @@ typedef struct _ConditionVariable {
 } ConditionVariable;
 
 
-extern ConditionVariable* _Nullable ConditionVariable_Create(void);
+extern ErrorCode ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar);
 extern void ConditionVariable_Destroy(ConditionVariable* _Nullable pCondVar);
 
 // Initializes a new condition variable.

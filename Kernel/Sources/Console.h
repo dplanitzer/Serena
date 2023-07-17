@@ -42,7 +42,7 @@ typedef struct _Console {
 
 extern Console* _Nonnull Console_GetMain(void);
 
-extern Console* _Nullable Console_Create(GraphicsDriverRef _Nonnull pGDevice);
+extern ErrorCode Console_Create(GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole);
 extern void Console_Destroy(Console* _Nullable pConsole);
 
 extern Rect Console_GetBounds(Console* _Nonnull pConsole);

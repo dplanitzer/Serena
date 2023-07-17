@@ -217,14 +217,15 @@ static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnu
 
 // Compiles a Copper program to display a non-interlaced screen or a single field
 // of an interlaced screen.
-static CopperInstruction* CopperProgram_CreateScreenRefresh(const VideoConfiguration* _Nonnull pConfig, Surface* _Nonnull pSurface, Bool isOddField, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled)
+static ErrorCode CopperProgram_CreateScreenRefresh(const VideoConfiguration* _Nonnull pConfig, Surface* _Nonnull pSurface, Bool isOddField, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled, CopperInstruction* _Nullable * _Nonnull pOutProg)
 {
+    decl_try_err();
     Int ip = 0;
     const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pConfig, pSurface->planeCount);
     const Int nInstructions = nFrameInstructions + 1;
     CopperInstruction* pCode;
     
-    FailErr(kalloc_options(nInstructions * sizeof(CopperInstruction), HEAP_ALLOC_OPTION_CHIPSET|HEAP_ALLOC_OPTION_CPU, (Byte**) &pCode));
+    try(kalloc_options(nInstructions * sizeof(CopperInstruction), HEAP_ALLOC_OPTION_CHIPSET|HEAP_ALLOC_OPTION_CPU, (Byte**) &pCode));
     
     CopperCompiler_CompileScreenRefreshProgram(&pCode[ip], pConfig, pSurface, isOddField, pNullSprite, pSprite, isLightPenEnabled);
     ip += nFrameInstructions;
@@ -232,10 +233,11 @@ static CopperInstruction* CopperProgram_CreateScreenRefresh(const VideoConfigura
     // end instructions
     pCode[ip++] = COP_END();
     
-    return pCode;
+    *pOutProg = pCode;
+    return EOK;
     
-failed:
-    return NULL;
+catch:
+    return err;
 }
 
 // Frees the given Copper program.
@@ -263,7 +265,7 @@ typedef struct _Display {
     Bool                                isLightPenEnabled;
 } Display;
 
-static Bool Display_CompileCopperPrograms(Display* _Nonnull pDisplay);
+static ErrorCode Display_CompileCopperPrograms(Display* _Nonnull pDisplay);
 
 
 static void Display_Destroy(Display* _Nullable pDisplay)
@@ -287,11 +289,12 @@ static void Display_Destroy(Display* _Nullable pDisplay)
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
 // \return the display or null
-static Display* _Nullable Display_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled)
+static ErrorCode Display_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled, Display* _Nullable * _Nonnull pOutDisplay)
 {
+    decl_try_err();
     Display* pDisplay;
     
-    FailErr(kalloc_cleared(sizeof(Display), (Byte**) &pDisplay));
+    try(kalloc_cleared(sizeof(Display), (Byte**) &pDisplay));
     
     pDisplay->videoConfig = pConfig;
     pDisplay->pixelFormat = pixelFormat;
@@ -303,46 +306,55 @@ static Display* _Nullable Display_Create(const VideoConfiguration* _Nonnull pCon
     
     // Allocate an appropriate framebuffer
     pDisplay->surface = Surface_Create(pConfig->width, pConfig->height, pixelFormat);
-    FailNULL(pDisplay->surface);
+    //XXXFailNULL(pDisplay->surface);
     
     
     // Lock the new surface
     const Bool okLocked = Surface_LockPixels(pDisplay->surface, kSurfaceAccess_Read|kSurfaceAccess_Write);
-    FailFalse(okLocked);
+    try_false(okLocked, EIO);
     
     
     // Compile the Copper program
-    FailFalse(Display_CompileCopperPrograms(pDisplay));
+    try(Display_CompileCopperPrograms(pDisplay));
     
-    return pDisplay;
+    *pOutDisplay = pDisplay;
+    return EOK;
     
-failed:
+catch:
     Display_Destroy(pDisplay);
-    return NULL;
+    *pOutDisplay = NULL;
+    return err;
 }
 
-static Bool Display_CompileCopperPrograms(Display* _Nonnull pDisplay)
+static ErrorCode Display_CompileCopperPrograms(Display* _Nonnull pDisplay)
 {
-    Bool okCopper = false;
+    decl_try_err();
     
     if (pDisplay->isInterlaced) {
-        pDisplay->copperProgramOddField = CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, true, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled);
-        pDisplay->copperProgramEvenField = CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, false, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled);
-        okCopper = (pDisplay->copperProgramOddField != NULL && pDisplay->copperProgramEvenField != NULL);
+        try(CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, true, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled, &pDisplay->copperProgramOddField));
+        try(CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, false, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled, &pDisplay->copperProgramEvenField));
     } else {
-        pDisplay->copperProgramOddField = CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, true, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled);
+        try(CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, true, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled, &pDisplay->copperProgramOddField));
         pDisplay->copperProgramEvenField = NULL;
-        okCopper = (pDisplay->copperProgramOddField != NULL);
     }
 
-    return okCopper;
+    return EOK;
+
+catch:
+    return err;
 }
 
-static void Display_SetLightPenEnabled(Display* _Nonnull pDisplay, Bool enabled)
+static ErrorCode Display_SetLightPenEnabled(Display* _Nonnull pDisplay, Bool enabled)
 {
+    decl_try_err();
+
     pDisplay->isLightPenEnabled = enabled;
-    Display_CompileCopperPrograms(pDisplay);
+    try(Display_CompileCopperPrograms(pDisplay));
     copper_schedule_program(pDisplay->copperProgramOddField, pDisplay->copperProgramEvenField, 0);
+    return EOK;
+
+catch:
+    return err;
 }
 
 
@@ -383,15 +395,16 @@ GraphicsDriverRef _Nonnull GraphicsDriver_GetMain(void)
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
-GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat)
+ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver)
 {
+    decl_try_err();
     GraphicsDriver* pDriver;
     
-    FailErr(kalloc_cleared(sizeof(GraphicsDriver), (Byte**) &pDriver));
+    try(kalloc_cleared(sizeof(GraphicsDriver), (Byte**) &pDriver));
 
     
     // Initialize sprites
-    FailErr(kalloc_options(sizeof(UInt16)*2, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_null));
+    try(kalloc_options(sizeof(UInt16)*2, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_null));
     pDriver->sprite_null[0] = 0;
     pDriver->sprite_null[1] = 0;
 
@@ -402,7 +415,7 @@ GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Non
 
     const Int sprsiz = (pDriver->mouse_cursor_height + 2)*2;
     Int i, j;
-    FailErr(kalloc_options(sizeof(UInt16) * sprsiz, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_mouse));
+    try(kalloc_options(sizeof(UInt16) * sprsiz, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_mouse));
     for (i = 0, j = 0; i < sprsiz; i += 2, j++) {
         pDriver->sprite_mouse[i + 0] = gArrow_Plane0[j];
         pDriver->sprite_mouse[i + 1] = gArrow_Plane1[j];
@@ -413,11 +426,9 @@ GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Non
     // Initialize vblank tools
     Semaphore_Init(&pDriver->vblank_sema, 0);
     pDriver->vb_irq_handler = InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
-                                                                                INTERRUPT_ID_VERTICAL_BLANK,
-                                                                                INTERRUPT_HANDLER_PRIORITY_HIGHEST,
-                                                                                &pDriver->vblank_sema);
-    FailZero(pDriver->vb_irq_handler);
-
+                                                         INTERRUPT_ID_VERTICAL_BLANK,
+                                                         INTERRUPT_HANDLER_PRIORITY_HIGHEST,
+                                                         &pDriver->vblank_sema);
     
     // Initialize the video config related stuff
     // XXX Set the console colors
@@ -432,15 +443,17 @@ GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Non
 
     InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->vb_irq_handler, true);
 
-    FailErr(GraphicsDriver_SetVideoConfiguration(pDriver, pConfig, pixelFormat));
-//    FailErr(GraphicsDriver_SetVideoConfiguration(pDriver, &kVideoConfig_NTSC_320_200_60 /*pConfig*/, pixelFormat));
-//    FailErr(GraphicsDriver_SetVideoConfiguration(pDriver, &kVideoConfig_PAL_640_512_25 /*pConfig*/, pixelFormat));
+    try(GraphicsDriver_SetVideoConfiguration(pDriver, pConfig, pixelFormat));
+//    try(GraphicsDriver_SetVideoConfiguration(pDriver, &kVideoConfig_NTSC_320_200_60 /*pConfig*/, pixelFormat));
+//    try(GraphicsDriver_SetVideoConfiguration(pDriver, &kVideoConfig_PAL_640_512_25 /*pConfig*/, pixelFormat));
 
-    return pDriver;
-    
-failed:
+    *pOutDriver = pDriver;
+    return EOK;
+
+catch:
     GraphicsDriver_Destroy(pDriver);
-    return NULL;
+    *pOutDriver = NULL;
+    return err;
 }
 
 // Deallocates the given graphics driver.
@@ -487,14 +500,19 @@ Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDri
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
 // that it will wait for some vblank to happen after this function has been invoked.
 // No vblank that occured before this function was called will make it return.
-static void GraphicsDriver_WaitForVerticalBlank(GraphicsDriverRef _Nonnull pDriver)
+static ErrorCode GraphicsDriver_WaitForVerticalBlank(GraphicsDriverRef _Nonnull pDriver)
 {
+    decl_try_err();
+
     // First purge the vblank sema to ensure that we don't accidentaly pick up some
-    // vblank that has happened before this function has been called.
-    Semaphore_TryAcquire(&pDriver->vblank_sema);
-    
-    // Now wait for the next vblank.
-    Semaphore_Acquire(&pDriver->vblank_sema, kTimeInterval_Infinity);
+    // vblank that has happened before this function has been called. Then wait
+    // for the actual vblank.
+    try(Semaphore_TryAcquire(&pDriver->vblank_sema));
+    try(Semaphore_Acquire(&pDriver->vblank_sema, kTimeInterval_Infinity));
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Changes the video configuration. The driver allocates an appropriate framebuffer
@@ -504,13 +522,12 @@ static void GraphicsDriver_WaitForVerticalBlank(GraphicsDriverRef _Nonnull pDriv
 // \return the error code
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat)
 {
+    decl_try_err();
     Display* pOldDisplay = pDriver->display;
 
     // Allocate a new display
-    Display* pNewDisplay = Display_Create(pConfig, pixelFormat, pDriver->sprite_null, pDriver->sprite_mouse, pDriver->is_light_pen_enabled);
-    if (pNewDisplay == NULL) {
-        return ENOMEM;
-    }
+    Display* pNewDisplay;
+    try(Display_Create(pConfig, pixelFormat, pDriver->sprite_null, pDriver->sprite_mouse, pDriver->is_light_pen_enabled, &pNewDisplay));
     
     
     // Update the graphics device state.
@@ -521,13 +538,16 @@ static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull
     
     // Wait for the vblank. Once we got a vblank we know that the DMA is no longer
     // accessing the old framebuffer
-    GraphicsDriver_WaitForVerticalBlank(pDriver);
+    try(GraphicsDriver_WaitForVerticalBlank(pDriver));
     
     
     // Free the old display
     Display_Destroy(pOldDisplay);
 
     return EOK;
+
+catch:
+    return err;
 }
 
 // Fills the framebuffer with the background color. This is black for RGB direct
@@ -535,10 +555,13 @@ static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull
 void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 {
     const Surface* pSurface = GraphicsDriver_GetFramebuffer(pDriver);
-    const Int nbytes = pSurface->bytesPerRow * pSurface->height;
+
+    if (pSurface != NULL) {
+        const Int nbytes = pSurface->bytesPerRow * pSurface->height;
     
-    for (Int i = 0; i < pSurface->planeCount; i++) {
-        Bytes_ClearRange(pSurface->planes[i], nbytes);
+        for (Int i = 0; i < pSurface->planeCount; i++) {
+            Bytes_ClearRange(pSurface->planes[i], nbytes);
+        }
     }
 }
 
@@ -546,6 +569,10 @@ void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color)
 {
     const Surface* pSurface = GraphicsDriver_GetFramebuffer(pDriver);
+    if (pSurface == NULL) {
+        return;
+    }
+
     const Rect bounds = Rect_Make(0, 0, pSurface->width, pSurface->height);
     const Rect r = Rect_Intersection(rect, bounds);
     
@@ -581,6 +608,10 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
     }
     
     const Surface* pSurface = GraphicsDriver_GetFramebuffer(pDriver);
+    if (pSurface == NULL) {
+        return;
+    }
+
     const Rect src_r = srcRect;
     const Rect dst_r = Rect_Make(dstLoc.x, dstLoc.y, src_r.width, src_r.height);
     const Int fb_width = pSurface->width;
@@ -629,6 +660,10 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
 void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, Int x, Int y)
 {
     const Surface* pSurface = GraphicsDriver_GetFramebuffer(pDriver);
+    if (pSurface == NULL) {
+        return;
+    }
+
     const Int bytesPerRow = pSurface->bytesPerRow;
     const Int maxX = pSurface->width >> 3;
     const Int maxY = pSurface->height >> 3;
@@ -651,11 +686,13 @@ void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const By
 }
 
 // Enables / disables the h/v raster position latching triggered by a light pen.
-void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, Bool enabled)
+ErrorCode GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, Bool enabled)
 {
     if (pDriver->is_light_pen_enabled != enabled) {
         pDriver->is_light_pen_enabled = enabled;
-        Display_SetLightPenEnabled(pDriver->display, enabled);
+        return Display_SetLightPenEnabled(pDriver->display, enabled);
+    } else {
+        return EOK;
     }
 }
 

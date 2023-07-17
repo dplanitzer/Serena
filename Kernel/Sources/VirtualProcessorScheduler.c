@@ -267,7 +267,7 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     // Note that we return immediately if we're already past the deadline
     if (TimeInterval_Less(deadline, kTimeInterval_Infinity)) {
         if (TimeInterval_LessEquals(deadline, MonotonicClock_GetCurrentTime())) {
-            return ETIMEOUT;
+            return ETIMEDOUT;
         }
 
         VirtualProcessorScheduler_ArmTimeout(pScheduler, pVP, deadline);
@@ -301,7 +301,7 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     
     switch (pVP->wakeup_reason) {
         case WAKEUP_REASON_INTERRUPTED: return EINTR;
-        case WAKEUP_REASON_TIMEOUT:     return ETIMEOUT;
+        case WAKEUP_REASON_TIMEOUT:     return ETIMEDOUT;
         default:                        return EOK;
     }
 }

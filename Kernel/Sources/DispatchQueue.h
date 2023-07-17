@@ -81,7 +81,7 @@ static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(Closure1Arg_Fun
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
-extern WorkItemRef _Nullable WorkItem_Create(DispatchQueueClosure closure);
+extern ErrorCode WorkItem_Create(DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem);
 
 // Deallocates the given work item.
 extern void WorkItem_Destroy(WorkItemRef _Nullable pItem);
@@ -101,7 +101,7 @@ extern Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem);
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
-extern TimerRef _Nullable Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure);
+extern ErrorCode Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer);
 
 extern void Timer_Destroy(TimerRef _Nullable pTimer);
 
@@ -127,7 +127,7 @@ static inline Bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
 extern DispatchQueueRef _Nonnull DispatchQueue_GetMain(void);
 
 
-extern DispatchQueueRef _Nullable DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, ProcessRef _Nullable _Weak pProc);
+extern ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Destroys the dispatch queue after all still pending work items have finished
 // executing. Pending one-shot and repeatable timers are cancelled and get no
@@ -150,30 +150,30 @@ extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRe
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has finished
 // execution.
-extern void DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+extern ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
 // Synchronously executes the given closure. The closure is executed as soon as
 // possible and the caller remains blocked until the closure has finished execution.
-extern void DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
+extern ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
 
 
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible.
-extern void DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+extern ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
-extern void DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
+extern ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
-extern void DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
+extern ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
 
 
 // Asynchronously executes the given timer when it comes due.
 // XXX want to think about the case when this function is called with a cancelled
 // XXX timer.
-extern void DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
+extern ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
 
 
 // Returns the dispatch queue that is associated with the virtual processor that
@@ -185,6 +185,6 @@ extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
-extern void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
+extern ErrorCode DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
 
 #endif /* DispatchQueue_h */

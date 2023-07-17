@@ -38,12 +38,14 @@ Console* _Nonnull Console_GetMain(void)
 // provided graphics device.
 // \param pGDevice the graphics device
 // \return the console; NULL on failure
-Console* _Nullable Console_Create(GraphicsDriverRef _Nonnull pGDevice)
+ErrorCode Console_Create(GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole)
 {
-    const Surface* pFramebuffer = GraphicsDriver_GetFramebuffer(pGDevice);
-
+    decl_try_err();
     Console* pConsole;
-    FailErr(kalloc_cleared(sizeof(Console), (Byte**) &pConsole));
+    const Surface* pFramebuffer;
+
+    try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pGDevice), ENODEV);
+    try(kalloc_cleared(sizeof(Console), (Byte**) &pConsole));
     
     pConsole->pGDevice = pGDevice;
     Lock_Init(&pConsole->lock);
@@ -57,11 +59,13 @@ Console* _Nullable Console_Create(GraphicsDriverRef _Nonnull pGDevice)
     
     Console_ClearScreen(pConsole);
     
-    return pConsole;
+    *pOutConsole = pConsole;
+    return err;
     
-failed:
+catch:
     Console_Destroy(pConsole);
-    return NULL;
+    *pOutConsole = NULL;
+    return err;
 }
 
 // Deallocates the console.
@@ -70,6 +74,7 @@ void Console_Destroy(Console* _Nullable pConsole)
 {
     if (pConsole) {
         pConsole->pGDevice = NULL;
+        Lock_Deinit(&pConsole->lock);
         kfree((Byte*)pConsole);
     }
 }
@@ -169,10 +174,6 @@ void Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dXY)
     vClearRect.width = hExposedWidth;
     vClearRect.height = clipRect.height - vExposedHeight;
 
-    //Console_DrawCharacter(pConsole, '\n');
-    //Console_DrawStringWithFormat(pConsole, "copyRect: %d, %d, %d, %d\n", copyRect.x, copyRect.y, copyRect.width, copyRect.height);
-    //Console_DrawStringWithFormat(pConsole, "dstLoc: %d, %d\n", dstLoc.x, dstLoc.y);
-    //Console_DrawStringWithFormat(pConsole, "hClearRect: %d, %d, %d, %d\n", hClearRect.x, hClearRect.y, hClearRect.width, hClearRect.height);
     Console_CopyRect(pConsole, copyRect, dstLoc);
     Console_FillRect(pConsole, hClearRect, ' ');
     Console_FillRect(pConsole, vClearRect, ' ');

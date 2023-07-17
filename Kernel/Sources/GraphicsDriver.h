@@ -97,7 +97,7 @@ typedef struct _GraphicsDriver* GraphicsDriverRef;
 extern GraphicsDriverRef _Nonnull GraphicsDriver_GetMain(void);
 
 
-extern GraphicsDriverRef _Nullable GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
+extern ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver);
 extern void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver);
 
 extern Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDriver);
@@ -108,7 +108,7 @@ extern void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rec
 extern void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, Point dstLoc);
 extern void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, Int x, Int y);
 
-extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, Bool enabled);
+extern ErrorCode GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, Bool enabled);
 extern Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int16* _Nonnull pPosX, Int16* _Nonnull pPosY);
 
 extern Size GraphicsDriver_GetMouseCursorSize(GraphicsDriverRef _Nonnull pDriver);

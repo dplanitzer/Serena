@@ -54,7 +54,7 @@ typedef struct _FloppyDMA {
 extern FloppyDMA* _Nonnull FloppyDMA_GetShared(void);
 
 // Creates the floppy DMA singleton
-extern FloppyDMA* _Nullable FloppyDMA_Create(void);
+extern ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
 
 
 
@@ -73,10 +73,10 @@ typedef struct _FloppyDisk {
 
 
 
-extern FloppyDisk* _Nullable FloppyDisk_Create(Int drive);
+extern ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk);
 extern void FloppyDisk_Destroy(FloppyDisk* _Nullable pDisk);
 
-extern void FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk);
+extern ErrorCode FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk);
 
 extern ErrorCode FloppyDisk_GetStatus(FloppyDisk* _Nonnull pDisk);
 

@@ -26,7 +26,7 @@ typedef struct _KeyboardReport {
 } KeyboardReport;
 
 
-extern KeyboardDriverRef _Nullable KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver);
+extern ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
 extern void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver);
 
 extern Bool KeyboardDriver_GetReport(KeyboardDriverRef _Nonnull pDriver, KeyboardReport* _Nonnull pReport);
@@ -47,7 +47,7 @@ typedef struct _MouseReport {
 } MouseReport;
 
 
-extern MouseDriverRef _Nullable MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port);
+extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
 extern void MouseDriver_Destroy(MouseDriverRef _Nullable pDriver);
 
 extern Bool MouseDriver_GetReport(MouseDriverRef _Nonnull pDriver, MouseReport* _Nonnull pReport);
@@ -68,7 +68,7 @@ typedef struct _JoystickReport {
 } JoystickReport;
 
 
-extern DigitalJoystickDriverRef _Nullable DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port);
+extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 extern void DigitalJoystickDriver_Destroy(DigitalJoystickDriverRef _Nullable pDriver);
 
 extern Bool DigitalJoystickDriver_GetReport(DigitalJoystickDriverRef _Nonnull pDriver, JoystickReport* _Nonnull pReport);
@@ -82,7 +82,7 @@ extern Bool DigitalJoystickDriver_GetReport(DigitalJoystickDriverRef _Nonnull pD
 struct _AnalogJoystickDriver;
 typedef struct _AnalogJoystickDriver* AnalogJoystickDriverRef;
 
-extern AnalogJoystickDriverRef _Nullable AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port);
+extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 extern void AnalogJoystickDriver_Destroy(AnalogJoystickDriverRef _Nullable pDriver);
 
 extern Bool AnalogJoystickDriver_GetReport(AnalogJoystickDriverRef _Nonnull pDriver, JoystickReport* _Nonnull pReport);
@@ -104,7 +104,7 @@ typedef struct _LightPenReport {
 } LightPenReport;
 
 
-extern LightPenDriverRef _Nullable LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port);
+extern ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
 extern void LightPenDriver_Destroy(LightPenDriverRef _Nullable pDriver);
 
 extern Bool LightPenDriver_GetReport(LightPenDriverRef _Nonnull pDriver, LightPenReport* _Nonnull pReport);
