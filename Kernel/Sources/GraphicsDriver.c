@@ -305,13 +305,11 @@ static ErrorCode Display_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
 
     
     // Allocate an appropriate framebuffer
-    pDisplay->surface = Surface_Create(pConfig->width, pConfig->height, pixelFormat);
-    //XXXFailNULL(pDisplay->surface);
+    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &pDisplay->surface));
     
     
     // Lock the new surface
-    const Bool okLocked = Surface_LockPixels(pDisplay->surface, kSurfaceAccess_Read|kSurfaceAccess_Write);
-    try_false(okLocked, EIO);
+    try(Surface_LockPixels(pDisplay->surface, kSurfaceAccess_Read|kSurfaceAccess_Write));
     
     
     // Compile the Copper program
@@ -425,10 +423,11 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     
     // Initialize vblank tools
     Semaphore_Init(&pDriver->vblank_sema, 0);
-    pDriver->vb_irq_handler = InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
+    try(InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
                                                          INTERRUPT_ID_VERTICAL_BLANK,
                                                          INTERRUPT_HANDLER_PRIORITY_HIGHEST,
-                                                         &pDriver->vblank_sema);
+                                                         &pDriver->vblank_sema,
+                                                         &pDriver->vb_irq_handler));
     
     // Initialize the video config related stuff
     // XXX Set the console colors
@@ -441,7 +440,7 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     _GraphicsDriver_SetClutEntry(30, 0x0000);
     _GraphicsDriver_SetClutEntry(31, 0x0000);
 
-    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->vb_irq_handler, true);
+    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->vb_irq_handler, true));
 
     try(GraphicsDriver_SetVideoConfiguration(pDriver, pConfig, pixelFormat));
 //    try(GraphicsDriver_SetVideoConfiguration(pDriver, &kVideoConfig_NTSC_320_200_60 /*pConfig*/, pixelFormat));
@@ -463,7 +462,7 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         _GraphicsDriver_SetClutEntry(0, 0);
         _GraphicsDriver_StopVideoRefresh();
         
-        InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq_handler);
+        assert(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq_handler) == EOK);
         pDriver->vb_irq_handler = 0;
         
         Semaphore_Deinit(&pDriver->vblank_sema);

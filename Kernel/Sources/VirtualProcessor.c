@@ -28,19 +28,25 @@ void ExecutionStack_Init(ExecutionStack* _Nonnull pStack)
 // the content of the existing stack.
 ErrorCode ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, Int size)
 {
+    decl_try_err();
     const Int newSize = (size > 0) ? Int_RoundUpToPowerOf2(size, STACK_ALIGNMENT) : 0;
     
     if (pStack->size != newSize) {
         kfree(pStack->base);
         pStack->size = newSize;
-        kalloc(pStack->size, (Byte**) &pStack->base);
-        if (pStack->base == NULL) {
-            pStack->size = 0;
-            return ENOMEM;
-        }
+        // XXX the allocation may fail which means that we should keep the old stack around
+        // XXX so that we can ensure that the VP doesn't suddenly stand there with its pants
+        // XXX way down. However we don't worry about this right now since we'll move to virtual
+        // XXX memory anyway.
+        try(kalloc(pStack->size, (Byte**) &pStack->base));
     }
     
     return EOK;
+
+catch:
+    pStack->base = NULL;
+    pStack->size = 0;
+    return err;
 }
 
 // Frees the given stack.
@@ -126,18 +132,21 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-VirtualProcessor* _Nullable VirtualProcessor_Create(void)
+ErrorCode VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP)
 {
+    decl_try_err();
     VirtualProcessor* pVP = NULL;
     
-    FailErr(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
+    try(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_NORMAL);
     
-    return pVP;
+    *pOutVP = pVP;
+    return EOK;
     
-failed:
+catch:
     kfree((Byte*)pVP);
-    return NULL;
+    *pOutVP = NULL;
+    return err;
 }
 
 void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
@@ -168,20 +177,16 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     assert(pVP->state == kVirtualProcessorState_Suspended);
     assert(closure.kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
 
-    ErrorCode err;
+    decl_try_err();
 
     if (closure.kernelStackBase == NULL) {
-        if ((err = ExecutionStack_SetMaxSize(&pVP->kernel_stack, closure.kernelStackSize)) != EOK) {
-            return err;
-        }
+        try(ExecutionStack_SetMaxSize(&pVP->kernel_stack, closure.kernelStackSize));
     } else {
         ExecutionStack_SetMaxSize(&pVP->kernel_stack, 0);
         pVP->kernel_stack.base = closure.kernelStackBase;
         pVP->kernel_stack.size = closure.kernelStackSize;
     }
-    if ((err = ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize)) != EOK) {
-        return err;
-    }
+    try(ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize));
     
     pVP->save_area.usp = (UInt32) ExecutionStack_GetInitialTop(&pVP->user_stack);
     pVP->save_area.a[7] = (UInt32) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
@@ -212,6 +217,9 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     pVP->save_area.sr |= 0x2000;
 
     return EOK;
+
+catch:
+    return err;
 }
 
 // Aborts an on-going call-as-user invocation and causes the cpu_call_as_user()
@@ -234,10 +242,11 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
 //                             call-as-user invocation.
 ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
 {
+    decl_try_err();
     const Bool isCallerRunningOnVpToManipulate = (VirtualProcessor_GetCurrent() == pVP);
 
     if (!isCallerRunningOnVpToManipulate) {
-        VirtualProcessor_Suspend(pVP);
+        try(VirtualProcessor_Suspend(pVP));
     }
 
     if ((pVP->save_area.sr & 0x2000) != 0) {
@@ -259,10 +268,13 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
     }
 
     if (!isCallerRunningOnVpToManipulate) {
-        VirtualProcessor_Resume(pVP, false);
+        assert(VirtualProcessor_Resume(pVP, false) == EOK);
     }
     
     return EOK;
+
+catch:
+    return err;
 }
 
 void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP)

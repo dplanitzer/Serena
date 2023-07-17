@@ -31,11 +31,12 @@ static Int PixelFormat_GetPlaneCount(PixelFormat format)
 // \param height the height in pixels
 // \param pixelFormat the pixel format
 // \return the surface; NULL on failure
-Surface* _Nullable Surface_Create(Int width, Int height, PixelFormat pixelFormat)
+ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
 {
+    decl_try_err();
     Surface* pSurface;
     
-    FailErr(kalloc_cleared(sizeof(Surface), (Byte**) &pSurface));
+    try(kalloc_cleared(sizeof(Surface), (Byte**) &pSurface));
     
     pSurface->width = width;
     pSurface->height = height;
@@ -49,15 +50,16 @@ Surface* _Nullable Surface_Create(Int width, Int height, PixelFormat pixelFormat
     const Int bytesPerPlane = pSurface->bytesPerRow * pSurface->height;
     
     for (Int i = 0; i < pSurface->planeCount; i++) {
-        kalloc_options(bytesPerPlane, HEAP_ALLOC_OPTION_CPU|HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pSurface->planes[i]);
-        if (pSurface->planes[i] == NULL) goto failed;
+        try(kalloc_options(bytesPerPlane, HEAP_ALLOC_OPTION_CPU|HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pSurface->planes[i]));
     }
     
-    return pSurface;
+    *pOutSurface = pSurface;
+    return EOK;
     
-failed:
+catch:
     Surface_Destroy(pSurface);
-    return NULL;
+    *pOutSurface = NULL;
+    return err;
 }
 
 // Deallocates the given surface.
@@ -83,13 +85,15 @@ Size Surface_GetPixelSize(Surface* _Nonnull pSurface)
 // will be read, written or both.
 // \param pSurface the surface
 // \param access the acess mode
-// \return true if the surface pixels could be locked; false otherwise
-Bool Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access)
+// \return EOK if the surface pixels could be locked; EBUSY otherwise
+ErrorCode Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access)
 {
-    assert((pSurface->flags & SURFACE_FLAG_LOCKED) == 0);
+    if ((pSurface->flags & SURFACE_FLAG_LOCKED) != 0) {
+        return EBUSY;
+    }
     
     pSurface->flags |= SURFACE_FLAG_LOCKED;
-    return true;
+    return EOK;
 }
 
 void Surface_UnlockPixels(Surface* _Nonnull pSurface)

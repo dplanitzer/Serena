@@ -52,10 +52,12 @@ typedef struct _InterruptController {
 
 
 
-void InterruptController_Init(InterruptControllerRef _Nonnull pController)
+ErrorCode InterruptController_Init(InterruptControllerRef _Nonnull pController)
 {
+    decl_try_err();
+
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
-        kalloc(0, (Byte**) &pController->handlers[i].data);
+        try(kalloc(0, (Byte**) &pController->handlers[i].data));
         pController->handlers[i].size = 0;
     }
     
@@ -63,6 +65,10 @@ void InterruptController_Init(InterruptControllerRef _Nonnull pController)
     pController->spuriousInterruptCount = 0;
     
     Lock_Init(&pController->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 static void insertion_sort(InterruptHandler* _Nonnull pHandlers, Int n)
@@ -81,21 +87,24 @@ static void insertion_sort(InterruptHandler* _Nonnull pHandlers, Int n)
 
 // Adds the given interrupt handler to the controller. Returns the ID of the handler.
 // 0 is returned if allocation failed.
-static InterruptHandlerID InterruptController_AddInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, InterruptHandler* _Nonnull pHandler)
+static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, InterruptHandler* _Nonnull pHandler, InterruptHandlerID* _Nonnull pOutId)
 {
+    decl_try_err();
     InterruptHandlerID handlerId = 0;
+    Bool needsUnlock = false;
     
     assert(pHandler->identity == 0);
     
-    Lock_Lock(&pController->lock);
+    try(Lock_Lock(&pController->lock));
+    needsUnlock = true;
 
     // Allocate a new handler array
     const Int oldSize = pController->handlers[interruptId].size;
     const Int newSize = oldSize + 1;
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].data;
-    InterruptHandler* pNewHandlers;
+    InterruptHandler* pNewHandlers = NULL;
     
-    FailErr(kalloc(sizeof(InterruptHandler) * newSize, (Byte**) &pNewHandlers));
+    try(kalloc(sizeof(InterruptHandler) * newSize, (Byte**) &pNewHandlers));
 
     
     // Allocate a new handler ID
@@ -131,17 +140,23 @@ static InterruptHandlerID InterruptController_AddInterruptHandler(InterruptContr
     // Free the old handler array
     kfree((Byte*) pOldHandlers);
     
-failed:
+    *pOutId = handlerId;
     Lock_Unlock(&pController->lock);
-    
-    return handlerId;
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pController->lock);
+    }
+    *pOutId = 0;
+    return err;
 }
 
 // Registers a direct interrupt handler. The interrupt controller will invoke the
 // given closure with the given context every time an interrupt with ID 'interruptId'
 // is triggered.
 // NOTE: The closure is invoked in the interrupt context.
-InterruptHandlerID InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext)
+ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId)
 {
     InterruptHandler handler;
     
@@ -155,12 +170,12 @@ InterruptHandlerID InterruptController_AddDirectInterruptHandler(InterruptContro
     handler.u.direct.closure = pClosure;
     handler.u.direct.context = pContext;
     
-    return InterruptController_AddInterruptHandler(pController, interruptId, &handler);
+    return InterruptController_AddInterruptHandler(pController, interruptId, &handler, pOutId);
 }
 
 // Registers a counting semaphore which will receive a release call for every
 // occurence of an interrupt with ID 'interruptId'.
-InterruptHandlerID InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore)
+ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId)
 {
     InterruptHandler handler;
     
@@ -173,18 +188,22 @@ InterruptHandlerID InterruptController_AddSemaphoreInterruptHandler(InterruptCon
     handler.type = INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE;
     handler.u.sema.semaphore = pSemaphore;
     
-    return InterruptController_AddInterruptHandler(pController, interruptId, &handler);
+    return InterruptController_AddInterruptHandler(pController, interruptId, &handler, pOutId);
 }
 
 // Removes the interrupt handler for the given handler ID. Does nothing if no
 // such handler is registered.
-void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
+ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
+    decl_try_err();
+    Bool needsUnlock = false;
+
     if (handlerId == 0) {
-        return;
+        return EOK;
     }
     
-    Lock_Lock(&pController->lock);
+    try(Lock_Lock(&pController->lock));
+    needsUnlock = true;
     
     // Find out what interrupt ID this handler handles
     Int interruptId = -1;
@@ -198,7 +217,8 @@ void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull 
     }
     
     if (interruptId == -1) {
-        goto done;
+        Lock_Unlock(&pController->lock);
+        return EOK;
     }
     
     
@@ -208,7 +228,7 @@ void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull 
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].data;
     InterruptHandler* pNewHandlers;
     
-    FailErr(kalloc(sizeof(InterruptHandler) * newSize, (Byte**) &pNewHandlers));
+    try(kalloc(sizeof(InterruptHandler) * newSize, (Byte**) &pNewHandlers));
     
     
     // Copy over the handlers that we want to retain
@@ -235,9 +255,14 @@ void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull 
     // Free the old handler array
     kfree((Byte*) pOldHandlers);
     
-done:
-failed:
     Lock_Unlock(&pController->lock);
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pController->lock);
+    }
+    return err;
 }
 
 // Returns the interrupt handler for the given interrupt handler ID.
@@ -262,9 +287,11 @@ static InterruptHandler* _Nullable InterruptController_GetInterruptHandlerForID_
 // Note that interrupt handlers are by default disabled (when you add them). You
 // need to enable an interrupt handler before it is able to respond to interrupt
 // requests. A disabled interrupt handler ignores interrupt requests.
-void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled)
+ErrorCode InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled)
 {
-    Lock_Lock(&pController->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pController->lock));
     
     InterruptHandler* pHandler = InterruptController_GetInterruptHandlerForID_Locked(pController, handlerId);
     assert(pHandler != NULL);
@@ -275,14 +302,19 @@ void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonn
     }
     
     Lock_Unlock(&pController->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Returns true if the given interrupt handler is enabled; false otherwise.
 Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
+    decl_try_err();
     Bool enabled = false;
     
-    Lock_Lock(&pController->lock);
+    try(Lock_Lock(&pController->lock));
     
     InterruptHandler* pHandler = InterruptController_GetInterruptHandlerForID_Locked(pController, handlerId);
     assert(pHandler != NULL);
@@ -290,11 +322,14 @@ Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnu
     
     Lock_Unlock(&pController->lock);
     return enabled;
+
+catch:
+    return false;
 }
 
 void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 {
-    Lock_Lock(&pController->lock);
+    assert(Lock_Lock(&pController->lock) == EOK);
     
     print("InterruptController = {\n");
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {

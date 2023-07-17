@@ -75,7 +75,7 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Initialize the boot virtual processor
     VirtualProcessor* pVP = BootVirtualProcessor_GetShared();
-    BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
+    assert(BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize)) == EOK);
 
     
     // Initialize the scheduler
@@ -96,21 +96,20 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
 
     // Initialize the interrupt controller
-    InterruptController_Init(InterruptController_GetShared());
+    assert(InterruptController_Init(InterruptController_GetShared()) == EOK);
 
     
     // Initialize the monotonic clock
-    MonotonicClock_Init(MonotonicClock_GetShared(), pSysDesc);
+    assert(MonotonicClock_Init(MonotonicClock_GetShared(), pSysDesc) == EOK);
 
     
     // Inform the scheduler that the heap exists now and that it should finish
     // its boot related initialization sequence
-    VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler_GetShared());
+    assert(VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler_GetShared()) == EOK);
     
     
     // Initialize the virtual processor pool
-    pGlobals->virtual_processor_pool = VirtualProcessorPool_Create();
-    assert(pGlobals->virtual_processor_pool != NULL);
+    assert(VirtualProcessorPool_Create(&pGlobals->virtual_processor_pool) == EOK);
     
     
     // Initialize the dispatch queue services
@@ -140,7 +139,7 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
     // Initialize I/O services needed by the console
-    pGlobals->rtc = RealtimeClock_Create(pSysDesc);
+    assert(RealtimeClock_Create(pSysDesc, &pGlobals->rtc) == EOK);
     
     const VideoConfiguration* pVideoConfig;
     if (chipset_is_ntsc()) {
@@ -163,9 +162,7 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
 
 #if 1
     // Create the root process and kick it off running
-    pGlobals->root_process = Process_Create(Process_GetNextAvailablePID());
-    assert(pGlobals->root_process);
-
+    assert(Process_Create(Process_GetNextAvailablePID(), &pGlobals->root_process) == EOK);
     Process_DispatchAsyncUser(pGlobals->root_process, (Closure1Arg_Func)0xfe0000);
 #else
     // XXX Unit tests

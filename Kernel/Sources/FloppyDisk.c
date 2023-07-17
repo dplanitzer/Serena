@@ -59,7 +59,7 @@ static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
 {
     if (pDma) {
         if (pDma->irqHandler != 0) {
-            InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDma->irqHandler);
+            assert(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDma->irqHandler) == EOK);
         }
         pDma->irqHandler = 0;
         
@@ -81,13 +81,14 @@ ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
     Semaphore_Init(&pDma->inuse, 1);
     Semaphore_Init(&pDma->done, 0);
         
-    pDma->irqHandler = InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
+    try(InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
                                                          INTERRUPT_ID_DISK_BLOCK,
                                                          INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                         &pDma->done);
-    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(),
+                                                         &pDma->done,
+                                                         &pDma->irqHandler));
+    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(),
                                                        pDma->irqHandler,
-                                                       true);
+                                                       true));
     *pOutFloppyDma = pDma;
     return EOK;
 

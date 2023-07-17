@@ -30,22 +30,25 @@ VirtualProcessorPoolRef _Nonnull VirtualProcessorPool_GetShared(void)
     return SystemGlobals_Get()->virtual_processor_pool;
 }
 
-VirtualProcessorPoolRef _Nullable VirtualProcessorPool_Create(void)
+ErrorCode VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool)
 {
+    decl_try_err();
     VirtualProcessorPool* pPool;
     
-    FailErr(kalloc_cleared(sizeof(VirtualProcessorPool), (Byte**) &pPool));
+    try(kalloc_cleared(sizeof(VirtualProcessorPool), (Byte**) &pPool));
     List_Init(&pPool->inuse_queue);
     List_Init(&pPool->reuse_queue);
     Lock_Init(&pPool->lock);
     pPool->inuse_count = 0;
     pPool->reuse_count = 0;
     pPool->reuse_capacity = REUSE_CACHE_CAPACITY;
-    return pPool;
+    *pOutPool = pPool;
+    return EOK;
     
-failed:
+catch:
     VirtualProcessorPool_Destroy(pPool);
-    return NULL;
+    *pOutPool = NULL;
+    return err;
 }
 
 void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pPool)
@@ -58,11 +61,14 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pPool)
     }
 }
 
-VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params)
+ErrorCode VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
 {
+    decl_try_err();
     VirtualProcessor* pVP = NULL;
+    Bool needsUnlock = false;
 
-    Lock_Lock(&pool->lock);
+    try(Lock_Lock(&pool->lock));
+    needsUnlock = true;
 
     // Try to reuse a cached VP
     VirtualProcessorOwner* pCurVP = (VirtualProcessorOwner*)pool->reuse_queue.first;
@@ -83,28 +89,35 @@ VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualP
     }
     
     Lock_Unlock(&pool->lock);
+    needsUnlock = false;
     
     
     // Create a new VP if we were not able to reuse a cached one
     if (pVP == NULL) {
-        pVP = VirtualProcessor_Create();
-        FailNULL(pVP);
+        try(VirtualProcessor_Create(&pVP));
 
-        Lock_Lock(&pool->lock);
+        try(Lock_Lock(&pool->lock));
+        needsUnlock = true;
         List_InsertBeforeFirst(&pool->inuse_queue, &pVP->owner.queue_entry);
         pool->inuse_count++;
+        needsUnlock = false;
         Lock_Unlock(&pool->lock);
     }
     
     
     // Configure the VP
     VirtualProcessor_SetPriority(pVP, params.priority);
-    FailErr(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
+    try(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(params.func, params.context, params.kernelStackSize, params.userStackSize)));
 
-    return pVP;
+    *pOutVP = pVP;
+    return EOK;
 
-failed:
-    return NULL;
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pool->lock);
+    }
+    *pOutVP = NULL;
+    return err;
 }
 
 // Relinquishes the given VP back to the reuse pool if possible. If the reuse
@@ -120,7 +133,7 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
 
 
     // Try to cache the VP
-    Lock_Lock(&pool->lock);
+    assert(Lock_Lock(&pool->lock) == EOK);
     
     List_Remove(&pool->inuse_queue, &pVP->owner.queue_entry);
     pool->inuse_count--;
@@ -136,7 +149,7 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
     // Suspend the VP if we decided to reuse it and schedule it for finalization
     // (termination) otherwise.
     if (didReuse) {
-        VirtualProcessor_Suspend(pVP);
+        assert(VirtualProcessor_Suspend(pVP) == EOK);
     } else {
         VirtualProcessor_Terminate(pVP);
     }

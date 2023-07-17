@@ -36,28 +36,28 @@ typedef struct _InterruptController* InterruptControllerRef;
 
 extern InterruptControllerRef _Nonnull InterruptController_GetShared(void);
 
-extern void InterruptController_Init(InterruptControllerRef _Nonnull pController);
+extern ErrorCode InterruptController_Init(InterruptControllerRef _Nonnull pController);
 
 
 // Registers a direct interrupt handler. The interrupt controller will invoke the
 // given closure with the given context every time an interrupt with ID 'interruptId'
 // is triggered.
 // NOTE: The closure is invoked in the interrupt context.
-extern InterruptHandlerID InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext);
+extern ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId);
 
 // Registers a counting semaphore which will receive a release call for every
 // occurence of an interrupt with ID 'interruptId'.
-extern InterruptHandlerID InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore);
+extern ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId);
 
 // Removes the interrupt handler for the given handler ID. Does nothing if no
 // such handler is registered.
-extern void InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);
+extern ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);
 
 // Enables / disables the interrupt handler with the given interrupt handler ID.
 // Note that interrupt handlers are by default disabled (when you add them). You
 // need to enable an interrupt handler before it is able to respond to interrupt
 // requests. A disabled interrupt handler ignores interrupt requests.
-extern void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled);
+extern ErrorCode InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled);
 
 // Returns true if the given interrupt handler is enabled; false otherwise.
 extern Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);

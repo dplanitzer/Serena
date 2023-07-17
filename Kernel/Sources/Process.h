@@ -25,7 +25,7 @@ extern Int Process_GetNextAvailablePID(void);
 extern ProcessRef _Nullable Process_GetCurrent(void);
 
 
-extern ProcessRef _Nullable Process_Create(Int pid);
+extern ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_Destroy(ProcessRef _Nullable pProc);
 
 extern Int Process_GetPID(ProcessRef _Nonnull pProc);

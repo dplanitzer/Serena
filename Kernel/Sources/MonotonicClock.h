@@ -104,7 +104,7 @@ typedef struct _MonotonicClock {
 
 
 extern MonotonicClock* _Nonnull MonotonicClock_GetShared(void);
-extern void MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc);
+extern ErrorCode MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc);
 
 extern Quantums MonotonicClock_GetCurrentQuantums(void);
 extern TimeInterval MonotonicClock_GetCurrentTime(void);

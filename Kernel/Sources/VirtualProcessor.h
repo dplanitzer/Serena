@@ -192,7 +192,7 @@ extern Int VirtualProcessor_GetCurrentVpid(void);
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-extern VirtualProcessor* _Nullable VirtualProcessor_Create(void);
+extern ErrorCode VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP);
 
 void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP);
 

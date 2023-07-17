@@ -266,13 +266,17 @@ static void OnReadFromPipe(Byte* _Nonnull pValue)
     PipeRef pipe = (PipeRef) pValue;
     ErrorCode err = EOK;
     Byte buf[16];
+    Int nbytes;
     
-    print("reader: %d, pid: %d\n", Pipe_GetByteCount(pipe, kPipe_Reader), VirtualProcessor_GetCurrent()->vpid);
+    Pipe_GetByteCount(pipe, kPipe_Reader, &nbytes);
+    print("reader: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     while (true) {
         //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
         buf[0] = '\0';
-        const Int nRead = Pipe_Read(pipe, &err, buf, sizeof(buf), true, kTimeInterval_Infinity);
-        //print("\nmain: %d, read: %d", Pipe_GetByteCount(pipe, kPipe_Reader), nRead);
+        Int nRead = 0;
+        err = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity, &nRead);
+        //Pipe_GetByteCount(pipe, kPipe_Reader, &nbytes);
+        //print("\nmain: %d, read: %d", nbytes, nRead);
         buf[nRead] = '\0';
         print((const Character*)buf);
     }
@@ -282,21 +286,27 @@ static void OnWriteToPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
     ErrorCode err = EOK;
+    Int nbytes;
     
-    print("writer: %d, pid: %d\n", Pipe_GetByteCount(pipe, kPipe_Writer), VirtualProcessor_GetCurrent()->vpid);
+    Pipe_GetByteCount(pipe, kPipe_Writer, &nbytes);
+    print("writer: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     
     while (true) {
         VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(20));
-        const Int nWritten = Pipe_Write(pipe, &err, "\nHello", 6, true, kTimeInterval_Infinity);
-        //print("\nbackground: %d, written: %d", Pipe_GetByteCount(pipe, kPipe_Writer), nWritten);
+        Int nWritten = 0;
+        err = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity, &nWritten);
+        //Pipe_GetByteCount(pipe, kPipe_Writer, &nbytes);
+        //print("\nbackground: %d, written: %d", nbytes, nWritten);
     }
 }
 
 
 void DispatchQueue_RunTests(void)
 {
-//    PipeRef pipe = Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE);
-    PipeRef pipe = Pipe_Create(4);
+    PipeRef pipe = NULL;
+
+//  assert(Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE, &pipe) == EOK);
+    assert(Pipe_Create(4, &pipe) == EOK);
     DispatchQueueRef pUtilityQueue;
     DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL, &pUtilityQueue);
 

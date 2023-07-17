@@ -20,7 +20,7 @@ extern void VirtualProcessorScheduler_SwitchContext(void);
 static void VirtualProcessorScheduler_FinishWait(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason);
 static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull pScheduler);
 
-static VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc);
+static ErrorCode IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nullable * _Nonnull pOutVP);
 
 
 // Initializes the scheduler and takes ownership of the passed in boot virtual
@@ -59,33 +59,40 @@ void VirtualProcessorScheduler_Init(VirtualProcessorScheduler* _Nonnull pSchedul
 
 // Called from OnStartup() after the heap has been created. Finishes the scheduler
 // initialization.
-void VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler)
+ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler)
 {
+    decl_try_err();
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
     // Mark the boot virtual processor kernel stack area as allocated.
     // Note that the boot virtual processor has no user stack since it will never
     // execute userspace code.
-    assert(Heap_AllocateBytesAt(pGlobals->heap, 
+    try(Heap_AllocateBytesAt(pGlobals->heap, 
             pScheduler->bootVirtualProcessor->kernel_stack.base,
-            pScheduler->bootVirtualProcessor->kernel_stack.size) == EOK);
+            pScheduler->bootVirtualProcessor->kernel_stack.size));
 
     pScheduler->quantums_per_quarter_second = Quantums_MakeFromTimeInterval(TimeInterval_MakeMilliseconds(250), QUANTUM_ROUNDING_AWAY_FROM_ZERO);
 
 
     // Allocate the idle virtual processor
-    pScheduler->idleVirtualProcessor = IdleVirtualProcessor_Create(SystemDescription_GetShared());
-    assert(pScheduler->idleVirtualProcessor != NULL);
-    VirtualProcessor_Resume(pScheduler->idleVirtualProcessor, false);
+    try(IdleVirtualProcessor_Create(SystemDescription_GetShared(), &pScheduler->idleVirtualProcessor));
+    try(VirtualProcessor_Resume(pScheduler->idleVirtualProcessor, false));
     
 
     // Hook us up with the quantum timer interrupt
-    const Int irqHandler = InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
+    InterruptHandlerID irqHandler;
+    try(InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
                                                   INTERRUPT_ID_QUANTUM_TIMER,
                                                   INTERRUPT_HANDLER_PRIORITY_HIGHEST - 1,
                                                   (InterruptHandler_Closure)VirtualProcessorScheduler_OnEndOfQuantum,
-                                                  (Byte*)pScheduler);
-    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), irqHandler, true);
+                                                  (Byte*)pScheduler,
+                                                  &irqHandler));
+    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), irqHandler, true));
+
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Adds the given virtual processor with the given effective priority to the
@@ -554,14 +561,20 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
 // \param pVP the boot virtual processor record
 // \param pSysDesc the system description
 // \param closure the closure that should be invoked by the virtual processor
-void BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure)
+ErrorCode BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure)
 {
+    decl_try_err();
+
     Bytes_ClearRange((Byte*)pVP, sizeof(VirtualProcessor));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_HIGHEST);
-    VirtualProcessor_SetClosure(pVP, closure);
+    try(VirtualProcessor_SetClosure(pVP, closure));
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->state = kVirtualProcessorState_Ready;
     pVP->suspension_count = 0;
+    return EOK;
+
+catch:
+    return err;
 }
 
 
@@ -574,19 +587,22 @@ static void IdleVirtualProcessor_Run(Byte* _Nullable pContext);
 
 // Creates an idle virtual processor. The scheduler schedules this VP if no other
 // one is in state ready.
-static VirtualProcessor* _Nullable IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc)
+static ErrorCode IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nullable * _Nonnull pOutVP)
 {
+    decl_try_err();
     VirtualProcessor* pVP = NULL;
     
-    FailErr(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
+    try(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
-    VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(IdleVirtualProcessor_Run, NULL, VP_DEFAULT_KERNEL_STACK_SIZE, 0));
+    try(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(IdleVirtualProcessor_Run, NULL, VP_DEFAULT_KERNEL_STACK_SIZE, 0)));
     
-    return pVP;
+    *pOutVP = pVP;
+    return EOK;
     
-failed:
+catch:
     kfree((Byte*)pVP);
-    return NULL;
+    *pOutVP = NULL;
+    return err;
 }
 
 // Puts the CPU to sleep until an interrupt occurs. The interrupt will give the

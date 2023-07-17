@@ -458,10 +458,11 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
         assert(conLaneIdx != -1);
 
         const Int priority = pQueue->qos * DISPATCH_PRIORITY_COUNT + (pQueue->priority + DISPATCH_PRIORITY_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
-        VirtualProcessor* pVP = VirtualProcessorPool_AcquireVirtualProcessor(
-                                                                            VirtualProcessorPool_GetShared(),
-                                                                            VirtualProcessorParameters_Make(pWorkerFunc, (Byte*)pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority));
-        assert(pVP != NULL);
+        VirtualProcessor* pVP = NULL;
+        assert(VirtualProcessorPool_AcquireVirtualProcessor(
+                                                            VirtualProcessorPool_GetShared(),
+                                                            VirtualProcessorParameters_Make(pWorkerFunc, (Byte*)pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
+                                                            &pVP) == EOK);
 
         VirtualProcessor_SetDispatchQueue(pVP, pQueue, conLaneIdx);
         pQueue->concurrency_lanes[conLaneIdx].vp = pVP;

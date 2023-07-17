@@ -39,10 +39,10 @@ typedef struct _VirtualProcessorPool* VirtualProcessorPoolRef;
 
 extern VirtualProcessorPoolRef _Nonnull VirtualProcessorPool_GetShared(void);
 
-extern VirtualProcessorPoolRef _Nullable VirtualProcessorPool_Create(void);
+extern ErrorCode VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool);
 extern void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pool);
 
-extern VirtualProcessor* _Nonnull VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params);
+extern ErrorCode VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP);
 extern _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessor* _Nonnull pVP);
 
 #endif /* VirtualProcessorPool_h */

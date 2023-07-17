@@ -12,14 +12,18 @@
 
 // Initializes the ring buffer to empty. 'capacity' is the buffer capacity in bytes.
 // This value is rounded up to the next power of 2.
-Bool RingBuffer_Init(RingBuffer* _Nonnull pBuffer, Int capacity)
+ErrorCode RingBuffer_Init(RingBuffer* _Nonnull pBuffer, Int capacity)
 {
+    decl_try_err();
+
     pBuffer->capacity = Int_NextPowerOf2(capacity);
     pBuffer->readIdx = 0;
     pBuffer->writeIdx = 0;
-    kalloc(pBuffer->capacity, &pBuffer->data);
-    
-    return pBuffer->data != NULL;
+    try(kalloc(pBuffer->capacity, &pBuffer->data));
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Frees the ring buffer. This frees the ring buffer storage but not the elements

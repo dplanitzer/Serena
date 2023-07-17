@@ -44,12 +44,12 @@ typedef struct _Surface {
 } Surface;
 
 
-extern Surface* _Nullable Surface_Create(Int width, Int height, PixelFormat pixelFormat);
+extern ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
 extern void Surface_Destroy(Surface* _Nullable pSurface);
 
 extern Size Surface_GetPixelSize(Surface* _Nonnull pSurface);
 
-extern Bool Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access);
+extern ErrorCode Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access);
 extern void Surface_UnlockPixels(Surface* _Nonnull pSurface);
 
 #endif /* Framebuffer_h */

@@ -24,20 +24,28 @@ const TimeInterval kTimeInterval_MinusInfinity = {INT32_MIN, ONE_SECOND_IN_NANOS
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-void MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc)
+ErrorCode MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc)
 {
+    decl_try_err();
+
     pClock->current_time = kTimeInterval_Zero;
     pClock->current_quantum = 0;
     pClock->ns_per_quantum = pSysDesc->quantum_duration_ns;
 
-    const Int irqHandler = InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
-                                                  INTERRUPT_ID_QUANTUM_TIMER,
-                                                  INTERRUPT_HANDLER_PRIORITY_HIGHEST,
-                                                  (InterruptHandler_Closure)MonotonicClock_OnInterrupt,
-                                                  (Byte*)pClock);
-    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), irqHandler, true);
+    InterruptHandlerID irqHandler;
+    try(InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
+                                                      INTERRUPT_ID_QUANTUM_TIMER,
+                                                      INTERRUPT_HANDLER_PRIORITY_HIGHEST,
+                                                      (InterruptHandler_Closure)MonotonicClock_OnInterrupt,
+                                                      (Byte*)pClock,
+                                                      &irqHandler));
+    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), irqHandler, true));
 
     chipset_start_quantum_timer();
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Returns the current time of the clock in terms of microseconds.

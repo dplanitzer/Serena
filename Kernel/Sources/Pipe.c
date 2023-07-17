@@ -30,26 +30,29 @@ typedef struct _Pipe {
 
 
 // Creates a pipe with the given buffer size.
-PipeRef _Nullable Pipe_Create(Int bufferSize)
+ErrorCode Pipe_Create(Int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
 {
-    assert(bufferSize > 0);
-    
+    decl_try_err();
     PipeRef pPipe;
-    
-    FailErr(kalloc(sizeof(Pipe), (Byte**) &pPipe));
+
+    assert(bufferSize > 0);
+        
+    try(kalloc(sizeof(Pipe), (Byte**) &pPipe));
     
     Lock_Init(&pPipe->lock);
     ConditionVariable_Init(&pPipe->reader);
     ConditionVariable_Init(&pPipe->writer);
-    FailFalse(RingBuffer_Init(&pPipe->buffer, bufferSize));
+    try(RingBuffer_Init(&pPipe->buffer, bufferSize));
     pPipe->readSideState = kPipeState_Open;
     pPipe->writeSideState = kPipeState_Open;
 
-    return pPipe;
+    *pOutPipe = pPipe;
+    return EOK;
     
-failed:
+catch:
     Pipe_Destroy(pPipe);
-    return NULL;
+    *pOutPipe = NULL;
+    return err;
 }
 
 void Pipe_Destroy(PipeRef _Nullable pPipe)
@@ -64,9 +67,11 @@ void Pipe_Destroy(PipeRef _Nullable pPipe)
 }
 
 // Closes the specified side of the pipe.
-void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
+ErrorCode Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
 {
-    Lock_Lock(&pPipe->lock);
+    decl_try_err();
+
+    try(Lock_Lock(&pPipe->lock));
     switch (side) {
         case kPipe_Reader:
             pPipe->readSideState = kPipeState_Closed;
@@ -79,16 +84,21 @@ void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
 
     ConditionVariable_BroadcastAndUnlock(&pPipe->reader, &pPipe->lock);
     ConditionVariable_BroadcastAndUnlock(&pPipe->writer, &pPipe->lock);
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Returns the number of bytes that can be read from the pipe without blocking if
 // 'side' is kPipe_Reader and the number of bytes the can be written without blocking
 // otherwise.
-Int Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side)
+ErrorCode Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side, Int* _Nonnull pOutCount)
 {
+    decl_try_err();
     Int nbytes;
     
-    Lock_Lock(&pPipe->lock);
+    try(Lock_Lock(&pPipe->lock));
     switch (side) {
         case kPipe_Reader:
             nbytes = RingBuffer_ReadableCount(&pPipe->buffer);
@@ -100,20 +110,30 @@ Int Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side)
     }
     
     Lock_Unlock(&pPipe->lock);
-    
-    return nbytes;
+    *pOutCount = nbytes;
+    return EOK;
+
+catch:
+    *pOutCount = 0;
+    return err;
 }
 
 // Returns the capacity of the pipe's byte buffer.
-Int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
+ErrorCode Pipe_GetCapacity(PipeRef _Nonnull pPipe, Int* _Nonnull pOutCapacity)
 {
+    decl_try_err();
     Int nbytes;
     
-    Lock_Lock(&pPipe->lock);
+    try(Lock_Lock(&pPipe->lock));
     nbytes = pPipe->buffer.capacity;
     Lock_Unlock(&pPipe->lock);
     
-    return nbytes;
+    *pOutCapacity = nbytes;
+    return EOK;
+
+catch:
+    pOutCapacity = 0;
+    return err;
 }
 
 #define DOPRINT 1
@@ -123,14 +143,16 @@ Int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
 // is read from the pipe and the amount of data read is returned. If blocking is
 // allowed and the pipe has to wait for data to arrive, then the wait will time out
 // after 'deadline' and a timeout error will be returned.
-Int Pipe_Read(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline)
+ErrorCode Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline, Int* _Nonnull pOutNumBytesRead)
 {
+    decl_try_err();
     Int nBytesRead = 0;
+    Bool needsUnlock = false;
 
-    *pError = EOK;
     if (nBytes > 0) {
-        Lock_Lock(&pPipe->lock);
-        
+        try(Lock_Lock(&pPipe->lock));
+        needsUnlock = true;
+
         while (nBytesRead < nBytes && pPipe->readSideState == kPipeState_Open) {
             const Int nChunkSize = RingBuffer_GetBytes(&pPipe->buffer, &pBuffer[nBytesRead], nBytes - nBytesRead);
 
@@ -148,38 +170,44 @@ Int Pipe_Read(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, Byte* _Nonnull
                     ConditionVariable_BroadcastAndUnlock(&pPipe->writer, NULL);
                     
                     // Wait for the writer to make data available
-                    const ErrorCode err = ConditionVariable_Wait(&pPipe->reader, &pPipe->lock, deadline);
-                    if (err != EOK) {
-                        *pError = err;
-                        break;
-                    }
+                    try(ConditionVariable_Wait(&pPipe->reader, &pPipe->lock, deadline));
                 } else {
-                    *pError = EAGAIN;
+                    err = EAGAIN;
                     break;
                 }
             }
         }
 
         // Make sure that the writer is awake so that it can produce new data
+        needsUnlock = false;
         ConditionVariable_BroadcastAndUnlock(&pPipe->writer, &pPipe->lock);
         
         
         // Return 0 bytes and EOK on EOF
         if (nBytesRead == 0 && (pPipe->writeSideState == kPipeState_Closed || pPipe->readSideState == kPipeState_Closed)) {
-            *pError = EOK;
+            err = EOK;
         }
     }
-    
-    return nBytesRead;
+
+    // Success case falls through to catch
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pPipe->lock);
+    }
+    *pOutNumBytesRead = nBytesRead;
+    return err;
 }
 
-Int Pipe_Write(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, const Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline)
+ErrorCode Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline, Int* _Nonnull pOutNumBytesWritten)
 {
+    decl_try_err();
     Int nBytesWritten = 0;
+    Bool needsUnlock = false;
 
-    *pError = EOK;
     if (nBytes > 0) {
-        Lock_Lock(&pPipe->lock);
+        try(Lock_Lock(&pPipe->lock));
+        needsUnlock = true;
         
         while (nBytesWritten < nBytes && pPipe->writeSideState == kPipeState_Open) {
             const Int nChunkSize = RingBuffer_PutBytes(&pPipe->buffer, &pBuffer[nBytesWritten], nBytes - nBytesWritten);
@@ -198,27 +226,31 @@ Int Pipe_Write(PipeRef _Nonnull pPipe, ErrorCode* _Nonnull pError, const Byte* _
                     ConditionVariable_BroadcastAndUnlock(&pPipe->reader, NULL);
                     
                     // Wait for the reader to make space available
-                    const ErrorCode err = ConditionVariable_Wait(&pPipe->writer, &pPipe->lock, deadline);
-                    if (err != EOK) {
-                        *pError = err;
-                        break;
-                    }
+                    try(ConditionVariable_Wait(&pPipe->writer, &pPipe->lock, deadline));
                 } else {
-                    *pError = EAGAIN;
+                    err = EAGAIN;
                     break;
                 }
             }
         }
         
         // Make sure that the reader is awake so that it can consume the new data
+        needsUnlock = false;
         ConditionVariable_BroadcastAndUnlock(&pPipe->reader, &pPipe->lock);
         
         
         // Return 0 bytes and EOK on EOF
         if (nBytesWritten == 0 && (pPipe->readSideState == kPipeState_Closed || pPipe->writeSideState == kPipeState_Closed)) {
-            *pError = EPIPE;
+            err = EPIPE;
         }
     }
     
-    return nBytesWritten;
+    // Success case falls through to catch
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pPipe->lock);
+    }
+    *pOutNumBytesWritten = nBytesWritten;
+    return err;
 }

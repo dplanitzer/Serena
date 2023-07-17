@@ -26,8 +26,6 @@
 #define decl_try_err()      ErrorCode err = EOK
 #define try(f)              if ((err = (f)) != EOK) goto catch
 #define try_null(p, f, e)   if ((p = (f)) == NULL) { err = e; goto catch; }
-#define try_false(f, e)     if (!(f)) { err = e; goto catch; }
-#define try_zero(f, e)      if ((f) == 0) { err = e; goto catch; }
 
 
 // Error code definitions

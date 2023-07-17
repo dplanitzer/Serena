@@ -42,14 +42,15 @@ ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDr
     try(kalloc_cleared(sizeof(KeyboardDriver), (Byte**) &pDriver));
     
     pDriver->event_driver = pEventDriver;
-    pDriver->irq_handler = InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
+    try(InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
                                                       INTERRUPT_ID_CIA_A_SP,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL,
                                                       (InterruptHandler_Closure)KeyboardDriver_OnInterrupt,
-                                                      (Byte*)pDriver);
+                                                      (Byte*)pDriver,
+                                                      &pDriver->irq_handler));
     
-    try_false(RingBuffer_Init(&pDriver->key_queue, KEY_QUEUE_MAX_LENGTH), ENOMEM);
-    InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->irq_handler, true);
+    try(RingBuffer_Init(&pDriver->key_queue, KEY_QUEUE_MAX_LENGTH));
+    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->irq_handler, true));
 
     ksb_init();
 
@@ -65,7 +66,7 @@ catch:
 void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->irq_handler);
+        assert(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->irq_handler) == EOK);
         RingBuffer_Deinit(&pDriver->key_queue);
         pDriver->event_driver = NULL;
         kfree((Byte*)pDriver);

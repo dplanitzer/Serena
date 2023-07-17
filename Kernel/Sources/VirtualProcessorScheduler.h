@@ -63,7 +63,7 @@ typedef struct _VirtualProcessorScheduler {
 extern VirtualProcessorScheduler* _Nonnull VirtualProcessorScheduler_GetShared(void);
 
 extern void VirtualProcessorScheduler_Init(VirtualProcessorScheduler* _Nonnull pScheduler, SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nonnull pBootVP);
-extern void VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler);
+extern ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler);
 
 extern void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 
@@ -130,6 +130,6 @@ extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _
 // The boot virtual processor
 extern VirtualProcessor* _Nonnull BootVirtualProcessor_GetShared(void);
 
-extern void BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
+extern ErrorCode BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
 
 #endif /* VirtualProcessorScheduler_h */
