@@ -139,8 +139,23 @@ _Lock_Unlock:
 ; Returns the ID of the virtual processor that is currently holding the lock.
 ; Zero is returned if none is holding the lock.
 _Lock_GetOwnerVpid:
-    cargs lgovpid_lock_ptr.l
+    cargs lgovpid_saved_d7.l, lgovpid_lock_ptr.l
 
+    move.l  d7, -(sp)
+
+    DISABLE_PREEMPTION d7
     move.l  lgovpid_lock_ptr(sp), a0
-    move.l  lock_owner_vpid(a0), d0     ; this is atomic on a 68k single CPU system
+
+    ; check whether the lock is currently held by someone
+    btst    #7, lock_value(a0)
+    bne.s   .lgovpid_is_locked
+    moveq.l #0, d0
+    bra.s   .lgovpid_done
+
+.lgovpid_is_locked:
+    move.l  lock_owner_vpid(a0), d0
+
+.lgovpid_done:
+    RESTORE_PREEMPTION d7
+    move.l  (sp)+, d7
     rts
