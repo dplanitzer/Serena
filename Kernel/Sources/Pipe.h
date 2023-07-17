@@ -10,7 +10,6 @@
 #define Pipe_h
 
 #include "Foundation.h"
-#include "MonotonicClock.h"
 
 struct _Pipe;
 typedef struct _Pipe* PipeRef;
