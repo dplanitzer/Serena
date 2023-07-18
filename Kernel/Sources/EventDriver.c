@@ -210,7 +210,7 @@ void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
         // that we'll only start freeing resources after the last timer invocation
         // has completed.
         if (pDriver->isReady) {
-            assert(DispatchQueue_DispatchSync(pDriver->dispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver)) == EOK);
+            try_bang(DispatchQueue_DispatchSync(pDriver->dispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)EventDriver_FreeResourcesOnDispatchQueue, (Byte*)pDriver)));
         } else {
             EventDriver_FreeResourcesOnDispatchQueue(pDriver);
         }
@@ -483,11 +483,12 @@ inline Bool KeyMap_IsKeyDown(const UInt32* _Nonnull pKeyMap, HIDKeyCode keycode)
 // Returns the keycodes of the keys that are currently pressed. All pressed keys
 // are returned if 'nKeysToCheck' is 0. Only the keys which are pressed and in the
 // set 'pKeysToCheck' are returned if 'nKeysToCheck' is > 0.
-void EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown)
+ErrorCode EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown)
 {
+    decl_try_err();
     Int oi = 0;
     
-    assert(Lock_Lock(&pDriver->lock) == EOK);
+    try(Lock_Lock(&pDriver->lock));
     if (nKeysToCheck > 0 && pKeysToCheck) {
         if (pKeysDown) {
             // Returns at most 'nKeysDown' keys which are in the set 'pKeysToCheck'
@@ -524,6 +525,11 @@ void EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* 
     Lock_Unlock(&pDriver->lock);
     
     *nKeysDown = oi;
+    return EOK;
+
+catch:
+    *nKeysDown = 0;
+    return err;
 }
 
 // Posts a copy of the given event to the event queue. The oldest queued event
@@ -1033,7 +1039,7 @@ static void EventDriver_GenerateJoysticksEvents(EventDriverRef _Nonnull pDriver,
 
 static void EventDriver_GatherLowLevelEvents(EventDriverRef _Nonnull pDriver)
 {
-    assert(Lock_Lock(&pDriver->lock) == EOK);
+    try_bang(Lock_Lock(&pDriver->lock));
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
 
     // Process mouse input

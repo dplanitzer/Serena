@@ -268,7 +268,7 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
     }
 
     if (!isCallerRunningOnVpToManipulate) {
-        assert(VirtualProcessor_Resume(pVP, false) == EOK);
+        try_bang(VirtualProcessor_Resume(pVP, false));
     }
     
     return EOK;

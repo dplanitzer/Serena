@@ -118,7 +118,7 @@ void DispatchQueue_RunTests(void)
 {
     struct State* pState;
     
-    assert(kalloc(sizeof(struct State), &pState) == EOK);
+    try_bang(kalloc(sizeof(struct State), &pState));
     
     pState->timer = Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState));
     pState->value = 0;
@@ -305,8 +305,8 @@ void DispatchQueue_RunTests(void)
 {
     PipeRef pipe = NULL;
 
-//  assert(Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE, &pipe) == EOK);
-    assert(Pipe_Create(4, &pipe) == EOK);
+//  try_bang(Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE, &pipe));
+    try_bang(Pipe_Create(4, &pipe));
     DispatchQueueRef pUtilityQueue;
     DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL, &pUtilityQueue);
 

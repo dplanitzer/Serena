@@ -329,7 +329,7 @@ catch:
 
 void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 {
-    assert(Lock_Lock(&pController->lock) == EOK);
+    try_bang(Lock_Lock(&pController->lock));
     
     print("InterruptController = {\n");
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {

@@ -133,7 +133,7 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
 
 
     // Try to cache the VP
-    assert(Lock_Lock(&pool->lock) == EOK);
+    try_bang(Lock_Lock(&pool->lock));
     
     List_Remove(&pool->inuse_queue, &pVP->owner.queue_entry);
     pool->inuse_count--;
@@ -149,7 +149,7 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
     // Suspend the VP if we decided to reuse it and schedule it for finalization
     // (termination) otherwise.
     if (didReuse) {
-        assert(VirtualProcessor_Suspend(pVP) == EOK);
+        try_bang(VirtualProcessor_Suspend(pVP));
     } else {
         VirtualProcessor_Terminate(pVP);
     }

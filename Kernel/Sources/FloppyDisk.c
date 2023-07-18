@@ -59,7 +59,7 @@ static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
 {
     if (pDma) {
         if (pDma->irqHandler != 0) {
-            assert(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDma->irqHandler) == EOK);
+            try_bang(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDma->irqHandler));
         }
         pDma->irqHandler = 0;
         

@@ -122,7 +122,7 @@ extern ErrorCode EventDriver_ObscureMouseCursor(EventDriverRef _Nonnull pDriver)
 
 extern ErrorCode EventDriver_GetMouseLocation(EventDriverRef _Nonnull pDriver, Point* _Nonnull pOutPoint);
 extern ErrorCode EventDriver_GetMouseButtonsDown(EventDriverRef _Nonnull pDriver, UInt32* _Nonnull pOutButtonsMask);
-extern void EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown);
+extern ErrorCode EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown);
 
 extern ErrorCode EventDriver_GetEvents(EventDriverRef _Nonnull pDriver, HIDEvent* _Nonnull pEvents, Int* _Nonnull pEventCount, TimeInterval deadline);
 extern ErrorCode EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Nonnull pEvent);

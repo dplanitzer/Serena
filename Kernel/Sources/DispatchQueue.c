@@ -370,7 +370,7 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
         // accepting new work items and repeatable timers from rescheduling. This
         // will also cause the VPs to drain the existing work item queue and to
         // relinquish themselves.
-        assert(Lock_Lock(&pQueue->lock) == EOK);
+        try_bang(Lock_Lock(&pQueue->lock));
         pQueue->state = kQueueState_ShuttingDown;
 
 
@@ -389,7 +389,7 @@ void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush
 
         // Wait until all VPs have relinquished and detached themselves from the
         // dispatch queue.
-        assert(Lock_Lock(&pQueue->lock) == EOK);
+        try_bang(Lock_Lock(&pQueue->lock));
         while (pQueue->availableConcurrency > 0) {
             ConditionVariable_Wait(&pQueue->vp_shutdown_signaler, &pQueue->lock, kTimeInterval_Infinity);
         }
@@ -459,10 +459,10 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
 
         const Int priority = pQueue->qos * DISPATCH_PRIORITY_COUNT + (pQueue->priority + DISPATCH_PRIORITY_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
         VirtualProcessor* pVP = NULL;
-        assert(VirtualProcessorPool_AcquireVirtualProcessor(
+        try_bang(VirtualProcessorPool_AcquireVirtualProcessor(
                                                             VirtualProcessorPool_GetShared(),
                                                             VirtualProcessorParameters_Make(pWorkerFunc, (Byte*)pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
-                                                            &pVP) == EOK);
+                                                            &pVP));
 
         VirtualProcessor_SetDispatchQueue(pVP, pQueue, conLaneIdx);
         pQueue->concurrency_lanes[conLaneIdx].vp = pVP;
@@ -893,7 +893,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
     // We hold the lock at all times except:
     // - while waiting for work
     // - while executing a work item
-    assert(Lock_Lock(&pQueue->lock) == EOK);
+    try_bang(Lock_Lock(&pQueue->lock));
 
     while (true) {
         WorkItemRef pItem = NULL;
@@ -974,7 +974,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
 
         // Reacquire the lock
-        assert(Lock_Lock(&pQueue->lock) == EOK);
+        try_bang(Lock_Lock(&pQueue->lock));
 
 
         // Move the work item back to the item cache if possible or destroy it

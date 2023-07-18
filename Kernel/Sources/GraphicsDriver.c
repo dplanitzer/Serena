@@ -462,7 +462,7 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         _GraphicsDriver_SetClutEntry(0, 0);
         _GraphicsDriver_StopVideoRefresh();
         
-        assert(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq_handler) == EOK);
+        try_bang(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq_handler));
         pDriver->vb_irq_handler = 0;
         
         Semaphore_Deinit(&pDriver->vblank_sema);

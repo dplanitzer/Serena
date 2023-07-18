@@ -66,7 +66,7 @@ catch:
 void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        assert(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->irq_handler) == EOK);
+        try_bang(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->irq_handler));
         RingBuffer_Deinit(&pDriver->key_queue);
         pDriver->event_driver = NULL;
         kfree((Byte*)pDriver);

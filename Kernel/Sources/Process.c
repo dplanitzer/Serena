@@ -92,7 +92,7 @@ static void Process_ExitCompletion(ProcessRef _Nonnull pProc)
 static void Process_ExitTrampoline(ProcessRef _Nonnull pProc)
 {
     // Bounce over to the kernel main queue to destroy the process.
-    assert(DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make((Closure1Arg_Func) Process_ExitCompletion, (Byte*) pProc)) == EOK);
+    try_bang(DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make((Closure1Arg_Func) Process_ExitCompletion, (Byte*) pProc)));
 }
 
 // Voluntarily exits the given process. Assumes that this function is called from
@@ -111,7 +111,7 @@ void Process_Exit(ProcessRef _Nonnull pProc)
 
 
     // Get rid of all queued up work items and timers.
-    assert(DispatchQueue_Flush(pQueue) == EOK);
+    try_bang(DispatchQueue_Flush(pQueue));
 
 
     // Enqueue a trampoline that will get us over to the kernel main queue which
@@ -119,12 +119,12 @@ void Process_Exit(ProcessRef _Nonnull pProc)
     // it gives us the guarantee that the destruction of the process object will
     // only start once all dispatch queues owned by the process have stopped doing
     // work and we have aborted the user space invocation that got us here.
-    assert(DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_Make((Closure1Arg_Func) Process_ExitTrampoline, (Byte*) pProc)) == EOK);
+    try_bang(DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_Make((Closure1Arg_Func) Process_ExitTrampoline, (Byte*) pProc)));
 
 
     // Abort the user space invocation. This will cause us to drop back into the
     // main loop of the dispatch queue that orignally initiated the call-as-user
     // (userspace) invocation that ultimately got us here. This in turn will then
     // cause this dispatch queue to execute the Process_ExitTrampoline.
-    assert(VirtualProcessor_AbortCallAsUser(VirtualProcessor_GetCurrent()) == EOK);
+    try_bang(VirtualProcessor_AbortCallAsUser(VirtualProcessor_GetCurrent()));
 }

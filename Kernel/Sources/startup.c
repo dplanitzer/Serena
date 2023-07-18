@@ -75,7 +75,7 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Initialize the boot virtual processor
     VirtualProcessor* pVP = BootVirtualProcessor_GetShared();
-    assert(BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize)) == EOK);
+    try_bang(BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize)));
 
     
     // Initialize the scheduler
@@ -92,28 +92,28 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
     // Initialize the global heap
-    assert(Heap_Create(pSysDesc->memory_descriptor, pSysDesc->memory_descriptor_count, &pGlobals->heap) == EOK);
+    try_bang(Heap_Create(pSysDesc->memory_descriptor, pSysDesc->memory_descriptor_count, &pGlobals->heap));
     
 
     // Initialize the interrupt controller
-    assert(InterruptController_Init(InterruptController_GetShared()) == EOK);
+    try_bang(InterruptController_Init(InterruptController_GetShared()));
 
     
     // Initialize the monotonic clock
-    assert(MonotonicClock_Init(MonotonicClock_GetShared(), pSysDesc) == EOK);
+    try_bang(MonotonicClock_Init(MonotonicClock_GetShared(), pSysDesc));
 
     
     // Inform the scheduler that the heap exists now and that it should finish
     // its boot related initialization sequence
-    assert(VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler_GetShared()) == EOK);
+    try_bang(VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler_GetShared()));
     
     
     // Initialize the virtual processor pool
-    assert(VirtualProcessorPool_Create(&pGlobals->virtual_processor_pool) == EOK);
+    try_bang(VirtualProcessorPool_Create(&pGlobals->virtual_processor_pool));
     
     
     // Initialize the dispatch queue services
-    assert(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, NULL, (DispatchQueueRef*)&pGlobals->kernel_main_dispatch_queue) == EOK);
+    try_bang(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, NULL, (DispatchQueueRef*)&pGlobals->kernel_main_dispatch_queue));
     
     
     // Enable interrupt handling
@@ -139,7 +139,7 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
     // Initialize I/O services needed by the console
-    assert(RealtimeClock_Create(pSysDesc, &pGlobals->rtc) == EOK);
+    try_bang(RealtimeClock_Create(pSysDesc, &pGlobals->rtc));
     
     const VideoConfiguration* pVideoConfig;
     if (chipset_is_ntsc()) {
@@ -148,21 +148,21 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
         pVideoConfig = &kVideoConfig_PAL_640_256_50;
     }
     
-    assert(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &pGlobals->main_screen_gdevice) == EOK);
+    try_bang(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &pGlobals->main_screen_gdevice));
     
     
     // Initialize the console
-    assert(Console_Create(pGlobals->main_screen_gdevice, &pGlobals->console) == EOK);
+    try_bang(Console_Create(pGlobals->main_screen_gdevice, &pGlobals->console));
 
     
     // Initialize all other I/O dervices
-    assert(FloppyDMA_Create(&pGlobals->floppy_dma) == EOK);
-    assert(EventDriver_Create(pGlobals->main_screen_gdevice, &pGlobals->event_driver) == EOK);
+    try_bang(FloppyDMA_Create(&pGlobals->floppy_dma));
+    try_bang(EventDriver_Create(pGlobals->main_screen_gdevice, &pGlobals->event_driver));
         
 
 #if 1
     // Create the root process and kick it off running
-    assert(Process_Create(Process_GetNextAvailablePID(), &pGlobals->root_process) == EOK);
+    try_bang(Process_Create(Process_GetNextAvailablePID(), &pGlobals->root_process));
     Process_DispatchAsyncUser(pGlobals->root_process, (Closure1Arg_Func)0xfe0000);
 #else
     // XXX Unit tests
