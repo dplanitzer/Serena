@@ -36,7 +36,7 @@ typedef struct _Console {
     UInt8                       flags;
     Int8                        lineBreakMode;
     Int8                        tabWidth;   // 8
-    Lock                        lock;       // XXX currently protecting DrawStringWithFormat() only!
+    Lock                        lock;
 } Console;
 
 
@@ -59,7 +59,5 @@ extern void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y);
 
 extern void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch);
 extern void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str);
-extern void Console_DrawStringWithFormat(Console* _Nonnull pConsole, const Character* _Nonnull format, ...);
-extern void Console_vDrawStringWithFormat(Console* _Nonnull pConsole, const Character* _Nonnull format, va_list ap);
 
 #endif /* Console_h */

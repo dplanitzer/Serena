@@ -16,6 +16,7 @@
 #include "FloppyDisk.h"
 #include "GraphicsDriver.h"
 #include "Heap.h"
+#include "Lock.h"
 #include "Process.h"
 #include "RealtimeClock.h"
 #include "VirtualProcessorPool.h"
@@ -34,6 +35,7 @@ typedef struct _SystemGlobals {
     AtomicInt                           next_available_pid;
     ProcessRef _Nonnull                 root_process;
     EventDriverRef _Nonnull             event_driver;
+    Lock                                print_lock;
 } SystemGlobals;
 
 

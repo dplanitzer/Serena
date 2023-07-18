@@ -157,6 +157,7 @@ extern const TimeInterval       kTimeInterval_MinusInfinity;
 
 // Printing
 extern void print(const Character* _Nonnull format, ...);
+extern void vprint(const Character* _Nonnull format, va_list ap);
 
 
 // Asserts

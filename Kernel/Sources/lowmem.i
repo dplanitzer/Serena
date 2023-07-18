@@ -347,8 +347,9 @@ sg_kernel_main_dispatch_queue   so.l    1       ; 4
 sg_next_available_pid           so.l    1       ; 4
 sg_root_process                 so.l    1       ; 4
 sg_event_driver                 so.l    1       ; 4
+sg_print_lock                   so.l    4       ; 16
 sg_SIZEOF                   so
-    ifeq (sg_SIZEOF == 44)
+    ifeq (sg_SIZEOF == 60)
         fail "SystemGlobals structure size is incorrect."
     endif
 

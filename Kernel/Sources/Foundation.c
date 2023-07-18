@@ -14,15 +14,6 @@
 extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
 
 
-void print(const Character* _Nonnull format, ...)
-{
-    va_list ap;
-    
-    va_start(ap, format);
-    Console_vDrawStringWithFormat(Console_GetMain(), format, ap);
-    va_end(ap);
-}
-
 _Noreturn fatalError(const Character* _Nonnull filename, int line)
 {
     Console* pConsole = Console_GetMain();

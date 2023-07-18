@@ -138,6 +138,10 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
 {
     SystemGlobals* pGlobals = SystemGlobals_Get();
 
+    // Initialize the print() lock
+    Lock_Init(&pGlobals->print_lock);
+
+    
     // Initialize I/O services needed by the console
     try_bang(RealtimeClock_Create(pSysDesc, &pGlobals->rtc));
     
