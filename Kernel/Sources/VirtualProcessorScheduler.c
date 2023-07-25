@@ -351,8 +351,8 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
     VirtualProcessor* pRunCandidate = NULL;
     
     
-    // First pass: make all waiting VPs ready and remember the ones we might
-    // want to run.
+    // First pass: make all waiting VPs ready and remember the one we might want
+    // to run.
     while (pCurNode && i < count) {
         register ListNode* pNextNode = pCurNode->next;
         register VirtualProcessor* pVP = (VirtualProcessor*)pCurNode;
@@ -366,8 +366,8 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
     }
     
     
-    // Second pass: context switch to the VPs we want to run if they are of a
-    // higher priority than what is currently running
+    // Second pass: context switch to the VP we want to run if it has a higher
+    // priority than the VP that is currently running
     if (allowContextSwitch && pRunCandidate) {
         VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pRunCandidate);
     }
@@ -380,9 +380,11 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
 // will happen.
 void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
 {
-    // It's possible that the VP that we want to wake up is running if the wakeup is triggered by an interrupt routine.
-    // That's okay in this case and we simply return. It's the resonsibility of the interrupt handler to ensure that the
-    // fact that it wanted to wake up the VP is noted somehwere. Eg by using a semaphore.
+    // It's possible that the VP that we want to wake up is running if the
+    // wakeup is triggered by an interrupt routine. That's okay in this case and
+    // we simply return. It's the resonsibility of the interrupt handler to
+    // ensure that the fact that it wanted to wake up the VP is noted somehwere.
+    // Eg by using a semaphore.
     if (InterruptController_IsServicingInterrupt(InterruptController_GetShared())) {
         if (pScheduler->running == pVP) {
             return;
@@ -392,11 +394,11 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
     VirtualProcessorScheduler_FinishWait(pScheduler, pWaitQueue, pVP, wakeUpReason);
     
     
-    // Everything below this point only applies if the VP that we want to wake up
-    // is not currently suspened.
+    // Everything below this point only applies if the VP that we want to wake
+    // up is not currently suspened.
     if (pVP->state == kVirtualProcessorState_Waiting) {
-        // Make the VP ready and adjust it's effective priority based on the time it
-        // has spent waiting
+        // Make the VP ready and adjust it's effective priority based on the
+        // time it has spent waiting
         const Int32 quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
         const Int8 boostedPriority = min(pVP->effectivePriority + min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
         VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, boostedPriority);
@@ -444,8 +446,8 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     assert((pVP->flags & VP_FLAG_TERMINATED) == VP_FLAG_TERMINATED);
     assert(pVP == pScheduler->running);
     
-    // We don't need to save the old preemption state because this VP is going away
-    // and we will never contrext switch back to it
+    // We don't need to save the old preemption state because this VP is going
+    // away and we will never contrext switch back to it
     (void) VirtualProcessorScheduler_DisablePreemption();
     
     // Put the VP on the finalization queue
@@ -453,8 +455,8 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     
     
     // Check whether there are too many VPs on the finalizer queue. If so then we
-    // try to context switch to the scheduler VP otherwise we'll context switch to
-    // whoever else is the best candidate to run.
+    // try to context switch to the scheduler VP otherwise we'll context switch
+    // to whoever else is the best candidate to run.
     VirtualProcessor* newRunning;
     const Int FINALIZE_NOW_THRESHOLD = 4;
     Int dead_vps_count = 0;
@@ -551,13 +553,13 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Boot Virtaul Processor
+// MARK: Boot Virtual Processor
 ////////////////////////////////////////////////////////////////////////////////
 
 // Initializes a boot virtual processor. This is the virtual processor which
-// is used to grandfather in the initial thread of execution at boot time. It is the
-// first VP that is created for a physical processor. It then takes over duties for
-// the scheduler.
+// is used to grandfather in the initial thread of execution at boot time. It is
+// the first VP that is created for a physical processor. It then takes over
+// duties for the scheduler.
 // \param pVP the boot virtual processor record
 // \param pSysDesc the system description
 // \param closure the closure that should be invoked by the virtual processor

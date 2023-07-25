@@ -35,11 +35,13 @@ syscall_table:
 
 
 ;-------------------------------------------------------------------------------
-; Common entry point for system calls.
+; Common entry point for system calls (trap #0).
 ; A system call looks like this:
+;
 ; d0.l: -> system call number
-; d0.l: <- error number
 ; d1.l to d7.l: -> system call arguments
+;
+; d0.l: <- error number
 ;
 ; The system call handler builds a very particular stack frame to ensure that we
 ; are able to call the system call number specific handler with an argument
@@ -69,7 +71,6 @@ syscall_table:
 ; Note that we do not save & restore d0 because it contains the syscall number
 ; on entry and the syscall error value result on exit.
 ;
-; trap #0
 _SystemCallHandler:
     inline
         ; save the user registers (see stack layout description above)

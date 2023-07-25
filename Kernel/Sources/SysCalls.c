@@ -6,14 +6,14 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include "Console.h"
 #include "Process.h"
 #include "VirtualProcessor.h"
 
 
 ErrorCode _syscall_write(const Character* pString)
 {
-    print("%s", pString);
-    return EOK;
+    return Console_DrawString(Console_GetMain(), pString);
 }
 
 ErrorCode _syscall_sleep(Int seconds, Int nanoseconds)

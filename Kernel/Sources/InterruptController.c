@@ -205,7 +205,7 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
     try(Lock_Lock(&pController->lock));
     needsUnlock = true;
     
-    // Find out what interrupt ID this handler handles
+    // Find out which interrupt ID this handler handles
     Int interruptId = -1;
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
         for (Int j = 0; j < pController->handlers[i].size; j++) {

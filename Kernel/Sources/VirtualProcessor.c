@@ -261,7 +261,7 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
         // redirect the VP to the new call
         if (isCallerRunningOnVpToManipulate) {
             // Can not change the PC while we are executing on the VP that we are
-            // suposed to manipulate
+            // supposed to manipulate
             abort();
         }
         pVP->save_area.pc = (UInt32)cpu_abort_call_as_user;
