@@ -1,0 +1,10 @@
+MEMORY  {
+    kernel_rom (rx)  : ORIGIN = 0xfc0000, LENGTH = 128K
+}
+
+SECTIONS {
+    . = 0xfc0000;
+    .text : { traps.o(.text) *(.text) } > kernel_rom
+    .data : { *(.data) } > kernel_rom
+    .bss : { *(.bss) } > kernel_rom
+}

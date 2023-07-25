@@ -26,7 +26,7 @@ $(KERNEL_BUILD_DIR):
 
 $(KERNEL_BIN_FILE): $(RUNTIME_LIB_FILE) $(KERNEL_OBJS)
 	@echo Linking Kernel
-	@$(LD) -s -brawbin1 -Ttext 0xfc0000 -o $@ $(KERNEL_BUILD_DIR)/traps.o $(filter-out $(KERNEL_BUILD_DIR)/traps.o, $^)
+	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script -o $@ $^
 
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.c

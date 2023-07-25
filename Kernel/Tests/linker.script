@@ -1,0 +1,12 @@
+MEMORY  {
+    testrig_rom (rx)  : ORIGIN = 0xfe0000, LENGTH = 128K
+}
+
+SECTIONS {
+    . = 0xfe0000;
+    .text : { HelloWorld.o(.text) *(.text) } > testrig_rom
+    .data : { *(.data) } > testrig_rom
+    .bss : { *(.bss) } > testrig_rom
+}
+
+ENTRY(_main)
