@@ -6,15 +6,18 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "InterruptController.h"
+#include "InterruptControllerPriv.h"
 #include "Heap.h"
 
 
+InterruptController     gInterruptControllerStorage;
+InterruptControllerRef  gInterruptController = &gInterruptControllerStorage;
 
 
-ErrorCode InterruptController_Init(InterruptControllerRef _Nonnull pController)
-{
+ErrorCode InterruptController_CreateSharedInstance(void)
+{    
     decl_try_err();
+    InterruptController* pController = &gInterruptControllerStorage;
 
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
         try(kalloc(0, (Byte**) &pController->handlers[i].data));

@@ -102,7 +102,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
 
     // Initialize the interrupt controller
-    try_bang(InterruptController_Init(gInterruptController));
+    try_bang(InterruptController_CreateSharedInstance());
 
     
     // Initialize the monotonic clock
