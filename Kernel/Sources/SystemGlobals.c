@@ -15,6 +15,7 @@ VirtualProcessorPoolRef gVirtualProcessorPool;
 Console*                gConsole;
 GraphicsDriverRef       gMainGDevice;
 Heap*                   gHeap;
+CopperScheduler         gCopperScheduler;
 
 
 // Processes

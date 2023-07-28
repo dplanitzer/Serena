@@ -10,6 +10,8 @@
     include "lowmem.i"
 
 
+    xref _gCopperScheduler
+
     xdef _chipset_reset
     xdef _chipset_get_version
     xdef _chipset_enable_interrupt
@@ -257,7 +259,7 @@ _chipset_get_quantum_timer_elapsed_ns:
 _copper_schedule_program:
     cargs   csp_odd_field_prog_ptr.l, csp_even_field_prog_ptr.l, csp_prog_id.l
 
-    lea     COPPER_SCHEDULER_BASE, a0
+    lea     _gCopperScheduler, a0
     DISABLE_INTERRUPTS  d1
     move.l  csp_prog_id(sp), d0
     move.l  d0, cop_scheduled_prog_id(a0)
@@ -276,7 +278,7 @@ _copper_schedule_program:
 ; Returns the program ID of the Copper program that is currently running. This is
 ; the program that is executing on every vertical blank.
 _copper_get_running_program_id:
-    move.l  COPPER_SCHEDULER_BASE + cop_running_prog_id, d0
+    move.l  _gCopperScheduler + cop_running_prog_id, d0
     rts
 
 ;-------------------------------------------------------------------------------
@@ -285,7 +287,7 @@ _copper_get_running_program_id:
 ; Copper program (odd or even field as needed). Also makes a scheduled program
 ; active / running if needed.
 _copper_run:
-    lea     COPPER_SCHEDULER_BASE, a0
+    lea     _gCopperScheduler, a0
     lea     CUSTOM_BASE, a1
 
     ; check whether a new program is scheduled to run. If so move it to running

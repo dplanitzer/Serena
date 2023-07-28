@@ -152,8 +152,10 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
     const VideoConfiguration* pVideoConfig;
     if (chipset_is_ntsc()) {
         pVideoConfig = &kVideoConfig_NTSC_640_200_60;
+        //pVideoConfig = &kVideoConfig_NTSC_640_400_30;
     } else {
         pVideoConfig = &kVideoConfig_PAL_640_256_50;
+        //pVideoConfig = &kVideoConfig_PAL_640_512_25;
     }
     
     try_bang(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &gMainGDevice));

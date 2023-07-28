@@ -17,6 +17,7 @@
 #include "GraphicsDriver.h"
 #include "Heap.h"
 #include "Lock.h"
+#include "Platform.h"
 #include "Process.h"
 #include "RealtimeClock.h"
 #include "VirtualProcessorPool.h"
@@ -29,6 +30,7 @@ extern VirtualProcessorPoolRef _Nonnull gVirtualProcessorPool;
 extern Console* _Nullable               gConsole;
 extern GraphicsDriverRef _Nonnull       gMainGDevice;           // Graphics device for the main screen
 extern Heap* _Nonnull                   gHeap;                  // The kernel heap
+extern CopperScheduler                  gCopperScheduler;
 
 
 // Processes

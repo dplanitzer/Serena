@@ -11,6 +11,7 @@
 #include "Bits.h"
 #include "Bytes.h"
 #include "InterruptController.h"
+#include "Platform.h"
 #include "Semaphore.h"
 
 
@@ -374,9 +375,6 @@ typedef struct _GraphicsDriver {
     Bool                    is_light_pen_enabled;
 } GraphicsDriver;
 
-
-extern void copper_schedule_program(const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg, Int progId);
-extern Int copper_get_running_program_id(void);
 
 extern void _GraphicsDriver_StopVideoRefresh(void);
 extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
