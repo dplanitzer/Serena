@@ -48,12 +48,6 @@ extern void fdc_io_end(FdcControlByte*  _Nonnull fdc);
 ////////////////////////////////////////////////////////////////////////////////
 
 
-// Returns the shared floppy DMA object
-FloppyDMA* _Nonnull FloppyDMA_GetShared(void)
-{
-    return SystemGlobals_Get()->floppy_dma;
-}
-
 // Destroys the floppy DMA.
 static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
 {
@@ -573,7 +567,7 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDisk* _Nonnull pDisk, Int head, Int 
     
     
     // Read the track
-    try(FloppyDMA_Read(FloppyDMA_GetShared(), &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size));
+    try(FloppyDMA_Read(gFloppyDma, &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size));
     
     
     // Clear out the sector table
@@ -683,7 +677,7 @@ static ErrorCode FloppyDisk_WriteTrack(FloppyDisk* _Nonnull pDisk, Int head, Int
     
     
     // write the track
-    try(FloppyDMA_Write(FloppyDMA_GetShared(), &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size));
+    try(FloppyDMA_Write(gFloppyDma, &pDisk->ciabprb, pDisk->track_buffer, pDisk->track_size));
     
     return EOK;
 

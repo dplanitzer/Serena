@@ -97,7 +97,7 @@ CPU_VECTORS_SIZEOF          equ     256*4
 
 ; big enough to hold all of the low memory objects
 ; Should be a multiple of 4
-LOW_MEM_SIZEOF              equ     4096
+LOW_MEM_SIZEOF              equ     3072
 LOW_MEM_BASE                equ     CPU_VECTORS_BASE + CPU_VECTORS_SIZEOF
 
 SYS_DESC_BASE               equ     LOW_MEM_BASE
@@ -106,10 +106,9 @@ SCHEDULER_BASE              equ     MONOTONIC_CLOCK_BASE + mtc_SIZEOF
 SCHEDULER_VP_BASE           equ     SCHEDULER_BASE + vps_SIZEOF
 INTERRUPT_CONTROLLER_BASE   equ     SCHEDULER_VP_BASE + vp_SIZEOF
 COPPER_SCHEDULER_BASE       equ     INTERRUPT_CONTROLLER_BASE + irc_SIZEOF
-SYSTEM_GLOBALS_BASE         equ     COPPER_SCHEDULER_BASE + cop_SIZEOF
 
 RESET_STACK_SIZEOF          equ     4096
-RESET_STACK_BASE            equ     LOW_MEM_BASE + LOW_MEM_SIZEOF
+RESET_STACK_BASE            equ     LOW_MEM_BASE + LOW_MEM_SIZEOF + 4096
 
 
 
@@ -331,26 +330,6 @@ cop_running_prog_id             so.l    1       ; 4
 cop_SIZEOF                      so
     ifeq (cop_SIZEOF == 28)
         fail "Copper structure size is incorrect."
-    endif
-
-
-; The SystemGlobals object
-    clrso
-sg_heap                         so.l    1       ; 4
-sg_main_screen_gdevice          so.l    1       ; 4
-sg_console                      so.l    1       ; 4
-sg_rtc                          so.l    1       ; 4
-sg_floppy_dma                   so.l    1       ; 4
-sg_next_available_vpid          so.l    1       ; 4
-sg_virtual_processor_pool       so.l    1       ; 4
-sg_kernel_main_dispatch_queue   so.l    1       ; 4
-sg_next_available_pid           so.l    1       ; 4
-sg_root_process                 so.l    1       ; 4
-sg_event_driver                 so.l    1       ; 4
-sg_print_lock                   so.l    4       ; 16
-sg_SIZEOF                   so
-    ifeq (sg_SIZEOF == 60)
-        fail "SystemGlobals structure size is incorrect."
     endif
 
 

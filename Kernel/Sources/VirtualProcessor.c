@@ -88,7 +88,7 @@ static const VirtualProcessorVTable gVirtualProcessorVTable = {
 // from the bottom-most frame on the virtual processor's kernel stack.
 _Noreturn VirtualProcesssor_Relinquish(void)
 {
-    VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPool_GetShared(), VirtualProcessor_GetCurrent());
+    VirtualProcessorPool_RelinquishVirtualProcessor(gVirtualProcessorPool, VirtualProcessor_GetCurrent());
     /* NOT REACHED */
 }
 
@@ -99,6 +99,8 @@ _Noreturn VirtualProcesssor_Relinquish(void)
 // \param priority the initial VP priority
 void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
 {
+    static volatile AtomicInt gNextAvailableVpid = 0;
+    
     Bytes_ClearRange((Byte*)&pVP->save_area, sizeof(CpuContext));
 
     ListNode_Init(&pVP->rewa_queue_entry);
@@ -123,8 +125,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
     pVP->priority = (Int8)priority;
     pVP->suspension_count = 1;
     
-    SystemGlobals* pGlobals = SystemGlobals_Get();
-    pVP->vpid = AtomicInt_Add(&pGlobals->next_available_vpid, 1);
+    pVP->vpid = AtomicInt_Add(&gNextAvailableVpid, 1);
 
     pVP->dispatchQueue = NULL;
     pVP->dispatchQueueConcurrenyLaneIndex = -1;

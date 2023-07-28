@@ -20,25 +20,24 @@
 #include "Process.h"
 #include "RealtimeClock.h"
 #include "VirtualProcessorPool.h"
+#include "DispatchQueue.h"
 
 
-// Note: Keep in sync with lowmem.i
-typedef struct _SystemGlobals {
-    Heap* _Nonnull                      heap;                       // The kernel heap
-    GraphicsDriverRef _Nonnull          main_screen_gdevice;        // Graphics device for the main screen
-    Console* _Nullable                  console;
-    RealtimeClock* _Nullable            rtc;                        // The realtime clock (if installed)
-    FloppyDMA* _Nonnull                 floppy_dma;                 // Floppy DMA singleton
-    volatile Int                        next_available_vpid;        // Next available virtual processor ID
-    VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;
-    void* _Nonnull                      kernel_main_dispatch_queue;
-    AtomicInt                           next_available_pid;
-    ProcessRef _Nonnull                 root_process;
-    EventDriverRef _Nonnull             event_driver;
-    Lock                                print_lock;
-} SystemGlobals;
+// Kernel services
+extern DispatchQueueRef _Nonnull        gMainDispatchQueue;     // This is a serial queue
+extern VirtualProcessorPoolRef _Nonnull gVirtualProcessorPool;
+extern Console* _Nullable               gConsole;
+extern GraphicsDriverRef _Nonnull       gMainGDevice;           // Graphics device for the main screen
+extern Heap* _Nonnull                   gHeap;                  // The kernel heap
 
 
-extern SystemGlobals* _Nonnull SystemGlobals_Get(void);
+// Processes
+extern ProcessRef _Nonnull          gRootProcess;
+
+
+// Drivers
+extern EventDriverRef _Nonnull      gEventDriver;
+extern FloppyDMA* _Nonnull          gFloppyDma;                 // Floppy DMA singleton
+extern RealtimeClock* _Nullable     gRealtimeClock;             // The realtime clock (if installed)
 
 #endif /* SystemGlobals_h */

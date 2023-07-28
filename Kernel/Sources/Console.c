@@ -8,7 +8,6 @@
 
 #include "Console.h"
 #include "Heap.h"
-#include "SystemGlobals.h"
 
 static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
 
@@ -20,13 +19,6 @@ extern const Byte font8x8_latin1[128][8];
 extern const Byte font8x8_dingbat[160][8];
 #define GLYPH_WIDTH     8
 #define GLYPH_HEIGHT    8
-
-
-// Returns the console for the main screen.
-Console* _Nonnull Console_GetMain(void)
-{
-    return SystemGlobals_Get()->console;
-}
 
 
 // Creates a new console object. This console will display its output on the

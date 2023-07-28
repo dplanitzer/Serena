@@ -62,12 +62,11 @@ void VirtualProcessorScheduler_Init(VirtualProcessorScheduler* _Nonnull pSchedul
 ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler)
 {
     decl_try_err();
-    SystemGlobals* pGlobals = SystemGlobals_Get();
 
     // Mark the boot virtual processor kernel stack area as allocated.
     // Note that the boot virtual processor has no user stack since it will never
     // execute userspace code.
-    try(Heap_AllocateBytesAt(pGlobals->heap, 
+    try(Heap_AllocateBytesAt(gHeap, 
             pScheduler->bootVirtualProcessor->kernel_stack.base,
             pScheduler->bootVirtualProcessor->kernel_stack.size));
 

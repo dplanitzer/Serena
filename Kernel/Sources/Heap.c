@@ -26,33 +26,26 @@
 // suitable option if DMA accessability is desired.
 ErrorCode kalloc(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
-    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CPU, pOutPtr);
+    return Heap_AllocateBytes(gHeap, nbytes, HEAP_ALLOC_OPTION_CPU, pOutPtr);
 }
 
 // Same as kalloc() but allocated memory that is filled with zeros.
 ErrorCode kalloc_cleared(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
-    return Heap_AllocateBytes(Heap_GetShared(), nbytes, HEAP_ALLOC_OPTION_CLEAR | HEAP_ALLOC_OPTION_CPU, pOutPtr);
+    return Heap_AllocateBytes(gHeap, nbytes, HEAP_ALLOC_OPTION_CLEAR | HEAP_ALLOC_OPTION_CPU, pOutPtr);
 }
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
 ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
 {
-    return Heap_AllocateBytes(Heap_GetShared(), nbytes, options, pOutPtr);
+    return Heap_AllocateBytes(gHeap, nbytes, options, pOutPtr);
 }
 
 // Frees kernel memory allocated with the kalloc() function.
 void kfree(Byte* _Nullable ptr)
 {
-    Heap_DeallocateBytes(Heap_GetShared(), ptr);
-}
-
-
-// Returns the kernel heap.
-Heap* _Nonnull Heap_GetShared(void)
-{
-    return SystemGlobals_Get()->heap;
+    Heap_DeallocateBytes(gHeap, ptr);
 }
 
 

@@ -93,10 +93,6 @@ struct _GraphicsDriver;
 typedef struct _GraphicsDriver* GraphicsDriverRef;
 
 
-// Returns the graphics device for the main screen.
-extern GraphicsDriverRef _Nonnull GraphicsDriver_GetMain(void);
-
-
 extern ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver);
 extern void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver);
 

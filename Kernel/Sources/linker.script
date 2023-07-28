@@ -4,7 +4,13 @@ MEMORY  {
 
 SECTIONS {
     . = 0xfc0000;
-    .text : { traps.o(.text) *(.text) } > kernel_rom
-    .data : { *(.data) } > kernel_rom
-    .bss : { *(.bss) } > kernel_rom
+
+    .text :
+        { __text = . ; traps.o(.text) *(.text) __etext = . ; } AT> kernel_rom
+    
+    .data 0x1000 : AT(LOADADDR(.text) + SIZEOF(.text))
+        { __data = . ; *(.data) __edata = . ; } AT> kernel_rom
+    
+    .bss : AT(LOADADDR(.data) + SIZEOF(.data))
+        { __bss = . ; *(.bss) __ebss = . ; } AT> kernel_rom
 }

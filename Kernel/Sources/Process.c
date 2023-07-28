@@ -20,9 +20,8 @@ typedef struct _Process {
 // Returns the next PID available for use by a new process.
 Int Process_GetNextAvailablePID(void)
 {
-    SystemGlobals* pGlobals = SystemGlobals_Get();
-
-    return AtomicInt_Increment(&pGlobals->next_available_pid);
+    static volatile AtomicInt gNextAvailablePid = 0;
+    return AtomicInt_Increment(&gNextAvailablePid);
 }
 
 // Returns the process associated with the calling execution context. Returns
@@ -45,7 +44,7 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     try(kalloc_cleared(sizeof(Process), (Byte**) &pProc));
     
     pProc->pid = pid;
-    try(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, pProc, &pProc->mainDispatchQueue));
+    try(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
 
     *pOutProc = pProc;
     return EOK;
@@ -92,7 +91,7 @@ static void Process_ExitCompletion(ProcessRef _Nonnull pProc)
 static void Process_ExitTrampoline(ProcessRef _Nonnull pProc)
 {
     // Bounce over to the kernel main queue to destroy the process.
-    try_bang(DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make((Closure1Arg_Func) Process_ExitCompletion, (Byte*) pProc)));
+    try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) Process_ExitCompletion, (Byte*) pProc)));
 }
 
 // Voluntarily exits the given process. Assumes that this function is called from
@@ -105,7 +104,7 @@ void Process_Exit(ProcessRef _Nonnull pProc)
 
 
     // We do not allow exiting the root process
-    if (pProc == SystemGlobals_Get()->root_process) {
+    if (pProc == gRootProcess) {
         abort();
     }
 

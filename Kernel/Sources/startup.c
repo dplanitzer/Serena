@@ -19,6 +19,7 @@
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
 
+extern char _text, _etext, _data, _edata, _bss, _ebss;
 
 static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc);
 static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc);
@@ -33,6 +34,19 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc);
 void OnReset(SystemDescription* _Nonnull pSysDesc)
 {
     SystemDescription_Init(pSysDesc);
+
+    char *src = &_etext;
+    char *dst = &_data;
+
+    // Copy the kernel data segment from ROM to RAM
+    while (dst < &_edata) {
+        *dst++ = *src++;
+    }
+
+    // Initialize the BSS segment
+    for (dst = &_bss; dst< &_ebss; dst++) {
+        *dst = 0;
+    }
 }
 
 
@@ -61,12 +75,6 @@ static Byte* _Nullable boot_allocate_kernel_stack(SystemDescription* _Nonnull pS
 // initialization of the kernel.
 void OnBoot(SystemDescription* _Nonnull pSysDesc)
 {
-    SystemGlobals* pGlobals = SystemGlobals_Get();
-    
-    // The first valid VPID is #1
-    pGlobals->next_available_vpid = 1;
-    
-    
     // Allocate the kernel stack in high mem
     const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     Byte* pKernelStackBase = boot_allocate_kernel_stack(pSysDesc, kernelStackSize);
@@ -89,10 +97,8 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 // basic memort management, monotonic clock and the kernel main dispatch queue.
 static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 {
-    SystemGlobals* pGlobals = SystemGlobals_Get();
-
     // Initialize the global heap
-    try_bang(Heap_Create(pSysDesc->memory_descriptor, pSysDesc->memory_descriptor_count, &pGlobals->heap));
+    try_bang(Heap_Create(pSysDesc->memory_descriptor, pSysDesc->memory_descriptor_count, &gHeap));
     
 
     // Initialize the interrupt controller
@@ -109,11 +115,11 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
     
     // Initialize the virtual processor pool
-    try_bang(VirtualProcessorPool_Create(&pGlobals->virtual_processor_pool));
+    try_bang(VirtualProcessorPool_Create(&gVirtualProcessorPool));
     
     
     // Initialize the dispatch queue services
-    try_bang(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, NULL, (DispatchQueueRef*)&pGlobals->kernel_main_dispatch_queue));
+    try_bang(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&gMainDispatchQueue));
     
     
     // Enable interrupt handling
@@ -121,7 +127,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Continue the kernel startup on the kernel main queue
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make((Closure1Arg_Func)OnStartup_Phase2, (Byte*)pSysDesc));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)OnStartup_Phase2, (Byte*)pSysDesc));
 
     
     // The boot virtual processor now takes over the duties of running the
@@ -136,14 +142,12 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 // the first process.
 static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
 {
-    SystemGlobals* pGlobals = SystemGlobals_Get();
-
-    // Initialize the print() lock
-    Lock_Init(&pGlobals->print_lock);
+    // Initialize print()
+    print_init();
 
     
     // Initialize I/O services needed by the console
-    try_bang(RealtimeClock_Create(pSysDesc, &pGlobals->rtc));
+    try_bang(RealtimeClock_Create(pSysDesc, &gRealtimeClock));
     
     const VideoConfiguration* pVideoConfig;
     if (chipset_is_ntsc()) {
@@ -152,22 +156,23 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
         pVideoConfig = &kVideoConfig_PAL_640_256_50;
     }
     
-    try_bang(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &pGlobals->main_screen_gdevice));
+    try_bang(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &gMainGDevice));
     
     
     // Initialize the console
-    try_bang(Console_Create(pGlobals->main_screen_gdevice, &pGlobals->console));
+    try_bang(Console_Create(gMainGDevice, &gConsole));
 
     
     // Initialize all other I/O dervices
-    try_bang(FloppyDMA_Create(&pGlobals->floppy_dma));
-    try_bang(EventDriver_Create(pGlobals->main_screen_gdevice, &pGlobals->event_driver));
-        
+    try_bang(FloppyDMA_Create(&gFloppyDma));
+    try_bang(EventDriver_Create(gMainGDevice, &gEventDriver));
+    
 
 #if 1
+    //print("_text: %p, _etext: %p, _data: %p, _edata: %p, _bss: %p, _ebss: %p\n\n", &_text, &_etext, &_data, &_edata, &_bss, &_ebss);
     // Create the root process and kick it off running
-    try_bang(Process_Create(Process_GetNextAvailablePID(), &pGlobals->root_process));
-    Process_DispatchAsyncUser(pGlobals->root_process, (Closure1Arg_Func)0xfe0000);
+    try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));
+    Process_DispatchAsyncUser(gRootProcess, (Closure1Arg_Func)0xfe0000);
 #else
     // XXX Unit tests
     void DispatchQueue_RunTests(void);

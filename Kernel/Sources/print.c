@@ -11,6 +11,8 @@
 #include "SystemGlobals.h"
 
 
+static Lock gLock;
+
 // 8bit 16bit, 32bit, 64bit
 static const Int8 gFieldWidth_Bin[4] = {8, 16, 32, 64};
 static const Int8 gFieldWidth_Oct[4] = {3,  6, 11, 22};
@@ -192,6 +194,12 @@ static void vprint_locked(Console* _Nonnull pConsole, const Character* _Nonnull 
     }
 }
 
+// Initializes the print subsystem.
+void print_init(void)
+{
+    Lock_Init(&gLock);
+}
+
 // Print formatted
 void print(const Character* _Nonnull format, ...)
 {
@@ -205,12 +213,10 @@ void print(const Character* _Nonnull format, ...)
 void vprint(const Character* _Nonnull format, va_list ap)
 {
     decl_try_err();
-    Console* pConsole = Console_GetMain();
-    SystemGlobals* pGlobals = SystemGlobals_Get();
     
-    try(Lock_Lock(&pGlobals->print_lock));
-    vprint_locked(pConsole, format, ap);
-    Lock_Unlock(&pGlobals->print_lock);
+    try(Lock_Lock(&gLock));
+    vprint_locked(gConsole, format, ap);
+    Lock_Unlock(&gLock);
     return;
 
 catch:

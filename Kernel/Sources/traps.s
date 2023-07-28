@@ -27,12 +27,13 @@
     xref _cpu_get_model
     xref _fpu_get_model
 
+    xdef _cpu_vector_table
     xdef _SetTrap
     xdef _mem_non_recoverable_error
 
 
 ; ROM vector table for 68000 CPUs
-cpu_vector_table:
+_cpu_vector_table:
     dc.l RESET_STACK_BASE               ; 0,  Reset SSP
     dc.l _Reset                         ; 1,  Reset PC
     dc.l BusErrorHandler                ; 2,  Bus error
@@ -105,7 +106,7 @@ _Reset:
         move.w  #$0000, COLOR00(a0)
 
         ; install the CPU vector table
-        lea     cpu_vector_table(pc), a0
+        lea     _cpu_vector_table(pc), a0
         move.w  #CPU_VECTORS_SIZEOF/4-1, d0
         lea     CPU_VECTORS_BASE, a1
 .L1:    move.l  (a0)+, (a1)+

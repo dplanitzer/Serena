@@ -50,9 +50,6 @@ typedef struct _FloppyDMA {
 } FloppyDMA;
 
 
-// Returns the shared floppy DMA object
-extern FloppyDMA* _Nonnull FloppyDMA_GetShared(void);
-
 // Creates the floppy DMA singleton
 extern ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
 

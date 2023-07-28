@@ -10,13 +10,13 @@
 #include "Console.h"
 #include "GraphicsDriver.h"
 #include "Platform.h"
+#include "SystemGlobals.h"
 
 extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
 
 
 _Noreturn fatalError(const Character* _Nonnull filename, int line)
 {
-    Console* pConsole = Console_GetMain();
     Character buf[32];
     
     cpu_disable_irqs();
@@ -25,11 +25,11 @@ _Noreturn fatalError(const Character* _Nonnull filename, int line)
     _GraphicsDriver_SetClutEntry(0, 0x0000);
     _GraphicsDriver_SetClutEntry(1, 0x0f00);
 
-    Console_DrawString(pConsole, "\n*** ");
-    Console_DrawString(pConsole, filename);
+    Console_DrawString(gConsole, "\n*** ");
+    Console_DrawString(gConsole, filename);
     if (line > 0) {
-        Console_DrawString(pConsole, ":");
-        Console_DrawString(pConsole, Int64_ToString((Int64)line, 10, 4, '\0', buf, sizeof(buf)));
+        Console_DrawString(gConsole, ":");
+        Console_DrawString(gConsole, Int64_ToString((Int64)line, 10, 4, '\0', buf, sizeof(buf)));
     }
     
     while (true);

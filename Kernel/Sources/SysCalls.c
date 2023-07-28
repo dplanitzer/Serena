@@ -8,12 +8,13 @@
 
 #include "Console.h"
 #include "Process.h"
+#include "SystemGlobals.h"
 #include "VirtualProcessor.h"
 
 
 ErrorCode _syscall_write(const Character* pString)
 {
-    return Console_DrawString(Console_GetMain(), pString);
+    return Console_DrawString(gConsole, pString);
 }
 
 ErrorCode _syscall_sleep(Int seconds, Int nanoseconds)

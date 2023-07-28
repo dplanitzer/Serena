@@ -30,29 +30,13 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
-    //DispatchQueue_DispatchAsyncAfter(DispatchQueue_GetMain(), TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    //DispatchQueue_DispatchAsyncAfter(gMainDispatchQueue, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
 }
 
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)0));
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: DispatchAsync/DispatchAsyncAfter in **User Space**
-////////////////////////////////////////////////////////////////////////////////
-
-#if 0
-void DispatchQueue_RunTests(void)
-{
-    TimerRef pTimer;
-    
-    Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(250), DispatchQueueClosure_MakeUser((Closure1Arg_Func)0xfe0000, (Byte*)0), &pTimer);
-    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), pTimer);
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*)0));
 }
 #endif
 
@@ -76,7 +60,7 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
 void DispatchQueue_RunTests(void)
 {
     DispatchQueueRef pQueue;
-    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL, &pQueue);
+    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pQueue);
     Int i = 0;
 
     while (true) {
@@ -120,11 +104,11 @@ void DispatchQueue_RunTests(void)
     
     try_bang(kalloc(sizeof(struct State), &pState));
     
-    pState->timer = Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState));
+    Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState), &pState->timer);
     pState->value = 0;
 
     print("Repeating timer\n");
-    DispatchQueue_DispatchTimer(DispatchQueue_GetMain(), pState->timer);
+    DispatchQueue_DispatchTimer(gMainDispatchQueue, pState->timer);
 }
 #endif
 
@@ -138,19 +122,18 @@ void DispatchQueue_RunTests(void)
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = SystemDescription_GetShared();
-    const SystemGlobals* pGlobals = SystemGlobals_Get();
     /*
-    if (pGlobals->rtc) {
+    if (gRealtimeClock) {
         GregorianDate date;
         Int i = 0;
 
         while (true) {
-            RealtimeClock_GetDate(pGlobals->rtc, &date);
+            RealtimeClock_GetDate(gRealtimeClock, &date);
             print(" %d:%d:%d  %d/%d/%d  %d\n", date.hour, date.minute, date.second, date.month, date.day, date.year, date.dayOfWeek);
             print("%d\n", i);
             i++;
             VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
-            Console_ClearScreen(Console_GetMain());
+            Console_ClearScreen(gConsole);
         }
     } else {
         print("*** no RTC\n");
@@ -202,14 +185,12 @@ void DispatchQueue_RunTests(void)
 #if 1
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
-    EventDriverRef pDriver = SystemGlobals_Get()->event_driver;
-    
     print("Event loop\n");
     while (true) {
         HIDEvent evt;
         Int count = 1;
         
-        const Int err = EventDriver_GetEvents(pDriver, &evt, &count, kTimeInterval_Infinity);
+        const Int err = EventDriver_GetEvents(gEventDriver, &evt, &count, kTimeInterval_Infinity);
         
         switch (evt.type) {
             case kHIDEventType_KeyDown:
@@ -249,7 +230,7 @@ static void OnMainClosure(Byte* _Nonnull pValue)
 
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnMainClosure, NULL));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnMainClosure, NULL));
 }
 #endif
 
@@ -308,9 +289,9 @@ void DispatchQueue_RunTests(void)
 //  try_bang(Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE, &pipe));
     try_bang(Pipe_Create(4, &pipe));
     DispatchQueueRef pUtilityQueue;
-    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, NULL, &pUtilityQueue);
+    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
 
-    DispatchQueue_DispatchAsync(DispatchQueue_GetMain(), DispatchQueueClosure_Make(OnWriteToPipe, (Byte*)pipe));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnWriteToPipe, (Byte*)pipe));
     DispatchQueue_DispatchAsync(pUtilityQueue, DispatchQueueClosure_Make(OnReadFromPipe, (Byte*)pipe));
 
 }

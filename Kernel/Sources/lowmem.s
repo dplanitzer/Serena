@@ -15,7 +15,6 @@
     xdef _VirtualProcessor_GetCurrent
     xdef _VirtualProcessor_GetCurrentVpid
     xdef _InterruptController_GetShared
-    xdef _SystemGlobals_Get
 
 
 ;-------------------------------------------------------------------------------
@@ -69,12 +68,4 @@ _VirtualProcessor_GetCurrentVpid:
 ; Returns a reference to the interrupt controller.
 _InterruptController_GetShared:
     move.l  #INTERRUPT_CONTROLLER_BASE, d0
-    rts
-
-
-;-------------------------------------------------------------------------------
-; SystemGlobals* SystemGlobals_Get(void)
-; Returns a reference to the system globals.
-_SystemGlobals_Get:
-    move.l  #SYSTEM_GLOBALS_BASE, d0
     rts

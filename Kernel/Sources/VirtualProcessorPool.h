@@ -37,8 +37,6 @@ struct _VirtualProcessorPool;
 typedef struct _VirtualProcessorPool* VirtualProcessorPoolRef;
 
 
-extern VirtualProcessorPoolRef _Nonnull VirtualProcessorPool_GetShared(void);
-
 extern ErrorCode VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool);
 extern void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pool);
 

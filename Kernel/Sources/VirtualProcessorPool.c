@@ -9,7 +9,6 @@
 #include "VirtualProcessorPool.h"
 #include "Heap.h"
 #include "Lock.h"
-#include "SystemGlobals.h"
 #include "VirtualProcessorScheduler.h"
 
 
@@ -23,12 +22,6 @@ typedef struct _VirtualProcessorPool {
     Int     reuse_capacity;     // reuse cache will not store more than this. If a VP exits while the cache is at max capacity -> VP will exit for good and get finalized
 } VirtualProcessorPool;
 
-
-// Returns the shared virtual processor pool.
-VirtualProcessorPoolRef _Nonnull VirtualProcessorPool_GetShared(void)
-{
-    return SystemGlobals_Get()->virtual_processor_pool;
-}
 
 ErrorCode VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool)
 {

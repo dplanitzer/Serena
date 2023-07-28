@@ -12,6 +12,7 @@
 #include "Foundation.h"
 #include "Process.h"
 #include "SystemDescription.h"
+#include "VirtualProcessorPool.h"
 
 
 // Quality of Service level. From highest to lowest.
@@ -122,11 +123,7 @@ static inline Bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
 // Dispatch Queues
 //
 
-// Serial queue
-extern DispatchQueueRef _Nonnull DispatchQueue_GetMain(void);
-
-
-extern ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
+extern ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Destroys the dispatch queue after all still pending work items have finished
 // executing. Pending one-shot and repeatable timers are cancelled and get no
