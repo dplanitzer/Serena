@@ -80,13 +80,13 @@ ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnu
 
     // Hook us up with the quantum timer interrupt
     InterruptHandlerID irqHandler;
-    try(InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                   INTERRUPT_ID_QUANTUM_TIMER,
                                                   INTERRUPT_HANDLER_PRIORITY_HIGHEST - 1,
                                                   (InterruptHandler_Closure)VirtualProcessorScheduler_OnEndOfQuantum,
                                                   (Byte*)pScheduler,
                                                   &irqHandler));
-    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), irqHandler, true));
+    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true));
 
     return EOK;
 
@@ -321,7 +321,7 @@ void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull
 {
     if (pVP->state == kVirtualProcessorState_Ready
         && VirtualProcessorScheduler_IsCooperationEnabled()
-        && !InterruptController_IsServicingInterrupt(InterruptController_GetShared())) {
+        && !InterruptController_IsServicingInterrupt(gInterruptController)) {
         VirtualProcessor* pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler);
         
         if (pBestReadyVP == pVP && pVP->effectivePriority >= pScheduler->running->effectivePriority) {
@@ -384,7 +384,7 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
     // we simply return. It's the resonsibility of the interrupt handler to
     // ensure that the fact that it wanted to wake up the VP is noted somehwere.
     // Eg by using a semaphore.
-    if (InterruptController_IsServicingInterrupt(InterruptController_GetShared())) {
+    if (InterruptController_IsServicingInterrupt(gInterruptController)) {
         if (pScheduler->running == pVP) {
             return;
         }

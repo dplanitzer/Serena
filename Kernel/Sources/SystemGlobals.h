@@ -16,6 +16,7 @@
 #include "FloppyDisk.h"
 #include "GraphicsDriver.h"
 #include "Heap.h"
+#include "InterruptController.h"
 #include "Lock.h"
 #include "Platform.h"
 #include "Process.h"
@@ -30,7 +31,7 @@ extern VirtualProcessorPoolRef _Nonnull gVirtualProcessorPool;
 extern Console* _Nullable               gConsole;
 extern GraphicsDriverRef _Nonnull       gMainGDevice;           // Graphics device for the main screen
 extern Heap* _Nonnull                   gHeap;                  // The kernel heap
-extern CopperScheduler                  gCopperScheduler;
+extern InterruptControllerRef _Nonnull  gInterruptController;
 
 
 // Processes
@@ -41,5 +42,11 @@ extern ProcessRef _Nonnull          gRootProcess;
 extern EventDriverRef _Nonnull      gEventDriver;
 extern FloppyDMA* _Nonnull          gFloppyDma;                 // Floppy DMA singleton
 extern RealtimeClock* _Nullable     gRealtimeClock;             // The realtime clock (if installed)
+
+
+// Storage for kernel services that are initialized so early at boot time that
+// we can not allocate them with the kernel allocator
+extern InterruptController              gInterruptControllerStorage;
+extern CopperScheduler                  gCopperSchedulerStorage;
 
 #endif /* SystemGlobals_h */

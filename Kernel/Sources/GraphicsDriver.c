@@ -13,7 +13,7 @@
 #include "InterruptController.h"
 #include "Platform.h"
 #include "Semaphore.h"
-
+#include "SystemGlobals.h"
 
 #define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
     (UInt16)(((_15) << 15) | ((_14) << 14) | ((_13) << 13) | ((_12) << 12) | ((_11) << 11) |\
@@ -414,7 +414,7 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     
     // Initialize vblank tools
     Semaphore_Init(&pDriver->vblank_sema, 0);
-    try(InterruptController_AddSemaphoreInterruptHandler(InterruptController_GetShared(),
+    try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
                                                          INTERRUPT_ID_VERTICAL_BLANK,
                                                          INTERRUPT_HANDLER_PRIORITY_HIGHEST,
                                                          &pDriver->vblank_sema,
@@ -431,7 +431,7 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     _GraphicsDriver_SetClutEntry(30, 0x0000);
     _GraphicsDriver_SetClutEntry(31, 0x0000);
 
-    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), pDriver->vb_irq_handler, true));
+    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->vb_irq_handler, true));
 
     try(GraphicsDriver_SetVideoConfiguration(pDriver, pConfig, pixelFormat));
 //    try(GraphicsDriver_SetVideoConfiguration(pDriver, &kVideoConfig_NTSC_320_200_60 /*pConfig*/, pixelFormat));
@@ -453,7 +453,7 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         _GraphicsDriver_SetClutEntry(0, 0);
         _GraphicsDriver_StopVideoRefresh();
         
-        try_bang(InterruptController_RemoveInterruptHandler(InterruptController_GetShared(), pDriver->vb_irq_handler));
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vb_irq_handler));
         pDriver->vb_irq_handler = 0;
         
         Semaphore_Deinit(&pDriver->vblank_sema);

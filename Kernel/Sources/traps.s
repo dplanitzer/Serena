@@ -26,6 +26,7 @@
     xref _cpu_return_from_call_as_user
     xref _cpu_get_model
     xref _fpu_get_model
+    xref _gInterruptControllerStorage
 
     xdef _cpu_vector_table
     xdef _SetTrap
@@ -405,7 +406,7 @@ MMUAccessLevelErrorHandler:
     endm
 
     macro CALL_IRQ_HANDLERS
-    pea     INTERRUPT_CONTROLLER_BASE + \1
+    pea     _gInterruptControllerStorage + \1
     jsr     _InterruptController_OnInterrupt
     addq.l  #4, sp
     endm
@@ -416,7 +417,7 @@ MMUAccessLevelErrorHandler:
     align 2
 IRQHandler_Spurious:
     DISABLE_ALL_IRQS
-    addq.l  #1, INTERRUPT_CONTROLLER_BASE + irc_spuriousInterruptCount
+    addq.l  #1, _gInterruptControllerStorage + irc_spuriousInterruptCount
     rte
 
 
@@ -427,7 +428,7 @@ IRQHandler_L1:
     DISABLE_ALL_IRQS
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
-    addq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
+    addq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
     move.w  #(INTF_TBE | INTF_DSKBLK | INTF_SOFT), INTREQ(a0)
@@ -458,7 +459,7 @@ IRQHandler_L2:
     DISABLE_ALL_IRQS
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
-    addq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
+    addq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
     move.b  CIAAICR, d7     ; implicitly acknowledges CIA A IRQs
     move.w  #INTF_PORTS, CUSTOM_BASE + INTREQ
 
@@ -498,7 +499,7 @@ IRQHandler_L3:
     DISABLE_ALL_IRQS
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
-    addq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
+    addq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
     move.w  #(INTF_COPER | INTF_VERTB | INTF_BLIT), INTREQ(a0)
@@ -534,7 +535,7 @@ IRQHandler_L4:
     DISABLE_ALL_IRQS
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
-    addq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
+    addq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
     move.w  #(INTF_AUD0 | INTF_AUD1 | INTF_AUD2 | INTF_AUD3), INTREQ(a0)
@@ -570,7 +571,7 @@ IRQHandler_L5:
     DISABLE_ALL_IRQS
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
-    addq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
+    addq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
     lea     CUSTOM_BASE, a0
     move.w  INTREQR(a0), d7
     move.w  #(INTF_RBF | INTF_DSKSYN), INTREQ(a0)
@@ -596,7 +597,7 @@ IRQHandler_L6:
     DISABLE_ALL_IRQS
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
-    addq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
+    addq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
     move.b  CIABICR, d7     ; implicitly acknowledges CIA B IRQs
     move.w  #INTF_EXTER, CUSTOM_BASE + INTREQ
 
@@ -634,7 +635,7 @@ irq_handler_L6_done:
 ; check whether we should do a context switch. If not then just do a rte.
 ; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
-    subq.b  #1, INTERRUPT_CONTROLLER_BASE + irc_isServicingInterrupt
+    subq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
     btst    #0, (SCHEDULER_BASE + vps_csw_signals)
     bne.s   irq_handler_do_csw
     rte

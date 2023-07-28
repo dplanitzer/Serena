@@ -15,7 +15,9 @@ VirtualProcessorPoolRef gVirtualProcessorPool;
 Console*                gConsole;
 GraphicsDriverRef       gMainGDevice;
 Heap*                   gHeap;
-CopperScheduler         gCopperScheduler;
+InterruptController     gInterruptControllerStorage;
+InterruptControllerRef  gInterruptController = &gInterruptControllerStorage;
+CopperScheduler         gCopperSchedulerStorage;
 
 
 // Processes

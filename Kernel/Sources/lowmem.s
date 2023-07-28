@@ -14,7 +14,6 @@
     xdef _BootVirtualProcessor_GetShared
     xdef _VirtualProcessor_GetCurrent
     xdef _VirtualProcessor_GetCurrentVpid
-    xdef _InterruptController_GetShared
 
 
 ;-------------------------------------------------------------------------------
@@ -60,12 +59,4 @@ _VirtualProcessor_GetCurrent:
 _VirtualProcessor_GetCurrentVpid:
     move.l  SCHEDULER_BASE + vps_running, a0
     move.l  vp_vpid(a0), d0
-    rts
-
-
-;-------------------------------------------------------------------------------
-; InterruptController* InterruptController_GetShared(void)
-; Returns a reference to the interrupt controller.
-_InterruptController_GetShared:
-    move.l  #INTERRUPT_CONTROLLER_BASE, d0
     rts

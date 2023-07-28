@@ -9,6 +9,7 @@
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "InterruptController.h"
+#include "SystemGlobals.h"
 
 #define ONE_SECOND_IN_NANOS (1000 * 1000 * 1000)
 
@@ -30,13 +31,13 @@ ErrorCode MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* p
     pClock->ns_per_quantum = pSysDesc->quantum_duration_ns;
 
     InterruptHandlerID irqHandler;
-    try(InterruptController_AddDirectInterruptHandler(InterruptController_GetShared(),
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                       INTERRUPT_ID_QUANTUM_TIMER,
                                                       INTERRUPT_HANDLER_PRIORITY_HIGHEST,
                                                       (InterruptHandler_Closure)MonotonicClock_OnInterrupt,
                                                       (Byte*)pClock,
                                                       &irqHandler));
-    try(InterruptController_SetInterruptHandlerEnabled(InterruptController_GetShared(), irqHandler, true));
+    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true));
 
     chipset_start_quantum_timer();
     return EOK;

@@ -102,7 +102,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
 
     // Initialize the interrupt controller
-    try_bang(InterruptController_Init(InterruptController_GetShared()));
+    try_bang(InterruptController_Init(gInterruptController));
 
     
     // Initialize the monotonic clock
@@ -179,7 +179,7 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
     // XXX Unit tests
     void DispatchQueue_RunTests(void);
 
-    //InterruptController_Dump(InterruptController_GetShared());
+    //InterruptController_Dump(gInterruptController);
     DispatchQueue_RunTests();
     // XXX
 #endif
