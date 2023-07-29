@@ -15,6 +15,9 @@
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);
 
+MonotonicClock  gMonotonicClockStorage;
+MonotonicClock* gMonotonicClock = &gMonotonicClockStorage;
+
 
 // CIA timer usage:
 // CIA B timer A: monotonic clock tick counter
@@ -22,8 +25,9 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-ErrorCode MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc)
+ErrorCode MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc)
 {
+    MonotonicClock* pClock = &gMonotonicClockStorage;
     decl_try_err();
 
     pClock->current_time = kTimeInterval_Zero;
@@ -49,7 +53,7 @@ catch:
 // Returns the current time of the clock in terms of microseconds.
 TimeInterval MonotonicClock_GetCurrentTime(void)
 {
-    register const MonotonicClock* pClock = MonotonicClock_GetShared();
+    register const MonotonicClock* pClock = gMonotonicClock;
     register Int32 cur_secs, cur_nanos;
     register Int32 chk_quantum;
     
@@ -116,7 +120,7 @@ Bool MonotonicClock_DelayUntil(TimeInterval deadline)
 // based on the 'rounding' parameter.
 Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, Int rounding)
 {
-    MonotonicClock* pClock = MonotonicClock_GetShared();
+    register MonotonicClock* pClock = gMonotonicClock;
     const Int64 nanos = (Int64)ti.seconds * (Int64)ONE_SECOND_IN_NANOS + (Int64)ti.nanoseconds;
     const Int64 quants = nanos / (Int64)pClock->ns_per_quantum;
     
@@ -139,7 +143,7 @@ Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, Int rounding)
 // Converts a quantum value to a time interval.
 TimeInterval TimeInterval_MakeFromQuantums(Quantums quants)
 {
-    MonotonicClock* pClock = MonotonicClock_GetShared();
+    register MonotonicClock* pClock = gMonotonicClock;
     const Int64 ns = (Int64)quants * (Int64)pClock->ns_per_quantum;
     const Int32 secs = ns / (Int64)ONE_SECOND_IN_NANOS;
     const Int32 nanos = ns - ((Int64)secs * (Int64)ONE_SECOND_IN_NANOS);

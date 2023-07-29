@@ -37,7 +37,7 @@ typedef struct _InterruptController* InterruptControllerRef;
 // The shared interrupt controller instance
 extern InterruptControllerRef _Nonnull  gInterruptController;
 
-extern ErrorCode InterruptController_CreateSharedInstance(void);
+extern ErrorCode InterruptController_CreateForLocalCPU(void);
 
 
 // Registers a direct interrupt handler. The interrupt controller will invoke the

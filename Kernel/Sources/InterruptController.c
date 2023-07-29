@@ -14,7 +14,7 @@ InterruptController     gInterruptControllerStorage;
 InterruptControllerRef  gInterruptController = &gInterruptControllerStorage;
 
 
-ErrorCode InterruptController_CreateSharedInstance(void)
+ErrorCode InterruptController_CreateForLocalCPU(void)
 {    
     decl_try_err();
     InterruptController* pController = &gInterruptControllerStorage;

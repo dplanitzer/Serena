@@ -35,7 +35,7 @@ $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.c
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.s
 	@echo $<
-	@$(AS) -I$(KERNEL_SOURCES_DIR) -o $@ $<
+	@$(AS) -I$(KERNEL_SOURCES_DIR) -nowarn=62 -o $@ $<
 
 
 clean_kernel:

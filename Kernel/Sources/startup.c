@@ -102,11 +102,11 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
 
     // Initialize the interrupt controller
-    try_bang(InterruptController_CreateSharedInstance());
+    try_bang(InterruptController_CreateForLocalCPU());
 
     
     // Initialize the monotonic clock
-    try_bang(MonotonicClock_Init(MonotonicClock_GetShared(), pSysDesc));
+    try_bang(MonotonicClock_CreateForLocalCPU(pSysDesc));
 
     
     // Inform the scheduler that the heap exists now and that it should finish

@@ -11,7 +11,6 @@
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemDescription_GetShared
-    xdef _MonotonicClock_GetShared
     xdef _VirtualProcessor_GetCurrent
     xdef _VirtualProcessor_GetCurrentVpid
 
@@ -21,13 +20,6 @@
 ; Returns a reference to the shared system description struct.
 _SystemDescription_GetShared:
     move.l  #SYS_DESC_BASE, d0
-    rts
-
-;-------------------------------------------------------------------------------
-; MonotonicClock* MonotonicClock_GetShared(void)
-; Returns a reference to the monotonic clock.
-_MonotonicClock_GetShared:
-    move.l  #MONOTONIC_CLOCK_BASE, d0
     rts
 
 ;-------------------------------------------------------------------------------

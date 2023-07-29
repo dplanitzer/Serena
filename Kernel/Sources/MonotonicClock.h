@@ -23,8 +23,9 @@ typedef struct _MonotonicClock {
 } MonotonicClock;
 
 
-extern MonotonicClock* _Nonnull MonotonicClock_GetShared(void);
-extern ErrorCode MonotonicClock_Init(MonotonicClock* pClock, const SystemDescription* pSysDesc);
+extern MonotonicClock* _Nonnull gMonotonicClock;
+
+extern ErrorCode MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc);
 
 extern Quantums MonotonicClock_GetCurrentQuantums(void);
 extern TimeInterval MonotonicClock_GetCurrentTime(void);
