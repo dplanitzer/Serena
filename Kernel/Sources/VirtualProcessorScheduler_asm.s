@@ -79,10 +79,7 @@ _VirtualProcessorScheduler_SwitchContext:
     inline
         ; build a RTE format #0 frame on the stack. The RTE return address points to
         ; our rts instruction.
-        cmp.b   #CPU_MODEL_68000, SYS_DESC_BASE + sd_cpu_model
-        beq.s   .1
         move.w  #0, -(sp)               ; format #0
-.1:
         lea     .csw_return(pc), a0     ; PC
         move.l  a0, -(sp)
         move.w  sr, -(sp)               ; SR
