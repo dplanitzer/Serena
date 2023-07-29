@@ -297,14 +297,13 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP)
     VP_ASSERT_ALIVE(pVP)
     pVP->flags |= VP_FLAG_TERMINATED;
 
-    VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorScheduler_GetShared(), pVP);
+    VirtualProcessorScheduler_TerminateVirtualProcessor(gVirtualProcessorScheduler, pVP);
     // NOT REACHED
 }
 
 // Sleep for the given number of seconds.
 ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
 {
-    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, delay);
 
@@ -317,7 +316,7 @@ ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
     
     // This is a medium or long wait -> context switch away
     Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Int err = VirtualProcessorScheduler_WaitOn(pScheduler, &pScheduler->sleep_queue, deadline);
+    const Int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler, &gVirtualProcessorScheduler->sleep_queue, deadline);
     VirtualProcessorScheduler_RestorePreemption(sps);
     
     return (err == EINTR) ? EINTR : EOK;
@@ -341,15 +340,14 @@ Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
 {
     VP_ASSERT_ALIVE(pVP);
-    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     Int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (pVP->priority != priority) {
         switch (pVP->state) {
             case kVirtualProcessorState_Ready: {
-                VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(pScheduler, pVP);
+                VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP);
                 pVP->priority = priority;
-                VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, pVP->priority);
+                VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
                 break;
             }
                 
@@ -384,7 +382,6 @@ Bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
 ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 {
     VP_ASSERT_ALIVE(pVP);
-    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (pVP->suspension_count == INT8_MAX) {
@@ -398,16 +395,17 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
     
     switch (oldState) {
         case kVirtualProcessorState_Ready:
-            VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(pScheduler, pVP);
+            VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP);
             break;
             
         case kVirtualProcessorState_Running:
-            VirtualProcessorScheduler_SwitchTo(pScheduler,
-                                               VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler));
+            VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
+                                               VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
             break;
             
         case kVirtualProcessorState_Waiting:
-            VirtualProcessorScheduler_WakeUpOne(pScheduler, pVP->waiting_on_wait_queue, pVP, WAKEUP_REASON_INTERRUPTED, false);
+            VirtualProcessorScheduler_WakeUpOne(gVirtualProcessorScheduler,
+                 pVP->waiting_on_wait_queue, pVP, WAKEUP_REASON_INTERRUPTED, false);
             break;
             
         case kVirtualProcessorState_Suspended:
@@ -429,7 +427,6 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
 {
     VP_ASSERT_ALIVE(pVP);
-    VirtualProcessorScheduler* pScheduler = VirtualProcessorScheduler_GetShared();
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (pVP->suspension_count == 0) {
@@ -440,8 +437,8 @@ ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
     pVP->suspension_count = force ? 0 : pVP->suspension_count - 1;
     
     if (pVP->suspension_count == 0) {
-        VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, pVP->priority);
-        VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pVP);
+        VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
+        VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pVP);
     }
     
     VirtualProcessorScheduler_RestorePreemption(sps);

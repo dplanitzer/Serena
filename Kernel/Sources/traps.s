@@ -27,6 +27,7 @@
     xref _cpu_get_model
     xref _fpu_get_model
     xref _gInterruptControllerStorage
+    xref _gVirtualProcessorSchedulerStorage
 
     xdef _cpu_vector_table
     xdef _SetTrap
@@ -636,7 +637,7 @@ irq_handler_L6_done:
 ; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
     subq.b  #1, _gInterruptControllerStorage + irc_isServicingInterrupt
-    btst    #0, (SCHEDULER_BASE + vps_csw_signals)
+    btst    #0, (_gVirtualProcessorSchedulerStorage + vps_csw_signals)
     bne.s   irq_handler_do_csw
     rte
 

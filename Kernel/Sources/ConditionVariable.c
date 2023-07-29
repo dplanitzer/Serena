@@ -50,7 +50,7 @@ void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar)
         // Wake up all the guys that are still waiting on us and tell them that the
         // wait has been interrupted.
         const Int sps = VirtualProcessorScheduler_DisablePreemption();
-        VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler_GetShared(),
+        VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                              &pCondVar->wait_queue,
                                              INT_MAX,
                                              WAKEUP_REASON_INTERRUPTED,
@@ -73,7 +73,7 @@ void ConditionVariable_SignalAndUnlock(ConditionVariable* _Nonnull pCondVar, Loc
         Lock_Unlock(pLock);
     }
     VirtualProcessorScheduler_RestoreCooperation(scs);
-    VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler_GetShared(),
+    VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                          &pCondVar->wait_queue,
                                          1,
                                          WAKEUP_REASON_FINISHED,
@@ -92,7 +92,7 @@ void ConditionVariable_BroadcastAndUnlock(ConditionVariable* _Nonnull pCondVar, 
         Lock_Unlock(pLock);
     }
     VirtualProcessorScheduler_RestoreCooperation(scs);
-    VirtualProcessorScheduler_WakeUpAll(VirtualProcessorScheduler_GetShared(),
+    VirtualProcessorScheduler_WakeUpAll(gVirtualProcessorScheduler,
                                         &pCondVar->wait_queue,
                                         true);
     VirtualProcessorScheduler_RestorePreemption(sps);
@@ -107,7 +107,7 @@ ErrorCode ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _No
     
     Lock_Unlock(pLock);
     VirtualProcessorScheduler_RestoreCooperation(scs);
-    const Int err = VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler_GetShared(),
+    const Int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                                      &pCondVar->wait_queue,
                                                      deadline);
     Lock_Lock(pLock);

@@ -23,11 +23,16 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
 static ErrorCode IdleVirtualProcessor_Create(const SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nullable * _Nonnull pOutVP);
 
 
+VirtualProcessorScheduler   gVirtualProcessorSchedulerStorage;
+VirtualProcessorScheduler*  gVirtualProcessorScheduler = &gVirtualProcessorSchedulerStorage;
+
+
 // Initializes the scheduler and takes ownership of the passed in boot virtual
 // processor. The boot virtual processor is used to run scheduler chores in the
 // background. 
-void VirtualProcessorScheduler_Init(VirtualProcessorScheduler* _Nonnull pScheduler, SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nonnull pBootVP)
+void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nonnull pBootVP)
 {
+    VirtualProcessorScheduler* pScheduler = &gVirtualProcessorSchedulerStorage;
     Bytes_ClearRange((Byte*)pScheduler, sizeof(VirtualProcessorScheduler));
 
     if (pSysDesc->fpu_model != FPU_MODEL_NONE) {
@@ -555,6 +560,7 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
 // MARK: Boot Virtual Processor
 ////////////////////////////////////////////////////////////////////////////////
 
+
 // Initializes a boot virtual processor. This is the virtual processor which
 // is used to grandfather in the initial thread of execution at boot time. It is
 // the first VP that is created for a physical processor. It then takes over
@@ -562,8 +568,10 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
 // \param pVP the boot virtual processor record
 // \param pSysDesc the system description
 // \param closure the closure that should be invoked by the virtual processor
-ErrorCode BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure)
+ErrorCode BootVirtualProcessor_CreateForLocalCPU(const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure, VirtualProcessor* _Nullable * _Nonnull pOutVp)
 {
+    static VirtualProcessor gBootVirtualProcessorStorage;
+    VirtualProcessor* pVP = &gBootVirtualProcessorStorage;
     decl_try_err();
 
     Bytes_ClearRange((Byte*)pVP, sizeof(VirtualProcessor));
@@ -572,9 +580,12 @@ ErrorCode BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemD
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->state = kVirtualProcessorState_Ready;
     pVP->suspension_count = 0;
+    *pOutVp = pVP;
+
     return EOK;
 
 catch:
+    *pOutVp = pVP;
     return err;
 }
 

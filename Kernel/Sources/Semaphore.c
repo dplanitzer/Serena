@@ -46,7 +46,7 @@ void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore)
         // Wake up all the guys that are still waiting on us and tell them that the
         // wait has been interrupted.
         const Int sps = VirtualProcessorScheduler_DisablePreemption();
-        VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler_GetShared(),
+        VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                              &pSemaphore->wait_queue,
                                              INT_MAX,
                                              WAKEUP_REASON_INTERRUPTED,
@@ -75,18 +75,18 @@ Bool Semaphore_TryAcquire(Semaphore* _Nonnull pSemaphore)
 // Invoked by Semaphore_Acquire() if the semaphore doesn't have the expected number
 // of permits.
 // Expects to be called with preemption disabled.
-ErrorCode Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, VirtualProcessorScheduler* _Nonnull pScheduler, TimeInterval deadline)
+ErrorCode Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, TimeInterval deadline)
 {
-    return VirtualProcessorScheduler_WaitOn(pScheduler,
+    return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &pSemaphore->wait_queue,
                                             deadline);
 }
 
 // Invoked by Semaphore_Release().
 // Expects to be called with preemption disabled.
-void Semaphore_WakeUp(Semaphore* _Nullable pSemaphore, VirtualProcessorScheduler* _Nonnull pScheduler)
+void Semaphore_WakeUp(Semaphore* _Nullable pSemaphore)
 {
-    VirtualProcessorScheduler_WakeUpAll(pScheduler,
+    VirtualProcessorScheduler_WakeUpAll(gVirtualProcessorScheduler,
                                         &pSemaphore->wait_queue,
                                         true);
 }

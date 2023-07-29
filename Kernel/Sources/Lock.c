@@ -69,17 +69,17 @@ void Lock_OnOwnershipViolation(Lock* _Nonnull pLock)
 }
 
 // Invoked by Lock_Lock() if the lock is currently being held by some other VP.
-ErrorCode Lock_OnWait(Lock* _Nonnull pLock, VirtualProcessorScheduler* _Nonnull pScheduler)
+ErrorCode Lock_OnWait(Lock* _Nonnull pLock)
 {
-    return VirtualProcessorScheduler_WaitOn(pScheduler,
+    return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &pLock->wait_queue,
                                             kTimeInterval_Infinity);
 }
 
 // Invoked by Lock_Unlock(). Expects to be called with preemption disabled.
-void Lock_WakeUp(Lock* _Nullable pLock, VirtualProcessorScheduler* _Nonnull pScheduler)
+void Lock_WakeUp(Lock* _Nullable pLock)
 {
-    VirtualProcessorScheduler_WakeUpAll(pScheduler,
+    VirtualProcessorScheduler_WakeUpAll(gVirtualProcessorScheduler,
                                         &pLock->wait_queue,
                                         true);
 }

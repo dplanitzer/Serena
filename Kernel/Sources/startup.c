@@ -82,12 +82,12 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 
 
     // Initialize the boot virtual processor
-    VirtualProcessor* pVP = BootVirtualProcessor_GetShared();
-    try_bang(BootVirtualProcessor_Init(pVP, pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize)));
+    VirtualProcessor* pVp = NULL;
+    try_bang(BootVirtualProcessor_CreateForLocalCPU(pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize), &pVp));
 
     
     // Initialize the scheduler
-    VirtualProcessorScheduler_Init(VirtualProcessorScheduler_GetShared(), pSysDesc, pVP);
+    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, pVp);
 }
 
 // Called by the boot virtual processor after onBoot() has returned. This is the thread
@@ -111,7 +111,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
     // Inform the scheduler that the heap exists now and that it should finish
     // its boot related initialization sequence
-    try_bang(VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler_GetShared()));
+    try_bang(VirtualProcessorScheduler_FinishBoot(gVirtualProcessorScheduler));
     
     
     // Initialize the virtual processor pool
@@ -132,7 +132,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     
     // The boot virtual processor now takes over the duties of running the
     // virtual processor scheduler service tasks.
-    VirtualProcessorScheduler_Run(VirtualProcessorScheduler_GetShared());
+    VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
 // Called by the boot virtual processor after it has finished initializing all

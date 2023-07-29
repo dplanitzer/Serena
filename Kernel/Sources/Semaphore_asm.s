@@ -42,10 +42,9 @@ _Semaphore_ReleaseMultiple:
 
         ; move all the waiters back to the ready queue
         DISABLE_PREEMPTION d7
-        move.l  #SCHEDULER_BASE, -(sp)
         move.l  a0, -(sp)
         jsr     _Semaphore_WakeUp
-        addq.l  #8, sp
+        addq.l  #4, sp
         RESTORE_PREEMPTION d7
 
 .sr_done:
@@ -80,10 +79,9 @@ _Semaphore_AcquireMultiple:
         move.l  sa_deadline_nanos(sp), d1
         move.l  d1, -(sp)
         move.l  d0, -(sp)
-        move.l  #SCHEDULER_BASE, -(sp)
         move.l  a0, -(sp)
         jsr     _Semaphore_OnWaitForPermits
-        add.l   #16, sp
+        add.l   #12, sp
 
         ; give up if the OnWaitForPermits came back with an error
         tst.l   d0
@@ -135,10 +133,9 @@ _Semaphore_AcquireAll:
         move.l  saa_deadline_nanos(sp), d1
         move.l  d1, -(sp)
         move.l  d0, -(sp)
-        move.l  #SCHEDULER_BASE, -(sp)
         move.l  a0, -(sp)
         jsr     _Semaphore_OnWaitForPermits
-        add.l   #16, sp
+        add.l   #12, sp
 
         ; give up if the OnWaitForPermits came back with an error
         tst.l   d0

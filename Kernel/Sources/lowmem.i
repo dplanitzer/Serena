@@ -9,6 +9,8 @@
         ifnd LOWMEM_I
 LOWMEM_I    set 1
 
+    xref _gVirtualProcessorSchedulerStorage
+
 
 ; CPU models
 CPU_MODEL_68000     equ 0
@@ -102,8 +104,8 @@ LOW_MEM_BASE                equ     CPU_VECTORS_BASE + CPU_VECTORS_SIZEOF
 
 SYS_DESC_BASE               equ     LOW_MEM_BASE
 MONOTONIC_CLOCK_BASE        equ     SYS_DESC_BASE + sd_SIZEOF
-SCHEDULER_BASE              equ     MONOTONIC_CLOCK_BASE + mtc_SIZEOF
-SCHEDULER_VP_BASE           equ     SCHEDULER_BASE + vps_SIZEOF
+; SCHEDULER_BASE              equ     MONOTONIC_CLOCK_BASE + mtc_SIZEOF
+; SCHEDULER_VP_BASE           equ     SCHEDULER_BASE + vps_SIZEOF
 ; INTERRUPT_CONTROLLER_BASE   equ     SCHEDULER_VP_BASE + vp_SIZEOF
 
 RESET_STACK_SIZEOF          equ     4096
@@ -359,7 +361,7 @@ cop_SIZEOF                      so
 ; Disable voluntary context switches. These are context switches which are triggered
 ; by a call to wakeup()
     macro DISABLE_COOPERATION
-    bclr    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, SCHEDULER_BASE + vps_flags
+    bclr    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
     sne     \1
     endm
 
@@ -368,10 +370,10 @@ cop_SIZEOF                      so
     macro   RESTORE_COOPERATION
     tst.b   \1
     bne.s   .\@rc1
-    bclr    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, SCHEDULER_BASE + vps_flags
+    bclr    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
     bra.s   .\@rc2
 .\@rc1:
-    bset    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, SCHEDULER_BASE + vps_flags
+    bset    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
 .\@rc2:
     endm
 

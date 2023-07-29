@@ -8,6 +8,8 @@
 
     include "lowmem.i"
 
+    xref _gVirtualProcessorSchedulerStorage
+
     xdef _VirtualProcessorScheduler_DisablePreemption
     xdef _VirtualProcessorScheduler_RestorePreemption
     xdef _VirtualProcessorScheduler_DisableCooperation
@@ -61,7 +63,7 @@ _VirtualProcessorScheduler_RestoreCooperation:
 ; Int VirtualProcessorScheduler_IsCooperationEnabled(void)
 ; Returns true if voluntary context switches are currently enabled.
 _VirtualProcessorScheduler_IsCooperationEnabled:
-    btst    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, SCHEDULER_BASE + vps_flags
+    btst    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags
     sne     d0
     ext.w   d0
     ext.l   d0
@@ -103,12 +105,12 @@ _VirtualProcessorScheduler_SwitchContext:
 ; SP + 0: SR
 __rtecall_VirtualProcessorScheduler_SwitchContext:
     ; save the integer state
-    move.l  a0, (SCHEDULER_BASE + vps_csw_scratch)
-    move.l  (SCHEDULER_BASE + vps_running), a0
+    move.l  a0, (_gVirtualProcessorSchedulerStorage + vps_csw_scratch)
+    move.l  (_gVirtualProcessorSchedulerStorage + vps_running), a0
     lea     vp_save_area(a0), a0
 
     movem.l d0 - d7 / a0 - a7, (a0)
-    move.l  (SCHEDULER_BASE + vps_csw_scratch), cpu_a0(a0)
+    move.l  (_gVirtualProcessorSchedulerStorage + vps_csw_scratch), cpu_a0(a0)
 
     move.l  usp, a1
     move.l  a1, cpu_usp(a0)
@@ -117,7 +119,7 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
     move.l  2(sp), cpu_pc(a0)
 
     ; check whether we should save the FPU state
-    btst    #CSWB_HW_HAS_FPU, SCHEDULER_BASE + vps_csw_hw
+    btst    #CSWB_HW_HAS_FPU, _gVirtualProcessorSchedulerStorage + vps_csw_hw
     beq.s   __rtecall_VirtualProcessorScheduler_RestoreContext
 
     ; save the FPU state. Note that the 68060 fmovem.l instruction does not
@@ -130,20 +132,20 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
 
 __rtecall_VirtualProcessorScheduler_RestoreContext:
     ; consume the CSW switch signal
-    bclr    #CSWB_SIGNAL_SWITCH, SCHEDULER_BASE + vps_csw_signals
+    bclr    #CSWB_SIGNAL_SWITCH, _gVirtualProcessorSchedulerStorage + vps_csw_signals
     ; it's safe to trash all registers here 'cause we'll override them anyway
     ; make the scheduled VP the running VP and clear out vps_scheduled
-    move.l  (SCHEDULER_BASE + vps_scheduled), a0
-    move.l  a0, (SCHEDULER_BASE + vps_running)
+    move.l  (_gVirtualProcessorSchedulerStorage + vps_scheduled), a0
+    move.l  a0, (_gVirtualProcessorSchedulerStorage + vps_running)
     moveq.l #0, d0
-    move.l  d0, (SCHEDULER_BASE + vps_scheduled)
+    move.l  d0, (_gVirtualProcessorSchedulerStorage + vps_scheduled)
 
     ; update the state to Running
     move.b  #kVirtualProcessorState_Running, vp_state(a0)
     lea     vp_save_area(a0), a0
 
     ; check whether we should restore the FPU state
-    btst    #CSWB_HW_HAS_FPU, SCHEDULER_BASE + vps_csw_hw
+    btst    #CSWB_HW_HAS_FPU, _gVirtualProcessorSchedulerStorage + vps_csw_hw
     beq.s   .1
 
     ; restore the FPU state. Note that the 68060 fmovem.l instruction does not

@@ -60,9 +60,9 @@ typedef struct _VirtualProcessorScheduler {
 #define QuantumAllowanceForPriority(pri)    ((VP_PRIORITY_HIGHEST - (pri)) >> 3) + 1
 
 
-extern VirtualProcessorScheduler* _Nonnull VirtualProcessorScheduler_GetShared(void);
+extern VirtualProcessorScheduler* _Nonnull gVirtualProcessorScheduler;
 
-extern void VirtualProcessorScheduler_Init(VirtualProcessorScheduler* _Nonnull pScheduler, SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nonnull pBootVP);
+extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nonnull pBootVP);
 extern ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler);
 
 extern void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
@@ -128,8 +128,6 @@ extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _
 //
 
 // The boot virtual processor
-extern VirtualProcessor* _Nonnull BootVirtualProcessor_GetShared(void);
-
-extern ErrorCode BootVirtualProcessor_Init(VirtualProcessor*_Nonnull pVP, const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure);
+extern ErrorCode BootVirtualProcessor_CreateForLocalCPU(const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure, VirtualProcessor* _Nullable * _Nonnull pOutVp);
 
 #endif /* VirtualProcessorScheduler_h */

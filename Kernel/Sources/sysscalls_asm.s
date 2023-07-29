@@ -14,6 +14,7 @@
     xref __syscall_sleep
     xref __syscall_dispatchAsync
     xref __syscall_exit
+    xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
 
@@ -81,7 +82,7 @@ _SystemCallHandler:
         bcs.s   .Linvalid_syscall
 
         ; save the ksp as it was at syscall entry (needed to be able to abort call-as-user invocations)
-        move.l  SCHEDULER_BASE + vps_running, a0
+        move.l  _gVirtualProcessorSchedulerStorage + vps_running, a0
         lea     (14*4, sp), a1                      ; ksp at trap handler entry time was 14 long words higher up in memory
         move.l  a1, vp_syscall_entry_ksp(a0)
 

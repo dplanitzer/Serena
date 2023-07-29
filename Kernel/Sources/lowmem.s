@@ -8,10 +8,10 @@
 
     include "lowmem.i"
 
+    xref _gVirtualProcessorSchedulerStorage
+
     xdef _SystemDescription_GetShared
     xdef _MonotonicClock_GetShared
-    xdef _VirtualProcessorScheduler_GetShared
-    xdef _BootVirtualProcessor_GetShared
     xdef _VirtualProcessor_GetCurrent
     xdef _VirtualProcessor_GetCurrentVpid
 
@@ -31,25 +31,10 @@ _MonotonicClock_GetShared:
     rts
 
 ;-------------------------------------------------------------------------------
-; VirtualProcessorScheduler* VirtualProcessorScheduler_GetShared(void)
-; Returns a reference to the virtual processor scheduler.
-_VirtualProcessorScheduler_GetShared:
-    move.l  #SCHEDULER_BASE, d0
-    rts
-
-;-------------------------------------------------------------------------------
-; VirtualProcessor* BootVirtualProcessor_GetShared(void)
-; Returns a reference to the boot virtual processor.
-_BootVirtualProcessor_GetShared:
-    move.l  #SCHEDULER_VP_BASE, d0
-    rts
-
-
-;-------------------------------------------------------------------------------
 ; VirtualProcessor* VirtualProcessor_GetCurrent(void)
 ; Returns a reference to the currently running virtual processor.
 _VirtualProcessor_GetCurrent:
-    move.l  SCHEDULER_BASE + vps_running, d0
+    move.l  _gVirtualProcessorSchedulerStorage + vps_running, d0
     rts
 
 
@@ -57,6 +42,6 @@ _VirtualProcessor_GetCurrent:
 ; Int VirtualProcessor_GetCurrentVpid(void)
 ; Returns the VPID of the currently running virtual processor.
 _VirtualProcessor_GetCurrentVpid:
-    move.l  SCHEDULER_BASE + vps_running, a0
+    move.l  _gVirtualProcessorSchedulerStorage + vps_running, a0
     move.l  vp_vpid(a0), d0
     rts

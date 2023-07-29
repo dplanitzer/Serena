@@ -53,10 +53,9 @@ _Lock_Lock:
     bset    #7, lock_value(a0)
     beq.s   .la_acquired_slow
 
-    move.l  #SCHEDULER_BASE, -(sp)
     move.l  a0, -(sp)
     jsr     _Lock_OnWait
-    addq.l  #8, sp
+    addq.l  #4, sp
 
     ; give up if the OnWait came back with an error
     tst.l   d0
@@ -123,10 +122,9 @@ _Lock_Unlock:
     bclr    #7, lock_value(a0)
 
     ; move all the waiters back to the ready queue
-    move.l  #SCHEDULER_BASE, -(sp)
     move.l  a0, -(sp)
     jsr     _Lock_WakeUp
-    addq.l  #8, sp
+    addq.l  #4, sp
 
     RESTORE_PREEMPTION d7
 
