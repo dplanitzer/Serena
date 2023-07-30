@@ -30,7 +30,6 @@
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _cpu_vector_table
-    xdef _SetTrap
     xdef _mem_non_recoverable_error
 
 
@@ -644,19 +643,3 @@ irq_handler_done:
 irq_handler_do_csw:
     jmp __rtecall_VirtualProcessorScheduler_SwitchContext
     ; NOT REACHED
-
-
-;-----------------------------------------------------------------------
-; Byte* SetTrap(Int idx, Byte* pFunc)
-; Replaces the current handler for the given trap index with the given function.
-; Returns the old function.
-; Expects that the caller has disabled interrupts
-_SetTrap:
-    cargs st_index.l, st_func_ptr.l
-    move.l  st_index(sp), d1
-    move.l  st_func_ptr(sp), a0
-    asl.l   #2, d1
-    lea     CPU_VECTORS_BASE, a1
-    move.l  (a1, d1.l), d0
-    move.l  a0, (a1, d1.l)
-    rts

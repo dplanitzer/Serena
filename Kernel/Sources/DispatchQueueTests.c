@@ -102,7 +102,7 @@ void DispatchQueue_RunTests(void)
 {
     struct State* pState;
     
-    try_bang(kalloc(sizeof(struct State), &pState));
+    try_bang(kalloc(sizeof(struct State), (Byte**)&pState));
     
     Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState), &pState->timer);
     pState->value = 0;
@@ -118,7 +118,7 @@ void DispatchQueue_RunTests(void)
 // MARK: True Sleep time
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = SystemDescription_GetShared();
@@ -163,7 +163,7 @@ void DispatchQueue_RunTests(void)
     } else {
         print("No expansion boards found!\n");
     }
-    while (true) { cpu_sleep(); }
+
 /*
     const TimeInterval t_start = MonotonicClock_GetCurrentTime();
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1*1000));
@@ -182,7 +182,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     print("Event loop\n");

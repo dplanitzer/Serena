@@ -331,19 +331,20 @@ _cpu_guarded_write:
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_sleep(void)
+; void cpu_sleep(Int cpu_type)
 ; Moves the CPU to (a low power) sleep state until an interrupt occurs.
 _cpu_sleep:
-    cmp.b   #CPU_MODEL_68060, SYS_DESC_BASE + sd_cpu_model
-    beq.s   .cpu_sleep_68060
-    stop    #$2000
-    rts
+    inline
+    cargs cslp_cpu_type.l
+        cmp.l   #CPU_MODEL_68060, cslp_cpu_type(sp)
+        beq.s   .cpu_sleep_68060
+        stop    #$2000
+        rts
 
 .cpu_sleep_68060:
-    ; the 68060 emulator doesn't support lpstop...
-    ;lpstop  #$2000
-    stop    #$2000
-    rts
+        lpstop  #$2000
+        rts
+    einline
 
 
 ;-----------------------------------------------------------------------

@@ -622,6 +622,6 @@ catch:
 static void IdleVirtualProcessor_Run(Byte* _Nullable pContext)
 {
     while (true) {
-        cpu_sleep();
+        cpu_sleep(SystemDescription_GetShared()->cpu_model);
     }
 }
