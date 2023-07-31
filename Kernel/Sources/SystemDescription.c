@@ -11,7 +11,7 @@
 #include "Platform.h"
 
 
-extern void zorro_auto_config(SystemDescription* pSysDesc);
+extern void zorro_auto_config(ExpansionBus* pExpansionBus);
 
 
 Bool mem_probe(Byte* addr)
@@ -49,7 +49,7 @@ static Bool mem_probe_cpu_page(Byte* addr)
     return true;
 }
 
-static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upper, UInt8 accessibility)
+static Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, UInt8 accessibility)
 {
     Byte* p = align_up_byte_ptr(lower, CPU_PAGE_SIZE);
     Byte* pLimit = align_down_byte_ptr(upper, CPU_PAGE_SIZE);
@@ -57,7 +57,7 @@ static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upp
     Bool hasMemory = false;
     Bool hadMemory = false;
     
-    if (pSysDesc->memory_descriptor_count >= MEMORY_DESCRIPTORS_CAPACITY) {
+    if (pMemLayout->descriptor_count >= MEMORY_DESCRIPTORS_CAPACITY) {
         return false;
     }
     
@@ -68,15 +68,15 @@ static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upp
         
         if (!hadMemory && hasMemory) {
             // Transitioning from no memory to memory
-            pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count].lower = p;
-            pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count].upper = p;
-            pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count].accessibility = accessibility;
+            pMemLayout->descriptor[pMemLayout->descriptor_count].lower = p;
+            pMemLayout->descriptor[pMemLayout->descriptor_count].upper = p;
+            pMemLayout->descriptor[pMemLayout->descriptor_count].accessibility = accessibility;
         }
         
         if (hadMemory && !hasMemory) {
             // Transitioning from memory to no memory
-            pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count].upper += nbytes;
-            pSysDesc->memory_descriptor_count++;
+            pMemLayout->descriptor[pMemLayout->descriptor_count].upper += nbytes;
+            pMemLayout->descriptor_count++;
             nbytes = 0;
         }
         
@@ -87,22 +87,22 @@ static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upp
     if (hasMemory) {
         // We were scanning an existing memory region but we hit upperp. Close
         // the memory region.
-        pSysDesc->memory_descriptor[pSysDesc->memory_descriptor_count].upper += nbytes;
-        pSysDesc->memory_descriptor_count++;
+        pMemLayout->descriptor[pMemLayout->descriptor_count].upper += nbytes;
+        pMemLayout->descriptor_count++;
     }
 
     return true;
 }
 
-// Invoke by the Start() function after the chipset has been reset. This function
-// tests the motherboard RAM and figures out how much RAM is installed on the
-// motherboatd and which address ranges contain operating RAM chips.
-void mem_check_motherboard(SystemDescription* pSysDesc)
+// Invoked by the OnReset() function after the chipset has been reset. This
+// function tests the motherboard RAM and figures out how much RAM is installed
+// on the motherboard and which address ranges contain operating RAM chips.
+void mem_check_motherboard(MemoryLayout* pMemLayout)
 {
-    Byte* chip_ram_lower_p = pSysDesc->memory_descriptor[0].lower;  // set up by _Reset in traps.s
+    Byte* chip_ram_lower_p = pMemLayout->descriptor[0].lower;  // set up by _Reset in traps.s
     Byte* chip_ram_upper_p;
     
-    switch (pSysDesc->chipset_version) {
+    switch (chipset_get_version()) {
         case CHIPSET_8370_NTSC:             chip_ram_upper_p = (Byte*) (512 * 1024); break;
         case CHIPSET_8371_PAL:              chip_ram_upper_p = (Byte*) (512 * 1024); break;
         case CHIPSET_8372_rev4_PAL:         chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
@@ -116,7 +116,7 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
     }
 
     // Forget the memory map set up by traps.s 'cause we'll build our own map here
-    pSysDesc->memory_descriptor_count = 0;
+    pMemLayout->descriptor_count = 0;
     
     
     // Memory map: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node00D4.html
@@ -126,16 +126,16 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(pSysDesc, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_ACCESS_CPU | MEM_ACCESS_CHIPSET);
+    mem_check_region(pMemLayout, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_ACCESS_CPU | MEM_ACCESS_CHIPSET);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(pSysDesc, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_ACCESS_CPU);
+    mem_check_region(pMemLayout, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_ACCESS_CPU);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
-    if (pSysDesc->chipset_ramsey_version > 0) {
-        mem_check_region(pSysDesc, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU);
+    if (chipset_get_ramsey_version() > 0) {
+        mem_check_region(pMemLayout, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU);
     }
 }
 
@@ -143,14 +143,14 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
 // to the mem range table.
 void mem_check_expanion_boards(SystemDescription* pSysDesc)
 {    
-    for (Int i = 0; i < pSysDesc->expansion_board_count; i++) {
-        const ExpansionBoard* board = &pSysDesc->expansion_board[i];
+    for (Int i = 0; i < pSysDesc->expansion.board_count; i++) {
+        const ExpansionBoard* board = &pSysDesc->expansion.board[i];
        
         if (board->type != EXPANSION_TYPE_RAM) {
             continue;
         }
         
-        if (!mem_check_region(pSysDesc, board->start, board->start + board->logical_size, MEM_ACCESS_CPU)) {
+        if (!mem_check_region(&pSysDesc->memory, board->start, board->start + board->logical_size, MEM_ACCESS_CPU)) {
             break;
         }
     }
@@ -193,11 +193,11 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
     
     
     // Probe RAM installed on the motherboard
-    mem_check_motherboard(pSysDesc);
+    mem_check_motherboard(&pSysDesc->memory);
 
     
     // Auto config the Zorro bus
-    zorro_auto_config(pSysDesc);
+    zorro_auto_config(&pSysDesc->expansion);
 
     
     // Find and add expansion board RAM

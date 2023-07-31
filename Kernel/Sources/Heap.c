@@ -53,29 +53,28 @@ Heap*   gHeap;
 // Allocates a new heap. The heap manages the memory regions described by the given
 // memory descriptors. The heap managment data structures are stored inside those
 // memory regions.
-// \param pMemDescs the memory descriptors
-// \param nMemDescs the number of memory descriptors
+// \param pMemLayout the memory layout
 // \return the heap
-ErrorCode Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMemDescs, Heap* _Nullable * _Nonnull pOutHeap)
+ErrorCode Heap_Create(const MemoryLayout* _Nonnull pMemLayout, Heap* _Nullable * _Nonnull pOutHeap)
 {
-    assert(pMemDescs != NULL);
+    assert(pMemLayout != NULL);
     
     // Validate some basic assumptions we make in the heap implementation to allow
     // for faster allocations:
     // desc 0 -> chip RAM
     // desc > 0 -> fast RAM
-    assert(nMemDescs > 0);
-    assert(pMemDescs[0].accessibility == (MEM_ACCESS_CHIPSET|MEM_ACCESS_CPU));
-    for (Int i = 1; i < nMemDescs; i++) {
-        assert(pMemDescs[i].accessibility == MEM_ACCESS_CPU);
+    assert(pMemLayout->descriptor_count > 0);
+    assert(pMemLayout->descriptor[0].accessibility == (MEM_ACCESS_CHIPSET|MEM_ACCESS_CPU));
+    for (Int i = 1; i < pMemLayout->descriptor_count; i++) {
+        assert(pMemLayout->descriptor[i].accessibility == MEM_ACCESS_CPU);
     }
     
 
     // Reserve space for the heap structure. We put it preferably into the bottom
     // of fast RAM. If there is none then we put it at the bottom of chip RAM
     // (just above lowmem).
-    Int idxOfMemRgnWithHeapStruct = (nMemDescs > 1) ? 1 : 0;
-    Byte* pHeapBase = align_up_byte_ptr(pMemDescs[idxOfMemRgnWithHeapStruct].lower, HEAP_ALIGNMENT);
+    Int idxOfMemRgnWithHeapStruct = (pMemLayout->descriptor_count > 1) ? 1 : 0;
+    Byte* pHeapBase = align_up_byte_ptr(pMemLayout->descriptor[idxOfMemRgnWithHeapStruct].lower, HEAP_ALIGNMENT);
     Heap_Block* pAllocedBlock = (Heap_Block*)pHeapBase;
     Heap* pHeap = (Heap*)(pHeapBase + sizeof(Heap_Block));
     Byte* pHeapMemDescsBase = align_up_byte_ptr(pHeapBase + sizeof(Heap_Block) + sizeof(Heap), HEAP_ALIGNMENT);
@@ -83,16 +82,16 @@ ErrorCode Heap_Create(const MemoryDescriptor* _Nonnull pMemDescs, Int nMemDescs,
     pAllocedBlock->next = NULL;
     pAllocedBlock->size = pHeapMemDescsBase - pHeapBase;
     
-    pHeap->descriptors_count = nMemDescs;
+    pHeap->descriptors_count = pMemLayout->descriptor_count;
     pHeap->descriptors = (Heap_MemoryDescriptor*) pHeapMemDescsBase;
     pHeap->first_allocated_block = pAllocedBlock;
     Lock_Init(&pHeap->lock);
     
-    for (Int i = 0; i < nMemDescs; i++) {
-        pHeap->descriptors[i].lower = pMemDescs[i].lower;
-        pHeap->descriptors[i].upper = pMemDescs[i].upper;
+    for (Int i = 0; i < pMemLayout->descriptor_count; i++) {
+        pHeap->descriptors[i].lower = pMemLayout->descriptor[i].lower;
+        pHeap->descriptors[i].upper = pMemLayout->descriptor[i].upper;
         pHeap->descriptors[i].first_free_block = NULL;
-        pHeap->descriptors[i].accessibility = pMemDescs[i].accessibility;
+        pHeap->descriptors[i].accessibility = pMemLayout->descriptor[i].accessibility;
         pAllocedBlock->size += sizeof(Heap_MemoryDescriptor);
     }
     pAllocedBlock->size = UInt_RoundUpToPowerOf2(pAllocedBlock->size, HEAP_ALIGNMENT);

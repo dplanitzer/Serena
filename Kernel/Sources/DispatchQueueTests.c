@@ -148,21 +148,21 @@ void DispatchQueue_RunTests(void)
     print("---------\n");
     */
 
-    for(Int i = 0; i < pSysDesc->memory_descriptor_count; i++) {
+    for(Int i = 0; i < pSysDesc->memory.descriptor_count; i++) {
         print("start: 0x%p, size: %u,  type: %s\n",
-              pSysDesc->memory_descriptor[i].lower,
-              pSysDesc->memory_descriptor[i].upper - pSysDesc->memory_descriptor[i].lower,
-              (pSysDesc->memory_descriptor[i].accessibility & MEM_ACCESS_CHIPSET) ? "Chip" : "Fast");
+              pSysDesc->memory.descriptor[i].lower,
+              pSysDesc->memory.descriptor[i].upper - pSysDesc->memory.descriptor[i].lower,
+              (pSysDesc->memory.descriptor[i].accessibility & MEM_ACCESS_CHIPSET) ? "Chip" : "Fast");
     }
     print("--------\n");
     
-    if (pSysDesc->expansion_board_count > 0) {
-        for(Int i = 0; i < pSysDesc->expansion_board_count; i++) {
-            print("start: 0x%p, psize: %u, lsize: %u\n", pSysDesc->expansion_board[i].start, pSysDesc->expansion_board[i].physical_size, pSysDesc->expansion_board[i].logical_size);
-            print("type: %s %s\n", pSysDesc->expansion_board[i].type == EXPANSION_TYPE_RAM ? "RAM" : "I/O", pSysDesc->expansion_board[i].bus == EXPANSION_BUS_ZORRO_2 ? "[Z2]" : "[Z3]");
-            print("slot: %d\n", pSysDesc->expansion_board[i].slot);
-            print("manu: $%x, prod: $%x\n", pSysDesc->expansion_board[i].manufacturer, pSysDesc->expansion_board[i].product);
-            print("ser#: $%x\n", pSysDesc->expansion_board[i].serial_number);
+    if (pSysDesc->expansion.board_count > 0) {
+        for(Int i = 0; i < pSysDesc->expansion.board_count; i++) {
+            print("start: 0x%p, psize: %u, lsize: %u\n", pSysDesc->expansion.board[i].start, pSysDesc->expansion.board[i].physical_size, pSysDesc->expansion.board[i].logical_size);
+            print("type: %s %s\n", pSysDesc->expansion.board[i].type == EXPANSION_TYPE_RAM ? "RAM" : "I/O", pSysDesc->expansion.board[i].bus == EXPANSION_BUS_ZORRO_2 ? "[Z2]" : "[Z3]");
+            print("slot: %d\n", pSysDesc->expansion.board[i].slot);
+            print("manu: $%x, prod: $%x\n", pSysDesc->expansion.board[i].manufacturer, pSysDesc->expansion.board[i].product);
+            print("ser#: $%x\n", pSysDesc->expansion.board[i].serial_number);
             
             print("---\n");
         }

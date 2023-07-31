@@ -52,11 +52,11 @@ static Byte* _Nullable boot_allocate_kernel_stack(SystemDescription* _Nonnull pS
 {
     Byte* pStackBase = NULL;
     
-    for (Int i = pSysDesc->memory_descriptor_count - 1; i >= 0; i--) {
-        const Int nAvailBytes = pSysDesc->memory_descriptor[i].upper - pSysDesc->memory_descriptor[i].lower;
+    for (Int i = pSysDesc->memory.descriptor_count - 1; i >= 0; i--) {
+        const Int nAvailBytes = pSysDesc->memory.descriptor[i].upper - pSysDesc->memory.descriptor[i].lower;
         
         if (nAvailBytes >= stackSize) {
-            pStackBase = pSysDesc->memory_descriptor[i].upper - stackSize;
+            pStackBase = pSysDesc->memory.descriptor[i].upper - stackSize;
             break;
         }
     }
@@ -93,7 +93,7 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
 static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 {
     // Initialize the global heap
-    try_bang(Heap_Create(pSysDesc->memory_descriptor, pSysDesc->memory_descriptor_count, &gHeap));
+    try_bang(Heap_Create(&pSysDesc->memory, &gHeap));
     
 
     // Initialize the interrupt controller

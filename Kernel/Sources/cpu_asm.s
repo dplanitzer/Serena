@@ -260,9 +260,6 @@ _cpu_guarded_read:
 
 .success:
         moveq   #0, d0
-        bra     .done
-.failed:
-        moveq   #-1, d0
 .done:
         move.l  (sp)+, (a3)
         movem.l (sp)+, a2 - a3
@@ -271,8 +268,11 @@ _cpu_guarded_read:
 .mem_bus_error_handler:
         ; clear the stack frame that the CPU put on the stack. Note that the size
         ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        lea     .failed(pc), a0
-        jmp     _pop_bus_error_stack_frame
+        lea     .mem_bus_error_handler_continue(pc), a0
+        jmp     _pop_bus_error_stack_frame(pc)
+.mem_bus_error_handler_continue:
+        moveq   #-1, d0
+        bra.s   .done
     einline
 
 
@@ -308,9 +308,6 @@ _cpu_guarded_write:
 
 .success:
         moveq   #0, d0
-        bra     .done
-.failed:
-        moveq   #-1, d0
 .done:
         move.l  (sp)+, (a3)
         movem.l (sp)+, a2 - a3
@@ -319,8 +316,11 @@ _cpu_guarded_write:
 .mem_bus_error_handler:
         ; clear the stack frame that the CPU put on the stack. Note that the size
         ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        lea     .failed(pc), a0
-        jmp     _pop_bus_error_stack_frame
+        lea     .mem_bus_error_handler_continue(pc), a0
+        jmp     _pop_bus_error_stack_frame(pc)
+.mem_bus_error_handler_continue:
+        moveq   #-1, d0
+        bra.s   .done
     einline
 
 

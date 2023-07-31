@@ -276,7 +276,7 @@ static Byte* _Nonnull zorro2_align_board_address(Byte* _Nonnull base_ptr, UInt b
     }
 }
 
-static Byte* _Nullable zorro_calculate_base_address_for_board_in_range(const Zorro_BoardConfiguration* _Nonnull pConfig, const SystemDescription* _Nonnull pSysDesc, Byte* board_space_base_addr, Byte* board_space_top_addr)
+static Byte* _Nullable zorro_calculate_base_address_for_board_in_range(const Zorro_BoardConfiguration* _Nonnull pConfig, const ExpansionBus* _Nonnull pExpansionBus, Byte* board_space_base_addr, Byte* board_space_top_addr)
 {
     const Bool isMemoryBoard = pConfig->type == EXPANSION_TYPE_RAM;
     const Bool isZorro3Board = pConfig->bus == EXPANSION_BUS_ZORRO_3;
@@ -284,8 +284,8 @@ static Byte* _Nullable zorro_calculate_base_address_for_board_in_range(const Zor
     const ExpansionBoard* pHighestAllocatedBoard = NULL;
 
     // Find the board with a matching Zorro bus, board type and expansion space adress range that has the highest assigned address
-    for (Int i = 0; i < pSysDesc->expansion_board_count; i++) {
-        const ExpansionBoard* pCurBoard = &pSysDesc->expansion_board[i];
+    for (Int i = 0; i < pExpansionBus->board_count; i++) {
+        const ExpansionBoard* pCurBoard = &pExpansionBus->board[i];
 
         if (pCurBoard->bus == pConfig->bus
             && pCurBoard->type == pConfig->type
@@ -317,20 +317,20 @@ static Byte* _Nullable zorro_calculate_base_address_for_board_in_range(const Zor
     return (board_top_addr <= board_space_top_addr) ? board_base_addr : NULL;
 }
 
-static Byte* _Nullable zorro_calculate_base_address_for_board(const Zorro_BoardConfiguration* _Nonnull pConfig, const SystemDescription* _Nonnull pSysDesc)
+static Byte* _Nullable zorro_calculate_base_address_for_board(const Zorro_BoardConfiguration* _Nonnull pConfig, const ExpansionBus* _Nonnull pExpansionBus)
 {
     Byte* board_base_addr = NULL;
 
     if (pConfig->bus == EXPANSION_BUS_ZORRO_3) {
-        board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pSysDesc, ZORRO_3_EXPANSION_LOW, ZORRO_3_EXPANSION_HIGH);
+        board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_3_EXPANSION_LOW, ZORRO_3_EXPANSION_HIGH);
     } else {
         if (pConfig->type == EXPANSION_TYPE_RAM) {
-            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pSysDesc, ZORRO_2_MEMORY_LOW, ZORRO_2_MEMORY_HIGH);
+            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_2_MEMORY_LOW, ZORRO_2_MEMORY_HIGH);
         } else {
-            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pSysDesc, ZORRO_2_IO_LOW, ZORRO_2_IO_HIGH);
-            if (board_base_addr == NULL && pSysDesc->chipset_ramsey_version > 0) {
+            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_2_IO_LOW, ZORRO_2_IO_HIGH);
+            if (board_base_addr == NULL && chipset_get_ramsey_version() > 0) {
                 // Zorro 3 based machines support an extra Zorro 2 I/O address range
-                board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pSysDesc, ZORRO_2_EXTRA_IO_LOW, ZORRO_2_EXTRA_IO_HIGH);
+                board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_2_EXTRA_IO_LOW, ZORRO_2_EXTRA_IO_HIGH);
             }
         }
     }
@@ -359,14 +359,14 @@ static UInt zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
 
 
 
-void zorro_auto_config(SystemDescription* pSysDesc)
+void zorro_auto_config(ExpansionBus* pExpansionBus)
 {
-    const Bool isZorro3Machine = pSysDesc->chipset_ramsey_version > 0;
+    const Bool isZorro3Machine = chipset_get_ramsey_version() > 0;
     UInt8 prev_config_flags = ZORRO_FLAG_NEXT_IS_RELATED;
     Int slot = 0;
     
-    pSysDesc->expansion_board_count = 0;
-    while (pSysDesc->expansion_board_count < EXPANSION_BOARDS_CAPACITY) {
+    pExpansionBus->board_count = 0;
+    while (pExpansionBus->board_count < EXPANSION_BOARDS_CAPACITY) {
         Zorro_BoardConfiguration config;
         
         if (!zorro_read_config_space(&config, EXPANSION_BUS_ZORRO_2)) {
@@ -376,7 +376,7 @@ void zorro_auto_config(SystemDescription* pSysDesc)
         }
 
         // calculate the base address for RAM or I/O. Growing bottom to top
-        Byte* board_base_addr = zorro_calculate_base_address_for_board(&config, pSysDesc);
+        Byte* board_base_addr = zorro_calculate_base_address_for_board(&config, pExpansionBus);
 
         
         // check whether we still got enough space left to map the board. If not then
@@ -405,7 +405,7 @@ void zorro_auto_config(SystemDescription* pSysDesc)
         
         
         // add the board to the globals
-        ExpansionBoard* board = &pSysDesc->expansion_board[pSysDesc->expansion_board_count++];
+        ExpansionBoard* board = &pExpansionBus->board[pExpansionBus->board_count++];
         board->start = board_base_addr;
         board->physical_size = config.physical_size;
         board->logical_size = config.logical_size;

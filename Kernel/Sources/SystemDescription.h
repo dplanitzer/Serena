@@ -12,6 +12,13 @@
 #include "Foundation.h"
 
 
+// Supported max number of memory descriptors
+#define MEMORY_DESCRIPTORS_CAPACITY  8
+
+// Supported max number of expansion boards
+#define EXPANSION_BOARDS_CAPACITY    16
+
+
 // Specifies who can access a specific memory range
 #define MEM_ACCESS_CPU     1
 #define MEM_ACCESS_CHIPSET 2
@@ -24,6 +31,11 @@ typedef struct _MemoryDescriptor {
     UInt8           reserved[3];
     // Update lowmem.i if you add a new property here
 } MemoryDescriptor;
+
+typedef struct _MemoryLayout {
+    Int                 descriptor_count;
+    MemoryDescriptor    descriptor[MEMORY_DESCRIPTORS_CAPACITY];
+} MemoryLayout;
 
 
 // Expanion board types
@@ -49,13 +61,10 @@ typedef struct _ExpansionBoard {
     // Update lowmem.i if you add a new property here
 } ExpansionBoard;
 
-
-// Supported max number of memory descriptors
-#define MEMORY_DESCRIPTORS_CAPACITY  8
-
-// Supported max number of expansion boards
-#define EXPANSION_BOARDS_CAPACITY    16
-
+typedef struct _ExpansionBus {
+    Int                 board_count;
+    ExpansionBoard      board[EXPANSION_BOARDS_CAPACITY];
+} ExpansionBus;
 
 // The system description
 // Note: Keep in sync with lowmem.i
@@ -73,11 +82,8 @@ typedef struct _SystemDescription {
     Int16               quantum_duration_cycles;    // Quantum duration in terms of timer cycles
     Int16               ns_per_quantum_timer_cycle; // Lenght of a quantu timer cycle in nanoseconds
     
-    Int                 memory_descriptor_count;
-    MemoryDescriptor    memory_descriptor[MEMORY_DESCRIPTORS_CAPACITY];
-    
-    Int                 expansion_board_count;
-    ExpansionBoard      expansion_board[EXPANSION_BOARDS_CAPACITY];
+    MemoryLayout        memory;
+    ExpansionBus        expansion;
 } SystemDescription;
 
 
