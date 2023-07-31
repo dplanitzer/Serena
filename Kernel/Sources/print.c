@@ -8,7 +8,6 @@
 
 #include "Foundation.h"
 #include "Console.h"
-#include "SystemGlobals.h"
 
 
 static Lock gLock;

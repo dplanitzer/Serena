@@ -23,6 +23,9 @@ typedef struct _VirtualProcessorPool {
 } VirtualProcessorPool;
 
 
+VirtualProcessorPoolRef gVirtualProcessorPool;
+
+
 ErrorCode VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool)
 {
     decl_try_err();

@@ -16,7 +16,6 @@
 #include "MonotonicClock.h"
 #include "RingBuffer.h"
 #include "USBHIDKeys.h"
-#include "SystemGlobals.h"
 
 
 // The event driver creates a high-priority serial dispatch queue which is used
@@ -125,6 +124,8 @@ static ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnul
 static void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
 static void EventDriver_GatherLowLevelEvents(EventDriver* _Nonnull pDriver);
 
+
+EventDriverRef  gEventDriver;
 
 ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
 {

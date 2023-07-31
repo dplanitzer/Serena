@@ -9,7 +9,6 @@
 #include "FloppyDisk.h"
 #include "Heap.h"
 #include "Platform.h"
-#include "SystemGlobals.h"
 #include "VirtualProcessor.h"
 
 
@@ -47,6 +46,8 @@ extern void fdc_io_end(FdcControlByte*  _Nonnull fdc);
 // MARK: Floppy DMA
 ////////////////////////////////////////////////////////////////////////////////
 
+
+FloppyDMA*  gFloppyDma;
 
 // Destroys the floppy DMA.
 static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)

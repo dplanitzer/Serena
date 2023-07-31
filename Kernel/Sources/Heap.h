@@ -77,6 +77,8 @@ extern void kfree(Byte* _Nullable ptr);
 // Heap functions
 //
 
+extern Heap* _Nonnull   gHeap;
+
 extern ErrorCode Heap_Create(const MemoryDescriptor* _Nonnull pMemDesc, Int nMemDescs, Heap* _Nullable * _Nonnull pOutHeap);
 
 extern ErrorCode Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);

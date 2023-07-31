@@ -8,7 +8,6 @@
 
 #include "Heap.h"
 #include "Bytes.h"
-#include "SystemGlobals.h"
 
 
 #if __LP64__
@@ -48,6 +47,8 @@ void kfree(Byte* _Nullable ptr)
     Heap_DeallocateBytes(gHeap, ptr);
 }
 
+
+Heap*   gHeap;
 
 // Allocates a new heap. The heap manages the memory regions described by the given
 // memory descriptors. The heap managment data structures are stored inside those

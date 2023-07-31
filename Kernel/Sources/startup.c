@@ -7,15 +7,17 @@
 //
 
 #include "Foundation.h"
+#include "Bytes.h"
 #include "Console.h"
 #include "DispatchQueue.h"
 #include "EventDriver.h"
+#include "FloppyDisk.h"
 #include "Heap.h"
 #include "InterruptController.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "Process.h"
-#include "SystemGlobals.h"
+#include "RealtimeClock.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
 
@@ -35,18 +37,11 @@ void OnReset(SystemDescription* _Nonnull pSysDesc)
 {
     SystemDescription_Init(pSysDesc);
 
-    char *src = &_etext;
-    char *dst = &_data;
-
     // Copy the kernel data segment from ROM to RAM
-    while (dst < &_edata) {
-        *dst++ = *src++;
-    }
+    Bytes_CopyRange((Byte*)&_data, (Byte*)&_etext, &_edata - &_data);
 
     // Initialize the BSS segment
-    for (dst = &_bss; dst< &_ebss; dst++) {
-        *dst = 0;
-    }
+    Bytes_ClearRange((Byte*)&_bss, &_ebss - &_bss);
 }
 
 

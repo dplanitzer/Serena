@@ -10,7 +10,6 @@
 #include "Heap.h"
 #include "InterruptController.h"
 #include "RingBuffer.h"
-#include "SystemGlobals.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////

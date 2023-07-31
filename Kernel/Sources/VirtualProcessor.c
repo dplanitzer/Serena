@@ -7,11 +7,11 @@
 //
 
 #include "VirtualProcessor.h"
+#include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
 #include "Bytes.h"
 #include "Heap.h"
 #include "Platform.h"
-#include "SystemGlobals.h"
 
 
 // Initializes an execution stack struct. The execution stack is empty by default

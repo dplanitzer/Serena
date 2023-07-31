@@ -123,6 +123,9 @@ static inline Bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
 // Dispatch Queues
 //
 
+// The kernel main queue. This is a serial queue
+extern DispatchQueueRef _Nonnull    gMainDispatchQueue;
+
 extern ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Destroys the dispatch queue after all still pending work items have finished

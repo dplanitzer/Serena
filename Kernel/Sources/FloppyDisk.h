@@ -50,6 +50,8 @@ typedef struct _FloppyDMA {
 } FloppyDMA;
 
 
+extern FloppyDMA* _Nonnull  gFloppyDma;
+
 // Creates the floppy DMA singleton
 extern ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
 

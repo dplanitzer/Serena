@@ -12,7 +12,6 @@
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "InterruptController.h"
-#include "SystemGlobals.h"
 
 
 extern void VirtualProcessorScheduler_SwitchContext(void);

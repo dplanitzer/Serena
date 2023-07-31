@@ -10,7 +10,6 @@
 #include "Console.h"
 #include "GraphicsDriver.h"
 #include "Platform.h"
-#include "SystemGlobals.h"
 
 extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
 

@@ -279,6 +279,8 @@ typedef struct _CopperScheduler {
     Int                             running_prog_id;
 } CopperScheduler;
 
+extern CopperScheduler  gCopperSchedulerStorage;
+
 extern void copper_schedule_program(const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg, Int progId);
 extern Int copper_get_running_program_id(void);
 

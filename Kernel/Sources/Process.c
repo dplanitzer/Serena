@@ -7,14 +7,17 @@
 //
 
 #include "Process.h"
+#include "Heap.h"
 #include "DispatchQueue.h"
-#include "SystemGlobals.h"
 
 
 typedef struct _Process {
     Int                 pid;
     DispatchQueueRef    mainDispatchQueue;
 } Process;
+
+
+ProcessRef  gRootProcess;
 
 
 // Returns the next PID available for use by a new process.

@@ -9,7 +9,6 @@
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "InterruptController.h"
-#include "SystemGlobals.h"
 
 #define ONE_SECOND_IN_NANOS (1000 * 1000 * 1000)
 

@@ -13,7 +13,6 @@
 #include "Heap.h"
 #include "MonotonicClock.h"
 #include "Pipe.h"
-#include "SystemGlobals.h"
 #include "SystemDescription.h"
 #include "RealtimeClock.h"
 
@@ -118,7 +117,7 @@ void DispatchQueue_RunTests(void)
 // MARK: True Sleep time
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = SystemDescription_GetShared();
@@ -241,7 +240,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 0
+#if 1
 static void OnReadFromPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;

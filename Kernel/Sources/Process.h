@@ -16,6 +16,9 @@ struct _Process;
 typedef struct _Process* ProcessRef;
 
 
+extern ProcessRef _Nonnull  gRootProcess;
+
+
 // Returns the next PID available for use by a new process.
 extern Int Process_GetNextAvailablePID(void);
 

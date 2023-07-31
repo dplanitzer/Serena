@@ -13,7 +13,6 @@
 #include "InterruptController.h"
 #include "Platform.h"
 #include "Semaphore.h"
-#include "SystemGlobals.h"
 
 #define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
     (UInt16)(((_15) << 15) | ((_14) << 14) | ((_13) << 13) | ((_12) << 12) | ((_11) << 11) |\
@@ -381,6 +380,8 @@ extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
 
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
 
+
+GraphicsDriverRef   gMainGDevice;
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.

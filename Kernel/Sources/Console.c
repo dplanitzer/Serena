@@ -21,6 +21,8 @@ extern const Byte font8x8_dingbat[160][8];
 #define GLYPH_HEIGHT    8
 
 
+Console*    gConsole;
+
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
 // \param pGDevice the graphics device

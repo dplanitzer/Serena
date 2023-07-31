@@ -275,6 +275,9 @@ void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem)
 // MARK: -
 // MARK: Dispatch Queue
 
+DispatchQueueRef        gMainDispatchQueue;
+
+
 ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
     assert(maxConcurrency >= 1);

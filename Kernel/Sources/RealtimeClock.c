@@ -36,6 +36,8 @@ Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* 
 #endif
 
 
+RealtimeClock*  gRealtimeClock;
+
 // Checks whether the system has a RTC installed and returns a realtime clock
 // object ifg that's the case; otherwise NULL is returned
 ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClock* _Nullable * _Nonnull pOutDriver)

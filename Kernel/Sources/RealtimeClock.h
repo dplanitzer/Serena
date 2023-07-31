@@ -41,6 +41,8 @@ extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 extern Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
 
+extern RealtimeClock* _Nullable gRealtimeClock;
+
 extern ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClock* _Nullable * _Nonnull pOutDriver);
 extern void RealtimeClock_Destroy(RealtimeClock* _Nullable pClock);
 

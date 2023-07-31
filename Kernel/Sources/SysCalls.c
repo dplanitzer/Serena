@@ -8,7 +8,6 @@
 
 #include "Console.h"
 #include "Process.h"
-#include "SystemGlobals.h"
 #include "VirtualProcessor.h"
 
 

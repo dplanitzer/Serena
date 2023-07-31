@@ -40,6 +40,8 @@ typedef struct _Console {
 } Console;
 
 
+extern Console* _Nullable   gConsole;
+
 extern ErrorCode Console_Create(GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole);
 extern void Console_Destroy(Console* _Nullable pConsole);
 
