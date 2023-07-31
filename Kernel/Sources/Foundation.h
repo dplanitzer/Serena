@@ -172,6 +172,4 @@ extern _Noreturn fatalError(const Character* _Nonnull filename, int line);
 #define assert(cond)
 #endif
 
-extern _Noreturn mem_non_recoverable_error(void);
-
 #endif /* Foundation_h */

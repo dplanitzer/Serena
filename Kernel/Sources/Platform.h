@@ -61,9 +61,8 @@ extern void cpu_sleep(Int cpu_type);
 extern void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext);
 extern void cpu_abort_call_as_user(void);
 
-#define CPU_AUCI_SAVE_FP_STATE  0x01
-extern void cpu_push_async_user_closure_invocation(UInt options, UInt32* _Nonnull usp, UInt32 pReturnAddress, Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext);
-extern void cpu_async_user_closure_trampoline(void);
+extern _Noreturn cpu_non_recoverable_error(void);
+extern _Noreturn mem_non_recoverable_error(void);
 
 
 //

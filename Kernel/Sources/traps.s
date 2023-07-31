@@ -30,6 +30,7 @@
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _cpu_vector_table
+    xdef _cpu_non_recoverable_error
     xdef _mem_non_recoverable_error
 
 

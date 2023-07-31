@@ -10,6 +10,8 @@
     include "lowmem.i"
     include "syscalls.i"
 
+    xref _cpu_non_recoverable_error
+
     xdef _cpu_enable_irqs
     xdef _cpu_disable_irqs
     xdef _cpu_restore_irqs
@@ -170,60 +172,58 @@ _fpu_get_model:
 
 
 ;-------------------------------------------------------------------------------
-; Int cpu_get_bus_error_frame_size(frame_ptr[a0.l], cpu_type[d0.b])
-; Returns the size of the bus error stack frame which starts at 'frame_ptr'. The
-; CPU type is given by 'cpu_type'.
-_cpu_get_bus_error_frame_size:
+; Void pop_bus_error_stack_frame(continuation_addr[a0.l])
+; Pops the bus error stack frame that is sitting at sp from the stack. We decode
+; the frame type to figure out how many words to remove from the stack. The
+; function then jumps to 'continuation_addr' to continue execution.
+; Trashes: d0
+_pop_bus_error_stack_frame:
     inline
-    ; 68000   7 words                                        (68000UM page 6-17)
+    ; 68000   7 words (NOT supported)                        (68000UM page 6-17)
     ; 68010  29 words (format $8)                            (68000UM page 6-18)
     ; 68020  16 words (format $a)  or  46 words (format $b)  (68020UM page 6-28)
     ; 68030  16 words (format $a)  or  46 words (format $b)  (68030UM page 8-34)
-    ; 68040  30 words (format $7)
+    ; 68040  30 words (format $7)                            (68040UM page 8-24)
     ; 68060   8 words (format $4)                            (UM68060 page 8-21)
-        cmp.b   #0, d0
-        beq     .is_68000
-        cmp.b   #1, d0
-        beq     .is_68010
-        cmp.b   #2, d0
-        beq     .is_68020_or_68030
-        cmp.b   #3, d0
-        beq     .is_68020_or_68030
-        cmp.b   #4, d0
-        beq     .is_68040
-        cmp.b   #6, d0
-        beq     .is_68060
-        moveq   #0, d0
-        rts
-
-.is_68000:
-        moveq   #2*7, d0
-        rts
-
-.is_68010:
-        moveq   #2*29, d0
-        rts
-
-.is_68020_or_68030:
-        move.w  6(a0), d0
+        move.w  6(sp), d0
         lsr.w   #8, d0
         lsr.w   #4, d0
-        cmp.w   #$a, d0
-        bne     .is_68020_or_68030_long_format
-        moveq   #2*16, d0
-        rts
 
-.is_68020_or_68030_long_format:
-        moveq   #2*46, d0
-        rts
+        cmp.b   #$4, d0
+        beq     .is_format_4
+        cmp.b   #$7, d0
+        beq     .is_format_7
+        cmp.b   #$8, d0
+        beq     .is_format_8
+        cmp.b   #$a, d0
+        beq     .is_format_a
+        cmp.b   #$b, d0
+        beq     .is_format_b
+        jmp     _cpu_non_recoverable_error
+        ; NOT REACHED
 
-.is_68040:
-        moveq   #2*30, d0
-        rts
-
-.is_68060:
+.is_format_4:
         moveq   #2*8, d0
-        rts
+        bsr.s   .done
+
+.is_format_7:
+        moveq   #2*30, d0
+        bsr.s   .done
+
+.is_format_8:
+        moveq   #2*29, d0
+        bsr.s   .done
+
+.is_format_a:
+        moveq   #2*16, d0
+        bsr.s   .done
+
+.is_format_b:
+        moveq   #2*46, d0
+
+.done:
+        add.l   d0, sp
+        jmp     (a0)
     einline
 
 
@@ -270,12 +270,8 @@ _cpu_guarded_read:
 .mem_bus_error_handler:
         ; clear the stack frame that the CPU put on the stack. Note that the size
         ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        moveq   #0, d0
-        move.b  (SYS_DESC_BASE + sd_cpu_model), d0
-        move.l  sp, a0
-        jsr _cpu_get_bus_error_frame_size
-        add.l   d0, sp
-        bra     .failed
+        lea     .failed, a0
+        jmp     _pop_bus_error_stack_frame
     einline
 
 
@@ -321,12 +317,8 @@ _cpu_guarded_write:
 .mem_bus_error_handler:
         ; clear the stack frame that the CPU put on the stack. Note that the size
         ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        moveq   #0, d0
-        move.b  (SYS_DESC_BASE + sd_cpu_model), d0
-        move.l  sp, a0
-        jsr _cpu_get_bus_error_frame_size
-        add.l   d0, sp
-        bra     .failed
+        lea     .failed, a0
+        jmp     _pop_bus_error_stack_frame
     einline
 
 
