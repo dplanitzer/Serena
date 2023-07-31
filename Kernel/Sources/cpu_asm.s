@@ -243,7 +243,8 @@ _cpu_guarded_read:
         movem.l a2 - a3, -(sp)
 
         ; compute the address of the bus error vector and park it in a3
-        lea     8, a3
+        movec   vbr, a3
+        addq.l  #8, a3
 
         ; install our special bus error handler
         move.l  (a3), -(sp)
@@ -252,7 +253,7 @@ _cpu_guarded_read:
 
         ; Read the bytes
         beq     .success   ; nothing to do if buffer_size == 0
-        sub.l   #1, d0
+        subq.l  #1, d0
 .L1:
         move.b  (a0)+, (a1)+
         dbra    d0, .L1
@@ -270,7 +271,7 @@ _cpu_guarded_read:
 .mem_bus_error_handler:
         ; clear the stack frame that the CPU put on the stack. Note that the size
         ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        lea     .failed, a0
+        lea     .failed(pc), a0
         jmp     _pop_bus_error_stack_frame
     einline
 
@@ -290,10 +291,11 @@ _cpu_guarded_write:
         movem.l a2 - a3, -(sp)
 
         ; compute the address of the bus error vector and park it in a3
-        lea     8, a3
+        movec   vbr, a3
+        addq.l  #8, a3
 
         ; install our special bus error handler
-        move.l  (a3), -(sp)
+        move.l  8(a3), -(sp)
         lea     .mem_bus_error_handler(pc), a2
         move.l  a2, (a3)
 
@@ -317,7 +319,7 @@ _cpu_guarded_write:
 .mem_bus_error_handler:
         ; clear the stack frame that the CPU put on the stack. Note that the size
         ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        lea     .failed, a0
+        lea     .failed(pc), a0
         jmp     _pop_bus_error_stack_frame
     einline
 
