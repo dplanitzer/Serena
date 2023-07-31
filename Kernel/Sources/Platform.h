@@ -28,6 +28,22 @@
 #endif
 
 
+// CPU types
+#define CPU_MODEL_68000     0
+#define CPU_MODEL_68010     1
+#define CPU_MODEL_68020     2
+#define CPU_MODEL_68030     3
+#define CPU_MODEL_68040     4
+#define CPU_MODEL_68060     6
+
+// FPU types
+#define FPU_MODEL_NONE      0
+#define FPU_MODEL_68881     1
+#define FPU_MODEL_68882     2
+#define FPU_MODEL_68040     3
+#define FPU_MODEL_68060     4
+
+
 // CPU register state
 typedef struct _CpuContext {
     // 68000 or better
@@ -95,14 +111,12 @@ extern const Character* _Nonnull fpu_get_model_name(void);
 //
 
 
-/*
- 8361 (Regular) or 8370 (Fat) (Agnus-NTSC) = 10, 512KB
- 8367 (Pal) or 8371 (Fat-Pal) (Agnus-PAL) = 00, 512KB
- 8372 (Fat-hr) (agnushr),thru rev4 = 20 PAL, 30 NTSC, 1MB
- 8372 (Fat-hr) (agnushr),rev 5 = 22 PAL, 31 NTSC, 1MB
- 8374 (Alice) thru rev 2 = 22 PAL, 32 NTSC, 2MB
- 8374 (Alice) rev 3 thru rev 4 = 23 PAL, 33 NTSC, 2MB
- */
+// 8361 (Regular) or 8370 (Fat) (Agnus-NTSC) = 10, 512KB
+// 8367 (Pal) or 8371 (Fat-Pal) (Agnus-PAL) = 00, 512KB
+// 8372 (Fat-hr) (agnushr),thru rev4 = 20 PAL, 30 NTSC, 1MB
+// 8372 (Fat-hr) (agnushr),rev 5 = 22 PAL, 31 NTSC, 1MB
+// 8374 (Alice) thru rev 2 = 22 PAL, 32 NTSC, 2MB
+// 8374 (Alice) rev 3 thru rev 4 = 23 PAL, 33 NTSC, 2MB
 #define CHIPSET_8361_NTSC       0x10
 #define CHIPSET_8367_PAL        0x00
 #define CHIPSET_8370_NTSC       0x10
@@ -115,6 +129,11 @@ extern const Character* _Nonnull fpu_get_model_name(void);
 #define CHIPSET_8374_rev2_NTSC  0x32
 #define CHIPSET_8374_rev3_PAL   0x23
 #define CHIPSET_8374_rev3_NTSC  0x33
+
+
+// RAMSEY chip versions (32bit Amigas only. Like A3000 / A4000)
+#define CHIPSET_RAMSEY_rev04    0x0d
+#define CHIPSET_RAMSEY_rev07    0x0f
 
 
 // Chipset registers
@@ -245,7 +264,8 @@ typedef UInt32  CopperInstruction;
 
 
 extern void chipset_reset(void);
-extern Int chipset_get_version(void);
+extern UInt8 chipset_get_version(void);
+extern UInt8 chipset_get_ramsey_version(void);
 extern Bool chipset_is_ntsc(void);
 extern Byte* _Nonnull chipset_get_mem_limit(void);
 

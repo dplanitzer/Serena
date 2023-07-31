@@ -148,21 +148,8 @@ void mem_check_expanion_boards(SystemDescription* pSysDesc)
 
 void SystemDescription_Init(SystemDescription* pSysDesc)
 {
-    volatile UInt8* pRAMSEY = (volatile UInt8*)RAMSEY_CHIP_BASE;
-    
     pSysDesc->chipset_version = (Int8)chipset_get_version();
-    
-    // Figure out whether a RAMSEY chip is available
-    pSysDesc->chipset_ramsey_version = *pRAMSEY;
-    switch (pSysDesc->chipset_ramsey_version) {
-        case CHIPSET_RAMSEY_rev04:
-        case CHIPSET_RAMSEY_rev07:
-            break;
-            
-        default:
-            pSysDesc->chipset_ramsey_version = 0;
-            break;
-    }
+    pSysDesc->chipset_ramsey_version = (Int8)chipset_get_ramsey_version();
 
     // Compute the quantum timer parameters:
     //

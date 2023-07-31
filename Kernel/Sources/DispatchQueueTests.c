@@ -117,10 +117,17 @@ void DispatchQueue_RunTests(void)
 // MARK: True Sleep time
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = SystemDescription_GetShared();
+
+    print("CPU: %s\n", cpu_get_model_name());
+    print("FPU: %s\n", fpu_get_model_name());
+    print("Chipset version: $%x\n", (UInt32) pSysDesc->chipset_version);
+    print("RAMSEY version: $%x\n", pSysDesc->chipset_ramsey_version);
+    print("\n");
+
     /*
     if (gRealtimeClock) {
         GregorianDate date;
@@ -240,7 +247,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnReadFromPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;

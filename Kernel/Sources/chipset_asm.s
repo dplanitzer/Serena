@@ -13,7 +13,6 @@
     xref _gCopperSchedulerStorage
 
     xdef _chipset_reset
-    xdef _chipset_get_version
     xdef _chipset_enable_interrupt
     xdef _chipset_disable_interrupt
     xdef _chipset_start_quantum_timer
@@ -64,17 +63,6 @@ _chipset_reset:
     or.b    #%01111000, d0      ; and finally deselect all drives for good
     move.b  d0, CIABPRB
 
-    rts
-
-
-;-------------------------------------------------------------------------------
-; Int chipset_get_version(void)
-; Returns the version of the custom chips installed in the machine
-_chipset_get_version:
-    moveq.l #0, d0
-    move.w  CUSTOM_BASE + VPOSR, d0
-    lsr.w   #8, d0
-    and.b   #$7f, d0
     rts
 
 
