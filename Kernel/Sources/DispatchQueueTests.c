@@ -122,8 +122,8 @@ void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = SystemDescription_GetShared();
 
-    print("CPU: %s\n", cpu_get_model_name());
-    print("FPU: %s\n", fpu_get_model_name());
+    print("CPU: %s\n", cpu_get_model_name(pSysDesc->cpu_model));
+    print("FPU: %s\n", fpu_get_model_name(pSysDesc->fpu_model));
     print("Chipset version: $%x\n", (UInt32) pSysDesc->chipset_version);
     print("RAMSEY version: $%x\n", pSysDesc->chipset_ramsey_version);
     print("\n");

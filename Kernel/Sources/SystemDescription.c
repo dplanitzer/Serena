@@ -100,9 +100,21 @@ static Bool mem_check_region(SystemDescription* pSysDesc, Byte* lower, Byte* upp
 void mem_check_motherboard(SystemDescription* pSysDesc)
 {
     Byte* chip_ram_lower_p = pSysDesc->memory_descriptor[0].lower;  // set up by _Reset in traps.s
-    Byte* chip_ram_upper_p = chipset_get_mem_limit();
-    Bool is32bit = cpu_is32bit();
+    Byte* chip_ram_upper_p;
     
+    switch (pSysDesc->chipset_version) {
+        case CHIPSET_8370_NTSC:             chip_ram_upper_p = (Byte*) (512 * 1024); break;
+        case CHIPSET_8371_PAL:              chip_ram_upper_p = (Byte*) (512 * 1024); break;
+        case CHIPSET_8372_rev4_PAL:         chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
+        case CHIPSET_8372_rev4_NTSC:        chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
+        case CHIPSET_8372_rev5_NTSC:        chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
+        case CHIPSET_8374_rev2_PAL:         chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
+        case CHIPSET_8374_rev2_NTSC:        chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
+        case CHIPSET_8374_rev3_PAL:         chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
+        case CHIPSET_8374_rev3_NTSC:        chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
+        default:                            chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
+    }
+
     // Forget the memory map set up by traps.s 'cause we'll build our own map here
     pSysDesc->memory_descriptor_count = 0;
     
@@ -122,7 +134,7 @@ void mem_check_motherboard(SystemDescription* pSysDesc)
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
-    if (is32bit && pSysDesc->chipset_ramsey_version > 0) {
+    if (pSysDesc->chipset_ramsey_version > 0) {
         mem_check_region(pSysDesc, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU);
     }
 }

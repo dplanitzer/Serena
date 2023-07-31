@@ -11,27 +11,75 @@
 CopperScheduler gCopperSchedulerStorage;
 
 
+//
+// CPU
+//
+
+// Returns the model name of the CPU
+const Character* _Nonnull cpu_get_model_name(Int8 cpu_model)
+{
+    switch (cpu_model) {
+        case CPU_MODEL_68000:
+            return "68000";
+            
+        case CPU_MODEL_68010:
+            return "68010";
+            
+        case CPU_MODEL_68020:
+            return "68020";
+            
+        case CPU_MODEL_68030:
+            return "68030";
+            
+        case CPU_MODEL_68040:
+            return "68040";
+            
+        case CPU_MODEL_68060:
+            return "68060";
+            
+        default:
+            return "??";
+    }
+}
+
+
+//
+// FPU
+//
+
+// Returns the model name of the FPU
+const Character* _Nonnull fpu_get_model_name(Int8 fpu_model)
+{
+    switch (fpu_model) {
+        case FPU_MODEL_NONE:
+            return "none";
+            
+        case FPU_MODEL_68881:
+            return "68881";
+            
+        case FPU_MODEL_68882:
+            return "68882";
+            
+        case FPU_MODEL_68040:
+            return "68040";
+            
+        case FPU_MODEL_68060:
+            return "68060";
+            
+        default:
+            return "??";
+    }
+}
+
+
+//
+// Chipset
+//
+
 // Returns true if the machine is a NTSC machine; false if it is a PAL machine
 Bool chipset_is_ntsc(void)
 {
     return (chipset_get_version() & (1 << 4)) != 0;
-}
-
-// Returns the first memory address that the on-board chipset can not access via DMA.
-Byte* _Nonnull chipset_get_mem_limit(void)
-{
-    switch (chipset_get_version()) {
-        case CHIPSET_8370_NTSC:             return (Byte*) (512 * 1024);
-        case CHIPSET_8371_PAL:              return (Byte*) (512 * 1024);
-        case CHIPSET_8372_rev4_PAL:         return (Byte*) (1 * 1024 * 1024);
-        case CHIPSET_8372_rev4_NTSC:        return (Byte*) (1 * 1024 * 1024);
-        case CHIPSET_8372_rev5_NTSC:        return (Byte*) (1 * 1024 * 1024);
-        case CHIPSET_8374_rev2_PAL:         return (Byte*) (2 * 1024 * 1024);
-        case CHIPSET_8374_rev2_NTSC:        return (Byte*) (2 * 1024 * 1024);
-        case CHIPSET_8374_rev3_PAL:         return (Byte*) (2 * 1024 * 1024);
-        case CHIPSET_8374_rev3_NTSC:        return (Byte*) (2 * 1024 * 1024);
-        default:                            return (Byte*) (512 * 1024);
-    }
 }
 
 // See: <https://eab.abime.net/showthread.php?t=34838>
