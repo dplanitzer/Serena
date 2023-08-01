@@ -93,12 +93,12 @@ static Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 // Invoked by the OnReset() function after the chipset has been reset. This
 // function tests the motherboard RAM and figures out how much RAM is installed
 // on the motherboard and which address ranges contain operating RAM chips.
-void mem_check_motherboard(MemoryLayout* pMemLayout)
+static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServicesMemoryTop)
 {
-    Byte* chip_ram_lower_p = pMemLayout->descriptor[0].lower;  // set up by _Reset in traps.s
+    Byte* chip_ram_lower_p = pBootServicesMemoryTop;
     Byte* chip_ram_upper_p;
     
-    switch (chipset_get_version()) {
+    switch (pSysDesc->chipset_version) {
         case CHIPSET_8370_NTSC:             chip_ram_upper_p = (Byte*) (512 * 1024); break;
         case CHIPSET_8371_PAL:              chip_ram_upper_p = (Byte*) (512 * 1024); break;
         case CHIPSET_8372_rev4_PAL:         chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
@@ -112,7 +112,7 @@ void mem_check_motherboard(MemoryLayout* pMemLayout)
     }
 
     // Forget the memory map set up by traps.s 'cause we'll build our own map here
-    pMemLayout->descriptor_count = 0;
+    pSysDesc->memory.descriptor_count = 0;
     
     
     // Memory map: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node00D4.html
@@ -122,16 +122,16 @@ void mem_check_motherboard(MemoryLayout* pMemLayout)
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(pMemLayout, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_ACCESS_CPU | MEM_ACCESS_CHIPSET);
+    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_ACCESS_CPU | MEM_ACCESS_CHIPSET);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(pMemLayout, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_ACCESS_CPU);
+    mem_check_region(&pSysDesc->memory, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_ACCESS_CPU);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
-    if (chipset_get_ramsey_version() > 0) {
-        mem_check_region(pMemLayout, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU);
+    if (pSysDesc->chipset_ramsey_version > 0) {
+        mem_check_region(&pSysDesc->memory, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU);
     }
 }
 
@@ -153,9 +153,19 @@ void mem_check_expanion_boards(SystemDescription* pSysDesc)
 }
 
 
+extern Int8 fpu_get_model(void);
 
-void SystemDescription_Init(SystemDescription* pSysDesc)
+// Initializes the system description which contains basic information about the
+// platform. The system description is stored in low memory.
+// @param pSysDesc the system description memory
+// @param pBootServicesMemoryTop the end address of the memory used by the boot
+//                               services. Range is [0...pBootServicesMemoryTop]
+// @param cpu_model the detected CPU model 
+void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootServicesMemoryTop, Int cpu_model)
 {
+    pSysDesc->cpu_model = cpu_model;
+    pSysDesc->fpu_model = fpu_get_model();
+
     pSysDesc->chipset_version = (Int8)chipset_get_version();
     pSysDesc->chipset_ramsey_version = (Int8)chipset_get_ramsey_version();
 
@@ -187,7 +197,11 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
     pSysDesc->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;
     pSysDesc->quantum_duration_ns = (is_ntsc) ? 16761906 : 17621045;
     
-    
+
+    // Find the populated motherboard RAM regions
+    mem_check_motherboard(pSysDesc, pBootServicesMemoryTop);
+
+
     // Auto config the Zorro bus
     zorro_auto_config(&pSysDesc->expansion);
 

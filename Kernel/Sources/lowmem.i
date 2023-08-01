@@ -102,6 +102,8 @@ SYS_DESC_SIZEOF             equ     1024
 RESET_STACK_BASE            equ     3*4096
 RESET_STACK_SIZEOF          equ     8192
 
+BOOT_SERVICES_MEM_TOP       equ     RESET_STACK_BASE
+
 
 
 ; Defines that describe who can access a memory range
@@ -122,8 +124,6 @@ memdesc_SIZEOF              so              ; 12
 
 ; The SystemDescription object
     clrso
-sd_stack_base                   so.l    1       ; 4
-sd_stack_size                   so.l    1       ; 4
 sd_cpu_model                    so.b    1       ; 1
 sd_fpu_model                    so.b    1       ; 1
 sd_cipset_version               so.b    1       ; 1
@@ -135,8 +135,8 @@ sd_memory_descriptor_count      so.l    1       ; 4
 sd_memory_descriptor            so.b    12*8    ; 12 * 8
 sd_expansion_board_count        so.l    1       ; 4
 sd_expansion_board              so.b    20*16   ; 20 * 16
-sd_SIZEOF                       so              ; 444
-    ifeq (sd_SIZEOF == 444)
+sd_SIZEOF                       so              ; 436
+    ifeq (sd_SIZEOF == 436)
         fail "SystemDescription structure size is incorrect."
     endif
 

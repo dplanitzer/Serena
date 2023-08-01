@@ -26,6 +26,7 @@
     xref _cpu_return_from_call_as_user
     xref _cpu_get_model
     xref _fpu_get_model
+    xref _SystemDescription_Init
     xref _gInterruptControllerStorage
     xref _gVirtualProcessorSchedulerStorage
 
@@ -129,25 +130,16 @@ _Reset:
         bge     .L3
         jmp     _cpu_non_recoverable_error
 .L3:
-        lea     SYS_DESC_BASE, a0
-        move.b  d0, sd_cpu_model(a0)
 
-        ; figure out which FPU we got
-        jsr     _fpu_get_model
-        lea     SYS_DESC_BASE, a0
-        move.b  d0, sd_fpu_model(a0)
-
-        ; set up descriptor #0 of the memory map such that it is empty and its
-        ; lower bound is right at the end of the reset memory map.
-        move.l  #RESET_STACK_BASE, sd_stack_base(a0)
-        move.l  #RESET_STACK_SIZEOF, sd_stack_size(a0)
-        move.l  #1, sd_memory_descriptor_count(a0)
-        move.l  #RESET_STACK_BASE, sd_memory_descriptor + memdesc_lower(a0)
-        move.l  #RESET_STACK_BASE, sd_memory_descriptor + memdesc_upper(a0)
-        move.b  #(MEM_ACCESS_CPU + MEM_ACCESS_CHIPSET), sd_memory_descriptor + memdesc_accessibility(a0)
+        ; Initialize the system description
+        move.l  d0, -(sp)
+        move.l  #BOOT_SERVICES_MEM_TOP, -(sp)
+        pea     SYS_DESC_BASE
+        jsr     _SystemDescription_Init
+        add.l   #12, sp
 
         ; call the OnReset(SystemDescription*) routine
-        move.l  a0, -(sp)
+        pea     SYS_DESC_BASE
         jsr     _OnReset
         addq    #4, sp
 

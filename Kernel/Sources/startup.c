@@ -30,15 +30,8 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc);
 // Called from the Reset() function at system reset time. Only a very minimal
 // environment is set up at this point. IRQs and DMAs are off, CPU vectors are
 // set up and a small reset stack exists.
-// OnReset() must finish the initialization of the provided system description.
-// The 'stack_base' and 'stack_size' fields are set up with the reset stack. All
-// other fields must be initialized before OnReset() returns.
 void OnReset(SystemDescription* _Nonnull pSysDesc)
 {
-    mem_check_motherboard(&pSysDesc->memory);
-
-    SystemDescription_Init(pSysDesc);
-
     const Int data_size = &_edata - &_data;
     const Int bss_size = &_ebss - &_bss;
 

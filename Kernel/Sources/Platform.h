@@ -112,7 +112,6 @@ typedef struct _MemoryLayout {
 
 
 extern Bool mem_probe(Byte* _Nonnull addr);
-extern void mem_check_motherboard(MemoryLayout* pMemLayout);
 
 
 #define CIAA_BASE           0xbfe001

@@ -14,8 +14,6 @@
 // The system description
 // Note: Keep in sync with lowmem.i
 typedef struct _SystemDescription {
-    Byte* _Nonnull      stack_base;     // Reset / Kernel stack base pointer
-    Int                 stack_size;
     Int8                cpu_model;
     Int8                fpu_model;
     // All fields above this point are filled in before OnReset() is called.
@@ -34,7 +32,5 @@ typedef struct _SystemDescription {
 
 // Returns a reference to the shared system description.
 extern SystemDescription* _Nonnull SystemDescription_GetShared(void);
-
-extern void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc);
 
 #endif /* SystemDescription_h */
