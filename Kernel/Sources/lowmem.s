@@ -10,17 +10,9 @@
 
     xref _gVirtualProcessorSchedulerStorage
 
-    xdef _SystemDescription_GetShared
     xdef _VirtualProcessor_GetCurrent
     xdef _VirtualProcessor_GetCurrentVpid
 
-
-;-------------------------------------------------------------------------------
-; SystemDescription* SystemDescription_GetShared(void)
-; Returns a reference to the shared system description struct.
-_SystemDescription_GetShared:
-    move.l  #SYS_DESC_BASE, d0
-    rts
 
 ;-------------------------------------------------------------------------------
 ; VirtualProcessor* VirtualProcessor_GetCurrent(void)

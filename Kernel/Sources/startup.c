@@ -70,6 +70,10 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     pSysDesc->memory.descriptor[0].lower += Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
 
 
+    // Store a reference to the system description in our globals
+    gSystemDescription = pSysDesc;
+
+
     // Allocate the kernel stack in high mem
     const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     Byte* pKernelStackBase = boot_allocate_kernel_stack(pSysDesc, kernelStackSize);

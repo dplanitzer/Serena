@@ -31,6 +31,6 @@ typedef struct _SystemDescription {
 
 
 // Returns a reference to the shared system description.
-extern SystemDescription* _Nonnull SystemDescription_GetShared(void);
+extern SystemDescription* _Nonnull gSystemDescription;
 
 #endif /* SystemDescription_h */

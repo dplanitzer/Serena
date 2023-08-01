@@ -10,6 +10,9 @@
 #include "Bytes.h"
 
 
+SystemDescription* _Nonnull gSystemDescription;
+
+
 Bool mem_probe(Byte* addr)
 {
     static const Byte* MEM_PATTERN = (const Byte*)"HbGtF1J8";

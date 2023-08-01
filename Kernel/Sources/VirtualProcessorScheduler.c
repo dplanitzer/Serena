@@ -78,7 +78,7 @@ ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnu
 
 
     // Allocate the idle virtual processor
-    try(IdleVirtualProcessor_Create(SystemDescription_GetShared(), &pScheduler->idleVirtualProcessor));
+    try(IdleVirtualProcessor_Create(gSystemDescription, &pScheduler->idleVirtualProcessor));
     try(VirtualProcessor_Resume(pScheduler->idleVirtualProcessor, false));
     
 
@@ -621,6 +621,6 @@ catch:
 static void IdleVirtualProcessor_Run(Byte* _Nullable pContext)
 {
     while (true) {
-        cpu_sleep(SystemDescription_GetShared()->cpu_model);
+        cpu_sleep(gSystemDescription->cpu_model);
     }
 }

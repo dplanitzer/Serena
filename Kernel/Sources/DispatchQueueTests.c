@@ -120,7 +120,7 @@ void DispatchQueue_RunTests(void)
 #if 1
 void DispatchQueue_RunTests(void)
 {
-    const SystemDescription* pSysDesc = SystemDescription_GetShared();
+    const SystemDescription* pSysDesc = gSystemDescription;
 
     print("CPU: %s\n", cpu_get_model_name(pSysDesc->cpu_model));
     print("FPU: %s\n", fpu_get_model_name(pSysDesc->fpu_model));
