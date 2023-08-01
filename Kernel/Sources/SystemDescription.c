@@ -8,10 +8,6 @@
 
 #include "SystemDescription.h"
 #include "Bytes.h"
-#include "Platform.h"
-
-
-extern void zorro_auto_config(ExpansionBus* pExpansionBus);
 
 
 Bool mem_probe(Byte* addr)
@@ -191,10 +187,6 @@ void SystemDescription_Init(SystemDescription* pSysDesc)
     pSysDesc->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;
     pSysDesc->quantum_duration_ns = (is_ntsc) ? 16761906 : 17621045;
     
-    
-    // Probe RAM installed on the motherboard
-    mem_check_motherboard(&pSysDesc->memory);
-
     
     // Auto config the Zorro bus
     zorro_auto_config(&pSysDesc->expansion);

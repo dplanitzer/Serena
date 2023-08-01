@@ -35,6 +35,8 @@ static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc);
 // other fields must be initialized before OnReset() returns.
 void OnReset(SystemDescription* _Nonnull pSysDesc)
 {
+    mem_check_motherboard(&pSysDesc->memory);
+
     SystemDescription_Init(pSysDesc);
 
     // Copy the kernel data segment from ROM to RAM

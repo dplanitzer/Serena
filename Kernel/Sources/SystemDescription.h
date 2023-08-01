@@ -9,62 +9,7 @@
 #ifndef SystemDescription_h
 #define SystemDescription_h
 
-#include "Foundation.h"
-
-
-// Supported max number of memory descriptors
-#define MEMORY_DESCRIPTORS_CAPACITY  8
-
-// Supported max number of expansion boards
-#define EXPANSION_BOARDS_CAPACITY    16
-
-
-// Specifies who can access a specific memory range
-#define MEM_ACCESS_CPU     1
-#define MEM_ACCESS_CHIPSET 2
-
-// A memory descriptor describes a contiguous range of RAM
-typedef struct _MemoryDescriptor {
-    Byte* _Nonnull  lower;
-    Byte* _Nonnull  upper;
-    UInt8           accessibility;      // MEM_ACCESS_XXX
-    UInt8           reserved[3];
-    // Update lowmem.i if you add a new property here
-} MemoryDescriptor;
-
-typedef struct _MemoryLayout {
-    Int                 descriptor_count;
-    MemoryDescriptor    descriptor[MEMORY_DESCRIPTORS_CAPACITY];
-} MemoryLayout;
-
-
-// Expanion board types
-#define EXPANSION_TYPE_RAM  0
-#define EXPANSION_TYPE_IO   1
-
-// Expansion bus types
-#define EXPANSION_BUS_ZORRO_2   0
-#define EXPANSION_BUS_ZORRO_3   1
-
-// An expansion board
-typedef struct _ExpansionBoard {
-    Byte* _Nonnull  start;          // base address
-    UInt            physical_size;  // size of memory space reserved for this board
-    UInt            logical_size;   // size of memory space actually occupied by the board
-    Int8            type;
-    Int8            bus;
-    Int8            slot;
-    Int8            reserved;
-    UInt16          manufacturer;
-    UInt16          product;
-    UInt32          serial_number;
-    // Update lowmem.i if you add a new property here
-} ExpansionBoard;
-
-typedef struct _ExpansionBus {
-    Int                 board_count;
-    ExpansionBoard      board[EXPANSION_BOARDS_CAPACITY];
-} ExpansionBus;
+#include "Platform.h"
 
 // The system description
 // Note: Keep in sync with lowmem.i
