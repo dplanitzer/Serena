@@ -80,13 +80,8 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     assert(pKernelStackBase != NULL);
 
 
-    // Initialize the boot virtual processor
-    VirtualProcessor* pVp = NULL;
-    try_bang(BootVirtualProcessor_CreateForLocalCPU(pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize), &pVp));
-
-    
     // Initialize the scheduler
-    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, pVp);
+    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
 
 
     // Do the first ever context switch over to the boot virtual processor

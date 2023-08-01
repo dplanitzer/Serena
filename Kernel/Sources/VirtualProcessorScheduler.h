@@ -62,7 +62,7 @@ typedef struct _VirtualProcessorScheduler {
 
 extern VirtualProcessorScheduler* _Nonnull gVirtualProcessorScheduler;
 
-extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, VirtualProcessor* _Nonnull pBootVP);
+extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure bootClosure);
 extern ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler);
 
 extern void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
@@ -123,13 +123,5 @@ extern void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnu
 extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 
 extern _Noreturn VirtualProcessorScheduler_IncipientContextSwitch(void);
-
-
-//
-// The following functions are defined for the scheduler internal VPs: boot and idle.
-//
-
-// The boot virtual processor
-extern ErrorCode BootVirtualProcessor_CreateForLocalCPU(const SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure closure, VirtualProcessor* _Nullable * _Nonnull pOutVp);
 
 #endif /* VirtualProcessorScheduler_h */
