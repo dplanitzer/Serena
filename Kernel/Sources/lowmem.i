@@ -65,48 +65,42 @@ CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 
 
 ;
-; The low memory region of the Kernel. Low memory starts at address 0 and includes
-; fundamental data structures and objects like the CPU vector table, system
-; description, and the system globals which point to the monotonic clock, kernel
-; heap, etc.
-; This memory region is set up at reset / boot time.
+; The boot services memory region of the kernel. Boot services memory starts at
+; physical address 0 and extends to physical address 12288. The first page holds
+; the CPU vectors (starting at physical address 0) and the system description
+; data structure. The system description contains basic information about the
+; system like CPU type and the motherboard memory layout. Pages 2 and 3 contain
+; the boot environment stack.
 ;
 ; This is what the memory map looks like at reset time:
 ;
-; -----------------------------------------------------------------------
-; | CPU vectors | low memory | reset stack | chip RAM ...
-; -----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
+; | CPU vectors | system description | empty | boot stack (8K) | chip RAM ...
+; ------------------------------------------------------------------------------
 ;
-; The _Reset function initializes the CPU vector table and it clears the low memory
-; region. It then initializes the system description with the reset stack and a
-; memory descriptor which spans just the reset stack area. Note that the lower
-; bound of this memory descriptor is right at the end of low memory. This allows
-; the high-level language code to easily figure out where the memory area starts
-; that should be managed by the heap.
-; _Reset then calls OnReset() which takes care of finializing the initialization
-; of the system description.
+; The _Reset function initializes the CPU vector table and it clears the system
+; description  memory region. It then initializes the system description with a
+; single empty memory descriptor. Note however that the memory descriptor lower
+; and upper bound is set to the end of the boot services memory region. That way
+; the first memory descriptor will exclude the boot services memory region once
+; the motherboard memory check has completed.  
+; _Reset then calls OnReset() which takes care setting up the kernel data and
+; bss segments.
 ; Once OnReset() returns, _Reset calls OnBoot(). OnBoot() figures out where the
-; kernel stack should live in memory and how big it should be. It tries to put the
-; kernel stack into fast RAM. It then updates the system description with information
-; about the new kernel stack and it then returns to _Reset.
-; Once OnBoot() has returned, _Reset next switches to the new kernel stack and it
-; then finally invokes OnStartup() which initializes the kernel.
-; Note that OnStartup() is not allowed to return. If it does then _Reset will treat
-; this as a bug and halt the machine.
+; kernel stack should live in memory and how big it should be. It tries to put
+; the kernel stack into fast RAM.
+; Once OnBoot() has returned, _Reset triggers the first context switch to the
+; boot virtual processor that was set up in OnBoot(). The boot virtual processor
+; then executes OnStartup() which finishes the initialization of the kernel.
 ;
 CPU_VECTORS_BASE            equ     0
-CPU_VECTORS_SIZEOF          equ     256*4
+CPU_VECTORS_SIZEOF          equ     1024
 
-; big enough to hold all of the low memory objects
-; Should be a multiple of 4
-LOW_MEM_SIZEOF              equ     3072
-LOW_MEM_BASE                equ     CPU_VECTORS_BASE + CPU_VECTORS_SIZEOF
+SYS_DESC_BASE               equ     CPU_VECTORS_SIZEOF
+SYS_DESC_SIZEOF             equ     1024
 
-SYS_DESC_BASE               equ     LOW_MEM_BASE
-; MONOTONIC_CLOCK_BASE        equ     SYS_DESC_BASE + sd_SIZEOF
-
-RESET_STACK_SIZEOF          equ     4096
-RESET_STACK_BASE            equ     LOW_MEM_BASE + LOW_MEM_SIZEOF + 4096
+RESET_STACK_BASE            equ     3*4096
+RESET_STACK_SIZEOF          equ     8192
 
 
 

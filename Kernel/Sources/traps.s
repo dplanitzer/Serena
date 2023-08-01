@@ -109,29 +109,17 @@ _Reset:
 
         ; install the CPU vector table
         lea     _cpu_vector_table(pc), a0
-        move.w  #CPU_VECTORS_SIZEOF/4-1, d0
+        move.w  #(CPU_VECTORS_SIZEOF/4)-1, d0
         lea     CPU_VECTORS_BASE, a1
 .L1:    move.l  (a0)+, (a1)+
         dbra    d0, .L1
 
-        ; clear the low memory region (sys description + sys globals)
-        lea     LOW_MEM_BASE, a0
-        move.w  #LOW_MEM_SIZEOF/4-1, d0
+        ; clear the system description
+        lea     SYS_DESC_BASE, a0
+        move.w  #(SYS_DESC_SIZEOF/4)-1, d0
         moveq.l #0, d1
 .L2:    move.l  d1, (a0)+
         dbra    d0, .L2
-
-        ; initialize the SystemDescription with the reset stack and memory
-        ; descriptor #0 which describes the static reset time memory map. This
-        ; excludes the low memory area from the description but the reset stack
-        ; is inside the memory area
-        lea     SYS_DESC_BASE, a0
-        move.l  #RESET_STACK_BASE, sd_stack_base(a0)
-        move.l  #RESET_STACK_SIZEOF, sd_stack_size(a0)
-        move.l  #1, sd_memory_descriptor_count(a0)
-        move.l  #RESET_STACK_BASE, sd_memory_descriptor + memdesc_lower(a0)
-        move.l  #(RESET_STACK_BASE + RESET_STACK_SIZEOF), sd_memory_descriptor + memdesc_upper(a0)
-        move.b  #(MEM_ACCESS_CPU + MEM_ACCESS_CHIPSET), sd_memory_descriptor + memdesc_accessibility(a0)
 
         ; figure out which type of CPU this is. The required minimum is:
         ; CPU: MC68030
@@ -144,9 +132,19 @@ _Reset:
         lea     SYS_DESC_BASE, a0
         move.b  d0, sd_cpu_model(a0)
 
+        ; figure out which FPU we got
         jsr     _fpu_get_model
         lea     SYS_DESC_BASE, a0
         move.b  d0, sd_fpu_model(a0)
+
+        ; set up descriptor #0 of the memory map such that it is empty and its
+        ; lower bound is right at the end of the reset memory map.
+        move.l  #RESET_STACK_BASE, sd_stack_base(a0)
+        move.l  #RESET_STACK_SIZEOF, sd_stack_size(a0)
+        move.l  #1, sd_memory_descriptor_count(a0)
+        move.l  #RESET_STACK_BASE, sd_memory_descriptor + memdesc_lower(a0)
+        move.l  #RESET_STACK_BASE, sd_memory_descriptor + memdesc_upper(a0)
+        move.b  #(MEM_ACCESS_CPU + MEM_ACCESS_CHIPSET), sd_memory_descriptor + memdesc_accessibility(a0)
 
         ; call the OnReset(SystemDescription*) routine
         move.l  a0, -(sp)

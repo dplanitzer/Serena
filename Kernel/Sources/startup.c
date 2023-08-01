@@ -39,11 +39,18 @@ void OnReset(SystemDescription* _Nonnull pSysDesc)
 
     SystemDescription_Init(pSysDesc);
 
+    const Int data_size = &_edata - &_data;
+    const Int bss_size = &_ebss - &_bss;
+
     // Copy the kernel data segment from ROM to RAM
-    Bytes_CopyRange((Byte*)&_data, (Byte*)&_etext, &_edata - &_data);
+    Bytes_CopyRange((Byte*)&_data, (Byte*)&_etext, data_size);
 
     // Initialize the BSS segment
-    Bytes_ClearRange((Byte*)&_bss, &_ebss - &_bss);
+    Bytes_ClearRange((Byte*)&_bss, bss_size);
+
+    // Carve the kernel data and bss out from memory descriptor #0 to ensure that
+    // our kernel heap is not going to try to override the data/bss region.
+    pSysDesc->memory.descriptor[0].lower += Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
 }
 
 

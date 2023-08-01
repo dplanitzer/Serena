@@ -353,7 +353,7 @@ ErrorCode Heap_AllocateBytesAt(Heap* _Nonnull pHeap, Byte* _Nonnull pAddr, Int n
     }
     
     
-    // Create the allocated block header and add it toi the allocated block list
+    // Create the allocated block header and add it to the allocated block list
     Heap_Block* pAllocedBlock = (Heap_Block*)pBlockLower;
     
     pAllocedBlock->size = nBytesToAlloc;
