@@ -27,26 +27,6 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc);
 static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc);
 
 
-// Called from the Reset() function at system reset time. Only a very minimal
-// environment is set up at this point. IRQs and DMAs are off, CPU vectors are
-// set up and a small reset stack exists.
-void OnReset(SystemDescription* _Nonnull pSysDesc)
-{
-    const Int data_size = &_edata - &_data;
-    const Int bss_size = &_ebss - &_bss;
-
-    // Copy the kernel data segment from ROM to RAM
-    Bytes_CopyRange((Byte*)&_data, (Byte*)&_etext, data_size);
-
-    // Initialize the BSS segment
-    Bytes_ClearRange((Byte*)&_bss, bss_size);
-
-    // Carve the kernel data and bss out from memory descriptor #0 to ensure that
-    // our kernel heap is not going to try to override the data/bss region.
-    pSysDesc->memory.descriptor[0].lower += Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
-}
-
-
 // Find a suitable memory region for the boot kernel stack. We try to allocate
 // the stack region from fast RAM and we try to put it as far up in RAM as
 // possible. We only allocate from chip RAM if there is no fast RAM.
@@ -66,12 +46,30 @@ static Byte* _Nullable boot_allocate_kernel_stack(SystemDescription* _Nonnull pS
     return pStackBase;
 }
 
-// Called by Reset() after OnReset() has returned. This function should initialize
-// the boot virtual processor and the scheduler. Reset() will then do a single
-// context switch to the boot virtual processor which will then continue with the
-// initialization of the kernel.
-void OnBoot(SystemDescription* _Nonnull pSysDesc)
+
+// Called from the boot services at system reset time. Only a very minimal
+// environment is set up at this point. IRQs and DMAs are off, CPU vectors are
+// set up and a small reset stack exists. This function should kick off the
+// kernel initialization by primarily setting up the kernel data and bss segments,
+// basic memory management and the virtual boot processor. Note that this
+// function is expected to never return.
+_Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 {
+    const Int data_size = &_edata - &_data;
+    const Int bss_size = &_ebss - &_bss;
+
+    // Copy the kernel data segment from ROM to RAM
+    Bytes_CopyRange((Byte*)&_data, (Byte*)&_etext, data_size);
+
+    // Initialize the BSS segment
+    Bytes_ClearRange((Byte*)&_bss, bss_size);
+
+
+    // Carve the kernel data and bss out from memory descriptor #0 to ensure that
+    // our kernel heap is not going to try to override the data/bss region.
+    pSysDesc->memory.descriptor[0].lower += Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
+
+
     // Allocate the kernel stack in high mem
     const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     Byte* pKernelStackBase = boot_allocate_kernel_stack(pSysDesc, kernelStackSize);
@@ -85,10 +83,15 @@ void OnBoot(SystemDescription* _Nonnull pSysDesc)
     
     // Initialize the scheduler
     VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, pVp);
+
+
+    // Do the first ever context switch over to the boot virtual processor
+    // execution context.
+    VirtualProcessorScheduler_IncipientContextSwitch();
 }
 
-// Called by the boot virtual processor after onBoot() has returned. This is the thread
-// of execution that was started by the Reset() function.
+// Invoked by onBoot(). The code here runs in the boot virtual processor execution
+// context. Interrupts and DMAs are still turned off.
 //
 // Phase 1 initialization is responsible for bringing up the interrupt handling,
 // basic memort management, monotonic clock and the kernel main dispatch queue.
@@ -119,7 +122,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
     try_bang(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&gMainDispatchQueue));
     
     
-    // Enable interrupt handling
+    // Enable interrupts
     cpu_enable_irqs();
 
     

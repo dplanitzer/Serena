@@ -122,6 +122,8 @@ extern VirtualProcessor* _Nullable VirtualProcessorScheduler_GetHighestPriorityR
 extern void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 
+extern _Noreturn VirtualProcessorScheduler_IncipientContextSwitch(void);
+
 
 //
 // The following functions are defined for the scheduler internal VPs: boot and idle.

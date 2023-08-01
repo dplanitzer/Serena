@@ -16,6 +16,7 @@
     xdef _VirtualProcessorScheduler_RestoreCooperation
     xdef _VirtualProcessorScheduler_IsCooperationEnabled
     xdef _VirtualProcessorScheduler_SwitchContext
+    xdef _VirtualProcessorScheduler_IncipientContextSwitch
     xdef __rtecall_VirtualProcessorScheduler_SwitchContext
     xdef __rtecall_VirtualProcessorScheduler_RestoreContext
 
@@ -87,6 +88,20 @@ _VirtualProcessorScheduler_SwitchContext:
 
 .csw_return:
         rts
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void VirtualProcessorScheduler_IncipientContextSwitch(void)
+; Triggers the very first context switch to the boot virtual processor. This call
+; transfers the CPU to the boot virtual processor execution context and does not
+; return to the caller.
+_VirtualProcessorScheduler_IncipientContextSwitch:
+    inline
+        addq.l  #4, sp  ; get rid of the rts on the stack
+        jmp     __rtecall_VirtualProcessorScheduler_RestoreContext
+        ; NOT REACHED
+        jmp _cpu_non_recoverable_error
     einline
 
 

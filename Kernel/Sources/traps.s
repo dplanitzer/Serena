@@ -138,19 +138,12 @@ _Reset:
         jsr     _SystemDescription_Init
         add.l   #12, sp
 
-        ; call the OnReset(SystemDescription*) routine
-        pea     SYS_DESC_BASE
-        jsr     _OnReset
-        addq    #4, sp
-
-        ; call OnBoot(SystemDescription*)
+        ; call the OnBoot(SystemDescription*) routine
         pea     SYS_DESC_BASE
         jsr     _OnBoot
-        addq    #4, sp
 
-        ; Let the context switcher switch to virtual processor #0 (the boot VP)
-        jmp     __rtecall_VirtualProcessorScheduler_RestoreContext
-        ; NEVER REACHED
+        ; NOT REACHED
+        jmp     _cpu_non_recoverable_error
     einline
 
 
