@@ -7,11 +7,24 @@
 //
 
 #include "RealtimeClock.h"
+#include "Atomic.h"
 #include "Bytes.h"
 #include "Heap.h"
+#include "Lock.h"
 #include "Platform.h"
-#include "VirtualProcessor.h"
 
+
+// The realtime clock
+typedef struct _RealtimeClock {
+    Int     type;
+    Lock    lock;
+    // XXX not fully implemented yet
+} RealtimeClock;
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Gregorian Date
 
 // 00:00:00 Thursday, 1 January 1970 UTC
 const GregorianDate GREGORIAN_DATE_EPOCH = { 0, 0, 0, 5, 1, 1, 1970 };
@@ -29,21 +42,16 @@ Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* 
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// RealtimeClock driver
-////////////////////////////////////////////////////////////////////////////////
-#if 0
-#pragma mark -
-#endif
+// MARK: -
+// MARK: RealtimeClock
 
-
-RealtimeClock*  gRealtimeClock;
 
 // Checks whether the system has a RTC installed and returns a realtime clock
 // object ifg that's the case; otherwise NULL is returned
-ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClock* _Nullable * _Nonnull pOutDriver)
+ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
-    RealtimeClock* pClock;
+    RealtimeClockRef pClock;
     
     try(kalloc_cleared(sizeof(RealtimeClock), (Byte**) &pClock));
     Lock_Init(&pClock->lock);
@@ -57,7 +65,7 @@ catch:
     return err;
 }
 
-void RealtimeClock_Destroy(RealtimeClock* _Nullable pClock)
+void RealtimeClock_Destroy(RealtimeClockRef _Nullable pClock)
 {
     if (pClock) {
         Lock_Deinit(&pClock->lock);
@@ -66,7 +74,7 @@ void RealtimeClock_Destroy(RealtimeClock* _Nullable pClock)
 }
 
 // Returns the current Gregorian date & time.
-ErrorCode RealtimeClock_GetDate(RealtimeClock* _Nonnull pClock, GregorianDate* _Nonnull pDate)
+ErrorCode RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate* _Nonnull pDate)
 {
     decl_try_err();
 
@@ -88,7 +96,7 @@ catch:
 
 // Sets the current Gregorian date & time and makes sure that the clock is
 // running.
-ErrorCode RealtimeClock_SetDate(RealtimeClock* _Nonnull pClock, const GregorianDate* _Nonnull pDate)
+ErrorCode RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const GregorianDate* _Nonnull pDate)
 {
     decl_try_err();
 
@@ -102,7 +110,7 @@ catch:
 }
 
 // Reads up to 'nBytes' from NVRAM. Returns the actual amount of bytes read.
-ErrorCode RealtimeClock_ReadNonVolatileData(RealtimeClock* _Nonnull pClock, ErrorCode* _Nonnull pError, Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesRead)
+ErrorCode RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesRead)
 {
     decl_try_err();
     Int nBytesRead;
@@ -110,7 +118,6 @@ ErrorCode RealtimeClock_ReadNonVolatileData(RealtimeClock* _Nonnull pClock, Erro
     try(Lock_Lock(&pClock->lock));
     // XXX not yet
     nBytesRead = 0;
-    *pError = ENODEV;
     Lock_Unlock(&pClock->lock);
 
     *pOutNumBytesRead = nBytesRead;
@@ -122,7 +129,7 @@ catch:
 }
 
 // Writes up to 'nBytes' to NVRAM. Returns the actual amount of data written.
-ErrorCode RealtimeClock_WriteNonVolatileData(RealtimeClock* _Nonnull pClock, ErrorCode* _Nonnull pError, const Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesWritten)
+ErrorCode RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesWritten)
 {
     decl_try_err();
     Int nBytesWritten;
@@ -130,7 +137,6 @@ ErrorCode RealtimeClock_WriteNonVolatileData(RealtimeClock* _Nonnull pClock, Err
     try(Lock_Lock(&pClock->lock));
     // XXX not yet
     nBytesWritten = 0;
-    *pError = ENODEV;
     Lock_Unlock(&pClock->lock);
     
     *pOutNumBytesWritten = nBytesWritten;

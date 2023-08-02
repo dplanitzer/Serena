@@ -381,8 +381,6 @@ extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
 
 
-GraphicsDriverRef   gMainGDevice;
-
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
 ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver)

@@ -93,8 +93,6 @@ struct _GraphicsDriver;
 typedef struct _GraphicsDriver* GraphicsDriverRef;
 
 
-extern GraphicsDriverRef   gMainGDevice;
-
 extern ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver);
 extern void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver);
 

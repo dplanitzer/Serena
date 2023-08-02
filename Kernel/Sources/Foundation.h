@@ -76,6 +76,10 @@ extern const Character* _Nonnull Int64_ToString(Int64 val, Int base, Int fieldWi
 extern const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, Character paddingChar, Character* _Nonnull pString, Int maxLength);
 
 
+// String
+extern Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs);
+
+
 // TimeInterval
 
 // Represents time as measured in seconds and nanoseconds. All TimeInterval functions

@@ -8,7 +8,7 @@
 
 #include "Foundation.h"
 #include "Console.h"
-
+#include "DriverManager.h"
 
 static Lock gLock;
 
@@ -193,10 +193,14 @@ static void vprint_locked(Console* _Nonnull pConsole, const Character* _Nonnull 
     }
 }
 
+static Console* gConsole;
+
 // Initializes the print subsystem.
 void print_init(void)
 {
     Lock_Init(&gLock);
+    gConsole = (Console*) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
+    assert(gConsole != NULL);
 }
 
 // Print formatted

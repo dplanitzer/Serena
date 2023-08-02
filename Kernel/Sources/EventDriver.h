@@ -105,8 +105,6 @@ typedef enum _InputControllerType {
 } InputControllerType;
 
 
-extern EventDriverRef _Nonnull  gEventDriver;
-
 extern ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver);
 extern void EventDriver_Destroy(EventDriverRef _Nullable pDriver);
 

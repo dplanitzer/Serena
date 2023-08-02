@@ -7,8 +7,8 @@
 //
 
 #include "Foundation.h"
-#include "Console.h"
 #include "DispatchQueue.h"
+#include "DriverManager.h"
 #include "EventDriver.h"
 #include "Heap.h"
 #include "MonotonicClock.h"
@@ -127,19 +127,20 @@ void DispatchQueue_RunTests(void)
     print("Chipset version: $%x\n", (UInt32) pSysDesc->chipset_version);
     print("RAMSEY version: $%x\n", pSysDesc->chipset_ramsey_version);
     print("\n");
-
+ 
     /*
-    if (gRealtimeClock) {
+    RealtimeClockRef pRealtimeClock = (RealtimeClockRef) DriverManager_GetDriverForName(gDriverManager, kRealtimeClockName);
+    if (pRealtimeClock) {
         GregorianDate date;
         Int i = 0;
 
         while (true) {
-            RealtimeClock_GetDate(gRealtimeClock, &date);
+            RealtimeClock_GetDate(pRealtimeClock, &date);
             print(" %d:%d:%d  %d/%d/%d  %d\n", date.hour, date.minute, date.second, date.month, date.day, date.year, date.dayOfWeek);
             print("%d\n", i);
             i++;
             VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
-            Console_ClearScreen(gConsole);
+            print("\f");    // clear screen
         }
     } else {
         print("*** no RTC\n");
@@ -191,12 +192,15 @@ void DispatchQueue_RunTests(void)
 #if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
+    EventDriverRef pEventDriver = (EventDriverRef)DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
+    assert(pEventDriver != NULL);
+
     print("Event loop\n");
     while (true) {
         HIDEvent evt;
         Int count = 1;
         
-        const Int err = EventDriver_GetEvents(gEventDriver, &evt, &count, kTimeInterval_Infinity);
+        const Int err = EventDriver_GetEvents(pEventDriver, &evt, &count, kTimeInterval_Infinity);
         
         switch (evt.type) {
             case kHIDEventType_KeyDown:

@@ -8,6 +8,7 @@
 
 #include "Foundation.h"
 #include "Console.h"
+#include "DriverManager.h"
 #include "GraphicsDriver.h"
 #include "Platform.h"
 
@@ -16,19 +17,25 @@ extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
 
 _Noreturn fatalError(const Character* _Nonnull filename, int line)
 {
-    Character buf[32];
-    
     cpu_disable_irqs();
     chipset_stop_quantum_timer();
 
     _GraphicsDriver_SetClutEntry(0, 0x0000);
     _GraphicsDriver_SetClutEntry(1, 0x0f00);
 
-    Console_DrawString(gConsole, "\n*** ");
-    Console_DrawString(gConsole, filename);
-    if (line > 0) {
-        Console_DrawString(gConsole, ":");
-        Console_DrawString(gConsole, Int64_ToString((Int64)line, 10, 4, '\0', buf, sizeof(buf)));
+    if (gDriverManager != NULL) {
+        Console* pConsole = (Console*)DriverManager_GetDriverForName(gDriverManager, kConsoleName);
+    
+        if (pConsole != NULL) {
+            Console_DrawString(pConsole, "\n*** ");
+            Console_DrawString(pConsole, filename);
+            if (line > 0) {
+                Character buf[32];
+
+                Console_DrawString(pConsole, ":");
+                Console_DrawString(pConsole, Int64_ToString((Int64)line, 10, 4, '\0', buf, sizeof(buf)));
+            }
+        }
     }
     
     while (true);
@@ -97,6 +104,24 @@ const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, 
     }
     
     return max(p, p0);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+// String
+Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs)
+{
+    while (*pLhs) {
+        if (*pLhs != *pRhs) {
+            return false;
+        }
+
+        pLhs++;
+        pRhs++;
+    }
+
+    return true;
 }
 
 

@@ -7,13 +7,16 @@
 //
 
 #include "Console.h"
+#include "DriverManager.h"
 #include "Process.h"
 #include "VirtualProcessor.h"
 
 
 ErrorCode _syscall_write(const Character* pString)
 {
-    return Console_DrawString(gConsole, pString);
+    Console* pConsole = (Console*) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
+
+    return Console_DrawString(pConsole, pString);
 }
 
 ErrorCode _syscall_sleep(Int seconds, Int nanoseconds)

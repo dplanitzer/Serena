@@ -9,9 +9,7 @@
 #ifndef RealtimeClock_h
 #define RealtimeClock_h
 
-#include "Atomic.h"
 #include "Foundation.h"
-#include "Lock.h"
 #include "SystemDescription.h"
 
 
@@ -27,29 +25,22 @@ typedef struct _GregorianDate {
 } GregorianDate;
 
 
-// The realtime clock
-typedef struct _RealtimeClock {
-    Int     type;
-    Lock    lock;
-    // XXX not fully implemented yet
-} RealtimeClock;
-
-
 // 00:00:00 Thursday, 1 January 1970 UTC
 extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 
 extern Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
 
-extern RealtimeClock* _Nullable gRealtimeClock;
+struct _RealtimeClock;
+typedef struct _RealtimeClock* RealtimeClockRef;
 
-extern ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClock* _Nullable * _Nonnull pOutDriver);
-extern void RealtimeClock_Destroy(RealtimeClock* _Nullable pClock);
+extern ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver);
+extern void RealtimeClock_Destroy(RealtimeClockRef _Nullable pClock);
 
-extern ErrorCode RealtimeClock_GetDate(RealtimeClock* _Nonnull pClock, GregorianDate* _Nonnull pDate);
-extern ErrorCode RealtimeClock_SetDate(RealtimeClock* _Nonnull pClock, const GregorianDate* _Nonnull pDate);
+extern ErrorCode RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate* _Nonnull pDate);
+extern ErrorCode RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const GregorianDate* _Nonnull pDate);
 
-extern ErrorCode RealtimeClock_ReadNonVolatileData(RealtimeClock* _Nonnull pClock, ErrorCode* _Nonnull pError, Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesRead);
-extern ErrorCode RealtimeClock_WriteNonVolatileData(RealtimeClock* _Nonnull pClock, ErrorCode* _Nonnull pError, const Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesWritten);
+extern ErrorCode RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesRead);
+extern ErrorCode RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesWritten);
 
 #endif /* RealtimeClock_h */

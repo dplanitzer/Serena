@@ -125,8 +125,6 @@ static void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pD
 static void EventDriver_GatherLowLevelEvents(EventDriver* _Nonnull pDriver);
 
 
-EventDriverRef  gEventDriver;
-
 ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();

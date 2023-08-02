@@ -60,11 +60,11 @@ static inline Bool List_IsEmpty(List* _Nonnull pList) {
     return pList->first == NULL;
 }
 
-#define List_ForEach(pList, closure) \
-for(ListNode* pCurNode = pList->first; pCurNode != NULL; pCurNode = pCurNode->next) { closure; }
+#define List_ForEach(pList, NodeType, closure) \
+for(NodeType* pCurNode = (NodeType*)(pList)->first; pCurNode != NULL; pCurNode = (NodeType*)((ListNode*)pCurNode)->next) { closure }
 
-#define List_ForEachReversed(pList, closure) \
-for(ListNode* pCurNode = pList->last; pCurNode != NULL; pCurNode = pCurNode->prev) { closure; }
+#define List_ForEachReversed(pList, NodeType, closure) \
+for(NodeType* pCurNode = (NodeType*)(pList)->last; pCurNode != NULL; pCurNode = (NodeType*)((ListNode*)pCurNode)->prev) { closure }
 
 
 //
@@ -130,7 +130,7 @@ static inline Bool SList_IsEmpty(SList* _Nonnull pList) {
     return pList->first == NULL;
 }
 
-#define SList_ForEach(pList, closure) \
-for(SListNode* pCurNode = pList->first; pCurNode != NULL; pCurNode = pCurNode->next) { closure; }
+#define SList_ForEach(pList, NodeType, closure) \
+for(NodeType* pCurNode = (NodeType*)(pList)->first; pCurNode != NULL; pCurNode = (NodeType*)((SListNode*)pCurNode)->next) { closure }
 
 #endif /* List_h */

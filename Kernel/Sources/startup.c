@@ -10,21 +10,19 @@
 #include "Bytes.h"
 #include "Console.h"
 #include "DispatchQueue.h"
-#include "EventDriver.h"
-#include "FloppyDisk.h"
+#include "DriverManager.h"
 #include "Heap.h"
 #include "InterruptController.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "Process.h"
-#include "RealtimeClock.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
 
-static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc);
-static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc);
+static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
+static void OnMain(void);
 
 
 // Find a suitable memory region for the boot kernel stack. We try to allocate
@@ -81,7 +79,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
 
     // Initialize the scheduler
-    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup_Phase1, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
+    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
 
 
     // Do the first ever context switch over to the boot virtual processor
@@ -94,7 +92,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 //
 // Phase 1 initialization is responsible for bringing up the interrupt handling,
 // basic memort management, monotonic clock and the kernel main dispatch queue.
-static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
+static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
     // Initialize the global heap
     try_bang(Heap_Create(&pSysDesc->memory, &gHeap));
@@ -126,7 +124,7 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Continue the kernel startup on the kernel main queue
-    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)OnStartup_Phase2, (Byte*)pSysDesc));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)OnMain, NULL));
 
     
     // The boot virtual processor now takes over the duties of running the
@@ -137,37 +135,25 @@ static _Noreturn OnStartup_Phase1(const SystemDescription* _Nonnull pSysDesc)
 // Called by the boot virtual processor after it has finished initializing all
 // dispatch queue related services.
 //
-// Phase 2 initialization is responsible for bringing up the device manager and
-// the first process.
-static void OnStartup_Phase2(const SystemDescription* _Nonnull pSysDesc)
+// This is the kernel main entry point which is responsible for bringing up the
+// driver manager and the first process.
+static void OnMain(void)
 {
-    // Initialize print()
+    // Create the driver manager
+    try_bang(DriverManager_Create(&gDriverManager));
+
+
+    // Initialize enough of the driver infrastructure so that we can start
+    // printing to the console
+    try_bang(DriverManager_AutoConfigureForConsole(gDriverManager));
+
+
+    // Initialize the kernel print services
     print_init();
 
-    
-    // Initialize I/O services needed by the console
-    try_bang(RealtimeClock_Create(pSysDesc, &gRealtimeClock));
-    
-    const VideoConfiguration* pVideoConfig;
-    if (chipset_is_ntsc()) {
-        pVideoConfig = &kVideoConfig_NTSC_640_200_60;
-        //pVideoConfig = &kVideoConfig_NTSC_640_400_30;
-    } else {
-        pVideoConfig = &kVideoConfig_PAL_640_256_50;
-        //pVideoConfig = &kVideoConfig_PAL_640_512_25;
-    }
-    
-    try_bang(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &gMainGDevice));
-    
-    
-    // Initialize the console
-    try_bang(Console_Create(gMainGDevice, &gConsole));
 
-    
-    // Initialize all other I/O dervices
-    try_bang(FloppyDMA_Create(&gFloppyDma));
-    try_bang(EventDriver_Create(gMainGDevice, &gEventDriver));
-    
+    // Initialize all other drivers
+    try_bang(DriverManager_AutoConfigure(gDriverManager));
 
 #if 1
     //print("_text: %p, _etext: %p, _data: %p, _edata: %p, _bss: %p, _ebss: %p\n\n", &_text, &_etext, &_data, &_edata, &_bss, &_ebss);
