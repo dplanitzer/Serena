@@ -624,10 +624,11 @@ static void IdleVirtualProcessor_Run(Byte* _Nullable pContext);
 // one is in state ready.
 static ErrorCode IdleVirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP)
 {
+        // Stored in the BSS. Thus starts out zeroed.
+    static VirtualProcessor gIdleVirtualProcessorStorage;
+    VirtualProcessor* pVP = &gIdleVirtualProcessorStorage;
     decl_try_err();
-    VirtualProcessor* pVP = NULL;
     
-    try(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
     try(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(IdleVirtualProcessor_Run, NULL, VP_DEFAULT_KERNEL_STACK_SIZE, 0)));
     
@@ -635,7 +636,6 @@ static ErrorCode IdleVirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonn
     return EOK;
     
 catch:
-    kfree((Byte*)pVP);
     *pOutVP = NULL;
     return err;
 }

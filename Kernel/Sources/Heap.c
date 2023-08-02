@@ -71,8 +71,7 @@ ErrorCode Heap_Create(const MemoryLayout* _Nonnull pMemLayout, Heap* _Nullable *
     
 
     // Reserve space for the heap structure. We put it preferably into the bottom
-    // of fast RAM. If there is none then we put it at the bottom of chip RAM
-    // (just above lowmem).
+    // of fast RAM. If there is none then we put it at the bottom of chip RAM.
     Int idxOfMemRgnWithHeapStruct = (pMemLayout->descriptor_count > 1) ? 1 : 0;
     Byte* pHeapBase = align_up_byte_ptr(pMemLayout->descriptor[idxOfMemRgnWithHeapStruct].lower, HEAP_ALIGNMENT);
     Heap_Block* pAllocedBlock = (Heap_Block*)pHeapBase;
@@ -234,7 +233,7 @@ ErrorCode Heap_AllocateBytes(Heap* _Nonnull pHeap, Int nbytes, UInt options, Byt
         }
         
         if (ptr == NULL) {
-            // Fall back to chip RAM 'cause ther's no fast RAM or it's exhausted
+            // Fall back to chip RAM 'cause there's no fast RAM or it's exhausted
             ptr = Heap_AllocateBytesFromMemoryRegion(pHeap, 0, nBytesToAlloc);
         }
     }
