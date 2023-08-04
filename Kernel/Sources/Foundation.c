@@ -7,6 +7,7 @@
 //
 
 #include "Foundation.h"
+#include "Allocator.h"
 #include "Console.h"
 #include "DriverManager.h"
 #include "GraphicsDriver.h"
@@ -40,6 +41,11 @@ _Noreturn fatalError(const Character* _Nonnull filename, int line)
     
     while (true);
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Int
 
 static const char* gDigit = "0123456789abcdef";
 
@@ -108,6 +114,8 @@ const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, 
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: String
 
 // String
 Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs)
@@ -126,6 +134,8 @@ Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRh
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: TimeInterval
 
 #define ONE_SECOND_IN_NANOS (1000 * 1000 * 1000)
 const TimeInterval kTimeInterval_Zero = {0, 0};
@@ -189,4 +199,37 @@ TimeInterval TimeInterval_Subtract(TimeInterval t0, TimeInterval t1)
     }
     
     return ti;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: kalloc
+
+// Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
+// NULL if the memory could not be allocated. The returned memory is not
+// necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
+// suitable option if DMA accessability is desired.
+ErrorCode kalloc(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
+{
+    return Allocator_AllocateBytes(gMainAllocator, nbytes, ALLOCATOR_OPTION_CPU, pOutPtr);
+}
+
+// Same as kalloc() but allocated memory that is filled with zeros.
+ErrorCode kalloc_cleared(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
+{
+    return Allocator_AllocateBytes(gMainAllocator, nbytes, ALLOCATOR_OPTION_CLEAR | ALLOCATOR_OPTION_CPU, pOutPtr);
+}
+
+// Allocates memory from the kernel heap. Returns NULL if the memory could not be
+// allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
+ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
+{
+    return Allocator_AllocateBytes(gMainAllocator, nbytes, options, pOutPtr);
+}
+
+// Frees kernel memory allocated with the kalloc() function.
+void kfree(Byte* _Nullable ptr)
+{
+    Allocator_DeallocateBytes(gMainAllocator, ptr);
 }

@@ -7,7 +7,6 @@
 //
 
 #include "ConditionVariable.h"
-#include "Heap.h"
 #include "VirtualProcessorScheduler.h"
 
 

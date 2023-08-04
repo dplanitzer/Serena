@@ -7,8 +7,8 @@
 //
 
 #include "VirtualProcessorScheduler.h"
+#include "Allocator.h"
 #include "Bytes.h"
-#include "Heap.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "InterruptController.h"
@@ -79,7 +79,7 @@ ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnu
     // Mark the boot virtual processor kernel stack area as allocated.
     // Note that the boot virtual processor has no user stack since it will never
     // execute userspace code.
-    try(Heap_AllocateBytesAt(gHeap, 
+    try(Allocator_AllocateBytesAt(gMainAllocator, 
             pScheduler->bootVirtualProcessor->kernel_stack.base,
             pScheduler->bootVirtualProcessor->kernel_stack.size));
 

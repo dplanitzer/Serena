@@ -7,7 +7,6 @@
 //
 
 #include "InterruptControllerPriv.h"
-#include "Heap.h"
 
 
 InterruptController     gInterruptControllerStorage;

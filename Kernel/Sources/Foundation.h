@@ -165,6 +165,27 @@ extern void print(const Character* _Nonnull format, ...);
 extern void vprint(const Character* _Nonnull format, va_list ap);
 
 
+//
+// Convenience memory management functions
+//
+
+// Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
+// NULL if the memory could not be allocated. The returned memory is not
+// necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
+// suitable option if DMA accessability is desired.
+extern ErrorCode kalloc(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr);
+
+// Same as kalloc() but allocated memory that is filled with zeros.
+extern ErrorCode kalloc_cleared(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr);
+
+// Allocates memory from the kernel heap. Returns NULL if the memory could not be
+// allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
+extern ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
+
+// Frees kernel memory allocated with the kalloc() function.
+extern void kfree(Byte* _Nullable ptr);
+
+
 // Asserts
 extern _Noreturn fatalError(const Character* _Nonnull filename, int line);
 

@@ -10,7 +10,6 @@
 #include "DispatchQueue.h"
 #include "DriverManager.h"
 #include "EventDriver.h"
-#include "Heap.h"
 #include "MonotonicClock.h"
 #include "Pipe.h"
 #include "SystemDescription.h"

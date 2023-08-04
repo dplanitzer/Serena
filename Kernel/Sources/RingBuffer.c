@@ -7,7 +7,6 @@
 //
 
 #include "RingBuffer.h"
-#include "Heap.h"
 
 
 // Initializes the ring buffer to empty. 'capacity' is the buffer capacity in bytes.

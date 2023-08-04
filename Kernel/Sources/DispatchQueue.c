@@ -8,7 +8,6 @@
 
 #include "DispatchQueue.h"
 #include "ConditionVariable.h"
-#include "Heap.h"
 #include "List.h"
 #include "Lock.h"
 #include "MonotonicClock.h"

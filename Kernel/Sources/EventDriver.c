@@ -10,7 +10,6 @@
 #include "Console.h"
 #include "ConditionVariable.h"
 #include "DispatchQueue.h"
-#include "Heap.h"
 #include "InputDriver.h"
 #include "Lock.h"
 #include "MonotonicClock.h"

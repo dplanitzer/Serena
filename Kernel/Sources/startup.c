@@ -7,11 +7,11 @@
 //
 
 #include "Foundation.h"
+#include "Allocator.h"
 #include "Bytes.h"
 #include "Console.h"
 #include "DispatchQueue.h"
 #include "DriverManager.h"
-#include "Heap.h"
 #include "InterruptController.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
@@ -20,6 +20,9 @@
 #include "VirtualProcessorPool.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
+static Byte* gKernelHeapBottom;
+static Byte* gKernelHeapTop;
+
 
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 static void OnMain(void);
@@ -65,7 +68,8 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Carve the kernel data and bss out from memory descriptor #0 to ensure that
     // our kernel heap is not going to try to override the data/bss region.
-    pSysDesc->memory.descriptor[0].lower += Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
+    gKernelHeapBottom = pSysDesc->memory.descriptor[0].lower + Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
+    pSysDesc->memory.descriptor[0].lower = gKernelHeapBottom;
 
 
     // Store a reference to the system description in our globals
@@ -76,6 +80,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     Byte* pKernelStackBase = boot_allocate_kernel_stack(pSysDesc, kernelStackSize);
     assert(pKernelStackBase != NULL);
+    gKernelHeapTop = pKernelStackBase;
 
 
     // Initialize the scheduler
@@ -95,7 +100,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
     // Initialize the global heap
-    try_bang(Heap_Create(&pSysDesc->memory, &gHeap));
+    try_bang(Allocator_Create(&pSysDesc->memory, &gMainAllocator));
     
 
     // Initialize the interrupt controller

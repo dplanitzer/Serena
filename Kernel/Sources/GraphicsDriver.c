@@ -7,7 +7,7 @@
 //
 
 #include "GraphicsDriver.h"
-#include "Heap.h"
+#include "Allocator.h"
 #include "Bits.h"
 #include "Bytes.h"
 #include "InterruptController.h"
@@ -224,7 +224,7 @@ static ErrorCode CopperProgram_CreateScreenRefresh(const VideoConfiguration* _No
     const Int nInstructions = nFrameInstructions + 1;
     CopperInstruction* pCode;
     
-    try(kalloc_options(nInstructions * sizeof(CopperInstruction), HEAP_ALLOC_OPTION_CHIPSET|HEAP_ALLOC_OPTION_CPU, (Byte**) &pCode));
+    try(kalloc_options(nInstructions * sizeof(CopperInstruction), ALLOCATOR_OPTION_CHIPSET|ALLOCATOR_OPTION_CPU, (Byte**) &pCode));
     
     CopperCompiler_CompileScreenRefreshProgram(&pCode[ip], pConfig, pSurface, isOddField, pNullSprite, pSprite, isLightPenEnabled);
     ip += nFrameInstructions;
@@ -392,7 +392,7 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
 
     
     // Initialize sprites
-    try(kalloc_options(sizeof(UInt16)*2, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_null));
+    try(kalloc_options(sizeof(UInt16)*2, ALLOCATOR_OPTION_CPU|ALLOCATOR_OPTION_CHIPSET, (Byte**) &pDriver->sprite_null));
     pDriver->sprite_null[0] = 0;
     pDriver->sprite_null[1] = 0;
 
@@ -403,7 +403,7 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
 
     const Int sprsiz = (pDriver->mouse_cursor_height + 2)*2;
     Int i, j;
-    try(kalloc_options(sizeof(UInt16) * sprsiz, HEAP_ALLOC_OPTION_CPU | HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pDriver->sprite_mouse));
+    try(kalloc_options(sizeof(UInt16) * sprsiz, ALLOCATOR_OPTION_CPU|ALLOCATOR_OPTION_CHIPSET, (Byte**) &pDriver->sprite_mouse));
     for (i = 0, j = 0; i < sprsiz; i += 2, j++) {
         pDriver->sprite_mouse[i + 0] = gArrow_Plane0[j];
         pDriver->sprite_mouse[i + 1] = gArrow_Plane1[j];

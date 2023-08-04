@@ -9,7 +9,6 @@
 #include "RealtimeClock.h"
 #include "Atomic.h"
 #include "Bytes.h"
-#include "Heap.h"
 #include "Lock.h"
 #include "Platform.h"
 

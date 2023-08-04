@@ -8,7 +8,6 @@
 
 #include "DriverManager.h"
 #include "Console.h"
-#include "Heap.h"
 #include "List.h"
 #include "EventDriver.h"
 #include "FloppyDisk.h"

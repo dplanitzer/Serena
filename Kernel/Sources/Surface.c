@@ -7,7 +7,7 @@
 //
 
 #include "Surface.h"
-#include "Heap.h"
+#include "Allocator.h"
 
 
 // Returns how many planes we need to allocate for the given pixel format.
@@ -50,7 +50,7 @@ ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface
     const Int bytesPerPlane = pSurface->bytesPerRow * pSurface->height;
     
     for (Int i = 0; i < pSurface->planeCount; i++) {
-        try(kalloc_options(bytesPerPlane, HEAP_ALLOC_OPTION_CPU|HEAP_ALLOC_OPTION_CHIPSET, (Byte**) &pSurface->planes[i]));
+        try(kalloc_options(bytesPerPlane, ALLOCATOR_OPTION_CPU|ALLOCATOR_OPTION_CHIPSET, (Byte**) &pSurface->planes[i]));
     }
     
     *pOutSurface = pSurface;

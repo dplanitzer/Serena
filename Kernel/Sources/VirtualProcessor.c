@@ -10,7 +10,6 @@
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
 #include "Bytes.h"
-#include "Heap.h"
 #include "Platform.h"
 
 

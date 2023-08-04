@@ -9,7 +9,6 @@
 #include "Pipe.h"
 #include "ConditionVariable.h"
 #include "Lock.h"
-#include "Heap.h"
 #include "RingBuffer.h"
 
 
