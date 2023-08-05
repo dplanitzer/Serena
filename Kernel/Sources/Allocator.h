@@ -29,7 +29,7 @@ extern ErrorCode Allocator_Create(const MemoryLayout* _Nonnull pMemLayout, Alloc
 
 extern ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
 extern ErrorCode Allocator_AllocateBytesAt(AllocatorRef _Nonnull pAllocator, Byte* _Nonnull pAddr, Int nbytes);
-extern void Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr);
+extern ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr);
 
 extern void Allocator_Dump(AllocatorRef _Nonnull pAllocator);
 

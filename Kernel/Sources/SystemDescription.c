@@ -160,10 +160,10 @@ extern Int8 fpu_get_model(void);
 
 // Initializes the system description which contains basic information about the
 // platform. The system description is stored in low memory.
-// @param pSysDesc the system description memory
-// @param pBootServicesMemoryTop the end address of the memory used by the boot
+// \param pSysDesc the system description memory
+// \param pBootServicesMemoryTop the end address of the memory used by the boot
 //                               services. Range is [0...pBootServicesMemoryTop]
-// @param cpu_model the detected CPU model 
+// \param cpu_model the detected CPU model 
 void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootServicesMemoryTop, Int cpu_model)
 {
     pSysDesc->cpu_model = cpu_model;

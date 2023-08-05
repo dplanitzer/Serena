@@ -41,6 +41,10 @@
 // code the function you call should never fail in actual reality.
 #define try_bang(f)         if ((f) != EOK) { abort(); }
 
+// Set 'err' to the given error and go to the 'catch' label if the given pointer
+// is null. Otherwise fall through to the next statement.
+#define throw_ifnull(p, e)  if ((p) == NULL) { err = e; goto catch; }
+ 
 
 // Error code definitions
 typedef Int ErrorCode;
