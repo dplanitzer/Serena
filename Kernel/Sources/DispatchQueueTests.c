@@ -156,13 +156,18 @@ void DispatchQueue_RunTests(void)
     }
     print("--------\n");
     
-    if (pSysDesc->expansion.board_count > 0) {
-        for(Int i = 0; i < pSysDesc->expansion.board_count; i++) {
-            print("start: 0x%p, psize: %u, lsize: %u\n", pSysDesc->expansion.board[i].start, pSysDesc->expansion.board[i].physical_size, pSysDesc->expansion.board[i].logical_size);
-            print("type: %s %s\n", pSysDesc->expansion.board[i].type == EXPANSION_TYPE_RAM ? "RAM" : "I/O", pSysDesc->expansion.board[i].bus == EXPANSION_BUS_ZORRO_2 ? "[Z2]" : "[Z3]");
-            print("slot: %d\n", pSysDesc->expansion.board[i].slot);
-            print("manu: $%x, prod: $%x\n", pSysDesc->expansion.board[i].manufacturer, pSysDesc->expansion.board[i].product);
-            print("ser#: $%x\n", pSysDesc->expansion.board[i].serial_number);
+    Int boardCount = 0;
+    assert(DriverManager_GetExpansionBoardCount(gDriverManager, &boardCount) == EOK);
+    if (boardCount > 0) {
+        for(Int i = 0; i < boardCount; i++) {
+            ExpansionBoard board;
+            assert(DriverManager_GetExpansionBoardAtIndex(gDriverManager, i, &board) == EOK);
+
+            print("start: 0x%p, psize: %u, lsize: %u\n", board.start, board.physical_size, board.logical_size);
+            print("type: %s %s\n", board.type == EXPANSION_TYPE_RAM ? "RAM" : "I/O", board.bus == EXPANSION_BUS_ZORRO_2 ? "[Z2]" : "[Z3]");
+            print("slot: %d\n", board.slot);
+            print("manu: $%x, prod: $%x\n", board.manufacturer, board.product);
+            print("ser#: $%x\n", board.serial_number);
             
             print("---\n");
         }

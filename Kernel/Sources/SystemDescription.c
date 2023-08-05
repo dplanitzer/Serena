@@ -48,7 +48,7 @@ static Bool mem_probe_cpu_page(Byte* addr)
     return true;
 }
 
-static Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, UInt8 accessibility)
+Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, UInt8 accessibility)
 {
     Byte* p = align_up_byte_ptr(lower, CPU_PAGE_SIZE);
     Byte* pLimit = align_down_byte_ptr(upper, CPU_PAGE_SIZE);
@@ -138,24 +138,6 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServic
     }
 }
 
-// Finds out how much RAM is installed in expansion boards, tests it and adds it
-// to the mem range table.
-void mem_check_expanion_boards(SystemDescription* pSysDesc)
-{    
-    for (Int i = 0; i < pSysDesc->expansion.board_count; i++) {
-        const ExpansionBoard* board = &pSysDesc->expansion.board[i];
-       
-        if (board->type != EXPANSION_TYPE_RAM) {
-            continue;
-        }
-        
-        if (!mem_check_region(&pSysDesc->memory, board->start, board->start + board->logical_size, MEM_ACCESS_CPU)) {
-            break;
-        }
-    }
-}
-
-
 extern Int8 fpu_get_model(void);
 
 // Initializes the system description which contains basic information about the
@@ -203,12 +185,4 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootSer
 
     // Find the populated motherboard RAM regions
     mem_check_motherboard(pSysDesc, pBootServicesMemoryTop);
-
-
-    // Auto config the Zorro bus
-    zorro_auto_config(&pSysDesc->expansion);
-
-    
-    // Find and add expansion board RAM
-    mem_check_expanion_boards(pSysDesc);
 }

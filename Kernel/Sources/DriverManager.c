@@ -7,6 +7,7 @@
 //
 
 #include "DriverManager.h"
+#include "Allocator.h"
 #include "Console.h"
 #include "List.h"
 #include "EventDriver.h"
@@ -29,7 +30,9 @@ typedef struct _DriverEntry {
 
 
 typedef struct _DriverManager {
-    SList       drivers;
+    SList           drivers;
+    ExpansionBus    zorroBus;
+    Bool            isZorroBusConfigured;
 } DriverManager;
 
 
@@ -81,6 +84,8 @@ ErrorCode DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutManager
     
     try(kalloc_cleared(sizeof(DriverManager), (Byte**) &pManager));
     SList_Init(&pManager->drivers);
+    pManager->isZorroBusConfigured = false;
+    pManager->zorroBus.board_count = 0;
 
     *pOutManager = pManager;
     return EOK;
@@ -151,9 +156,52 @@ catch:
     return err;
 }
 
+// Auto configures the expansion board bus.
+ErrorCode DriverManager_AutoConfigureExpansionBoardBus(DriverManagerRef _Nonnull pManager)
+{
+    if (pManager->isZorroBusConfigured) {
+        return EOK;
+    }
+
+
+    // Auto config the Zorro bus
+    zorro_auto_config(&pManager->zorroBus);
+
+    
+    // Find all RAM expansion boards and do a mem check on them
+    MemoryLayout mem_layout;
+    mem_layout.descriptor_count = 0;
+
+    for (Int i = 0; i < pManager->zorroBus.board_count; i++) {
+        const ExpansionBoard* board = &pManager->zorroBus.board[i];
+       
+        if (board->type != EXPANSION_TYPE_RAM) {
+            continue;
+        }
+        
+        if (!mem_check_region(&mem_layout, board->start, board->start + board->logical_size, MEM_ACCESS_CPU)) {
+            break;
+        }
+    }
+
+
+    // Add the RAM we found to the kernel allocator
+    for (Int i = 0; i < mem_layout.descriptor_count; i++) {
+        (void) Allocator_AddMemoryRegion(gMainAllocator, &mem_layout.descriptor[i]);
+    }
+
+
+    // Done
+    pManager->isZorroBusConfigured = true;
+}
+
 ErrorCode DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 {
     decl_try_err();
+
+    // Auto configure the expansion board bus
+    try(DriverManager_AutoConfigureExpansionBoardBus(pManager));
+
 
     // Realtime Clock
     RealtimeClockRef pRealtimeClock = NULL;
@@ -189,4 +237,18 @@ DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, con
     })
 
     return NULL;
+}
+
+ErrorCode DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull pManager, Int* _Nonnull pOutCount)
+{
+    *pOutCount = pManager->zorroBus.board_count;
+    return EOK;
+}
+
+ErrorCode DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull pManager, Int index, ExpansionBoard* _Nonnull pOutBoard)
+{
+    assert(index >= 0 && index < pManager->zorroBus.board_count);
+
+    *pOutBoard = pManager->zorroBus.board[index];
+    return EOK;
 }

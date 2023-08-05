@@ -10,7 +10,7 @@
 #define DriverManager_h
 
 #include "Foundation.h"
-
+#include "Platform.h"
 
 struct _DriverManager;
 typedef struct _DriverManager* DriverManagerRef;
@@ -38,5 +38,8 @@ extern ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull
 extern ErrorCode DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager);
 
 extern DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, const Character* pName);
+
+extern ErrorCode DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull pManager, Int* _Nonnull pOutCount);
+extern ErrorCode DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull pManager, Int index, ExpansionBoard* _Nonnull pOutBoard);
 
 #endif /* DriverManager_h */

@@ -133,10 +133,8 @@ sd_quantum_duration_cycles      so.w    1       ; 2
 sd_ns_per_quantum_timer_cycle   so.w    1       ; 2
 sd_memory_descriptor_count      so.l    1       ; 4
 sd_memory_descriptor            so.b    12*8    ; 12 * 8
-sd_expansion_board_count        so.l    1       ; 4
-sd_expansion_board              so.b    20*16   ; 20 * 16
-sd_SIZEOF                       so              ; 436
-    ifeq (sd_SIZEOF == 436)
+sd_SIZEOF                       so              ; 112
+    ifeq (sd_SIZEOF == 112)
         fail "SystemDescription structure size is incorrect."
     endif
 

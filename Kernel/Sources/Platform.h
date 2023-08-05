@@ -112,6 +112,7 @@ typedef struct _MemoryLayout {
 
 
 extern Bool mem_probe(Byte* _Nonnull addr);
+extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, UInt8 accessibility);
 
 
 #define CIAA_BASE           0xbfe001

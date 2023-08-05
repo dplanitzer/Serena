@@ -25,8 +25,9 @@ typedef struct _SystemDescription {
     Int16               quantum_duration_cycles;    // Quantum duration in terms of timer cycles
     Int16               ns_per_quantum_timer_cycle; // Lenght of a quantu timer cycle in nanoseconds
     
-    MemoryLayout        memory;
-    ExpansionBus        expansion;
+    // These are memory regions that are accessible to the CPU without having to
+    // auto configure the expansion bus. 
+    MemoryLayout        memory;    
 } SystemDescription;
 
 
