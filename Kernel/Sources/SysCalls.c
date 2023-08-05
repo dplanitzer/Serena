@@ -14,9 +14,15 @@
 
 ErrorCode _syscall_write(const Character* pString)
 {
-    Console* pConsole = (Console*) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
+    decl_try_err();
+    Console* pConsole = NULL;
+    
+    try(DriverManager_GetDriverForName(gDriverManager, kConsoleName, (DriverRef*)&pConsole));
+    try(Console_DrawString(pConsole, pString));
+    return EOK;
 
-    return Console_DrawString(pConsole, pString);
+catch:
+    return err;
 }
 
 ErrorCode _syscall_sleep(Int seconds, Int nanoseconds)

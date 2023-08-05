@@ -8,6 +8,7 @@
 
 #include "DriverManager.h"
 #include "Allocator.h"
+#include "Bytes.h"
 #include "Console.h"
 #include "List.h"
 #include "EventDriver.h"
@@ -30,6 +31,7 @@ typedef struct _DriverEntry {
 
 
 typedef struct _DriverManager {
+    Lock            lock;
     SList           drivers;
     ExpansionBus    zorroBus;
     Bool            isZorroBusConfigured;
@@ -83,6 +85,7 @@ ErrorCode DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutManager
     DriverManager* pManager;
     
     try(kalloc_cleared(sizeof(DriverManager), (Byte**) &pManager));
+    Lock_Init(&pManager->lock);
     SList_Init(&pManager->drivers);
     pManager->isZorroBusConfigured = false;
     pManager->zorroBus.board_count = 0;
@@ -109,11 +112,12 @@ void DriverManager_Destroy(DriverManagerRef _Nullable pManager)
         }
         
         SList_Deinit(&pManager->drivers);
+        Lock_Deinit(&pManager->lock);
         kfree((Byte*)pManager);
     }
 }
 
-static ErrorCode DriverManager_AddDriver(DriverManagerRef _Nonnull pManager, const Character* _Nonnull pName, DriverRef _Nonnull pDriverInstance)
+static ErrorCode DriverManager_AddDriver_Locked(DriverManagerRef _Nonnull pManager, const Character* _Nonnull pName, DriverRef _Nonnull pDriverInstance)
 {
     decl_try_err();
     DriverEntry* pEntry = NULL;
@@ -126,9 +130,26 @@ catch:
     return err;
 }
 
+static DriverRef DriverManager_GetDriverForName_Locked(DriverManagerRef _Nonnull pManager, const Character* pName)
+{
+    SList_ForEach(&pManager->drivers, DriverEntry, {
+        if (String_Equals(pCurNode->name, pName)) {
+            return pCurNode->instance;
+        }
+    })
+
+    return NULL;
+}
+
+
 ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManager)
 {
     decl_try_err();
+    Bool needsUnlock = false;
+
+    try(Lock_Lock(&pManager->lock));
+    needsUnlock = true;
+
 
     // Graphics Driver
     const VideoConfiguration* pVideoConfig;
@@ -142,22 +163,26 @@ ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManag
     
     GraphicsDriverRef pMainGDevice = NULL;
     try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &pMainGDevice));
-    try(DriverManager_AddDriver(pManager, kGraphicsDriverName, pMainGDevice));
+    try(DriverManager_AddDriver_Locked(pManager, kGraphicsDriverName, pMainGDevice));
 
 
     // Initialize the console
     Console* pConsole = NULL;
     try(Console_Create(pMainGDevice, &pConsole));
-    try(DriverManager_AddDriver(pManager, kConsoleName, pConsole));
+    try(DriverManager_AddDriver_Locked(pManager, kConsoleName, pConsole));
 
+    Lock_Unlock(&pManager->lock);
     return EOK;
 
 catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pManager->lock);
+    }
     return err;
 }
 
 // Auto configures the expansion board bus.
-ErrorCode DriverManager_AutoConfigureExpansionBoardBus(DriverManagerRef _Nonnull pManager)
+static ErrorCode DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManagerRef _Nonnull pManager)
 {
     if (pManager->isZorroBusConfigured) {
         return EOK;
@@ -198,57 +223,87 @@ ErrorCode DriverManager_AutoConfigureExpansionBoardBus(DriverManagerRef _Nonnull
 ErrorCode DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 {
     decl_try_err();
+    Bool needsUnlock = false;
+
+    try(Lock_Lock(&pManager->lock));
+    needsUnlock = true;
+
 
     // Auto configure the expansion board bus
-    try(DriverManager_AutoConfigureExpansionBoardBus(pManager));
+    try(DriverManager_AutoConfigureExpansionBoardBus_Locked(pManager));
 
 
     // Realtime Clock
     RealtimeClockRef pRealtimeClock = NULL;
     try(RealtimeClock_Create(gSystemDescription, &pRealtimeClock));
-    try(DriverManager_AddDriver(pManager, kRealtimeClockName, pRealtimeClock));
+    try(DriverManager_AddDriver_Locked(pManager, kRealtimeClockName, pRealtimeClock));
 
 
     // Floppy
 //    FloppyDMA* pFloppyDma = NULL;
 //    try(FloppyDMA_Create(&pFloppyDma));
-//    try(DriverManager_AddDriver(pManager, "fdma", pFloppyDma));
+//    try(DriverManager_AddDriver_Locked(pManager, "fdma", pFloppyDma));
 
 
     // Event Driver
-    GraphicsDriverRef pMainGDevice = DriverManager_GetDriverForName(pManager, kGraphicsDriverName);
+    GraphicsDriverRef pMainGDevice = DriverManager_GetDriverForName_Locked(pManager, kGraphicsDriverName);
     assert(pMainGDevice != NULL);
     EventDriverRef pEventDriver = NULL;
     try(EventDriver_Create(pMainGDevice, &pEventDriver));
-    try(DriverManager_AddDriver(pManager, kEventsDriverName, pEventDriver));
+    try(DriverManager_AddDriver_Locked(pManager, kEventsDriverName, pEventDriver));
 
+    Lock_Unlock(&pManager->lock);
     return EOK;
 
 catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pManager->lock);
+    }
     return err;
 }
 
-DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, const Character* pName)
+ErrorCode DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, const Character* pName, DriverRef _Nullable * _Nonnull pOutDriver)
 {
-    SList_ForEach(&pManager->drivers, DriverEntry, {
-        if (String_Equals(pCurNode->name, pName)) {
-            return pCurNode->instance;
-        }
-    })
+    decl_try_err();
 
-    return NULL;
+    try(Lock_Lock(&pManager->lock));
+    *pOutDriver = DriverManager_GetDriverForName_Locked(pManager, pName);
+    Lock_Unlock(&pManager->lock);
+    return EOK;
+
+catch:
+    Lock_Unlock(&pManager->lock);
+    *pOutDriver = NULL;
+    return err;
 }
 
 ErrorCode DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull pManager, Int* _Nonnull pOutCount)
 {
+    decl_try_err();
+
+    try(Lock_Lock(&pManager->lock));
     *pOutCount = pManager->zorroBus.board_count;
+    Lock_Unlock(&pManager->lock);
     return EOK;
+
+catch:
+    Lock_Unlock(&pManager->lock);
+    *pOutCount = 0;
+    return err;
 }
 
 ErrorCode DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull pManager, Int index, ExpansionBoard* _Nonnull pOutBoard)
 {
     assert(index >= 0 && index < pManager->zorroBus.board_count);
+    decl_try_err();
 
+    try(Lock_Lock(&pManager->lock));
     *pOutBoard = pManager->zorroBus.board[index];
+    Lock_Unlock(&pManager->lock);
     return EOK;
+
+catch:
+    Lock_Unlock(&pManager->lock);
+    Bytes_ClearRange((Byte*)pOutBoard, sizeof(ExpansionBoard));
+    return err;
 }
