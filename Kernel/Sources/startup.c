@@ -92,6 +92,24 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_IncipientContextSwitch();
 }
 
+static ErrorCode create_allocator(MemoryLayout* _Nonnull pMemLayout, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+{
+    AllocatorRef pAllocator = NULL;
+    decl_try_err();
+
+    try(Allocator_Create(&pMemLayout->descriptor[0], &pAllocator));
+    for (Int i = 1; i < pMemLayout->descriptor_count; i++) {
+        try(Allocator_AddMemoryRegion(pAllocator, &pMemLayout->descriptor[i]));
+    }
+
+    *pOutAllocator = pAllocator;
+    return EOK;
+
+catch:
+    *pOutAllocator = NULL;
+    return err;
+}
+
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
 // context. Interrupts and DMAs are still turned off.
 //
@@ -100,7 +118,8 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
     // Initialize the global heap
-    try_bang(Allocator_Create(&pSysDesc->memory, &gMainAllocator));
+    //try_bang(Allocator_Create(&pSysDesc->memory, &gMainAllocator));
+    try_bang(create_allocator(&pSysDesc->memory, &gMainAllocator));
     
 
     // Initialize the interrupt controller
@@ -160,7 +179,7 @@ static void OnMain(void)
     // Initialize all other drivers
     try_bang(DriverManager_AutoConfigure(gDriverManager));
 
-#if 1
+#if 0
     //print("_text: %p, _etext: %p, _data: %p, _edata: %p, _bss: %p, _ebss: %p\n\n", &_text, &_etext, &_data, &_edata, &_bss, &_ebss);
     // Create the root process and kick it off running
     try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));

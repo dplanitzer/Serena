@@ -69,7 +69,7 @@ AllocatorRef   gMainAllocator;
 //                         which stores the allocator structure in front of it
 // \param pMemDesc the memory descriptor describing the memory region to manage
 // \return an error or EOK
-static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, MemoryDescriptor* _Nonnull pMemDesc)
+static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, const MemoryDescriptor* _Nonnull pMemDesc)
 {
     Byte* pMemRegionBase = align_up_byte_ptr(pMemRegionHeader, HEAP_ALIGNMENT);
     Byte* pFreeLower = align_up_byte_ptr(pMemRegionBase + sizeof(MemRegion), HEAP_ALIGNMENT);
@@ -108,7 +108,7 @@ static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, MemoryDescri
 
 // Returns true if the given memory address is managed by this memory region
 // and false otherwise.
-static Bool MemRegion_ManagesAddress(MemRegion* _Nonnull pMemRegion, Byte* _Nullable pAddress)
+static Bool MemRegion_ManagesAddress(const MemRegion* _Nonnull pMemRegion, Byte* _Nullable pAddress)
 {
     return (pAddress >= pMemRegion->lower && pAddress < pMemRegion->upper) ? true : false;
 }
@@ -341,29 +341,18 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 // MARK: -
 ////////////////////////////////////////////////////////////////////////////////
 
-// Allocates a new heap. An allocator manages the memory regions described by the
-// given memory descriptors. The heap managment data structures are stored inside
-// those memory regions.
-// \param pMemLayout the memory layout
-// \return the heap
-ErrorCode Allocator_Create(const MemoryLayout* _Nonnull pMemLayout, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+// Allocates a new heap. An allocator manages the memory region described by the
+// given memory descriptor. Additional memory regions may be added later. The
+// heap managment data structures are stored inside those memory regions.
+// \param pMemDesc the initial memory region to manage
+// \param pOutAllocator receives the allocator reference
+// \return an error or EOK
+ErrorCode Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
     decl_try_err();
 
-    // Validate some basic assumptions we make in the heap implementation to allow
-    // for faster allocations:
-    // desc 0 -> chip RAM
-    // desc > 0 -> fast RAM
-    assert(pMemLayout != NULL);
-    assert(pMemLayout->descriptor_count > 0);
-    assert(pMemLayout->descriptor[0].accessibility == (MEM_ACCESS_CHIPSET|MEM_ACCESS_CPU));
-    for (Int i = 1; i < pMemLayout->descriptor_count; i++) {
-        assert(pMemLayout->descriptor[i].accessibility == MEM_ACCESS_CPU);
-    }
-    
-
     // Reserve space for the allocator structure in the first memory region.
-    Byte* pAllocatorBase = align_up_byte_ptr(pMemLayout->descriptor[0].lower, HEAP_ALIGNMENT);
+    Byte* pAllocatorBase = align_up_byte_ptr(pMemDesc->lower, HEAP_ALIGNMENT);
     Byte* pFirstMemRegionBase = pAllocatorBase + sizeof(Allocator);
 
     AllocatorRef pAllocator = (AllocatorRef)pAllocatorBase;
@@ -372,21 +361,37 @@ ErrorCode Allocator_Create(const MemoryLayout* _Nonnull pMemLayout, AllocatorRef
     Lock_Init(&pAllocator->lock);
     
     MemRegion* pFirstRegion;
-    try_null(pFirstRegion, MemRegion_Create(pFirstMemRegionBase, &pMemLayout->descriptor[0]), ENOMEM);
+    try_null(pFirstRegion, MemRegion_Create(pFirstMemRegionBase, pMemDesc), ENOMEM);
     SList_InsertAfterLast(&pAllocator->regions, &pFirstRegion->node);
-    
-    for (Int i = 1; i < pMemLayout->descriptor_count; i++) {
-        MemRegion* pCurRegion;
-
-        try_null(pCurRegion, MemRegion_Create(pMemLayout->descriptor[i].lower, &pMemLayout->descriptor[i]), ENOMEM);
-        SList_InsertAfterLast(&pAllocator->regions, &pCurRegion->node);
-    }
     
     *pOutAllocator = pAllocator;
     return EOK;
 
 catch:
     *pOutAllocator = NULL;
+    return err;
+}
+
+// Adds the given memory region to the allocator's available memory pool.
+ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
+{
+    Bool needsUnlock = false;
+    MemRegion* pMemRegion;
+    decl_try_err();
+
+    try(Lock_Lock(&pAllocator->lock));
+    needsUnlock = true;
+
+    try_null(pMemRegion, MemRegion_Create(pMemDesc->lower, pMemDesc), ENOMEM);
+    SList_InsertAfterLast(&pAllocator->regions, &pMemRegion->node);
+    
+    Lock_Unlock(&pAllocator->lock);
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pAllocator->lock);
+    }
     return err;
 }
 

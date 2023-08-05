@@ -25,7 +25,9 @@ typedef struct _Allocator* AllocatorRef;
 
 extern AllocatorRef _Nonnull   gMainAllocator;
 
-extern ErrorCode Allocator_Create(const MemoryLayout* _Nonnull pMemLayout, AllocatorRef _Nullable * _Nonnull pOutAllocator);
+extern ErrorCode Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator);
+
+extern ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc);
 
 extern ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
 extern ErrorCode Allocator_AllocateBytesAt(AllocatorRef _Nonnull pAllocator, Byte* _Nonnull pAddr, Int nbytes);
