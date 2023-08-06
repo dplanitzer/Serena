@@ -92,17 +92,18 @@ extern const Character* _Nonnull fpu_get_model_name(Int8 fpu_model);
 // Supported max number of memory descriptors
 #define MEMORY_DESCRIPTORS_CAPACITY  8
 
-// Specifies who can access a specific memory range
-#define MEM_ACCESS_CPU     1
-#define MEM_ACCESS_CHIPSET 2
+// The type of memory
+// Memory accessible to the CPU only
+#define MEM_TYPE_MEMORY         0
+// Memory accessible to the CPU and I/O (GPU, Audio, etc)
+#define MEM_TYPE_UNIFIED_MEMORY 1
 
 // A memory descriptor describes a contiguous range of RAM
 typedef struct _MemoryDescriptor {
     Byte* _Nonnull  lower;
     Byte* _Nonnull  upper;
-    UInt8           accessibility;      // MEM_ACCESS_XXX
+    Int8            type;       // MEM_TYPE_XXX
     UInt8           reserved[3];
-    // Update lowmem.i if you add a new property here
 } MemoryDescriptor;
 
 typedef struct _MemoryLayout {
@@ -112,7 +113,7 @@ typedef struct _MemoryLayout {
 
 
 extern Bool mem_probe(Byte* _Nonnull addr);
-extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, UInt8 accessibility);
+extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, Int8 type);
 
 
 #define CIAA_BASE           0xbfe001

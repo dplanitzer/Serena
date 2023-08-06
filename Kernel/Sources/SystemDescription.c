@@ -48,7 +48,7 @@ static Bool mem_probe_cpu_page(Byte* addr)
     return true;
 }
 
-Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, UInt8 accessibility)
+Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, Int8 type)
 {
     Byte* p = align_up_byte_ptr(lower, CPU_PAGE_SIZE);
     Byte* pLimit = align_down_byte_ptr(upper, CPU_PAGE_SIZE);
@@ -69,7 +69,7 @@ Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, UInt8 
             // Transitioning from no memory to memory
             pMemLayout->descriptor[pMemLayout->descriptor_count].lower = p;
             pMemLayout->descriptor[pMemLayout->descriptor_count].upper = p;
-            pMemLayout->descriptor[pMemLayout->descriptor_count].accessibility = accessibility;
+            pMemLayout->descriptor[pMemLayout->descriptor_count].type = type;
         }
         
         if (hadMemory && !hasMemory) {
@@ -125,16 +125,16 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServic
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_ACCESS_CPU | MEM_ACCESS_CHIPSET);
+    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(&pSysDesc->memory, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_ACCESS_CPU);
+    mem_check_region(&pSysDesc->memory, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_TYPE_MEMORY);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
     if (pSysDesc->chipset_ramsey_version > 0) {
-        mem_check_region(&pSysDesc->memory, (Byte*)0x04000000, (Byte*)0x08000000, MEM_ACCESS_CPU);
+        mem_check_region(&pSysDesc->memory, (Byte*)0x04000000, (Byte*)0x08000000, MEM_TYPE_MEMORY);
     }
 }
 

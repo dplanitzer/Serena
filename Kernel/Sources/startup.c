@@ -98,7 +98,7 @@ static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemD
 
     md.lower = max(pMemDesc->lower, gKernelHeapBottom);
     md.upper = min(pMemDesc->upper, gKernelHeapTop);
-    md.accessibility = pMemDesc->accessibility;
+    md.type = pMemDesc->type;
 
     return md;
 }
@@ -216,8 +216,10 @@ static void OnMain(void)
     try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));
     Process_DispatchAsyncUser(gRootProcess, (Closure1Arg_Func)0xfe0000);
 #else
-    //print("heap bottom: 0x%p, heap top: 0x%p\n", gKernelHeapBottom, gKernelHeapTop);
-    //Allocator_DumpMemoryRegions(gMainAllocator);
+    print("heap bottom: 0x%p, heap top: 0x%p\n", gKernelHeapBottom, gKernelHeapTop);
+    Allocator_DumpMemoryRegions(gMainAllocator);
+    print("\n");
+
     // XXX Unit tests
     void DispatchQueue_RunTests(void);
 

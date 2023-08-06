@@ -152,7 +152,7 @@ void DispatchQueue_RunTests(void)
         print("start: 0x%p, size: %u,  type: %s\n",
               pSysDesc->memory.descriptor[i].lower,
               pSysDesc->memory.descriptor[i].upper - pSysDesc->memory.descriptor[i].lower,
-              (pSysDesc->memory.descriptor[i].accessibility & MEM_ACCESS_CHIPSET) ? "Chip" : "Fast");
+              (pSysDesc->memory.descriptor[i].type == MEM_TYPE_UNIFIED_MEMORY) ? "Chip" : "Fast");
     }
     print("--------\n");
     

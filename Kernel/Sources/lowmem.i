@@ -106,22 +106,6 @@ BOOT_SERVICES_MEM_TOP       equ     RESET_STACK_BASE
 
 
 
-; Defines that describe who can access a memory range
-MEM_ACCESS_CPU              equ     1
-MEM_ACCESS_CHIPSET          equ     2
-
-; The MemoryDescriptor struct
-    clrso
-memdesc_lower               so.l    1       ; 4
-memdesc_upper               so.l    1       ; 4
-memdesc_accessibility       so.b    1       ; 1
-memdesc_reserved            so.b    3       ; 3
-memdesc_SIZEOF              so              ; 12
-    ifeq (memdesc_SIZEOF == 12)
-        fail "MemoryDescriptor structure size is incorrect."
-    endif
-
-
 ; The SystemDescription object
     clrso
 sd_cpu_model                    so.b    1       ; 1

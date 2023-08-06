@@ -204,7 +204,7 @@ static ErrorCode DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManag
             continue;
         }
         
-        if (!mem_check_region(&mem_layout, board->start, board->start + board->logical_size, MEM_ACCESS_CPU)) {
+        if (!mem_check_region(&mem_layout, board->start, board->start + board->logical_size, MEM_TYPE_MEMORY)) {
             break;
         }
     }

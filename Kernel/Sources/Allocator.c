@@ -37,7 +37,7 @@ typedef struct _MemRegion {
     Byte* _Nonnull      lower;
     Byte* _Nonnull      upper;
     MemBlock* _Nullable first_free_block;   // Every memory region has its own private free list
-    UInt8               accessibility;      // MEM_ACCESS_XXX
+    Int8                type;               // MEM_TYPE_XXX
     UInt8               reserved[3];
 } MemRegion;
 
@@ -98,7 +98,7 @@ static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, const Memory
     pMemRegion->lower = pMemDesc->lower;
     pMemRegion->upper = pMemDesc->upper;
     pMemRegion->first_free_block = pFreeBlock;
-    pMemRegion->accessibility = pMemDesc->accessibility;
+    pMemRegion->type = pMemDesc->type;
     pMemRegion->reserved[0] = 0;
     pMemRegion->reserved[1] = 0;
     pMemRegion->reserved[2] = 0;
@@ -333,28 +333,18 @@ static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _
     return NULL;
 }
 
-// Returns the correct memory region access mode for the given heap options.
-// Assumes CPU access if no explicit access options were specified.
+// Returns the correct memory region type for the given heap options.
+// Assumes CPU-only type if no explicit type options were specified.
 // Note that chipset access always also implies CPU access on the Amiga.
-static UInt8 mem_access_mode_from_options(Int options)
+static Int8 mem_type_mode_from_options(Int options)
 {
-    UInt8 access = 0;
+    Int8 type = MEM_TYPE_MEMORY;
     
-    if ((options & ALLOCATOR_OPTION_CPU) != 0) {
-        access |= MEM_ACCESS_CPU;
-    }
     if ((options & ALLOCATOR_OPTION_CHIPSET) != 0) {
-        access |= MEM_ACCESS_CHIPSET;
+        type = MEM_TYPE_UNIFIED_MEMORY;
     }
     
-    if (access == 0) {
-        access |= MEM_ACCESS_CPU;
-    }
-    if (access == MEM_ACCESS_CHIPSET) {
-        access |= MEM_ACCESS_CPU;
-    }
-    
-    return access;
+    return type;
 }
 
 ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
@@ -366,8 +356,8 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, 
     }
     
     
-    // Derive the memory region access mode from the 'options'
-    const UInt8 access = mem_access_mode_from_options(options);
+    // Derive the memory region type from the 'options'
+    const Int8 type = mem_type_mode_from_options(options);
     
     
     // Compute how many bytes we have to take from free memory
@@ -384,7 +374,7 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, 
 
 
     // Allocate the memory
-    if (access == MEM_ACCESS_CPU) {
+    if (type == MEM_TYPE_MEMORY) {
         MemRegion* pCurRegion = (MemRegion*)pChipRegion->node.next;
 
         while(pCurRegion != NULL) {
@@ -514,7 +504,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
     while (pCurBlock) {
         Byte* pCurBlockBase = (Byte*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
-        const Character* ramType = ((pMemRegion->accessibility & MEM_ACCESS_CHIPSET) != 0) ? "CHIP" : "FAST";
+        const Character* ramType = (pMemRegion->type == MEM_TYPE_UNIFIED_MEMORY) ? "CHIP" : "FAST";
         
         print("   0x%p, %lu  %s\n", pCurBlockBase + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock), ramType);
         pCurBlock = pCurBlock->next;
