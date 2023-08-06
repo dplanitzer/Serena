@@ -168,81 +168,6 @@ static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegio
     return pAllocedBlock;
 }
 
-MemBlock* MemRegion_AllocBytesAt(MemRegion* _Nonnull pMemRegion, Byte* _Nonnull pAddr, Int nbytes)
-{
-    // Compute how many bytes we have to take from free memory
-    const Int nBytesToAlloc = Int_RoundUpToPowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
-    
-    
-    // Compute the block lower and upper bounds
-    Byte* pBlockLower = pAddr - sizeof(MemBlock);
-    Byte* pBlockUpper = pBlockLower + nBytesToAlloc;
-    
-    
-    // Find the free block which contains the requested byte range
-    MemBlock* pPrevBlock = NULL;
-    MemBlock* pCurBlock = pMemRegion->first_free_block;
-    MemBlock* pFoundBlock = NULL;
-    while (pCurBlock) {
-        Byte* pCurLower = (Byte*) pCurBlock;
-        Byte* pCurUpper = pCurLower + pCurBlock->size;
-        
-        if (pBlockLower >= pCurLower && pBlockUpper <= pCurUpper) {
-            pFoundBlock = pCurBlock;
-            break;
-        }
-        
-        pPrevBlock = pCurBlock;
-        pCurBlock = pCurBlock->next;
-    }
-    
-    if (pFoundBlock == NULL) {
-        return NULL;
-    }
-    
-    
-    // Okay we found the free block which contains the requested range. Carve out
-    // the requested range. This means that we may cut off bytes from the start or
-    // the end or we have to split the free block.
-    Byte* pFoundLower = (Byte*)pFoundBlock;
-    Byte* pFoundUpper = pFoundLower + pFoundBlock->size;
-    
-    if (pFoundLower == pBlockLower) {
-        // Cut bytes off from the bottom of the free block
-        MemBlock* pNewFreeBlock = (MemBlock*) (pBlockLower + nBytesToAlloc);
-        
-        pNewFreeBlock->next = pFoundBlock->next;
-        pNewFreeBlock->size = pFoundBlock->size - nBytesToAlloc;
-        if (pPrevBlock) {
-            pPrevBlock->next = pNewFreeBlock;
-        } else {
-            pMemRegion->first_free_block = pNewFreeBlock;
-        }
-    }
-    else if (pFoundUpper == pBlockUpper) {
-        // Cut bytes off from the top of the free block
-        pFoundBlock->size -= nBytesToAlloc;
-    }
-    else {
-        // Split the found free block into a new lower and upper free block
-        MemBlock* pNewUpperFreeBlock = (MemBlock*)pBlockUpper;
-        
-        pNewUpperFreeBlock->size = pFoundUpper - pBlockUpper;
-        pNewUpperFreeBlock->next = pFoundBlock->next;
-        
-        pFoundBlock->size = pBlockLower - pFoundLower;
-        pFoundBlock->next = pNewUpperFreeBlock;
-    }
-    
-    
-    // Create the allocated block header
-    MemBlock* pAllocedBlock = (MemBlock*)pBlockLower;
-    pAllocedBlock->size = nBytesToAlloc;
-    pAllocedBlock->next = NULL;
-
-    return pAllocedBlock;
-}
-
 // Deallocates the given memory block. Expects that the memory block is managed
 // by the given mem region. Expects that the memory block is already removed from
 // the allocators list of allocated memory blocks.
@@ -511,50 +436,6 @@ catch:
     return err;
 }
 
-ErrorCode Allocator_AllocateBytesAt(AllocatorRef _Nonnull pAllocator, Byte* _Nonnull pAddr, Int nbytes)
-{
-    if (pAddr == NULL) {
-        return EPARAM;
-    }
-    if (nbytes <= 0) {
-        return EPARAM;
-    }
-    if (align_up_byte_ptr(pAddr, HEAP_ALIGNMENT) != pAddr) {
-        return EPARAM;
-    }
-    
-
-     decl_try_err();
-     Bool needsUnlock = false;
-   
-    // Compute the block lower and upper bounds
-    try(Lock_Lock(&pAllocator->lock));
-    needsUnlock = true;
-
-
-    // Find out which memory region contains the block that we want to allocate.
-    // Return out of memory if no memory region fully contains the requested block.
-    MemRegion* pMemRegion;
-    try_null(pMemRegion, Allocator_GetMemRegionManaging_Locked(pAllocator, pAddr), ENOMEM); 
-    
-    
-    // Allocate the block in the memory region
-    MemBlock* pMemBlock;
-    try_null(pMemBlock, MemRegion_AllocBytesAt(pMemRegion, pAddr, nbytes), ENOMEM);
-    pMemBlock->next = pAllocator->first_allocated_block;
-    pAllocator->first_allocated_block = pMemBlock;
-    
-    Lock_Unlock(&pAllocator->lock);
-
-    return EOK;
-    
-catch:
-    if (needsUnlock) {
-        Lock_Unlock(&pAllocator->lock);
-    }
-    return err;
-}
-
 ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr)
 {
     decl_try_err();
@@ -640,6 +521,21 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
     }
     
     print("-------------------------------\n");
+    
+    Lock_Unlock(&pAllocator->lock);
+}
+
+void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
+{
+    Lock_Lock(&pAllocator->lock);
+
+    print("Memory regions:\n");
+    MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
+    while (pCurRegion != NULL) {
+        print("   lower: 0x%p, upper: 0x%p\n", pCurRegion->lower, pCurRegion->upper);
+
+        pCurRegion = (MemRegion*)pCurRegion->node.next;
+    }
     
     Lock_Unlock(&pAllocator->lock);
 }

@@ -30,9 +30,9 @@ extern ErrorCode Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, All
 extern ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc);
 
 extern ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
-extern ErrorCode Allocator_AllocateBytesAt(AllocatorRef _Nonnull pAllocator, Byte* _Nonnull pAddr, Int nbytes);
 extern ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr);
 
 extern void Allocator_Dump(AllocatorRef _Nonnull pAllocator);
+extern void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator);
 
 #endif /* Allocator_h */

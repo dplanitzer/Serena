@@ -196,8 +196,8 @@ void DispatchQueue_RunTests(void)
 #if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
-    EventDriverRef pEventDriver = (EventDriverRef)DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
-    assert(pEventDriver != NULL);
+    EventDriverRef pEventDriver = NULL;
+    try_bang(DriverManager_GetDriverForName(gDriverManager, kEventsDriverName, (DriverRef*)&pEventDriver));
 
     print("Event loop\n");
     while (true) {

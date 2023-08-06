@@ -76,13 +76,6 @@ ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnu
 {
     decl_try_err();
 
-    // Mark the boot virtual processor kernel stack area as allocated.
-    // Note that the boot virtual processor has no user stack since it will never
-    // execute userspace code.
-    try(Allocator_AllocateBytesAt(gMainAllocator, 
-            pScheduler->bootVirtualProcessor->kernel_stack.base,
-            pScheduler->bootVirtualProcessor->kernel_stack.size));
-
     pScheduler->quantums_per_quarter_second = Quantums_MakeFromTimeInterval(TimeInterval_MakeMilliseconds(250), QUANTUM_ROUNDING_AWAY_FROM_ZERO);
 
 

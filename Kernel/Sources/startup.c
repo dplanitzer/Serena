@@ -92,14 +92,45 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_IncipientContextSwitch();
 }
 
+static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemDesc)
+{
+    MemoryDescriptor md;
+
+    md.lower = max(pMemDesc->lower, gKernelHeapBottom);
+    md.upper = min(pMemDesc->upper, gKernelHeapTop);
+    md.accessibility = pMemDesc->accessibility;
+
+    return md;
+}
+
 static ErrorCode create_allocator(MemoryLayout* _Nonnull pMemLayout, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
+    Int i = 0;
     AllocatorRef pAllocator = NULL;
+    MemoryDescriptor adjusted_md;
     decl_try_err();
 
-    try(Allocator_Create(&pMemLayout->descriptor[0], &pAllocator));
-    for (Int i = 1; i < pMemLayout->descriptor_count; i++) {
-        try(Allocator_AddMemoryRegion(pAllocator, &pMemLayout->descriptor[i]));
+    // Skip over memory regions that are below the kernel heap bottom
+    while (i < pMemLayout->descriptor_count && pMemLayout->descriptor[i].upper < gKernelHeapBottom) {
+        i++;
+    }
+    if (i == pMemLayout->descriptor_count) {
+        throw(ENOMEM);
+    }
+
+
+    // First valid memory descriptor. Create the allocator based on that. We'll
+    // get an ENOMEM error if this memory region isn't big enough
+    adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i]);
+    try(Allocator_Create(&adjusted_md, &pAllocator));
+
+
+    // Pick up all other memory regions that are at least partially below the
+    // kernel heap top
+    i++;
+    while (i < pMemLayout->descriptor_count && pMemLayout->descriptor[i].lower < gKernelHeapTop) {
+        adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i++]);
+        try(Allocator_AddMemoryRegion(pAllocator, &adjusted_md));
     }
 
     *pOutAllocator = pAllocator;
@@ -185,6 +216,8 @@ static void OnMain(void)
     try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));
     Process_DispatchAsyncUser(gRootProcess, (Closure1Arg_Func)0xfe0000);
 #else
+    //print("heap bottom: 0x%p, heap top: 0x%p\n", gKernelHeapBottom, gKernelHeapTop);
+    //Allocator_DumpMemoryRegions(gMainAllocator);
     // XXX Unit tests
     void DispatchQueue_RunTests(void);
 

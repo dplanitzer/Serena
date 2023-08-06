@@ -44,7 +44,10 @@
 // Set 'err' to the given error and go to the 'catch' label if the given pointer
 // is null. Otherwise fall through to the next statement.
 #define throw_ifnull(p, e)  if ((p) == NULL) { err = e; goto catch; }
- 
+
+// Set 'err' to the given error and go to the 'catch' label.
+#define throw(e)            err = e; goto catch;
+
 
 // Error code definitions
 typedef Int ErrorCode;
