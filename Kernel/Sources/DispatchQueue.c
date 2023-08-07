@@ -7,6 +7,7 @@
 //
 
 #include "DispatchQueue.h"
+#include "kalloc.h"
 #include "ConditionVariable.h"
 #include "List.h"
 #include "Lock.h"

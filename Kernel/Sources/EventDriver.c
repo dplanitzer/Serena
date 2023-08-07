@@ -7,6 +7,7 @@
 //
 
 #include "EventDriver.h"
+#include "kalloc.h"
 #include "Console.h"
 #include "ConditionVariable.h"
 #include "DispatchQueue.h"

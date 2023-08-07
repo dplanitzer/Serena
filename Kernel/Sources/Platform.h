@@ -290,6 +290,7 @@ extern void chipset_reset(void);
 extern UInt8 chipset_get_version(void);
 extern UInt8 chipset_get_ramsey_version(void);
 extern Bool chipset_is_ntsc(void);
+extern Byte* chipset_get_upper_dma_limit(Int chipset_version);
 
 extern void chipset_enable_interrupt(Int interruptId);
 extern void chipset_disable_interrupt(Int interruptId);

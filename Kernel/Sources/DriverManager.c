@@ -7,7 +7,7 @@
 //
 
 #include "DriverManager.h"
-#include "Allocator.h"
+#include "kalloc.h"
 #include "Bytes.h"
 #include "Console.h"
 #include "List.h"
@@ -212,7 +212,7 @@ static ErrorCode DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManag
 
     // Add the RAM we found to the kernel allocator
     for (Int i = 0; i < mem_layout.descriptor_count; i++) {
-        (void) Allocator_AddMemoryRegion(gMainAllocator, &mem_layout.descriptor[i]);
+        (void) kalloc_add_memory_region(&mem_layout.descriptor[i]);
     }
 
 

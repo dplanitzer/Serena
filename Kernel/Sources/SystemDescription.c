@@ -99,20 +99,7 @@ Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, Int8 t
 static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServicesMemoryTop)
 {
     Byte* chip_ram_lower_p = pBootServicesMemoryTop;
-    Byte* chip_ram_upper_p;
-    
-    switch (pSysDesc->chipset_version) {
-        case CHIPSET_8370_NTSC:             chip_ram_upper_p = (Byte*) (512 * 1024); break;
-        case CHIPSET_8371_PAL:              chip_ram_upper_p = (Byte*) (512 * 1024); break;
-        case CHIPSET_8372_rev4_PAL:         chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
-        case CHIPSET_8372_rev4_NTSC:        chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
-        case CHIPSET_8372_rev5_NTSC:        chip_ram_upper_p = (Byte*) (1 * 1024 * 1024); break;
-        case CHIPSET_8374_rev2_PAL:         chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev2_NTSC:        chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev3_PAL:         chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev3_NTSC:        chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
-        default:                            chip_ram_upper_p = (Byte*) (2 * 1024 * 1024); break;
-    }
+    Byte* chip_ram_upper_p = pSysDesc->chipset_upper_dma_limit;
 
     // Forget the memory map set up by traps.s 'cause we'll build our own map here
     pSysDesc->memory.descriptor_count = 0;
@@ -153,6 +140,7 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootSer
 
     pSysDesc->chipset_version = (Int8)chipset_get_version();
     pSysDesc->chipset_ramsey_version = (Int8)chipset_get_ramsey_version();
+    pSysDesc->chipset_upper_dma_limit = chipset_get_upper_dma_limit(pSysDesc->chipset_version);
 
     // Compute the quantum timer parameters:
     //

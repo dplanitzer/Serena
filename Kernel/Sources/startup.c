@@ -7,7 +7,7 @@
 //
 
 #include "Foundation.h"
-#include "Allocator.h"
+#include "kalloc.h"
 #include "Bytes.h"
 #include "Console.h"
 #include "DispatchQueue.h"
@@ -20,8 +20,8 @@
 #include "VirtualProcessorPool.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
-static Byte* gKernelHeapBottom;
-static Byte* gKernelHeapTop;
+static Byte* gInitialHeapBottom;
+static Byte* gInitialHeapTop;
 
 
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
@@ -68,8 +68,8 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Carve the kernel data and bss out from memory descriptor #0 to ensure that
     // our kernel heap is not going to try to override the data/bss region.
-    gKernelHeapBottom = pSysDesc->memory.descriptor[0].lower + Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
-    pSysDesc->memory.descriptor[0].lower = gKernelHeapBottom;
+    gInitialHeapBottom = pSysDesc->memory.descriptor[0].lower + Int_RoundUpToPowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
+    pSysDesc->memory.descriptor[0].lower = gInitialHeapBottom;
 
 
     // Store a reference to the system description in our globals
@@ -80,7 +80,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
     Byte* pKernelStackBase = boot_allocate_kernel_stack(pSysDesc, kernelStackSize);
     assert(pKernelStackBase != NULL);
-    gKernelHeapTop = pKernelStackBase;
+    gInitialHeapTop = pKernelStackBase;
 
 
     // Initialize the scheduler
@@ -92,55 +92,6 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_IncipientContextSwitch();
 }
 
-static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemDesc)
-{
-    MemoryDescriptor md;
-
-    md.lower = max(pMemDesc->lower, gKernelHeapBottom);
-    md.upper = min(pMemDesc->upper, gKernelHeapTop);
-    md.type = pMemDesc->type;
-
-    return md;
-}
-
-static ErrorCode create_allocator(MemoryLayout* _Nonnull pMemLayout, AllocatorRef _Nullable * _Nonnull pOutAllocator)
-{
-    Int i = 0;
-    AllocatorRef pAllocator = NULL;
-    MemoryDescriptor adjusted_md;
-    decl_try_err();
-
-    // Skip over memory regions that are below the kernel heap bottom
-    while (i < pMemLayout->descriptor_count && pMemLayout->descriptor[i].upper < gKernelHeapBottom) {
-        i++;
-    }
-    if (i == pMemLayout->descriptor_count) {
-        throw(ENOMEM);
-    }
-
-
-    // First valid memory descriptor. Create the allocator based on that. We'll
-    // get an ENOMEM error if this memory region isn't big enough
-    adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i]);
-    try(Allocator_Create(&adjusted_md, &pAllocator));
-
-
-    // Pick up all other memory regions that are at least partially below the
-    // kernel heap top
-    i++;
-    while (i < pMemLayout->descriptor_count && pMemLayout->descriptor[i].lower < gKernelHeapTop) {
-        adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i++]);
-        try(Allocator_AddMemoryRegion(pAllocator, &adjusted_md));
-    }
-
-    *pOutAllocator = pAllocator;
-    return EOK;
-
-catch:
-    *pOutAllocator = NULL;
-    return err;
-}
-
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
 // context. Interrupts and DMAs are still turned off.
 //
@@ -148,9 +99,8 @@ catch:
 // basic memort management, monotonic clock and the kernel main dispatch queue.
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
-    // Initialize the global heap
-    //try_bang(Allocator_Create(&pSysDesc->memory, &gMainAllocator));
-    try_bang(create_allocator(&pSysDesc->memory, &gMainAllocator));
+    // Initialize the kernel heap
+    try_bang(kalloc_init(pSysDesc, gInitialHeapBottom, gInitialHeapTop));
     
 
     // Initialize the interrupt controller
@@ -216,10 +166,6 @@ static void OnMain(void)
     try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));
     Process_DispatchAsyncUser(gRootProcess, (Closure1Arg_Func)0xfe0000);
 #else
-    print("heap bottom: 0x%p, heap top: 0x%p\n", gKernelHeapBottom, gKernelHeapTop);
-    Allocator_DumpMemoryRegions(gMainAllocator);
-    print("\n");
-
     // XXX Unit tests
     void DispatchQueue_RunTests(void);
 

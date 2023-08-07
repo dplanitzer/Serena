@@ -7,6 +7,7 @@
 //
 
 #include "Foundation.h"
+#include "kalloc.h"
 #include "DispatchQueue.h"
 #include "DriverManager.h"
 #include "EventDriver.h"
@@ -127,6 +128,9 @@ void DispatchQueue_RunTests(void)
     print("RAMSEY version: $%x\n", pSysDesc->chipset_ramsey_version);
     print("\n");
  
+    //kalloc_dump();
+    //print("\n");
+
     /*
     RealtimeClockRef pRealtimeClock = (RealtimeClockRef) DriverManager_GetDriverForName(gDriverManager, kRealtimeClockName);
     if (pRealtimeClock) {

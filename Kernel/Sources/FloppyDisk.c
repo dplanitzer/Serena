@@ -7,7 +7,7 @@
 //
 
 #include "FloppyDisk.h"
-#include "Allocator.h"
+#include "kalloc.h"
 #include "Platform.h"
 #include "VirtualProcessor.h"
 
@@ -286,7 +286,7 @@ ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk
     FloppyDisk* pDisk;
     
     try(kalloc_cleared(sizeof(FloppyDisk), (Byte**) &pDisk));
-    try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, ALLOCATOR_OPTION_CHIPSET|ALLOCATOR_OPTION_CPU, (Byte**) &pDisk->track_buffer));
+    try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (Byte**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;
     pDisk->head = -1;

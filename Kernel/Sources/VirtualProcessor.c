@@ -7,6 +7,7 @@
 //
 
 #include "VirtualProcessor.h"
+#include "kalloc.h"
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
 #include "Bytes.h"

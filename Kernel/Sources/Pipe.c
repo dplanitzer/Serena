@@ -7,6 +7,7 @@
 //
 
 #include "Pipe.h"
+#include "kalloc.h"
 #include "ConditionVariable.h"
 #include "Lock.h"
 #include "RingBuffer.h"

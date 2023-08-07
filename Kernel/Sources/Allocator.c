@@ -37,8 +37,6 @@ typedef struct _MemRegion {
     Byte* _Nonnull      lower;
     Byte* _Nonnull      upper;
     MemBlock* _Nullable first_free_block;   // Every memory region has its own private free list
-    Int8                type;               // MEM_TYPE_XXX
-    UInt8               reserved[3];
 } MemRegion;
 
 
@@ -49,9 +47,6 @@ typedef struct _Allocator {
     Lock                lock;
 } Allocator;
 
-
-
-AllocatorRef   gMainAllocator;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -98,10 +93,6 @@ static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, const Memory
     pMemRegion->lower = pMemDesc->lower;
     pMemRegion->upper = pMemDesc->upper;
     pMemRegion->first_free_block = pFreeBlock;
-    pMemRegion->type = pMemDesc->type;
-    pMemRegion->reserved[0] = 0;
-    pMemRegion->reserved[1] = 0;
-    pMemRegion->reserved[2] = 0;
 
     return pMemRegion;
 }
@@ -333,21 +324,7 @@ static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _
     return NULL;
 }
 
-// Returns the correct memory region type for the given heap options.
-// Assumes CPU-only type if no explicit type options were specified.
-// Note that chipset access always also implies CPU access on the Amiga.
-static Int8 mem_type_mode_from_options(Int options)
-{
-    Int8 type = MEM_TYPE_MEMORY;
-    
-    if ((options & ALLOCATOR_OPTION_CHIPSET) != 0) {
-        type = MEM_TYPE_UNIFIED_MEMORY;
-    }
-    
-    return type;
-}
-
-ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
+ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
@@ -356,43 +333,28 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, 
     }
     
     
-    // Derive the memory region type from the 'options'
-    const Int8 type = mem_type_mode_from_options(options);
-    
-    
     // Compute how many bytes we have to take from free memory
     const Int nBytesToAlloc = Int_RoundUpToPowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
     
     
     // Note that the code here assumes desc 0 is chip RAM and all the others are
     // fast RAM. This is enforced by Allocator_Create().
-    MemRegion* pChipRegion = (MemRegion*)pAllocator->regions.first;
     MemBlock* pMemBlock = NULL;
     decl_try_err();
 
     try(Lock_Lock(&pAllocator->lock));
 
 
-    // Allocate the memory
-    if (type == MEM_TYPE_MEMORY) {
-        MemRegion* pCurRegion = (MemRegion*)pChipRegion->node.next;
-
-        while(pCurRegion != NULL) {
-            pMemBlock = MemRegion_AllocMemBlock(pCurRegion, nBytesToAlloc);
-            if (pMemBlock != NULL) {
-                break;
-            }
-
-            pCurRegion = (MemRegion*)pCurRegion->node.next;
+    // Go through the available memory region trying to allocate the memory block
+    // until it works.
+    MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
+    while(pCurRegion != NULL) {
+        pMemBlock = MemRegion_AllocMemBlock(pCurRegion, nBytesToAlloc);
+        if (pMemBlock != NULL) {
+            break;
         }
-        
-        if (pMemBlock == NULL) {
-            // Fall back to chip RAM 'cause there's no fast RAM or it's exhausted
-            pMemBlock = MemRegion_AllocMemBlock(pChipRegion, nBytesToAlloc);
-        }
-    }
-    else {
-        pMemBlock = MemRegion_AllocMemBlock(pChipRegion, nBytesToAlloc);
+
+        pCurRegion = (MemRegion*)pCurRegion->node.next;
     }
 
 
@@ -407,18 +369,8 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, 
     Lock_Unlock(&pAllocator->lock);
 
     
-    // Calculate the user memory block pointer
-    Byte* ptr = (Byte*)pMemBlock + sizeof(MemBlock);
-
-
-    // Zero the memory if requested
-    if (ptr && (options & ALLOCATOR_OPTION_CLEAR) != 0) {
-        Bytes_ClearRange(ptr, nbytes);
-    }
-    
-    
-    // Return the allocated bytes
-    *pOutPtr = ptr;
+    // Calculate and return the user memory block pointer
+    *pOutPtr = (Byte*)pMemBlock + sizeof(MemBlock);
     return EOK;
 
 catch:
@@ -504,9 +456,8 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
     while (pCurBlock) {
         Byte* pCurBlockBase = (Byte*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
-        const Character* ramType = (pMemRegion->type == MEM_TYPE_UNIFIED_MEMORY) ? "CHIP" : "FAST";
         
-        print("   0x%p, %lu  %s\n", pCurBlockBase + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock), ramType);
+        print("   0x%p, %lu\n", pCurBlockBase + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
         pCurBlock = pCurBlock->next;
     }
     
@@ -518,9 +469,8 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
 {
     Lock_Lock(&pAllocator->lock);
-
-    print("Memory regions:\n");
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
+    
     while (pCurRegion != NULL) {
         print("   lower: 0x%p, upper: 0x%p\n", pCurRegion->lower, pCurRegion->upper);
 
