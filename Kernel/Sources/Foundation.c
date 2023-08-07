@@ -19,8 +19,8 @@ _Noreturn fatalError(const Character* _Nonnull filename, int line)
     cpu_disable_irqs();
     chipset_stop_quantum_timer();
 
-    _GraphicsDriver_SetClutEntry(0, 0x0000);
-    _GraphicsDriver_SetClutEntry(1, 0x0f00);
+    _GraphicsDriver_SetClutEntry(0, 0x036a);    // #306ab0
+    _GraphicsDriver_SetClutEntry(1, 0x0fff);    // #ffffff
 
     if (gDriverManager != NULL) {
         Console* pConsole = NULL;
