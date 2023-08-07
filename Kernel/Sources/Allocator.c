@@ -99,7 +99,7 @@ static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, const Memory
 
 // Returns true if the given memory address is managed by this memory region
 // and false otherwise.
-static Bool MemRegion_ManagesAddress(const MemRegion* _Nonnull pMemRegion, Byte* _Nullable pAddress)
+static Bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, Byte* _Nullable pAddress)
 {
     return (pAddress >= pMemRegion->lower && pAddress < pMemRegion->upper) ? true : false;
 }
@@ -316,12 +316,35 @@ catch:
 static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _Nonnull pAllocator, Byte* _Nullable pAddress)
 {
     SList_ForEach(&pAllocator->regions, MemRegion, {
-        if (MemRegion_ManagesAddress(pCurNode, pAddress)) {
+        if (MemRegion_IsManaging(pCurNode, pAddress)) {
             return pCurNode;
         }
     });
 
     return NULL;
+}
+
+ErrorCode Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr, Bool* _Nonnull pOutResult)
+{
+    decl_try_err();
+    Bool r = false;
+
+    if (ptr == NULL || ptr == BYTE_PTR_MAX) {
+        // Any allocator can take responsibility of that since deallocating these
+        // things is a NOP anyway
+        *pOutResult = true;
+        return EOK;
+    }
+
+    try(Lock_Lock(&pAllocator->lock));
+    r = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) != NULL;
+    Lock_Unlock(&pAllocator->lock);
+    *pOutResult = r;
+    return EOK;
+
+catch:
+    *pOutResult = false;
+    return err;
 }
 
 ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
@@ -470,7 +493,7 @@ void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
 {
     Lock_Lock(&pAllocator->lock);
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
-    
+
     while (pCurRegion != NULL) {
         print("   lower: 0x%p, upper: 0x%p\n", pCurRegion->lower, pCurRegion->upper);
 

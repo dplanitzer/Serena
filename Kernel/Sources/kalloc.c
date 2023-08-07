@@ -110,7 +110,11 @@ catch:
 // Frees kernel memory allocated with the kalloc() function.
 void kfree(Byte* _Nullable ptr)
 {
-    if (ptr < gSystemDescription->chipset_upper_dma_limit) {
+    Bool isUnifiedMemPtr = false;
+
+    try_bang(Allocator_IsManaging(gUnifiedMemory, ptr, &isUnifiedMemPtr));
+
+    if (isUnifiedMemPtr) {
         try_bang(Allocator_DeallocateBytes(gUnifiedMemory, ptr));
     } else {
         try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));
@@ -121,7 +125,15 @@ void kfree(Byte* _Nullable ptr)
 // heap.
 ErrorCode kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
 {
-    return Allocator_AddMemoryRegion(gCpuOnlyMemory, pMemDesc);
+    AllocatorRef pAllocator;
+
+    if (pMemDesc->upper < gSystemDescription->chipset_upper_dma_limit) {
+        pAllocator = gUnifiedMemory;
+    } else {
+        pAllocator = gCpuOnlyMemory;
+    }
+
+    return Allocator_AddMemoryRegion(pAllocator, pMemDesc);
 }
 
 // Dumps a description of the kalloc heap to the console
