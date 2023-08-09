@@ -128,18 +128,29 @@ extern DispatchQueueRef _Nonnull    gMainDispatchQueue;
 
 extern ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
 
-// Destroys the dispatch queue after all still pending work items have finished
-// executing. Pending one-shot and repeatable timers are cancelled and get no
-// more chance to run. Blocks the caller until the queue has been drained and
-// deallocated.
-extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
+// Terminates the dispatch queue. This does:
+// *) an abort of ongoing call-as-user operations on all VPs attached to the queue
+// *) flushes the queue
+// *) stops the queue from accepting new work
+// *) informs the attached process that the queue has terminated
+// *) Marks the queue as terminated
+// This function initiates the termination of the given dispatch queue. The
+// termination process is asynchronous and does not block the caller. It only
+// returns once the queue is in terminated state. Note that there is no guarantee
+// whether a particular work item that is queued before this function is called
+// will still execute or not. However there is a guarantee that once this function
+// returns, that no further work items will execute.
+extern void DispatchQueue_Terminate(DispatchQueueRef _Nonnull pQueue);
 
-// Similar to DispatchQueue_Destroy() but allows you to specify whether still
-// pending work items should be flushed or executed.
-// \param flush true means that still pending work items are executed before the
-//              queue shuts down; false means that all pending work items are
-//              flushed out from the queue and not executed
-extern void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush);
+// Waits until the dispatch queue has reached 'terminated' state which means that
+// all VPs have been relinquished.
+extern void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull pQueue);
+
+// Destroys the dispatch queue. The queue is first terminated if it isn't already
+// in terminated state. All work items and timers which are still queued up are
+// flushed and will not execute anymore. Blocks the caller until the queue has
+// been drained, terminated and deallocated.
+extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
 
 
 // Returns the process that owns the dispatch queue. Returns NULL if the dispatch
@@ -185,5 +196,5 @@ extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 extern ErrorCode DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
-
+ 
 #endif /* DispatchQueue_h */

@@ -101,7 +101,7 @@ catch:
 }
 
 // Adds the given virtual processor with the given effective priority to the
-// ready queue and resets uts time slice length to the length implied by its
+// ready queue and resets its time slice length to the length implied by its
 // effective priority.
 void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP, Int effectivePriority)
 {

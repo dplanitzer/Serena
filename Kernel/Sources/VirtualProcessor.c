@@ -257,6 +257,8 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
         UInt32* pReturnAddress = (UInt32*)(pVP->syscall_entry_ksp + 2);
         
         *pReturnAddress = (UInt32)cpu_abort_call_as_user;
+
+        // XXX if the VP is waiting on something then we want to interrupt/abort this wait
     } else {
         // User space:
         // redirect the VP to the new call
@@ -404,6 +406,7 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
             break;
             
         case kVirtualProcessorState_Waiting:
+            // XXX should not interrupt the wait -> it's just a longer wait
             VirtualProcessorScheduler_WakeUpOne(gVirtualProcessorScheduler,
                  pVP->waiting_on_wait_queue, pVP, WAKEUP_REASON_INTERRUPTED, false);
             break;
@@ -436,6 +439,7 @@ ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
     
     pVP->suspension_count = force ? 0 : pVP->suspension_count - 1;
     
+    // XXX if state was Ready or Run -> make it Ready; if state was Waiting -> Waiting
     if (pVP->suspension_count == 0) {
         VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
         VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pVP);

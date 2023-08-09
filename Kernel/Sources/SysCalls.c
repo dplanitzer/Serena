@@ -37,6 +37,17 @@ ErrorCode _syscall_dispatchAsync(const Closure1Arg_Func pUserClosure)
 
 ErrorCode _syscall_exit(Int status)
 {
-    Process_Exit(Process_GetCurrent());
+    // Trigger the termination of the process. Note that the actual termination
+    // is done asynchronously. That's why we sleep below since we don't want to
+    // return to user space anymore.
+    Process_Terminate(Process_GetCurrent());
+
+
+    // This wait here will eventually be aborted when the dispatch queue that
+    // owns this VP is terminated. This interrupt will be caused by the abort
+    // of the call-as-user and thus this system call will not return to user
+    // space anymore. Instead it will return to the dispatch queue main loop.
+    (void)VirtualProcessor_Sleep(kTimeInterval_Infinity);
+
     return EOK;
 }

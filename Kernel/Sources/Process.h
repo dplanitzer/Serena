@@ -34,9 +34,13 @@ extern void Process_Destroy(ProcessRef _Nullable pProc);
 extern Int Process_GetPID(ProcessRef _Nonnull pProc);
 extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
 
-// Voluntarily exits the given process. Assumes that this function is called from
-// a system call originating in user space and that this call is made from one of
-// the dispatch queue execution contexts owned by the process.
-extern void Process_Exit(ProcessRef _Nonnull pProc);
+// Triggers the termination of the given process. The termination may be caused
+// voluntarily (some VP currently owned by the process triggers this call) or
+// involuntarily (some other process triggers this call). Note that the actual
+// termination is done asynchronously.
+extern void Process_Terminate(ProcessRef _Nonnull pProc);
+
+// Returns true if the process is marked for termination and false otherwise.
+extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
 #endif /* Process_h */

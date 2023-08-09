@@ -61,7 +61,8 @@ typedef struct _ConcurrencyLane {
 
 enum QueueState {
     kQueueState_Running,                // Queue is running and willing to accept and execute closures
-    kQueueState_ShuttingDown            // DispatchQueue_Destroy() was called. The VPs should be relinquished and the queue freed 
+    kQueueState_Terminating,            // DispatchQueue_Terminate() was called and the queue is in the process of terminating
+    kQueueState_Terminated              // The queue has finished terminating. All virtual processors are relinquished
 };
 
 
@@ -319,25 +320,14 @@ catch:
     return err;
 }
 
-// Destroys the dispatch queue after all still pending work items have finished
-// executing. Pending one-shot and repeatable timers are cancelled and get no
-// more chance to run. Blocks the caller until the queue has been drained and
-// deallocated.
-void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
-{
-    DispatchQueue_DestroyAndFlush(pQueue, false);
-}
-
 // Removes all queued work items, one-shot and repeatable timers from the queue.
-static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue, Bool flushWorkItems)
+static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue)
 {
     // Flush the work item queue
-    if (flushWorkItems) {
-        WorkItemRef pItem;
-        while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
-            if (pItem->is_owned_by_queue) {
-                DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
-            }
+    WorkItemRef pItem;
+    while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
+        if (pItem->is_owned_by_queue) {
+            DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
         }
     }
 
@@ -351,75 +341,113 @@ static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue, Bool fl
     }
 }
 
-// Similar to DispatchQueue_Destroy() but allows you to specify whether still
-// pending work items should be flushed or executed.
-// \param flush true means that still pending work items are executed before the
-//              queue shuts down; false means that all pending work items are
-//              flushed out from the queue and not executed
-void DispatchQueue_DestroyAndFlush(DispatchQueueRef _Nullable pQueue, Bool flush)
+// Terminates the dispatch queue. This does:
+// *) an abort of ongoing call-as-user operations on all VPs attached to the queue
+// *) flushes the queue
+// *) stops the queue from accepting new work
+// *) informs the attached process that the queue has terminated
+// *) Marks the queue as terminated
+// This function initiates the termination of the given dispatch queue. The
+// termination process is asynchronous and does not block the caller. It only
+// returns once the queue is in terminated state. Note that there is no guarantee
+// whether a particular work item that is queued before this function is called
+// will still execute or not. However there is a guarantee that once this function
+// returns, that no further work items will execute.
+void DispatchQueue_Terminate(DispatchQueueRef _Nonnull pQueue)
+{
+    // Request queue termination. This will stop all dispatch calls from
+    // accepting new work items and repeatable timers from rescheduling. This
+    // will also cause the VPs to exit their work loop and to relinquish
+    // themselves.
+    try_bang(Lock_Lock(&pQueue->lock));
+    if (pQueue->state >= kQueueState_Terminating) {
+        Lock_Unlock(&pQueue->lock);
+        return;
+    }
+    pQueue->state = kQueueState_Terminating;
+
+
+    // Flush the dispatch queue which means that we get rid of all still queued
+    // work items and timers.
+    DispatchQueue_Flush_Locked(pQueue);
+
+
+    // Abort all ongoing call-as-user invocations.
+    for (Int i = 0; i < pQueue->maxConcurrency; i++) {
+        if (pQueue->concurrency_lanes[i].vp != NULL) {
+            VirtualProcessor_AbortCallAsUser(pQueue->concurrency_lanes[i].vp);
+        }
+    }
+
+
+    // We want to wake _all_ VPs up here since all of them need to relinquish
+    // themselves.
+    ConditionVariable_BroadcastAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
+}
+
+// Waits until the dispatch queue has reached 'terminated' state which means that
+// all VPs have been relinquished.
+void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull pQueue)
+{
+    try_bang(Lock_Lock(&pQueue->lock));
+    while (pQueue->availableConcurrency > 0) {
+        ConditionVariable_Wait(&pQueue->vp_shutdown_signaler, &pQueue->lock, kTimeInterval_Infinity);
+    }
+
+
+    // The queue is now in terminated state
+    pQueue->state = kQueueState_Terminated;
+    Lock_Unlock(&pQueue->lock);
+}
+
+// Deallocates the dispatch queue. Expects that the queue is in 'terminated' state.
+static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull pQueue)
+{
+    CompletionSignaler* pCompSignaler;
+    WorkItemRef pItem;
+    TimerRef pTimer;
+
+    assert(pQueue->state == kQueueState_Terminated);
+
+    // No more VPs are attached to this queue. We can now go ahead and free
+    // all resources.
+    SList_Deinit(&pQueue->item_queue);      // guaranteed to be empty at this point
+    SList_Deinit(&pQueue->timer_queue);     // guaranteed to be empty at this point
+
+    while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_cache_queue)) != NULL) {
+        WorkItem_Destroy(pItem);
+    }
+    SList_Deinit(&pQueue->item_cache_queue);
+        
+    while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_cache_queue)) != NULL) {
+        Timer_Destroy(pTimer);
+    }
+    SList_Deinit(&pQueue->timer_cache_queue);
+
+    while((pCompSignaler = (CompletionSignaler*) SList_RemoveFirst(&pQueue->completion_signaler_cache_queue)) != NULL) {
+        CompletionSignaler_Destroy(pCompSignaler);
+    }
+    SList_Deinit(&pQueue->completion_signaler_cache_queue);
+        
+    Lock_Deinit(&pQueue->lock);
+    ConditionVariable_Deinit(&pQueue->work_available_signaler);
+    ConditionVariable_Deinit(&pQueue->vp_shutdown_signaler);
+    pQueue->owning_process = NULL;
+    pQueue->virtual_processor_pool = NULL;
+
+    kfree((Byte*) pQueue);
+}
+
+// Destroys the dispatch queue. The queue is first terminated if it isn't already
+// in terminated state. All work items and timers which are still queued up are
+// flushed and will not execute anymore. Blocks the caller until the queue has
+// been drained, terminated and deallocated.
+void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
 {
     if (pQueue) {
-        CompletionSignaler* pCompSignaler;
-        WorkItemRef pItem;
-        TimerRef pTimer;
-
-        // Request queue shutdown. This will stop all dispatch calls from
-        // accepting new work items and repeatable timers from rescheduling. This
-        // will also cause the VPs to drain the existing work item queue and to
-        // relinquish themselves.
-        try_bang(Lock_Lock(&pQueue->lock));
-        pQueue->state = kQueueState_ShuttingDown;
-
-
-        // Note that we free the scheduled timers in any case now. We do not run
-        // them anymore no matter what because (a) their deadline may be far out
-        // in the future but the queue is dying now and (b) because of that code
-        // that shuts down a queue can not assume that a scheduled timer may get
-        // one last chance to run.
-        DispatchQueue_Flush_Locked(pQueue, flush);
-
-
-        // We want to wake _all_ VPs up here since all of them need to relinquish
-        // themselves.
-        ConditionVariable_BroadcastAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
-
-
-        // Wait until all VPs have relinquished and detached themselves from the
-        // dispatch queue.
-        try_bang(Lock_Lock(&pQueue->lock));
-        while (pQueue->availableConcurrency > 0) {
-            ConditionVariable_Wait(&pQueue->vp_shutdown_signaler, &pQueue->lock, kTimeInterval_Infinity);
-        }
-        Lock_Unlock(&pQueue->lock);
-
-
-        // No more VPs are attached to this queue. We can now go ahead and free
-        // all resources.
-        SList_Deinit(&pQueue->item_queue);      // guaranteed to be empty at this point
-        SList_Deinit(&pQueue->timer_queue);     // guaranteed to be empty at this point
-
-        while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_cache_queue)) != NULL) {
-            WorkItem_Destroy(pItem);
-        }
-        SList_Deinit(&pQueue->item_cache_queue);
-        
-        while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_cache_queue)) != NULL) {
-            Timer_Destroy(pTimer);
-        }
-        SList_Deinit(&pQueue->timer_cache_queue);
-
-        while((pCompSignaler = (CompletionSignaler*) SList_RemoveFirst(&pQueue->completion_signaler_cache_queue)) != NULL) {
-            CompletionSignaler_Destroy(pCompSignaler);
-        }
-        SList_Deinit(&pQueue->completion_signaler_cache_queue);
-        
-        Lock_Deinit(&pQueue->lock);
-        ConditionVariable_Deinit(&pQueue->work_available_signaler);
-        ConditionVariable_Deinit(&pQueue->vp_shutdown_signaler);
-        pQueue->owning_process = NULL;
-        pQueue->virtual_processor_pool = NULL;
-
-        kfree((Byte*) pQueue);
+        DispatchQueue_Terminate(pQueue);
+        DispatchQueue_WaitForTerminationCompleted(pQueue);
+        _DispatchQueue_Destroy(pQueue);
     }
 }
 
@@ -443,7 +471,8 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
     // concurrency lanes available to us and one of the following is true:
     // - we don't own a virtual processor at all
     // - we've queued up at least 4 work items
-    if (pQueue->availableConcurrency < pQueue->maxConcurrency
+    if (pQueue->state == kQueueState_Running
+        && pQueue->availableConcurrency < pQueue->maxConcurrency
         && (pQueue->availableConcurrency == 0 || pQueue->items_queued_count > 4)) {
         Int conLaneIdx = -1;
 
@@ -687,7 +716,7 @@ ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, W
 
     try(Lock_Lock(&pQueue->lock));
     needsUnlock = true;
-    if (pQueue->state >= kQueueState_ShuttingDown) {
+    if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
         return EOK;
     }
@@ -712,7 +741,7 @@ ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQ
 
     try(Lock_Lock(&pQueue->lock));
     needsUnlock = true;
-    if (pQueue->state >= kQueueState_ShuttingDown) {
+    if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
         return EOK;
     }
@@ -746,7 +775,7 @@ ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, 
 
     try(Lock_Lock(&pQueue->lock));
     needsUnlock = true;
-    if (pQueue->state >= kQueueState_ShuttingDown) {
+    if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
         return EOK;
     }
@@ -771,7 +800,7 @@ ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, Dispatch
 
     try(Lock_Lock(&pQueue->lock));
     needsUnlock = true;
-    if (pQueue->state >= kQueueState_ShuttingDown) {
+    if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
         return EOK;
     }
@@ -803,7 +832,7 @@ ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef
 
     try(Lock_Lock(&pQueue->lock));
     needsUnlock = true;
-    if (pQueue->state >= kQueueState_ShuttingDown) {
+    if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
         return EOK;
     }
@@ -828,7 +857,7 @@ ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, Tim
 
     try(Lock_Lock(&pQueue->lock));
     needsUnlock = true;
-    if (pQueue->state >= kQueueState_ShuttingDown) {
+    if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
         return EOK;
     }
@@ -863,7 +892,7 @@ ErrorCode DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
     decl_try_err();
 
     try(Lock_Lock(&pQueue->lock));
-    DispatchQueue_Flush_Locked(pQueue, true);
+    DispatchQueue_Flush_Locked(pQueue);
     Lock_Unlock(&pQueue->lock);
     return EOK;
 
@@ -917,9 +946,10 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
 
 
-            // We're done with this loop if we got an item to execute or we got
-            // no item and we're supposed to shut down
-            if (pItem != NULL || (pItem == NULL && (mayRelinquish || pQueue->state >= kQueueState_ShuttingDown))) {
+            // We're done with this loop if we got an item to execute, we're
+            // supposed to terminate or we got no item and it's okay to relinqish
+            // this VP
+            if (pItem != NULL || pQueue->state >= kQueueState_Terminating || (pItem == NULL && mayRelinquish)) {
                 break;
             }
             
@@ -946,8 +976,9 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
 
         
-        // Relinquish this VP if we did not get an item to execute
-        if (pItem == NULL) {
+        // Relinquish this VP if we did not get an item to execute or the queue
+        // is terminating
+        if (pItem == NULL || pQueue->state >= kQueueState_Terminating) {
             break;
         }
 
@@ -1010,7 +1041,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
     DispatchQueue_RelinquishVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent());
 
-    if (pQueue->state >= kQueueState_ShuttingDown) {
+    if (pQueue->state >= kQueueState_Terminating) {
         ConditionVariable_SignalAndUnlock(&pQueue->vp_shutdown_signaler, &pQueue->lock);
     } else {
         Lock_Unlock(&pQueue->lock);
