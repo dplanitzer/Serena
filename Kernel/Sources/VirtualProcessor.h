@@ -73,8 +73,7 @@ static inline VirtualProcessorClosure VirtualProcessorClosure_MakeWithPreallocat
 typedef enum _VirtualProcessorState {
     kVirtualProcessorState_Ready = 0,       // VP is able to run and is currently sitting on the ready queue
     kVirtualProcessorState_Running,         // VP is running
-    kVirtualProcessorState_Waiting,         // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-    kVirtualProcessorState_Suspended,       // VP is suspended (rewa links are NULL)
+    kVirtualProcessorState_Waiting          // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
 } VirtualProcessorState;
 
 

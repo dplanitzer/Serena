@@ -80,8 +80,8 @@ ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func 
     return DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
 }
 
-// Runs on the kernel main dispatch queue and terminates the process.
-static void Process_TerminateCore(ProcessRef _Nonnull pProc)
+// Runs on the kernel main dispatch queue and terminates the given process.
+static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 {
     // Mark the process atomically as terminating
     if(AtomicBool_Set(&pProc->isTerminating, true)) {
@@ -144,7 +144,7 @@ static void Process_TerminateCore(ProcessRef _Nonnull pProc)
 
     // Terminate all dispatch queues. This takes care of aborting user space
     // invocations.
-    //print("b\n");
+    //print("a\n");
     DispatchQueue_Terminate(pProc->mainDispatchQueue);
 
 
@@ -153,7 +153,7 @@ static void Process_TerminateCore(ProcessRef _Nonnull pProc)
 
 
     // Finally destroy the process.
-    //print("c\n");
+    //print("b\n");
     Process_Destroy(pProc);
 
     //print("DONE\n");
@@ -173,8 +173,7 @@ void Process_Terminate(ProcessRef _Nonnull pProc)
 
     // Schedule the actual process termination and destruction on the kernel
     // main dispatch queue.
-    //print("a\n");
-    try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) Process_TerminateCore, (Byte*) pProc)));
+    try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) _Process_DoTerminate, (Byte*) pProc)));
 }
 
 Bool Process_IsTerminating(ProcessRef _Nonnull pProc)

@@ -47,7 +47,6 @@ ErrorCode _syscall_exit(Int status)
     // owns this VP is terminated. This interrupt will be caused by the abort
     // of the call-as-user and thus this system call will not return to user
     // space anymore. Instead it will return to the dispatch queue main loop.
-    (void)VirtualProcessor_Sleep(kTimeInterval_Infinity);
-
+    VirtualProcessor_Sleep(kTimeInterval_Infinity);
     return EOK;
 }

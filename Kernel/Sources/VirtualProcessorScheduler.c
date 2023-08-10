@@ -318,27 +318,6 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     }
 }
 
-// Context switches to the given virtual processor if it is a better choice. Eg
-// it has a higher priority than the VP that is currently running. This is a
-// voluntary (cooperative) context switch which means that it will only happen
-// if we are not running in the interrupt context and voluntary context switches
-// are enabled.
-void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP)
-{
-    if (pVP->state == kVirtualProcessorState_Ready
-        && VirtualProcessorScheduler_IsCooperationEnabled()
-        && !InterruptController_IsServicingInterrupt(gInterruptController)) {
-        VirtualProcessor* pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler);
-        
-        if (pBestReadyVP == pVP && pVP->effectivePriority >= pScheduler->running->effectivePriority) {
-            VirtualProcessor* pCurRunning = (VirtualProcessor*)pScheduler->running;
-            
-            VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pCurRunning, pCurRunning->priority);
-            VirtualProcessorScheduler_SwitchTo(pScheduler, pVP);
-        }
-    }
-}
-
 // Wakes up all waiters on the wait queue 'pWaitQueue'. The woken up VPs are
 // removed from the wait queue. Expects to be called with preemption disabled.
 void VirtualProcessorScheduler_WakeUpAll(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, Bool allowContextSwitch)
@@ -363,8 +342,8 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
         register VirtualProcessor* pVP = (VirtualProcessor*)pCurNode;
         
         VirtualProcessorScheduler_WakeUpOne(pScheduler, pWaitQueue, pVP, wakeUpReason, false);
-        if (pRunCandidate == NULL && ((VirtualProcessor*)pCurNode)->state == kVirtualProcessorState_Ready) {
-            pRunCandidate = (VirtualProcessor*)pCurNode;
+        if (pRunCandidate == NULL && (pVP->state == kVirtualProcessorState_Ready && pVP->suspension_count == 0)) {
+            pRunCandidate = pVP;
         }
         pCurNode = pNextNode;
         i++;
@@ -402,14 +381,20 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
     // Everything below this point only applies if the VP that we want to wake
     // up is not currently suspened.
     if (pVP->state == kVirtualProcessorState_Waiting) {
-        // Make the VP ready and adjust it's effective priority based on the
-        // time it has spent waiting
-        const Int32 quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
-        const Int8 boostedPriority = min(pVP->effectivePriority + min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
-        VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, boostedPriority);
+        if (pVP->suspension_count == 0) {
+            // Make the VP ready and adjust it's effective priority based on the
+            // time it has spent waiting
+            const Int32 quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
+            const Int8 boostedPriority = min(pVP->effectivePriority + min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
+            VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, boostedPriority);
         
-        if (allowContextSwitch) {
-            VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pVP);
+            if (allowContextSwitch) {
+                VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pVP);
+            }
+        } else {
+            // The VP is suspended. Move it to ready state so that it will be
+            // added to the ready queue once we resume it.
+            pVP->state = kVirtualProcessorState_Ready;
         }
     }
 }
@@ -430,6 +415,28 @@ static void VirtualProcessorScheduler_FinishWait(VirtualProcessorScheduler* _Non
     
     pVP->waiting_on_wait_queue = NULL;
     pVP->wakeup_reason = wakeUpReason;
+}
+
+// Context switches to the given virtual processor if it is a better choice. Eg
+// it has a higher priority than the VP that is currently running. This is a
+// voluntary (cooperative) context switch which means that it will only happen
+// if we are not running in the interrupt context and voluntary context switches
+// are enabled.
+void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP)
+{
+    if (pVP->state == kVirtualProcessorState_Ready
+        && pVP->suspension_count == 0
+        && VirtualProcessorScheduler_IsCooperationEnabled()
+        && !InterruptController_IsServicingInterrupt(gInterruptController)) {
+        VirtualProcessor* pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler);
+        
+        if (pBestReadyVP == pVP && pVP->effectivePriority >= pScheduler->running->effectivePriority) {
+            VirtualProcessor* pCurRunning = (VirtualProcessor*)pScheduler->running;
+            
+            VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pCurRunning, pCurRunning->priority);
+            VirtualProcessorScheduler_SwitchTo(pScheduler, pVP);
+        }
+    }
 }
 
 // Context switch to the given virtual processor. The VP must be in ready state
@@ -594,7 +601,6 @@ static ErrorCode BootVirtualProcessor_Create(VirtualProcessorClosure closure, Vi
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_HIGHEST);
     try(VirtualProcessor_SetClosure(pVP, closure));
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
-    pVP->state = kVirtualProcessorState_Ready;
     pVP->suspension_count = 0;
     *pOutVp = pVP;
 
@@ -624,7 +630,6 @@ static ErrorCode IdleVirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonn
     
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_LOWEST);
     try(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_Make(IdleVirtualProcessor_Run, NULL, VP_DEFAULT_KERNEL_STACK_SIZE, 0)));
-    
     *pOutVP = pVP;
     return EOK;
     

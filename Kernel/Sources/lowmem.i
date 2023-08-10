@@ -215,7 +215,6 @@ cpu_SIZEOF         so
 kVirtualProcessorState_Ready        equ 0   ; VP is able to run but currently sitting on the ready queue
 kVirtualProcessorState_Running      equ 1   ; VP is running
 kVirtualProcessorState_Waiting      equ 2   ; VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
-kVirtualProcessorState_Suspended    equ 3   ; VP is suspended (rewa links are NULL)
 
     clrso
 vp_rewa_queue_entry_next                so.l    1           ; 4

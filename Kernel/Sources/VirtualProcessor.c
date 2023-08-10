@@ -93,7 +93,8 @@ _Noreturn VirtualProcesssor_Relinquish(void)
 }
 
 // Initializes a virtual processor. A virtual processor always starts execution
-// in supervisor mode. The user stack size may be 0.
+// in supervisor mode. The user stack size may be 0. Note that a virtual processor
+// always starts out in suspended state.
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
@@ -120,7 +121,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
     pVP->waiting_on_wait_queue = NULL;
     pVP->wakeup_reason = WAKEUP_REASON_NONE;
     
-    pVP->state = kVirtualProcessorState_Suspended;
+    pVP->state = kVirtualProcessorState_Ready;
     pVP->flags = 0;
     pVP->priority = (Int8)priority;
     pVP->suspension_count = 1;
@@ -175,7 +176,7 @@ void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nul
 ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure)
 {
     VP_ASSERT_ALIVE(pVP);
-    assert(pVP->state == kVirtualProcessorState_Suspended);
+    assert(pVP->suspension_count > 0);
     assert(closure.kernelStackSize >= VP_MIN_KERNEL_STACK_SIZE);
 
     decl_try_err();
@@ -252,13 +253,21 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
 
     if ((pVP->save_area.sr & 0x2000) != 0) {
         // Kernel space:
-        // let the currently active system call finish and intercept the RTE
-        // back out from the system call
+        // let the currently active system call finish and redirect the RTE
+        // from the system call back to user space to point to the call-as-user
+        // abort function.
         UInt32* pReturnAddress = (UInt32*)(pVP->syscall_entry_ksp + 2);
-        
         *pReturnAddress = (UInt32)cpu_abort_call_as_user;
 
-        // XXX if the VP is waiting on something then we want to interrupt/abort this wait
+
+        // Interrupt the virtual processor if it is waiting
+        if (pVP->state == kVirtualProcessorState_Waiting) {
+            VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
+                                             pVP->waiting_on_wait_queue,
+                                             INT_MAX,
+                                             WAKEUP_REASON_INTERRUPTED,
+                                             false);
+        }
     } else {
         // User space:
         // redirect the VP to the new call
@@ -273,7 +282,7 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
     if (!isCallerRunningOnVpToManipulate) {
         try_bang(VirtualProcessor_Resume(pVP, false));
     }
-    
+
     return EOK;
 
 catch:
@@ -342,19 +351,21 @@ Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
 {
     VP_ASSERT_ALIVE(pVP);
-    Int sps = VirtualProcessorScheduler_DisablePreemption();
+    const Int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (pVP->priority != priority) {
         switch (pVP->state) {
-            case kVirtualProcessorState_Ready: {
-                VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP);
+            case kVirtualProcessorState_Ready:
+                if (pVP->suspension_count == 0) {
+                    VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP);
+                }
                 pVP->priority = priority;
-                VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
+                if (pVP->suspension_count == 0) {
+                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
+                }
                 break;
-            }
                 
             case kVirtualProcessorState_Waiting:
-            case kVirtualProcessorState_Suspended:
                 pVP->priority = priority;
                 break;
                 
@@ -372,10 +383,8 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
 Bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
 {
     VP_ASSERT_ALIVE(pVP);
-    Bool isSuspended;
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
-    
-    isSuspended = pVP->state == kVirtualProcessorState_Suspended;
+    const Bool isSuspended = pVP->suspension_count > 0;
     VirtualProcessorScheduler_RestorePreemption(sps);
     return isSuspended;
 }
@@ -391,33 +400,26 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
         return EPARAM;
     }
     
-    const Int8 oldState = pVP->state;
     pVP->suspension_count++;
-    pVP->state = kVirtualProcessorState_Suspended;
     
-    switch (oldState) {
+    switch (pVP->state) {
         case kVirtualProcessorState_Ready:
             VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP);
             break;
             
         case kVirtualProcessorState_Running:
+            // We're running, thus we are not on the ready queue. Do a forced
+            // context switch to some other VP.
             VirtualProcessorScheduler_SwitchTo(gVirtualProcessorScheduler,
                                                VirtualProcessorScheduler_GetHighestPriorityReady(gVirtualProcessorScheduler));
             break;
             
         case kVirtualProcessorState_Waiting:
-            // XXX should not interrupt the wait -> it's just a longer wait
-            VirtualProcessorScheduler_WakeUpOne(gVirtualProcessorScheduler,
-                 pVP->waiting_on_wait_queue, pVP, WAKEUP_REASON_INTERRUPTED, false);
-            break;
-            
-        case kVirtualProcessorState_Suspended:
-            // We are already suspended
+            // We do not interrupt the wait. It's just a longer wait
             break;
             
         default:
-            abort();
-            
+            abort();            
     }
     
     VirtualProcessorScheduler_RestorePreemption(sps);
@@ -432,19 +434,29 @@ ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
     VP_ASSERT_ALIVE(pVP);
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
     
-    if (pVP->suspension_count == 0) {
-        VirtualProcessorScheduler_RestorePreemption(sps);
-        return EPARAM;
+    if (pVP->suspension_count > 0) {
+        pVP->suspension_count = force ? 0 : pVP->suspension_count - 1;
+
+        if (pVP->suspension_count == 0) {
+            switch (pVP->state) {
+                case kVirtualProcessorState_Ready:
+                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
+                    break;
+            
+                case kVirtualProcessorState_Running:
+                    VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
+                    VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pVP);
+                    break;
+            
+                case kVirtualProcessorState_Waiting:
+                    // Still in waiting state -> nothing more to do
+                    break;
+            
+                default:
+                    abort();            
+            }
+        }
     }
-    
-    pVP->suspension_count = force ? 0 : pVP->suspension_count - 1;
-    
-    // XXX if state was Ready or Run -> make it Ready; if state was Waiting -> Waiting
-    if (pVP->suspension_count == 0) {
-        VirtualProcessorScheduler_AddVirtualProcessor_Locked(gVirtualProcessorScheduler, pVP, pVP->priority);
-        VirtualProcessorScheduler_MaybeSwitchTo(gVirtualProcessorScheduler, pVP);
-    }
-    
     VirtualProcessorScheduler_RestorePreemption(sps);
     return EOK;
 }
