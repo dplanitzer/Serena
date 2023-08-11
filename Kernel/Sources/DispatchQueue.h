@@ -183,7 +183,9 @@ extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRe
 extern ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
 // Synchronously executes the given closure. The closure is executed as soon as
-// possible and the caller remains blocked until the closure has finished execution.
+// possible and the caller remains blocked until the closure has finished
+// execution. This function returns with an EINTR if the queue is flushed or
+// terminated by calling DispatchQueue_Terminate().
 extern ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
 
 
@@ -215,6 +217,7 @@ extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
+// Note that queued up DispatchSync() calls will return with an EINTR.
 extern ErrorCode DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
  
 #endif /* DispatchQueue_h */

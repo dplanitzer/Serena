@@ -247,12 +247,24 @@ catch:
     return err;
 }
 
+// Called when we flush an item from the dispatch queue. Signales the completion
+// semaphore if one is attached to the item to interrupt the DispatchSync(). The
+// DispatchSync() will return with an EINTR error.
+static void DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue, WorkItem* _Nonnull pItem)
+{
+    if (pItem->completion_sema) {
+        Semaphore_Release(pItem->completion_sema);
+    }
+}
+
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue)
 {
     // Flush the work item queue
     WorkItemRef pItem;
     while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
+        DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(pQueue, pItem);
+
         if (pItem->is_owned_by_queue) {
             DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
         }
@@ -262,6 +274,8 @@ static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue)
     // Flush the timers
     TimerRef pTimer;
     while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
+        DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(pQueue, &pTimer->item);
+
         if (pTimer->item.is_owned_by_queue) {
             DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
         }
@@ -587,6 +601,7 @@ static ErrorCode DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Non
 {
     decl_try_err();
     CompletionSignaler* pCompSignaler = NULL;
+    Bool isLocked = true;
 
     try(DispatchQueue_AcquireCompletionSignaler_Locked(pQueue, &pCompSignaler));
     Semaphore* pCompSema = &pCompSignaler->semaphore;
@@ -595,9 +610,18 @@ static ErrorCode DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Non
     pItem->completion_sema = pCompSema;
 
     try(DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem));
+    isLocked = false;
+    // Queue is now unlocked
     try(Semaphore_Acquire(pCompSema, kTimeInterval_Infinity));
 
     try(Lock_Lock(&pQueue->lock));
+    isLocked = true;
+    if (pQueue->state >= kQueueState_Terminating) {
+        // We want to return EINTR if the DispatchSync was interrupted by a
+        // DispatchQueue_Terminate()
+        throw(EINTR);
+    }
+
     DispatchQueue_RelinquishCompletionSignaler_Locked(pQueue, pCompSignaler);
     Lock_Unlock(&pQueue->lock);
 
@@ -605,7 +629,13 @@ static ErrorCode DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Non
 
 catch:
     if (pCompSignaler) {
+        if (!isLocked) {
+            try_bang(Lock_Lock(&pQueue->lock));
+        }
         DispatchQueue_RelinquishCompletionSignaler_Locked(pQueue, pCompSignaler);
+        if (!isLocked) {
+            Lock_Unlock(&pQueue->lock);
+        }
     }
     return err;
 }
@@ -678,7 +708,9 @@ catch:
 }
 
 // Synchronously executes the given closure. The closure is executed as soon as
-// possible and the caller remains blocked until the closure has finished execution.
+// possible and the caller remains blocked until the closure has finished
+// execution. This function returns with an EINTR if the queue is flushed or
+// terminated by calling DispatchQueue_Terminate().
 ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure)
 {
     decl_try_err();
@@ -915,9 +947,9 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
             // Wait for work. This drops the queue lock while we're waiting. This
             // call may return with a ETIMEDOUT error. This is fine. Either some
-            // new work has arrived in the meantime or if not then we'll are free
-            // to relinquish the VP since it hasn't done anything for a long
-            // enough time.
+            // new work has arrived in the meantime or if not then we are free
+            // to relinquish the VP since it hasn't done anything useful for a
+            // longer time.
             const Int err = ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline);
             if (err == ETIMEDOUT && pQueue->availableConcurrency > pQueue->minConcurrency) {
                 mayRelinquish = true;
