@@ -306,7 +306,7 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
         }
 
         if (!isCallerRunningOnVpToManipulate) {
-            try_bang(VirtualProcessor_Resume(pVP, false));
+            VirtualProcessor_Resume(pVP, false);
         }
     }
 
@@ -456,7 +456,7 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 // Resumes the given virtual processor. The virtual processor is forcefully
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
-ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
+void VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
 {
     VP_ASSERT_ALIVE(pVP);
     const Int sps = VirtualProcessorScheduler_DisablePreemption();
@@ -485,5 +485,4 @@ ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
         }
     }
     VirtualProcessorScheduler_RestorePreemption(sps);
-    return EOK;
 }

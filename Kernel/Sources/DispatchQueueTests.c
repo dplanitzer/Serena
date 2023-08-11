@@ -29,8 +29,8 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    //DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
-    DispatchQueue_DispatchAsyncAfter(gMainDispatchQueue, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    //DispatchQueue_DispatchAsyncAfter(gMainDispatchQueue, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
 }
 
 void DispatchQueue_RunTests(void)
@@ -59,7 +59,7 @@ static void OnPrintClosure(Byte* _Nonnull pValue)
 void DispatchQueue_RunTests(void)
 {
     DispatchQueueRef pQueue;
-    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pQueue);
+    DispatchQueue_Create(0, 4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pQueue);
     Int i = 0;
 
     while (true) {
@@ -307,7 +307,7 @@ void DispatchQueue_RunTests(void)
 //  try_bang(Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE, &pipe));
     try_bang(Pipe_Create(4, &pipe));
     DispatchQueueRef pUtilityQueue;
-    DispatchQueue_Create(4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
+    DispatchQueue_Create(0, 4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
 
     DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnWriteToPipe, (Byte*)pipe));
     DispatchQueue_DispatchAsync(pUtilityQueue, DispatchQueueClosure_Make(OnReadFromPipe, (Byte*)pipe));

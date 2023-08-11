@@ -219,7 +219,7 @@ extern ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP);
 // Resumes the given virtual processor. The virtual processor is forcefully
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
-extern ErrorCode VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force);
+extern void VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force);
 
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor

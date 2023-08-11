@@ -9,6 +9,7 @@
 #include "DispatchQueuePriv.h"
 
 
+static ErrorCode DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer);
 static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
@@ -195,12 +196,17 @@ void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem)
 DispatchQueueRef    gMainDispatchQueue;
 
 
-ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+ErrorCode DispatchQueue_Create(Int minConcurrency, Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
-    assert(maxConcurrency >= 1);
-
     decl_try_err();
-    DispatchQueueRef pQueue;
+    DispatchQueueRef pQueue = NULL;
+
+    if (maxConcurrency < 1 || maxConcurrency > INT8_MAX) {
+        throw(EPARAM);
+    }
+    if (minConcurrency < 0 || minConcurrency > maxConcurrency) {
+        throw(EPARAM);
+    }
     
     try(kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (Byte**) &pQueue));
     SList_Init(&pQueue->item_queue);
@@ -215,7 +221,8 @@ ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, Virtua
     pQueue->virtual_processor_pool = vpPoolRef;
     pQueue->items_queued_count = 0;
     pQueue->state = kQueueState_Running;
-    pQueue->maxConcurrency = (Int8)max(min(maxConcurrency, INT8_MAX), 1);
+    pQueue->minConcurrency = (Int8)minConcurrency;
+    pQueue->maxConcurrency = (Int8)maxConcurrency;
     pQueue->availableConcurrency = 0;
     pQueue->qos = qos;
     pQueue->priority = priority;
@@ -227,6 +234,10 @@ ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, Virtua
         pQueue->concurrency_lanes[i].vp = NULL;
     }
     
+    for (Int i = 0; i < minConcurrency; i++) {
+        try(DispatchQueue_AcquireVirtualProcessor_Locked(pQueue));
+    }
+
     *pOutQueue = pQueue;
     return EOK;
 
@@ -380,16 +391,20 @@ ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonn
 // Makes sure that we have enough virtual processors attached to the dispatch queue
 // and acquires a virtual processor from the virtual processor pool if necessary.
 // The virtual processor is attached to the dispatch queue and remains attached
-// until it is relinqushed by the queue.
-static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, Closure1Arg_Func _Nonnull pWorkerFunc)
+// until it is relinquished by the queue.
+static ErrorCode DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue)
 {
+    decl_try_err();
+
     // Acquire a new virtual processor if we haven't already filled up all
     // concurrency lanes available to us and one of the following is true:
-    // - we don't own a virtual processor at all
-    // - we've queued up at least 4 work items
+    // - we don't own any virtual processor at all
+    // - we have < minConcurrency virtual processors (remember that this can be 0)
+    // - we've queued up at least 4 work items and < maxConcurrency virtual processors
     if (pQueue->state == kQueueState_Running
-        && pQueue->availableConcurrency < pQueue->maxConcurrency
-        && (pQueue->availableConcurrency == 0 || pQueue->items_queued_count > 4)) {
+        && (pQueue->availableConcurrency == 0
+            || pQueue->availableConcurrency < pQueue->minConcurrency
+            || (pQueue->items_queued_count > 4 && pQueue->availableConcurrency < pQueue->maxConcurrency))) {
         Int conLaneIdx = -1;
 
         for (Int i = 0; i < pQueue->maxConcurrency; i++) {
@@ -402,10 +417,10 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
 
         const Int priority = pQueue->qos * DISPATCH_PRIORITY_COUNT + (pQueue->priority + DISPATCH_PRIORITY_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
         VirtualProcessor* pVP = NULL;
-        try_bang(VirtualProcessorPool_AcquireVirtualProcessor(
-                                                            pQueue->virtual_processor_pool,
-                                                            VirtualProcessorParameters_Make(pWorkerFunc, (Byte*)pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
-                                                            &pVP));
+        try(VirtualProcessorPool_AcquireVirtualProcessor(
+                                            pQueue->virtual_processor_pool,
+                                            VirtualProcessorParameters_Make((Closure1Arg_Func)DispatchQueue_Run, (Byte*)pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
+                                            &pVP));
 
         VirtualProcessor_SetDispatchQueue(pVP, pQueue, conLaneIdx);
         pQueue->concurrency_lanes[conLaneIdx].vp = pVP;
@@ -413,6 +428,11 @@ static void DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnu
 
         VirtualProcessor_Resume(pVP, false);
     }
+
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Relinquishes the given virtual processor. The associated concurrency lane is
@@ -546,13 +566,18 @@ static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _No
 // soon as possible. Expects to be called with the dispatch queue held.
 static ErrorCode DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
+    decl_try_err();
+
     SList_InsertAfterLast(&pQueue->item_queue, &pItem->queue_entry);
     pQueue->items_queued_count++;
 
-    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
+    try(DispatchQueue_AcquireVirtualProcessor_Locked(pQueue));
     ConditionVariable_SignalAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
     
     return EOK;
+
+catch:
+    return err;
 }
 
 // Synchronously executes the given work item. The work item is executed as
@@ -608,11 +633,16 @@ static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, Time
 // caller holds the dispatch queue lock.
 ErrorCode DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
+    decl_try_err();
+
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
-    DispatchQueue_AcquireVirtualProcessor_Locked(pQueue, (Closure1Arg_Func)DispatchQueue_Run);
+    try(DispatchQueue_AcquireVirtualProcessor_Locked(pQueue));
     ConditionVariable_SignalAndUnlock(&pQueue->work_available_signaler, &pQueue->lock);
 
     return EOK;
+
+catch:
+    return err;
 }
 
 
@@ -885,10 +915,11 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
             // Wait for work. This drops the queue lock while we're waiting. This
             // call may return with a ETIMEDOUT error. This is fine. Either some
-            // new work has arrived in the meantime or if not then we'll relinquish
-            // the VP since it hasn't done anything for a long enough time.
+            // new work has arrived in the meantime or if not then we'll are free
+            // to relinquish the VP since it hasn't done anything for a long
+            // enough time.
             const Int err = ConditionVariable_Wait(&pQueue->work_available_signaler, &pQueue->lock, deadline);
-            if (err == ETIMEDOUT) {
+            if (err == ETIMEDOUT && pQueue->availableConcurrency > pQueue->minConcurrency) {
                 mayRelinquish = true;
             }
         }

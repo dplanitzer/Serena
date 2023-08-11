@@ -131,7 +131,7 @@ ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef 
     EventDriver* pDriver;
     
     try(kalloc_cleared(sizeof(EventDriver), (Byte**) &pDriver));
-    try(DispatchQueue_Create(1, DISPATCH_QOS_REALTIME, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, NULL, &pDriver->dispatchQueue));
+    try(DispatchQueue_Create(1, 1, DISPATCH_QOS_REALTIME, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, NULL, &pDriver->dispatchQueue));
     try(Timer_Create(TimeInterval_MakeMilliseconds(0), TimeInterval_MakeMilliseconds(16), DispatchQueueClosure_Make((Closure1Arg_Func)EventDriver_GatherLowLevelEvents, (Byte*)pDriver), &pDriver->timer));
     try(RingBuffer_Init(&pDriver->event_queue, EVENT_QUEUE_MAX_EVENTS * sizeof(HIDEvent)));
     

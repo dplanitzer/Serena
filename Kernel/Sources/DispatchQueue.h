@@ -126,7 +126,27 @@ static inline Bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
 // The kernel main queue. This is a serial queue
 extern DispatchQueueRef _Nonnull    gMainDispatchQueue;
 
-extern ErrorCode DispatchQueue_Create(Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
+// Creates a new dispatch queue. A dispatch queue maintains a list of work items
+// and timers and it dispatches those things for execution to a pool of virtual
+// processors. Virtual processors are automatically acquired and relinquished
+// from the given virtual processor pool as needed.
+// A dispatch queue has a minimum, maximum and current concurrency. The minimum
+// concurrency is currently always 0, while the maximum concurrency is the
+// maximum number of virtual processors that the queue is allowed to acquire and
+// maintain at any given time. The current concurrency is the number of virtual
+// processors the queue is currently actively maintaining.
+// A dispatch queue with a maximum concurrency number of 1 is also knows as a
+// serial dispatch queue because all work items and timers are dispatched one
+// after the other. No two of them will ever execute in parallel on such a queue.
+// A dispatch queue with a maximum concurrency of > 1 is also known as a concurrent
+// queue because the queue is able to execute multiple work items and timers in
+// parallel.
+// The minimum concurrency level should typically be 0. The queue automatically
+// acquires virtual processors as needed. However it may make sense to pass a
+// number > 0 to this argument to ensure that the queue will always have at least
+// this number of virtual processors available. Eg to ensure a certain minimum
+// latency from when a work item is scheduled to when it executes.
+extern ErrorCode DispatchQueue_Create(Int minConcurrency, Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Terminates the dispatch queue. This does:
 // *) an abort of ongoing call-as-user operations on all VPs attached to the queue

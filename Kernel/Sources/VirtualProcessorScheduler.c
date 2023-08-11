@@ -81,7 +81,7 @@ ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnu
 
     // Allocate the idle virtual processor
     try(IdleVirtualProcessor_Create(&pScheduler->idleVirtualProcessor));
-    try(VirtualProcessor_Resume(pScheduler->idleVirtualProcessor, false));
+    VirtualProcessor_Resume(pScheduler->idleVirtualProcessor, false);
     
 
     // Hook us up with the quantum timer interrupt

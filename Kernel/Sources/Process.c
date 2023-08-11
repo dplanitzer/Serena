@@ -49,7 +49,7 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     try(kalloc_cleared(sizeof(Process), (Byte**) &pProc));
     
     pProc->pid = pid;
-    try(DispatchQueue_Create(1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
+    try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
 
     *pOutProc = pProc;
     return EOK;

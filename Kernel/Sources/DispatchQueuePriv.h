@@ -102,6 +102,7 @@ typedef struct _DispatchQueue {
     VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
     Int                                 items_queued_count;         // Number of work items queued up (item_queue)
     Int8                                state;                      // The current dispatch queue state
+    Int8                                minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
     Int8                                maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
     Int8                                availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
     Int8                                qos;
@@ -109,7 +110,7 @@ typedef struct _DispatchQueue {
     Int8                                item_cache_count;
     Int8                                timer_cache_count;
     Int8                                completion_signaler_count;
-    ConcurrencyLane                     concurrency_lanes[1];   // Up to 'maxConcurrency' concurrency lanes
+    ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
  
