@@ -178,8 +178,9 @@ extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
 extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue);
 
 // Synchronously executes the given work item. The work item is executed as
-// soon as possible and the caller remains blocked until the work item has finished
-// execution.
+// soon as possible and the caller remains blocked until the work item has
+// finished execution. This function returns with an EINTR if the queue is
+// flushed or terminated by calling DispatchQueue_Terminate().
 extern ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
 // Synchronously executes the given closure. The closure is executed as soon as

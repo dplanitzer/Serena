@@ -678,8 +678,9 @@ catch:
 
 
 // Synchronously executes the given work item. The work item is executed as
-// soon as possible and the caller remains blocked until the work item has finished
-// execution.
+// soon as possible and the caller remains blocked until the work item has
+// finished execution. This function returns with an EINTR if the queue is
+// flushed or terminated by calling DispatchQueue_Terminate().
 ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     decl_try_err();
