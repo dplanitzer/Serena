@@ -224,12 +224,26 @@ catch:
     return err;
 }
 
-// Aborts an on-going call-as-user invocation and causes the cpu_call_as_user()
-// invocation to return. Note that aborting a call-as-user invocation leaves the
-// virtual processor's userspace stack in an indeterminate state. Consequently
-// a call-as-user invocation should only be aborted if you no longer care about
-// the state of the userspace. Eg if the goal is to terminate a process that may
-// be in the middle of executing userspace code.
+// Invokes the given closure in user space. Preserves the kernel integer register
+// state. Note however that this function does not preserve the floating point 
+// register state. Call-as-user invocations can not be nested.
+void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, Closure1Arg_Func _Nonnull pClosure, Byte* _Nullable pContext)
+{
+    assert((pVP->flags & VP_FLAG_CAU_IN_PROGRESS) == 0);
+
+    pVP->flags |= VP_FLAG_CAU_IN_PROGRESS;
+    cpu_call_as_user((Cpu_UserClosure) pClosure, pContext);
+    pVP->flags &= ~(VP_FLAG_CAU_IN_PROGRESS|VP_FLAG_CAU_ABORTED);
+}
+
+// Aborts an on-going call-as-user invocation and causes the
+// VirtualProcessor_CallAsUser() call to return. Does nothing if the VP is not
+// currently executing a call-as-user invocation.
+// Note that aborting a call-as-user invocation leaves the virtual processor's
+// userspace stack in an indeterminate state. Consequently a call-as-user
+// invocation should only be aborted if you no longer care about the state of
+// the userspace. Eg if the goal is to terminate a process that may be in the
+// middle of executing userspace code.
 // What exactly happens when userspace code execution is aborted depends on
 // whether the userspace code is currently executing in userspace or a system
 // call:
@@ -237,11 +251,13 @@ catch:
 //                          made to unwind the userspace stack or free any
 //                          userspace resources.
 // 2) executing a system call: the system call is allowed to run to completion.
-//                             An additional mechanism is needed if the system
-//                             call should be effectively cancelled. However the
-//                             system call stack frame is altered such that the
-//                             return from the system call will abort the
-//                             call-as-user invocation.
+//                          However all interruptable waits will be interrupted
+//                          no matter whether the VP is currently sitting in an
+//                          interruptable wait or it enters it. This behavior
+//                          will stay in effect until the system call has
+//                          completed. Once the system call has finished and the
+//                          call-as-user invocation has been aborted, waits will
+//                          not be interrupted anymore.
 ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
 {
     decl_try_err();
@@ -251,36 +267,47 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
         try(VirtualProcessor_Suspend(pVP));
     }
 
-    if ((pVP->save_area.sr & 0x2000) != 0) {
-        // Kernel space:
-        // let the currently active system call finish and redirect the RTE
-        // from the system call back to user space to point to the call-as-user
-        // abort function.
-        UInt32* pReturnAddress = (UInt32*)(pVP->syscall_entry_ksp + 2);
-        *pReturnAddress = (UInt32)cpu_abort_call_as_user;
+    if ((pVP->flags & VP_FLAG_CAU_IN_PROGRESS) != 0) {
+        pVP->flags |= VP_FLAG_CAU_ABORTED;
+
+        if ((pVP->save_area.sr & 0x2000) != 0) {
+            // Kernel space:
+            // let the currently active system call finish and redirect the RTE
+            // from the system call back to user space to point to the call-as-user
+            // abort function.
+            // Why are we changing the return address of the RTE instead of letting
+            // the system call check the state of VP_FLAG_CAU_ABORTED right before
+            // it returns?
+            // Because checking the flag would be unreliable. The problem is that
+            // we might suspend the VP right after it has checked the flag and
+            // before it is executing the RTE. So the system call would miss the
+            // abort. Changing the RTE return address avoids this problem and
+            // ensures that the system call will never miss an abort.
+            UInt32* pReturnAddress = (UInt32*)(pVP->syscall_entry_ksp + 2);
+            *pReturnAddress = (UInt32)cpu_abort_call_as_user;
 
 
-        // Interrupt the virtual processor if it is waiting
-        if (pVP->state == kVirtualProcessorState_Waiting) {
-            VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
-                                             pVP->waiting_on_wait_queue,
-                                             INT_MAX,
-                                             WAKEUP_REASON_INTERRUPTED,
-                                             false);
+            // The system call may currently be waiting on something (some
+            // resource). Interrupt the wait. If the system call tries to do
+            // aditional waits on its way back out to user space, then all those
+            // (interruptable) waits will be immediately aborted since the call-
+            // as-user invocation is now marked as aborted.
+            if (pVP->state == kVirtualProcessorState_Waiting) {
+                VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
+                                                 pVP->waiting_on_wait_queue,
+                                                 INT_MAX,
+                                                 WAKEUP_REASON_INTERRUPTED,
+                                                 false);
+            }
+        } else {
+            // User space:
+            // redirect the VP to the new call
+            pVP->save_area.pc = (UInt32)cpu_abort_call_as_user;
         }
-    } else {
-        // User space:
-        // redirect the VP to the new call
-        if (isCallerRunningOnVpToManipulate) {
-            // Can not change the PC while we are executing on the VP that we are
-            // supposed to manipulate
-            abort();
-        }
-        pVP->save_area.pc = (UInt32)cpu_abort_call_as_user;
-    }
 
-    if (!isCallerRunningOnVpToManipulate) {
-        try_bang(VirtualProcessor_Resume(pVP, false));
+        if (!isCallerRunningOnVpToManipulate) {
+            try_bang(VirtualProcessor_Resume(pVP, false));
+        }
     }
 
     return EOK;

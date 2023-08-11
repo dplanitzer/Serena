@@ -917,6 +917,8 @@ static void DispatchQueue_RearmTimer_Locked(DispatchQueueRef _Nonnull pQueue, Ti
 
 static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 {
+    VirtualProcessor* pVP = VirtualProcessor_GetCurrent();
+
     // We hold the lock at all times except:
     // - while waiting for work
     // - while executing a work item
@@ -990,7 +992,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
         // Execute the work item
         if (pItem->closure.isUser) {
-            cpu_call_as_user(pItem->closure.func, pItem->closure.context);
+            VirtualProcessor_CallAsUser(pVP, pItem->closure.func, pItem->closure.context);
         } else {
             pItem->closure.func(pItem->closure.context);
         }

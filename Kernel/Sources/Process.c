@@ -83,16 +83,6 @@ ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func 
 // Runs on the kernel main dispatch queue and terminates the given process.
 static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 {
-    // Mark the process atomically as terminating
-    if(AtomicBool_Set(&pProc->isTerminating, true)) {
-        return;
-    }
-
-
-    // XXX hack for now because we are not currently aborting waits properly
-    VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(10));
-
-
     // Notes on terminating a process:
     //
     // All VPs belonging to a process are executing call-as-user invocations. The
@@ -140,6 +130,12 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     // being terminated. The only exception to this is the wait that Lock_Lock()
     // does since this kind of lock is a kernel lock that is used to preserve the
     // integrity of kernel data structures.
+
+
+    // Mark the process atomically as terminating
+    if(AtomicBool_Set(&pProc->isTerminating, true)) {
+        return;
+    }
 
 
     // Terminate all dispatch queues. This takes care of aborting user space

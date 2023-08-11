@@ -275,6 +275,13 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     assert(pVP->rewa_queue_entry.prev == NULL);
     assert(pVP->state != kVirtualProcessorState_Waiting);
 
+    // Immediately return instead of waiting if we are in the middle of an abort
+    // of a call-as-user invoction.
+    if ((pVP->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
+        return EINTR;
+    }
+
+
     // Put us on the timeout queue if a relevant timeout has been specified.
     // Note that we return immediately if we're already past the deadline
     if (TimeInterval_Less(deadline, kTimeInterval_Infinity)) {
