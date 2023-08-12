@@ -15,6 +15,7 @@
     xdef _cpu_enable_irqs
     xdef _cpu_disable_irqs
     xdef _cpu_restore_irqs
+    xdef _cpu_set_irq_stack_pointer
     xdef _cpu_get_model
     xdef _cpu_guarded_read
     xdef _cpu_guarded_write
@@ -49,6 +50,19 @@ _cpu_restore_irqs:
     cargs cri_state.l
     move.l  cri_state(sp), d0
     RESTORE_INTERRUPTS d0
+    rts
+
+
+;-------------------------------------------------------------------------------
+; void cpu_set_irq_stack_pointer(Byte* pStackPtr)
+; Sets the ISP (interrupt mode) stack pointer to 'pStackPtr'. Expects that IRQs
+; are turned off. See 68030UM page 1-8.
+_cpu_set_irq_stack_pointer:
+    cargs csisp_stack_ptr.l
+    move.l  csisp_stack_ptr(sp), a0
+    and.w   #$efff, sr  ; switch to the ISP
+    move.l  a0, a7
+    or.w    #$1000, sr  ; switch back to the MSP
     rts
 
 

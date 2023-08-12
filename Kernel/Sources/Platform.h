@@ -68,10 +68,15 @@ typedef void (* _Nonnull Cpu_UserClosure)(Byte* _Nullable pContext);
 extern void cpu_enable_irqs(void);
 extern Int cpu_disable_irqs(void);
 extern void cpu_restore_irqs(Int state);
+extern void cpu_set_irq_stack_pointer(Byte* pStackPtr);
+
 extern const Character* _Nonnull cpu_get_model_name(Int8 cpu_model);
+
 extern Int cpu_guarded_read(Byte* _Nonnull src, Byte* _Nonnull buffer, Int buffer_size);
 extern Int cpu_guarded_write(Byte* _Nonnull dst, const Byte* _Nonnull buffer, Int buffer_size);
+
 extern void cpu_sleep(Int cpu_type);
+
 extern void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext);
 extern void cpu_abort_call_as_user(void);
 
