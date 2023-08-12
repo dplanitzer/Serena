@@ -62,7 +62,7 @@ static void WorkItem_Deinit(WorkItemRef _Nonnull pItem)
     pItem->closure.func = NULL;
     pItem->closure.context = NULL;
     pItem->closure.isUser = false;
-    pItem->completion_sema = NULL;
+    pItem->completion = NULL;
     // Leave is_owned_by_queue alone
     pItem->is_being_dispatched = false;
     pItem->cancelled = false;
@@ -154,6 +154,7 @@ void Timer_Destroy(TimerRef _Nullable pTimer)
 static inline void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem)
 {
     SListNode_Init(&pItem->queue_entry);
+    pItem->isInterrupted = false;
 }
 
 // Creates a completion signaler.
@@ -176,6 +177,7 @@ catch:
 static inline void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull pItem)
 {
     SListNode_Deinit(&pItem->queue_entry);
+    pItem->isInterrupted = false;
 }
 
 // Deallocates the given completion signaler.
@@ -252,8 +254,9 @@ catch:
 // DispatchSync() will return with an EINTR error.
 static void DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue, WorkItem* _Nonnull pItem)
 {
-    if (pItem->completion_sema) {
-        Semaphore_Release(pItem->completion_sema);
+    if (pItem->completion) {
+        pItem->completion->isInterrupted = true;
+        Semaphore_Release(&pItem->completion->semaphore);
     }
 }
 
@@ -577,8 +580,9 @@ static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _No
 }
 
 // Asynchronously executes the given work item. The work item is executed as
-// soon as possible. Expects to be called with the dispatch queue held.
-static ErrorCode DispatchQueue_DispatchWorkItemAsync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+// soon as possible. Expects to be called with the dispatch queue held. Returns
+// with teh dispatch queue unlocked.
+static ErrorCode DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     decl_try_err();
 
@@ -596,36 +600,40 @@ catch:
 
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has finished
-// execution. Expects that the caller holds the dispatch queue lock.
-static ErrorCode DispatchQueue_DispatchWorkItemSync_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+// execution. Expects that the caller holds the dispatch queue lock. Returns with
+// the dispatch queue unlocked.
+static ErrorCode DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     decl_try_err();
     CompletionSignaler* pCompSignaler = NULL;
     Bool isLocked = true;
+    Bool wasInterrupted = false;
 
     try(DispatchQueue_AcquireCompletionSignaler_Locked(pQueue, &pCompSignaler));
-    Semaphore* pCompSema = &pCompSignaler->semaphore;
 
     // The work item maintains a weak reference to the cached completion semaphore
-    pItem->completion_sema = pCompSema;
+    pItem->completion = pCompSignaler;
 
-    try(DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem));
+    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(pQueue, pItem));
     isLocked = false;
     // Queue is now unlocked
-    try(Semaphore_Acquire(pCompSema, kTimeInterval_Infinity));
+    try(Semaphore_Acquire(&pCompSignaler->semaphore, kTimeInterval_Infinity));
 
     try(Lock_Lock(&pQueue->lock));
     isLocked = true;
+
     if (pQueue->state >= kQueueState_Terminating) {
         // We want to return EINTR if the DispatchSync was interrupted by a
         // DispatchQueue_Terminate()
-        throw(EINTR);
+        wasInterrupted = true;
+    } else {
+        wasInterrupted = pCompSignaler->isInterrupted;
     }
 
     DispatchQueue_RelinquishCompletionSignaler_Locked(pQueue, pCompSignaler);
     Lock_Unlock(&pQueue->lock);
 
-    return EOK;
+    return (wasInterrupted) ? EINTR : EOK;
 
 catch:
     if (pCompSignaler) {
@@ -698,7 +706,7 @@ ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, W
         return EOK;
     }
 
-    try(DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem));
+    try(DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(pQueue, pItem));
     return EOK;
 
 catch:
@@ -726,7 +734,7 @@ ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQ
     }
 
     try(DispatchQueue_AcquireWorkItem_Locked(pQueue, closure, &pItem));
-    try(DispatchQueue_DispatchWorkItemSync_Locked(pQueue, pItem));
+    try(DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(pQueue, pItem));
     return EOK;
 
 catch:
@@ -759,7 +767,7 @@ ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, 
         return EOK;
     }
 
-    try(DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem));
+    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(pQueue, pItem));
     return EOK;
 
 catch:
@@ -785,7 +793,7 @@ ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, Dispatch
     }
 
     try(DispatchQueue_AcquireWorkItem_Locked(pQueue, closure, &pItem));
-    try(DispatchQueue_DispatchWorkItemAsync_Locked(pQueue, pItem));
+    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(pQueue, pItem));
     return EOK;
 
 catch:
@@ -978,9 +986,10 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
 
         // Signal the work item's completion semaphore if needed
-        if (pItem->completion_sema != NULL) {
-            Semaphore_Release(pItem->completion_sema);
-            pItem->completion_sema = NULL;
+        if (pItem->completion != NULL) {
+            pItem->completion->isInterrupted = false;
+            Semaphore_Release(&pItem->completion->semaphore);
+            pItem->completion = NULL;
         }
 
 

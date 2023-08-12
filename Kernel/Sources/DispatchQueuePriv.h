@@ -27,17 +27,30 @@ enum ItemType {
 
 
 //
+// Completion Signaler
+//
+
+// Completion signalers are semaphores that are used to signal the completion of
+// a work item to DispatchQueue_DispatchSync()
+typedef struct _CompletionSignaler {
+    SListNode   queue_entry;
+    Semaphore   semaphore;
+    Bool        isInterrupted;
+} CompletionSignaler;
+
+
+//
 // Work Items
 //
 
 typedef struct _WorkItem {
-    SListNode                   queue_entry;
-    DispatchQueueClosure        closure;
-    Semaphore * _Nullable _Weak completion_sema;
-    Bool                        is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
-    AtomicBool                  is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
-    AtomicBool                  cancelled;              // shared between dispatch queue and queue user
-    Int8                        type;
+    SListNode                               queue_entry;
+    DispatchQueueClosure                    closure;
+    CompletionSignaler * _Nullable _Weak    completion;
+    Bool                                    is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
+    AtomicBool                              is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
+    AtomicBool                              cancelled;              // shared between dispatch queue and queue user
+    Int8                                    type;
 } WorkItem;
 
 
@@ -52,18 +65,6 @@ typedef struct _Timer {
     TimeInterval    deadline;           // Time when the timer closure should be executed
     TimeInterval    interval;
 } Timer;
-
-
-//
-// Completion Signaler
-//
-
-// Completion signalers are semaphores that are used to signal the completion of
-// a work item to DispatchQueue_DispatchSync()
-typedef struct _CompletionSignaler {
-    SListNode   queue_entry;
-    Semaphore   semaphore;
-} CompletionSignaler;
 
 
 //
