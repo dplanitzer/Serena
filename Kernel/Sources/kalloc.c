@@ -110,11 +110,7 @@ catch:
 // Frees kernel memory allocated with the kalloc() function.
 void kfree(Byte* _Nullable ptr)
 {
-    Bool isUnifiedMemPtr = false;
-
-    try_bang(Allocator_IsManaging(gUnifiedMemory, ptr, &isUnifiedMemPtr));
-
-    if (isUnifiedMemPtr) {
+    if (Allocator_IsManaging(gUnifiedMemory, ptr)) {
         try_bang(Allocator_DeallocateBytes(gUnifiedMemory, ptr));
     } else {
         try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));

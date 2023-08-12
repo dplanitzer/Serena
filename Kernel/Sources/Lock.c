@@ -7,79 +7,24 @@
 //
 
 #include "Lock.h"
-#include "kalloc.h"
-#include "VirtualProcessorScheduler.h"
 
-
-// Initializes a new lock.
-void Lock_Init(Lock*_Nonnull pLock)
-{
-    pLock->value = 0;
-    List_Init(&pLock->wait_queue);
-    pLock->owner_vpid = 0;
-}
 
 // Deinitializes a lock. The lock is automatically unlocked if the calling code
 // is holding the lock.
 void Lock_Deinit(Lock* _Nonnull pLock)
 {
-    // Unlock the lock if it is currently held by the virtual processor on which
-    // we are executing. Abort if the virtual processor which isn't holding the
-    // lock tries to destroy it.
-    const Int ownerId = Lock_GetOwnerVpid(pLock);
-    if (ownerId == VirtualProcessor_GetCurrentVpid()) {
-        Lock_Unlock(pLock);
-    } else if (ownerId > 0) {
-        abort();
-    }
-
-    pLock->value = 0;
-    List_Deinit(&pLock->wait_queue);
-    pLock->owner_vpid = 0;
+    try_bang(ULock_Deinit(pLock));
 }
 
-// Allocates a new lock.
-Lock* _Nullable Lock_Create(void)
+// Blocks the caller until the lock can be taken successfully.
+void Lock_Lock(Lock* _Nonnull pLock)
 {
-    Lock* pLock;
-    
-    if (kalloc(sizeof(Lock), (Byte**) &pLock) == EOK) {
-        Lock_Init(pLock);
-    }
-    
-    return pLock;
+    // The wait is uninterruptable
+    try_bang(ULock_Lock(pLock, 0));
 }
 
-// Deallocates a lock. The lock is automatically unlocked if the calling code
-// is holding the lock.
-void Lock_Destroy(Lock* _Nullable pLock)
+// Unlocks the lock.
+void Lock_Unlock(Lock* _Nonnull pLock)
 {
-    if (pLock) {
-        Lock_Deinit(pLock);
-        kfree((Byte*)pLock);
-    }
-}
-
-// Invoked when the Lock_Lock() or Lock_Unlock() functions detected a lock
-// ownership violation. Eg VP A has the lock locked but VP B attempts to unlock
-// it. Note that this function may not return.
-void Lock_OnOwnershipViolation(Lock* _Nonnull pLock)
-{
-    abort();
-}
-
-// Invoked by Lock_Lock() if the lock is currently being held by some other VP.
-ErrorCode Lock_OnWait(Lock* _Nonnull pLock)
-{
-    return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
-                                            &pLock->wait_queue,
-                                            kTimeInterval_Infinity);
-}
-
-// Invoked by Lock_Unlock(). Expects to be called with preemption disabled.
-void Lock_WakeUp(Lock* _Nullable pLock)
-{
-    VirtualProcessorScheduler_WakeUpAll(gVirtualProcessorScheduler,
-                                        &pLock->wait_queue,
-                                        true);
+    try_bang(ULock_Unlock(pLock));
 }

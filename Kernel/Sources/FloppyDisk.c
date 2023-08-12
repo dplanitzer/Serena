@@ -81,9 +81,9 @@ ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
                                                          INTERRUPT_HANDLER_PRIORITY_NORMAL,
                                                          &pDma->done,
                                                          &pDma->irqHandler));
-    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController,
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController,
                                                        pDma->irqHandler,
-                                                       true));
+                                                       true);
     *pOutFloppyDma = pDma;
     return EOK;
 

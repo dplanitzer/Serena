@@ -58,7 +58,7 @@ static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef 
     
     assert(pHandler->identity == 0);
     
-    try(Lock_Lock(&pController->lock));
+    Lock_Lock(&pController->lock);
     needsUnlock = true;
 
     // Allocate a new handler array
@@ -165,7 +165,7 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
         return EOK;
     }
     
-    try(Lock_Lock(&pController->lock));
+    Lock_Lock(&pController->lock);
     needsUnlock = true;
     
     // Find out which interrupt ID this handler handles
@@ -250,11 +250,9 @@ static InterruptHandler* _Nullable InterruptController_GetInterruptHandlerForID_
 // Note that interrupt handlers are by default disabled (when you add them). You
 // need to enable an interrupt handler before it is able to respond to interrupt
 // requests. A disabled interrupt handler ignores interrupt requests.
-ErrorCode InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled)
+void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pController->lock));
+    Lock_Lock(&pController->lock);
     
     InterruptHandler* pHandler = InterruptController_GetInterruptHandlerForID_Locked(pController, handlerId);
     assert(pHandler != NULL);
@@ -265,34 +263,24 @@ ErrorCode InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef 
     }
     
     Lock_Unlock(&pController->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Returns true if the given interrupt handler is enabled; false otherwise.
 Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
-    decl_try_err();
-    Bool enabled = false;
-    
-    try(Lock_Lock(&pController->lock));
+    Lock_Lock(&pController->lock);
     
     InterruptHandler* pHandler = InterruptController_GetInterruptHandlerForID_Locked(pController, handlerId);
     assert(pHandler != NULL);
-    enabled = (pHandler->flags & INTERRUPT_HANDLER_FLAG_ENABLED) != 0 ? true : false;
+    const Bool enabled = (pHandler->flags & INTERRUPT_HANDLER_FLAG_ENABLED) != 0 ? true : false;
     
     Lock_Unlock(&pController->lock);
     return enabled;
-
-catch:
-    return false;
 }
 
 void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 {
-    try_bang(Lock_Lock(&pController->lock));
+    Lock_Lock(&pController->lock);
     
     print("InterruptController = {\n");
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {

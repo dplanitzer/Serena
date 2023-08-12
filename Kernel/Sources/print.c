@@ -199,7 +199,8 @@ static Console* gConsole;
 void print_init(void)
 {
     Lock_Init(&gLock);
-    assert(DriverManager_GetDriverForName(gDriverManager, kConsoleName, (DriverRef*)&gConsole) == EOK);
+    gConsole = DriverManager_GetDriverForName(gDriverManager, kConsoleName);
+    assert(gConsole != NULL);
 }
 
 // Print formatted
@@ -214,13 +215,7 @@ void print(const Character* _Nonnull format, ...)
 
 void vprint(const Character* _Nonnull format, va_list ap)
 {
-    decl_try_err();
-    
-    try(Lock_Lock(&gLock));
+    Lock_Lock(&gLock);
     vprint_locked(gConsole, format, ap);
     Lock_Unlock(&gLock);
-    return;
-
-catch:
-    return;
 }

@@ -19,10 +19,6 @@
     xdef _SystemCallHandler
 
 
-; Error codes
-ENOSYS  equ 15
-
-
 ; System call table
 syscall_table_desc:
     dc.l    0

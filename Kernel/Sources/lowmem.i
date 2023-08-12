@@ -64,6 +64,30 @@ CHIPSET_TIMER_2     equ 2   ; CIA B timer A
 CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 
 
+; Error Codes
+
+EOK         equ 0
+ENOMEM      equ 1
+ENODATA     equ 2
+ENOTCDF     equ 3
+ENOBOOT     equ 4
+ENODRIVE    equ 5
+EDISKCHANGE equ 6
+ETIMEDOUT   equ 7
+ENODEV      equ 8
+EPARAM      equ 9
+ERANGE      equ 10
+EINTR       equ 11
+EAGAIN      equ 12
+EPIPE       equ 13
+EBUSY       equ 14
+ENOSYS      equ 15
+EINVAL      equ 16
+EIO         equ 17
+EPERM       equ 18
+EDEADLK     equ 19
+
+
 ;
 ; The boot services memory region of the kernel. Boot services memory starts at
 ; physical address 0 and extends to physical address 12288. The first page holds

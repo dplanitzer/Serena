@@ -50,7 +50,7 @@ ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDr
                                                       &pDriver->irq_handler));
     
     try(RingBuffer_Init(&pDriver->key_queue, KEY_QUEUE_MAX_LENGTH));
-    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irq_handler, true));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irq_handler, true);
 
     ksb_init();
 

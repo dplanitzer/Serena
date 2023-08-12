@@ -111,6 +111,7 @@ typedef enum _VirtualProcessorState {
 #define VP_FLAG_TERMINATED          0x01    // VirtualProcessor_Terminate() was called on the VP
 #define VP_FLAG_CAU_IN_PROGRESS     0x02    // VirtualProcessor_CallAsUser() is in progress
 #define VP_FLAG_CAU_ABORTED         0x04    // VirtualProcessor_AbortCallAsUser() has been called and the VirtualProcessor_CallAsUser() is unwinding
+#define VP_FLAG_INTERRUPTABLE_WAIT  0x08    // VirtualProcessorScheduler_WaitOn() should be interruptable
 
 
 // Reason for a wake up

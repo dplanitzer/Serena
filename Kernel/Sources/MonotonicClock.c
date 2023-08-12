@@ -40,7 +40,7 @@ ErrorCode MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc)
                                                       (InterruptHandler_Closure)MonotonicClock_OnInterrupt,
                                                       (Byte*)pClock,
                                                       &irqHandler));
-    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
 
     chipset_start_quantum_timer();
     return EOK;

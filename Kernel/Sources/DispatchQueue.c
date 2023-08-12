@@ -303,7 +303,7 @@ void DispatchQueue_Terminate(DispatchQueueRef _Nonnull pQueue)
     // accepting new work items and repeatable timers from rescheduling. This
     // will also cause the VPs to exit their work loop and to relinquish
     // themselves.
-    try_bang(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
         return;
@@ -333,7 +333,7 @@ void DispatchQueue_Terminate(DispatchQueueRef _Nonnull pQueue)
 // all VPs have been relinquished.
 void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull pQueue)
 {
-    try_bang(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     while (pQueue->availableConcurrency > 0) {
         ConditionVariable_Wait(&pQueue->vp_shutdown_signaler, &pQueue->lock, kTimeInterval_Infinity);
     }
@@ -619,7 +619,7 @@ static ErrorCode DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(DispatchQueu
     // Queue is now unlocked
     try(Semaphore_Acquire(&pCompSignaler->semaphore, kTimeInterval_Infinity));
 
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     isLocked = true;
 
     if (pQueue->state >= kQueueState_Terminating) {
@@ -638,7 +638,7 @@ static ErrorCode DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(DispatchQueu
 catch:
     if (pCompSignaler) {
         if (!isLocked) {
-            try_bang(Lock_Lock(&pQueue->lock));
+            Lock_Lock(&pQueue->lock);
         }
         DispatchQueue_RelinquishCompletionSignaler_Locked(pQueue, pCompSignaler);
         if (!isLocked) {
@@ -699,7 +699,7 @@ ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, W
         abort();
     }
 
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     needsUnlock = true;
     if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
@@ -726,7 +726,7 @@ ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQ
     WorkItem* pItem = NULL;
     Bool needsUnlock = false;
 
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     needsUnlock = true;
     if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
@@ -760,7 +760,7 @@ ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, 
         abort();
     }
 
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     needsUnlock = true;
     if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
@@ -785,7 +785,7 @@ ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, Dispatch
     WorkItem* pItem = NULL;
     Bool needsUnlock = false;
 
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     needsUnlock = true;
     if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
@@ -817,7 +817,7 @@ ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef
         abort();
     }
 
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     needsUnlock = true;
     if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
@@ -842,7 +842,7 @@ ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, Tim
     Timer* pTimer = NULL;
     Bool needsUnlock = false;
 
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     needsUnlock = true;
     if (pQueue->state >= kQueueState_Terminating) {
         Lock_Unlock(&pQueue->lock);
@@ -874,17 +874,11 @@ DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
 }
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
-ErrorCode DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
+void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
     DispatchQueue_Flush_Locked(pQueue);
     Lock_Unlock(&pQueue->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 
@@ -909,7 +903,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
     // We hold the lock at all times except:
     // - while waiting for work
     // - while executing a work item
-    try_bang(Lock_Lock(&pQueue->lock));
+    Lock_Lock(&pQueue->lock);
 
     while (true) {
         WorkItemRef pItem = NULL;
@@ -994,7 +988,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
 
         // Reacquire the lock
-        try_bang(Lock_Lock(&pQueue->lock));
+        Lock_Lock(&pQueue->lock);
 
 
         // Move the work item back to the item cache if possible or destroy it

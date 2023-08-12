@@ -110,21 +110,21 @@ extern void EventDriver_Destroy(EventDriverRef _Nullable pDriver);
 
 extern GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull pDriver);
 
-extern ErrorCode EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId, InputControllerType * _Nonnull pOutType);
+extern InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId);
 extern ErrorCode EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
 
-extern ErrorCode EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
-extern ErrorCode EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay);
+extern void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
+extern void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay);
 
-extern ErrorCode EventDriver_ShowMouseCursor(EventDriverRef _Nonnull pDriver);
-extern ErrorCode EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver);
-extern ErrorCode EventDriver_ObscureMouseCursor(EventDriverRef _Nonnull pDriver);
+extern void EventDriver_ShowMouseCursor(EventDriverRef _Nonnull pDriver);
+extern void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver);
+extern void EventDriver_ObscureMouseCursor(EventDriverRef _Nonnull pDriver);
 
-extern ErrorCode EventDriver_GetMouseLocation(EventDriverRef _Nonnull pDriver, Point* _Nonnull pOutPoint);
-extern ErrorCode EventDriver_GetMouseButtonsDown(EventDriverRef _Nonnull pDriver, UInt32* _Nonnull pOutButtonsMask);
-extern ErrorCode EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown);
+extern Point EventDriver_GetMouseLocation(EventDriverRef _Nonnull pDriver);
+extern UInt32 EventDriver_GetMouseButtonsDown(EventDriverRef _Nonnull pDriver);
+extern void EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown);
 
 extern ErrorCode EventDriver_GetEvents(EventDriverRef _Nonnull pDriver, HIDEvent* _Nonnull pEvents, Int* _Nonnull pEventCount, TimeInterval deadline);
-extern ErrorCode EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Nonnull pEvent);
+extern void EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Nonnull pEvent);
 
 #endif /* EventDriver_h */

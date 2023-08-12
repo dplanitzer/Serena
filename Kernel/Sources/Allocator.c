@@ -291,12 +291,10 @@ catch:
 // Adds the given memory region to the allocator's available memory pool.
 ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
 {
-    Bool needsUnlock = false;
     MemRegion* pMemRegion;
     decl_try_err();
 
-    try(Lock_Lock(&pAllocator->lock));
-    needsUnlock = true;
+    Lock_Lock(&pAllocator->lock);
 
     try_null(pMemRegion, MemRegion_Create(pMemDesc->lower, pMemDesc), ENOMEM);
     SList_InsertAfterLast(&pAllocator->regions, &pMemRegion->node);
@@ -305,9 +303,7 @@ ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const Memo
     return EOK;
 
 catch:
-    if (needsUnlock) {
-        Lock_Unlock(&pAllocator->lock);
-    }
+    Lock_Unlock(&pAllocator->lock);
     return err;
 }
 
@@ -324,27 +320,18 @@ static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _
     return NULL;
 }
 
-ErrorCode Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr, Bool* _Nonnull pOutResult)
+Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr)
 {
-    decl_try_err();
-    Bool r = false;
-
     if (ptr == NULL || ptr == BYTE_PTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
         // things is a NOP anyway
-        *pOutResult = true;
-        return EOK;
+        return true;
     }
 
-    try(Lock_Lock(&pAllocator->lock));
-    r = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) != NULL;
+    Lock_Lock(&pAllocator->lock);
+    const Bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) != NULL;
     Lock_Unlock(&pAllocator->lock);
-    *pOutResult = r;
-    return EOK;
-
-catch:
-    *pOutResult = false;
-    return err;
+    return r;
 }
 
 ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
@@ -365,7 +352,7 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, 
     MemBlock* pMemBlock = NULL;
     decl_try_err();
 
-    try(Lock_Lock(&pAllocator->lock));
+    Lock_Lock(&pAllocator->lock);
 
 
     // Go through the available memory region trying to allocate the memory block
@@ -397,19 +384,19 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, 
     return EOK;
 
 catch:
+    Lock_Unlock(&pAllocator->lock);
+
     *pOutPtr = NULL;
     return err;
 }
 
 ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr)
 {
-    decl_try_err();
-
     if (ptr == NULL || ptr == BYTE_PTR_MAX) {
         return EOK;
     }
     
-    try(Lock_Lock(&pAllocator->lock));
+    Lock_Lock(&pAllocator->lock);
 
     // Find out which memory region contains the block that we want to free
     MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr);
@@ -452,9 +439,6 @@ ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nul
     Lock_Unlock(&pAllocator->lock);
 
     return EOK;
-
-catch:
-    return err;
 }
 
 void Allocator_Dump(AllocatorRef _Nonnull pAllocator)

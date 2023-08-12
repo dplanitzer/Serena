@@ -43,19 +43,19 @@ typedef struct _Console {
 extern ErrorCode Console_Create(GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole);
 extern void Console_Destroy(Console* _Nullable pConsole);
 
-extern ErrorCode Console_GetBounds(Console* _Nonnull pConsole, Rect* _Nonnull pOutRect);
+extern Rect Console_GetBounds(Console* _Nonnull pConsole);
 
-extern ErrorCode Console_ClearScreen(Console* _Nonnull pConsole);
-extern ErrorCode Console_ClearLine(Console* _Nonnull pConsole, Int y);
+extern void Console_ClearScreen(Console* _Nonnull pConsole);
+extern void Console_ClearLine(Console* _Nonnull pConsole, Int y);
 
-extern ErrorCode Console_CopyRect(Console* _Nonnull pConsole, Rect srcRect, Point dstLoc);
-extern ErrorCode Console_FillRect(Console* _Nonnull pConsole, Rect rect, Character ch);
-extern ErrorCode Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dXY);
+extern void Console_CopyRect(Console* _Nonnull pConsole, Rect srcRect, Point dstLoc);
+extern void Console_FillRect(Console* _Nonnull pConsole, Rect rect, Character ch);
+extern void Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dXY);
 
-extern ErrorCode Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy);
-extern ErrorCode Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y);
+extern void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy);
+extern void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y);
 
-extern ErrorCode Console_DrawCharacter(Console* _Nonnull pConsole, Character ch);
-extern ErrorCode Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str);
+extern void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch);
+extern void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str);
 
 #endif /* Console_h */

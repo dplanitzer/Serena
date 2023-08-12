@@ -58,7 +58,7 @@ extern ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerR
 // Note that interrupt handlers are by default disabled (when you add them). You
 // need to enable an interrupt handler before it is able to respond to interrupt
 // requests. A disabled interrupt handler ignores interrupt requests.
-extern ErrorCode InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled);
+extern void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled);
 
 // Returns true if the given interrupt handler is enabled; false otherwise.
 extern Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);

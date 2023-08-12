@@ -147,7 +147,7 @@ ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManag
     decl_try_err();
     Bool needsUnlock = false;
 
-    try(Lock_Lock(&pManager->lock));
+    Lock_Lock(&pManager->lock);
     needsUnlock = true;
 
 
@@ -225,7 +225,7 @@ ErrorCode DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
     decl_try_err();
     Bool needsUnlock = false;
 
-    try(Lock_Lock(&pManager->lock));
+    Lock_Lock(&pManager->lock);
     needsUnlock = true;
 
 
@@ -262,48 +262,28 @@ catch:
     return err;
 }
 
-ErrorCode DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, const Character* pName, DriverRef _Nullable * _Nonnull pOutDriver)
+DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, const Character* pName)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pManager->lock));
-    *pOutDriver = DriverManager_GetDriverForName_Locked(pManager, pName);
+    Lock_Lock(&pManager->lock);
+    DriverRef pDriver = DriverManager_GetDriverForName_Locked(pManager, pName);
     Lock_Unlock(&pManager->lock);
-    return EOK;
-
-catch:
-    Lock_Unlock(&pManager->lock);
-    *pOutDriver = NULL;
-    return err;
+    return pDriver;
 }
 
-ErrorCode DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull pManager, Int* _Nonnull pOutCount)
+Int DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull pManager)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pManager->lock));
-    *pOutCount = pManager->zorroBus.board_count;
+    Lock_Lock(&pManager->lock);
+    const Int count = pManager->zorroBus.board_count;
     Lock_Unlock(&pManager->lock);
-    return EOK;
-
-catch:
-    Lock_Unlock(&pManager->lock);
-    *pOutCount = 0;
-    return err;
+    return count;
 }
 
-ErrorCode DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull pManager, Int index, ExpansionBoard* _Nonnull pOutBoard)
+ExpansionBoard DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull pManager, Int index)
 {
     assert(index >= 0 && index < pManager->zorroBus.board_count);
-    decl_try_err();
 
-    try(Lock_Lock(&pManager->lock));
-    *pOutBoard = pManager->zorroBus.board[index];
+    Lock_Lock(&pManager->lock);
+    const ExpansionBoard board = pManager->zorroBus.board[index];
     Lock_Unlock(&pManager->lock);
-    return EOK;
-
-catch:
-    Lock_Unlock(&pManager->lock);
-    Bytes_ClearRange((Byte*)pOutBoard, sizeof(ExpansionBoard));
-    return err;
+    return board;
 }

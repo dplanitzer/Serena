@@ -23,9 +23,7 @@ _Noreturn fatalError(const Character* _Nonnull filename, int line)
     _GraphicsDriver_SetClutEntry(1, 0x0fff);    // #ffffff
 
     if (gDriverManager != NULL) {
-        Console* pConsole = NULL;
-        
-        (void)DriverManager_GetDriverForName(gDriverManager, kConsoleName, (DriverRef*)&pConsole);
+        Console* pConsole = DriverManager_GetDriverForName(gDriverManager, kConsoleName);
     
         if (pConsole != NULL) {
             Console_DrawString(pConsole, "\n*** ");

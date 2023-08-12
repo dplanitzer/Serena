@@ -22,7 +22,7 @@
 // MARK: DispatchAsync/DispatchAsyncAfter
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
     Int val = (Int)pValue;
@@ -117,7 +117,7 @@ void DispatchQueue_RunTests(void)
 // MARK: True Sleep time
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = gSystemDescription;
@@ -160,12 +160,10 @@ void DispatchQueue_RunTests(void)
     }
     print("--------\n");
     
-    Int boardCount = 0;
-    assert(DriverManager_GetExpansionBoardCount(gDriverManager, &boardCount) == EOK);
+    const Int boardCount = DriverManager_GetExpansionBoardCount(gDriverManager);
     if (boardCount > 0) {
         for(Int i = 0; i < boardCount; i++) {
-            ExpansionBoard board;
-            assert(DriverManager_GetExpansionBoardAtIndex(gDriverManager, i, &board) == EOK);
+            const ExpansionBoard board = DriverManager_GetExpansionBoardAtIndex(gDriverManager, i);
 
             print("start: 0x%p, psize: %u, lsize: %u\n", board.start, board.physical_size, board.logical_size);
             print("type: %s %s\n", board.type == EXPANSION_TYPE_RAM ? "RAM" : "I/O", board.bus == EXPANSION_BUS_ZORRO_2 ? "[Z2]" : "[Z3]");
@@ -200,8 +198,7 @@ void DispatchQueue_RunTests(void)
 #if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
-    EventDriverRef pEventDriver = NULL;
-    try_bang(DriverManager_GetDriverForName(gDriverManager, kEventsDriverName, (DriverRef*)&pEventDriver));
+    EventDriverRef pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
 
     print("Event loop\n");
     while (true) {
@@ -267,14 +264,14 @@ static void OnReadFromPipe(Byte* _Nonnull pValue)
     Byte buf[16];
     Int nbytes;
     
-    Pipe_GetByteCount(pipe, kPipe_Reader, &nbytes);
+    nbytes = Pipe_GetByteCount(pipe, kPipe_Reader);
     print("reader: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     while (true) {
         //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
         buf[0] = '\0';
         Int nRead = 0;
         err = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity, &nRead);
-        //Pipe_GetByteCount(pipe, kPipe_Reader, &nbytes);
+        //nbytes = Pipe_GetByteCount(pipe, kPipe_Reader);
         //print("\nmain: %d, read: %d", nbytes, nRead);
         buf[nRead] = '\0';
         print((const Character*)buf);
@@ -284,17 +281,17 @@ static void OnReadFromPipe(Byte* _Nonnull pValue)
 static void OnWriteToPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
-    ErrorCode err = EOK;
-    Int nbytes;
+    Int err = EOK;
+    Int nbytes = 0;
     
-    Pipe_GetByteCount(pipe, kPipe_Writer, &nbytes);
+    nbytes = Pipe_GetByteCount(pipe, kPipe_Writer);
     print("writer: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     
     while (true) {
         VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(20));
         Int nWritten = 0;
         err = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity, &nWritten);
-        //Pipe_GetByteCount(pipe, kPipe_Writer, &nbytes);
+        //nbytes = Pipe_GetByteCount(pipe, kPipe_Writer);
         //print("\nbackground: %d, written: %d", nbytes, nWritten);
     }
 }

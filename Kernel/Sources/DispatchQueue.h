@@ -219,6 +219,6 @@ extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 // Note that queued up DispatchSync() calls will return with an EINTR.
-extern ErrorCode DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
+extern void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
  
 #endif /* DispatchQueue_h */

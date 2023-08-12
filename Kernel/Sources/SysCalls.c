@@ -15,10 +15,10 @@
 ErrorCode _syscall_write(const Character* pString)
 {
     decl_try_err();
-    Console* pConsole = NULL;
-    
-    try(DriverManager_GetDriverForName(gDriverManager, kConsoleName, (DriverRef*)&pConsole));
-    try(Console_DrawString(pConsole, pString));
+    Console* pConsole;
+
+    try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+    Console_DrawString(pConsole, pString);
     return EOK;
 
 catch:

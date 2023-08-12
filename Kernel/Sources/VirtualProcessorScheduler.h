@@ -75,7 +75,7 @@ extern void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler* 
 // Expects to be called with preemption disabled. Temporarily reenables
 // preemption when context switching to another VP. Returns to the caller with
 // preemption disabled.
-extern ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline);
+extern ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline, Bool isInterruptable);
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue.

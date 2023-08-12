@@ -67,11 +67,9 @@ void Pipe_Destroy(PipeRef _Nullable pPipe)
 }
 
 // Closes the specified side of the pipe.
-ErrorCode Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
+void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pPipe->lock));
+    Lock_Lock(&pPipe->lock);
     switch (side) {
         case kPipe_Reader:
             pPipe->readSideState = kPipeState_Closed;
@@ -84,21 +82,16 @@ ErrorCode Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
 
     ConditionVariable_BroadcastAndUnlock(&pPipe->reader, &pPipe->lock);
     ConditionVariable_BroadcastAndUnlock(&pPipe->writer, &pPipe->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Returns the number of bytes that can be read from the pipe without blocking if
 // 'side' is kPipe_Reader and the number of bytes the can be written without blocking
 // otherwise.
-ErrorCode Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side, Int* _Nonnull pOutCount)
+Int Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side)
 {
-    decl_try_err();
     Int nbytes;
     
-    try(Lock_Lock(&pPipe->lock));
+    Lock_Lock(&pPipe->lock);
     switch (side) {
         case kPipe_Reader:
             nbytes = RingBuffer_ReadableCount(&pPipe->buffer);
@@ -110,30 +103,16 @@ ErrorCode Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side, Int* _Nonnull
     }
     
     Lock_Unlock(&pPipe->lock);
-    *pOutCount = nbytes;
-    return EOK;
-
-catch:
-    *pOutCount = 0;
-    return err;
+    return nbytes;
 }
 
 // Returns the capacity of the pipe's byte buffer.
-ErrorCode Pipe_GetCapacity(PipeRef _Nonnull pPipe, Int* _Nonnull pOutCapacity)
+Int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
 {
-    decl_try_err();
-    Int nbytes;
-    
-    try(Lock_Lock(&pPipe->lock));
-    nbytes = pPipe->buffer.capacity;
+    Lock_Lock(&pPipe->lock);
+    const Int nbytes = pPipe->buffer.capacity;
     Lock_Unlock(&pPipe->lock);
-    
-    *pOutCapacity = nbytes;
-    return EOK;
-
-catch:
-    pOutCapacity = 0;
-    return err;
+    return nbytes;
 }
 
 #define DOPRINT 1
@@ -150,7 +129,7 @@ ErrorCode Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, Int nBytes, 
     Bool needsUnlock = false;
 
     if (nBytes > 0) {
-        try(Lock_Lock(&pPipe->lock));
+        Lock_Lock(&pPipe->lock);
         needsUnlock = true;
 
         while (nBytesRead < nBytes && pPipe->readSideState == kPipeState_Open) {
@@ -206,7 +185,7 @@ ErrorCode Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, Int n
     Bool needsUnlock = false;
 
     if (nBytes > 0) {
-        try(Lock_Lock(&pPipe->lock));
+        Lock_Lock(&pPipe->lock);
         needsUnlock = true;
         
         while (nBytesWritten < nBytes && pPipe->writeSideState == kPipeState_Open) {

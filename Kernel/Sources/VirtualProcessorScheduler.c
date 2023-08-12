@@ -92,7 +92,7 @@ ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnu
                                                   (InterruptHandler_Closure)VirtualProcessorScheduler_OnEndOfQuantum,
                                                   (Byte*)pScheduler,
                                                   &irqHandler));
-    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
 
     return EOK;
 
@@ -267,7 +267,7 @@ static void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _
 // are ordered such that the first one to enter the queue is the first one to
 // leave the queue.
 // Returns a timeout or interrupted error.
-ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline)
+ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline, Bool isInterruptable)
 {
     VirtualProcessor* pVP = (VirtualProcessor*)pScheduler->running;
 
@@ -312,6 +312,11 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     pVP->waiting_on_wait_queue = pWaitQueue;
     pVP->wait_start_time = MonotonicClock_GetCurrentQuantums();
     pVP->wakeup_reason = WAKEUP_REASON_NONE;
+    if (isInterruptable) {
+        pVP->flags |= VP_FLAG_INTERRUPTABLE_WAIT;
+    } else {
+        pVP->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
+    }
 
     
     // Find another VP to run and context switch to it
@@ -364,11 +369,13 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
     }
 }
 
-// Adds the given VP from the given wait queue to the ready queue. The VP is removed
-// from the wait queue. The scheduler guarantees that a wakeup operation will never
-// fail with an error. This doesn't mean that calling this function will always
-// result in a virtual processor wakeup. If the wait queue is empty then no wakeups
-// will happen.
+// Adds the given VP from the given wait queue to the ready queue. The VP is
+// removed from the wait queue. The scheduler guarantees that a wakeup operation
+// will never fail with an error. This doesn't mean that calling this function
+// will always result in a virtual processor wakeup. If the wait queue is empty
+// then no wakeups will happen. Also a virtual processor that sits in an
+// uninterruptable wait or that was suspended while being in a wait state will
+// not get woken up.
 void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
 {
     // It's possible that the VP that we want to wake up is running if the
@@ -382,6 +389,14 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
         }
     }
     
+
+    // Do not wake up the virtual processor if it is in an uninterruptable wait.
+    if (wakeUpReason == WAKEUP_REASON_INTERRUPTED && (pVP->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
+        return;
+    }
+
+
+    // End the virtual processor wait
     VirtualProcessorScheduler_FinishWait(pScheduler, pWaitQueue, pVP, wakeUpReason);
     
     
@@ -422,6 +437,7 @@ static void VirtualProcessorScheduler_FinishWait(VirtualProcessorScheduler* _Non
     
     pVP->waiting_on_wait_queue = NULL;
     pVP->wakeup_reason = wakeUpReason;
+    pVP->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
 }
 
 // Context switches to the given virtual processor if it is a better choice. Eg
@@ -518,7 +534,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull pSch
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&pScheduler->finalizer_queue)) {
             (void)VirtualProcessorScheduler_WaitOn(pScheduler, &pScheduler->scheduler_wait_queue,
-                                             TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)));
+                                             TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), true);
         }
         
         // Got some work to do. Save off the needed data in local vars and then

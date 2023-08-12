@@ -63,7 +63,7 @@ ErrorCode VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _
     VirtualProcessor* pVP = NULL;
     Bool needsUnlock = false;
 
-    try(Lock_Lock(&pool->lock));
+    Lock_Lock(&pool->lock);
     needsUnlock = true;
 
     // Try to reuse a cached VP
@@ -92,7 +92,7 @@ ErrorCode VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _
     if (pVP == NULL) {
         try(VirtualProcessor_Create(&pVP));
 
-        try(Lock_Lock(&pool->lock));
+        Lock_Lock(&pool->lock);
         needsUnlock = true;
         List_InsertBeforeFirst(&pool->inuse_queue, &pVP->owner.queue_entry);
         pool->inuse_count++;
@@ -129,7 +129,7 @@ _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRe
 
 
     // Try to cache the VP
-    try_bang(Lock_Lock(&pool->lock));
+    Lock_Lock(&pool->lock);
     
     List_Remove(&pool->inuse_queue, &pVP->owner.queue_entry);
     pool->inuse_count--;

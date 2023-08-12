@@ -109,7 +109,8 @@ ErrorCode ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _No
     VirtualProcessorScheduler_RestoreCooperation(scs);
     const Int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                                      &pCondVar->wait_queue,
-                                                     deadline);
+                                                     deadline,
+                                                     true);
     Lock_Lock(pLock);
 
     VirtualProcessorScheduler_RestorePreemption(sps);

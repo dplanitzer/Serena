@@ -301,77 +301,48 @@ static void Console_DrawString_Locked(Console* _Nonnull pConsole, const Characte
 ////////////////////////////////////////////////////////////////////////////////
 
 // Returns the console bounds.
-ErrorCode Console_GetBounds(Console* _Nonnull pConsole, Rect* _Nonnull pOutRect)
+Rect Console_GetBounds(Console* _Nonnull pConsole)
 {
-    decl_try_err();
-    try(Lock_Lock(&pConsole->lock));
-    *pOutRect = Console_GetBounds_Locked(pConsole);
+    Lock_Lock(&pConsole->lock);
+    const Rect r = Console_GetBounds_Locked(pConsole);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    *pOutRect = Rect_Empty;
-    return err;
+    return r;
 }
 
 // Clears the console screen.
 // \param pConsole the console
-ErrorCode Console_ClearScreen(Console* _Nonnull pConsole)
+void Console_ClearScreen(Console* _Nonnull pConsole)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_ClearScreen_Locked(pConsole);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Clears the specified line. Does not change the
 // cursor position.
-ErrorCode Console_ClearLine(Console* _Nonnull pConsole, Int y)
+void Console_ClearLine(Console* _Nonnull pConsole, Int y)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_ClearLine_Locked(pConsole, y);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Copies the content of 'srcRect' to 'dstLoc'. Does not change the cursor
 // position.
-ErrorCode Console_CopyRect(Console* _Nonnull pConsole, Rect srcRect, Point dstLoc)
+void Console_CopyRect(Console* _Nonnull pConsole, Rect srcRect, Point dstLoc)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_CopyRect_Locked(pConsole, srcRect, dstLoc);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Fills the content of 'rect' with the character 'ch'. Does not change the
 // cursor position.
-ErrorCode Console_FillRect(Console* _Nonnull pConsole, Rect rect, Character ch)
+void Console_FillRect(Console* _Nonnull pConsole, Rect rect, Character ch)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_FillRect_Locked(pConsole, rect, ch);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Scrolls the content of the console screen. 'clipRect' defines a viewport through
@@ -379,17 +350,11 @@ catch:
 // pixels. Positive values move the viewport down (and scroll the virtual document
 // up) and negative values move the viewport up (and scroll the virtual document
 // down).
-ErrorCode Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dXY)
+void Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dXY)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_ScrollBy_Locked(pConsole, clipRect, dXY);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Sets the console position. The next print() will start printing at this
@@ -397,64 +362,40 @@ catch:
 // \param pConsole the console
 // \param x the X position
 // \param y the Y position
-ErrorCode Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y)
+void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_MoveCursorTo_Locked(pConsole, x, y);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Moves the console position by the given delta values.
 // \param pConsole the console
 // \param dx the X delta
 // \param dy the Y delta
-ErrorCode Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy)
+void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_MoveCursorTo_Locked(pConsole, pConsole->x + dx, pConsole->y + dy);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Prints the given character to the console.
 // \param pConsole the console
 // \param ch the character
-ErrorCode Console_DrawCharacter(Console* _Nonnull pConsole, Character ch)
+void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch)
 {
-    decl_try_err();
-
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_DrawCharacter_Locked(pConsole, ch);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }
 
 // Prints the given nul-terminated string to the console.
 // \param pConsole the console
 // \param str the nul-terminated string
-ErrorCode Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str)
+void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str)
 {
-    decl_try_err();
-    
-    try(Lock_Lock(&pConsole->lock));
+    Lock_Lock(&pConsole->lock);
     Console_DrawString_Locked(pConsole, str);
     Lock_Unlock(&pConsole->lock);
-    return EOK;
-
-catch:
-    return err;
 }

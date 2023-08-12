@@ -49,7 +49,7 @@
 #define throw(e)            err = e; goto catch;
 
 
-// Error code definitions
+// Error code definitions (keep in sync with lowmem.i)
 typedef Int ErrorCode;
 #define EOK         0
 #define ENOMEM      1
@@ -69,6 +69,8 @@ typedef Int ErrorCode;
 #define ENOSYS      15
 #define EINVAL      16
 #define EIO         17
+#define EPERM       18
+#define EDEADLK     19
 
 
 // A callback function that takes a single (context) pointer argument

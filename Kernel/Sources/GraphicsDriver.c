@@ -430,7 +430,7 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     _GraphicsDriver_SetClutEntry(30, 0x0000);
     _GraphicsDriver_SetClutEntry(31, 0x0000);
 
-    try(InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->vb_irq_handler, true));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->vb_irq_handler, true);
 
     try(GraphicsDriver_SetVideoConfiguration(pDriver, pConfig, pixelFormat));
 //    try(GraphicsDriver_SetVideoConfiguration(pDriver, &kVideoConfig_NTSC_320_200_60 /*pConfig*/, pixelFormat));

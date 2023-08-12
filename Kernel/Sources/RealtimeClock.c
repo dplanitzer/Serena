@@ -78,7 +78,7 @@ ErrorCode RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate*
 {
     decl_try_err();
 
-    try(Lock_Lock(&pClock->lock));
+    Lock_Lock(&pClock->lock);
     pDate->second = 0;
     pDate->minute = 0;
     pDate->hour = 0;
@@ -100,7 +100,7 @@ ErrorCode RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const Gregoria
 {
     decl_try_err();
 
-    try(Lock_Lock(&pClock->lock));
+    Lock_Lock(&pClock->lock);
     // XXX not yet
     Lock_Unlock(&pClock->lock);
     return EOK;
@@ -115,7 +115,7 @@ ErrorCode RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, By
     decl_try_err();
     Int nBytesRead;
     
-    try(Lock_Lock(&pClock->lock));
+    Lock_Lock(&pClock->lock);
     // XXX not yet
     nBytesRead = 0;
     Lock_Unlock(&pClock->lock);
@@ -134,7 +134,7 @@ ErrorCode RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, c
     decl_try_err();
     Int nBytesWritten;
     
-    try(Lock_Lock(&pClock->lock));
+    Lock_Lock(&pClock->lock);
     // XXX not yet
     nBytesWritten = 0;
     Lock_Unlock(&pClock->lock);
