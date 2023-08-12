@@ -1030,7 +1030,7 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         }
     }
 
-    DispatchQueue_RelinquishVirtualProcessor_Locked(pQueue, VirtualProcessor_GetCurrent());
+    DispatchQueue_RelinquishVirtualProcessor_Locked(pQueue, pVP);
 
     if (pQueue->state >= kQueueState_Terminating) {
         ConditionVariable_SignalAndUnlock(&pQueue->vp_shutdown_signaler, &pQueue->lock);

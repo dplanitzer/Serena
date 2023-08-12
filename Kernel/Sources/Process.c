@@ -132,15 +132,8 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     // integrity of kernel data structures.
 
 
-    // Mark the process atomically as terminating
-    if(AtomicBool_Set(&pProc->isTerminating, true)) {
-        return;
-    }
-
-
     // Terminate all dispatch queues. This takes care of aborting user space
     // invocations.
-    //print("a\n");
     DispatchQueue_Terminate(pProc->mainDispatchQueue);
 
 
@@ -149,10 +142,7 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
 
     // Finally destroy the process.
-    //print("b\n");
     Process_Destroy(pProc);
-
-    //print("DONE\n");
 }
 
 // Triggers the termination of the given process. The termination may be caused
@@ -164,6 +154,22 @@ void Process_Terminate(ProcessRef _Nonnull pProc)
     // We do not allow exiting the root process
     if (pProc == gRootProcess) {
         abort();
+    }
+
+
+    // Mark the process atomically as terminating. Leave now if some other VP
+    // belonging to this process has already kicked off the termination. Note
+    // that if multiple VPs concurrently execute a Process_Terminate(), that
+    // at most one of them is able to get past this gate to kick off the
+    // termination. All other VPs will return and their system calls will be
+    // aborted. Also note that the Process data structure stays alive until
+    // after _all_ VPs (including the first one) have returned from their
+    // (aborted) system calls. So by the time the process data structure is
+    // freed no system call that might directly or indirectly reference the
+    // process is active anymore because all of them have been aborted and
+    // unwound before we free the process data structure.
+    if(AtomicBool_Set(&pProc->isTerminating, true)) {
+        return;
     }
 
 
