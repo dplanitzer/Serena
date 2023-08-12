@@ -9,6 +9,7 @@
 #include "Foundation.h"
 #include "kalloc.h"
 #include "Bytes.h"
+#include "BootAllocator.h"
 #include "Console.h"
 #include "DispatchQueue.h"
 #include "DriverManager.h"
@@ -26,26 +27,6 @@ static Byte* gInitialHeapTop;
 
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 static void OnMain(void);
-
-
-// Find a suitable memory region for the boot kernel stack. We try to allocate
-// the stack region from fast RAM and we try to put it as far up in RAM as
-// possible. We only allocate from chip RAM if there is no fast RAM.
-static Byte* _Nullable boot_allocate_kernel_stack(SystemDescription* _Nonnull pSysDesc, Int stackSize)
-{
-    Byte* pStackBase = NULL;
-    
-    for (Int i = pSysDesc->memory.descriptor_count - 1; i >= 0; i--) {
-        const Int nAvailBytes = pSysDesc->memory.descriptor[i].upper - pSysDesc->memory.descriptor[i].lower;
-        
-        if (nAvailBytes >= stackSize) {
-            pStackBase = pSysDesc->memory.descriptor[i].upper - stackSize;
-            break;
-        }
-    }
-
-    return pStackBase;
-}
 
 
 // Called from the boot services at system reset time. Only a very minimal
@@ -76,15 +57,24 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     gSystemDescription = pSysDesc;
 
 
+    // Create the boot allocator
+    BootAllocator boot_alloc;
+    BootAllocator_Init(&boot_alloc, pSysDesc);
+
+
     // Allocate the kernel stack in high mem
     const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    Byte* pKernelStackBase = boot_allocate_kernel_stack(pSysDesc, kernelStackSize);
+    Byte* pKernelStackBase = BootAllocator_Allocate(&boot_alloc, kernelStackSize);
     assert(pKernelStackBase != NULL);
-    gInitialHeapTop = pKernelStackBase;
 
 
     // Initialize the scheduler
     VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
+
+
+    // Don't need the boot allocator anymore
+    gInitialHeapTop = BootAllocator_GetLowestAllocatedAddress(&boot_alloc);
+    BootAllocator_Deinit(&boot_alloc);
 
 
     // Do the first ever context switch over to the boot virtual processor
@@ -160,7 +150,7 @@ static void OnMain(void)
     // Initialize all other drivers
     try_bang(DriverManager_AutoConfigure(gDriverManager));
 
-#if 0
+#if 1
     //print("_text: %p, _etext: %p, _data: %p, _edata: %p, _bss: %p, _ebss: %p\n\n", &_text, &_etext, &_data, &_edata, &_bss, &_ebss);
     // Create the root process and kick it off running
     try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));
