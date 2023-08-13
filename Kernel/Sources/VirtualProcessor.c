@@ -101,8 +101,6 @@ _Noreturn VirtualProcesssor_Relinquish(void)
 void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
 {
     static volatile AtomicInt gNextAvailableVpid = 0;
-    
-    Bytes_ClearRange((Byte*)&pVP->save_area, sizeof(CpuContext));
 
     ListNode_Init(&pVP->rewa_queue_entry);
     ExecutionStack_Init(&pVP->kernel_stack);
@@ -190,9 +188,11 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     }
     try(ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize));
     
-    pVP->save_area.usp = (UInt32) ExecutionStack_GetInitialTop(&pVP->user_stack);
+    Bytes_ClearRange((Byte*)&pVP->save_area, sizeof(CpuContext));
     pVP->save_area.a[7] = (UInt32) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
+    pVP->save_area.usp = (UInt32) ExecutionStack_GetInitialTop(&pVP->user_stack);
     pVP->save_area.pc = (UInt32) closure.func;
+    pVP->save_area.sr = 0x2000;     // We start out in supervisor mode
 
 
     // Note that we do not set up an initial stack frame on the user stack because
@@ -207,16 +207,15 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     // SP +  2: PC
     // SP +  0: SR
     //
-    // Note that the RTE frame is necessary because the VirtualProcessorScheduler_SwitchContext
-    // function expects to find an RTE frame on the kernel stack on entry
+    // Note that the RTE frame is necessary because the
+    // __rtecall_VirtualProcessorScheduler_RestoreContext function expects to
+    // find an RTE frame on the kernel stack on entry
     Byte* sp = (Byte*) pVP->save_area.a[7];
     sp -= 4; *((Byte**)sp) = closure.context;
     sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_Relinquish;
-    sp -= 2; *((UInt16*)sp) = 0;    // RTE frame format
-    sp -= 4; *((UInt32*)sp) = pVP->save_area.pc;
-    sp -= 2; *((UInt16*)sp) = pVP->save_area.sr;
+    sp -= 4; *((UInt32*)sp) = 0;    // A dummy RTE format #0 frame for use by the context restorer
+    sp -= 4; *((UInt32*)sp) = 0;
     pVP->save_area.a[7] = (UInt32)sp;
-    pVP->save_area.sr |= 0x2000;
 
     return EOK;
 
