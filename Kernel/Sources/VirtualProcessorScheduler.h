@@ -10,6 +10,7 @@
 #define VirtualProcessorScheduler_h
 
 #include "Foundation.h"
+#include "BootAllocator.h"
 #include "List.h"
 #include "SystemDescription.h"
 #include "VirtualProcessor.h"
@@ -62,7 +63,14 @@ typedef struct _VirtualProcessorScheduler {
 
 extern VirtualProcessorScheduler* _Nonnull gVirtualProcessorScheduler;
 
-extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, VirtualProcessorClosure bootClosure);
+// Initializes the virtual processor scheduler and sets up the boot virtual
+// processor plus the idle virtual processor. The 'pFunc' function will be
+// invoked in the context of the boot virtual processor and it will receive the
+// 'pContext' argument. The first context switch from the machine reset context
+// to the boot virtual processor context is triggered by calling the
+// VirtualProcessorScheduler_IncipientContextSwitch() function. 
+extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext);
+
 extern ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler);
 
 extern void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);

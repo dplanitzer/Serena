@@ -62,14 +62,8 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     BootAllocator_Init(&boot_alloc, pSysDesc);
 
 
-    // Allocate the kernel stack in high mem
-    const Int kernelStackSize = VP_DEFAULT_KERNEL_STACK_SIZE;
-    Byte* pKernelStackBase = BootAllocator_Allocate(&boot_alloc, kernelStackSize);
-    assert(pKernelStackBase != NULL);
-
-
     // Initialize the scheduler
-    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)OnStartup, (Byte*)pSysDesc, pKernelStackBase, kernelStackSize));
+    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, &boot_alloc, (Closure1Arg_Func)OnStartup, (Byte*)pSysDesc);
 
 
     // Don't need the boot allocator anymore

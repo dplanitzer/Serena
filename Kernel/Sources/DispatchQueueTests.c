@@ -22,7 +22,7 @@
 // MARK: DispatchAsync/DispatchAsyncAfter
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
     Int val = (Int)pValue;
@@ -256,7 +256,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnReadFromPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
