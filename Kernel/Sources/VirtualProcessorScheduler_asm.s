@@ -108,7 +108,9 @@ _VirtualProcessorScheduler_IncipientContextSwitch:
 ; void __rtecall_VirtualProcessorScheduler_SwitchContext(void)
 ; Saves the CPU state of the currently running VP and restores the CPU state of
 ; the scheduled VP. Expects that it is called with a RTE frame format #0 stack
-; frame on top of the stack. You want to call this function with a jmp instruction.
+; frame on top of the stack. You want to call this function with a jmp
+; instruction. Note that this function consumes this RTE frame by removing it
+; from the stack.
 ;
 ; Expected stack frame at entry:
 ; SP + 6: format #0 (68010+ only)
@@ -128,6 +130,10 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
 
     move.w  0(sp), cpu_sr(a0)
     move.l  2(sp), cpu_pc(a0)
+
+    ; consume the format #0 RTE frame stored on the stack of the guy we want to
+    ; switch away from
+    addq.l  #8, sp
 
     ; check whether we should save the FPU state
     btst    #CSWB_HW_HAS_FPU, _gVirtualProcessorSchedulerStorage + vps_csw_hw
@@ -173,8 +179,10 @@ __rtecall_VirtualProcessorScheduler_RestoreContext:
     move.l  cpu_usp(a0), a1
     move.l  a1, usp
     
-    ; build a stack frame for the RTE below which will cause the CPU to start
-    ; execution of the code that we want to run next:
+    ; build a stack frame on the stack of the guy we just switched to for the
+    ; RTE below which will cause the CPU to start execution of the code that we
+    ; want to run next:
+    ; SP + 6: format #0 (68010+ only)
     ; SP +  2: PC
     ; SP +  0: SR
     move.l  cpu_pc(a0), 2(sp)
