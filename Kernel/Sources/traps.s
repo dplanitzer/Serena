@@ -19,7 +19,6 @@
     xref _OnReset
     xref _OnBoot
     xref __rtecall_VirtualProcessorScheduler_SwitchContext
-    xref __rtecall_VirtualProcessorScheduler_RestoreContext
     xref _SystemCallHandler
     xref _InterruptController_OnInterrupt
     xref _copper_run

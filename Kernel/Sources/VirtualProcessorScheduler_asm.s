@@ -18,7 +18,6 @@
     xdef _VirtualProcessorScheduler_SwitchContext
     xdef _VirtualProcessorScheduler_IncipientContextSwitch
     xdef __rtecall_VirtualProcessorScheduler_SwitchContext
-    xdef __rtecall_VirtualProcessorScheduler_RestoreContext
 
 
 ;-------------------------------------------------------------------------------
