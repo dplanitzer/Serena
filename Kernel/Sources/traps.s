@@ -19,6 +19,7 @@
     xref _OnReset
     xref _OnBoot
     xref __rtecall_VirtualProcessorScheduler_SwitchContext
+    xref __rtecall_VirtualProcessorScheduler_RestoreContext
     xref _SystemCallHandler
     xref _InterruptController_OnInterrupt
     xref _copper_run
@@ -32,6 +33,30 @@
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
     xdef _mem_non_recoverable_error
+
+    ; so that we can get the address information from the assembler
+    xdef BusErrorHandler
+    xdef AddressErrorHandler
+    xdef IllegalInstructionHandler
+    xdef IntDivByZeroHandler
+    xdef ChkHandler
+    xdef TrapvHandler
+    xdef PrivilegeHandler
+    xdef TraceHandler
+    xdef Line1010Handler
+    xdef Line1111Handler
+    xdef CoProcViolationHandler
+    xdef FormatErrorHandler
+    xdef FpUnimpDataTypeHandler
+    xdef MMUConfigErrorHandler
+    xdef MMUIllegalOpErrorHandler
+    xdef MMUAccessLevelErrorHandler
+    xdef IRQHandler_L1
+    xdef IRQHandler_L2
+    xdef IRQHandler_L3
+    xdef IRQHandler_L4
+    xdef IRQHandler_L5
+    xdef IRQHandler_L6
 
 
 ; ROM vector table for 68000 CPUs
@@ -61,10 +86,10 @@ _cpu_vector_table:
     dc.l IRQHandler_L5                  ; 29, Level 5 (Disk, Serial port)
     dc.l IRQHandler_L6                  ; 30, Level 6 (External INT6, CIAB)
     dc.l IgnoreTrap                     ; 31, Level 7 (NMI - Unused)
-    dc.l _SystemCallHandler             ; 32, Trap 0 System Call
-    dc.l _cpu_return_from_call_as_user  ; 33, Trap 1 _cpu_return_from_call_as_user
-    dc.l IgnoreTrap                     ; 34, Trap 2 (Unused)
-    dc.l IgnoreTrap                     ; 35, Trap 3 (Unused)
+    dc.l _SystemCallHandler             ; 32, Trap 0
+    dc.l _cpu_return_from_call_as_user  ; 33, Trap 1
+    dc.l __rtecall_VirtualProcessorScheduler_SwitchContext  ; 34, Trap 2
+    dc.l __rtecall_VirtualProcessorScheduler_RestoreContext ; 35, Trap 3
     dc.l IgnoreTrap                     ; 36, Trap 4 (Unused)
     dc.l IgnoreTrap                     ; 37, Trap 5 (Unused)
     dc.l IgnoreTrap                     ; 38, Trap 6 (Unused)

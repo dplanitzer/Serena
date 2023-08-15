@@ -56,7 +56,7 @@ _cpu_restore_irqs:
 ;-------------------------------------------------------------------------------
 ; void cpu_set_irq_stack_pointer(Byte* pStackPtr)
 ; Sets the ISP (interrupt mode) stack pointer to 'pStackPtr'. Expects that IRQs
-; are turned off. See 68030UM page 1-8.
+; are turned off and with the MSP active. See 68030UM page 1-8.
 _cpu_set_irq_stack_pointer:
     cargs csisp_stack_ptr.l
     move.l  csisp_stack_ptr(sp), a0

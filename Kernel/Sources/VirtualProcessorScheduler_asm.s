@@ -18,6 +18,7 @@
     xdef _VirtualProcessorScheduler_SwitchContext
     xdef _VirtualProcessorScheduler_IncipientContextSwitch
     xdef __rtecall_VirtualProcessorScheduler_SwitchContext
+    xdef __rtecall_VirtualProcessorScheduler_RestoreContext
 
 
 ;-------------------------------------------------------------------------------
@@ -73,19 +74,14 @@ _VirtualProcessorScheduler_IsCooperationEnabled:
 ;-------------------------------------------------------------------------------
 ; void VirtualProcessorScheduler_SwitchContext(void)
 ; Invokes the context switcher. Expects that preemption is disabled and that the
-; scheduler set up a CSW request. Enables preemption as it switches to another VP.
-; Once this function returns to the caller preemption is disabled again.
+; scheduler set up a CSW request. Enables preemption as it switches to another
+; VP. Once this function returns to the caller preemption is disabled again.
 _VirtualProcessorScheduler_SwitchContext:
     inline
-        ; build a RTE format #0 frame on the stack. The RTE return address points to
-        ; our rts instruction.
-        move.w  #0, -(sp)               ; format #0
-        lea     .csw_return(pc), a0     ; PC
-        move.l  a0, -(sp)
-        move.w  sr, -(sp)               ; SR
-        jmp     __rtecall_VirtualProcessorScheduler_SwitchContext
-
-.csw_return:
+        ; invoke __rtecall_VirtualProcessorScheduler_SwitchContext in such a way
+        ; that we don't have to worry about how to construct a properly formatted
+        ; RTE stack frame
+        trap    #2
         rts
     einline
 
@@ -95,10 +91,11 @@ _VirtualProcessorScheduler_SwitchContext:
 ; Triggers the very first context switch to the boot virtual processor. This call
 ; transfers the CPU to the boot virtual processor execution context and does not
 ; return to the caller.
+; Expects to be called with the interrupt stack active and interrupts turned off.
 _VirtualProcessorScheduler_IncipientContextSwitch:
     inline
         addq.l  #4, sp  ; get rid of the rts on the stack
-        jmp     __rtecall_VirtualProcessorScheduler_RestoreContext
+        trap    #3
         ; NOT REACHED
         jmp _cpu_non_recoverable_error
     einline
@@ -130,10 +127,6 @@ __rtecall_VirtualProcessorScheduler_SwitchContext:
 
     move.w  0(sp), cpu_sr(a0)
     move.l  2(sp), cpu_pc(a0)
-
-    ; consume the format #0 RTE frame stored on the stack of the guy we want to
-    ; switch away from
-    addq.l  #8, sp
 
     ; check whether we should save the FPU state
     btst    #CSWB_HW_HAS_FPU, _gVirtualProcessorSchedulerStorage + vps_csw_hw
@@ -179,9 +172,9 @@ __rtecall_VirtualProcessorScheduler_RestoreContext:
     move.l  cpu_usp(a0), a1
     move.l  a1, usp
     
-    ; build a stack frame on the stack of the guy we just switched to for the
-    ; RTE below which will cause the CPU to start execution of the code that we
-    ; want to run next:
+    ; update the RTE stack frame of the context we just switched to such that the
+    ; rte instruction below will restore the proper SR and continue execution in
+    ; the new execution context:
     ; SP + 6: format #0 (68010+ only)
     ; SP +  2: PC
     ; SP +  0: SR
