@@ -195,25 +195,27 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     pVP->save_area.sr = 0x2000;     // We start out in supervisor mode
 
 
+    // User stack:
+    //
     // Note that we do not set up an initial stack frame on the user stack because
     // user space calls have to be done via cpu_call_as_user() and this function
     // takes care of setting up a frame on the user stack that will eventually
     // lead the user space code back to kernel space.
     //
-    // Initial kernel stack frame looks like this:
+    //
+    // Kernel stack:
+    //
+    // The initial kernel stack frame looks like this:
     // SP + 12: pContext
     // SP +  8: RTS address (VirtualProcesssor_Relinquish() entry point)
-    // SP +  6: Stack frame format for RTE (0 -> 8 byte frame size)
-    // SP +  2: PC
-    // SP +  0: SR
+    // SP +  0: dummy format $0 exception stack frame (8 byte size)
     //
-    // Note that the RTE frame is necessary because the
-    // __rtecall_VirtualProcessorScheduler_RestoreContext function expects to
-    // find an RTE frame on the kernel stack on entry
+    // See __rtecall_VirtualProcessorScheduler_SwitchContext for an explanation
+    // of why we need the dummy exception stack frame.
     Byte* sp = (Byte*) pVP->save_area.a[7];
     sp -= 4; *((Byte**)sp) = closure.context;
     sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_Relinquish;
-    sp -= 4; *((UInt32*)sp) = 0;    // A dummy RTE format #0 frame for use by the context restorer
+    sp -= 4; *((UInt32*)sp) = 0;
     sp -= 4; *((UInt32*)sp) = 0;
     pVP->save_area.a[7] = (UInt32)sp;
 

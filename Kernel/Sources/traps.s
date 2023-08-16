@@ -19,7 +19,6 @@
     xref _OnReset
     xref _OnBoot
     xref __rtecall_VirtualProcessorScheduler_SwitchContext
-    xref __rtecall_VirtualProcessorScheduler_RestoreContext
     xref _SystemCallHandler
     xref _InterruptController_OnInterrupt
     xref _copper_run
@@ -88,8 +87,8 @@ _cpu_vector_table:
     dc.l IgnoreTrap                     ; 31, Level 7 (NMI - Unused)
     dc.l _SystemCallHandler             ; 32, Trap 0
     dc.l _cpu_return_from_call_as_user  ; 33, Trap 1
-    dc.l __rtecall_VirtualProcessorScheduler_SwitchContext  ; 34, Trap 2
-    dc.l __rtecall_VirtualProcessorScheduler_RestoreContext ; 35, Trap 3
+    dc.l IgnoreTrap                     ; 34, Trap 2 (Unused)
+    dc.l IgnoreTrap                     ; 35, Trap 3 (Unused)
     dc.l IgnoreTrap                     ; 36, Trap 4 (Unused)
     dc.l IgnoreTrap                     ; 37, Trap 5 (Unused)
     dc.l IgnoreTrap                     ; 38, Trap 6 (Unused)

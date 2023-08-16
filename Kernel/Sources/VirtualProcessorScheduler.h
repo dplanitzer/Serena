@@ -72,6 +72,7 @@ extern VirtualProcessorScheduler* _Nonnull gVirtualProcessorScheduler;
 extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext);
 
 extern ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler);
+extern _Noreturn VirtualProcessorScheduler_SwitchToBootVirtualProcessor(void);
 
 extern void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 
@@ -129,7 +130,5 @@ extern VirtualProcessor* _Nullable VirtualProcessorScheduler_GetHighestPriorityR
 
 extern void VirtualProcessorScheduler_SwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
 extern void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP);
-
-extern _Noreturn VirtualProcessorScheduler_IncipientContextSwitch(void);
 
 #endif /* VirtualProcessorScheduler_h */

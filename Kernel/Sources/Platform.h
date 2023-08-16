@@ -68,7 +68,6 @@ typedef void (* _Nonnull Cpu_UserClosure)(Byte* _Nullable pContext);
 extern void cpu_enable_irqs(void);
 extern Int cpu_disable_irqs(void);
 extern void cpu_restore_irqs(Int state);
-extern void cpu_set_irq_stack_pointer(Byte* pStackPtr);
 
 extern const Character* _Nonnull cpu_get_model_name(Int8 cpu_model);
 

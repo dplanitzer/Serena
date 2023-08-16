@@ -73,7 +73,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Do the first ever context switch over to the boot virtual processor
     // execution context.
-    VirtualProcessorScheduler_IncipientContextSwitch();
+    VirtualProcessorScheduler_SwitchToBootVirtualProcessor();
 }
 
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
