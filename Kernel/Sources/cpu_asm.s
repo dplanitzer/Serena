@@ -173,58 +173,72 @@ _fpu_get_model:
 
 
 ;-------------------------------------------------------------------------------
-; Void pop_bus_error_stack_frame(continuation_addr[a0.l])
-; Pops the bus error stack frame that is sitting at sp from the stack. We decode
-; the frame type to figure out how many words to remove from the stack. The
-; function then jumps to 'continuation_addr' to continue execution.
-; Trashes: d0
-_pop_bus_error_stack_frame:
+; Void pop_exception_stack_frame()
+; Pops the bus error stack frame that is sitting at sp from the stack. Call this
+; function as a subroutine with ssp pointing to the bottom of the exception
+; stack frame right before you call this function.
+; Trashes: d0, a0
+_pop_exception_stack_frame:
     inline
-    ; 68000   7 words (NOT supported)                        (68000UM page 6-17)
-    ; 68010  29 words (format $8)                            (68000UM page 6-18)
-    ; 68020  16 words (format $a)  or  46 words (format $b)  (68020UM page 6-28)
-    ; 68030  16 words (format $a)  or  46 words (format $b)  (68030UM page 8-34)
-    ; 68040  30 words (format $7)                            (68040UM page 8-24)
-    ; 68060   8 words (format $4)                            (UM68060 page 8-21)
-        move.w  6(sp), d0
-        lsr.w   #8, d0
-        lsr.w   #4, d0
+        ; pop off the return address and save it in a0
+        move.l  (sp)+, a0
 
+        ; get the exception stack frame format id
+        ;moveq.l #0, d0
+        move.b  6(sp), d0
+        lsr.b   #4, d0
+
+        ; pop off the right number of bytes based on the exception stack frame id
+        cmp.b   #$0, d0
+        bne.s   .dismiss_non_format_0_exception_stack_frame
+        addq.l  #8, sp
+        jmp     (a0)
+
+.dismiss_non_format_0_exception_stack_frame:
+        cmp.b   #$2, d0
+        bne.s   .dismiss_non_format_2_exception_stack_frame
+        add.l   #12, sp
+        jmp     (a0)
+
+.dismiss_non_format_2_exception_stack_frame:
+        cmp.b   #$3, d0
+        bne.s   .dismiss_non_format_3_exception_stack_frame
+        add.l   #12, sp
+        jmp     (a0)
+
+.dismiss_non_format_3_exception_stack_frame:
         cmp.b   #$4, d0
-        beq     .is_format_4
+        bne.s   .dismiss_non_format_4_exception_stack_frame
+        add.l   #12, sp
+        jmp     (a0)
+
+.dismiss_non_format_4_exception_stack_frame:
         cmp.b   #$7, d0
-        beq     .is_format_7
-        cmp.b   #$8, d0
-        beq     .is_format_8
+        bne.s   .dismiss_non_format_7_exception_stack_frame
+        add.l   #60, sp
+        jmp     (a0)
+
+.dismiss_non_format_7_exception_stack_frame:
+        cmp.b   #$9, d0
+        bne.s   .dismiss_non_format_9_exception_stack_frame
+        add.l   #20, sp
+        jmp     (a0)
+
+.dismiss_non_format_9_exception_stack_frame:
         cmp.b   #$a, d0
-        beq     .is_format_a
+        bne.s   .dismiss_non_format_a_exception_stack_frame
+        add.l   #32, sp
+        jmp     (a0)
+
+.dismiss_non_format_a_exception_stack_frame:
         cmp.b   #$b, d0
-        beq     .is_format_b
+        bne.s   .dismiss_non_format_b_exception_stack_frame
+        add.l   #92, sp
+        jmp     (a0)
+
+.dismiss_non_format_b_exception_stack_frame:
         jmp     _cpu_non_recoverable_error
         ; NOT REACHED
-
-.is_format_4:
-        moveq   #2*8, d0
-        bsr.s   .done
-
-.is_format_7:
-        moveq   #2*30, d0
-        bsr.s   .done
-
-.is_format_8:
-        moveq   #2*29, d0
-        bsr.s   .done
-
-.is_format_a:
-        moveq   #2*16, d0
-        bsr.s   .done
-
-.is_format_b:
-        moveq   #2*46, d0
-
-.done:
-        add.l   d0, sp
-        jmp     (a0)
     einline
 
 
@@ -267,11 +281,8 @@ _cpu_guarded_read:
         rts
 
 .mem_bus_error_handler:
-        ; clear the stack frame that the CPU put on the stack. Note that the size
-        ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        lea     .mem_bus_error_handler_continue(pc), a0
-        jmp     _pop_bus_error_stack_frame(pc)
-.mem_bus_error_handler_continue:
+        ; pop the exception stack frame of the stack
+        jsr     _pop_exception_stack_frame(pc)
         moveq   #-1, d0
         bra.s   .done
     einline
@@ -315,11 +326,8 @@ _cpu_guarded_write:
         rts
 
 .mem_bus_error_handler:
-        ; clear the stack frame that the CPU put on the stack. Note that the size
-        ; of the frame that the CPU wrote to the stack depends on the CPU type.
-        lea     .mem_bus_error_handler_continue(pc), a0
-        jmp     _pop_bus_error_stack_frame(pc)
-.mem_bus_error_handler_continue:
+        ; pop the exception stack frame of the stack
+        jsr     _pop_exception_stack_frame(pc)
         moveq   #-1, d0
         bra.s   .done
     einline
