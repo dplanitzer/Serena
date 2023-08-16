@@ -17,6 +17,7 @@
     xdef _cpu_restore_irqs
     xdef _cpu_set_irq_stack_pointer
     xdef _cpu_get_model
+    xdef _cpu_verify_ram_4b
     xdef _cpu_guarded_read
     xdef _cpu_guarded_write
     xdef _cpu_sleep
@@ -243,6 +244,62 @@ _pop_exception_stack_frame:
 
 
 ;-------------------------------------------------------------------------------
+; Int cpu_verify_ram_4b(Byte* pSrc)
+; Verifies that the 4 bytes starting at the RAM location 'pSrc' can be
+; successfully read and written without bit corruption. Catches bus errors and
+; returns -1 if a bus error or corrupted data is detected and 0 on success.
+; Note that this function does not preserve the original values of the memory
+; locations it writes to. Note that this function expects that 'pSrc' is long
+; word aligned.
+_cpu_verify_ram_4b:
+    inline
+    cargs   cvr4b_src_ptr.l
+
+        move.l  cvr4b_src_ptr(sp), a0
+        movem.l a2 - a3, -(sp)
+
+        ; compute the address of the bus error vector and park it in a3
+        movec   vbr, a3
+        addq.l  #8, a3
+
+        ; install our own bus error handler
+        move.l  (a3), -(sp)
+        lea     .mem_bus_error_handler(pc), a2
+        move.l  a2, (a3)
+
+        ; verify the bytes
+        move.l  #$55555555, d0
+
+        move.l  d0, (a0)
+        move.l  (a0), d1
+        cmp.l   d0, d1
+        bne.s   .failed
+
+        move.l  #$aaaaaaaa, d0
+
+        move.l  d0, (a0)
+        move.l  (a0), d1
+        cmp.l   d0, d1
+        bne.s   .failed
+
+        ; success
+        moveq.l #0, d0
+.done:
+        move.l  (sp)+, (a3)
+        movem.l (sp)+, a2 - a3
+        rts
+
+.mem_bus_error_handler:
+        ; pop the exception stack frame off the stack
+        jsr     _pop_exception_stack_frame(pc)
+
+.failed:
+        moveq.l #-1, d0
+        bra.s   .done
+    einline
+
+
+;-------------------------------------------------------------------------------
 ; Int cpu_guarded_read(Byte* src, Byte* buffer, Int buffer_size)
 ; Reads the bytes starting at 'src' and writes them to 'buffer'. 'buffer_size'
 ; bytes are read and copied. Catches bus errors and returns -1 in such an event.
@@ -281,7 +338,7 @@ _cpu_guarded_read:
         rts
 
 .mem_bus_error_handler:
-        ; pop the exception stack frame of the stack
+        ; pop the exception stack frame off the stack
         jsr     _pop_exception_stack_frame(pc)
         moveq   #-1, d0
         bra.s   .done
@@ -326,7 +383,7 @@ _cpu_guarded_write:
         rts
 
 .mem_bus_error_handler:
-        ; pop the exception stack frame of the stack
+        ; pop the exception stack frame off the stack
         jsr     _pop_exception_stack_frame(pc)
         moveq   #-1, d0
         bra.s   .done

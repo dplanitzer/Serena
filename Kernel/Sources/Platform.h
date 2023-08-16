@@ -71,6 +71,8 @@ extern void cpu_restore_irqs(Int state);
 
 extern const Character* _Nonnull cpu_get_model_name(Int8 cpu_model);
 
+extern Int cpu_verify_ram_4b(Byte* pSrc);
+
 extern Int cpu_guarded_read(Byte* _Nonnull src, Byte* _Nonnull buffer, Int buffer_size);
 extern Int cpu_guarded_write(Byte* _Nonnull dst, const Byte* _Nonnull buffer, Int buffer_size);
 
@@ -116,7 +118,6 @@ typedef struct _MemoryLayout {
 } MemoryLayout;
 
 
-extern Bool mem_probe(Byte* _Nonnull addr);
 extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, Int8 type);
 
 

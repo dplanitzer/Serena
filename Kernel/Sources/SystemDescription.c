@@ -13,35 +13,21 @@
 SystemDescription* _Nonnull gSystemDescription;
 
 
-Bool mem_probe(Byte* addr)
+// Checks the physical CPU page that contains 'addr'. Returns true if the page
+// exists and false if not.
+static Bool mem_probe_cpu_page(Byte* pAddr)
 {
-    static const Byte* MEM_PATTERN = (const Byte*)"HbGtF1J8";
-    Byte saved_bytes[8];
-    Byte read_bytes[8];
-    
-    if (cpu_guarded_read(addr, saved_bytes, 8) != 0)    { return false; }
-    if (cpu_guarded_write(addr, MEM_PATTERN, 8) != 0)   { return false; }
-    if (cpu_guarded_read(addr, read_bytes, 8) != 0)     { return false; }
-    if (cpu_guarded_write(addr, saved_bytes, 8) != 0)   { return false; }
-    
-    return Bytes_FindFirstDifference(read_bytes, MEM_PATTERN, 8) == -1;
-}
-
-// Checks the physical CPU page that contains 'addr'. Returns true if the page exists
-// and false if not.
-static Bool mem_probe_cpu_page(Byte* addr)
-{
-    Byte* pBaseAddr = align_down_byte_ptr(addr, CPU_PAGE_SIZE);
+    Byte* pBaseAddr = align_down_byte_ptr(pAddr, CPU_PAGE_SIZE);
     Byte* pTopAddr = pBaseAddr + CPU_PAGE_SIZE - 8;
     Byte* pMiddleAddr = pBaseAddr + CPU_PAGE_SIZE / 2;
 
-    if (!mem_probe(pBaseAddr)) {
+    if (cpu_verify_ram_4b(pBaseAddr)) {
         return false;
     }
-    if (!mem_probe(pMiddleAddr)) {
+    if (cpu_verify_ram_4b(pMiddleAddr)) {
         return false;
     }
-    if (!mem_probe(pTopAddr)) {
+    if (cpu_verify_ram_4b(pTopAddr)) {
         return false;
     }
 

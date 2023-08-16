@@ -346,7 +346,7 @@ static UInt zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
     UInt size = 0;
     
     while (pLower < pUpper) {
-        if (!mem_probe(pLower)) {
+        if (cpu_verify_ram_4b(pLower)) {
             break;
         }
         
