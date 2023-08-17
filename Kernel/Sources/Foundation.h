@@ -171,7 +171,11 @@ extern const TimeInterval       kTimeInterval_MinusInfinity;
 // Printing
 extern void print_init(void);
 extern void print(const Character* _Nonnull format, ...);
-extern void vprint(const Character* _Nonnull format, va_list ap);
+extern void printv(const Character* _Nonnull format, va_list ap);
+
+typedef void (* _Nonnull PrintSink_Func)(const Character* _Nonnull pString);
+
+extern void _printv(PrintSink_Func _Nonnull pSinkFunc, Character* _Nonnull pBuffer, Int bufferCapacity, const Character* _Nonnull format, va_list ap);
 
 
 // Asserts
