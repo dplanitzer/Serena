@@ -6,7 +6,7 @@ SECTIONS {
     . = 0xfc0000;
 
     .text :
-        { __text = . ; traps.o(.text) *(.text) __etext = . ; } AT> kernel_rom
+        { __text = . ; cpu_vectors_asm.o(.text) *(.text) __etext = . ; } AT> kernel_rom
     
     .data 0x3000 : AT(LOADADDR(.text) + SIZEOF(.text))
         { __data = . ; *(.data) __edata = . ; } AT> kernel_rom

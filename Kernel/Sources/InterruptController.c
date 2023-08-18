@@ -26,6 +26,7 @@ ErrorCode InterruptController_CreateForLocalCPU(void)
     
     pController->nextAvailableId = 1;
     pController->spuriousInterruptCount = 0;
+    pController->uninitializedInterruptCount = 0;
     
     Lock_Init(&pController->lock);
     return EOK;
@@ -306,6 +307,14 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
     }
     print("}\n");
     Lock_Unlock(&pController->lock);
+}
+
+// Returns the number of uninitialized interrupts that have happened since boot.
+// An uninitialized interrupt is an interrupt request from a periphial that does
+// not have a IRQ vector number set up for the interrupt.
+Int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController)
+{
+    return pController->uninitializedInterruptCount;
 }
 
 // Returns the number of spurious interrupts that have happened since boot. A

@@ -1,5 +1,5 @@
 ;
-;  traps_asm.s
+;  cpu_vectors_asm.s
 ;  Apollo
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.
@@ -45,25 +45,32 @@
     xdef IRQHandler_L6
 
 
-; ROM vector table for 68000 CPUs
+; Kernel cpu vector table for 68k CPUs
 _cpu_vector_table:
-    dc.l RESET_STACK_BASE               ; 0,  Reset SSP
-    dc.l _Reset                         ; 1,  Reset PC
-    dc.l FatalException                 ; 2,  Bus error
-    dc.l FatalException                 ; 3,  Address error
-    dc.l FatalException                 ; 4,  Illegal Instruction
-    dc.l FatalException                 ; 5,  Divide by 0
-    dc.l FatalException                 ; 6,  CHK Instruction
-    dc.l FatalException                 ; 7,  TRAPV Instruction
-    dc.l FatalException                 ; 8,  Privilege Violation
-    dc.l FatalException                 ; 9,  Trace
-    dc.l FatalException                 ; 10, Line 1010 Emu
-    dc.l FatalException                 ; 11, Line 1111 Emu
-    dc.l IgnoreTrap                     ; 12, Reserved
-    dc.l FatalException                 ; 13, Coprocessor Protocol Violation
+    dc.l RESET_STACK_BASE               ; 00, Reset SSP
+    dc.l _Reset                         ; 01, Reset PC
+    dc.l FatalException                 ; 02, Bus error / Access fault
+    dc.l FatalException                 ; 03, Address error
+    dc.l FatalException                 ; 04, Illegal Instruction
+    dc.l FatalException                 ; 05, Zero Divide
+    dc.l FatalException                 ; 06, CHK, CHK2 Instruction
+    dc.l FatalException                 ; 07, cpTRAPcc, TRAPcc, TRAPV Instructions
+    dc.l FatalException                 ; 08, Privilege Violation
+    dc.l IgnoreTrap                     ; 09, Trace
+    dc.l FatalException                 ; 10, Line 1010 Emulator (Unimplemented A-Line Opcode)
+    dc.l FatalException                 ; 11, Line 1111 Emulator (Unimplemented F-Line Opcode) / Floating-Point Unimplemented Instruction / Floating-Point Disabled
+    dc.l FatalException                 ; 12, Emulator Interrupt (68060)
+    dc.l FatalException                 ; 13, Coprocessor Protocol Violation (68020 / 68030)
     dc.l FatalException                 ; 14, Format Error
-    dc.l IgnoreTrap                     ; 15, Uninit. Int. Vector.
-    dcb.l 8, IgnoreTrap                 ; 16, Reserved (8)
+    dc.l IRQHandler_Unitialized         ; 15, Uninitialized Interrupt Vector
+    dc.l IgnoreTrap                     ; 16, Reserved
+    dc.l IgnoreTrap                     ; 17, Reserved
+    dc.l IgnoreTrap                     ; 18, Reserved
+    dc.l IgnoreTrap                     ; 19, Reserved
+    dc.l IgnoreTrap                     ; 20, Reserved
+    dc.l IgnoreTrap                     ; 21, Reserved
+    dc.l IgnoreTrap                     ; 22, Reserved
+    dc.l IgnoreTrap                     ; 23, Reserved
     dc.l IRQHandler_Spurious            ; 24, Spurious Interrupt
     dc.l IRQHandler_L1                  ; 25, Level 1 (Soft-IRQ, Disk, Serial port)
     dc.l IRQHandler_L2                  ; 26, Level 2 (External INT2, CIAA)
@@ -72,35 +79,39 @@ _cpu_vector_table:
     dc.l IRQHandler_L5                  ; 29, Level 5 (Disk, Serial port)
     dc.l IRQHandler_L6                  ; 30, Level 6 (External INT6, CIAB)
     dc.l IgnoreTrap                     ; 31, Level 7 (NMI - Unused)
-    dc.l _SystemCallHandler             ; 32, Trap 0
-    dc.l _cpu_return_from_call_as_user  ; 33, Trap 1
-    dc.l IgnoreTrap                     ; 34, Trap 2 (Unused)
-    dc.l IgnoreTrap                     ; 35, Trap 3 (Unused)
-    dc.l IgnoreTrap                     ; 36, Trap 4 (Unused)
-    dc.l IgnoreTrap                     ; 37, Trap 5 (Unused)
-    dc.l IgnoreTrap                     ; 38, Trap 6 (Unused)
-    dc.l IgnoreTrap                     ; 39, Trap 7 (Unused)
-    dc.l IgnoreTrap                     ; 40, Trap 8 (Unused)
-    dc.l IgnoreTrap                     ; 41, Trap 9 (Unused)
-    dc.l IgnoreTrap                     ; 42, Trap 10 (Unused)
-    dc.l IgnoreTrap                     ; 43, Trap 11 (Unused)
-    dc.l IgnoreTrap                     ; 44, Trap 12 (Unused)
-    dc.l IgnoreTrap                     ; 45, Trap 13 (Unused)
-    dc.l IgnoreTrap                     ; 46, Trap 14 (Unused)
-    dc.l IgnoreTrap                     ; 47, Trap 15 (Unused)
-    dc.l IgnoreTrap                     ; 48, FP Branch or Set on Unordered Condition
-    dc.l IgnoreTrap                     ; 49, FP Inexact Result
-    dc.l IgnoreTrap                     ; 50, FP Divide by Zero
-    dc.l IgnoreTrap                     ; 51, FP Underflow
-    dc.l IgnoreTrap                     ; 52, FP Operand Error
-    dc.l IgnoreTrap                     ; 53, FP Overflow
-    dc.l IgnoreTrap                     ; 54, FP Signaling NAN
-    dc.l FatalException                 ; 55, FP Unimplemented Data Type (Defined for MC68040)
-    dc.l FatalException                 ; 56, MMU Configuration Error
-    dc.l FatalException                 ; 57, MMU Illegal Operation Error
-    dc.l FatalException                 ; 58, MMU Access Level Violation Error
-    dcb.l 6, IgnoreTrap                 ; 59, Reserved
-    dcb.l 192, IgnoreTrap               ; 64, User Defined Vector (192)
+    dc.l _SystemCallHandler             ; 32, Trap #0
+    dc.l _cpu_return_from_call_as_user  ; 33, Trap #1
+    dc.l IgnoreTrap                     ; 34, Trap #2
+    dc.l IgnoreTrap                     ; 35, Trap #3
+    dc.l IgnoreTrap                     ; 36, Trap #4
+    dc.l IgnoreTrap                     ; 37, Trap #5
+    dc.l IgnoreTrap                     ; 38, Trap #6
+    dc.l IgnoreTrap                     ; 39, Trap #7
+    dc.l IgnoreTrap                     ; 40, Trap #8
+    dc.l IgnoreTrap                     ; 41, Trap #9
+    dc.l IgnoreTrap                     ; 42, Trap #10
+    dc.l IgnoreTrap                     ; 43, Trap #11
+    dc.l IgnoreTrap                     ; 44, Trap #12
+    dc.l IgnoreTrap                     ; 45, Trap #13
+    dc.l IgnoreTrap                     ; 46, Trap #14
+    dc.l IgnoreTrap                     ; 47, Trap #15
+    dc.l IgnoreTrap                     ; 48, FPCP Branch or Set on Unordered Condition
+    dc.l IgnoreTrap                     ; 49, FPCP Inexact Result
+    dc.l IgnoreTrap                     ; 50, FPCP Divide by Zero
+    dc.l IgnoreTrap                     ; 51, FPCP Underflow
+    dc.l IgnoreTrap                     ; 52, FPCP Operand Error
+    dc.l IgnoreTrap                     ; 53, FPCP Overflow
+    dc.l IgnoreTrap                     ; 54, FPCP Signaling NAN
+    dc.l FatalException                 ; 55, FPCP Unimplemented Data Type (68040+)
+    dc.l FatalException                 ; 56, PMMU Configuration Error (68851 / 68030)
+    dc.l FatalException                 ; 57, PMMU Illegal Operation Error (68851)
+    dc.l FatalException                 ; 58, PMMU Access Level Violation Error (68851)
+    dc.l IgnoreTrap                     ; 59, Reserved
+    dc.l FatalException                 ; 60, Unimplemented Effective Address (68060)
+    dc.l FatalException                 ; 61, Unimplemented Integer Instruction (68060)
+    dc.l IgnoreTrap                     ; 62, Reserved
+    dc.l IgnoreTrap                     ; 63, Reserved
+    dcb.l 192, IgnoreTrap               ; 64, User-Defined Vectors (192)
 
 
 ;-------------------------------------------------------------------------------
@@ -212,6 +223,15 @@ FatalException:
     jsr     _InterruptController_OnInterrupt
     addq.l  #4, sp
     endm
+
+
+;-------------------------------------------------------------------------------
+; Uninitialized IRQ handler
+    align 2
+IRQHandler_Unitialized:
+    DISABLE_ALL_IRQS
+    addq.l  #1, _gInterruptControllerStorage + irc_uninitializedInterruptCount
+    rte
 
 
 ;-------------------------------------------------------------------------------

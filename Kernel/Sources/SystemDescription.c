@@ -87,7 +87,7 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServic
     Byte* chip_ram_lower_p = pBootServicesMemoryTop;
     Byte* chip_ram_upper_p = pSysDesc->chipset_upper_dma_limit;
 
-    // Forget the memory map set up by traps.s 'cause we'll build our own map here
+    // Forget the memory map set up in cpu_vectors_asm.s 'cause we'll build our own map here
     pSysDesc->memory.descriptor_count = 0;
     
     
