@@ -7,8 +7,9 @@ KERNEL_SOURCES_DIR := $(WORKSPACE_DIR)/Kernel/Sources
 KERNEL_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/*.c)
 KERNEL_ASM_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/*.s)
 
-KERNEL_OBJS := $(patsubst $(KERNEL_SOURCES_DIR)/%.c, $(KERNEL_BUILD_DIR)/%.o, $(KERNEL_C_SOURCES))
-KERNEL_OBJS += $(patsubst $(KERNEL_SOURCES_DIR)/%.s, $(KERNEL_BUILD_DIR)/%.o, $(KERNEL_ASM_SOURCES))
+KERNEL_OBJS := $(patsubst $(KERNEL_SOURCES_DIR)/%.c,$(KERNEL_BUILD_DIR)/%.o,$(KERNEL_C_SOURCES))
+KERNEL_DEPS := $(KERNEL_OBJS:.o=.d)
+KERNEL_OBJS += $(patsubst $(KERNEL_SOURCES_DIR)/%.s,$(KERNEL_BUILD_DIR)/%.o,$(KERNEL_ASM_SOURCES))
 
 
 # --------------------------------------------------------------------------
@@ -29,9 +30,11 @@ $(KERNEL_BIN_FILE): $(RUNTIME_LIB_FILE) $(KERNEL_OBJS)
 	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script -o $@ $^
 
 
+-include $(KERNEL_DEPS)
+
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(KERNEL_SOURCES_DIR) -I$(RUNTIME_INCLUDE_DIR) -dontwarn=51 -dontwarn=148 -dontwarn=208 -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(KERNEL_SOURCES_DIR) -I$(RUNTIME_INCLUDE_DIR) -dontwarn=51 -dontwarn=148 -dontwarn=208 -deps -depfile=$(patsubst $(KERNEL_BUILD_DIR)/%.o,$(KERNEL_BUILD_DIR)/%.d,$@) -o $@ $<
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.s
 	@echo $<
