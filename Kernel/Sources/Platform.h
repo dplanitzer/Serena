@@ -9,7 +9,7 @@
 #ifndef Platform_h
 #define Platform_h
 
-#include "Foundation.h"
+#include "Runtime.h"
 
 //
 // CPU
@@ -60,6 +60,85 @@ typedef struct _CpuContext {
     UInt32      fpsr;
     UInt32      fpiar;
 } CpuContext;
+
+
+// Exception stack frame
+typedef struct _ExceptionStackFrame {
+    UInt16  sr;
+    UInt32  pc;
+    struct {
+        UInt16  format: 4;
+        UInt16  vector: 12;
+    }       fv;
+    union {
+        struct _Format2 {
+            UInt32  addr;
+        }   f2;
+        struct _Format3 {
+            UInt32  ea;
+        }   f3;
+        struct _Format4 {
+            UInt32  ea;
+            UInt32  pcFaultedInstr;
+        }   f4;
+        struct _Format7 {
+            UInt32  ea;
+            UInt16  ssw;
+            UInt16  wb3s;
+            UInt16  wb2s;
+            UInt16  wb1s;
+            UInt32  fa;
+            UInt32  wb3a;
+            UInt32  wb3d;
+            UInt32  wb2a;
+            UInt32  wb2d;
+            UInt32  wb1a;
+            UInt32  wb1d;
+            UInt32  pd1;
+            UInt32  pd2;
+            UInt32  pd3;
+        }   f7;
+        struct _Format9 {
+            UInt32  ia;
+            UInt16  ir[4];
+        }   f9;
+        struct _FormatA {
+            UInt16  ir0;
+            UInt16  ssw;
+            UInt16  ipsc;
+            UInt16  ipsb;
+            UInt32  dataCycleFaultAddress;
+            UInt16  ir1;
+            UInt16  ir2;
+            UInt32  dataOutputBuffer;
+            UInt16  ir3;
+            UInt16  ir4;
+        }   fa;
+        struct _FormatB {
+            UInt16  ir0;
+            UInt16  ssw;
+            UInt16  ipsc;
+            UInt16  ipsb;
+            UInt32  dataCycleFaultAddress;
+            UInt16  ir1;
+            UInt16  ir2;
+            UInt32  dataOutputBuffer;
+            UInt16  ir3;
+            UInt16  ir4;
+            UInt16  ir5;
+            UInt16  ir6;
+            UInt32  stageBAddress;
+            UInt16  ir7;
+            UInt16  ir8;
+            UInt32  dataInputBuffer;
+            UInt16  ir9;
+            UInt16  ir10;
+            UInt16  ir11;
+            UInt16  version;
+            UInt16  ir[18];
+        }   fb;
+    }       u;
+} ExceptionStackFrame;
 
 
 typedef void (* _Nonnull Cpu_UserClosure)(Byte* _Nullable pContext);
@@ -331,6 +410,16 @@ extern CopperScheduler  gCopperSchedulerStorage;
 
 extern void copper_schedule_program(const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg, Int progId);
 extern Int copper_get_running_program_id(void);
+
+extern void copper_force_run_program(const CopperInstruction* _Nullable pOddFieldProg);
+
+
+//
+// Denise
+//
+
+extern denise_stop_video_refresh(void);
+extern void denise_set_clut_entry(Int index, UInt16 color);
 
 
 //

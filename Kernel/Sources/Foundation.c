@@ -7,38 +7,6 @@
 //
 
 #include "Foundation.h"
-#include "Console.h"
-#include "DriverManager.h"
-#include "GraphicsDriver.h"
-
-extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
-
-
-_Noreturn fatalError(const Character* _Nonnull filename, int line)
-{
-    cpu_disable_irqs();
-    chipset_stop_quantum_timer();
-
-    _GraphicsDriver_SetClutEntry(0, 0x036a);    // #306ab0
-    _GraphicsDriver_SetClutEntry(1, 0x0fff);    // #ffffff
-
-    if (gDriverManager != NULL) {
-        Console* pConsole = DriverManager_GetDriverForName(gDriverManager, kConsoleName);
-    
-        if (pConsole != NULL) {
-            Console_DrawString(pConsole, "\n*** ");
-            Console_DrawString(pConsole, filename);
-            if (line > 0) {
-                Character buf[32];
-
-                Console_DrawString(pConsole, ":");
-                Console_DrawString(pConsole, Int64_ToString((Int64)line, 10, 4, '\0', buf, sizeof(buf)));
-            }
-        }
-    }
-    
-    while (true);
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////

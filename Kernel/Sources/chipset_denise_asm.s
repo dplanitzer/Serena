@@ -1,5 +1,5 @@
 ;
-;  GraphicsDriver_asm.s
+;  chipset_denise_asm.s
 ;  Apollo
 ;
 ;  Created by Dietmar Planitzer on 2/8/21.
@@ -8,21 +8,21 @@
 
     include "chipset.i"
 
-    xdef __GraphicsDriver_StopVideoRefresh
-    xdef __GraphicsDriver_SetClutEntry
+    xdef _denise_stop_video_refresh
+    xdef _denise_set_clut_entry
 
 
 ;-------------------------------------------------------------------------------
-; void _GraphicsDriver_StopVideoRefresh(void)
+; void denise_stop_video_refresh(void)
 ; Turns the video refresh DMA off
-__GraphicsDriver_StopVideoRefresh:
+_denise_stop_video_refresh:
     move.w  #(DMAF_COPPER | DMAF_RASTER | DMAF_SPRITE), CUSTOM_BASE+DMACON
     rts
 
 
 ;-------------------------------------------------------------------------------
-; void _GraphicsDriver_SetClutEntry(Int index, UInt16 color)
-__GraphicsDriver_SetClutEntry:
+; void denise_set_clut_entry(Int index, UInt16 color)
+_denise_set_clut_entry:
     cargs sce_index.l, sce_color.l
     lea     CUSTOM_BASE + COLOR_BASE, a0
     move.l  sce_index(sp), d0

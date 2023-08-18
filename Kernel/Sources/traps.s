@@ -28,28 +28,15 @@
     xref _SystemDescription_Init
     xref _gInterruptControllerStorage
     xref _gVirtualProcessorSchedulerStorage
+    xref __fatalException
 
     xdef _cpu_vector_table
     xdef _cpu_non_recoverable_error
     xdef _mem_non_recoverable_error
 
     ; so that we can get the address information from the assembler
-    xdef BusErrorHandler
-    xdef AddressErrorHandler
-    xdef IllegalInstructionHandler
-    xdef IntDivByZeroHandler
-    xdef ChkHandler
-    xdef TrapvHandler
-    xdef PrivilegeHandler
-    xdef TraceHandler
-    xdef Line1010Handler
-    xdef Line1111Handler
-    xdef CoProcViolationHandler
-    xdef FormatErrorHandler
-    xdef FpUnimpDataTypeHandler
-    xdef MMUConfigErrorHandler
-    xdef MMUIllegalOpErrorHandler
-    xdef MMUAccessLevelErrorHandler
+    xdef IgnoreTrap
+    xdef FatalException
     xdef IRQHandler_L1
     xdef IRQHandler_L2
     xdef IRQHandler_L3
@@ -62,19 +49,19 @@
 _cpu_vector_table:
     dc.l RESET_STACK_BASE               ; 0,  Reset SSP
     dc.l _Reset                         ; 1,  Reset PC
-    dc.l BusErrorHandler                ; 2,  Bus error
-    dc.l AddressErrorHandler            ; 3,  Address error
-    dc.l IllegalInstructionHandler      ; 4,  Illegal Instruction
-    dc.l IntDivByZeroHandler            ; 5,  Divide by 0
-    dc.l ChkHandler                     ; 6,  CHK Instruction
-    dc.l TrapvHandler                   ; 7,  TRAPV Instruction
-    dc.l PrivilegeHandler               ; 8,  Privilege Violation
-    dc.l TraceHandler                   ; 9,  Trace
-    dc.l Line1010Handler                ; 10, Line 1010 Emu
-    dc.l Line1111Handler                ; 11, Line 1111 Emu
+    dc.l FatalException                 ; 2,  Bus error
+    dc.l FatalException                 ; 3,  Address error
+    dc.l FatalException                 ; 4,  Illegal Instruction
+    dc.l FatalException                 ; 5,  Divide by 0
+    dc.l FatalException                 ; 6,  CHK Instruction
+    dc.l FatalException                 ; 7,  TRAPV Instruction
+    dc.l FatalException                 ; 8,  Privilege Violation
+    dc.l FatalException                 ; 9,  Trace
+    dc.l FatalException                 ; 10, Line 1010 Emu
+    dc.l FatalException                 ; 11, Line 1111 Emu
     dc.l IgnoreTrap                     ; 12, Reserved
-    dc.l CoProcViolationHandler         ; 13, Coprocessor Protocol Violation
-    dc.l FormatErrorHandler             ; 14, Format Error
+    dc.l FatalException                 ; 13, Coprocessor Protocol Violation
+    dc.l FatalException                 ; 14, Format Error
     dc.l IgnoreTrap                     ; 15, Uninit. Int. Vector.
     dcb.l 8, IgnoreTrap                 ; 16, Reserved (8)
     dc.l IRQHandler_Spurious            ; 24, Spurious Interrupt
@@ -108,10 +95,10 @@ _cpu_vector_table:
     dc.l IgnoreTrap                     ; 52, FP Operand Error
     dc.l IgnoreTrap                     ; 53, FP Overflow
     dc.l IgnoreTrap                     ; 54, FP Signaling NAN
-    dc.l FpUnimpDataTypeHandler         ; 55, FP Unimplemented Data Type (Defined for MC68040)
-    dc.l MMUConfigErrorHandler          ; 56, MMU Configuration Error
-    dc.l MMUIllegalOpErrorHandler       ; 57, MMU Illegal Operation Error
-    dc.l MMUAccessLevelErrorHandler     ; 58, MMU Access Level Violation Error
+    dc.l FatalException                 ; 55, FP Unimplemented Data Type (Defined for MC68040)
+    dc.l FatalException                 ; 56, MMU Configuration Error
+    dc.l FatalException                 ; 57, MMU Illegal Operation Error
+    dc.l FatalException                 ; 58, MMU Access Level Violation Error
     dcb.l 6, IgnoreTrap                 ; 59, Reserved
     dcb.l 192, IgnoreTrap               ; 64, User Defined Vector (192)
 
@@ -202,205 +189,13 @@ IgnoreTrap:
 
 
 ;-------------------------------------------------------------------------------
-; Bus error handler
-    align 2
-BusErrorHandler:
-    bra _mem_non_recoverable_error
+; Fatal exception handler. We halt the machine since we can not recover from
+; this kind of exception. Expects that SSP points to the base of the exception
+; stack frame.
+FatalException:
+    move.l  sp, -(sp)
+    jsr     __fatalException
     ; NOT REACHED
-
-
-;-------------------------------------------------------------------------------
-; Address error handler
-    align 2
-AddressErrorHandler:
-    pea 0
-    pea .address_error_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.address_error_msg:
-    dc.b    "Address error", 0
-
-
-;-------------------------------------------------------------------------------
-; Illegal instruction handler
-    align 2
-IllegalInstructionHandler:
-    pea 0
-    pea .illegal_instruction_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.illegal_instruction_msg:
-    dc.b    "Illegal instruction", 0
-
-
-;-------------------------------------------------------------------------------
-; Int divide by zero handler
-    align 2
-IntDivByZeroHandler:
-    pea 0
-    pea .int_div_zero_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.int_div_zero_msg:
-    dc.b    "Divide by 0", 0
-
-
-;-------------------------------------------------------------------------------
-; CHK instruction handler
-    align 2
-ChkHandler:
-    pea 0
-    pea .chk_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.chk_msg:
-    dc.b    "CHK", 0
-
-;-------------------------------------------------------------------------------
-; TRAPV instruction handler
-    align 2
-TrapvHandler:
-    pea 0
-    pea .trapv_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.trapv_msg:
-    dc.b    "TRAPV", 0
-
-
-;-------------------------------------------------------------------------------
-; Privilege handler
-    align 2
-PrivilegeHandler:
-    pea 0
-    pea .privilege_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.privilege_msg:
-    dc.b    "Privilege", 0
-
-
-;-------------------------------------------------------------------------------
-; Trace handler
-    align 2
-TraceHandler:
-    pea 0
-    pea .trace_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.trace_msg:
-    dc.b    "Trace", 0
-
-
-;-------------------------------------------------------------------------------
-; Line 1010 handler
-    align 2
-Line1010Handler:
-    pea 0
-    pea .line1010_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.line1010_msg:
-    dc.b    "Line 1010", 0
-
-
-;-------------------------------------------------------------------------------
-; Line 1111 handler
-    align 2
-Line1111Handler:
-    pea 0
-    pea .line1111_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.line1111_msg:
-    dc.b    "Line 1111", 0
-
-
-;-------------------------------------------------------------------------------
-; Coprocessor protocol violation handler
-    align 2
-CoProcViolationHandler:
-    pea 0
-    pea .coproc_violation_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.coproc_violation_msg:
-    dc.b    "CoPro Protocol Violation", 0
-
-
-;-------------------------------------------------------------------------------
-; Format error handler
-    align 2
-FormatErrorHandler:
-    pea 0
-    pea .format_error_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.format_error_msg:
-    dc.b    "Format Error", 0
-
-
-;-------------------------------------------------------------------------------
-; FP unimplemented data type handler
-    align 2
-FpUnimpDataTypeHandler:
-    pea 0
-    pea .fp_unimp_datatype_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.fp_unimp_datatype_msg:
-    dc.b    "FP Unimplemented Data Type", 0
-
-
-;-------------------------------------------------------------------------------
-; MMU configuration error handler
-    align 2
-MMUConfigErrorHandler:
-    pea 0
-    pea .mmu_config_error_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.mmu_config_error_msg:
-    dc.b    "MMU Configuartion", 0
-
-
-;-------------------------------------------------------------------------------
-; MMU illegal operation error handler
-    align 2
-MMUIllegalOpErrorHandler:
-    pea 0
-    pea .mmu_illegal_op_error_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.mmu_illegal_op_error_msg:
-    dc.b    "MMU Illegal Op", 0
-
-
-;-------------------------------------------------------------------------------
-; MMU access level violation error handler
-    align 2
-MMUAccessLevelErrorHandler:
-    pea 0
-    pea .mmu_access_level_error_msg
-    jsr _fatalError
-    ; NOT REACHED
-
-.mmu_access_level_error_msg:
-    dc.b    "MMU Access Level Violation", 0
 
 
 ;-------------------------------------------------------------------------------

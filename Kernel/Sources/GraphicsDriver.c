@@ -210,7 +210,7 @@ static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnu
     
     // DMACON
     pCode[ip++] = COP_MOVE(DMACON, 0x8300);
-    // XXX turned off the mouse cursor for now
+    // XXX turned the mouse cursor off for now
 //    pCode[ip++] = COP_MOVE(DMACON, 0x8320);
 }
 
@@ -375,9 +375,6 @@ typedef struct _GraphicsDriver {
 } GraphicsDriver;
 
 
-extern void _GraphicsDriver_StopVideoRefresh(void);
-extern void _GraphicsDriver_SetClutEntry(Int index, UInt16 color);
-
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
 
 
@@ -421,14 +418,14 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     
     // Initialize the video config related stuff
     // XXX Set the console colors
-    _GraphicsDriver_SetClutEntry(0, 0x0000);
-    _GraphicsDriver_SetClutEntry(1, 0x00f0);
+    denise_set_clut_entry(0, 0x0000);
+    denise_set_clut_entry(1, 0x00f0);
     for (int i = 2; i < 32; i++) {
-        _GraphicsDriver_SetClutEntry(i, 0x0fff);
+        denise_set_clut_entry(i, 0x0fff);
     }
-    _GraphicsDriver_SetClutEntry(29, 0x0fff);
-    _GraphicsDriver_SetClutEntry(30, 0x0000);
-    _GraphicsDriver_SetClutEntry(31, 0x0000);
+    denise_set_clut_entry(29, 0x0fff);
+    denise_set_clut_entry(30, 0x0000);
+    denise_set_clut_entry(31, 0x0000);
 
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->vb_irq_handler, true);
 
@@ -449,8 +446,8 @@ catch:
 void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        _GraphicsDriver_SetClutEntry(0, 0);
-        _GraphicsDriver_StopVideoRefresh();
+        denise_set_clut_entry(0, 0);
+        denise_stop_video_refresh();
         
         try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vb_irq_handler));
         pDriver->vb_irq_handler = 0;
@@ -693,7 +690,7 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
     // Read VHPOSR first time
     register Int32 posr0 = *p_vposr;
     
-    // XXX wait for scaline microseconds
+    // XXX wait for scanline microseconds
     for (int i = 0; i < 1000; i++) {}
     
     // Read VHPOSR a second time

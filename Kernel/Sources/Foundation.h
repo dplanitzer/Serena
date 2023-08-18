@@ -10,6 +10,7 @@
 #define Foundation_h
 
 #include <Runtime.h>
+#include "assert.h"
 
 
 #define SIZE_GB(x)  ((Int)(x) * 1024 * 1024 * 1024)
@@ -173,20 +174,8 @@ extern void print_init(void);
 extern void print(const Character* _Nonnull format, ...);
 extern void printv(const Character* _Nonnull format, va_list ap);
 
-typedef void (* _Nonnull PrintSink_Func)(const Character* _Nonnull pString);
+typedef void (* _Nonnull PrintSink_Func)(void* _Nullable pContext, const Character* _Nonnull pString);
 
-extern void _printv(PrintSink_Func _Nonnull pSinkFunc, Character* _Nonnull pBuffer, Int bufferCapacity, const Character* _Nonnull format, va_list ap);
-
-
-// Asserts
-extern _Noreturn fatalError(const Character* _Nonnull filename, int line);
-
-#define abort() fatalError(__func__, __LINE__)
-
-#if DEBUG
-#define assert(cond)   if ((cond) == 0) { abort(); }
-#else
-#define assert(cond)
-#endif
+extern void _printv(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, Character* _Nonnull pBuffer, Int bufferCapacity, const Character* _Nonnull format, va_list ap);
 
 #endif /* Foundation_h */

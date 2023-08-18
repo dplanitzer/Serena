@@ -108,24 +108,25 @@ static UInt64 get_promoted_uint_arg(Int modifier, va_list* ap)
 }
 
 typedef struct _CharacterStream {
-    PrintSink_Func  sinkFunc;
-    Character*      buffer;
-    Int             characterCount;
-    Int             characterCapacity;
+    PrintSink_Func _Nonnull sinkFunc;
+    void* _Nullable         context;
+    Character* _Nonnull     buffer;
+    Int                     characterCount;
+    Int                     characterCapacity;
 } CharacterStream;
 
 static void _printv_flush(CharacterStream* _Nonnull pStream)
 {
     if (pStream->characterCount > 0) {
         pStream->buffer[pStream->characterCount] = '\0';
-        pStream->sinkFunc(pStream->buffer);
+        pStream->sinkFunc(pStream->context, pStream->buffer);
         pStream->characterCount = 0;
     }
 }
 
 #define _printv_string(str) \
     _printv_flush(&s); \
-    s.sinkFunc(str);
+    s.sinkFunc(s.context, str);
 
 #define _printv_char(ch) \
     if (s.characterCount == s.characterCapacity) { \
@@ -133,13 +134,15 @@ static void _printv_flush(CharacterStream* _Nonnull pStream)
     } \
     s.buffer[s.characterCount++] = ch;
 
-void _printv(PrintSink_Func _Nonnull pSinkFunc, Character* _Nonnull pBuffer, Int bufferCapacity, const Character* _Nonnull format, va_list ap)
+
+void _printv(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, Character* _Nonnull pBuffer, Int bufferCapacity, const Character* _Nonnull format, va_list ap)
 {
     Int parsedLen;
     CharacterStream s;
     Bool done = false;
     
     s.sinkFunc = pSinkFunc;
+    s.context = pContext;
     s.buffer = pBuffer;
     s.characterCapacity = bufferCapacity - 1;   // reserve the last character for the '\0' (end of string marker)
     s.characterCount = 0;
@@ -253,7 +256,7 @@ void print(const Character* _Nonnull format, ...)
     va_end(ap);
 }
 
-static void printv_console_sink_locked(const Character* _Nonnull pString)
+static void printv_console_sink_locked(void* _Nullable pContext, const Character* _Nonnull pString)
 {
     Console_DrawString(gConsole, pString);
 }
@@ -261,6 +264,6 @@ static void printv_console_sink_locked(const Character* _Nonnull pString)
 void printv(const Character* _Nonnull format, va_list ap)
 {
     Lock_Lock(&gLock);
-    _printv(printv_console_sink_locked, gPrintBuffer, PRINT_BUFFER_CAPACITY, format, ap);
+    _printv(printv_console_sink_locked, NULL, gPrintBuffer, PRINT_BUFFER_CAPACITY, format, ap);
     Lock_Unlock(&gLock);
 }
