@@ -333,7 +333,7 @@ void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP)
 // handled by the virtual processor scheduler.
 _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP)
 {
-    VP_ASSERT_ALIVE(pVP)
+    VP_ASSERT_ALIVE(pVP);
     pVP->flags |= VP_FLAG_TERMINATED;
 
     VirtualProcessorScheduler_TerminateVirtualProcessor(gVirtualProcessorScheduler, pVP);

@@ -16,7 +16,6 @@
 
 extern void VirtualProcessorScheduler_SwitchContext(void);
 
-static void VirtualProcessorScheduler_FinishWait(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason);
 static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull pScheduler);
 
 static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext);
@@ -336,25 +335,18 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     }
 }
 
-// Wakes up all waiters on the wait queue 'pWaitQueue'. The woken up VPs are
-// removed from the wait queue. Expects to be called with preemption disabled.
-void VirtualProcessorScheduler_WakeUpAll(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, Bool allowContextSwitch)
-{
-    VirtualProcessorScheduler_WakeUpSome(pScheduler, pWaitQueue, INT_MAX, WAKEUP_REASON_FINISHED, allowContextSwitch);
-}
-
-// Wakes up up to 'count' waiters on the wait queue 'pWaitQueue'. The woken up
+// Wakes up, up to 'count' waiters on the wait queue 'pWaitQueue'. The woken up
 // VPs are removed from the wait queue. Expects to be called with preemption
 // disabled.
-void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, Int count, Int wakeUpReason, Bool allowContextSwitch)
+void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, Int count, Int wakeUpReason, Bool allowContextSwitch)
 {
     register ListNode* pCurNode = pWaitQueue->first;
     register Int i = 0;
     VirtualProcessor* pRunCandidate = NULL;
     
     
-    // First pass: make all waiting VPs ready and remember the one we might want
-    // to run.
+    // First pass: make all waiting VPs ready and collect as many VPs to run as
+    // we got CPU cores on this machine.
     while (pCurNode && i < count) {
         register ListNode* pNextNode = pCurNode->next;
         register VirtualProcessor* pVP = (VirtualProcessor*)pCurNode;
@@ -368,8 +360,7 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
     }
     
     
-    // Second pass: context switch to the VP we want to run if it has a higher
-    // priority than the VP that is currently running
+    // Second pass: start running all the VPs that we collected in pass one.
     if (allowContextSwitch && pRunCandidate) {
         VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pRunCandidate);
     }
@@ -382,17 +373,14 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
 // then no wakeups will happen. Also a virtual processor that sits in an
 // uninterruptable wait or that was suspended while being in a wait state will
 // not get woken up.
-void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
+void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
 {
-    // It's possible that the VP that we want to wake up is running if the
-    // wakeup is triggered by an interrupt routine. That's okay in this case and
-    // we simply return. It's the resonsibility of the interrupt handler to
-    // ensure that the fact that it wanted to wake up the VP is noted somehwere.
-    // Eg by using a semaphore.
-    if (InterruptController_IsServicingInterrupt(gInterruptController)) {
-        if (pScheduler->running == pVP) {
-            return;
-        }
+    assert(pWaitQueue != NULL);
+
+
+    // Nothing to do if we are not waiting
+    if (pVP->state != kVirtualProcessorState_Waiting) {
+        return;
     }
     
 
@@ -402,48 +390,32 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
     }
 
 
-    // End the virtual processor wait
-    VirtualProcessorScheduler_FinishWait(pScheduler, pWaitQueue, pVP, wakeUpReason);
-    
-    
-    // Everything below this point only applies if the VP that we want to wake
-    // up is not currently suspened.
-    if (pVP->state == kVirtualProcessorState_Waiting) {
-        if (pVP->suspension_count == 0) {
-            // Make the VP ready and adjust it's effective priority based on the
-            // time it has spent waiting
-            const Int32 quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
-            const Int8 boostedPriority = min(pVP->effectivePriority + min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
-            VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, boostedPriority);
-        
-            if (allowContextSwitch) {
-                VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pVP);
-            }
-        } else {
-            // The VP is suspended. Move it to ready state so that it will be
-            // added to the ready queue once we resume it.
-            pVP->state = kVirtualProcessorState_Ready;
-        }
-    }
-}
-
-// Finishes a wait operation. Expects to becalled with preemption disabled and
-// that the given VP is waiting on a wait queue or a timeout. Removes the VP from
-// the wait queue, the timeout queue and stores the wake reason. However this
-// function does not trigger scheduling or context switching.
-static void VirtualProcessorScheduler_FinishWait(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nullable pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason)
-{
-    assert(pScheduler->running != pVP);
-    
-    if (pWaitQueue) {
-        List_Remove(pWaitQueue, &pVP->rewa_queue_entry);
-    }
+    // Finish the wait. Remove the VP from the wait queue, the timeout queue and
+    // store the wake reason.
+    List_Remove(pWaitQueue, &pVP->rewa_queue_entry);
     
     VirtualProcessorScheduler_CancelTimeout(pScheduler, pVP);
     
     pVP->waiting_on_wait_queue = NULL;
     pVP->wakeup_reason = wakeUpReason;
     pVP->flags &= ~VP_FLAG_INTERRUPTABLE_WAIT;
+    
+    
+    if (pVP->suspension_count == 0) {
+        // Make the VP ready and adjust it's effective priority based on the
+        // time it has spent waiting
+        const Int32 quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
+        const Int8 boostedPriority = min(pVP->effectivePriority + min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
+        VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, boostedPriority);
+        
+        if (allowContextSwitch) {
+            VirtualProcessorScheduler_MaybeSwitchTo(pScheduler, pVP);
+        }
+    } else {
+        // The VP is suspended. Move it to ready state so that it will be
+        // added to the ready queue once we resume it.
+        pVP->state = kVirtualProcessorState_Ready;
+    }
 }
 
 // Context switches to the given virtual processor if it is a better choice. Eg
