@@ -104,6 +104,11 @@ static inline void VirtualProcessorScheduler_WakeUpAll(VirtualProcessorScheduler
     VirtualProcessorScheduler_WakeUpSome(pScheduler, pWaitQueue, INT_MAX, WAKEUP_REASON_FINISHED, allowContextSwitch);
 }
 
+// Adds all VPs on the given list to the ready queue. The VPs are removed from
+// the wait queue. Expects to be called from an interrupt context and thus defers
+// context switches until teh return from the interrupt context.
+extern void VirtualProcessorScheduler_WakeUpAllFromInterruptContext(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue);
+
 extern Int VirtualProcessorScheduler_DisablePreemption(void);
 extern void VirtualProcessorScheduler_RestorePreemption(Int sps);
 

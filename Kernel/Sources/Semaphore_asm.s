@@ -14,6 +14,7 @@
     xdef _Semaphore_AcquireMultiple
     xdef _Semaphore_AcquireAll
     xdef _Semaphore_ReleaseMultiple
+    xdef _Semaphore_ReleaseFromInterruptContext
     xdef _Semaphore_TryAcquireMultiple
     xdef _Semaphore_TryAcquireAll
 
@@ -27,29 +28,59 @@ sema_SIZEOF             so
 
 ;-------------------------------------------------------------------------------
 ; void Semaphore_ReleaseMultiple(Semaphore* _Nonnull sema, Int npermits)
-; Releases 'npermits' to the semaphore.
+; Releases 'npermits' permits to the semaphore.
 _Semaphore_ReleaseMultiple:
     inline
-    cargs sr_saved_d7.l, sr_sema_ptr.l, sr_npermits.l
-        move.l  d7, -(sp)
+    cargs sr_sema_ptr.l, sr_npermits.l
         move.l  sr_sema_ptr(sp), a0
 
-        DISABLE_PREEMPTION d7
+        DISABLE_PREEMPTION d0
 
         ; update the semaphore value. NO need to wake anyone up if the sema value
         ; is still <= 0
-        move.l  sr_npermits(sp), d0
-        add.l   d0, sema_value(a0)
+        move.l  sr_npermits(sp), d1
+        add.l   d1, sema_value(a0)
         ble.s   .sr_done
 
         ; move all the waiters back to the ready queue
+        move.l  d0, -(sp)
         move.l  a0, -(sp)
         jsr     _Semaphore_WakeUp
         addq.l  #4, sp
+        move.l  (sp)+, d0
 
 .sr_done:
-        RESTORE_PREEMPTION d7
-        move.l  (sp)+, d7
+        RESTORE_PREEMPTION d0
+        rts
+    einline
+
+
+;-------------------------------------------------------------------------------
+; void Semaphore_ReleaseFromInterruptContext(Semaphore* _Nonnull sema)
+; Releases one permit to the semaphore. This function expects to be called from
+; the interrupt context and thus it does not trigger an immediate context switch
+; since context switches are deferred until we return from the interrupt.
+_Semaphore_ReleaseFromInterruptContext:
+    inline
+    cargs srfic_sema_ptr.l
+        move.l  srfic_sema_ptr(sp), a0
+
+        DISABLE_PREEMPTION d0
+
+        ; update the semaphore value. NO need to wake anyone up if the sema value
+        ; is still <= 0
+        addq.l  #1, sema_value(a0)
+        ble.s   .srfic_done
+
+        ; move all the waiters back to the ready queue
+        move.l  d0, -(sp)
+        move.l  a0, -(sp)
+        jsr     _Semaphore_WakeUpFromInterruptContext
+        addq.l  #4, sp
+        move.l  (sp)+, d0
+
+.srfic_done:
+        RESTORE_PREEMPTION d0
         rts
     einline
 

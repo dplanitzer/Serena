@@ -344,12 +344,6 @@ Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnul
     return pController->spuriousInterruptCount;
 }
 
-// Returns true if the caller is running in the interrupt context and false otherwise.
-Bool InterruptController_IsServicingInterrupt(InterruptControllerRef _Nonnull pController)
-{
-    return pController->isServicingInterrupt;
-}
-
 // Called by the low-level interrupt handler code. Invokes the interrupt handlers
 // for the given interrupt
 void InterruptController_OnInterrupt(InterruptHandlerArray* _Nonnull pArray)
@@ -364,7 +358,7 @@ void InterruptController_OnInterrupt(InterruptHandlerArray* _Nonnull pArray)
                 break;
 
             case OPCODE_POST_COUNTING_SEMAPHORE:
-                Semaphore_ReleaseMultiple(pCur->u.sema.semaphore, 1);
+                Semaphore_ReleaseFromInterruptContext(pCur->u.sema.semaphore);
                 break;
                     
             default:

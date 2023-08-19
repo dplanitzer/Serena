@@ -77,9 +77,6 @@ extern Int InterruptController_GetUniniatializedInterruptCount(InterruptControll
 // hardware.
 extern Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController);
 
-// Returns true if the caller is running in the interrupt context and false otherwise.
-extern Bool InterruptController_IsServicingInterrupt(InterruptControllerRef _Nonnull pController);
-
 extern void InterruptController_Dump(InterruptControllerRef _Nonnull pController);
 
 #endif /* InterruptController_h */

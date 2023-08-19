@@ -307,11 +307,9 @@ irc_handlers_CIA_B_FLAG                     so.l    2
 irc_nextAvailableId                         so.l    1       ; 4
 irc_spuriousInterruptCount                  so.l    1       ; 4
 irc_uninitializedInterruptCount             so.l    1       ; 4
-irc_isServicingInterrupt                    so.b    1       ; 1
-irc_reserved                                so.b    3       ; 3
 irc_lock                                    so.l    4       ; 16
 irc_SIZEOF                                  so
-    ifeq (irc_SIZEOF == 224)
+    ifeq (irc_SIZEOF == 220)
         fail "InterruptController structure size is incorrect."
     endif
 

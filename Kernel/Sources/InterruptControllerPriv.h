@@ -56,8 +56,6 @@ typedef struct _InterruptController {
     Int                     nextAvailableId;    // Next available interrupt handler ID
     Int                     spuriousInterruptCount;
     Int                     uninitializedInterruptCount;
-    Int8                    isServicingInterrupt;   // > 0 while we are running in the IRQ context; == 0 if we are running outside the IRQ context
-    Int8                    reserved[3];
     Lock                    lock;
 } InterruptController;
 

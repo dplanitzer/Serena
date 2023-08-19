@@ -91,3 +91,12 @@ void Semaphore_WakeUp(Semaphore* _Nullable pSemaphore)
                                         &pSemaphore->wait_queue,
                                         true);
 }
+
+// Invoked by Semaphore_ReleaseFromInterruptContext().
+// Expects to be called with preemption disabled.
+void Semaphore_WakeUpFromInterruptContext(Semaphore* _Nullable pSemaphore)
+{
+    VirtualProcessorScheduler_WakeUpAllFromInterruptContext(
+        gVirtualProcessorScheduler,
+        &pSemaphore->wait_queue);
+}

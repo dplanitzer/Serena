@@ -335,6 +335,22 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     }
 }
 
+// Adds all VPs on the given list to the ready queue. The VPs are removed from
+// the wait queue. Expects to be called from an interrupt context and thus defers
+// context switches until teh return from the interrupt context.
+void VirtualProcessorScheduler_WakeUpAllFromInterruptContext(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue)
+{
+    register ListNode* pCurNode = pWaitQueue->first;    
+    
+    // Make all waiting VPs ready to run but do not trigger a context switch.
+    while (pCurNode) {
+        register ListNode* pNextNode = pCurNode->next;
+        
+        VirtualProcessorScheduler_WakeUpOne(pScheduler, pWaitQueue, (VirtualProcessor*)pCurNode, WAKEUP_REASON_FINISHED, false);
+        pCurNode = pNextNode;
+    }
+}
+
 // Wakes up, up to 'count' waiters on the wait queue 'pWaitQueue'. The woken up
 // VPs are removed from the wait queue. Expects to be called with preemption
 // disabled.
@@ -373,6 +389,7 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
 // then no wakeups will happen. Also a virtual processor that sits in an
 // uninterruptable wait or that was suspended while being in a wait state will
 // not get woken up.
+// May be called from an interrupt context.
 void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
 {
     assert(pWaitQueue != NULL);
@@ -427,8 +444,7 @@ void VirtualProcessorScheduler_MaybeSwitchTo(VirtualProcessorScheduler* _Nonnull
 {
     if (pVP->state == kVirtualProcessorState_Ready
         && pVP->suspension_count == 0
-        && VirtualProcessorScheduler_IsCooperationEnabled()
-        && !InterruptController_IsServicingInterrupt(gInterruptController)) {
+        && VirtualProcessorScheduler_IsCooperationEnabled()) {
         VirtualProcessor* pBestReadyVP = VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler);
         
         if (pBestReadyVP == pVP && pVP->effectivePriority >= pScheduler->running->effectivePriority) {
