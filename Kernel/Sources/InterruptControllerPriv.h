@@ -18,28 +18,15 @@
 
 #define INTERRUPT_HANDLER_FLAG_ENABLED  0x01
 
-// What the interrupt controller should do with a handler at IRQ time
-#define OPCODE_EXEC_DIRECT              0
-#define OPCODE_POST_COUNTING_SEMAPHORE  1
-#define OPCODE_NOP                      2
-
-
 // Keep this at a size that's a power-of-2
 typedef struct _InterruptHandler {
-    Int     identity;
-    Int8    type;
-    Int8    priority;
-    UInt8   flags;
-    Int8    opcode;
-    union {
-        struct {
-            InterruptHandler_Closure _Nonnull   closure;
-            Byte* _Nullable                     context;
-        }   direct;
-        struct {
-            Semaphore* _Nonnull semaphore;
-        }   sema;
-    }       u;
+    Int                                 identity;
+    Int8                                type;
+    Int8                                priority;
+    UInt8                               flags;
+    Int8                                reserved;
+    InterruptHandler_Closure _Nonnull   closure;
+    Byte* _Nullable                     context;
 } InterruptHandler;
 
 

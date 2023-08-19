@@ -49,24 +49,6 @@ static void insertion_sort(InterruptHandler* _Nonnull pHandlers, Int n)
     }
 }
 
-// Updates the opcode of the given interrupt handler based on its type and flags.
-static void update_irq_handler_opcode(InterruptHandler* _Nonnull pHandler)
-{
-    Int8 opcode = OPCODE_NOP;
-
-    if ((pHandler->flags & INTERRUPT_HANDLER_FLAG_ENABLED) != 0) {
-        switch (pHandler->type) {
-            case INTERRUPT_HANDLER_TYPE_DIRECT:
-                opcode = OPCODE_EXEC_DIRECT;
-                break;
-            case INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE:
-                opcode = OPCODE_POST_COUNTING_SEMAPHORE;
-                break;
-        }
-    }
-    pHandler->opcode = opcode;
-}
-
 // Adds the given interrupt handler to the controller. Returns the ID of the handler.
 // 0 is returned if allocation failed.
 static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, InterruptHandler* _Nonnull pHandler, InterruptHandlerID* _Nonnull pOutId)
@@ -76,8 +58,6 @@ static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef 
     Bool needsUnlock = false;
     
     assert(pHandler->identity == 0);
-    
-    update_irq_handler_opcode(pHandler);
 
     Lock_Lock(&pController->lock);
     needsUnlock = true;
@@ -150,8 +130,8 @@ ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _
     handler.priority = max(min(priority, INTERRUPT_HANDLER_PRIORITY_HIGHEST), INTERRUPT_HANDLER_PRIORITY_LOWEST);
     handler.flags = 0;
     handler.type = INTERRUPT_HANDLER_TYPE_DIRECT;
-    handler.u.direct.closure = pClosure;
-    handler.u.direct.context = pContext;
+    handler.closure = pClosure;
+    handler.context = pContext;
     
     return InterruptController_AddInterruptHandler(pController, interruptId, &handler, pOutId);
 }
@@ -168,7 +148,8 @@ ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRe
     handler.priority = priority;
     handler.flags = 0;
     handler.type = INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE;
-    handler.u.sema.semaphore = pSemaphore;
+    handler.closure = (InterruptHandler_Closure) Semaphore_ReleaseFromInterruptContext;
+    handler.context = (Byte*) pSemaphore;
     
     return InterruptController_AddInterruptHandler(pController, interruptId, &handler, pOutId);
 }
@@ -280,7 +261,6 @@ void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonn
     } else {
         pHandler->flags &= ~INTERRUPT_HANDLER_FLAG_ENABLED;
     }
-    update_irq_handler_opcode(pHandler);
 
     Lock_Unlock(&pController->lock);
 }
@@ -311,11 +291,11 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
         for (Int h = 0; h < count; h++) {
             switch (pHandlers[h].type) {
                 case INTERRUPT_HANDLER_TYPE_DIRECT:
-                    print("    direct[%d, %d] = {0x%p, 0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].u.direct.closure, pHandlers[h].u.direct.context);
+                    print("    direct[%d, %d] = {0x%p, 0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].closure, pHandlers[h].context);
                     break;
 
                 case INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE:
-                    print("    sema[%d, %d] = {0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].u.sema.semaphore);
+                    print("    sema[%d, %d] = {0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].context);
                     break;
                     
                 default:
@@ -352,17 +332,8 @@ void InterruptController_OnInterrupt(InterruptHandlerArray* _Nonnull pArray)
     register const InterruptHandler* pEnd = &pArray->start[pArray->count];
 
     while (pCur != pEnd) {
-        switch (pCur->opcode) {
-            case OPCODE_EXEC_DIRECT:
-                pCur->u.direct.closure(pCur->u.direct.context);
-                break;
-
-            case OPCODE_POST_COUNTING_SEMAPHORE:
-                Semaphore_ReleaseFromInterruptContext(pCur->u.sema.semaphore);
-                break;
-                    
-            default:
-                break;
+        if ((pCur->flags & INTERRUPT_HANDLER_FLAG_ENABLED) != 0) {
+            pCur->closure(pCur->context);
         }
 
         pCur++;
