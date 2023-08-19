@@ -117,7 +117,7 @@ void DispatchQueue_RunTests(void)
 // MARK: System info
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 void DispatchQueue_RunTests(void)
 {
     const SystemDescription* pSysDesc = gSystemDescription;
@@ -195,7 +195,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 0
+#if 1
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
