@@ -19,11 +19,6 @@
     xdef _SystemCallHandler
 
 
-; System call table
-syscall_table_desc:
-    dc.l    0
-    dc.l    SC_numberOfCalls-1
-
 syscall_table:
     dc.l __syscall_write
     dc.l __syscall_sleep
@@ -73,9 +68,9 @@ _SystemCallHandler:
         ; save the user registers (see stack layout description above)
         movem.l d1 - d7 / a0 - a6, -(sp)
 
-        ; Range check the system call number
-        cmp2.l  syscall_table_desc(pc), d0
-        bcs.s   .Linvalid_syscall
+        ; Range check the system call number (we treat it as unsigned)
+        cmp.l   #SC_numberOfCalls, d0
+        bhs.s   .Linvalid_syscall
 
         ; save the ksp as it was at syscall entry (needed to be able to abort call-as-user invocations)
         move.l  _gVirtualProcessorSchedulerStorage + vps_running, a0

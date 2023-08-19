@@ -16,9 +16,6 @@
 
 #include "Runtime.h"
 
-extern Int64 _modsint64(Int64 dividend, Int64 divisor);
-extern Int64 _divsint64(Int64 dividend, Int64 divisor);
-
 
 typedef union i64 {
     Int64 i;
@@ -254,6 +251,15 @@ Int64 _divsint64_020(Int64 dividend, Int64 divisor)
     return quo;
 }
 
+Int64 _divsint64_060(Int64 dividend, Int64 divisor)
+{
+    Int64 quo;
+    
+    Int64_DivMod(dividend, divisor, &quo, NULL);
+    
+    return quo;
+}
+
 Int64 _modsint64(Int64 dividend, Int64 divisor)
 {
     Int64 quo, rem;
@@ -263,7 +269,16 @@ Int64 _modsint64(Int64 dividend, Int64 divisor)
     return rem;
 }
 
-Int64 _modsint64_20(Int64 dividend, Int64 divisor)
+Int64 _modsint64_020(Int64 dividend, Int64 divisor)
+{
+    Int64 quo, rem;
+    
+    Int64_DivMod(dividend, divisor, &quo, &rem);
+    
+    return rem;
+}
+
+Int64 _modsint64_060(Int64 dividend, Int64 divisor)
 {
     Int64 quo, rem;
     

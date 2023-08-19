@@ -22,6 +22,7 @@
     xdef __lshsint64
     xdef __mulint64
     xdef __mulint64_020
+    xdef __mulint64_060
 
 
 ;-------------------------------------------------------------------------------
@@ -154,6 +155,7 @@ __lshsint64:
 ;
 __mulint64:
 __mulint64_020:
+__mulint64_060:
     inline
     cargs muli64_saved_d2.l, muli64_xh.l, muli64_xl.l, muli64_yh.l, muli64_yl.l
         move.l  d2, -(sp)
