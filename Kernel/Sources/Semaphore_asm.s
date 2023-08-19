@@ -34,6 +34,8 @@ _Semaphore_ReleaseMultiple:
         move.l  d7, -(sp)
         move.l  sr_sema_ptr(sp), a0
 
+        DISABLE_PREEMPTION d7
+
         ; update the semaphore value. NO need to wake anyone up if the sema value
         ; is still <= 0
         move.l  sr_npermits(sp), d0
@@ -41,13 +43,12 @@ _Semaphore_ReleaseMultiple:
         ble.s   .sr_done
 
         ; move all the waiters back to the ready queue
-        DISABLE_PREEMPTION d7
         move.l  a0, -(sp)
         jsr     _Semaphore_WakeUp
         addq.l  #4, sp
-        RESTORE_PREEMPTION d7
 
 .sr_done:
+        RESTORE_PREEMPTION d7
         move.l  (sp)+, d7
         rts
     einline
