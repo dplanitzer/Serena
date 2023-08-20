@@ -6,8 +6,8 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Header_h
-#define Header_h
+#ifndef RingBuffer_h
+#define RingBuffer_h
 
 #include "Foundation.h"
 
@@ -56,14 +56,7 @@ static inline void RingBuffer_RemoveAll(RingBuffer* _Nonnull pBuffer) {
 
 // Puts a single byte into the ring buffer.  Returns 0 if the buffer is empty and
 // no byte has been copied out.
-static inline Int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte) {
-    if (RingBuffer_ReadableCount(pBuffer) < pBuffer->capacity) {
-        pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx++)] = byte;
-        return 1;
-    } else {
-        return 0;
-    }
-}
+extern Int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte);
 
 // Puts a sequence of bytes into the ring buffer by copying them. Returns the
 // number of bytes that have been successfully copied into the buffer.
@@ -71,14 +64,7 @@ extern Int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnul
 
 // Gets a single byte from the ring buffer. Returns 0 if the buffer is empty and
 // no byte has been copied out.
-static inline Int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte) {
-    if (!RingBuffer_IsEmpty(pBuffer)) {
-        *pByte = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx++)];
-        return 1;
-    } else {
-        return 0;
-    }
-}
+extern Int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte);
 
 // Gets a sequence of bytes from the ring buffer. The bytes are copied. Returns
 // 0 if the buffer is empty. Returns the number of bytes that have been copied
@@ -86,4 +72,4 @@ static inline Int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnul
 // or the ring buffer is empty.
 extern Int RingBuffer_GetBytes(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pBytes, Int count);
 
-#endif /* Header_h */
+#endif /* RingBuffer_h */

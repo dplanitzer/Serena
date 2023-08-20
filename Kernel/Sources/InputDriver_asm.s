@@ -31,8 +31,8 @@ _ksb_receive_key:
     move.b  #61, CIAATALO
     move.b  #0, CIAATAHI
     move.b  #%01011001, CIAACRA
-    not.b    d0
-    ror.b    #1,d0
+    not.b   d0
+    ror.b   #1,d0
     ext.w   d0
     ext.l   d0
     rts

@@ -37,6 +37,18 @@ void RingBuffer_Deinit(RingBuffer* _Nonnull pBuffer)
     pBuffer->writeIdx = 0;
 }
 
+// Puts a single byte into the ring buffer.  Returns 0 if the buffer is empty and
+// no byte has been copied out.
+Int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte)
+{
+    if (RingBuffer_ReadableCount(pBuffer) < pBuffer->capacity) {
+        pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx++)] = byte;
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 // Puts a sequence of bytes into the ring buffer by copying them. Returns the
 // number of bytes that have been successfully copied into the buffer.
 Int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pBytes, Int count)
@@ -54,6 +66,18 @@ Int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pByte
     pBuffer->writeIdx += nBytesToCopy;
     
     return nBytesToCopy;
+}
+
+// Gets a single byte from the ring buffer. Returns 0 if the buffer is empty and
+// no byte has been copied out.
+Int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte)
+{
+    if (!RingBuffer_IsEmpty(pBuffer)) {
+        *pByte = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx++)];
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 // Gets a sequence of bytes from the ring buffer. The bytes are copied. Returns

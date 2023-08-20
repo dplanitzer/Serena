@@ -31,7 +31,7 @@ typedef struct _KeyboardDriver {
 extern void ksb_init(void);
 extern Int ksb_receive_key(void);
 extern void ksb_acknowledge_key(void);
-static void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver);
+extern void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver);
 
 
 ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver)
@@ -73,7 +73,7 @@ void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver)
     }
 }
 
-static void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver)
+void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver)
 {
     const UInt8 keycode = ksb_receive_key();
     
@@ -81,7 +81,7 @@ static void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver)
         // The key queue is full. Flush it, push an overflow error and then the new keycode
         RingBuffer_RemoveAll(&pDriver->key_queue);
         RingBuffer_PutByte(&pDriver->key_queue, 0xfa);
-        RingBuffer_PutByte(&pDriver->key_queue, keycode);
+        RingBuffer_PutByte(&pDriver->key_queue, (Byte)keycode);
     }
     ksb_acknowledge_key();
 }
@@ -109,7 +109,7 @@ Bool KeyboardDriver_GetReport(KeyboardDriverRef _Nonnull pDriver, KeyboardReport
     cpu_restore_irqs(ips);
     
     if (hasKey) {
-        pReport->keycode = (HIDKeyCode) gUSBHIDKeycodes[keycode & 0x7f];
+        pReport->keycode = (HIDKeyCode)gUSBHIDKeycodes[keycode & 0x7f];
         pReport->isKeyUp = keycode & 0x80;
         return true;
     } else {
