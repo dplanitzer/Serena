@@ -13,7 +13,7 @@ static void helloWorld(void)
 {
     write("Hello World from user space!\n");
     sleep(0, 250*1000*1000);
-    dispatchAsync((void*)helloWorld);
+    dispatch_async((void*)helloWorld);
     //exit(0);
     //write("oops\n");
 }

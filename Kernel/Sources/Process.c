@@ -6,17 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Process.h"
-#include "Atomic.h"
+#include "ProcessPriv.h"
 #include "kalloc.h"
-#include "DispatchQueue.h"
-
-
-typedef struct _Process {
-    Int                 pid;
-    DispatchQueueRef    mainDispatchQueue;
-    AtomicBool          isTerminating;  // true if the process is going through the termination process
-} Process;
 
 
 ProcessRef  gRootProcess;
@@ -50,6 +41,7 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     
     pProc->pid = pid;
     try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
+    try(AddressSpace_Create(&pProc->addressSpace));
 
     *pOutProc = pProc;
     return EOK;
@@ -63,6 +55,8 @@ catch:
 void Process_Destroy(ProcessRef _Nullable pProc)
 {
     if (pProc) {
+        AddressSpace_Destroy(pProc->addressSpace);
+        pProc->addressSpace = NULL;
         DispatchQueue_Destroy(pProc->mainDispatchQueue);
         pProc->mainDispatchQueue = NULL;
 
@@ -181,4 +175,10 @@ void Process_Terminate(ProcessRef _Nonnull pProc)
 Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
 {
     return pProc->isTerminating;
+}
+
+// Allocates more (user) address space to the given process.
+ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, Int nbytes, Byte* _Nullable * _Nonnull pOutMem)
+{
+    return AddressSpace_Allocate(pProc->addressSpace, nbytes, pOutMem);
 }

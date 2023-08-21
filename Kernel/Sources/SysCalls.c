@@ -12,7 +12,7 @@
 #include "VirtualProcessor.h"
 
 
-ErrorCode _syscall_write(const Character* pString)
+ErrorCode _SYSCALL_write(const Character* pString)
 {
     decl_try_err();
     Console* pConsole;
@@ -25,17 +25,22 @@ catch:
     return err;
 }
 
-ErrorCode _syscall_sleep(Int seconds, Int nanoseconds)
+ErrorCode _SYSCALL_sleep(Int seconds, Int nanoseconds)
 {
     return VirtualProcessor_Sleep(TimeInterval_Make(seconds, nanoseconds));
 }
 
-ErrorCode _syscall_dispatchAsync(const Closure1Arg_Func pUserClosure)
+ErrorCode _SYSCALL_dispatch_async(const Closure1Arg_Func pUserClosure)
 {
     return Process_DispatchAsyncUser(Process_GetCurrent(), pUserClosure);
 }
 
-ErrorCode _syscall_exit(Int status)
+ErrorCode _SYSCALL_alloc_address_space(Int nbytes)
+{
+    return Process_AllocateAddressSpace(Process_GetCurrent(), nbytes, (Byte**)&VirtualProcessor_GetCurrent()->syscall_ret_0);
+}
+
+ErrorCode _SYSCALL_exit(Int status)
 {
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to

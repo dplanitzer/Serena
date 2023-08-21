@@ -10,11 +10,12 @@
 SYSCALLS_I    set 1
 
 ; System call numbers
-SC_write            equ     0       ; write(pString: a1) -> Void
-SC_sleep            equ     1       ; sleep(seconds: d1, nanoseconds: d2) -> Void
-SC_dispatchAsync    equ     2       ; dispatchAsync(pUserClosure: a1) -> Void
-SC_exit             equ     3       ; exit(status: d1) -> Never
-SC_numberOfCalls    equ     4       ; number of system calls
+SC_write                equ 0       ; write(pString: d1.l)
+SC_sleep                equ 1       ; sleep(seconds: d1.l, nanoseconds: d2.l)
+SC_dispatch_async       equ 2       ; dispatch_async(pUserClosure: d1.l)
+SC_alloc_address_space  equ 3       ; alloc_address_space(nbytes: d1.l, pOutMem: d1.l)
+SC_exit                 equ 4       ; exit(status: d1.l) [noreturn]
+SC_numberOfCalls        equ 5       ; number of system calls
 
 
 ; System call ABI

@@ -43,4 +43,7 @@ extern void Process_Terminate(ProcessRef _Nonnull pProc);
 // Returns true if the process is marked for termination and false otherwise.
 extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
+// Allocates more (user) address space to the given process.
+extern ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, Int nbytes, Byte* _Nullable * _Nonnull pOutMem);
+
 #endif /* Process_h */

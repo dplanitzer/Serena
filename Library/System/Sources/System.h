@@ -35,8 +35,9 @@ typedef Int ErrorCode;
 
 
 extern ErrorCode write(Character* _Nonnull pString);
-extern ErrorCode dispatchAsync(void* _Nonnull pClosure);
+extern ErrorCode dispatch_async(void* _Nonnull pClosure);
 extern ErrorCode sleep(Int seconds, Int nanoseconds);
+extern ErrorCode alloc_address_space(Int nbytes, Byte* _Nullable * _Nonnull pOutMemPtr);
 extern _Noreturn exit(Int status);
 
 #endif /* System_h */
