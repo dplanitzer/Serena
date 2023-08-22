@@ -19,13 +19,16 @@ KERNEL_OBJS += $(patsubst $(KERNEL_SOURCES_DIR)/%.s,$(KERNEL_BUILD_DIR)/%.o,$(KE
 .PHONY: clean_kernel
 
 
-$(KERNEL_OBJS): | $(KERNEL_BUILD_DIR)
+$(KERNEL_OBJS): | $(KERNEL_BUILD_DIR) $(KERNEL_PRODUCT_DIR)
 
 $(KERNEL_BUILD_DIR):
 	$(call mkdir_if_needed,$(KERNEL_BUILD_DIR))
 
+$(KERNEL_PRODUCT_DIR):
+	$(call mkdir_if_needed,$(KERNEL_PRODUCT_DIR))
 
-$(KERNEL_BIN_FILE): $(RUNTIME_LIB_FILE) $(KERNEL_OBJS)
+
+$(KERNEL_ROM_FILE): $(RUNTIME_LIB_FILE) $(KERNEL_OBJS)
 	@echo Linking Kernel
 	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script -o $@ $^
 

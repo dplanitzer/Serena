@@ -1,7 +1,8 @@
 {
     "cmake.configureOnOpen": false,
     "files.exclude": {
-        "**/build": true
+        "**/build": true,
+        "**/product": true
     },
     "C_Cpp.default.defines": [
         "DEBUG=1",

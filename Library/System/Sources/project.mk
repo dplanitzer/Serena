@@ -19,14 +19,17 @@ SYSTEM_OBJS += $(patsubst $(SYSTEM_SOURCES_DIR)/%.s, $(SYSTEM_BUILD_DIR)/%.o, $(
 .PHONY: clean_system
 
 
-$(SYSTEM_OBJS): | $(SYSTEM_BUILD_DIR)
+$(SYSTEM_OBJS): | $(SYSTEM_BUILD_DIR) $(SYSTEM_PRODUCT_DIR)
 
 $(SYSTEM_BUILD_DIR):
 	$(call mkdir_if_needed,$(SYSTEM_BUILD_DIR))
 
+$(SYSTEM_PRODUCT_DIR):
+	$(call mkdir_if_needed,$(SYSTEM_PRODUCT_DIR))
+
 
 $(SYSTEM_LIB_FILE): $(SYSTEM_OBJS)
-	@echo Linking libsystem.a
+	@echo Linking libSystem.a
 	@$(LD) -baoutnull -r -o $@ $^
 
 

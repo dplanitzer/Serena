@@ -36,6 +36,7 @@ export CC_PREPROCESSOR_DEFINITIONS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__LP32__=1 
 
 export WORKSPACE_DIR := $(CURDIR)
 export BUILD_DIR := $(WORKSPACE_DIR)/build
+export PRODUCT_DIR := $(WORKSPACE_DIR)/product
 
 
 # --------------------------------------------------------------------------
@@ -63,21 +64,24 @@ KERNEL_PROJECT_DIR := $(WORKSPACE_DIR)/Kernel/Sources
 KERNEL_TESTS_PROJECT_DIR := $(WORKSPACE_DIR)/Kernel/Tests
 export KERNEL_INCLUDE_DIR := $(WORKSPACE_DIR)/Kernel/Sources
 export KERNEL_BUILD_DIR := $(BUILD_DIR)/Kernel
+export KERNEL_PRODUCT_DIR := $(PRODUCT_DIR)/Kernel
 export KERNEL_TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
 
-ROM_FILE := $(KERNEL_BUILD_DIR)/Boot.rom
-export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/rom_kernel.bin
-export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/rom_tests.bin
+ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
+export KERNEL_ROM_FILE := $(KERNEL_PRODUCT_DIR)/Kernel.rom
+export KERNEL_TESTS_ROM_FILE := $(KERNEL_PRODUCT_DIR)/KernelTests.rom
 
 RUNTIME_PROJECT_DIR := $(WORKSPACE_DIR)/Library/Runtime/Sources
 export RUNTIME_INCLUDE_DIR := $(RUNTIME_PROJECT_DIR)
 export RUNTIME_BUILD_DIR := $(BUILD_DIR)/Library/Runtime
-export RUNTIME_LIB_FILE := $(RUNTIME_BUILD_DIR)/librt.a
+export RUNTIME_PRODUCT_DIR := $(PRODUCT_DIR)/Library/Runtime
+export RUNTIME_LIB_FILE := $(RUNTIME_PRODUCT_DIR)/librt.a
 
 SYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/System/Sources
 export SYSTEM_INCLUDE_DIR := $(SYSTEM_PROJECT_DIR)
 export SYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/System
-export SYSTEM_LIB_FILE := $(SYSTEM_BUILD_DIR)/libsystem.a
+export SYSTEM_PRODUCT_DIR := $(PRODUCT_DIR)/Library/System
+export SYSTEM_LIB_FILE := $(SYSTEM_PRODUCT_DIR)/libSystem.a
 
 
 # --------------------------------------------------------------------------
@@ -102,9 +106,9 @@ include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 build: $(ROM_FILE)
 	@echo Done
 
-$(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
+$(ROM_FILE): $(KERNEL_ROM_FILE) $(KERNEL_TESTS_ROM_FILE) finalizerom.py
 	@echo Making ROM
-	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
+	$(PY) ./finalizerom.py $(KERNEL_ROM_FILE) $(KERNEL_TESTS_ROM_FILE) $(ROM_FILE)
 
 
 clean: clean_kernel clean_kernel_tests clean_runtime clean_system
