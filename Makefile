@@ -89,9 +89,9 @@ export SYSTEM_LIB_FILE := $(SYSTEM_PRODUCT_DIR)/libSystem.a
 
 include $(WORKSPACE_DIR)/common.mk
 
-include $(RUNTIME_PROJECT_DIR)/Sources/project.mk
-include $(SYSTEM_PROJECT_DIR)/Sources/project.mk
-include $(KERNEL_PROJECT_DIR)/Sources/project.mk
+include $(RUNTIME_PROJECT_DIR)/project.mk
+include $(SYSTEM_PROJECT_DIR)/project.mk
+include $(KERNEL_PROJECT_DIR)/project.mk
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
 
