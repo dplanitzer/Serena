@@ -37,13 +37,24 @@ extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Ar
 // Triggers the termination of the given process. The termination may be caused
 // voluntarily (some VP currently owned by the process triggers this call) or
 // involuntarily (some other process triggers this call). Note that the actual
-// termination is done asynchronously.
-extern void Process_Terminate(ProcessRef _Nonnull pProc);
+// termination is done asynchronously. 'exitCode' is the exit code that should
+// be made available to the parent process. Note that the only exit code that
+// is passed to the parent is the one from the first Process_Terminate() call.
+// All others are discarded.
+extern void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode);
 
 // Returns true if the process is marked for termination and false otherwise.
 extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
 // Allocates more (user) address space to the given process.
 extern ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, Int nbytes, Byte* _Nullable * _Nonnull pOutMem);
+
+// Adds the given process as a child to the given process. 'pOtherProc' must not
+// already be a child of another process.
+extern ErrorCode Process_AddChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
+
+// Removes the given process from 'pProc'. Does nothing if the given process is
+// not a child of 'pProc'.
+extern void Process_RemoveChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
 
 #endif /* Process_h */

@@ -15,7 +15,8 @@ SC_sleep                equ 1       ; sleep(seconds: d1.l, nanoseconds: d2.l)
 SC_dispatch_async       equ 2       ; dispatch_async(pUserClosure: d1.l)
 SC_alloc_address_space  equ 3       ; alloc_address_space(nbytes: d1.l, pOutMem: d1.l)
 SC_exit                 equ 4       ; exit(status: d1.l) [noreturn]
-SC_numberOfCalls        equ 5       ; number of system calls
+SC_spawn_process        equ 5       ; spawn_process(pUserEntryPoint: d1.l)
+SC_numberOfCalls        equ 6       ; number of system calls
 
 
 ; System call ABI

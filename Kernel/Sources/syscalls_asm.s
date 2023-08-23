@@ -15,6 +15,7 @@
     xref __SYSCALL_dispatch_async
     xref __SYSCALL_alloc_address_space
     xref __SYSCALL_exit
+    xref __SYSCALL_spawn_process
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -26,6 +27,7 @@ syscall_table:
     dc.l __SYSCALL_dispatch_async
     dc.l __SYSCALL_alloc_address_space
     dc.l __SYSCALL_exit
+    dc.l __SYSCALL_spawn_process
 
 
 ;-------------------------------------------------------------------------------

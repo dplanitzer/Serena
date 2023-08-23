@@ -40,8 +40,13 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     try(kalloc_cleared(sizeof(Process), (Byte**) &pProc));
     
     pProc->pid = pid;
+    Lock_Init(&pProc->lock);
+
     try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
     try(AddressSpace_Create(&pProc->addressSpace));
+
+    List_Init(&pProc->children);
+    ListNode_Init(&pProc->siblings);
 
     *pOutProc = pProc;
     return EOK;
@@ -55,10 +60,17 @@ catch:
 void Process_Destroy(ProcessRef _Nullable pProc)
 {
     if (pProc) {
+        ListNode_Deinit(&pProc->siblings);
+        List_Deinit(&pProc->children);
+        pProc->parent = NULL;
+
         AddressSpace_Destroy(pProc->addressSpace);
         pProc->addressSpace = NULL;
         DispatchQueue_Destroy(pProc->mainDispatchQueue);
         pProc->mainDispatchQueue = NULL;
+
+        Lock_Deinit(&pProc->lock);
+        pProc->pid = 0;
 
         kfree((Byte*) pProc);
     }
@@ -72,6 +84,62 @@ Int Process_GetPID(ProcessRef _Nonnull pProc)
 ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
 {
     return DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
+}
+
+// Stops the given process and all children, grand-children, etc.
+static void Process_RecursivelyStop(ProcessRef _Nonnull pProc)
+{
+    // Be sure to mark the process as terminating
+    AtomicBool_Set(&pProc->isTerminating, true);
+
+
+    // Terminate all dispatch queues. This takes care of aborting user space
+    // invocations.
+    DispatchQueue_Terminate(pProc->mainDispatchQueue);
+
+
+    // Wait for all dispatch queues to have reached 'terminated' state
+    DispatchQueue_WaitForTerminationCompleted(pProc->mainDispatchQueue);
+
+
+    // Recursively stop all children
+    Lock_Lock(&pProc->lock);
+    ProcessRef pCurChild = (ProcessRef) pProc->children.first;
+    while(pCurChild) {
+        Process_RecursivelyStop(pCurChild);
+        pCurChild = (ProcessRef) pCurChild->siblings.next;
+    }
+    Lock_Unlock(&pProc->lock);
+}
+
+// Recursively destroys a tree of processes. The destruction is executed bottom-
+// up.
+static void Process_RecursivelyDestroy(ProcessRef _Nonnull pProc)
+{
+    Bool done = false;
+
+    // Recurse down the process tree
+    while (!done) {
+        ProcessRef pChildProc;
+
+        Lock_Lock(&pProc->lock);
+        if (!List_IsEmpty(&pProc->children)) {
+            pChildProc = (ProcessRef) List_RemoveFirst(&pProc->children);
+        } else {
+            pChildProc = NULL;
+        }
+        Lock_Unlock(&pProc->lock);
+
+        if (pChildProc) {
+            Process_RecursivelyDestroy(pChildProc);
+        } else {
+            done = true;
+        }
+    }
+
+
+    // Destroy processes on the way back up the tree
+    Process_Destroy(pProc);
 }
 
 // Runs on the kernel main dispatch queue and terminates the given process.
@@ -125,25 +193,36 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     // does since this kind of lock is a kernel lock that is used to preserve the
     // integrity of kernel data structures.
 
+    // Notes on terminating a process tree:
+    //
+    // If a process terminates voluntarily or involuntarily will by default
+    // also terminate all its child, grand-child, etc processes. This is done in
+    // a way where the individual steps of the termination are not observable to
+    // the child nor the parent process. This means that termination is atomic
+    // from the viewpoint of the parent and the child.
+    //
+    // The way we achieve this is by breaking the termination down into two
+    // separate phases: the first one goes top-down and puts a process and all
+    // its children at rest by terminating their dispatch queues and the second
+    // phase then goes bottom-up and frees the process and all its children.
 
-    // Terminate all dispatch queues. This takes care of aborting user space
-    // invocations.
-    DispatchQueue_Terminate(pProc->mainDispatchQueue);
+
+    // Stop this process and all its children before we free any resources
+    Process_RecursivelyStop(pProc);
 
 
-    // Wait for all dispatch queues to have reached 'terminated' state
-    DispatchQueue_WaitForTerminationCompleted(pProc->mainDispatchQueue);
-
-
-    // Finally destroy the process.
-    Process_Destroy(pProc);
+    // Finally destroy the process and all its children.
+    Process_RecursivelyDestroy(pProc);
 }
 
 // Triggers the termination of the given process. The termination may be caused
 // voluntarily (some VP currently owned by the process triggers this call) or
 // involuntarily (some other process triggers this call). Note that the actual
-// termination is done asynchronously.
-void Process_Terminate(ProcessRef _Nonnull pProc)
+// termination is done asynchronously. 'exitCode' is the exit code that should
+// be made available to the parent process. Note that the only exit code that
+// is passed to the parent is the one from the first Process_Terminate() call.
+// All others are discarded.
+void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode)
 {
     // We do not allow exiting the root process
     if (pProc == gRootProcess) {
@@ -167,6 +246,10 @@ void Process_Terminate(ProcessRef _Nonnull pProc)
     }
 
 
+    // Remember the exit code
+    pProc->exitCode = exitCode;
+
+
     // Schedule the actual process termination and destruction on the kernel
     // main dispatch queue.
     try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) _Process_DoTerminate, (Byte*) pProc)));
@@ -181,4 +264,32 @@ Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
 ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, Int nbytes, Byte* _Nullable * _Nonnull pOutMem)
 {
     return AddressSpace_Allocate(pProc->addressSpace, nbytes, pOutMem);
+}
+
+// Adds the given process as a child to the given process. 'pOtherProc' must not
+// already be a child of another process.
+ErrorCode Process_AddChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
+{
+    if (pOtherProc->parent) {
+        return EPARAM;
+    }
+
+    Lock_Lock(&pProc->lock);
+    List_InsertAfterLast(&pProc->children, &pOtherProc->siblings);
+    pOtherProc->parent = pProc;
+    Lock_Unlock(&pProc->lock);
+
+    return EOK;
+}
+
+// Removes the given process from 'pProc'. Does nothing if the given process is
+// not a child of 'pProc'.
+void Process_RemoveChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
+{
+    Lock_Lock(&pProc->lock);
+    if (pOtherProc->parent == pProc) {
+        List_Remove(&pProc->children, &pOtherProc->siblings);
+        pOtherProc->parent = NULL;
+    }
+    Lock_Unlock(&pProc->lock);
 }

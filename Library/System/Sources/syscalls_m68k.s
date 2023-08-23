@@ -13,6 +13,7 @@
     xdef _sleep
     xdef _alloc_address_space
     xdef _exit
+    xdef _spawn_process
 
 
 ;-------------------------------------------------------------------------------
@@ -62,4 +63,13 @@ _exit:
     cargs exit_status.l
     move.l  exit_status(sp), d1
     SYSCALL SC_exit
+    rts
+
+
+;-------------------------------------------------------------------------------
+; ErrorCode spawn_process(void* _Nonnull pUserEntryPoint)
+_spawn_process:
+    cargs spawnproc_pUserEntryPoint.l
+    move.l  spawnproc_pUserEntryPoint(sp), d1
+    SYSCALL SC_spawn_process
     rts

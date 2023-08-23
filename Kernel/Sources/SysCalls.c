@@ -45,7 +45,7 @@ ErrorCode _SYSCALL_exit(Int status)
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to
     // return to user space anymore.
-    Process_Terminate(Process_GetCurrent());
+    Process_Terminate(Process_GetCurrent(), status);
 
 
     // This wait here will eventually be aborted when the dispatch queue that
@@ -54,4 +54,27 @@ ErrorCode _SYSCALL_exit(Int status)
     // space anymore. Instead it will return to the dispatch queue main loop.
     VirtualProcessor_Sleep(kTimeInterval_Infinity);
     return EOK;
+}
+
+ErrorCode _SYSCALL_spawn_process(Byte* _Nullable pUserEntryPoint)
+{
+    decl_try_err();
+    ProcessRef pCurProc = Process_GetCurrent();
+    ProcessRef pChildProc = NULL;
+
+    if (pUserEntryPoint == NULL) {
+        throw(EPARAM);
+    }
+    
+    try(Process_Create(Process_GetNextAvailablePID(), &pChildProc));
+    try_bang(Process_AddChildProcess(pCurProc, pChildProc));
+    try(Process_DispatchAsyncUser(pChildProc, (Closure1Arg_Func)pUserEntryPoint));
+
+    return EOK;
+
+catch:
+    if (pChildProc) {
+        Process_RemoveChildProcess(pCurProc, pChildProc);
+    }
+    return err;
 }
