@@ -2,7 +2,7 @@
 # Build variables
 #
 
-SYSTEM_SOURCES_DIR := $(WORKSPACE_DIR)/Library/System/Sources
+SYSTEM_SOURCES_DIR := $(SYSTEM_PROJECT_DIR)/Sources
 
 SYSTEM_C_SOURCES := $(wildcard $(SYSTEM_SOURCES_DIR)/*.c)
 SYSTEM_ASM_SOURCES := $(wildcard $(SYSTEM_SOURCES_DIR)/*.s)
@@ -41,7 +41,7 @@ $(SYSTEM_BUILD_DIR)/%.o : $(SYSTEM_SOURCES_DIR)%.c
 
 $(SYSTEM_BUILD_DIR)/%.o : $(SYSTEM_SOURCES_DIR)/%.s
 	@echo $<
-	@$(AS) -I$(SYSTEM_SOURCES_DIR) -I$(KERNEL_INCLUDE_DIR) -o $@ $<
+	@$(AS) -I$(SYSTEM_SOURCES_DIR) -o $@ $<
 
 
 clean_system:

@@ -2,7 +2,7 @@
 # Build variables
 #
 
-RUNTIME_SOURCES_DIR := $(WORKSPACE_DIR)/Library/Runtime/Sources
+RUNTIME_SOURCES_DIR := $(RUNTIME_PROJECT_DIR)/Sources
 
 RUNTIME_C_SOURCES := $(wildcard $(RUNTIME_SOURCES_DIR)/*.c)
 RUNTIME_ASM_SOURCES := $(wildcard $(RUNTIME_SOURCES_DIR)/*.s)

@@ -2,7 +2,7 @@
 # Build variables
 #
 
-KERNEL_SOURCES_DIR := $(WORKSPACE_DIR)/Kernel/Sources
+KERNEL_SOURCES_DIR := $(KERNEL_PROJECT_DIR)/Sources
 
 KERNEL_C_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/*.c)
 KERNEL_ASM_SOURCES := $(wildcard $(KERNEL_SOURCES_DIR)/*.s)
@@ -28,7 +28,7 @@ $(KERNEL_PRODUCT_DIR):
 	$(call mkdir_if_needed,$(KERNEL_PRODUCT_DIR))
 
 
-$(KERNEL_ROM_FILE): $(RUNTIME_LIB_FILE) $(KERNEL_OBJS)
+$(KERNEL_BIN_FILE): $(RUNTIME_LIB_FILE) $(KERNEL_OBJS)
 	@echo Linking Kernel
 	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script -o $@ $^
 

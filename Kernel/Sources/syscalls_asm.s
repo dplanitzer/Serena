@@ -8,7 +8,6 @@
 
 
     include "lowmem.i"
-    include "syscalls.i"
 
     xref __SYSCALL_write
     xref __SYSCALL_sleep
@@ -28,6 +27,8 @@ syscall_table:
     dc.l __SYSCALL_alloc_address_space
     dc.l __SYSCALL_exit
     dc.l __SYSCALL_spawn_process
+
+SC_numberOfCalls    equ 6       ; number of system calls
 
 
 ;-------------------------------------------------------------------------------

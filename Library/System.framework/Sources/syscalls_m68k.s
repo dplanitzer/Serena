@@ -6,7 +6,7 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <syscalls.i>
+    include <syscalls_m68k.i>
 
     xdef _write
     xdef _dispatch_async

@@ -8,7 +8,6 @@
 
     include "chipset.i"
     include "lowmem.i"
-    include "syscalls.i"
 
     xref _cpu_non_recoverable_error
 
