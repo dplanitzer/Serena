@@ -8,17 +8,17 @@
 
     include <syscalls_m68k.i>
 
-    xdef _write
-    xdef _dispatch_async
-    xdef _sleep
-    xdef _alloc_address_space
-    xdef _exit
-    xdef _spawn_process
+    xdef ___write
+    xdef ___dispatch_async
+    xdef ___sleep
+    xdef ___alloc_address_space
+    xdef ___exit
+    xdef ___spawn_process
 
 
 ;-------------------------------------------------------------------------------
 ; ErrorCode write(Character* _Nonnull pString)
-_write:
+___write:
     cargs prt_string_ptr.l
     move.l  prt_string_ptr(sp), d1
     SYSCALL SC_write
@@ -27,7 +27,7 @@ _write:
 
 ;-------------------------------------------------------------------------------
 ; ErrorCode dispatch_async(void* _Nonnull pUserClosure)
-_dispatch_async:
+___dispatch_async:
     cargs dspasync_closure_ptr.l
     move.l  dspasync_closure_ptr(sp), d1
     SYSCALL SC_dispatch_async
@@ -36,7 +36,7 @@ _dispatch_async:
 
 ;-------------------------------------------------------------------------------
 ; ErrorCode sleep(Int seconds, Int nanoseconds)
-_sleep:
+___sleep:
     cargs slp_saved_d2.l, slp_seconds.l, slp_nanoseconds.l
     move.l  d2, -(sp)
     move.l  slp_seconds(sp), d1
@@ -48,7 +48,7 @@ _sleep:
 
 ;-------------------------------------------------------------------------------
 ; ErrorCode alloc_address_space(Int nbytes, Byte* _Nullable * _Nonnull pOutMemPtr)
-_alloc_address_space:
+___alloc_address_space:
     cargs aas_nbytes.l, aas_pOutMemPtr.l
     move.l  aas_nbytes(sp), d1
     SYSCALL SC_alloc_address_space
@@ -59,7 +59,7 @@ _alloc_address_space:
 
 ;-------------------------------------------------------------------------------
 ; _Noreturn exit(Int status)
-_exit:
+___exit:
     cargs exit_status.l
     move.l  exit_status(sp), d1
     SYSCALL SC_exit
@@ -68,7 +68,7 @@ _exit:
 
 ;-------------------------------------------------------------------------------
 ; ErrorCode spawn_process(void* _Nonnull pUserEntryPoint)
-_spawn_process:
+___spawn_process:
     cargs spawnproc_pUserEntryPoint.l
     move.l  spawnproc_pUserEntryPoint(sp), d1
     SYSCALL SC_spawn_process

@@ -7,30 +7,31 @@
 //
 
 #include <System.h>
-
+#include <stdlib.h>
+#include <stdio.h>
 
 static void helloWorld_a(void)
 {
-    write("Hello World, from process #1!\n");
-    sleep(0, 250*1000*1000);
-    dispatch_async((void*)helloWorld_a);
+    printf("Hello World, from process #1!\n");
+    __sleep(0, 250*1000*1000);
+    __dispatch_async((void*)helloWorld_a);
     //exit(0);
-    //write("oops\n");
+    //puts("oops\n");
 }
 
 static void helloWorld_b(void)
 {
-    write("Hello World, from process #2!\n");
-    sleep(0, 250*1000*1000);
-    dispatch_async((void*)helloWorld_b);
+    printf("Hello World, from process #2!\n");
+    __sleep(0, 250*1000*1000);
+    __dispatch_async((void*)helloWorld_b);
     //exit(0);
-    //write("oops\n");
+    //puts("oops\n");
 }
 
 int main(void)
 {
     helloWorld_a();
-    spawn_process((void*)helloWorld_b);
+    __spawn_process((void*)helloWorld_b);
 
     return 0;
 }

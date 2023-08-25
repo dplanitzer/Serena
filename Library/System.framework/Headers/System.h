@@ -9,37 +9,30 @@
 #ifndef System_h
 #define System_h
 
-#include <Runtime.h>
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
+#if !__has_feature(nullability)
+#ifndef _Nullable
+#define _Nullable
+#endif
+#ifndef _Nonnull
+#define _Nonnull
+#endif
+#endif
+
+#ifndef _Noreturn
+#define _Noreturn   void
+#endif
 
 
-// Error code definitions
-typedef Int ErrorCode;
-#define EOK         0
-#define ENOMEM      1
-#define ENODATA     2
-#define ENOTCDF     3
-#define ENOBOOT     4
-#define ENODRIVE    5
-#define EDISKCHANGE 6
-#define ETIMEDOUT   7
-#define ENODEV      8
-#define EPARAM      9
-#define ERANGE      10
-#define EINTR       11
-#define EAGAIN      12
-#define EPIPE       13
-#define EBUSY       14
-#define ENOSYS      15
-#define EINVAL      16
-#define EIO         17
+extern int __write(const char* _Nonnull pString);
+extern int __dispatch_async(void* _Nonnull pClosure);
+extern int __sleep(int seconds, int nanoseconds);
+extern int __alloc_address_space(int nbytes, char* _Nullable * _Nonnull pOutMemPtr);
 
-
-extern ErrorCode write(Character* _Nonnull pString);
-extern ErrorCode dispatch_async(void* _Nonnull pClosure);
-extern ErrorCode sleep(Int seconds, Int nanoseconds);
-extern ErrorCode alloc_address_space(Int nbytes, Byte* _Nullable * _Nonnull pOutMemPtr);
-
-extern ErrorCode spawn_process(void* _Nonnull pUserEntryPoint);
-extern _Noreturn exit(Int status);
+extern int __spawn_process(void* _Nonnull pUserEntryPoint);
+extern _Noreturn __exit(int status);
 
 #endif /* System_h */

@@ -37,7 +37,7 @@ $(KERNEL_BIN_FILE): $(RUNTIME_LIB_FILE) $(KERNEL_OBJS)
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(KERNEL_SOURCES_DIR) -I$(RUNTIME_INCLUDE_DIR) -dontwarn=51 -dontwarn=148 -dontwarn=208 -deps -depfile=$(patsubst $(KERNEL_BUILD_DIR)/%.o,$(KERNEL_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(KERNEL_SOURCES_DIR) -I$(RUNTIME_HEADERS_DIR) -dontwarn=51 -dontwarn=148 -dontwarn=208 -deps -depfile=$(patsubst $(KERNEL_BUILD_DIR)/%.o,$(KERNEL_BUILD_DIR)/%.d,$@) -o $@ $<
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.s
 	@echo $<

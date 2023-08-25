@@ -86,6 +86,8 @@ EINVAL      equ 16
 EIO         equ 17
 EPERM       equ 18
 EDEADLK     equ 19
+EDOM        equ 20
+EILSEQ      equ 21
 
 
 ;

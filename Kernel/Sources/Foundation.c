@@ -90,7 +90,7 @@ const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, 
 // String
 Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs)
 {
-    while (*pLhs) {
+    while (*pLhs != '\0') {
         if (*pLhs != *pRhs) {
             return false;
         }
