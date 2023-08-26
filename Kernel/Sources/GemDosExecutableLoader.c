@@ -22,24 +22,22 @@ void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader)
 
 static ErrorCode GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pRelocBase, Byte* pTextBase)
 {
-    Int32 firstRelocOffset = *((UInt32*)pRelocBase);
+    const Int32 firstRelocOffset = *((UInt32*)pRelocBase);
 
     if (firstRelocOffset == 0) {
         return EOK;
     }
 
-    UInt32 offset = (UInt32)pTextBase;
+    const UInt32 offset = (UInt32)pTextBase;
     Byte* pLoc = (Byte*) (offset + firstRelocOffset);
     UInt8* p = (UInt8*) (pRelocBase + sizeof(UInt32));
     Bool done = false;
 
-    //print("reloc: 0x%p\n", pLoc);
     *((UInt32*) pLoc) += offset;
 
     while (!done) {
         const UInt8 b = *p++;
 
-        //if (b != 0) print("reloc: b: %u, l: 0x%p\n", (UInt32)b, pLoc);
         switch (b) {
             case 0:
                 done = true;
@@ -105,13 +103,11 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
     // Initialize the BSS segment
     Bytes_ClearRange(pTextBase + nbytes_to_copy, pExecHeader->bss_size);
 
-
     // Relocate the executable
     Byte* pRelocBase = pExecAddr
         + sizeof(GemDosExecutableHeader)
         + pExecHeader->text_size
         + pExecHeader->data_size
-        + pExecHeader->bss_size
         + pExecHeader->symbol_table_size;
 
     try(GemDosExecutableLoader_RelocExecutable(pLoader, pRelocBase, pTextBase));
