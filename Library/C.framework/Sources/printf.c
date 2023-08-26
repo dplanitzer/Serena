@@ -128,7 +128,7 @@ static int __vprintf_flush(CharacterStream* _Nonnull pStream)
 {
     if (pStream->bufferCount > 0) {
         pStream->buffer[pStream->bufferCount] = '\0';
-        const int nwritten = pStream->sinkFunc(pStream->context, pStream->buffer);
+        const int nwritten = pStream->sinkFunc(pStream->context, pStream->buffer, pStream->bufferCount);
         if (nwritten != pStream->bufferCount) {
             return (nwritten < 0) ? nwritten : -EIO;
         }
@@ -146,8 +146,8 @@ static int __vprintf_string(CharacterStream* _Nonnull pStream, const char *str)
         return status;
     }
 
-    const int len = strlen(str);
-    const int nwritten = pStream->sinkFunc(pStream->context, str);
+    const int len = (int)strlen(str);
+    const int nwritten = pStream->sinkFunc(pStream->context, str, len);
     if (nwritten != len) {
         return (nwritten < 0) ? nwritten : -EIO;
     }
@@ -282,13 +282,11 @@ int printf(const char *format, ...)
     return r;
 }
 
-static int vprintf_console_sink(void* _Nullable pContext, const char* _Nonnull pString)
+static int vprintf_console_sink(void* _Nullable pContext, const char* _Nonnull pBuffer, size_t nBytes)
 {
-    if (__write(pString) == 0) {
-        return strlen(pString);
-    } else {
-        return EOF;
-    }
+    const int err = __write(pBuffer);
+
+    return (err == 0) ? nBytes : -err;
 }
 
 int vprintf(const char *format, va_list ap)
