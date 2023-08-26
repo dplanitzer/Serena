@@ -31,9 +31,6 @@ extern ProcessRef _Nullable Process_GetCurrent(void);
 extern ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_Destroy(ProcessRef _Nullable pProc);
 
-extern Int Process_GetPID(ProcessRef _Nonnull pProc);
-extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
-
 // Triggers the termination of the given process. The termination may be caused
 // voluntarily (some VP currently owned by the process triggers this call) or
 // involuntarily (some other process triggers this call). Note that the actual
@@ -46,8 +43,21 @@ extern void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode);
 // Returns true if the process is marked for termination and false otherwise.
 extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
+
+extern Int Process_GetPID(ProcessRef _Nonnull pProc);
+
+// Loads an executable from the given executable file into the process address
+// space.
+// XXX expects that the address space is empty at call time
+// XXX the executable format is GemDOS
+// XXX the executable file must be loacted at the address 'pExecAddr'
+extern ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr);
+
+extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
+
 // Allocates more (user) address space to the given process.
 extern ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, Int nbytes, Byte* _Nullable * _Nonnull pOutMem);
+
 
 // Adds the given process as a child to the given process. 'pOtherProc' must not
 // already be a child of another process.

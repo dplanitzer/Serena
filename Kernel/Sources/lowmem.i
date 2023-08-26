@@ -88,6 +88,7 @@ EPERM       equ 18
 EDEADLK     equ 19
 EDOM        equ 20
 EILSEQ      equ 21
+ENOEXEC     equ 22
 
 
 ;

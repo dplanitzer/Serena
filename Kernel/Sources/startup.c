@@ -148,7 +148,7 @@ static void OnMain(void)
     //print("_text: %p, _etext: %p, _data: %p, _edata: %p, _bss: %p, _ebss: %p\n\n", &_text, &_etext, &_data, &_edata, &_bss, &_ebss);
     // Create the root process and kick it off running
     try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));
-    Process_DispatchAsyncUser(gRootProcess, (Closure1Arg_Func)0xfe0000);
+    try_bang(Process_Exec(gRootProcess, (Byte*)0xfe0000));
 #else
     // XXX Unit tests
     void DispatchQueue_RunTests(void);

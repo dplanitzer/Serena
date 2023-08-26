@@ -7,6 +7,7 @@
 //
 
 #include "ProcessPriv.h"
+#include "GemDosExecutableLoader.h"
 #include "kalloc.h"
 
 
@@ -74,16 +75,6 @@ void Process_Destroy(ProcessRef _Nullable pProc)
 
         kfree((Byte*) pProc);
     }
-}
-
-Int Process_GetPID(ProcessRef _Nonnull pProc)
-{
-    return pProc->pid;
-}
-
-ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
-{
-    return DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
 }
 
 // Stops the given process and all children, grand-children, etc.
@@ -258,6 +249,44 @@ void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode)
 Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
 {
     return pProc->isTerminating;
+}
+
+Int Process_GetPID(ProcessRef _Nonnull pProc)
+{
+    return pProc->pid;
+}
+
+// Loads an executable from the given executable file into the process address
+// space.
+// XXX expects that the address space is empty at call time
+// XXX the executable format is GemDOS
+// XXX the executable file must be loacted at the address 'pExecAddr'
+ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
+{
+    GemDosExecutableLoader loader;
+    Byte* pEntryPoint = NULL;
+    decl_try_err();
+    
+    Lock_Lock(&pProc->lock);
+
+    GemDosExecutableLoader_Init(&loader, pProc->addressSpace);
+    try(GemDosExecutableLoader_Load(&loader, pExecAddr, &pEntryPoint));
+    GemDosExecutableLoader_Deinit(&loader);
+
+    try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, NULL)));
+
+    Lock_Unlock(&pProc->lock);
+
+    return EOK;
+
+catch:
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
+ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
+{
+    return DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
 }
 
 // Allocates more (user) address space to the given process.

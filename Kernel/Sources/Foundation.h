@@ -13,7 +13,7 @@
 #include <assert.h>
 
 
-#define SIZE_GB(x)  ((Int)(x) * 1024 * 1024 * 1024)
+#define SIZE_GB(x)  ((UInt)(x) * 1024ul * 1024ul * 1024ul)
 #define SIZE_MB(x)  ((Int)(x) * 1024 * 1024)
 #define SIZE_KB(x)  ((Int)(x) * 1024)
 
@@ -74,6 +74,7 @@ typedef Int ErrorCode;
 #define EDEADLK     19
 #define EDOM        20
 #define EILSEQ      21
+#define ENOEXEC     22
 
 
 // Variable argument lists

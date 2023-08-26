@@ -26,7 +26,7 @@ $(KERNEL_TESTS_BUILD_DIR):
 
 $(KERNEL_TESTS_BIN_FILE): $(RUNTIME_LIB_FILE) $(CLIB_LIB_FILE) $(SYSTEM_LIB_FILE) $(KERNEL_TESTS_OBJS)
 	@echo Linking Kernel Tests
-	@$(LD) -s -brawbin1 -T $(KERNEL_TESTS_SOURCES_DIR)/linker.script -o $@ $^
+	@$(LD) -s -bataritos -T $(KERNEL_TESTS_SOURCES_DIR)/linker.script -o $@ $^
 
 
 $(KERNEL_TESTS_BUILD_DIR)/%.o : $(KERNEL_TESTS_SOURCES_DIR)/%.c

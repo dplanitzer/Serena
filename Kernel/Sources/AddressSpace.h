@@ -19,6 +19,8 @@ typedef struct _AddressSpace* AddressSpaceRef;
 extern ErrorCode AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSpace);
 extern void AddressSpace_Destroy(AddressSpaceRef _Nullable pSpace);
 
+extern Bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace);
+
 extern ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, Int nbytes, Byte* _Nullable * _Nonnull pOutMem);
 
 #endif /* AddressSpace_h */

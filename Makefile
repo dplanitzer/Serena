@@ -68,7 +68,7 @@ export KERNEL_TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
 
 ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
 export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/Kernel.bin
-export KERNEL_TESTS_BIN_FILE := $(KERNEL_BUILD_DIR)/KernelTests.bin
+export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/KernelTests.bin
 
 RUNTIME_PROJECT_DIR := $(WORKSPACE_DIR)/Library/CRuntime.framework
 export RUNTIME_HEADERS_DIR := $(RUNTIME_PROJECT_DIR)/Sources

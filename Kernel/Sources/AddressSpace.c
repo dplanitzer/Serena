@@ -65,6 +65,15 @@ void AddressSpace_Destroy(AddressSpaceRef _Nullable pSpace)
     }
 }
 
+Bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
+{
+    Lock_Lock(&pSpace->lock);
+    const Bool isEmpty = SList_IsEmpty(&pSpace->mblocks) || ((MemBlocks*) pSpace->mblocks.first)->count == 0;
+    Lock_Unlock(&pSpace->lock);
+
+    return isEmpty;
+}
+
 ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, Int nbytes, Byte* _Nullable * _Nonnull pOutMem)
 {
     decl_try_err();
@@ -72,12 +81,14 @@ ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, Int nbytes, Byt
     Byte* pMem = NULL;
 
     if (nbytes < 0) {
-        throw(EPARAM);
+        return EPARAM;
     }
     if (nbytes == 0) {
         return EOK;
     }
 
+
+    Lock_Lock(&pSpace->lock);
 
     // We don't need to free the MemBlocks if the allocation of the memory block
     // below fails because we can always keep it around for the next allocation
@@ -99,12 +110,14 @@ ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, Int nbytes, Byt
     // Add the memory block to our list
     pMemBlocks->blocks[pMemBlocks->count++] = pMem;
 
+    Lock_Unlock(&pSpace->lock);
 
     *pOutMem = pMem;
     return EOK;
 
 catch:
     kfree(pMem);
+    Lock_Unlock(&pSpace->lock);
     *pOutMem = NULL;
     return err;
 }
