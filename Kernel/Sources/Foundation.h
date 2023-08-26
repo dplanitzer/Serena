@@ -40,7 +40,7 @@
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
 // 'try' if you are calling a failable function but based on the design of the
 // code the function you call should never fail in actual reality.
-#define try_bang(f)         if ((f) != EOK) { abort(); }
+#define try_bang(f)         { const ErrorCode _err_ = (f);  if (_err_ != EOK) { fatalError(__func__, __LINE__, (Int) _err_); }}
 
 // Set 'err' to the given error and go to the 'catch' label if the given pointer
 // is null. Otherwise fall through to the next statement.

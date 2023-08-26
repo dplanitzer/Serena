@@ -245,7 +245,7 @@ static void stop_machine()
     chipset_stop_quantum_timer();
 }
 
-_Noreturn fatalError(const Character* _Nonnull format, ...)
+_Noreturn fatal(const Character* _Nonnull format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -261,20 +261,26 @@ _Noreturn fatalError(const Character* _Nonnull format, ...)
     while (true);
 }
 
-_Noreturn fatalAbort(const Character* _Nonnull filename, int line)
+_Noreturn fatalError(const Character* _Nonnull filename, Int line, Int err)
 {
     stop_machine();
-    fatalError("Abort: %s:%d", filename, line);
+    fatal("Fatal Error: %d at %s:%d", err, filename, line);
 }
 
-_Noreturn fatalAssert(const Character* _Nonnull filename, int line)
+_Noreturn fatalAbort(const Character* _Nonnull filename, Int line)
 {
     stop_machine();
-    fatalError("Assert: %s:%d", filename, line);
+    fatal("Abort: %s:%d", filename, line);
+}
+
+_Noreturn fatalAssert(const Character* _Nonnull filename, Int line)
+{
+    stop_machine();
+    fatal("Assert: %s:%d", filename, line);
 }
 
 _Noreturn _fatalException(const ExceptionStackFrame* _Nonnull pFrame)
 {
     stop_machine();
-    fatalError("Exception: %hhx, Format %hhx, PC %p, SR %hx", pFrame->fv.vector >> 2, pFrame->fv.format, pFrame->pc, pFrame->sr);
+    fatal("Exception: %hhx, Format %hhx, PC %p, SR %hx", pFrame->fv.vector >> 2, pFrame->fv.format, pFrame->pc, pFrame->sr);
 }
