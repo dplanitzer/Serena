@@ -21,7 +21,8 @@ typedef struct _GemDosExecutableHeader {
     Int32   data_size;
     Int32   bss_size;
     Int32   symbol_table_size;
-    Int32   reserved[2];
+    Int32   reserved;
+    UInt32  flags;
     UInt16  is_absolute;    // == 0 -> relocatable executable
 } GemDosExecutableHeader;
 

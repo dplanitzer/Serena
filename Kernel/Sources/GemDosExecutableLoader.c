@@ -20,38 +20,40 @@ void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader)
     pLoader->addressSpace = NULL;
 }
 
-static ErrorCode GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, Int32* _Nonnull pRelocPtr, Int32 offset)
-{    
-    if (*pRelocPtr == 0) {
+static ErrorCode GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pRelocBase, Byte* pTextBase)
+{
+    Int32 firstRelocOffset = *((UInt32*)pRelocBase);
+
+    if (firstRelocOffset == 0) {
         return EOK;
     }
 
-    Byte* pLocPtr = (Byte*) (offset + *pRelocPtr);
-    //print("reloc: 0x%p\n", pLocPtr);
-
-    *((Int32*) pLocPtr) += offset;
-    UInt8* p = (UInt8*) (pRelocPtr + 1);
+    UInt32 offset = (UInt32)pTextBase;
+    Byte* pLoc = (Byte*) (offset + firstRelocOffset);
+    UInt8* p = (UInt8*) (pRelocBase + sizeof(UInt32));
     Bool done = false;
 
-    while (!done) {
-        const UInt8 b = *p;
+    //print("reloc: 0x%p\n", pLoc);
+    *((UInt32*) pLoc) += offset;
 
-        //if (b != 0) print("reloc: b: %d, l: 0x%p\n", (Int32)b, pLocPtr);
+    while (!done) {
+        const UInt8 b = *p++;
+
+        //if (b != 0) print("reloc: b: %u, l: 0x%p\n", (UInt32)b, pLoc);
         switch (b) {
             case 0:
                 done = true;
                 break;
 
             case 1:
-                pLocPtr += 254;
+                pLoc += 254;
                 break;
 
             default:
-                pLocPtr += b;
-                *((Int32*) pLocPtr) += offset;
+                pLoc += b;
+                *((UInt32*) pLoc) += offset;
                 break;
         }
-        p++;
     }
     
     return EOK;
@@ -68,6 +70,7 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
     //while(true);
     // XXX for now to keep loading simpler
     assert(AddressSpace_IsEmpty(pLoader->addressSpace));
+    assert(pExecHeader->symbol_table_size == 0);
 
 
     // Validate the header (somewhat anyway)
@@ -90,32 +93,32 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
     // Allocate the text, data and BSS segments 
     const Int32 nbytes_to_copy = pExecHeader->text_size + pExecHeader->data_size;
     const Int32 nbytes_to_alloc = nbytes_to_copy + pExecHeader->bss_size;
-    Byte* pBasePtr = NULL;
+    Byte* pTextBase = NULL;
     
-    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pBasePtr));
+    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pTextBase));
 
 
     // Copy the text and data segments
-    Bytes_CopyRange(pBasePtr, pExecAddr + sizeof(GemDosExecutableHeader), nbytes_to_copy);
+    Bytes_CopyRange(pTextBase, pExecAddr + sizeof(GemDosExecutableHeader), nbytes_to_copy);
 
 
     // Initialize the BSS segment
-    Bytes_ClearRange(pBasePtr + nbytes_to_copy, pExecHeader->bss_size);
+    Bytes_ClearRange(pTextBase + nbytes_to_copy, pExecHeader->bss_size);
 
 
     // Relocate the executable
-    Int32* pRelocPtr = (Int32*)(pExecAddr
+    Byte* pRelocBase = pExecAddr
         + sizeof(GemDosExecutableHeader)
         + pExecHeader->text_size
         + pExecHeader->data_size
         + pExecHeader->bss_size
-        + pExecHeader->symbol_table_size);
+        + pExecHeader->symbol_table_size;
 
-    try(GemDosExecutableLoader_RelocExecutable(pLoader, pRelocPtr, (Int32)pBasePtr));
+    try(GemDosExecutableLoader_RelocExecutable(pLoader, pRelocBase, pTextBase));
 
 
     // Calculate the entry point
-    *pEntryPoint = pBasePtr;
+    *pEntryPoint = pTextBase;
 
     return EOK;
 
