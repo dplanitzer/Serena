@@ -32,5 +32,6 @@
 #define EDOM        20
 #define EILSEQ      21
 #define ENOEXEC     22
+#define E2BIG       23
 
 #endif /* _ERRNO_H */

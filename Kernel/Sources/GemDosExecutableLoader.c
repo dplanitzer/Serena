@@ -80,7 +80,7 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
     if (pExecHeader->data_size < 0
         || pExecHeader->bss_size < 0
         || pExecHeader->symbol_table_size < 0) {
-        return EINVAL;
+        return E2BIG;   // these fields are really unsigned
     }
     if (pExecHeader->is_absolute != 0) {
         return EINVAL;
