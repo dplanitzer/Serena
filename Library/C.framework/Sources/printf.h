@@ -28,6 +28,8 @@ extern const char *__lltoa(int64_t val, int base, int fieldWidth, char paddingCh
 extern const char *__ulltoa(uint64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength);
 
 
+// Returns the number of characters written on success and a negative number on
+// failure.
 typedef int (* _Nonnull PrintSink_Func)(void * _Nullable pContext, const char * _Nonnull pString);
 
 extern int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void * _Nullable pContext, const char * _Nonnull format, va_list ap);

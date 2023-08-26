@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <System.h>
 #include "printf.h"
 
@@ -115,64 +116,73 @@ static uint64_t get_promoted_uint_arg(int modifier, va_list * _Nonnull ap)
 typedef struct _CharacterStream {
     PrintSink_Func _Nonnull sinkFunc;
     void* _Nullable         context;
-    size_t                  characterCount;
-    size_t                  characterCapacity;
+    size_t                  charactersWritten;
+    size_t                  bufferCount;
+    size_t                  bufferCapacity;
     char                    buffer[BUFFER_CAPACITY];
 } CharacterStream;
 
 
+// Returns 0 on success and < 0 on failure
 static int __vprintf_flush(CharacterStream* _Nonnull pStream)
 {
-    int nwritten = 0;
-
-    if (pStream->characterCount > 0) {
-        pStream->buffer[pStream->characterCount] = '\0';
-        nwritten = pStream->sinkFunc(pStream->context, pStream->buffer);
-        pStream->characterCount = 0;
+    if (pStream->bufferCount > 0) {
+        pStream->buffer[pStream->bufferCount] = '\0';
+        const int nwritten = pStream->sinkFunc(pStream->context, pStream->buffer);
+        if (nwritten != pStream->bufferCount) {
+            return (nwritten < 0) ? nwritten : -EIO;
+        }
+        pStream->bufferCount = 0;
+        pStream->charactersWritten += nwritten;
     }
-    return nwritten;
+    return 0;
 }
 
+// Returns 0 on success and < 0 on failure
 static int __vprintf_string(CharacterStream* _Nonnull pStream, const char *str)
 {
-    const int nwritten = __vprintf_flush(pStream);
-
-    if (nwritten >= 0) {
-        const int nwritten2 = pStream->sinkFunc(pStream->context, str);
-
-        if (nwritten2 >= 0) {
-            return nwritten + nwritten2;
-        }
+    const int status = __vprintf_flush(pStream);
+    if (status < 0) {
+        return status;
     }
-    return EOF;
+
+    const int len = strlen(str);
+    const int nwritten = pStream->sinkFunc(pStream->context, str);
+    if (nwritten != len) {
+        return (nwritten < 0) ? nwritten : -EIO;
+    }
+
+    return 0;
 }
 
+// Triggers a return on failure
 #define __vprintf_char(ch) \
-    if (s.characterCount == s.characterCapacity) { \
-        __vprintf_flush(&s); \
+    if (s.bufferCount == s.bufferCapacity) { \
+        const int status = __vprintf_flush(&s); \
+        if (status < 0) { return status; } \
     } \
-    s.buffer[s.characterCount++] = ch;
+    s.buffer[s.bufferCount++] = ch;
 
 
-#define __nwritten(f) \
+// Triggers a return on failure
+#define fail_err(f) \
     { \
-        const int nwritten2 = (f); \
-        if (nwritten < 0) { return EOF; } \
-        nwritten += nwritten2; \
+        const int status = (f); \
+        if (status < 0) { return status; } \
     }
 
 
 int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const char* _Nonnull format, va_list ap)
 {
-    size_t parsedLen;
     CharacterStream s;
-    int nwritten = 0;
+    size_t parsedLen;
     bool done = false;
     
     s.sinkFunc = pSinkFunc;
     s.context = pContext;
-    s.characterCapacity = BUFFER_CAPACITY - 1;   // reserve the last character for the '\0' (end of string marker)
-    s.characterCount = 0;
+    s.charactersWritten = 0;
+    s.bufferCapacity = BUFFER_CAPACITY - 1;   // reserve the last character for the '\0' (end of string marker)
+    s.bufferCount = 0;
 
     while (!done) {
         char ch = *format++;
@@ -212,32 +222,32 @@ int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const
                         break;
                         
                     case 's':
-                        __nwritten(__vprintf_string(&s, va_arg(ap, const char*)));
+                        fail_err(__vprintf_string(&s, va_arg(ap, const char*)));
                         break;
                         
                     case 'b':
-                        __nwritten(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 2, gFieldWidth_Bin[modifier], paddingChar, s.buffer, BUFFER_CAPACITY)));
+                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 2, gFieldWidth_Bin[modifier], paddingChar, s.buffer, s.bufferCapacity)));
                         break;
                         
                     case 'o':
-                        __nwritten(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 8, gFieldWidth_Oct[modifier], paddingChar, s.buffer, BUFFER_CAPACITY)));
+                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 8, gFieldWidth_Oct[modifier], paddingChar, s.buffer, s.bufferCapacity)));
                         break;
                         
                     case 'u':
-                        __nwritten(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, s.buffer, BUFFER_CAPACITY)));
+                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, s.buffer, s.bufferCapacity)));
                         break;
                         
                     case 'd':
                     case 'i':
-                        __nwritten(__vprintf_string(&s, __lltoa(get_promoted_int_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, s.buffer, BUFFER_CAPACITY)));
+                        fail_err(__vprintf_string(&s, __lltoa(get_promoted_int_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, s.buffer, s.bufferCapacity)));
                         break;
                         
                     case 'x':
-                        __nwritten(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 16, gFieldWidth_Hex[modifier], paddingChar, s.buffer, BUFFER_CAPACITY)));
+                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 16, gFieldWidth_Hex[modifier], paddingChar, s.buffer, s.bufferCapacity)));
                         break;
 
                     case 'p':
-                        __nwritten(__vprintf_string(&s, __ulltoa(va_arg(ap, uint32_t), 16, 8, '0', s.buffer, BUFFER_CAPACITY)));
+                        fail_err(__vprintf_string(&s, __ulltoa(va_arg(ap, uint32_t), 16, 8, '0', s.buffer, s.bufferCapacity)));
                         break;
 
                     default:
@@ -253,9 +263,9 @@ int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const
         }
     }
 
-    __nwritten(__vprintf_flush(&s));
+    fail_err(__vprintf_flush(&s));
 
-    return nwritten;
+    return s.charactersWritten;
 }
 
 
