@@ -68,7 +68,6 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
     //while(true);
     // XXX for now to keep loading simpler
     assert(AddressSpace_IsEmpty(pLoader->addressSpace));
-    assert(pExecHeader->symbol_table_size == 0);
 
 
     // Validate the header (somewhat anyway)
