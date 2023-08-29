@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 #include <System.h>
 #include "printf.h"
 
@@ -116,50 +117,44 @@ static uint64_t get_promoted_uint_arg(int modifier, va_list * _Nonnull ap)
 typedef struct _CharacterStream {
     PrintSink_Func _Nonnull sinkFunc;
     void* _Nullable         context;
-    size_t                  charactersWritten;
     size_t                  bufferCount;
     size_t                  bufferCapacity;
     char                    buffer[BUFFER_CAPACITY];
 } CharacterStream;
 
 
-// Returns 0 on success and < 0 on failure
-static int __vprintf_flush(CharacterStream* _Nonnull pStream)
+static errno_t __vprintf_flush(CharacterStream* _Nonnull pStream)
 {
+    errno_t err = EOK;
+
     if (pStream->bufferCount > 0) {
         pStream->buffer[pStream->bufferCount] = '\0';
-        const int nwritten = pStream->sinkFunc(pStream->context, pStream->buffer, pStream->bufferCount);
-        if (nwritten != pStream->bufferCount) {
-            return (nwritten < 0) ? nwritten : -EIO;
-        }
+        err = pStream->sinkFunc(pStream->context, pStream->buffer, pStream->bufferCount);
         pStream->bufferCount = 0;
-        pStream->charactersWritten += nwritten;
     }
-    return 0;
+    return err;
 }
 
-// Returns 0 on success and < 0 on failure
-static int __vprintf_string(CharacterStream* _Nonnull pStream, const char *str)
+static errno_t __vprintf_string(CharacterStream* _Nonnull pStream, const char *str)
 {
-    const int status = __vprintf_flush(pStream);
-    if (status < 0) {
-        return status;
+    errno_t err = __vprintf_flush(pStream);
+
+    if (err == EOK) {
+        const size_t len = strlen(str);
+
+        if (len > 0) {
+            err = pStream->sinkFunc(pStream->context, str, len);
+        }
     }
 
-    const int len = (int)strlen(str);
-    const int nwritten = pStream->sinkFunc(pStream->context, str, len);
-    if (nwritten != len) {
-        return (nwritten < 0) ? nwritten : -EIO;
-    }
-
-    return 0;
+    return err;
 }
 
 // Triggers a return on failure
 #define __vprintf_char(ch) \
     if (s.bufferCount == s.bufferCapacity) { \
-        const int status = __vprintf_flush(&s); \
-        if (status < 0) { return status; } \
+        const errno_t err = __vprintf_flush(&s); \
+        if (err != EOK) { return err; } \
     } \
     s.buffer[s.bufferCount++] = ch;
 
@@ -167,12 +162,12 @@ static int __vprintf_string(CharacterStream* _Nonnull pStream, const char *str)
 // Triggers a return on failure
 #define fail_err(f) \
     { \
-        const int status = (f); \
-        if (status < 0) { return status; } \
+        const errno_t err = (f); \
+        if (err != EOK) { return err; } \
     }
 
 
-int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const char* _Nonnull format, va_list ap)
+errno_t __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const char* _Nonnull format, va_list ap)
 {
     CharacterStream s;
     size_t parsedLen;
@@ -180,7 +175,6 @@ int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const
     
     s.sinkFunc = pSinkFunc;
     s.context = pContext;
-    s.charactersWritten = 0;
     s.bufferCapacity = BUFFER_CAPACITY - 1;   // reserve the last character for the '\0' (end of string marker)
     s.bufferCount = 0;
 
@@ -218,7 +212,7 @@ int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const
                         break;
                         
                     case 'c':
-                        __vprintf_char(va_arg(ap, int));
+                        __vprintf_char((unsigned char) va_arg(ap, int));
                         break;
                         
                     case 's':
@@ -247,7 +241,7 @@ int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const
                         break;
 
                     case 'p':
-                        fail_err(__vprintf_string(&s, __ulltoa(va_arg(ap, uint32_t), 16, 8, '0', s.buffer, s.bufferCapacity)));
+                        fail_err(__vprintf_string(&s, __ulltoa(va_arg(ap, uintptr_t), 16, 8, '0', s.buffer, s.bufferCapacity)));
                         break;
 
                     default:
@@ -265,12 +259,15 @@ int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const
 
     fail_err(__vprintf_flush(&s));
 
-    return s.charactersWritten;
+    return EOK;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+typedef struct _ConsoleSink {
+    size_t  charactersWritten;
+} ConsoleSink;
 
 int printf(const char *format, ...)
 {
@@ -284,12 +281,106 @@ int printf(const char *format, ...)
 
 static int vprintf_console_sink(void* _Nullable pContext, const char* _Nonnull pBuffer, size_t nBytes)
 {
+    ConsoleSink* pSink = (ConsoleSink*)pContext;
     const int err = __write(pBuffer);
-
-    return (err == 0) ? nBytes : -err;
+    
+    if (err == EOK) {
+        pSink->charactersWritten += nBytes;
+    }
+    return err;
 }
 
 int vprintf(const char *format, va_list ap)
 {
-    return __vprintf(vprintf_console_sink, NULL, format, ap);
+    ConsoleSink sink;
+
+    sink.charactersWritten = 0;
+    const errno_t err = __vprintf(vprintf_console_sink, &sink, format, ap);
+    return (err == EOK) ? sink.charactersWritten : -err;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+typedef struct _BufferSink {
+    char* _Nullable buffer;
+    size_t          charactersWritten;
+    size_t          maxCharactersToWrite;
+} BufferSink;
+
+// Note that this sink continues to calculate the number of characters we would
+// want to write even after we've reached the maximum size of the string buffer.
+// See: <https://en.cppreference.com/w/c/io/fprintf>
+static int vprintf_buffer_sink(void* _Nullable pContext, const char* _Nonnull pBuffer, size_t nBytes)
+{
+    BufferSink* pSink = (BufferSink*)pContext;
+
+    if (pSink->maxCharactersToWrite > 0 && pSink->buffer) {
+        size_t nBytesToWrite;
+
+        if (pSink->charactersWritten + nBytes > pSink->maxCharactersToWrite) {
+            const size_t nExcessBytes = (pSink->charactersWritten + nBytes) - pSink->maxCharactersToWrite;
+            nBytesToWrite = nBytes - nExcessBytes;
+        }
+        else {
+            nBytesToWrite = nBytes;
+        }
+
+        memcpy(&pSink->buffer[pSink->charactersWritten], pBuffer, nBytesToWrite);
+    }
+    pSink->charactersWritten += nBytes;
+
+    return EOK;
+}
+
+int sprintf(char *buffer, const char *format, ...)
+{
+    va_list ap;
+    
+    va_start(ap, format);
+    const int r = vsprintf(buffer, format, ap);
+    va_end(ap);
+    return r;
+}
+
+int vsprintf(char *buffer, const char *format, va_list ap)
+{
+    BufferSink sink;
+
+    sink.buffer = buffer;
+    sink.charactersWritten = 0;
+    sink.maxCharactersToWrite = (buffer) ? SIZE_MAX : 0;
+    const errno_t err = __vprintf(vprintf_buffer_sink, &sink, format, ap);
+    if (err == EOK) {
+        buffer[sink.charactersWritten] = '\0';
+        return sink.charactersWritten;
+     } else { 
+        return -err;
+     }
+}
+
+int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
+{
+    va_list ap;
+    
+    va_start(ap, format);
+    const int r = vsnprintf(buffer, bufsiz, format, ap);
+    va_end(ap);
+    return r;
+}
+
+int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
+{
+    BufferSink sink;
+
+    sink.buffer = buffer;
+    sink.charactersWritten = 0;
+    sink.maxCharactersToWrite = (buffer && bufsiz > 0) ? bufsiz - 1 : 0;
+    const errno_t err = __vprintf(vprintf_buffer_sink, &sink, format, ap);
+    if (err == EOK) {
+        buffer[sink.charactersWritten] = '\0';
+        return sink.charactersWritten;
+     } else { 
+        return -err;
+     }
 }

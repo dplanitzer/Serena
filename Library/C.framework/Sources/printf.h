@@ -24,15 +24,16 @@
 #endif
 #endif
 
+typedef int errno_t;
+
 extern const char *__lltoa(int64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength);
 extern const char *__ulltoa(uint64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength);
 
 
-// Writes 'nbytes' bytes from 'pBuffer' to the sink.
-// Returns the number of characters written on success and a negative number on
-// failure.
-typedef int (* _Nonnull PrintSink_Func)(void * _Nullable pContext, const char * _Nonnull pBuffer, size_t nBytes);
+// Writes 'nbytes' bytes from 'pBuffer' to the sink. Returns one of the EXX
+// constants.
+typedef errno_t (* _Nonnull PrintSink_Func)(void * _Nullable pContext, const char * _Nonnull pBuffer, size_t nBytes);
 
-extern int __vprintf(PrintSink_Func _Nonnull pSinkFunc, void * _Nullable pContext, const char * _Nonnull format, va_list ap);
+extern errno_t __vprintf(PrintSink_Func _Nonnull pSinkFunc, void * _Nullable pContext, const char * _Nonnull format, va_list ap);
 
 #endif /* _PRINTF_H */
