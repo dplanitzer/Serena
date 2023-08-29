@@ -10,6 +10,7 @@
 #define _PRINTF_H 1
 
 #include <stdarg.h>
+#include <stddef.h>
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -30,10 +31,26 @@ extern const char *__lltoa(int64_t val, int base, int fieldWidth, char paddingCh
 extern const char *__ulltoa(uint64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength);
 
 
+struct _CharacterStream;
+typedef struct _CharacterStream CharacterStream;
+
 // Writes 'nbytes' bytes from 'pBuffer' to the sink. Returns one of the EXX
 // constants.
-typedef errno_t (* _Nonnull PrintSink_Func)(void * _Nullable pContext, const char * _Nonnull pBuffer, size_t nBytes);
+typedef errno_t (* _Nonnull PrintSink_Func)(CharacterStream* _Nonnull pStream, const char * _Nonnull pBuffer, size_t nBytes);
 
-extern errno_t __vprintf(PrintSink_Func _Nonnull pSinkFunc, void * _Nullable pContext, const char * _Nonnull format, va_list ap);
+
+#define STREAM_BUFFER_CAPACITY 64
+struct _CharacterStream {
+    PrintSink_Func _Nonnull sinkFunc;
+    void* _Nullable         context;
+    size_t                  charactersWritten;
+    size_t                  bufferCount;
+    size_t                  bufferCapacity;
+    char                    buffer[STREAM_BUFFER_CAPACITY];
+};
+
+
+extern void __vprintf_init(CharacterStream* _Nonnull pStream, PrintSink_Func _Nonnull pSinkFunc, void * _Nullable pContext);
+extern errno_t __vprintf(CharacterStream* _Nonnull pStream, const char * _Nonnull format, va_list ap);
 
 #endif /* _PRINTF_H */

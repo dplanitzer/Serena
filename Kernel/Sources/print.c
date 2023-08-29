@@ -181,7 +181,7 @@ void _printv(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, Charac
                         break;
                         
                     case 'c':
-                        _printv_char(va_arg(ap, int));
+                        _printv_char((Character) va_arg(ap, int));
                         break;
                         
                     case 's':

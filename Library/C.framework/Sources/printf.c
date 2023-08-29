@@ -17,17 +17,18 @@
 #include "printf.h"
 
 
-// 8bit 16bit, 32bit, 64bit
-static const int8_t gFieldWidth_Bin[4] = {8, 16, 32, 64};
-static const int8_t gFieldWidth_Oct[4] = {3,  6, 11, 22};
-static const int8_t gFieldWidth_Dec[4] = {3,  5, 10, 20};
-static const int8_t gFieldWidth_Hex[4] = {2,  4,  8, 16};
-
-
 #define FORMAT_MODIFIER_HALF_HALF   0
 #define FORMAT_MODIFIER_HALF        1
 #define FORMAT_MODIFIER_LONG        2
 #define FORMAT_MODIFIER_LONG_LONG   3
+#define FORMAT_MODIFIER_COUNT       4
+
+
+// 8bit 16bit, 32bit, 64bit
+static const int8_t gFieldWidth_Bin[FORMAT_MODIFIER_COUNT] = {8, 16, 32, 64};
+static const int8_t gFieldWidth_Oct[FORMAT_MODIFIER_COUNT] = {3,  6, 11, 22};
+static const int8_t gFieldWidth_Dec[FORMAT_MODIFIER_COUNT] = {3,  5, 10, 20};
+static const int8_t gFieldWidth_Hex[FORMAT_MODIFIER_COUNT] = {2,  4,  8, 16};
 
 
 static char parse_padding_char(const char *format, size_t * _Nonnull parsed_len)
@@ -65,12 +66,30 @@ static int parse_format_modifier(const char *format, size_t * _Nonnull parsed_le
             mod = FORMAT_MODIFIER_HALF;
             *parsed_len = 1;
         }
+    } else if (format[i] == 'j') {
+        // intmax_t, uintmax_t
+        mod = FORMAT_MODIFIER_LONG_LONG;
+        *parsed_len = 1;
+    } else if (format[i] == 'z') {
+        // ssize_t, size_t
+        mod = FORMAT_MODIFIER_LONG_LONG;
+        *parsed_len = 1;
+    } else if (format[i] == 't') {
+        // ptrdiff_t
+#ifdef __LP32__
+        mod = FORMAT_MODIFIER_LONG;
+#elif __LP64__
+        mod = FORMAT_MODIFIER_LONG_LONG;
+#else
+#error "unknown __LPxx__"
+#endif
+        *parsed_len = 1;
     }
     
     return mod;
 }
 
-static int64_t get_promoted_int_arg(int modifier, va_list * _Nonnull ap)
+static int64_t get_arg_as_int64(int modifier, va_list * _Nonnull ap)
 {
     switch (modifier) {
         case FORMAT_MODIFIER_LONG_LONG:
@@ -91,7 +110,7 @@ static int64_t get_promoted_int_arg(int modifier, va_list * _Nonnull ap)
     }
 }
 
-static uint64_t get_promoted_uint_arg(int modifier, va_list * _Nonnull ap)
+static uint64_t get_arg_as_uint64(int modifier, va_list * _Nonnull ap)
 {
     switch (modifier) {
         case FORMAT_MODIFIER_LONG_LONG:
@@ -113,15 +132,14 @@ static uint64_t get_promoted_uint_arg(int modifier, va_list * _Nonnull ap)
 }
 
 
-#define BUFFER_CAPACITY 64
-typedef struct _CharacterStream {
-    PrintSink_Func _Nonnull sinkFunc;
-    void* _Nullable         context;
-    size_t                  bufferCount;
-    size_t                  bufferCapacity;
-    char                    buffer[BUFFER_CAPACITY];
-} CharacterStream;
-
+void __vprintf_init(CharacterStream* _Nonnull pStream, PrintSink_Func _Nonnull pSinkFunc, void * _Nullable pContext)
+{
+    pStream->sinkFunc = pSinkFunc;
+    pStream->context = pContext;
+    pStream->charactersWritten = 0;
+    pStream->bufferCapacity = STREAM_BUFFER_CAPACITY - 1;   // reserve the last character for the '\0' (end of string marker)
+    pStream->bufferCount = 0;
+}
 
 static errno_t __vprintf_flush(CharacterStream* _Nonnull pStream)
 {
@@ -129,7 +147,8 @@ static errno_t __vprintf_flush(CharacterStream* _Nonnull pStream)
 
     if (pStream->bufferCount > 0) {
         pStream->buffer[pStream->bufferCount] = '\0';
-        err = pStream->sinkFunc(pStream->context, pStream->buffer, pStream->bufferCount);
+        err = pStream->sinkFunc(pStream, pStream->buffer, pStream->bufferCount);
+        if (err == EOK) pStream->charactersWritten += pStream->bufferCount;
         pStream->bufferCount = 0;
     }
     return err;
@@ -143,7 +162,8 @@ static errno_t __vprintf_string(CharacterStream* _Nonnull pStream, const char *s
         const size_t len = strlen(str);
 
         if (len > 0) {
-            err = pStream->sinkFunc(pStream->context, str, len);
+            err = pStream->sinkFunc(pStream, str, len);
+            if (err == EOK) pStream->charactersWritten += len;
         }
     }
 
@@ -151,12 +171,12 @@ static errno_t __vprintf_string(CharacterStream* _Nonnull pStream, const char *s
 }
 
 // Triggers a return on failure
-#define __vprintf_char(ch) \
-    if (s.bufferCount == s.bufferCapacity) { \
-        const errno_t err = __vprintf_flush(&s); \
+#define __vprintf_char(__p, __ch) \
+    if (__p->bufferCount == __p->bufferCapacity) { \
+        const errno_t err = __vprintf_flush(__p); \
         if (err != EOK) { return err; } \
     } \
-    s.buffer[s.bufferCount++] = ch;
+    __p->buffer[__p->bufferCount++] = __ch;
 
 
 // Triggers a return on failure
@@ -167,17 +187,11 @@ static errno_t __vprintf_string(CharacterStream* _Nonnull pStream, const char *s
     }
 
 
-errno_t __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, const char* _Nonnull format, va_list ap)
+errno_t __vprintf(CharacterStream* _Nonnull pStream, const char* _Nonnull format, va_list ap)
 {
-    CharacterStream s;
     size_t parsedLen;
     bool done = false;
     
-    s.sinkFunc = pSinkFunc;
-    s.context = pContext;
-    s.bufferCapacity = BUFFER_CAPACITY - 1;   // reserve the last character for the '\0' (end of string marker)
-    s.bufferCount = 0;
-
     while (!done) {
         char ch = *format++;
         
@@ -194,7 +208,7 @@ errno_t __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, c
                         break;
                         
                     default:
-                        __vprintf_char(ch);
+                        __vprintf_char(pStream, ch);
                         break;
                 }
                 break;
@@ -212,62 +226,58 @@ errno_t __vprintf(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, c
                         break;
                         
                     case 'c':
-                        __vprintf_char((unsigned char) va_arg(ap, int));
+                        __vprintf_char(pStream, (unsigned char) va_arg(ap, int));
                         break;
                         
                     case 's':
-                        fail_err(__vprintf_string(&s, va_arg(ap, const char*)));
+                        fail_err(__vprintf_string(pStream, va_arg(ap, const char*)));
                         break;
                         
                     case 'b':
-                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 2, gFieldWidth_Bin[modifier], paddingChar, s.buffer, s.bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 2, gFieldWidth_Bin[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
                         
                     case 'o':
-                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 8, gFieldWidth_Oct[modifier], paddingChar, s.buffer, s.bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 8, gFieldWidth_Oct[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
                         
                     case 'u':
-                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, s.buffer, s.bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
                         
                     case 'd':
                     case 'i':
-                        fail_err(__vprintf_string(&s, __lltoa(get_promoted_int_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, s.buffer, s.bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __lltoa(get_arg_as_int64(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
                         
                     case 'x':
-                        fail_err(__vprintf_string(&s, __ulltoa(get_promoted_uint_arg(modifier, &ap), 16, gFieldWidth_Hex[modifier], paddingChar, s.buffer, s.bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 16, gFieldWidth_Hex[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
 
                     case 'p':
-                        fail_err(__vprintf_string(&s, __ulltoa(va_arg(ap, uintptr_t), 16, 8, '0', s.buffer, s.bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(va_arg(ap, uintptr_t), 16, 8, '0', pStream->buffer, pStream->bufferCapacity)));
                         break;
 
                     default:
-                        __vprintf_char(ch);
+                        __vprintf_char(pStream, ch);
                         break;
                 }
                 break;
             }
                 
             default:
-                __vprintf_char(ch);
+                __vprintf_char(pStream, ch);
                 break;
         }
     }
 
-    fail_err(__vprintf_flush(&s));
+    fail_err(__vprintf_flush(pStream));
 
     return EOK;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
-typedef struct _ConsoleSink {
-    size_t  charactersWritten;
-} ConsoleSink;
 
 int printf(const char *format, ...)
 {
@@ -279,24 +289,18 @@ int printf(const char *format, ...)
     return r;
 }
 
-static int vprintf_console_sink(void* _Nullable pContext, const char* _Nonnull pBuffer, size_t nBytes)
+static int vprintf_console_sink(CharacterStream* _Nullable pStream, const char* _Nonnull pBuffer, size_t nBytes)
 {
-    ConsoleSink* pSink = (ConsoleSink*)pContext;
-    const int err = __write(pBuffer);
-    
-    if (err == EOK) {
-        pSink->charactersWritten += nBytes;
-    }
-    return err;
+    return __write(pBuffer);
 }
 
 int vprintf(const char *format, va_list ap)
 {
-    ConsoleSink sink;
+    CharacterStream stream;
 
-    sink.charactersWritten = 0;
-    const errno_t err = __vprintf(vprintf_console_sink, &sink, format, ap);
-    return (err == EOK) ? sink.charactersWritten : -err;
+    __vprintf_init(&stream, vprintf_console_sink, NULL);
+    const errno_t err = __vprintf(&stream, format, ap);
+    return (err == EOK) ? stream.charactersWritten : -err;
 }
 
 
@@ -304,31 +308,29 @@ int vprintf(const char *format, va_list ap)
 
 typedef struct _BufferSink {
     char* _Nullable buffer;
-    size_t          charactersWritten;
     size_t          maxCharactersToWrite;
 } BufferSink;
 
 // Note that this sink continues to calculate the number of characters we would
 // want to write even after we've reached the maximum size of the string buffer.
 // See: <https://en.cppreference.com/w/c/io/fprintf>
-static int vprintf_buffer_sink(void* _Nullable pContext, const char* _Nonnull pBuffer, size_t nBytes)
+static int vprintf_buffer_sink(CharacterStream* _Nonnull pStream, const char* _Nonnull pBuffer, size_t nBytes)
 {
-    BufferSink* pSink = (BufferSink*)pContext;
+    BufferSink* pSink = (BufferSink*)pStream->context;
 
     if (pSink->maxCharactersToWrite > 0 && pSink->buffer) {
         size_t nBytesToWrite;
 
-        if (pSink->charactersWritten + nBytes > pSink->maxCharactersToWrite) {
-            const size_t nExcessBytes = (pSink->charactersWritten + nBytes) - pSink->maxCharactersToWrite;
+        if (pStream->charactersWritten + nBytes > pSink->maxCharactersToWrite) {
+            const size_t nExcessBytes = (pStream->charactersWritten + nBytes) - pSink->maxCharactersToWrite;
             nBytesToWrite = nBytes - nExcessBytes;
         }
         else {
             nBytesToWrite = nBytes;
         }
 
-        memcpy(&pSink->buffer[pSink->charactersWritten], pBuffer, nBytesToWrite);
+        memcpy(&pSink->buffer[pStream->charactersWritten], pBuffer, nBytesToWrite);
     }
-    pSink->charactersWritten += nBytes;
 
     return EOK;
 }
@@ -345,15 +347,16 @@ int sprintf(char *buffer, const char *format, ...)
 
 int vsprintf(char *buffer, const char *format, va_list ap)
 {
+    CharacterStream stream;
     BufferSink sink;
 
     sink.buffer = buffer;
-    sink.charactersWritten = 0;
     sink.maxCharactersToWrite = (buffer) ? SIZE_MAX : 0;
-    const errno_t err = __vprintf(vprintf_buffer_sink, &sink, format, ap);
+    __vprintf_init(&stream, vprintf_buffer_sink, &sink);
+    const errno_t err = __vprintf(&stream, format, ap);
     if (err == EOK) {
-        buffer[sink.charactersWritten] = '\0';
-        return sink.charactersWritten;
+        buffer[stream.charactersWritten] = '\0';
+        return stream.charactersWritten;
      } else { 
         return -err;
      }
@@ -371,15 +374,16 @@ int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
 
 int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 {
+    CharacterStream stream;
     BufferSink sink;
 
     sink.buffer = buffer;
-    sink.charactersWritten = 0;
     sink.maxCharactersToWrite = (buffer && bufsiz > 0) ? bufsiz - 1 : 0;
-    const errno_t err = __vprintf(vprintf_buffer_sink, &sink, format, ap);
+    __vprintf_init(&stream, vprintf_buffer_sink, &sink);
+    const errno_t err = __vprintf(&stream, format, ap);
     if (err == EOK) {
-        buffer[sink.charactersWritten] = '\0';
-        return sink.charactersWritten;
+        buffer[stream.charactersWritten] = '\0';
+        return stream.charactersWritten;
      } else { 
         return -err;
      }
