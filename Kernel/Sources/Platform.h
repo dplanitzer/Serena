@@ -21,7 +21,7 @@
 
 #if __LP64__
 #define STACK_ALIGNMENT  16
-#elif __LP32__
+#elif __ILP32__
 #define STACK_ALIGNMENT  4
 #else
 #error "don't know how to align stack pointers"

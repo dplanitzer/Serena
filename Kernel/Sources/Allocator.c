@@ -14,7 +14,7 @@
 
 #if __LP64__
 #define HEAP_ALIGNMENT  16
-#elif __LP32__
+#elif __ILP32__
 #define HEAP_ALIGNMENT  8
 #else
 #error "don't know how to align heap blocks"

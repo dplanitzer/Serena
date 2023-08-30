@@ -9,42 +9,21 @@
 #ifndef _STDINT_H
 #define _STDINT_H 1
 
-typedef signed char         int8_t;
-typedef signed short        int16_t;
-typedef signed int          int32_t;
-typedef signed long long    int64_t;
-
-typedef signed short        int_fast8_t;
-typedef signed short        int_fast16_t;
-typedef signed int          int_fast32_t;
-typedef signed long long    int_fast64_t;
-
-typedef signed char         int_least8_t;
-typedef signed short        int_least16_t;
-typedef signed int          int_least32_t;
-typedef signed long long    int_least64_t;
-
-typedef int64_t intmax_t;
-typedef int32_t intptr_t;
-
-
-typedef unsigned char       uint8_t;
-typedef unsigned short      uint16_t;
-typedef unsigned int        uint32_t;
-typedef unsigned long long  uint64_t;
-
-typedef unsigned short      uint_fast8_t;
-typedef unsigned short      uint_fast16_t;
-typedef unsigned int        uint_fast32_t;
-typedef unsigned long long  uint_fast64_t;
-
-typedef unsigned char       uint_least8_t;
-typedef unsigned short      uint_least16_t;
-typedef unsigned int        uint_least32_t;
-typedef unsigned long long  uint_least64_t;
-
-typedef uint64_t uintmax_t;
-typedef uint32_t uintptr_t;
+// Supported data models:
+// ILP32 (4/4/4): int, long and pointers are 32bit wide
+// LP64  (4/8/8): int is 32bit wide, long and pointers are 64bit wide
+// See: <https://en.cppreference.com/w/c/language/arithmetic_types>
+#ifdef __ILP32__
+#define __INT_WIDTH     32
+#define __LONG_WIDTH    32
+#define __PTR_WIDTH     32
+#elif __LP64__
+#define __INT_WIDTH     32
+#define __LONG_WIDTH    64
+#define __PTR_WIDTH     64
+#else
+#error "unknown data model"
+#endif
 
 
 #define INT8_WIDTH 8
@@ -135,22 +114,88 @@ typedef uint32_t uintptr_t;
 #define UINT_LEAST32_MAX UINT32_MAX
 #define UINT_LEAST64_MAX UINT64_MAX
 
-#define UINTMAX_MAX UINT64_MAX
-#define UINTPTR_MAX UINT32_MAX
+#define UINTMAX_MAX INTMAX_MAX
+#define UINTPTR_MAX INTPTR_MAX
 
 
 #define INT8_C(val) ((int_least8_t)(val))
 #define INT16_C(val) ((int_least16_t)(val))
-#define INT32_C(val) ((int_least32_t)(val))
-#define INT64_C(val) ((int_least64_t)(val))
+#define INT32_C(val) ((int_least32_t)(val)l)
+#define INT64_C(val) ((int_least64_t)(val)ll)
 
-#define INTMAX_C(val) ((intmax_t)(val))
+#define INTMAX_C(val) ((intmax_t)(val)ll)
 
-#define UINT8_C(val) ((uint_least8_t)(val))
-#define UINT16_C(val) ((uint_least16_t)(val))
-#define UINT32_C(val) ((uint_least32_t)(val))
-#define UINT64_C(val) ((uint_least64_t)(val))
+#define UINT8_C(val) ((uint_least8_t)(val)u)
+#define UINT16_C(val) ((uint_least16_t)(val)u)
+#define UINT32_C(val) ((uint_least32_t)(val)ul)
+#define UINT64_C(val) ((uint_least64_t)(val)ull)
 
-#define UINTMAX_C(val) ((uintmax_t)(val))
+#define UINTMAX_C(val) ((uintmax_t)(val)ull)
+
+
+typedef signed char         int8_t;
+typedef signed short        int16_t;
+typedef signed int          int32_t;
+typedef signed long long    int64_t;
+
+typedef signed short        int_fast8_t;
+typedef signed short        int_fast16_t;
+typedef signed int          int_fast32_t;
+typedef signed long long    int_fast64_t;
+
+typedef signed char         int_least8_t;
+typedef signed short        int_least16_t;
+typedef signed int          int_least32_t;
+typedef signed long long    int_least64_t;
+
+
+#if INTMAX_WIDTH == 32
+typedef int32_t intmax_t
+#elif INTMAX_WIDTH == 64
+typedef int64_t intmax_t;
+#else
+#error "unknown INTMAX_WIDTH"
+#endif
+
+#if UINTPTR_WIDTH == 32
+typedef int32_t intptr_t;
+#elif UINTPTR_WIDTH == 64
+typedef int64_t intptr_t;
+#else
+#error "unknown UINTPTR_WIDTH"
+#endif
+
+
+typedef unsigned char       uint8_t;
+typedef unsigned short      uint16_t;
+typedef unsigned int        uint32_t;
+typedef unsigned long long  uint64_t;
+
+typedef unsigned short      uint_fast8_t;
+typedef unsigned short      uint_fast16_t;
+typedef unsigned int        uint_fast32_t;
+typedef unsigned long long  uint_fast64_t;
+
+typedef unsigned char       uint_least8_t;
+typedef unsigned short      uint_least16_t;
+typedef unsigned int        uint_least32_t;
+typedef unsigned long long  uint_least64_t;
+
+
+#if UINTMAX_WIDTH == 32
+typedef uint32_t uintmax_t
+#elif UINTMAX_WIDTH == 64
+typedef uint64_t uintmax_t;
+#else
+#error "unknown UINTMAX_WIDTH"
+#endif
+
+#if UINTPTR_WIDTH == 32
+typedef uint32_t uintptr_t;
+#elif UINTPTR_WIDTH == 64
+typedef uint64_t uintptr_t;
+#else
+#error "unknown UINTPTR_WIDTH"
+#endif
 
 #endif /* _STDINT_H */

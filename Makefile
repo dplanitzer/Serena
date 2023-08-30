@@ -27,7 +27,7 @@ endif
 export CC_OPT_SETTING
 export CC_GENERATE_DEBUG_INFO
 
-export CC_PREPROCESSOR_DEFINITIONS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__LP32__=1 -DTARGET_CPU_68030=1
+export CC_PREPROCESSOR_DEFINITIONS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__ILP32__=1 -DTARGET_CPU_68030=1
 
 
 # --------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 #define _PRINTF_H 1
 
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifndef __has_feature
@@ -27,8 +28,8 @@
 
 typedef int errno_t;
 
-extern const char *__lltoa(int64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength);
-extern const char *__ulltoa(uint64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength);
+extern const char* _Nonnull __lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);
+extern const char* _Nonnull __ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);
 
 
 struct _CharacterStream;
@@ -50,7 +51,7 @@ struct _CharacterStream {
 };
 
 
-extern void __vprintf_init(CharacterStream* _Nonnull pStream, PrintSink_Func _Nonnull pSinkFunc, void * _Nullable pContext);
-extern errno_t __vprintf(CharacterStream* _Nonnull pStream, const char * _Nonnull format, va_list ap);
+extern void __vprintf_init(CharacterStream* _Nonnull pStream, PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext);
+extern errno_t __vprintf(CharacterStream* _Nonnull pStream, const char* _Nonnull format, va_list ap);
 
 #endif /* _PRINTF_H */

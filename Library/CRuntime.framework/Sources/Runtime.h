@@ -71,7 +71,7 @@ typedef unsigned long long  UInt64;
 #if __LP64__
 typedef Int64               Int;
 typedef UInt64              UInt;
-#elif __LP32__
+#elif __ILP32__
 typedef Int32               Int;
 typedef UInt32              UInt;
 #else
@@ -112,7 +112,7 @@ typedef char                Character;
 #define INT_MAX     INT64_MAX
 #define UINT_MIN    UINT64_MIN
 #define UINT_MAX    UINT64_MAX
-#elif __LP32__
+#elif __ILP32__
 #define INT_MIN     INT32_MIN
 #define INT_MAX     INT32_MAX
 #define UINT_MIN    UINT32_MIN
@@ -124,7 +124,7 @@ typedef char                Character;
 #if __LP64__
 #define BYTE_PTR_MIN    ((Byte*)0LL)
 #define BYTE_PTR_MAX    ((Byte*)0xffffffffffffffffLL)
-#elif __LP32__
+#elif __ILP32__
 #define BYTE_PTR_MIN    ((Byte*)0L)
 #define BYTE_PTR_MAX    ((Byte*)0xffffffffL)
 #else
@@ -142,14 +142,14 @@ typedef char                Character;
 
 #if __LP64__
 #define align_up_byte_ptr(x, a)     (Byte*)(__ROUND_UP_TO_POWER_OF_2((UInt64)(x), (UInt64)(a) - 1))
-#elif __LP32__
+#elif __ILP32__
 #define align_up_byte_ptr(x, a)     (Byte*)(__ROUND_UP_TO_POWER_OF_2((UInt32)(x), (UInt32)(a) - 1))
 #else
 #error "don't know how to define align_up_byte_ptr()"
 #endif
 #if __LP64__
 #define align_down_byte_ptr(x, a)     (Byte*)(__ROUND_DOWN_TO_POWER_OF_2((UInt64)(x), (UInt64)(a) - 1))
-#elif __LP32__
+#elif __ILP32__
 #define align_down_byte_ptr(x, a)     (Byte*)(__ROUND_DOWN_TO_POWER_OF_2((UInt32)(x), (UInt32)(a) - 1))
 #else
 #error "don't know how to define align_down_byte_ptr()"

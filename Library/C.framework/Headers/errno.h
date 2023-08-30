@@ -34,4 +34,8 @@
 #define ENOEXEC     22
 #define E2BIG       23
 
+
+// XXX make this per VP
+extern int errno;
+
 #endif /* _ERRNO_H */

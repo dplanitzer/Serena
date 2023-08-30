@@ -25,7 +25,6 @@
 
 
 // 8bit 16bit, 32bit, 64bit
-static const int8_t gFieldWidth_Bin[FORMAT_MODIFIER_COUNT] = {8, 16, 32, 64};
 static const int8_t gFieldWidth_Oct[FORMAT_MODIFIER_COUNT] = {3,  6, 11, 22};
 static const int8_t gFieldWidth_Dec[FORMAT_MODIFIER_COUNT] = {3,  5, 10, 20};
 static const int8_t gFieldWidth_Hex[FORMAT_MODIFIER_COUNT] = {2,  4,  8, 16};
@@ -68,20 +67,32 @@ static int parse_format_modifier(const char *format, size_t * _Nonnull parsed_le
         }
     } else if (format[i] == 'j') {
         // intmax_t, uintmax_t
+#if INTMAX_WIDTH == 32
+        mod = FORMAT_MODIFIER_LONG;
+#elif INTMAX_WIDTH == 64
         mod = FORMAT_MODIFIER_LONG_LONG;
+#else
+#error "unknown INTMAX_WIDTH"
+#endif
         *parsed_len = 1;
     } else if (format[i] == 'z') {
         // ssize_t, size_t
+#if __SIZE_WIDTH == 32
+        mod = FORMAT_MODIFIER_LONG;
+#elif __SIZE_WIDTH == 64
         mod = FORMAT_MODIFIER_LONG_LONG;
+#else
+#error "unknown __SIZE_WIDTH"
+#endif
         *parsed_len = 1;
     } else if (format[i] == 't') {
         // ptrdiff_t
-#ifdef __LP32__
+#if __PTRDIFF_WIDTH == 32
         mod = FORMAT_MODIFIER_LONG;
-#elif __LP64__
+#elif __PTRDIFF_WIDTH == 64
         mod = FORMAT_MODIFIER_LONG_LONG;
 #else
-#error "unknown __LPxx__"
+#error "unknown __PTRDIFF_WIDTH"
 #endif
         *parsed_len = 1;
     }
@@ -89,7 +100,7 @@ static int parse_format_modifier(const char *format, size_t * _Nonnull parsed_le
     return mod;
 }
 
-static int64_t get_arg_as_int64(int modifier, va_list * _Nonnull ap)
+static int64_t get_arg_as_int64(int modifier, va_list* _Nonnull ap)
 {
     switch (modifier) {
         case FORMAT_MODIFIER_LONG_LONG:
@@ -110,7 +121,7 @@ static int64_t get_arg_as_int64(int modifier, va_list * _Nonnull ap)
     }
 }
 
-static uint64_t get_arg_as_uint64(int modifier, va_list * _Nonnull ap)
+static uint64_t get_arg_as_uint64(int modifier, va_list* _Nonnull ap)
 {
     switch (modifier) {
         case FORMAT_MODIFIER_LONG_LONG:
@@ -128,6 +139,31 @@ static uint64_t get_arg_as_uint64(int modifier, va_list * _Nonnull ap)
         default:
             abort();
             return 0; // not reached
+    }
+}
+
+static void write_characters_written(CharacterStream* _Nonnull pStream, int modifier, void* _Nonnull ptr)
+{
+    switch (modifier) {
+        case FORMAT_MODIFIER_HALF_HALF:
+            *((signed char*) ptr) = (signed char) pStream->charactersWritten;
+            break;
+
+        case FORMAT_MODIFIER_HALF:
+            *((signed short*) ptr) = (signed short) pStream->charactersWritten;
+            break;
+
+        case FORMAT_MODIFIER_LONG:
+            *((signed int*) ptr) = (signed int) pStream->charactersWritten;
+            break;
+
+        case FORMAT_MODIFIER_LONG_LONG:
+            *((signed long long*) ptr) = (signed long long) pStream->charactersWritten;
+            break;
+
+        default:
+            abort();
+            break;
     }
 }
 
@@ -233,29 +269,33 @@ errno_t __vprintf(CharacterStream* _Nonnull pStream, const char* _Nonnull format
                         fail_err(__vprintf_string(pStream, va_arg(ap, const char*)));
                         break;
                         
-                    case 'b':
-                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 2, gFieldWidth_Bin[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
-                        break;
-                        
                     case 'o':
-                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 8, gFieldWidth_Oct[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 8, false, gFieldWidth_Oct[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
                         
                     case 'u':
-                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 10, false, gFieldWidth_Dec[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
                         
                     case 'd':
                     case 'i':
-                        fail_err(__vprintf_string(pStream, __lltoa(get_arg_as_int64(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __lltoa(get_arg_as_int64(modifier, &ap), 10, false, gFieldWidth_Dec[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
                         
                     case 'x':
-                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 16, gFieldWidth_Hex[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 16, false, gFieldWidth_Hex[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
+                        break;
+
+                    case 'X':
+                        fail_err(__vprintf_string(pStream, __ulltoa(get_arg_as_uint64(modifier, &ap), 16, true, gFieldWidth_Hex[modifier], paddingChar, pStream->buffer, pStream->bufferCapacity)));
                         break;
 
                     case 'p':
-                        fail_err(__vprintf_string(pStream, __ulltoa(va_arg(ap, uintptr_t), 16, 8, '0', pStream->buffer, pStream->bufferCapacity)));
+                        fail_err(__vprintf_string(pStream, __ulltoa(va_arg(ap, uintptr_t), 16, false, 8, '0', pStream->buffer, pStream->bufferCapacity)));
+                        break;
+
+                    case 'n':
+                        write_characters_written(pStream, modifier, (void*)va_arg(ap, void*));
                         break;
 
                     default:

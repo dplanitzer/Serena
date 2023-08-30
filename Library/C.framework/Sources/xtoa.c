@@ -17,12 +17,14 @@
 extern int Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
 
 
-static const char* gDigit = "0123456789abcdef";
+const char* gLowerDigits = "0123456789abcdef";
+const char* gUpperDigits = "0123456789ABCDEF";
 
-const char *__lltoa(int64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
+const char *__lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
 {
     char *p0 = &pString[max(maxLength - fieldWidth - 1, 0)];
     char *p = &pString[maxLength - 1];
+    const char* digits = (isUppercase) ? gUpperDigits : gLowerDigits;
     int64_t absval = (val < 0) ? -val : val;
     int64_t q, r;
     
@@ -34,7 +36,7 @@ const char *__lltoa(int64_t val, int base, int fieldWidth, char paddingChar, cha
     do {
         p--;
         Int64_DivMod(absval, base, &q, &r);
-        *p = (gDigit[r]);
+        *p = digits[r];
         absval = q;
     } while (absval && p >= p0);
     
@@ -58,17 +60,18 @@ const char *__lltoa(int64_t val, int base, int fieldWidth, char paddingChar, cha
     return max(p, p0);
 }
 
-const char *__ulltoa(uint64_t val, int base, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
+const char *__ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
 {
     char *p0 = &pString[max(maxLength - fieldWidth - 1, 0)];
     char *p = &pString[maxLength - 1];
+    const char* digits = (isUppercase) ? gUpperDigits : gLowerDigits;
     int64_t q, r;
     
     pString[maxLength - 1] = '\0';
     do {
         p--;
         Int64_DivMod(val, base, &q, &r);
-        *p = (gDigit[r]);
+        *p = digits[r];
         val = q;
     } while (val && p >= p0);
     
