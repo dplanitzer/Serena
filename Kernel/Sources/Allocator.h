@@ -23,6 +23,9 @@ extern ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, con
 extern Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr);
 
 extern ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, Byte* _Nullable * _Nonnull pOutPtr);
+
+// Attempts to deallocate the given memory block. Returns EOK on success and
+// ENOTBLK if the allocator does not manage the given memory block.
 extern ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr);
 
 extern void Allocator_Dump(AllocatorRef _Nonnull pAllocator);

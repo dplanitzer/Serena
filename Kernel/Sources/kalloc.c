@@ -8,11 +8,13 @@
 
 #include "kalloc.h"
 #include "Allocator.h"
+#include "Lock.h"
 #include "Bytes.h"
 
 
-static AllocatorRef   gUnifiedMemory;       // CPU + Chipset access (memory range [0..<chipset_upper_dma_limit])
-static AllocatorRef   gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...])
+static Lock         gLock;
+static AllocatorRef gUnifiedMemory;       // CPU + Chipset access (memory range [0..<chipset_upper_dma_limit])
+static AllocatorRef gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...])
 
 
 static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop)
@@ -73,6 +75,7 @@ ErrorCode kalloc_init(const SystemDescription* _Nonnull pSysDesc, Byte* _Nonnull
 {
     decl_try_err();
 
+    Lock_Init(&gLock);
     try(create_allocator(&pSysDesc->memory, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_UNIFIED_MEMORY, &gUnifiedMemory));
     try(create_allocator(&pSysDesc->memory, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_MEMORY, &gCpuOnlyMemory));
     return EOK;
@@ -87,6 +90,7 @@ ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pO
 {
     decl_try_err();
     
+    Lock_Lock(&gLock);
     if ((options & KALLOC_OPTION_UNIFIED) != 0) {
         try(Allocator_AllocateBytes(gUnifiedMemory, nbytes, pOutPtr));
     } else {
@@ -94,6 +98,7 @@ ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pO
             try(Allocator_AllocateBytes(gUnifiedMemory, nbytes, pOutPtr));
         }
     }
+    Lock_Unlock(&gLock);
 
     // Zero the memory if requested
     if ((options & KALLOC_OPTION_CLEAR) != 0) {
@@ -103,6 +108,7 @@ ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pO
     return EOK;
 
 catch:
+    Lock_Unlock(&gLock);
     *pOutPtr = NULL;
     return err;
 }
@@ -110,11 +116,15 @@ catch:
 // Frees kernel memory allocated with the kalloc() function.
 void kfree(Byte* _Nullable ptr)
 {
-    if (Allocator_IsManaging(gUnifiedMemory, ptr)) {
-        try_bang(Allocator_DeallocateBytes(gUnifiedMemory, ptr));
-    } else {
+    Lock_Lock(&gLock);
+    const ErrorCode err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);
+
+    if (err == ENOTBLK) {
         try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));
+    } else if (err != EOK) {
+        abort();
     }
+    Lock_Unlock(&gLock);
 }
 
 // Adds the given memory region as a CPU-only access memory region to the kalloc
@@ -123,22 +133,28 @@ ErrorCode kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
 {
     AllocatorRef pAllocator;
 
+    Lock_Lock(&gLock);
     if (pMemDesc->upper < gSystemDescription->chipset_upper_dma_limit) {
         pAllocator = gUnifiedMemory;
     } else {
         pAllocator = gCpuOnlyMemory;
     }
 
-    return Allocator_AddMemoryRegion(pAllocator, pMemDesc);
+    const ErrorCode err = Allocator_AddMemoryRegion(pAllocator, pMemDesc);
+    Lock_Unlock(&gLock);
+
+    return err;
 }
 
 // Dumps a description of the kalloc heap to the console
 void kalloc_dump(void)
 {
+    Lock_Lock(&gLock);
     print("Unified:\n");
     Allocator_DumpMemoryRegions(gUnifiedMemory);
 
     print("\nCPU-only:\n");
     Allocator_DumpMemoryRegions(gCpuOnlyMemory);
     print("\n");
+    Lock_Unlock(&gLock);
 }

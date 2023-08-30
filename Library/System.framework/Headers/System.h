@@ -30,7 +30,7 @@
 extern int __write(const char* _Nonnull pString);
 extern int __dispatch_async(void* _Nonnull pClosure);
 extern int __sleep(int seconds, int nanoseconds);
-extern int __alloc_address_space(int nbytes, char* _Nullable * _Nonnull pOutMemPtr);
+extern int __alloc_address_space(int nbytes, void* _Nullable * _Nonnull pOutMemPtr);
 
 extern int __spawn_process(void* _Nonnull pUserEntryPoint);
 extern _Noreturn __exit(int status);

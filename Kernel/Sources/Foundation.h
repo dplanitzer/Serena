@@ -76,6 +76,8 @@ typedef Int ErrorCode;
 #define EILSEQ      21
 #define ENOEXEC     22
 #define E2BIG       23
+#define ENOENT      24
+#define ENOTBLK     25
 
 
 // Variable argument lists

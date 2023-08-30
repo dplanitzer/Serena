@@ -9,24 +9,7 @@
 #ifndef _PRINTF_H
 #define _PRINTF_H 1
 
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
-
-#if !__has_feature(nullability)
-#ifndef _Nullable
-#define _Nullable
-#endif
-#ifndef _Nonnull
-#define _Nonnull
-#endif
-#endif
-
-typedef int errno_t;
+#include <__stddef.h>
 
 extern const char* _Nonnull __lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);
 extern const char* _Nonnull __ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);

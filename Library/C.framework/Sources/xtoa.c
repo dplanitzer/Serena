@@ -7,14 +7,8 @@
 //
 
 #include <stdlib.h>
-#include <stdint.h>
+#include <__stddef.h>
 #include "printf.h"
-
-#define abs(x) (((x) < 0) ? -(x) : (x))
-#define min(x, y) (((x) < (y) ? (x) : (y)))
-#define max(x, y) (((x) > (y) ? (x) : (y)))
-
-extern int Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
 
 
 const char* gLowerDigits = "0123456789abcdef";
@@ -22,7 +16,7 @@ const char* gUpperDigits = "0123456789ABCDEF";
 
 const char *__lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
 {
-    char *p0 = &pString[max(maxLength - fieldWidth - 1, 0)];
+    char *p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
     char *p = &pString[maxLength - 1];
     const char* digits = (isUppercase) ? gUpperDigits : gLowerDigits;
     int64_t absval = (val < 0) ? -val : val;
@@ -57,12 +51,12 @@ const char *__lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, cha
         }
     }
     
-    return max(p, p0);
+    return __max(p, p0);
 }
 
 const char *__ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
 {
-    char *p0 = &pString[max(maxLength - fieldWidth - 1, 0)];
+    char *p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
     char *p = &pString[maxLength - 1];
     const char* digits = (isUppercase) ? gUpperDigits : gLowerDigits;
     int64_t q, r;
@@ -82,5 +76,5 @@ const char *__ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, c
         }
     }
     
-    return max(p, p0);
+    return __max(p, p0);
 }

@@ -7,18 +7,56 @@
 //
 
 #include <stdlib.h>
+#include <errno.h>
 #include <string.h>
+#include "Allocator.h"
+#include <System.h>
 
+
+// XXX initialize the malloc package
+
+static AllocatorRef gAllocator;
+
+
+static errno_t malloc_expand_backingstore_by(size_t nbytes)
+{
+    void* ptr;
+    errno_t err = __alloc_address_space(nbytes, &ptr);
+        
+    if (err == 0) {
+        MemoryDescriptor md;
+        md.lower = ptr;
+        md.upper = ((char*)ptr) + nbytes;
+
+        err = Allocator_AddMemoryRegion(gAllocator, &md);
+    }
+    return err;
+}
 
 void *malloc(size_t size)
 {
-    // XXX implement me
-    return NULL;
+    // XXX add locking
+    void* ptr = NULL;
+    errno_t err = Allocator_AllocateBytes(gAllocator, size, &ptr);
+
+    if (err == ENOMEM) {
+        err = malloc_expand_backingstore_by(__min(size, 64 * 1024));
+        if (err == 0) {
+            err = Allocator_AllocateBytes(gAllocator, size, &ptr);
+        }
+    }
+
+    if (err != 0) {
+        errno = err;
+    }
+
+    return ptr;
 }
 
 void free(void *ptr)
 {
-    // XXX implement me
+    // XXX add locking
+    Allocator_DeallocateBytes(gAllocator, ptr);
 }
 
 void *calloc(size_t num, size_t size)
@@ -34,7 +72,7 @@ void *calloc(size_t num, size_t size)
 
 void *realloc(void *ptr, size_t new_size)
 {
-    const size_t old_size = 0; // XXX get old size
+    const size_t old_size = (ptr) ? Allocator_GetBlockSize(gAllocator, ptr) : 0;
     
     if (old_size == new_size) {
         return ptr;

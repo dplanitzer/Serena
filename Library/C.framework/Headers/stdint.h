@@ -42,7 +42,15 @@
 #define INT_LEAST64_WIDTH 64
 
 #define INTMAX_WIDTH 64
+
+#ifdef __ILP32__
 #define INTPTR_WIDTH 32
+#elif __LP64__
+#define INTPTR_WIDTH 64
+#else
+#error "unknown data model"
+#endif
+
 
 #define INT8_MIN -128
 #define INT16_MIN -32768
@@ -60,7 +68,15 @@
 #define INT_LEAST64_MIN INT64_MIN
 
 #define INTMAX_MIN INT64_MIN
+
+#ifdef __ILP32__
 #define INTPTR_MIN INT32_MIN
+#elif __LP64__
+#define INTPTR_MIN INT64_MIN
+#else
+#error "unknown data model"
+#endif
+
 
 #define INT8_MAX 127
 #define INT16_MAX 32767
@@ -78,7 +94,14 @@
 #define INT_LEAST64_MAX INT64_MAX
 
 #define INTMAX_MAX INT64_MAX
+
+#ifdef __ILP32__
 #define INTPTR_MAX INT32_MAX
+#elif __LP64__
+#define INTPTR_MAX INT64_MAX
+#else
+#error "unknown data model"
+#endif
 
 
 #define UINT8_WIDTH 8
@@ -97,7 +120,15 @@
 #define UINT_LEAST64_WIDTH 64
 
 #define UINTMAX_WIDTH 64
+
+#ifdef __ILP32__
 #define UINTPTR_WIDTH 32
+#elif __LP64__
+#define UINTPTR_WIDTH 64
+#else
+#error "unknown data model"
+#endif
+
 
 #define UINT8_MAX 255
 #define UINT16_MAX 65535
