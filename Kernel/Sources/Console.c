@@ -173,8 +173,8 @@ static void Console_ScrollBy_Locked(Console* _Nonnull pConsole, Rect clipRect, P
 // \param y the Y position
 static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
 {
-    pConsole->x = x;
-    pConsole->y = y;
+    pConsole->x = max(min(x, pConsole->cols - 1), 0);
+    pConsole->y = max(min(y, pConsole->rows - 1), 0);
 }
 
 // Moves the console position by the given delta values.
@@ -202,7 +202,7 @@ static void Console_DrawCharacter_Locked(Console* _Nonnull pConsole, Character c
                 // go to the next tab stop
                 pConsole->x = (pConsole->x / pConsole->tabWidth + 1) * pConsole->tabWidth;
             
-                if (pConsole->lineBreakMode == kLineBreakMode_WrapCharacter && pConsole->x >= pConsole->cols && pConsole->cols > 0) {
+                if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
                     // Wrap-by-character is enabled. Treat this like a newline aka move to the first tab stop in the next line
                     Console_DrawCharacter_Locked(pConsole, '\n');
                 }
@@ -263,18 +263,16 @@ static void Console_DrawCharacter_Locked(Console* _Nonnull pConsole, Character c
                 break;
             }
             
-            if (pConsole->lineBreakMode == kLineBreakMode_WrapCharacter && pConsole->x >= pConsole->cols && pConsole->cols > 0) {
-                // wrap the line of wrap-by-character is active
+            if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
+                // wrap the line if wrap-by-character is active
                 pConsole->x = 0;
                 pConsole->y++;
             }
 
-            if (pConsole->y >= pConsole->rows && isAutoscrollEnabled && pConsole->x >= 0 && pConsole->x < pConsole->cols && pConsole->rows > 0) {
-                // do a scroll-to-bottom if auto-scrolling is active and the character we're about to print is
-                // in the visible portion of the console
-                const Int yDelta = pConsole->y - pConsole->rows - 1;
-                Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, yDelta));
-                pConsole->y -= yDelta;
+            if (pConsole->y >= pConsole->rows && isAutoscrollEnabled) {
+                // auto scroll the console if we hit the bottom edge
+                Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, 1));
+                pConsole->y--;
             }
             
             if ((pConsole->x >= 0 && pConsole->x < pConsole->cols) && (pConsole->y >= 0 && pConsole->y < pConsole->rows)) {
