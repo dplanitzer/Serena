@@ -36,7 +36,7 @@ SC_spawn_process        equ 5       ; spawn_process(pUserEntryPoint: d1.l)
 
     ; Invoke the system call 'num'
     macro SYSCALL num
-    move.w  #\1, d0
+    move.l  #\1, d0
     trap #0
     endm
 
