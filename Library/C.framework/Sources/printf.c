@@ -179,12 +179,12 @@ void __vprintf_init(CharacterStream* _Nonnull pStream, PrintSink_Func _Nonnull p
 
 static errno_t __vprintf_flush(CharacterStream* _Nonnull pStream)
 {
-    errno_t err = EOK;
+    errno_t err = 0;
 
     if (pStream->bufferCount > 0) {
         pStream->buffer[pStream->bufferCount] = '\0';
         err = pStream->sinkFunc(pStream, pStream->buffer, pStream->bufferCount);
-        if (err == EOK) pStream->charactersWritten += pStream->bufferCount;
+        if (err == 0) pStream->charactersWritten += pStream->bufferCount;
         pStream->bufferCount = 0;
     }
     return err;
@@ -194,12 +194,12 @@ static errno_t __vprintf_string(CharacterStream* _Nonnull pStream, const char *s
 {
     errno_t err = __vprintf_flush(pStream);
 
-    if (err == EOK) {
+    if (err == 0) {
         const size_t len = strlen(str);
 
         if (len > 0) {
             err = pStream->sinkFunc(pStream, str, len);
-            if (err == EOK) pStream->charactersWritten += len;
+            if (err == 0) pStream->charactersWritten += len;
         }
     }
 
@@ -210,7 +210,7 @@ static errno_t __vprintf_string(CharacterStream* _Nonnull pStream, const char *s
 #define __vprintf_char(__p, __ch) \
     if (__p->bufferCount == __p->bufferCapacity) { \
         const errno_t err = __vprintf_flush(__p); \
-        if (err != EOK) { return err; } \
+        if (err != 0) { return err; } \
     } \
     __p->buffer[__p->bufferCount++] = __ch;
 
@@ -219,7 +219,7 @@ static errno_t __vprintf_string(CharacterStream* _Nonnull pStream, const char *s
 #define fail_err(f) \
     { \
         const errno_t err = (f); \
-        if (err != EOK) { return err; } \
+        if (err != 0) { return err; } \
     }
 
 
@@ -313,7 +313,7 @@ errno_t __vprintf(CharacterStream* _Nonnull pStream, const char* _Nonnull format
 
     fail_err(__vprintf_flush(pStream));
 
-    return EOK;
+    return 0;
 }
 
 
@@ -340,7 +340,7 @@ int vprintf(const char *format, va_list ap)
 
     __vprintf_init(&stream, vprintf_console_sink, NULL);
     const errno_t err = __vprintf(&stream, format, ap);
-    return (err == EOK) ? stream.charactersWritten : -err;
+    return (err == 0) ? stream.charactersWritten : -err;
 }
 
 
@@ -372,7 +372,7 @@ static int vprintf_buffer_sink(CharacterStream* _Nonnull pStream, const char* _N
         memcpy(&pSink->buffer[pStream->charactersWritten], pBuffer, nBytesToWrite);
     }
 
-    return EOK;
+    return 0;
 }
 
 int sprintf(char *buffer, const char *format, ...)
@@ -394,7 +394,7 @@ int vsprintf(char *buffer, const char *format, va_list ap)
     sink.maxCharactersToWrite = (buffer) ? SIZE_MAX : 0;
     __vprintf_init(&stream, vprintf_buffer_sink, &sink);
     const errno_t err = __vprintf(&stream, format, ap);
-    if (err == EOK) {
+    if (err == 0) {
         buffer[stream.charactersWritten] = '\0';
         return stream.charactersWritten;
      } else { 
@@ -421,7 +421,7 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
     sink.maxCharactersToWrite = (buffer && bufsiz > 0) ? bufsiz - 1 : 0;
     __vprintf_init(&stream, vprintf_buffer_sink, &sink);
     const errno_t err = __vprintf(&stream, format, ap);
-    if (err == EOK) {
+    if (err == 0) {
         buffer[stream.charactersWritten] = '\0';
         return stream.charactersWritten;
      } else { 

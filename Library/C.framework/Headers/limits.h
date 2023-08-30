@@ -9,6 +9,8 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H 1
 
+#include <stddef.h>
+
 #define CHAR_BIT 8
 #define CHAR_MIN -128
 #define CHAR_MAX 127
@@ -37,7 +39,13 @@
 #define PTRDIFF_MIN -2147483648l
 #define PTRDIFF_MAX 2147483647l
 
+#if __SIZE_WIDTH == 32
+#define SIZE_MAX ULONG_MAX
+#elif __SIZE_WIDTH == 64
 #define SIZE_MAX ULLONG_MAX
+#else
+#error "unknown __SIZE_WIDTH"
+#endif
 
 #define SIG_ATOMIC_MIN INT_MIN
 #define SIG_ATOMIC_MAX INT_MAX

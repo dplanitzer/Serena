@@ -439,7 +439,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
         MemBlock* pCurBlock = pCurRegion->first_free_block;
 
         while (pCurBlock) {
-            printf("   0x%p, %lu\n", ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
+            printf("   0x%p, %z\n", ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
             pCurBlock = pCurBlock->next;
         }
 
@@ -452,7 +452,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
         char* pCurBlockBase = (char*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
         
-        printf("   0x%p, %lu\n", pCurBlockBase + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
+        printf("   0x%p, %z\n", pCurBlockBase + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
         pCurBlock = pCurBlock->next;
     }
     
