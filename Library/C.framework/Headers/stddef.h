@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-#define __SIZE_WIDTH 64
+#define __SIZE_WIDTH 32
 #define __PTRDIFF_WIDTH __PTR_WIDTH
 
 
