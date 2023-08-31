@@ -27,9 +27,10 @@ _start:
     pea     (sp)
     move.l  #0, -(sp)
     jsr     _main
+    add.w   #8, sp
 
     ; Call exit()
-    move.l  d0, d1
+    move.l  d0, -(sp)
     jsr     _exit
     ; not reached
 
