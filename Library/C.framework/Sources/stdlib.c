@@ -8,8 +8,14 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <__stddef.h>
 #include <System.h>
 
+
+void __stdlibc_init(void)
+{
+    __malloc_init();
+}
 
 _Noreturn abort(void)
 {

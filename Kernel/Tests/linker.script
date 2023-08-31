@@ -1,8 +1,8 @@
 SECTIONS {
     . = 0x0;
-    .text : { HelloWorld.o(.text) *(.text) }
+    .text : { _start.o(.text) *(.text) }
     .data : { *(.data) }
     .bss : { *(.bss) }
 }
 
-ENTRY(_main)
+ENTRY(_start)

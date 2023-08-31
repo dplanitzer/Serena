@@ -13,28 +13,23 @@
 int count1;
 int count2;
 
-static void helloWorld_a(void)
-{
-    printf("Hello World, from process #1!  [%d]\n", count1++);
-    __sleep(0, 250*1000*1000);
-    __dispatch_async((void*)helloWorld_a);
-    //exit(0);
-    //puts("oops\n");
-}
-
-static void helloWorld_b(void)
+static void child_process(void)
 {
     printf("Hello World, from process #2!          [%d]\n", count2++);
     __sleep(0, 250*1000*1000);
-    __dispatch_async((void*)helloWorld_b);
+    __dispatch_async((void*)child_process);
     //exit(0);
     //puts("oops\n");
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    helloWorld_a();
-    __spawn_process((void*)helloWorld_b);
+    __spawn_process((void*)child_process);
 
-    return 0;
+    while (1) {
+        printf("Hello World, from process #1!  [%d]\n", count1++);
+        __sleep(0, 250*1000*1000);
+    }
+
+    return EXIT_SUCCESS;
 }

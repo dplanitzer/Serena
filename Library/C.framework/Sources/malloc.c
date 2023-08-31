@@ -7,8 +7,8 @@
 //
 
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
+#include <__stddef.h>
 #include "Allocator.h"
 #include <System.h>
 
@@ -18,7 +18,21 @@
 static AllocatorRef gAllocator;
 
 
-static errno_t malloc_expand_backingstore_by(size_t nbytes)
+// Initializes the malloc subsystem and does the initial heap allocation.
+// The initial heap size is INITIAL_HEAP_SIZE
+#define INITIAL_HEAP_SIZE   (64*1024)
+void __malloc_init(void)
+{
+    MemoryDescriptor md;
+    void* ptr;
+
+    try_bang(__alloc_address_space(INITIAL_HEAP_SIZE, &ptr));
+    md.lower = ptr;
+    md.upper = ((char*)ptr) + INITIAL_HEAP_SIZE;
+    try_bang(Allocator_Create(&md, &gAllocator));
+}
+
+static errno_t __malloc_expand_backingstore_by(size_t nbytes)
 {
     void* ptr;
     errno_t err = __alloc_address_space(nbytes, &ptr);
@@ -40,7 +54,7 @@ void *malloc(size_t size)
     errno_t err = Allocator_AllocateBytes(gAllocator, size, &ptr);
 
     if (err == ENOMEM) {
-        err = malloc_expand_backingstore_by(__min(size, 64 * 1024));
+        err = __malloc_expand_backingstore_by(__min(size, 64 * 1024));
         if (err == 0) {
             err = Allocator_AllocateBytes(gAllocator, size, &ptr);
         }

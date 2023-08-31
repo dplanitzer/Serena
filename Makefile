@@ -87,6 +87,7 @@ export CLIB_HEADERS_DIR := $(CLIB_PROJECT_DIR)/Headers
 export CLIB_BUILD_DIR := $(BUILD_DIR)/Library/C.framework
 export CLIB_PRODUCT_DIR := $(PRODUCT_DIR)/Library/C.framework
 export CLIB_LIB_FILE := $(CLIB_PRODUCT_DIR)/libc.a
+export CLIB_START_FILE := $(CLIB_PRODUCT_DIR)/_start.o
 
 
 # --------------------------------------------------------------------------

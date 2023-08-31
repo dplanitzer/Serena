@@ -11,6 +11,7 @@
 
 #include <stddef.h>
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -95,5 +96,8 @@ typedef int errno_t;
 
 
 extern int Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
+
+extern void __stdlibc_init(void);
+extern void __malloc_init(void);
 
 #endif /* ___STDDEF_H */
