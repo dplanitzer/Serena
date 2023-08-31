@@ -10,38 +10,70 @@
 #include <stdio.h>
 #include <__stddef.h>
 #include <System.h>
+#include "List.h"
+
+
+typedef void (*AtExitFunc)(void);
+
+typedef struct _AtExitEntry {
+    SListNode           node;
+    AtExitFunc _Nonnull func;
+} AtExitEntry;
+
+
+static SList    gAtExitQueue;
 
 
 void __stdlibc_init(void)
 {
+    SList_Init(&gAtExitQueue);
     __malloc_init();
 }
 
-_Noreturn abort(void)
-{
-    __exit(EXIT_FAILURE);
-}
 
-_Noreturn _Abort(const char* pFilename, int lineNum, const char* pFuncName)
-{
-    printf("%s:%d: %s: aborted\n", pFilename, lineNum, pFuncName);
-    __exit(EXIT_FAILURE);
-}
-
+// Not very efficient and that's fine. The expectation is that this will be used
+// very rarely. So we rather keep the memory consumption very low for the majority
+// that doesn't use this.
 int atexit(void (*func)(void))
 {
-    // XXX implement
-    return -1;
+    AtExitEntry* p = (AtExitEntry*)malloc(sizeof(AtExitEntry));
+
+    if (p == NULL) {
+        return ENOMEM;
+    }
+
+    SListNode_Init(&p->node);
+    p->func = func;
+    SList_InsertBeforeFirst(&gAtExitQueue, &p->node);
+
+    return 0;
 }
 
 _Noreturn exit(int exit_code)
 {
-    // XXX do at_exit() stuff
-    __exit(exit_code);
+    SList_ForEach(&gAtExitQueue, AtExitEntry, {
+        pCurNode->func();
+    });
+
+    _Exit(exit_code);
 }
 
 _Noreturn _Exit(int exit_code)
 {
-    // XXX do at_exit() stuff
     __exit(exit_code);
+}
+
+int abs(int n)
+{
+    return __abs(n);
+}
+
+long labs(long n)
+{
+    return __abs(n);
+}
+
+long long llabs(long long n)
+{
+    return __abs(n);
 }

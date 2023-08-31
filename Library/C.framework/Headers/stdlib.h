@@ -9,8 +9,9 @@
 #ifndef _STDLIB_H
 #define _STDLIB_H 1
 
-#include <stddef.h>
 #include <stdnoreturn.h>
+#include <_nulldef.h>
+#include <_sizedef.h>
 
 extern _Noreturn abort(void);
 
@@ -31,5 +32,10 @@ extern void *malloc(size_t size);
 extern void *calloc(size_t num, size_t size);
 extern void *realloc(void *ptr, size_t new_size);
 extern void free(void *ptr);
+
+
+extern int abs(int n);
+extern long labs(long n);
+extern long long llabs(long long n);
 
 #endif /* _STDLIB_H */

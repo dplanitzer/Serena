@@ -10,7 +10,8 @@
 #define _STDIO_H 1
 
 #include <stdarg.h>
-#include <stddef.h>
+#include <_nulldef.h>
+#include <_sizedef.h>
 
 #define EOF -1
 

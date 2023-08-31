@@ -6,10 +6,9 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-    include <syscalls_m68k.i>
-
     xref ___stdlibc_init
     xref _main
+    xref _exit
 
     xdef _start
 
@@ -29,8 +28,8 @@ _start:
     move.l  #0, -(sp)
     jsr     _main
 
-    ; Call _Exit()
+    ; Call exit()
     move.l  d0, d1
-    SYSCALL SC_exit
+    jsr     _exit
     ; not reached
 

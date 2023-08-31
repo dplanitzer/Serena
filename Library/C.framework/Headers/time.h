@@ -9,6 +9,9 @@
 #ifndef _TIME_H
 #define _TIME_H 1
 
+#include <_nulldef.h>
+#include <_sizedef.h>
+
 // Seconds since 00:00, Jan 1st 1970 UTC
 typedef long time_t;
 

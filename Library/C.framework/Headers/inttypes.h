@@ -9,6 +9,8 @@
 #ifndef _INTTYPES_H
 #define _INTTYPES_H 1
 
+#include <stdint.h>
+
 #define PRId8 hhd
 #define PRId16 hd
 #define PRId32 ld
@@ -210,5 +212,8 @@
 #define SCNoPTR lo
 #define SCNxPTR lx
 #define SCNXPTR lX
+
+
+extern intmax_t imaxabs(intmax_t n);
 
 #endif /* _INTTYPES_H */

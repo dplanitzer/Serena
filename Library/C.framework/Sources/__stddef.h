@@ -30,6 +30,8 @@
 #endif
 #endif
 
+extern _Noreturn _Abort(const char* pFilename, int lineNum, const char* pFuncName);
+
 typedef int errno_t;
 
 // Macros to detect errors and to jump to the 'failed:' label if an error is detected.

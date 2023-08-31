@@ -9,7 +9,8 @@
 #ifndef _STRING_H
 #define _STRING_H 1
 
-#include <stddef.h>
+#include <_nulldef.h>
+#include <_sizedef.h>
 
 extern size_t strlen(const char *str);
 
