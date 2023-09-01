@@ -329,7 +329,7 @@ int printf(const char *format, ...)
     return r;
 }
 
-static int vprintf_console_sink(CharacterStream* _Nullable pStream, const char* _Nonnull pBuffer, size_t nBytes)
+static errno_t vprintf_console_sink(CharacterStream* _Nullable pStream, const char* _Nonnull pBuffer, size_t nBytes)
 {
     return __write(pBuffer);
 }
@@ -348,21 +348,21 @@ int vprintf(const char *format, va_list ap)
 
 typedef struct _BufferSink {
     char* _Nullable buffer;
-    size_t          maxCharactersToWrite;
+    size_t          capacity;
 } BufferSink;
 
 // Note that this sink continues to calculate the number of characters we would
 // want to write even after we've reached the maximum size of the string buffer.
 // See: <https://en.cppreference.com/w/c/io/fprintf>
-static int vprintf_buffer_sink(CharacterStream* _Nonnull pStream, const char* _Nonnull pBuffer, size_t nBytes)
+static errno_t vprintf_buffer_sink(CharacterStream* _Nonnull pStream, const char* _Nonnull pBuffer, size_t nBytes)
 {
     BufferSink* pSink = (BufferSink*)pStream->context;
 
-    if (pSink->maxCharactersToWrite > 0 && pSink->buffer) {
+    if (pSink->capacity > 0 && pSink->buffer) {
         size_t nBytesToWrite;
 
-        if (pStream->charactersWritten + nBytes > pSink->maxCharactersToWrite) {
-            const size_t nExcessBytes = (pStream->charactersWritten + nBytes) - pSink->maxCharactersToWrite;
+        if (pStream->charactersWritten + nBytes > pSink->capacity) {
+            const size_t nExcessBytes = (pStream->charactersWritten + nBytes) - pSink->capacity;
             nBytesToWrite = nBytes - nExcessBytes;
         }
         else {
@@ -391,8 +391,9 @@ int vsprintf(char *buffer, const char *format, va_list ap)
     BufferSink sink;
 
     sink.buffer = buffer;
-    sink.maxCharactersToWrite = (buffer) ? SIZE_MAX : 0;
+    sink.capacity = (buffer) ? SIZE_MAX : 0;
     __vprintf_init(&stream, vprintf_buffer_sink, &sink);
+
     const errno_t err = __vprintf(&stream, format, ap);
     if (err == 0) {
         buffer[stream.charactersWritten] = '\0';
@@ -418,13 +419,77 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
     BufferSink sink;
 
     sink.buffer = buffer;
-    sink.maxCharactersToWrite = (buffer && bufsiz > 0) ? bufsiz - 1 : 0;
+    sink.capacity = (buffer && bufsiz > 0) ? bufsiz - 1 : 0;
     __vprintf_init(&stream, vprintf_buffer_sink, &sink);
+    
     const errno_t err = __vprintf(&stream, format, ap);
     if (err == 0) {
         buffer[stream.charactersWritten] = '\0';
         return stream.charactersWritten;
      } else { 
+        return -err;
+     }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+#define INITIAL_MALLOC_SINK_BUFFER_CAPACITY 256
+#define MIN_GROW_MALLOC_SINK_BUFFER_CAPACITY 128
+typedef struct _MallocSink {
+    char* _Nullable buffer;
+    size_t          capacity;
+} MallocSink;
+
+// Dynamically allocates the memory for the string
+static errno_t vaprintf_malloc_sink(CharacterStream* _Nonnull pStream, const char* _Nonnull pBuffer, size_t nBytes)
+{
+    MallocSink* pSink = (MallocSink*)pStream->context;
+
+    if (pStream->charactersWritten == pSink->capacity) {
+        const size_t newCapacity = (pSink->capacity > 0) ? __max(nBytes, MIN_GROW_MALLOC_SINK_BUFFER_CAPACITY) + pSink->capacity : INITIAL_MALLOC_SINK_BUFFER_CAPACITY;
+        char* pNewBuffer = (char*) malloc(newCapacity);
+
+        if (pNewBuffer == NULL) {
+            return -ENOMEM;
+        }
+
+        memcpy(pNewBuffer, pSink->buffer, pStream->charactersWritten);
+        free(pSink->buffer);
+        pSink->buffer = pNewBuffer;
+    }
+
+    memcpy(&pSink->buffer[pStream->charactersWritten], pBuffer, nBytes);
+
+    return 0;
+}
+
+int asprintf(char **str_ptr, const char *format, ...)
+{
+    va_list ap;
+    
+    va_start(ap, format);
+    const int r = vasprintf(str_ptr, format, ap);
+    va_end(ap);
+    return r;
+}
+
+int vasprintf(char **str_ptr, const char *format, va_list ap)
+{
+    CharacterStream stream;
+    MallocSink sink;
+
+    sink.buffer = NULL;
+    sink.capacity = 0;
+    __vprintf_init(&stream, vaprintf_malloc_sink, &sink);
+
+    const errno_t err = __vprintf(&stream, format, ap);
+    if (err == 0) {
+        sink.buffer[stream.charactersWritten] = '\0';
+        *str_ptr = sink.buffer;
+        return stream.charactersWritten;
+     } else {
+        *str_ptr = NULL; 
         return -err;
      }
 }

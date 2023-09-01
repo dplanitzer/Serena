@@ -15,6 +15,9 @@
 
 #define EOF -1
 
+typedef long long fpos_t;
+
+
 extern int putchar(int ch);
 extern int puts(const char *str);
 
@@ -25,5 +28,10 @@ extern int sprintf(char *buffer, const char *format, ...);
 extern int vsprintf(char *buffer, const char *format, va_list ap);
 extern int snprintf(char *buffer, size_t bufsiz, const char *format, ...);
 extern int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap);
+
+extern int asprintf(char **str_ptr, const char *format, ...);
+extern int vasprintf(char **str_ptr, const char *format, va_list ap);
+
+extern void perror(const char *str);
 
 #endif /* _STDIO_H */

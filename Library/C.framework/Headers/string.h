@@ -34,6 +34,10 @@ extern size_t strcspn(const char *dst, const char *src);
 extern char *strdup(const char *src);
 extern char *strndup(const char *src, size_t size);
 
+
+extern char *strerror(int err_no);
+
+
 extern void *memchr(const void *ptr, int ch, size_t count);
 extern int memcmp(const void *lhs, const void *rhs, size_t count);
 extern void *memset(void *dst, int ch, size_t count);

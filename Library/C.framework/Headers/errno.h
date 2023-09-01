@@ -9,32 +9,30 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H 1
 
-#define EOK         0
 #define ENOMEM      1
-#define ENODATA     2
-#define ENOTCDF     3
-#define ENOBOOT     4
-#define ENODRIVE    5
-#define EDISKCHANGE 6
-#define ETIMEDOUT   7
-#define ENODEV      8
-#define EPARAM      9
-#define ERANGE      10
-#define EINTR       11
-#define EAGAIN      12
-#define EPIPE       13
-#define EBUSY       14
-#define ENOSYS      15
-#define EINVAL      16
-#define EIO         17
-#define EPERM       18
-#define EDEADLK     19
-#define EDOM        20
-#define EILSEQ      21
-#define ENOEXEC     22
-#define E2BIG       23
-#define ENOENT      24
-#define ENOTBLK     25
+#define ENOMEDIUM   2
+#define EDISKCHANGE 3
+#define ETIMEDOUT   4
+#define ENODEV      5
+#define EPARAM      6
+#define ERANGE      7
+#define EINTR       8
+#define EAGAIN      9
+#define EPIPE       10
+#define EBUSY       11
+#define ENOSYS      12
+#define EINVAL      13
+#define EIO         14
+#define EPERM       15
+#define EDEADLK     16
+#define EDOM        17
+#define ENOEXEC     18
+#define E2BIG       19
+#define ENOENT      20
+#define ENOTBLK     21
+
+#define __EFIRST    1
+#define __ELAST     21
 
 
 // XXX make this per VP

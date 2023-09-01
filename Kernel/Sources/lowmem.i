@@ -68,30 +68,26 @@ CHIPSET_TIMER_3     equ 3   ; CIA B timer B
 
 EOK         equ 0
 ENOMEM      equ 1
-ENODATA     equ 2
-ENOTCDF     equ 3
-ENOBOOT     equ 4
-ENODRIVE    equ 5
-EDISKCHANGE equ 6
-ETIMEDOUT   equ 7
-ENODEV      equ 8
-EPARAM      equ 9
-ERANGE      equ 10
-EINTR       equ 11
-EAGAIN      equ 12
-EPIPE       equ 13
-EBUSY       equ 14
-ENOSYS      equ 15
-EINVAL      equ 16
-EIO         equ 17
-EPERM       equ 18
-EDEADLK     equ 19
-EDOM        equ 20
-EILSEQ      equ 21
-ENOEXEC     equ 22
-E2BIG       equ 23
-ENOENT      equ 24
-ENOTBLK     equ 25
+ENOMEDIUM   equ 2
+EDISKCHANGE equ 3
+ETIMEDOUT   equ 4
+ENODEV      equ 5
+EPARAM      equ 6
+ERANGE      equ 7
+EINTR       equ 8
+EAGAIN      equ 9
+EPIPE       equ 10
+EBUSY       equ 11
+ENOSYS      equ 12
+EINVAL      equ 13
+EIO         equ 14
+EPERM       equ 15
+EDEADLK     equ 16
+EDOM        equ 17
+ENOEXEC     equ 18
+E2BIG       equ 19
+ENOENT      equ 20
+ENOTBLK     equ 21
 
 
 ;

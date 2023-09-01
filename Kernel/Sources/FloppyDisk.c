@@ -108,7 +108,7 @@ static ErrorCode FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnu
         const UInt status = fdc_get_io_status(pFdc);
         
         if ((status & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
-            err = ENODRIVE;
+            err = ENOMEDIUM;
         }
         else if ((status & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
             err = EDISKCHANGE;
@@ -121,7 +121,7 @@ static ErrorCode FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnu
     
     Semaphore_Release(&pDma->inuse);
     
-    return (err == ETIMEDOUT) ? ENODRIVE : err;
+    return (err == ETIMEDOUT) ? ENOMEDIUM : err;
 
 catch:
     return err;
@@ -320,7 +320,7 @@ void FloppyDisk_Destroy(FloppyDisk* _Nullable pDisk)
 static inline ErrorCode FloppyDisk_StatusFromDriveStatus(UInt drvstat)
 {
     if ((drvstat & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
-        return ENODRIVE;
+        return ENOMEDIUM;
     }
     if ((drvstat & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
         return EDISKCHANGE;
@@ -636,7 +636,7 @@ ErrorCode FloppyDisk_ReadSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylind
     const Int16* sector_table = pDisk->track_sectors;
     const Int16 idx = sector_table[sector];
     if (idx == 0) {
-        return ENODATA;
+        return EIO;
     }
     
     
@@ -699,7 +699,7 @@ ErrorCode FloppyDisk_WriteSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylin
     const Int16* sector_table = pDisk->track_sectors;
     const Int16 idx = sector_table[sector];
     if (idx == 0) {
-        return ENODATA;
+        return EIO;
     }
     
     
