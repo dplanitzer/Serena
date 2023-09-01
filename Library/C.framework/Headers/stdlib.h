@@ -31,6 +31,9 @@ extern long long atoll(const char *str);
 extern long strtol(const char *str, char **str_end, int base);
 extern long long strtoll(const char *str, char **str_end, int base);
 
+extern unsigned long strtoul(const char *str, char **str_end, int base);
+extern unsigned long long strtoull(const char *str, char **str_end, int base);
+
 extern void *malloc(size_t size);
 extern void *calloc(size_t num, size_t size);
 extern void *realloc(void *ptr, size_t new_size);

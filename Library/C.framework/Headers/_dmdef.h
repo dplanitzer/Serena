@@ -46,6 +46,7 @@ typedef long long __intmax_t;
 #define __INTMAX_WIDTH 64
 #define __INTMAX_MIN -9223372036854775808ll
 #define __INTMAX_MAX 9223372036854775807ll
+#define __INTMAX_MAX_BASE_10_DIGITS 19
 
 
 // uintmax_t
@@ -53,6 +54,7 @@ typedef unsigned long long __uintmax_t;
 
 #define __UINTMAX_WIDTH 64
 #define __UINTMAX_MAX 18446744073709551615ull
+#define __UINTMAX_MAX_BASE_10_DIGITS 19
 
 
 // intptr_t
@@ -111,6 +113,7 @@ typedef long long __intmax_t;
 #define __INTMAX_WIDTH 64
 #define __INTMAX_MIN -9223372036854775808ll
 #define __INTMAX_MAX 9223372036854775807ll
+#define __INTMAX_MAX_BASE_10_DIGITS 19
 
 
 // uintmax_t
@@ -118,6 +121,7 @@ typedef unsigned long long __uintmax_t;
 
 #define __UINTMAX_WIDTH 64
 #define __UINTMAX_MAX 18446744073709551615ull
+#define __UINTMAX_MAX_BASE_10_DIGITS 19
 
 
 // intptr_t

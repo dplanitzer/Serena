@@ -15,7 +15,8 @@
 
 static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Nonnull result)
 {
-    if (base == 1) {
+    if ((base < 2 && base != 0) || base > 36) {
+        *result = 0ll;
         return EPARAM;
     }
 
@@ -42,7 +43,9 @@ static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, lo
         } else {
             base = 8;
         }
-
+    }
+    if (base == 0) {
+        base = 10;
     }
 
 
@@ -69,7 +72,7 @@ static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, lo
         }
 
         const unsigned long long new_val = (val * llbase) + digit;
-        if (new_val < val || new_val > upper_bound /*|| i > max_digits*/) {
+        if (new_val < val || new_val > upper_bound || i > max_digits) {
             *result = (is_neg) ? min_val : max_val;
             return ERANGE;
         }
@@ -140,6 +143,31 @@ intmax_t strtoimax(const char *str, char **str_end, int base)
 {
     long long r;
 
-    errno = __strtoll(str, str_end, base, LLONG_MIN, LLONG_MAX, __LLONG_MAX_BASE_10_DIGITS, &r);
+    errno = __strtoll(str, str_end, base, INTMAX_MIN, INTMAX_MAX, __INTMAX_MAX_BASE_10_DIGITS, &r);
     return (intmax_t) r;
+}
+
+
+unsigned long strtoul(const char *str, char **str_end, int base)
+{
+    long long r;
+
+    errno = __strtoll(str, str_end, base, 0, ULONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r);
+    return (unsigned long) r;
+}
+
+unsigned long long strtoull(const char *str, char **str_end, int base)
+{
+    long long r;
+
+    errno = __strtoll(str, str_end, base, 0, ULLONG_MAX, __LLONG_MAX_BASE_10_DIGITS, &r);
+    return (unsigned long long) r;
+}
+
+uintmax_t strtoumax(const char *str, char **str_end, int base)
+{
+    long long r;
+
+    errno = __strtoll(str, str_end, base, 0, UINTMAX_MAX, __UINTMAX_MAX_BASE_10_DIGITS, &r);
+    return (uintmax_t) r;
 }
