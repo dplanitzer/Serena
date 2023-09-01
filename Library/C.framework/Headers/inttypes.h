@@ -215,5 +215,6 @@
 
 
 extern intmax_t imaxabs(intmax_t n);
+extern intmax_t strtoimax(const char *str, char **str_end, int base);
 
 #endif /* _INTTYPES_H */
