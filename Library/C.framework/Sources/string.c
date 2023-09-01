@@ -7,6 +7,7 @@
 //
 
 #include <string.h>
+#include <stdlib.h>
 
 
 size_t strlen(const char *str)
@@ -15,6 +16,19 @@ size_t strlen(const char *str)
 
     while (*str++ != '\0') {
         len++;
+    }
+
+    return len;
+}
+
+size_t __strnlen(const char *str, size_t strsz)
+{
+    size_t len = 0;
+
+    if (str) {
+        while (*str++ != '\0' && len < strsz) {
+            len++;
+        }
     }
 
     return len;
@@ -128,4 +142,93 @@ char *strrchr(const char *str, int ch)
     }
 
     return p;
+}
+
+char *strstr(const char *str, const char *sub_str)
+{
+    const char* s = str;
+    const char* sub_s = sub_str;
+
+    for (;;) {
+        if (*sub_s == '\0') {
+            return (char*) str;
+        }
+        if (*s == '\0') {
+            return NULL;
+        }
+
+        if (*sub_s++ != *s++) {
+            s = ++str;
+            sub_s = sub_str;
+        }
+    }
+}
+
+size_t strspn(const char *dst, const char *src)
+{
+    // 'src' is really a set
+    // we iterate 'dst' from the front until the check 'src contains dst[i]' fails
+    // should change the bool array to a bit array one day. Don't feel like doing
+    // this right now
+    char set[256] = {0};
+    size_t i = 0;
+
+    while (*src++ != '\0') {
+        set[*src] = 1;
+    }
+
+    while (*dst++ != '\0') {
+        if (!set[*dst]) {
+            break;
+        }
+        i++;
+    }
+
+    return i;
+}
+
+size_t strcspn(const char *dst, const char *src)
+{
+    // 'src' is really a set
+    // we iterate 'dst' from the front until the check 'src contains dst[i]' fails
+    // should change the bool array to a bit array one day. Don't feel like doing
+    // this right now
+    char set[256] = {0};
+    size_t i = 0;
+
+    while (*src++ != '\0') {
+        set[*src] = 1;
+    }
+
+    while (*dst++ != '\0') {
+        if (set[*dst]) {
+            break;
+        }
+        i++;
+    }
+
+    return i;
+}
+
+char *strdup(const char *src)
+{
+    const size_t len = strlen(src);
+    char* dst = (char*) malloc(len);
+
+    if (dst) {
+        strcpy(dst, src);
+    }
+    return dst;
+}
+
+char *strndup(const char *src, size_t size)
+{
+    const size_t len = __strnlen(src, size);
+    char* dst = (char*) malloc(len);
+
+    if (dst) {
+        strncpy(dst, src, len);
+        dst[len] = '\0';
+    }
+    return dst;
 }

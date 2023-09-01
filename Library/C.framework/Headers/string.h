@@ -26,6 +26,14 @@ extern int strncmp(const char *lhs, const char *rhs, size_t count);
 extern char *strchr(const char *str, int ch);
 extern char *strrchr(const char *str, int ch);
 
+extern char *strstr(const char *str, const char *sub_str);
+
+extern size_t strspn(const char *dst, const char *src);
+extern size_t strcspn(const char *dst, const char *src);
+
+extern char *strdup(const char *src);
+extern char *strndup(const char *src, size_t size);
+
 extern void *memchr(const void *ptr, int ch, size_t count);
 extern int memcmp(const void *lhs, const void *rhs, size_t count);
 extern void *memset(void *dst, int ch, size_t count);
