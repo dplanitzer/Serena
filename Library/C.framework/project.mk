@@ -4,10 +4,11 @@
 
 CLIB_SOURCES_DIR := $(CLIB_PROJECT_DIR)/Sources
 
-CLIB_START_ASM_SOURCE := $(CLIB_SOURCES_DIR)/start_m68k.s
+CLIB_ASTART_C_SOURCE := $(CLIB_SOURCES_DIR)/_astart.c
+CLIB_CSTART_C_SOURCE := $(CLIB_SOURCES_DIR)/_cstart.c
 
-CLIB_C_SOURCES := $(wildcard $(CLIB_SOURCES_DIR)/*.c)
-CLIB_ASM_SOURCES := $(filter-out $(CLIB_SOURCES_DIR)/start_m68k.s, $(wildcard $(CLIB_SOURCES_DIR)/*.s))
+CLIB_C_SOURCES := $(filter-out $(CLIB_SOURCES_DIR)/_astart.c $(CLIB_SOURCES_DIR)/_cstart.c, $(wildcard $(CLIB_SOURCES_DIR)/*.c))
+CLIB_ASM_SOURCES := $(wildcard $(CLIB_SOURCES_DIR)/*.s)
 
 CLIB_OBJS := $(patsubst $(CLIB_SOURCES_DIR)/%.c, $(CLIB_BUILD_DIR)/%.o, $(CLIB_C_SOURCES))
 CLIB_DEPS := $(CLIB_OBJS:.o=.d)
@@ -21,7 +22,7 @@ CLIB_OBJS += $(patsubst $(CLIB_SOURCES_DIR)/%.s, $(CLIB_BUILD_DIR)/%.o, $(CLIB_A
 .PHONY: clean_clib
 
 
-$(CLIB_OBJS): | $(CLIB_BUILD_DIR) $(CLIB_PRODUCT_DIR) $(CLIB_START_FILE)
+$(CLIB_OBJS): | $(CLIB_BUILD_DIR) $(CLIB_PRODUCT_DIR) $(CLIB_ASTART_FILE) $(CLIB_CSTART_FILE)
 
 $(CLIB_BUILD_DIR):
 	$(call mkdir_if_needed,$(CLIB_BUILD_DIR))
@@ -45,9 +46,15 @@ $(CLIB_BUILD_DIR)/%.o : $(CLIB_SOURCES_DIR)/%.s
 	@echo $<
 	@$(AS) -I$(CLIB_SOURCES_DIR) -o $@ $<
 
-$(CLIB_START_FILE) : $(CLIB_START_ASM_SOURCE)
+
+# start() function(s)
+$(CLIB_ASTART_FILE) : $(CLIB_ASTART_C_SOURCE)
 	@echo $<
-	@$(AS) -I$(CLIB_SOURCES_DIR) -I$(SYSTEM_SOURCES_DIR) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) -I$(CLIB_HEADERS_DIR) -I$(CLIB_SOURCES_DIR) -I$(SYSTEM_HEADERS_DIR) -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
+
+$(CLIB_CSTART_FILE) : $(CLIB_CSTART_C_SOURCE)
+	@echo $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) -I$(CLIB_HEADERS_DIR) -I$(CLIB_SOURCES_DIR) -I$(SYSTEM_HEADERS_DIR) -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
 
 
 clean_clib:

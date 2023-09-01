@@ -26,5 +26,5 @@ _Noreturn _Abort(const char* pFilename, int lineNum, const char* pFuncName)
 _Noreturn _Assert(const char* pFilename, int lineNum, const char* pFuncName, const char* expr)
 {
     printf("%s:%d: %s: Assertion '%s' failed.\n", pFilename, lineNum, pFuncName, expr);
-    while(1); //_Exit(EXIT_FAILURE);
+    _Exit(EXIT_FAILURE);
 }
