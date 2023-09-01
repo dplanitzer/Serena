@@ -31,7 +31,12 @@
 //
 
 #define __INT_WIDTH 32
+#define __INT_MIN -2147483648
+#define __INT_MAX 2147483647
 #define __INT_MAX_BASE_10_DIGITS 10
+
+#define __UINT_WIDTH 32
+#define __UINT_MAX 4294967295u
 
 #define __LONG_WIDTH 32
 #define __LONG_MAX_BASE_10_DIGITS 10
@@ -76,6 +81,8 @@ typedef unsigned long __uintptr_t;
 typedef long __ptrdiff_t;
 
 #define __PTRDIFF_WIDTH 32
+#define __PTRDIFF_MIN -2147483648l
+#define __PTRDIFF_MAX 2147483647l
 
 
 // size_t
@@ -98,7 +105,12 @@ typedef long __ssize_t;
 //
 
 #define __INT_WIDTH 32
+#define __INT_MIN -2147483648
+#define __INT_MAX 2147483647
 #define __INT_MAX_BASE_10_DIGITS 10
+
+#define __UINT_WIDTH 32
+#define __UINT_MAX 4294967295u
 
 #define __LONG_WIDTH 64
 #define __LONG_MAX_BASE_10_DIGITS 10
@@ -143,6 +155,8 @@ typedef unsigned long long __uintptr_t;
 typedef long long __ptrdiff_t;
 
 #define __PTRDIFF_WIDTH 64
+#define __PTRDIFF_MIN -9223372036854775808ll
+#define __PTRDIFF_MAX 9223372036854775807ll
 
 
 // size_t

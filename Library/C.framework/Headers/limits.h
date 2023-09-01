@@ -9,6 +9,7 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H 1
 
+#include <_dmdef.h>
 #include <stddef.h>
 
 #define CHAR_BIT 8
@@ -21,8 +22,8 @@
 #define SHRT_MIN -32768
 #define SHRT_MAX 32767
 
-#define INT_MIN -2147483648
-#define INT_MAX 2147483647
+#define INT_MIN __INT_MIN
+#define INT_MAX __INT_MAX
 
 #define LONG_MIN -2147483648l
 #define LONG_MAX 2147483647l
@@ -32,23 +33,17 @@
 
 #define UCHAR_MAX 255
 #define USHRT_MAX 65535
-#define UINT_MAX 4294967295u
+#define UINT_MAX __UINT_MAX
 #define ULONG_MAX 4294967295ul
 #define ULLONG_MAX 18446744073709551615ull
 
-#define PTRDIFF_MIN -2147483648l
-#define PTRDIFF_MAX 2147483647l
+#define PTRDIFF_MIN __PTRDIFF_MIN
+#define PTRDIFF_MAX __PTRDIFF_MAX
 
-#if __SIZE_WIDTH == 32
-#define SIZE_MAX ULONG_MAX
-#elif __SIZE_WIDTH == 64
-#define SIZE_MAX ULLONG_MAX
-#else
-#error "unknown __SIZE_WIDTH"
-#endif
+#define SIZE_MAX __SIZE_MAX
 
-#define SIG_ATOMIC_MIN INT_MIN
-#define SIG_ATOMIC_MAX INT_MAX
+#define SIG_ATOMIC_MIN __INT_MIN
+#define SIG_ATOMIC_MAX __INT_MAX
 
 #define MB_LEN_MAX 2
 
