@@ -9,7 +9,7 @@
 #ifndef Bytes_h
 #define Bytes_h
 
-#include <Runtime.h>
+#include <klib/Types.h>
 
 
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns

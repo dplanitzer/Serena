@@ -11,7 +11,6 @@
 
 #include "Process.h"
 #include "AddressSpace.h"
-#include "Atomic.h"
 #include "DispatchQueue.h"
 #include "Lock.h"
 

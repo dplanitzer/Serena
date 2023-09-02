@@ -9,7 +9,7 @@
 #ifndef TimeInterval_h
 #define TimeInterval_h
 
-#include <Runtime.h>
+#include <klib/Types.h>
 
 
 // Represents time as measured in seconds and nanoseconds. All TimeInterval functions

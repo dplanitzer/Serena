@@ -9,9 +9,10 @@
 #ifndef klib_h
 #define klib_h
 
-#include <Runtime.h>
+#include <klib/Types.h>
 #include <klib/Allocator.h>
 #include <klib/Assert.h>
+#include <klib/Atomic.h>
 #include <klib/Bits.h>
 #include <klib/Bytes.h>
 #include <klib/Error.h>

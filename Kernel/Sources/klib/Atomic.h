@@ -9,7 +9,7 @@
 #ifndef Atomic_h
 #define Atomic_h
 
-#include <klib/klib.h>
+#include <klib/Types.h>
 
 
 // Atomic Bool

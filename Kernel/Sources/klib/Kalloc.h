@@ -9,6 +9,7 @@
 #ifndef kalloc_h
 #define kalloc_h
 
+#include <klib/Types.h>
 #include <klib/Error.h>
 #include <SystemDescription.h>
 

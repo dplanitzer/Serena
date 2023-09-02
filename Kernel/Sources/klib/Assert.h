@@ -9,7 +9,7 @@
 #ifndef Assert_h
 #define Assert_h
 
-#include <Runtime.h>
+#include <klib/Types.h>
 #include <Platform.h>
 
 

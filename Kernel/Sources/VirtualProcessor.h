@@ -10,7 +10,6 @@
 #define VirtualProcessor_h
 
 #include <klib/klib.h>
-#include "Atomic.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "SystemDescription.h"

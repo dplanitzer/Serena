@@ -9,7 +9,7 @@
 #ifndef Error_h
 #define Error_h
 
-#include <Runtime.h>
+#include <klib/Types.h>
 #include <klib/Assert.h>
 
 
