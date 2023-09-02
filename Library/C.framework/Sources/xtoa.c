@@ -29,7 +29,7 @@ const char *__lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, cha
     pString[maxLength - 1] = '\0';
     do {
         p--;
-        Int64_DivMod(absval, base, &q, &r);
+        __Int64_DivMod(absval, base, &q, &r);
         *p = digits[r];
         absval = q;
     } while (absval && p >= p0);
@@ -64,7 +64,7 @@ const char *__ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, c
     pString[maxLength - 1] = '\0';
     do {
         p--;
-        Int64_DivMod(val, base, &q, &r);
+        __Int64_DivMod(val, base, &q, &r);
         *p = digits[r];
         val = q;
     } while (val && p >= p0);

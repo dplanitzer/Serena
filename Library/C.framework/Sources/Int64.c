@@ -14,15 +14,16 @@
 // http://www.hackersdelight.org/hdcodetxt/divmnu.c.txt
 //
 
-#include "Runtime.h"
+#include "__stddef.h"
 
 
 typedef union i64 {
-    Int64 i;
+    int64_t i;
     unsigned short s[4];
 } i64_t;
 
-int nlz(unsigned int x) {
+static int __nlz(unsigned int x)
+{
     int n;
 
     if (x == 0) return(32);
@@ -58,9 +59,10 @@ int nlz(unsigned int x) {
  that the dividend be at least as long as the divisor.  (In his terms,
  m >= 0 (unstated).  Therefore m+n >= n.) */
 
-int divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
+static int __divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
                  const unsigned short  * _Nonnull u, const unsigned short  * _Nonnull v,
-           int m, int n) {
+           int m, int n)
+{
 
     const unsigned int b = 65536;   // Number base (16 bits).
     unsigned short un[10];          // Normalized form of u. 2n
@@ -88,7 +90,7 @@ int divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
     // same amount.  We may have to append a high-order
     // digit on the dividend; we do that unconditionally.
 
-    s = nlz(v[n-1]) - 16;        // 0 <= s <= 15.
+    s = __nlz(v[n-1]) - 16;        // 0 <= s <= 15.
     for (i = n - 1; i > 0; i--)
         vn[i] = (v[i] << s) | (v[i-1] >> (16-s));
     vn[0] = v[0] << s;
@@ -142,7 +144,7 @@ int divmnu(unsigned short  * _Nonnull q, unsigned short  * _Nonnull r,
 }
 
 
-Int Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64* _Nullable remainder)
+errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t* _Nullable quotient, int64_t* _Nullable remainder)
 {
     i64_t x, y, qx, rx;
     unsigned short q[4], r[4];
@@ -194,7 +196,7 @@ Int Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64
     }
 #endif
 
-    const int err = divmnu(q, r, u, v, m, n);
+    const int err = __divmnu(q, r, u, v, m, n);
     if (err != 0) {
         if (quotient) *quotient = 0;
         if (remainder) *remainder = 0;
@@ -233,56 +235,56 @@ Int Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64
 
 // The code that the vbcc C compiler generates expects the following functions
 // to exist
-Int64 _divsint64(Int64 dividend, Int64 divisor)
+int64_t _divsint64(int64_t dividend, int64_t divisor)
 {
-    Int64 quo;
+    int64_t quo;
 
-    Int64_DivMod(dividend, divisor, &quo, NULL);
+    __Int64_DivMod(dividend, divisor, &quo, NULL);
 
     return quo;
 }
 
-Int64 _divsint64_020(Int64 dividend, Int64 divisor)
+int64_t _divsint64_020(int64_t dividend, int64_t divisor)
 {
-    Int64 quo;
+    int64_t quo;
     
-    Int64_DivMod(dividend, divisor, &quo, NULL);
+    __Int64_DivMod(dividend, divisor, &quo, NULL);
     
     return quo;
 }
 
-Int64 _divsint64_060(Int64 dividend, Int64 divisor)
+int64_t _divsint64_060(int64_t dividend, int64_t divisor)
 {
-    Int64 quo;
+    int64_t quo;
     
-    Int64_DivMod(dividend, divisor, &quo, NULL);
+    __Int64_DivMod(dividend, divisor, &quo, NULL);
     
     return quo;
 }
 
-Int64 _modsint64(Int64 dividend, Int64 divisor)
+int64_t _modsint64(int64_t dividend, int64_t divisor)
 {
-    Int64 quo, rem;
+    int64_t quo, rem;
 
-    Int64_DivMod(dividend, divisor, &quo, &rem);
+    __Int64_DivMod(dividend, divisor, &quo, &rem);
 
     return rem;
 }
 
-Int64 _modsint64_020(Int64 dividend, Int64 divisor)
+int64_t _modsint64_020(int64_t dividend, int64_t divisor)
 {
-    Int64 quo, rem;
+    int64_t quo, rem;
     
-    Int64_DivMod(dividend, divisor, &quo, &rem);
+    __Int64_DivMod(dividend, divisor, &quo, &rem);
     
     return rem;
 }
 
-Int64 _modsint64_060(Int64 dividend, Int64 divisor)
+int64_t _modsint64_060(int64_t dividend, int64_t divisor)
 {
-    Int64 quo, rem;
+    int64_t quo, rem;
     
-    Int64_DivMod(dividend, divisor, &quo, &rem);
+    __Int64_DivMod(dividend, divisor, &quo, &rem);
     
     return rem;
 }

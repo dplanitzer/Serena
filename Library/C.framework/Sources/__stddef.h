@@ -97,7 +97,7 @@ typedef int errno_t;
 #define UInt32_RoundDownToPowerOf2(x, a)  __ROUND_DOWN_TO_POWER_OF_2(x, (uint32_t)(a) - 1)
 
 
-extern int Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
+extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
 
 extern void __stdlibc_init(void);
 extern void __malloc_init(void);

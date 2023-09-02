@@ -70,12 +70,6 @@ ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
 export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/Kernel.bin
 export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/KernelTests.bin
 
-RUNTIME_PROJECT_DIR := $(WORKSPACE_DIR)/Library/CRuntime.framework
-export RUNTIME_HEADERS_DIR := $(RUNTIME_PROJECT_DIR)/Sources
-export RUNTIME_BUILD_DIR := $(BUILD_DIR)/Library/CRuntime.framework
-export RUNTIME_PRODUCT_DIR := $(PRODUCT_DIR)/Library/CRuntime.framework
-export RUNTIME_LIB_FILE := $(RUNTIME_PRODUCT_DIR)/libcrt.a
-
 SYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/System.framework
 export SYSTEM_HEADERS_DIR := $(SYSTEM_PROJECT_DIR)/Headers
 export SYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/System.framework
@@ -107,7 +101,7 @@ $(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
 	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
 
 
-clean: clean_kernel clean_kernel_tests clean_runtime clean_clib clean_system
+clean: clean_kernel clean_kernel_tests clean_clib clean_system
 	@echo Done
 
 
@@ -117,7 +111,6 @@ clean: clean_kernel clean_kernel_tests clean_runtime clean_clib clean_system
 
 include $(WORKSPACE_DIR)/common.mk
 
-include $(RUNTIME_PROJECT_DIR)/project.mk
 include $(SYSTEM_PROJECT_DIR)/project.mk
 include $(CLIB_PROJECT_DIR)/project.mk
 
