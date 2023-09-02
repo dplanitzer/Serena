@@ -274,15 +274,6 @@ Int Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64
 
 // The code that the vbcc C compiler generates expects the following functions
 // to exist
-Int64 _divsint64(Int64 dividend, Int64 divisor)
-{
-    Int64 quo;
-
-    Int64_DivMod(dividend, divisor, &quo, NULL);
-
-    return quo;
-}
-
 Int64 _divsint64_020(Int64 dividend, Int64 divisor)
 {
     Int64 quo;
@@ -299,15 +290,6 @@ Int64 _divsint64_060(Int64 dividend, Int64 divisor)
     Int64_DivMod(dividend, divisor, &quo, NULL);
     
     return quo;
-}
-
-Int64 _modsint64(Int64 dividend, Int64 divisor)
-{
-    Int64 quo, rem;
-
-    Int64_DivMod(dividend, divisor, &quo, &rem);
-
-    return rem;
 }
 
 Int64 _modsint64_020(Int64 dividend, Int64 divisor)

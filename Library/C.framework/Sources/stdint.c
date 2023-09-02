@@ -235,15 +235,6 @@ errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t* _Nullable quo
 
 // The code that the vbcc C compiler generates expects the following functions
 // to exist
-int64_t _divsint64(int64_t dividend, int64_t divisor)
-{
-    int64_t quo;
-
-    __Int64_DivMod(dividend, divisor, &quo, NULL);
-
-    return quo;
-}
-
 int64_t _divsint64_020(int64_t dividend, int64_t divisor)
 {
     int64_t quo;
@@ -262,15 +253,6 @@ int64_t _divsint64_060(int64_t dividend, int64_t divisor)
     return quo;
 }
 
-int64_t _modsint64(int64_t dividend, int64_t divisor)
-{
-    int64_t quo, rem;
-
-    __Int64_DivMod(dividend, divisor, &quo, &rem);
-
-    return rem;
-}
-
 int64_t _modsint64_020(int64_t dividend, int64_t divisor)
 {
     int64_t quo, rem;
@@ -287,4 +269,22 @@ int64_t _modsint64_060(int64_t dividend, int64_t divisor)
     __Int64_DivMod(dividend, divisor, &quo, &rem);
     
     return rem;
+}
+
+uint64_t _divuint64_20(uint64_t dividend, uint64_t divisor)
+{
+    int64_t quo;
+    
+    __Int64_DivMod(dividend, divisor, &quo, NULL);
+    
+    return (uint64_t) quo;
+}
+
+uint64_t _moduint64_20(uint64_t dividend, uint64_t divisor)
+{
+    int64_t quo, rem;
+    
+    __Int64_DivMod(dividend, divisor, &quo, &rem);
+    
+    return (uint64_t) rem;
 }
