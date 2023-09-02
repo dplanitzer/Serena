@@ -9,7 +9,7 @@
 #ifndef RingBuffer_h
 #define RingBuffer_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 
 
 // Ring buffer primitives. The ring buffer size must be a multiple of a power-of-2.

@@ -9,7 +9,7 @@
 #ifndef Allocator_h
 #define Allocator_h
 
-#include "Foundation.h"
+#include <klib/Error.h>
 #include "Platform.h"
 
 

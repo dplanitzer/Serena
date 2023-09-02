@@ -6,9 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Foundation.h"
-#include "kalloc.h"
-#include "Bytes.h"
+#include <klib/klib.h>
 #include "BootAllocator.h"
 #include "Console.h"
 #include "DispatchQueue.h"

@@ -9,7 +9,7 @@
 #ifndef FloppyDisk_h
 #define FloppyDisk_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "InterruptController.h"
 #include "Semaphore.h"
 

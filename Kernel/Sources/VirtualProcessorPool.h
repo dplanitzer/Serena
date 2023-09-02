@@ -9,8 +9,7 @@
 #ifndef VirtualProcessorPool_h
 #define VirtualProcessorPool_h
 
-#include "Foundation.h"
-#include "List.h"
+#include <klib/klib.h>
 #include "VirtualProcessor.h"
 
 

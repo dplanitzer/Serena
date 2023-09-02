@@ -1,13 +1,14 @@
 //
-//  assert.c
+//  Assert.c
 //  Apollo
 //
 //  Created by Dietmar Planitzer on 8/16/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "assert.h"
+#include "Assert.h"
 #include "Bytes.h"
+#include "Foundation.h"
 
 
 // This implements a micro console that directly controls the graphics hardware.

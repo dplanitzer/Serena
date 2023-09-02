@@ -6,8 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Foundation.h"
-#include "kalloc.h"
+#include <klib/klib.h>
 #include "DispatchQueue.h"
 #include "DriverManager.h"
 #include "EventDriver.h"

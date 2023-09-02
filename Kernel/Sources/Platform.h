@@ -9,7 +9,7 @@
 #ifndef Platform_h
 #define Platform_h
 
-#include "Runtime.h"
+#include <Runtime.h>
 
 //
 // CPU

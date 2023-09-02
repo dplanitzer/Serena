@@ -9,7 +9,7 @@
 #ifndef InputDriver_h
 #define InputDriver_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "EventDriver.h"
 
 

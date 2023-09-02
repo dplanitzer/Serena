@@ -7,7 +7,6 @@
 //
 
 #include "RingBuffer.h"
-#include "kalloc.h"
 
 
 // Initializes the ring buffer to empty. 'capacity' is the buffer capacity in bytes.

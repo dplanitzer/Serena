@@ -9,7 +9,7 @@
 #ifndef RealtimeClock_h
 #define RealtimeClock_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "SystemDescription.h"
 
 

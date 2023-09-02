@@ -7,10 +7,7 @@
 //
 
 #include "DriverManager.h"
-#include "kalloc.h"
-#include "Bytes.h"
 #include "Console.h"
-#include "List.h"
 #include "EventDriver.h"
 #include "FloppyDisk.h"
 #include "GraphicsDriver.h"

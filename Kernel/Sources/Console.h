@@ -9,7 +9,7 @@
 #ifndef Console_h
 #define Console_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "Geometry.h"
 #include "GraphicsDriver.h"
 #include "Lock.h"

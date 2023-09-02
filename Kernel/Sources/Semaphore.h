@@ -9,8 +9,7 @@
 #ifndef Semaphore_h
 #define Semaphore_h
 
-#include "Foundation.h"
-#include "List.h"
+#include <klib/klib.h>
 
 
 // A (counting) semaphore

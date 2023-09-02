@@ -9,7 +9,7 @@
 #ifndef DriverManager_h
 #define DriverManager_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "Platform.h"
 
 struct _DriverManager;

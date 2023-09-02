@@ -1,5 +1,5 @@
 //
-//  kalloc.h
+//  Kalloc.h
 //  Apollo
 //
 //  Created by Dietmar Planitzer on 8/6/23.
@@ -9,7 +9,7 @@
 #ifndef kalloc_h
 #define kalloc_h
 
-#include <Foundation.h>
+#include <klib/Error.h>
 #include <SystemDescription.h>
 
 

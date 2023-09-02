@@ -9,9 +9,8 @@
 #ifndef VirtualProcessor_h
 #define VirtualProcessor_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "Atomic.h"
-#include "List.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "SystemDescription.h"

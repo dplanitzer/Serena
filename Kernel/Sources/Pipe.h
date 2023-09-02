@@ -9,7 +9,7 @@
 #ifndef Pipe_h
 #define Pipe_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 
 struct _Pipe;
 typedef struct _Pipe* PipeRef;

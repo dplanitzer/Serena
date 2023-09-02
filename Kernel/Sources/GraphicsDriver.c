@@ -7,9 +7,6 @@
 //
 
 #include "GraphicsDriver.h"
-#include "kalloc.h"
-#include "Bits.h"
-#include "Bytes.h"
 #include "InterruptController.h"
 #include "Platform.h"
 #include "Semaphore.h"

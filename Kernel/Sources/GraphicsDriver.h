@@ -9,7 +9,7 @@
 #ifndef GraphicsDriver_h
 #define GraphicsDriver_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "Geometry.h"
 #include "Surface.h"
 

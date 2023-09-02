@@ -9,7 +9,7 @@
 #ifndef Bytes_h
 #define Bytes_h
 
-#include "Foundation.h"
+#include <Runtime.h>
 
 
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns

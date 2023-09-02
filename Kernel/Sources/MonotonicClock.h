@@ -9,7 +9,7 @@
 #ifndef MonotonicClock_h
 #define MonotonicClock_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "SystemDescription.h"
 
 

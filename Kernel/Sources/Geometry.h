@@ -9,7 +9,7 @@
 #ifndef Geometry_h
 #define Geometry_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 
 
 typedef struct _Point {

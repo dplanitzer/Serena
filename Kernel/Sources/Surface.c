@@ -7,7 +7,6 @@
 //
 
 #include "Surface.h"
-#include "kalloc.h"
 
 
 // Returns how many planes we need to allocate for the given pixel format.

@@ -7,7 +7,6 @@
 //
 
 #include "FloppyDisk.h"
-#include "kalloc.h"
 #include "Platform.h"
 #include "VirtualProcessor.h"
 

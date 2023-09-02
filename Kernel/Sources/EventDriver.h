@@ -9,7 +9,7 @@
 #ifndef EventDriver_h
 #define EventDriver_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "GraphicsDriver.h"
 
 

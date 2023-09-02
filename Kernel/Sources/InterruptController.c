@@ -7,7 +7,6 @@
 //
 
 #include "InterruptControllerPriv.h"
-#include "kalloc.h"
 
 
 InterruptController     gInterruptControllerStorage;

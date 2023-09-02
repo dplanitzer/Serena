@@ -9,7 +9,7 @@
 #ifndef Surface_h
 #define Surface_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "Geometry.h"
 
 

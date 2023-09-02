@@ -9,7 +9,7 @@
 #ifndef GemDosExecutableLoader_h
 #define GemDosExecutableLoader_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "AddressSpace.h"
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual

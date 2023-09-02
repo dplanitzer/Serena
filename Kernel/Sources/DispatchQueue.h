@@ -9,7 +9,7 @@
 #ifndef DispatchQueue_h
 #define DispatchQueue_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "Process.h"
 #include "SystemDescription.h"
 #include "VirtualProcessorPool.h"

@@ -7,8 +7,6 @@
 //
 
 #include "VirtualProcessorScheduler.h"
-#include "Allocator.h"
-#include "Bytes.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "InterruptController.h"

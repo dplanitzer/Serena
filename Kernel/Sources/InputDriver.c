@@ -7,7 +7,6 @@
 //
 
 #include "InputDriver.h"
-#include "kalloc.h"
 #include "InterruptController.h"
 #include "RingBuffer.h"
 

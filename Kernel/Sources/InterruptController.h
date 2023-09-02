@@ -9,7 +9,7 @@
 #ifndef InterruptController_h
 #define InterruptController_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "Platform.h"
 #include "Semaphore.h"
 

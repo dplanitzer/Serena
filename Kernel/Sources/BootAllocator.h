@@ -9,7 +9,7 @@
 #ifndef BootAllocator_h
 #define BootAllocator_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 #include "SystemDescription.h"
 
 

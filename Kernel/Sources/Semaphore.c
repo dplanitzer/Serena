@@ -7,7 +7,6 @@
 //
 
 #include "Semaphore.h"
-#include "kalloc.h"
 #include "InterruptController.h"
 #include "VirtualProcessorScheduler.h"
 

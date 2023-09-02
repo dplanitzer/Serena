@@ -8,6 +8,7 @@
 
 #include "Bits.h"
 #include "Bytes.h"
+#include "Foundation.h"
 
 
 static inline Int index_of_first_1_in_byte(Byte byte, Int low_idx_incl, Int high_idx_incl)

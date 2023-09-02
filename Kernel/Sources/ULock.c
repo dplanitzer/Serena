@@ -7,7 +7,6 @@
 //
 
 #include "ULock.h"
-#include "kalloc.h"
 #include "VirtualProcessorScheduler.h"
 
 

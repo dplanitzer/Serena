@@ -9,7 +9,7 @@
 #ifndef Process_h
 #define Process_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 
 
 struct _Process;

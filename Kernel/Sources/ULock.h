@@ -9,8 +9,7 @@
 #ifndef ULock_h
 #define ULock_h
 
-#include "Foundation.h"
-#include "List.h"
+#include <klib/klib.h>
 
 
 typedef struct _ULock {

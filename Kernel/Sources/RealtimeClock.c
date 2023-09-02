@@ -7,9 +7,7 @@
 //
 
 #include "RealtimeClock.h"
-#include "kalloc.h"
 #include "Atomic.h"
-#include "Bytes.h"
 #include "Lock.h"
 #include "Platform.h"
 

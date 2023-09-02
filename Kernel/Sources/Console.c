@@ -7,7 +7,6 @@
 //
 
 #include "Console.h"
-#include "kalloc.h"
 
 static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
 

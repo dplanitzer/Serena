@@ -9,7 +9,7 @@
 #ifndef AddressSpace_h
 #define AddressSpace_h
 
-#include "Foundation.h"
+#include <klib/klib.h>
 
 
 struct _AddressSpace;

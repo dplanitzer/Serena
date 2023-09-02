@@ -9,7 +9,7 @@
 #ifndef Bits_h
 #define Bits_h
 
-#include "Foundation.h"
+#include <Runtime.h>
 
 
 typedef struct _BitPointer {

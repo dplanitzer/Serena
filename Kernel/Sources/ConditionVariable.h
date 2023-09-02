@@ -9,8 +9,7 @@
 #ifndef ConditionVariable_h
 #define ConditionVariable_h
 
-#include "Foundation.h"
-#include "List.h"
+#include <klib/klib.h>
 #include "Lock.h"
 
 

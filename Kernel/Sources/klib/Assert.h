@@ -1,5 +1,5 @@
 //
-//  assert.h
+//  Assert.h
 //  Apollo
 //
 //  Created by Dietmar Planitzer on 8/17/23.

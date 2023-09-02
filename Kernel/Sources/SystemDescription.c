@@ -7,7 +7,7 @@
 //
 
 #include "SystemDescription.h"
-#include "Bytes.h"
+#include <klib/Bytes.h>
 
 
 SystemDescription* _Nonnull gSystemDescription;

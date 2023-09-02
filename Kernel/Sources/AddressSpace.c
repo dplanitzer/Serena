@@ -7,8 +7,6 @@
 //
 
 #include "AddressSpace.h"
-#include "kalloc.h"
-#include "List.h"
 #include "Lock.h"
 
 

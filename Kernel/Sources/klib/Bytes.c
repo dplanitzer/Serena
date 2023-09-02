@@ -7,6 +7,7 @@
 //
 
 #include "Bytes.h"
+#include <klib/Assert.h>
 
 
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns

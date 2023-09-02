@@ -10,9 +10,7 @@
 #define DispatchQueuePriv_h
 
 #include "DispatchQueue.h"
-#include "kalloc.h"
 #include "ConditionVariable.h"
-#include "List.h"
 #include "Lock.h"
 #include "MonotonicClock.h"
 #include "Semaphore.h"
