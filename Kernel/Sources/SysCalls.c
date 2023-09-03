@@ -12,40 +12,70 @@
 #include "VirtualProcessor.h"
 
 
-ErrorCode _SYSCALL_write(const Character* pString)
+typedef struct _SYS_write_args {
+    Int                         scno;
+    const Character* _Nonnull   buffer;
+} SYS_write_args;
+
+ErrorCode _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
     Console* pConsole;
 
     try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-    Console_DrawString(pConsole, pString);
+    Console_DrawString(pConsole, pArgs->buffer);
     return EOK;
 
 catch:
     return err;
 }
 
-ErrorCode _SYSCALL_sleep(Int seconds, Int nanoseconds)
+
+typedef struct _SYS_sleep_args {
+    Int             scno;
+    TimeInterval    ti;
+} SYS_sleep_args;
+
+ErrorCode _SYSCALL_sleep(const SYS_sleep_args* _Nonnull pArgs)
 {
-    return VirtualProcessor_Sleep(TimeInterval_Make(seconds, nanoseconds));
+    return VirtualProcessor_Sleep(pArgs->ti);
 }
 
-ErrorCode _SYSCALL_dispatch_async(const Closure1Arg_Func pUserClosure)
+
+typedef struct _SYS_dispatch_async_args {
+    Int                             scno;
+    const Closure1Arg_Func _Nonnull userClosure;
+} SYS_dispatch_async_args;
+
+ErrorCode _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
 {
-    return Process_DispatchAsyncUser(Process_GetCurrent(), pUserClosure);
+    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->userClosure);
 }
 
-ErrorCode _SYSCALL_alloc_address_space(Int nbytes, Byte * _Nullable * _Nonnull pOutMem)
+
+typedef struct _SYS_alloc_address_space_args {
+    Int                         scno;
+    Int                         nbytes;
+    Byte * _Nullable * _Nonnull pOutMem;
+} SYS_alloc_address_space_args;
+
+ErrorCode _SYSCALL_alloc_address_space(SYS_alloc_address_space_args* _Nonnull pArgs)
 {
-    return Process_AllocateAddressSpace(Process_GetCurrent(), nbytes, pOutMem);
+    return Process_AllocateAddressSpace(Process_GetCurrent(), pArgs->nbytes, pArgs->pOutMem);
 }
 
-ErrorCode _SYSCALL_exit(Int status)
+
+typedef struct _SYS_exit_args {
+    Int scno;
+    Int status;
+} SYS_exit_args;
+
+ErrorCode _SYSCALL_exit(const SYS_exit_args* _Nonnull pArgs)
 {
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to
     // return to user space anymore.
-    Process_Terminate(Process_GetCurrent(), status);
+    Process_Terminate(Process_GetCurrent(), pArgs->status);
 
 
     // This wait here will eventually be aborted when the dispatch queue that
@@ -56,19 +86,24 @@ ErrorCode _SYSCALL_exit(Int status)
     return EOK;
 }
 
-ErrorCode _SYSCALL_spawn_process(Byte* _Nullable pUserEntryPoint)
+typedef struct _SYS_spawn_process_args {
+    Int             scno;
+    Byte* _Nullable userEntryPoint;
+} SYS_spawn_process_args;
+
+ErrorCode _SYSCALL_spawn_process(const SYS_spawn_process_args* pArgs)
 {
     decl_try_err();
     ProcessRef pCurProc = Process_GetCurrent();
     ProcessRef pChildProc = NULL;
 
-    if (pUserEntryPoint == NULL) {
+    if (pArgs->userEntryPoint == NULL) {
         throw(EPARAM);
     }
     
     try(Process_Create(Process_GetNextAvailablePID(), &pChildProc));
     try_bang(Process_AddChildProcess(pCurProc, pChildProc));
-    try(Process_DispatchAsyncUser(pChildProc, (Closure1Arg_Func)pUserEntryPoint));
+    try(Process_DispatchAsyncUser(pChildProc, (Closure1Arg_Func)pArgs->userEntryPoint));
 
     return EOK;
 

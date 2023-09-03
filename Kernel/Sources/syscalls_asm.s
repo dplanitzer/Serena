@@ -20,28 +20,13 @@
     xdef _SystemCallHandler
 
 
-; System call entry:
-; struct _SysCallEntry {
-;    void* _Nonnull entry;
-;    UInt16         padding;
-;    UInt16         numberOfBytesInArgumentList;
-; }
-; The argument list size should be a multiple of 4 on a 32bit machine and 8 on
-; a 64bit machine.
-
-    clrso
-sc_entry        so.l    1
-sc_padding      so.w    1
-sc_nargbytes    so.w    1
-
-
 syscall_table:
-    dc.l __SYSCALL_write, 1*4
-    dc.l __SYSCALL_sleep, 2*4
-    dc.l __SYSCALL_dispatch_async, 1*4
-    dc.l __SYSCALL_alloc_address_space, 2*4
-    dc.l __SYSCALL_exit, 1*4
-    dc.l __SYSCALL_spawn_process, 1*4
+    dc.l __SYSCALL_write
+    dc.l __SYSCALL_sleep
+    dc.l __SYSCALL_dispatch_async
+    dc.l __SYSCALL_alloc_address_space
+    dc.l __SYSCALL_exit
+    dc.l __SYSCALL_spawn_process
 
 SC_numberOfCalls    equ 6       ; number of system calls
 
@@ -84,19 +69,29 @@ SC_numberOfCalls    equ 6       ; number of system calls
 ; -- user space can either push arguments on the stack or point the kernel to a
 ;    precomputed argument list that is stored somewhere else 
 ;
+; This top-level system call handler calls the system call handler functions that
+; are responsible for handling the individual system calls. These handlers are
+; written in C and they receive a pointer to a structure that holds all the
+; system call arguments including the system call number. The arguments are
+; ordered from left to right:
+;
+; struct _Args {
+;    Int  systemCallNumber;
+;    // system call specific arguments from left to right
+; }
+;
 _SystemCallHandler:
     inline
         ; save the user registers (see description above)
-        movem.l d1 - d7 / a1 - a6, -(sp)
+        movem.l d1 - d7 / a0 - a6, -(sp)
 
         ; save the ksp as it was at syscall entry (needed to be able to abort call-as-user invocations)
         move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
         lea     (14*4, sp), a2                      ; ksp at trap handler entry time was 14 long words higher up in memory
         move.l  a2, vp_syscall_entry_ksp(a1)
 
-        ; Get the system call number and adjust a0 so that it points to the
-        ; left-most (first) actual system call argument
-        move.l  (a0)+, d0
+        ; Get the system call number
+        move.l  (a0), d0
 
         ; Range check the system call number (we treat it as unsigned)
         cmp.l   #SC_numberOfCalls, d0
@@ -104,28 +99,17 @@ _SystemCallHandler:
 
         ; Get the system call entry structure
         lea     syscall_table(pc), a1
-        lea     (a1, d0.l*8), a1
+        move.l  (a1, d0.l*4), a1
 
-        ; Copy the arguments from the user stack to the superuser stack
-        move.w  sc_nargbytes(a1), d7
-        beq.s   .L2
-        add.w   d7, a0
-        move.w  d7, d0
-        lsr.w   #2, d0
-        subq.w  #1, d0
-
-.L1:    move.l  -(a0), -(sp)
-        dbra    d0, .L1
-
-.L2:
         ; Invoke the system call handler
-        jsr     ([a1])
-        add.w   d7, sp
+        move.l  a0, -(sp)
+        jsr     (a1)
+        addq.w  #4, sp
 
 .Lsyscall_done:
 
         ; restore the user registers
-        movem.l (sp)+, d1 - d7 / a1 - a6
+        movem.l (sp)+, d1 - d7 / a0 - a6
 
         rte
 
