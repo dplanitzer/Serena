@@ -8,15 +8,20 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <syscall.h>
 #include <__stddef.h>
 #include "Allocator.h"
-#include <System.h>
 
 
 // XXX initialize the malloc package
 
 static AllocatorRef gAllocator;
 
+
+static errno_t __alloc_address_space(size_t nbytes, void **ptr)
+{
+    return __syscall(SC_alloc_address_space, nbytes, ptr);
+}
 
 // Initializes the malloc subsystem and does the initial heap allocation.
 // The initial heap size is INITIAL_HEAP_SIZE

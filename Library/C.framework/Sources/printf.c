@@ -13,7 +13,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
-#include <System.h>
+#include <syscall.h>
 #include "printf.h"
 
 
@@ -331,7 +331,7 @@ int printf(const char *format, ...)
 
 static errno_t vprintf_console_sink(CharacterStream* _Nullable pStream, const char* _Nonnull pBuffer, size_t nBytes)
 {
-    return __write(pBuffer);
+    return __syscall(SC_write, pBuffer);
 }
 
 int vprintf(const char *format, va_list ap)

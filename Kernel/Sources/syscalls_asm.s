@@ -20,13 +20,28 @@
     xdef _SystemCallHandler
 
 
+; System call entry:
+; struct _SysCallEntry {
+;    void* _Nonnull entry;
+;    UInt16         padding;
+;    UInt16         numberOfBytesInArgumentList;
+; }
+; The argument list size should be a multiple of 4 on a 32bit machine and 8 on
+; a 64bit machine.
+
+    clrso
+sc_entry        so.l    1
+sc_padding      so.w    1
+sc_nargbytes    so.w    1
+
+
 syscall_table:
-    dc.l __SYSCALL_write
-    dc.l __SYSCALL_sleep
-    dc.l __SYSCALL_dispatch_async
-    dc.l __SYSCALL_alloc_address_space
-    dc.l __SYSCALL_exit
-    dc.l __SYSCALL_spawn_process
+    dc.l __SYSCALL_write, 1*4
+    dc.l __SYSCALL_sleep, 2*4
+    dc.l __SYSCALL_dispatch_async, 1*4
+    dc.l __SYSCALL_alloc_address_space, 2*4
+    dc.l __SYSCALL_exit, 1*4
+    dc.l __SYSCALL_spawn_process, 1*4
 
 SC_numberOfCalls    equ 6       ; number of system calls
 
@@ -36,71 +51,81 @@ SC_numberOfCalls    equ 6       ; number of system calls
 ; A system call looks like this:
 ;
 ; d0.l: -> system call number
-; d1.l to d7.l: -> system call arguments
+; a0.l: -> pointer to argument list base
 ;
 ; d0.l: <- error number
 ;
-; The system call handler builds a very particular stack frame to ensure that we
-; are able to call the system call number specific handler with an argument
-; frame that is compatible with C code:
+; Register a0 holds a pointer to the base of the argument list. Arguments are
+; expected to be ordered from left to right (same as the standard C function
+; call ABI) and the pointer in a0 points to the left-most argument. So the
+; simplest way to pass arguments to a system call is to push them on the user
+; stack starting with the right-most argument and ending with the left-most
+; argument and to then initialize a0 like this:
 ;
-; -------------------------------   sp at _SystemCallHandler entry
-; |  space for local variables  |
-; -------------------------------
-; |  saved a6                   |
-; |      .                      |
-; |      .                      |
-; |  saved a0                   |
-; -------------------------------
-; |  saved d7                   |   right-most syscall argument
-; |      .                      |
-; |      .                      |
-; |  saved d1                   |   left-most syscall argument
-; -------------------------------   sp at __syscall_xxx call time
+; move.l sp, a0
 ;
-; This stack layout makes it possible to call the __syscall_xxx C function in a
-; way that is compatible with the C programming language.
+; If the arguments are first put on the stack and you then call a subroutine
+; which does the actual trap #0 to the kernel, then you want to initialize a0
+; like this:
 ;
-; Note that we want to save and restore all user space registers anyway because
-; we do not want to leak potentially security sensitive information back out to
-; user space when we return from the system call.
+; lea 4(sp), a0
 ;
-; Note that we do not save & restore d0 because it contains the syscall number
-; on entry and the syscall error value result on exit.
-; Note that while we write d1 to the kernel stack, we do not restore it because
-; it is a parameter on input and a result on output.
+; since the user stack pointer points to the return address on the stack and not
+; the system call number.
+;
+; The system call returns the error code in d0.
+;
+; There are a couple advantages to this admitently unusual system call ABI:
+; - the kernel does not have to save d0 and a0 since they hold a return and
+;   argument value.
+; - it gives the user space more flexibility:
+; -- user space can either implement a __syscall() subroutine or inline the system
+;    call and the right thing will happen automatically
+; -- user space can either push arguments on the stack or point the kernel to a
+;    precomputed argument list that is stored somewhere else 
 ;
 _SystemCallHandler:
     inline
-        ; save the user registers (see stack layout description above)
-        movem.l d1 - d7 / a0 - a6, -(sp)
+        ; save the user registers (see description above)
+        movem.l d1 - d7 / a1 - a6, -(sp)
 
         ; save the ksp as it was at syscall entry (needed to be able to abort call-as-user invocations)
-        move.l  _gVirtualProcessorSchedulerStorage + vps_running, a0
-        lea     (14*4, sp), a1                      ; ksp at trap handler entry time was 14 long words higher up in memory
-        move.l  a1, vp_syscall_entry_ksp(a0)
-        move.l  #0, vp_syscall_ret_0(a0)
+        move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
+        lea     (14*4, sp), a2                      ; ksp at trap handler entry time was 14 long words higher up in memory
+        move.l  a2, vp_syscall_entry_ksp(a1)
+
+        ; Get the system call number and adjust a0 so that it points to the
+        ; left-most (first) actual system call argument
+        move.l  (a0)+, d0
 
         ; Range check the system call number (we treat it as unsigned)
         cmp.l   #SC_numberOfCalls, d0
         bhs.s   .Linvalid_syscall
 
-        ; Get the system call entry point and jump there
-        lea     syscall_table(pc), a0
-        move.l  (a0, d0.l*4), a0
-        jsr     (a0)
+        ; Get the system call entry structure
+        lea     syscall_table(pc), a1
+        lea     (a1, d0.l*8), a1
+
+        ; Copy the arguments from the user stack to the superuser stack
+        move.w  sc_nargbytes(a1), d7
+        beq.s   .L2
+        add.w   d7, a0
+        move.w  d7, d0
+        lsr.w   #2, d0
+        subq.w  #1, d0
+
+.L1:    move.l  -(a0), -(sp)
+        dbra    d0, .L1
+
+.L2:
+        ; Invoke the system call handler
+        jsr     ([a1])
+        add.w   d7, sp
 
 .Lsyscall_done:
-        ; move the syscall result to d1. We always do this. We'll return #0 if
-        ; the syscall didn't actually produce any result (see above)
-        move.l  _gVirtualProcessorSchedulerStorage + vps_running, a0
-        move.l  vp_syscall_ret_0(a0), d1
-
-        ; skip over d1 on the stack since we use d1 as the return-of-result register
-        addq.l  #4, sp
 
         ; restore the user registers
-        movem.l (sp)+, d2 - d7 / a0 - a6
+        movem.l (sp)+, d1 - d7 / a1 - a6
 
         rte
 

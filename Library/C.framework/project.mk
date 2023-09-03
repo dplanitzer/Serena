@@ -14,6 +14,9 @@ CLIB_OBJS := $(patsubst $(CLIB_SOURCES_DIR)/%.c, $(CLIB_BUILD_DIR)/%.o, $(CLIB_C
 CLIB_DEPS := $(CLIB_OBJS:.o=.d)
 CLIB_OBJS += $(patsubst $(CLIB_SOURCES_DIR)/%.s, $(CLIB_BUILD_DIR)/%.o, $(CLIB_ASM_SOURCES))
 
+CLIB_C_INCLUDES := -I$(CLIB_HEADERS_DIR) -I$(CLIB_SOURCES_DIR)
+CLIB_ASM_INCLUDES := -I$(CLIB_HEADERS_DIR) -I$(CLIB_SOURCES_DIR)
+
 
 # --------------------------------------------------------------------------
 # Build rules
@@ -40,21 +43,21 @@ $(CLIB_LIB_FILE): $(CLIB_OBJS)
 
 $(CLIB_BUILD_DIR)/%.o : $(CLIB_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) -I$(CLIB_HEADERS_DIR) -I$(CLIB_SOURCES_DIR) -I$(SYSTEM_HEADERS_DIR) -dontwarn=214 -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) $(CLIB_C_INCLUDES) -dontwarn=214 -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
 
 $(CLIB_BUILD_DIR)/%.o : $(CLIB_SOURCES_DIR)/%.s
 	@echo $<
-	@$(AS) -I$(CLIB_SOURCES_DIR) -o $@ $<
+	@$(AS) $(CLIB_ASM_INCLUDES) -o $@ $<
 
 
 # start() function(s)
 $(CLIB_ASTART_FILE) : $(CLIB_ASTART_C_SOURCE)
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) -I$(CLIB_HEADERS_DIR) -I$(CLIB_SOURCES_DIR) -I$(SYSTEM_HEADERS_DIR) -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(CLIB_C_INCLUDES) -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
 
 $(CLIB_CSTART_FILE) : $(CLIB_CSTART_C_SOURCE)
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) -I$(CLIB_HEADERS_DIR) -I$(CLIB_SOURCES_DIR) -I$(SYSTEM_HEADERS_DIR) -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(CLIB_C_INCLUDES) -deps -depfile=$(patsubst $(CLIB_BUILD_DIR)/%.o,$(CLIB_BUILD_DIR)/%.d,$@) -o $@ $<
 
 
 clean_clib:

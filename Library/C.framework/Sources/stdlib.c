@@ -8,8 +8,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <syscall.h>
 #include <__stddef.h>
-#include <System.h>
 #include "List.h"
 
 
@@ -60,7 +60,7 @@ _Noreturn exit(int exit_code)
 
 _Noreturn _Exit(int exit_code)
 {
-    __exit(exit_code);
+    __syscall(SC_exit, exit_code);
 }
 
 int abs(int n)

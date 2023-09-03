@@ -35,9 +35,9 @@ ErrorCode _SYSCALL_dispatch_async(const Closure1Arg_Func pUserClosure)
     return Process_DispatchAsyncUser(Process_GetCurrent(), pUserClosure);
 }
 
-ErrorCode _SYSCALL_alloc_address_space(Int nbytes)
+ErrorCode _SYSCALL_alloc_address_space(Int nbytes, Byte * _Nullable * _Nonnull pOutMem)
 {
-    return Process_AllocateAddressSpace(Process_GetCurrent(), nbytes, (Byte**)&VirtualProcessor_GetCurrent()->syscall_ret_0);
+    return Process_AllocateAddressSpace(Process_GetCurrent(), nbytes, pOutMem);
 }
 
 ErrorCode _SYSCALL_exit(Int status)

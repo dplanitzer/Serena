@@ -159,7 +159,6 @@ typedef struct _VirtualProcessor {
 
     // System call support
     UInt32                                  syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
-    UInt32                                  syscall_ret_0;          // system call result word #0
     
     // Waiting related state
     Timeout                                 timeout;                // The timeout state
