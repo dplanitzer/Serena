@@ -61,13 +61,14 @@ SC_numberOfCalls    equ 6       ; number of system calls
 ; The system call returns the error code in d0.
 ;
 ; There are a couple advantages to this admitently unusual system call ABI:
-; - the kernel does not have to save d0 and a0 since they hold a return and
-;   argument value.
+; - the kernel does not have to save d0 since it holds the return value
 ; - it gives the user space more flexibility:
 ; -- user space can either implement a __syscall() subroutine or inline the system
 ;    call and the right thing will happen automatically
 ; -- user space can either push arguments on the stack or point the kernel to a
-;    precomputed argument list that is stored somewhere else 
+;    precomputed argument list that is stored somewhere else
+; - it allows the kernel to avoid having to copying the arguments to the super
+;   user stack 
 ;
 ; This top-level system call handler calls the system call handler functions that
 ; are responsible for handling the individual system calls. These handlers are
@@ -83,7 +84,7 @@ SC_numberOfCalls    equ 6       ; number of system calls
 _SystemCallHandler:
     inline
         ; save the user registers (see description above)
-        movem.l d1 - d7 / a0 - a6, -(sp)
+        movem.l d1 - d7 / a1 - a6, -(sp)
 
         ; save the ksp as it was at syscall entry (needed to be able to abort call-as-user invocations)
         move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
@@ -104,12 +105,12 @@ _SystemCallHandler:
         ; Invoke the system call handler
         move.l  a0, -(sp)
         jsr     (a1)
-        addq.w  #4, sp
+        move.l  (sp)+, a0
 
 .Lsyscall_done:
 
         ; restore the user registers
-        movem.l (sp)+, d1 - d7 / a0 - a6
+        movem.l (sp)+, d1 - d7 / a1 - a6
 
         rte
 
