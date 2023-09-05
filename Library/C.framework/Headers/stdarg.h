@@ -9,6 +9,10 @@
 #ifndef _STDARG_H
 #define _STDARG_H 1
 
+#include <_cmndef.h>
+
+__CPP_BEGIN
+
 typedef unsigned char *va_list;
 
 #define __va_align(type) (__alignof(type)>=4?__alignof(type):4)
@@ -19,5 +23,7 @@ typedef unsigned char *va_list;
 #define va_arg(vl,type) __va_mem(vl,type)
 #define va_copy(new,old) ((new)=(old))
 #define va_end(vl) ((vl)=0)
+
+__CPP_END
 
 #endif /* _STDARG_H */

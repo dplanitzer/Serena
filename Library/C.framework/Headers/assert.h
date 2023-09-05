@@ -9,7 +9,10 @@
 #ifndef _ASSERT_H
 #define _ASSERT_H 1
 
+#include <_cmndef.h>
 #include <stdnoreturn.h>
+
+__CPP_BEGIN
 
 extern _Noreturn _Assert(const char* pFilename, int lineNum, const char* pFuncName, const char* expr);
 
@@ -18,5 +21,7 @@ extern _Noreturn _Assert(const char* pFilename, int lineNum, const char* pFuncNa
 #else
 #define assert(cond)   if ((cond) == 0) { _Assert(__FILE__, __LINE__, __func__, #cond); }
 #endif
+
+__CPP_END
 
 #endif /* _ASSERT_H */

@@ -9,8 +9,11 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H 1
 
+#include <_cmndef.h>
 #include <_dmdef.h>
 #include <stddef.h>
+
+__CPP_BEGIN
 
 #define CHAR_BIT 8
 #define CHAR_MIN -128
@@ -52,5 +55,7 @@
 
 #define WCHAR_MIN 0
 #define WCHAR_MAX USHRT_MAX
+
+__CPP_END
 
 #endif /* _LIMITS_H */

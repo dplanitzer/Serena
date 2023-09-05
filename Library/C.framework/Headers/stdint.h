@@ -9,8 +9,10 @@
 #ifndef _STDINT_H
 #define _STDINT_H 1
 
+#include <_cmndef.h>
 #include <_dmdef.h>
 
+__CPP_BEGIN
 
 #define INT8_WIDTH 8
 #define INT16_WIDTH 16
@@ -160,5 +162,7 @@ typedef unsigned long long  uint_least64_t;
 
 typedef __uintmax_t uintmax_t;
 typedef __uintptr_t uintptr_t;
+
+__CPP_END
 
 #endif /* _STDINT_H */

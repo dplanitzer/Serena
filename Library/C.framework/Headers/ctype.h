@@ -9,6 +9,10 @@
 #ifndef _CTYPE_H
 #define _CTYPE_H 1
 
+#include <_cmndef.h>
+
+__CPP_BEGIN
+
 extern int isalnum(int ch);
 extern int isalpha(int ch);
 extern int islower(int ch);
@@ -24,5 +28,7 @@ extern int ispunct(int ch);
 
 extern int tolower(int ch);
 extern int toupper(int ch);
+
+__CPP_END
 
 #endif /* _CTYPE_H */

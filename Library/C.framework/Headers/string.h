@@ -9,8 +9,11 @@
 #ifndef _STRING_H
 #define _STRING_H 1
 
+#include <_cmndef.h>
 #include <_nulldef.h>
 #include <_sizedef.h>
+
+__CPP_BEGIN
 
 extern size_t strlen(const char *str);
 
@@ -46,5 +49,7 @@ extern int memcmp(const void *lhs, const void *rhs, size_t count);
 extern void *memset(void *dst, int ch, size_t count);
 extern void *memcpy(void *dst, const void *src, size_t count);
 extern void *memmove(void *dst, const void *src, size_t count);
+
+__CPP_END
 
 #endif /* _STRING_H */

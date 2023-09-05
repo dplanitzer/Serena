@@ -9,9 +9,12 @@
 #ifndef _STDIO_H
 #define _STDIO_H 1
 
-#include <stdarg.h>
+#include <_cmndef.h>
 #include <_nulldef.h>
 #include <_sizedef.h>
+#include <stdarg.h>
+
+__CPP_BEGIN
 
 #define EOF -1
 
@@ -33,5 +36,7 @@ extern int asprintf(char **str_ptr, const char *format, ...);
 extern int vasprintf(char **str_ptr, const char *format, va_list ap);
 
 extern void perror(const char *str);
+
+__CPP_END
 
 #endif /* _STDIO_H */

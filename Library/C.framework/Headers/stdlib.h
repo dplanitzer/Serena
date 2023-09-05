@@ -9,9 +9,12 @@
 #ifndef _STDLIB_H
 #define _STDLIB_H 1
 
-#include <stdnoreturn.h>
+#include <_cmndef.h>
 #include <_nulldef.h>
 #include <_sizedef.h>
+#include <stdnoreturn.h>
+
+__CPP_BEGIN
 
 extern _Noreturn abort(void);
 
@@ -44,5 +47,7 @@ extern void free(void *ptr);
 extern int abs(int n);
 extern long labs(long n);
 extern long long llabs(long long n);
+
+__CPP_END
 
 #endif /* _STDLIB_H */

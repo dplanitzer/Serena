@@ -9,6 +9,10 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H 1
 
+#include <_cmndef.h>
+
+__CPP_BEGIN
+
 #define ENOMEM      1
 #define ENOMEDIUM   2
 #define EDISKCHANGE 3
@@ -37,5 +41,7 @@
 
 // XXX make this per VP
 extern int errno;
+
+__CPP_END
 
 #endif /* _ERRNO_H */

@@ -9,10 +9,16 @@
 #ifndef _STDALIGN_H
 #define _STDALIGN_H 1
 
+#include <_cmndef.h>
+
+__CPP_BEGIN
+
 #ifndef __alignof_is_defined
 #define _Alignof(type) __alignof(type)
 #define alignof(type) __alignof(type)
 #define __alignof_is_defined 1
 #endif
+
+__CPP_END
 
 #endif /* _STDALIGN_H */

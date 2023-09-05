@@ -9,7 +9,10 @@
 #ifndef _SYSCALL_H
 #define _SYSCALL_H 1
 
+#include <_cmndef.h>
 #include <errno.h>
+
+__CPP_BEGIN
 
 #define SC_write                0   // write(const char *str)
 #define SC_sleep                1   // sleep(struct {int secs, int nanosecs})
@@ -20,5 +23,7 @@
 
 
 extern int __syscall(int scno, ...);
+
+__CPP_END
 
 #endif /* _SYSCALL_H */

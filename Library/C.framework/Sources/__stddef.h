@@ -9,6 +9,7 @@
 #ifndef ___STDDEF_H
 #define ___STDDEF_H 1
 
+#include <_cmndef.h>
 #include <stddef.h>
 #include <assert.h>
 #include <errno.h>

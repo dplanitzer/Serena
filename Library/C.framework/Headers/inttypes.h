@@ -9,7 +9,10 @@
 #ifndef _INTTYPES_H
 #define _INTTYPES_H 1
 
+#include <_cmndef.h>
 #include <stdint.h>
+
+__CPP_BEGIN
 
 #define PRId8 hhd
 #define PRId16 hd
@@ -217,5 +220,7 @@
 extern intmax_t imaxabs(intmax_t n);
 extern intmax_t strtoimax(const char *str, char **str_end, int base);
 extern uintmax_t strtoumax(const char *str, char **str_end, int base);
+
+__CPP_END
 
 #endif /* _INTTYPES_H */
