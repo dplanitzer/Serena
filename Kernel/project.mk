@@ -22,12 +22,12 @@ KERNEL_ASM_INCLUDES := -I$(KERNEL_SOURCES_DIR)
 # Build rules
 #
 
-.PHONY: clean-kernel
+.PHONY: clean-kernel $(KERNEL_BUILD_DIR) $(KERNEL_PRODUCT_DIR)
 
 
 build-kernel: $(KERNEL_BIN_FILE)
 
-$(KERNEL_OBJS): | $(KERNEL_BUILD_DIR) $(KERNEL_PRODUCT_DIR)
+$(KERNEL_OBJS): | $(KERNEL_BUILD_DIR)
 
 $(KERNEL_BUILD_DIR):
 	$(call mkdir_if_needed,$(KERNEL_BUILD_DIR))
@@ -38,7 +38,7 @@ $(KERNEL_PRODUCT_DIR):
 
 -include $(KLIB_SOURCES_DIR)/package.mk
 
-$(KERNEL_BIN_FILE): $(KLIB_OBJS) $(KERNEL_OBJS)
+$(KERNEL_BIN_FILE): $(KLIB_OBJS) $(KERNEL_OBJS) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking Kernel
 	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script -o $@ $^
 

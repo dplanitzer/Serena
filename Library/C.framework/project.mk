@@ -22,12 +22,12 @@ LIBC_ASM_INCLUDES := -I$(LIBC_HEADERS_DIR) -I$(LIBC_SOURCES_DIR)
 # Build rules
 #
 
-.PHONY: clean-libc
+.PHONY: clean-libc $(LIBC_BUILD_DIR) $(LIBC_PRODUCT_DIR)
 
 
-build-libc: $(LIBC_LIB_FILE)
- 
-$(LIBC_OBJS): | $(LIBC_BUILD_DIR) $(LIBC_PRODUCT_DIR) $(LIBC_ASTART_FILE) $(LIBC_CSTART_FILE)
+build-libc: $(LIBC_LIB_FILE) $(LIBC_ASTART_FILE) $(LIBC_CSTART_FILE)
+
+$(LIBC_OBJS): | $(LIBC_BUILD_DIR)
 
 $(LIBC_BUILD_DIR):
 	$(call mkdir_if_needed,$(LIBC_BUILD_DIR))
@@ -36,7 +36,7 @@ $(LIBC_PRODUCT_DIR):
 	$(call mkdir_if_needed,$(LIBC_PRODUCT_DIR))
 
 
-$(LIBC_LIB_FILE): $(LIBC_OBJS)
+$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
 	@echo Linking libc.a
 	@$(LD) -baoutnull -r -o $@ $^
 
@@ -53,11 +53,11 @@ $(LIBC_BUILD_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.s
 
 
 # start() function(s)
-$(LIBC_ASTART_FILE) : $(LIBC_ASTART_C_SOURCE)
+$(LIBC_ASTART_FILE) : $(LIBC_ASTART_C_SOURCE) | $(LIBC_PRODUCT_DIR)
 	@echo $<
 	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) -deps -depfile=$(patsubst $(LIBC_BUILD_DIR)/%.o,$(LIBC_BUILD_DIR)/%.d,$@) -o $@ $<
 
-$(LIBC_CSTART_FILE) : $(LIBC_CSTART_C_SOURCE)
+$(LIBC_CSTART_FILE) : $(LIBC_CSTART_C_SOURCE) | $(LIBC_PRODUCT_DIR)
 	@echo $<
 	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) -deps -depfile=$(patsubst $(LIBC_BUILD_DIR)/%.o,$(LIBC_BUILD_DIR)/%.d,$@) -o $@ $<
 

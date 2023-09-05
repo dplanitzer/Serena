@@ -91,10 +91,15 @@ export LIBC_CSTART_FILE := $(LIBC_PRODUCT_DIR)/_cstart.o
 #
 
 .SUFFIXES:
-.PHONY: clean
+.PHONY: all clean
 
 
-all: build-libc build-kernel build-kernel-tests build-kernel-rom
+all:
+	@echo Building all [$(BUILD_CONFIGURATION)]
+	$(MAKE) build-libc
+	$(MAKE) build-kernel
+	$(MAKE) build-kernel-tests
+	$(MAKE) build-kernel-rom
 	@echo Done
 
 include $(LIBC_PROJECT_DIR)/project.mk
@@ -110,5 +115,8 @@ $(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
 	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
 
 
-clean: clean-kernel clean-kernel-tests clean-libc
+clean:
+	@echo Cleaning...
+	$(call rm_if_exists,$(BUILD_DIR))
+	$(call rm_if_exists,$(PRODUCT_DIR))
 	@echo Done
