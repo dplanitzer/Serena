@@ -28,11 +28,11 @@ int putchar(int ch)
 
 int puts(const char *str)
 {
-    if (__syscall(SC_write, str) == 0) {
-        return 0;
-    } else {
+    if (__syscall(SC_write, str) != 0) {
         return EOF;
     }
+
+    return putchar('\n');
 }
 
 void perror(const char *str)
