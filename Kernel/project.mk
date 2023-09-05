@@ -22,8 +22,10 @@ KERNEL_ASM_INCLUDES := -I$(KERNEL_SOURCES_DIR)
 # Build rules
 #
 
-.PHONY: clean_kernel
+.PHONY: clean-kernel
 
+
+build-kernel: $(KERNEL_BIN_FILE)
 
 $(KERNEL_OBJS): | $(KERNEL_BUILD_DIR) $(KERNEL_PRODUCT_DIR)
 
@@ -52,5 +54,5 @@ $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.s
 	@$(AS) $(KERNEL_ASM_INCLUDES) -nowarn=62 -o $@ $<
 
 
-clean_kernel:
+clean-kernel:
 	$(call rm_if_exists,$(KERNEL_BUILD_DIR))

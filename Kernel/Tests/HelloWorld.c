@@ -11,8 +11,8 @@
 #include <syscall.h>
 
 // Switch between a standard C style main() and an Apollo style main_closure()
-// process startup behavior. Also change projectmk to use CLIB_CSTART_FILE for
-// standard C behavior and CLIB_ASTART_FILE for Apollo behavior.
+// process startup behavior. Also change projectmk to use LIBC_CSTART_FILE for
+// standard C behavior and LIBC_ASTART_FILE for Apollo behavior.
 //#define STDC_MAIN
 
 int count1;

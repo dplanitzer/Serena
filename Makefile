@@ -57,6 +57,13 @@ export PY = python
 
 
 # --------------------------------------------------------------------------
+# Includes
+#
+
+include $(WORKSPACE_DIR)/common.mk
+
+
+# --------------------------------------------------------------------------
 # Project definitions
 #
 
@@ -70,13 +77,13 @@ ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
 export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/Kernel.bin
 export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/KernelTests.bin
 
-CLIB_PROJECT_DIR := $(WORKSPACE_DIR)/Library/C.framework
-export CLIB_HEADERS_DIR := $(CLIB_PROJECT_DIR)/Headers
-export CLIB_BUILD_DIR := $(BUILD_DIR)/Library/C.framework
-export CLIB_PRODUCT_DIR := $(PRODUCT_DIR)/Library/C.framework
-export CLIB_LIB_FILE := $(CLIB_PRODUCT_DIR)/libc.a
-export CLIB_ASTART_FILE := $(CLIB_PRODUCT_DIR)/_astart.o
-export CLIB_CSTART_FILE := $(CLIB_PRODUCT_DIR)/_cstart.o
+LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/C.framework
+export LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/Headers
+export LIBC_BUILD_DIR := $(BUILD_DIR)/Library/C.framework
+export LIBC_PRODUCT_DIR := $(PRODUCT_DIR)/Library/C.framework
+export LIBC_LIB_FILE := $(LIBC_PRODUCT_DIR)/libc.a
+export LIBC_ASTART_FILE := $(LIBC_PRODUCT_DIR)/_astart.o
+export LIBC_CSTART_FILE := $(LIBC_PRODUCT_DIR)/_cstart.o
 
 
 # --------------------------------------------------------------------------
@@ -87,25 +94,21 @@ export CLIB_CSTART_FILE := $(CLIB_PRODUCT_DIR)/_cstart.o
 .PHONY: clean
 
 
-build: $(ROM_FILE)
+all: build-libc build-kernel build-kernel-tests build-kernel-rom
 	@echo Done
+
+include $(LIBC_PROJECT_DIR)/project.mk
+
+include $(KERNEL_PROJECT_DIR)/project.mk
+
+include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
+
+build-kernel-rom: $(ROM_FILE)
 
 $(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
 	@echo Making ROM
 	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
 
 
-clean: clean_kernel clean_kernel_tests clean_clib
+clean: clean-kernel clean-kernel-tests clean-libc
 	@echo Done
-
-
-# --------------------------------------------------------------------------
-# Includes
-#
-
-include $(WORKSPACE_DIR)/common.mk
-
-include $(CLIB_PROJECT_DIR)/project.mk
-
-include $(KERNEL_PROJECT_DIR)/project.mk
-include $(KERNEL_TESTS_PROJECT_DIR)/project.mk

@@ -7,7 +7,7 @@
             "command": "",
             "args": [
                 "make",
-                "build",
+                "all",
                 "-s",
                 "--directory=${workspaceFolder}"
             ],
