@@ -18,20 +18,7 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
-
-#if !__has_feature(nullability)
-#ifndef _Nullable
-#define _Nullable
-#endif
-#ifndef _Nonnull
-#define _Nonnull
-#endif
-#endif
-
-extern _Noreturn _Abort(const char* pFilename, int lineNum, const char* pFuncName);
+extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName);
 
 typedef int errno_t;
 

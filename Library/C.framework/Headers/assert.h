@@ -10,11 +10,12 @@
 #define _ASSERT_H 1
 
 #include <_cmndef.h>
+#include <_nulldef.h>
 #include <stdnoreturn.h>
 
 __CPP_BEGIN
 
-extern _Noreturn _Assert(const char* pFilename, int lineNum, const char* pFuncName, const char* expr);
+extern _Noreturn _Assert(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName, const char* _Nonnull expr);
 
 #if NDEBUG
 #define assert(cond)    ((void)0)

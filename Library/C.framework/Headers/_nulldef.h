@@ -9,6 +9,20 @@
 #ifndef __NULLDEF_H
 #define __NULLDEF_H 1
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
+#if !__has_feature(nullability)
+#ifndef _Nullable
+#define _Nullable
+#endif
+#ifndef _Nonnull
+#define _Nonnull
+#endif
+#endif
+
+
 #ifndef NULL
 #ifdef __cplusplus
 #define NULL 0

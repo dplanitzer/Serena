@@ -16,13 +16,13 @@ _Noreturn abort(void)
     _Exit(EXIT_FAILURE);
 }
 
-_Noreturn _Abort(const char* pFilename, int lineNum, const char* pFuncName)
+_Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName)
 {
     printf("%s:%d: %s: aborted\n", pFilename, lineNum, pFuncName);
     _Exit(EXIT_FAILURE);
 }
 
-_Noreturn _Assert(const char* pFilename, int lineNum, const char* pFuncName, const char* expr)
+_Noreturn _Assert(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName, const char* _Nonnull expr)
 {
     printf("%s:%d: %s: Assertion '%s' failed.\n", pFilename, lineNum, pFuncName, expr);
     _Exit(EXIT_FAILURE);
