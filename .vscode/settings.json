@@ -4,18 +4,6 @@
         "**/build": true,
         "**/product": true
     },
-    "C_Cpp.default.defines": [
-        "DEBUG=1",
-        "__ILP32__=1",
-        "__BIG_ENDIAN__=1",
-        "TARGET_CPU_68030=1",
-        "__PTRDIFF_WIDTH=32",
-        "__SIZE_WIDTH=32",
-        "INTMAX_WIDTH=64",
-        "UINTMAX_WIDTH=64",
-        "INTPTR_WIDTH=32",
-        "UINTPTR_WIDTH=32"
-    ],
     "files.associations": {
     },
     "C_Cpp.autoAddFileAssociations": false

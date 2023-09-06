@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Apollo",
+            "includePath": [
+                "${workspaceFolder}/Kernel/Sources/**",
+                "${workspaceFolder}/Kernel/Tests/**",
+                "${workspaceFolder}/Library/C.framework/**"
+            ],
+            "defines": [
+                "DEBUG=1",
+                "__ILP32__=1",
+                "__BIG_ENDIAN__=1",
+                "TARGET_CPU_68030=1"
+            ],        
+            "compilerPath": "",
+            "cStandard": "c99",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
