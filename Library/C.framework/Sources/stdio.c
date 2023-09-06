@@ -18,10 +18,10 @@ int putchar(int ch)
         return EOF;
     }
 
-    unsigned char buf = (unsigned char) ch;
+    unsigned char uch = (unsigned char) ch;
 
-    if (__syscall(SC_write, (const char*)&buf, 1) == 0) {
-        return ch;
+    if (__syscall(SC_write, (const char*)&uch, 1) == 0) {
+        return uch;
     } else {
         return 0;
     }
