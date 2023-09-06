@@ -115,6 +115,10 @@ $(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
 	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
 
 
+clean-kernel-rom:
+	$(MAKE) clean-kernel
+	$(MAKE) clean-kernel-tests
+	
 clean:
 	@echo Cleaning...
 	$(call rm_if_exists,$(BUILD_DIR))

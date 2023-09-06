@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build Kernel",
+            "label": "Build All",
             "type": "shell",
             "command": "",
             "args": [
@@ -22,12 +22,92 @@
         },
 
         {
-            "label": "Clean Kernel",
+            "label": "Clean All",
             "type": "shell",
             "command": "",
             "args": [
                 "make",
                 "clean",
+                "-s",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
+        },
+
+        {
+            "label": "Build Kernel",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "build-kernel-rom",
+                "-s",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
+        },
+
+        {
+            "label": "Clean Kernel",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "clean-kernel-rom",
+                "-s",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
+        },
+
+        {
+            "label": "Build LibC",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "build-libc",
+                "-s",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
+        },
+
+        {
+            "label": "Clean LibC",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "clean-libc",
                 "-s",
                 "--directory=${workspaceFolder}"
             ],
