@@ -15,6 +15,7 @@
 typedef struct _SYS_write_args {
     Int                         scno;
     const Character* _Nonnull   buffer;
+    Int                         count;
 } SYS_write_args;
 
 ErrorCode _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
@@ -23,7 +24,7 @@ ErrorCode _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
     Console* pConsole;
 
     try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-    Console_DrawString(pConsole, pArgs->buffer);
+    Console_DrawCharacters(pConsole, pArgs->buffer, pArgs->count);
     return EOK;
 
 catch:

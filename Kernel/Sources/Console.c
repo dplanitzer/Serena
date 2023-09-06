@@ -282,18 +282,6 @@ static void Console_DrawCharacter_Locked(Console* _Nonnull pConsole, Character c
     }
 }
 
-// Prints the given nul-terminated string to the console.
-// \param pConsole the console
-// \param str the nul-terminated string
-static void Console_DrawString_Locked(Console* _Nonnull pConsole, const Character* _Nonnull str)
-{
-    register char ch;
-    
-    while ((ch = *str++) != '\0') {
-        Console_DrawCharacter_Locked(pConsole, ch);
-    }
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -387,12 +375,31 @@ void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch)
     Lock_Unlock(&pConsole->lock);
 }
 
+// Prints the given sequence of characters to the console.
+// \param pConsole the console
+// \param pChars the character sequence
+// \param count the number of characters
+void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, Int count)
+{
+    const Character* pCharsEnd = pChars + count;
+
+    Lock_Lock(&pConsole->lock);
+    while (pChars < pCharsEnd) {
+        Console_DrawCharacter_Locked(pConsole, *pChars++);
+    }
+    Lock_Unlock(&pConsole->lock);
+}
+
 // Prints the given nul-terminated string to the console.
 // \param pConsole the console
 // \param str the nul-terminated string
 void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str)
 {
+    char ch;
+
     Lock_Lock(&pConsole->lock);
-    Console_DrawString_Locked(pConsole, str);
+    while ((ch = *str++) != '\0') {
+        Console_DrawCharacter_Locked(pConsole, ch);
+    }
     Lock_Unlock(&pConsole->lock);
 }

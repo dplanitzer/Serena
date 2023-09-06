@@ -14,12 +14,13 @@
 
 int putchar(int ch)
 {
-    char buf[2];
+    if (ch == EOF) {
+        return EOF;
+    }
 
-    buf[0] = (char)ch;
-    buf[1] = '\0';
+    unsigned char buf = (unsigned char) ch;
 
-    if (__syscall(SC_write, buf) == 0) {
+    if (__syscall(SC_write, (const char*)&buf, 1) == 0) {
         return ch;
     } else {
         return 0;
@@ -28,7 +29,7 @@ int putchar(int ch)
 
 int puts(const char *str)
 {
-    if (__syscall(SC_write, str) != 0) {
+    if (__syscall(SC_write, str, strlen(str)) != 0) {
         return EOF;
     }
 
