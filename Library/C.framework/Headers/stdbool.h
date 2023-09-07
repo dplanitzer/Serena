@@ -10,15 +10,15 @@
 #define _STDBOOL_H 1
 
 #include <_cmndef.h>
+#include <_booldef.h>
 
 __CPP_BEGIN
 
 #ifndef __bool_true_false_are_defined
 
-//typedef unsigned char _Bool;
-#define bool unsigned char //_Bool
-#define true    1
-#define false   0
+#define bool __bool
+#define true __true
+#define false __false
 #define __bool_true_false_are_defined 1
 #endif
 

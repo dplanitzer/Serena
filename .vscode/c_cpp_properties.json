@@ -3,6 +3,7 @@
         {
             "name": "Apollo",
             "includePath": [
+                "${workspaceFolder}/Library/abi/**",
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
                 "${workspaceFolder}/Library/C.framework/**"

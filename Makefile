@@ -77,6 +77,9 @@ ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
 export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/Kernel.bin
 export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/KernelTests.bin
 
+LIBABI_PROJECT_DIR := $(WORKSPACE_DIR)/Library/abi
+export LIBABI_HEADERS_DIR := $(LIBABI_PROJECT_DIR)/Headers
+
 LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/C.framework
 export LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/Headers
 export LIBC_BUILD_DIR := $(BUILD_DIR)/Library/C.framework

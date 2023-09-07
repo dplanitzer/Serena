@@ -9,18 +9,10 @@
 #ifndef Types_h
 #define Types_h
 
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
-
-#if !__has_feature(nullability)
-#ifndef _Nullable
-#define _Nullable
-#endif
-#ifndef _Nonnull
-#define _Nonnull
-#endif
-#endif
+#include <_aligndef.h>
+#include <_booldef.h>
+#include <_nulldef.h>
+#include <_varargs.h>
 
 #ifndef _Weak
 #define _Weak
@@ -42,16 +34,16 @@ typedef unsigned char Byte;
 // Note that a boolean value of true must have bit #0 set. All other bits may or
 // may not be set in addition to bit #0. The reason for this design choice is
 // that by requiring only one bit to be set for a true value that we can take
-// advantage of 68k instructions like bset to implement an atomic boolean set
+// advantage of CPU bit set/get instructions to implement an atomic boolean set
 // operation that can return the old value of the boolean. That way we do not
 // need to turn off interrupts while manipulating the atomic bool. Functions
 // which accept boolean values as input should check for ==0 (false) and != 0
 // (true) instead of checking for a specific bit pattern to detect a true value.
 // Functions which return a boolean value should return the canonical values
-// defined below. 
-typedef unsigned char   Bool;
-#define true    0x01
-#define false   0x00
+// defined below.
+typedef __bool  Bool;
+#define true    __true
+#define false   __false
 
 
 // Integer types
@@ -93,19 +85,19 @@ typedef char                Character;
 #define INT8_MAX     127
 #define INT16_MIN   -32768
 #define INT16_MAX    32767
-#define INT32_MIN   -2147483648
-#define INT32_MAX    2147483647
-#define INT64_MIN   -9223372036854775808LL
-#define INT64_MAX    9223372036854775807LL;
+#define INT32_MIN   -2147483648l
+#define INT32_MAX    2147483647l
+#define INT64_MIN   -9223372036854775808ll
+#define INT64_MAX    9223372036854775807ll;
 
-#define UINT8_MIN   0
-#define UINT8_MAX   255
-#define UINT16_MIN  0
-#define UINT16_MAX  65535
-#define UINT32_MIN  0
-#define UINT32_MAX  4294967295
-#define UINT64_MIN  0LL
-#define UINT64_MAX  18446744073709551615LL;
+#define UINT8_MIN   0u
+#define UINT8_MAX   255u
+#define UINT16_MIN  0u
+#define UINT16_MAX  65535u
+#define UINT32_MIN  0ul
+#define UINT32_MAX  4294967295ul
+#define UINT64_MIN  0ull
+#define UINT64_MAX  18446744073709551615ull;
 
 #if __LP64__
 #define INT_MIN     INT64_MIN
@@ -119,8 +111,6 @@ typedef char                Character;
 #define UINT_MAX    UINT32_MAX
 #endif
 
-#define NULL        ((void*)0)
-
 #if __LP64__
 #define BYTE_PTR_MIN    ((Byte*)0LL)
 #define BYTE_PTR_MAX    ((Byte*)0xffffffffffffffffLL)
@@ -132,7 +122,15 @@ typedef char                Character;
 #endif
 
 
+// A callback function that takes a single (context) pointer argument
+typedef void (* _Nonnull Closure1Arg_Func)(Byte* _Nullable pContext);
+
+
 // Basics
+#define SIZE_GB(x)  ((UInt)(x) * 1024ul * 1024ul * 1024ul)
+#define SIZE_MB(x)  ((Int)(x) * 1024 * 1024)
+#define SIZE_KB(x)  ((Int)(x) * 1024)
+
 #define abs(x) (((x) < 0) ? -(x) : (x))
 #define min(x, y) (((x) < (y) ? (x) : (y)))
 #define max(x, y) (((x) > (y) ? (x) : (y)))

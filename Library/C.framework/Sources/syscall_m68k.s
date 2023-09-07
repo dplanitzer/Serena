@@ -6,6 +6,8 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
+    include "syscalldef.i"
+
     xdef ___syscall
 
 
@@ -13,5 +15,5 @@
 ; errno_t __syscall(int scno, ...)
 ___syscall:
     lea.l  4(sp), a0
-    trap    #0
+    SYSCALL
     rts

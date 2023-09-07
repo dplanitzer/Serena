@@ -8,6 +8,8 @@
 
 
     include "lowmem.i"
+    include <errdef.i>
+    include <syscalldef.i>
 
     xref __SYSCALL_write
     xref __SYSCALL_sleep
@@ -28,14 +30,11 @@ syscall_table:
     dc.l __SYSCALL_exit
     dc.l __SYSCALL_spawn_process
 
-SC_numberOfCalls    equ 6       ; number of system calls
-
 
 ;-------------------------------------------------------------------------------
 ; Common entry point for system calls (trap #0).
 ; A system call looks like this:
 ;
-; d0.l: -> system call number
 ; a0.l: -> pointer to argument list base
 ;
 ; d0.l: <- error number
@@ -102,7 +101,7 @@ _SystemCallHandler:
         lea     syscall_table(pc), a1
         move.l  (a1, d0.l*4), a1
 
-        ; Invoke the system call handler
+        ; Invoke the system call handler. Returns a result in d0
         move.l  a0, -(sp)
         jsr     (a1)
         move.l  (sp)+, a0

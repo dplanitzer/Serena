@@ -7,6 +7,7 @@
 ;
 
     include "lowmem.i"
+    include <errdef.i>
 
     xref _ULock_OnWait
     xref _ULock_WakeUp

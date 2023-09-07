@@ -8,7 +8,7 @@
 
 #include "Assert.h"
 #include "Bytes.h"
-#include "Foundation.h"
+#include "Log.h"
 
 
 // This implements a micro console that directly controls the graphics hardware.

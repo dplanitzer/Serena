@@ -14,8 +14,7 @@
 __CPP_BEGIN
 
 #ifndef __alignof_is_defined
-#define _Alignof(type) __alignof(type)
-#define alignof(type) __alignof(type)
+#include <_aligndef.h>
 #define __alignof_is_defined 1
 #endif
 
