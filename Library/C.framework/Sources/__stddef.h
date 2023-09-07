@@ -56,22 +56,6 @@ typedef __errno_t errno_t;
 #define throw(e)            err = e; goto catch;
 
 
-#if __LP64__
-#define __align_up_byte_ptr(x, a)     (char*)(__Ceil_PowerOf2((uint64_t)(x), (uint64_t)(a) - 1))
-#elif __ILP32__
-#define __align_up_byte_ptr(x, a)     (char*)(__Ceil_PowerOf2((uint32_t)(x), (uint32_t)(a) - 1))
-#else
-#error "don't know how to define __align_up_byte_ptr()"
-#endif
-#if __LP64__
-#define __align_down_byte_ptr(x, a)     (char*)(__Floor_PowerOf2((uint64_t)(x), (uint64_t)(a) - 1))
-#elif __ILP32__
-#define __align_down_byte_ptr(x, a)     (char*)(__Floor_PowerOf2((uint32_t)(x), (uint32_t)(a) - 1))
-#else
-#error "don't know how to define __align_down_byte_ptr()"
-#endif
-
-
 extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
 
 extern void __stdlibc_init(void);

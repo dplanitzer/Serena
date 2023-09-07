@@ -14,7 +14,7 @@ void BootAllocator_Init(BootAllocator* _Nonnull pAlloc, SystemDescription* _Nonn
     assert(pSysDesc->memory.descriptor_count > 0);
     pAlloc->mem_descs = pSysDesc->memory.descriptor;
     pAlloc->current_desc_index = pSysDesc->memory.descriptor_count - 1;
-    pAlloc->current_top = align_down_byte_ptr(pAlloc->mem_descs[pAlloc->current_desc_index].upper, CPU_PAGE_SIZE);
+    pAlloc->current_top = __Floor_Ptr_PowerOf2(pAlloc->mem_descs[pAlloc->current_desc_index].upper, CPU_PAGE_SIZE);
 }
 
 void BootAllocator_Deinit(BootAllocator* _Nonnull pAlloc)
@@ -32,7 +32,7 @@ Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, Int nbytes
     Byte* ptr = NULL;
 
     while(true) {
-        ptr = align_down_byte_ptr(pAlloc->current_top - nbytes, CPU_PAGE_SIZE);
+        ptr = __Floor_Ptr_PowerOf2(pAlloc->current_top - nbytes, CPU_PAGE_SIZE);
         if (ptr >= pAlloc->mem_descs[pAlloc->current_desc_index].lower) {
             pAlloc->current_top = ptr;
             return ptr;
@@ -40,7 +40,7 @@ Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, Int nbytes
 
         assert(pAlloc->current_desc_index > 0);
         pAlloc->current_desc_index--;
-        pAlloc->current_top = align_down_byte_ptr(pAlloc->mem_descs[pAlloc->current_desc_index].upper, CPU_PAGE_SIZE);
+        pAlloc->current_top = __Floor_Ptr_PowerOf2(pAlloc->mem_descs[pAlloc->current_desc_index].upper, CPU_PAGE_SIZE);
     }
 }
 

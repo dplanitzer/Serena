@@ -64,9 +64,9 @@ typedef struct _Allocator {
 // \return an error or EOK
 static MemRegion* MemRegion_Create(char* _Nonnull pMemRegionHeader, const MemoryDescriptor* _Nonnull pMemDesc)
 {
-    char* pMemRegionBase = __align_up_byte_ptr(pMemRegionHeader, HEAP_ALIGNMENT);
-    char* pFreeLower = __align_up_byte_ptr(pMemRegionBase + sizeof(MemRegion), HEAP_ALIGNMENT);
-    char* pFreeUpper = __align_down_byte_ptr(pMemDesc->upper, HEAP_ALIGNMENT);
+    char* pMemRegionBase = __Ceil_Ptr_PowerOf2(pMemRegionHeader, HEAP_ALIGNMENT);
+    char* pFreeLower = __Ceil_Ptr_PowerOf2(pMemRegionBase + sizeof(MemRegion), HEAP_ALIGNMENT);
+    char* pFreeUpper = __Floor_Ptr_PowerOf2(pMemDesc->upper, HEAP_ALIGNMENT);
 
     // Make sure that the MemRegion and the first free MemBlock fit in the memory
     // area
@@ -266,7 +266,7 @@ errno_t Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef
     decl_try_err();
 
     // Reserve space for the allocator structure in the first memory region.
-    char* pAllocatorBase = __align_up_byte_ptr(pMemDesc->lower, HEAP_ALIGNMENT);
+    char* pAllocatorBase = __Ceil_Ptr_PowerOf2(pMemDesc->lower, HEAP_ALIGNMENT);
     char* pFirstMemRegionBase = pAllocatorBase + sizeof(Allocator);
 
     AllocatorRef pAllocator = (AllocatorRef)pAllocatorBase;

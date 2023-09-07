@@ -17,7 +17,7 @@ SystemDescription* _Nonnull gSystemDescription;
 // exists and false if not.
 static Bool mem_probe_cpu_page(Byte* pAddr)
 {
-    Byte* pBaseAddr = align_down_byte_ptr(pAddr, CPU_PAGE_SIZE);
+    Byte* pBaseAddr = __Floor_Ptr_PowerOf2(pAddr, CPU_PAGE_SIZE);
     Byte* pTopAddr = pBaseAddr + CPU_PAGE_SIZE - 8;
     Byte* pMiddleAddr = pBaseAddr + CPU_PAGE_SIZE / 2;
 
@@ -36,8 +36,8 @@ static Bool mem_probe_cpu_page(Byte* pAddr)
 
 Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, Int8 type)
 {
-    Byte* p = align_up_byte_ptr(lower, CPU_PAGE_SIZE);
-    Byte* pLimit = align_down_byte_ptr(upper, CPU_PAGE_SIZE);
+    Byte* p = __Ceil_Ptr_PowerOf2(lower, CPU_PAGE_SIZE);
+    Byte* pLimit = __Floor_Ptr_PowerOf2(upper, CPU_PAGE_SIZE);
     UInt nbytes = 0;
     Bool hasMemory = false;
     Bool hadMemory = false;

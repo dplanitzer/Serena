@@ -272,7 +272,7 @@ static Byte* _Nonnull zorro2_align_board_address(Byte* _Nonnull base_ptr, UInt b
             return ZORRO_2_MEMORY_HIGH;
         }
     } else {
-        return align_up_byte_ptr(base_ptr, board_size);
+        return __Ceil_Ptr_PowerOf2(base_ptr, board_size);
     }
 }
 
@@ -305,7 +305,7 @@ static Byte* _Nullable zorro_calculate_base_address_for_board_in_range(const Zor
         Byte* proposed_board_base_addr = pHighestAllocatedBoard->start + pHighestAllocatedBoard->physical_size;
 
         if (isZorro3Board) {
-            board_base_addr = align_up_byte_ptr(proposed_board_base_addr, pConfig->physical_size);
+            board_base_addr = __Ceil_Ptr_PowerOf2(proposed_board_base_addr, pConfig->physical_size);
         } else {
             board_base_addr = zorro2_align_board_address(proposed_board_base_addr, pConfig->physical_size, isMemoryBoard);
         }

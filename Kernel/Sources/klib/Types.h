@@ -132,25 +132,10 @@ typedef char                Character;
 typedef void (* _Nonnull Closure1Arg_Func)(Byte* _Nullable pContext);
 
 
-// Basics
+// Size constructors
 #define SIZE_GB(x)  ((UInt)(x) * 1024ul * 1024ul * 1024ul)
 #define SIZE_MB(x)  ((Int)(x) * 1024 * 1024)
 #define SIZE_KB(x)  ((Int)(x) * 1024)
-
-#if __LP64__
-#define align_up_byte_ptr(x, a)     (Byte*)(__Ceil_PowerOf2((UInt64)(x), (UInt64)(a)))
-#elif __ILP32__
-#define align_up_byte_ptr(x, a)     (Byte*)(__Ceil_PowerOf2((UInt32)(x), (UInt32)(a)))
-#else
-#error "don't know how to define align_up_byte_ptr()"
-#endif
-#if __LP64__
-#define align_down_byte_ptr(x, a)     (Byte*)(__Floor_PowerOf2((UInt64)(x), (UInt64)(a)))
-#elif __ILP32__
-#define align_down_byte_ptr(x, a)     (Byte*)(__Floor_PowerOf2((UInt32)(x), (UInt32)(a)))
-#else
-#error "don't know how to define align_down_byte_ptr()"
-#endif
 
 
 // Int
