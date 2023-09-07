@@ -10,6 +10,7 @@
 #define ___STDDEF_H 1
 
 #include <_cmndef.h>
+#include <_math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>
@@ -55,10 +56,6 @@ typedef __errno_t errno_t;
 #define throw(e)            err = e; goto catch;
 
 
-#define __abs(x) (((x) < 0) ? -(x) : (x))
-#define __min(x, y) (((x) < (y) ? (x) : (y)))
-#define __max(x, y) (((x) > (y) ? (x) : (y)))
-
 #if __LP64__
 #define __align_up_byte_ptr(x, a)     (char*)(__Ceil_PowerOf2((uint64_t)(x), (uint64_t)(a) - 1))
 #elif __ILP32__
@@ -73,14 +70,6 @@ typedef __errno_t errno_t;
 #else
 #error "don't know how to define __align_down_byte_ptr()"
 #endif
-
-// Int
-#define Int32_RoundUpToPowerOf2(x, a)     __Ceil_PowerOf2(x, (int32_t)(a) - 1)
-#define Int32_RoundDownToPowerOf2(x, a)   __Floor_PowerOf2(x, (int32_t)(a) - 1)
-
-// UInt
-#define UInt32_RoundUpToPowerOf2(x, a)    __Ceil_PowerOf2(x, (uint32_t)(a) - 1)
-#define UInt32_RoundDownToPowerOf2(x, a)  __Floor_PowerOf2(x, (uint32_t)(a) - 1)
 
 
 extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);

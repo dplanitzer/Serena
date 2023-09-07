@@ -407,7 +407,7 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
     const Int diff = cylinder - pDisk->cylinder;
     const Int cur_dir = (diff >= 0) ? 1 : -1;
     const Int last_dir = (pDisk->flags & FLOPPY_FLAG_PREV_STEP_INWARD) ? 1 : -1;
-    const Int nsteps = abs(diff);
+    const Int nsteps = __abs(diff);
     const Bool change_side = (pDisk->head != head);
     
     FloppyDisk_InvalidateTrackBuffer(pDisk);
@@ -416,7 +416,7 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
     // Wait 2 ms if there was a write previously and we have to change the head
     const Int seek_pre_wait_ms = (nsteps > 0 && cur_dir != last_dir) ? 18 : 0;
     const Int side_pre_wait_ms = 2;
-    const Int pre_wait_ms = max(seek_pre_wait_ms, side_pre_wait_ms);
+    const Int pre_wait_ms = __max(seek_pre_wait_ms, side_pre_wait_ms);
     
     if (pre_wait_ms > 0) {
         try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(pre_wait_ms)));
@@ -451,7 +451,7 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int
     // Head select settle time: 100us
     const Int seek_settle_us = (nsteps > 0) ? 15*1000 : 0;
     const Int side_settle_us = (change_side) ? 100 : 0;
-    const Int settle_us = max(seek_settle_us, side_settle_us);
+    const Int settle_us = __max(seek_settle_us, side_settle_us);
     
     if (settle_us > 0) {
         try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(settle_us)));

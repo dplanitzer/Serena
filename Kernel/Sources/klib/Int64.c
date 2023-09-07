@@ -20,7 +20,7 @@
 const Character* _Nonnull Int64_ToString(Int64 val, Int base, Int fieldWidth, Character paddingChar, Character* _Nonnull pString, Int maxLength)
 {
     static const char* gDigit = "0123456789abcdef";
-    Character* p0 = &pString[max(maxLength - fieldWidth - 1, 0)];
+    Character* p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
     Character *p = &pString[maxLength - 1];
     Int64 absval = (val < 0) ? -val : val;
     Int64 q, r;
@@ -54,7 +54,7 @@ const Character* _Nonnull Int64_ToString(Int64 val, Int base, Int fieldWidth, Ch
         }
     }
     
-    return max(p, p0);
+    return __max(p, p0);
 }
 
 

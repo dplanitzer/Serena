@@ -58,7 +58,7 @@ Int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pByte
         return 0;
     }
     
-    const Int nBytesToCopy = min(avail, count);
+    const Int nBytesToCopy = __min(avail, count);
     for (Int i = 0; i < nBytesToCopy; i++) {
         pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx + i)] = pBytes[i];
     }
@@ -91,7 +91,7 @@ Int RingBuffer_GetBytes(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pBytes, Int
         return 0;
     }
     
-    const Int nBytesToCopy = min(avail, count);
+    const Int nBytesToCopy = __min(avail, count);
     for (Int i = 0; i < nBytesToCopy; i++) {
         pBytes[i] = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx + i)];
     }

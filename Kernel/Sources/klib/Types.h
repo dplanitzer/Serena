@@ -9,9 +9,10 @@
 #ifndef Types_h
 #define Types_h
 
-#include <_aligndef.h>
+#include <_align.h>
 #include <_booldef.h>
 #include <_dmdef.h>
+#include <_math.h>
 #include <_nulldef.h>
 #include <_varargs.h>
 
@@ -136,21 +137,17 @@ typedef void (* _Nonnull Closure1Arg_Func)(Byte* _Nullable pContext);
 #define SIZE_MB(x)  ((Int)(x) * 1024 * 1024)
 #define SIZE_KB(x)  ((Int)(x) * 1024)
 
-#define abs(x) (((x) < 0) ? -(x) : (x))
-#define min(x, y) (((x) < (y) ? (x) : (y)))
-#define max(x, y) (((x) > (y) ? (x) : (y)))
-
 #if __LP64__
-#define align_up_byte_ptr(x, a)     (Byte*)(__Ceil_PowerOf2((UInt64)(x), (UInt64)(a) - 1))
+#define align_up_byte_ptr(x, a)     (Byte*)(__Ceil_PowerOf2((UInt64)(x), (UInt64)(a)))
 #elif __ILP32__
-#define align_up_byte_ptr(x, a)     (Byte*)(__Ceil_PowerOf2((UInt32)(x), (UInt32)(a) - 1))
+#define align_up_byte_ptr(x, a)     (Byte*)(__Ceil_PowerOf2((UInt32)(x), (UInt32)(a)))
 #else
 #error "don't know how to define align_up_byte_ptr()"
 #endif
 #if __LP64__
-#define align_down_byte_ptr(x, a)     (Byte*)(__Floor_PowerOf2((UInt64)(x), (UInt64)(a) - 1))
+#define align_down_byte_ptr(x, a)     (Byte*)(__Floor_PowerOf2((UInt64)(x), (UInt64)(a)))
 #elif __ILP32__
-#define align_down_byte_ptr(x, a)     (Byte*)(__Floor_PowerOf2((UInt32)(x), (UInt32)(a) - 1))
+#define align_down_byte_ptr(x, a)     (Byte*)(__Floor_PowerOf2((UInt32)(x), (UInt32)(a)))
 #else
 #error "don't know how to define align_down_byte_ptr()"
 #endif
@@ -159,15 +156,9 @@ typedef void (* _Nonnull Closure1Arg_Func)(Byte* _Nullable pContext);
 // Int
 extern Int Int_NextPowerOf2(Int n);
 
-#define Int_RoundUpToPowerOf2(x, a)     __Ceil_PowerOf2(x, (Int)(a) - 1)
-#define Int_RoundDownToPowerOf2(x, a)   __Floor_PowerOf2(x, (Int)(a) - 1)
-
 
 // UInt
 extern UInt UInt_NextPowerOf2(UInt n);
-
-#define UInt_RoundUpToPowerOf2(x, a)    __Ceil_PowerOf2(x, (UInt)(a) - 1)
-#define UInt_RoundDownToPowerOf2(x, a)  __Floor_PowerOf2(x, (UInt)(a) - 1)
 
 
 // Int64

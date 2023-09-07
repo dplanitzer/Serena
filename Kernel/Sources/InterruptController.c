@@ -126,7 +126,7 @@ ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _
     assert(pClosure != NULL);
     
     handler.identity = 0;
-    handler.priority = max(min(priority, INTERRUPT_HANDLER_PRIORITY_HIGHEST), INTERRUPT_HANDLER_PRIORITY_LOWEST);
+    handler.priority = __max(__min(priority, INTERRUPT_HANDLER_PRIORITY_HIGHEST), INTERRUPT_HANDLER_PRIORITY_LOWEST);
     handler.flags = 0;
     handler.type = INTERRUPT_HANDLER_TYPE_DIRECT;
     handler.closure = pClosure;

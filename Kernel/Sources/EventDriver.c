@@ -443,7 +443,7 @@ void EventDriver_GetKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* 
     if (nKeysToCheck > 0 && pKeysToCheck) {
         if (pKeysDown) {
             // Returns at most 'nKeysDown' keys which are in the set 'pKeysToCheck'
-            for (Int i = 0; i < min(nKeysToCheck, *nKeysDown); i++) {
+            for (Int i = 0; i < __min(nKeysToCheck, *nKeysDown); i++) {
                 if (KeyMap_IsKeyDown(pDriver->key_map, pKeysToCheck[i])) {
                     pKeysDown[oi++] = pKeysToCheck[i];
                 }
@@ -526,7 +526,7 @@ ErrorCode EventDriver_GetEvents(EventDriverRef _Nonnull pDriver, HIDEvent* _Nonn
         }
 
         if (err == EOK) {
-            const Int nEventsToCopy = min(RingBuffer_ReadableCount(&pDriver->event_queue), *pEventCount);
+            const Int nEventsToCopy = __min(RingBuffer_ReadableCount(&pDriver->event_queue), *pEventCount);
             const Int nCopiedBytes = RingBuffer_GetBytes(&pDriver->event_queue, (Byte*)pEvents, nEventsToCopy*sizeof(HIDEvent));
             
             *pEventCount = nEventsToCopy;
@@ -845,8 +845,8 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
     // Compute the mouse rect. The area inside of which the mouse may freely move.
     const Int16 mouse_min_x = pDriver->screen_rect_x;
     const Int16 mouse_min_y = pDriver->screen_rect_y;
-    const Int16 mouse_max_x = mouse_min_x + max((pDriver->screen_rect_w - 1) - mouse_cursor_hotspot.x, 0);
-    const Int16 mouse_max_y = mouse_min_y + max((pDriver->screen_rect_h - 1) - mouse_cursor_hotspot.y, 0);
+    const Int16 mouse_max_x = mouse_min_x + __max((pDriver->screen_rect_w - 1) - mouse_cursor_hotspot.x, 0);
+    const Int16 mouse_max_y = mouse_min_y + __max((pDriver->screen_rect_h - 1) - mouse_cursor_hotspot.y, 0);
     
     
     // Update the mouse position and buttons
@@ -861,8 +861,8 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
             MouseDriver_GetReport(pDriver->port[i].u.mouse.driver, &report);
             pDriver->mouse_x += report.xDelta;
             pDriver->mouse_y += report.yDelta;
-            pDriver->mouse_x = min(max(pDriver->mouse_x, mouse_min_x), mouse_max_x);
-            pDriver->mouse_y = min(max(pDriver->mouse_y, mouse_min_y), mouse_max_y);
+            pDriver->mouse_x = __min(__max(pDriver->mouse_x, mouse_min_x), mouse_max_x);
+            pDriver->mouse_y = __min(__max(pDriver->mouse_y, mouse_min_y), mouse_max_y);
             pDriver->mouse_buttons |= report.buttonsDown;
             
             if (report.xDelta != 0 || report.yDelta != 0 || report.buttonsDown != 0) {

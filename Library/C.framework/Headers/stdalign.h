@@ -14,7 +14,7 @@
 __CPP_BEGIN
 
 #ifndef __alignof_is_defined
-#include <_aligndef.h>
+#include <_align.h>
 #define __alignof_is_defined 1
 #endif
 

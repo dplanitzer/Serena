@@ -21,8 +21,8 @@ static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemD
 {
     MemoryDescriptor md;
 
-    md.lower = max(pMemDesc->lower, pInitialHeapBottom);
-    md.upper = min(pMemDesc->upper, pInitialHeapTop);
+    md.lower = __max(pMemDesc->lower, pInitialHeapBottom);
+    md.upper = __min(pMemDesc->upper, pInitialHeapTop);
     md.type = pMemDesc->type;
 
     return md;

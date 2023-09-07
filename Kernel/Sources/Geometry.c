@@ -17,22 +17,22 @@ const Rect Rect_Empty = { 0, 0, 0, 0 };
 
 Rect Rect_Union(Rect a, Rect b)
 {
-    const Int x0 = min(a.x, b.x);
-    const Int y0 = min(a.y, b.y);
-    const Int x1 = max(a.x + a.width, b.x + b.width);
-    const Int y1 = max(a.y + a.height, b.y + b.height);
+    const Int x0 = __min(a.x, b.x);
+    const Int y0 = __min(a.y, b.y);
+    const Int x1 = __max(a.x + a.width, b.x + b.width);
+    const Int y1 = __max(a.y + a.height, b.y + b.height);
     
-    return Rect_Make(x0, y0, max(x1 - x0, 0), max(y1 - y0, 0));
+    return Rect_Make(x0, y0, __max(x1 - x0, 0), __max(y1 - y0, 0));
 }
 
 Rect Rect_Intersection(Rect a, Rect b)
 {
-    const Int x0 = max(a.x, b.x);
-    const Int y0 = max(a.y, b.y);
-    const Int x1 = min(a.x + a.width, b.x + b.width);
-    const Int y1 = min(a.y + a.height, b.y + b.height);
+    const Int x0 = __max(a.x, b.x);
+    const Int y0 = __max(a.y, b.y);
+    const Int x1 = __min(a.x + a.width, b.x + b.width);
+    const Int y1 = __min(a.y + a.height, b.y + b.height);
     
-    return Rect_Make(x0, y0, max(x1 - x0, 0), max(y1 - y0, 0));
+    return Rect_Make(x0, y0, __max(x1 - x0, 0), __max(y1 - y0, 0));
 }
 
 Bool Rect_ContainsPoint(Rect r, Point p)
@@ -44,8 +44,8 @@ Point Point_ClampedToRect(Point p, Rect r)
 {
     Point rp;
     
-    rp.x = min(max(p.x, r.x), r.x + r.width);
-    rp.y = min(max(p.y, r.y), r.y + r.height);
+    rp.x = __min(__max(p.x, r.x), r.x + r.width);
+    rp.y = __min(__max(p.y, r.y), r.y + r.height);
     
     return rp;
 }

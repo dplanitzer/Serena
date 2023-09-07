@@ -334,7 +334,7 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, 
     
     
     // Compute how many bytes we have to take from free memory
-    const Int nBytesToAlloc = Int_RoundUpToPowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
+    const Int nBytesToAlloc = __Ceil_PowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
     
     
     // Note that the code here assumes desc 0 is chip RAM and all the others are

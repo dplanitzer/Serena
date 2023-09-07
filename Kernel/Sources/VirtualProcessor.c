@@ -27,7 +27,7 @@ void ExecutionStack_Init(ExecutionStack* _Nonnull pStack)
 ErrorCode ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, Int size)
 {
     decl_try_err();
-    const Int newSize = (size > 0) ? Int_RoundUpToPowerOf2(size, STACK_ALIGNMENT) : 0;
+    const Int newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
     
     if (pStack->size != newSize) {
         kfree(pStack->base);

@@ -11,7 +11,7 @@
 const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, Character paddingChar, Character* _Nonnull pString, Int maxLength)
 {
     static const char* gDigit = "0123456789abcdef";
-    Character* p0 = &pString[max(maxLength - fieldWidth - 1, 0)];
+    Character* p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
     Character *p = &pString[maxLength - 1];
     Int64 q, r;
     
@@ -30,7 +30,7 @@ const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, 
         }
     }
     
-    return max(p, p0);
+    return __max(p, p0);
 }
 
 UInt UInt_NextPowerOf2(UInt n)

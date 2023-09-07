@@ -98,7 +98,7 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServic
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, min((Byte*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
+    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, __min((Byte*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)

@@ -137,13 +137,13 @@ static void Console_ScrollBy_Locked(Console* _Nonnull pConsole, Rect clipRect, P
     }
     
     const Rect bounds = Rect_Make(0, 0, pConsole->cols, pConsole->rows);
-    const Int hExposedWidth = min(abs(dXY.x), clipRect.width);
-    const Int vExposedHeight = min(abs(dXY.y), clipRect.height);
+    const Int hExposedWidth = __min(__abs(dXY.x), clipRect.width);
+    const Int vExposedHeight = __min(__abs(dXY.y), clipRect.height);
     Rect copyRect, hClearRect, vClearRect;
     Point dstLoc;
     
-    copyRect.x = (dXY.x < 0) ? clipRect.x : min(clipRect.x + dXY.x, Rect_GetMaxX(clipRect));
-    copyRect.y = (dXY.y < 0) ? clipRect.y : min(clipRect.y + dXY.y, Rect_GetMaxY(clipRect));
+    copyRect.x = (dXY.x < 0) ? clipRect.x : __min(clipRect.x + dXY.x, Rect_GetMaxX(clipRect));
+    copyRect.y = (dXY.y < 0) ? clipRect.y : __min(clipRect.y + dXY.y, Rect_GetMaxY(clipRect));
     copyRect.width = clipRect.width - hExposedWidth;
     copyRect.height = clipRect.height - vExposedHeight;
     
@@ -172,8 +172,8 @@ static void Console_ScrollBy_Locked(Console* _Nonnull pConsole, Rect clipRect, P
 // \param y the Y position
 static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
 {
-    pConsole->x = max(min(x, pConsole->cols - 1), 0);
-    pConsole->y = max(min(y, pConsole->rows - 1), 0);
+    pConsole->x = __max(__min(x, pConsole->cols - 1), 0);
+    pConsole->y = __max(__min(y, pConsole->rows - 1), 0);
 }
 
 // Moves the console position by the given delta values.

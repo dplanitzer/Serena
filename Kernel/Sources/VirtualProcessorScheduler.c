@@ -205,7 +205,7 @@ void VirtualProcessorScheduler_OnEndOfQuantum(VirtualProcessorScheduler * _Nonnu
     // there's another VP on the ready queue which is more important. If so we
     // context switch to that guy. Otherwise we'll continue to run for another
     // time slice.
-    curRunning->effectivePriority = max(curRunning->effectivePriority - 1, VP_PRIORITY_LOWEST);
+    curRunning->effectivePriority = __max(curRunning->effectivePriority - 1, VP_PRIORITY_LOWEST);
     curRunning->quantum_allowance = QuantumAllowanceForPriority(curRunning->effectivePriority);
 
     register VirtualProcessor* pBestReady = VirtualProcessorScheduler_GetHighestPriorityReady(pScheduler);
@@ -420,7 +420,7 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
         // Make the VP ready and adjust it's effective priority based on the
         // time it has spent waiting
         const Int32 quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
-        const Int8 boostedPriority = min(pVP->effectivePriority + min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
+        const Int8 boostedPriority = __min(pVP->effectivePriority + __min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
         VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, boostedPriority);
         
         if (allowContextSwitch) {

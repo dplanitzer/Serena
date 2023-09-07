@@ -602,17 +602,17 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
     const Int bytesPerRow = pSurface->bytesPerRow;
     const Int src_end_y = src_r.y + src_r.height - 1;
     const Int dst_clipped_left_span = (dst_r.x < 0) ? -dst_r.x : 0;
-    const Int dst_clipped_right_span = max(dst_r.x + dst_r.width - fb_width, 0);
-    const Int dst_x = max(dst_r.x, 0);
+    const Int dst_clipped_right_span = __max(dst_r.x + dst_r.width - fb_width, 0);
+    const Int dst_x = __max(dst_r.x, 0);
     const Int src_x = src_r.x + dst_clipped_left_span;
-    const Int dst_width = max(dst_r.width - dst_clipped_left_span - dst_clipped_right_span, 0);
+    const Int dst_width = __max(dst_r.width - dst_clipped_left_span - dst_clipped_right_span, 0);
 
     for (Int i = 0; i < pSurface->planeCount; i++) {
         Byte* pPlane = pSurface->planes[i];
 
         if (dst_r.y >= src_r.y && dst_r.y <= src_end_y) {
-            const Int dst_clipped_y_span = max(dst_r.y + dst_r.height - fb_height, 0);
-            const Int dst_y_min = max(dst_r.y, 0);
+            const Int dst_clipped_y_span = __max(dst_r.y + dst_r.height - fb_height, 0);
+            const Int dst_y_min = __max(dst_r.y, 0);
             Int src_y = src_r.y + src_r.height - 1;
             Int dst_y = dst_r.y + dst_r.height - dst_clipped_y_span - 1;
             
@@ -625,8 +625,8 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
         }
         else {
             const Int dst_clipped_y_span = (dst_r.y < 0) ? -dst_r.y : 0;
-            Int dst_y = max(dst_r.y, 0);
-            const Int dst_y_max = min(dst_r.y + dst_r.height, fb_height);
+            Int dst_y = __max(dst_r.y, 0);
+            const Int dst_y_max = __min(dst_r.y + dst_r.height, fb_height);
             Int src_y = src_r.y + dst_clipped_y_span;
             
             while (dst_y < dst_y_max) {

@@ -334,7 +334,7 @@ errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes,
     
     
     // Compute how many bytes we have to take from free memory
-    const size_t nBytesToAlloc = Int32_RoundUpToPowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
+    const size_t nBytesToAlloc = __Ceil_PowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
     
     
     // Note that the code here assumes desc 0 is chip RAM and all the others are
