@@ -15,7 +15,7 @@
 
 
 // Error code definitions
-typedef Int ErrorCode;
+typedef __errno_t ErrorCode;
 #define EOK __EOK
 
 

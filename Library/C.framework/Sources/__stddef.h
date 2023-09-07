@@ -10,6 +10,7 @@
 #define ___STDDEF_H 1
 
 #include <_cmndef.h>
+#include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>
 #include <errno.h>
@@ -20,7 +21,7 @@
 
 extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName);
 
-typedef int errno_t;
+typedef __errno_t errno_t;
 
 // Macros to detect errors and to jump to the 'failed:' label if an error is detected.
 
@@ -58,31 +59,28 @@ typedef int errno_t;
 #define __min(x, y) (((x) < (y) ? (x) : (y)))
 #define __max(x, y) (((x) > (y) ? (x) : (y)))
 
-#define __ROUND_UP_TO_POWER_OF_2(x, mask)   (((x) + (mask)) & ~(mask))
-#define __ROUND_DOWN_TO_POWER_OF_2(x, mask) ((x) & ~(mask))
-
 #if __LP64__
-#define __align_up_byte_ptr(x, a)     (char*)(__ROUND_UP_TO_POWER_OF_2((uint64_t)(x), (uint64_t)(a) - 1))
+#define __align_up_byte_ptr(x, a)     (char*)(__Ceil_PowerOf2((uint64_t)(x), (uint64_t)(a) - 1))
 #elif __ILP32__
-#define __align_up_byte_ptr(x, a)     (char*)(__ROUND_UP_TO_POWER_OF_2((uint32_t)(x), (uint32_t)(a) - 1))
+#define __align_up_byte_ptr(x, a)     (char*)(__Ceil_PowerOf2((uint32_t)(x), (uint32_t)(a) - 1))
 #else
 #error "don't know how to define __align_up_byte_ptr()"
 #endif
 #if __LP64__
-#define __align_down_byte_ptr(x, a)     (char*)(__ROUND_DOWN_TO_POWER_OF_2((uint64_t)(x), (uint64_t)(a) - 1))
+#define __align_down_byte_ptr(x, a)     (char*)(__Floor_PowerOf2((uint64_t)(x), (uint64_t)(a) - 1))
 #elif __ILP32__
-#define __align_down_byte_ptr(x, a)     (char*)(__ROUND_DOWN_TO_POWER_OF_2((uint32_t)(x), (uint32_t)(a) - 1))
+#define __align_down_byte_ptr(x, a)     (char*)(__Floor_PowerOf2((uint32_t)(x), (uint32_t)(a) - 1))
 #else
 #error "don't know how to define __align_down_byte_ptr()"
 #endif
 
 // Int
-#define Int32_RoundUpToPowerOf2(x, a)     __ROUND_UP_TO_POWER_OF_2(x, (int32_t)(a) - 1)
-#define Int32_RoundDownToPowerOf2(x, a)   __ROUND_DOWN_TO_POWER_OF_2(x, (int32_t)(a) - 1)
+#define Int32_RoundUpToPowerOf2(x, a)     __Ceil_PowerOf2(x, (int32_t)(a) - 1)
+#define Int32_RoundDownToPowerOf2(x, a)   __Floor_PowerOf2(x, (int32_t)(a) - 1)
 
 // UInt
-#define UInt32_RoundUpToPowerOf2(x, a)    __ROUND_UP_TO_POWER_OF_2(x, (uint32_t)(a) - 1)
-#define UInt32_RoundDownToPowerOf2(x, a)  __ROUND_DOWN_TO_POWER_OF_2(x, (uint32_t)(a) - 1)
+#define UInt32_RoundUpToPowerOf2(x, a)    __Ceil_PowerOf2(x, (uint32_t)(a) - 1)
+#define UInt32_RoundDownToPowerOf2(x, a)  __Floor_PowerOf2(x, (uint32_t)(a) - 1)
 
 
 extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);

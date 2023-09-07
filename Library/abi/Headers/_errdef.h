@@ -35,4 +35,6 @@
 #define __EFIRST    1
 #define __ELAST     21
 
+typedef int __errno_t;
+
 #endif /* __ERRDEF_H */

@@ -12,4 +12,7 @@
 #define _Alignof(type) __alignof(type)
 #define alignof(type) __alignof(type)
 
+#define __Ceil_PowerOf2(x, mask)   (((x) + (mask)) & ~(mask))
+#define __Floor_PowerOf2(x, mask) ((x) & ~(mask))
+
 #endif /* __ALIGNDEF_H */
