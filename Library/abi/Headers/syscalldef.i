@@ -9,12 +9,12 @@
         ifnd _SYSCALLDEF_I
 _SYSCALLDEF_I  set 1
 
-SC_write                equ 0   ; write(const char *buffer, int count)
-SC_sleep                equ 1   ; sleep(struct {int secs, int nanosecs})
-SC_dispatch_async       equ 2   ; dispatch_async(void *pUserClosure)
-SC_alloc_address_space  equ 3   ; alloc_address_space(int nbytes, void **pOutMem)
-SC_exit                 equ 4   ; exit(int status) [noreturn]
-SC_spawn_process        equ 5   ; spawn_process(void *pUserEntryPoint)
+SC_write                equ 0   ; errno_t write(const char *buffer, int count)
+SC_sleep                equ 1   ; errno_t sleep(struct {int secs, int nanosecs})
+SC_dispatch_async       equ 2   ; errno_t dispatch_async(void *pUserClosure)
+SC_alloc_address_space  equ 3   ; errno_t alloc_address_space(int nbytes, void **pOutMem)
+SC_exit                 equ 4   ; _Noreturn exit(int status)
+SC_spawn_process        equ 5   ; errno_t spawn_process(void *pUserEntryPoint)
 
 SC_numberOfCalls        equ 6   ; number of system calls
 
