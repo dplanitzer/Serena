@@ -12,6 +12,27 @@
 #include "VirtualProcessor.h"
 
 
+typedef struct _SYS_read_args {
+    Int                 scno;
+    Character* _Nonnull buffer;
+    ByteCount           count;
+} SYS_read_args;
+
+Int _SYSCALL_read(const SYS_read_args* _Nonnull pArgs)
+{
+    decl_try_err();
+    Console* pConsole;
+    ByteCount count = __min(pArgs->count, INT_MAX);
+
+    try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+    try(Console_ReadKeys(pConsole, pArgs->buffer, &count));
+    return count;
+
+catch:
+    return -err;
+}
+
+
 typedef struct _SYS_write_args {
     Int                         scno;
     const Character* _Nonnull   buffer;

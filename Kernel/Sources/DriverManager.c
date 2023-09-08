@@ -163,9 +163,15 @@ ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManag
     try(DriverManager_AddDriver_Locked(pManager, kGraphicsDriverName, pMainGDevice));
 
 
+    // Event Driver
+    EventDriverRef pEventDriver = NULL;
+    try(EventDriver_Create(pMainGDevice, &pEventDriver));
+    try(DriverManager_AddDriver_Locked(pManager, kEventsDriverName, pEventDriver));
+
+
     // Initialize the console
     Console* pConsole = NULL;
-    try(Console_Create(pMainGDevice, &pConsole));
+    try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
     try(DriverManager_AddDriver_Locked(pManager, kConsoleName, pConsole));
 
     Lock_Unlock(&pManager->lock);
@@ -241,13 +247,6 @@ ErrorCode DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 //    try(FloppyDMA_Create(&pFloppyDma));
 //    try(DriverManager_AddDriver_Locked(pManager, "fdma", pFloppyDma));
 
-
-    // Event Driver
-    GraphicsDriverRef pMainGDevice = DriverManager_GetDriverForName_Locked(pManager, kGraphicsDriverName);
-    assert(pMainGDevice != NULL);
-    EventDriverRef pEventDriver = NULL;
-    try(EventDriver_Create(pMainGDevice, &pEventDriver));
-    try(DriverManager_AddDriver_Locked(pManager, kEventsDriverName, pEventDriver));
 
     Lock_Unlock(&pManager->lock);
     return EOK;

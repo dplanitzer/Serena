@@ -22,9 +22,10 @@ extern const Byte font8x8_dingbat[160][8];
 
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
+// \param pEventDriver the event driver to provide keyboard input
 // \param pGDevice the graphics device
 // \return the console; NULL on failure
-ErrorCode Console_Create(GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole)
+ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole)
 {
     decl_try_err();
     Console* pConsole;
@@ -33,6 +34,7 @@ ErrorCode Console_Create(GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable
     try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pGDevice), ENODEV);
     try(kalloc_cleared(sizeof(Console), (Byte**) &pConsole));
     
+    pConsole->pEventDriver = pEventDriver;
     pConsole->pGDevice = pGDevice;
     Lock_Init(&pConsole->lock);
     pConsole->x = 0;
@@ -60,6 +62,7 @@ void Console_Destroy(Console* _Nullable pConsole)
 {
     if (pConsole) {
         pConsole->pGDevice = NULL;
+        pConsole->pEventDriver = NULL;
         Lock_Deinit(&pConsole->lock);
         kfree((Byte*)pConsole);
     }
@@ -402,4 +405,30 @@ void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull st
         Console_DrawCharacter_Locked(pConsole, ch);
     }
     Lock_Unlock(&pConsole->lock);
+}
+
+ErrorCode Console_ReadKeys(Console* _Nonnull pConsole, Character* _Nonnull pBuffer, ByteCount* _Nonnull pCount)
+{
+    HIDEvent evt;
+    Int evtCount;
+    ByteCount nKeysToRead = *pCount;
+    ByteCount nKeysRead = 0;
+    ErrorCode err = EOK;
+
+    while (nKeysRead < nKeysToRead) {
+        evtCount = 1;
+
+        err = EventDriver_GetEvents(pConsole->pEventDriver, &evt, &evtCount, kTimeInterval_Infinity);
+        if (err != EOK) {
+            break;
+        }
+
+        if (evt.type == kHIDEventType_KeyDown) {
+            pBuffer[nKeysRead] = (Character) evt.data.key.keycode;  // XXX need to do some key mapping here (we receive 16 bit USB key scan codes)
+            nKeysRead++;
+        }
+    }
+    *pCount = nKeysRead;
+
+    return err;
 }

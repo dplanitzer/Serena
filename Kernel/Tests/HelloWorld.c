@@ -6,6 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <syscall.h>
@@ -15,6 +16,12 @@
 // standard C behavior and LIBC_ASTART_FILE for Apollo behavior.
 //#define STDC_MAIN
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Process with a Child Process
+////////////////////////////////////////////////////////////////////////////////
+
+#if 0
 int count1;
 int count2;
 
@@ -53,3 +60,30 @@ void main_closure(int argc, char *argv[])
     parent_process();
 #endif
 }
+
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Interactive Console
+////////////////////////////////////////////////////////////////////////////////
+
+#if 1
+void main_closure(int argc, char *argv[])
+{
+    char buf;
+
+    printf("Console v1.0\nReady.\n\n");
+    
+    while (true) {
+        const ssize_t r = __syscall(SC_read, &buf, 1);
+        if (r < 0) {
+            printf("Read error: %ld\n", r);
+            continue;
+        }
+
+        printf("Key: $%hhx\n", buf);
+    }
+}
+
+#endif

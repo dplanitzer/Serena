@@ -11,6 +11,7 @@
     include <errdef.i>
     include <syscalldef.i>
 
+    xref __SYSCALL_read
     xref __SYSCALL_write
     xref __SYSCALL_sleep
     xref __SYSCALL_dispatch_async
@@ -23,6 +24,7 @@
 
 
 syscall_table:
+    dc.l __SYSCALL_read
     dc.l __SYSCALL_write
     dc.l __SYSCALL_sleep
     dc.l __SYSCALL_dispatch_async

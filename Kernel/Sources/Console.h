@@ -10,6 +10,7 @@
 #define Console_h
 
 #include <klib/klib.h>
+#include "EventDriver.h"
 #include "Geometry.h"
 #include "GraphicsDriver.h"
 #include "Lock.h"
@@ -28,6 +29,7 @@ typedef enum _LineBreakMode {
 
 
 typedef struct _Console {
+    EventDriverRef _Nonnull     pEventDriver;
     GraphicsDriverRef _Nonnull  pGDevice;
     Int8                        x;
     Int8                        y;
@@ -40,7 +42,7 @@ typedef struct _Console {
 } Console;
 
 
-extern ErrorCode Console_Create(GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole);
+extern ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole);
 extern void Console_Destroy(Console* _Nullable pConsole);
 
 extern Rect Console_GetBounds(Console* _Nonnull pConsole);
@@ -58,5 +60,7 @@ extern void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y);
 extern void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch);
 extern void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, ByteCount count);
 extern void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str);
+
+extern ErrorCode Console_ReadKeys(Console* _Nonnull pConsole, Character* _Nonnull pBuffer, ByteCount* _Nonnull pCount);
 
 #endif /* Console_h */
