@@ -25,7 +25,7 @@
 // size includes the header size.
 typedef struct _MemBlock {
     struct _MemBlock* _Nullable next;
-    UInt                        size;   // Max size of a free block is 4GB; max size of an allocated block is 2GB
+    ByteCount                   size;   // Max size of a free block is 4GB; max size of an allocated block is 2GB
 } MemBlock;
 
 
@@ -104,7 +104,7 @@ static Bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, Byte* _Nu
 
 // Allocates 'nBytesToAlloc' from the given memory region. Note that
 // 'nBytesToAlloc' has to include the heap block header and the correct alignment.
-static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, Int nBytesToAlloc)
+static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, ByteCount nBytesToAlloc)
 {
     // first fit search
     MemBlock* pPrevBlock = NULL;
@@ -324,7 +324,7 @@ Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr)
     return r;
 }
 
-ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
+ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {

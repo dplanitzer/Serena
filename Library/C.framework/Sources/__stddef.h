@@ -58,6 +58,8 @@ typedef __errno_t errno_t;
 
 extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
 
+extern errno_t __write(const char* _Nonnull pBuffer, size_t nBytes);
+
 extern void __stdlibc_init(void);
 extern void __malloc_init(void);
 

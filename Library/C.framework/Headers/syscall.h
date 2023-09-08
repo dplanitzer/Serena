@@ -15,6 +15,8 @@
 
 __CPP_BEGIN
 
+typedef __ssize_t ssize_t;
+
 extern int __syscall(int scno, ...);
 
 __CPP_END

@@ -9,7 +9,7 @@
 #ifndef __SYSCALLS_H
 #define __SYSCALLS_H 1
 
-#define SC_write                0   // errno_t write(const char *buffer, int count)
+#define SC_write                0   // ssize_t write(const char *buffer, size_t count)
 #define SC_sleep                1   // errno_t sleep(struct {int secs, int nanosecs})
 #define SC_dispatch_async       2   // errno_t dispatch_async(void *pUserClosure)
 #define SC_alloc_address_space  3   // errno_t alloc_address_space(int nbytes, void **pOutMem)

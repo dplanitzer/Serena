@@ -23,25 +23,25 @@
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-extern ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
+extern ErrorCode kalloc_options(ByteCount nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
 
 // Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
 // NULL if the memory could not be allocated. The returned memory is not
 // necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
 // suitable option if DMA accessability is desired.
-static inline ErrorCode kalloc(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
+static inline ErrorCode kalloc(ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
     return kalloc_options(nbytes, 0, pOutPtr);
 }
 
 // Same as kalloc() but allocated memory that is filled with zeros.
-static inline ErrorCode kalloc_cleared(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
+static inline ErrorCode kalloc_cleared(ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
     return kalloc_options(nbytes, KALLOC_OPTION_CLEAR, pOutPtr);
 }
 
 // Same as kalloc() but allocates unified memory.
-static inline ErrorCode kalloc_unified(Int nbytes, Byte* _Nullable * _Nonnull pOutPtr)
+static inline ErrorCode kalloc_unified(ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {
     return kalloc_options(nbytes, KALLOC_OPTION_UNIFIED, pOutPtr);
 }

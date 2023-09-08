@@ -56,7 +56,7 @@ extern void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy);
 extern void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y);
 
 extern void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch);
-extern void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, Int count);
+extern void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, ByteCount count);
 extern void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str);
 
 #endif /* Console_h */

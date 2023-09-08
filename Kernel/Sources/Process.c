@@ -289,9 +289,9 @@ ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func 
 }
 
 // Allocates more (user) address space to the given process.
-ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, Int nbytes, Byte* _Nullable * _Nonnull pOutMem)
+ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount count, Byte* _Nullable * _Nonnull pOutMem)
 {
-    return AddressSpace_Allocate(pProc->addressSpace, nbytes, pOutMem);
+    return AddressSpace_Allocate(pProc->addressSpace, count, pOutMem);
 }
 
 // Adds the given process as a child to the given process. 'pOtherProc' must not

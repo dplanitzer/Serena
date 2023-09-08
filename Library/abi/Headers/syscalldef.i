@@ -9,7 +9,7 @@
         ifnd _SYSCALLDEF_I
 _SYSCALLDEF_I  set 1
 
-SC_write                equ 0   ; errno_t write(const char *buffer, int count)
+SC_write                equ 0   ; ssize_t write(const char *buffer, size_t count)
 SC_sleep                equ 1   ; errno_t sleep(struct {int secs, int nanosecs})
 SC_dispatch_async       equ 2   ; errno_t dispatch_async(void *pUserClosure)
 SC_alloc_address_space  equ 3   ; errno_t alloc_address_space(int nbytes, void **pOutMem)

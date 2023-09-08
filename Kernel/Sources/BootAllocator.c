@@ -26,7 +26,7 @@ void BootAllocator_Deinit(BootAllocator* _Nonnull pAlloc)
 // Allocates a memory block from CPU-only RAM that is able to hold at least 'nbytes'.
 // Note that the base address of the allocated block is page aligned. Never returns
 // NULL.
-Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, Int nbytes)
+Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, ByteCount nbytes)
 {
     assert(nbytes > 0);
     Byte* ptr = NULL;

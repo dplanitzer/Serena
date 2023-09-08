@@ -22,7 +22,7 @@ extern ErrorCode Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, All
 extern ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc);
 extern Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr);
 
-extern ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, Int nbytes, Byte* _Nullable * _Nonnull pOutPtr);
+extern ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr);
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.

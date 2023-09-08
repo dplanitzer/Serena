@@ -15,20 +15,21 @@
 typedef struct _SYS_write_args {
     Int                         scno;
     const Character* _Nonnull   buffer;
-    Int                         count;
+    ByteCount                   count;
 } SYS_write_args;
 
-ErrorCode _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
+Int _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
     Console* pConsole;
+    ByteCount count = __min(pArgs->count, INT_MAX);
 
     try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-    Console_DrawCharacters(pConsole, pArgs->buffer, pArgs->count);
-    return EOK;
+    Console_DrawCharacters(pConsole, pArgs->buffer, count);
+    return count;
 
 catch:
-    return err;
+    return -err;
 }
 
 
@@ -37,7 +38,7 @@ typedef struct _SYS_sleep_args {
     TimeInterval    ti;
 } SYS_sleep_args;
 
-ErrorCode _SYSCALL_sleep(const SYS_sleep_args* _Nonnull pArgs)
+Int _SYSCALL_sleep(const SYS_sleep_args* _Nonnull pArgs)
 {
     return VirtualProcessor_Sleep(pArgs->ti);
 }
@@ -48,7 +49,7 @@ typedef struct _SYS_dispatch_async_args {
     const Closure1Arg_Func _Nonnull userClosure;
 } SYS_dispatch_async_args;
 
-ErrorCode _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
+Int _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
 {
     return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->userClosure);
 }
@@ -56,13 +57,13 @@ ErrorCode _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
 
 typedef struct _SYS_alloc_address_space_args {
     Int                         scno;
-    Int                         nbytes;
+    ByteCount                   count;
     Byte * _Nullable * _Nonnull pOutMem;
 } SYS_alloc_address_space_args;
 
-ErrorCode _SYSCALL_alloc_address_space(SYS_alloc_address_space_args* _Nonnull pArgs)
+Int _SYSCALL_alloc_address_space(SYS_alloc_address_space_args* _Nonnull pArgs)
 {
-    return Process_AllocateAddressSpace(Process_GetCurrent(), pArgs->nbytes, pArgs->pOutMem);
+    return Process_AllocateAddressSpace(Process_GetCurrent(), pArgs->count, pArgs->pOutMem);
 }
 
 
@@ -71,7 +72,7 @@ typedef struct _SYS_exit_args {
     Int status;
 } SYS_exit_args;
 
-ErrorCode _SYSCALL_exit(const SYS_exit_args* _Nonnull pArgs)
+Int _SYSCALL_exit(const SYS_exit_args* _Nonnull pArgs)
 {
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to
@@ -92,7 +93,7 @@ typedef struct _SYS_spawn_process_args {
     Byte* _Nullable userEntryPoint;
 } SYS_spawn_process_args;
 
-ErrorCode _SYSCALL_spawn_process(const SYS_spawn_process_args* pArgs)
+Int _SYSCALL_spawn_process(const SYS_spawn_process_args* pArgs)
 {
     decl_try_err();
     ProcessRef pCurProc = Process_GetCurrent();

@@ -86,7 +86,7 @@ catch:
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-ErrorCode kalloc_options(Int nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
+ErrorCode kalloc_options(ByteCount nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
 {
     decl_try_err();
     

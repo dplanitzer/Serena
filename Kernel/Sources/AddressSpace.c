@@ -72,17 +72,14 @@ Bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
     return isEmpty;
 }
 
-ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, Int nbytes, Byte* _Nullable * _Nonnull pOutMem)
+ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count, Byte* _Nullable * _Nonnull pOutMem)
 {
     decl_try_err();
     MemBlocks* pMemBlocks = NULL;
     Byte* pMem = NULL;
 
-    if (nbytes < 0) {
-        return EPARAM;
-    }
-    if (nbytes == 0) {
-        return EOK;
+    if (count == 0) {
+        return EINVAL;
     }
 
 
@@ -102,7 +99,7 @@ ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, Int nbytes, Byt
 
 
     // Allocate the memory block
-    try(kalloc(nbytes, &pMem));
+    try(kalloc(count, &pMem));
 
 
     // Add the memory block to our list

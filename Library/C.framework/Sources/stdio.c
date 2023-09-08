@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <string.h>
 #include <syscall.h>
+#include <__stddef.h>
 
 
 int putchar(int ch)
@@ -20,7 +21,7 @@ int putchar(int ch)
 
     unsigned char uch = (unsigned char) ch;
 
-    if (__syscall(SC_write, (const char*)&uch, 1) == 0) {
+    if (__write((const char*)&uch, 1) == 0) {
         return uch;
     } else {
         return 0;
@@ -29,11 +30,27 @@ int putchar(int ch)
 
 int puts(const char *str)
 {
-    if (__syscall(SC_write, str, strlen(str)) != 0) {
+    if (__write(str, strlen(str)) != 0) {
         return EOF;
     }
 
     return putchar('\n');
+}
+
+errno_t __write(const char* _Nonnull pBuffer, size_t nBytes)
+{
+    ssize_t nBytesWritten = 0;
+
+    while (nBytesWritten < nBytes) {
+        const ssize_t r = __syscall(SC_write, pBuffer, nBytes);
+        
+        if (r < 0) {
+            return (errno_t) -r;
+        }
+        nBytesWritten += nBytes;
+    }
+
+    return 0;
 }
 
 void perror(const char *str)

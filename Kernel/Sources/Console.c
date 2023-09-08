@@ -379,7 +379,7 @@ void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch)
 // \param pConsole the console
 // \param pChars the character sequence
 // \param count the number of characters
-void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, Int count)
+void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, ByteCount count)
 {
     const Character* pCharsEnd = pChars + count;
 
