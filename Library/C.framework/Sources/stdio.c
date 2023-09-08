@@ -13,6 +13,40 @@
 #include <__stddef.h>
 
 
+int getchar(void)
+{
+    char buf;
+    const ssize_t r = __syscall(SC_read, &buf, 1);
+
+    if (r < 0) {
+        return EOF;
+    } else {
+        return (int)(unsigned char)buf;
+    }
+}
+
+char *gets(char *str)
+{
+    if (str == NULL) {
+        return NULL;
+    }
+
+    char* p = str;
+
+    while (true) {
+        const int ch = getchar();
+
+        if (ch == EOF || ch == '\n') {
+            break;
+        }
+
+        *p++ = (char)ch;
+    }
+    *p = '\0';
+    
+    return str;
+}
+
 int putchar(int ch)
 {
     if (ch == EOF) {

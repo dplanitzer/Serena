@@ -71,18 +71,16 @@ void main_closure(int argc, char *argv[])
 #if 1
 void main_closure(int argc, char *argv[])
 {
-    char buf;
-
     printf("Console v1.0\nReady.\n\n");
-    
+
     while (true) {
-        const ssize_t r = __syscall(SC_read, &buf, 1);
-        if (r < 0) {
-            printf("Read error: %ld\n", r);
+        const int ch = getchar();
+        if (ch == EOF) {
+            printf("Read error\n");
             continue;
         }
 
-        printf("Key: $%hhx\n", buf);
+        printf("Key: $%x\n", ch);
     }
 }
 

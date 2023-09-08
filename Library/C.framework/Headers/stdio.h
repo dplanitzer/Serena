@@ -21,6 +21,9 @@ __CPP_BEGIN
 typedef long long fpos_t;
 
 
+extern int getchar(void);
+extern char *gets(char *str);
+
 extern int putchar(int ch);
 extern int puts(const char *str);
 
