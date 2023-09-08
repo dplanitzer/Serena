@@ -88,7 +88,7 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
 
     // Allocate the text, data and BSS segments 
     const Int32 nbytes_to_copy = pExecHeader->text_size + pExecHeader->data_size;
-    const Int32 nbytes_to_alloc = nbytes_to_copy + pExecHeader->bss_size;
+    const Int32 nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
     Byte* pTextBase = NULL;
     
     try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pTextBase));

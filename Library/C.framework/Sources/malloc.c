@@ -13,19 +13,19 @@
 #include "Allocator.h"
 
 
-// XXX initialize the malloc package
-
 static AllocatorRef gAllocator;
 
 
-static errno_t __alloc_address_space(size_t nbytes, void **ptr)
+static inline errno_t __alloc_address_space(size_t nbytes, void **ptr)
 {
     return __syscall(SC_alloc_address_space, nbytes, ptr);
 }
 
 // Initializes the malloc subsystem and does the initial heap allocation.
 // The initial heap size is INITIAL_HEAP_SIZE
-#define INITIAL_HEAP_SIZE   (64*1024)
+#define INITIAL_HEAP_SIZE   __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
+#define EXPANSION_HEAP_SIZE __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
+
 void __malloc_init(void)
 {
     MemoryDescriptor md;
@@ -59,7 +59,10 @@ void *malloc(size_t size)
     errno_t err = Allocator_AllocateBytes(gAllocator, size, &ptr);
 
     if (err == ENOMEM) {
-        err = __malloc_expand_backingstore_by(__min(size, 64 * 1024));
+        const size_t ceiledSize = __Ceil_PowerOf2(size, CPU_PAGE_SIZE);
+        const size_t minExpansionSize = EXPANSION_HEAP_SIZE;
+
+        err = __malloc_expand_backingstore_by(__min(ceiledSize, minExpansionSize));
         if (err == 0) {
             err = Allocator_AllocateBytes(gAllocator, size, &ptr);
         }

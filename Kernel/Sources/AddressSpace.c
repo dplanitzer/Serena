@@ -72,6 +72,11 @@ Bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
     return isEmpty;
 }
 
+// Allocates more address space to the calling process. The address space is
+// expanded by 'count' bytes. A pointer to the first byte in the newly allocated
+// address space portion is return in 'pOutMem'. 'pOutMem' is set to NULL and a
+// suitable error is returned if the allocation failed. 'count' must be greater
+// than 0 and a multipler of the CPU page size.
 ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count, Byte* _Nullable * _Nonnull pOutMem)
 {
     decl_try_err();
@@ -79,6 +84,9 @@ ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count
     Byte* pMem = NULL;
 
     if (count == 0) {
+        return EINVAL;
+    }
+    if ((count & ~CPU_PAGE_SIZE) != count) {
         return EINVAL;
     }
 

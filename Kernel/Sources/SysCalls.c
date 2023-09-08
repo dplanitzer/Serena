@@ -55,6 +55,11 @@ Int _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
 }
 
 
+// Allocates more address space to the calling process. The address space is
+// expanded by 'count' bytes. A pointer to the first byte in the newly allocated
+// address space portion is return in 'pOutMem'. 'pOutMem' is set to NULL and a
+// suitable error is returned if the allocation failed. 'count' must be greater
+// than 0 and a multipler of the CPU page size.
 typedef struct _SYS_alloc_address_space_args {
     Int                         scno;
     ByteCount                   count;

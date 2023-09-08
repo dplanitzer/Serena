@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <stdnoreturn.h>
 
+#define CPU_PAGE_SIZE   4096
+
 extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName);
 
 typedef __errno_t errno_t;
