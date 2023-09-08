@@ -87,19 +87,19 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
 
 
     // Allocate the text, data and BSS segments 
-    const Int32 nbytes_to_copy = pExecHeader->text_size + pExecHeader->data_size;
+    const Int32 nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
     const Int32 nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
-    Byte* pTextBase = NULL;
+    Byte* pProcExecBase = NULL;
     
-    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pTextBase));
+    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pProcExecBase));
 
 
-    // Copy the text and data segments
-    Bytes_CopyRange(pTextBase, pExecAddr + sizeof(GemDosExecutableHeader), nbytes_to_copy);
+    // Copy the executable header, text and data segments
+    Bytes_CopyRange(pProcExecBase, pExecAddr, nbytes_to_copy);
 
 
     // Initialize the BSS segment
-    Bytes_ClearRange(pTextBase + nbytes_to_copy, pExecHeader->bss_size);
+    Bytes_ClearRange(pProcExecBase + nbytes_to_copy, pExecHeader->bss_size);
 
     // Relocate the executable
     Byte* pRelocBase = pExecAddr
@@ -107,6 +107,8 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
         + pExecHeader->text_size
         + pExecHeader->data_size
         + pExecHeader->symbol_table_size;
+    Byte* pTextBase = pProcExecBase
+        + sizeof(GemDosExecutableHeader);
 
     try(GemDosExecutableLoader_RelocExecutable(pLoader, pRelocBase, pTextBase));
 
