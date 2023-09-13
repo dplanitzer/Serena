@@ -9,6 +9,15 @@
 #include "Types.h"
 
 
+ByteCount String_Length(const Character* _Nonnull pStr)
+{
+    const Character* p = pStr;
+
+    while(*p++ != '\0');
+
+    return p - pStr - 1;
+}
+
 Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs)
 {
     while (*pLhs != '\0') {

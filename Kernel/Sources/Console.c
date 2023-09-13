@@ -51,7 +51,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
     pConsole->tabWidth = 8;
     pConsole->keyMap = (const KeyMap*) &gKeyMap_usa[0];
-    pConsole->keyMapBufferCapacity = 8;
+    pConsole->keyMapBufferCapacity = KeyMap_GetMaxOutputCharacterCount(pConsole->keyMap);
     try(kalloc_cleared(pConsole->keyMapBufferCapacity, (Byte**) &pConsole->keyMapBuffer));
     
     Console_ClearScreen_Locked(pConsole);

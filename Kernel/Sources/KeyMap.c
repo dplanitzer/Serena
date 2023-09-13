@@ -9,29 +9,57 @@
 #include "KeyMap.h"
 
 
+// Returns the maximum size of the output buffer that is needed for the
+// KeyMap_Map() function.
+ByteCount KeyMap_GetMaxOutputCharacterCount(const KeyMap* _Nonnull pMap)
+{
+    const Byte* pMapBase = (const Byte*) pMap;
+    ByteCount maxOutChars = 0;
+
+    for (UInt16 r = 0; r < pMap->rangeCount; r++) {
+        const KeyMapRange* pCurRange = (const KeyMapRange*)(pMapBase + pMap->rangeOffset[r]);
+        const UInt16 keyCodeCount = pCurRange->upper - pCurRange->lower;
+
+        switch (pCurRange->type) {
+            case KEY_MAP_RANGE_TYPE_3: {
+                const UInt16* pCurTraps = (const UInt16*)(pMapBase + pCurRange->traps);
+
+                for (UInt16 k = 0; k <= keyCodeCount; k++) {
+                    maxOutChars = __max(maxOutChars, String_Length((const char*)(pMapBase + pCurTraps[k])));
+                }
+            } break;
+
+            default:
+                break;
+        }
+    }
+    return maxOutChars;
+}
+
+
+
 static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars)
 {
-    const UInt32* pTraps = (const UInt32*)(pMapBase + pRange->traps);
-    const Int adjustedUsbKeyCode = pEvent->keycode - pRange->lower;
-    UInt32 eventFlags = pEvent->flags;
+    UInt32 evtFlags = pEvent->flags;
 
-    if ((eventFlags & kHIDEventModifierFlag_CapsLock) && (pEvent->keycode >= KEY_A && pEvent->keycode <= KEY_Z)) {
+    if ((evtFlags & kHIDEventModifierFlag_CapsLock) && (pEvent->keycode >= KEY_A && pEvent->keycode <= KEY_Z)) {
         // Treat as shift for caps-able USB key code, except if the shift key is pressed at the same time
-        if (!(eventFlags & kHIDEventModifierFlag_Shift)) {
-            eventFlags |= kHIDEventModifierFlag_Shift;
+        if (!(evtFlags & kHIDEventModifierFlag_Shift)) {
+            evtFlags |= kHIDEventModifierFlag_Shift;
         } else {
-            eventFlags &= ~kHIDEventModifierFlag_Shift;
+            evtFlags &= ~kHIDEventModifierFlag_Shift;
         }
     }
 
-    const UInt modifierIdx = eventFlags & (kHIDEventModifierFlag_Shift|kHIDEventModifierFlag_Option);
-    const Character* trap = (const Character*) &pTraps[adjustedUsbKeyCode];
+    const UInt32* pTraps = (const UInt32*)(pMapBase + pRange->traps);
+    const Character* trap = (const Character*) &pTraps[pEvent->keycode - pRange->lower];
+    const UInt modifierIdx = evtFlags & (kHIDEventModifierFlag_Shift|kHIDEventModifierFlag_Option);
     Character ch = trap[modifierIdx];
 
     if (ch == '\0') {
         ch = trap[0];
     }
-    if (eventFlags & kHIDEventModifierFlag_Control) {
+    if (evtFlags & kHIDEventModifierFlag_Control) {
         ch &= 0x1f;     // drop bits 7, 6 and 5
     }
 
@@ -60,7 +88,7 @@ static ByteCount KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const
 
 ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars, ByteCount maxOutChars)
 {
-    if (pMap->type == KEY_MAP_TYPE_0 && maxOutChars > 0) {
+    if (maxOutChars > 0) {
         const Byte* pMapBase = (const Byte*)pMap;
         const HIDKeyCode usbKeyCode = pEvent->keycode;
 

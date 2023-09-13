@@ -13,6 +13,35 @@
 #include "HIDEvent.h"
 #include "USBHIDKeys.h"
 
+// A key map maps a USB key code to a single character or a string. The mapping
+// can take the current state of the modifier flags into account.
+//
+// A key map consists of a table of 'key mapping ranges'. Each key mapping range
+// starts at a certain USB key code and covers all USB key codes up to an upper
+// boundary key code. Each key code range consists of a table of 'key code traps'.
+//
+// There are different types of key code traps: some map a USB key code to a
+// single character depending on the current state of the modifier flags and
+// others map a single USB key code to a string independent of the current state
+// of the modifier flags.
+//
+// Additional key code trap types may be introduced in the future.
+//
+// Each key code trap has an associated action. Currently the only supported
+// action is the default action which is 'marking'.
+//
+// The key code trap actions are:
+// *) Marking: the associated character is returned
+// *) Combining: the associated character is added to a buffer. This action
+//               continues until the user presses a key that is associated with
+//               a marking character. The marking character is still appened to
+//               the buffer and the buffer is drained and its contents returned.
+//
+// The combining action gives the same functionality that dead keys gave in the
+// traditional model except that they make it easier to define dead keys since
+// dead keys naturally map to decomposed Unicode character strings.
+
+
 // A positive byte offset to the desired data. The offset is relative to the
 // first byte of the KeyMap data structure.
 typedef UInt16  KeyMapOffset;
@@ -61,9 +90,16 @@ typedef struct _KeyMap {
 // XXX Should have something like a KeyMap_Validate() that checks that all offsets
 // XXX are inside the pMap->size range
 
-// XXX Should have a function that calculates the maximum size that we need for
-// XXX 'pOutChars'
+// Returns the maximum size of the output buffer that is needed for the
+// KeyMap_Map() function.
+extern ByteCount KeyMap_GetMaxOutputCharacterCount(const KeyMap* _Nonnull pMap);
 
+// Maps the given up/down key event to a sequence of characters. Usually that
+// sequence is only a single character long. However it may be multiple characters
+// long or of length 0. The length of teh sequence the event was mapped to is
+// returned. If that length is zero then the key press or release should be
+// ignored. Note that this function returns a sequence of characters and not a
+// string. Consequently the sequence is not nul-terminated.
 extern ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars, ByteCount maxOutChars);
 
 #endif /* KeyMap_h */
