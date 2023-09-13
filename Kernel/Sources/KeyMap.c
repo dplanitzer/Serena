@@ -13,14 +13,25 @@ static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const
 {
     const UInt32* pTraps = (const UInt32*)(pMapBase + pRange->traps);
     const Int adjustedUsbKeyCode = pEvent->keycode - pRange->lower;
-    const UInt modifierIdx = pEvent->flags & (kHIDEventModifierFlag_Shift|kHIDEventModifierFlag_Option);
+    UInt32 eventFlags = pEvent->flags;
+
+    if ((eventFlags & kHIDEventModifierFlag_CapsLock) && (pEvent->keycode >= KEY_A && pEvent->keycode <= KEY_Z)) {
+        // Treat as shift for caps-able USB key code, except if the shift key is pressed at the same time
+        if (!(eventFlags & kHIDEventModifierFlag_Shift)) {
+            eventFlags |= kHIDEventModifierFlag_Shift;
+        } else {
+            eventFlags &= ~kHIDEventModifierFlag_Shift;
+        }
+    }
+
+    const UInt modifierIdx = eventFlags & (kHIDEventModifierFlag_Shift|kHIDEventModifierFlag_Option);
     const Character* trap = (const Character*) &pTraps[adjustedUsbKeyCode];
     Character ch = trap[modifierIdx];
 
     if (ch == '\0') {
         ch = trap[0];
     }
-    if (pEvent->flags & kHIDEventModifierFlag_Control) {
+    if (eventFlags & kHIDEventModifierFlag_Control) {
         ch &= 0x1f;     // drop bits 7, 6 and 5
     }
 
