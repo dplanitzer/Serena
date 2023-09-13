@@ -80,7 +80,7 @@ void main_closure(int argc, char *argv[])
             continue;
         }
 
-        printf("Key: $%x\n", ch);
+        putchar(ch);
     }
 }
 

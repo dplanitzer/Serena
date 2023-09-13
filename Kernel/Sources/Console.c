@@ -12,6 +12,12 @@ static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
 
 
 //
+// Keymaps
+//
+extern const unsigned char gKeyMap_usa[];
+
+
+//
 // Fonts
 //
 extern const Byte font8x8_latin1[128][8];
@@ -44,6 +50,9 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     pConsole->flags |= CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM;
     pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
     pConsole->tabWidth = 8;
+    pConsole->keyMap = (const KeyMap*) &gKeyMap_usa[0];
+    pConsole->keyMapBufferCapacity = 8;
+    try(kalloc_cleared(pConsole->keyMapBufferCapacity, (Byte**) &pConsole->keyMapBuffer));
     
     Console_ClearScreen_Locked(pConsole);
     
@@ -63,6 +72,8 @@ void Console_Destroy(Console* _Nullable pConsole)
     if (pConsole) {
         pConsole->pGDevice = NULL;
         pConsole->pEventDriver = NULL;
+        kfree(pConsole->keyMapBuffer);
+        pConsole->keyMapBuffer = NULL;
         Lock_Deinit(&pConsole->lock);
         kfree((Byte*)pConsole);
     }
@@ -424,8 +435,11 @@ ErrorCode Console_ReadKeys(Console* _Nonnull pConsole, Character* _Nonnull pBuff
         }
 
         if (evt.type == kHIDEventType_KeyDown) {
-            pBuffer[nKeysRead] = (Character) evt.data.key.keycode;  // XXX need to do some key mapping here (we receive 16 bit USB key scan codes)
-            nKeysRead++;
+            const ByteCount nBytesToWrite = KeyMap_Map(pConsole->keyMap, &evt.data.key, pConsole->keyMapBuffer, pConsole->keyMapBufferCapacity);
+            
+            for (ByteCount i = 0; i < nBytesToWrite; i++) {
+                pBuffer[nKeysRead++] = pConsole->keyMapBuffer[i];
+            }
         }
     }
     *pCount = nKeysRead;

@@ -13,6 +13,7 @@
 #include "EventDriver.h"
 #include "Geometry.h"
 #include "GraphicsDriver.h"
+#include "KeyMap.h"
 #include "Lock.h"
 
 
@@ -39,6 +40,9 @@ typedef struct _Console {
     Int8                        lineBreakMode;
     Int8                        tabWidth;   // 8
     Lock                        lock;
+    const KeyMap* _Nonnull      keyMap;
+    ByteCount                   keyMapBufferCapacity;
+    Character* _Nonnull         keyMapBuffer;
 } Console;
 
 

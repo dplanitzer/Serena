@@ -17,9 +17,60 @@
 __CPP_BEGIN
 
 #define EOF -1
+#define BUFSIZ  4096
+
+#define _IONBF  0
+#define _IOLBF  1
+#define _IOFBF  2
+
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+
 
 typedef long long fpos_t;
 
+typedef struct _FILE {
+    int dummy;
+} FILE;
+
+extern FILE __StdFile[3];
+#define stdin &__StdFile[0]
+#define stdout &__StdFile[1]
+#define stderr &__StdFile[2]
+
+
+extern FILE *fopen(const char *filename, const char *mode);
+extern int fclose(FILE *s);
+
+extern void setbuf(FILE *s, char *buffer);
+extern int setvbuf(FILE *s, char *buffer, int mode, size_t size);
+
+extern void clearerr(FILE *s);
+extern int feof(FILE *s);
+extern int ferror(FILE *s);
+
+extern long ftell(FILE *s);
+extern int fseek(FILE *s, long offset, int origin);
+extern int fgetpos(FILE *s, fpos_t *pos);
+extern int fsetpos(FILE *s, const fpos_t *pos);
+extern void rewind(FILE *s);
+
+extern int fgetc(FILE *s);
+#define getc(s) fgetc(s)
+
+extern char *fgets(char *str, int count, FILE *s);
+
+extern int fputc(int ch, FILE *s);
+#define putc(ch, s) fputc(ch, s)
+
+extern int fputs(const char *str, FILE *s);
+extern int ungetc(int ch, FILE *s);
+
+extern size_t fread(void *buffer, size_t size, size_t count, FILE *s);
+extern size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s);
+
+extern int fflush(FILE *s);
 
 extern int getchar(void);
 extern char *gets(char *str);

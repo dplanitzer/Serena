@@ -1,6 +1,9 @@
 {
     "cmake.configureOnOpen": false,
     "files.exclude": {
+        "keymap": true,
+        "keymap.exe": true,
+        "keymap.obj": true,
         "**/build": true,
         "**/product": true
     },

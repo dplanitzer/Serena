@@ -1,0 +1,251 @@
+// USA keyboard layout
+// key format:
+// unshifted, shift, alt, shift + alt
+
+key(0x0004, 'a', 'A', 0, 0)
+key(0x0005, 'b', 'B', 0, 0)
+key(0x0006, 'c', 'C', 0, 0)
+key(0x0007, 'd', 'D', 0, 0)
+key(0x0008, 'e', 'E', 0, 0)
+key(0x0009, 'f', 'F', 0, 0)
+key(0x000a, 'g', 'G', 0, 0)
+key(0x000b, 'h', 'H', 0, 0)
+key(0x000c, 'i', 'I', 0, 0)
+key(0x000d, 'j', 'J', 0, 0)
+key(0x000e, 'k', 'K', 0, 0)
+key(0x000f, 'l', 'L', 0, 0)
+key(0x0010, 'm', 'M', 0, 0)
+key(0x0011, 'n', 'N', 0, 0)
+key(0x0012, 'o', 'O', 0, 0)
+key(0x0013, 'p', 'P', 0, 0)
+key(0x0014, 'q', 'Q', 0, 0)
+key(0x0015, 'r', 'R', 0, 0)
+key(0x0016, 's', 'S', 0, 0)
+key(0x0017, 't', 'T', 0, 0)
+key(0x0018, 'u', 'U', 0, 0)
+key(0x0019, 'v', 'V', 0, 0)
+key(0x001a, 'w', 'W', 0, 0)
+key(0x001b, 'x', 'X', 0, 0)
+key(0x001c, 'y', 'Y', 0, 0)
+key(0x001d, 'z', 'Z', 0, 0)
+
+key(0x001e, '1', '!', 0, 0)
+key(0x001f, '2', '@', 0, 0)
+key(0x0020, '3', '#', 0, 0)
+key(0x0021, '4', '$', 0, 0)
+key(0x0022, '5', '%', 0, 0)
+key(0x0023, '6', '^', 0, 0)
+key(0x0024, '7', '&', 0, 0)
+key(0x0025, '8', '*', 0, 0)
+key(0x0026, '9', '(', 0, 0)
+key(0x0027, '0', ')', 0, 0)
+
+key(0x0028, 0x0a, 0x0a, 0, 0)   // Return / Enter
+key(0x0029, 0x1b, 0x1b, 0, 0)   // Escape
+key(0x002a, 0x08, 0x08, 0, 0)   // Delete / Backspace
+key(0x002b, 0x09, 0, 0, 0)      // Horizontal Tab
+key(0x002c, ' ', ' ', 0, 0)
+key(0x002d, '-', '_', 0, 0)
+key(0x002e, '=', '+', 0, 0)
+key(0x002f, '[', '{', 0, 0)
+key(0x0030, ']', '}', 0, 0)
+key(0x0031, '\\', '|', 0, 0)
+key(0x0032, 0, 0, 0, 0)         // Non-US # and ~
+key(0x0033, ';', ':', 0, 0)
+key(0x0034, '\'', '"', 0, 0)
+key(0x0035, '`', '~', 0, 0)
+key(0x0036, ',', '<', 0, 0)
+key(0x0037, '.', '>', 0, 0)
+key(0x0038, '/', '?', 0, 0)
+key(0x0039, 0, 0, 0, 0)         // Caps Lock
+
+key(0x003a, "\e[11~")           // F1
+key(0x003b, "\e[12~")           // F2
+key(0x003c, "\e[13~")           // F3
+key(0x003d, "\e[14~")           // F4
+key(0x003e, "\e[15~")           // F5
+key(0x003f, "\e[17~")           // F6
+key(0x0040, "\e[18~")           // F7
+key(0x0041, "\e[19~")           // F8
+key(0x0042, "\e[20~")           // F9
+key(0x0043, "\e[21~")           // F10
+key(0x0044, "\e[23~")           // F11
+key(0x0045, "\e[24~")           // F12
+
+key(0x0046, 0, 0, 0, 0)         // Print Screen
+key(0x0047, 0, 0, 0, 0)         // Scroll Lock
+key(0x0048, 0, 0, 0, 0)         // Pause
+key(0x0049, "\e[2~")            // Insert
+key(0x004a, "\e[1~")            // Home
+key(0x004b, "\e[5~")            // Page Up
+key(0x004c, "\e[3~")            // Delete Forward
+key(0x004d, "\e[8~")            // End
+key(0x004e, "\e[6~")            // Page Down
+key(0x004f, "\e[C")             // Right Arrow
+key(0x0050, "\e[D")             // Left Arrow
+key(0x0051, "\e[B")             // Down Arrow
+key(0x0052, "\e[A")             // Up Arrow
+
+key(0x0053, 0, 0, 0, 0)         // Num Lock and Clear
+key(0x0054, '/', '/', 0, 0)     // Keypad
+key(0x0055, '*', '*', 0, 0)     // Keypad
+key(0x0056, '-', '-', 0, 0)     // Keypad
+key(0x0057, '+', '+', 0, 0)     // Keypad
+key(0x0058, 0x0a, 0x0a, 0, 0)   // Keypad
+key(0x0059, '1', '1', 0, 0)     // Keypad 1 and End
+key(0x005a, '2', '2', 0, 0)     // Keypad 2 and Down Arrow
+key(0x005b, '3', '3', 0, 0)     // Keypad 3 and Page Down
+key(0x005c, '4', '4', 0, 0)     // Keypad 4 and Left Arrow
+key(0x005d, '5', '5', 0, 0)     // Keypad
+key(0x005e, '6', '6', 0, 0)     // Keypad 6 and Right Arrow
+key(0x005f, '7', '7', 0, 0)     // Keypad 7 and Home
+key(0x0060, '8', '8', 0, 0)     // Keypad 8 and Up Arrow
+key(0x0061, '9', '9', 0, 0)     // Keypad 9 and Page Up
+key(0x0062, '0', '0', 0, 0)     // Keypad 0 and Insert
+key(0x0063, '.', 0x08, 0, 0)    // Keypad . and Delete
+
+key(0x0064, 0, 0, 0, 0)         // Non-US \ and |
+key(0x0065, 0, 0, 0, 0)         // Compose / Application
+key(0x0066, 0, 0, 0, 0)         // Power
+key(0x0067, '=', '=', 0, 0)
+
+key(0x0068, "\e[25~")           // F13
+key(0x0069, "\e[26~")           // F14
+key(0x006a, "\e[28~")           // F15
+key(0x006b, "\e[29~")           // F16
+key(0x006c, "\e[31~")           // F17
+key(0x006d, "\e[32~")           // F18
+key(0x006e, "\e[33~")           // F19
+key(0x006f, "\e[34~")           // F20
+key(0x0070, 0, 0, 0, 0)         // F21
+key(0x0071, 0, 0, 0, 0)         // F22
+key(0x0072, 0, 0, 0, 0)         // F23
+key(0x0073, 0, 0, 0, 0)         // F24
+
+key(0x0074, 0, 0, 0, 0)         // Execute / Open
+key(0x0075, 0, 0, 0, 0)         // Help
+key(0x0076, 0, 0, 0, 0)         // Menu
+key(0x0077, 0, 0, 0, 0)         // Select
+key(0x0078, 0, 0, 0, 0)         // Stop
+key(0x0079, 0, 0, 0, 0)         // Again
+key(0x007a, 0, 0, 0, 0)         // Undo
+key(0x007b, 0, 0, 0, 0)         // Cut
+key(0x007c, 0, 0, 0, 0)         // Copy
+key(0x007d, 0, 0, 0, 0)         // Paste
+key(0x007e, 0, 0, 0, 0)         // Find
+key(0x007f, 0, 0, 0, 0)         // Mute
+key(0x0080, 0, 0, 0, 0)         // Volume Up
+key(0x0081, 0, 0, 0, 0)         // Volume Down
+key(0x0082, 0, 0, 0, 0)         // Locking Caps Lock
+key(0x0083, 0, 0, 0, 0)         // Locking Num Lock
+key(0x0084, 0, 0, 0, 0)         // Locking Scroll Lock
+key(0x0085, ',', ',', 0, 0)     // Keypad ,
+key(0x0086, '=', '=', 0, 0)     // Keypad =
+
+key(0x0087, 0, 0, 0, 0)         // International1 / Ro
+key(0x0088, 0, 0, 0, 0)         // International2 / Katakana Hiragana
+key(0x0089, 0, 0, 0, 0)         // International3 / Yen
+key(0x008a, 0, 0, 0, 0)         // International4 / Henkan
+key(0x008b, 0, 0, 0, 0)         // International5 / Muhenkan
+key(0x008c, 0, 0, 0, 0)         // International6 / KpJpComma
+key(0x008d, 0, 0, 0, 0)         // International7
+key(0x008e, 0, 0, 0, 0)         // International8
+key(0x008f, 0, 0, 0, 0)         // International9
+key(0x0090, 0, 0, 0, 0)         // Lang1 / Hangeul
+key(0x0091, 0, 0, 0, 0)         // Lang2 / Hanja
+key(0x0092, 0, 0, 0, 0)         // Lang3 / Katakana
+key(0x0093, 0, 0, 0, 0)         // Lang4 / Hiragana
+key(0x0094, 0, 0, 0, 0)         // Lang5 / Zenkakuhankaku
+key(0x0095, 0, 0, 0, 0)         // Lang6
+key(0x0096, 0, 0, 0, 0)         // Lang7
+key(0x0097, 0, 0, 0, 0)         // Lang8
+key(0x0098, 0, 0, 0, 0)         // Lang9
+key(0x0099, 0, 0, 0, 0)         // Alternate Erase
+key(0x009a, 0, 0, 0, 0)         // SysReq / Attention
+key(0x009b, 0, 0, 0, 0)         // Cancel
+key(0x009c, 0, 0, 0, 0)         // Clear
+key(0x009d, 0, 0, 0, 0)         // Prior
+key(0x009e, 0x0d, 0x0d, 0, 0)   // Return
+key(0x009f, 0, 0, 0, 0)         // Separator
+key(0x00a0, 0, 0, 0, 0)         // Out
+key(0x00a1, 0, 0, 0, 0)         // Oper
+key(0x00a2, 0, 0, 0, 0)         // Clear / Again
+key(0x00a3, 0, 0, 0, 0)         // CrSel / Props
+key(0x00a4, 0, 0, 0, 0)         // ExSel
+
+key(0x00b0, "00")               // Keypad 00
+key(0x00b1, "000")              // Keypad 000
+key(0x00b2, ',', ',', 0, 0)     // Thousands Separator
+key(0x00b3, '.', '.', 0, 0)     // Decimal Separator
+key(0x00b4, 0, 0, 0, 0)         // Currency Unit
+key(0x00b5, 0, 0, 0, 0)         // Currency Subunit
+key(0x00b6, '(', '(', 0, 0)     // Keypad (
+key(0x00b7, ')', ')', 0, 0)     // Keypad )
+key(0x00b8, '{', '{', 0, 0)     // Keypad {
+key(0x00b9, '}', '}', 0, 0)     // Keypad }
+key(0x00ba, 0x09, 0x09, 0, 0)   // Keypad Horizontal Tab
+key(0x00bb, 0x08, 0x08, 0, 0)   // Keypad Backspace
+key(0x00bc, 'a', 'A', 0, 0)     // Keypad A
+key(0x00bd, 'b', 'B', 0, 0)     // Keypad B
+key(0x00be, 'c', 'C', 0, 0)     // Keypad C
+key(0x00bf, 'd', 'D', 0, 0)     // Keypad D
+key(0x00c0, 'e', 'E', 0, 0)     // Keypad E
+key(0x00c1, 'f', 'F', 0, 0)     // Keypad F
+key(0x00c2, 0, 0, 0, 0)         // Keypad XOR
+key(0x00c3, '^', '^', 0, 0)     // Keypad ^
+key(0x00c4, '%', '%', 0, 0)     // Keypad %
+key(0x00c5, '<', '<', 0, 0)     // Keypad <
+key(0x00c6, '>', '>', 0, 0)     // Keypad >
+key(0x00c7, '&', '&', 0, 0)     // Keypad &
+key(0x00c8, "&&")               // Keypad &&
+key(0x00c9, '|', '|', 0, 0)     // Keypad |
+key(0x00ca, "||")               // Keypad ||
+key(0x00cb, ':', ':', 0, 0)     // Keypad :
+key(0x00cc, '#', '#', 0, 0)     // Keypad #
+key(0x00cd, ' ', ' ', 0, 0)     // Keypad Space
+key(0x00ce, '@', '@', 0, 0)     // Keypad @
+key(0x00cf, '!', '!', 0, 0)     // Keypad !
+key(0x00d0, 0, 0, 0, 0)         // Keypad Memory Store
+key(0x00d1, 0, 0, 0, 0)         // Keypad Memory Recall
+key(0x00d2, 0, 0, 0, 0)         // Keypad Memory Clear
+key(0x00d3, '+', '+', 0, 0)     // Keypad Add
+key(0x00d4, '-', '-', 0, 0)     // Keypad Subtract
+key(0x00d5, '*', '*', 0, 0)     // Keypad Multiply
+key(0x00d6, '/', '/', 0, 0)     // Keypad Divide
+key(0x00d7, 0, 0, 0, 0)         // Keypad +/-
+key(0x00d8, 0, 0, 0, 0)         // Keypad Clear
+key(0x00d9, 0, 0, 0, 0)         // Keypad Clear Entry
+key(0x00da, 0, 0, 0, 0)         // Keypad Binary
+key(0x00db, 0, 0, 0, 0)         // Keypad Octal
+key(0x00dc, 0, 0, 0, 0)         // Keypad Decimal
+key(0x00dd, 0, 0, 0, 0)         // Keypad Hexadecimal
+
+key(0x00e0, 0, 0, 0, 0)         // Left Control
+key(0x00e1, 0, 0, 0, 0)         // Left Shift
+key(0x00e2, 0, 0, 0, 0)         // Left Alt
+key(0x00e3, 0, 0, 0, 0)         // Left GUI
+key(0x00e4, 0, 0, 0, 0)         // Right Control
+key(0x00e5, 0, 0, 0, 0)         // Right Shift
+key(0x00e6, 0, 0, 0, 0)         // Right Alt
+key(0x00e7, 0, 0, 0, 0)         // Right GUI
+
+key(0x00e8, 0, 0, 0, 0)         // Media Play/Pause
+key(0x00e9, 0, 0, 0, 0)         // Media Stop CD
+key(0x00ea, 0, 0, 0, 0)         // Media Previous Song
+key(0x00eb, 0, 0, 0, 0)         // Media Next Song
+key(0x00ec, 0, 0, 0, 0)         // Media Eject CD
+key(0x00ed, 0, 0, 0, 0)         // Media Volume Up
+key(0x00ee, 0, 0, 0, 0)         // Media Volume Down
+key(0x00ef, 0, 0, 0, 0)         // Media Mute
+key(0x00f0, 0, 0, 0, 0)         // Media WWW
+key(0x00f1, 0, 0, 0, 0)         // Media Back
+key(0x00f2, 0, 0, 0, 0)         // Media Forward
+key(0x00f3, 0, 0, 0, 0)         // Media Stop
+key(0x00f4, 0, 0, 0, 0)         // Media Find
+key(0x00f5, 0, 0, 0, 0)         // Media Scroll Up
+key(0x00f6, 0, 0, 0, 0)         // Media Scroll Down
+key(0x00f7, 0, 0, 0, 0)         // Media Edit
+key(0x00f8, 0, 0, 0, 0)         // Media Sleep
+key(0x00f9, 0, 0, 0, 0)         // Media Coffee
+key(0x00fa, 0, 0, 0, 0)         // Media Refresh
+key(0x00fb, 0, 0, 0, 0)         // Media Calc

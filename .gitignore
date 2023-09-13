@@ -1,3 +1,6 @@
 .DS_Store
+keymap.exe
+keymap.obj
+keymap
 build/**
 product/**
