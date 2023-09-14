@@ -205,21 +205,22 @@ static void micro_console_draw_character(MicroConsole* _Nonnull pCon, Character 
     }
 }
 
-static void micro_console_draw_string(MicroConsole* _Nonnull pCon, const Character* _Nonnull pString)
+static void micro_console_write(MicroConsole* _Nonnull pCon, const Character* _Nonnull pBuffer, ByteCount nBytes)
 {
-    register char ch;
+    const Character* pCurByte = pBuffer;
+    const Character* pEndByte = pCurByte + nBytes;
     
-    while ((ch = *pString++) != '\0') {
-        micro_console_draw_character(pCon, ch);
+    while (pCurByte < pEndByte) {
+        micro_console_draw_character(pCon, *pCurByte++);
     }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void fprintv_micro_console_sink(MicroConsole* _Nonnull pCon, const Character* _Nonnull pString)
+static void fprintv_micro_console_sink(MicroConsole* _Nonnull pCon, const Character* _Nonnull pBuffer, ByteCount nBytes)
 {
-    micro_console_draw_string(pCon, pString);
+    micro_console_write(pCon, pBuffer, nBytes);
 }
 
 void fprintv(MicroConsole* _Nonnull pCon, const Character* _Nonnull format, va_list ap)
