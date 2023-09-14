@@ -159,7 +159,7 @@ Int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ByteCount nBytes, 
         Lock_Unlock(&pPipe->lock);
     }
 
-    return (nBytesRead > 0) ? nBytesRead : -err;
+    return (nBytesRead > 0 || err == EOK) ? nBytesRead : -err;
 }
 
 Int Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline)
@@ -201,5 +201,5 @@ Int Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, ByteCount n
         Lock_Unlock(&pPipe->lock);
     }
     
-    return (nBytesWritten > 0) ? nBytesWritten : -err;
+    return (nBytesWritten > 0 || err == EOK) ? nBytesWritten : -err;
 }
