@@ -92,14 +92,14 @@ typedef struct _KeyMap {
 
 // Returns the maximum size of the output buffer that is needed for the
 // KeyMap_Map() function.
-extern ByteCount KeyMap_GetMaxOutputCharacterCount(const KeyMap* _Nonnull pMap);
+extern ByteCount KeyMap_GetMaxOutputByteCount(const KeyMap* _Nonnull pMap);
 
-// Maps the given up/down key event to a sequence of characters. Usually that
-// sequence is only a single character long. However it may be multiple characters
+// Maps the given up/down key event to a sequence of bytes. Usually that
+// sequence is only a single byte long. However it may be multiple bytes
 // long or of length 0. The length of teh sequence the event was mapped to is
 // returned. If that length is zero then the key press or release should be
-// ignored. Note that this function returns a sequence of characters and not a
-// string. Consequently the sequence is not nul-terminated.
-extern ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars, ByteCount maxOutChars);
+// ignored. Note that this function returns a sequence of bytes and not a
+// C string. Consequently the sequence is not nul-terminated.
+extern ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ByteCount maxOutBytes);
 
 #endif /* KeyMap_h */

@@ -11,7 +11,7 @@
 
 // Returns the maximum size of the output buffer that is needed for the
 // KeyMap_Map() function.
-ByteCount KeyMap_GetMaxOutputCharacterCount(const KeyMap* _Nonnull pMap)
+ByteCount KeyMap_GetMaxOutputByteCount(const KeyMap* _Nonnull pMap)
 {
     const Byte* pMapBase = (const Byte*) pMap;
     ByteCount maxOutChars = 0;
@@ -86,9 +86,15 @@ static ByteCount KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const
 }
 
 
-ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars, ByteCount maxOutChars)
+// Maps the given up/down key event to a sequence of bytes. Usually that
+// sequence is only a single byte long. However it may be multiple bytes
+// long or of length 0. The length of teh sequence the event was mapped to is
+// returned. If that length is zero then the key press or release should be
+// ignored. Note that this function returns a sequence of bytes and not a
+// C string. Consequently the sequence is not nul-terminated.
+ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ByteCount maxOutBytes)
 {
-    if (maxOutChars > 0) {
+    if (maxOutBytes > 0) {
         const Byte* pMapBase = (const Byte*)pMap;
         const HIDKeyCode usbKeyCode = pEvent->keycode;
 
@@ -98,10 +104,10 @@ ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* 
             if (usbKeyCode >= pCurRange->lower && usbKeyCode <= pCurRange->upper) {
                 switch (pCurRange->type) {
                     case KEY_MAP_RANGE_TYPE_0:
-                        return KeyMapRange_Type0_Map(pCurRange, pMapBase, pEvent, pOutChars);
+                        return KeyMapRange_Type0_Map(pCurRange, pMapBase, pEvent, pBuffer);
 
                     case KEY_MAP_RANGE_TYPE_3:
-                        return KeyMapRange_Type3_Map(pCurRange, pMapBase, pEvent, pOutChars, maxOutChars);
+                        return KeyMapRange_Type3_Map(pCurRange, pMapBase, pEvent, pBuffer, maxOutBytes);
 
                     default:
                         return 0;

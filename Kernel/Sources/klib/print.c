@@ -107,26 +107,19 @@ static UInt64 get_promoted_uint_arg(Int modifier, va_list* ap)
     }
 }
 
-typedef struct _CharacterStream {
-    PrintSink_Func _Nonnull sinkFunc;
-    void* _Nullable         context;
-    Character* _Nonnull     buffer;
-    Int                     characterCount;
-    Int                     characterCapacity;
-} CharacterStream;
-
 static void _printv_flush(CharacterStream* _Nonnull pStream)
 {
     if (pStream->characterCount > 0) {
-        pStream->buffer[pStream->characterCount] = '\0';
-        pStream->sinkFunc(pStream->context, pStream->buffer);
+        pStream->sinkFunc(pStream->context, pStream->buffer, pStream->characterCount);
         pStream->characterCount = 0;
     }
 }
 
-#define _printv_string(str) \
-    _printv_flush(&s); \
-    s.sinkFunc(s.context, str);
+static void _printv_string(CharacterStream* _Nonnull pStream, const Character* pString)
+{
+    _printv_flush(pStream);
+    pStream->sinkFunc(pStream->context, pString, String_Length(pString));
+}
 
 #define _printv_char(ch) \
     if (s.characterCount == s.characterCapacity) { \
@@ -185,32 +178,32 @@ void _printv(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, Charac
                         break;
                         
                     case 's':
-                        _printv_string(va_arg(ap, const Character*));
+                        _printv_string(&s, va_arg(ap, const Character*));
                         break;
                         
                     case 'b':
-                        _printv_string(UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 2, gFieldWidth_Bin[modifier], paddingChar, pBuffer, bufferCapacity));
+                        _printv_string(&s, UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 2, gFieldWidth_Bin[modifier], paddingChar, pBuffer, bufferCapacity));
                         break;
                         
                     case 'o':
-                        _printv_string(UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 8, gFieldWidth_Oct[modifier], paddingChar, pBuffer, bufferCapacity));
+                        _printv_string(&s, UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 8, gFieldWidth_Oct[modifier], paddingChar, pBuffer, bufferCapacity));
                         break;
                         
                     case 'u':
-                        _printv_string(UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pBuffer, bufferCapacity));
+                        _printv_string(&s, UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pBuffer, bufferCapacity));
                         break;
                         
                     case 'd':
                     case 'i':
-                        _printv_string(Int64_ToString(get_promoted_int_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pBuffer, bufferCapacity));
+                        _printv_string(&s, Int64_ToString(get_promoted_int_arg(modifier, &ap), 10, gFieldWidth_Dec[modifier], paddingChar, pBuffer, bufferCapacity));
                         break;
                         
                     case 'x':
-                        _printv_string(UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 16, gFieldWidth_Hex[modifier], paddingChar, pBuffer, bufferCapacity));
+                        _printv_string(&s, UInt64_ToString(get_promoted_uint_arg(modifier, &ap), 16, gFieldWidth_Hex[modifier], paddingChar, pBuffer, bufferCapacity));
                         break;
 
                     case 'p':
-                        _printv_string(UInt64_ToString(va_arg(ap, UInt32), 16, 8, '0', pBuffer, bufferCapacity));
+                        _printv_string(&s, UInt64_ToString(va_arg(ap, UInt32), 16, 8, '0', pBuffer, bufferCapacity));
                         break;
 
                     default:
@@ -256,9 +249,9 @@ void print(const Character* _Nonnull format, ...)
     va_end(ap);
 }
 
-static void printv_console_sink_locked(void* _Nullable pContext, const Character* _Nonnull pString)
+static void printv_console_sink_locked(void* _Nullable pContext, const Character* _Nonnull pBuffer, ByteCount nBytes)
 {
-    Console_DrawString(gConsole, pString);
+    Console_Write(gConsole, pBuffer, nBytes);
 }
 
 void printv(const Character* _Nonnull format, va_list ap)

@@ -42,7 +42,7 @@ typedef struct _Console {
     Lock                        lock;
     const KeyMap* _Nonnull      keyMap;
     ByteCount                   keyMapBufferCapacity;
-    Character* _Nonnull         keyMapBuffer;
+    Byte* _Nonnull              keyMapBuffer;
 } Console;
 
 
@@ -61,10 +61,7 @@ extern void Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dX
 extern void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy);
 extern void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y);
 
-extern void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch);
-extern void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, ByteCount count);
-extern void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str);
-
-extern ErrorCode Console_ReadKeys(Console* _Nonnull pConsole, Character* _Nonnull pBuffer, ByteCount* _Nonnull pCount);
+extern Int Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytes);
+extern Int Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytes);
 
 #endif /* Console_h */

@@ -51,8 +51,8 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
     pConsole->tabWidth = 8;
     pConsole->keyMap = (const KeyMap*) &gKeyMap_usa[0];
-    pConsole->keyMapBufferCapacity = KeyMap_GetMaxOutputCharacterCount(pConsole->keyMap);
-    try(kalloc_cleared(pConsole->keyMapBufferCapacity, (Byte**) &pConsole->keyMapBuffer));
+    pConsole->keyMapBufferCapacity = KeyMap_GetMaxOutputByteCount(pConsole->keyMap);
+    try(kalloc_cleared(pConsole->keyMapBufferCapacity, &pConsole->keyMapBuffer));
     
     Console_ClearScreen_Locked(pConsole);
     
@@ -379,51 +379,32 @@ void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy)
     Lock_Unlock(&pConsole->lock);
 }
 
-// Prints the given character to the console.
+// Writes the given byte sequence of characters to the console.
 // \param pConsole the console
-// \param ch the character
-void Console_DrawCharacter(Console* _Nonnull pConsole, Character ch)
+// \param pBytes the byte sequence
+// \param nBytes the number of bytes to write
+// \return the number of bytes writte; a negative error code if an error was encountered
+Int Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytes)
 {
-    Lock_Lock(&pConsole->lock);
-    Console_DrawCharacter_Locked(pConsole, ch);
-    Lock_Unlock(&pConsole->lock);
-}
-
-// Prints the given sequence of characters to the console.
-// \param pConsole the console
-// \param pChars the character sequence
-// \param count the number of characters
-void Console_DrawCharacters(Console* _Nonnull pConsole, const Character* _Nonnull pChars, ByteCount count)
-{
-    const Character* pCharsEnd = pChars + count;
+    Int nBytesToWrite = __min((Int)nBytes, INT_MAX);
+    const Character* pChars = (const Character*) pBytes;
+    const Character* pCharsEnd = pChars + nBytesToWrite;
 
     Lock_Lock(&pConsole->lock);
     while (pChars < pCharsEnd) {
         Console_DrawCharacter_Locked(pConsole, *pChars++);
     }
     Lock_Unlock(&pConsole->lock);
+
+    return nBytesToWrite;
 }
 
-// Prints the given nul-terminated string to the console.
-// \param pConsole the console
-// \param str the nul-terminated string
-void Console_DrawString(Console* _Nonnull pConsole, const Character* _Nonnull str)
-{
-    char ch;
-
-    Lock_Lock(&pConsole->lock);
-    while ((ch = *str++) != '\0') {
-        Console_DrawCharacter_Locked(pConsole, ch);
-    }
-    Lock_Unlock(&pConsole->lock);
-}
-
-ErrorCode Console_ReadKeys(Console* _Nonnull pConsole, Character* _Nonnull pBuffer, ByteCount* _Nonnull pCount)
+Int Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytes)
 {
     HIDEvent evt;
     Int evtCount;
-    ByteCount nKeysToRead = *pCount;
-    ByteCount nKeysRead = 0;
+    Int nKeysToRead = __min((Int)nBytes, INT_MAX);
+    Int nKeysRead = 0;
     ErrorCode err = EOK;
 
     while (nKeysRead < nKeysToRead) {
@@ -442,7 +423,6 @@ ErrorCode Console_ReadKeys(Console* _Nonnull pConsole, Character* _Nonnull pBuff
             }
         }
     }
-    *pCount = nKeysRead;
-
-    return err;
+    
+    return (err == EOK) ? nKeysRead : -err;
 }
