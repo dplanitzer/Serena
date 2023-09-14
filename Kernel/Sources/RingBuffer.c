@@ -15,6 +15,8 @@ ErrorCode RingBuffer_Init(RingBuffer* _Nonnull pBuffer, Int capacity)
 {
     decl_try_err();
 
+    assert(capacity >= 0);
+    
     pBuffer->capacity = Int_NextPowerOf2(capacity);
     pBuffer->readIdx = 0;
     pBuffer->writeIdx = 0;

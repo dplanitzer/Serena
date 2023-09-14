@@ -15,11 +15,12 @@ struct _Pipe;
 typedef struct _Pipe* PipeRef;
 
 
-// The side/end of a pipe
+// The end of a pipe that should be closed
 typedef enum {
-    kPipe_Reader = 0,
-    kPipe_Writer
-} PipeSide;
+    kPipeClosing_Reader = 0,
+    kPipeClosing_Writer,
+    kPipeClosing_Both
+} PipeClosing;
 
 
 // Recommended pipe buffer size
@@ -29,9 +30,15 @@ typedef enum {
 extern ErrorCode Pipe_Create(Int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe);
 extern void Pipe_Destroy(PipeRef _Nullable pPipe);
 
-extern void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side);
+extern void Pipe_Close(PipeRef _Nonnull pPipe, PipeClosing mode);
 
-extern Int Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side);
+// Returns the number of bytes that can be read from the pipe without blocking.
+extern Int Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe);
+
+// Returns the number of bytes can be written without blocking.
+extern Int Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull pPipe);
+
+// Returns the maximum number of bytes that the pipe is capable at storing.
 extern Int Pipe_GetCapacity(PipeRef _Nonnull pPipe);
 
 extern Int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline);

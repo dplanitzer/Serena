@@ -34,9 +34,12 @@ ErrorCode Pipe_Create(Int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
     decl_try_err();
     PipeRef pPipe;
 
-    assert(bufferSize > 0);
-        
-    try(kalloc(sizeof(Pipe), (Byte**) &pPipe));
+    if (bufferSize < 1) {
+        *pOutPipe = NULL;
+        return EPARAM;
+    }
+    
+    try(kalloc_cleared(sizeof(Pipe), (Byte**) &pPipe));
     
     Lock_Init(&pPipe->lock);
     ConditionVariable_Init(&pPipe->reader);
@@ -66,46 +69,53 @@ void Pipe_Destroy(PipeRef _Nullable pPipe)
 }
 
 // Closes the specified side of the pipe.
-void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side)
+void Pipe_Close(PipeRef _Nonnull pPipe, PipeClosing mode)
 {
     Lock_Lock(&pPipe->lock);
-    switch (side) {
-        case kPipe_Reader:
+    switch (mode) {
+        case kPipeClosing_Reader:
             pPipe->readSideState = kPipeState_Closed;
             break;
             
-        case kPipe_Writer:
+        case kPipeClosing_Writer:
             pPipe->writeSideState = kPipeState_Closed;
+            break;
+
+        case kPipeClosing_Both:
+            pPipe->readSideState = kPipeState_Closed;
+            pPipe->writeSideState = kPipeState_Closed;
+            break;
+
+        default:
+            abort();
             break;
     }
 
+    // Always wake the reader and the writer since teh close may be triggered
+    // by an unrelated 3rd process.
     ConditionVariable_BroadcastAndUnlock(&pPipe->reader, &pPipe->lock);
     ConditionVariable_BroadcastAndUnlock(&pPipe->writer, &pPipe->lock);
 }
 
-// Returns the number of bytes that can be read from the pipe without blocking if
-// 'side' is kPipe_Reader and the number of bytes the can be written without blocking
-// otherwise.
-Int Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side)
+// Returns the number of bytes that can be read from the pipe without blocking.
+Int Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe)
 {
-    Int nbytes;
-    
     Lock_Lock(&pPipe->lock);
-    switch (side) {
-        case kPipe_Reader:
-            nbytes = RingBuffer_ReadableCount(&pPipe->buffer);
-            break;
-            
-        case kPipe_Writer:
-            nbytes = RingBuffer_WritableCount(&pPipe->buffer);
-            break;
-    }
-    
+    const Int nbytes = RingBuffer_ReadableCount(&pPipe->buffer);
     Lock_Unlock(&pPipe->lock);
     return nbytes;
 }
 
-// Returns the capacity of the pipe's byte buffer.
+// Returns the number of bytes can be written without blocking.
+Int Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull pPipe)
+{
+    Lock_Lock(&pPipe->lock);
+    const Int nbytes = RingBuffer_WritableCount(&pPipe->buffer);
+    Lock_Unlock(&pPipe->lock);
+    return nbytes;
+}
+
+// Returns the maximum number of bytes that the pipe is capable at storing.
 Int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
 {
     Lock_Lock(&pPipe->lock);

@@ -194,7 +194,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
@@ -255,19 +255,19 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 0
+#if 1
 static void OnReadFromPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
     Byte buf[16];
     
-    const Int nbytes = Pipe_GetByteCount(pipe, kPipe_Reader);
+    const Int nbytes = Pipe_GetNonBlockingReadableCount(pipe);
     print("reader: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     while (true) {
         //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
         buf[0] = '\0';
         const Int nRead = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity);
-        //nbytes = Pipe_GetByteCount(pipe, kPipe_Reader);
+        //nbytes = Pipe_GetNonBlockingReadableCount(pipe);
         //print("\nmain: %d, read: %d", nbytes, nRead);
         buf[nRead] = '\0';
         print((const Character*)buf);
@@ -278,13 +278,13 @@ static void OnWriteToPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
     
-    const Int nbytes = Pipe_GetByteCount(pipe, kPipe_Writer);
+    const Int nbytes = Pipe_GetNonBlockingWritableCount(pipe);
     print("writer: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     
     while (true) {
         VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(20));
         const Int nWritten = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity);
-        //nbytes = Pipe_GetByteCount(pipe, kPipe_Writer);
+        //nbytes = Pipe_GetNonBlockingWritableCount(pipe);
         //print("\nbackground: %d, written: %d", nbytes, nWritten);
     }
 }
