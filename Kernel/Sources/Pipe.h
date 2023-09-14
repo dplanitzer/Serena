@@ -34,7 +34,7 @@ extern void Pipe_Close(PipeRef _Nonnull pPipe, PipeSide side);
 extern Int Pipe_GetByteCount(PipeRef _Nonnull pPipe, PipeSide side);
 extern Int Pipe_GetCapacity(PipeRef _Nonnull pPipe);
 
-extern ErrorCode Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline, Int* _Nonnull pOutNumBytesRead);
-extern ErrorCode Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, Int nBytes, Bool allowBlocking, TimeInterval deadline, Int* _Nonnull pOutNumBytesWritten);
+extern Int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline);
+extern Int Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline);
 
 #endif /* Pipe_h */

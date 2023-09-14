@@ -259,17 +259,14 @@ void DispatchQueue_RunTests(void)
 static void OnReadFromPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
-    ErrorCode err = EOK;
     Byte buf[16];
-    Int nbytes;
     
-    nbytes = Pipe_GetByteCount(pipe, kPipe_Reader);
+    const Int nbytes = Pipe_GetByteCount(pipe, kPipe_Reader);
     print("reader: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     while (true) {
         //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
         buf[0] = '\0';
-        Int nRead = 0;
-        err = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity, &nRead);
+        const Int nRead = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity);
         //nbytes = Pipe_GetByteCount(pipe, kPipe_Reader);
         //print("\nmain: %d, read: %d", nbytes, nRead);
         buf[nRead] = '\0';
@@ -280,16 +277,13 @@ static void OnReadFromPipe(Byte* _Nonnull pValue)
 static void OnWriteToPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
-    Int err = EOK;
-    Int nbytes = 0;
     
-    nbytes = Pipe_GetByteCount(pipe, kPipe_Writer);
+    const Int nbytes = Pipe_GetByteCount(pipe, kPipe_Writer);
     print("writer: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     
     while (true) {
         VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(20));
-        Int nWritten = 0;
-        err = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity, &nWritten);
+        const Int nWritten = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity);
         //nbytes = Pipe_GetByteCount(pipe, kPipe_Writer);
         //print("\nbackground: %d, written: %d", nbytes, nWritten);
     }

@@ -19,6 +19,7 @@
 #define ERANGE      7
 #define EINTR       8
 #define EAGAIN      9
+#define EWOULDBLOCK 9
 #define EPIPE       10
 #define EBUSY       11
 #define ENOSYS      12
