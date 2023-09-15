@@ -287,10 +287,18 @@ static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Null
 
     if (pTable != NULL) {
         while (*pTable != NULL) {
-            nbytes += sizeof(Character*) + String_Length(*pTable) + 1;
+            const Character* pStr = *pTable;
+
+            nbytes += sizeof(Character*);
+            while (*pStr != '\0' && nbytes <= maxByteCount) {
+                pStr++;
+            }
+            nbytes += 1;    // space for terminating '\0'
+
             if (nbytes > maxByteCount) {
                 break;
             }
+
             pTable++;
         }
         count++;
