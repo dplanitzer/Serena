@@ -16,12 +16,15 @@
 // it contains a pointer to the base of the command line arguments and environment
 // variables tables. These tables store pointers to nul-terminated strings and
 // the last entry in the table contains a NULL.
-struct __process_argument_descriptor_t {
+struct __process_arguments_t {
     char* _Nullable * _Nonnull  argv;
     __size_t                    argc;
     
     char* _Nullable * _Nonnull  envp;
     __size_t                    envc;
+
+    // Pointer to the base of the executable header
+    void* _Nonnull              image_base;
 };
 
 #endif /* __KBIDEF_H */

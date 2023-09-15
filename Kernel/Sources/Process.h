@@ -47,6 +47,10 @@ extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 extern Int Process_GetPid(ProcessRef _Nonnull pProc);
 extern Int Process_GetParentPid(ProcessRef _Nonnull pProc);
 
+// Returns the base address of the process arguments area. The address is
+// relative to the process address space.
+extern void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc);
+
 // Loads an executable from the given executable file into the process address
 // space.
 // \param pProc the process into which the executable image should be loaded

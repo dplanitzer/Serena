@@ -19,7 +19,7 @@
 // it contains a pointer to the base of the command line arguments and environment
 // variables tables. These tables store pointers to nul-terminated strings and
 // the last entry in the table contains a NULL.
-typedef struct __process_argument_descriptor_t ProcessArgumentsDescriptor;
+typedef struct __process_arguments_t ProcessArguments;
 
 
 typedef struct _Process {

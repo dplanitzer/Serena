@@ -20,6 +20,7 @@
     xref __SYSCALL_spawn_process
     xref __SYSCALL_getpid
     xref __SYSCALL_getppid
+    xref __SYSCALL_getpargs
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -35,6 +36,7 @@ syscall_table:
     dc.l __SYSCALL_spawn_process
     dc.l __SYSCALL_getpid
     dc.l __SYSCALL_getppid
+    dc.l __SYSCALL_getpargs
 
 
 ;-------------------------------------------------------------------------------

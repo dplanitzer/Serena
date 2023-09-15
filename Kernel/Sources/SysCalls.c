@@ -140,12 +140,17 @@ catch:
     return err;
 }
 
-Int _SYSCALL_getpid()
+Int _SYSCALL_getpid(void)
 {
     return Process_GetPid(Process_GetCurrent());
 }
 
-Int _SYSCALL_getppid()
+Int _SYSCALL_getppid(void)
 {
     return Process_GetParentPid(Process_GetCurrent());
+}
+
+Int _SYSCALL_getpargs(void)
+{
+    return (Int) Process_GetArgumentsBaseAddress(Process_GetCurrent());
 }

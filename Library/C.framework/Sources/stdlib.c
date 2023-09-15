@@ -24,7 +24,7 @@ typedef struct _AtExitEntry {
 static SList    gAtExitQueue;
 
 
-void __stdlibc_init(void)
+void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp)
 {
     SList_Init(&gAtExitQueue);
     __malloc_init();

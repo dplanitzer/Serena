@@ -10,6 +10,7 @@
 #define ___STDDEF_H 1
 
 #include <_cmndef.h>
+#include <_kbidef.h>
 #include <_math.h>
 #include <stdalign.h>
 #include <stddef.h>
@@ -62,7 +63,7 @@ extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotie
 
 extern errno_t __write(const char* _Nonnull pBuffer, size_t nBytes);
 
-extern void __stdlibc_init(void);
+extern void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp);
 extern void __malloc_init(void);
 
 #endif /* ___STDDEF_H */

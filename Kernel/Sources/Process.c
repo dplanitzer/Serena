@@ -264,6 +264,13 @@ Int Process_GetParentPid(ProcessRef _Nonnull pProc)
     return pProc->parent->pid;
 }
 
+// Returns the base address of the process arguments area. The address is
+// relative to the process address space.
+void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
+{
+    return pProc->argumentsBase;
+}
+
 static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, Int* _Nonnull pOutTableEntryCount)
 {
     ByteCount nbytes = 0;
@@ -288,12 +295,12 @@ static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const
     Int nEnvCount = 0;
     const ByteCount nbytes_argv = calc_size_of_arg_table(pArgv, &nArgvCount);
     const ByteCount nbytes_envp = calc_size_of_arg_table(pEnv, &nEnvCount);
-    const ByteCount nbytes_to_alloc = sizeof(ProcessArgumentsDescriptor) + nbytes_argv + nbytes_envp;
+    const ByteCount nbytes_to_alloc = sizeof(ProcessArguments) + nbytes_argv + nbytes_envp;
 
     try(AddressSpace_Allocate(pProc->addressSpace, __Ceil_PowerOf2(nbytes_to_alloc, CPU_PAGE_SIZE), &pProc->argumentsBase));
 
-    ProcessArgumentsDescriptor* pProcArgs = (ProcessArgumentsDescriptor*) pProc->argumentsBase;
-    Character** pProcArgv = (Character**)(pProc->argumentsBase + sizeof(ProcessArgumentsDescriptor));
+    ProcessArguments* pProcArgs = (ProcessArguments*) pProc->argumentsBase;
+    Character** pProcArgv = (Character**)(pProc->argumentsBase + sizeof(ProcessArguments));
     Character** pProcEnv = (Character**)&pProcArgv[nArgvCount + 1];
     Character*  pDst = (Character*)&pProcEnv[nEnvCount + 1];
     const Character** pSrcArgv = (const Character**) pArgv;
@@ -312,8 +319,8 @@ static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const
 
     // Envp
     if (nEnvCount == 0) {
-        nEnvCount = (pProc->parent) ? ((ProcessArgumentsDescriptor*) pProc->parent->argumentsBase)->envc : 0;
-        pSrcEnv = (pProc->parent) ? ((ProcessArgumentsDescriptor*) pProc->parent->argumentsBase)->envp : NULL;
+        nEnvCount = (pProc->parent) ? ((ProcessArguments*) pProc->parent->argumentsBase)->envc : 0;
+        pSrcEnv = (pProc->parent) ? ((ProcessArguments*) pProc->parent->argumentsBase)->envp : NULL;
     }
 
     for (Int i = 0; i < nEnvCount; i++) {
@@ -329,6 +336,7 @@ static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const
     pProcArgs->argc = nArgvCount;
     pProcArgs->envp = pProcEnv;
     pProcArgs->envc = nEnvCount;
+    pProcArgs->image_base = NULL;
 
     return EOK;
 
@@ -359,6 +367,8 @@ ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, cons
     GemDosExecutableLoader_Init(&loader, pProc->addressSpace);
     try(GemDosExecutableLoader_Load(&loader, pExecAddr, &pProc->imageBase, &pEntryPoint));
     GemDosExecutableLoader_Deinit(&loader);
+
+    ((ProcessArguments*) pProc->argumentsBase)->image_base = pProc->imageBase;
 
     try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, pProc->argumentsBase)));
 
