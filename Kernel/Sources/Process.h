@@ -48,10 +48,14 @@ extern Int Process_GetPID(ProcessRef _Nonnull pProc);
 
 // Loads an executable from the given executable file into the process address
 // space.
+// \param pProc the process into which the executable image should be loaded
+// \param pExecAddr pointer to a GemDOS formatted executable file in memory
+// \param pArgv the command line arguments for the process. NULL means that the arguments are {path, NULL}
+// \param pEnv the environment for teh process. Null means that the process inherits the environment from its parent
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be loacted at the address 'pExecAddr'
-extern ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr);
+extern ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv);
 
 extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
 

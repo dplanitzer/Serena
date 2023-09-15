@@ -66,6 +66,9 @@ void Process_Destroy(ProcessRef _Nullable pProc)
 
         AddressSpace_Destroy(pProc->addressSpace);
         pProc->addressSpace = NULL;
+        pProc->imageBase = NULL;
+        pProc->argumentsBase = NULL;
+
         DispatchQueue_Destroy(pProc->mainDispatchQueue);
         pProc->mainDispatchQueue = NULL;
 
@@ -255,12 +258,84 @@ Int Process_GetPID(ProcessRef _Nonnull pProc)
     return pProc->pid;
 }
 
+static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, Int* _Nonnull pOutTableEntryCount)
+{
+    ByteCount nbytes = 0;
+    Int count = 0;
+
+    if (pTable != NULL) {
+        while (*pTable != NULL) {
+            nbytes += String_Length(*pTable);
+            pTable++;
+        }
+        count++;
+    }
+    *pOutTableEntryCount = count;
+
+    return nbytes;
+}
+
+static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
+{
+    decl_try_err();
+    Int nArgvCount = 0;
+    Int nEnvCount = 0;
+    const ByteCount nbytes_argv = calc_size_of_arg_table(pArgv, &nArgvCount);
+    const ByteCount nbytes_envp = calc_size_of_arg_table(pEnv, &nEnvCount);
+    const ByteCount nbytes_to_alloc = sizeof(ProcessArgumentsDescriptor) + nbytes_argv + nbytes_envp;
+
+    try(AddressSpace_Allocate(pProc->addressSpace, __Ceil_PowerOf2(nbytes_to_alloc, CPU_PAGE_SIZE), &pProc->argumentsBase));
+
+    ProcessArgumentsDescriptor* pProcArgs = (ProcessArgumentsDescriptor*) pProc->argumentsBase;
+    Character** pProcArgv = (Character**)(pProc->argumentsBase + sizeof(ProcessArgumentsDescriptor));
+    Character** pProcEnv = (Character**)&pProcArgv[nArgvCount + 1];
+    Character*  pDst = (Character*)&pProcEnv[nEnvCount + 1];
+    const Character** pSrcArgv = (const Character**) pArgv;
+    const Character** pSrcEnv = (const Character**) pEnv;
+
+
+    // Argv
+    for (Int i = 0; i < nArgvCount; i++) {
+        const Character* pSrc = (const Character*)pSrcArgv[i];
+
+        pProcArgv[i] = pDst;
+        pDst = String_Copy(pDst, pSrc);
+    }
+    pProcArgv[nArgvCount] = NULL;
+
+
+    // Envp
+    if (nEnvCount == 0) {
+        nEnvCount = (pProc->parent) ? ((ProcessArgumentsDescriptor*) pProc->parent->argumentsBase)->envc : 0;
+        pSrcEnv = (pProc->parent) ? ((ProcessArgumentsDescriptor*) pProc->parent->argumentsBase)->envp : NULL;
+    }
+
+    for (Int i = 0; i < nEnvCount; i++) {
+        const Character* pSrc = (const Character*)pSrcEnv[i];
+
+        pProcEnv[i] = pDst;
+        pDst = String_Copy(pDst, pSrc);
+    }
+
+
+    // Descriptor
+    pProcArgs->argv = pProcArgv;
+    pProcArgs->argc = nArgvCount;
+    pProcArgs->envp = pProcEnv;
+    pProcArgs->envc = nEnvCount;
+
+    return EOK;
+
+catch:
+    return err;
+}
+
 // Loads an executable from the given executable file into the process address
 // space.
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be loacted at the address 'pExecAddr'
-ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
+ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
 {
     GemDosExecutableLoader loader;
     Byte* pEntryPoint = NULL;
@@ -268,11 +343,18 @@ ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
     
     Lock_Lock(&pProc->lock);
 
+    // XXX for now to keep loading simpler
+    assert(pProc->imageBase == NULL);
+
+    // Copy the process arguments into the process address space
+    try(Process_CopyInProcessArguments(pProc, pArgv, pEnv));
+
+    // Load the executable
     GemDosExecutableLoader_Init(&loader, pProc->addressSpace);
-    try(GemDosExecutableLoader_Load(&loader, pExecAddr, &pEntryPoint));
+    try(GemDosExecutableLoader_Load(&loader, pExecAddr, &pProc->imageBase, &pEntryPoint));
     GemDosExecutableLoader_Deinit(&loader);
 
-    try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, NULL)));
+    try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, pProc->argumentsBase)));
 
     Lock_Unlock(&pProc->lock);
 

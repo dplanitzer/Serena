@@ -15,6 +15,6 @@
 #define SC_dispatch_async       3   // errno_t dispatch_async(void *pUserClosure)
 #define SC_alloc_address_space  4   // errno_t alloc_address_space(int nbytes, void **pOutMem)
 #define SC_exit                 5   // _Noreturn exit(int status)
-#define SC_spawn_process        6   // errno_t spawn_process(void *pUserEntryPoint)
+#define SC_spawn_process        6   // errno_t spawn_process(void *pExecBase, const char *const *argv, const char *const *envp)
 
 #endif /* __SYSCALLS_H */

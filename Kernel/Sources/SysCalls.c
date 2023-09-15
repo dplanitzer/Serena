@@ -111,8 +111,10 @@ Int _SYSCALL_exit(const SYS_exit_args* _Nonnull pArgs)
 }
 
 typedef struct _SYS_spawn_process_args {
-    Int             scno;
-    Byte* _Nullable userEntryPoint;
+    Int                                             scno;
+    Byte* _Nullable                                 execBase; //userEntryPoint;
+    const Character* _Nullable const _Nullable *    argv;
+    const Character* _Nullable const _Nullable *    envp;
 } SYS_spawn_process_args;
 
 Int _SYSCALL_spawn_process(const SYS_spawn_process_args* pArgs)
@@ -121,13 +123,13 @@ Int _SYSCALL_spawn_process(const SYS_spawn_process_args* pArgs)
     ProcessRef pCurProc = Process_GetCurrent();
     ProcessRef pChildProc = NULL;
 
-    if (pArgs->userEntryPoint == NULL) {
+    if (pArgs->execBase == NULL) {
         throw(EPARAM);
     }
     
     try(Process_Create(Process_GetNextAvailablePID(), &pChildProc));
     try_bang(Process_AddChildProcess(pCurProc, pChildProc));
-    try(Process_DispatchAsyncUser(pChildProc, (Closure1Arg_Func)pArgs->userEntryPoint));
+    try(Process_Exec(pChildProc, pArgs->execBase, pArgs->argv, pArgs->envp));
 
     return EOK;
 

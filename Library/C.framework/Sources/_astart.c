@@ -7,6 +7,7 @@
 //
 
 #include <__stddef.h>
+#include <_kbidef.h>
 #include <stdlib.h>
 
 
@@ -27,12 +28,12 @@ extern void main_closure(int argc, char *argv[]);
 // dispatch queue. Consequently this start function here does not terminate the
 // process when main_closure() returns. Once the process is ready to terminate,
 // one of its closures should invoke exit() with a suitable exit code.
-void start(void)
+void start(struct __process_argument_descriptor_t* _Nonnull argsp)
 {
     __stdlibc_init();
 
-    char* argv[1];
-    argv[0] = NULL;
+//    char* argv[1];
+//    argv[0] = NULL;
 
-    main_closure(0, argv);
+    main_closure(argsp->argc, argsp->argv); //argv);
 }

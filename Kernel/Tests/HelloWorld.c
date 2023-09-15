@@ -11,17 +11,11 @@
 #include <stdio.h>
 #include <syscall.h>
 
-// Switch between a standard C style main() and an Apollo style main_closure()
-// process startup behavior. Also change projectmk to use LIBC_CSTART_FILE for
-// standard C behavior and LIBC_ASTART_FILE for Apollo behavior.
-//#define STDC_MAIN
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // Process with a Child Process
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 int count1;
 int count2;
 
@@ -42,23 +36,33 @@ static void child_process(void)
 }
 
 
-#ifdef STDC_MAIN
-int main(int argc, char *argv[])
-#else
 void main_closure(int argc, char *argv[])
-#endif
 {
-    __syscall(SC_spawn_process, (void*)child_process);
-
-#ifdef STDC_MAIN
-    while (1) {
-        parent_process();
+    printf("argc: %d\n", argc);
+    for (int i = 0; i < argc; i++) {
+        if (argv[i]) {
+            puts(argv[i]);
+        }
     }
+    putchar('\n');
+    putchar('\n');
 
-    return EXIT_SUCCESS;
-#else
-    parent_process();
-#endif
+    if (argc == 0) {
+        // Parent process.
+        
+        // Spawn a child process
+        char* child_argv[2];
+        child_argv[0] = "--child";
+        child_argv[1] = NULL;
+
+        __syscall(SC_spawn_process, (void*)0xfe0000, child_argv, NULL);
+
+        // Do a parent's work
+        parent_process();
+    } else {
+        // Child process
+        child_process();
+    }
 }
 
 #endif
@@ -68,7 +72,7 @@ void main_closure(int argc, char *argv[])
 // Interactive Console
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 void main_closure(int argc, char *argv[])
 {
     printf("Console v1.0\nReady.\n\n");

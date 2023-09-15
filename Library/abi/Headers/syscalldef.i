@@ -15,7 +15,7 @@ SC_sleep                equ 2   ; errno_t sleep(struct {int secs, int nanosecs})
 SC_dispatch_async       equ 3   ; errno_t dispatch_async(void *pUserClosure)
 SC_alloc_address_space  equ 4   ; errno_t alloc_address_space(int nbytes, void **pOutMem)
 SC_exit                 equ 5   ; _Noreturn exit(int status)
-SC_spawn_process        equ 6   ; errno_t spawn_process(void *pUserEntryPoint)
+SC_spawn_process        equ 6   ; errno_t spawn_process(void *pExecBase, const char *const *argv, const char *const *envp)
 
 SC_numberOfCalls        equ 7   ; number of system calls
 

@@ -7,18 +7,16 @@
 //
 
 #include <__stddef.h>
+#include <_kbidef.h>
 #include <stdlib.h>
 
 
 extern int main(int argc, char *argv[]);
 
 // start() that implements the standard C semantics.
-void start(void)
+void start(struct __process_argument_descriptor_t* _Nonnull argsp)
 {
     __stdlibc_init();
 
-    char* argv[1];
-    argv[0] = NULL;
-
-    exit(main(0, argv));
+    exit(main(argsp->argc, argsp->argv));
 }

@@ -9,6 +9,18 @@
 #include "Types.h"
 
 
+// Copies the characters of 'pSrc' to 'pDst'. Returns a pointer that points to
+// the first byte past the '\0' byte in the destination string. 
+Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonnull pSrc)
+{
+    while (*pSrc != '\0') {
+        *pDst++ = *pSrc++;
+    }
+    *pDst++ = '\0';
+
+    return pDst;
+}
+
 ByteCount String_Length(const Character* _Nonnull pStr)
 {
     const Character* p = pStr;

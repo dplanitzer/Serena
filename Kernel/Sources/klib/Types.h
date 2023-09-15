@@ -156,6 +156,7 @@ extern const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int field
 
 
 // String
+extern Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonnull pSrc);
 extern ByteCount String_Length(const Character* _Nonnull pStr);
 extern Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs);
 

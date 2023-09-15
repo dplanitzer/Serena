@@ -56,7 +56,7 @@ static ErrorCode GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* 
     return EOK;
 }
 
-ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nonnull * _Nonnull pEntryPoint)
+ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nullable * _Nonnull pOutImageBase, Byte* _Nullable * _Nonnull pOutEntryPoint)
 {
     decl_try_err();
     GemDosExecutableHeader* pExecHeader = (GemDosExecutableHeader*)pExecAddr;
@@ -65,8 +65,6 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
     //print("data: %d\n", pExecHeader->data_size);
     //print("bss: %d\n", pExecHeader->bss_size);
     //while(true);
-    // XXX for now to keep loading simpler
-    assert(AddressSpace_IsEmpty(pLoader->addressSpace));
 
 
     // Validate the header (somewhat anyway)
@@ -87,19 +85,18 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
 
 
     // Allocate the text, data and BSS segments 
-    const Int32 nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
-    const Int32 nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
-    Byte* pProcExecBase = NULL;
-    
-    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pProcExecBase));
+    const Int nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
+    const Int nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
+    Byte* pImageBase = NULL;
+    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pImageBase));
 
 
     // Copy the executable header, text and data segments
-    Bytes_CopyRange(pProcExecBase, pExecAddr, nbytes_to_copy);
+    Bytes_CopyRange(pImageBase, pExecAddr, nbytes_to_copy);
 
 
     // Initialize the BSS segment
-    Bytes_ClearRange(pProcExecBase + nbytes_to_copy, pExecHeader->bss_size);
+    Bytes_ClearRange(pImageBase + nbytes_to_copy, pExecHeader->bss_size);
 
     // Relocate the executable
     Byte* pRelocBase = pExecAddr
@@ -107,17 +104,20 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
         + pExecHeader->text_size
         + pExecHeader->data_size
         + pExecHeader->symbol_table_size;
-    Byte* pTextBase = pProcExecBase
+    Byte* pTextBase = pImageBase
         + sizeof(GemDosExecutableHeader);
 
     try(GemDosExecutableLoader_RelocExecutable(pLoader, pRelocBase, pTextBase));
 
-
-    // Calculate the entry point
-    *pEntryPoint = pTextBase;
+    // Return the result pointers
+    *pOutImageBase = pImageBase; 
+    *pOutEntryPoint = pTextBase;
 
     return EOK;
 
 catch:
+    // XXX should free pImageBase if it exists
+    *pOutImageBase = NULL;
+    *pOutEntryPoint = NULL;
     return err;
 }

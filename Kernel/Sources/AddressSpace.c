@@ -86,7 +86,7 @@ ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count
     if (count == 0) {
         return EINVAL;
     }
-    if ((count & ~CPU_PAGE_SIZE) != count) {
+    if (__Floor_PowerOf2(count, CPU_PAGE_SIZE) != count) {
         return EINVAL;
     }
 

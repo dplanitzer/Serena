@@ -13,6 +13,14 @@
 #include "AddressSpace.h"
 #include "DispatchQueue.h"
 #include "Lock.h"
+#include <_kbidef.h>
+
+
+// The process arguments descriptor is stored in the process address space and
+// it contains a pointer to the base of the command line arguments and environment
+// variables tables. These tables store pointers to nul-terminated strings and
+// the last entry in the table contains a NULL.
+typedef struct __process_argument_descriptor_t ProcessArgumentsDescriptor;
 
 
 typedef struct _Process {
@@ -21,6 +29,10 @@ typedef struct _Process {
 
     DispatchQueueRef _Nonnull   mainDispatchQueue;
     AddressSpaceRef _Nonnull    addressSpace;
+
+    // Process image
+    Byte* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
+    Byte* _Nullable _Weak       argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // Process termination
     AtomicBool                  isTerminating;  // true if the process is going through the termination process
