@@ -255,20 +255,29 @@ Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
 
 Int Process_GetPid(ProcessRef _Nonnull pProc)
 {
+    // The PID is constant over the lifetime of the process. No need to lock here
     return pProc->pid;
 }
 
 Int Process_GetParentPid(ProcessRef _Nonnull pProc)
 {
+    // Need to lock to protect against the process destruction since we're accessing the parent field
+    Lock_Lock(&pProc->lock);
     assert(pProc->parent);
-    return pProc->parent->pid;
+    const Int ppid = pProc->parent->pid;
+    Lock_Unlock(&pProc->lock);
+
+    return ppid;
 }
 
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
 void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
 {
-    return pProc->argumentsBase;
+    Lock_Lock(&pProc->lock);
+    void* ptr = pProc->argumentsBase;
+    Lock_Unlock(&pProc->lock);
+    return ptr;
 }
 
 static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, Int* _Nonnull pOutTableEntryCount)
