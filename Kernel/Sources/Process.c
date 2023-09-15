@@ -304,9 +304,9 @@ static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const
     Int nEnvCount = 0;
     const ByteCount nbytes_argv = calc_size_of_arg_table(pArgv, &nArgvCount);
     const ByteCount nbytes_envp = calc_size_of_arg_table(pEnv, &nEnvCount);
-    const ByteCount nbytes_to_alloc = sizeof(ProcessArguments) + nbytes_argv + nbytes_envp;
+    const ByteCount nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv + nbytes_envp, CPU_PAGE_SIZE);
 
-    try(AddressSpace_Allocate(pProc->addressSpace, __Ceil_PowerOf2(nbytes_to_alloc, CPU_PAGE_SIZE), &pProc->argumentsBase));
+    try(AddressSpace_Allocate(pProc->addressSpace, nbytes_procargs, &pProc->argumentsBase));
 
     ProcessArguments* pProcArgs = (ProcessArguments*) pProc->argumentsBase;
     Character** pProcArgv = (Character**)(pProc->argumentsBase + sizeof(ProcessArguments));
@@ -326,25 +326,22 @@ static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const
     pProcArgv[nArgvCount] = NULL;
 
 
-    // Envp
-    if (nEnvCount == 0) {
-        nEnvCount = (pProc->parent) ? ((ProcessArguments*) pProc->parent->argumentsBase)->envc : 0;
-        pSrcEnv = (pProc->parent) ? ((ProcessArguments*) pProc->parent->argumentsBase)->envp : NULL;
-    }
-
     for (Int i = 0; i < nEnvCount; i++) {
         const Character* pSrc = (const Character*)pSrcEnv[i];
 
         pProcEnv[i] = pDst;
         pDst = String_Copy(pDst, pSrc);
     }
+    pProcEnv[nEnvCount] = NULL;
 
 
     // Descriptor
-    pProcArgs->argv = pProcArgv;
+    pProcArgs->version = sizeof(ProcessArguments);
+    pProcArgs->reserved = 0;
+    pProcArgs->arguments_size = nbytes_procargs;
     pProcArgs->argc = nArgvCount;
+    pProcArgs->argv = pProcArgv;
     pProcArgs->envp = pProcEnv;
-    pProcArgs->envc = nEnvCount;
     pProcArgs->image_base = NULL;
 
     return EOK;
