@@ -10,7 +10,7 @@
 #define _SYSCALL_H 1
 
 #include <_cmndef.h>
-#include <_syscalldef.h>
+#include <_syscall.h>
 #include <errno.h>
 
 __CPP_BEGIN

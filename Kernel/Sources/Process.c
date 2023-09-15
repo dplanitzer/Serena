@@ -280,14 +280,17 @@ void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
-static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, Int* _Nonnull pOutTableEntryCount)
+static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, ByteCount maxByteCount, Int* _Nonnull pOutTableEntryCount)
 {
     ByteCount nbytes = 0;
     Int count = 0;
 
     if (pTable != NULL) {
         while (*pTable != NULL) {
-            nbytes += String_Length(*pTable);
+            nbytes += sizeof(Character*) + String_Length(*pTable) + 1;
+            if (nbytes > maxByteCount) {
+                break;
+            }
             pTable++;
         }
         count++;
@@ -302,10 +305,14 @@ static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const
     decl_try_err();
     Int nArgvCount = 0;
     Int nEnvCount = 0;
-    const ByteCount nbytes_argv = calc_size_of_arg_table(pArgv, &nArgvCount);
-    const ByteCount nbytes_envp = calc_size_of_arg_table(pEnv, &nEnvCount);
-    const ByteCount nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv + nbytes_envp, CPU_PAGE_SIZE);
+    const ByteCount nbytes_argv = calc_size_of_arg_table(pArgv, __ARG_MAX, &nArgvCount);
+    const ByteCount nbytes_envp = calc_size_of_arg_table(pEnv, __ARG_MAX, &nEnvCount);
+    const ByteCount nbytes_argv_envp = nbytes_argv + nbytes_envp;
+    if (nbytes_argv_envp > __ARG_MAX) {
+        return E2BIG;
+    }
 
+    const ByteCount nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv_envp, CPU_PAGE_SIZE);
     try(AddressSpace_Allocate(pProc->addressSpace, nbytes_procargs, &pProc->argumentsBase));
 
     ProcessArguments* pProcArgs = (ProcessArguments*) pProc->argumentsBase;
@@ -326,6 +333,7 @@ static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const
     pProcArgv[nArgvCount] = NULL;
 
 
+    // Envp
     for (Int i = 0; i < nEnvCount; i++) {
         const Character* pSrc = (const Character*)pSrcEnv[i];
 

@@ -15,6 +15,7 @@
 #include <_kbidef.h>
 #include <_math.h>
 #include <_nulldef.h>
+#include <_syslimits.h>
 #include <_varargs.h>
 
 #ifndef _Weak

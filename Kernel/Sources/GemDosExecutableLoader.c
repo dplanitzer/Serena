@@ -72,12 +72,12 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
         return ENOEXEC;
     }
     if (pExecHeader->text_size <= 0) {
-        return ENOEXEC;
+        return EINVAL;
     }
     if (pExecHeader->data_size < 0
         || pExecHeader->bss_size < 0
         || pExecHeader->symbol_table_size < 0) {
-        return E2BIG;   // these fields are really unsigned
+        return EINVAL;   // these fields are really unsigned
     }
     if (pExecHeader->is_absolute != 0) {
         return EINVAL;
