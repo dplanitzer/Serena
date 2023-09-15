@@ -22,18 +22,32 @@ typedef struct _AtExitEntry {
 } AtExitEntry;
 
 
-static SList    gAtExitQueue;
-char **         environ;
-
+static SList                            gAtExitQueue;
+static struct __process_arguments_t*    gProcessArguments;
 
 void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp)
 {
+    gProcessArguments = argsp;
     environ = argsp->envp;
 
     SList_Init(&gAtExitQueue);
     __malloc_init();
 }
 
+// Returns true if the pointer is known as NOT freeable. Eg because it points
+// to the text or read-only data segments or it points into the process argument
+// area, etc.
+bool __is_pointer_NOT_freeable(void* ptr)
+{
+    if (ptr >= (void*)gProcessArguments && ptr < (void*)(((char*) gProcessArguments) + gProcessArguments->arguments_size)) {
+        return true;
+    }
+
+    // XXX check text segment
+    // XXX check read-only data segment
+
+    return false;
+}
 
 // Not very efficient and that's fine. The expectation is that this will be used
 // very rarely. So we rather keep the memory consumption very low for the majority
@@ -121,53 +135,4 @@ void* bsearch(const void *key, const void *ptr, size_t count, size_t size, int (
     }
 
     return NULL;
-}
-
-
-char *getenv(const char *name)
-{
-    if (name) {
-        const char* const * p = (const char * const *) environ;
-        const size_t nMaxChars = strlen(name);
-
-        while (*p) {
-            const char* vname = *p;
-
-            if (!strncmp(name, vname, nMaxChars) && vname[nMaxChars] == '=') {
-                return (char*) &vname[nMaxChars + 1];
-            }
-            p++;
-        }
-    }
-
-    return NULL;
-}
-
-int unsetenv(const char *name)
-{
-    if (name == NULL || *name == '\0' || strchr(name, '=')) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    char** p = environ;
-    const size_t nMaxChars = strlen(name);
-
-    // Keep in mind that a name may appear more than once in the environment
-    while (*p) {
-        const char* vname = *p;
-
-        // Allow a user to unset a broken entry that has no value. Eg "bla" instead of "bla=foo".
-        if (!strncmp(name, vname, nMaxChars) && (vname[nMaxChars] == '=' || vname[nMaxChars] == '\0')) {
-            char** cp = p;
-
-            while (*cp) {
-                *cp++ = *cp;
-            }
-        } else {
-            p++;
-        }
-    }
-
-    return 0;
 }

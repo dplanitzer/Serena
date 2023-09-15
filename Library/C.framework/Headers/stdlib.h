@@ -53,9 +53,15 @@ extern void* bsearch(const void *key, const void *ptr, size_t count, size_t size
                int (*comp)(const void*, const void*));
 
 
-extern char **environ;
 extern char *getenv(const char *name);
+extern int setenv(const char *name, const char *value, int overwrite);
 extern int unsetenv(const char *name);
+
+// These enviornment related APIs are broken by design. Their use is strongly
+// discouraged and code which uses these functions should be updated to use the
+// environment related functions listed above.
+extern char **environ;
+extern int putenv(char *str);
 
 __CPP_END
 

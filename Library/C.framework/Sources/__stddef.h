@@ -66,4 +66,9 @@ extern errno_t __write(const char* _Nonnull pBuffer, size_t nBytes);
 extern void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp);
 extern void __malloc_init(void);
 
+extern bool __is_pointer_NOT_freeable(void* ptr);
+
+extern char *__strcpy(char *dst, const char *src);
+extern char *__strcat(char *dst, const char *src);
+
 #endif /* ___STDDEF_H */

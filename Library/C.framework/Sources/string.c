@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <__stddef.h>
 
 
 size_t strlen(const char *str)
@@ -34,16 +35,24 @@ size_t __strnlen(const char *str, size_t strsz)
     return len;
 }
 
-char *strcpy(char *dst, const char *src)
+// Similar to strcpy() but returns a pointer that points to the '\0 at the
+// destination aka the end of the copied string. Exists so that we can actually
+// use this and strcat() to compose strings without having to iterate over the
+// same string multiple times.
+char *__strcpy(char *dst, const char *src)
 {
-    char *r = dst;
-
     while (*src != '\0') {
         *dst++ = *src++;
     }
     *dst = '\0';
 
-    return r;
+    return dst;
+}
+
+char *strcpy(char *dst, const char *src)
+{
+    (void) __strcpy(dst, src);
+    return dst;
 }
 
 char *strncpy(char *dst, const char *src, size_t count)
@@ -61,17 +70,30 @@ char *strncpy(char *dst, const char *src, size_t count)
     return r;
 }
 
-char *strcat(char *dst, const char *src)
+// See __strcpy()
+char *__strcat(char *dst, const char *src)
 {
-    if (*src != '\0') {
-        char *p = &dst[strlen(dst)];
+    char* p = dst;
 
+    if (*src != '\0') {
+        // 'dst' may point to a string - skip it
+        while (*p != '\0') {
+            p++;
+        }
+
+        // Append a copy of 'src' to the destination
         while (*src != '\0') {
             *p++ = *src++;
         }
         *p = '\0';
     }
 
+    return p;
+}
+
+char *strcat(char *dst, const char *src)
+{
+    (void) __strcat(dst, src);
     return dst;
 }
 
