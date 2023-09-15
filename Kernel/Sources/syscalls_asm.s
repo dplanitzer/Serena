@@ -18,6 +18,8 @@
     xref __SYSCALL_alloc_address_space
     xref __SYSCALL_exit
     xref __SYSCALL_spawn_process
+    xref __SYSCALL_getpid
+    xref __SYSCALL_getppid
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -31,6 +33,8 @@ syscall_table:
     dc.l __SYSCALL_alloc_address_space
     dc.l __SYSCALL_exit
     dc.l __SYSCALL_spawn_process
+    dc.l __SYSCALL_getpid
+    dc.l __SYSCALL_getppid
 
 
 ;-------------------------------------------------------------------------------

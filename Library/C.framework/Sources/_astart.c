@@ -32,8 +32,5 @@ void start(struct __process_argument_descriptor_t* _Nonnull argsp)
 {
     __stdlibc_init();
 
-//    char* argv[1];
-//    argv[0] = NULL;
-
-    main_closure(argsp->argc, argsp->argv); //argv);
+    main_closure(argsp->argc, argsp->argv);
 }

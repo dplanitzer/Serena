@@ -112,7 +112,7 @@ Int _SYSCALL_exit(const SYS_exit_args* _Nonnull pArgs)
 
 typedef struct _SYS_spawn_process_args {
     Int                                             scno;
-    Byte* _Nullable                                 execBase; //userEntryPoint;
+    Byte* _Nullable                                 execBase;
     const Character* _Nullable const _Nullable *    argv;
     const Character* _Nullable const _Nullable *    envp;
 } SYS_spawn_process_args;
@@ -138,4 +138,14 @@ catch:
         Process_RemoveChildProcess(pCurProc, pChildProc);
     }
     return err;
+}
+
+Int _SYSCALL_getpid()
+{
+    return Process_GetPid(Process_GetCurrent());
+}
+
+Int _SYSCALL_getppid()
+{
+    return Process_GetParentPid(Process_GetCurrent());
 }

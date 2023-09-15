@@ -38,13 +38,12 @@ static void child_process(void)
 
 void main_closure(int argc, char *argv[])
 {
-    printf("argc: %d\n", argc);
+    printf(" pid: %d\nargc: %d\n", __syscall(SC_getpid), argc);
     for (int i = 0; i < argc; i++) {
         if (argv[i]) {
             puts(argv[i]);
         }
     }
-    putchar('\n');
     putchar('\n');
 
     if (argc == 0) {
@@ -61,6 +60,7 @@ void main_closure(int argc, char *argv[])
         parent_process();
     } else {
         // Child process
+        printf("ppid: %d\n\n", __syscall(SC_getppid));
         child_process();
     }
 }

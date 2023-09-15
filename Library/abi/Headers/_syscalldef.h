@@ -16,5 +16,7 @@
 #define SC_alloc_address_space  4   // errno_t alloc_address_space(int nbytes, void **pOutMem)
 #define SC_exit                 5   // _Noreturn exit(int status)
 #define SC_spawn_process        6   // errno_t spawn_process(void *pExecBase, const char *const *argv, const char *const *envp)
+#define SC_getpid               7   // int getpid(void)
+#define SC_getppid              8   // int getppid(void)
 
 #endif /* __SYSCALLS_H */

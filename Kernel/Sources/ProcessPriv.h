@@ -13,7 +13,6 @@
 #include "AddressSpace.h"
 #include "DispatchQueue.h"
 #include "Lock.h"
-#include <_kbidef.h>
 
 
 // The process arguments descriptor is stored in the process address space and

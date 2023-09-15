@@ -12,6 +12,7 @@
 #include <_align.h>
 #include <_booldef.h>
 #include <_dmdef.h>
+#include <_kbidef.h>
 #include <_math.h>
 #include <_nulldef.h>
 #include <_varargs.h>

@@ -44,7 +44,8 @@ extern void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode);
 extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
 
-extern Int Process_GetPID(ProcessRef _Nonnull pProc);
+extern Int Process_GetPid(ProcessRef _Nonnull pProc);
+extern Int Process_GetParentPid(ProcessRef _Nonnull pProc);
 
 // Loads an executable from the given executable file into the process address
 // space.

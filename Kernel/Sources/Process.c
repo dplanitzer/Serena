@@ -253,9 +253,15 @@ Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
     return pProc->isTerminating;
 }
 
-Int Process_GetPID(ProcessRef _Nonnull pProc)
+Int Process_GetPid(ProcessRef _Nonnull pProc)
 {
     return pProc->pid;
+}
+
+Int Process_GetParentPid(ProcessRef _Nonnull pProc)
+{
+    assert(pProc->parent);
+    return pProc->parent->pid;
 }
 
 static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, Int* _Nonnull pOutTableEntryCount)
