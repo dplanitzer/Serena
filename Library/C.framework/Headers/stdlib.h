@@ -48,6 +48,10 @@ extern int abs(int n);
 extern long labs(long n);
 extern long long llabs(long long n);
 
+
+extern void* bsearch(const void *key, const void *ptr, size_t count, size_t size,
+               int (*comp)(const void*, const void*));
+
 __CPP_END
 
 #endif /* _STDLIB_H */
