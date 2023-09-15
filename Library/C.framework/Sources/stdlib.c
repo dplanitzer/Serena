@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <syscall.h>
 #include <__stddef.h>
 #include "List.h"
@@ -22,10 +23,13 @@ typedef struct _AtExitEntry {
 
 
 static SList    gAtExitQueue;
+char **         environ;
 
 
 void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp)
 {
+    environ = argsp->envp;
+
     SList_Init(&gAtExitQueue);
     __malloc_init();
 }
@@ -117,4 +121,53 @@ void* bsearch(const void *key, const void *ptr, size_t count, size_t size, int (
     }
 
     return NULL;
+}
+
+
+char *getenv(const char *name)
+{
+    if (name) {
+        const char* const * p = (const char * const *) environ;
+        const size_t nMaxChars = strlen(name);
+
+        while (*p) {
+            const char* vname = *p;
+
+            if (!strncmp(name, vname, nMaxChars) && vname[nMaxChars] == '=') {
+                return (char*) &vname[nMaxChars + 1];
+            }
+            p++;
+        }
+    }
+
+    return NULL;
+}
+
+int unsetenv(const char *name)
+{
+    if (name == NULL || *name == '\0' || strchr(name, '=')) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    char** p = environ;
+    const size_t nMaxChars = strlen(name);
+
+    // Keep in mind that a name may appear more than once in the environment
+    while (*p) {
+        const char* vname = *p;
+
+        // Allow a user to unset a broken entry that has no value. Eg "bla" instead of "bla=foo".
+        if (!strncmp(name, vname, nMaxChars) && (vname[nMaxChars] == '=' || vname[nMaxChars] == '\0')) {
+            char** cp = p;
+
+            while (*cp) {
+                *cp++ = *cp;
+            }
+        } else {
+            p++;
+        }
+    }
+
+    return 0;
 }

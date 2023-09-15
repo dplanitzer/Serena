@@ -52,6 +52,11 @@ extern long long llabs(long long n);
 extern void* bsearch(const void *key, const void *ptr, size_t count, size_t size,
                int (*comp)(const void*, const void*));
 
+
+extern char **environ;
+extern char *getenv(const char *name);
+extern int unsetenv(const char *name);
+
 __CPP_END
 
 #endif /* _STDLIB_H */
