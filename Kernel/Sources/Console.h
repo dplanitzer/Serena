@@ -61,7 +61,7 @@ extern void Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dX
 extern void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy);
 extern void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y);
 
-extern Int Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytes);
-extern Int Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytes);
+extern ByteCount Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite);
+extern ByteCount Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 
 #endif /* Console_h */

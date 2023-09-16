@@ -15,16 +15,18 @@
 typedef struct _SYS_read_args {
     Int                 scno;
     Character* _Nonnull buffer;
-    ByteCount           count;
+    UByteCount          nbytes;
 } SYS_read_args;
 
-Int _SYSCALL_read(const SYS_read_args* _Nonnull pArgs)
+ByteCount _SYSCALL_read(const SYS_read_args* _Nonnull pArgs)
 {
     decl_try_err();
     Console* pConsole;
+    const ByteCount nBytesToRead = __ByteCountByClampingUByteCount(pArgs->nbytes);
 
+    throw_ifnull(pArgs->buffer, EPARAM);
     try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-    return Console_Read(pConsole, pArgs->buffer, pArgs->count);
+    return Console_Read(pConsole, pArgs->buffer, nBytesToRead);
 
 catch:
     return -err;
@@ -34,16 +36,18 @@ catch:
 typedef struct _SYS_write_args {
     Int                     scno;
     const Byte* _Nonnull    buffer;
-    ByteCount               count;
+    UByteCount              nbytes;
 } SYS_write_args;
 
-Int _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
+ByteCount _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
     Console* pConsole;
+    const ByteCount nBytesToWrite = __ByteCountByClampingUByteCount(pArgs->nbytes);
 
+    throw_ifnull(pArgs->buffer, EPARAM);
     try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-    return Console_Write(pConsole, pArgs->buffer, pArgs->count);
+    return Console_Write(pConsole, pArgs->buffer, nBytesToWrite);
 
 catch:
     return -err;
@@ -68,7 +72,13 @@ typedef struct _SYS_dispatch_async_args {
 
 Int _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
 {
+    decl_try_err();
+
+    throw_ifnull(pArgs->userClosure, EPARAM);
     return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->userClosure);
+
+catch:
+    return err;
 }
 
 
@@ -79,13 +89,25 @@ Int _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
 // than 0 and a multipler of the CPU page size.
 typedef struct _SYS_alloc_address_space_args {
     Int                         scno;
-    ByteCount                   count;
+    UByteCount                  nbytes;
     Byte * _Nullable * _Nonnull pOutMem;
 } SYS_alloc_address_space_args;
 
 Int _SYSCALL_alloc_address_space(SYS_alloc_address_space_args* _Nonnull pArgs)
 {
-    return Process_AllocateAddressSpace(Process_GetCurrent(), pArgs->count, pArgs->pOutMem);
+    decl_try_err();
+
+    if (pArgs->nbytes > BYTE_COUNT_MAX) {
+        throw(E2BIG);
+    }
+    throw_ifnull(pArgs->pOutMem, EPARAM);
+
+    return Process_AllocateAddressSpace(Process_GetCurrent(),
+        __ByteCountByClampingUByteCount(pArgs->nbytes),
+        pArgs->pOutMem);
+
+catch:
+    return err;
 }
 
 
@@ -140,10 +162,7 @@ Int _SYSCALL_spawn_process(const SYS_spawn_process_args* pArgs)
     ProcessRef pCurProc = Process_GetCurrent();
     ProcessRef pChildProc = NULL;
 
-    if (pArgs->execBase == NULL) {
-        throw(EPARAM);
-    }
-    
+    throw_ifnull(pArgs->execBase, EPARAM);
     try(Process_Create(Process_GetNextAvailablePID(), &pChildProc));
     try_bang(Process_AddChildProcess(pCurProc, pChildProc));
     try(Process_Exec(pChildProc, pArgs->execBase, pArgs->argv, pArgs->envp));

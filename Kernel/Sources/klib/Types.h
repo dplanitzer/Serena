@@ -37,12 +37,37 @@ typedef unsigned char Byte;
 #define BYTE_PTR_MAX    ((Byte*)__UINTPTR_MAX)
 
 
-// A byte count represents a count of bytes. This is an unsigned type and of the
-// same size as the C99 size_t type.
-typedef __size_t ByteCount;
+// A ByteCount is a signed integral type that represents a count of bytes. This
+// type corresponds in width and semantics to the POSIX ssize_t. A byte count is
+// guaranteed that it is as wide as UByteCount and at least as wide as Int/UInt.
+// Kernel code should exclusively use this type to represent counts of bytes
+// because it is safer to use than UByteCount. Eg since it is signed, subtraction
+// is actually commutative (whereas it is not with UByteCount since snall - large
+// may cause a wrap around while large - small with the same values won't).
+typedef __ssize_t ByteCount;
 
-#define BYTE_COUNT_MIN  0u
-#define BYTE_COUNT_MAX  __SIZE_MAX
+#define BYTE_COUNT_MIN  __SSIZE_MIN
+#define BYTE_COUNT_MAX  __SSIZE_MAX
+#define BYTE_COUNT_WIDTH __SSIZE_WIDTH
+
+// Convert a UByteCount to a ByteCount with clamping
+#define __ByteCountByClampingUByteCount(ub) (ByteCount)__min(ub, BYTE_COUNT_MAX)
+
+
+// A UByteCount is an unsigned integral type that represents a count of bytes.
+// This type should be exclusively used in the interface between the kernel and
+// user space to represent the kernel side of a C99 size_t type. However this
+// type should be immediately converted to a ByteCount with proper clamping or
+// overflow check and the kernel code should then use ByteCount internally.
+typedef __size_t UByteCount;
+
+#define UBYTE_COUNT_MIN 0ul
+#define UBYTE_COUNT_MAX __SIZE_MAX
+#define UBYTE_COUNT_WIDTH __SIZE_WIDTH
+
+#if BYTE_COUNT_WIDTH != UBYTE_COUNT_WIDTH
+    #error("ByteCount and UByteCount must have the same width")
+#endif
 
 
 // Boolean type

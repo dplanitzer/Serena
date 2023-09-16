@@ -384,9 +384,8 @@ void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy)
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes writte; a negative error code if an error was encountered
-Int Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytes)
+ByteCount Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
 {
-    Int nBytesToWrite = __min((Int)nBytes, INT_MAX);
     const Character* pChars = (const Character*) pBytes;
     const Character* pCharsEnd = pChars + nBytesToWrite;
 
@@ -399,15 +398,14 @@ Int Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteC
     return nBytesToWrite;
 }
 
-Int Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytes)
+ByteCount Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     HIDEvent evt;
     Int evtCount;
-    Int nKeysToRead = __min((Int)nBytes, INT_MAX);
-    Int nKeysRead = 0;
+    Int nBytesRead = 0;
     ErrorCode err = EOK;
 
-    while (nKeysRead < nKeysToRead) {
+    while (nBytesRead < nBytesToRead) {
         evtCount = 1;
 
         err = EventDriver_GetEvents(pConsole->pEventDriver, &evt, &evtCount, kTimeInterval_Infinity);
@@ -419,10 +417,10 @@ Int Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount n
             const ByteCount nBytesToWrite = KeyMap_Map(pConsole->keyMap, &evt.data.key, pConsole->keyMapBuffer, pConsole->keyMapBufferCapacity);
             
             for (ByteCount i = 0; i < nBytesToWrite; i++) {
-                pBuffer[nKeysRead++] = pConsole->keyMapBuffer[i];
+                pBuffer[nBytesRead++] = pConsole->keyMapBuffer[i];
             }
         }
     }
     
-    return (err == EOK) ? nKeysRead : -err;
+    return (err == EOK) ? nBytesRead : -err;
 }
