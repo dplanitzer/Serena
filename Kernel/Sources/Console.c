@@ -50,9 +50,9 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     pConsole->flags |= CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM;
     pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
     pConsole->tabWidth = 8;
-    pConsole->keyMap = (const KeyMap*) &gKeyMap_usa[0];
-    pConsole->keyMapBufferCapacity = KeyMap_GetMaxOutputByteCount(pConsole->keyMap);
-    try(kalloc_cleared(pConsole->keyMapBufferCapacity, &pConsole->keyMapBuffer));
+    pConsole->keyMapper.map = (const KeyMap*) &gKeyMap_usa[0];
+    pConsole->keyMapper.capacity = KeyMap_GetMaxOutputByteCount(pConsole->keyMapper.map);
+    try(kalloc_cleared(pConsole->keyMapper.capacity, &pConsole->keyMapper.buffer));
     
     Console_ClearScreen_Locked(pConsole);
     
@@ -72,8 +72,8 @@ void Console_Destroy(Console* _Nullable pConsole)
     if (pConsole) {
         pConsole->pGDevice = NULL;
         pConsole->pEventDriver = NULL;
-        kfree(pConsole->keyMapBuffer);
-        pConsole->keyMapBuffer = NULL;
+        kfree(pConsole->keyMapper.buffer);
+        pConsole->keyMapper.buffer = NULL;
         Lock_Deinit(&pConsole->lock);
         kfree((Byte*)pConsole);
     }
@@ -402,9 +402,21 @@ ByteCount Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteC
 {
     HIDEvent evt;
     Int evtCount;
-    Int nBytesRead = 0;
+    ByteCount nBytesRead = 0;
     ErrorCode err = EOK;
 
+    Lock_Lock(&pConsole->lock);
+
+    // First check whether we got a partial key byte sequence sitting in our key
+    // mapping buffer and copy that one out.
+    while (nBytesRead < nBytesToRead && pConsole->keyMapper.count > 0) {
+        pBuffer[nBytesRead++] = pConsole->keyMapper.buffer[pConsole->keyMapper.startIndex++];
+        pConsole->keyMapper.count--;
+    }
+
+
+    // Now wait for events and map them to byte sequences if we stil got space
+    // in the user provided buffer
     while (nBytesRead < nBytesToRead) {
         evtCount = 1;
 
@@ -413,14 +425,28 @@ ByteCount Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteC
             break;
         }
 
-        if (evt.type == kHIDEventType_KeyDown) {
-            const ByteCount nBytesToWrite = KeyMap_Map(pConsole->keyMap, &evt.data.key, pConsole->keyMapBuffer, pConsole->keyMapBufferCapacity);
-            
-            for (ByteCount i = 0; i < nBytesToWrite; i++) {
-                pBuffer[nBytesRead++] = pConsole->keyMapBuffer[i];
-            }
+        if (evt.type != kHIDEventType_KeyDown) {
+            continue;
+        }
+
+
+        pConsole->keyMapper.count = KeyMap_Map(pConsole->keyMapper.map, &evt.data.key, pConsole->keyMapper.buffer, pConsole->keyMapper.capacity);
+        //print("nBytes: %d\n", pConsole->keyMapper.count);
+
+        Int i = 0;
+        while (nBytesRead < nBytesToRead && pConsole->keyMapper.count > 0) {
+            pBuffer[nBytesRead++] = pConsole->keyMapper.buffer[i++];
+            pConsole->keyMapper.count--;
+        }
+
+        if (pConsole->keyMapper.count > 0) {
+            // We ran out of space in the buffer that the user gave us. Remember
+            // which bytes we need to copy next time read() is called.
+            pConsole->keyMapper.startIndex = i;
         }
     }
+
+    Lock_Unlock(&pConsole->lock);
     
     return (err == EOK) ? nBytesRead : -err;
 }

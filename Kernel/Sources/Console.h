@@ -29,6 +29,14 @@ typedef enum _LineBreakMode {
 #define CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM   0x01
 
 
+typedef struct _KeyMapper {
+    const KeyMap* _Nonnull  map;
+    Byte * _Nonnull         buffer;     // Holds a full or partial byte sequence produced by a key down event
+    ByteCount               capacity;   // Maximum number of bytes the buffer can hold
+    ByteCount               count;      // Number of bytes stored in the buffer
+    Int                     startIndex; // Index of first byte in the buffer where a partial byte sequence begins
+} KeyMapper;
+
 typedef struct _Console {
     EventDriverRef _Nonnull     pEventDriver;
     GraphicsDriverRef _Nonnull  pGDevice;
@@ -40,9 +48,7 @@ typedef struct _Console {
     Int8                        lineBreakMode;
     Int8                        tabWidth;   // 8
     Lock                        lock;
-    const KeyMap* _Nonnull      keyMap;
-    ByteCount                   keyMapBufferCapacity;
-    Byte* _Nonnull              keyMapBuffer;
+    KeyMapper                   keyMapper;
 } Console;
 
 
