@@ -17,6 +17,10 @@ KERNEL_OBJS += $(patsubst $(KERNEL_SOURCES_DIR)/%.s,$(KERNEL_BUILD_DIR)/%.o,$(KE
 KERNEL_C_INCLUDES := -I$(LIBABI_HEADERS_DIR) -I$(KERNEL_SOURCES_DIR)
 KERNEL_ASM_INCLUDES := -I$(LIBABI_HEADERS_DIR) -I$(KERNEL_SOURCES_DIR)
 
+#KERNEL_GENERATE_DEPS = -deps -depfile=$(patsubst $(KERNEL_BUILD_DIR)/%.o,$(KERNEL_BUILD_DIR)/%.d,$@)
+KERNEL_GENERATE_DEPS := 
+KERNEL_DONTWARN := -dontwarn=51 -dontwarn=148 -dontwarn=208
+
 
 # --------------------------------------------------------------------------
 # Build rules
@@ -47,7 +51,7 @@ $(KERNEL_BIN_FILE): $(KLIB_OBJS) $(KERNEL_OBJS) | $(KERNEL_PRODUCT_DIR)
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) $(KERNEL_C_INCLUDES) -dontwarn=51 -dontwarn=148 -dontwarn=208 -deps -depfile=$(patsubst $(KERNEL_BUILD_DIR)/%.o,$(KERNEL_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) $(KERNEL_C_INCLUDES) $(KERNEL_DONTWARN) $(KERNEL_GENERATE_DEPS) -o $@ $<
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.s
 	@echo $<

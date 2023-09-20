@@ -17,6 +17,10 @@ LIBC_OBJS += $(patsubst $(LIBC_SOURCES_DIR)/%.s, $(LIBC_BUILD_DIR)/%.o, $(LIBC_A
 LIBC_C_INCLUDES := -I$(LIBABI_HEADERS_DIR) -I$(LIBC_HEADERS_DIR) -I$(LIBC_SOURCES_DIR)
 LIBC_ASM_INCLUDES := -I$(LIBABI_HEADERS_DIR) -I$(LIBC_HEADERS_DIR) -I$(LIBC_SOURCES_DIR)
 
+#LIBC_GENERATE_DEPS = -deps -depfile=$(patsubst $(LIBC_BUILD_DIR)/%.o,$(LIBC_BUILD_DIR)/%.d,$@)
+LIBC_GENERATE_DEPS := 
+LIBC_DONTWARN := -dontwarn=214
+
 
 # --------------------------------------------------------------------------
 # Build rules
@@ -49,7 +53,7 @@ $(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
 
 $(LIBC_BUILD_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) -dontwarn=214 -deps -depfile=$(patsubst $(LIBC_BUILD_DIR)/%.o,$(LIBC_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) $(LIBC_DONTWARN) $(LIBC_GENERATE_DEPS) -o $@ $<
 
 $(LIBC_BUILD_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.s
 	@echo $<
@@ -59,11 +63,11 @@ $(LIBC_BUILD_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.s
 # start() function(s)
 $(LIBC_ASTART_FILE) : $(LIBC_ASTART_C_SOURCE) | $(LIBC_PRODUCT_DIR)
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) -deps -depfile=$(patsubst $(LIBC_BUILD_DIR)/%.o,$(LIBC_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) -o $@ $<
 
 $(LIBC_CSTART_FILE) : $(LIBC_CSTART_C_SOURCE) | $(LIBC_PRODUCT_DIR)
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) -deps -depfile=$(patsubst $(LIBC_BUILD_DIR)/%.o,$(LIBC_BUILD_DIR)/%.d,$@) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_PREPROCESSOR_DEFINITIONS) $(LIBC_C_INCLUDES) -o $@ $<
 
 
 clean-libc:

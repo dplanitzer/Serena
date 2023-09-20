@@ -431,7 +431,6 @@ ByteCount Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteC
 
 
         pConsole->keyMapper.count = KeyMap_Map(pConsole->keyMapper.map, &evt.data.key, pConsole->keyMapper.buffer, pConsole->keyMapper.capacity);
-        //print("nBytes: %d\n", pConsole->keyMapper.count);
 
         Int i = 0;
         while (nBytesRead < nBytesToRead && pConsole->keyMapper.count > 0) {
