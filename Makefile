@@ -50,7 +50,7 @@ VC_CONFIG := $(WORKSPACE_DIR)/vc_posix_host.config
 endif
 export VC_CONFIG
 
-#export AR = $(VBCC)/bin/ar
+export LIBTOOL = $(VBCC)/bin/libtool
 export AS = $(VBCC)/bin/vasmm68k_mot -Faout -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
 export CC = $(VBCC)/bin/vc +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
 export LD = $(VBCC)/bin/vlink

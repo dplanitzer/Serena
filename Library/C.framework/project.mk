@@ -40,13 +40,17 @@ $(LIBC_PRODUCT_DIR):
 	$(call mkdir_if_needed,$(LIBC_PRODUCT_DIR))
 
 
+$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
+	@echo Making libc.a
+	$(LIBTOOL) create $@ $^
+
 #$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
 #	@echo Making libc.a
 #	$(AR) rsc $@ $^
 
-$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
-	@echo Linking libc.a
-	@$(LD) -baoutnull -r -o $@ $^
+#$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
+#	@echo Linking libc.a
+#	@$(LD) -baoutnull -r -o $@ $^
 
 
 -include $(LIBC_DEPS)
