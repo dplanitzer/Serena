@@ -15,11 +15,11 @@
 
 __CPP_BEGIN
 
-extern _Noreturn _Assert(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName, const char* _Nonnull expr);
-
 #if NDEBUG
 #define assert(cond)    ((void)0)
 #else
+extern _Noreturn _Assert(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName, const char* _Nonnull expr);
+
 #define assert(cond)   if ((cond) == 0) { _Assert(__FILE__, __LINE__, __func__, #cond); }
 #endif
 

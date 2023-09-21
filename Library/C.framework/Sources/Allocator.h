@@ -11,6 +11,9 @@
 
 #include <__stddef.h>
 
+// Enable for debugging support
+//#define ALLOCATOR_DEBUG
+
 
 // A memory descriptor describes a contiguous range of RAM
 typedef struct _MemoryDescriptor {
@@ -39,7 +42,9 @@ extern errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void*
 // internal alignment costraints.
 extern size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr);
 
+#ifdef ALLOCATOR_DEBUG
 extern void Allocator_Dump(AllocatorRef _Nonnull pAllocator);
 extern void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator);
+#endif
 
 #endif /* _ALLOCATOR_H */

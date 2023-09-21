@@ -14,8 +14,6 @@
 
 // XXX We currently leak environment table entries because of the broken putenv() semantics
 
-char ** environ;
-
 // Returns the number of entries in the environment table. Does not include the
 // terminating NULL entry.
 static ssize_t __getenvsize(void)

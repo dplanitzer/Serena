@@ -9,11 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syscall.h>
+#include <__globals.h>
 #include <__stddef.h>
 #include "Allocator.h"
-
-
-static AllocatorRef gAllocator;
 
 
 static inline errno_t __alloc_address_space(size_t nbytes, void **ptr)
@@ -34,7 +32,7 @@ void __malloc_init(void)
     try_bang(__alloc_address_space(INITIAL_HEAP_SIZE, &ptr));
     md.lower = ptr;
     md.upper = ((char*)ptr) + INITIAL_HEAP_SIZE;
-    try_bang(Allocator_Create(&md, &gAllocator));
+    try_bang(Allocator_Create(&md, &__gAllocator));
 }
 
 static errno_t __malloc_expand_backingstore_by(size_t nbytes)
@@ -47,7 +45,7 @@ static errno_t __malloc_expand_backingstore_by(size_t nbytes)
         md.lower = ptr;
         md.upper = ((char*)ptr) + nbytes;
 
-        err = Allocator_AddMemoryRegion(gAllocator, &md);
+        err = Allocator_AddMemoryRegion(__gAllocator, &md);
     }
     return err;
 }
@@ -56,7 +54,7 @@ void *malloc(size_t size)
 {
     // XXX add locking
     void* ptr = NULL;
-    errno_t err = Allocator_AllocateBytes(gAllocator, size, &ptr);
+    errno_t err = Allocator_AllocateBytes(__gAllocator, size, &ptr);
 
     if (err == ENOMEM) {
         const size_t ceiledSize = __Ceil_PowerOf2(size, CPU_PAGE_SIZE);
@@ -64,7 +62,7 @@ void *malloc(size_t size)
 
         err = __malloc_expand_backingstore_by(__min(ceiledSize, minExpansionSize));
         if (err == 0) {
-            err = Allocator_AllocateBytes(gAllocator, size, &ptr);
+            err = Allocator_AllocateBytes(__gAllocator, size, &ptr);
         }
     }
 
@@ -78,7 +76,7 @@ void *malloc(size_t size)
 void free(void *ptr)
 {
     // XXX add locking
-    Allocator_DeallocateBytes(gAllocator, ptr);
+    Allocator_DeallocateBytes(__gAllocator, ptr);
 }
 
 void *calloc(size_t num, size_t size)
@@ -94,7 +92,7 @@ void *calloc(size_t num, size_t size)
 
 void *realloc(void *ptr, size_t new_size)
 {
-    const size_t old_size = (ptr) ? Allocator_GetBlockSize(gAllocator, ptr) : 0;
+    const size_t old_size = (ptr) ? Allocator_GetBlockSize(__gAllocator, ptr) : 0;
     
     if (old_size == new_size) {
         return ptr;

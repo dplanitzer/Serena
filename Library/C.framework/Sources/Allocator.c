@@ -431,6 +431,7 @@ size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull p
     return pMemBlock->size - sizeof(MemBlock);
 }
 
+#ifdef ALLOCATOR_DEBUG
 void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 {
     puts("Free list:\n");
@@ -469,3 +470,4 @@ void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
         pCurRegion = (MemRegion*)pCurRegion->node.next;
     }
 }
+#endif
