@@ -23,18 +23,13 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 {
     decl_try_err();
     Console* pConsole;
-    const Surface* pFramebuffer;
 
-    try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pGDevice), ENODEV);
     try(kalloc_cleared(sizeof(Console), (Byte**) &pConsole));
     
     Lock_Init(&pConsole->lock);
 
     pConsole->pEventDriver = pEventDriver;
     pConsole->pGDevice = pGDevice;
-
-    pConsole->cols = pFramebuffer->width / GLYPH_WIDTH;
-    pConsole->rows = pFramebuffer->height / GLYPH_HEIGHT;
 
     vtparse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
 
@@ -70,16 +65,15 @@ void Console_Destroy(ConsoleRef _Nullable pConsole)
 
 static void Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 {
+    const Surface* pFramebuffer = GraphicsDriver_GetFramebuffer(pConsole->pGDevice);
+    assert(pFramebuffer);
+    
+    pConsole->bounds = Rect_Make(0, 0, pFramebuffer->width / GLYPH_WIDTH, pFramebuffer->height / GLYPH_HEIGHT);
+
     Console_MoveCursorTo_Locked(pConsole, 0, 0);
-    pConsole->flags = CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM;
+    pConsole->isAutoScrollEnabled = true;
     pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
     pConsole->tabWidth = 8;
-}
-
-// Returns the console bounds.
-static Rect Console_GetBounds_Locked(ConsoleRef _Nonnull pConsole)
-{
-    return Rect_Make(0, 0, pConsole->cols, pConsole->rows);
 }
 
 // Clears the console screen.
@@ -95,8 +89,7 @@ static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole)
 // cursor position.
 static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y)
 {
-    const Rect bounds = Rect_Make(0, 0, pConsole->cols, pConsole->rows);
-    const Rect r = Rect_Intersection(Rect_Make(0, y, pConsole->cols, 1), bounds);
+    const Rect r = Rect_Intersection(Rect_Make(0, y, pConsole->bounds.width, 1), pConsole->bounds);
     
     GraphicsDriver_FillRect(pConsole->pGDevice,
                             Rect_Make(r.x * GLYPH_WIDTH, r.y * GLYPH_HEIGHT, r.width * GLYPH_WIDTH, r.height * GLYPH_HEIGHT),
@@ -116,8 +109,7 @@ static void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, 
 // cursor position.
 static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Character ch)
 {
-    const Rect bounds = Rect_Make(0, 0, pConsole->cols, pConsole->rows);
-    const Rect r = Rect_Intersection(rect, bounds);
+    const Rect r = Rect_Intersection(rect, pConsole->bounds);
 
     if (ch == ' ') {
         GraphicsDriver_FillRect(pConsole->pGDevice,
@@ -147,7 +139,6 @@ static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, Rect clipRect,
         return;
     }
     
-    const Rect bounds = Rect_Make(0, 0, pConsole->cols, pConsole->rows);
     const Int hExposedWidth = __min(__abs(dXY.x), clipRect.width);
     const Int vExposedHeight = __min(__abs(dXY.y), clipRect.height);
     Rect copyRect, hClearRect, vClearRect;
@@ -183,8 +174,8 @@ static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, Rect clipRect,
 // \param y the Y position
 static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
 {
-    pConsole->x = __max(__min(x, pConsole->cols - 1), 0);
-    pConsole->y = __max(__min(y, pConsole->rows - 1), 0);
+    pConsole->x = __max(__min(x, pConsole->bounds.width - 1), 0);
+    pConsole->y = __max(__min(y, pConsole->bounds.height - 1), 0);
 }
 
 // Moves the console position by the given delta values.
@@ -206,21 +197,19 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
 // \param ch the character
 static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
-    const Bool isAutoscrollEnabled = (pConsole->flags & CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM) != 0;
-    
-    if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
+    if (pConsole->x >= pConsole->bounds.width && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
         // wrap the line if wrap-by-character is active
         pConsole->x = 0;
         pConsole->y++;
     }
 
-    if (pConsole->y >= pConsole->rows && isAutoscrollEnabled) {
+    if (pConsole->y >= pConsole->bounds.height && pConsole->isAutoScrollEnabled) {
         // auto scroll the console if we hit the bottom edge
-        Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, 1));
+        Console_ScrollBy_Locked(pConsole, pConsole->bounds, Point_Make(0, 1));
         pConsole->y--;
     }
             
-    if ((pConsole->x >= 0 && pConsole->x < pConsole->cols) && (pConsole->y >= 0 && pConsole->y < pConsole->rows)) {
+    if ((pConsole->x >= 0 && pConsole->x < pConsole->bounds.width) && (pConsole->y >= 0 && pConsole->y < pConsole->bounds.height)) {
         GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
     }
 
@@ -232,8 +221,6 @@ static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char
 // \param ch the character
 static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
-    const Bool isAutoscrollEnabled = (pConsole->flags & CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM) != 0;
-    
     switch (ch) {
         case 0x07:  // BEL (Bell)
             // XXX flash screen?
@@ -242,8 +229,8 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
         case 0x08:  // BS (Backspace)
             if (pConsole->x > 0) {
                 // BS moves 1 cell to the left
-                Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->cols - pConsole->x, 1), Point_Make(pConsole->x - 1, pConsole->y));
-                Console_FillRect_Locked(pConsole, Rect_Make(pConsole->cols - 1, pConsole->y, 1, 1), ' ');
+                Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.width - pConsole->x, 1), Point_Make(pConsole->x - 1, pConsole->y));
+                Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.width - 1, pConsole->y, 1, 1), ' ');
                 pConsole->x--;
             }
             break;
@@ -253,7 +240,7 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
                 // go to the next tab stop
                 pConsole->x = (pConsole->x / pConsole->tabWidth + 1) * pConsole->tabWidth;
             
-                if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
+                if (pConsole->x >= pConsole->bounds.width && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
                     // Wrap-by-character is enabled. Treat this like a newline aka move to the first tab stop in the next line
                     Console_ExecuteByte_C0_C1_Locked(pConsole, '\n');
                 }
@@ -266,8 +253,8 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             
         case 0x0b:  // VT (Vertical Tab)
             pConsole->y++;
-            if (pConsole->y == pConsole->rows && isAutoscrollEnabled) {
-                Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, 1));
+            if (pConsole->y == pConsole->bounds.height && pConsole->isAutoScrollEnabled) {
+                Console_ScrollBy_Locked(pConsole, pConsole->bounds, Point_Make(0, 1));
                 pConsole->y--;
             }
             break;
@@ -281,10 +268,10 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
             
         case 0x7f:  // DEL (Delete)
-            if (pConsole->x < pConsole->cols - 1) {
+            if (pConsole->x < pConsole->bounds.width - 1) {
                 // DEL does not change the position.
-                Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + 1, pConsole->y, pConsole->cols - (pConsole->x + 1), 1), Point_Make(pConsole->x, pConsole->y));
-                Console_FillRect_Locked(pConsole, Rect_Make(pConsole->cols - 1, pConsole->y, 1, 1), ' ');
+                Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + 1, pConsole->y, pConsole->bounds.width - (pConsole->x + 1), 1), Point_Make(pConsole->x, pConsole->y));
+                Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.width - 1, pConsole->y, 1, 1), ' ');
             }
             break;
             

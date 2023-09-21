@@ -21,12 +21,6 @@ typedef enum _LineBreakMode {
 } LineBreakMode;
 
 
-// If set then the family of console print() functions automatically scrolls the
-// console up if otherwise the function would end up printing below the bottom
-// edge of the console screen.
-#define CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM   0x01
-
-
 typedef struct _KeyMapper {
     const KeyMap* _Nonnull  map;
     Byte * _Nonnull         buffer;     // Holds a full or partial byte sequence produced by a key down event
@@ -39,13 +33,12 @@ typedef struct _Console {
     Lock                        lock;
     EventDriverRef _Nonnull     pEventDriver;
     GraphicsDriverRef _Nonnull  pGDevice;
+    Rect                        bounds;
     Int8                        x;
     Int8                        y;
-    Int8                        cols;       // 80
-    Int8                        rows;       // 25
-    UInt8                       flags;
-    Int8                        lineBreakMode;
     Int8                        tabWidth;   // 8
+    Int8                        lineBreakMode;
+    Bool                        isAutoScrollEnabled;
     vtparse_t                   vtparse;
     KeyMapper                   keyMapper;
 } Console;
