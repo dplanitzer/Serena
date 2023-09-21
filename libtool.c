@@ -181,6 +181,75 @@ static ArchiveMember* ArchiveMember_CreateFromPath(const char* objPath)
     return pMember;
 }
 
+static void _ArchiveMember_ParseFilenameFromArchive(ArchiveMember* pMember, Archive* pArchive, const ArMemberHeader* hdr, FILE* s)
+{
+    size_t nameLen;
+    const char* pName;
+
+    if (pArchive->longStrings && hdr->name[0] == '/' && isdigit(hdr->name[1])) {
+        // System V.4 long name
+        pMember->longStringOffset = strtoul(&hdr->name[1], NULL, 10);
+        if (pMember->longStringOffset >= pArchive->longStrings->size - 2) {
+            failed("Corrupt library file");
+            // NOT REACHED
+        }
+
+        // System V.4 is '/\n' and Windows (COFF) is '\0'
+        char* p = &pArchive->longStrings->data[pMember->longStringOffset];
+        char* ep = p;
+        while ((*(ep + 0) != '/' && *(ep + 1) != '\012') || (*ep == '\0')) {
+            ep++;
+        }
+        nameLen = ep - p;
+        pName = p;
+    }
+    else if (hdr->name[0] == '#' && hdr->name[1] == '1' && hdr->name[2] == '/' && isdigit(hdr->name[3])) {
+        // BSD long name
+        nameLen = strtoul(&hdr->name[4], NULL, 10);
+        if (nameLen == 0 || nameLen >= pMember->size) {
+            failed("Corrupt library file");
+            // NOT REACHED
+        }
+
+        pMember->name = (char*) malloc_require(nameLen + 1, false);
+        fread_require(pMember->name, nameLen, s);
+        pMember->name[nameLen] = '\0';
+        pMember->longStringOffset = 0;
+
+        nameLen = 0;
+        pName = NULL;
+    }
+    else {
+        // Short name or one of the special names
+        pMember->longStringOffset = 0;
+        nameLen = AR_MAX_MEMBER_NAME_LENGTH;
+        for (int i = 15; i >= 0; i--) {
+            if (hdr->name[i] != ' ') {
+                if (hdr->name[i] == '/') {
+                    if (i == 0 || (i == 1 && hdr->name[0] == '/')) {
+                        // Preserve the special names '/' and '//' because we need more needless complexity for the sake of complexity
+                        ;
+                    } else {
+                        nameLen--;
+                    }
+                }
+                break;
+            }
+            nameLen--;
+        }
+        pName = hdr->name;
+    }
+
+    if (pName) {
+        if (nameLen == 0) {
+            failed("Corrupt library file");
+            // NOT REACHED
+        }
+
+        pMember->name = stralloc_require(pName, nameLen);
+    }
+}
+
 static ArchiveMember* ArchiveMember_CreateFromArchive(Archive* pArchive, FILE* s)
 {
     ArMemberHeader  hdr;
@@ -202,61 +271,19 @@ static ArchiveMember* ArchiveMember_CreateFromArchive(Archive* pArchive, FILE* s
     ArchiveMember* pMember = (ArchiveMember*) malloc_require(sizeof(ArchiveMember), true);
 
 
-    // Get the member name.
-    size_t nameLen;
-    const char* pName;
-
-    if (pArchive->longStrings && hdr.name[0] == '/' && isdigit(hdr.name[1])) {
-        // Long name
-        pMember->longStringOffset = strtoul(&hdr.name[1], NULL, 10);
-        if (pMember->longStringOffset >= pArchive->longStrings->size - 2) {
-            failed("Corrupt library file");
-            // NOT REACHED
-        }
-
-        char* p = &pArchive->longStrings->data[pMember->longStringOffset];
-        char* ep = p;
-        while (*(ep + 0) != '/' && *(ep + 1) != '\012') {
-            ep++;
-        }
-        nameLen = ep - p;
-        pName = p;
-    } else {
-        // Short name or one of the special names
-        pMember->longStringOffset = 0;
-        nameLen = AR_MAX_MEMBER_NAME_LENGTH;
-        for (int i = 15; i >= 0; i--) {
-            if (hdr.name[i] != ' ') {
-                if (hdr.name[i] == '/') {
-                    if (i == 0 || (i == 1 && hdr.name[0] == '/')) {
-                        // Preserve the special names '/' and '//' because we need more needless complexity for the sake of complexity
-                        ;
-                    } else {
-                        nameLen--;
-                    }
-                }
-                break;
-            }
-            nameLen--;
-        }
-        pName = hdr.name;
-    }
-
-    if (nameLen == 0) {
-        failed("Corrupt library file");
-        // NOT REACHED
-    }
-
-    pMember->name = stralloc_require(pName, nameLen);
-
-
-    // Get the data
+    // Get the data size
     pMember->size = strtoul(hdr.size, NULL, 10);
     if (pMember->size == 0) {
         failed("Corrupt library file");
         // NOT REACHED
     }
 
+
+    // Get the member name.
+    _ArchiveMember_ParseFilenameFromArchive(pMember, pArchive, &hdr, s);
+
+
+    // Get the data
     pMember->paddedSize = AR_PADDED_SIZE(pMember->size);
     pMember->data = malloc_require(pMember->paddedSize, false);
     fread_require(pMember->data, pMember->paddedSize, s);
@@ -427,6 +454,9 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s)
         sprintf(hdr.name, "/%zu", pMember->longStringOffset);
     } else {
         memcpy(&hdr.name, pMember->name, nameLen);
+        if (nameLen < AR_MAX_MEMBER_NAME_LENGTH) {
+            hdr.name[nameLen] = '/';
+        }
     }
     sprintf(hdr.mtime, "%d", 0);
     sprintf(hdr.uid, "%d", 0);
@@ -442,6 +472,7 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s)
     }
 }
 
+// Write a System V.4 style archive 
 static void Archive_Write(Archive* pArchive, const char* libPath)
 {
     FILE* s = open_require(libPath, "wb");
@@ -450,6 +481,8 @@ static void Archive_Write(Archive* pArchive, const char* libPath)
     memcpy(hdr.magic, AR_MAGIC, 8);
     fwrite_require(&hdr, sizeof(hdr), s);
 
+    // XXX add support for symbol tables one day
+
     if (pArchive->longStrings == NULL) {
         Archive_GenerateLongStrings(pArchive);
     }
@@ -457,8 +490,6 @@ static void Archive_Write(Archive* pArchive, const char* libPath)
     if (pArchive->longStrings) {
         ArchiveMember_Write(pArchive->longStrings, s);
     }
-
-    // XXX add support for symbol tables one day
 
     for (size_t i = 0; i < pArchive->count; i++) {
         ArchiveMember_Write(pArchive->members[i], s);
@@ -492,11 +523,27 @@ static void createLibrary(const char* libPath, char* objPaths[], int nObjPaths)
 static void listLibrary(const char* libPath)
 {
     Archive* pArchive = Archive_CreateFromPath(libPath);
+    size_t nameLenMax = 0;
 
     for (size_t i = 0; i < pArchive->count; i++) {
         ArchiveMember* pMember = pArchive->members[i];
+        const size_t nameLen = strlen(pMember->name);
 
-        printf("'%s'   (%zu bytes)\n", pMember->name, pMember->size);
+        if (nameLen > nameLenMax) {
+            nameLenMax = nameLen;
+        }
+    }
+
+    for (size_t i = 0; i < pArchive->count; i++) {
+        ArchiveMember* pMember = pArchive->members[i];
+        const size_t nameLen = strlen(pMember->name);
+        const size_t nSpaces = nameLenMax - nameLen + 3;
+
+        fputs(pMember->name, stdout);
+        for (size_t j = 0; j < nSpaces; j++) {
+            fputc(' ', stdout);
+        }
+        printf("(%zu bytes)\n", pMember->size);
     }
 
     Archive_Destroy(pArchive);
