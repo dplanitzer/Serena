@@ -16,9 +16,11 @@
 #include <klib/Bits.h>
 #include <klib/Bytes.h>
 #include <klib/Error.h>
+#include <klib/Geometry.h>
 #include <klib/Kalloc.h>
 #include <klib/List.h>
 #include <klib/Log.h>
+#include <klib/RingBuffer.h>
 #include <klib/TimeInterval.h>
 
 #endif /* klib_h */

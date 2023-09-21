@@ -10,7 +10,6 @@
 #define ConsolePriv_h
 
 #include "Console.h"
-#include "Geometry.h"
 #include "KeyMap.h"
 #include "Lock.h"
 

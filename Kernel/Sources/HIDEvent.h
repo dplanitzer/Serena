@@ -10,7 +10,6 @@
 #define HIDEvent_h
 
 #include <klib/klib.h>
-#include "Geometry.h"
 
 
 // Event types

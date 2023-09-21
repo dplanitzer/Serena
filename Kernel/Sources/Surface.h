@@ -10,7 +10,6 @@
 #define Surface_h
 
 #include <klib/klib.h>
-#include "Geometry.h"
 
 
 // The pixel formats supported by framebuffers

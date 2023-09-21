@@ -10,7 +10,6 @@
 #define GraphicsDriver_h
 
 #include <klib/klib.h>
-#include "Geometry.h"
 #include "Surface.h"
 
 
