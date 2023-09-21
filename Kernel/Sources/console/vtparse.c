@@ -72,8 +72,10 @@ static void do_action(vtparse_t *parser, vtparse_action_t action, unsigned char 
                 }
 
                 current_param = parser->num_params - 1;
-                parser->params[current_param] *= 10;
-                parser->params[current_param] += (ch - '0');
+                if (parser->params[current_param] < 9999) {
+                    parser->params[current_param] *= 10;
+                    parser->params[current_param] += (ch - '0');
+                }
             }
 
             break;

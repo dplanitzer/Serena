@@ -142,7 +142,7 @@ void DispatchQueue_RunTests(void)
             print("%d\n", i);
             i++;
             VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
-            print("\f");    // clear screen
+            print("\033[2J");    // clear screen
         }
     } else {
         print("*** no RTC\n");

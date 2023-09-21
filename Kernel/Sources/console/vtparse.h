@@ -27,10 +27,10 @@ typedef struct vtparse {
     vtparse_state_t    state;
     vtparse_callback_t cb;
     unsigned char      intermediate_chars[MAX_INTERMEDIATE_CHARS+1];
-    int                num_intermediate_chars;
+    short              num_intermediate_chars;
     char               ignore_flagged;
-    int                params[16];
-    int                num_params;
+    short              params[16];
+    short              num_params;
     void*              user_data;
 } vtparse_t;
 

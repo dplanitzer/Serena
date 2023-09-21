@@ -131,6 +131,11 @@ static inline Int Rect_GetMaxY(Rect r) {
 extern Rect Rect_Union(Rect a, Rect b);
 extern Rect Rect_Intersection(Rect a, Rect b);
 
+static inline Bool Rect_Contains(Rect r, Int x, Int y)
+{
+    return x >= r.x && x < (r.x + r.width) && y >= r.y && y < (r.y + r.height);
+}
+
 extern Bool Rect_ContainsPoint(Rect r, Point p);
 
 extern Point Point_ClampedToRect(Point p, Rect r);
