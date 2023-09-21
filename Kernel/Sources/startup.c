@@ -8,7 +8,6 @@
 
 #include <klib/klib.h>
 #include "BootAllocator.h"
-#include "Console.h"
 #include "DispatchQueue.h"
 #include "DriverManager.h"
 #include "InterruptController.h"

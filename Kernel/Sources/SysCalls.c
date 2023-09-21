@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Console.h"
+#include <console/Console.h>
 #include "DriverManager.h"
 #include "Process.h"
 #include "VirtualProcessor.h"

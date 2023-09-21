@@ -7,7 +7,7 @@
 //
 
 #include "DriverManager.h"
-#include "Console.h"
+#include <console/Console.h>
 #include "EventDriver.h"
 #include "FloppyDisk.h"
 #include "GraphicsDriver.h"

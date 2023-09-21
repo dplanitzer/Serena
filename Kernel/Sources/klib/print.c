@@ -7,7 +7,7 @@
 //
 
 #include <klib/klib.h>
-#include "Console.h"
+#include <console/Console.h>
 #include "DriverManager.h"
 
 static Lock gLock;
