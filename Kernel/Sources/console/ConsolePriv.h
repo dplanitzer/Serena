@@ -12,6 +12,7 @@
 #include "Console.h"
 #include "KeyMap.h"
 #include "Lock.h"
+#include "vtparse.h"
 
 
 typedef enum _LineBreakMode {
@@ -35,6 +36,7 @@ typedef struct _KeyMapper {
 } KeyMapper;
 
 typedef struct _Console {
+    Lock                        lock;
     EventDriverRef _Nonnull     pEventDriver;
     GraphicsDriverRef _Nonnull  pGDevice;
     Int8                        x;
@@ -44,7 +46,7 @@ typedef struct _Console {
     UInt8                       flags;
     Int8                        lineBreakMode;
     Int8                        tabWidth;   // 8
-    Lock                        lock;
+    vtparse_t                   vtparse;
     KeyMapper                   keyMapper;
 } Console;
 

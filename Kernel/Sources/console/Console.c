@@ -8,7 +8,10 @@
 
 #include "ConsolePriv.h"
 
+static void Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
+static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
+static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
 
 
 // Creates a new console object. This console will display its output on the
@@ -25,20 +28,21 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pGDevice), ENODEV);
     try(kalloc_cleared(sizeof(Console), (Byte**) &pConsole));
     
+    Lock_Init(&pConsole->lock);
+
     pConsole->pEventDriver = pEventDriver;
     pConsole->pGDevice = pGDevice;
-    Lock_Init(&pConsole->lock);
-    pConsole->x = 0;
-    pConsole->y = 0;
+
     pConsole->cols = pFramebuffer->width / GLYPH_WIDTH;
     pConsole->rows = pFramebuffer->height / GLYPH_HEIGHT;
-    pConsole->flags |= CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM;
-    pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
-    pConsole->tabWidth = 8;
+
+    vtparse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
+
     pConsole->keyMapper.map = (const KeyMap*) &gKeyMap_usa[0];
     pConsole->keyMapper.capacity = KeyMap_GetMaxOutputByteCount(pConsole->keyMapper.map);
     try(kalloc_cleared(pConsole->keyMapper.capacity, &pConsole->keyMapper.buffer));
     
+    Console_ResetState_Locked(pConsole);
     Console_ClearScreen_Locked(pConsole);
     
     *pOutConsole = pConsole;
@@ -62,6 +66,14 @@ void Console_Destroy(ConsoleRef _Nullable pConsole)
         Lock_Deinit(&pConsole->lock);
         kfree((Byte*)pConsole);
     }
+}
+
+static void Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
+{
+    Console_MoveCursorTo_Locked(pConsole, 0, 0);
+    pConsole->flags = CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM;
+    pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
+    pConsole->tabWidth = 8;
 }
 
 // Returns the console bounds.
@@ -184,46 +196,50 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
     Console_MoveCursorTo_Locked(pConsole, pConsole->x + dx, pConsole->y + dy);
 }
 
-// Prints the given character to the console.
+
+////////////////////////////////////////////////////////////////////////////////
+// Processing input bytes
+////////////////////////////////////////////////////////////////////////////////
+
+// Interprets the given byte as a character, maps it to a glyph and prints it.
 // \param pConsole the console
 // \param ch the character
-static void Console_ProcessCharacter_Locked(ConsoleRef _Nonnull pConsole, Character ch)
+static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
+{
+    const Bool isAutoscrollEnabled = (pConsole->flags & CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM) != 0;
+    
+    if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
+        // wrap the line if wrap-by-character is active
+        pConsole->x = 0;
+        pConsole->y++;
+    }
+
+    if (pConsole->y >= pConsole->rows && isAutoscrollEnabled) {
+        // auto scroll the console if we hit the bottom edge
+        Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, 1));
+        pConsole->y--;
+    }
+            
+    if ((pConsole->x >= 0 && pConsole->x < pConsole->cols) && (pConsole->y >= 0 && pConsole->y < pConsole->rows)) {
+        GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
+    }
+
+    pConsole->x++;
+}
+
+// Interprets the given byte as a C0/C1 control character and either executes it or ignores it.
+// \param pConsole the console
+// \param ch the character
+static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     const Bool isAutoscrollEnabled = (pConsole->flags & CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM) != 0;
     
     switch (ch) {
-        case '\0':
-            break;
-            
-        case '\t':
-            if (pConsole->tabWidth > 0) {
-                // go to the next tab stop
-                pConsole->x = (pConsole->x / pConsole->tabWidth + 1) * pConsole->tabWidth;
-            
-                if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
-                    // Wrap-by-character is enabled. Treat this like a newline aka move to the first tab stop in the next line
-                    Console_ProcessCharacter_Locked(pConsole, '\n');
-                }
-            }
+        case 0x07:  // BEL (Bell)
+            // XXX flash screen?
             break;
 
-        case '\n':
-            pConsole->x = 0;
-            // fall through
-            
-        case 11:    // Vertical tab (always 1)
-            pConsole->y++;
-            if (pConsole->y == pConsole->rows && isAutoscrollEnabled) {
-                Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, 1));
-                pConsole->y--;
-            }
-            break;
-            
-        case '\r':
-            pConsole->x = 0;
-            break;
-            
-        case 8:     // BS Backspace
+        case 0x08:  // BS (Backspace)
             if (pConsole->x > 0) {
                 // BS moves 1 cell to the left
                 Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->cols - pConsole->x, 1), Point_Make(pConsole->x - 1, pConsole->y));
@@ -231,12 +247,40 @@ static void Console_ProcessCharacter_Locked(ConsoleRef _Nonnull pConsole, Charac
                 pConsole->x--;
             }
             break;
+
+        case 0x09:  // HT (Tab)
+            if (pConsole->tabWidth > 0) {
+                // go to the next tab stop
+                pConsole->x = (pConsole->x / pConsole->tabWidth + 1) * pConsole->tabWidth;
             
-        case 12:    // FF Form feed (new page / clear screen)
+                if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
+                    // Wrap-by-character is enabled. Treat this like a newline aka move to the first tab stop in the next line
+                    Console_ExecuteByte_C0_C1_Locked(pConsole, '\n');
+                }
+            }
+            break;
+
+        case 0x0a:  // LF (Line Feed)
+            pConsole->x = 0;
+            // fall through
+            
+        case 0x0b:  // VT (Vertical Tab)
+            pConsole->y++;
+            if (pConsole->y == pConsole->rows && isAutoscrollEnabled) {
+                Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, 1));
+                pConsole->y--;
+            }
+            break;
+            
+        case 0x0d:  // CR (Carriage Return)
+            pConsole->x = 0;
+            break;
+                        
+        case 0x0c:  // FF (Form Feed / New Page / Clear Screen)
             Console_ClearScreen_Locked(pConsole);
             break;
             
-        case 127:   // DEL Delete
+        case 0x7f:  // DEL (Delete)
             if (pConsole->x < pConsole->cols - 1) {
                 // DEL does not change the position.
                 Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + 1, pConsole->y, pConsole->cols - (pConsole->x + 1), 1), Point_Make(pConsole->x, pConsole->y));
@@ -244,11 +288,11 @@ static void Console_ProcessCharacter_Locked(ConsoleRef _Nonnull pConsole, Charac
             }
             break;
             
-        case 141:   // RI Reverse line feed
+        case 0x8d:  // RI (Reverse Line Feed)
             pConsole->y--;
             break;
             
-        case 148:   // CCH Cancel character (replace the previous character with a space)
+        case 0x94:  // CCH (Cancel Character (replace the previous character with a space))
             if (pConsole->x > 0) {
                 pConsole->x--;
                 GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[0x20][0], pConsole->x, pConsole->y);
@@ -256,33 +300,113 @@ static void Console_ProcessCharacter_Locked(ConsoleRef _Nonnull pConsole, Charac
             break;
             
         default:
-            if (ch < 32) {
-                // non-prinable (control code 0) characters do nothing
-                break;
-            }
-            
-            if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
-                // wrap the line if wrap-by-character is active
-                pConsole->x = 0;
-                pConsole->y++;
-            }
+            // Ignore it
+            break;
+    }
+}
 
-            if (pConsole->y >= pConsole->rows && isAutoscrollEnabled) {
-                // auto scroll the console if we hit the bottom edge
-                Console_ScrollBy_Locked(pConsole, Console_GetBounds_Locked(pConsole), Point_Make(0, 1));
-                pConsole->y--;
-            }
-            
-            if ((pConsole->x >= 0 && pConsole->x < pConsole->cols) && (pConsole->y >= 0 && pConsole->y < pConsole->rows)) {
-                GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
-            }
-            pConsole->x++;
+//
+// <https://vt100.net/emu/dec_ansi_parser>
+// <https://en.wikipedia.org/wiki/ANSI_escape_code>
+//
+
+static Int get_csi_parameter(ConsoleRef _Nonnull pConsole, Int defValue)
+{
+    return (pConsole->vtparse.num_params > 0) ? pConsole->vtparse.params[0] : defValue;
+}
+
+static Int get_nth_csi_parameter(ConsoleRef _Nonnull pConsole, Int idx, Int defValue)
+{
+    return (pConsole->vtparse.num_params > idx) ? pConsole->vtparse.params[idx] : defValue;
+}
+
+static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
+{
+    switch (ch) {
+        case 'A':
+            Console_MoveCursor_Locked(pConsole, 0, -get_csi_parameter(pConsole, 1));
+            break;
+
+        case 'B':
+            Console_MoveCursor_Locked(pConsole, 0, get_csi_parameter(pConsole, 1));
+            break;
+
+        case 'C':
+            Console_MoveCursor_Locked(pConsole, get_csi_parameter(pConsole, 1), 0);
+            break;
+
+        case 'D':
+            Console_MoveCursor_Locked(pConsole, -get_csi_parameter(pConsole, 1), 0);
+            break;
+
+        case 'E':
+            Console_MoveCursorTo_Locked(pConsole, 0, pConsole->y + get_csi_parameter(pConsole, 1));
+            break;
+
+        case 'F':
+            Console_MoveCursorTo_Locked(pConsole, 0, pConsole->y - get_csi_parameter(pConsole, 1));
+            break;
+
+        case 'G':
+            Console_MoveCursorTo_Locked(pConsole, get_csi_parameter(pConsole, 1), pConsole->y);
+            break;
+
+        case 'H':
+        case 'f':
+            Console_MoveCursorTo_Locked(pConsole, get_nth_csi_parameter(pConsole, 1, 1), get_nth_csi_parameter(pConsole, 0, 1));
+            break;
+
+        default:
+            // Ignore
+            break;
+    }
+}
+
+static void Console_ESC_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
+{
+    switch (ch) {
+        case 'c':
+            Console_ResetState_Locked(pConsole);
+            break;
+
+        default:
+            // Ignore
+            break;
+    }
+}
+
+static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b)
+{
+    ConsoleRef pConsole = (ConsoleRef) pParse->user_data;
+
+    switch (action) {
+        case VTPARSE_ACTION_CSI_DISPATCH:
+            Console_CSI_Dispatch_Locked(pConsole, b);
+            break;
+
+        case VTPARSE_ACTION_ESC_DISPATCH:
+            Console_ESC_Dispatch_Locked(pConsole, b);
+            break;
+
+        case VTPARSE_ACTION_EXECUTE:
+            Console_ExecuteByte_C0_C1_Locked(pConsole, b);
+            break;
+
+        case VTPARSE_ACTION_PRINT:
+            Console_PrintByte_Locked(pConsole, b);
+            break;
+
+        default:
+            // Ignore
             break;
     }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// Read/Write
+////////////////////////////////////////////////////////////////////////////////
+
 
 // Writes the given byte sequence of characters to the console.
 // \param pConsole the console
@@ -291,14 +415,20 @@ static void Console_ProcessCharacter_Locked(ConsoleRef _Nonnull pConsole, Charac
 // \return the number of bytes writte; a negative error code if an error was encountered
 ByteCount Console_Write(ConsoleRef _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
 {
-    const Character* pChars = (const Character*) pBytes;
-    const Character* pCharsEnd = pChars + nBytesToWrite;
+    const unsigned char* pChars = (const unsigned char*) pBytes;
+    const unsigned char* pCharsEnd = pChars + nBytesToWrite;
 
     Lock_Lock(&pConsole->lock);
     while (pChars < pCharsEnd) {
-        Console_ProcessCharacter_Locked(pConsole, *pChars++);
+        const unsigned char by = *pChars++;
+
+        vtparse_byte(&pConsole->vtparse, by);
     }
     Lock_Unlock(&pConsole->lock);
+
+    //Lock_Lock(&pConsole->lock);
+    //vtparse(&pConsole->vtparse, (const unsigned char*) pBytes, (int) nBytesToWrite);
+    //Lock_Unlock(&pConsole->lock);
 
     return nBytesToWrite;
 }
