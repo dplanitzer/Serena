@@ -9,6 +9,7 @@
 #include <klib/klib.h>
 #include <console/Console.h>
 #include "DriverManager.h"
+#include "Lock.h"
 
 static Lock gLock;
 
@@ -227,7 +228,7 @@ void _printv(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, Charac
 
 #define PRINT_BUFFER_CAPACITY   80
 
-static Console*     gConsole;
+static ConsoleRef   gConsole;
 static Character    gPrintBuffer[PRINT_BUFFER_CAPACITY];
 
 
@@ -235,7 +236,7 @@ static Character    gPrintBuffer[PRINT_BUFFER_CAPACITY];
 void print_init(void)
 {
     Lock_Init(&gLock);
-    gConsole = DriverManager_GetDriverForName(gDriverManager, kConsoleName);
+    gConsole = (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
     assert(gConsole != NULL);
 }
 

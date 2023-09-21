@@ -6,24 +6,9 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Console.h"
+#include "ConsolePriv.h"
 
 static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
-
-
-//
-// Keymaps
-//
-extern const unsigned char gKeyMap_usa[];
-
-
-//
-// Fonts
-//
-extern const Byte font8x8_latin1[128][8];
-extern const Byte font8x8_dingbat[160][8];
-#define GLYPH_WIDTH     8
-#define GLYPH_HEIGHT    8
 
 
 // Creates a new console object. This console will display its output on the
@@ -31,7 +16,7 @@ extern const Byte font8x8_dingbat[160][8];
 // \param pEventDriver the event driver to provide keyboard input
 // \param pGDevice the graphics device
 // \return the console; NULL on failure
-ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, Console* _Nullable * _Nonnull pOutConsole)
+ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole)
 {
     decl_try_err();
     Console* pConsole;
@@ -67,7 +52,7 @@ catch:
 
 // Deallocates the console.
 // \param pConsole the console
-void Console_Destroy(Console* _Nullable pConsole)
+void Console_Destroy(ConsoleRef _Nullable pConsole)
 {
     if (pConsole) {
         pConsole->pGDevice = NULL;
@@ -80,14 +65,14 @@ void Console_Destroy(Console* _Nullable pConsole)
 }
 
 // Returns the console bounds.
-static Rect Console_GetBounds_Locked(Console* _Nonnull pConsole)
+static Rect Console_GetBounds_Locked(ConsoleRef _Nonnull pConsole)
 {
     return Rect_Make(0, 0, pConsole->cols, pConsole->rows);
 }
 
 // Clears the console screen.
 // \param pConsole the console
-static void Console_ClearScreen_Locked(Console* _Nonnull pConsole)
+static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole)
 {
     pConsole->x = 0;
     pConsole->y = 0;
@@ -96,7 +81,7 @@ static void Console_ClearScreen_Locked(Console* _Nonnull pConsole)
 
 // Clears the specified line. Does not change the
 // cursor position.
-static void Console_ClearLine_Locked(Console* _Nonnull pConsole, Int y)
+static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y)
 {
     const Rect bounds = Rect_Make(0, 0, pConsole->cols, pConsole->rows);
     const Rect r = Rect_Intersection(Rect_Make(0, y, pConsole->cols, 1), bounds);
@@ -108,7 +93,7 @@ static void Console_ClearLine_Locked(Console* _Nonnull pConsole, Int y)
 
 // Copies the content of 'srcRect' to 'dstLoc'. Does not change the cursor
 // position.
-static void Console_CopyRect_Locked(Console* _Nonnull pConsole, Rect srcRect, Point dstLoc)
+static void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, Point dstLoc)
 {
     GraphicsDriver_CopyRect(pConsole->pGDevice,
                             Rect_Make(srcRect.x * GLYPH_WIDTH, srcRect.y * GLYPH_HEIGHT, srcRect.width * GLYPH_WIDTH, srcRect.height * GLYPH_HEIGHT),
@@ -117,7 +102,7 @@ static void Console_CopyRect_Locked(Console* _Nonnull pConsole, Rect srcRect, Po
 
 // Fills the content of 'rect' with the character 'ch'. Does not change the
 // cursor position.
-static void Console_FillRect_Locked(Console* _Nonnull pConsole, Rect rect, Character ch)
+static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Character ch)
 {
     const Rect bounds = Rect_Make(0, 0, pConsole->cols, pConsole->rows);
     const Rect r = Rect_Intersection(rect, bounds);
@@ -144,7 +129,7 @@ static void Console_FillRect_Locked(Console* _Nonnull pConsole, Rect rect, Chara
 // pixels. Positive values move the viewport down (and scroll the virtual document
 // up) and negative values move the viewport up (and scroll the virtual document
 // down).
-static void Console_ScrollBy_Locked(Console* _Nonnull pConsole, Rect clipRect, Point dXY)
+static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, Rect clipRect, Point dXY)
 {
     if (dXY.x == 0 && dXY.y == 0) {
         return;
@@ -194,7 +179,7 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 // \param pConsole the console
 // \param dx the X delta
 // \param dy the Y delta
-static void Console_MoveCursor_Locked(Console* _Nonnull pConsole, Int dx, Int dy)
+static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int dy)
 {
     Console_MoveCursorTo_Locked(pConsole, pConsole->x + dx, pConsole->y + dy);
 }
@@ -202,7 +187,7 @@ static void Console_MoveCursor_Locked(Console* _Nonnull pConsole, Int dx, Int dy
 // Prints the given character to the console.
 // \param pConsole the console
 // \param ch the character
-static void Console_DrawCharacter_Locked(Console* _Nonnull pConsole, Character ch)
+static void Console_ProcessCharacter_Locked(ConsoleRef _Nonnull pConsole, Character ch)
 {
     const Bool isAutoscrollEnabled = (pConsole->flags & CONSOLE_FLAG_AUTOSCROLL_TO_BOTTOM) != 0;
     
@@ -217,7 +202,7 @@ static void Console_DrawCharacter_Locked(Console* _Nonnull pConsole, Character c
             
                 if (pConsole->x >= pConsole->cols && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
                     // Wrap-by-character is enabled. Treat this like a newline aka move to the first tab stop in the next line
-                    Console_DrawCharacter_Locked(pConsole, '\n');
+                    Console_ProcessCharacter_Locked(pConsole, '\n');
                 }
             }
             break;
@@ -299,106 +284,26 @@ static void Console_DrawCharacter_Locked(Console* _Nonnull pConsole, Character c
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Returns the console bounds.
-Rect Console_GetBounds(Console* _Nonnull pConsole)
-{
-    Lock_Lock(&pConsole->lock);
-    const Rect r = Console_GetBounds_Locked(pConsole);
-    Lock_Unlock(&pConsole->lock);
-    return r;
-}
-
-// Clears the console screen.
-// \param pConsole the console
-void Console_ClearScreen(Console* _Nonnull pConsole)
-{
-    Lock_Lock(&pConsole->lock);
-    Console_ClearScreen_Locked(pConsole);
-    Lock_Unlock(&pConsole->lock);
-}
-
-// Clears the specified line. Does not change the
-// cursor position.
-void Console_ClearLine(Console* _Nonnull pConsole, Int y)
-{
-    Lock_Lock(&pConsole->lock);
-    Console_ClearLine_Locked(pConsole, y);
-    Lock_Unlock(&pConsole->lock);
-}
-
-// Copies the content of 'srcRect' to 'dstLoc'. Does not change the cursor
-// position.
-void Console_CopyRect(Console* _Nonnull pConsole, Rect srcRect, Point dstLoc)
-{
-    Lock_Lock(&pConsole->lock);
-    Console_CopyRect_Locked(pConsole, srcRect, dstLoc);
-    Lock_Unlock(&pConsole->lock);
-}
-
-// Fills the content of 'rect' with the character 'ch'. Does not change the
-// cursor position.
-void Console_FillRect(Console* _Nonnull pConsole, Rect rect, Character ch)
-{
-    Lock_Lock(&pConsole->lock);
-    Console_FillRect_Locked(pConsole, rect, ch);
-    Lock_Unlock(&pConsole->lock);
-}
-
-// Scrolls the content of the console screen. 'clipRect' defines a viewport through
-// which a virtual document is visible. This viewport is scrolled by 'dX' / 'dY'
-// pixels. Positive values move the viewport down (and scroll the virtual document
-// up) and negative values move the viewport up (and scroll the virtual document
-// down).
-void Console_ScrollBy(Console* _Nonnull pConsole, Rect clipRect, Point dXY)
-{
-    Lock_Lock(&pConsole->lock);
-    Console_ScrollBy_Locked(pConsole, clipRect, dXY);
-    Lock_Unlock(&pConsole->lock);
-}
-
-// Sets the console position. The next print() will start printing at this
-// location.
-// \param pConsole the console
-// \param x the X position
-// \param y the Y position
-void Console_MoveCursorTo(Console* _Nonnull pConsole, Int x, Int y)
-{
-    Lock_Lock(&pConsole->lock);
-    Console_MoveCursorTo_Locked(pConsole, x, y);
-    Lock_Unlock(&pConsole->lock);
-}
-
-// Moves the console position by the given delta values.
-// \param pConsole the console
-// \param dx the X delta
-// \param dy the Y delta
-void Console_MoveCursor(Console* _Nonnull pConsole, Int dx, Int dy)
-{
-    Lock_Lock(&pConsole->lock);
-    Console_MoveCursorTo_Locked(pConsole, pConsole->x + dx, pConsole->y + dy);
-    Lock_Unlock(&pConsole->lock);
-}
-
 // Writes the given byte sequence of characters to the console.
 // \param pConsole the console
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes writte; a negative error code if an error was encountered
-ByteCount Console_Write(Console* _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
+ByteCount Console_Write(ConsoleRef _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
 {
     const Character* pChars = (const Character*) pBytes;
     const Character* pCharsEnd = pChars + nBytesToWrite;
 
     Lock_Lock(&pConsole->lock);
     while (pChars < pCharsEnd) {
-        Console_DrawCharacter_Locked(pConsole, *pChars++);
+        Console_ProcessCharacter_Locked(pConsole, *pChars++);
     }
     Lock_Unlock(&pConsole->lock);
 
     return nBytesToWrite;
 }
 
-ByteCount Console_Read(Console* _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     HIDEvent evt;
     Int evtCount;

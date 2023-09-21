@@ -11,6 +11,7 @@
 #include "EventDriver.h"
 #include "FloppyDisk.h"
 #include "GraphicsDriver.h"
+#include "Lock.h"
 #include "RealtimeClock.h"
 
 
@@ -170,7 +171,7 @@ ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManag
 
 
     // Initialize the console
-    Console* pConsole = NULL;
+    ConsoleRef pConsole = NULL;
     try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
     try(DriverManager_AddDriver_Locked(pManager, kConsoleName, pConsole));
 

@@ -21,11 +21,11 @@ typedef struct _SYS_read_args {
 ByteCount _SYSCALL_read(const SYS_read_args* _Nonnull pArgs)
 {
     decl_try_err();
-    Console* pConsole;
+    ConsoleRef pConsole;
     const ByteCount nBytesToRead = __ByteCountByClampingUByteCount(pArgs->nbytes);
 
     throw_ifnull(pArgs->buffer, EPARAM);
-    try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+    try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
     return Console_Read(pConsole, pArgs->buffer, nBytesToRead);
 
 catch:
@@ -42,11 +42,11 @@ typedef struct _SYS_write_args {
 ByteCount _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
-    Console* pConsole;
+    ConsoleRef pConsole;
     const ByteCount nBytesToWrite = __ByteCountByClampingUByteCount(pArgs->nbytes);
 
     throw_ifnull(pArgs->buffer, EPARAM);
-    try_null(pConsole, DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+    try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
     return Console_Write(pConsole, pArgs->buffer, nBytesToWrite);
 
 catch:
