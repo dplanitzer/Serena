@@ -82,8 +82,7 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     try(TabStops_Init(&pConsole->vTabStops, 0, 0));
 
     Console_MoveCursorTo_Locked(pConsole, 0, 0);
-    pConsole->isAutoScrollEnabled = true;
-    pConsole->lineBreakMode = kLineBreakMode_WrapCharacter;
+    pConsole->lineBreakMode = kLineBreakMode_WrapCharacterAndScroll;
 
     return EOK;
 
@@ -95,8 +94,6 @@ catch:
 // \param pConsole the console
 static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole)
 {
-    pConsole->x = 0;
-    pConsole->y = 0;
     GraphicsDriver_Clear(pConsole->pGDevice);
 }
 
@@ -241,7 +238,55 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 // \param dy the Y delta
 static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int dy)
 {
-    Console_MoveCursorTo_Locked(pConsole, pConsole->x + dx, pConsole->y + dy);
+    const Int eX = pConsole->bounds.width - 1;
+    const Int eY = pConsole->bounds.height - 1;
+    Int x = pConsole->x + dx;
+    Int y = pConsole->y + dy;
+
+    switch (pConsole->lineBreakMode) {
+        case kLineBreakMode_Clamp:
+            x = __max(__min(x, eX), 0);
+            y = __max(__min(y, eY), 0);
+            break;
+
+        case kLineBreakMode_WrapCharacter:
+            if (x < 0) {
+                x = eX;
+                y--;
+            }
+            else if (x >= eX) {
+                x = 0;
+                y++;
+            }
+            break;
+
+        case kLineBreakMode_WrapCharacterAndScroll:
+            if (x < 0) {
+                x = eX;
+                y--;
+            }
+            else if (x >= eX) {
+                x = 0;
+                y++;
+            }
+
+            if (y < 0) {
+                Console_ScrollBy_Locked(pConsole, 0, y);
+                y = 0;
+            }
+            else if (y >= eY) {
+                Console_ScrollBy_Locked(pConsole, 0, y - eY);
+                y = eY;
+            }
+            break;
+
+        default:
+            abort();
+            break;
+    }
+
+    pConsole->x = x;
+    pConsole->y = y;
 }
 
 
@@ -254,23 +299,9 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
 // \param ch the character
 static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
-    if (pConsole->x >= pConsole->bounds.width && pConsole->lineBreakMode == kLineBreakMode_WrapCharacter) {
-        // wrap the line if wrap-by-character is active
-        pConsole->x = 0;
-        pConsole->y++;
-    }
-
-    if (pConsole->y >= pConsole->bounds.height && pConsole->isAutoScrollEnabled) {
-        // auto scroll the console if we hit the bottom edge
-        Console_ScrollBy_Locked(pConsole, 0, 1);
-        pConsole->y--;
-    }
-            
-    if ((pConsole->x >= 0 && pConsole->x < pConsole->bounds.width) && (pConsole->y >= 0 && pConsole->y < pConsole->bounds.height)) {
-        GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
-    }
-
-    pConsole->x++;
+    // The cursor position is always valid and inside the framebuffer
+    GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
+    Console_MoveCursor_Locked(pConsole, 1, 0);
 }
 
 static void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole)
@@ -312,40 +343,10 @@ static void Console_Execute_VTS_Locked(ConsoleRef _Nonnull pConsole)
     TabStops_InsertStop(&pConsole->vTabStops, pConsole->y);
 }
 
-static void Console_Execute_IND_Locked(ConsoleRef _Nonnull pConsole)
-{
-    pConsole->y++;
-    if (pConsole->y == pConsole->bounds.height && pConsole->isAutoScrollEnabled) {
-        Console_ScrollBy_Locked(pConsole, 0, 1);
-        pConsole->y--;
-    }
-}
-
-static void Console_Execute_RI_Locked(ConsoleRef _Nonnull pConsole)
-{
-    pConsole->y--;
-    if (pConsole->y == 0 && pConsole->isAutoScrollEnabled) {
-        Console_ScrollBy_Locked(pConsole, 0, -1);
-        pConsole->y++;
-    }
-}
-
-// Next line always moves the cursor to the beginning of the next line and triggers
-// scrolling if necessary
-static void Console_Execute_NEL_Locked(ConsoleRef _Nonnull pConsole)
-{
-    pConsole->x = 0;
-    pConsole->y++;
-    if (pConsole->y == pConsole->bounds.height && pConsole->isAutoScrollEnabled) {
-        Console_ScrollBy_Locked(pConsole, 0, 1);
-        pConsole->y--;
-    }
-}
-
 // Line feed may be IND or NEL depending on a setting (that doesn't exist yet)
 static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole)
 {
-    Console_Execute_NEL_Locked(pConsole);
+    Console_MoveCursor_Locked(pConsole, -pConsole->x, 1);
 }
 
 static void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
@@ -401,11 +402,11 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
             
         case 0x84:  // IND (Index)
-            Console_Execute_IND_Locked(pConsole);
+            Console_MoveCursor_Locked(pConsole, 0, 1);
             break;
 
         case 0x85:  // NEL (Next Line)
-            Console_Execute_NEL_Locked(pConsole);
+            Console_MoveCursor_Locked(pConsole, -pConsole->x, 1);
             break;
 
         case 0x88:  // HTS (Horizontal Tabulation Set)
@@ -417,7 +418,7 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
 
         case 0x8d:  // RI (Reverse Line Feed)
-            Console_Execute_RI_Locked(pConsole);
+            Console_MoveCursor_Locked(pConsole, 0, -1);
             break;
             
         case 0x94:  // CCH (Cancel Character (replace the previous character with a space))
@@ -660,11 +661,11 @@ static void Console_ESC_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'D':
-            Console_Execute_IND_Locked(pConsole);
+            Console_MoveCursor_Locked(pConsole, 0, 1);
             break;
 
         case 'E':
-            Console_Execute_NEL_Locked(pConsole);
+            Console_MoveCursor_Locked(pConsole, -pConsole->x, 1);
             break;
 
         case 'H':
@@ -676,7 +677,7 @@ static void Console_ESC_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'M':
-            Console_Execute_RI_Locked(pConsole);
+            Console_MoveCursor_Locked(pConsole, 0, -1);
             break;
             
         default:

@@ -28,8 +28,11 @@
 
 
 typedef enum _LineBreakMode {
-    kLineBreakMode_Clip = 0,        // Stay in current line and clip characters beyond the console edge
-    kLineBreakMode_WrapCharacter    // Move to next line and continue printing starting from the left console edge
+    kLineBreakMode_Clamp = 0,       // Force the insertion point to the last character cell in the line, if it would move past the right margin
+    kLineBreakMode_WrapCharacter,   // Move the insertion point to the beginning of the next line if it moves past the right margin. Force the
+                                    // insertion point to the last character cell of the last line if it would move past the bottom margin
+    kLineBreakMode_WrapCharacterAndScroll   // Move the insertion point to the beginning of the next line if it moves past the right margin and
+                                            // scroll the screen content up one line if it moves past the bottom margin
 } LineBreakMode;
 
 // The values are chosen based on the EL (Erase in Line) CSI (CSI n K)
@@ -80,8 +83,7 @@ typedef struct _Console {
     Rect                        bounds;
     Int                         x;
     Int                         y;
-    Int8                        lineBreakMode;
-    Bool                        isAutoScrollEnabled;
+    LineBreakMode               lineBreakMode;
     Point                       savedCursorPosition;
     vtparse_t                   vtparse;
     KeyMapper                   keyMapper;
