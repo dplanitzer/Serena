@@ -343,6 +343,41 @@ catch:
 // MARK: GraphicsDriver
 ////////////////////////////////////////////////////////////////////////////////
 
+static const ColorTable gDefaultColorTable = {
+    0x0000,
+    0x00f0,     // XXX Console foreground color
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0fff,
+    0x0000,     // XXX Mouse cursor
+    0x0000      // XXX Mouse cursor
+};
+
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
 
 
@@ -388,17 +423,9 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
                                                          &pDriver->vblank_sema,
                                                          &pDriver->vb_irq_handler));
     
+
     // Initialize the video config related stuff
-    // XXX Set the console colors
-    denise_set_clut_entry(0, 0x0000);
-    denise_set_clut_entry(1, 0x00f0);
-    for (int i = 2; i < 32; i++) {
-        denise_set_clut_entry(i, 0x0fff);
-    }
-    // XXX Set for the mouse cursor
-    denise_set_clut_entry(29, 0x0fff);
-    denise_set_clut_entry(30, 0x0000);
-    denise_set_clut_entry(31, 0x0000);
+    GraphicsDriver_SetCLUT(pDriver, &gDefaultColorTable);
 
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->vb_irq_handler, true);
 
@@ -419,8 +446,7 @@ catch:
 void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        denise_set_clut_entry(0, 0);
-        denise_stop_video_refresh();
+        GraphicsDriver_StopVideoRefresh(pDriver);
         
         try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vb_irq_handler));
         pDriver->vb_irq_handler = 0;
@@ -454,6 +480,14 @@ Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull pDriver)
 Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDriver)
 {
     return pDriver->screen->framebuffer;
+}
+
+// Stops the video refresh circuitry
+void GraphicsDriver_StopVideoRefresh(GraphicsDriverRef _Nonnull pDriver)
+{
+    CHIPSET_BASE_DECL(cp);
+
+    *CHIPSET_REG_16(cp, DMACON) = (DMAF_COPPER | DMAF_RASTER | DMAF_SPRITE | DMAF_BLITTER);
 }
 
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
@@ -507,6 +541,25 @@ static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull
 
 catch:
     return err;
+}
+
+// Writes the given RGB color to the color register at index idx
+void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor)
+{
+    const UInt16 rgb = (pColor->r >> 4 & 0x0f) | (pColor->g >> 4 & 0x0f) | (pColor->b >> 4 & 0x0f);
+    CHIPSET_BASE_DECL(cp);
+
+    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = rgb;
+}
+
+// Sets the CLUT
+void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT)
+{
+    CHIPSET_BASE_DECL(cp);
+
+    for (Int i = 0; i < CLUT_ENTRY_COUNT; i++) {
+        *CHIPSET_REG_16(cp, COLOR_BASE + (i << 1)) = pCLUT->entry[i];
+    }
 }
 
 // Fills the framebuffer with the background color. This is black for RGB direct

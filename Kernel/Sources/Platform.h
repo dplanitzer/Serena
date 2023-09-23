@@ -443,14 +443,6 @@ extern Int copper_get_running_program_id(void);
 
 
 //
-// Denise
-//
-
-extern denise_stop_video_refresh(void);
-extern void denise_set_clut_entry(Int index, UInt16 color);
-
-
-//
 // Zorro Bus
 //
 

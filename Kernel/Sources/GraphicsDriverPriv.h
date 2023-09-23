@@ -35,6 +35,12 @@ struct _VideoConfiguration {
 };
 
 
+#define CLUT_ENTRY_COUNT 32
+typedef struct _ColorTable {
+    UInt16  entry[CLUT_ENTRY_COUNT];
+} ColorTable;
+
+
 typedef struct _Screen {
     Surface* _Nullable                  framebuffer;            // the screen framebuffer
     CopperInstruction* _Nullable        copperProgramOddField;  // Odd field interlaced or non-interlaced
@@ -60,5 +66,11 @@ typedef struct _GraphicsDriver {
     Int16                   mouse_cursor_hotspot_y;
     Bool                    is_light_pen_enabled;
 } GraphicsDriver;
+
+
+extern void GraphicsDriver_StopVideoRefresh(GraphicsDriverRef _Nonnull pDriver);
+
+extern void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor);
+extern void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT);
 
 #endif /* GraphicsDriverPriv_h */
