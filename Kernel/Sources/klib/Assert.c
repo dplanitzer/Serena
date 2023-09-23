@@ -34,7 +34,6 @@ extern const Byte font8x8_latin1[128][8];
 typedef struct _VideoConfig {
     Int16       width;
     Int16       height;
-    Int8        fps;
     UInt8       diw_start_h;        // display window start
     UInt8       diw_start_v;
     UInt8       diw_stop_h;         // display window stop
@@ -43,7 +42,6 @@ typedef struct _VideoConfig {
     UInt8       ddf_stop;           // data fetch stop
     UInt8       ddf_mod;            // number of padding bytes stored in memory between scan lines
     UInt16      bplcon0;            // BPLCON0 template value
-    UInt8       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert them from screen coords to sprite coords [h:4,v:4]
 } VideoConfig;
 
 // DDIWSTART = specific to mode. See hardware reference manual
@@ -51,10 +49,10 @@ typedef struct _VideoConfig {
 // DDFSTART = low res: DDIWSTART / 2 - 8; high res: DDIWSTART / 2 - 4
 // DDFSTOP = low res: DDFSTART + 8*(nwords - 2); high res: DDFSTART + 4*(nwords - 2)
 static const VideoConfig kVidConfig_NTSC_640_200_60 = {
-        640, 200, 60, 0x81, 0x2c, 0xc1, 0xf4, 0x3c, 0xd4, 0, 0x8200, 0x10
+        640, 200, 0x81, 0x2c, 0xc1, 0xf4, 0x3c, 0xd4, 0, 0x8200
     };
 static const VideoConfig kVidConfig_PAL_640_256_50 = {
-        640, 256, 50, 0x81, 0x2c, 0xc1, 0x2c, 0x3c, 0xd4, 0, 0x8200, 0x10
+        640, 256, 0x81, 0x2c, 0xc1, 0x2c, 0x3c, 0xd4, 0, 0x8200
     };
 
 
@@ -70,7 +68,7 @@ typedef struct _MicroConsole {
 
 
 // Forces the execution of the given Copper program.
-static void copper_force_run_program(const CopperInstruction* _Nullable pOddFieldProg)
+static void run_copper_program(const CopperInstruction* _Nullable pOddFieldProg)
 {
     CHIPSET_BASE_DECL(cp);
 
@@ -147,7 +145,7 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
 
 
     // Install the Copper program
-    copper_force_run_program(pCode);
+    run_copper_program(pCode);
 }
 
 static void micro_console_move_cursor(MicroConsole* _Nonnull pCon, Int dX, Int dY)
