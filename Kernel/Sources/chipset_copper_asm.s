@@ -15,7 +15,6 @@
     xdef _copper_schedule_program
     xdef _copper_get_running_program_id
     xdef _copper_run
-    xdef _copper_force_run_program
 
 
 ;-------------------------------------------------------------------------------
@@ -113,24 +112,3 @@ _copper_run:
 .cop_run_even_field_prog:
     move.l  cop_running_prog_even_field(a0), d0
     bra.s   .cop_run_done
-
-
-;-------------------------------------------------------------------------------
-; void copper_force_run_program(const CopperInstruction* _Nullable pOddFieldProg)
-; Forces the execution of the given Copper program. This is ment for debugging
-; purposes only.
-_copper_force_run_program:
-    cargs cfrp_odd_field_prog.l
-
-    move.l  cfrp_odd_field_prog(sp), d0
-    lea     CUSTOM_BASE, a1
-
-    ; move the scheduled program to running state. But be sure to first turn off
-    ; the Copper and raster DMA. Then move the data. Then turn the Copper DMA
-    ; back on if we have a prog. The program is responsible for turning the raster
-    ; DMA on.
-    move.w  #(DMAF_COPPER | DMAF_RASTER | DMAF_SPRITE), DMACON(a1)
-    move.l  d0, COP1LC(a1)
-    move.w  d0, COPJMP1(a1)
-    move.w  #(DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER), DMACON(a1)
-    rts

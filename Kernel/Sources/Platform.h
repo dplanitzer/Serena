@@ -263,8 +263,10 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define BPL6PTH     0x0f4
 #define BPL6PTL     0x0f6
 
+#define COP1LC      0x080
 #define COP1LCH     0x080
 #define COP1LCL     0x082
+#define COP2LC      0x084
 #define COP2LCH     0x084
 #define COP2LCL     0x086
 #define COPJMP1     0x088
@@ -328,6 +330,32 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define COLOR31     COLOR_BASE+0x3E
 
 #define BPLCON0_LACE    0x0004
+
+#define DMAF_SETCLR     0x8000
+#define DMAF_AUDIO      0x000f       // mask
+#define DMAF_AUD0       0x0001
+#define DMAF_AUD1       0x0002
+#define DMAF_AUD2       0x0004
+#define DMAF_AUD3       0x0008
+#define DMAF_DISK       0x0010
+#define DMAF_SPRITE     0x0020
+#define DMAF_BLITTER    0x0040
+#define DMAF_COPPER     0x0080
+#define DMAF_RASTER     0x0100
+#define DMAF_MASTER     0x0200
+#define DMAF_BLITHOG    0x0400
+#define DMAF_ALL        0x01ff       // mask
+
+
+// Reading / Writing chipset registers
+#define CHIPSET_BASE_DECL(cp) \
+    volatile Byte* cp = (volatile Byte*) CUSTOM_BASE
+
+#define CHIPSET_REG_16(cp, r) \
+    ((volatile UInt16*)(cp + r))
+
+#define CHIPSET_REG_32(cp, r) \
+    ((volatile UInt32*)(cp + r))
 
 
 // Copper instructions
@@ -410,8 +438,6 @@ extern CopperScheduler  gCopperSchedulerStorage;
 
 extern void copper_schedule_program(const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg, Int progId);
 extern Int copper_get_running_program_id(void);
-
-extern void copper_force_run_program(const CopperInstruction* _Nullable pOddFieldProg);
 
 
 //

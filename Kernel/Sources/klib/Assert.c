@@ -66,8 +66,22 @@ typedef struct _MicroConsole {
     Int                         y;
 } MicroConsole;
 
-static void micro_console_cls(MicroConsole* _Nonnull pCon);
 
+// Forces the execution of the given Copper program.
+static void copper_force_run_program(const CopperInstruction* _Nullable pOddFieldProg)
+{
+    CHIPSET_BASE_DECL(cp);
+
+    *CHIPSET_REG_16(cp, DMACON) = (DMAF_COPPER | DMAF_RASTER | DMAF_SPRITE | DMAF_BLITTER | DMAF_DISK | DMAF_AUD0 | DMAF_AUD1 | DMAF_AUD2 | DMAF_AUD3 | DMAF_MASTER);
+    *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pOddFieldProg;
+    *CHIPSET_REG_16(cp, COPJMP1) = 0;
+    *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
+}
+
+static void micro_console_cls(MicroConsole* _Nonnull pCon)
+{
+    Bytes_ClearRange(pCon->framebuffer, pCon->bytesPerRow * pCon->config->height);
+}
 
 static void micro_console_init(MicroConsole* _Nonnull pCon)
 {
@@ -127,11 +141,6 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
     copper_force_run_program(pCode);
 }
 
-static void micro_console_cls(MicroConsole* _Nonnull pCon)
-{
-    Bytes_ClearRange(pCon->framebuffer, pCon->bytesPerRow * pCon->config->height);
-}
-
 static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, Character ch, Int x, Int y)
 {
     const Int bytesPerRow = pCon->bytesPerRow;
@@ -179,7 +188,7 @@ static void micro_console_draw_character(MicroConsole* _Nonnull pCon, Character 
             pCon->x = 0;
             break;
             
-        case 12:    // FF Form feed (new page / clear screen)
+        case 0x0c:  // FF Form feed (new page / clear screen)
             micro_console_cls(pCon);
             break;
             
