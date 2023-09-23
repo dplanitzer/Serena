@@ -43,6 +43,7 @@ typedef struct _InterruptController {
     Int                     nextAvailableId;    // Next available interrupt handler ID
     Int                     spuriousInterruptCount;
     Int                     uninitializedInterruptCount;
+    Int                     nonMaskableInterruptCount;
     Lock                    lock;
 } InterruptController;
 

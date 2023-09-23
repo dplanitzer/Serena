@@ -78,7 +78,7 @@ _cpu_vector_table:
     dc.l IRQHandler_L4                  ; 28, Level 4 (Audio)
     dc.l IRQHandler_L5                  ; 29, Level 5 (Disk, Serial port)
     dc.l IRQHandler_L6                  ; 30, Level 6 (External INT6, CIAB)
-    dc.l IgnoreTrap                     ; 31, Level 7 (NMI - Unused)
+    dc.l IRQHandler_NMI                 ; 31, Level 7 (NMI - Unused)
     dc.l _SystemCallHandler             ; 32, Trap #0
     dc.l _cpu_return_from_call_as_user  ; 33, Trap #1
     dc.l IgnoreTrap                     ; 34, Trap #2
@@ -229,7 +229,6 @@ FatalException:
 ; Uninitialized IRQ handler
     align 2
 IRQHandler_Unitialized:
-    DISABLE_ALL_IRQS
     addq.l  #1, _gInterruptControllerStorage + irc_uninitializedInterruptCount
     rte
 
@@ -238,8 +237,15 @@ IRQHandler_Unitialized:
 ; Spurious IRQ handler
     align 2
 IRQHandler_Spurious:
-    DISABLE_ALL_IRQS
     addq.l  #1, _gInterruptControllerStorage + irc_spuriousInterruptCount
+    rte
+
+
+;-------------------------------------------------------------------------------
+; NMI handler
+    align 2
+IRQHandler_NMI:
+    addq.l  #1, _gInterruptControllerStorage + irc_nonMaskableInterruptCount
     rte
 
 
@@ -303,12 +309,11 @@ irq_handler_ciaa_flag:
     CALL_IRQ_HANDLERS irc_handlers_CIA_A_FLAG
 
 irq_handler_ports:
-    lea     CUSTOM_BASE, a0
-    move.w  INTREQR(a0), d7
-    move.w  #INTF_PORTS, INTREQ(a0)
-
+    move.w  CUSTOM_BASE + INTREQR, d7
     btst    #INTB_PORTS, d7
     beq     irq_handler_done
+
+    move.w  #INTF_PORTS, CUSTOM_BASE + INTREQ
     CALL_IRQ_HANDLERS irc_handlers_PORTS
     beq     irq_handler_done
 
@@ -429,12 +434,11 @@ irq_handler_ciab_flag:
     CALL_IRQ_HANDLERS irc_handlers_CIA_B_FLAG
 
 irq_handler_exter:
-    lea     CUSTOM_BASE, a0
-    move.w  INTREQR(a0), d7
-    move.w  #INTF_EXTER, INTREQ(a0)
-
+    move.w  CUSTOM_BASE + INTREQR, d7
     btst    #INTB_EXTER, d7
     beq.s   irq_handler_done
+
+    move.w  #INTF_EXTER, CUSTOM_BASE + INTREQ
     CALL_IRQ_HANDLERS irc_handlers_EXTER
 
     ; FALL THROUGH
@@ -447,9 +451,5 @@ irq_handler_exter:
 irq_handler_done:
     movem.l (sp)+, d0 - d1 / d7 / a0 - a1
     btst    #0, (_gVirtualProcessorSchedulerStorage + vps_csw_signals)
-    bne.s   irq_handler_do_csw
+    bne.l   __rtecall_VirtualProcessorScheduler_SwitchContext
     rte
-
-irq_handler_do_csw:
-    jmp __rtecall_VirtualProcessorScheduler_SwitchContext
-    ; NOT REACHED

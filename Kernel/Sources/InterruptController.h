@@ -77,6 +77,9 @@ extern Int InterruptController_GetUniniatializedInterruptCount(InterruptControll
 // hardware.
 extern Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController);
 
+// Returns the number of non=maskable interrupts that have happened since boot.
+extern Int InterruptController_GetNonMaskableInterruptCount(InterruptControllerRef _Nonnull pController);
+
 extern void InterruptController_Dump(InterruptControllerRef _Nonnull pController);
 
 #endif /* InterruptController_h */

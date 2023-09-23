@@ -323,6 +323,12 @@ Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnul
     return pController->spuriousInterruptCount;
 }
 
+// Returns the number of non=maskable interrupts that have happened since boot.
+Int InterruptController_GetNonMaskableInterruptCount(InterruptControllerRef _Nonnull pController)
+{
+    return pController->nonMaskableInterruptCount;
+}
+
 // Called by the low-level interrupt handler code. Invokes the interrupt handlers
 // for the given interrupt
 void InterruptController_OnInterrupt(InterruptHandlerArray* _Nonnull pArray)
