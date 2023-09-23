@@ -24,6 +24,8 @@
 #define FRAMEBUFFER_BASE_ADDR   0x11000
 #define PRINT_BUFFER_CAPACITY   80
 
+#define TAB_WIDTH 8
+
 extern const Byte font8x8_latin1[128][8];
 #define GLYPH_WIDTH     8
 #define GLYPH_HEIGHT    8
@@ -72,10 +74,17 @@ static void copper_force_run_program(const CopperInstruction* _Nullable pOddFiel
 {
     CHIPSET_BASE_DECL(cp);
 
-    *CHIPSET_REG_16(cp, DMACON) = (DMAF_COPPER | DMAF_RASTER | DMAF_SPRITE | DMAF_BLITTER | DMAF_DISK | DMAF_AUD0 | DMAF_AUD1 | DMAF_AUD2 | DMAF_AUD3 | DMAF_MASTER);
+    *CHIPSET_REG_16(cp, DMACON) = DMAF_COPPER;
     *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pOddFieldProg;
-    *CHIPSET_REG_16(cp, COPJMP1) = 0;
     *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
+    *CHIPSET_REG_16(cp, COPJMP1) = 0;
+}
+
+static void set_clut_entry(Int idx, UInt16 color)
+{
+    CHIPSET_BASE_DECL(cp);
+
+    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = color;
 }
 
 static void micro_console_cls(MicroConsole* _Nonnull pCon)
@@ -122,7 +131,7 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
     pCode[ip++] = COP_MOVE(BPL1PTL, bplpt & UINT16_MAX);
 
     // DMACON
-    pCode[ip++] = COP_MOVE(DMACON, 0x8300);
+    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER);
 
     // End
     pCode[ip++] = COP_END();
@@ -133,12 +142,39 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
 
 
     // Set the CLUT up
-    denise_set_clut_entry(0, 0x036a);    // #306ab0
-    denise_set_clut_entry(1, 0x0fff);    // #ffffff
+    set_clut_entry(0, 0x036a);    // #306ab0
+    set_clut_entry(1, 0x0fff);    // #ffffff
 
 
     // Install the Copper program
     copper_force_run_program(pCode);
+}
+
+static void micro_console_move_cursor(MicroConsole* _Nonnull pCon, Int dX, Int dY)
+{
+    const Int eX = pCon->cols - 1;
+    const Int eY = pCon->rows - 1;
+    Int x = pCon->x + dX;
+    Int y = pCon->y + dY;
+
+    if (x < 0) {
+        x = eX;
+        y--;
+    }
+    else if (x >= eX) {
+        x = 0;
+        y++;
+    }
+
+    if (y < 0) {
+        y = 0;
+    }
+    else if (y >= eY) {
+        y = eY;
+    }
+
+    pCon->x = x;
+    pCon->y = y;
 }
 
 static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, Character ch, Int x, Int y)
@@ -146,11 +182,7 @@ static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, Character ch, 
     const Int bytesPerRow = pCon->bytesPerRow;
     const Int maxX = pCon->config->width >> 3;
     const Int maxY = pCon->config->height >> 3;
-    
-    if (x < 0 || y < 0 || x >= maxX || y >= maxY) {
-        return;
-    }
-    
+
     Byte* dst = pCon->framebuffer + (y << 3) * bytesPerRow + x;
     const Byte* src = &font8x8_latin1[ch][0];
     
@@ -167,25 +199,19 @@ static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, Character ch, 
 // Prints the given character to the console.
 // \param pConsole the console
 // \param ch the character
-static void micro_console_draw_character(MicroConsole* _Nonnull pCon, Character ch)
+static void micro_console_draw_char(MicroConsole* _Nonnull pCon, Character ch)
 {
     switch (ch) {
-        case '\0':
-            break;
-            
         case '\t':
-            micro_console_draw_character(pCon, ' ');
+            micro_console_move_cursor(pCon, (pCon->x / TAB_WIDTH + 1) * TAB_WIDTH - pCon->x, 0);
             break;
 
         case '\n':
-            pCon->x = 0;
-            if (pCon->y < pCon->rows - 1) {
-                pCon->y++;
-            }
+            micro_console_move_cursor(pCon, -pCon->x, 1);
             break;
             
         case '\r':
-            pCon->x = 0;
+            micro_console_move_cursor(pCon, -pCon->x, 0);
             break;
             
         case 0x0c:  // FF Form feed (new page / clear screen)
@@ -193,23 +219,10 @@ static void micro_console_draw_character(MicroConsole* _Nonnull pCon, Character 
             break;
             
         default:
-            if (ch < 32) {
-                // non-prinable (control code 0) characters do nothing
-                break;
-            }
-            
-            if (pCon->x >= pCon->cols && pCon->cols > 0) {
-                // do wrap-by-character
-                pCon->x = 0;
-                if (pCon->y < pCon->rows - 1) {
-                    pCon->y++;
-                }
-            }
-
-            if ((pCon->x >= 0 && pCon->x < pCon->cols) && (pCon->y >= 0 && pCon->y < pCon->rows)) {
+            if (ch >= 32) {
                 micro_console_blit_glyph(pCon, ch, pCon->x, pCon->y);
+                micro_console_move_cursor(pCon, 1, 0);
             }
-            pCon->x++;
             break;
     }
 }
@@ -220,7 +233,7 @@ static void micro_console_write(MicroConsole* _Nonnull pCon, const Character* _N
     const Character* pEndByte = pCurByte + nBytes;
     
     while (pCurByte < pEndByte) {
-        micro_console_draw_character(pCon, *pCurByte++);
+        micro_console_draw_char(pCon, *pCurByte++);
     }
 }
 
@@ -252,6 +265,7 @@ static void fprint(MicroConsole* _Nonnull pCon, const Character* _Nonnull format
 
 static void stop_machine()
 {
+    chipset_stop_dma_channels();
     cpu_disable_irqs();
     chipset_stop_quantum_timer();
 }

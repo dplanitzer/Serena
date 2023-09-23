@@ -13,6 +13,7 @@
     xref _gCopperSchedulerStorage
 
     xdef _chipset_reset
+    xdef _chipset_stop_dma_channels
     xdef _chipset_enable_interrupt
     xdef _chipset_disable_interrupt
     xdef _chipset_start_quantum_timer
@@ -156,6 +157,15 @@ cdi_ciab_interrupts:
     ; fall through
 
 cdi_done:
+    rts
+
+
+;-------------------------------------------------------------------------------
+; void chipset_stop_dma_channels(void)
+; Stops all DMA channels managed by the chipset.
+_chipset_stop_dma_channels:
+    move.w  #$7fff, DMACON(a0)  ; disable DMA
+    move.w  #$4000, DSKLEN(a0)  ; disable disk DMA
     rts
 
 

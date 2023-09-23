@@ -407,6 +407,8 @@ extern Byte* chipset_get_upper_dma_limit(Int chipset_version);
 extern void chipset_enable_interrupt(Int interruptId);
 extern void chipset_disable_interrupt(Int interruptId);
 
+extern void chipset_stop_dma_channels(void);
+
 
 #define INTERRUPT_ID_QUANTUM_TIMER  INTERRUPT_ID_CIA_A_TIMER_B
 

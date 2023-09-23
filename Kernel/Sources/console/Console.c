@@ -258,6 +258,13 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
                 x = 0;
                 y++;
             }
+
+            if (y < 0) {
+                y = 0;
+            }
+            else if (y >= eY) {
+                y = eY;
+            }
             break;
 
         case kLineBreakMode_WrapCharacterAndScroll:
