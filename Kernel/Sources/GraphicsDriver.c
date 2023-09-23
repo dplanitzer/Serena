@@ -6,10 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "GraphicsDriver.h"
-#include "InterruptController.h"
-#include "Platform.h"
-#include "Semaphore.h"
+#include "GraphicsDriverPriv.h"
 
 #define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
     (UInt16)(((_15) << 15) | ((_14) << 14) | ((_13) << 13) | ((_12) << 12) | ((_11) << 11) |\
@@ -18,29 +15,6 @@
 
 #define _ 0
 #define o 1
-
-#define ARROW_BITS_PLANE1 \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,_,o,o,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
-static const UInt16 gArrow_Plane1[] = {
-    ARROW_BITS_PLANE1
-};
 
 #define ARROW_BITS_PLANE0 \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
@@ -63,6 +37,29 @@ PACK_U16( _,_,_,_,_,_,o,o,o,_,_,_,_,_,_,_ ), \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
 static const UInt16 gArrow_Plane0[] = {
     ARROW_BITS_PLANE0
+};
+
+#define ARROW_BITS_PLANE1 \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,o,_,o,o,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,o,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
+static const UInt16 gArrow_Plane1[] = {
+    ARROW_BITS_PLANE1
 };
 
 
@@ -130,33 +127,35 @@ const VideoConfiguration kVideoConfig_PAL_640_512_25 = {7, 640, 512, 25,
 // MARK: Copper program compiler
 ////////////////////////////////////////////////////////////////////////////////
 
-
-static const UInt8 BPLxPTH[MAX_PLANE_COUNT] = {BPL1PTH, BPL2PTH, BPL3PTH, BPL4PTH, BPL5PTH, BPL6PTH};
-static const UInt8 BPLxPTL[MAX_PLANE_COUNT] = {BPL1PTL, BPL2PTL, BPL3PTL, BPL4PTL, BPL5PTL, BPL6PTL};
-
 // Computes the size of a Copper program. The size is given in terms of the
 // number of Copper instruction words.
-static Int CopperCompiler_GetScreenRefreshProgramInstructionCount(const VideoConfiguration* _Nonnull pConfig, Int nplanes)
+static Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen)
 {
-    return 3                // BPLCONx
-            + 2             // DIWSTART, DIWSTOP
-            + 2             // DDFSTART, DDF_STOP
-            + 2             // BPLxMOD
-            + 2 * nplanes   // BPLxPT[nplanes]
-            + 16            // SPRxPT
-            + 1;            // DMACON
+    Surface* pFramebuffer = pScreen->framebuffer;
+
+    return 3                                // BPLCONx
+            + 2                             // DIWSTART, DIWSTOP
+            + 2                             // DDFSTART, DDF_STOP
+            + 2                             // BPLxMOD
+            + 2 * pFramebuffer->planeCount  // BPLxPT[nplanes]
+            + 16                            // SPRxPT
+            + 1;                            // DMACON
 }
 
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
-static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, const VideoConfiguration* _Nonnull pConfig, Surface* _Nonnull pSurface, Bool isOddField, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled)
+static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isOddField)
 {
+    static const UInt8 BPLxPTH[MAX_PLANE_COUNT] = {BPL1PTH, BPL2PTH, BPL3PTH, BPL4PTH, BPL5PTH, BPL6PTH};
+    static const UInt8 BPLxPTL[MAX_PLANE_COUNT] = {BPL1PTL, BPL2PTL, BPL3PTL, BPL4PTL, BPL5PTL, BPL6PTL};
+    const VideoConfiguration* pConfig = pScreen->videoConfig;
     const UInt32 firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
-    const UInt16 lpen_mask = isLightPenEnabled ? 0x0008 : 0x0000;
+    const UInt16 lpen_mask = pScreen->isLightPenEnabled ? 0x0008 : 0x0000;
+    Surface* pFramebuffer = pScreen->framebuffer;
     Int ip = 0;
     
     // BPLCONx
-    pCode[ip++] = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_mask | ((UInt16)pSurface->planeCount & 0x07) << 12);
+    pCode[ip++] = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_mask | ((UInt16)pFramebuffer->planeCount & 0x07) << 12);
     pCode[ip++] = COP_MOVE(BPLCON1, 0);
     pCode[ip++] = COP_MOVE(BPLCON2, 0x0024);
     
@@ -173,18 +172,18 @@ static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnu
     pCode[ip++] = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
     
     // BPLxPT
-    for (Int i = 0; i < pSurface->planeCount; i++) {
-        const UInt32 bplpt = (UInt32)(pSurface->planes[i]) + firstLineByteOffset;
+    for (Int i = 0; i < pFramebuffer->planeCount; i++) {
+        const UInt32 bplpt = (UInt32)(pFramebuffer->planes[i]) + firstLineByteOffset;
         
         pCode[ip++] = COP_MOVE(BPLxPTH[i], (bplpt >> 16) & UINT16_MAX);
         pCode[ip++] = COP_MOVE(BPLxPTL[i], bplpt & UINT16_MAX);
     }
 
     // SPRxPT
-    const UInt32 spr32 = (UInt32)pSprite;
+    const UInt32 spr32 = (UInt32)pScreen->mouseCursorSprite;
     const UInt16 sprH = (spr32 >> 16) & UINT16_MAX;
     const UInt16 sprL = spr32 & UINT16_MAX;
-    const UInt32 nullspr = (const UInt32)pNullSprite;
+    const UInt32 nullspr = (const UInt32)pScreen->nullSprite;
     const UInt16 nullsprH = (nullspr >> 16) & UINT16_MAX;
     const UInt16 nullsprL = nullspr & UINT16_MAX;
 
@@ -206,24 +205,24 @@ static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnu
     pCode[ip++] = COP_MOVE(SPR7PTL, sprL);
     
     // DMACON
-    pCode[ip++] = COP_MOVE(DMACON, 0x8300);
+    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_MASTER);
     // XXX turned the mouse cursor off for now
-//    pCode[ip++] = COP_MOVE(DMACON, 0x8320);
+//    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_SPRITE | DMAF_MASTER);
 }
 
 // Compiles a Copper program to display a non-interlaced screen or a single field
 // of an interlaced screen.
-static ErrorCode CopperProgram_CreateScreenRefresh(const VideoConfiguration* _Nonnull pConfig, Surface* _Nonnull pSurface, Bool isOddField, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled, CopperInstruction* _Nullable * _Nonnull pOutProg)
+static ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperInstruction* _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     Int ip = 0;
-    const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pConfig, pSurface->planeCount);
+    const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
     const Int nInstructions = nFrameInstructions + 1;
     CopperInstruction* pCode;
     
     try(kalloc_options(nInstructions * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (Byte**) &pCode));
     
-    CopperCompiler_CompileScreenRefreshProgram(&pCode[ip], pConfig, pSurface, isOddField, pNullSprite, pSprite, isLightPenEnabled);
+    CopperCompiler_CompileScreenRefreshProgram(&pCode[ip], pScreen, isOddField);
     ip += nFrameInstructions;
 
     // end instructions
@@ -245,91 +244,78 @@ static void CopperProgram_Destroy(CopperInstruction* _Nullable pCode)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Display
+// MARK: Screen
 ////////////////////////////////////////////////////////////////////////////////
 
-
-typedef struct _Display {
-    Surface* _Nullable                  surface;                // the display framebuffer
-    CopperInstruction* _Nullable        copperProgramOddField;  // Odd field interlaced or non-interlaced
-    CopperInstruction* _Nullable        copperProgramEvenField; // Even field interlaced or NULL
-    const VideoConfiguration* _Nonnull  videoConfig;
-    PixelFormat                         pixelFormat;
-    const UInt16* _Nonnull              nullSprite;
-    const UInt16* _Nonnull              mouseCursorSprite;
-    Bool                                isInterlaced;
-    Bool                                isLightPenEnabled;
-} Display;
-
-static ErrorCode Display_CompileCopperPrograms(Display* _Nonnull pDisplay);
+static ErrorCode Screen_CompileCopperPrograms(Screen* _Nonnull pScreen);
 
 
-static void Display_Destroy(Display* _Nullable pDisplay)
+static void Screen_Destroy(Screen* _Nullable pScreen)
 {
-    if (pDisplay) {
-        CopperProgram_Destroy(pDisplay->copperProgramEvenField);
-        pDisplay->copperProgramEvenField = NULL;
+    if (pScreen) {
+        CopperProgram_Destroy(pScreen->copperProgramEvenField);
+        pScreen->copperProgramEvenField = NULL;
         
-        CopperProgram_Destroy(pDisplay->copperProgramOddField);
-        pDisplay->copperProgramOddField = NULL;
+        CopperProgram_Destroy(pScreen->copperProgramOddField);
+        pScreen->copperProgramOddField = NULL;
         
-        Surface_UnlockPixels(pDisplay->surface);
-        Surface_Destroy(pDisplay->surface);
-        pDisplay->surface = NULL;
+        Surface_UnlockPixels(pScreen->framebuffer);
+        Surface_Destroy(pScreen->framebuffer);
+        pScreen->framebuffer = NULL;
         
-        kfree((Byte*)pDisplay);
+        kfree((Byte*)pScreen);
     }
 }
 
-// Creates a display object.
+// Creates a screen object.
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
-// \return the display or null
-static ErrorCode Display_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled, Display* _Nullable * _Nonnull pOutDisplay)
+// \return the screen or null
+static ErrorCode Screen_Create(const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, const UInt16* _Nonnull pNullSprite, const UInt16* _Nonnull pSprite, Bool isLightPenEnabled, Screen* _Nullable * _Nonnull pOutScreen)
 {
     decl_try_err();
-    Display* pDisplay;
+    Screen* pScreen;
     
-    try(kalloc_cleared(sizeof(Display), (Byte**) &pDisplay));
+    try(kalloc_cleared(sizeof(Screen), (Byte**) &pScreen));
     
-    pDisplay->videoConfig = pConfig;
-    pDisplay->pixelFormat = pixelFormat;
-    pDisplay->nullSprite = pNullSprite;
-    pDisplay->mouseCursorSprite = pSprite;
-    pDisplay->isInterlaced = (pConfig->bplcon0 & BPLCON0_LACE) != 0;
-    pDisplay->isLightPenEnabled = isLightPenEnabled;
+    pScreen->videoConfig = pConfig;
+    pScreen->pixelFormat = pixelFormat;
+    pScreen->nullSprite = pNullSprite;
+    pScreen->mouseCursorSprite = pSprite;
+    pScreen->isInterlaced = (pConfig->bplcon0 & BPLCON0_LACE) != 0;
+    pScreen->isLightPenEnabled = isLightPenEnabled;
 
     
     // Allocate an appropriate framebuffer
-    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &pDisplay->surface));
+    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &pScreen->framebuffer));
     
     
     // Lock the new surface
-    try(Surface_LockPixels(pDisplay->surface, kSurfaceAccess_Read|kSurfaceAccess_Write));
+    try(Surface_LockPixels(pScreen->framebuffer, kSurfaceAccess_Read|kSurfaceAccess_Write));
     
     
     // Compile the Copper program
-    try(Display_CompileCopperPrograms(pDisplay));
+    try(Screen_CompileCopperPrograms(pScreen));
     
-    *pOutDisplay = pDisplay;
+    *pOutScreen = pScreen;
     return EOK;
     
 catch:
-    Display_Destroy(pDisplay);
-    *pOutDisplay = NULL;
+    Screen_Destroy(pScreen);
+    *pOutScreen = NULL;
     return err;
 }
 
-static ErrorCode Display_CompileCopperPrograms(Display* _Nonnull pDisplay)
+static ErrorCode Screen_CompileCopperPrograms(Screen* _Nonnull pScreen)
 {
     decl_try_err();
     
-    if (pDisplay->isInterlaced) {
-        try(CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, true, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled, &pDisplay->copperProgramOddField));
-        try(CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, false, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled, &pDisplay->copperProgramEvenField));
+    if (pScreen->isInterlaced) {
+        try(CopperProgram_CreateScreenRefresh(pScreen, true, &pScreen->copperProgramOddField));
+        try(CopperProgram_CreateScreenRefresh(pScreen, false, &pScreen->copperProgramEvenField));
     } else {
-        try(CopperProgram_CreateScreenRefresh(pDisplay->videoConfig, pDisplay->surface, true, pDisplay->nullSprite, pDisplay->mouseCursorSprite, pDisplay->isLightPenEnabled, &pDisplay->copperProgramOddField));
-        pDisplay->copperProgramEvenField = NULL;
+        try(CopperProgram_CreateScreenRefresh(pScreen, true, &pScreen->copperProgramOddField));
+        pScreen->copperProgramEvenField = NULL;
     }
 
     return EOK;
@@ -338,13 +324,13 @@ catch:
     return err;
 }
 
-static ErrorCode Display_SetLightPenEnabled(Display* _Nonnull pDisplay, Bool enabled)
+static ErrorCode Screen_SetLightPenEnabled(Screen* _Nonnull pScreen, Bool enabled)
 {
     decl_try_err();
 
-    pDisplay->isLightPenEnabled = enabled;
-    try(Display_CompileCopperPrograms(pDisplay));
-    copper_schedule_program(pDisplay->copperProgramOddField, pDisplay->copperProgramEvenField, 0);
+    pScreen->isLightPenEnabled = enabled;
+    try(Screen_CompileCopperPrograms(pScreen));
+    copper_schedule_program(pScreen->copperProgramOddField, pScreen->copperProgramEvenField, 0);
     return EOK;
 
 catch:
@@ -356,21 +342,6 @@ catch:
 // MARK: -
 // MARK: GraphicsDriver
 ////////////////////////////////////////////////////////////////////////////////
-
-
-typedef struct _GraphicsDriver {
-    Display* _Nonnull       display;
-    InterruptHandlerID      vb_irq_handler;
-    Semaphore               vblank_sema;
-    UInt16* _Nonnull        sprite_null;
-    UInt16* _Nonnull        sprite_mouse;
-    Int16                   mouse_cursor_width;
-    Int16                   mouse_cursor_height;
-    Int16                   mouse_cursor_hotspot_x;
-    Int16                   mouse_cursor_hotspot_y;
-    Bool                    is_light_pen_enabled;
-} GraphicsDriver;
-
 
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat);
 
@@ -391,20 +362,24 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     pDriver->sprite_null[1] = 0;
 
     pDriver->mouse_cursor_width = 16;
-    pDriver->mouse_cursor_height = 16;
+    pDriver->mouse_cursor_height = 18;
     pDriver->mouse_cursor_hotspot_x = 1;
     pDriver->mouse_cursor_hotspot_y = 1;
 
-    const Int sprsiz = (pDriver->mouse_cursor_height + 2)*2;
-    Int i, j;
-    try(kalloc_options(sizeof(UInt16) * sprsiz, KALLOC_OPTION_UNIFIED, (Byte**) &pDriver->sprite_mouse));
-    for (i = 0, j = 0; i < sprsiz; i += 2, j++) {
-        pDriver->sprite_mouse[i + 0] = gArrow_Plane0[j];
-        pDriver->sprite_mouse[i + 1] = gArrow_Plane1[j];
+    const Int nWords = 2 + 2*pDriver->mouse_cursor_height + 2;
+    try(kalloc_options(sizeof(UInt16) * nWords, KALLOC_OPTION_UNIFIED, (Byte**) &pDriver->sprite_mouse));
+    UInt16* sp = pDriver->sprite_mouse;
+
+    *sp++ = (pConfig->diw_start_v << 8) | (pConfig->diw_start_h >> 1);
+    *sp++ = (pConfig->diw_start_v + pDriver->mouse_cursor_height) << 8;
+    for (Int i = 0; i < pDriver->mouse_cursor_height; i++) {
+        *sp++ = gArrow_Plane0[i];
+        *sp++ = gArrow_Plane1[i];
     }
-    pDriver->sprite_mouse[0] = (pConfig->diw_start_v << 8) | (pConfig->diw_start_h >> 1);
-    pDriver->sprite_mouse[1] = (pConfig->diw_start_v + pDriver->mouse_cursor_height) << 8;
+    *sp++ = 0;
+    *sp   = 0;
     
+
     // Initialize vblank tools
     Semaphore_Init(&pDriver->vblank_sema, 0);
     try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
@@ -420,6 +395,7 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     for (int i = 2; i < 32; i++) {
         denise_set_clut_entry(i, 0x0fff);
     }
+    // XXX Set for the mouse cursor
     denise_set_clut_entry(29, 0x0fff);
     denise_set_clut_entry(30, 0x0000);
     denise_set_clut_entry(31, 0x0000);
@@ -451,8 +427,8 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         
         Semaphore_Deinit(&pDriver->vblank_sema);
         
-        Display_Destroy(pDriver->display);
-        pDriver->display = NULL;
+        Screen_Destroy(pDriver->screen);
+        pDriver->screen = NULL;
 
         kfree((Byte*)pDriver->sprite_mouse);
         pDriver->sprite_mouse = NULL;
@@ -477,7 +453,7 @@ Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull pDriver)
 // \return the framebuffer or NULL
 Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDriver)
 {
-    return pDriver->display->surface;
+    return pDriver->screen->framebuffer;
 }
 
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
@@ -506,26 +482,26 @@ catch:
 static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull pDriver, const VideoConfiguration* _Nonnull pConfig, PixelFormat pixelFormat)
 {
     decl_try_err();
-    Display* pOldDisplay = pDriver->display;
+    Screen* pOldScreen = pDriver->screen;
 
-    // Allocate a new display
-    Display* pNewDisplay;
-    try(Display_Create(pConfig, pixelFormat, pDriver->sprite_null, pDriver->sprite_mouse, pDriver->is_light_pen_enabled, &pNewDisplay));
+    // Allocate a new screen
+    Screen* pNewScreen;
+    try(Screen_Create(pConfig, pixelFormat, pDriver->sprite_null, pDriver->sprite_mouse, pDriver->is_light_pen_enabled, &pNewScreen));
     
     
     // Update the graphics device state.
-    pDriver->display = pNewDisplay;
+    pDriver->screen = pNewScreen;
     
     // Turn video refresh back on and point it to the new copper program
-    copper_schedule_program(pNewDisplay->copperProgramOddField, pNewDisplay->copperProgramEvenField, 0);
+    copper_schedule_program(pNewScreen->copperProgramOddField, pNewScreen->copperProgramEvenField, 0);
     
     // Wait for the vblank. Once we got a vblank we know that the DMA is no longer
     // accessing the old framebuffer
     try(GraphicsDriver_WaitForVerticalBlank(pDriver));
     
     
-    // Free the old display
-    Display_Destroy(pOldDisplay);
+    // Free the old screen
+    Screen_Destroy(pOldScreen);
 
     return EOK;
 
@@ -673,7 +649,7 @@ ErrorCode GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, 
 {
     if (pDriver->is_light_pen_enabled != enabled) {
         pDriver->is_light_pen_enabled = enabled;
-        return Display_SetLightPenEnabled(pDriver->display, enabled);
+        return Screen_SetLightPenEnabled(pDriver->screen, enabled);
     } else {
         return EOK;
     }
@@ -701,7 +677,7 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
             *pPosX = (posr0 & 0x000000ff) << 1;
             *pPosY = (posr0 & 0x1ff00) >> 8;
             
-            if (pDriver->display->isInterlaced && posr0 < 0) {
+            if (pDriver->screen->isInterlaced && posr0 < 0) {
                 // long frame (odd field) is offset in Y by one
                 *pPosY += 1;
             }
@@ -715,8 +691,8 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
 // Returns the size of the current mouse cursor.
 Size GraphicsDriver_GetMouseCursorSize(GraphicsDriverRef _Nonnull pDriver)
 {
-    const UInt16 hshift = (pDriver->display->videoConfig->spr_shift & 0xf0) >> 4;
-    const UInt16 vshift = pDriver->display->videoConfig->spr_shift & 0x0f;
+    const UInt16 hshift = (pDriver->screen->videoConfig->spr_shift & 0xf0) >> 4;
+    const UInt16 vshift = pDriver->screen->videoConfig->spr_shift & 0x0f;
 
     return Size_Make(pDriver->mouse_cursor_width << hshift, pDriver->mouse_cursor_height << vshift);
 }
@@ -725,8 +701,8 @@ Size GraphicsDriver_GetMouseCursorSize(GraphicsDriverRef _Nonnull pDriver)
 // mouse cursor origin (top-left corner of the mouse cursor image).
 Point GraphicsDriver_GetMouseCursorHotSpot(GraphicsDriverRef _Nonnull pDriver)
 {
-    const UInt16 hshift = (pDriver->display->videoConfig->spr_shift & 0xf0) >> 4;
-    const UInt16 vshift = pDriver->display->videoConfig->spr_shift & 0x0f;
+    const UInt16 hshift = (pDriver->screen->videoConfig->spr_shift & 0xf0) >> 4;
+    const UInt16 vshift = pDriver->screen->videoConfig->spr_shift & 0x0f;
     
     return Point_Make(pDriver->mouse_cursor_hotspot_x << hshift, pDriver->mouse_cursor_hotspot_y << vshift);
 }
@@ -741,10 +717,10 @@ void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull pDriver, Bo
 // The update is executed immediately.
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, Int16 xPos, Int16 yPos)
 {
-    const UInt16 hshift = (pDriver->display->videoConfig->spr_shift & 0xf0) >> 4;
-    const UInt16 vshift = pDriver->display->videoConfig->spr_shift & 0x0f;
-    const UInt16 hstart = (xPos >> hshift) + pDriver->display->videoConfig->diw_start_h;
-    const UInt16 vstart = (yPos >> vshift) + pDriver->display->videoConfig->diw_start_v;
+    const UInt16 hshift = (pDriver->screen->videoConfig->spr_shift & 0xf0) >> 4;
+    const UInt16 vshift = pDriver->screen->videoConfig->spr_shift & 0x0f;
+    const UInt16 hstart = (xPos >> hshift) + pDriver->screen->videoConfig->diw_start_h;
+    const UInt16 vstart = (yPos >> vshift) + pDriver->screen->videoConfig->diw_start_v;
     const UInt16 vstop = vstart + pDriver->mouse_cursor_height;
     const UInt16 sprxpos = ((vstart & 0xff) << 8) | ((hstart & 0x1fe) >> 1);
     const UInt16 sprxctl = ((vstop & 0xff) << 8) | (((vstart >> 8) & 0x01) << 2) | (((vstop >> 8) & 0x01) << 1) | (hstart & 0x001);

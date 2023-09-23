@@ -56,25 +56,8 @@ static inline Color Color_MakeIndex(Int idx)
 }
 
 
-#define MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION   5
-typedef struct _VideoConfiguration {
-    Int16       uniqueId;
-    Int16       width;
-    Int16       height;
-    Int8        fps;
-    UInt8       diw_start_h;        // display window start
-    UInt8       diw_start_v;
-    UInt8       diw_stop_h;         // display window stop
-    UInt8       diw_stop_v;
-    UInt8       ddf_start;          // data fetch start
-    UInt8       ddf_stop;           // data fetch stop
-    UInt8       ddf_mod;            // number of padding bytes stored in memory between scan lines
-    UInt16      bplcon0;            // BPLCON0 template value
-    UInt8       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert them from screen coords to sprite coords [h:4,v:4]
-    Int8        pixelFormatCount;   // Number of supported pixel formats
-    PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
-} VideoConfiguration;
-
+struct _VideoConfiguration;
+typedef struct _VideoConfiguration VideoConfiguration;
 
 // The supported video configurations
 extern const VideoConfiguration kVideoConfig_NTSC_320_200_60;
