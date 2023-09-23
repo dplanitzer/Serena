@@ -81,6 +81,8 @@ extern void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver);
 extern Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDriver);
 extern Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull pDriver);
 
+extern void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor);
+
 extern void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver);
 extern void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color);
 extern void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, Point dstLoc);

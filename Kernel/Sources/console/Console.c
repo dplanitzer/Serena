@@ -68,12 +68,17 @@ void Console_Destroy(ConsoleRef _Nullable pConsole)
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 {
+    static const RGBColor bgColor = {0x00, 0x00, 0x00};
+    static const RGBColor fgColor = {0x00, 0xff, 0x00};
     decl_try_err();
     const Surface* pFramebuffer;
     
     try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pConsole->pGDevice), ENODEV);
     pConsole->bounds = Rect_Make(0, 0, pFramebuffer->width / GLYPH_WIDTH, pFramebuffer->height / GLYPH_HEIGHT);
     pConsole->savedCursorPosition = Point_Zero;
+
+    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 0, &bgColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 1, &fgColor);
 
     TabStops_Deinit(&pConsole->hTabStops);
     try(TabStops_Init(&pConsole->hTabStops, __max(pConsole->bounds.width / 8, 0), 8));

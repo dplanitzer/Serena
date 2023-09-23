@@ -70,7 +70,6 @@ typedef struct _GraphicsDriver {
 
 extern void GraphicsDriver_StopVideoRefresh(GraphicsDriverRef _Nonnull pDriver);
 
-extern void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor);
 extern void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT);
 
 #endif /* GraphicsDriverPriv_h */

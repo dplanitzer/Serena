@@ -345,7 +345,7 @@ catch:
 
 static const ColorTable gDefaultColorTable = {
     0x0000,
-    0x00f0,     // XXX Console foreground color
+    0x0fff,
     0x0fff,
     0x0fff,
     0x0fff,
@@ -546,7 +546,8 @@ catch:
 // Writes the given RGB color to the color register at index idx
 void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor)
 {
-    const UInt16 rgb = (pColor->r >> 4 & 0x0f) | (pColor->g >> 4 & 0x0f) | (pColor->b >> 4 & 0x0f);
+    assert(idx >= 0 && idx < CLUT_ENTRY_COUNT);
+    const UInt16 rgb = (pColor->r >> 4 & 0x0f) << 8 | (pColor->g >> 4 & 0x0f) << 4 | (pColor->b >> 4 & 0x0f);
     CHIPSET_BASE_DECL(cp);
 
     *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = rgb;
