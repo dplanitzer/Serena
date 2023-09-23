@@ -269,7 +269,7 @@ irc_handlers_AUDIO2                         so.l    2
 irc_handlers_AUDIO3                         so.l    2
 irc_handlers_SERIAL_RECEIVE_BUFFER_FULL     so.l    2
 irc_handlers_DISK_SYNC                      so.l    2
-irc_handlers_EXTERN                         so.l    2
+irc_handlers_EXTER                          so.l    2
 irc_handlers_CIA_A_TIMER_A                  so.l    2
 irc_handlers_CIA_A_TIMER_B                  so.l    2
 irc_handlers_CIA_A_ALARM                    so.l    2

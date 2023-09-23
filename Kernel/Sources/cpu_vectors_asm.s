@@ -221,7 +221,7 @@ FatalException:
     macro CALL_IRQ_HANDLERS
     pea     _gInterruptControllerStorage + \1
     jsr     _InterruptController_OnInterrupt
-    addq.l  #4, sp
+    addq.w  #4, sp
     endm
 
 
@@ -265,13 +265,9 @@ irq_handler_dskblk:
 
 irq_handler_soft:
     btst    #INTB_SOFT, d7
-    beq.s   irq_handler_L1_done
+    beq     irq_handler_done
     CALL_IRQ_HANDLERS irc_handlers_SOFT
-
-irq_handler_L1_done:
-    movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    bra.l   irq_handler_done
-
+    beq     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 2 IRQ handler (CIA A)
@@ -281,7 +277,6 @@ IRQHandler_L2:
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
     move.b  CIAAICR, d7     ; implicitly acknowledges CIA A IRQs
-    move.w  #INTF_PORTS, CUSTOM_BASE + INTREQ
 
     btst    #ICRB_TA, d7
     beq.s   irq_handler_ciaa_tb
@@ -304,13 +299,18 @@ irq_handler_ciaa_sp:
 
 irq_handler_ciaa_flag:
     btst    #ICRB_FLG, d7
-    beq.s   irq_handler_L2_done
+    beq.s   irq_handler_ports
     CALL_IRQ_HANDLERS irc_handlers_CIA_A_FLAG
 
-irq_handler_L2_done:
-    movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    bra.l   irq_handler_done
+irq_handler_ports:
+    lea     CUSTOM_BASE, a0
+    move.w  INTREQR(a0), d7
+    move.w  #INTF_PORTS, INTREQ(a0)
 
+    btst    #INTB_PORTS, d7
+    beq     irq_handler_done
+    CALL_IRQ_HANDLERS irc_handlers_PORTS
+    beq     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 3 IRQ handler
@@ -324,7 +324,7 @@ IRQHandler_L3:
     move.w  #(INTF_COPER | INTF_VERTB | INTF_BLIT), INTREQ(a0)
 
     btst    #INTB_VERTB, d7
-    beq.s   irq_handler_copper
+    beq.s   irq_handler_blitter
     ; Run the Copper scheduler now because we want to minimize the delay between
     ; vblank IRQ and kicking off the right Copper program. Most importantly we
     ; want to make sure that no IRQ handler callback is able to delay the start
@@ -332,20 +332,16 @@ IRQHandler_L3:
     jsr     _copper_run
     CALL_IRQ_HANDLERS irc_handlers_VERTICAL_BLANK
 
-irq_handler_copper:
-    btst    #INTB_COPER, d7
-    beq.s   irq_handler_blitter
-    CALL_IRQ_HANDLERS irc_handlers_COPPER
-
 irq_handler_blitter:
     btst    #INTB_BLIT, d7
-    beq.s   irq_handler_L3_done
+    beq.s   irq_handler_copper
     CALL_IRQ_HANDLERS irc_handlers_BLITTER
 
-irq_handler_L3_done:
-    movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    bra.l    irq_handler_done
-
+irq_handler_copper:
+    btst    #INTB_COPER, d7
+    beq     irq_handler_done
+    CALL_IRQ_HANDLERS irc_handlers_COPPER
+    beq     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 4 IRQ handler
@@ -358,29 +354,25 @@ IRQHandler_L4:
     move.w  INTREQR(a0), d7
     move.w  #(INTF_AUD0 | INTF_AUD1 | INTF_AUD2 | INTF_AUD3), INTREQ(a0)
 
-    btst    #INTB_AUD0, d7
-    beq.s   irq_handler_audio1
+    btst    #INTB_AUD2, d7
+    beq.s   irq_handler_audio0
     CALL_IRQ_HANDLERS irc_handlers_AUDIO0
 
-irq_handler_audio1:
-    btst    #INTB_AUD1, d7
-    beq.s   irq_handler_audio2
-    CALL_IRQ_HANDLERS irc_handlers_AUDIO1
-
-irq_handler_audio2:
-    btst    #INTB_AUD2, d7
+irq_handler_audio0:
+    btst    #INTB_AUD0, d7
     beq.s   irq_handler_audio3
-    CALL_IRQ_HANDLERS irc_handlers_AUDIO2
+    CALL_IRQ_HANDLERS irc_handlers_AUDIO1
 
 irq_handler_audio3:
     btst    #INTB_AUD3, d7
-    beq.s   irq_handler_L4_done
+    beq.s   irq_handler_audio1
+    CALL_IRQ_HANDLERS irc_handlers_AUDIO2
+
+irq_handler_audio1:
+    btst    #INTB_AUD1, d7
+    beq     irq_handler_done
     CALL_IRQ_HANDLERS irc_handlers_AUDIO3
-
-irq_handler_L4_done:
-    movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    bra.l    irq_handler_done
-
+    beq     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 5 IRQ handler
@@ -399,13 +391,9 @@ IRQHandler_L5:
 
 irq_handler_dsksync:
     btst    #INTB_DSKSYN, d7
-    beq.s   irq_handler_L5_done
+    beq     irq_handler_done
     CALL_IRQ_HANDLERS irc_handlers_DISK_SYNC
-
-irq_handler_L5_done:
-    movem.l (sp)+, d0 - d1 / d7 / a0 - a1
-    bra.l   irq_handler_done
-
+    beq     irq_handler_done
 
 ;-------------------------------------------------------------------------------
 ; Level 6 IRQ handler (CIA B)
@@ -415,7 +403,6 @@ IRQHandler_L6:
     movem.l d0 - d1 / d7 / a0 - a1, -(sp)
 
     move.b  CIABICR, d7     ; implicitly acknowledges CIA B IRQs
-    move.w  #INTF_EXTER, CUSTOM_BASE + INTREQ
 
     btst    #ICRB_TA, d7
     beq.s   irq_handler_ciab_tb
@@ -438,11 +425,18 @@ irq_handler_ciab_sp:
 
 irq_handler_ciab_flag:
     btst    #ICRB_FLG, d7
-    beq.s   irq_handler_L6_done
+    beq.s   irq_handler_exter
     CALL_IRQ_HANDLERS irc_handlers_CIA_B_FLAG
 
-irq_handler_L6_done:
-    movem.l (sp)+, d0 - d1 / d7 / a0 - a1
+irq_handler_exter:
+    lea     CUSTOM_BASE, a0
+    move.w  INTREQR(a0), d7
+    move.w  #INTF_EXTER, INTREQ(a0)
+
+    btst    #INTB_EXTER, d7
+    beq.s   irq_handler_done
+    CALL_IRQ_HANDLERS irc_handlers_EXTER
+
     ; FALL THROUGH
 
 
@@ -451,6 +445,7 @@ irq_handler_L6_done:
 ; check whether we should do a context switch. If not then just do a rte.
 ; Otherwise do the context switch which will implicitly do the rte.
 irq_handler_done:
+    movem.l (sp)+, d0 - d1 / d7 / a0 - a1
     btst    #0, (_gVirtualProcessorSchedulerStorage + vps_csw_signals)
     bne.s   irq_handler_do_csw
     rte
