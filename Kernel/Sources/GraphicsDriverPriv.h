@@ -41,6 +41,10 @@ typedef struct _ColorTable {
 } ColorTable;
 
 
+//
+// Screen
+//
+
 typedef struct _Screen {
     Surface* _Nullable                  framebuffer;            // the screen framebuffer
     CopperInstruction* _Nullable        copperProgramOddField;  // Odd field interlaced or non-interlaced
@@ -54,8 +58,45 @@ typedef struct _Screen {
 } Screen;
 
 
+//
+// Copper Compiler
+//
+
+extern Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen);
+extern void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isOddField);
+extern ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperInstruction* _Nullable * _Nonnull pOutProg);
+extern void CopperProgram_Destroy(CopperInstruction* _Nullable pCode);
+
+
+//
+// Copper Scheduler
+//
+
+#define COPF_CONTEXT_SWITCH_REQ (1 << 7)
+#define COPF_INTERLACED         (1 << 6)
+typedef struct _CopperScheduler {
+    const CopperInstruction* _Nullable  readyOddFieldProg;
+    const CopperInstruction* _Nullable  readyEvenFieldProg;
+
+    const CopperInstruction* _Nullable  runningOddFieldProg;
+    const CopperInstruction* _Nullable  runningEvenFieldProg;
+
+    UInt32                              flags;
+} CopperScheduler;
+
+extern void CopperScheduler_Init(CopperScheduler* _Nonnull pScheduler);
+extern void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler);
+extern void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg);
+extern void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler);
+
+
+//
+// Graphics Driver
+//
+
 typedef struct _GraphicsDriver {
     Screen* _Nonnull        screen;
+    CopperScheduler         copperScheduler;
     InterruptHandlerID      vb_irq_handler;
     Semaphore               vblank_sema;
     UInt16* _Nonnull        sprite_null;
@@ -68,6 +109,7 @@ typedef struct _GraphicsDriver {
 } GraphicsDriver;
 
 
+extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver);
 extern void GraphicsDriver_StopVideoRefresh(GraphicsDriverRef _Nonnull pDriver);
 
 extern void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT);

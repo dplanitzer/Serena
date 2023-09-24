@@ -419,30 +419,6 @@ extern Int32 chipset_get_quantum_timer_elapsed_ns(void);
 
 
 //
-// Copper
-//
-
-#define COP_FLAG_SCHEDULED  (1 << 7)
-#define COP_FLAG_INTERLACED (1 << 6)
-
-// Keep in sync with lowmem.i
-typedef struct _CopperScheduler {
-    UInt32                          flags;
-    CopperInstruction* _Nullable    scheduled_prog_odd_field;
-    CopperInstruction* _Nullable    scheduled_prog_even_field;
-    Int                             scheduled_prog_id;
-    CopperInstruction* _Nullable    running_prog_odd_field;
-    CopperInstruction* _Nullable    running_prog_even_field;
-    Int                             running_prog_id;
-} CopperScheduler;
-
-extern CopperScheduler  gCopperSchedulerStorage;
-
-extern void copper_schedule_program(const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg, Int progId);
-extern Int copper_get_running_program_id(void);
-
-
-//
 // Zorro Bus
 //
 

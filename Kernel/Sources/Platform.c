@@ -8,9 +8,6 @@
 
 #include "Platform.h"
 
-CopperScheduler gCopperSchedulerStorage;
-
-
 //
 // CPU
 //

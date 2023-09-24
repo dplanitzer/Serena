@@ -123,126 +123,6 @@ const VideoConfiguration kVideoConfig_PAL_640_512_25 = {7, 640, 512, 25,
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// MARK:
-// MARK: Copper program compiler
-////////////////////////////////////////////////////////////////////////////////
-
-// Computes the size of a Copper program. The size is given in terms of the
-// number of Copper instruction words.
-static Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen)
-{
-    Surface* pFramebuffer = pScreen->framebuffer;
-
-    return 3                                // BPLCONx
-            + 2                             // DIWSTART, DIWSTOP
-            + 2                             // DDFSTART, DDF_STOP
-            + 2                             // BPLxMOD
-            + 2 * pFramebuffer->planeCount  // BPLxPT[nplanes]
-            + 16                            // SPRxPT
-            + 1;                            // DMACON
-}
-
-// Compiles a screen refresh Copper program into the given buffer (which must be
-// big enough to store the program).
-static void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isOddField)
-{
-    static const UInt8 BPLxPTH[MAX_PLANE_COUNT] = {BPL1PTH, BPL2PTH, BPL3PTH, BPL4PTH, BPL5PTH, BPL6PTH};
-    static const UInt8 BPLxPTL[MAX_PLANE_COUNT] = {BPL1PTL, BPL2PTL, BPL3PTL, BPL4PTL, BPL5PTL, BPL6PTL};
-    const VideoConfiguration* pConfig = pScreen->videoConfig;
-    const UInt32 firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
-    const UInt16 lpen_mask = pScreen->isLightPenEnabled ? 0x0008 : 0x0000;
-    Surface* pFramebuffer = pScreen->framebuffer;
-    Int ip = 0;
-    
-    // BPLCONx
-    pCode[ip++] = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_mask | ((UInt16)pFramebuffer->planeCount & 0x07) << 12);
-    pCode[ip++] = COP_MOVE(BPLCON1, 0);
-    pCode[ip++] = COP_MOVE(BPLCON2, 0x0024);
-    
-    // DIWSTART / DIWSTOP
-    pCode[ip++] = COP_MOVE(DIWSTART, (pConfig->diw_start_v << 8) | pConfig->diw_start_h);
-    pCode[ip++] = COP_MOVE(DIWSTOP, (pConfig->diw_stop_v << 8) | pConfig->diw_stop_h);
-    
-    // DDFSTART / DDFSTOP
-    pCode[ip++] = COP_MOVE(DDFSTART, pConfig->ddf_start);
-    pCode[ip++] = COP_MOVE(DDFSTOP, pConfig->ddf_stop);
-    
-    // BPLxMOD
-    pCode[ip++] = COP_MOVE(BPL1MOD, pConfig->ddf_mod);
-    pCode[ip++] = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
-    
-    // BPLxPT
-    for (Int i = 0; i < pFramebuffer->planeCount; i++) {
-        const UInt32 bplpt = (UInt32)(pFramebuffer->planes[i]) + firstLineByteOffset;
-        
-        pCode[ip++] = COP_MOVE(BPLxPTH[i], (bplpt >> 16) & UINT16_MAX);
-        pCode[ip++] = COP_MOVE(BPLxPTL[i], bplpt & UINT16_MAX);
-    }
-
-    // SPRxPT
-    const UInt32 spr32 = (UInt32)pScreen->mouseCursorSprite;
-    const UInt16 sprH = (spr32 >> 16) & UINT16_MAX;
-    const UInt16 sprL = spr32 & UINT16_MAX;
-    const UInt32 nullspr = (const UInt32)pScreen->nullSprite;
-    const UInt16 nullsprH = (nullspr >> 16) & UINT16_MAX;
-    const UInt16 nullsprL = nullspr & UINT16_MAX;
-
-    pCode[ip++] = COP_MOVE(SPR0PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR0PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR1PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR1PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR2PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR2PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR3PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR3PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR4PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR4PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR5PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR5PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR6PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR6PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR7PTH, sprH);
-    pCode[ip++] = COP_MOVE(SPR7PTL, sprL);
-    
-    // DMACON
-    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_MASTER);
-    // XXX turned the mouse cursor off for now
-//    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_SPRITE | DMAF_MASTER);
-}
-
-// Compiles a Copper program to display a non-interlaced screen or a single field
-// of an interlaced screen.
-static ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperInstruction* _Nullable * _Nonnull pOutProg)
-{
-    decl_try_err();
-    Int ip = 0;
-    const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
-    const Int nInstructions = nFrameInstructions + 1;
-    CopperInstruction* pCode;
-    
-    try(kalloc_options(nInstructions * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (Byte**) &pCode));
-    
-    CopperCompiler_CompileScreenRefreshProgram(&pCode[ip], pScreen, isOddField);
-    ip += nFrameInstructions;
-
-    // end instructions
-    pCode[ip++] = COP_END();
-    
-    *pOutProg = pCode;
-    return EOK;
-    
-catch:
-    return err;
-}
-
-// Frees the given Copper program.
-static void CopperProgram_Destroy(CopperInstruction* _Nullable pCode)
-{
-    kfree((Byte*)pCode);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Screen
 ////////////////////////////////////////////////////////////////////////////////
@@ -326,15 +206,8 @@ catch:
 
 static ErrorCode Screen_SetLightPenEnabled(Screen* _Nonnull pScreen, Bool enabled)
 {
-    decl_try_err();
-
     pScreen->isLightPenEnabled = enabled;
-    try(Screen_CompileCopperPrograms(pScreen));
-    copper_schedule_program(pScreen->copperProgramOddField, pScreen->copperProgramEvenField, 0);
-    return EOK;
-
-catch:
-    return err;
+    return Screen_CompileCopperPrograms(pScreen);
 }
 
 
@@ -416,13 +289,15 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     
 
     // Initialize vblank tools
+    CopperScheduler_Init(&pDriver->copperScheduler);
     Semaphore_Init(&pDriver->vblank_sema, 0);
-    try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
-                                                         INTERRUPT_ID_VERTICAL_BLANK,
-                                                         INTERRUPT_HANDLER_PRIORITY_HIGHEST,
-                                                         &pDriver->vblank_sema,
-                                                         &pDriver->vb_irq_handler));
-    
+    try(InterruptController_AddDirectInterruptHandler(
+        gInterruptController,
+        INTERRUPT_ID_VERTICAL_BLANK,
+        INTERRUPT_HANDLER_PRIORITY_NORMAL,
+        (InterruptHandler_Closure)GraphicsDriver_VerticalBlankInterruptHandler,
+        (Byte*)pDriver, &pDriver->vb_irq_handler)
+    );
 
     // Initialize the video config related stuff
     GraphicsDriver_SetCLUT(pDriver, &gDefaultColorTable);
@@ -452,6 +327,7 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         pDriver->vb_irq_handler = 0;
         
         Semaphore_Deinit(&pDriver->vblank_sema);
+        CopperScheduler_Deinit(&pDriver->copperScheduler);
         
         Screen_Destroy(pDriver->screen);
         pDriver->screen = NULL;
@@ -464,6 +340,12 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         
         kfree((Byte*)pDriver);
     }
+}
+
+void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver)
+{
+    CopperScheduler_ContextSwitch(&pDriver->copperScheduler);
+    Semaphore_ReleaseFromInterruptContext(&pDriver->vblank_sema);
 }
 
 Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull pDriver)
@@ -527,7 +409,7 @@ static ErrorCode GraphicsDriver_SetVideoConfiguration(GraphicsDriverRef _Nonnull
     pDriver->screen = pNewScreen;
     
     // Turn video refresh back on and point it to the new copper program
-    copper_schedule_program(pNewScreen->copperProgramOddField, pNewScreen->copperProgramEvenField, 0);
+    CopperScheduler_ScheduleProgram(&pDriver->copperScheduler, pNewScreen->copperProgramOddField, pNewScreen->copperProgramEvenField);
     
     // Wait for the vblank. Once we got a vblank we know that the DMA is no longer
     // accessing the old framebuffer
@@ -701,12 +583,17 @@ void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const By
 // Enables / disables the h/v raster position latching triggered by a light pen.
 ErrorCode GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, Bool enabled)
 {
+    decl_try_err();
+
     if (pDriver->is_light_pen_enabled != enabled) {
         pDriver->is_light_pen_enabled = enabled;
-        return Screen_SetLightPenEnabled(pDriver->screen, enabled);
-    } else {
-        return EOK;
+        err = Screen_SetLightPenEnabled(pDriver->screen, enabled);
+        if (err == EOK) {
+            CopperScheduler_ScheduleProgram(&pDriver->copperScheduler, pDriver->screen->copperProgramOddField, pDriver->screen->copperProgramEvenField);
+        }
     }
+
+    return err;
 }
 
 // Returns the current position of the light pen if the light pen triggered.

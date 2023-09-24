@@ -21,7 +21,6 @@
     xref __rtecall_VirtualProcessorScheduler_SwitchContext
     xref _SystemCallHandler
     xref _InterruptController_OnInterrupt
-    xref _copper_run
     xref _cpu_return_from_call_as_user
     xref _cpu_get_model
     xref _fpu_get_model
@@ -330,11 +329,6 @@ IRQHandler_L3:
 
     btst    #INTB_VERTB, d7
     beq.s   irq_handler_blitter
-    ; Run the Copper scheduler now because we want to minimize the delay between
-    ; vblank IRQ and kicking off the right Copper program. Most importantly we
-    ; want to make sure that no IRQ handler callback is able to delay the start
-    ; of the Copper program
-    jsr     _copper_run
     CALL_IRQ_HANDLERS irc_handlers_VERTICAL_BLANK
 
 irq_handler_blitter:
