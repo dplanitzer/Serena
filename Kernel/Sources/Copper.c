@@ -98,23 +98,23 @@ void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCod
 
 // Compiles a Copper program to display a non-interlaced screen or a single field
 // of an interlaced screen.
-ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperInstruction* _Nullable * _Nonnull pOutProg)
+ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     Int ip = 0;
     const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
     const Int nInstructions = nFrameInstructions + 1;
-    CopperInstruction* pCode;
+    CopperProgram* pProg;
     
-    try(kalloc_options(nInstructions * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (Byte**) &pCode));
+    try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (Byte**) &pProg));
     
-    CopperCompiler_CompileScreenRefreshProgram(&pCode[ip], pScreen, isOddField);
+    CopperCompiler_CompileScreenRefreshProgram(&pProg->entry[ip], pScreen, isOddField);
     ip += nFrameInstructions;
 
     // end instructions
-    pCode[ip++] = COP_END();
+    pProg->entry[ip++] = COP_END();
     
-    *pOutProg = pCode;
+    *pOutProg = pProg;
     return EOK;
     
 catch:
@@ -122,9 +122,9 @@ catch:
 }
 
 // Frees the given Copper program.
-void CopperProgram_Destroy(CopperInstruction* _Nullable pCode)
+void CopperProgram_Destroy(CopperProgram* _Nullable pProg)
 {
-    kfree((Byte*)pCode);
+    kfree((Byte*)pProg);
 }
 
 
@@ -152,7 +152,7 @@ void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler)
 // an odd field program if the current video mode is non-interlaced and both
 // and odd and an even field program if the video mode is interlaced. The video
 // display is turned off if the odd field program is NULL.
-void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg)
+void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg)
 {
     const Int irs = cpu_disable_irqs();
     pScheduler->readyEvenFieldProg = pEvenFieldProg;
@@ -203,13 +203,13 @@ void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler)
 
         if (isLongFrame) {
             // Odd field
-            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg;
+            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg->entry;
         } else {
             // Even field
-            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningEvenFieldProg;
+            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningEvenFieldProg->entry;
         }
     } else {
-        *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg;
+        *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg->entry;
     }
 
     *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);

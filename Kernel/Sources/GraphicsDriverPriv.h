@@ -42,13 +42,22 @@ typedef struct _ColorTable {
 
 
 //
+// Copper Program
+//
+
+typedef struct _CopperProgram {
+    CopperInstruction   entry[1];
+} CopperProgram;
+
+
+//
 // Screen
 //
 
 typedef struct _Screen {
     Surface* _Nullable                  framebuffer;            // the screen framebuffer
-    CopperInstruction* _Nullable        copperProgramOddField;  // Odd field interlaced or non-interlaced
-    CopperInstruction* _Nullable        copperProgramEvenField; // Even field interlaced or NULL
+    CopperProgram* _Nullable            copperProgramOddField;  // Odd field interlaced or non-interlaced
+    CopperProgram* _Nullable            copperProgramEvenField; // Even field interlaced or NULL
     const VideoConfiguration* _Nonnull  videoConfig;
     PixelFormat                         pixelFormat;
     const UInt16* _Nonnull              nullSprite;
@@ -64,8 +73,8 @@ typedef struct _Screen {
 
 extern Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen);
 extern void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isOddField);
-extern ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperInstruction* _Nullable * _Nonnull pOutProg);
-extern void CopperProgram_Destroy(CopperInstruction* _Nullable pCode);
+extern ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg);
+extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 
 
 //
@@ -75,18 +84,18 @@ extern void CopperProgram_Destroy(CopperInstruction* _Nullable pCode);
 #define COPF_CONTEXT_SWITCH_REQ (1 << 7)
 #define COPF_INTERLACED         (1 << 6)
 typedef struct _CopperScheduler {
-    const CopperInstruction* _Nullable  readyOddFieldProg;
-    const CopperInstruction* _Nullable  readyEvenFieldProg;
+    const CopperProgram* _Nullable  readyOddFieldProg;
+    const CopperProgram* _Nullable  readyEvenFieldProg;
 
-    const CopperInstruction* _Nullable  runningOddFieldProg;
-    const CopperInstruction* _Nullable  runningEvenFieldProg;
+    const CopperProgram* _Nullable  runningOddFieldProg;
+    const CopperProgram* _Nullable  runningEvenFieldProg;
 
-    UInt32                              flags;
+    UInt32                          flags;
 } CopperScheduler;
 
 extern void CopperScheduler_Init(CopperScheduler* _Nonnull pScheduler);
 extern void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler);
-extern void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperInstruction* _Nullable pOddFieldProg, const CopperInstruction* _Nullable pEvenFieldProg);
+extern void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg);
 extern void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler);
 
 
