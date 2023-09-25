@@ -344,7 +344,7 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
 
 void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver)
 {
-    CopperScheduler_ContextSwitch(&pDriver->copperScheduler);
+    CopperScheduler_Run(&pDriver->copperScheduler);
     Semaphore_ReleaseFromInterruptContext(&pDriver->vblank_sema);
 }
 
