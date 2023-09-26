@@ -8,59 +8,10 @@
 
 #include "GraphicsDriverPriv.h"
 
-#define PACK_U16(_15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, _1, _0) \
-    (UInt16)(((_15) << 15) | ((_14) << 14) | ((_13) << 13) | ((_12) << 12) | ((_11) << 11) |\
-             ((_10) << 10) |  ((_9) <<  9) |  ((_8) <<  8) |  ((_7) <<  7) |  ((_6) <<  6) |\
-              ((_5) <<  5) |  ((_4) <<  4) |  ((_3) <<  3) |  ((_2) <<  2) |  ((_1) <<  1) | (_0))
-
-#define _ 0
-#define o 1
-
-#define ARROW_BITS_PLANE0 \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,o,o,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,o,o,o,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,_,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,_,_,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,_,_,_,_,o,o,o,o,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,o,o,o,o,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,o,o,o,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
-static const UInt16 gArrow_Plane0[] = {
-    ARROW_BITS_PLANE0
-};
-
-#define ARROW_BITS_PLANE1 \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,o,o,o,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,o,o,o,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,o,_,o,o,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,o,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,o,o,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
-PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
-static const UInt16 gArrow_Plane1[] = {
-    ARROW_BITS_PLANE1
-};
+extern const UInt16 gArrow_Plane0[];
+extern const UInt16 gArrow_Plane1[];
+extern const Int gArrow_Width;
+extern const Int gArrow_Height;
 
 
 // DDIWSTART = specific to mode. See hardware reference manual
@@ -269,8 +220,8 @@ ErrorCode GraphicsDriver_Create(const VideoConfiguration* _Nonnull pConfig, Pixe
     pDriver->sprite_null[0] = 0;
     pDriver->sprite_null[1] = 0;
 
-    pDriver->mouse_cursor_width = 16;
-    pDriver->mouse_cursor_height = 18;
+    pDriver->mouse_cursor_width = gArrow_Width;
+    pDriver->mouse_cursor_height = gArrow_Height;
     pDriver->mouse_cursor_hotspot_x = 1;
     pDriver->mouse_cursor_hotspot_y = 1;
 

@@ -51,6 +51,28 @@ typedef struct _CopperProgram {
 
 
 //
+// Copper Scheduler
+//
+
+#define COPF_CONTEXT_SWITCH_REQ (1 << 7)
+#define COPF_INTERLACED         (1 << 6)
+typedef struct _CopperScheduler {
+    const CopperProgram* _Nullable  readyOddFieldProg;
+    const CopperProgram* _Nullable  readyEvenFieldProg;
+
+    const CopperProgram* _Nullable  runningOddFieldProg;
+    const CopperProgram* _Nullable  runningEvenFieldProg;
+
+    UInt32                          flags;
+} CopperScheduler;
+
+extern void CopperScheduler_Init(CopperScheduler* _Nonnull pScheduler);
+extern void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler);
+extern void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg);
+extern void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler);
+
+
+//
 // Screen
 //
 
@@ -75,28 +97,6 @@ extern Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnu
 extern void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isOddField);
 extern ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg);
 extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
-
-
-//
-// Copper Scheduler
-//
-
-#define COPF_CONTEXT_SWITCH_REQ (1 << 7)
-#define COPF_INTERLACED         (1 << 6)
-typedef struct _CopperScheduler {
-    const CopperProgram* _Nullable  readyOddFieldProg;
-    const CopperProgram* _Nullable  readyEvenFieldProg;
-
-    const CopperProgram* _Nullable  runningOddFieldProg;
-    const CopperProgram* _Nullable  runningEvenFieldProg;
-
-    UInt32                          flags;
-} CopperScheduler;
-
-extern void CopperScheduler_Init(CopperScheduler* _Nonnull pScheduler);
-extern void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler);
-extern void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg);
-extern void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler);
 
 
 //

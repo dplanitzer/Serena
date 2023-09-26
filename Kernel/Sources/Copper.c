@@ -91,9 +91,9 @@ void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCod
     pCode[ip++] = COP_MOVE(SPR7PTL, sprL);
     
     // DMACON
-    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_MASTER);
+//    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_MASTER);
     // XXX turned the mouse cursor off for now
-//    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_SPRITE | DMAF_MASTER);
+    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_SPRITE | DMAF_MASTER);
 }
 
 // Compiles a Copper program to display a non-interlaced screen or a single field
@@ -210,8 +210,8 @@ static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler)
         *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg->entry;
     }
 
-    *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
+    *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
 }
 
 // Called at the vertical blank interrupt. Triggers the execution of the correct

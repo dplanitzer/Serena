@@ -74,8 +74,8 @@ static void run_copper_program(const CopperInstruction* _Nullable pOddFieldProg)
 
     *CHIPSET_REG_16(cp, DMACON) = DMAF_COPPER;
     *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pOddFieldProg;
-    *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
+    *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
 }
 
 static void set_clut_entry(Int idx, UInt16 color)
