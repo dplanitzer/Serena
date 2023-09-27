@@ -32,12 +32,25 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     pConsole->pEventDriver = pEventDriver;
     pConsole->pGDevice = pGDevice;
 
+    pConsole->lineHeight = GLYPH_HEIGHT;
+    pConsole->characterWidth = GLYPH_WIDTH;
+    pConsole->backgroundColor = RGBColor_Make(0, 0, 0);
+    pConsole->textColor = RGBColor_Make(0, 255, 0);
+
     vtparse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
 
     pConsole->keyMapper.map = (const KeyMap*) &gKeyMap_usa[0];
     pConsole->keyMapper.capacity = KeyMap_GetMaxOutputByteCount(pConsole->keyMapper.map);
     try(kalloc_cleared(pConsole->keyMapper.capacity, &pConsole->keyMapper.buffer));
     
+    const Bool isInterlaced = ScreenConfiguration_IsInterlaced(GraphicsDriver_GetCurrentScreenConfiguration(pGDevice));
+    const UInt16* textCursorPlanes[2];
+    textCursorPlanes[0] = (isInterlaced) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
+    textCursorPlanes[1] = (isInterlaced) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
+    const Int textCursorWidth = (isInterlaced) ? gBlock4x4_Width : gBlock4x8_Width;
+    const Int textCursorHeight = (isInterlaced) ? gBlock4x4_Height : gBlock4x8_Height;
+    try(GraphicsDriver_AcquireSprite(pGDevice, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &pConsole->textCursor));
+
     try(Console_ResetState_Locked(pConsole));
     Console_ClearScreen_Locked(pConsole);
     
@@ -55,30 +68,36 @@ catch:
 void Console_Destroy(ConsoleRef _Nullable pConsole)
 {
     if (pConsole) {
-        pConsole->pGDevice = NULL;
-        pConsole->pEventDriver = NULL;
+        GraphicsDriver_RelinquishSprite(pConsole->pGDevice, pConsole->textCursor);
+
         kfree(pConsole->keyMapper.buffer);
         pConsole->keyMapper.buffer = NULL;
+        
         TabStops_Deinit(&pConsole->hTabStops);
         TabStops_Deinit(&pConsole->vTabStops);
+        
         Lock_Deinit(&pConsole->lock);
+
+        pConsole->pGDevice = NULL;
+        pConsole->pEventDriver = NULL;
         kfree((Byte*)pConsole);
     }
 }
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 {
-    static const RGBColor bgColor = {0x00, 0x00, 0x00};
-    static const RGBColor fgColor = {0x00, 0xff, 0x00};
     decl_try_err();
     const Surface* pFramebuffer;
     
     try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pConsole->pGDevice), ENODEV);
-    pConsole->bounds = Rect_Make(0, 0, pFramebuffer->width / GLYPH_WIDTH, pFramebuffer->height / GLYPH_HEIGHT);
+    pConsole->bounds = Rect_Make(0, 0, pFramebuffer->width / pConsole->characterWidth, pFramebuffer->height / pConsole->lineHeight);
     pConsole->savedCursorPosition = Point_Zero;
 
-    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 0, &bgColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 1, &fgColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 0, &pConsole->backgroundColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 1, &pConsole->textColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 17, &pConsole->textColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 18, &pConsole->textColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 19, &pConsole->textColor);
 
     TabStops_Deinit(&pConsole->hTabStops);
     try(TabStops_Init(&pConsole->hTabStops, __max(pConsole->bounds.width / 8, 0), 8));
@@ -129,7 +148,7 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
         }
 
         GraphicsDriver_FillRect(pConsole->pGDevice,
-                            Rect_Make(x * GLYPH_WIDTH, y * GLYPH_HEIGHT, w * GLYPH_WIDTH, GLYPH_HEIGHT),
+                            Rect_Make(x * pConsole->characterWidth, y * pConsole->lineHeight, w * pConsole->characterWidth, pConsole->lineHeight),
                             Color_MakeIndex(0));
     }
 }
@@ -139,8 +158,8 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
 static void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, Point dstLoc)
 {
     GraphicsDriver_CopyRect(pConsole->pGDevice,
-                            Rect_Make(srcRect.x * GLYPH_WIDTH, srcRect.y * GLYPH_HEIGHT, srcRect.width * GLYPH_WIDTH, srcRect.height * GLYPH_HEIGHT),
-                            Point_Make(dstLoc.x * GLYPH_WIDTH, dstLoc.y * GLYPH_HEIGHT));
+                            Rect_Make(srcRect.x * pConsole->characterWidth, srcRect.y * pConsole->lineHeight, srcRect.width * pConsole->characterWidth, srcRect.height * pConsole->lineHeight),
+                            Point_Make(dstLoc.x * pConsole->characterWidth, dstLoc.y * pConsole->lineHeight));
 }
 
 // Fills the content of 'rect' with the character 'ch'. Does not change the
@@ -151,7 +170,7 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Cha
 
     if (ch == ' ') {
         GraphicsDriver_FillRect(pConsole->pGDevice,
-                                Rect_Make(r.x * GLYPH_WIDTH, r.y * GLYPH_HEIGHT, r.width * GLYPH_WIDTH, r.height * GLYPH_HEIGHT),
+                                Rect_Make(r.x * pConsole->characterWidth, r.y * pConsole->lineHeight, r.width * pConsole->characterWidth, r.height * pConsole->lineHeight),
                                 Color_MakeIndex(0));
     }
     else if (ch < 32 || ch == 127) {
@@ -226,6 +245,11 @@ static void Console_DeleteLines_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
     }
 }
 
+static void Console_CursorDidMove(Console* _Nonnull pConsole)
+{
+    GraphicsDriver_SetSpritePosition(pConsole->pGDevice, pConsole->textCursor, pConsole->x * pConsole->characterWidth, pConsole->y * pConsole->lineHeight);
+}
+
 // Sets the console position. The next print() will start printing at this
 // location.
 // \param pConsole the console
@@ -235,6 +259,7 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 {
     pConsole->x = __max(__min(x, pConsole->bounds.width - 1), 0);
     pConsole->y = __max(__min(y, pConsole->bounds.height - 1), 0);
+    Console_CursorDidMove(pConsole);
 }
 
 // Moves the console position by the given delta values.
@@ -299,6 +324,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
 
     pConsole->x = x;
     pConsole->y = y;
+    Console_CursorDidMove(pConsole);
 }
 
 

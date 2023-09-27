@@ -30,13 +30,13 @@ Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScr
 
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
-void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isOddField)
+void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField)
 {
     static const UInt8 BPLxPTH[MAX_PLANE_COUNT] = {BPL1PTH, BPL2PTH, BPL3PTH, BPL4PTH, BPL5PTH, BPL6PTH};
     static const UInt8 BPLxPTL[MAX_PLANE_COUNT] = {BPL1PTL, BPL2PTL, BPL3PTL, BPL4PTL, BPL5PTL, BPL6PTL};
-    const VideoConfiguration* pConfig = pScreen->videoConfig;
+    const ScreenConfiguration* pConfig = pScreen->screenConfig;
     const UInt32 firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
-    const UInt16 lpen_mask = pScreen->isLightPenEnabled ? 0x0008 : 0x0000;
+    const UInt16 lpen_mask = isLightPenEnabled ? 0x0008 : 0x0000;
     Surface* pFramebuffer = pScreen->framebuffer;
     Int ip = 0;
     
@@ -66,15 +66,15 @@ void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCod
     }
 
     // SPRxPT
-    const UInt32 spr32 = (UInt32)pScreen->mouseCursorSprite;
+    const UInt32 spr32 = (UInt32)pScreen->sprite[0];
     const UInt16 sprH = (spr32 >> 16) & UINT16_MAX;
     const UInt16 sprL = spr32 & UINT16_MAX;
     const UInt32 nullspr = (const UInt32)pScreen->nullSprite;
     const UInt16 nullsprH = (nullspr >> 16) & UINT16_MAX;
     const UInt16 nullsprL = nullspr & UINT16_MAX;
 
-    pCode[ip++] = COP_MOVE(SPR0PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR0PTL, nullsprL);
+    pCode[ip++] = COP_MOVE(SPR0PTH, sprH);
+    pCode[ip++] = COP_MOVE(SPR0PTL, sprL);
     pCode[ip++] = COP_MOVE(SPR1PTH, nullsprH);
     pCode[ip++] = COP_MOVE(SPR1PTL, nullsprL);
     pCode[ip++] = COP_MOVE(SPR2PTH, nullsprH);
@@ -87,8 +87,8 @@ void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCod
     pCode[ip++] = COP_MOVE(SPR5PTL, nullsprL);
     pCode[ip++] = COP_MOVE(SPR6PTH, nullsprH);
     pCode[ip++] = COP_MOVE(SPR6PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR7PTH, sprH);
-    pCode[ip++] = COP_MOVE(SPR7PTL, sprL);
+    pCode[ip++] = COP_MOVE(SPR7PTH, nullsprH);
+    pCode[ip++] = COP_MOVE(SPR7PTL, nullsprL);
     
     // DMACON
 //    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_MASTER);
@@ -98,7 +98,7 @@ void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCod
 
 // Compiles a Copper program to display a non-interlaced screen or a single field
 // of an interlaced screen.
-ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
+ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
     Int ip = 0;
@@ -108,7 +108,7 @@ ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOdd
     
     try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (Byte**) &pProg));
     
-    CopperCompiler_CompileScreenRefreshProgram(&pProg->entry[ip], pScreen, isOddField);
+    CopperCompiler_CompileScreenRefreshProgram(&pProg->entry[ip], pScreen, isLightPenEnabled, isOddField);
     ip += nFrameInstructions;
 
     // end instructions

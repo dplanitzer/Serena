@@ -78,6 +78,10 @@ typedef struct _Console {
     Lock                        lock;
     EventDriverRef _Nonnull     pEventDriver;
     GraphicsDriverRef _Nonnull  pGDevice;
+    RGBColor                    backgroundColor;
+    RGBColor                    textColor;
+    Int                         lineHeight;     // In pixels
+    Int                         characterWidth; // In pixels
     TabStops                    hTabStops;
     TabStops                    vTabStops;
     Rect                        bounds;
@@ -87,6 +91,7 @@ typedef struct _Console {
     Point                       savedCursorPosition;
     vtparse_t                   vtparse;
     KeyMapper                   keyMapper;
+    SpriteID                    textCursor;
 } Console;
 
 
@@ -103,5 +108,19 @@ extern const Byte font8x8_latin1[128][8];
 extern const Byte font8x8_dingbat[160][8];
 #define GLYPH_WIDTH     8
 #define GLYPH_HEIGHT    8
+
+
+//
+// Text Cursors
+//
+extern const UInt16 gBlock4x8_Plane0[];
+extern const UInt16 gBlock4x8_Plane1[];
+extern const Int gBlock4x8_Width;
+extern const Int gBlock4x8_Height;
+
+extern const UInt16 gBlock4x4_Plane0[];
+extern const UInt16 gBlock4x4_Plane1[];
+extern const Int gBlock4x4_Width;
+extern const Int gBlock4x4_Height;
 
 #endif /* ConsolePriv_h */

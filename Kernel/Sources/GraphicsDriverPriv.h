@@ -11,12 +11,13 @@
 
 #include "GraphicsDriver.h"
 #include "InterruptController.h"
+#include "Lock.h"
 #include "Platform.h"
 #include "Semaphore.h"
 
 
 #define MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION   5
-struct _VideoConfiguration {
+struct _ScreenConfiguration {
     Int16       uniqueId;
     Int16       width;
     Int16       height;
@@ -76,16 +77,14 @@ extern void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler);
 // Screen
 //
 
+#define NUM_HARDWARE_SPRITES    8
 typedef struct _Screen {
     Surface* _Nullable                  framebuffer;            // the screen framebuffer
-    CopperProgram* _Nullable            copperProgramOddField;  // Odd field interlaced or non-interlaced
-    CopperProgram* _Nullable            copperProgramEvenField; // Even field interlaced or NULL
-    const VideoConfiguration* _Nonnull  videoConfig;
+    const ScreenConfiguration* _Nonnull screenConfig;
     PixelFormat                         pixelFormat;
-    const UInt16* _Nonnull              nullSprite;
-    const UInt16* _Nonnull              mouseCursorSprite;
+    UInt16* _Nonnull                    nullSprite;
+    UInt16* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
     Bool                                isInterlaced;
-    Bool                                isLightPenEnabled;
 } Screen;
 
 
@@ -94,8 +93,8 @@ typedef struct _Screen {
 //
 
 extern Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen);
-extern void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isOddField);
-extern ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg);
+extern void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField);
+extern ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg);
 extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 
 
@@ -105,21 +104,19 @@ extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 
 typedef struct _GraphicsDriver {
     Screen* _Nonnull        screen;
+    UInt16* _Nonnull        nullSprite;
+    Lock                    lock;   // protects the driver and the current screen
     CopperScheduler         copperScheduler;
     InterruptHandlerID      vb_irq_handler;
     Semaphore               vblank_sema;
-    UInt16* _Nonnull        sprite_null;
-    UInt16* _Nonnull        sprite_mouse;
-    Int16                   mouse_cursor_width;
-    Int16                   mouse_cursor_height;
-    Int16                   mouse_cursor_hotspot_x;
-    Int16                   mouse_cursor_hotspot_y;
-    Bool                    is_light_pen_enabled;
+    Bool                    isLightPenEnabled;  // Applies to all screens
 } GraphicsDriver;
 
 
 extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver);
-extern void GraphicsDriver_StopVideoRefresh(GraphicsDriverRef _Nonnull pDriver);
+extern void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver);
+
+extern ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDriver, Screen* _Nonnull pScreen);
 
 extern void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT);
 

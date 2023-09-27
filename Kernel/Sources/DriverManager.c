@@ -150,13 +150,13 @@ ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManag
 
 
     // Graphics Driver
-    const VideoConfiguration* pVideoConfig;
+    const ScreenConfiguration* pVideoConfig;
     if (chipset_is_ntsc()) {
-        pVideoConfig = &kVideoConfig_NTSC_640_200_60;
-        //pVideoConfig = &kVideoConfig_NTSC_640_400_30;
+        pVideoConfig = &kScreenConfig_NTSC_640_200_60;
+        //pVideoConfig = &kScreenConfig_NTSC_640_400_30;
     } else {
-        pVideoConfig = &kVideoConfig_PAL_640_256_50;
-        //pVideoConfig = &kVideoConfig_PAL_640_512_25;
+        pVideoConfig = &kScreenConfig_PAL_640_256_50;
+        //pVideoConfig = &kScreenConfig_PAL_640_512_25;
     }
     
     GraphicsDriverRef pMainGDevice = NULL;

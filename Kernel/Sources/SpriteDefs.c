@@ -62,20 +62,20 @@ const Int gArrow_Width = 16;
 const Int gArrow_Height = 16;
 
 
-#define BLOCK_8x8_BITS_PLANE0 \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ), \
-PACK_U16( o,o,o,o,o,o,o,o,_,_,_,_,_,_,_,_ ),
-const UInt16 gBlock8x8_Plane0[] = {
-    BLOCK_8x8_BITS_PLANE0
+#define BLOCK_4x8_BITS_PLANE0 \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ),
+const UInt16 gBlock4x8_Plane0[] = {
+    BLOCK_4x8_BITS_PLANE0
 };
 
-#define BLOCK_8x8_BITS_PLANE1 \
+#define BLOCK_4x8_BITS_PLANE1 \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
@@ -84,9 +84,31 @@ PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
 PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
-const UInt16 gBlock8x8_Plane1[] = {
-    BLOCK_8x8_BITS_PLANE1
+const UInt16 gBlock4x8_Plane1[] = {
+    BLOCK_4x8_BITS_PLANE1
 };
 
-const Int gBlock8x8_Width = 16;
-const Int gBlock8x8_Height = 8;
+const Int gBlock4x8_Width = 16;
+const Int gBlock4x8_Height = 8;
+
+
+#define BLOCK_4x4_BITS_PLANE0 \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( o,o,o,o,_,_,_,_,_,_,_,_,_,_,_,_ ),
+const UInt16 gBlock4x4_Plane0[] = {
+    BLOCK_4x4_BITS_PLANE0
+};
+
+#define BLOCK_4x4_BITS_PLANE1 \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ), \
+PACK_U16( _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_ ),
+const UInt16 gBlock4x4_Plane1[] = {
+    BLOCK_4x4_BITS_PLANE1
+};
+
+const Int gBlock4x4_Width = 16;
+const Int gBlock4x4_Height = 4;

@@ -839,7 +839,7 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
 {
     const Int16 old_mouse_x = pDriver->mouse_x;
     const Int16 old_mouse_y = pDriver->mouse_y;
-    const Point mouse_cursor_hotspot = GraphicsDriver_GetMouseCursorHotSpot(pDriver->gdevice);
+    const Point mouse_cursor_hotspot = Point_Zero; //XXX GraphicsDriver_GetMouseCursorHotSpot(pDriver->gdevice);
     
     // Compute the mouse rect. The area inside of which the mouse may freely move.
     const Int16 mouse_min_x = pDriver->screen_rect_x;
@@ -872,7 +872,7 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
     
     
     if (pDriver->mouse_x != old_mouse_x || pDriver->mouse_y != old_mouse_y) {
-        GraphicsDriver_SetMouseCursorPosition(pDriver->gdevice, pDriver->mouse_x, pDriver->mouse_y);
+        // XXX GraphicsDriver_SetMouseCursorPosition(pDriver->gdevice, pDriver->mouse_x, pDriver->mouse_y);
     }
     
     if (pDriver->mouseConfigDidChange) {
@@ -894,7 +894,7 @@ static void EventDriver_UpdateMouseState(EventDriverRef _Nonnull pDriver)
             doShow = true;
         }
         
-        GraphicsDriver_SetMouseCursorVisible(pDriver->gdevice, doShow);
+        // XXX GraphicsDriver_SetMouseCursorVisible(pDriver->gdevice, doShow);
     }
 }
 
