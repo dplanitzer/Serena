@@ -193,6 +193,7 @@ BLTDDAT     equ     $000
 
 
 ; Color registers
+COLOR_REGS_COUNT equ 32
 COLOR_BASE  equ     $180
 COLOR00     equ     COLOR_BASE+$00
 COLOR01     equ     COLOR_BASE+$02

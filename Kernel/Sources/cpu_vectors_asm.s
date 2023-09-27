@@ -124,9 +124,6 @@ _Reset:
 
         ; make sure that all DMAs and IRQs are off
         jsr     _chipset_reset
-        lea     CUSTOM_BASE, a0
-        move.w  #$ff00, POTGO(a0)
-        move.w  #$0000, COLOR00(a0)
 
         ; install the CPU vector table
         lea     _cpu_vector_table(pc), a0

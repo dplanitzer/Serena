@@ -32,6 +32,7 @@ _chipset_reset:
     move.w  #$7fff, INTREQ(a0)  ; clear pending interrupts
     move.w  #$7fff, DMACON(a0)  ; disable DMA
     move.w  #$4000, DSKLEN(a0)  ; disable disk DMA
+    move.w  #$ff00, POTGO(a0)   ; configure the Paula bi-directional I/O port
 
     ; disable timers
     move.b  #0, CIAACRA
@@ -60,6 +61,15 @@ _chipset_reset:
     move.b  d0, CIABPRB
     or.b    #%01111000, d0      ; and finally deselect all drives for good
     move.b  d0, CIABPRB
+
+    ; set all color registers to black
+    moveq.l #0, d0
+    move.w  #COLOR_REGS_COUNT-1, d1
+.L1:
+    move.w  d0, COLOR_BASE(a0, d1.w*2)
+    subq.w  #1, d1
+    cmp.w   #0, d1
+    bge.w   .L1
 
     rts
 
