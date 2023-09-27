@@ -82,7 +82,7 @@ extern void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler);
 #define MAX_SPRITE_HEIGHT       511
 
 typedef struct _Sprite {
-    UInt16*     data;   // sprxctl, sprxctl, (plane0, plane1), ..., 0, 0
+    UInt16*     data;   // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
     UInt16      height;
 } Sprite;
 
@@ -97,6 +97,7 @@ typedef struct _Screen {
     PixelFormat                         pixelFormat;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
+    Int8                                spritesInUseCount;
     Bool                                isInterlaced;
 } Screen;
 
@@ -106,7 +107,7 @@ typedef struct _Screen {
 //
 
 extern Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen);
-extern void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField);
+extern CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField);
 extern ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg);
 extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 

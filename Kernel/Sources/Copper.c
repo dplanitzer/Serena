@@ -30,70 +30,53 @@ Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScr
 
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
-void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField)
+// \return a pointer to where the next instruction after the program would go 
+CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField)
 {
-    static const UInt8 BPLxPTH[MAX_PLANE_COUNT] = {BPL1PTH, BPL2PTH, BPL3PTH, BPL4PTH, BPL5PTH, BPL6PTH};
-    static const UInt8 BPLxPTL[MAX_PLANE_COUNT] = {BPL1PTL, BPL2PTL, BPL3PTL, BPL4PTL, BPL5PTL, BPL6PTL};
     const ScreenConfiguration* pConfig = pScreen->screenConfig;
     const UInt32 firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
     const UInt16 lpen_mask = isLightPenEnabled ? 0x0008 : 0x0000;
     Surface* pFramebuffer = pScreen->framebuffer;
-    Int ip = 0;
+    register CopperInstruction* ip = pCode;
     
     // BPLCONx
-    pCode[ip++] = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_mask | ((UInt16)pFramebuffer->planeCount & 0x07) << 12);
-    pCode[ip++] = COP_MOVE(BPLCON1, 0);
-    pCode[ip++] = COP_MOVE(BPLCON2, 0x0024);
+    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_mask | ((UInt16)pFramebuffer->planeCount & 0x07) << 12);
+    *ip++ = COP_MOVE(BPLCON1, 0);
+    *ip++ = COP_MOVE(BPLCON2, 0x0024);
     
     // DIWSTART / DIWSTOP
-    pCode[ip++] = COP_MOVE(DIWSTART, (pConfig->diw_start_v << 8) | pConfig->diw_start_h);
-    pCode[ip++] = COP_MOVE(DIWSTOP, (pConfig->diw_stop_v << 8) | pConfig->diw_stop_h);
+    *ip++ = COP_MOVE(DIWSTART, (pConfig->diw_start_v << 8) | pConfig->diw_start_h);
+    *ip++ = COP_MOVE(DIWSTOP, (pConfig->diw_stop_v << 8) | pConfig->diw_stop_h);
     
     // DDFSTART / DDFSTOP
-    pCode[ip++] = COP_MOVE(DDFSTART, pConfig->ddf_start);
-    pCode[ip++] = COP_MOVE(DDFSTOP, pConfig->ddf_stop);
+    *ip++ = COP_MOVE(DDFSTART, pConfig->ddf_start);
+    *ip++ = COP_MOVE(DDFSTOP, pConfig->ddf_stop);
     
     // BPLxMOD
-    pCode[ip++] = COP_MOVE(BPL1MOD, pConfig->ddf_mod);
-    pCode[ip++] = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
+    *ip++ = COP_MOVE(BPL1MOD, pConfig->ddf_mod);
+    *ip++ = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
     
     // BPLxPT
-    for (Int i = 0; i < pFramebuffer->planeCount; i++) {
+    for (Int i = 0, r = BPL_BASE; i < pFramebuffer->planeCount; i++, r += 4) {
         const UInt32 bplpt = (UInt32)(pFramebuffer->planes[i]) + firstLineByteOffset;
         
-        pCode[ip++] = COP_MOVE(BPLxPTH[i], (bplpt >> 16) & UINT16_MAX);
-        pCode[ip++] = COP_MOVE(BPLxPTL[i], bplpt & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
     }
 
     // SPRxPT
-    const UInt32 spr32 = (UInt32)pScreen->sprite[0]->data;
-    const UInt16 sprH = (spr32 >> 16) & UINT16_MAX;
-    const UInt16 sprL = spr32 & UINT16_MAX;
-    const UInt32 nullspr = (const UInt32)pScreen->nullSprite->data;
-    const UInt16 nullsprH = (nullspr >> 16) & UINT16_MAX;
-    const UInt16 nullsprL = nullspr & UINT16_MAX;
+    for (Int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
+        const UInt32 sprpt = (UInt32)pScreen->sprite[i]->data;
 
-    pCode[ip++] = COP_MOVE(SPR0PTH, sprH);
-    pCode[ip++] = COP_MOVE(SPR0PTL, sprL);
-    pCode[ip++] = COP_MOVE(SPR1PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR1PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR2PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR2PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR3PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR3PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR4PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR4PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR5PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR5PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR6PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR6PTL, nullsprL);
-    pCode[ip++] = COP_MOVE(SPR7PTH, nullsprH);
-    pCode[ip++] = COP_MOVE(SPR7PTL, nullsprL);
-    
+        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
+    }
+
     // DMACON
-//    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_MASTER);
-    // XXX turned the mouse cursor off for now
-    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | DMAF_SPRITE | DMAF_MASTER);
+    const UInt16 dmaf_sprite = (pScreen->spritesInUseCount > 0) ? DMAF_SPRITE : 0;
+    *ip++ = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | dmaf_sprite | DMAF_MASTER);
+
+    return ip;
 }
 
 // Compiles a Copper program to display a non-interlaced screen or a single field
@@ -101,18 +84,17 @@ void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCod
 ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
-    Int ip = 0;
     const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
     const Int nInstructions = nFrameInstructions + 1;
     CopperProgram* pProg;
     
     try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (Byte**) &pProg));
-    
-    CopperCompiler_CompileScreenRefreshProgram(&pProg->entry[ip], pScreen, isLightPenEnabled, isOddField);
-    ip += nFrameInstructions;
+    CopperInstruction* ip = pProg->entry;
+
+    ip = CopperCompiler_CompileScreenRefreshProgram(ip, pScreen, isLightPenEnabled, isOddField);
 
     // end instructions
-    pProg->entry[ip++] = COP_END();
+    *ip = COP_END();
     
     *pOutProg = pProg;
     return EOK;

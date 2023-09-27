@@ -250,6 +250,8 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define DDFSTART    0x092
 #define DDFSTOP     0x094
 #define DMACON      0x096
+
+#define BPL_BASE    0x0e0
 #define BPL1PTH     0x0e0
 #define BPL1PTL     0x0e2
 #define BPL2PTH     0x0e4
@@ -278,6 +280,7 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define BPL1MOD     0x108
 #define BPL2MOD     0x10a
 
+#define SPRITE_BASE 0x120
 #define SPR0PTH     0x120
 #define SPR0PTL     0x122
 #define SPR1PTH     0x124
@@ -295,6 +298,7 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define SPR7PTH     0x13c
 #define SPR7PTL     0x13e
 
+#define COLOR_COUNT 32
 #define COLOR_BASE  0x180
 #define COLOR00     COLOR_BASE+0x00
 #define COLOR01     COLOR_BASE+0x02
@@ -398,6 +402,8 @@ typedef UInt32  CopperInstruction;
 #define INTERRUPT_ID_COUNT                          24
 
 
+// Stops all hardware timers and DMAs and stops all interrupts of the platform's
+// motherboard chipset.
 extern void chipset_reset(void);
 extern UInt8 chipset_get_version(void);
 extern UInt8 chipset_get_ramsey_version(void);
@@ -406,8 +412,6 @@ extern Byte* chipset_get_upper_dma_limit(Int chipset_version);
 
 extern void chipset_enable_interrupt(Int interruptId);
 extern void chipset_disable_interrupt(Int interruptId);
-
-extern void chipset_stop_dma_channels(void);
 
 
 #define INTERRUPT_ID_QUANTUM_TIMER  INTERRUPT_ID_CIA_A_TIMER_B

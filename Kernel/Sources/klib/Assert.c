@@ -67,22 +67,55 @@ typedef struct _MicroConsole {
 } MicroConsole;
 
 
-// Forces the execution of the given Copper program.
-static void run_copper_program(const CopperInstruction* _Nullable pOddFieldProg)
+// Initializes the graphics device enough to run our micro console on it
+static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, Byte* _Nonnull pFramebuffer)
 {
+    CopperInstruction* pCode = (CopperInstruction*)COPPER_PROG_ADDR;
+    CopperInstruction* ip = pCode;
+    const UInt32 bplpt = (UInt32)pFramebuffer;
+    
+    // BPLCONx
+    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | ((UInt16)1) << 12);
+    *ip++ = COP_MOVE(BPLCON1, 0);
+    *ip++ = COP_MOVE(BPLCON2, 0x0024);
+    
+    // DIWSTART / DIWSTOP
+    *ip++ = COP_MOVE(DIWSTART, (pConfig->diw_start_v << 8) | pConfig->diw_start_h);
+    *ip++ = COP_MOVE(DIWSTOP, (pConfig->diw_stop_v << 8) | pConfig->diw_stop_h);
+    
+    // DDFSTART / DDFSTOP
+    *ip++ = COP_MOVE(DDFSTART, pConfig->ddf_start);
+    *ip++ = COP_MOVE(DDFSTOP, pConfig->ddf_stop);
+    
+    // BPLxMOD
+    *ip++ = COP_MOVE(BPL1MOD, pConfig->ddf_mod);
+    *ip++ = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
+    
+    // BPLxPT        
+    *ip++ = COP_MOVE(BPL1PTH, (bplpt >> 16) & UINT16_MAX);
+    *ip++ = COP_MOVE(BPL1PTL, bplpt & UINT16_MAX);
+
+    // COLOR
+    *ip++ = COP_MOVE(COLOR00, 0x036a);  // #306ab0
+    *ip++ = COP_MOVE(COLOR01, 0x0fff);  // #ffffff
+    for (Int i = 2, r = COLOR_BASE + i*2; i < COLOR_COUNT; i++, r += 2) {
+        *ip++ = COP_MOVE(r, 0);
+    }
+
+    // DMACON
+    *ip++ = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER);
+
+    // End
+    *ip++ = COP_END();
+
+
+    // Install the Copper program
     CHIPSET_BASE_DECL(cp);
 
     *CHIPSET_REG_16(cp, DMACON) = DMAF_COPPER;
-    *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pOddFieldProg;
+    *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pCode;
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
     *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
-}
-
-static void set_clut_entry(Int idx, UInt16 color)
-{
-    CHIPSET_BASE_DECL(cp);
-
-    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = color;
 }
 
 static void micro_console_cls(MicroConsole* _Nonnull pCon)
@@ -100,52 +133,11 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
     pCon->x = 0;
     pCon->y = 0;
 
-
-    // Build a Copper program so that we can display our framebuffer
-    CopperInstruction* pCode = (CopperInstruction*)COPPER_PROG_ADDR;
-    const VideoConfig* pConfig = pCon->config;
-    const UInt32 bplpt = (UInt32)pCon->framebuffer;
-    Int ip = 0;
-    
-    // BPLCONx
-    pCode[ip++] = COP_MOVE(BPLCON0, pConfig->bplcon0 | ((UInt16)1) << 12);
-    pCode[ip++] = COP_MOVE(BPLCON1, 0);
-    pCode[ip++] = COP_MOVE(BPLCON2, 0x0024);
-    
-    // DIWSTART / DIWSTOP
-    pCode[ip++] = COP_MOVE(DIWSTART, (pConfig->diw_start_v << 8) | pConfig->diw_start_h);
-    pCode[ip++] = COP_MOVE(DIWSTOP, (pConfig->diw_stop_v << 8) | pConfig->diw_stop_h);
-    
-    // DDFSTART / DDFSTOP
-    pCode[ip++] = COP_MOVE(DDFSTART, pConfig->ddf_start);
-    pCode[ip++] = COP_MOVE(DDFSTOP, pConfig->ddf_stop);
-    
-    // BPLxMOD
-    pCode[ip++] = COP_MOVE(BPL1MOD, pConfig->ddf_mod);
-    pCode[ip++] = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
-    
-    // BPLxPT        
-    pCode[ip++] = COP_MOVE(BPL1PTH, (bplpt >> 16) & UINT16_MAX);
-    pCode[ip++] = COP_MOVE(BPL1PTL, bplpt & UINT16_MAX);
-
-    // DMACON
-    pCode[ip++] = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER);
-
-    // End
-    pCode[ip++] = COP_END();
-
-
     // Clear the screen
     micro_console_cls(pCon);
 
-
-    // Set the CLUT up
-    set_clut_entry(0, 0x036a);    // #306ab0
-    set_clut_entry(1, 0x0fff);    // #ffffff
-
-
-    // Install the Copper program
-    run_copper_program(pCode);
+    // Initialize the graphics hardware
+    micro_console_init_gfx(pCon->config, pCon->framebuffer);
 }
 
 static void micro_console_move_cursor(MicroConsole* _Nonnull pCon, Int dX, Int dY)
@@ -263,9 +255,7 @@ static void fprint(MicroConsole* _Nonnull pCon, const Character* _Nonnull format
 
 static void stop_machine()
 {
-    chipset_stop_dma_channels();
-    cpu_disable_irqs();
-    chipset_stop_quantum_timer();
+    chipset_reset();
 }
 
 _Noreturn fatal(const Character* _Nonnull format, ...)
