@@ -79,8 +79,8 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
     return ip;
 }
 
-// Compiles a Copper program to display a non-interlaced screen or a single field
-// of an interlaced screen.
+// Compiles a Copper program to display a non-interlaced screen or a single
+// field of an interlaced screen.
 ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();

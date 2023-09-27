@@ -83,7 +83,10 @@ extern void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler);
 
 typedef struct _Sprite {
     UInt16*     data;   // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
+    Int16       x;
+    Int16       y;
     UInt16      height;
+    Bool        isVisible;
 } Sprite;
 
 

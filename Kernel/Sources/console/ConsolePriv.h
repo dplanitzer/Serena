@@ -10,6 +10,7 @@
 #define ConsolePriv_h
 
 #include "Console.h"
+#include "DispatchQueue.h"
 #include "KeyMap.h"
 #include "Lock.h"
 #include "vtparse.h"
@@ -92,6 +93,9 @@ typedef struct _Console {
     vtparse_t                   vtparse;
     KeyMapper                   keyMapper;
     SpriteID                    textCursor;
+    TimerRef _Nonnull           textCursorBlinker;
+    Bool                        isTextCursorBlinkerActive;
+    Bool                        isTextCursorVisible;
 } Console;
 
 

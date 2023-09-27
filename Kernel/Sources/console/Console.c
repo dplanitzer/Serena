@@ -10,6 +10,9 @@
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
+static void Console_SetTextCursorBlinkingEnabled(Console* _Nonnull pConsole, Bool isEnabled);
+static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
+static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
 static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
 static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
@@ -37,12 +40,18 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     pConsole->backgroundColor = RGBColor_Make(0, 0, 0);
     pConsole->textColor = RGBColor_Make(0, 255, 0);
 
+
+    // Initialize the ANSI escape sequence parser
     vtparse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
 
+
+    // Initialize the key mapping service
     pConsole->keyMapper.map = (const KeyMap*) &gKeyMap_usa[0];
     pConsole->keyMapper.capacity = KeyMap_GetMaxOutputByteCount(pConsole->keyMapper.map);
     try(kalloc_cleared(pConsole->keyMapper.capacity, &pConsole->keyMapper.buffer));
-    
+
+
+    // Allocate the text cursor (sprite)
     const Bool isInterlaced = ScreenConfiguration_IsInterlaced(GraphicsDriver_GetCurrentScreenConfiguration(pGDevice));
     const UInt16* textCursorPlanes[2];
     textCursorPlanes[0] = (isInterlaced) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
@@ -51,7 +60,17 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     const Int textCursorHeight = (isInterlaced) ? gBlock4x4_Height : gBlock4x8_Height;
     try(GraphicsDriver_AcquireSprite(pGDevice, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &pConsole->textCursor));
 
+
+    // Allocate the text cursor blinking timer
+    pConsole->isTextCursorBlinkerActive = false;
+    try(Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(500), DispatchQueueClosure_Make((Closure1Arg_Func)Console_OnTextCursorBlink, (Byte*)pConsole), &pConsole->textCursorBlinker));
+
+
+    // Reset the console to the default configuration
     try(Console_ResetState_Locked(pConsole));
+
+
+    // Clear the console screen
     Console_ClearScreen_Locked(pConsole);
     
     *pOutConsole = pConsole;
@@ -68,7 +87,11 @@ catch:
 void Console_Destroy(ConsoleRef _Nullable pConsole)
 {
     if (pConsole) {
+        Console_SetTextCursorBlinkingEnabled(pConsole, false);
         GraphicsDriver_RelinquishSprite(pConsole->pGDevice, pConsole->textCursor);
+
+        Timer_Destroy(pConsole->textCursorBlinker);
+        pConsole->textCursorBlinker = NULL;
 
         kfree(pConsole->keyMapper.buffer);
         pConsole->keyMapper.buffer = NULL;
@@ -106,6 +129,7 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     try(TabStops_Init(&pConsole->vTabStops, 0, 0));
 
     Console_MoveCursorTo_Locked(pConsole, 0, 0);
+    Console_SetTextCursorBlinkingEnabled(pConsole, true);
     pConsole->lineBreakMode = kLineBreakMode_WrapCharacterAndScroll;
 
     return EOK;
@@ -245,7 +269,35 @@ static void Console_DeleteLines_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
     }
 }
 
-static void Console_CursorDidMove(Console* _Nonnull pConsole)
+static void Console_SetTextCursorBlinkingEnabled(Console* _Nonnull pConsole, Bool isEnabled)
+{
+    if (pConsole->isTextCursorBlinkerActive != isEnabled) {
+        pConsole->isTextCursorBlinkerActive = isEnabled;
+
+        if (isEnabled) {
+            try_bang(DispatchQueue_DispatchTimer(gMainDispatchQueue, pConsole->textCursorBlinker));
+        } else {
+            // XXX need a way to remove the timer from teh dispatch queue
+        }
+    }
+}
+
+static void Console_OnTextCursorBlink(Console* _Nonnull pConsole)
+{
+    Lock_Lock(&pConsole->lock);
+    Console_SetCursorVisible_Locked(pConsole, !pConsole->isTextCursorVisible);
+    Lock_Unlock(&pConsole->lock);
+}
+
+static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible)
+{
+    if (pConsole->isTextCursorVisible != isVisible) {
+        pConsole->isTextCursorVisible = isVisible;
+        GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, isVisible);
+    }
+}
+
+static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
 {
     GraphicsDriver_SetSpritePosition(pConsole->pGDevice, pConsole->textCursor, pConsole->x * pConsole->characterWidth, pConsole->y * pConsole->lineHeight);
 }
@@ -259,7 +311,7 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 {
     pConsole->x = __max(__min(x, pConsole->bounds.width - 1), 0);
     pConsole->y = __max(__min(y, pConsole->bounds.height - 1), 0);
-    Console_CursorDidMove(pConsole);
+    Console_CursorDidMove_Locked(pConsole);
 }
 
 // Moves the console position by the given delta values.
@@ -324,7 +376,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
 
     pConsole->x = x;
     pConsole->y = y;
-    Console_CursorDidMove(pConsole);
+    Console_CursorDidMove_Locked(pConsole);
 }
 
 
@@ -775,10 +827,6 @@ ByteCount Console_Write(ConsoleRef _Nonnull pConsole, const Byte* _Nonnull pByte
     }
     Lock_Unlock(&pConsole->lock);
 
-    //Lock_Lock(&pConsole->lock);
-    //vtparse(&pConsole->vtparse, (const unsigned char*) pBytes, (int) nBytesToWrite);
-    //Lock_Unlock(&pConsole->lock);
-
     return nBytesToWrite;
 }
 
@@ -804,7 +852,16 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
     while (nBytesRead < nBytesToRead) {
         evtCount = 1;
 
+        // Drop the console lock while getting an event since the get events call
+        // may block and holding the lock while being blocked for a potentially
+        // long time would prevent any other process from working with the
+        // console
+        Lock_Unlock(&pConsole->lock);
         err = EventDriver_GetEvents(pConsole->pEventDriver, &evt, &evtCount, kTimeInterval_Infinity);
+        Lock_Lock(&pConsole->lock);
+        // XXX we are currently assuming here that no relevant console state has
+        // XXX changed while we didn't hold the lock. Confirm that this is okay
+        // XXX later
         if (err != EOK) {
             break;
         }

@@ -115,7 +115,10 @@ static ErrorCode Sprite_Create(const UInt16* _Nonnull pPlanes[2], Int height, Sp
     Sprite* pSprite;
     
     try(kalloc_cleared(sizeof(Sprite), (Byte**) &pSprite));
+    pSprite->x = 0;
+    pSprite->y = 0;
     pSprite->height = (UInt16)height;
+    pSprite->isVisible = true;
 
 
     // Construct the sprite DMA data
@@ -143,19 +146,37 @@ catch:
     return err;
 }
 
-// Updates the position of a hardware sprite
-static void Sprite_SetPosition(Sprite* _Nonnull pSprite, Int x, Int y, const ScreenConfiguration* pConfig)
+// Called when the position or visibility of a hardware sprite has changed.
+// Recalculates the sprxpos and sprxctl control words and updates them in the
+// sprite DMA data block.
+static void Sprite_StateDidChange(Sprite* _Nonnull pSprite, const ScreenConfiguration* pConfig)
 {
+    // Hiding a sprite means to move it all the way to X max.
     const UInt16 hshift = (pConfig->spr_shift & 0xf0) >> 4;
     const UInt16 vshift = pConfig->spr_shift & 0x0f;
-    const UInt16 hstart = pConfig->diw_start_h - 1 + (x >> hshift);
-    const UInt16 vstart = pConfig->diw_start_v + (y >> vshift);
+    const UInt16 hstart = (pSprite->isVisible) ? pConfig->diw_start_h - 1 + (pSprite->x >> hshift) : 511;
+    const UInt16 vstart = pConfig->diw_start_v + (pSprite->y >> vshift);
     const UInt16 vstop = vstart + pSprite->height;
     const UInt16 sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
     const UInt16 sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
 
     pSprite->data[0] = sprxpos;
     pSprite->data[1] = sprxctl;
+}
+
+// Updates the position of a hardware sprite.
+static inline void Sprite_SetPosition(Sprite* _Nonnull pSprite, Int x, Int y, const ScreenConfiguration* pConfig)
+{
+    pSprite->x = x;
+    pSprite->y = y;
+    Sprite_StateDidChange(pSprite, pConfig);
+}
+
+// Updates the visibility state of a hardware sprite.
+static inline void Sprite_SetVisible(Sprite* _Nonnull pSprite, Bool isVisible, const ScreenConfiguration* pConfig)
+{
+    pSprite->isVisible = isVisible;
+    Sprite_StateDidChange(pSprite, pConfig);
 }
 
 
@@ -264,7 +285,7 @@ catch:
     return err;
 }
 
-// Updates the position of a hardware sprite
+// Updates the position of a hardware sprite.
 static ErrorCode Screen_SetSpritePosition(Screen* _Nonnull pScreen, SpriteID spriteId, Int x, Int y)
 {
     decl_try_err();
@@ -274,6 +295,22 @@ static ErrorCode Screen_SetSpritePosition(Screen* _Nonnull pScreen, SpriteID spr
     }
 
     Sprite_SetPosition(pScreen->sprite[spriteId], x, y, pScreen->screenConfig);
+    return EOK;
+
+catch:
+    return err;
+}
+
+// Updates the visibility of a hardware sprite.
+static ErrorCode Screen_SetSpriteVisible(Screen* _Nonnull pScreen, SpriteID spriteId, Bool isVisible)
+{
+    decl_try_err();
+
+    if (spriteId < 0 || spriteId >= NUM_HARDWARE_SPRITES) {
+        throw(EINVAL);
+    }
+
+    Sprite_SetVisible(pScreen->sprite[spriteId], isVisible, pScreen->screenConfig);
     return EOK;
 
 catch:
@@ -504,7 +541,7 @@ ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDri
 {
     decl_try_err();
     Screen* pOldScreen = pDriver->screen;
-    Bool hasSwitchScreens = false;
+    Bool hasSwitchedScreens = false;
 
     
     // Update the graphics device state.
@@ -513,7 +550,7 @@ ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDri
 
     // Turn video refresh back on and point it to the new copper program
     try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
-    hasSwitchScreens = true;
+    hasSwitchedScreens = true;
     
 
     // Wait for the vblank. Once we got a vblank we know that the DMA is no longer
@@ -527,7 +564,7 @@ ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDri
     return EOK;
 
 catch:
-    if (!hasSwitchScreens) {
+    if (!hasSwitchedScreens) {
         pDriver->screen = pOldScreen;
     }
     return err;
@@ -630,13 +667,30 @@ catch:
     return err; // XXX clarify whether that's a thing or not
 }
 
-// Updates the position of a hardware sprite
+// Updates the position of a hardware sprite.
 ErrorCode GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, Int x, Int y)
 {
     decl_try_err();
 
     Lock_Lock(&pDriver->lock);
     try(Screen_SetSpritePosition(pDriver->screen, spriteId, x, y));
+    try (GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
+    Lock_Unlock(&pDriver->lock);
+
+    return EOK;
+
+catch:
+    Lock_Unlock(&pDriver->lock);
+    return err;
+}
+
+// Updates the visibility of a hardware sprite.
+ErrorCode GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, Bool isVisible)
+{
+    decl_try_err();
+
+    Lock_Lock(&pDriver->lock);
+    try(Screen_SetSpriteVisible(pDriver->screen, spriteId, isVisible));
     try (GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
     Lock_Unlock(&pDriver->lock);
 
