@@ -74,16 +74,29 @@ extern void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler);
 
 
 //
-// Screen
+// Sprite
 //
 
 #define NUM_HARDWARE_SPRITES    8
+#define MAX_SPRITE_WIDTH        16
+#define MAX_SPRITE_HEIGHT       511
+
+typedef struct _Sprite {
+    UInt16*     data;   // sprxctl, sprxctl, (plane0, plane1), ..., 0, 0
+    UInt16      height;
+} Sprite;
+
+
+//
+// Screen
+//
+
 typedef struct _Screen {
     Surface* _Nullable                  framebuffer;            // the screen framebuffer
     const ScreenConfiguration* _Nonnull screenConfig;
     PixelFormat                         pixelFormat;
-    UInt16* _Nonnull                    nullSprite;
-    UInt16* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
+    Sprite* _Nonnull                    nullSprite;
+    Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
     Bool                                isInterlaced;
 } Screen;
 
@@ -104,7 +117,7 @@ extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 
 typedef struct _GraphicsDriver {
     Screen* _Nonnull        screen;
-    UInt16* _Nonnull        nullSprite;
+    Sprite* _Nonnull        nullSprite;
     Lock                    lock;   // protects the driver and the current screen
     CopperScheduler         copperScheduler;
     InterruptHandlerID      vb_irq_handler;

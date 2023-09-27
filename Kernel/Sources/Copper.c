@@ -66,10 +66,10 @@ void CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCod
     }
 
     // SPRxPT
-    const UInt32 spr32 = (UInt32)pScreen->sprite[0];
+    const UInt32 spr32 = (UInt32)pScreen->sprite[0]->data;
     const UInt16 sprH = (spr32 >> 16) & UINT16_MAX;
     const UInt16 sprL = spr32 & UINT16_MAX;
-    const UInt32 nullspr = (const UInt32)pScreen->nullSprite;
+    const UInt32 nullspr = (const UInt32)pScreen->nullSprite->data;
     const UInt16 nullsprH = (nullspr >> 16) & UINT16_MAX;
     const UInt16 nullsprL = nullspr & UINT16_MAX;
 

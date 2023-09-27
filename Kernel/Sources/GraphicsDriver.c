@@ -95,6 +95,72 @@ Bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: Sprite
+////////////////////////////////////////////////////////////////////////////////
+
+static void Sprite_Destroy(Sprite* _Nullable pSprite)
+{
+    if (pSprite) {
+        kfree((Byte*) pSprite->data);
+        pSprite->data = NULL;
+        
+        kfree((Byte*)pSprite);
+    }
+}
+
+// Creates a sprite object.
+static ErrorCode Sprite_Create(const UInt16* _Nonnull pPlanes[2], Int height, Sprite* _Nonnull * _Nonnull pOutSprite)
+{
+    decl_try_err();
+    Sprite* pSprite;
+    
+    try(kalloc_cleared(sizeof(Sprite), (Byte**) &pSprite));
+    pSprite->height = (UInt16)height;
+
+
+    // Construct the sprite DMA data
+    const Int nWords = 2 + 2*height + 2;
+    try(kalloc_options(sizeof(UInt16) * nWords, KALLOC_OPTION_UNIFIED, (Byte**) &pSprite->data));
+    const UInt16* sp0 = pPlanes[0];
+    const UInt16* sp1 = pPlanes[1];
+    UInt16* dp = pSprite->data;
+
+    *dp++ = 0;  // sprxpos (will be filled out by the caller)
+    *dp++ = 0;  // sprxctl (will be filled out by the caller)
+    for (Int i = 0; i < height; i++) {
+        *dp++ = *sp0++;
+        *dp++ = *sp1++;
+    }
+    *dp++ = 0;
+    *dp   = 0;
+    
+    *pOutSprite = pSprite;
+    return EOK;
+    
+catch:
+    Sprite_Destroy(pSprite);
+    *pOutSprite = NULL;
+    return err;
+}
+
+// Updates the position of a hardware sprite
+static void Sprite_SetPosition(Sprite* _Nonnull pSprite, Int x, Int y, const ScreenConfiguration* pConfig)
+{
+    const UInt16 hshift = (pConfig->spr_shift & 0xf0) >> 4;
+    const UInt16 vshift = pConfig->spr_shift & 0x0f;
+    const UInt16 hstart = pConfig->diw_start_h - 1 + (x >> hshift);
+    const UInt16 vstart = pConfig->diw_start_v + (y >> vshift);
+    const UInt16 vstop = vstart + pSprite->height;
+    const UInt16 sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
+    const UInt16 sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
+
+    pSprite->data[0] = sprxpos;
+    pSprite->data[1] = sprxctl;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: Screen
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -113,7 +179,7 @@ static void Screen_Destroy(Screen* _Nullable pScreen)
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
 // \return the screen or null
-static ErrorCode Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, UInt16* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutScreen)
+static ErrorCode Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutScreen)
 {
     decl_try_err();
     Screen* pScreen;
@@ -146,32 +212,23 @@ static ErrorCode Screen_AcquireSprite(Screen* _Nonnull pScreen, const UInt16* _N
 {
     decl_try_err();
     const ScreenConfiguration* pConfig = pScreen->screenConfig;
-    UInt16* pSprite;
+    Sprite* pSprite;
 
+    if (width < 0 || width > MAX_SPRITE_WIDTH) {
+        throw(E2BIG);
+    }
+    if (height < 0 || height > MAX_SPRITE_HEIGHT) {
+        throw(E2BIG);
+    }
+    if (priority < 0 || priority >= NUM_HARDWARE_SPRITES) {
+        throw(EINVAL);
+    }
     if (pScreen->sprite[priority]) {
         throw(EBUSY);
     }
 
-    const Int nWords = 2 + 2*height + 2;
-    try(kalloc_options(sizeof(UInt16) * nWords, KALLOC_OPTION_UNIFIED, (Byte**) &pSprite));
-    UInt16* sp = pSprite;
-
-    const UInt16 hshift = (pConfig->spr_shift & 0xf0) >> 4;
-    const UInt16 vshift = pConfig->spr_shift & 0x0f;
-    const UInt16 hstart = pConfig->diw_start_h - 1 + (x >> hshift);
-    const UInt16 vstart = pConfig->diw_start_v + (y >> vshift);
-    const UInt16 vstop = vstart + (UInt16)height;
-    const UInt16 sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
-    const UInt16 sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
-
-    *sp++ = sprxpos;
-    *sp++ = sprxctl;
-    for (Int i = 0; i < height; i++) {
-        *sp++ = pPlanes[0][i];
-        *sp++ = pPlanes[1][i];
-    }
-    *sp++ = 0;
-    *sp   = 0;
+    try(Sprite_Create(pPlanes, height, &pSprite));
+    Sprite_SetPosition(pSprite, x, y, pConfig);
 
     pScreen->sprite[priority] = pSprite;
     *pOutSpriteId = priority;
@@ -184,34 +241,41 @@ catch:
 }
 
 // Relinquishes a hardware sprite
-static void Screen_RelinquishSprite(Screen* _Nonnull pScreen, SpriteID spriteId)
+static ErrorCode Screen_RelinquishSprite(Screen* _Nonnull pScreen, SpriteID spriteId)
 {
+    decl_try_err();
+
     if (spriteId >= 0) {
-        // XXX actually free the old sprite instead of leaking it
+        if (spriteId >= NUM_HARDWARE_SPRITES) {
+            throw(EINVAL);
+        }
+
+        // XXX Sprite_Destroy(pScreen->sprite[spriteId]);
+        // XXX actually free the old sprite instead of leaking it. Can't do this
+        // XXX yet because we need to ensure that the DMA is no longer accessing
+        // XXX the data before it freeing it.
         pScreen->sprite[spriteId] = pScreen->nullSprite;
     }
+    return EOK;
+
+catch:
+    return err;
 }
 
 // Updates the position of a hardware sprite
-static void Screen_SetSpritePosition(Screen* _Nonnull pScreen, SpriteID spriteId, Int x, Int y)
+static ErrorCode Screen_SetSpritePosition(Screen* _Nonnull pScreen, SpriteID spriteId, Int x, Int y)
 {
-    const ScreenConfiguration* pConfig = pScreen->screenConfig;
-    UInt16* pSprite = pScreen->sprite[spriteId];
-    const UInt16 hshift = (pConfig->spr_shift & 0xf0) >> 4;
-    const UInt16 vshift = pConfig->spr_shift & 0x0f;
-    const UInt16 osprxpos = pSprite[0];
-    const UInt16 osprxctl = pSprite[1];
-    const UInt16 osvstart = (osprxpos >> 8) | (((osprxctl >> 2) & 0x01) << 8);
-    const UInt16 osvstop = (osprxctl >> 8) | (((osprxctl >> 1) & 0x01) << 8);
-    const UInt16 sprhigh = osvstop - osvstart;
-    const UInt16 hstart = pConfig->diw_start_h - 1 + (x >> hshift);
-    const UInt16 vstart = pConfig->diw_start_v + (y >> vshift);
-    const UInt16 vstop = vstart + sprhigh;
-    const UInt16 sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
-    const UInt16 sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
+    decl_try_err();
 
-    pSprite[0] = sprxpos;
-    pSprite[1] = sprxctl;
+    if (spriteId < 0 || spriteId >= NUM_HARDWARE_SPRITES) {
+        throw(EINVAL);
+    }
+
+    Sprite_SetPosition(pScreen->sprite[spriteId], x, y, pScreen->screenConfig);
+    return EOK;
+
+catch:
+    return err;
 }
 
 
@@ -267,16 +331,17 @@ ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pix
     try(kalloc_cleared(sizeof(GraphicsDriver), (Byte**) &pDriver));
     pDriver->isLightPenEnabled = false;
     Lock_Init(&pDriver->lock);
-
-
-    // Allocate the null sprite
-    try(kalloc_options(sizeof(UInt16)*2, KALLOC_OPTION_UNIFIED, (Byte**) &pDriver->nullSprite));
-    pDriver->nullSprite[0] = 0;
-    pDriver->nullSprite[1] = 0;
     
 
     // Allocate the Copper tools
     CopperScheduler_Init(&pDriver->copperScheduler);
+
+
+    // Allocate the null sprite
+    const UInt16* nullSpritePlanes[2];
+    nullSpritePlanes[0] = NULL;
+    nullSpritePlanes[1] = NULL;
+    try(Sprite_Create(nullSpritePlanes, 0, &pDriver->nullSprite));
 
 
     // Allocate a new screen
@@ -324,14 +389,14 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vb_irq_handler));
         pDriver->vb_irq_handler = 0;
         
-        Semaphore_Deinit(&pDriver->vblank_sema);
-        CopperScheduler_Deinit(&pDriver->copperScheduler);
-        
         Screen_Destroy(pDriver->screen);
         pDriver->screen = NULL;
-        
-        kfree((Byte*)pDriver->nullSprite);
+
+        Sprite_Destroy(pDriver->nullSprite);
         pDriver->nullSprite = NULL;
+
+        Semaphore_Deinit(&pDriver->vblank_sema);
+        CopperScheduler_Deinit(&pDriver->copperScheduler);
 
         Lock_Deinit(&pDriver->lock);
         
@@ -522,6 +587,12 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
     return r;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Sprites
+////////////////////////////////////////////////////////////////////////////////
+
 // Acquires a hardware sprite
 ErrorCode GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull pDriver, const UInt16* _Nonnull pPlanes[2], Int x, Int y, Int width, Int height, Int priority, SpriteID* _Nonnull pOutSpriteId)
 {
@@ -546,7 +617,7 @@ ErrorCode GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull pDriver, Sp
     decl_try_err();
 
     Lock_Lock(&pDriver->lock);
-    Screen_RelinquishSprite(pDriver->screen, spriteId);
+    try(Screen_RelinquishSprite(pDriver->screen, spriteId));
     try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
     Lock_Unlock(&pDriver->lock);
 
@@ -563,7 +634,7 @@ ErrorCode GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull pDriver, S
     decl_try_err();
 
     Lock_Lock(&pDriver->lock);
-    Screen_SetSpritePosition(pDriver->screen, spriteId, x, y);
+    try(Screen_SetSpritePosition(pDriver->screen, spriteId, x, y));
     try (GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
     Lock_Unlock(&pDriver->lock);
 
