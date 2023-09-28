@@ -56,9 +56,10 @@ typedef struct _WorkItem {
     Int8                                    type;
 } WorkItem;
 
-extern void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, Bool isOwnedByQueue);
 extern ErrorCode WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem);
+extern void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, Bool isOwnedByQueue);
 extern void WorkItem_Deinit(WorkItemRef _Nonnull pItem);
+extern void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, Bool isInterrupted);
 
 
 //
@@ -71,9 +72,8 @@ typedef struct _Timer {
     TimeInterval    interval;
 } Timer;
 
-extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue);
 extern ErrorCode Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer);
-
+extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue);
 static inline void Timer_Deinit(TimerRef pTimer) {
     WorkItem_Deinit((WorkItemRef) pTimer);
 }

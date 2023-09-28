@@ -67,24 +67,13 @@ catch:
     return err;
 }
 
-// Called when we flush an item from the dispatch queue. Signales the completion
-// semaphore if one is attached to the item to interrupt the DispatchSync(). The
-// DispatchSync() will return with an EINTR error.
-static void DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue, WorkItem* _Nonnull pItem)
-{
-    if (pItem->completion) {
-        pItem->completion->isInterrupted = true;
-        Semaphore_Release(&pItem->completion->semaphore);
-    }
-}
-
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue)
 {
     // Flush the work item queue
     WorkItemRef pItem;
     while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
-        DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(pQueue, pItem);
+        WorkItem_SignalCompletion(pItem, true);
         DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
     }
 
@@ -92,7 +81,7 @@ static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue)
     // Flush the timers
     TimerRef pTimer;
     while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
-        DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(pQueue, &pTimer->item);
+        WorkItem_SignalCompletion(pItem, true);
         DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
     }
 }
@@ -454,6 +443,31 @@ catch:
     return err;
 }
 
+// Removes all scheduled instances of the given work item from the dispatch
+// queue.
+static void DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    WorkItemRef pCurItem = (WorkItemRef) pQueue->item_queue.first;
+    WorkItemRef pPrevItem = NULL;
+
+    while (pCurItem) {
+        if (pCurItem == pItem) {
+            WorkItemRef pNextItem = (WorkItemRef) pCurItem->queue_entry.next;
+
+            WorkItem_SignalCompletion(pCurItem, true);
+            SList_Remove(&pQueue->item_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
+            pQueue->items_queued_count--;
+            DispatchQueue_RelinquishWorkItem_Locked(pQueue, pCurItem);
+            // pPrevItem doesn't change here
+            pCurItem = pNextItem;
+        }
+        else {
+            pPrevItem = pCurItem;
+            pCurItem = (WorkItemRef) pCurItem->queue_entry.next;
+        }
+    }
+}
+
 // Adds the given timer to the timer queue. Expects that the queue is already
 // locked. Does not wake up the queue.
 static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
@@ -487,6 +501,29 @@ ErrorCode DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull pQueue, T
 
 catch:
     return err;
+}
+
+// Removes all scheduled instances of the given work item from the dispatch
+// queue.
+static void DispatchQueue_RemoveTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
+{
+    TimerRef pCurItem = (TimerRef) pQueue->timer_queue.first;
+    TimerRef pPrevItem = NULL;
+
+    while (pCurItem) {
+        if (pCurItem == pTimer) {
+            TimerRef pNextItem = (TimerRef) pCurItem->item.queue_entry.next;
+
+            SList_Remove(&pQueue->timer_queue, &pPrevItem->item.queue_entry, &pCurItem->item.queue_entry);
+            DispatchQueue_RelinquishTimer_Locked(pQueue, pCurItem);
+            // pPrevItem doesn't change here
+            pCurItem = pNextItem;
+        }
+        else {
+            pPrevItem = pCurItem;
+            pCurItem = (TimerRef) pCurItem->item.queue_entry.next;
+        }
+    }
 }
 
 
@@ -663,6 +700,24 @@ catch:
     return err;
 }
 
+// Removes all scheduled instances of the given work item from the dispatch queue.
+// Work items are compared by their pointer identity and all items with the same
+// pointer identity as 'pItem' are removed from the queue. Note that this
+// function does not cancel the item nor clear the cancel state of the item if
+// it is in cancelled state. If the closure of the work item is in the process
+// of executing when this function is called then the closure will continue to
+// execute undisturbed. If the work item however is still pending and has not
+// yet executed then it will be removed and it will not execute.
+// All outstanding DispatchWorkItemSync() calls on this item will return with an
+// EINTR error.
+void DispatchQueue_RemoveWorkItem(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    Lock_Lock(&pQueue->lock);
+    // Queue terminating state isn't relevant here
+    DispatchQueue_RemoveWorkItem_Locked(pQueue, pItem);
+    Lock_Unlock(&pQueue->lock);
+}
+
 
 // Asynchronously executes the given timer when it comes due.
 ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
@@ -691,6 +746,23 @@ catch:
     }
     return err;
 }
+
+// Removes all scheduled instances of the given timer from the dispatch queue.
+// Timers are compared by their pointer identity and all items with the same
+// pointer identity as 'pTimer' are removed from the queue. Note that this
+// function does not cancel the timer nor clear the cancel state of the timer if
+// it is in cancelled state. If the closure of the timer is in the process
+// of executing when this function is called then the closure will continue to
+// execute undisturbed. If the timer however is still pending and has not yet
+// executed then it will be removed and it will not execute.
+void DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
+{
+    Lock_Lock(&pQueue->lock);
+    // Queue terminating state isn't relevant here
+    DispatchQueue_RemoveTimer_Locked(pQueue, pTimer);
+    Lock_Unlock(&pQueue->lock);
+}
+
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
@@ -804,9 +876,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
         // Signal the work item's completion semaphore if needed
         if (pItem->completion != NULL) {
-            pItem->completion->isInterrupted = false;
-            Semaphore_Release(&pItem->completion->semaphore);
-            pItem->completion = NULL;
+            WorkItem_SignalCompletion(pItem, false);
         }
 
 

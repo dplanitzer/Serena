@@ -57,7 +57,7 @@ void WorkItem_Deinit(WorkItemRef _Nonnull pItem)
     pItem->closure.isUser = false;
     pItem->completion = NULL;
     // Leave is_owned_by_queue alone
-    pItem->is_being_dispatched = false;
+    AtomicBool_Set(&pItem->is_being_dispatched, false);
     pItem->cancelled = false;
 }
 
@@ -87,6 +87,17 @@ Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem)
     return pItem->cancelled;
 }
 
+// Signals the completion of a work item. State is protected by the dispatch
+// queue lock. The 'isInterrupted' parameter indicates whether the item should
+// be considered interrupted or finished.
+void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, Bool isInterrupted)
+{
+    if (pItem->completion != NULL) {
+        pItem->completion->isInterrupted = isInterrupted;
+        Semaphore_Release(&pItem->completion->semaphore);
+        pItem->completion = NULL;
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

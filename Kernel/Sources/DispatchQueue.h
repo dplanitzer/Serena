@@ -230,6 +230,18 @@ extern ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQ
 // soon as possible.
 extern ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
+// Removes all scheduled instances of the given work item from the dispatch queue.
+// Work items are compared by their pointer identity and all items with the same
+// pointer identity as 'pItem' are removed from the queue. Note that this
+// function does not cancel the item nor clear the cancel state of the item if
+// it is in cancelled state. If the closure of the work item is in the process
+// of executing when this function is called then the closure will continue to
+// execute undisturbed. If the work item however is still pending and has not
+// yet executed then it will be removed and it will not execute.
+// All outstanding DispatchWorkItemSync() calls on this item will return with an
+// EINTR error.
+extern void DispatchQueue_RemoveWorkItem(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+
 
 // Asynchronously executes the given timer when it comes due. Note that a timer
 // in cancelled state is still dispatched since it is the job of the timer
@@ -237,6 +249,16 @@ extern ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull p
 // action in this case (eg notify some other code). The cancelled state of the
 // timer is not changed, meaning it is not cleared by the dispatch function.
 extern ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
+
+// Removes all scheduled instances of the given timer from the dispatch queue.
+// Timers are compared by their pointer identity and all items with the same
+// pointer identity as 'pTimer' are removed from the queue. Note that this
+// function does not cancel the timer nor clear the cancel state of the timer if
+// it is in cancelled state. If the closure of the timer is in the process
+// of executing when this function is called then the closure will continue to
+// execute undisturbed. If the timer however is still pending and has not yet
+// executed then it will be removed and it will not execute.
+extern void DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
 
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.

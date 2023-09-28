@@ -125,6 +125,11 @@ extern void SList_InsertAfter(SList* _Nonnull pList, SListNode* _Nonnull pNode, 
 
 SListNode* _Nullable SList_RemoveFirst(SList* _Nonnull pList);
 
+// Removes 'pNodeToRemove' from 'pList'. 'pPrevNode' must point to the predecessor
+// node of 'pNodeToRemove'. It may only be NULL if 'pNodeToRemove' is the first
+// node in the list or 'pNodeToRemove' is the last remaining node in the list.
+void SList_Remove(SList* _Nonnull pList, SListNode* _Nullable pPrevNode, SListNode* _Nonnull pNodeToRemove);
+
 
 static inline Bool SList_IsEmpty(SList* _Nonnull pList) {
     return pList->first == NULL;

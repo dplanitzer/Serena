@@ -281,7 +281,7 @@ static void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, 
         if (isEnabled) {
             try_bang(DispatchQueue_DispatchTimer(gMainDispatchQueue, pConsole->textCursorBlinker));
         } else {
-            // XXX need a way to remove the timer from teh dispatch queue
+            DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
         }
     }
 }

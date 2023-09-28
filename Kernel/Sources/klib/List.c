@@ -187,3 +187,26 @@ SListNode* _Nullable SList_RemoveFirst(SList* _Nonnull pList)
 
     return pFirstNode;
 }
+
+// Removes 'pNodeToRemove' from 'pList'. 'pPrevNode' must point to the predecessor
+// node of 'pNodeToRemove'. It may only be NULL if 'pNodeToRemove' is the first
+// node in the list or 'pNodeToRemove' is the last remaining node in the list.
+void SList_Remove(SList* _Nonnull pList, SListNode* _Nullable pPrevNode, SListNode* _Nonnull pNodeToRemove)
+{
+    if (pNodeToRemove == pList->first && pNodeToRemove == pList->last) {
+        pList->first = NULL;
+        pList->last = NULL;
+    }
+    else if (pNodeToRemove == pList->first) {
+        pList->first = pNodeToRemove->next;
+    }
+    else if (pNodeToRemove == pList->last) {
+        pList->last = pPrevNode;
+        if (pPrevNode) {
+            pPrevNode->next = NULL;
+        }
+    }
+    else {
+        pPrevNode->next = pNodeToRemove->next;
+    }
+}
