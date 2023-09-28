@@ -549,6 +549,11 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
     }
 }
 
+static Bool has_private_use_char(ConsoleRef _Nonnull pConsole, Character ch)
+{
+    return pConsole->vtparse.num_intermediate_chars > 0 && pConsole->vtparse.intermediate_chars[0] == ch;
+}
+
 static Int get_csi_parameter(ConsoleRef _Nonnull pConsole, Int defValue)
 {
     const Int val = (pConsole->vtparse.num_params > 0) ? pConsole->vtparse.params[0] : 0;
@@ -649,6 +654,32 @@ static void Console_Execute_CSI_ECH_Locked(ConsoleRef _Nonnull pConsole, Int nCh
     Console_FillRect_Locked(pConsole, 
         Rect_Make(pConsole->x, pConsole->y, nChars, 1),
         ' ');
+}
+
+static void Console_Execute_CSI_QuestMark_h_Locked(ConsoleRef _Nonnull pConsole, Int param)
+{
+    switch (param) {
+        case 25:
+            Console_SetCursorVisible_Locked(pConsole, true);
+            break;
+
+        default:
+            // Ignore
+            break;
+    }
+}
+
+static void Console_Execute_CSI_QuestMark_l_Locked(ConsoleRef _Nonnull pConsole, Int param)
+{
+    switch (param) {
+        case 25:
+            Console_SetCursorVisible_Locked(pConsole, false);
+            break;
+
+        default:
+            // Ignore
+            break;
+    }
 }
 
 static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
@@ -753,6 +784,18 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
 
         case 'g':
             Console_Execute_CSI_TBC_Locked(pConsole, get_csi_parameter(pConsole, 0));
+            break;
+
+        case 'h':
+            if (has_private_use_char(pConsole, '?')) {
+                Console_Execute_CSI_QuestMark_h_Locked(pConsole, get_csi_parameter(pConsole, 0));
+            }
+            break;
+
+        case 'l':
+            if (has_private_use_char(pConsole, '?')) {
+                Console_Execute_CSI_QuestMark_l_Locked(pConsole, get_csi_parameter(pConsole, 0));
+            }
             break;
 
         default:
