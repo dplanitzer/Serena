@@ -696,7 +696,7 @@ ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, W
 
     if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
         // Some other queue is already dispatching this work item
-        abort();
+        return EBUSY;
     }
 
     Lock_Lock(&pQueue->lock);
@@ -757,7 +757,7 @@ ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, 
 
     if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
         // Some other queue is already dispatching this work item
-        abort();
+        return EBUSY;
     }
 
     Lock_Lock(&pQueue->lock);
@@ -814,7 +814,7 @@ ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef
 
     if (AtomicBool_Set(&pTimer->item.is_being_dispatched, true)) {
         // Some other queue is already dispatching this timer
-        abort();
+        return EBUSY;
     }
 
     Lock_Lock(&pQueue->lock);
