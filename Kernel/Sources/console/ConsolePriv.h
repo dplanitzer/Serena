@@ -94,7 +94,7 @@ typedef struct _Console {
     KeyMapper                   keyMapper;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
-    Bool                        isTextCursorBlinkerActive;  // true if the text cursor should blink. Visibility is a separate state
+    Bool                        isTextCursorBlinkerEnabled; // true if the text cursor should blink. Visibility is a separate state
     Bool                        isTextCursorOn;             // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
     Bool                        isTextCursorVisible;        // global text cursor visibility switch
 } Console;
