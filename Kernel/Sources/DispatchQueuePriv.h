@@ -126,5 +126,6 @@ typedef struct _DispatchQueue {
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
- 
+extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
+
 #endif /* DispatchQueuePriv_h */

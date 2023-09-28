@@ -192,6 +192,29 @@ extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
 // queue is not owned by any particular process. Eg the kernel main dispatch queue.
 extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue);
 
+// Returns the dispatch queue that is associated with the virtual processor that
+// is running the calling code. This will always return a dispatch queue for
+// callers that are running in a dispatch queue context. It returns NULL though
+// for callers that are running on a virtual processor that was directly acquired
+// from the virtual processor pool.
+extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
+
+
+// Synchronously executes the given closure. The closure is executed as soon as
+// possible and the caller remains blocked until the closure has finished
+// execution. This function returns with an EINTR if the queue is flushed or
+// terminated by calling DispatchQueue_Terminate().
+extern ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
+
+// Asynchronously executes the given closure. The closure is executed as soon as
+// possible.
+extern ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
+
+// Asynchronously executes the given closure on or after 'deadline'. The dispatch
+// queue will try to execute the closure as close to 'deadline' as possible.
+extern ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
+
+
 // Synchronously executes the given work item. The work item is executed as
 // soon as possible and the caller remains blocked until the work item has
 // finished execution. This function returns with an EINTR if the queue is
@@ -203,24 +226,9 @@ extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRe
 // dispatch function.
 extern ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
-// Synchronously executes the given closure. The closure is executed as soon as
-// possible and the caller remains blocked until the closure has finished
-// execution. This function returns with an EINTR if the queue is flushed or
-// terminated by calling DispatchQueue_Terminate().
-extern ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
-
-
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible.
 extern ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
-
-// Asynchronously executes the given closure. The closure is executed as soon as
-// possible.
-extern ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
-
-// Asynchronously executes the given closure on or after 'deadline'. The dispatch
-// queue will try to execute the closure as close to 'deadline' as possible.
-extern ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
 
 
 // Asynchronously executes the given timer when it comes due. Note that a timer
@@ -229,14 +237,6 @@ extern ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQue
 // action in this case (eg notify some other code). The cancelled state of the
 // timer is not changed, meaning it is not cleared by the dispatch function.
 extern ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
-
-
-// Returns the dispatch queue that is associated with the virtual processor that
-// is running the calling code. This will always return a dispatch queue for
-// callers that are running in a dispatch queue context. It returns NULL though
-// for callers that are running on a virtual processor that was directly acquired
-// from the virtual processor pool.
-extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.

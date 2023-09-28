@@ -14,7 +14,6 @@ DispatchQueueRef    gMainDispatchQueue;
 static ErrorCode DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer);
-static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 
 
 ErrorCode DispatchQueue_Create(Int minConcurrency, Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
@@ -207,16 +206,6 @@ void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
         _DispatchQueue_Destroy(pQueue);
     }
 }
-
-
-// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
-// queue is not owned by any particular process. Eg the kernel main dispatch queue.
-ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue)
-{
-    return pQueue->owning_process;
-}
-
-
 
 // Makes sure that we have enough virtual processors attached to the dispatch queue
 // and acquires a virtual processor from the virtual processor pool if necessary.
@@ -501,37 +490,28 @@ catch:
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: API
+////////////////////////////////////////////////////////////////////////////////
 
-// Synchronously executes the given work item. The work item is executed as
-// soon as possible and the caller remains blocked until the work item has
-// finished execution. This function returns with an EINTR if the queue is
-// flushed or terminated by calling DispatchQueue_Terminate().
-ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
+// queue is not owned by any particular process. Eg the kernel main dispatch queue.
+ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue)
 {
-    decl_try_err();
-    Bool needsUnlock = false;
-
-    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
-        // Some other queue is already dispatching this work item
-        return EBUSY;
-    }
-
-    Lock_Lock(&pQueue->lock);
-    needsUnlock = true;
-    if (pQueue->state >= kQueueState_Terminating) {
-        Lock_Unlock(&pQueue->lock);
-        return EOK;
-    }
-
-    try(DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(pQueue, pItem));
-    return EOK;
-
-catch:
-    if (needsUnlock) {
-        Lock_Unlock(&pQueue->lock);
-    }
-    return err;
+    return pQueue->owning_process;
 }
+
+// Returns the dispatch queue that is associated with the virtual processor that
+// is running the calling code. This will always return a dispatch queue for
+// callers that are running in a dispatch queue context. It returns NULL though
+// for callers that are running on a virtual processor that was directly acquired
+// from the virtual processor pool.
+DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
+{
+    return (DispatchQueueRef) VirtualProcessor_GetCurrent()->dispatchQueue;
+}
+
 
 // Synchronously executes the given closure. The closure is executed as soon as
 // possible and the caller remains blocked until the closure has finished
@@ -558,36 +538,6 @@ catch:
     if (pItem) {
         DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
     }
-    if (needsUnlock) {
-        Lock_Unlock(&pQueue->lock);
-    }
-    return err;
-}
-
-
-// Asynchronously executes the given work item. The work item is executed as
-// soon as possible.
-ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
-{
-    decl_try_err();
-    Bool needsUnlock = false;
-
-    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
-        // Some other queue is already dispatching this work item
-        return EBUSY;
-    }
-
-    Lock_Lock(&pQueue->lock);
-    needsUnlock = true;
-    if (pQueue->state >= kQueueState_Terminating) {
-        Lock_Unlock(&pQueue->lock);
-        return EOK;
-    }
-
-    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(pQueue, pItem));
-    return EOK;
-
-catch:
     if (needsUnlock) {
         Lock_Unlock(&pQueue->lock);
     }
@@ -623,34 +573,6 @@ catch:
     return err;
 }
 
-// Asynchronously executes the given timer when it comes due.
-ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
-{
-    decl_try_err();
-    Bool needsUnlock = false;
-
-    if (AtomicBool_Set(&pTimer->item.is_being_dispatched, true)) {
-        // Some other queue is already dispatching this timer
-        return EBUSY;
-    }
-
-    Lock_Lock(&pQueue->lock);
-    needsUnlock = true;
-    if (pQueue->state >= kQueueState_Terminating) {
-        Lock_Unlock(&pQueue->lock);
-        return EOK;
-    }
-
-    try(DispatchQueue_DispatchTimer_Locked(pQueue, pTimer));
-    return EOK;
-
-catch:
-    if (needsUnlock) {
-        Lock_Unlock(&pQueue->lock);
-    }
-    return err;
-}
-
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure)
@@ -680,14 +602,94 @@ catch:
     return err;
 }
 
-// Returns the dispatch queue that is associated with the virtual processor that
-// is running the calling code. This will always return a dispatch queue for
-// callers that are running in a dispatch queue context. It returns NULL though
-// for callers that are running on a virtual processor that was directly acquired
-// from the virtual processor pool.
-DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
+
+// Synchronously executes the given work item. The work item is executed as
+// soon as possible and the caller remains blocked until the work item has
+// finished execution. This function returns with an EINTR if the queue is
+// flushed or terminated by calling DispatchQueue_Terminate().
+ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
-    return (DispatchQueueRef) VirtualProcessor_GetCurrent()->dispatchQueue;
+    decl_try_err();
+    Bool needsUnlock = false;
+
+    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
+        // Some other queue is already dispatching this work item
+        return EBUSY;
+    }
+
+    Lock_Lock(&pQueue->lock);
+    needsUnlock = true;
+    if (pQueue->state >= kQueueState_Terminating) {
+        Lock_Unlock(&pQueue->lock);
+        return EOK;
+    }
+
+    try(DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(pQueue, pItem));
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
+}
+
+// Asynchronously executes the given work item. The work item is executed as
+// soon as possible.
+ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+{
+    decl_try_err();
+    Bool needsUnlock = false;
+
+    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
+        // Some other queue is already dispatching this work item
+        return EBUSY;
+    }
+
+    Lock_Lock(&pQueue->lock);
+    needsUnlock = true;
+    if (pQueue->state >= kQueueState_Terminating) {
+        Lock_Unlock(&pQueue->lock);
+        return EOK;
+    }
+
+    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(pQueue, pItem));
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
+}
+
+
+// Asynchronously executes the given timer when it comes due.
+ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
+{
+    decl_try_err();
+    Bool needsUnlock = false;
+
+    if (AtomicBool_Set(&pTimer->item.is_being_dispatched, true)) {
+        // Some other queue is already dispatching this timer
+        return EBUSY;
+    }
+
+    Lock_Lock(&pQueue->lock);
+    needsUnlock = true;
+    if (pQueue->state >= kQueueState_Terminating) {
+        Lock_Unlock(&pQueue->lock);
+        return EOK;
+    }
+
+    try(DispatchQueue_DispatchTimer_Locked(pQueue, pTimer));
+    return EOK;
+
+catch:
+    if (needsUnlock) {
+        Lock_Unlock(&pQueue->lock);
+    }
+    return err;
 }
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.
@@ -699,6 +701,10 @@ void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Queue Main Loop
+////////////////////////////////////////////////////////////////////////////////
 
 static void DispatchQueue_RearmTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
@@ -713,7 +719,7 @@ static void DispatchQueue_RearmTimer_Locked(DispatchQueueRef _Nonnull pQueue, Ti
     DispatchQueue_AddTimer_Locked(pQueue, pTimer);
 }
 
-static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
+void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 {
     VirtualProcessor* pVP = VirtualProcessor_GetCurrent();
 
