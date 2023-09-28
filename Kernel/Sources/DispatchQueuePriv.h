@@ -36,6 +36,11 @@ typedef struct _CompletionSignaler {
     Bool        isInterrupted;
 } CompletionSignaler;
 
+extern ErrorCode CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp);
+extern void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem);
+extern void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull pItem);
+extern void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem);
+
 
 //
 // Work Items
@@ -51,7 +56,9 @@ typedef struct _WorkItem {
     Int8                                    type;
 } WorkItem;
 
-
+extern void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, Bool isOwnedByQueue);
+extern ErrorCode WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem);
+extern void WorkItem_Deinit(WorkItemRef _Nonnull pItem);
 
 
 //
@@ -63,6 +70,13 @@ typedef struct _Timer {
     TimeInterval    deadline;           // Time when the timer closure should be executed
     TimeInterval    interval;
 } Timer;
+
+extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue);
+extern ErrorCode Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer);
+
+static inline void Timer_Deinit(TimerRef pTimer) {
+    WorkItem_Deinit((WorkItemRef) pTimer);
+}
 
 
 //
