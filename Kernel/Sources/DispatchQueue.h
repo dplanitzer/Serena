@@ -86,10 +86,20 @@ extern ErrorCode WorkItem_Create(DispatchQueueClosure closure, WorkItemRef _Null
 // Deallocates the given work item.
 extern void WorkItem_Destroy(WorkItemRef _Nullable pItem);
 
+// Sets the cancelled state of the given work item. The work item is marked as
+// cancelled if the parameter is true and the cancelled state if cleared if the
+// parameter is false. Note that it is the responsibility of the work item
+// closure to check the cancelled state and to act appropriately on it.
+// Clearing the cancelled state of a work item should normally not be necessary.
+// The functionality exists to enable work item caching and reuse.
+extern void WorkItem_SetCancelled(WorkItemRef _Nonnull pItem, Bool flag);
+
 // Cancels the given work item. The work item is marked as cancelled but it is
 // the responsibility of the work item closure to check the cancelled state and
 // to act appropriately on it.
-extern void WorkItem_Cancel(WorkItemRef _Nonnull pItem);
+static inline void WorkItem_Cancel(WorkItemRef _Nonnull pItem) {
+    WorkItem_SetCancelled(pItem, true);
+}
 
 // Returns true if the given work item is in cancelled state.
 extern Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem);
@@ -105,12 +115,17 @@ extern ErrorCode Timer_Create(TimeInterval deadline, TimeInterval interval, Disp
 
 extern void Timer_Destroy(TimerRef _Nullable pTimer);
 
+// See WorkItem_SetCancelled() for an explanation.
+static inline void Timer_SetCancelled(TimerRef _Nonnull pTimer, Bool flag) {
+    WorkItem_SetCancelled((WorkItemRef)pTimer, flag);
+}
+
 // Cancels the given timer. The timer is marked as cancelled but it is the
 // responsibility of the timer closure to check the cancelled state and to act
 // appropriately on it. If the timer is a repeating timer then cancelling it
 // stops it from being rescheduled.
 static inline void Timer_Cancel(TimerRef _Nonnull pTimer) {
-    WorkItem_Cancel((WorkItemRef)pTimer);
+    WorkItem_SetCancelled((WorkItemRef)pTimer, true);
 }
 
 // Returns true if the given timer is in cancelled state.
@@ -181,6 +196,11 @@ extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRe
 // soon as possible and the caller remains blocked until the work item has
 // finished execution. This function returns with an EINTR if the queue is
 // flushed or terminated by calling DispatchQueue_Terminate().
+// Note that a work item in cancelled state is still dispatched since it is the
+// job of the work item closure to check for the cancelled state and to execute
+// the appropriate action in this case (eg notify some other code). The cancelled
+// state of the work item is not changed, meaning it is not cleared by the
+// dispatch function.
 extern ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
 // Synchronously executes the given closure. The closure is executed as soon as
@@ -203,9 +223,11 @@ extern ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, D
 extern ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
 
 
-// Asynchronously executes the given timer when it comes due.
-// XXX want to think about the case when this function is called with a cancelled
-// XXX timer.
+// Asynchronously executes the given timer when it comes due. Note that a timer
+// in cancelled state is still dispatched since it is the job of the timer
+// closure to check for the cancelled state and to execute the appropriate
+// action in this case (eg notify some other code). The cancelled state of the
+// timer is not changed, meaning it is not cleared by the dispatch function.
 extern ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
 
 

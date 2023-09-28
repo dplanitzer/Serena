@@ -77,12 +77,15 @@ void WorkItem_Destroy(WorkItemRef _Nullable pItem)
     }
 }
 
-// Cancels the given work item. The work item is marked as cancelled but it is
-// the responsibility of the work item closure to check the cancelled state and
-// to act appropriately on it.
-void WorkItem_Cancel(WorkItemRef _Nonnull pItem)
+// Sets the cancelled state of the given work item. The work item is marked as
+// cancelled if the parameter is true and the cancelled state if cleared if the
+// parameter is false. Note that it is the responsibility of the work item
+// closure to check the cancelled state and to act appropriately on it.
+// Clearing the cancelled state of a work item should normally not be necessary.
+// The functionality exists to enable work item caching and reuse.
+void WorkItem_SetCancelled(WorkItemRef _Nonnull pItem, Bool flag)
 {
-    pItem->cancelled = true;
+    pItem->cancelled = flag;
 }
 
 // Returns true if the given work item is in cancelled state.
