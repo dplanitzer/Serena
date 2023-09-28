@@ -96,6 +96,7 @@ typedef struct _Console {
     TimerRef _Nonnull           textCursorBlinker;
     Bool                        isTextCursorBlinkerEnabled; // true if the text cursor should blink. Visibility is a separate state
     Bool                        isTextCursorOn;             // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
+    Bool                        isTextCursorSingleCycleOn;  // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
     Bool                        isTextCursorVisible;        // global text cursor visibility switch
 } Console;
 

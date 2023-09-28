@@ -65,6 +65,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     // Allocate the text cursor blinking timer
     pConsole->isTextCursorBlinkerEnabled = false;
     pConsole->isTextCursorOn = false;
+    pConsole->isTextCursorSingleCycleOn = false;
     try(Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(500), DispatchQueueClosure_Make((Closure1Arg_Func)Console_OnTextCursorBlink, (Byte*)pConsole), &pConsole->textCursorBlinker));
 
 
@@ -278,8 +279,9 @@ static void Console_OnTextCursorBlink(Console* _Nonnull pConsole)
     
     pConsole->isTextCursorOn = !pConsole->isTextCursorOn;
     if (pConsole->isTextCursorVisible) {
-        GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, pConsole->isTextCursorOn);
+        GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, pConsole->isTextCursorOn || pConsole->isTextCursorSingleCycleOn);
     }
+    pConsole->isTextCursorSingleCycleOn = false;
 
     Lock_Unlock(&pConsole->lock);
 }
@@ -292,6 +294,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _No
         DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
         GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, true);
         pConsole->isTextCursorOn = false;
+        pConsole->isTextCursorSingleCycleOn = false;
 
         if (pConsole->isTextCursorBlinkerEnabled) {
             try_bang(DispatchQueue_DispatchTimer(gMainDispatchQueue, pConsole->textCursorBlinker));
@@ -301,6 +304,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _No
         DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
         GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, false);
         pConsole->isTextCursorOn = false;
+        pConsole->isTextCursorSingleCycleOn = false;
     }
 }
 
@@ -327,7 +331,8 @@ static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
     // cursor visibility state officially. We just want to make sure that the
     // cursor is on when the user types a character. This however should not
     // change anything about the blinking phase and frequency.
-    if (pConsole->isTextCursorVisible && pConsole->isTextCursorBlinkerEnabled && !pConsole->isTextCursorOn) {
+    if (!pConsole->isTextCursorSingleCycleOn && !pConsole->isTextCursorOn && pConsole->isTextCursorBlinkerEnabled && pConsole->isTextCursorVisible) {
+        pConsole->isTextCursorSingleCycleOn = true;
         GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, true);
     }
 }
