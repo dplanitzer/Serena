@@ -86,10 +86,7 @@ static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue)
     WorkItemRef pItem;
     while ((pItem = (WorkItemRef) SList_RemoveFirst(&pQueue->item_queue)) != NULL) {
         DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(pQueue, pItem);
-
-        if (pItem->is_owned_by_queue) {
-            DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
-        }
+        DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
     }
 
 
@@ -97,10 +94,7 @@ static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull pQueue)
     TimerRef pTimer;
     while ((pTimer = (TimerRef) SList_RemoveFirst(&pQueue->timer_queue)) != NULL) {
         DispatchQueue_InterruptWorkItemCompletionSignaler_Locked(pQueue, &pTimer->item);
-
-        if (pTimer->item.is_owned_by_queue) {
-            DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
-        }
+        DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
     }
 }
 
@@ -309,12 +303,14 @@ catch:
     return err;
 }
 
-// Reqlinquishes the given work item back to the item cache if possible. The
-// item is freed if the cache is at capacity. The item must be owned by the
-// dispatch queue.
+// Reqlinquishes the given work item. A work item owned by the dispatch queue is
+// moved back to the item reuse cache if possible or freed if the cache is full.
+// Does nothing if the dispatch queue does not own the item.
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
-    assert(pItem->is_owned_by_queue);
+    if (!pItem->is_owned_by_queue) {
+        return;
+    }
 
     if (pQueue->item_cache_count < MAX_ITEM_CACHE_COUNT) {
         WorkItem_Deinit(pItem);
@@ -347,12 +343,14 @@ catch:
     return err;
 }
 
-// Reqlinquishes the given timer back to the timer cache if possible. The timer
-// is freed if the cache is at capacity. The timer must be owned by the dispatch
-// queue.
+// Reqlinquishes the given timer. A timer owned by the queue is moved back to the
+// timer reuse queue if possible or freed id the reuse cache is already full.
+// Does nothing if the queue does not own the timer.
 static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
-    assert(pTimer->item.is_owned_by_queue);
+    if (!pTimer->item.is_owned_by_queue) {
+        return;
+    }
 
     if (pQueue->timer_cache_count < MAX_TIMER_CACHE_COUNT) {
         Timer_Deinit(pTimer);
@@ -813,24 +811,18 @@ static void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
         // Move the work item back to the item cache if possible or destroy it
         switch (pItem->type) {
             case kItemType_Immediate:
-                if (pItem->is_owned_by_queue) {
-                    DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
-                }
+                DispatchQueue_RelinquishWorkItem_Locked(pQueue, pItem);
                 break;
                 
             case kItemType_OneShotTimer:
-                if (pItem->is_owned_by_queue) {
-                    DispatchQueue_RelinquishTimer_Locked(pQueue, (TimerRef) pItem);
-                }
+                DispatchQueue_RelinquishTimer_Locked(pQueue, (TimerRef) pItem);
                 break;
                 
             case kItemType_RepeatingTimer: {
                 Timer* pTimer = (TimerRef)pItem;
                 
                 if (pTimer->item.cancelled) {
-                    if (pItem->is_owned_by_queue) {
-                        DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
-                    }
+                    DispatchQueue_RelinquishTimer_Locked(pQueue, pTimer);
                 } else if (pQueue->state == kQueueState_Running) {
                     DispatchQueue_RearmTimer_Locked(pQueue, pTimer);
                 }
