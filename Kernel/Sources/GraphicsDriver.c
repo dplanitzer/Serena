@@ -793,11 +793,13 @@ void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
     Lock_Lock(&pDriver->lock);
     const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
     assert(pSurface);
+    MousePainter_ShieldCursor(&pDriver->mousePainter, Rect_Make(0, 0, pSurface->width, pSurface->height));
 
     const Int nbytes = pSurface->bytesPerRow * pSurface->height;
     for (Int i = 0; i < pSurface->planeCount; i++) {
         Bytes_ClearRange(pSurface->planes[i], nbytes);
     }
+    MousePainter_UnshieldCursor(&pDriver->mousePainter);
     Lock_Unlock(&pDriver->lock);
 }
 
@@ -805,6 +807,7 @@ void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color)
 {
     Lock_Lock(&pDriver->lock);
+    MousePainter_ShieldCursor(&pDriver->mousePainter, rect);
     const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
     assert(pSurface);
 
@@ -831,6 +834,7 @@ void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Colo
             }
         }
     }
+    MousePainter_UnshieldCursor(&pDriver->mousePainter);
     Lock_Unlock(&pDriver->lock);
 }
 
@@ -847,6 +851,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
     Lock_Lock(&pDriver->lock);
     const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
     assert(pSurface);
+    MousePainter_ShieldCursor(&pDriver->mousePainter, Rect_Make(0, 0, pSurface->width, pSurface->height));  // XXX calc tighter rect
 
     const Rect src_r = srcRect;
     const Rect dst_r = Rect_Make(dstLoc.x, dstLoc.y, src_r.width, src_r.height);
@@ -890,6 +895,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
             }
         }
     }
+    MousePainter_UnshieldCursor(&pDriver->mousePainter);
     Lock_Unlock(&pDriver->lock);
 }
 
@@ -897,6 +903,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
 void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, Int x, Int y)
 {
     Lock_Lock(&pDriver->lock);
+    MousePainter_ShieldCursor(&pDriver->mousePainter, Rect_Make(x, y, 8, 8));
     const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
     assert(pSurface);
 
@@ -920,5 +927,6 @@ void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const By
     *dst = *src++; dst += bytesPerRow;      // 5
     *dst = *src++; dst += bytesPerRow;      // 6
     *dst = *src;                            // 7
+    MousePainter_UnshieldCursor(&pDriver->mousePainter);
     Lock_Unlock(&pDriver->lock);
 }

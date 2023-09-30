@@ -130,6 +130,7 @@ static inline Int Rect_GetMaxY(Rect r) {
 
 extern Rect Rect_Union(Rect a, Rect b);
 extern Rect Rect_Intersection(Rect a, Rect b);
+extern Bool Rect_IntersectsRect(Rect a, Rect b);
 
 static inline Bool Rect_Contains(Rect r, Int x, Int y)
 {

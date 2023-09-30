@@ -35,6 +35,16 @@ Rect Rect_Intersection(Rect a, Rect b)
     return Rect_Make(x0, y0, __max(x1 - x0, 0), __max(y1 - y0, 0));
 }
 
+Bool Rect_IntersectsRect(Rect a, Rect b)
+{
+    const Int x0 = __max(a.x, b.x);
+    const Int y0 = __max(a.y, b.y);
+    const Int x1 = __min(a.x + a.width, b.x + b.width);
+    const Int y1 = __min(a.y + a.height, b.y + b.height);
+    
+    return (x1 - x0) > 0 && (y1 - y0) > 0;
+}
+
 Bool Rect_ContainsPoint(Rect r, Point p)
 {
     return p.x >= r.x && p.x < (r.x + r.width) && p.y >= r.y && p.y < (r.y + r.height);

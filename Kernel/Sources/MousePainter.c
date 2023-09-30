@@ -8,6 +8,10 @@
 
 #include "MousePainter.h"
 
+static void MousePainter_RestoreSavedImage(MousePainter* _Nonnull pPainter);
+static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter);
+
+
 // Initializes a new mouse painter. The mouse cursor is by default hidden. Set
 // a surface in the painter and then set the cursor visible.
 ErrorCode MousePainter_Init(MousePainter* _Nonnull pPainter)
@@ -27,8 +31,10 @@ ErrorCode MousePainter_Init(MousePainter* _Nonnull pPainter)
     pPainter->y = 0;
     pPainter->flags.isVisible = false;
     pPainter->flags.isHiddenUntilMouseMoves = false;
+    pPainter->flags.hasBackground = false;
 
     pPainter->curFlags.isVisible = false;
+    pPainter->curFlags.isShielded = false;
     pPainter->curFlags.hasSavedImage = false;
     pPainter->curX = 0;
     pPainter->curY = 0;
@@ -92,6 +98,7 @@ void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _Nullable
     // turns the mouse cursor back on since the surface has changed and we don't
     // want any spurious painting to happen.
     pPainter->curFlags.isVisible = false;
+    pPainter->curFlags.isShielded = false;
     pPainter->curFlags.hasSavedImage = false;
     pPainter->curX = pPainter->x;
     pPainter->curY = pPainter->y;
@@ -153,6 +160,46 @@ void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull pPainter, Bool
     // Cursor will be hidden while this flag is true. The vertical blank paint()
     // function will reset it back to false once it detects a move
     pPainter->flags.isHiddenUntilMouseMoves = flag;
+    cpu_restore_irqs(irs);
+}
+
+// Shields the mouse cursor if it intersects the given rectangle. Shielding means
+// that (a) the mouse cursor is immediately and synchronously hidden (rather than
+// asynchronously by waiting until the next vertical blank interrupt) and (b) the
+// mouse cursor stays hidden until it is unshielded. These two functions should
+// be used by drawing routines that draw into the framebuffer to ensure that their
+// drawing doesn't get mixed up incorrectly with the mouse cursor image.
+void MousePainter_ShieldCursor(MousePainter* _Nonnull pPainter, const Rect r)
+{
+    // XXX analyze to find out whether we can avoid turning IRQs off here for the
+    // XXX common case that the mouse cursor doesn't intersect 'r'
+    const Int irs = cpu_disable_irqs();
+
+    if (pPainter->curFlags.hasSavedImage && pPainter->flags.hasBackground) {
+        const Rect crsrRect = Rect_Make(pPainter->curX, pPainter->curY, MOUSE_CURSOR_WIDTH, MOUSE_CURSOR_HEIGHT);
+
+        if (Rect_IntersectsRect(crsrRect, r)) {
+            MousePainter_RestoreSavedImage(pPainter);
+        }
+    }
+    pPainter->curFlags.isShielded = true;
+
+    cpu_restore_irqs(irs);
+}
+
+void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter)
+{
+    // XXX analyze whether we can do things here without always turning the IRQs off
+    const Int irs = cpu_disable_irqs();
+
+    if (pPainter->curFlags.isShielded) {
+        pPainter->curFlags.isShielded = false;
+        
+        if (pPainter->curFlags.isVisible && pPainter->flags.hasBackground) {
+            MousePainter_SaveImageAndPaintCursor(pPainter);
+        }
+    }
+
     cpu_restore_irqs(irs);
 }
 
@@ -259,7 +306,7 @@ void MousePainter_Paint_VerticalBlank(MousePainter* _Nonnull pPainter)
     const Bool didVisibilityChange = pPainter->curFlags.isVisible != isVisibilityRequested;
     const Bool hasBackground = pPainter->flags.hasBackground;
 
-    if (pPainter->curFlags.hasSavedImage && (didMove || (didVisibilityChange && !isVisibilityRequested)) && hasBackground) {
+    if (pPainter->curFlags.hasSavedImage && (didMove || (didVisibilityChange && !isVisibilityRequested)) && hasBackground && !pPainter->curFlags.isShielded) {
         // Restore the saved image because we are currently visible and:
         // - the mouse has moved
         // - we've received a request to hide the mouse because either
@@ -272,7 +319,7 @@ void MousePainter_Paint_VerticalBlank(MousePainter* _Nonnull pPainter)
     pPainter->curY = pPainter->y;
     pPainter->curFlags.isVisible = isVisibilityRequested;
 
-    if (pPainter->curFlags.isVisible && (didMove || didVisibilityChange) && hasBackground) {
+    if (pPainter->curFlags.isVisible && (didMove || didVisibilityChange) && hasBackground && !pPainter->curFlags.isShielded) {
         // Save the image at the current mouse position and the paint the cursor
         // image because:
         // - the mouse was moved (restore of the old image happened above)

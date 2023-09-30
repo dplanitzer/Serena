@@ -47,6 +47,7 @@ typedef struct _MousePainter {
     // Current mouse cursor state corresponding to what is visible on the screen right now
     struct _CurrentFlags {
         UInt8                   isVisible:1;
+        UInt8                   isShielded:1;
         UInt8                   hasSavedImage:1;
     }                           curFlags;
     Int16                       curX;
@@ -87,6 +88,15 @@ extern void MousePainter_SetVisible(MousePainter* _Nonnull pPainter, Bool isVisi
 extern void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull pPainter, Bool flag);
 
 extern Point MousePainter_GetPosition(MousePainter* _Nonnull pPainter);
+
+// Shields the mouse cursor if it intersects the given rectangle. Shielding means
+// that (a) the mouse cursor is immediately and synchronously hidden (rather than
+// asynchronously by waiting until the next vertical blank interrupt) and (b) the
+// mouse cursor stays hidden until it is unshielded. These two functions should
+// be used by drawing routines that draw into the framebuffer to ensure that their
+// drawing doesn't get mixed up incorrectly with the mouse cursor image.
+extern void MousePainter_ShieldCursor(MousePainter* _Nonnull pPainter, const Rect r);
+extern void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter);
 
 
 // The following APIs are designed to be called from the vertical blank interrupt
