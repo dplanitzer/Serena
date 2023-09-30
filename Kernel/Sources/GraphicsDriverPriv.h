@@ -12,6 +12,7 @@
 #include "GraphicsDriver.h"
 #include "InterruptController.h"
 #include "Lock.h"
+#include "MousePainter.h"
 #include "Platform.h"
 #include "Semaphore.h"
 
@@ -127,6 +128,7 @@ typedef struct _GraphicsDriver {
     InterruptHandlerID      vb_irq_handler;
     Semaphore               vblank_sema;
     Bool                    isLightPenEnabled;  // Applies to all screens
+    MousePainter            mousePainter;
 } GraphicsDriver;
 
 

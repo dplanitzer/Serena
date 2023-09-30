@@ -104,12 +104,21 @@ extern ErrorCode GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pD
 extern Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int16* _Nonnull pPosX, Int16* _Nonnull pPosY);
 
 
+// Sprites
 extern ErrorCode GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull pDriver, const UInt16* _Nonnull pPlanes[2], Int x, Int y, Int width, Int height, Int priority, SpriteID* _Nonnull pOutSpriteId);
 extern ErrorCode GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId);
 extern ErrorCode GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, Int x, Int y);
 extern ErrorCode GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, Bool isVisible);
 
 
+// Mouse Cursor
+extern void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull pDriver, const Byte* pBitmap, const Byte* pMask);
+extern void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull pDriver, Bool isVisible);
+extern void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull pDriver, Bool flag);
+extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, Point loc);
+
+
+// Drawing
 extern void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor);
 
 extern void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver);

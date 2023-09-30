@@ -372,6 +372,10 @@ ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pix
     Lock_Init(&pDriver->lock);
     
 
+    // Allocate the mouse painter
+    try(MousePainter_Init(&pDriver->mousePainter));
+
+
     // Allocate the Copper tools
     CopperScheduler_Init(&pDriver->copperScheduler);
 
@@ -437,11 +441,26 @@ void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
         Semaphore_Deinit(&pDriver->vblank_sema);
         CopperScheduler_Deinit(&pDriver->copperScheduler);
 
+        MousePainter_Deinit(&pDriver->mousePainter);
+
         Lock_Deinit(&pDriver->lock);
         
         kfree((Byte*)pDriver);
     }
 }
+
+void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver)
+{
+    CopperScheduler_Run(&pDriver->copperScheduler);
+    MousePainter_Paint_VerticalBlank(&pDriver->mousePainter);
+    Semaphore_ReleaseFromInterruptContext(&pDriver->vblank_sema);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Properties
+////////////////////////////////////////////////////////////////////////////////
 
 const ScreenConfiguration* _Nonnull GraphicsDriver_GetCurrentScreenConfiguration(GraphicsDriverRef _Nonnull pDriver)
 {
@@ -465,12 +484,6 @@ Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDri
     Lock_Unlock(&pDriver->lock);
 
     return pFramebuffer;
-}
-
-void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver)
-{
-    CopperScheduler_Run(&pDriver->copperScheduler);
-    Semaphore_ReleaseFromInterruptContext(&pDriver->vblank_sema);
 }
 
 Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull pDriver)
@@ -541,9 +554,14 @@ ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDri
 {
     decl_try_err();
     Screen* pOldScreen = pDriver->screen;
+    Bool wasMouseCursorVisible = pDriver->mousePainter.flags.isVisible;
     Bool hasSwitchedScreens = false;
 
     
+    // Disassociate the mouse painter from the old screen (hides the mouse cursor)
+    MousePainter_SetSurface(&pDriver->mousePainter, NULL);
+
+
     // Update the graphics device state.
     pDriver->screen = pNewScreen;
     
@@ -558,6 +576,11 @@ ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDri
     try(GraphicsDriver_WaitForVerticalBlank_Locked(pDriver));
     
     
+    // Associate the mouse painter with teh new screen
+    MousePainter_SetSurface(&pDriver->mousePainter, pNewScreen->framebuffer);
+    MousePainter_SetVisible(&pDriver->mousePainter, wasMouseCursorVisible);
+
+
     // Free the old screen
     Screen_Destroy(pOldScreen);
 
@@ -567,6 +590,8 @@ catch:
     if (!hasSwitchedScreens) {
         pDriver->screen = pOldScreen;
     }
+    MousePainter_SetSurface(&pDriver->mousePainter, pOldScreen->framebuffer);
+    MousePainter_SetVisible(&pDriver->mousePainter, wasMouseCursorVisible);
     return err;
 }
 
@@ -699,6 +724,40 @@ ErrorCode GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull pDriver, Sp
 catch:
     Lock_Unlock(&pDriver->lock);
     return err;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Mouse Cursor
+////////////////////////////////////////////////////////////////////////////////
+
+void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull pDriver, const Byte* pBitmap, const Byte* pMask)
+{
+    Lock_Lock(&pDriver->lock);
+    MousePainter_SetCursor(&pDriver->mousePainter, pBitmap, pMask);
+    Lock_Unlock(&pDriver->lock);
+}
+
+void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull pDriver, Bool isVisible)
+{
+    Lock_Lock(&pDriver->lock);
+    MousePainter_SetVisible(&pDriver->mousePainter, isVisible);
+    Lock_Unlock(&pDriver->lock);
+}
+
+void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull pDriver, Bool flag)
+{
+    Lock_Lock(&pDriver->lock);
+    MousePainter_SetHiddenUntilMouseMoves(&pDriver->mousePainter, flag);
+    Lock_Unlock(&pDriver->lock);
+}
+
+void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, Point loc)
+{
+    Lock_Lock(&pDriver->lock);
+    MousePainter_SetPosition(&pDriver->mousePainter, loc);
+    Lock_Unlock(&pDriver->lock);
 }
 
 
