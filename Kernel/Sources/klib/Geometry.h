@@ -82,6 +82,7 @@ typedef struct _Rect {
 
 
 extern const Rect Rect_Empty;
+extern const Rect Rect_Inifite;
 
 static inline Rect Rect_Make(Int x, Int y, Int width, Int height) {
     Rect r;
@@ -98,6 +99,10 @@ static inline Rect Rect_Make2(Point origin, Size size) {
 
 static inline Bool Rect_IsEmpty(Rect r) {
     return r.width <= 0 || r.height <= 0;
+}
+
+static inline Bool Rect_IsInfinite(Rect r) {
+    return r.width == INT_MAX && r.height == INT_MAX;
 }
 
 static inline Bool Rect_Equals(Rect a, Rect b) {

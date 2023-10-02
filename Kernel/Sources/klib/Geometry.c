@@ -12,7 +12,8 @@
 const Point Point_Zero = {0, 0};
 const Vector Vector_Zero = {0, 0};
 const Size Size_Zero = {0, 0};
-const Rect Rect_Empty = { 0, 0, 0, 0 };
+const Rect Rect_Empty = {0, 0, 0, 0};
+const Rect Rect_Inifite = {0, 0, INT_MAX, INT_MAX};
 
 
 Rect Rect_Union(Rect a, Rect b)

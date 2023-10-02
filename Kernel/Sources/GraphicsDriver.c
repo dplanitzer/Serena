@@ -766,6 +766,27 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, P
 // MARK: Drawing
 ////////////////////////////////////////////////////////////////////////////////
 
+// Locks the graphics driver, retrieves a framebuffer reference and shields the
+// mouse cursor. 'drawingArea' is the bounding box of the area into which the
+// caller wants to draw.
+static Surface* _Nonnull GraphicsDriver_BeginDrawing(GraphicsDriverRef _Nonnull pDriver, const Rect drawingArea)
+{
+    Lock_Lock(&pDriver->lock);
+
+    Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
+    assert(pSurface);
+
+    MousePainter_ShieldCursor(&pDriver->mousePainter, drawingArea);
+    return pSurface;
+}
+
+// Unlocks the graphics driver and restores the mouse cursor
+static void GraphicsDriver_EndDrawing(GraphicsDriverRef _Nonnull pDriver)
+{
+    MousePainter_UnshieldCursor(&pDriver->mousePainter);
+    Lock_Unlock(&pDriver->lock);
+}
+
 // Writes the given RGB color to the color register at index idx
 void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor)
 {
@@ -790,27 +811,18 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
 // pixel formats and index 0 for RGB indexed pixel formats.
 void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 {
-    Lock_Lock(&pDriver->lock);
-    const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
-    assert(pSurface);
-    MousePainter_ShieldCursor(&pDriver->mousePainter, Rect_Make(0, 0, pSurface->width, pSurface->height));
-
+    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Inifite);
     const Int nbytes = pSurface->bytesPerRow * pSurface->height;
     for (Int i = 0; i < pSurface->planeCount; i++) {
         Bytes_ClearRange(pSurface->planes[i], nbytes);
     }
-    MousePainter_UnshieldCursor(&pDriver->mousePainter);
-    Lock_Unlock(&pDriver->lock);
+    GraphicsDriver_EndDrawing(pDriver);
 }
 
 // Fills the pixels in the given rectangular framebuffer area with the given color.
 void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color)
 {
-    Lock_Lock(&pDriver->lock);
-    MousePainter_ShieldCursor(&pDriver->mousePainter, rect);
-    const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
-    assert(pSurface);
-
+    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, rect);
     const Rect bounds = Rect_Make(0, 0, pSurface->width, pSurface->height);
     const Rect r = Rect_Intersection(rect, bounds);
     
@@ -834,8 +846,7 @@ void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Colo
             }
         }
     }
-    MousePainter_UnshieldCursor(&pDriver->mousePainter);
-    Lock_Unlock(&pDriver->lock);
+    GraphicsDriver_EndDrawing(pDriver);
 }
 
 // Copies the given rectangular framebuffer area to a different location in the framebuffer.
@@ -848,11 +859,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
         return;
     }
     
-    Lock_Lock(&pDriver->lock);
-    const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
-    assert(pSurface);
-    MousePainter_ShieldCursor(&pDriver->mousePainter, Rect_Make(0, 0, pSurface->width, pSurface->height));  // XXX calc tighter rect
-
+    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Inifite);  // XXX calc tighter rect
     const Rect src_r = srcRect;
     const Rect dst_r = Rect_Make(dstLoc.x, dstLoc.y, src_r.width, src_r.height);
     const Int fb_width = pSurface->width;
@@ -895,18 +902,13 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
             }
         }
     }
-    MousePainter_UnshieldCursor(&pDriver->mousePainter);
-    Lock_Unlock(&pDriver->lock);
+    GraphicsDriver_EndDrawing(pDriver);
 }
 
 // Blits a monochromatic 8x8 pixel glyph to the given position in the framebuffer.
 void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, Int x, Int y)
 {
-    Lock_Lock(&pDriver->lock);
-    MousePainter_ShieldCursor(&pDriver->mousePainter, Rect_Make(x, y, 8, 8));
-    const Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
-    assert(pSurface);
-
+    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, 8, 8));
     const Int bytesPerRow = pSurface->bytesPerRow;
     const Int maxX = pSurface->width >> 3;
     const Int maxY = pSurface->height >> 3;
@@ -927,6 +929,6 @@ void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const By
     *dst = *src++; dst += bytesPerRow;      // 5
     *dst = *src++; dst += bytesPerRow;      // 6
     *dst = *src;                            // 7
-    MousePainter_UnshieldCursor(&pDriver->mousePainter);
-    Lock_Unlock(&pDriver->lock);
+
+    GraphicsDriver_EndDrawing(pDriver);
 }
