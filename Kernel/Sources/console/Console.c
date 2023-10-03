@@ -126,7 +126,7 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 19, &pConsole->textColor);
 
     TabStops_Deinit(&pConsole->hTabStops);
-    try(TabStops_Init(&pConsole->hTabStops, __max(pConsole->bounds.width / 8, 0), 8));
+    try(TabStops_Init(&pConsole->hTabStops, __max(Rect_GetWidth(pConsole->bounds) / 8, 0), 8));
 
     TabStops_Deinit(&pConsole->vTabStops);
     try(TabStops_Init(&pConsole->vTabStops, 0, 0));
@@ -153,22 +153,22 @@ static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole)
 static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearLineMode mode)
 {
     if (Rect_Contains(pConsole->bounds, 0, y)) {
-        Int x, w;
+        Int left, right;
 
         switch (mode) {
             case kClearLineMode_Whole:
-                x = 0;
-                w = pConsole->bounds.width;
+                left = 0;
+                right = pConsole->bounds.right;
                 break;
 
             case kClearLineMode_ToBeginning:
-                x = 0;
-                w = pConsole->x;
+                left = 0;
+                right = pConsole->x;
                 break;
 
             case kClearLineMode_ToEnd:
-                x = pConsole->x;
-                w = pConsole->bounds.width - x;
+                left = pConsole->x;
+                right = pConsole->bounds.right;
                 break;
 
             default:
@@ -176,7 +176,7 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
         }
 
         GraphicsDriver_FillRect(pConsole->pGDevice,
-                            Rect_Make(x * pConsole->characterWidth, y * pConsole->lineHeight, w * pConsole->characterWidth, pConsole->lineHeight),
+                            Rect_Make(left * pConsole->characterWidth, y * pConsole->lineHeight, right * pConsole->characterWidth, pConsole->lineHeight),
                             Color_MakeIndex(0));
     }
 }
@@ -186,7 +186,7 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
 static void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, Point dstLoc)
 {
     GraphicsDriver_CopyRect(pConsole->pGDevice,
-                            Rect_Make(srcRect.x * pConsole->characterWidth, srcRect.y * pConsole->lineHeight, srcRect.width * pConsole->characterWidth, srcRect.height * pConsole->lineHeight),
+                            Rect_Make(srcRect.left * pConsole->characterWidth, srcRect.top * pConsole->lineHeight, srcRect.right * pConsole->characterWidth, srcRect.bottom * pConsole->lineHeight),
                             Point_Make(dstLoc.x * pConsole->characterWidth, dstLoc.y * pConsole->lineHeight));
 }
 
@@ -198,78 +198,94 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Cha
 
     if (ch == ' ') {
         GraphicsDriver_FillRect(pConsole->pGDevice,
-                                Rect_Make(r.x * pConsole->characterWidth, r.y * pConsole->lineHeight, r.width * pConsole->characterWidth, r.height * pConsole->lineHeight),
+                                Rect_Make(r.left * pConsole->characterWidth, r.top * pConsole->lineHeight, r.right * pConsole->characterWidth, r.bottom * pConsole->lineHeight),
                                 Color_MakeIndex(0));
     }
     else if (ch < 32 || ch == 127) {
         // Control characters -> do nothing
     }
     else {
-        for (Int y = r.y; y < r.y + r.height; y++) {
-            for (Int x = r.x; x < r.x + r.width; x++) {
+        for (Int y = r.top; y < r.bottom; y++) {
+            for (Int x = r.left; x < r.right; x++) {
                 GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], x, y);
             }
         }
     }
 }
 
-// Scrolls the content of the console screen. 'clipRect' defines a viewport through
-// which a virtual document is visible. This viewport is scrolled by 'dX' / 'dY'
-// pixels. Positive values move the viewport down (and scroll the virtual document
-// up) and negative values move the viewport up (and scroll the virtual document
-// down).
+// Scrolls the content of the console screen. 'clipRect' defines a viewport
+// through which a virtual document is visible. This viewport is scrolled by
+// 'dX' / 'dY' character cells. Positive values move the viewport down/right
+// (and scroll the virtual document up/left) and negative values move the
+// viewport up/left (and scroll the virtual document down/right).
 static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, Int dX, Int dY)
 {
-    if (dX == 0 && dY == 0) {
-        return;
-    }
-    
     const Rect clipRect = pConsole->bounds;
-    const Int hExposedWidth = __min(__abs(dX), clipRect.width);
-    const Int vExposedHeight = __min(__abs(dY), clipRect.height);
-    Rect copyRect, hClearRect, vClearRect;
-    Point dstLoc;
-    
-    copyRect.x = (dX < 0) ? clipRect.x : __min(clipRect.x + dX, Rect_GetMaxX(clipRect));
-    copyRect.y = (dY < 0) ? clipRect.y : __min(clipRect.y + dY, Rect_GetMaxY(clipRect));
-    copyRect.width = clipRect.width - hExposedWidth;
-    copyRect.height = clipRect.height - vExposedHeight;
-    
-    dstLoc.x = (dX < 0) ? clipRect.x - dX : clipRect.x;
-    dstLoc.y = (dY < 0) ? clipRect.y - dY : clipRect.y;
-    
-    hClearRect.x = clipRect.x;
-    hClearRect.y = (dY < 0) ? clipRect.y : Rect_GetMaxY(clipRect) - vExposedHeight;
-    hClearRect.width = clipRect.width;
-    hClearRect.height = vExposedHeight;
-    
-    vClearRect.x = (dX < 0) ? clipRect.x : Rect_GetMaxX(clipRect) - hExposedWidth;
-    vClearRect.y = (dY < 0) ? clipRect.y : clipRect.y + vExposedHeight;
-    vClearRect.width = hExposedWidth;
-    vClearRect.height = clipRect.height - vExposedHeight;
+    const Int absDx = __abs(dX), absDy = __abs(dY);
 
-    Console_CopyRect_Locked(pConsole, copyRect, dstLoc);
-    Console_FillRect_Locked(pConsole, hClearRect, ' ');
-    Console_FillRect_Locked(pConsole, vClearRect, ' ');
+    if (absDx < Rect_GetWidth(clipRect) && absDy < Rect_GetHeight(clipRect)) {
+        if (absDx > 0 || absDy > 0) {
+            Rect copyRect;
+            Point dstLoc;
+
+            copyRect.left = (dX < 0) ? clipRect.left : clipRect.left + absDx;
+            copyRect.top = (dY < 0) ? clipRect.top : clipRect.top + absDy;
+            copyRect.right = (dX < 0) ? clipRect.right - absDx : clipRect.right;
+            copyRect.bottom = (dY < 0) ? clipRect.bottom - absDy : clipRect.bottom;
+
+            dstLoc.x = (dX < 0) ? clipRect.left + absDx : clipRect.left;
+            dstLoc.y = (dY < 0) ? clipRect.top + absDy : clipRect.top;
+
+            Console_CopyRect_Locked(pConsole, copyRect, dstLoc);
+        }
+
+
+        if (absDy > 0) {
+            Rect vClearRect;
+
+            vClearRect.left = clipRect.left;
+            vClearRect.top = (dY < 0) ? clipRect.top : clipRect.bottom - absDy;
+            vClearRect.right = clipRect.right;
+            vClearRect.bottom = (dY < 0) ? clipRect.top + absDy : clipRect.bottom;
+            Console_FillRect_Locked(pConsole, vClearRect, ' ');
+        }
+
+
+        if (absDx > 0) {
+            Rect hClearRect;
+
+            hClearRect.left = (dX < 0) ? clipRect.left : clipRect.right - absDx;
+            hClearRect.top = (dY < 0) ? clipRect.top + absDy : clipRect.top;
+            hClearRect.right = (dX < 0) ? clipRect.left + absDx : clipRect.right;
+            hClearRect.bottom = (dY < 0) ? clipRect.bottom : clipRect.bottom - absDy;
+
+            Console_FillRect_Locked(pConsole, hClearRect, ' ');
+        }
+    }
+    else {
+        Console_ClearScreen_Locked(pConsole);
+    }
 }
 
 static void Console_DeleteLines_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
 {
-    const Int copyFromLine = pConsole->y + nLines;
-    const Int linesToCopy = __max(pConsole->bounds.height - 1 - copyFromLine, 0);
-    const Int clearFromLine = pConsole->y + linesToCopy;
-    const Int linesToClear = __max(pConsole->bounds.height - 1 - clearFromLine, 0);
+    if (nLines > 0) {
+        const Int copyFromLine = pConsole->y + nLines;
+        const Int linesToCopy = __max(pConsole->bounds.bottom - copyFromLine, 0);
+        const Int clearFromLine = pConsole->y + linesToCopy;
+        const Int linesToClear = __max(pConsole->bounds.bottom - clearFromLine, 0);
 
-    if (linesToCopy > 0) {
-        Console_CopyRect_Locked(pConsole,
-            Rect_Make(0, copyFromLine, pConsole->bounds.width, linesToCopy),
-            Point_Make(0, pConsole->y));
-    }
+        if (linesToCopy > 0) {
+            Console_CopyRect_Locked(pConsole,
+                Rect_Make(0, copyFromLine, pConsole->bounds.right, copyFromLine + linesToCopy),
+                Point_Make(0, pConsole->y));
+        }
 
-    if (linesToClear > 0) {
-        Console_FillRect_Locked(pConsole,
-            Rect_Make(0, clearFromLine, pConsole->bounds.width, linesToClear),
-            ' ');
+        if (linesToClear > 0) {
+            Console_FillRect_Locked(pConsole,
+                Rect_Make(0, clearFromLine, pConsole->bounds.right, pConsole->bounds.bottom),
+                ' ');
+        }
     }
 }
 
@@ -344,8 +360,8 @@ static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
 // \param y the Y position
 static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
 {
-    pConsole->x = __max(__min(x, pConsole->bounds.width - 1), 0);
-    pConsole->y = __max(__min(y, pConsole->bounds.height - 1), 0);
+    pConsole->x = __max(__min(x, pConsole->bounds.right - 1), 0);
+    pConsole->y = __max(__min(y, pConsole->bounds.bottom - 1), 0);
     Console_CursorDidMove_Locked(pConsole);
 }
 
@@ -355,8 +371,8 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 // \param dy the Y delta
 static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int dy)
 {
-    const Int eX = pConsole->bounds.width - 1;
-    const Int eY = pConsole->bounds.height - 1;
+    const Int eX = pConsole->bounds.right - 1;
+    const Int eY = pConsole->bounds.bottom - 1;
     Int x = pConsole->x + dx;
     Int y = pConsole->y + dy;
 
@@ -438,15 +454,15 @@ static void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (pConsole->x > 0) {
         // BS moves 1 cell to the left
-        Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.width - pConsole->x, 1), Point_Make(pConsole->x - 1, pConsole->y));
-        Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.width - 1, pConsole->y, 1, 1), ' ');
+        Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right, pConsole->y + 1), Point_Make(pConsole->x - 1, pConsole->y));
+        Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
         Console_MoveCursor_Locked(pConsole, -1, 0);
     }
 }
 
 static void Console_Execute_HT_Locked(ConsoleRef _Nonnull pConsole)
 {
-    Console_MoveCursorTo_Locked(pConsole, TabStops_GetNextStop(&pConsole->hTabStops, pConsole->x, pConsole->bounds.width), pConsole->y);
+    Console_MoveCursorTo_Locked(pConsole, TabStops_GetNextStop(&pConsole->hTabStops, pConsole->x, Rect_GetWidth(pConsole->bounds)), pConsole->y);
 }
 
 static void Console_Execute_HTS_Locked(ConsoleRef _Nonnull pConsole)
@@ -457,7 +473,7 @@ static void Console_Execute_HTS_Locked(ConsoleRef _Nonnull pConsole)
 static void Console_Execute_VT_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (pConsole->vTabStops.count > 0) {
-        Console_MoveCursorTo_Locked(pConsole, pConsole->x, TabStops_GetNextStop(&pConsole->vTabStops, pConsole->y, pConsole->bounds.height));
+        Console_MoveCursorTo_Locked(pConsole, pConsole->x, TabStops_GetNextStop(&pConsole->vTabStops, pConsole->y, Rect_GetHeight(pConsole->bounds)));
     } else {
         Console_Execute_LF_Locked(pConsole);
     }
@@ -476,10 +492,10 @@ static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole)
 
 static void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
 {
-    if (pConsole->x < pConsole->bounds.width - 1) {
+    if (pConsole->x < pConsole->bounds.right - 1) {
         // DEL does not change the position.
-        Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + 1, pConsole->y, pConsole->bounds.width - (pConsole->x + 1), 1), Point_Make(pConsole->x, pConsole->y));
-        Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.width - 1, pConsole->y, 1, 1), ' ');
+        Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), Point_Make(pConsole->x, pConsole->y));
+        Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
     }
 }
 
@@ -659,7 +675,7 @@ static void Console_Execute_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, Int op)
 static void Console_Execute_CSI_ECH_Locked(ConsoleRef _Nonnull pConsole, Int nChars)
 {
     Console_FillRect_Locked(pConsole, 
-        Rect_Make(pConsole->x, pConsole->y, nChars, 1),
+        Rect_Make(pConsole->x, pConsole->y, __min(pConsole->x + nChars, pConsole->bounds.right), pConsole->y + 1),
         ' ');
 }
 
@@ -726,7 +742,7 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'I':
-            Console_MoveCursor_Locked(pConsole, TabStops_GetNextNthStop(&pConsole->hTabStops, pConsole->x, get_csi_parameter(pConsole, 1), pConsole->bounds.width), 0);
+            Console_MoveCursor_Locked(pConsole, TabStops_GetNextNthStop(&pConsole->hTabStops, pConsole->x, get_csi_parameter(pConsole, 1), Rect_GetWidth(pConsole->bounds)), 0);
             break;
 
         case 'J':
@@ -766,7 +782,7 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'Y':
-            Console_MoveCursor_Locked(pConsole, 0, TabStops_GetNextNthStop(&pConsole->vTabStops, pConsole->y, get_csi_parameter(pConsole, 1), pConsole->bounds.height));
+            Console_MoveCursor_Locked(pConsole, 0, TabStops_GetNextNthStop(&pConsole->vTabStops, pConsole->y, get_csi_parameter(pConsole, 1), Rect_GetHeight(pConsole->bounds)));
             break;
 
         case 'Z':

@@ -811,7 +811,7 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
 // pixel formats and index 0 for RGB indexed pixel formats.
 void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 {
-    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Inifite);
+    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Infinite);
     const Int nbytes = pSurface->bytesPerRow * pSurface->height;
     for (Int i = 0; i < pSurface->planeCount; i++) {
         Bytes_ClearRange(pSurface->planes[i], nbytes);
@@ -826,23 +826,20 @@ void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Colo
     const Rect bounds = Rect_Make(0, 0, pSurface->width, pSurface->height);
     const Rect r = Rect_Intersection(rect, bounds);
     
-    if (Rect_IsEmpty(r)) {
-        Lock_Unlock(&pDriver->lock);
-        return;
-    }
+    if (!Rect_IsEmpty(r)) {
+        assert(color.tag == kColorType_Index);
     
-    assert(color.tag == kColorType_Index);
-    
-    for (Int i = 0; i < pSurface->planeCount; i++) {
-        const Bool bit = (color.u.index & (1 << i)) ? true : false;
+        for (Int i = 0; i < pSurface->planeCount; i++) {
+            const Bool bit = (color.u.index & (1 << i)) ? true : false;
         
-        for (Int y = r.y; y < r.y + r.height; y++) {
-            const BitPointer pBits = BitPointer_Make(pSurface->planes[i] + y * pSurface->bytesPerRow, r.x);
+            for (Int y = r.top; y < r.bottom; y++) {
+                const BitPointer pBits = BitPointer_Make(pSurface->planes[i] + y * pSurface->bytesPerRow, r.left);
             
-            if (bit) {
-                Bits_SetRange(pBits, r.width);
-            } else {
-                Bits_ClearRange(pBits, r.width);
+                if (bit) {
+                    Bits_SetRange(pBits, Rect_GetWidth(r));
+                } else {
+                    Bits_ClearRange(pBits, Rect_GetWidth(r));
+                }
             }
         }
     }
@@ -855,31 +852,31 @@ void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Colo
 // overwritten.
 void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, Point dstLoc)
 {
-    if (srcRect.width == 0 || srcRect.height == 0 || (srcRect.x == dstLoc.x && srcRect.y == dstLoc.y)) {
+    if (Rect_IsEmpty(srcRect) || (srcRect.left == dstLoc.x && srcRect.top == dstLoc.y)) {
         return;
     }
     
-    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Inifite);  // XXX calc tighter rect
+    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Infinite);  // XXX calc tighter rect
     const Rect src_r = srcRect;
-    const Rect dst_r = Rect_Make(dstLoc.x, dstLoc.y, src_r.width, src_r.height);
+    const Rect dst_r = Rect_Make(dstLoc.x, dstLoc.y, dstLoc.x + Rect_GetWidth(src_r), dstLoc.y + Rect_GetHeight(src_r));
     const Int fb_width = pSurface->width;
     const Int fb_height = pSurface->height;
     const Int bytesPerRow = pSurface->bytesPerRow;
-    const Int src_end_y = src_r.y + src_r.height - 1;
-    const Int dst_clipped_left_span = (dst_r.x < 0) ? -dst_r.x : 0;
-    const Int dst_clipped_right_span = __max(dst_r.x + dst_r.width - fb_width, 0);
-    const Int dst_x = __max(dst_r.x, 0);
-    const Int src_x = src_r.x + dst_clipped_left_span;
-    const Int dst_width = __max(dst_r.width - dst_clipped_left_span - dst_clipped_right_span, 0);
+    const Int src_end_y = src_r.bottom - 1;
+    const Int dst_clipped_left_span = (dst_r.left < 0) ? -dst_r.left : 0;
+    const Int dst_clipped_right_span = __max(dst_r.right - fb_width, 0);
+    const Int dst_x = __max(dst_r.left, 0);
+    const Int src_x = src_r.left + dst_clipped_left_span;
+    const Int dst_width = __max(Rect_GetWidth(dst_r) - dst_clipped_left_span - dst_clipped_right_span, 0);
 
     for (Int i = 0; i < pSurface->planeCount; i++) {
         Byte* pPlane = pSurface->planes[i];
 
-        if (dst_r.y >= src_r.y && dst_r.y <= src_end_y) {
-            const Int dst_clipped_y_span = __max(dst_r.y + dst_r.height - fb_height, 0);
-            const Int dst_y_min = __max(dst_r.y, 0);
-            Int src_y = src_r.y + src_r.height - 1;
-            Int dst_y = dst_r.y + dst_r.height - dst_clipped_y_span - 1;
+        if (dst_r.top >= src_r.top && dst_r.top <= src_end_y) {
+            const Int dst_clipped_y_span = __max(dst_r.bottom - fb_height, 0);
+            const Int dst_y_min = __max(dst_r.top, 0);
+            Int src_y = src_r.bottom - 1;
+            Int dst_y = dst_r.bottom - dst_clipped_y_span - 1;
             
             while (dst_y >= dst_y_min) {
                 Bits_CopyRange(BitPointer_Make(pPlane + dst_y * bytesPerRow, dst_x),
@@ -889,10 +886,10 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
             }
         }
         else {
-            const Int dst_clipped_y_span = (dst_r.y < 0) ? -dst_r.y : 0;
-            Int dst_y = __max(dst_r.y, 0);
-            const Int dst_y_max = __min(dst_r.y + dst_r.height, fb_height);
-            Int src_y = src_r.y + dst_clipped_y_span;
+            const Int dst_clipped_y_span = (dst_r.top < 0) ? -dst_r.top : 0;
+            Int dst_y = __max(dst_r.top, 0);
+            const Int dst_y_max = __min(dst_r.bottom, fb_height);
+            Int src_y = src_r.top + dst_clipped_y_span;
             
             while (dst_y < dst_y_max) {
                 Bits_CopyRange(BitPointer_Make(pPlane + dst_y * bytesPerRow, dst_x),
@@ -908,7 +905,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
 // Blits a monochromatic 8x8 pixel glyph to the given position in the framebuffer.
 void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, Int x, Int y)
 {
-    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, 8, 8));
+    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, x + 8, y + 8));
     const Int bytesPerRow = pSurface->bytesPerRow;
     const Int maxX = pSurface->width >> 3;
     const Int maxY = pSurface->height >> 3;

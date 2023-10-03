@@ -76,61 +76,49 @@ static inline Bool Size_Equals(Size a, Size b) {
 
 
 typedef struct _Rect {
-    Int x, y;
-    Int width, height;
+    Int left, top;
+    Int right, bottom;
 } Rect;
 
 
 extern const Rect Rect_Empty;
-extern const Rect Rect_Inifite;
+extern const Rect Rect_Infinite;
 
-static inline Rect Rect_Make(Int x, Int y, Int width, Int height) {
+static inline Rect Rect_Make(Int left, Int top, Int right, Int bottom) {
     Rect r;
-    r.x = x; r.y = y; r.width = width; r.height = height;
-    return r;
-}
-
-static inline Rect Rect_Make2(Point origin, Size size) {
-    Rect r;
-    r.x = origin.x; r.y = origin.y;
-    r.width = size.width; r.height = size.height;
+    r.left = left; r.top = top; r.right = right; r.bottom = bottom;
     return r;
 }
 
 static inline Bool Rect_IsEmpty(Rect r) {
-    return r.width <= 0 || r.height <= 0;
+    return (r.right == r.left) || (r.bottom == r.top);
 }
 
 static inline Bool Rect_IsInfinite(Rect r) {
-    return r.width == INT_MAX && r.height == INT_MAX;
+    return (r.right - r.left == INT_MAX) && (r.bottom - r.top == INT_MAX);
 }
 
 static inline Bool Rect_Equals(Rect a, Rect b) {
-    return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
+    return a.left == b.left && a.top == b.top && a.right == b.right && a.bottom == b.bottom;
 }
 
 static inline Point Rect_GetOrigin(Rect r) {
-    return Point_Make(r.x, r.y);
+    return Point_Make(r.left, r.top);
 }
 
+// Note that the returned size is limited to (INT_MAX, INT_MAX)
 static inline Size Rect_GetSize(Rect r) {
-    return Size_Make(r.width, r.height);
+    return Size_Make(r.right - r.left, r.bottom - r.top);
 }
 
-static inline Int Rect_GetMinX(Rect r) {
-    return r.x;
+// Note that the returned width is limited to INT_MAX
+static inline Int Rect_GetWidth(Rect r) {
+    return r.right - r.left;
 }
 
-static inline Int Rect_GetMaxX(Rect r) {
-    return r.x + r.width;
-}
-
-static inline Int Rect_GetMinY(Rect r) {
-    return r.y;
-}
-
-static inline Int Rect_GetMaxY(Rect r) {
-    return r.y + r.height;
+// Note that the returned height is limited to INT_MAX
+static inline Int Rect_GetHeight(Rect r) {
+    return r.bottom - r.top;
 }
 
 extern Rect Rect_Union(Rect a, Rect b);
@@ -139,10 +127,12 @@ extern Bool Rect_IntersectsRect(Rect a, Rect b);
 
 static inline Bool Rect_Contains(Rect r, Int x, Int y)
 {
-    return x >= r.x && x < (r.x + r.width) && y >= r.y && y < (r.y + r.height);
+    return x >= r.left && x < r.right && y >= r.top && y < r.bottom;
 }
 
-extern Bool Rect_ContainsPoint(Rect r, Point p);
+static inline Bool Rect_ContainsPoint(Rect r, Point p) {
+    return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
+}
 
 extern Point Point_ClampedToRect(Point p, Rect r);
 

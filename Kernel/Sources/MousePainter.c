@@ -176,7 +176,8 @@ void MousePainter_ShieldCursor(MousePainter* _Nonnull pPainter, const Rect r)
     const Int irs = cpu_disable_irqs();
 
     if (pPainter->curFlags.hasSavedImage && pPainter->flags.hasBackground) {
-        const Rect crsrRect = Rect_Make(pPainter->curX, pPainter->curY, MOUSE_CURSOR_WIDTH, MOUSE_CURSOR_HEIGHT);
+        const Rect crsrRect = Rect_Make(pPainter->curX, pPainter->curY,
+            pPainter->x + MOUSE_CURSOR_WIDTH, pPainter->y + MOUSE_CURSOR_HEIGHT);
 
         if (Rect_IntersectsRect(crsrRect, r)) {
             MousePainter_RestoreSavedImage(pPainter);
