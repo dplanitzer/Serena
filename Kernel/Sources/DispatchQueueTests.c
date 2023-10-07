@@ -21,7 +21,7 @@
 // MARK: DispatchAsync/DispatchAsyncAfter
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
     Int val = (Int)pValue;
@@ -194,24 +194,25 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 0
+#if 1
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
+    HIDEvent evt;        
 
     print("Event loop\n");
     while (true) {
-        HIDEvent evt;
-        Int count = 1;
-        
-        const Int err = EventDriver_GetEvents(pEventDriver, &evt, &count, kTimeInterval_Infinity);
+        const ByteCount nBytesRead = EventDriver_Read(pEventDriver, (Byte*)&evt, sizeof(evt));
+        if (nBytesRead < 0) {
+            abort();
+        }
         
         switch (evt.type) {
             case kHIDEventType_KeyDown:
             case kHIDEventType_KeyUp:
                 print("%s: $%hhx   flags: $%hhx  isRepeat: %s\n",
                       (evt.type == kHIDEventType_KeyUp) ? "KeyUp" : "KeyDown",
-                      (Int)evt.data.key.keycode,
+                      (Int)evt.data.key.keyCode,
                       (Int)evt.data.key.flags, evt.data.key.isRepeat ? "true" : "false");
                 break;
                 

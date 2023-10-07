@@ -102,7 +102,7 @@ extern void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter);
 // The following APIs are designed to be called from the vertical blank interrupt
 // context
 
-extern void MousePainter_IncrementPosition_VerticalBlank(MousePainter* _Nonnull pPainter, Int xDelta, Int yDelta);
+extern void MousePainter_SetPosition_VerticalBlank(MousePainter* _Nonnull pPainter, Int16 x, Int16 y);
 extern void MousePainter_Paint_VerticalBlank(MousePainter* _Nonnull pPainter);
 
 #endif /* MousePainter_h */

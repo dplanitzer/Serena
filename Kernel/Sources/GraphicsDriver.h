@@ -116,6 +116,7 @@ extern void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull pDriver, co
 extern void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull pDriver, Bool isVisible);
 extern void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull pDriver, Bool flag);
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, Point loc);
+extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull pDriver, Int16 x, Int16 y);
 
 
 // Drawing

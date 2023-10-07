@@ -944,6 +944,7 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
     // Now wait for events and map them to byte sequences if we stil got space
     // in the user provided buffer
     while (nBytesRead < nBytesToRead) {
+        ByteCount nEvtBytesRead;
         evtCount = 1;
 
         // Drop the console lock while getting an event since the get events call
@@ -951,12 +952,13 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
         // long time would prevent any other process from working with the
         // console
         Lock_Unlock(&pConsole->lock);
-        err = EventDriver_GetEvents(pConsole->pEventDriver, &evt, &evtCount, kTimeInterval_Infinity);
+        nEvtBytesRead = EventDriver_Read(pConsole->pEventDriver, (Byte*) &evt, sizeof(evt));
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
         // XXX later
-        if (err != EOK) {
+        if (nEvtBytesRead < 0) {
+            err = (ErrorCode) -nEvtBytesRead;
             break;
         }
 

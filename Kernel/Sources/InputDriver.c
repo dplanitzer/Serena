@@ -11,18 +11,29 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Keyboard Driver
+// MARK: -
+// MARK: Keyboard Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-
-// 3,300bits/second at 25FPS
-#define KEY_QUEUE_MAX_LENGTH    17
+// Keycode -> USB HID keyscan codes
+// See: <http://whdload.de/docs/en/rawkey.html>
+// See: <http://www.quadibloc.com/comp/scan.htm>
+static const UInt8 gUSBHIDKeycodes[128] = {
+    0x35, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x2d, 0x2e, 0x31, 0x00, 0x62, // $00 - $0f
+    0x14, 0x1a, 0x08, 0x15, 0x17, 0x1c, 0x18, 0x0c, 0x12, 0x13, 0x2f, 0x30, 0x00, 0x59, 0x5a, 0x5b, // $10 - $1f
+    0x04, 0x16, 0x07, 0x09, 0x0a, 0x0b, 0x0d, 0x0e, 0x0f, 0x33, 0x34, 0x00, 0x00, 0x5c, 0x5d, 0x5e, // $20 - $2f
+    0x36, 0x1d, 0x1b, 0x06, 0x19, 0x05, 0x11, 0x10, 0x36, 0x37, 0x38, 0x00, 0x63, 0x5f, 0x60, 0x61, // $30 - $3f
+    0x2c, 0x2a, 0x2b, 0x58, 0x28, 0x29, 0x4c, 0x00, 0x00, 0x00, 0x56, 0x00, 0x52, 0x51, 0x4f, 0x50, // $40 - $4f
+    0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43, 0x53, 0x54, 0x55, 0x56, 0x57, 0x75, // $50 - $5f
+    0xe1, 0xe5, 0x39, 0xe0, 0xe2, 0xe6, 0xe3, 0xe7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // $60 - $6f
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, // $70 - $7f
+};
 
 
 typedef struct _KeyboardDriver {
-    EventDriverRef _Nonnull     event_driver;
-    InterruptHandlerID          irq_handler;
-    RingBuffer                  key_queue;
+    const UInt8* _Nonnull           keyCodeMap;
+    EventDriverRef _Nonnull _Weak   eventDriver;
+    InterruptHandlerID              irqHandler;
 } KeyboardDriver;
 
 
@@ -39,18 +50,17 @@ ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDr
     
     try(kalloc_cleared(sizeof(KeyboardDriver), (Byte**) &pDriver));
     
-    pDriver->event_driver = pEventDriver;
+    pDriver->keyCodeMap = gUSBHIDKeycodes;
+    pDriver->eventDriver = pEventDriver;
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                       INTERRUPT_ID_CIA_A_SP,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL,
                                                       (InterruptHandler_Closure)KeyboardDriver_OnInterrupt,
                                                       (Byte*)pDriver,
-                                                      &pDriver->irq_handler));
-    
-    try(RingBuffer_Init(&pDriver->key_queue, KEY_QUEUE_MAX_LENGTH));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irq_handler, true);
+                                                      &pDriver->irqHandler));
 
     ksb_init();
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
 
     *pOutDriver = pDriver;
     return EOK;
@@ -64,9 +74,8 @@ catch:
 void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irq_handler));
-        RingBuffer_Deinit(&pDriver->key_queue);
-        pDriver->event_driver = NULL;
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
+        pDriver->eventDriver = NULL;
         kfree((Byte*)pDriver);
     }
 }
@@ -74,70 +83,37 @@ void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver)
 void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver)
 {
     const UInt8 keycode = ksb_receive_key();
-    
-    if (RingBuffer_PutByte(&pDriver->key_queue, (Byte)keycode) == 0) {
-        // The key queue is full. Flush it, push an overflow error and then the new keycode
-        RingBuffer_RemoveAll(&pDriver->key_queue);
-        RingBuffer_PutByte(&pDriver->key_queue, 0xfa);
-        RingBuffer_PutByte(&pDriver->key_queue, (Byte)keycode);
+    const HIDKeyState state = (keycode & 0x80) ? kHIDKeyState_Up : kHIDKeyState_Down;
+    const UInt16 code = (UInt16)pDriver->keyCodeMap[keycode & 0x7f];
+
+    if (code > 0) {
+        EventDriver_ReportKeyboardDeviceChange(pDriver->eventDriver, state, code);
     }
     ksb_acknowledge_key();
 }
 
-// Keycode -> USB HID keyscan codes
-// See: <http://whdload.de/docs/en/rawkey.html>
-// See: <http://www.quadibloc.com/comp/scan.htm>
-static const UInt8 gUSBHIDKeycodes[128] = {
-    0x35, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x2d, 0x2e, 0x31, 0x00, 0x62, // $00 - $0f
-    0x14, 0x1a, 0x08, 0x15, 0x17, 0x1c, 0x18, 0x0c, 0x12, 0x13, 0x2f, 0x30, 0x00, 0x59, 0x5a, 0x5b, // $10 - $1f
-    0x04, 0x16, 0x07, 0x09, 0x0a, 0x0b, 0x0d, 0x0e, 0x0f, 0x33, 0x34, 0x00, 0x00, 0x5c, 0x5d, 0x5e, // $20 - $2f
-    0x36, 0x1d, 0x1b, 0x06, 0x19, 0x05, 0x11, 0x10, 0x36, 0x37, 0x38, 0x00, 0x63, 0x5f, 0x60, 0x61, // $30 - $3f
-    0x2c, 0x2a, 0x2b, 0x58, 0x28, 0x29, 0x4c, 0x00, 0x00, 0x00, 0x56, 0x00, 0x52, 0x51, 0x4f, 0x50, // $40 - $4f
-    0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43, 0x53, 0x54, 0x55, 0x56, 0x57, 0x75, // $50 - $5f
-    0xe1, 0xe5, 0x39, 0xe0, 0xe2, 0xe6, 0xe3, 0xe7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // $60 - $6f
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, // $70 - $7f
-};
-
-Bool KeyboardDriver_GetReport(KeyboardDriverRef _Nonnull pDriver, KeyboardReport* _Nonnull pReport)
-{
-    Byte keycode;
-    
-    const Int ips = cpu_disable_irqs();
-    const Bool hasKey = RingBuffer_GetByte(&pDriver->key_queue, &keycode) > 0;
-    cpu_restore_irqs(ips);
-    
-    if (hasKey) {
-        pReport->keycode = (HIDKeyCode)gUSBHIDKeycodes[keycode & 0x7f];
-        pReport->isKeyUp = keycode & 0x80;
-        return true;
-    } else {
-        pReport->keycode = 0;
-        return false;
-    }
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Mouse Driver
+// MARK: -
+// MARK: Mouse Driver
 ////////////////////////////////////////////////////////////////////////////////
-#if 0
-#pragma mark -
-#endif
-
 
 typedef struct _MouseDriver {
-    EventDriverRef _Nonnull event_driver;
-    volatile UInt16*        reg_joydat;
-    volatile UInt16*        reg_potgor;
-    volatile UInt8*         reg_pra;
-    Int16                   old_hcount;
-    Int16                   old_vcount;
-    UInt16                  right_button_mask;
-    UInt16                  middle_button_mask;
-    UInt8                   left_button_mask;
-    Int8                    port;
+    EventDriverRef _Nonnull _Weak   eventDriver;
+    InterruptHandlerID              irqHandler;
+    volatile UInt16*                reg_joydat;
+    volatile UInt16*                reg_potgor;
+    volatile UInt8*                 reg_pra;
+    Int16                           old_hcount;
+    Int16                           old_vcount;
+    UInt16                          right_button_mask;
+    UInt16                          middle_button_mask;
+    UInt8                           left_button_mask;
+    Int8                            port;
 } MouseDriver;
 
+extern void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver);
 
 ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver)
 {
@@ -148,7 +124,7 @@ ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, Mou
          
     try(kalloc_cleared(sizeof(MouseDriver), (Byte**) &pDriver));
     
-    pDriver->event_driver = pEventDriver;
+    pDriver->eventDriver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
     pDriver->reg_potgor = (volatile UInt16*)0xdff016;
     pDriver->reg_pra = (volatile UInt8*)0xbfe001;
@@ -165,6 +141,14 @@ ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, Mou
     volatile UInt8* pPotGo = (volatile UInt8*)0xdff034;
     *pPotGo &= 0x0f00;
 
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
+                                                      INTERRUPT_ID_VERTICAL_BLANK,
+                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 2,
+                                                      (InterruptHandler_Closure)MouseDriver_OnInterrupt,
+                                                      (Byte*)pDriver,
+                                                      &pDriver->irqHandler));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
+
     *pOutDriver = pDriver;
     return EOK;
     
@@ -177,12 +161,13 @@ catch:
 void MouseDriver_Destroy(MouseDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        pDriver->event_driver = NULL;
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
+        pDriver->eventDriver = NULL;
         kfree((Byte*)pDriver);
     }
 }
 
-Bool MouseDriver_GetReport(MouseDriverRef _Nonnull pDriver, MouseReport* _Nonnull pReport)
+void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver)
 {
     register UInt16 new_state = *(pDriver->reg_joydat);
     
@@ -214,52 +199,50 @@ Bool MouseDriver_GetReport(MouseDriverRef _Nonnull pDriver, MouseReport* _Nonnul
         yDelta = 255 - yDelta;
         if (yDelta >= 0) yDelta = 0;
     }
-    
-    pReport->xDelta = xDelta;
-    pReport->yDelta = yDelta;
-    pReport->buttonsDown = 0;
 
     
     // Left mouse button
+    register UInt32 buttonsDown = 0;
     register UInt8 pra = *(pDriver->reg_pra);
     if ((pra & pDriver->left_button_mask) == 0) {
-        pReport->buttonsDown |= 0x01;
+        buttonsDown |= 0x01;
     }
     
     
     // Right mouse button
     register UInt16 potgor = *(pDriver->reg_potgor);
     if ((potgor & pDriver->right_button_mask) == 0) {
-        pReport->buttonsDown |= 0x02;
+        buttonsDown |= 0x02;
     }
 
     
     // Middle mouse button
     if ((potgor & pDriver->middle_button_mask) == 0) {
-        pReport->buttonsDown |= 0x04;
+        buttonsDown |= 0x04;
     }
-    
-    return true;
+
+
+    EventDriver_ReportMouseDeviceChange(pDriver->eventDriver, xDelta, yDelta, buttonsDown);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Digital Joystick Driver
+// MARK: -
+// MARK: Digital Joystick Driver
 ////////////////////////////////////////////////////////////////////////////////
-#if 0
-#pragma mark -
-#endif
-
 
 typedef struct _DigitalJoystickDriver {
-    EventDriverRef _Nonnull event_driver;
-    volatile UInt16*        reg_joydat;
-    volatile UInt16*        reg_potgor;
-    volatile UInt8*         reg_pra;
-    UInt16                  right_button_mask;
-    UInt8                   fire_button_mask;
-    Int8                    port;
+    EventDriverRef _Nonnull _Weak   eventDriver;
+    InterruptHandlerID              irqHandler;
+    volatile UInt16*                reg_joydat;
+    volatile UInt16*                reg_potgor;
+    volatile UInt8*                 reg_pra;
+    UInt16                          right_button_mask;
+    UInt8                           fire_button_mask;
+    Int8                            port;
 } DigitalJoystickDriver;
+
+extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull pDriver);
 
 
 ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver)
@@ -271,7 +254,7 @@ ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int
         
     try(kalloc_cleared(sizeof(DigitalJoystickDriver), (Byte**) &pDriver));
     
-    pDriver->event_driver = pEventDriver;
+    pDriver->eventDriver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
     pDriver->reg_potgor = (volatile UInt16*)0xdff016;
     pDriver->reg_pra = (volatile UInt8*)0xbfe001;
@@ -287,6 +270,14 @@ ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int
     volatile UInt8* pPotGo = (volatile UInt8*)0xdff034;
     *pPotGo &= 0x0f00;
 
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
+                                                      INTERRUPT_ID_VERTICAL_BLANK,
+                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
+                                                      (InterruptHandler_Closure)DigitalJoystickDriver_OnInterrupt,
+                                                      (Byte*)pDriver,
+                                                      &pDriver->irqHandler));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
+
     *pOutDriver = pDriver;
     return EOK;
     
@@ -299,75 +290,75 @@ catch:
 void DigitalJoystickDriver_Destroy(DigitalJoystickDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        pDriver->event_driver = NULL;
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
+        pDriver->eventDriver = NULL;
         kfree((Byte*)pDriver);
     }
 }
 
-Bool DigitalJoystickDriver_GetReport(DigitalJoystickDriverRef _Nonnull pDriver, JoystickReport* _Nonnull pReport)
+void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull pDriver)
 {
     register UInt8 pra = *(pDriver->reg_pra);
     register UInt16 joydat = *(pDriver->reg_joydat);
-    
-    pReport->xAbs = 0;
-    pReport->yAbs = 0;
-    pReport->buttonsDown = 0;
+    Int16 xAbs, yAbs;
+    UInt32 buttonsDown = 0;
 
     
     // Left fire button
     if ((pra & pDriver->fire_button_mask) == 0) {
-        pReport->buttonsDown |= 0x01;
+        buttonsDown |= 0x01;
     }
     
     
     // Right fire button
     register UInt16 potgor = *(pDriver->reg_potgor);
     if ((potgor & pDriver->right_button_mask) == 0) {
-        pReport->buttonsDown |= 0x02;
+        buttonsDown |= 0x02;
     }
 
     
     // X axis
     if ((joydat & (1 << 1)) != 0) {
-        pReport->xAbs = INT16_MAX;  // right
+        xAbs = INT16_MAX;  // right
     } else if ((joydat & (1 << 9)) != 0) {
-        pReport->xAbs = INT16_MIN;  // left
+        xAbs = INT16_MIN;  // left
     }
     
     
     // Y axis
     register UInt16 joydat_xor = joydat ^ (joydat >> 1);
     if ((joydat & (1 << 0)) != 0) {
-        pReport->yAbs = INT16_MAX;  // down
+        yAbs = INT16_MAX;  // down
     } else if ((joydat & (1 << 8)) != 0) {
-        pReport->yAbs = INT16_MIN;  // up
+        yAbs = INT16_MIN;  // up
     }
 
-    return true;
+
+    EventDriver_ReportJoystickDeviceChange(pDriver->eventDriver, pDriver->port, xAbs, yAbs, buttonsDown);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Analog Joystick (Paddles) Driver
+// MARK: -
+// MARK: Analog Joystick (Paddles) Driver
 ////////////////////////////////////////////////////////////////////////////////
-#if 0
-#pragma mark -
-#endif
-
 
 typedef struct _AnalogJoystickDriver {
-    EventDriverRef _Nonnull event_driver;
-    volatile UInt16*        reg_joydat;
-    volatile UInt16*        reg_potdat;
-    volatile UInt16*        reg_potgo;
-    Int16                   smoothedX;
-    Int16                   smoothedY;
-    Int16                   sumX;
-    Int16                   sumY;
-    Int8                    sampleCount;    // How many samples to average to produce a smoothed value
-    Int8                    sampleIndex;    // Current sample in the range 0..<sampleCount
-    Int8                    port;
+    EventDriverRef _Nonnull _Weak   eventDriver;
+    InterruptHandlerID              irqHandler;
+    volatile UInt16*                reg_joydat;
+    volatile UInt16*                reg_potdat;
+    volatile UInt16*                reg_potgo;
+    Int16                           smoothedX;
+    Int16                           smoothedY;
+    Int16                           sumX;
+    Int16                           sumY;
+    Int8                            sampleCount;    // How many samples to average to produce a smoothed value
+    Int8                            sampleIndex;    // Current sample in the range 0..<sampleCount
+    Int8                            port;
 } AnalogJoystickDriver;
+
+extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull pDriver);
 
 
 ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver)
@@ -379,7 +370,7 @@ ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int 
         
     try(kalloc_cleared(sizeof(AnalogJoystickDriver), (Byte**) &pDriver));
     
-    pDriver->event_driver = pEventDriver;
+    pDriver->eventDriver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? (volatile UInt16*)0xdff00a : (volatile UInt16*)0xdff00c;
     pDriver->reg_potdat = (port == 0) ? (volatile UInt16*)0xdff012 : (volatile UInt16*)0xdff014;
     pDriver->reg_potgo = (volatile UInt16*)0xdff034;
@@ -391,6 +382,14 @@ ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int 
     pDriver->smoothedX = 0;
     pDriver->smoothedY = 0;
     
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
+                                                      INTERRUPT_ID_VERTICAL_BLANK,
+                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
+                                                      (InterruptHandler_Closure)AnalogJoystickDriver_OnInterrupt,
+                                                      (Byte*)pDriver,
+                                                      &pDriver->irqHandler));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
+
     *pOutDriver = pDriver;
     return EOK;
     
@@ -403,20 +402,21 @@ catch:
 void AnalogJoystickDriver_Destroy(AnalogJoystickDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        pDriver->event_driver = NULL;
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
+        pDriver->eventDriver = NULL;
         kfree((Byte*)pDriver);
     }
 }
 
-Bool AnalogJoystickDriver_GetReport(AnalogJoystickDriverRef _Nonnull pDriver, JoystickReport* _Nonnull pReport)
+void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull pDriver)
 {
     register UInt16 potdat = *(pDriver->reg_potdat);
     register UInt16 joydat = *(pDriver->reg_joydat);
 
     // Return the smoothed value
-    pReport->xAbs = pDriver->smoothedX;
-    pReport->yAbs = pDriver->smoothedY;
-    pReport->buttonsDown = 0;
+    const Int16 xAbs = pDriver->smoothedX;
+    const Int16 yAbs = pDriver->smoothedY;
+    UInt32 buttonsDown = 0;
     
     
     // Sum up to 'sampleCount' samples and then compute the smoothed out value
@@ -443,46 +443,48 @@ Bool AnalogJoystickDriver_GetReport(AnalogJoystickDriverRef _Nonnull pDriver, Jo
     
     // Left fire button
     if ((joydat & (1 << 9)) != 0) {
-        pReport->buttonsDown |= 0x01;
+        buttonsDown |= 0x01;
     }
     
     
     // Right fire button
     if ((joydat & (1 << 1)) != 0) {
-        pReport->buttonsDown |= 0x02;
+        buttonsDown |= 0x02;
     }
     
     
     // Restart the counter for the next frame
     *(pDriver->reg_potgo) = 0x0001;
     
-    return true;
+    
+    EventDriver_ReportJoystickDeviceChange(pDriver->eventDriver, pDriver->port, xAbs, yAbs, buttonsDown);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Light Pen Driver
+// MARK: -
+// MARK: Light Pen Driver
 ////////////////////////////////////////////////////////////////////////////////
-#if 0
-#pragma mark -
-#endif
-
 
 typedef struct _LightPenDriver {
-    EventDriverRef _Nonnull event_driver;
-    volatile UInt16*        reg_potgor;
-    UInt16                  right_button_mask;
-    UInt16                  middle_button_mask;
-    Int16                   smoothedX;
-    Int16                   smoothedY;
-    Bool                    hasSmoothedPosition;
-    Int16                   sumX;
-    Int16                   sumY;
-    Int8                    sampleCount;    // How many samples to average to produce a smoothed value
-    Int8                    sampleIndex;    // Current sample in the range 0..<sampleCount
-    Int8                    triggerCount;   // Number of times that the light pen has triggered in the 'sampleCount' interval
-    Int8                    port;
+    EventDriverRef _Nonnull _Weak       eventDriver;
+    GraphicsDriverRef _Nonnull _Weak    graphicsDriver;
+    InterruptHandlerID                  irqHandler;
+    volatile UInt16*                    reg_potgor;
+    UInt16                              right_button_mask;
+    UInt16                              middle_button_mask;
+    Int16                               smoothedX;
+    Int16                               smoothedY;
+    Bool                                hasSmoothedPosition;    // True if the light pen position is available (pen triggered the position latching hardware); false otherwise
+    Int16                               sumX;
+    Int16                               sumY;
+    Int8                                sampleCount;    // How many samples to average to produce a smoothed value
+    Int8                                sampleIndex;    // Current sample in the range 0..<sampleCount
+    Int8                                triggerCount;   // Number of times that the light pen has triggered in the 'sampleCount' interval
+    Int8                                port;
 } LightPenDriver;
+
+extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull pDriver);
 
 
 ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver)
@@ -494,7 +496,8 @@ ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, 
         
     try(kalloc_cleared(sizeof(LightPenDriver), (Byte**) &pDriver));
     
-    pDriver->event_driver = pEventDriver;
+    pDriver->eventDriver = pEventDriver;
+    pDriver->graphicsDriver = EventDriver_GetGraphicsDriver(pEventDriver);
     pDriver->reg_potgor = (volatile UInt16*)0xdff016;
     pDriver->right_button_mask = (port == 0) ? 0x400 : 0x4000;
     pDriver->middle_button_mask = (port == 0) ? 0x100 : 0x1000;
@@ -512,6 +515,14 @@ ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, 
     volatile UInt8* pPotGo = (volatile UInt8*)0xdff034;
     *pPotGo &= 0x0f00;
     
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
+                                                      INTERRUPT_ID_VERTICAL_BLANK,
+                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
+                                                      (InterruptHandler_Closure)LightPenDriver_OnInterrupt,
+                                                      (Byte*)pDriver,
+                                                      &pDriver->irqHandler));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
+
     *pOutDriver = pDriver;
     return EOK;
     
@@ -524,20 +535,20 @@ catch:
 void LightPenDriver_Destroy(LightPenDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        pDriver->event_driver = NULL;
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
+        pDriver->graphicsDriver = NULL;
+        pDriver->eventDriver = NULL;
         kfree((Byte*)pDriver);
     }
 }
 
-Bool LightPenDriver_GetReport(LightPenDriverRef _Nonnull pDriver, LightPenReport* _Nonnull pReport)
+void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull pDriver)
 {
-    GraphicsDriverRef pGraphicsDriver = EventDriver_GetGraphicsDriver(pDriver->event_driver);
-    
     // Return the smoothed value
-    pReport->xAbs = pDriver->smoothedX;
-    pReport->yAbs = pDriver->smoothedY;
-    pReport->hasPosition = pDriver->hasSmoothedPosition;
-    pReport->buttonsDown = 0;
+    Int16 xAbs = pDriver->smoothedX;
+    Int16 yAbs = pDriver->smoothedY;
+    const Bool hasPosition = pDriver->hasSmoothedPosition;
+    UInt32 buttonsDown = 0;
 
     
     // Sum up to 'sampleCount' samples and then compute the smoothed out value
@@ -556,7 +567,7 @@ Bool LightPenDriver_GetReport(LightPenDriverRef _Nonnull pDriver, LightPenReport
         // Get the position
         Int16 xPos, yPos;
         
-        if (GraphicsDriver_GetLightPenPosition(pGraphicsDriver, &xPos, &yPos)) {
+        if (GraphicsDriver_GetLightPenPosition(pDriver->graphicsDriver, &xPos, &yPos)) {
             pDriver->triggerCount++;
             pDriver->sumX += xPos;
             pDriver->sumY += yPos;
@@ -567,14 +578,17 @@ Bool LightPenDriver_GetReport(LightPenDriverRef _Nonnull pDriver, LightPenReport
     // Button #0
     register UInt16 potgor = *(pDriver->reg_potgor);
     if ((potgor & pDriver->right_button_mask) == 0) {
-        pReport->buttonsDown |= 0x02;
+        buttonsDown |= 0x02;
     }
     
     
     // Button # 1
     if ((potgor & pDriver->middle_button_mask) == 0) {
-        pReport->buttonsDown |= 0x04;
+        buttonsDown |= 0x04;
     }
     
-    return true;
+
+    if (hasPosition) {
+        EventDriver_ReportLightPenDeviceChange(pDriver->eventDriver, xAbs, yAbs, buttonsDown);
+    }
 }

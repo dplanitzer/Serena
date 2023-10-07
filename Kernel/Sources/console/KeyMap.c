@@ -42,7 +42,7 @@ static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const
 {
     UInt32 evtFlags = pEvent->flags;
 
-    if ((evtFlags & kHIDEventModifierFlag_CapsLock) && (pEvent->keycode >= KEY_A && pEvent->keycode <= KEY_Z)) {
+    if ((evtFlags & kHIDEventModifierFlag_CapsLock) && (pEvent->keyCode >= KEY_A && pEvent->keyCode <= KEY_Z)) {
         // Treat as shift for caps-able USB key code, except if the shift key is pressed at the same time
         if (!(evtFlags & kHIDEventModifierFlag_Shift)) {
             evtFlags |= kHIDEventModifierFlag_Shift;
@@ -52,7 +52,7 @@ static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const
     }
 
     const UInt32* pTraps = (const UInt32*)(pMapBase + pRange->traps);
-    const Character* trap = (const Character*) &pTraps[pEvent->keycode - pRange->lower];
+    const Character* trap = (const Character*) &pTraps[pEvent->keyCode - pRange->lower];
     const UInt modifierIdx = evtFlags & (kHIDEventModifierFlag_Shift|kHIDEventModifierFlag_Option);
     Character ch = trap[modifierIdx];
 
@@ -72,7 +72,7 @@ static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const
 static ByteCount KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars, ByteCount maxOutChars)
 {
     const UInt16* pTrapOffsets = (const UInt16*)(pMapBase + pRange->traps);
-    const Int adjustedUsbKeyCode = pEvent->keycode - pRange->lower;
+    const Int adjustedUsbKeyCode = pEvent->keyCode - pRange->lower;
     const UInt16 targetTrapOffset = pTrapOffsets[adjustedUsbKeyCode];
     const Character* pTrapString = (const Character*)(pMapBase + targetTrapOffset);
     ByteCount i = 0;
@@ -96,7 +96,7 @@ ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* 
 {
     if (maxOutBytes > 0) {
         const Byte* pMapBase = (const Byte*)pMap;
-        const HIDKeyCode usbKeyCode = pEvent->keycode;
+        const HIDKeyCode usbKeyCode = pEvent->keyCode;
 
         for (Int i = 0; i < pMap->rangeCount; i++) {
             const KeyMapRange* pCurRange = (const KeyMapRange*)(pMapBase + pMap->rangeOffset[i]);

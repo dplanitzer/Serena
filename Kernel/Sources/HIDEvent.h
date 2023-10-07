@@ -13,7 +13,7 @@
 
 
 // Event types
-enum {
+typedef enum _HIDEventType {
     kHIDEventType_KeyDown = 0,
     kHIDEventType_KeyUp,
     kHIDEventType_FlagsChanged,
@@ -23,12 +23,12 @@ enum {
     kHIDEventType_JoystickDown,
     kHIDEventType_JoystickUp,
     kHIDEventType_JoystickMotion
-};
+} HIDEventType;
 
 
 // Modifier key flags
 // flags UInt32 encoding:
-// [15...0]: modifier summary flags
+// [15...0]: logical modifier flags
 // [23...16]: right shift / control / option / command pressed
 // [31...24]: left shift / control / option / command pressed
 enum {
@@ -42,20 +42,28 @@ enum {
 };
 
 
+// HID key state
+typedef enum _HIDKeyState {
+    kHIDKeyState_Down,
+    kHIDKeyState_Repeat,
+    kHIDKeyState_Up
+} HIDKeyState;
+
+
 // HID key codes are based on the USB HID key scan codes
 typedef UInt16  HIDKeyCode;
 
 
 // HID event data
 typedef struct _HIDEventData_KeyUpDown {
-    UInt32      flags;          // modifier keys
-    HIDKeyCode  keycode;        // USB HID keyscan code
-    Bool        isRepeat;       // true if this is an auto-repeated key down; false otherwise
+    UInt32      flags;          // Modifier keys
+    HIDKeyCode  keyCode;        // USB HID keyscan code
+    Bool        isRepeat;       // True if this is an auto-repeated key down; false otherwise
 } HIDEventData_KeyUpDown;
 
 
 typedef struct _HIDEventData_FlagsChanged {
-    UInt32  flags;              // modifier keys
+    UInt32  flags;              // Modifier keys
 } HIDEventData_FlagsChanged;
 
 
@@ -67,14 +75,15 @@ typedef struct _HIDEventData_MouseButton {
 
 
 typedef struct _HIDEventData_MouseMove {
-    Point       location;
+    Point       location;       // Current mouse position
+    UInt32      flags;          // Modifier keys
 } HIDEventData_MouseMove;
 
 
 typedef struct _HIDEventData_JoystickButton {
     Int         port;           // Input controller port number
     Int         buttonNumber;
-    UInt32      flags;          // modifier keys
+    UInt32      flags;          // Modifier keys
     Vector      direction;      // Joystick direction when the button was pressed / released
 } HIDEventData_JoystickButton;
 

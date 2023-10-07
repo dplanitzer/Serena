@@ -8,6 +8,13 @@
 
 #include "MousePainter.h"
 
+// XXX
+// TODO:
+// - Unshield() leaves a copy of the mouse cursor behind if the mouse cursor is outside the shielding rect
+// - we need to clip the mouse cursor if it goes partially (completely) off screen
+// - SetMouseCursor() does not immediately update the screen. You have to move the mouse to see the change
+// - SetVisible() may have teh same problem. Need to check
+// XXX
 static void MousePainter_RestoreSavedImage(MousePainter* _Nonnull pPainter);
 static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter);
 
@@ -175,15 +182,18 @@ void MousePainter_ShieldCursor(MousePainter* _Nonnull pPainter, const Rect r)
     // XXX common case that the mouse cursor doesn't intersect 'r'
     const Int irs = cpu_disable_irqs();
 
-    if (pPainter->curFlags.hasSavedImage && pPainter->flags.hasBackground) {
-        const Rect crsrRect = Rect_Make(pPainter->curX, pPainter->curY,
-            pPainter->x + MOUSE_CURSOR_WIDTH, pPainter->y + MOUSE_CURSOR_HEIGHT);
+    if (!pPainter->curFlags.isShielded) {
+        pPainter->curFlags.isShielded = true;
 
-        if (Rect_IntersectsRect(crsrRect, r)) {
-            MousePainter_RestoreSavedImage(pPainter);
+        if (pPainter->curFlags.hasSavedImage && pPainter->flags.hasBackground) {
+            const Rect crsrRect = Rect_Make(pPainter->curX, pPainter->curY,
+                pPainter->x + MOUSE_CURSOR_WIDTH, pPainter->y + MOUSE_CURSOR_HEIGHT);
+
+            if (Rect_IntersectsRect(crsrRect, r)) {
+                MousePainter_RestoreSavedImage(pPainter);
+            }
         }
     }
-    pPainter->curFlags.isShielded = true;
 
     cpu_restore_irqs(irs);
 }
@@ -194,11 +204,11 @@ void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter)
     const Int irs = cpu_disable_irqs();
 
     if (pPainter->curFlags.isShielded) {
-        pPainter->curFlags.isShielded = false;
-        
         if (pPainter->curFlags.isVisible && pPainter->flags.hasBackground) {
             MousePainter_SaveImageAndPaintCursor(pPainter);
         }
+
+        pPainter->curFlags.isShielded = false;
     }
 
     cpu_restore_irqs(irs);
@@ -210,11 +220,8 @@ void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter)
 // MARK: Vertical Blank Interrupt Context
 ////////////////////////////////////////////////////////////////////////////////
 
-void MousePainter_IncrementPosition_VerticalBlank(MousePainter* _Nonnull pPainter, Int xDelta, Int yDelta)
+void MousePainter_SetPosition_VerticalBlank(MousePainter* _Nonnull pPainter, Int16 x, Int16 y)
 {
-    const Int16 x = pPainter->x + xDelta;
-    const Int16 y = pPainter->y += yDelta;
-
     pPainter->x = __min(__max(x, pPainter->rLeft), pPainter->rRight);
     pPainter->y = __min(__max(y, pPainter->rTop), pPainter->rBottom);
 }

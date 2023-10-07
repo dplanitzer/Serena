@@ -760,6 +760,11 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, P
     Lock_Unlock(&pDriver->lock);
 }
 
+void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull pDriver, Int16 x, Int16 y)
+{
+    MousePainter_SetPosition_VerticalBlank(&pDriver->mousePainter, x, y);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
