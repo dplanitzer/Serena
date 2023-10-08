@@ -237,6 +237,19 @@ void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 
     }
 }
 
+
+// Reports a change in the state of a light pen device. Posts suitable events to
+// the event queue. The light pen controls the mouse cursor and generates mouse
+// events.
+// Must be called from the interrupt context with interrupts turned off.
+// \param xAbs absolute light pen X coordinate
+// \param yAbs absolute light pen Y coordinate
+// \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
+void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, UInt32 buttonsDown)
+{
+    EventDriver_ReportMouseDeviceChange(pDriver, xAbs - pDriver->mouseX, yAbs - pDriver->mouseY, buttonsDown);
+}
+
 // Reports a change in the state of a joystick device. Posts suitable events to
 // the event queue.
 // Must be called from the interrupt context with interrupts turned off.
@@ -291,17 +304,6 @@ void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, Int
     pDriver->joystick[port].xAbs = xAbs;
     pDriver->joystick[port].yAbs = yAbs;
     pDriver->joystick[port].buttonsDown = buttonsDown;
-}
-
-// Reports a change in the state of a light pen device. Posts suitable events to
-// the event queue.
-// Must be called from the interrupt context with interrupts turned off.
-// \param xAbs absolute light pen X coordinate
-// \param yAbs absolute light pen Y coordinate
-// \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, UInt32 buttonsDown)
-{
-    // XXX implement me
 }
 
 
