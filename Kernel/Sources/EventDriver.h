@@ -30,16 +30,15 @@ typedef enum _InputControllerType {
 
 extern ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver);
 extern void EventDriver_Destroy(EventDriverRef _Nullable pDriver);
-#if 0
-extern void EventDriver_PostEvent(EventDriverRef _Nonnull pDriver, const HIDEvent* _Nonnull pEvent);
-#else
+
+
 // APIs for use by input drivers
 extern GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull pDriver);
 
 extern void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HIDKeyState keyState, UInt16 keyCode);
 extern void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xDelta, Int16 yDelta, UInt32 buttonsDown);
 extern void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, Int port, Int16 xAbs, Int16 yAbs, UInt32 buttonsDown);
-extern void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, UInt32 buttonsDown);
+extern void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, Bool hasPosition, UInt32 buttonsDown);
 
 
 // Configuring the HID assignment of HID ports to HID drivers
@@ -69,6 +68,5 @@ extern UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDri
 
 // Reading events from the event queue
 extern ByteCount EventDriver_Read(EventDriverRef _Nonnull pDriver, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-#endif
 
 #endif /* EventDriver_h */

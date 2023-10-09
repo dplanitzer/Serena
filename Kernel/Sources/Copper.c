@@ -35,12 +35,12 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
 {
     const ScreenConfiguration* pConfig = pScreen->screenConfig;
     const UInt32 firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
-    const UInt16 lpen_mask = isLightPenEnabled ? 0x0008 : 0x0000;
+    const UInt16 lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0x0000;
     Surface* pFramebuffer = pScreen->framebuffer;
     register CopperInstruction* ip = pCode;
     
     // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_mask | ((UInt16)pFramebuffer->planeCount & 0x07) << 12);
+    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_bit | ((UInt16)pFramebuffer->planeCount & 0x07) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
     

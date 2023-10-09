@@ -244,10 +244,14 @@ void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 
 // Must be called from the interrupt context with interrupts turned off.
 // \param xAbs absolute light pen X coordinate
 // \param yAbs absolute light pen Y coordinate
+// \param hasPosition true if the light pen triggered and a position could be sampled
 // \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, UInt32 buttonsDown)
+void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, Bool hasPosition, UInt32 buttonsDown)
 {
-    EventDriver_ReportMouseDeviceChange(pDriver, xAbs - pDriver->mouseX, yAbs - pDriver->mouseY, buttonsDown);
+    const Int16 xDelta = (hasPosition) ? xAbs - pDriver->mouseX : pDriver->mouseX;
+    const Int16 yDelta = (hasPosition) ? yAbs - pDriver->mouseY : pDriver->mouseY;
+    
+    EventDriver_ReportMouseDeviceChange(pDriver, xDelta, yDelta, buttonsDown);
 }
 
 // Reports a change in the state of a joystick device. Posts suitable events to

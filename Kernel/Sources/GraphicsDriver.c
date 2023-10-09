@@ -89,7 +89,7 @@ Int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig)
 
 Bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
 {
-    return (pConfig->bplcon0 & BPLCON0_LACE) != 0;
+    return (pConfig->bplcon0 & BPLCON0F_LACE) != 0;
 }
 
 
@@ -618,18 +618,20 @@ catch:
 Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int16* _Nonnull pPosX, Int16* _Nonnull pPosY)
 {
     CHIPSET_BASE_DECL(cp);
-    Bool r = false;
-
-    Lock_Lock(&pDriver->lock);
     
     // Read VHPOSR first time
-    const Int32 posr0 = *CHIPSET_REG_16(cp, VPOSR);
+    const UInt32 posr0 = *CHIPSET_REG_32(cp, VPOSR);
+
+
+    // Wait for scanline microseconds
+    const UInt32 hsync0 = chipset_get_hsync_counter();
+    const UInt16 bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
+    while (chipset_get_hsync_counter() == hsync0);
     
-    // XXX wait for scanline microseconds
-    for (int i = 0; i < 1000; i++) {}
-    
+
     // Read VHPOSR a second time
-    const Int32 posr1 = *CHIPSET_REG_16(cp, VPOSR);
+    const UInt32 posr1 = *CHIPSET_REG_32(cp, VPOSR);
+    
     
     
     // Check whether the light pen triggered
@@ -639,16 +641,15 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
             *pPosX = (posr0 & 0x000000ff) << 1;
             *pPosY = (posr0 & 0x1ff00) >> 8;
             
-            if (pDriver->screen->isInterlaced && posr0 < 0) {
+            if ((bplcon0 & BPLCON0F_LACE) != 0 && ((posr0 & 0x8000) != 0)) {
                 // long frame (odd field) is offset in Y by one
                 *pPosY += 1;
             }
-            r = true;
+            return true;
         }
     }
-    Lock_Unlock(&pDriver->lock);
 
-    return r;
+    return false;
 }
 
 

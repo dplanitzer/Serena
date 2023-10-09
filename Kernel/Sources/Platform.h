@@ -214,8 +214,77 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 
 
 //
+// CIA
+//
+
+// Reading / Writing CIA A/B registers
+#define CIAA_BASE_DECL(cp) \
+    volatile Byte* cp = (volatile Byte*) CIAA_BASE
+
+#define CIAB_BASE_DECL(cp) \
+    volatile Byte* cp = (volatile Byte*) CIAB_BASE
+
+#define CIA_REG_8(cp, r) \
+    ((volatile UInt8*)(cp + r))
+
+
+#define CIA_PRA     0x000
+#define CIA_PRB     0x100
+#define CIA_DDRA    0x200
+#define CIA_DDRB    0x300
+#define CIA_TALO    0x400
+#define CIA_TAHI    0x500
+#define CIA_TBLO    0x600
+#define CIA_TBHI    0x700
+#define CIA_TODLO   0x800
+#define CIA_TODMID  0x900
+#define CIA_TODHI   0xa00
+#define CIA_SDR     0xc00
+#define CIA_ICR     0xd00
+#define CIA_CRA     0xe00
+#define CIA_CRB     0xf00
+
+#define CIAA_PRAF_OVL   0x01
+#define CIAA_PRAF_LED   0x02
+#define CIAA_PRAF_CHNG  0x04
+#define CIAA_PRAF_WPRO  0x08
+#define CIAA_PRAF_TK0   0x10
+#define CIAA_PRAF_RDY   0x20
+#define CIAA_PRAF_FIR0  0x40
+#define CIAA_PRAF_FIR1  0x80
+
+#define CIAB_PRAF_BUSY  0x01
+#define CIAB_PRAF_POUT  0x02
+#define CIAB_PRAF_SEL   0x04
+#define CIAB_PRAF_DSR   0x08
+#define CIAB_PRAF_CTS   0x10
+#define CIAB_PRAF_CD    0x20
+#define CIAB_PRAF_RTS   0x40
+#define CIAB_PRAF_DTR   0x80
+
+#define CIAB_PRBF_STEP  0x01
+#define CIAB_PRBF_DIR   0x02
+#define CIAB_PRBF_SIDE  0x04
+#define CIAB_PRBF_SEL0  0x08
+#define CIAB_PRBF_SEL1  0x10
+#define CIAB_PRBF_SEL2  0x20
+#define CIAB_PRBF_SEL3  0x40
+#define CIAB_PRBF_MTR   0x80
+
+
+//
 // Chipset
 //
+
+// Reading / Writing chipset registers
+#define CHIPSET_BASE_DECL(cp) \
+    volatile Byte* cp = (volatile Byte*) CUSTOM_BASE
+
+#define CHIPSET_REG_16(cp, r) \
+    ((volatile UInt16*)(cp + r))
+
+#define CHIPSET_REG_32(cp, r) \
+    ((volatile UInt32*)(cp + r))
 
 
 // 8361 (Regular) or 8370 (Fat) (Agnus-NTSC) = 10, 512KB
@@ -245,25 +314,72 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 
 // Chipset registers
 #define VPOSR       0x004
-#define DIWSTART    0x08e
-#define DIWSTOP     0x090
-#define DDFSTART    0x092
-#define DDFSTOP     0x094
-#define DMACON      0x096
+#define VHPOSR      0x006
+#define DSKDATR     0x008
+#define JOY0DAT     0x00a
+#define JOY1DAT     0x00c
+#define CLXDAT      0x00e
+#define ADKCONR     0x010
+#define POT0DAT     0x012
+#define POT1DAT     0x014
+#define POTINP      0x016
+#define SERDATR     0x018
+#define DSKBYTR     0x01a
 
-#define BPL_BASE    0x0e0
-#define BPL1PTH     0x0e0
-#define BPL1PTL     0x0e2
-#define BPL2PTH     0x0e4
-#define BPL2PTL     0x0e6
-#define BPL3PTH     0x0e8
-#define BPL3PTL     0x0ea
-#define BPL4PTH     0x0ec
-#define BPL4PTL     0x0ee
-#define BPL5PTH     0x0f0
-#define BPL5PTL     0x0f2
-#define BPL6PTH     0x0f4
-#define BPL6PTL     0x0f6
+#define INTENAR     0x01c
+#define INTREQR     0x01e
+
+#define DSKPT       0x020
+#define DSKPTH      0x020
+#define DSKPTL      0x022
+#define DSKLEN      0x024
+#define DSKDAT      0x026
+
+#define REFPTR      0x028
+#define VPOSW       0x02a
+#define VHPOSW      0x02c
+#define COPCON      0x02e
+#define SERDAT      0x030
+#define SERPER      0x032
+#define POTGO       0x034
+#define JOYTEST     0x036
+#define STREQU      0x038
+#define STRVBL      0x03a
+#define STRHOR      0x03c
+#define STRLONG     0x03e
+
+#define BLTCON0     0x040
+#define BLTCON1     0x042
+#define BLTAFWM     0x044
+#define BLTALWM     0x046
+#define BLTCPT      0x048
+#define BLTCPTH     0x048
+#define BLTCPL      0x04a
+#define BLTBPT      0x04c
+#define BLTBPTH     0x04c
+#define BLTBPL      0x04e
+#define BLTAPT      0x050
+#define BLTAPTH     0x050
+#define BLTAPL      0x052
+#define BLTDPT      0x054
+#define BLTDPTH     0x054
+#define BLTDPL      0x056
+#define BLTSIZE     0x058
+#define BLTCON0L    0x05a
+#define BLTSIZV     0x05c
+#define BLTSIZH     0x05e
+#define BLTCMOD     0x060
+#define BLTBMOD     0x062
+#define BLTAMOD     0x064
+#define BLTDMOD     0x066
+#define BLTCDAT     0x070
+#define BLTBDAT     0x072
+#define BLTADAT     0x074
+
+#define SPRHDAT     0x078
+#define BPLHDAT     0x07a
+#define DENISEID    0x07c
+#define DSKSYNC     0x07e
 
 #define COP1LC      0x080
 #define COP1LCH     0x080
@@ -273,30 +389,150 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define COP2LCL     0x086
 #define COPJMP1     0x088
 #define COPJMP2     0x08A
+#define COPINS      0x08c
+
+#define DIWSTART    0x08e
+#define DIWSTOP     0x090
+#define DDFSTART    0x092
+#define DDFSTOP     0x094
+#define DMACON      0x096
+
+#define CLXCON      0x098
+#define INTENA      0x09a
+#define INTREQ      0x09c
+
+#define ADKCON      0x09e
+#define AUD0LC      0x0a0
+#define AUD0LCH     0x0a0
+#define AUD0LCL     0x0a2
+#define AUD0LEN     0x0a4
+#define AUD0PER     0x0a6
+#define AUD0VOL     0x0a8
+#define AUD0DAT     0x0aa
+#define AUD1LC      0x0b0
+#define AUD1LCH     0x0b0
+#define AUD1LCL     0x0b2
+#define AUD1LEN     0x0b4
+#define AUD1PER     0x0b6
+#define AUD1VOL     0x0b8
+#define AUD1DAT     0x0ba
+#define AUD2LC      0x0c0
+#define AUD2LCH     0x0c0
+#define AUD2LCL     0x0c2
+#define AUD2LEN     0x0c4
+#define AUD2PER     0x0c6
+#define AUD2VOL     0x0c8
+#define AUD2DAT     0x0ca
+#define AUD3LC      0x0d0
+#define AUD3LCH     0x0d0
+#define AUD3LCL     0x0d2
+#define AUD3LEN     0x0d4
+#define AUD3PER     0x0d6
+#define AUD3VOL     0x0d8
+#define AUD3DAT     0x0da
+
+#define BPL_BASE    0x0e0
+#define BPL1PT      0x0e0
+#define BPL1PTH     0x0e0
+#define BPL1PTL     0x0e2
+#define BPL2PT      0x0e4
+#define BPL2PTH     0x0e4
+#define BPL2PTL     0x0e6
+#define BPL3PT      0x0e8
+#define BPL3PTH     0x0e8
+#define BPL3PTL     0x0ea
+#define BPL4PT      0x0ec
+#define BPL4PTH     0x0ec
+#define BPL4PTL     0x0ee
+#define BPL5PT      0x0f0
+#define BPL5PTH     0x0f0
+#define BPL5PTL     0x0f2
+#define BPL6PT      0x0f4
+#define BPL6PTH     0x0f4
+#define BPL6PTL     0x0f6
+#define BPL7PT      0x0f8
+#define BPL7PTH     0x0f8
+#define BPL7PTL     0x0fa
+#define BPL8PT      0x0fc
+#define BPL8PTH     0x0fc
+#define BPL8PTL     0x0fe
 
 #define BPLCON0     0x100
 #define BPLCON1     0x102
 #define BPLCON2     0x104
+#define BPLCON3     0x106
 #define BPL1MOD     0x108
 #define BPL2MOD     0x10a
+#define BPLCON4     0x10c
+#define CLXCON2     0x10e
+
+#define BPL1DAT     0X110
+#define BPL2DAT     0X112
+#define BPL3DAT     0X114
+#define BPL4DAT     0X116
+#define BPL5DAT     0X118
+#define BPL6DAT     0X11a
+#define BPL7DAT     0X11c
+#define BPL8DAT     0X11e
 
 #define SPRITE_BASE 0x120
+#define SPR0PT      0x120
 #define SPR0PTH     0x120
 #define SPR0PTL     0x122
+#define SPR1PT      0x124
 #define SPR1PTH     0x124
 #define SPR1PTL     0x126
+#define SPR2PT      0x128
 #define SPR2PTH     0x128
 #define SPR2PTL     0x12a
+#define SPR3PT      0x12c
 #define SPR3PTH     0x12c
 #define SPR3PTL     0x12e
+#define SPR4PT      0x130
 #define SPR4PTH     0x130
 #define SPR4PTL     0x132
+#define SPR5PT      0x134
 #define SPR5PTH     0x134
 #define SPR5PTL     0x136
+#define SPR6PT      0x138
 #define SPR6PTH     0x138
 #define SPR6PTL     0x13a
+#define SPR7PT      0x13c
 #define SPR7PTH     0x13c
 #define SPR7PTL     0x13e
+
+#define SPR0POS     0x140
+#define SPR0CTL     0x142
+#define SPR0DATA    0x144
+#define SPR0DATB    0x146
+#define SPR1POS     0x148
+#define SPR1CTL     0x14a
+#define SPR1DATA    0x14c
+#define SPR1DATB    0x14e
+#define SPR2POS     0x150
+#define SPR2CTL     0x152
+#define SPR2DATA    0x154
+#define SPR2DATB    0x156
+#define SPR3POS     0x158
+#define SPR3CTL     0x15a
+#define SPR3DATA    0x15c
+#define SPR3DATB    0x15e
+#define SPR4POS     0x160
+#define SPR4CTL     0x162
+#define SPR4DATA    0x164
+#define SPR4DATB    0x166
+#define SPR5POS     0x168
+#define SPR5CTL     0x16a
+#define SPR5DATA    0x16c
+#define SPR5DATB    0x16e
+#define SPR6POS     0x170
+#define SPR6CTL     0x172
+#define SPR6DATA    0x174
+#define SPR6DATB    0x176
+#define SPR7POS     0x178
+#define SPR7CTL     0x17a
+#define SPR7DATA    0x17c
+#define SPR7DATB    0x17e
 
 #define COLOR_COUNT 32
 #define COLOR_BASE  0x180
@@ -333,7 +569,49 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define COLOR30     COLOR_BASE+0x3C
 #define COLOR31     COLOR_BASE+0x3E
 
-#define BPLCON0_LACE    0x0004
+#define HTOTAL      0x1c0
+#define HSSTOP      0x1c2
+#define HBSTRT      0x1c4
+#define HBSTOP      0x1c6
+#define VTOTAL      0x1c8
+#define VSSTOP      0x1ca
+#define VBSTRT      0x1cc
+#define VBSTOP      0x1ce
+#define SPRHSTRT    0x1d0
+#define SPRHSTOP    0x1d2
+#define BPLHSTRT    0x1d4
+#define BPLHSTOP    0x1d6
+#define HHPOSW      0x1d8
+#define HHPOSR      0x1da
+#define BEAMCON0    0x1dc
+#define HSSTRT      0x1de
+#define VSSTRT      0x1e0
+#define HCENTER     0x1e2
+#define DIWHIGH     0x1e4
+#define BPLHMOD     0x1e6
+#define SPRHPT      0x1e8
+#define SPRHPTH     0x1e8
+#define SPRHPTL     0x1ea
+#define BPLHPT      0x1ec
+#define BPLHPTH     0x1ec
+#define BPLHPTL     0x1ee
+#define FMODE       0x1fc
+
+#define BPLCON0F_ECSENA 0x0001
+#define BPLCON0F_ERSY   0x0002
+#define BPLCON0F_LACE   0x0004
+#define BPLCON0F_LPEN   0x0008
+#define BPLCON0F_BPU3   0x0010
+#define BPLCON0F_BYPASS 0x0020
+#define BPLCON0F_SHRES  0x0040
+#define BPLCON0F_UHRES  0x0080
+#define BPLCON0F_GAUD   0x0100
+#define BPLCON0F_COLOR  0x0200
+#define BPLCON0F_DPF    0x0400
+#define BPLCON0F_HAM    0x0800
+#define BPLCON0F_BPUx   0x7000      // mask (bit 12...14)
+#define BPLCON0F_HIRES  0x8000
+
 
 #define DMAF_SETCLR     0x8000
 #define DMAF_AUDIO      0x000f       // mask
@@ -349,17 +627,6 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define DMAF_MASTER     0x0200
 #define DMAF_BLITHOG    0x0400
 #define DMAF_ALL        0x01ff       // mask
-
-
-// Reading / Writing chipset registers
-#define CHIPSET_BASE_DECL(cp) \
-    volatile Byte* cp = (volatile Byte*) CUSTOM_BASE
-
-#define CHIPSET_REG_16(cp, r) \
-    ((volatile UInt16*)(cp + r))
-
-#define CHIPSET_REG_32(cp, r) \
-    ((volatile UInt32*)(cp + r))
 
 
 // Copper instructions
@@ -420,6 +687,8 @@ extern void chipset_start_quantum_timer(void);
 extern void chipset_stop_quantum_timer(void);
 extern Int32 chipset_get_quantum_timer_duration_ns(void);
 extern Int32 chipset_get_quantum_timer_elapsed_ns(void);
+
+extern UInt32 chipset_get_hsync_counter(void);
 
 
 //

@@ -122,3 +122,13 @@ Byte* chipset_get_upper_dma_limit(Int chipset_version)
 
     return p;
 }
+
+UInt32 chipset_get_hsync_counter(void)
+{
+    CIAB_BASE_DECL(cp);
+    const UInt32 h = *CIA_REG_8(cp, CIA_TODHI);
+    const UInt32 m = *CIA_REG_8(cp, CIA_TODMID);
+    const UInt32 l = *CIA_REG_8(cp, CIA_TODLO);
+
+    return (h << 16) | (m << 8) | l; 
+}
