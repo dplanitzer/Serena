@@ -317,19 +317,19 @@ INTB_TBE        equ 0
 
 
 ; DMACON flags
-DMAF_SETCLR     equ $8000
-DMAF_AUDIO      equ $000f       ; mask
-DMAF_AUD0       equ $0001
-DMAF_AUD1       equ $0002
-DMAF_AUD2       equ $0004
-DMAF_AUD3       equ $0008
-DMAF_DISK       equ $0010
-DMAF_SPRITE     equ $0020
-DMAF_BLITTER    equ $0040
-DMAF_COPPER     equ $0080
-DMAF_RASTER     equ $0100
-DMAF_MASTER     equ $0200
-DMAF_BLITHOG    equ $0400
-DMAF_ALL        equ $01ff       ; mask
+DMACONF_SETCLR     equ $8000
+DMACONF_AUDIO      equ $000f       ; mask
+DMACONF_AUD0       equ $0001
+DMACONF_AUD1       equ $0002
+DMACONF_AUD2       equ $0004
+DMACONF_AUD3       equ $0008
+DMACONF_DISK       equ $0010
+DMACONF_SPRITE     equ $0020
+DMACONF_BLITTER    equ $0040
+DMACONF_COPPER     equ $0080
+DMACONF_RASTER     equ $0100
+DMACONF_MASTER     equ $0200
+DMACONF_BLITHOG    equ $0400
+DMACONF_ALL        equ $01ff       ; mask
 
         endif

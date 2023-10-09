@@ -82,10 +82,9 @@ Bool chipset_is_ntsc(void)
 // See: <https://eab.abime.net/showthread.php?t=34838>
 UInt8 chipset_get_version(void)
 {
-    volatile UInt16* pVPOSR = (volatile UInt16*)(CUSTOM_BASE + VPOSR);
-    UInt16 vposr = *pVPOSR;
+    CHIPSET_BASE_DECL(cp);
 
-    return (vposr >> 8) & 0x7f;
+    return (*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x7f;
 }
 
 UInt8 chipset_get_ramsey_version(void)

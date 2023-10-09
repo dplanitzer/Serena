@@ -500,7 +500,7 @@ void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver)
 {
     CHIPSET_BASE_DECL(cp);
 
-    *CHIPSET_REG_16(cp, DMACON) = (DMAF_COPPER | DMAF_RASTER | DMAF_SPRITE | DMAF_BLITTER);
+    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_COPEN | DMACONF_BPLEN | DMACONF_SPREN | DMACONF_BLTEN);
 }
 
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
@@ -632,7 +632,7 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
     // Read VHPOSR a second time
     const UInt32 posr1 = *CHIPSET_REG_32(cp, VPOSR);
     
-    
+
     
     // Check whether the light pen triggered
     // See Amiga Reference Hardware Manual p233.

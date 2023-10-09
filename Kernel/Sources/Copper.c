@@ -35,7 +35,7 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
 {
     const ScreenConfiguration* pConfig = pScreen->screenConfig;
     const UInt32 firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
-    const UInt16 lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0x0000;
+    const UInt16 lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
     Surface* pFramebuffer = pScreen->framebuffer;
     register CopperInstruction* ip = pCode;
     
@@ -73,8 +73,8 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
     }
 
     // DMACON
-    const UInt16 dmaf_sprite = (pScreen->spritesInUseCount > 0) ? DMAF_SPRITE : 0;
-    *ip++ = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER | dmaf_sprite | DMAF_MASTER);
+    const UInt16 dmaf_sprite = (pScreen->spritesInUseCount > 0) ? DMACONF_SPREN : 0;
+    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | dmaf_sprite | DMACONF_DMAEN);
 
     return ip;
 }
@@ -154,7 +154,7 @@ static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler)
     // turn off the Copper and raster DMA. Then move the data. Then turn the
     // Copper DMA back on if we have a prog. The program is responsible for 
     // turning the raster DMA on.
-    *CHIPSET_REG_16(cp, DMACON) = (DMAF_COPPER | DMAF_RASTER | DMAF_SPRITE);
+    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_COPEN | DMACONF_BPLEN | DMACONF_SPREN);
     pScheduler->runningEvenFieldProg = pScheduler->readyEvenFieldProg;
     pScheduler->runningOddFieldProg = pScheduler->readyOddFieldProg;
     pScheduler->flags &= ~COPF_CONTEXT_SWITCH_REQ;
@@ -193,7 +193,7 @@ static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler)
     }
 
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
-    *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
+    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
 }
 
 // Called at the vertical blank interrupt. Triggers the execution of the correct

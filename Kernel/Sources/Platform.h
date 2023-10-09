@@ -323,6 +323,7 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define POT0DAT     0x012
 #define POT1DAT     0x014
 #define POTINP      0x016
+#define POTGOR      0x016
 #define SERDATR     0x018
 #define DSKBYTR     0x01a
 
@@ -609,24 +610,46 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define BPLCON0F_COLOR  0x0200
 #define BPLCON0F_DPF    0x0400
 #define BPLCON0F_HAM    0x0800
-#define BPLCON0F_BPUx   0x7000      // mask (bit 12...14)
+#define BPLCON0F_BPUx   0x7000      // mask (12..14)
 #define BPLCON0F_HIRES  0x8000
 
+#define BPLCON2F_PF1P       0x0007      // mask (0..2)
+#define BPLCON2F_PF2P       0x0038      // mask (3..5)
+#define BPLCON2F_PF2PRI     0x0040
+#define BPLCON2F_SOGEN      0x0080
+#define BPLCON2F_RDRAM      0x0100
+#define BPLCON2F_KILLEHB    0x0200
+#define BPLCON2F_ZDCTEN     0x0400
+#define BPLCON2F_ZDBPEN     0x0800
+#define BPLCON2F_ZDBPSEL    0x7000      // mask (12..14)
 
-#define DMAF_SETCLR     0x8000
-#define DMAF_AUDIO      0x000f       // mask
-#define DMAF_AUD0       0x0001
-#define DMAF_AUD1       0x0002
-#define DMAF_AUD2       0x0004
-#define DMAF_AUD3       0x0008
-#define DMAF_DISK       0x0010
-#define DMAF_SPRITE     0x0020
-#define DMAF_BLITTER    0x0040
-#define DMAF_COPPER     0x0080
-#define DMAF_RASTER     0x0100
-#define DMAF_MASTER     0x0200
-#define DMAF_BLITHOG    0x0400
-#define DMAF_ALL        0x01ff       // mask
+#define COPCONF_DANG        0x0002
+
+#define DMACONF_AUDIOEN     0x000f       // mask (0..3)
+#define DMACONF_AUD0EN      0x0001
+#define DMACONF_AUD1EN      0x0002
+#define DMACONF_AUD2EN      0x0004
+#define DMACONF_AUD3EN      0x0008
+#define DMACONF_DSKEN       0x0010
+#define DMACONF_SPREN       0x0020
+#define DMACONF_BLTEN       0x0040
+#define DMACONF_COPEN       0x0080
+#define DMACONF_BPLEN       0x0100
+#define DMACONF_DMAEN       0x0200
+#define DMACONF_BLTPRI      0x0400
+#define DMACONF_BZERO       0x2000
+#define DMACONF_BBUSY       0x4000
+#define DMACONF_SETCLR      0x8000
+
+#define POTGORF_START   0x0001
+#define POTGORF_DATLX   0x0100
+#define POTGORF_OUTLX   0x0200
+#define POTGORF_DATLY   0x0400
+#define POTGORF_OUTLY   0x0800
+#define POTGORF_DATRX   0x1000
+#define POTGORF_OUTRX   0x2000
+#define POTGORF_DATRY   0x4000
+#define POTGORF_OUTRY   0x8000
 
 
 // Copper instructions

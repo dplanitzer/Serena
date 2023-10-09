@@ -103,7 +103,7 @@ static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, Byte* _N
     }
 
     // DMACON
-    *ip++ = COP_MOVE(DMACON, DMAF_SETCLR | DMAF_RASTER);
+    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN);
 
     // End
     *ip++ = COP_END();
@@ -112,10 +112,10 @@ static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, Byte* _N
     // Install the Copper program
     CHIPSET_BASE_DECL(cp);
 
-    *CHIPSET_REG_16(cp, DMACON) = DMAF_COPPER;
+    *CHIPSET_REG_16(cp, DMACON) = DMACONF_COPEN;
     *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pCode;
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
-    *CHIPSET_REG_16(cp, DMACON) = (DMAF_SETCLR | DMAF_COPPER | DMAF_MASTER);
+    *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
 }
 
 static void micro_console_cls(MicroConsole* _Nonnull pCon)

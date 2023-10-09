@@ -104,7 +104,7 @@ typedef struct _MouseDriver {
     InterruptHandlerID              irqHandler;
     volatile UInt16*                reg_joydat;
     volatile UInt16*                reg_potgor;
-    volatile UInt8*                 reg_pra;
+    volatile UInt8*                 reg_ciaa_pra;
     Int16                           old_hcount;
     Int16                           old_vcount;
     UInt16                          right_button_mask;
@@ -119,6 +119,7 @@ ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, Mou
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
+    CIAA_BASE_DECL(ciaa);
     MouseDriver* pDriver;
 
     assert(port >= 0 && port <= 1);
@@ -127,16 +128,15 @@ ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, Mou
     
     pDriver->eventDriver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
-    pDriver->reg_potgor = CHIPSET_REG_16(cp, POTINP);
-    pDriver->reg_pra = (volatile UInt8*)0xbfe001;
-    pDriver->right_button_mask = (port == 0) ? 0x400 : 0x4000;
-    pDriver->middle_button_mask = (port == 0) ? 0x100 : 0x1000;
-    pDriver->left_button_mask = (port == 0) ? 0x40 : 0x80;
+    pDriver->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
+    pDriver->reg_ciaa_pra = CIA_REG_8(ciaa, 0);
+    pDriver->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
+    pDriver->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
+    pDriver->left_button_mask = (port == 0) ? CIAA_PRAF_FIR0 : CIAA_PRAF_FIR1;
     pDriver->port = (Int8)port;
 
     // Switch CIA PRA bit 7 and 6 to input for the left mouse button
-    volatile UInt8* pDdra = (volatile UInt8*)0xbfe201;
-    *pDdra &= 0x3f;
+    *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
     
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
     *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
@@ -203,7 +203,7 @@ void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver)
     
     // Left mouse button
     register UInt32 buttonsDown = 0;
-    register UInt8 pra = *(pDriver->reg_pra);
+    register UInt8 pra = *(pDriver->reg_ciaa_pra);
     if ((pra & pDriver->left_button_mask) == 0) {
         buttonsDown |= 0x01;
     }
@@ -236,7 +236,7 @@ typedef struct _DigitalJoystickDriver {
     InterruptHandlerID              irqHandler;
     volatile UInt16*                reg_joydat;
     volatile UInt16*                reg_potgor;
-    volatile UInt8*                 reg_pra;
+    volatile UInt8*                 reg_ciaa_pra;
     UInt16                          right_button_mask;
     UInt8                           fire_button_mask;
     Int8                            port;
@@ -249,6 +249,7 @@ ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
+    CIAA_BASE_DECL(ciaa);
     DigitalJoystickDriver* pDriver;
 
     assert(port >= 0 && port <= 1);
@@ -257,19 +258,17 @@ ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int
     
     pDriver->eventDriver = pEventDriver;
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
-    pDriver->reg_potgor = CHIPSET_REG_16(cp, POTINP);
-    pDriver->reg_pra = (volatile UInt8*)0xbfe001;
-    pDriver->right_button_mask = (port == 0) ? 0x400 : 0x4000;
-    pDriver->fire_button_mask = (port == 0) ? 0x40 : 0x80;
+    pDriver->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
+    pDriver->reg_ciaa_pra = CIA_REG_8(ciaa, 0);
+    pDriver->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
+    pDriver->fire_button_mask = (port == 0) ? CIAA_PRAF_FIR0 : CIAA_PRAF_FIR1;
     pDriver->port = (Int8)port;
     
     // Switch bit 7 and 6 to input
-    volatile UInt8* pDdra = (volatile UInt8*)0xbfe201;
-    *pDdra &= 0x3f;
+    *CIA_REG_8(ciaa, CIA_DDRA) = *CIA_REG_8(ciaa, CIA_DDRA) & 0x3f;
     
     // Switch POTGO bits 8 to 11 to output / high data for the middle and right mouse buttons
-    volatile UInt8* pPotGo = (volatile UInt8*)(CUSTOM_BASE + POTGO);
-    *pPotGo &= 0x0f00;
+    *CHIPSET_REG_16(cp, POTGO) = *CHIPSET_REG_16(cp, POTGO) & 0x0f00;
 
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                       INTERRUPT_ID_VERTICAL_BLANK,
@@ -299,7 +298,7 @@ void DigitalJoystickDriver_Destroy(DigitalJoystickDriverRef _Nullable pDriver)
 
 void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull pDriver)
 {
-    register UInt8 pra = *(pDriver->reg_pra);
+    register UInt8 pra = *(pDriver->reg_ciaa_pra);
     register UInt16 joydat = *(pDriver->reg_joydat);
     Int16 xAbs, yAbs;
     UInt32 buttonsDown = 0;
@@ -501,9 +500,9 @@ ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, 
     
     pDriver->eventDriver = pEventDriver;
     pDriver->graphicsDriver = EventDriver_GetGraphicsDriver(pEventDriver);
-    pDriver->reg_potgor = CHIPSET_REG_16(cp, POTINP);
-    pDriver->right_button_mask = (port == 0) ? 0x400 : 0x4000;
-    pDriver->middle_button_mask = (port == 0) ? 0x100 : 0x1000;
+    pDriver->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
+    pDriver->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
+    pDriver->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
     pDriver->smoothedX = 0;
     pDriver->smoothedY = 0;
     pDriver->sumX = 0;
