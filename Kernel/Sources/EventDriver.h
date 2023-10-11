@@ -28,6 +28,14 @@ typedef enum _InputControllerType {
 } InputControllerType;
 
 
+// HID key state
+typedef enum _HIDKeyState {
+    kHIDKeyState_Down,
+    kHIDKeyState_Repeat,
+    kHIDKeyState_Up
+} HIDKeyState;
+
+
 extern ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver);
 extern void EventDriver_Destroy(EventDriverRef _Nullable pDriver);
 
@@ -67,6 +75,10 @@ extern UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDri
 
 
 // Reading events from the event queue
+
+// Returns events in the order oldest to newest. As many events are returned as
+// fit in the provided buffer. Blocks the caller if more events are requested
+// than are queued.
 extern ByteCount EventDriver_Read(EventDriverRef _Nonnull pDriver, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 
 #endif /* EventDriver_h */

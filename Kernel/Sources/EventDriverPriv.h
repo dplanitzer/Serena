@@ -75,8 +75,6 @@ typedef struct _EventDriver {
 
     // Keyboard Configuration
     const UInt8*                keyFlags;
-    TimeInterval                initialKeyRepeatDelay;      // [200ms...3s]
-    TimeInterval                keyRepeatDelay;             // [20ms...2s]
 
 
     // Mouse Configuration

@@ -42,14 +42,6 @@ enum {
 };
 
 
-// HID key state
-typedef enum _HIDKeyState {
-    kHIDKeyState_Down,
-    kHIDKeyState_Repeat,
-    kHIDKeyState_Up
-} HIDKeyState;
-
-
 // HID key codes are based on the USB HID key scan codes
 typedef UInt16  HIDKeyCode;
 

@@ -19,7 +19,7 @@ typedef struct _HIDEventQueue* HIDEventQueueRef;
 // Allocates an empty event queue. 'capacity' is the queue capacity in terms of
 // the maximum number of events it can store at the same time. This value is
 // rounded up to the next power of 2.
-extern ErrorCode HIDEventQueue_Create(Int capacity, HIDEventQueueRef _Nullable * _Nonnull pQueue);
+extern ErrorCode HIDEventQueue_Create(Int capacity, HIDEventQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Frees the event queue.
 extern void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull pQueue);

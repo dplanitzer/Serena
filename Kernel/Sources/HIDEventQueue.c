@@ -7,6 +7,7 @@
 //
 
 #include "HIDEventQueue.h"
+#include "MonotonicClock.h"
 #include "Semaphore.h"
 
 // The event queue stores events in a ring buffer with a size that is a
@@ -62,23 +63,27 @@ void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull pQueue)
 }
 
 // Returns true if the queue is empty.
-static inline Bool HIDEventQueue_IsEmpty_Locked(HIDEventQueueRef _Nonnull pQueue) {
+static inline Bool HIDEventQueue_IsEmpty_Locked(HIDEventQueueRef _Nonnull pQueue)
+{
     return pQueue->readIdx == pQueue->writeIdx;
 }
 
 // Returns true if the queue is full.
-static inline Bool HIDEventQueue_IsFull_Locked(HIDEventQueueRef _Nonnull pQueue) {
+static inline Bool HIDEventQueue_IsFull_Locked(HIDEventQueueRef _Nonnull pQueue)
+{
     return pQueue->writeIdx - pQueue->readIdx == pQueue->capacity;
 }
 
 // Returns the number of reports stored in the ring queue - aka the number of
 // reports that can be read from the queue.
-static inline Int HIDEventQueue_ReadableCount_Locked(HIDEventQueueRef _Nonnull pQueue) {
+static inline Int HIDEventQueue_ReadableCount_Locked(HIDEventQueueRef _Nonnull pQueue)
+{
     return pQueue->writeIdx - pQueue->readIdx;
 }
 
 // Returns the number of reports that can be written to the queue.
-static inline Int HIDEventQueue_WritableCount_Locked(HIDEventQueueRef _Nonnull pQueue) {
+static inline Int HIDEventQueue_WritableCount_Locked(HIDEventQueueRef _Nonnull pQueue)
+{
     return pQueue->capacity - (pQueue->writeIdx - pQueue->readIdx);
 }
 
@@ -126,7 +131,7 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull pQueue, HIDEventType type, cons
 
     HIDEvent* pEvent = &pQueue->data[pQueue->writeIdx++ & pQueue->capacityMask];
     pEvent->type = type;
-    pEvent->eventTime = kTimeInterval_Zero; // use actual time now
+    pEvent->eventTime = MonotonicClock_GetCurrentTime();
     pEvent->data = *pEventData;
     cpu_restore_irqs(irs);
 

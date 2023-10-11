@@ -53,8 +53,6 @@ ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef 
     pDriver->graphicsDriver = gdevice;
 
     pDriver->keyFlags = gUSBHIDKeyFlags;
-    pDriver->initialKeyRepeatDelay = TimeInterval_MakeMilliseconds(300);
-    pDriver->keyRepeatDelay = TimeInterval_MakeMilliseconds(10);
 
     pDriver->screenLeft = 0;
     pDriver->screenTop = 0;
@@ -428,20 +426,14 @@ catch:
 void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
     Lock_Lock(&pDriver->lock);
-    if (pInitialDelay) {
-        *pInitialDelay = pDriver->initialKeyRepeatDelay;
-    }
-    if (pRepeatDelay) {
-        *pRepeatDelay = pDriver->keyRepeatDelay;
-    }
+    KeyboardDriver_GetKeyRepeatDelays(pDriver->keyboardDriver, pInitialDelay, pRepeatDelay);
     Lock_Unlock(&pDriver->lock);
 }
 
 void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay)
 {
     Lock_Lock(&pDriver->lock);
-    pDriver->initialKeyRepeatDelay = initialDelay;
-    pDriver->keyRepeatDelay = repeatDelay;
+    KeyboardDriver_SetKeyRepeatDelays(pDriver->keyboardDriver, initialDelay, repeatDelay);
     Lock_Unlock(&pDriver->lock);
 }
 
@@ -570,6 +562,9 @@ UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
+// Returns events in the order oldest to newest. As many events are returned as
+// fit in the provided buffer. Blocks the caller if more events are requested
+// than are queued.
 ByteCount EventDriver_Read(EventDriverRef _Nonnull pDriver, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     decl_try_err();

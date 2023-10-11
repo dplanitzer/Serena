@@ -23,6 +23,9 @@ typedef struct _KeyboardDriver* KeyboardDriverRef;
 extern ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
 extern void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver);
 
+extern void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
+extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay);
+
 
 //
 // Mouse input driver

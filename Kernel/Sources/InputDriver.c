@@ -7,6 +7,7 @@
 //
 
 #include "InputDriver.h"
+#include "HIDKeyRepeater.h"
 #include "InterruptController.h"
 
 
@@ -33,14 +34,17 @@ static const UInt8 gUSBHIDKeycodes[128] = {
 typedef struct _KeyboardDriver {
     const UInt8* _Nonnull           keyCodeMap;
     EventDriverRef _Nonnull _Weak   eventDriver;
-    InterruptHandlerID              irqHandler;
+    HIDKeyRepeaterRef _Nonnull      keyRepeater;
+    InterruptHandlerID              keyboardIrqHandler;
+    InterruptHandlerID              vblIrqHandler;
 } KeyboardDriver;
 
 
 extern void ksb_init(void);
 extern Int ksb_receive_key(void);
 extern void ksb_acknowledge_key(void);
-extern void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver);
+extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull pDriver);
+extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull pDriver);
 
 
 ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver)
@@ -52,15 +56,25 @@ ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDr
     
     pDriver->keyCodeMap = gUSBHIDKeycodes;
     pDriver->eventDriver = pEventDriver;
+    try(HIDKeyRepeater_Create(pEventDriver, &pDriver->keyRepeater));
+
+    ksb_init();
+
     try(InterruptController_AddDirectInterruptHandler(gInterruptController,
                                                       INTERRUPT_ID_CIA_A_SP,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                      (InterruptHandler_Closure)KeyboardDriver_OnInterrupt,
+                                                      (InterruptHandler_Closure)KeyboardDriver_OnKeyboardInterrupt,
                                                       (Byte*)pDriver,
-                                                      &pDriver->irqHandler));
+                                                      &pDriver->keyboardIrqHandler));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->keyboardIrqHandler, true);
 
-    ksb_init();
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
+    try(InterruptController_AddDirectInterruptHandler(gInterruptController,
+                                                      INTERRUPT_ID_VERTICAL_BLANK,
+                                                      INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
+                                                      (InterruptHandler_Closure)KeyboardDriver_OnVblInterrupt,
+                                                      (Byte*)pDriver,
+                                                      &pDriver->vblIrqHandler));
+    InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->vblIrqHandler, true);
 
     *pOutDriver = pDriver;
     return EOK;
@@ -74,22 +88,51 @@ catch:
 void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver)
 {
     if (pDriver) {
-        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->keyboardIrqHandler));
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vblIrqHandler));
+        HIDKeyRepeater_Destroy(pDriver->keyRepeater);
+        pDriver->keyRepeater = NULL;
         pDriver->eventDriver = NULL;
         kfree((Byte*)pDriver);
     }
 }
 
-void KeyboardDriver_OnInterrupt(KeyboardDriverRef _Nonnull pDriver)
+void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
-    const UInt8 keycode = ksb_receive_key();
-    const HIDKeyState state = (keycode & 0x80) ? kHIDKeyState_Up : kHIDKeyState_Down;
-    const UInt16 code = (UInt16)pDriver->keyCodeMap[keycode & 0x7f];
+    const Int irs = cpu_disable_irqs();
+    HIDKeyRepeater_GetKeyRepeatDelays(pDriver->keyRepeater, pInitialDelay, pRepeatDelay);
+    cpu_restore_irqs(irs);
+}
+
+void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay)
+{
+    const Int irs = cpu_disable_irqs();
+    HIDKeyRepeater_SetKeyRepeatDelays(pDriver->keyRepeater, initialDelay, repeatDelay);
+    cpu_restore_irqs(irs);
+}
+
+void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull pDriver)
+{
+    const UInt8 keyCode = ksb_receive_key();
+    const HIDKeyState state = (keyCode & 0x80) ? kHIDKeyState_Up : kHIDKeyState_Down;
+    const UInt16 code = (UInt16)pDriver->keyCodeMap[keyCode & 0x7f];
 
     if (code > 0) {
         EventDriver_ReportKeyboardDeviceChange(pDriver->eventDriver, state, code);
+        if (state == kHIDKeyState_Up) {
+            HIDKeyRepeater_KeyUp(pDriver->keyRepeater, code);
+        } else {
+            HIDKeyRepeater_KeyDown(pDriver->keyRepeater, code);
+        }
     }
     ksb_acknowledge_key();
+}
+
+void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull pDriver)
+{
+    // const Int = cpu_disable_irqs();
+    HIDKeyRepeater_Tick(pDriver->keyRepeater);
+    // cpu_restore_irqs(irs);
 }
 
 
