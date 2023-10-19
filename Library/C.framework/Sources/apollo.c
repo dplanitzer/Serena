@@ -49,3 +49,8 @@ pid_t getppid(void)
 {
     return __syscall(SC_getppid);
 }
+
+process_arguments_t *getpargs(void)
+{
+    return (process_arguments_t *) __syscall(SC_getpargs);
+}

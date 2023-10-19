@@ -10,6 +10,7 @@
 #define _APOLLO_H 1
 
 #include <_cmndef.h>
+#include <_kbidef.h>
 #include <apollo/types.h>
 
 __CPP_BEGIN
@@ -34,6 +35,11 @@ errno_t close(int fd);
 
 pid_t getpid(void);
 pid_t getppid(void);
+
+
+typedef struct __process_arguments_t process_arguments_t;
+
+extern process_arguments_t *getpargs(void);
 
 __CPP_END
 
