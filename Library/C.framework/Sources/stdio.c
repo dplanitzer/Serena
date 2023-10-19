@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <syscall.h>
+#include <apollo/apollo.h>
 #include <__stddef.h>
 
 
@@ -142,7 +142,7 @@ int fflush(FILE *s)
 int getchar(void)
 {
     char buf;
-    const ssize_t r = __syscall(SC_read, &buf, 1);
+    const ssize_t r = read(STDIN_FILENO, &buf, 1);
 
     if (r < 0) {
         return EOF;
@@ -202,7 +202,7 @@ errno_t __write(const char* _Nonnull pBuffer, size_t nBytes)
     ssize_t nBytesWritten = 0;
 
     while (nBytesWritten < nBytes) {
-        const ssize_t r = __syscall(SC_write, pBuffer, nBytes);
+        const ssize_t r = write(STDOUT_FILENO, pBuffer, nBytes);
         
         if (r < 0) {
             return (errno_t) -r;

@@ -32,9 +32,10 @@
 #define E2BIG       19
 #define ENOENT      20
 #define ENOTBLK     21
+#define EBADF       22
 
 #define __EFIRST    1
-#define __ELAST     21
+#define __ELAST     22
 
 typedef int __errno_t;
 

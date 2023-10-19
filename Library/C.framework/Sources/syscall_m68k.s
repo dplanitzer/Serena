@@ -6,7 +6,7 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "syscalldef.i"
+    include "syscall.i"
 
     xdef ___syscall
 

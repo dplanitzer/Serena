@@ -45,6 +45,10 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
     try(AddressSpace_Create(&pProc->addressSpace));
 
+    try(kalloc_cleared(sizeof(ObjectRef) * INITIAL_DESC_TABLE_SIZE, (Byte**)&pProc->uobjects));
+    pProc->uobjectCapacity = INITIAL_DESC_TABLE_SIZE;
+    pProc->uobjectCount = 0;
+
     List_Init(&pProc->children);
     ListNode_Init(&pProc->siblings);
 
@@ -60,6 +64,10 @@ catch:
 void Process_Destroy(ProcessRef _Nullable pProc)
 {
     if (pProc) {
+        Process_UnregisterAllUObjects_Locked(pProc);
+        kfree((Byte*) pProc->uobjects);
+        pProc->uobjects = NULL;
+
         ListNode_Deinit(&pProc->siblings);
         List_Deinit(&pProc->children);
         pProc->parent = NULL;
@@ -253,13 +261,13 @@ Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
     return pProc->isTerminating;
 }
 
-Int Process_GetPid(ProcessRef _Nonnull pProc)
+Int Process_GetId(ProcessRef _Nonnull pProc)
 {
     // The PID is constant over the lifetime of the process. No need to lock here
     return pProc->pid;
 }
 
-Int Process_GetParentPid(ProcessRef _Nonnull pProc)
+Int Process_GetParentId(ProcessRef _Nonnull pProc)
 {
     // Need to lock to protect against the process destruction since we're accessing the parent field
     Lock_Lock(&pProc->lock);
@@ -440,4 +448,136 @@ void Process_RemoveChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull p
         pOtherProc->parent = NULL;
     }
     Lock_Unlock(&pProc->lock);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: UObjects / Descriptors
+////////////////////////////////////////////////////////////////////////////////
+
+// Registers the given user object with the process. This action allows the
+// process to use this user object. The process maintains a strong reference to
+// the object until it is unregistered. Note that the process retains the object
+// and thus you have to release it once the call returns. The call returns a
+// descriptor which can be used to refer to the object from user and/or kernel
+// space.
+ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, UObjectRef _Nonnull pObject, Int* _Nonnull pOutDescriptor)
+{
+    decl_try_err();
+
+    Lock_Lock(&pProc->lock);
+
+    // Find the lowest descriptor id that is available
+    Int fd = pProc->uobjectCount;
+    for (Int i = 0; i < pProc->uobjectCount; i++) {
+        if (pProc->uobjects[i] == NULL) {
+            fd = i;
+            break;
+        }
+    }
+
+
+    // Expand the descriptor table if we didn't find any empty slot and the table
+    // has reached its capacity
+    if (fd == pProc->uobjectCount && pProc->uobjectCount == pProc->uobjectCapacity) {
+        const ByteCount newCapacity = sizeof(ObjectRef) * (pProc->uobjectCapacity + DESC_TABLE_INCREMENT);
+        UObjectRef* pNewUObjects;
+
+        try(kalloc_cleared(newCapacity, (Byte**)&pNewUObjects));
+
+        for (Int i = 0; i < pProc->uobjectCount; i++) {
+            pNewUObjects[i] = pProc->uobjects[i];
+        }
+        kfree((Byte*) pProc->uobjects);
+        pProc->uobjects = pNewUObjects;
+        pProc->uobjectCapacity += DESC_TABLE_INCREMENT;
+    }
+
+
+    // Register the object in the slot we found
+    pProc->uobjects[fd] = Object_RetainAs(pObject, UObject);
+    if (fd == pProc->uobjectCount) {
+        pProc->uobjectCount++;
+    }
+
+    Lock_Unlock(&pProc->lock);
+
+    *pOutDescriptor = fd;
+    return EOK;
+
+catch:
+    Lock_Unlock(&pProc->lock);
+    *pOutDescriptor = -1;
+    return err;
+}
+
+// Unregisters the user object identified by the given descriptor. The object is
+// removed from the process' user object table and a strong reference to the
+// object is returned. The caller should call close() on the object to close it
+// and then release() to release the strong reference to the object. Closing the
+// object will mark the object as done and the object will be deallocated once
+// the last strong reference to it has been released.
+ErrorCode Process_UnregisterUObject(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject)
+{
+    decl_try_err();
+
+    Lock_Lock(&pProc->lock);
+
+    if (fd < 0 || fd >= pProc->uobjectCount || pProc->uobjects[fd] == NULL) {
+        throw(EBADF);
+    }
+
+    *pOutObject = pProc->uobjects[fd];
+    pProc->uobjects[fd] = NULL;
+    Lock_Unlock(&pProc->lock);
+
+    return EOK;
+
+catch:
+    Lock_Unlock(&pProc->lock);
+    *pOutObject = NULL;
+    return err;
+}
+
+// Unregisters all registered user objects. Ignores any errors that may be
+// returned from the close() call of an object.
+void Process_UnregisterAllUObjects_Locked(ProcessRef _Nonnull pProc)
+{
+    for (Int i = 0; i < pProc->uobjectCount; i++) {
+        UObjectRef pObj = pProc->uobjects[i];
+
+        if (pObj) {
+            pProc->uobjects[i] = NULL;
+
+            if (Object_Implements(pObj, UObject, close)) {
+                UObject_Close(pObj);
+            }
+            Object_Release(pObj);
+        }
+    }
+}
+
+// Looks up the user object identified by the given descriptor and returns a
+// strong reference to it if found. The caller should call release() on the
+// object once it is no longer needed.
+ErrorCode ResourceManager_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject)
+{
+    decl_try_err();
+
+    Lock_Lock(&pProc->lock);
+    
+    if (fd < 0 || fd >= pProc->uobjectCount || pProc->uobjects[fd] == NULL) {
+        throw(EBADF);
+    }
+
+    *pOutObject = Object_RetainAs(pProc->uobjects[fd], UObject);
+    Lock_Unlock(&pProc->lock);
+
+    return EOK;
+
+catch:
+    Lock_Unlock(&pProc->lock);
+    *pOutObject = NULL;
+    return err;
 }

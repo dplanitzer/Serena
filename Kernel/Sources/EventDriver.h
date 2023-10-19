@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include "GraphicsDriver.h"
 #include "HIDEvent.h"
+#include "Resource.h"
 
 
 struct _EventDriver;
@@ -37,7 +38,6 @@ typedef enum _HIDKeyState {
 
 
 extern ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver);
-extern void EventDriver_Destroy(EventDriverRef _Nullable pDriver);
 
 
 // APIs for use by input drivers
@@ -72,13 +72,5 @@ extern void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonn
 // Returns the mouse hardware state
 extern Point EventDriver_GetMouseDevicePosition(EventDriverRef _Nonnull pDriver);
 extern UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver);
-
-
-// Reading events from the event queue
-
-// Returns events in the order oldest to newest. As many events are returned as
-// fit in the provided buffer. Blocks the caller if more events are requested
-// than are queued.
-extern ByteCount EventDriver_Read(EventDriverRef _Nonnull pDriver, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 
 #endif /* EventDriver_h */

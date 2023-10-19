@@ -67,6 +67,8 @@ typedef struct _InputControllerState {
 // logical keyboard and multiple mice and other devices such as a joystick or
 // light pen may contribute to the state of the logical mouse. 
 typedef struct _EventDriver {
+    Resource                    super;
+
     Lock                        lock;
     GraphicsDriverRef _Nonnull  graphicsDriver;
     HIDEventQueueRef _Nonnull   eventQueue;
@@ -109,7 +111,18 @@ typedef struct _EventDriver {
 } EventDriver;
 
 
+// Resource Context
+typedef struct _EventDriverChannel {
+    TimeInterval    timeout;
+} EventDriverChannel;
+
+
+extern void _EventDriver_Deinit(EventDriverRef _Nonnull pDriver);
+
 extern ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
 extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
+
+extern ErrorCode _EventDriver_Open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
+extern ByteCount _EventDriver_Read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 
 #endif /* EventDriverPriv_h */

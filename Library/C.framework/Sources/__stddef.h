@@ -20,12 +20,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
+#include <apollo/types.h>
 
 #define CPU_PAGE_SIZE   4096
 
 extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName);
-
-typedef __errno_t errno_t;
 
 // Macros to detect errors and to jump to the 'failed:' label if an error is detected.
 

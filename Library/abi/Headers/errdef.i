@@ -31,8 +31,9 @@ ENOEXEC     equ 18
 E2BIG       equ 19
 ENOENT      equ 20
 ENOTBLK     equ 21
+EBADF       equ 22
 
 __EFIRST    equ 1
-__ELAST     equ 21
+__ELAST     equ 22
 
         endif   ; _ERRDEF_I

@@ -9,7 +9,7 @@
 
     include "lowmem.i"
     include <errdef.i>
-    include <syscalldef.i>
+    include <syscall.i>
 
     xref __SYSCALL_read
     xref __SYSCALL_write
@@ -21,6 +21,8 @@
     xref __SYSCALL_getpid
     xref __SYSCALL_getppid
     xref __SYSCALL_getpargs
+    xref __SYSCALL_open
+    xref __SYSCALL_close
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -37,6 +39,8 @@ syscall_table:
     dc.l __SYSCALL_getpid
     dc.l __SYSCALL_getppid
     dc.l __SYSCALL_getpargs
+    dc.l __SYSCALL_open
+    dc.l __SYSCALL_close
 
 
 ;-------------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <syscall.h>
+#include <apollo/apollo.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // Process with a Child Process
@@ -38,7 +39,7 @@ static void child_process(void)
 
 void main_closure(int argc, char *argv[])
 {
-    printf(" pid: %d\nargc: %d\n", __syscall(SC_getpid), argc);
+    printf(" pid: %d\nargc: %d\n", getpid(), argc);
     for (int i = 0; i < argc; i++) {
         if (argv[i]) {
             puts(argv[i]);
@@ -60,7 +61,7 @@ void main_closure(int argc, char *argv[])
         parent_process();
     } else {
         // Child process
-        printf("ppid: %d\n\n", __syscall(SC_getppid));
+        printf("ppid: %d\n\n", getppid());
         child_process();
     }
 }

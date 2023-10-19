@@ -1,16 +1,16 @@
 ;
-;  syscalldef.i
+;  syscall.i
 ;  Apollo
 ;
 ;  Created by Dietmar Planitzer on 9/6/23.
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-        ifnd _SYSCALLDEF_I
-_SYSCALLDEF_I  set 1
+        ifnd _SYSCALL_I
+_SYSCALL_I  set 1
 
-SC_read                 equ 0   ; ssize_t read(const char * _Nonnull buffer, size_t count)
-SC_write                equ 1   ; ssize_t write(const char * _Nonnull buffer, size_t count)
+SC_read                 equ 0   ; ssize_t read(int fd, const char * _Nonnull buffer, size_t count)
+SC_write                equ 1   ; ssize_t write(int fd, const char * _Nonnull buffer, size_t count)
 SC_sleep                equ 2   ; errno_t sleep(struct {int secs, int nanosecs})
 SC_dispatch_async       equ 3   ; errno_t dispatch_async(void * _Nonnull pUserClosure)
 SC_alloc_address_space  equ 4   ; errno_t alloc_address_space(int nbytes, void **pOutMem)
@@ -19,8 +19,10 @@ SC_spawn_process        equ 6   ; errno_t spawn_process(void *pExecBase, const c
 SC_getpid               equ 7   ; int getpid(void)
 SC_getppid              equ 8   ; int getppid(void)
 SC_getpargs             equ 9   ; struct __process_arguments_t* _Nonnull getpargs(void)
+SC_open                 equ 10  ; int open(const char * _Nonnull name, int options)
+SC_close                equ 11  ; errno_t close(int fd)
 
-SC_numberOfCalls        equ 10   ; number of system calls
+SC_numberOfCalls        equ 12   ; number of system calls
 
 
 ; System call macro.
@@ -55,4 +57,4 @@ SC_numberOfCalls        equ 10   ; number of system calls
     trap    #0
     endm
 
-        endif   ; _SYSCALLDEF_I
+        endif   ; _SYSCALL_I

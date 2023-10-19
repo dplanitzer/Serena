@@ -34,6 +34,7 @@ char *strerror(int err_no)
         /*E2BIG*/       "Argument too big",
         /*ENOENT*/      "No such file or directory",
         /*ENOTBLK*/     "Not a block device"
+        /*EBADF*/       "Not a valid descriptor"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

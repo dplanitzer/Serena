@@ -32,7 +32,9 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     
     Lock_Init(&pConsole->lock);
 
-    pConsole->pEventDriver = pEventDriver;
+    pConsole->pEventDriver = Object_RetainAs(pEventDriver, EventDriver);
+    try(Resource_Open(pConsole->pEventDriver, "", FREAD, &pConsole->eventDriverChannel));
+
     pConsole->pGDevice = pGDevice;
 
     pConsole->lineHeight = GLYPH_HEIGHT;
@@ -105,7 +107,15 @@ void Console_Destroy(ConsoleRef _Nullable pConsole)
         Lock_Deinit(&pConsole->lock);
 
         pConsole->pGDevice = NULL;
+
+        if (pConsole->eventDriverChannel) {
+            Resource_Close(pConsole->pEventDriver, pConsole->eventDriverChannel);
+            Object_Release(pConsole->eventDriverChannel);
+            pConsole->eventDriverChannel = NULL;
+        }
+        Object_Release(pConsole->pEventDriver);
         pConsole->pEventDriver = NULL;
+        
         kfree((Byte*)pConsole);
     }
 }
@@ -941,7 +951,7 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
     }
 
 
-    // Now wait for events and map them to byte sequences if we stil got space
+    // Now wait for events and map them to byte sequences if we still got space
     // in the user provided buffer
     while (nBytesRead < nBytesToRead) {
         ByteCount nEvtBytesRead;
@@ -952,7 +962,7 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
         // long time would prevent any other process from working with the
         // console
         Lock_Unlock(&pConsole->lock);
-        nEvtBytesRead = EventDriver_Read(pConsole->pEventDriver, (Byte*) &evt, sizeof(evt));
+        nEvtBytesRead = UObject_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay

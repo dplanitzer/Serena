@@ -10,6 +10,7 @@
 #define Process_h
 
 #include <klib/klib.h>
+#include "Object.h"
 
 
 struct _Process;
@@ -44,8 +45,8 @@ extern void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode);
 extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
 
-extern Int Process_GetPid(ProcessRef _Nonnull pProc);
-extern Int Process_GetParentPid(ProcessRef _Nonnull pProc);
+extern Int Process_GetId(ProcessRef _Nonnull pProc);
+extern Int Process_GetParentId(ProcessRef _Nonnull pProc);
 
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
@@ -75,5 +76,27 @@ extern ErrorCode Process_AddChildProcess(ProcessRef _Nonnull pProc, ProcessRef _
 // Removes the given process from 'pProc'. Does nothing if the given process is
 // not a child of 'pProc'.
 extern void Process_RemoveChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
+
+
+// Registers the given user object with the process. This action allows the
+// process to use this user object. The process maintains a strong reference to
+// the object until it is unregistered. Note that the process retains the object
+// and thus you have to release it once the call returns. The call returns a
+// descriptor which can be used to refer to the object from user and/or kernel
+// space.
+extern ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, UObjectRef _Nonnull pObject, Int* _Nonnull pOutDescriptor);
+
+// Unregisters the user object identified by the given descriptor. The object is
+// removed from the process' user object table and a strong reference to the
+// object is returned. The caller should call close() on the object to close it
+// and then release() to release the strong reference to the object. Closing the
+// object will mark the object as done and the object will be deallocated once
+// the last strong reference to it has been released.
+extern ErrorCode Process_UnregisterUObject(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject);
+
+// Looks up the user object identified by the given descriptor and returns a
+// strong reference to it if found. The caller should call release() on the
+// object once it is no longer needed.
+extern ErrorCode ResourceManager_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject);
 
 #endif /* Process_h */

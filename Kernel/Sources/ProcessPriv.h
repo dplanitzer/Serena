@@ -22,12 +22,21 @@
 typedef struct __process_arguments_t ProcessArguments;
 
 
+#define INITIAL_DESC_TABLE_SIZE 64
+#define DESC_TABLE_INCREMENT    128
+
+
 typedef struct _Process {
     Int                         pid;
     Lock                        lock;
 
     DispatchQueueRef _Nonnull   mainDispatchQueue;
     AddressSpaceRef _Nonnull    addressSpace;
+
+    // UObjects
+    UObjectRef* _Nonnull        uobjects;
+    Int                         uobjectCapacity;
+    Int                         uobjectCount;
 
     // Process image
     Byte* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
@@ -43,5 +52,9 @@ typedef struct _Process {
     ProcessRef _Nullable _Weak  parent;
 } Process;
 
+
+// Unregisters all registered user objects. Ignores any errors that may be
+// returned from the close() call of an object.
+extern void Process_UnregisterAllUObjects_Locked(ProcessRef _Nonnull pProc);
 
 #endif /* ProcessPriv_h */

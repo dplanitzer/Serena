@@ -197,12 +197,17 @@ void DispatchQueue_RunTests(void)
 #if 1
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
-    EventDriverRef pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
-    HIDEvent evt;        
+    EventDriverRef pEventDriver;
+    ResconRef pChannel;
+    HIDEvent evt;
+
+    pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
+    assert(pEventDriver != NULL);
+    assert(Resource_Open(pEventDriver, kEventsDriverName, FREAD, &pChannel) == EOK);
 
     print("Event loop\n");
     while (true) {
-        const ByteCount nBytesRead = EventDriver_Read(pEventDriver, (Byte*)&evt, sizeof(evt));
+        const ByteCount nBytesRead = UObject_Read(pChannel, (Byte*)&evt, sizeof(evt));
         if (nBytesRead < 0) {
             abort();
         }

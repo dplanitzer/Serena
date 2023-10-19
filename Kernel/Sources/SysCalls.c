@@ -8,12 +8,14 @@
 
 #include <console/Console.h>
 #include "DriverManager.h"
+#include "EventDriver.h"
 #include "Process.h"
 #include "VirtualProcessor.h"
 
 
 typedef struct _SYS_read_args {
     Int                 scno;
+    Int                 fd;
     Character* _Nonnull buffer;
     UByteCount          nbytes;
 } SYS_read_args;
@@ -35,6 +37,7 @@ catch:
 
 typedef struct _SYS_write_args {
     Int                     scno;
+    Int                     fd;
     const Byte* _Nonnull    buffer;
     UByteCount              nbytes;
 } SYS_write_args;
@@ -179,17 +182,72 @@ catch:
 
 Int _SYSCALL_getpid(void)
 {
-    return Process_GetPid(Process_GetCurrent());
+    return Process_GetId(Process_GetCurrent());
 }
 
 
 Int _SYSCALL_getppid(void)
 {
-    return Process_GetParentPid(Process_GetCurrent());
+    return Process_GetParentId(Process_GetCurrent());
 }
 
 
 Int _SYSCALL_getpargs(void)
 {
     return (Int) Process_GetArgumentsBaseAddress(Process_GetCurrent());
+}
+
+
+typedef struct _SYS_open_args {
+    Int                         scno;
+    const Character* _Nonnull   path;
+    UInt                        options;
+} SYS_open_args;
+
+Int _SYSCALL_open(const SYS_open_args* _Nonnull pArgs)
+{
+    decl_try_err();
+    EventDriverRef pEventDriver = NULL;
+    ResconRef pChannel = NULL;
+    Int desc;
+
+    if (String_Equals(pArgs->path, "/dev/events")) {
+
+        try_null(pEventDriver, (EventDriverRef) DriverManager_GetDriverForName(gDriverManager, kEventsDriverName), ENODEV);
+        try(Resource_Open(pEventDriver, pArgs->path, pArgs->options, &pChannel));
+        try(Process_RegisterUObject(Process_GetCurrent(), (UObjectRef) pChannel, &desc));
+        Object_Release(pChannel);
+
+        return desc;
+    }
+    return ENODEV;
+
+catch:
+    Object_Release(pChannel);
+    return err;
+}
+
+
+typedef struct _SYS_close_args {
+    Int scno;
+    Int fd;
+} SYS_close_args;
+
+Int _SYSCALL_close(const SYS_close_args* _Nonnull pArgs)
+{
+    decl_try_err();
+    UObjectRef pObj;
+
+    try(Process_UnregisterUObject(Process_GetCurrent(), pArgs->fd, &pObj));
+
+    // The error that close() returns is purely advisory and thus we'll proceed
+    // with releasing the resource in any case.
+    if (Object_Implements(pObj, UObject, close)) {
+        err = UObject_Close(pObj);
+    }
+    Object_Release(pObj);
+    return err;
+
+catch:
+    return err;
 }

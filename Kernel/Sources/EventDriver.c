@@ -42,12 +42,21 @@ static const UInt8 gUSBHIDKeyFlags[256] = {
 };
 
 
+static ResourceClass gEventDriverClass = {
+    (Func_Object_Deinit)_EventDriver_Deinit,
+    (Func_Resource_Open)_EventDriver_Open,
+    (Func_Resource_Read)_EventDriver_Read,
+    (Func_Resource_Write)NULL,
+    (Func_Resource_Close)NULL
+};
+
+
 ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
     EventDriver* pDriver;
     
-    try(kalloc_cleared(sizeof(EventDriver), (Byte**) &pDriver));
+    try(Object_Create(&gEventDriverClass, sizeof(EventDriver), &pDriver));
 
     Lock_Init(&pDriver->lock);
     pDriver->graphicsDriver = gdevice;
@@ -92,25 +101,21 @@ ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef 
     return EOK;
     
 catch:
-    EventDriver_Destroy(pDriver);
+    Object_Release(pDriver);
     *pOutDriver = NULL;
     return err;
 }
 
-void EventDriver_Destroy(EventDriverRef _Nullable pDriver)
+void _EventDriver_Deinit(EventDriverRef _Nonnull pDriver)
 {
-    if (pDriver) {
-        for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
-            EventDriver_DestroyInputControllerForPort(pDriver, i);
-        }
-        KeyboardDriver_Destroy(pDriver->keyboardDriver);
-        pDriver->keyboardDriver = NULL;
-        HIDEventQueue_Destroy(pDriver->eventQueue);
-        pDriver->graphicsDriver = NULL;
-        Lock_Deinit(&pDriver->lock);
-
-        kfree((Byte*)pDriver);
+    for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+        EventDriver_DestroyInputControllerForPort(pDriver, i);
     }
+    KeyboardDriver_Destroy(pDriver->keyboardDriver);
+    pDriver->keyboardDriver = NULL;
+    HIDEventQueue_Destroy(pDriver->eventQueue);
+    pDriver->graphicsDriver = NULL;
+    Lock_Deinit(&pDriver->lock);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -562,17 +567,32 @@ UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
+ErrorCode _EventDriver_Open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon)
+{
+    decl_try_err();
+    ResconRef pRescon;
+
+    try(Rescon_Create((ResourceRef) pDriver, options, sizeof(EventDriverChannel), &pRescon));
+    Rescon_GetStateAs(pRescon, EventDriverChannel)->timeout = kTimeInterval_Infinity;
+    *pOutRescon = pRescon;
+    return EOK;
+
+catch:
+    *pOutRescon = NULL;
+    return err;
+}
+
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Blocks the caller if more events are requested
 // than are queued.
-ByteCount EventDriver_Read(EventDriverRef _Nonnull pDriver, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount _EventDriver_Read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
     ByteCount nBytesRead = 0;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        try(HIDEventQueue_Get(pDriver->eventQueue, pEvent, kTimeInterval_Infinity));
+        try(HIDEventQueue_Get(pDriver->eventQueue, pEvent, pChannel->timeout));
         //assert(HIDEventQueue_GetOverflowCount(pDriver->eventQueue) == 0);
         
         nBytesRead += sizeof(HIDEvent);

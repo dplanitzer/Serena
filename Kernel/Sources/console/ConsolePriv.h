@@ -78,6 +78,7 @@ typedef struct _KeyMapper {
 typedef struct _Console {
     Lock                        lock;
     EventDriverRef _Nonnull     pEventDriver;
+    ResconRef _Nonnull          eventDriverChannel;
     GraphicsDriverRef _Nonnull  pGDevice;
     RGBColor                    backgroundColor;
     RGBColor                    textColor;
