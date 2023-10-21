@@ -55,7 +55,11 @@ void main_closure(int argc, char *argv[])
         child_argv[0] = "--child";
         child_argv[1] = NULL;
 
-        __syscall(SC_spawn_process, (void*)0xfe0000, child_argv, NULL);
+        spawn_arguments_t spargs;
+        spargs.execbase = (void*)0xfe0000;
+        spargs.argv = child_argv;
+        spargs.envp = NULL;
+        spawnp(&spargs);
 
         // Do a parent's work
         parent_process();

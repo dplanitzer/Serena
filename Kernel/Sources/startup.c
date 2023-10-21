@@ -143,8 +143,7 @@ static void OnMain(void)
 
 #if 1
     // Create the root process and kick it off running
-    try_bang(Process_Create(Process_GetNextAvailablePID(), &gRootProcess));
-    try_bang(Process_Exec(gRootProcess, (Byte*)0xfe0000, NULL, NULL));
+    try_bang(Process_CreateRootProcess((void*)0xfe0000, &gRootProcess));
 #else
     // XXX Unit tests
     void DispatchQueue_RunTests(void);

@@ -53,8 +53,29 @@ typedef struct _Process {
 } Process;
 
 
+extern ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc);
+
 // Unregisters all registered user objects. Ignores any errors that may be
 // returned from the close() call of an object.
 extern void Process_UnregisterAllUObjects_Locked(ProcessRef _Nonnull pProc);
+
+// Adds the given process as a child to the given process. 'pOtherProc' must not
+// already be a child of another process.
+extern void Process_AddChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
+
+// Removes the given process from 'pProc'. Does nothing if the given process is
+// not a child of 'pProc'.
+extern void Process_RemoveChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
+
+// Loads an executable from the given executable file into the process address
+// space.
+// \param pProc the process into which the executable image should be loaded
+// \param pExecAddr pointer to a GemDOS formatted executable file in memory
+// \param pArgv the command line arguments for the process. NULL means that the arguments are {path, NULL}
+// \param pEnv the environment for teh process. Null means that the process inherits the environment from its parent
+// XXX expects that the address space is empty at call time
+// XXX the executable format is GemDOS
+// XXX the executable file must be loacted at the address 'pExecAddr'
+extern ErrorCode Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv);
 
 #endif /* ProcessPriv_h */

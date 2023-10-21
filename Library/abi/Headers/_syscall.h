@@ -15,7 +15,7 @@
 #define SC_dispatch_async       3   // errno_t dispatch_async(void * _Nonnull pUserClosure)
 #define SC_alloc_address_space  4   // errno_t alloc_address_space(int nbytes, void **pOutMem)
 #define SC_exit                 5   // _Noreturn exit(int status)
-#define SC_spawn_process        6   // errno_t spawn_process(void *pExecBase, const char *const *argv, const char *const *envp) [XXX argv and envp may be NULL in user space, user space should pass {path, NULL} if argv == NULL and 'environ' if envp == NULL]
+#define SC_spawn_process        6   // errno_t spawn_process(struct __spawn_arguments_t * _Nonnull args)
 #define SC_getpid               7   // pid_t getpid(void)
 #define SC_getppid              8   // pid_t getppid(void)
 #define SC_getpargs             9   // struct __process_arguments_t * _Nonnull getpargs(void)

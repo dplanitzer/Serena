@@ -210,41 +210,21 @@ Int _SYSCALL_exit(const SYS_exit_args* _Nonnull pArgs)
 // nul-terminated strings. The last entry in the table has to be NULL. All these
 // strings are the command line arguments that should be passed to the new
 // process.
-// The 'envp' pointer points to a table of nul-terminated strings of the form
-// 'key=value'. The last entry in the table has to be NULL. All these strings
-// are the enviornment variables that should be passed to the new process.
-// Both 'argv' and 'envp' may be NULL pointers. A NULL pointer is equivalent to
-// a table with a single entry that is the NULL pointer. So a NULL 'argv'
-// pointer means that the child process receives no command line arguments and
-// a NULL 'envp' means that the child process receives an empty environment.
-// If different semantics is desired then this must be implemented by the user
-// space side of the system call. The recommended semantics for argv is that
-// a NULL pointer is equivalent to { 'path', NULL } and for envp a NULL pointer
-// should be substituted with the contents of the 'environ' variable.
 typedef struct _SYS_spawn_process_args {
-    Int                                             scno;
-    Byte* _Nullable                                 execBase;
-    const Character* _Nullable const _Nullable *    argv;
-    const Character* _Nullable const _Nullable *    envp;
+    Int                             scno;
+    const SpawnArguments* _Nullable spawnArgs;
 } SYS_spawn_process_args;
 
 Int _SYSCALL_spawn_process(const SYS_spawn_process_args* pArgs)
 {
     decl_try_err();
-    ProcessRef pCurProc = Process_GetCurrent();
-    ProcessRef pChildProc = NULL;
 
-    throw_ifnull(pArgs->execBase, EPARAM);
-    try(Process_Create(Process_GetNextAvailablePID(), &pChildProc));
-    try_bang(Process_AddChildProcess(pCurProc, pChildProc));
-    try(Process_Exec(pChildProc, pArgs->execBase, pArgs->argv, pArgs->envp));
+    throw_ifnull(pArgs->spawnArgs, EPARAM);
+    try(Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, NULL));
 
     return EOK;
 
 catch:
-    if (pChildProc) {
-        Process_RemoveChildProcess(pCurProc, pChildProc);
-    }
     return -err;
 }
 

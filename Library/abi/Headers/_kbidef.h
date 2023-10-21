@@ -28,4 +28,27 @@ struct __process_arguments_t {
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
 };
 
+
+// Child process shoud not inherit the default descriptors. The default
+// descriptors are the parent process' stdin, stdout and stderr descriptors.
+#define SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE 0x0001
+
+// The 'envp' pointer points to a table of nul-terminated strings of the form
+// 'key=value'. The last entry in the table has to be NULL. All these strings
+// are the enviornment variables that should be passed to the new process.
+// Both 'argv' and 'envp' may be NULL pointers. A NULL pointer is equivalent to
+// a table with a single entry that is the NULL pointer. So a NULL 'argv'
+// pointer means that the child process receives no command line arguments and
+// a NULL 'envp' means that the child process receives an empty environment.
+// If different semantics is desired then this must be implemented by the user
+// space side of the system call. The recommended semantics for argv is that
+// a NULL pointer is equivalent to { 'path', NULL } and for envp a NULL pointer
+// should be substituted with the contents of the 'environ' variable.
+struct __spawn_arguments_t {
+    void* _Nonnull                      execbase;
+    const char* _Nullable * _Nullable   argv;
+    const char* _Nullable * _Nullable   envp;
+    unsigned int                        options;
+};
+
 #endif /* __KBIDEF_H */

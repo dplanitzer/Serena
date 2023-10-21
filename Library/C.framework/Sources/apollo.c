@@ -7,6 +7,7 @@
 //
 
 #include <apollo/apollo.h>
+#include <stdlib.h>
 #include <syscall.h>
 
 
@@ -48,6 +49,23 @@ pid_t getpid(void)
 pid_t getppid(void)
 {
     return __syscall(SC_getppid);
+}
+
+errno_t spawnp(const spawn_arguments_t *args)
+{
+    spawn_arguments_t kargs = *args;
+    errno_t r;
+
+    // XXX argv and envp may be NULL in user space, user space should pass {path, NULL} if argv == NULL and 'environ' if envp == NULL
+//    if (args->argv == NULL) {
+//
+//    }
+    if (kargs.envp == NULL) {
+        kargs.envp = environ;
+    }
+
+    __failable_syscall(r, SC_spawn_process, &kargs);
+    return r;
 }
 
 process_arguments_t *getpargs(void)

@@ -16,6 +16,9 @@
 struct _Process;
 typedef struct _Process* ProcessRef;
 
+// The process spawn arguments specify how a child process should be created.
+typedef struct __spawn_arguments_t SpawnArguments;
+
 
 extern ProcessRef _Nonnull  gRootProcess;
 
@@ -29,7 +32,8 @@ extern Int Process_GetNextAvailablePID(void);
 extern ProcessRef _Nullable Process_GetCurrent(void);
 
 
-extern ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc);
+// Creates the root process which is the first process of the OS.
+extern ErrorCode Process_CreateRootProcess(void* _Nonnull pExecBase, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_Destroy(ProcessRef _Nullable pProc);
 
 // Triggers the termination of the given process. The termination may be caused
@@ -52,30 +56,15 @@ extern Int Process_GetParentId(ProcessRef _Nonnull pProc);
 // relative to the process address space.
 extern void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc);
 
-// Loads an executable from the given executable file into the process address
-// space.
-// \param pProc the process into which the executable image should be loaded
-// \param pExecAddr pointer to a GemDOS formatted executable file in memory
-// \param pArgv the command line arguments for the process. NULL means that the arguments are {path, NULL}
-// \param pEnv the environment for teh process. Null means that the process inherits the environment from its parent
-// XXX expects that the address space is empty at call time
-// XXX the executable format is GemDOS
-// XXX the executable file must be loacted at the address 'pExecAddr'
-extern ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv);
+// Spawns a new process that will be a child of the given process. The spawn
+// arguments specify how the child process should be created, which arguments
+// and environment it will receive and which descriptors it will inherit.
+extern ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessRef _Nullable * _Nullable pOutChildProc);
 
 extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
 
 // Allocates more (user) address space to the given process.
 extern ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount count, Byte* _Nullable * _Nonnull pOutMem);
-
-
-// Adds the given process as a child to the given process. 'pOtherProc' must not
-// already be a child of another process.
-extern ErrorCode Process_AddChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
-
-// Removes the given process from 'pProc'. Does nothing if the given process is
-// not a child of 'pProc'.
-extern void Process_RemoveChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
 
 
 // Registers the given user object with the process. This action allows the

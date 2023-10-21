@@ -15,6 +15,10 @@
 
 __CPP_BEGIN
 
+typedef struct __process_arguments_t process_arguments_t;
+typedef struct __spawn_arguments_t spawn_arguments_t;
+
+
 #define STDIN_FILENO    0
 #define STDOUT_FILENO   1
 #define STDERR_FILENO   2
@@ -37,7 +41,7 @@ pid_t getpid(void);
 pid_t getppid(void);
 
 
-typedef struct __process_arguments_t process_arguments_t;
+extern errno_t spawnp(const spawn_arguments_t *args);
 
 extern process_arguments_t *getpargs(void);
 

@@ -32,6 +32,23 @@ ProcessRef _Nullable Process_GetCurrent(void)
 
 
 
+ErrorCode Process_CreateRootProcess(void* _Nonnull pExecBase, ProcessRef _Nullable * _Nonnull pOutProc)
+{
+    decl_try_err();
+    Process* pProc;
+    
+    try(Process_Create(Process_GetNextAvailablePID(), &pProc));
+    try(Process_Exec_Locked(pProc, (Byte*)0xfe0000, NULL, NULL));
+
+    *pOutProc = pProc;
+    return EOK;
+
+catch:
+    Process_Destroy(pProc);
+    *pOutProc = NULL;
+    return err;
+}
+
 ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
@@ -288,6 +305,49 @@ void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
+ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessRef _Nullable * _Nullable pOutChildProc)
+{
+    decl_try_err();
+    ProcessRef pChildProc = NULL;
+    Bool needsUnlock = false;
+
+    try(Process_Create(Process_GetNextAvailablePID(), &pChildProc));
+
+    // Note that we do not lock the child process altough we're reaching directly
+    // into its state. Locking isn't necessary because nobody outside this function
+    // here can yet see the child process and thus call functions on it.
+
+    Lock_Lock(&pProc->lock);
+    needsUnlock = true;
+
+//    if ((pArgs->options & SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE) == 0) {
+//        if (pProc->uobjectCount >= 1 && pProc->uobjects[0]) {
+//        }
+//    }
+
+    Process_AddChildProcess_Locked(pProc, pChildProc);
+    try(Process_Exec_Locked(pChildProc, pArgs->execbase, pArgs->argv, pArgs->envp));
+    Lock_Unlock(&pProc->lock);
+
+    if (pOutChildProc) {
+        *pOutChildProc = pChildProc;
+    }
+
+    return EOK;
+
+catch:
+    if (pChildProc) {
+        Process_RemoveChildProcess_Locked(pProc, pChildProc);
+    }
+    if (needsUnlock) {
+        Lock_Unlock(&pProc->lock);
+    }
+    if (pOutChildProc) {
+        *pOutChildProc = NULL;
+    }
+    return err;
+}
+
 static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, ByteCount maxByteCount, Int* _Nonnull pOutTableEntryCount)
 {
     ByteCount nbytes = 0;
@@ -316,7 +376,7 @@ static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Null
     return nbytes;
 }
 
-static ErrorCode Process_CopyInProcessArguments(ProcessRef _Nonnull pProc, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
+static ErrorCode Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
 {
     decl_try_err();
     Int nArgvCount = 0;
@@ -379,19 +439,17 @@ catch:
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be loacted at the address 'pExecAddr'
-ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
+ErrorCode Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
 {
     GemDosExecutableLoader loader;
     Byte* pEntryPoint = NULL;
     decl_try_err();
-    
-    Lock_Lock(&pProc->lock);
 
     // XXX for now to keep loading simpler
     assert(pProc->imageBase == NULL);
 
     // Copy the process arguments into the process address space
-    try(Process_CopyInProcessArguments(pProc, pArgv, pEnv));
+    try(Process_CopyInProcessArguments_Locked(pProc, pArgv, pEnv));
 
     // Load the executable
     GemDosExecutableLoader_Init(&loader, pProc->addressSpace);
@@ -402,13 +460,30 @@ ErrorCode Process_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, cons
 
     try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, pProc->argumentsBase)));
 
-    Lock_Unlock(&pProc->lock);
-
     return EOK;
 
 catch:
-    Lock_Unlock(&pProc->lock);
     return err;
+}
+
+// Adds the given process as a child to the given process. 'pOtherProc' must not
+// already be a child of another process.
+void Process_AddChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
+{
+    assert(pOtherProc->parent == NULL);
+
+    List_InsertAfterLast(&pProc->children, &pOtherProc->siblings);
+    pOtherProc->parent = pProc;
+}
+
+// Removes the given process from 'pProc'. Does nothing if the given process is
+// not a child of 'pProc'.
+void Process_RemoveChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
+{
+    if (pOtherProc->parent == pProc) {
+        List_Remove(&pProc->children, &pOtherProc->siblings);
+        pOtherProc->parent = NULL;
+    }
 }
 
 ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
@@ -420,34 +495,6 @@ ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func 
 ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount count, Byte* _Nullable * _Nonnull pOutMem)
 {
     return AddressSpace_Allocate(pProc->addressSpace, count, pOutMem);
-}
-
-// Adds the given process as a child to the given process. 'pOtherProc' must not
-// already be a child of another process.
-ErrorCode Process_AddChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
-{
-    if (pOtherProc->parent) {
-        return EPARAM;
-    }
-
-    Lock_Lock(&pProc->lock);
-    List_InsertAfterLast(&pProc->children, &pOtherProc->siblings);
-    pOtherProc->parent = pProc;
-    Lock_Unlock(&pProc->lock);
-
-    return EOK;
-}
-
-// Removes the given process from 'pProc'. Does nothing if the given process is
-// not a child of 'pProc'.
-void Process_RemoveChildProcess(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
-{
-    Lock_Lock(&pProc->lock);
-    if (pOtherProc->parent == pProc) {
-        List_Remove(&pProc->children, &pOtherProc->siblings);
-        pOtherProc->parent = NULL;
-    }
-    Lock_Unlock(&pProc->lock);
 }
 
 
