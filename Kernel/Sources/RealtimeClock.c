@@ -47,6 +47,8 @@ static void _RealtimeClock_Deinit(RealtimeClockRef _Nonnull pClock);
 static ResourceClass gRealtimeClockClass = {
     (Func_Object_Deinit)_RealtimeClock_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL

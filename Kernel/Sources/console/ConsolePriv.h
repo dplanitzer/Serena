@@ -115,6 +115,7 @@ static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
 
 extern ErrorCode _Console_Open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
+extern ErrorCode _Console_Dup(ConsoleRef _Nonnull pConsole, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon);
 extern ByteCount _Console_Read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 extern ByteCount _Console_Write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite);
 

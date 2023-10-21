@@ -57,7 +57,7 @@ static ResconClass gResconClass = {
     (Func_UObject_Close)_Rescon_Close
 };
 
-ErrorCode Rescon_Create(ResourceRef pResource, UInt options, ByteCount stateSize, ResconRef _Nullable * _Nonnull pOutRescon)
+ErrorCode Rescon_Create(ResourceRef _Nonnull pResource, UInt options, ByteCount stateSize, ResconRef _Nullable * _Nonnull pOutRescon)
 {
     decl_try_err();
     ResconRef pRescon;
@@ -65,6 +65,24 @@ ErrorCode Rescon_Create(ResourceRef pResource, UInt options, ByteCount stateSize
     try(Object_Create(&gResconClass, sizeof(Rescon) + stateSize - 1, &pRescon));
     pRescon->resource = Object_RetainAs(pResource, Resource);
     pRescon->options = options;
+    *pOutRescon = pRescon;
+    return EOK;
+
+catch:
+    *pOutRescon = NULL;
+    return err;
+}
+
+ErrorCode Rescon_CreateCopy(ResconRef _Nonnull pInRescon, ByteCount stateSize, ResconRef _Nullable * _Nonnull pOutRescon)
+{
+    decl_try_err();
+    ResconRef pRescon;
+
+    try(Object_Create(&gResconClass, sizeof(Rescon) + stateSize - 1, &pRescon));
+    pRescon->resource = Object_RetainAs(pInRescon->resource, Resource);
+    pRescon->options = pInRescon->options;
+    Bytes_CopyRange(&pRescon->state[0], &pInRescon->state[0], stateSize);
+
     *pOutRescon = pRescon;
     return EOK;
 

@@ -106,6 +106,7 @@ extern ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnul
 extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
 
 extern ErrorCode _EventDriver_Open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
+extern ErrorCode _EventDriver_Dup(EventDriverRef _Nonnull pDriver, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon);
 extern ByteCount _EventDriver_Read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 
 #endif /* EventDriverPriv_h */

@@ -45,6 +45,8 @@ static const UInt8 gUSBHIDKeyFlags[256] = {
 static ResourceClass gEventDriverClass = {
     (Func_Object_Deinit)_EventDriver_Deinit,
     (Func_Resource_Open)_EventDriver_Open,
+    (Func_Resource_Dup)_EventDriver_Dup,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)_EventDriver_Read,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL
@@ -562,6 +564,11 @@ ErrorCode _EventDriver_Open(EventDriverRef _Nonnull pDriver, const Character* _N
 catch:
     *pOutRescon = NULL;
     return err;
+}
+
+ErrorCode _EventDriver_Dup(EventDriverRef _Nonnull pDriver, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon)
+{
+    return Rescon_CreateCopy(pInRescon, sizeof(EventDriverChannel), pOutRescon);
 }
 
 // Returns events in the order oldest to newest. As many events are returned as

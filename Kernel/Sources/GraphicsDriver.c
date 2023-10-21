@@ -361,6 +361,8 @@ static const ColorTable gDefaultColorTable = {
 static ResourceClass gGraphicsDriverClass = {
     (Func_Object_Deinit)_GraphicsDriver_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL

@@ -12,6 +12,8 @@
 static ResourceClass gConsoleClass = {
     (Func_Object_Deinit)_Console_Deinit,
     (Func_Resource_Open)_Console_Open,
+    (Func_Resource_Dup)_Console_Dup,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)_Console_Read,
     (Func_Resource_Write)_Console_Write,
     (Func_Resource_Close)NULL
@@ -908,7 +910,6 @@ ErrorCode _Console_Open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull 
     const ByteCount keyMapSize = KeyMap_GetMaxOutputByteCount(pKeyMap);
 
     try(Rescon_Create((ResourceRef) pConsole, options, sizeof(ConsoleChannel) + sizeof(Byte) * (keyMapSize - 1), &pRescon));
-
     ConsoleChannel* pChannel = Rescon_GetStateAs(pRescon, ConsoleChannel);
     pChannel->map = pKeyMap;
     pChannel->capacity = keyMapSize;
@@ -917,7 +918,24 @@ ErrorCode _Console_Open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull 
     return EOK;
 
 catch:
-    Object_Release(pRescon);
+    *pOutRescon = NULL;
+    return err;
+}
+
+ErrorCode _Console_Dup(ConsoleRef _Nonnull pConsole, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon)
+{
+    decl_try_err();
+    ResconRef pNewRescon;
+
+    try(Rescon_CreateCopy(pInRescon, sizeof(ConsoleChannel) + sizeof(Byte) * (Rescon_GetStateAs(pInRescon, ConsoleChannel)->capacity - 1), &pNewRescon));
+    ConsoleChannel* pChannel = Rescon_GetStateAs(pNewRescon, ConsoleChannel);
+    pChannel->startIndex = 0;
+    pChannel->count = 0;
+
+    *pOutRescon = pNewRescon;
+    return EOK;
+
+catch:
     *pOutRescon = NULL;
     return err;
 }

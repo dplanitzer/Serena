@@ -53,6 +53,8 @@ static void _KeyboardDriver_Deinit(KeyboardDriverRef _Nonnull pDriver);
 static ResourceClass gKeyboardDriverClass = {
     (Func_Object_Deinit)_KeyboardDriver_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL
@@ -178,6 +180,8 @@ extern void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver);
 static ResourceClass gMouseDriverClass = {
     (Func_Object_Deinit)_MouseDriver_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL
@@ -322,6 +326,8 @@ extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull 
 static ResourceClass gDigitalJoystickDriverClass = {
     (Func_Object_Deinit)_DigitalJoystickDriver_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL
@@ -452,6 +458,8 @@ extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull pD
 static ResourceClass gAnalogJoystickDriverClass = {
     (Func_Object_Deinit)_AnalogJoystickDriver_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL
@@ -593,6 +601,8 @@ extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull pDriver);
 static ResourceClass gLightPenDriverClass = {
     (Func_Object_Deinit)_LightPenDriver_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL

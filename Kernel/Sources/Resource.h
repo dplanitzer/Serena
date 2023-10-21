@@ -36,7 +36,10 @@ typedef struct _Rescon {
 } Rescon;
 
 
-extern ErrorCode Rescon_Create(ResourceRef pResource, UInt options, ByteCount stateSize, ResconRef _Nullable * _Nonnull pOutRescon);
+extern ErrorCode Rescon_Create(ResourceRef _Nonnull pResource, UInt options, ByteCount stateSize, ResconRef _Nullable * _Nonnull pOutRescon);
+
+// Creates a copy of the given rescon with a state size of 'stateSize'.
+extern ErrorCode Rescon_CreateCopy(ResconRef _Nonnull pInRescon, ByteCount stateSize, ResconRef _Nullable * _Nonnull pOutRescon);
 
 #define Rescon_GetStateAs(__pRes, __classType) \
     ((__classType*) &__pRes->state[0])
@@ -51,6 +54,14 @@ extern ErrorCode Rescon_Create(ResourceRef pResource, UInt options, ByteCount st
 // protected by the resource's internal locking mechanism.
 typedef FuncN(ErrorCode, Func_Resource_Open, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
 
+// Creates an independent copy of the passed in rescon. Note that this function
+// is allowed to return a strong reference to the rescon that was passed in if
+// the rescon state is immutable. 
+typedef FuncN(ErrorCode, Func_Resource_Dup, ResconRef _Nonnull pRescon, ResconRef _Nullable * _Nonnull pOutRescon);
+
+// Executes the resource specific command 'op'.
+typedef FuncN(ErrorCode, Func_Resource_Command, Int op, va_list ap);
+
 typedef FuncN(ByteCount, Func_Resource_Read, void* _Nonnull pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 typedef FuncN(ByteCount, Func_Resource_Write, void* _Nonnull pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
 
@@ -60,6 +71,8 @@ typedef FuncN(ErrorCode, Func_Resource_Close, void* _Nonnull pContext);
 typedef struct _ResourceClass {
     Class                           super;
     Func_Resource_Open _Nullable    open;
+    Func_Resource_Dup _Nullable     dup;
+    Func_Resource_Command _Nullable command;
     Func_Resource_Read _Nullable    read;
     Func_Resource_Write _Nullable   write;
     Func_Resource_Close _Nullable   close;
@@ -75,13 +88,19 @@ typedef struct _Resource {
 #define Resource_Open(__pRes, __pPath, __options, __pOutRescon) \
     Object_GetClassAs(__pRes, Resource)->open(__pRes, __pPath, __options, __pOutRescon)
 
-#define Resource_Close(__pRes, __pCtx) \
-    Object_GetClassAs(__pRes, Resource)->close(__pRes, __pCtx)
+#define Resource_Dup(__pRes, __pResCtx, __pOutRescon) \
+    Object_GetClassAs(__pRes, Resource)->dup(__pRes, __pResCtx, __pOutRescon)
 
-#define Resource_Read(__pRes, __pCtx, __pBuffer, __nBytesToRead) \
-    Object_GetClassAs(__pRes, Resource)->read(__pRes, __pCtx, __pBuffer, __nBytesToRead)
+#define Resource_Close(__pRes, __pResCtx) \
+    Object_GetClassAs(__pRes, Resource)->close(__pRes, __pResCtx)
 
-#define Resource_Write(__pRes, __pCtx, __pBuffer, __nBytesToWrite) \
-    Object_GetClassAs(__pRes, Resource)->write(__pRes, __pCtx, __pBuffer, __nBytesToWrite)
+#define Resource_Command(__pRes, __op, __ap) \
+    Object_GetClassAs(__pRes, Resource)->command(__pRes, __op, __ap)
+
+#define Resource_Read(__pRes, __pResCtx, __pBuffer, __nBytesToRead) \
+    Object_GetClassAs(__pRes, Resource)->read(__pRes, __pResCtx, __pBuffer, __nBytesToRead)
+
+#define Resource_Write(__pRes, __pResCtx, __pBuffer, __nBytesToWrite) \
+    Object_GetClassAs(__pRes, Resource)->write(__pRes, __pResCtx, __pBuffer, __nBytesToWrite)
     
 #endif /* Resource_h */

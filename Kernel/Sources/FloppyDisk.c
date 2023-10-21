@@ -271,6 +271,8 @@ static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk);
 static ResourceClass gFloppyDiskClass = {
     (Func_Object_Deinit)_FloppyDisk_Deinit,
     (Func_Resource_Open)NULL,
+    (Func_Resource_Dup)NULL,
+    (Func_Resource_Command)NULL,
     (Func_Resource_Read)NULL,
     (Func_Resource_Write)NULL,
     (Func_Resource_Close)NULL
