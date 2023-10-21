@@ -111,8 +111,10 @@ void _EventDriver_Deinit(EventDriverRef _Nonnull pDriver)
     for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
         EventDriver_DestroyInputControllerForPort(pDriver, i);
     }
-    KeyboardDriver_Destroy(pDriver->keyboardDriver);
+    
+    Object_Release(pDriver->keyboardDriver);
     pDriver->keyboardDriver = NULL;
+
     HIDEventQueue_Destroy(pDriver->eventQueue);
 
     Object_Release(pDriver->gdevice);
@@ -330,28 +332,29 @@ ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriv
 
     switch (type) {
         case kInputControllerType_None:
+            pDriver->port[portId].driver = NULL;
             break;
             
         case kInputControllerType_Mouse:
-            try(MouseDriver_Create(pDriver, portId, &pDriver->port[portId].u.mouse.driver));
+            try(MouseDriver_Create(pDriver, portId, (MouseDriverRef*)&pDriver->port[portId].driver));
             break;
             
         case kInputControllerType_DigitalJoystick:
-            try(DigitalJoystickDriver_Create(pDriver, portId, &pDriver->port[portId].u.digitalJoystick.driver));
+            try(DigitalJoystickDriver_Create(pDriver, portId, (DigitalJoystickDriverRef*)&pDriver->port[portId].driver));
             pDriver->joystick[portId].buttonsDown = 0;
             pDriver->joystick[portId].xAbs = 0;
             pDriver->joystick[portId].yAbs = 0;
             break;
             
         case kInputControllerType_AnalogJoystick:
-            try(AnalogJoystickDriver_Create(pDriver, portId, &pDriver->port[portId].u.analogJoystick.driver));
+            try(AnalogJoystickDriver_Create(pDriver, portId, (AnalogJoystickDriverRef*)&pDriver->port[portId].driver));
             pDriver->joystick[portId].buttonsDown = 0;
             pDriver->joystick[portId].xAbs = 0;
             pDriver->joystick[portId].yAbs = 0;
             break;
             
         case kInputControllerType_LightPen:
-            try(LightPenDriver_Create(pDriver, portId, &pDriver->port[portId].u.lightPen.driver));
+            try(LightPenDriver_Create(pDriver, portId, (LightPenDriverRef*)&pDriver->port[portId].driver));
             break;
             
         default:
@@ -369,34 +372,8 @@ catch:
 // specific driver and all associated state
 void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId)
 {
-    switch (pDriver->port[portId].type) {
-        case kInputControllerType_None:
-            break;
-            
-        case kInputControllerType_Mouse:
-            MouseDriver_Destroy(pDriver->port[portId].u.mouse.driver);
-            pDriver->port[portId].u.mouse.driver = NULL;
-            break;
-            
-        case kInputControllerType_DigitalJoystick:
-            DigitalJoystickDriver_Destroy(pDriver->port[portId].u.digitalJoystick.driver);
-            pDriver->port[portId].u.digitalJoystick.driver = NULL;
-            break;
-            
-        case kInputControllerType_AnalogJoystick:
-            AnalogJoystickDriver_Destroy(pDriver->port[portId].u.analogJoystick.driver);
-            pDriver->port[portId].u.analogJoystick.driver = NULL;
-            break;
-            
-        case kInputControllerType_LightPen:
-            LightPenDriver_Destroy(pDriver->port[portId].u.lightPen.driver);
-            pDriver->port[portId].u.lightPen.driver = NULL;
-            break;
-            
-        default:
-            abort();
-    }
-    
+    Object_Release(pDriver->port[portId].driver);
+    pDriver->port[portId].driver = NULL;
     pDriver->port[portId].type = kInputControllerType_None;
 }
 
@@ -415,7 +392,9 @@ ErrorCode EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDri
     decl_try_err();
     Bool needsUnlock = false;
 
-    assert(portId >= 0 && portId < MAX_INPUT_CONTROLLER_PORTS);
+    if (portId < 0 || portId >= MAX_INPUT_CONTROLLER_PORTS) {
+        throw(ENODEV);
+    }
 
     Lock_Lock(&pDriver->lock);
     needsUnlock = true;

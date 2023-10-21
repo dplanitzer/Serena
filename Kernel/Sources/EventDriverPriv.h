@@ -36,24 +36,7 @@ typedef struct _LogicalJoystick {
 // Per port input controller state
 typedef struct _InputControllerState {
     InputControllerType     type;
-    union {
-        struct _MouseState {
-            MouseDriverRef _Nonnull driver;
-        }   mouse;
-        
-        struct _DigitalJoystickState {
-            DigitalJoystickDriverRef _Nonnull   driver;
-        }   digitalJoystick;
-        
-        struct _AnalogJoystickState {
-            AnalogJoystickDriverRef _Nonnull    driver;
-        }   analogJoystick;
-        
-        struct _LightPenState {
-            LightPenDriverRef _Nonnull  driver;
-            // XXX is state per light pen or map to mouse state?
-        }   lightPen;
-    }                       u;
+    ResourceRef _Nullable   driver;
 } InputControllerState;
 
 

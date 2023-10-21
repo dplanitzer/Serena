@@ -11,6 +11,7 @@
 
 #include <klib/klib.h>
 #include "EventDriver.h"
+#include "Resource.h"
 
 
 //
@@ -21,7 +22,6 @@ struct _KeyboardDriver;
 typedef struct _KeyboardDriver* KeyboardDriverRef;
 
 extern ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
-extern void KeyboardDriver_Destroy(KeyboardDriverRef _Nullable pDriver);
 
 extern void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
 extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay);
@@ -35,7 +35,6 @@ struct _MouseDriver;
 typedef struct _MouseDriver* MouseDriverRef;
 
 extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
-extern void MouseDriver_Destroy(MouseDriverRef _Nullable pDriver);
 
 
 //
@@ -46,7 +45,6 @@ struct _DigitalJoystickDriver;
 typedef struct _DigitalJoystickDriver* DigitalJoystickDriverRef;
 
 extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
-extern void DigitalJoystickDriver_Destroy(DigitalJoystickDriverRef _Nullable pDriver);
 
 
 //
@@ -57,7 +55,6 @@ struct _AnalogJoystickDriver;
 typedef struct _AnalogJoystickDriver* AnalogJoystickDriverRef;
 
 extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
-extern void AnalogJoystickDriver_Destroy(AnalogJoystickDriverRef _Nullable pDriver);
 
 
 //
@@ -68,6 +65,5 @@ struct _LightPenDriver;
 typedef struct _LightPenDriver* LightPenDriverRef;
 
 extern ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
-extern void LightPenDriver_Destroy(LightPenDriverRef _Nullable pDriver);
 
 #endif /* InputDriver_h */
