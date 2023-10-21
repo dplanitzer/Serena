@@ -561,7 +561,7 @@ void Process_UnregisterAllUObjects_Locked(ProcessRef _Nonnull pProc)
 // Looks up the user object identified by the given descriptor and returns a
 // strong reference to it if found. The caller should call release() on the
 // object once it is no longer needed.
-ErrorCode ResourceManager_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject)
+ErrorCode Process_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject)
 {
     decl_try_err();
 

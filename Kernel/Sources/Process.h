@@ -97,6 +97,6 @@ extern ErrorCode Process_UnregisterUObject(ProcessRef _Nonnull pProc, Int fd, UO
 // Looks up the user object identified by the given descriptor and returns a
 // strong reference to it if found. The caller should call release() on the
 // object once it is no longer needed.
-extern ErrorCode ResourceManager_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject);
+extern ErrorCode Process_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject);
 
 #endif /* Process_h */

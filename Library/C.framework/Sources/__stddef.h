@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <apollo/types.h>
+#include <apollo/apollo.h>
 
 #define CPU_PAGE_SIZE   4096
 

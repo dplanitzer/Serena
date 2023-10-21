@@ -61,21 +61,10 @@ Int TabStops_GetNextNthStop(TabStops* pStops, Int xLoc, Int nth, Int xWidth);
 Int TabStops_GetPreviousNthStop(TabStops* pStops, Int xLoc, Int nth);
 
 
-// Takes care of mapping a USB key scan code to a character or character sequence.
-// We may leave partial character sequences in the buffer if a Console_Read() didn't
-// read all bytes of a sequence. The next Console_Read() will first receive the
-// remaining buffered bytes before it receives bytes from new events.
-typedef struct _KeyMapper {
-    const KeyMap* _Nonnull  map;
-    Byte * _Nonnull         buffer;     // Holds a full or partial byte sequence produced by a key down event
-    ByteCount               capacity;   // Maximum number of bytes the buffer can hold
-    ByteCount               count;      // Number of bytes stored in the buffer
-    Int                     startIndex; // Index of first byte in the buffer where a partial byte sequence begins
-} KeyMapper;
-
-
 // The console object.
 typedef struct _Console {
+    Resource                    super;
+    
     Lock                        lock;
     EventDriverRef _Nonnull     pEventDriver;
     ResconRef _Nonnull          eventDriverChannel;
@@ -92,7 +81,6 @@ typedef struct _Console {
     LineBreakMode               lineBreakMode;
     Point                       savedCursorPosition;
     vtparse_t                   vtparse;
-    KeyMapper                   keyMapper;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
     Bool                        isTextCursorBlinkerEnabled; // true if the text cursor should blink. Visibility is a separate state
@@ -101,6 +89,34 @@ typedef struct _Console {
     Bool                        isTextCursorVisible;        // global text cursor visibility switch
 } Console;
 
+
+// Takes care of mapping a USB key scan code to a character or character sequence.
+// We may leave partial character sequences in the buffer if a Console_Read() didn't
+// read all bytes of a sequence. The next Console_Read() will first receive the
+// remaining buffered bytes before it receives bytes from new events.
+typedef struct _ConsoleChannel {
+    const KeyMap* _Nonnull  map;
+    ByteCount               capacity;   // Maximum number of bytes the buffer can hold
+    ByteCount               count;      // Number of bytes stored in the buffer
+    Int                     startIndex; // Index of first byte in the buffer where a partial byte sequence begins
+    Byte                    buffer[1];  // Holds a full or partial byte sequence produced by a key down event
+} ConsoleChannel;
+
+
+extern void _Console_Deinit(ConsoleRef _Nonnull pConsole);
+
+static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
+static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
+static void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled);
+static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
+static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
+static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
+static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
+static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
+
+extern ErrorCode _Console_Open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
+extern ByteCount _Console_Read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+extern ByteCount _Console_Write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite);
 
 //
 // Keymaps

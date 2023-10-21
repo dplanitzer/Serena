@@ -11,26 +11,26 @@
 ByteCount _Rescon_Read(ResconRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     if ((self->options & FREAD) == 0) {
-        return EBADF;
+        return -EBADF;
     }
 
     if (Object_Implements(self, Resource, read)) {
         return Resource_Read(self->resource, self->state, pBuffer, nBytesToRead);
     } else {
-        return EBADF;
+        return -EBADF;
     }
 }
 
 ByteCount _Rescon_Write(ResconRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
 {
     if ((self->options & FWRITE) == 0) {
-        return EBADF;
+        return -EBADF;
     }
 
     if (Object_Implements(self, Resource, write)) {
         return Resource_Write(self->resource, self->state, pBuffer, nBytesToWrite);
     } else {
-        return EBADF;
+        return -EBADF;
     }
 }
 

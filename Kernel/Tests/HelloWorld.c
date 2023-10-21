@@ -16,7 +16,7 @@
 // Process with a Child Process
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 int count1;
 int count2;
 
@@ -73,7 +73,7 @@ void main_closure(int argc, char *argv[])
 // Interactive Console
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
+#if 1
 void main_closure(int argc, char *argv[])
 {
     printf("Console v1.0\nReady.\n\n");

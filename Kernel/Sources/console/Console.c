@@ -8,14 +8,14 @@
 
 #include "ConsolePriv.h"
 
-static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
-static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
-static void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled);
-static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
-static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
-static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
-static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
-static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
+
+static ResourceClass gConsoleClass = {
+    (Func_Object_Deinit)_Console_Deinit,
+    (Func_Resource_Open)_Console_Open,
+    (Func_Resource_Read)_Console_Read,
+    (Func_Resource_Write)_Console_Write,
+    (Func_Resource_Close)NULL
+};
 
 
 // Creates a new console object. This console will display its output on the
@@ -28,7 +28,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     decl_try_err();
     Console* pConsole;
 
-    try(kalloc_cleared(sizeof(Console), (Byte**) &pConsole));
+    try(Object_Create(&gConsoleClass, sizeof(Console), &pConsole));
     
     Lock_Init(&pConsole->lock);
 
@@ -45,12 +45,6 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
     // Initialize the ANSI escape sequence parser
     vtparse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
-
-
-    // Initialize the key mapping service
-    pConsole->keyMapper.map = (const KeyMap*) &gKeyMap_usa[0];
-    pConsole->keyMapper.capacity = KeyMap_GetMaxOutputByteCount(pConsole->keyMapper.map);
-    try(kalloc_cleared(pConsole->keyMapper.capacity, &pConsole->keyMapper.buffer));
 
 
     // Allocate the text cursor (sprite)
@@ -82,42 +76,35 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     return err;
     
 catch:
-    Console_Destroy(pConsole);
+    Object_Release(pConsole);
     *pOutConsole = NULL;
     return err;
 }
 
 // Deallocates the console.
 // \param pConsole the console
-void Console_Destroy(ConsoleRef _Nullable pConsole)
+void _Console_Deinit(ConsoleRef _Nonnull pConsole)
 {
-    if (pConsole) {
-        Console_SetCursorBlinkingEnabled_Locked(pConsole, false);
-        GraphicsDriver_RelinquishSprite(pConsole->pGDevice, pConsole->textCursor);
+    Console_SetCursorBlinkingEnabled_Locked(pConsole, false);
+    GraphicsDriver_RelinquishSprite(pConsole->pGDevice, pConsole->textCursor);
 
-        Timer_Destroy(pConsole->textCursorBlinker);
-        pConsole->textCursorBlinker = NULL;
-
-        kfree(pConsole->keyMapper.buffer);
-        pConsole->keyMapper.buffer = NULL;
+    Timer_Destroy(pConsole->textCursorBlinker);
+    pConsole->textCursorBlinker = NULL;
         
-        TabStops_Deinit(&pConsole->hTabStops);
-        TabStops_Deinit(&pConsole->vTabStops);
+    TabStops_Deinit(&pConsole->hTabStops);
+    TabStops_Deinit(&pConsole->vTabStops);
         
-        Lock_Deinit(&pConsole->lock);
+    Lock_Deinit(&pConsole->lock);
 
-        pConsole->pGDevice = NULL;
+    pConsole->pGDevice = NULL;
 
-        if (pConsole->eventDriverChannel) {
-            Resource_Close(pConsole->pEventDriver, pConsole->eventDriverChannel);
-            Object_Release(pConsole->eventDriverChannel);
-            pConsole->eventDriverChannel = NULL;
-        }
-        Object_Release(pConsole->pEventDriver);
-        pConsole->pEventDriver = NULL;
-        
-        kfree((Byte*)pConsole);
+    if (pConsole->eventDriverChannel) {
+        Resource_Close(pConsole->pEventDriver, pConsole->eventDriverChannel);
+        Object_Release(pConsole->eventDriverChannel);
+        pConsole->eventDriverChannel = NULL;
     }
+    Object_Release(pConsole->pEventDriver);
+    pConsole->pEventDriver = NULL;
 }
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
@@ -912,29 +899,29 @@ static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_actio
 // Read/Write
 ////////////////////////////////////////////////////////////////////////////////
 
-
-// Writes the given byte sequence of characters to the console.
-// \param pConsole the console
-// \param pBytes the byte sequence
-// \param nBytes the number of bytes to write
-// \return the number of bytes writte; a negative error code if an error was encountered
-ByteCount Console_Write(ConsoleRef _Nonnull pConsole, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
+ErrorCode _Console_Open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon)
 {
-    const unsigned char* pChars = (const unsigned char*) pBytes;
-    const unsigned char* pCharsEnd = pChars + nBytesToWrite;
+    decl_try_err();
+    ResconRef pRescon;
+    const KeyMap* pKeyMap = (const KeyMap*) &gKeyMap_usa[0];
+    const ByteCount keyMapSize = KeyMap_GetMaxOutputByteCount(pKeyMap);
 
-    Lock_Lock(&pConsole->lock);
-    while (pChars < pCharsEnd) {
-        const unsigned char by = *pChars++;
+    try(Rescon_Create((ResourceRef) pConsole, options, sizeof(ConsoleChannel) + sizeof(Byte) * (keyMapSize - 1), &pRescon));
 
-        vtparse_byte(&pConsole->vtparse, by);
-    }
-    Lock_Unlock(&pConsole->lock);
+    ConsoleChannel* pChannel = Rescon_GetStateAs(pRescon, ConsoleChannel);
+    pChannel->map = pKeyMap;
+    pChannel->capacity = keyMapSize;
 
-    return nBytesToWrite;
+    *pOutRescon = pRescon;
+    return EOK;
+
+catch:
+    Object_Release(pRescon);
+    *pOutRescon = NULL;
+    return err;
 }
 
-ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount _Console_Read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     HIDEvent evt;
     Int evtCount;
@@ -945,9 +932,9 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
 
     // First check whether we got a partial key byte sequence sitting in our key
     // mapping buffer and copy that one out.
-    while (nBytesRead < nBytesToRead && pConsole->keyMapper.count > 0) {
-        pBuffer[nBytesRead++] = pConsole->keyMapper.buffer[pConsole->keyMapper.startIndex++];
-        pConsole->keyMapper.count--;
+    while (nBytesRead < nBytesToRead && pChannel->count > 0) {
+        pBuffer[nBytesRead++] = pChannel->buffer[pChannel->startIndex++];
+        pChannel->count--;
     }
 
 
@@ -966,7 +953,6 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
-        // XXX later
         if (nEvtBytesRead < 0) {
             err = (ErrorCode) -nEvtBytesRead;
             break;
@@ -977,22 +963,43 @@ ByteCount Console_Read(ConsoleRef _Nonnull pConsole, Byte* _Nonnull pBuffer, Byt
         }
 
 
-        pConsole->keyMapper.count = KeyMap_Map(pConsole->keyMapper.map, &evt.data.key, pConsole->keyMapper.buffer, pConsole->keyMapper.capacity);
+        pChannel->count = KeyMap_Map(pChannel->map, &evt.data.key, pChannel->buffer, pChannel->capacity);
 
         Int i = 0;
-        while (nBytesRead < nBytesToRead && pConsole->keyMapper.count > 0) {
-            pBuffer[nBytesRead++] = pConsole->keyMapper.buffer[i++];
-            pConsole->keyMapper.count--;
+        while (nBytesRead < nBytesToRead && pChannel->count > 0) {
+            pBuffer[nBytesRead++] = pChannel->buffer[i++];
+            pChannel->count--;
         }
 
-        if (pConsole->keyMapper.count > 0) {
+        if (pChannel->count > 0) {
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
-            pConsole->keyMapper.startIndex = i;
+            pChannel->startIndex = i;
         }
     }
 
     Lock_Unlock(&pConsole->lock);
     
     return (err == EOK) ? nBytesRead : -err;
+}
+
+// Writes the given byte sequence of characters to the console.
+// \param pConsole the console
+// \param pBytes the byte sequence
+// \param nBytes the number of bytes to write
+// \return the number of bytes writte; a negative error code if an error was encountered
+ByteCount _Console_Write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
+{
+    const unsigned char* pChars = (const unsigned char*) pBytes;
+    const unsigned char* pCharsEnd = pChars + nBytesToWrite;
+
+    Lock_Lock(&pConsole->lock);
+    while (pChars < pCharsEnd) {
+        const unsigned char by = *pChars++;
+
+        vtparse_byte(&pConsole->vtparse, by);
+    }
+    Lock_Unlock(&pConsole->lock);
+
+    return nBytesToWrite;
 }

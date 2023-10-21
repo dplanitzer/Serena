@@ -13,24 +13,85 @@
 #include "VirtualProcessor.h"
 
 
+typedef struct _SYS_open_args {
+    Int                         scno;
+    const Character* _Nonnull   path;
+    UInt                        options;
+} SYS_open_args;
+
+Int _SYSCALL_open(const SYS_open_args* _Nonnull pArgs)
+{
+    decl_try_err();
+    ConsoleRef pConsole = NULL;
+    ResconRef pChannel = NULL;
+    Int desc;
+
+    if (String_Equals(pArgs->path, "/dev/console")) {
+        try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+        try(Resource_Open(pConsole, pArgs->path, pArgs->options, &pChannel));
+        try(Process_RegisterUObject(Process_GetCurrent(), (UObjectRef) pChannel, &desc));
+        Object_Release(pChannel);
+
+        return desc;
+    }
+
+    return ENODEV;
+
+catch:
+    Object_Release(pChannel);
+    return -err;
+}
+
+
+typedef struct _SYS_close_args {
+    Int scno;
+    Int fd;
+} SYS_close_args;
+
+Int _SYSCALL_close(const SYS_close_args* _Nonnull pArgs)
+{
+    decl_try_err();
+    UObjectRef pObj;
+
+    try(Process_UnregisterUObject(Process_GetCurrent(), pArgs->fd, &pObj));
+
+    // The error that close() returns is purely advisory and thus we'll proceed
+    // with releasing the resource in any case.
+    if (Object_Implements(pObj, UObject, close)) {
+        err = UObject_Close(pObj);
+    }
+    Object_Release(pObj);
+    return -err;
+
+catch:
+    return -err;
+}
+
+
 typedef struct _SYS_read_args {
     Int                 scno;
     Int                 fd;
     Character* _Nonnull buffer;
-    UByteCount          nbytes;
+    UByteCount          count;
 } SYS_read_args;
 
 ByteCount _SYSCALL_read(const SYS_read_args* _Nonnull pArgs)
 {
     decl_try_err();
-    ConsoleRef pConsole;
-    const ByteCount nBytesToRead = __ByteCountByClampingUByteCount(pArgs->nbytes);
+    UObjectRef pObj;
+    ByteCount nb = 0;
 
-    throw_ifnull(pArgs->buffer, EPARAM);
-    try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-    return Console_Read(pConsole, pArgs->buffer, nBytesToRead);
+    try(Process_GetOwnedUObjectForDescriptor(Process_GetCurrent(), pArgs->fd, &pObj));
+    if (Object_Implements(pObj, UObject, read)) {
+        nb = UObject_Read(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    } else {
+        throw(EBADF);
+    }
+    Object_Release(pObj);
+    return nb;
 
 catch:
+    Object_Release(pObj);
     return -err;
 }
 
@@ -39,20 +100,26 @@ typedef struct _SYS_write_args {
     Int                     scno;
     Int                     fd;
     const Byte* _Nonnull    buffer;
-    UByteCount              nbytes;
+    UByteCount              count;
 } SYS_write_args;
 
 ByteCount _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
-    ConsoleRef pConsole;
-    const ByteCount nBytesToWrite = __ByteCountByClampingUByteCount(pArgs->nbytes);
+    UObjectRef pObj;
+    ByteCount nb = 0;
 
-    throw_ifnull(pArgs->buffer, EPARAM);
-    try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-    return Console_Write(pConsole, pArgs->buffer, nBytesToWrite);
+    try(Process_GetOwnedUObjectForDescriptor(Process_GetCurrent(), pArgs->fd, &pObj));
+    if (Object_Implements(pObj, UObject, read)) {
+        nb = UObject_Write(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    } else {
+        throw(EBADF);
+    }
+    Object_Release(pObj);
+    return nb;
 
 catch:
+    Object_Release(pObj);
     return -err;
 }
 
@@ -64,7 +131,8 @@ typedef struct _SYS_sleep_args {
 
 Int _SYSCALL_sleep(const SYS_sleep_args* _Nonnull pArgs)
 {
-    return VirtualProcessor_Sleep(pArgs->ti);
+    const ErrorCode err = VirtualProcessor_Sleep(pArgs->ti);
+    return (err == EOK) ? EOK : -err;
 }
 
 
@@ -78,10 +146,11 @@ Int _SYSCALL_dispatch_async(const SYS_dispatch_async_args* pArgs)
     decl_try_err();
 
     throw_ifnull(pArgs->userClosure, EPARAM);
-    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->userClosure);
+    try(Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->userClosure));
+    return EOK;
 
 catch:
-    return err;
+    return -err;
 }
 
 
@@ -105,12 +174,13 @@ Int _SYSCALL_alloc_address_space(SYS_alloc_address_space_args* _Nonnull pArgs)
     }
     throw_ifnull(pArgs->pOutMem, EPARAM);
 
-    return Process_AllocateAddressSpace(Process_GetCurrent(),
+    try(Process_AllocateAddressSpace(Process_GetCurrent(),
         __ByteCountByClampingUByteCount(pArgs->nbytes),
-        pArgs->pOutMem);
+        pArgs->pOutMem));
+    return EOK;
 
 catch:
-    return err;
+    return -err;
 }
 
 
@@ -176,7 +246,7 @@ catch:
     if (pChildProc) {
         Process_RemoveChildProcess(pCurProc, pChildProc);
     }
-    return err;
+    return -err;
 }
 
 
@@ -195,59 +265,4 @@ Int _SYSCALL_getppid(void)
 Int _SYSCALL_getpargs(void)
 {
     return (Int) Process_GetArgumentsBaseAddress(Process_GetCurrent());
-}
-
-
-typedef struct _SYS_open_args {
-    Int                         scno;
-    const Character* _Nonnull   path;
-    UInt                        options;
-} SYS_open_args;
-
-Int _SYSCALL_open(const SYS_open_args* _Nonnull pArgs)
-{
-    decl_try_err();
-    EventDriverRef pEventDriver = NULL;
-    ResconRef pChannel = NULL;
-    Int desc;
-
-    if (String_Equals(pArgs->path, "/dev/events")) {
-
-        try_null(pEventDriver, (EventDriverRef) DriverManager_GetDriverForName(gDriverManager, kEventsDriverName), ENODEV);
-        try(Resource_Open(pEventDriver, pArgs->path, pArgs->options, &pChannel));
-        try(Process_RegisterUObject(Process_GetCurrent(), (UObjectRef) pChannel, &desc));
-        Object_Release(pChannel);
-
-        return desc;
-    }
-    return ENODEV;
-
-catch:
-    Object_Release(pChannel);
-    return err;
-}
-
-
-typedef struct _SYS_close_args {
-    Int scno;
-    Int fd;
-} SYS_close_args;
-
-Int _SYSCALL_close(const SYS_close_args* _Nonnull pArgs)
-{
-    decl_try_err();
-    UObjectRef pObj;
-
-    try(Process_UnregisterUObject(Process_GetCurrent(), pArgs->fd, &pObj));
-
-    // The error that close() returns is purely advisory and thus we'll proceed
-    // with releasing the resource in any case.
-    if (Object_Implements(pObj, UObject, close)) {
-        err = UObject_Close(pObj);
-    }
-    Object_Release(pObj);
-    return err;
-
-catch:
-    return err;
 }

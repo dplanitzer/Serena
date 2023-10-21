@@ -25,8 +25,8 @@ typedef struct _ResconClass {
 
 typedef struct _ResconClass* ResconClassRef;
 
-#define FREAD   1
-#define FWRITE  2
+#define FREAD   0x0001
+#define FWRITE  0x0002
 
 typedef struct _Rescon {
     UObject                 super;
@@ -51,11 +51,11 @@ extern ErrorCode Rescon_Create(ResourceRef pResource, UInt options, ByteCount st
 // protected by the resource's internal locking mechanism.
 typedef FuncN(ErrorCode, Func_Resource_Open, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
 
-typedef FuncN(ByteCount, Func_Resource_Read, void* pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-typedef FuncN(ByteCount, Func_Resource_Write, void* pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+typedef FuncN(ByteCount, Func_Resource_Read, void* _Nonnull pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+typedef FuncN(ByteCount, Func_Resource_Write, void* _Nonnull pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
 
 // See UObject.close()
-typedef FuncN(ErrorCode, Func_Resource_Close, void* pContext);
+typedef FuncN(ErrorCode, Func_Resource_Close, void* _Nonnull pContext);
 
 typedef struct _ResourceClass {
     Class                           super;
