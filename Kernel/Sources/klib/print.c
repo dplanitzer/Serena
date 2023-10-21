@@ -255,7 +255,6 @@ void print(const Character* _Nonnull format, ...)
 static void printv_console_sink_locked(void* _Nullable pContext, const Character* _Nonnull pBuffer, ByteCount nBytes)
 {
     UObject_Write(gConsoleChannel, pBuffer, nBytes);
-//    Console_Write(gConsole, pBuffer, nBytes);
 }
 
 void printv(const Character* _Nonnull format, va_list ap)

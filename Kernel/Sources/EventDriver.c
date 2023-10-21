@@ -59,7 +59,7 @@ ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef 
     try(Object_Create(&gEventDriverClass, sizeof(EventDriver), &pDriver));
 
     Lock_Init(&pDriver->lock);
-    pDriver->graphicsDriver = gdevice;
+    pDriver->gdevice = Object_RetainAs(gdevice, GraphicsDriver);
 
     pDriver->keyFlags = gUSBHIDKeyFlags;
 
@@ -114,7 +114,10 @@ void _EventDriver_Deinit(EventDriverRef _Nonnull pDriver)
     KeyboardDriver_Destroy(pDriver->keyboardDriver);
     pDriver->keyboardDriver = NULL;
     HIDEventQueue_Destroy(pDriver->eventQueue);
-    pDriver->graphicsDriver = NULL;
+
+    Object_Release(pDriver->gdevice);
+    pDriver->gdevice = NULL;
+
     Lock_Deinit(&pDriver->lock);
 }
 
@@ -125,7 +128,7 @@ void _EventDriver_Deinit(EventDriverRef _Nonnull pDriver)
 
 GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull pDriver)
 {
-    return pDriver->graphicsDriver;
+    return pDriver->gdevice;
 }
 
 // Reports a key down, repeat or up from a keyboard device. This function updates
@@ -201,7 +204,7 @@ void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 
         pDriver->mouseX = __min(__max(pDriver->mouseX, pDriver->screenLeft), pDriver->screenRight);
         pDriver->mouseY = __min(__max(pDriver->mouseY, pDriver->screenTop), pDriver->screenBottom);
 
-        GraphicsDriver_SetMouseCursorPositionFromInterruptContext(pDriver->graphicsDriver, pDriver->mouseX, pDriver->mouseY);
+        GraphicsDriver_SetMouseCursorPositionFromInterruptContext(pDriver->gdevice, pDriver->mouseX, pDriver->mouseY);
     }
     pDriver->mouseButtons = buttonsDown;
 
@@ -503,7 +506,7 @@ void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const HIDKey
 
 void EventDriver_SetMouseCursor(EventDriverRef _Nonnull pDriver, const Byte* pBitmap, const Byte* pMask)
 {
-    GraphicsDriver_SetMouseCursor(pDriver->graphicsDriver, pBitmap, pMask);
+    GraphicsDriver_SetMouseCursor(pDriver->gdevice, pBitmap, pMask);
 }
 
 // Show the mouse cursor. This decrements the hidden counter. The mouse cursor
@@ -517,7 +520,7 @@ void EventDriver_ShowMouseCursor(EventDriverRef _Nonnull pDriver)
         pDriver->mouseCursorHiddenCounter = 0;
     }
     if (pDriver->mouseCursorHiddenCounter == 0) {
-        GraphicsDriver_SetMouseCursorVisible(pDriver->graphicsDriver, true);
+        GraphicsDriver_SetMouseCursorVisible(pDriver->gdevice, true);
     }
     Lock_Unlock(&pDriver->lock);
 }
@@ -529,7 +532,7 @@ void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver)
 {
     Lock_Lock(&pDriver->lock);
     if (pDriver->mouseCursorHiddenCounter == 0) {
-        GraphicsDriver_SetMouseCursorVisible(pDriver->graphicsDriver, false);
+        GraphicsDriver_SetMouseCursorVisible(pDriver->gdevice, false);
     }
     pDriver->mouseCursorHiddenCounter++;
     Lock_Unlock(&pDriver->lock);
@@ -537,7 +540,7 @@ void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver)
 
 void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonnull pDriver, Bool flag)
 {
-    GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(pDriver->graphicsDriver, flag);
+    GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(pDriver->gdevice, flag);
 }
 
 // Returns the current mouse location in screen space.

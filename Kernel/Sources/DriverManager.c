@@ -45,11 +45,17 @@ static void DriverEntry_Destroy(DriverEntry* _Nullable pEntry)
     if (pEntry) {
         SListNode_Deinit(&pEntry->node);
         pEntry->name = NULL;
+
+        Object_Release(pEntry->instance);
         pEntry->instance = NULL;
+        
         kfree((Byte*)pEntry);
     }
 }
 
+// Adopts the given driver. Meaning that this initializer does not take out an
+// extra strong reference to the driver. It assumes that it should take ownership
+// of the provided strong reference.
 static ErrorCode DriverEntry_Create(const Character* _Nonnull pName, DriverRef _Nonnull pDriverInstance, DriverEntry* _Nullable * _Nonnull pOutEntry)
 {
     decl_try_err();

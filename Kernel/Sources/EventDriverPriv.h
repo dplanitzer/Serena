@@ -70,7 +70,7 @@ typedef struct _EventDriver {
     Resource                    super;
 
     Lock                        lock;
-    GraphicsDriverRef _Nonnull  graphicsDriver;
+    GraphicsDriverRef _Nonnull  gdevice;
     HIDEventQueueRef _Nonnull   eventQueue;
     KeyboardDriverRef _Nonnull  keyboardDriver;
     InputControllerState        port[MAX_INPUT_CONTROLLER_PORTS];

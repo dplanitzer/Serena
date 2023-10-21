@@ -32,10 +32,10 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     
     Lock_Init(&pConsole->lock);
 
-    pConsole->pEventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(Resource_Open(pConsole->pEventDriver, "", FREAD, &pConsole->eventDriverChannel));
+    pConsole->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
+    try(Resource_Open(pConsole->eventDriver, "", FREAD, &pConsole->eventDriverChannel));
 
-    pConsole->pGDevice = pGDevice;
+    pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
 
     pConsole->lineHeight = GLYPH_HEIGHT;
     pConsole->characterWidth = GLYPH_WIDTH;
@@ -86,7 +86,7 @@ catch:
 void _Console_Deinit(ConsoleRef _Nonnull pConsole)
 {
     Console_SetCursorBlinkingEnabled_Locked(pConsole, false);
-    GraphicsDriver_RelinquishSprite(pConsole->pGDevice, pConsole->textCursor);
+    GraphicsDriver_RelinquishSprite(pConsole->gdevice, pConsole->textCursor);
 
     Timer_Destroy(pConsole->textCursorBlinker);
     pConsole->textCursorBlinker = NULL;
@@ -96,15 +96,16 @@ void _Console_Deinit(ConsoleRef _Nonnull pConsole)
         
     Lock_Deinit(&pConsole->lock);
 
-    pConsole->pGDevice = NULL;
+    Object_Release(pConsole->gdevice);
+    pConsole->gdevice = NULL;
 
     if (pConsole->eventDriverChannel) {
-        Resource_Close(pConsole->pEventDriver, pConsole->eventDriverChannel);
+        Resource_Close(pConsole->eventDriver, pConsole->eventDriverChannel);
         Object_Release(pConsole->eventDriverChannel);
         pConsole->eventDriverChannel = NULL;
     }
-    Object_Release(pConsole->pEventDriver);
-    pConsole->pEventDriver = NULL;
+    Object_Release(pConsole->eventDriver);
+    pConsole->eventDriver = NULL;
 }
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
@@ -112,15 +113,15 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     decl_try_err();
     const Surface* pFramebuffer;
     
-    try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pConsole->pGDevice), ENODEV);
+    try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pConsole->gdevice), ENODEV);
     pConsole->bounds = Rect_Make(0, 0, pFramebuffer->width / pConsole->characterWidth, pFramebuffer->height / pConsole->lineHeight);
     pConsole->savedCursorPosition = Point_Zero;
 
-    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 0, &pConsole->backgroundColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 1, &pConsole->textColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 17, &pConsole->textColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 18, &pConsole->textColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->pGDevice, 19, &pConsole->textColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 0, &pConsole->backgroundColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 1, &pConsole->textColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 17, &pConsole->textColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 18, &pConsole->textColor);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 19, &pConsole->textColor);
 
     TabStops_Deinit(&pConsole->hTabStops);
     try(TabStops_Init(&pConsole->hTabStops, __max(Rect_GetWidth(pConsole->bounds) / 8, 0), 8));
@@ -143,7 +144,7 @@ catch:
 // \param pConsole the console
 static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole)
 {
-    GraphicsDriver_Clear(pConsole->pGDevice);
+    GraphicsDriver_Clear(pConsole->gdevice);
 }
 
 // Clears the specified line. Does not change the cursor position.
@@ -172,7 +173,7 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
                 abort();
         }
 
-        GraphicsDriver_FillRect(pConsole->pGDevice,
+        GraphicsDriver_FillRect(pConsole->gdevice,
                             Rect_Make(left * pConsole->characterWidth, y * pConsole->lineHeight, right * pConsole->characterWidth, pConsole->lineHeight),
                             Color_MakeIndex(0));
     }
@@ -182,7 +183,7 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
 // position.
 static void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, Point dstLoc)
 {
-    GraphicsDriver_CopyRect(pConsole->pGDevice,
+    GraphicsDriver_CopyRect(pConsole->gdevice,
                             Rect_Make(srcRect.left * pConsole->characterWidth, srcRect.top * pConsole->lineHeight, srcRect.right * pConsole->characterWidth, srcRect.bottom * pConsole->lineHeight),
                             Point_Make(dstLoc.x * pConsole->characterWidth, dstLoc.y * pConsole->lineHeight));
 }
@@ -194,7 +195,7 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Cha
     const Rect r = Rect_Intersection(rect, pConsole->bounds);
 
     if (ch == ' ') {
-        GraphicsDriver_FillRect(pConsole->pGDevice,
+        GraphicsDriver_FillRect(pConsole->gdevice,
                                 Rect_Make(r.left * pConsole->characterWidth, r.top * pConsole->lineHeight, r.right * pConsole->characterWidth, r.bottom * pConsole->lineHeight),
                                 Color_MakeIndex(0));
     }
@@ -204,7 +205,7 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Cha
     else {
         for (Int y = r.top; y < r.bottom; y++) {
             for (Int x = r.left; x < r.right; x++) {
-                GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], x, y);
+                GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], x, y);
             }
         }
     }
@@ -292,7 +293,7 @@ static void Console_OnTextCursorBlink(Console* _Nonnull pConsole)
     
     pConsole->isTextCursorOn = !pConsole->isTextCursorOn;
     if (pConsole->isTextCursorVisible) {
-        GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, pConsole->isTextCursorOn || pConsole->isTextCursorSingleCycleOn);
+        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, pConsole->isTextCursorOn || pConsole->isTextCursorSingleCycleOn);
     }
     pConsole->isTextCursorSingleCycleOn = false;
 
@@ -305,7 +306,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _No
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
         DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
-        GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, true);
+        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, true);
         pConsole->isTextCursorOn = false;
         pConsole->isTextCursorSingleCycleOn = false;
 
@@ -315,7 +316,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _No
     } else {
         // Make sure that the text cursor and blinker are off
         DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
-        GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, false);
+        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, false);
         pConsole->isTextCursorOn = false;
         pConsole->isTextCursorSingleCycleOn = false;
     }
@@ -339,14 +340,14 @@ static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isV
 
 static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
 {
-    GraphicsDriver_SetSpritePosition(pConsole->pGDevice, pConsole->textCursor, pConsole->x * pConsole->characterWidth, pConsole->y * pConsole->lineHeight);
+    GraphicsDriver_SetSpritePosition(pConsole->gdevice, pConsole->textCursor, pConsole->x * pConsole->characterWidth, pConsole->y * pConsole->lineHeight);
     // Temporarily force the cursor to be visible, but without changing the text
     // cursor visibility state officially. We just want to make sure that the
     // cursor is on when the user types a character. This however should not
     // change anything about the blinking phase and frequency.
     if (!pConsole->isTextCursorSingleCycleOn && !pConsole->isTextCursorOn && pConsole->isTextCursorBlinkerEnabled && pConsole->isTextCursorVisible) {
         pConsole->isTextCursorSingleCycleOn = true;
-        GraphicsDriver_SetSpriteVisible(pConsole->pGDevice, pConsole->textCursor, true);
+        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, true);
     }
 }
 
@@ -438,7 +439,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
 static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     // The cursor position is always valid and inside the framebuffer
-    GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
+    GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
     Console_MoveCursor_Locked(pConsole, 1, 0);
 }
 
@@ -500,7 +501,7 @@ static void Console_Execute_CCH_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (pConsole->x > 0) {
         Console_MoveCursor_Locked(pConsole, -1, 0);
-        GraphicsDriver_BlitGlyph_8x8bw(pConsole->pGDevice, &font8x8_latin1[0x20][0], pConsole->x, pConsole->y);
+        GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[0x20][0], pConsole->x, pConsole->y);
     }
 }
 

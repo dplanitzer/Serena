@@ -42,6 +42,16 @@ Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* 
 // MARK: -
 // MARK: RealtimeClock
 
+static void _RealtimeClock_Deinit(RealtimeClockRef _Nonnull pClock);
+
+static ResourceClass gRealtimeClockClass = {
+    (Func_Object_Deinit)_RealtimeClock_Deinit,
+    (Func_Resource_Open)NULL,
+    (Func_Resource_Read)NULL,
+    (Func_Resource_Write)NULL,
+    (Func_Resource_Close)NULL
+};
+
 
 // Checks whether the system has a RTC installed and returns a realtime clock
 // object ifg that's the case; otherwise NULL is returned
@@ -50,24 +60,21 @@ ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, Realt
     decl_try_err();
     RealtimeClockRef pClock;
     
-    try(kalloc_cleared(sizeof(RealtimeClock), (Byte**) &pClock));
+    try(Object_Create(&gRealtimeClockClass, sizeof(RealtimeClock), &pClock));
     Lock_Init(&pClock->lock);
     
     *pOutDriver = pClock;
     return EOK;
     
 catch:
-    RealtimeClock_Destroy(pClock);
+    Object_Release(pClock);
     *pOutDriver = NULL;
     return err;
 }
 
-void RealtimeClock_Destroy(RealtimeClockRef _Nullable pClock)
+static void _RealtimeClock_Deinit(RealtimeClockRef _Nonnull pClock)
 {
-    if (pClock) {
-        Lock_Deinit(&pClock->lock);
-        kfree((Byte*)pClock);
-    }
+    Lock_Deinit(&pClock->lock);
 }
 
 // Returns the current Gregorian date & time.

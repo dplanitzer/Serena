@@ -10,6 +10,7 @@
 #define RealtimeClock_h
 
 #include <klib/klib.h>
+#include "Resource.h"
 #include "SystemDescription.h"
 
 
@@ -35,7 +36,6 @@ struct _RealtimeClock;
 typedef struct _RealtimeClock* RealtimeClockRef;
 
 extern ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver);
-extern void RealtimeClock_Destroy(RealtimeClockRef _Nullable pClock);
 
 extern ErrorCode RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate* _Nonnull pDate);
 extern ErrorCode RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const GregorianDate* _Nonnull pDate);

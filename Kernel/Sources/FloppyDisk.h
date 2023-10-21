@@ -11,6 +11,7 @@
 
 #include <klib/klib.h>
 #include "InterruptController.h"
+#include "Resource.h"
 #include "Semaphore.h"
 
 
@@ -60,6 +61,8 @@ extern ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
 // Stores the state of a single floppy drive.
 // !!! Keep in sync with memory.i !!!
 typedef struct _FloppyDisk {
+    Resource            super;
+
     UInt16* _Nonnull    track_buffer;                               // cached track data (MFM encoded)
     Int16               track_size;                                 // cache size in words
     Int16               track_sectors[FLOPPY_SECTORS_CAPACITY];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist
@@ -73,7 +76,6 @@ typedef struct _FloppyDisk {
 
 
 extern ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk);
-extern void FloppyDisk_Destroy(FloppyDisk* _Nullable pDisk);
 
 extern ErrorCode FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk);
 

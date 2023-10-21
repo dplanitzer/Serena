@@ -121,6 +121,8 @@ extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 //
 
 typedef struct _GraphicsDriver {
+    Resource                super;
+
     Screen* _Nonnull        screen;
     Sprite* _Nonnull        nullSprite;
     Lock                    lock;   // protects the driver and the current screen
@@ -131,6 +133,8 @@ typedef struct _GraphicsDriver {
     MousePainter            mousePainter;
 } GraphicsDriver;
 
+
+extern void _GraphicsDriver_Deinit(GraphicsDriverRef _Nonnull pDriver);
 
 extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver);
 extern void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver);

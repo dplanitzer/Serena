@@ -358,6 +358,14 @@ static const ColorTable gDefaultColorTable = {
     0x0000      // XXX Mouse cursor
 };
 
+static ResourceClass gGraphicsDriverClass = {
+    (Func_Object_Deinit)_GraphicsDriver_Deinit,
+    (Func_Resource_Open)NULL,
+    (Func_Resource_Read)NULL,
+    (Func_Resource_Write)NULL,
+    (Func_Resource_Close)NULL
+};
+
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
@@ -367,7 +375,7 @@ ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pix
     GraphicsDriver* pDriver;
     Screen* pScreen;
     
-    try(kalloc_cleared(sizeof(GraphicsDriver), (Byte**) &pDriver));
+    try(Object_Create(&gGraphicsDriverClass, sizeof(GraphicsDriver), &pDriver));
     pDriver->isLightPenEnabled = false;
     Lock_Init(&pDriver->lock);
     
@@ -418,35 +426,31 @@ ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pix
     return EOK;
 
 catch:
-    GraphicsDriver_Destroy(pDriver);
+    Object_Release(pDriver);
     *pOutDriver = NULL;
     return err;
 }
 
 // Deallocates the given graphics driver.
-void GraphicsDriver_Destroy(GraphicsDriverRef _Nullable pDriver)
+void _GraphicsDriver_Deinit(GraphicsDriverRef _Nonnull pDriver)
 {
-    if (pDriver) {
-        GraphicsDriver_StopVideoRefresh_Locked(pDriver);
+    GraphicsDriver_StopVideoRefresh_Locked(pDriver);
         
-        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vb_irq_handler));
-        pDriver->vb_irq_handler = 0;
+    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vb_irq_handler));
+    pDriver->vb_irq_handler = 0;
         
-        Screen_Destroy(pDriver->screen);
-        pDriver->screen = NULL;
+    Screen_Destroy(pDriver->screen);
+    pDriver->screen = NULL;
 
-        Sprite_Destroy(pDriver->nullSprite);
-        pDriver->nullSprite = NULL;
+    Sprite_Destroy(pDriver->nullSprite);
+    pDriver->nullSprite = NULL;
 
-        Semaphore_Deinit(&pDriver->vblank_sema);
-        CopperScheduler_Deinit(&pDriver->copperScheduler);
+    Semaphore_Deinit(&pDriver->vblank_sema);
+    CopperScheduler_Deinit(&pDriver->copperScheduler);
 
-        MousePainter_Deinit(&pDriver->mousePainter);
+    MousePainter_Deinit(&pDriver->mousePainter);
 
-        Lock_Deinit(&pDriver->lock);
-        
-        kfree((Byte*)pDriver);
-    }
+    Lock_Deinit(&pDriver->lock);
 }
 
 void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver)

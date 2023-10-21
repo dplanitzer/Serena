@@ -6,10 +6,9 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <console/Console.h>
 #include "DriverManager.h"
-#include "EventDriver.h"
 #include "Process.h"
+#include "Resource.h"
 #include "VirtualProcessor.h"
 
 
@@ -22,12 +21,12 @@ typedef struct _SYS_open_args {
 Int _SYSCALL_open(const SYS_open_args* _Nonnull pArgs)
 {
     decl_try_err();
-    ConsoleRef pConsole = NULL;
+    ResourceRef pConsole = NULL;
     ResconRef pChannel = NULL;
     Int desc;
 
     if (String_Equals(pArgs->path, "/dev/console")) {
-        try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+        try_null(pConsole, (ResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
         try(Resource_Open(pConsole, pArgs->path, pArgs->options, &pChannel));
         try(Process_RegisterUObject(Process_GetCurrent(), (UObjectRef) pChannel, &desc));
         Object_Release(pChannel);

@@ -66,9 +66,9 @@ typedef struct _Console {
     Resource                    super;
     
     Lock                        lock;
-    EventDriverRef _Nonnull     pEventDriver;
+    EventDriverRef _Nonnull     eventDriver;
     ResconRef _Nonnull          eventDriverChannel;
-    GraphicsDriverRef _Nonnull  pGDevice;
+    GraphicsDriverRef _Nonnull  gdevice;
     RGBColor                    backgroundColor;
     RGBColor                    textColor;
     Int                         lineHeight;     // In pixels

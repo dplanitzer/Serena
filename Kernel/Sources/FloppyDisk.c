@@ -264,18 +264,18 @@ static void mfm_encode_sector(const UInt32* input, UInt32* output, Int data_size
 // MARK: API
 ////////////////////////////////////////////////////////////////////////////////
 
+static void _FloppyDisk_Deinit(FloppyDisk* _Nonnull pDisk);
+static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk);
 
-// Invalidates the track cache.
-static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk)
-{
-    if ((pDisk->flags & FLOPPY_FLAG_TRACK_BUFFER_VALID) != 0) {
-        pDisk->flags &= ~FLOPPY_FLAG_TRACK_BUFFER_VALID;
-        
-        for (Int i = 0; i < FLOPPY_SECTORS_CAPACITY; i++) {
-            pDisk->track_sectors[i] = 0;
-        }
-    }
-}
+
+static ResourceClass gFloppyDiskClass = {
+    (Func_Object_Deinit)_FloppyDisk_Deinit,
+    (Func_Resource_Open)NULL,
+    (Func_Resource_Read)NULL,
+    (Func_Resource_Write)NULL,
+    (Func_Resource_Close)NULL
+};
+
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
@@ -284,7 +284,7 @@ ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk
     decl_try_err();
     FloppyDisk* pDisk;
     
-    try(kalloc_cleared(sizeof(FloppyDisk), (Byte**) &pDisk));
+    try(Object_Create(&gFloppyDiskClass, sizeof(FloppyDisk), &pDisk));
     try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (Byte**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;
@@ -300,18 +300,26 @@ ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk
     return EOK;
     
 catch:
-    FloppyDisk_Destroy(pDisk);
+    Object_Release(pDisk);
     *pOutDisk = NULL;
     return err;
 }
 
-void FloppyDisk_Destroy(FloppyDisk* _Nullable pDisk)
+static void _FloppyDisk_Deinit(FloppyDisk* _Nonnull pDisk)
 {
-    if (pDisk) {
-        kfree((Byte*)pDisk->track_buffer);
-        pDisk->track_buffer = NULL;
+    kfree((Byte*)pDisk->track_buffer);
+    pDisk->track_buffer = NULL;
+}
+
+// Invalidates the track cache.
+static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk)
+{
+    if ((pDisk->flags & FLOPPY_FLAG_TRACK_BUFFER_VALID) != 0) {
+        pDisk->flags &= ~FLOPPY_FLAG_TRACK_BUFFER_VALID;
         
-        kfree((Byte*)pDisk);
+        for (Int i = 0; i < FLOPPY_SECTORS_CAPACITY; i++) {
+            pDisk->track_sectors[i] = 0;
+        }
     }
 }
 
