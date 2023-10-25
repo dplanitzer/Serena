@@ -19,7 +19,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     decl_try_err();
     Console* pConsole;
 
-    try(Object_Create(&kConsoleClass, sizeof(Console), &pConsole));
+    try(Object_Create(Console, &pConsole));
     
     Lock_Init(&pConsole->lock);
 

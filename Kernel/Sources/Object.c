@@ -20,15 +20,17 @@ ROOT_CLASS_IMPLEMENTATION(Object,
 INSTANCE_METHOD_IMPL(deinit, Object)
 );
 
-ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount instanceSize, ObjectRef _Nullable * _Nonnull pOutObject)
+ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)
 {
     decl_try_err();
     ObjectRef pObject;
 
-    assert(instanceSize >= sizeof(Object));
-    
-    try(kalloc_cleared(instanceSize, (Byte**) &pObject));
-    pObject->class = (Class*)pClass;
+    if (extraByteCount > 0) {
+        extraByteCount--;   // Account for the byte defined in the IOChannel structure
+    }
+
+    try(kalloc_cleared(pClass->instanceSize + extraByteCount, (Byte**) &pObject));
+    pObject->class = pClass;
     pObject->retainCount = 1;
     *pOutObject = pObject;
     return EOK;

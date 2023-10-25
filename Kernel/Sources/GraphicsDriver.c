@@ -367,7 +367,7 @@ ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pix
     GraphicsDriver* pDriver;
     Screen* pScreen;
     
-    try(Object_Create(&kGraphicsDriverClass, sizeof(GraphicsDriver), &pDriver));
+    try(Object_Create(GraphicsDriver, &pDriver));
     pDriver->isLightPenEnabled = false;
     Lock_Init(&pDriver->lock);
     

@@ -52,7 +52,7 @@ ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDr
     decl_try_err();
     KeyboardDriver* pDriver;
     
-    try(Object_Create(&kKeyboardDriverClass, sizeof(KeyboardDriver), &pDriver));
+    try(Object_Create(KeyboardDriver, &pDriver));
     
     pDriver->keyCodeMap = gUSBHIDKeycodes;
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
@@ -174,7 +174,7 @@ ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, Mou
         throw(ENODEV);
     }
     
-    try(Object_Create(&kMouseDriverClass, sizeof(MouseDriver), &pDriver));
+    try(Object_Create(MouseDriver, &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
@@ -310,7 +310,7 @@ ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int
         throw(ENODEV);
     }
     
-    try(Object_Create(&kDigitalJoystickDriverClass, sizeof(DigitalJoystickDriver), &pDriver));
+    try(Object_Create(DigitalJoystickDriver, &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
@@ -431,7 +431,7 @@ ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int 
         throw(ENODEV);
     }
     
-    try(Object_Create(&kAnalogJoystickDriverClass, sizeof(AnalogJoystickDriver), &pDriver));
+    try(Object_Create(AnalogJoystickDriver, &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
@@ -564,7 +564,7 @@ ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, 
         throw(ENODEV);
     }
     
-    try(Object_Create(&kLightPenDriverClass, sizeof(LightPenDriver), &pDriver));
+    try(Object_Create(LightPenDriver, &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->gdevice = Object_RetainAs(EventDriver_GetGraphicsDriver(pEventDriver), GraphicsDriver);

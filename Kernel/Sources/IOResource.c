@@ -18,7 +18,7 @@ ErrorCode IOChannel_Create(IOResourceRef _Nonnull pResource, UInt options, ByteC
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Object_Create(&kIOChannelClass, sizeof(IOChannel) + stateSize - 1, &pChannel));
+    try(Object_CreateWithExtraBytes(IOChannel, stateSize, &pChannel));
     pChannel->resource = Object_RetainAs(pResource, IOResource);
     pChannel->options = options;
     *pOutChannel = pChannel;
@@ -34,7 +34,7 @@ ErrorCode IOChannel_CreateCopy(IOChannelRef _Nonnull pInChannel, ByteCount state
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Object_Create(&kIOChannelClass, sizeof(IOChannel) + stateSize - 1, &pChannel));
+    try(Object_CreateWithExtraBytes(IOChannel, stateSize, &pChannel));
     pChannel->resource = Object_RetainAs(pInChannel->resource, IOResource);
     pChannel->options = pInChannel->options;
     Bytes_CopyRange(&pChannel->state[0], &pInChannel->state[0], stateSize);

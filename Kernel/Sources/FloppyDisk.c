@@ -274,7 +274,7 @@ ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk
     decl_try_err();
     FloppyDisk* pDisk;
     
-    try(Object_Create(&kFloppyDiskClass, sizeof(FloppyDisk), &pDisk));
+    try(Object_Create(FloppyDisk, &pDisk));
     try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (Byte**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;

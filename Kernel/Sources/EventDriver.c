@@ -47,7 +47,7 @@ ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef 
     decl_try_err();
     EventDriver* pDriver;
     
-    try(Object_Create(&kEventDriverClass, sizeof(EventDriver), &pDriver));
+    try(Object_Create(EventDriver, &pDriver));
 
     Lock_Init(&pDriver->lock);
     pDriver->gdevice = Object_RetainAs(gdevice, GraphicsDriver);

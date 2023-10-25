@@ -89,10 +89,13 @@ enum ObjectMethodIndex {
 };
 INSTANCE_METHOD_0(void, Object, deinit);
 
-extern ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount instanceSize, ObjectRef _Nullable * _Nonnull pOutObject);
+extern ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
 
-#define Object_Create(__pClass, __instanceSize, __pOutObject) \
-    _Object_Create((ClassRef)__pClass, __instanceSize, (ObjectRef*)__pOutObject)
+#define Object_Create(__className, __pOutObject) \
+    _Object_Create(&k##__className##Class, 0, (ObjectRef*)__pOutObject)
+
+#define Object_CreateWithExtraBytes(__className, __extraByteCount, __pOutObject) \
+    _Object_Create(&k##__className##Class, __extraByteCount, (ObjectRef*)__pOutObject)
 
 // Reference counting model for objects:
 //

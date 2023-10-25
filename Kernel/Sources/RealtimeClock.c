@@ -49,7 +49,7 @@ ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, Realt
     decl_try_err();
     RealtimeClockRef pClock;
     
-    try(Object_Create(&kRealtimeClockClass, sizeof(RealtimeClock), &pClock));
+    try(Object_Create(RealtimeClock, &pClock));
     Lock_Init(&pClock->lock);
     
     *pOutDriver = pClock;
