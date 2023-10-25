@@ -31,15 +31,13 @@ static const UInt8 gUSBHIDKeycodes[128] = {
 };
 
 
-typedef struct _KeyboardDriver {
-    Resource                    super;
-
+CLASS_INTERFACE(KeyboardDriver, IOResource,
     const UInt8* _Nonnull       keyCodeMap;
     EventDriverRef _Nonnull     eventDriver;
     HIDKeyRepeaterRef _Nonnull  keyRepeater;
     InterruptHandlerID          keyboardIrqHandler;
     InterruptHandlerID          vblIrqHandler;
-} KeyboardDriver;
+);
 
 
 extern void ksb_init(void);
@@ -47,18 +45,6 @@ extern Int ksb_receive_key(void);
 extern void ksb_acknowledge_key(void);
 extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull pDriver);
 extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull pDriver);
-static void _KeyboardDriver_Deinit(KeyboardDriverRef _Nonnull pDriver);
-
-
-static ResourceClass gKeyboardDriverClass = {
-    (Func_Object_Deinit)_KeyboardDriver_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
 
 
 ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver)
@@ -66,7 +52,7 @@ ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDr
     decl_try_err();
     KeyboardDriver* pDriver;
     
-    try(Object_Create(&gKeyboardDriverClass, sizeof(KeyboardDriver), &pDriver));
+    try(Object_Create(&kKeyboardDriverClass, sizeof(KeyboardDriver), &pDriver));
     
     pDriver->keyCodeMap = gUSBHIDKeycodes;
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
@@ -99,7 +85,7 @@ catch:
     return err;
 }
 
-static void _KeyboardDriver_Deinit(KeyboardDriverRef _Nonnull pDriver)
+static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull pDriver)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->keyboardIrqHandler));
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vblIrqHandler));
@@ -150,15 +136,17 @@ void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull pDriver)
 }
 
 
+CLASS_IMPLEMENTATION(KeyboardDriver, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, KeyboardDriver, Object)
+);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Mouse Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct _MouseDriver {
-    Resource                super;
-
+CLASS_INTERFACE(MouseDriver, IOResource,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile UInt16*        reg_joydat;
@@ -170,22 +158,9 @@ typedef struct _MouseDriver {
     UInt16                  middle_button_mask;
     UInt8                   left_button_mask;
     Int8                    port;
-} MouseDriver;
+);
 
-
-static void _MouseDriver_Deinit(MouseDriverRef _Nonnull pDriver);
 extern void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver);
-
-
-static ResourceClass gMouseDriverClass = {
-    (Func_Object_Deinit)_MouseDriver_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
 
 
 ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver)
@@ -199,7 +174,7 @@ ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, Mou
         throw(ENODEV);
     }
     
-    try(Object_Create(&gMouseDriverClass, sizeof(MouseDriver), &pDriver));
+    try(Object_Create(&kMouseDriverClass, sizeof(MouseDriver), &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
@@ -233,7 +208,7 @@ catch:
     return err;
 }
 
-static void _MouseDriver_Deinit(MouseDriverRef _Nonnull pDriver)
+static void MouseDriver_deinit(MouseDriverRef _Nonnull pDriver)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
 
@@ -300,14 +275,17 @@ void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver)
 }
 
 
+CLASS_IMPLEMENTATION(MouseDriver, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, MouseDriver, Object)
+);
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Digital Joystick Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct _DigitalJoystickDriver {
-    Resource                super;
-
+CLASS_INTERFACE(DigitalJoystickDriver, IOResource,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile UInt16*        reg_joydat;
@@ -316,22 +294,9 @@ typedef struct _DigitalJoystickDriver {
     UInt16                  right_button_mask;
     UInt8                   fire_button_mask;
     Int8                    port;
-} DigitalJoystickDriver;
+);
 
-
-static void _DigitalJoystickDriver_Deinit(DigitalJoystickDriverRef _Nonnull pDriver);
 extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull pDriver);
-
-
-static ResourceClass gDigitalJoystickDriverClass = {
-    (Func_Object_Deinit)_DigitalJoystickDriver_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
 
 
 ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver)
@@ -345,7 +310,7 @@ ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int
         throw(ENODEV);
     }
     
-    try(Object_Create(&gDigitalJoystickDriverClass, sizeof(DigitalJoystickDriver), &pDriver));
+    try(Object_Create(&kDigitalJoystickDriverClass, sizeof(DigitalJoystickDriver), &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
@@ -378,7 +343,7 @@ catch:
     return err;
 }
 
-static void _DigitalJoystickDriver_Deinit(DigitalJoystickDriverRef _Nonnull pDriver)
+static void DigitalJoystickDriver_deinit(DigitalJoystickDriverRef _Nonnull pDriver)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
     
@@ -428,14 +393,17 @@ void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull pDriver
 }
 
 
+CLASS_IMPLEMENTATION(DigitalJoystickDriver, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, DigitalJoystickDriver, Object)
+);
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Analog Joystick (Paddles) Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct _AnalogJoystickDriver {
-    Resource                super;
-
+CLASS_INTERFACE(AnalogJoystickDriver, IOResource,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile UInt16*        reg_joydat;
@@ -448,22 +416,9 @@ typedef struct _AnalogJoystickDriver {
     Int8                    sampleCount;    // How many samples to average to produce a smoothed value
     Int8                    sampleIndex;    // Current sample in the range 0..<sampleCount
     Int8                    port;
-} AnalogJoystickDriver;
+);
 
-
-static void _AnalogJoystickDriver_Deinit(AnalogJoystickDriverRef _Nonnull pDriver);
 extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull pDriver);
-
-
-static ResourceClass gAnalogJoystickDriverClass = {
-    (Func_Object_Deinit)_AnalogJoystickDriver_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
 
 
 ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver)
@@ -476,7 +431,7 @@ ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int 
         throw(ENODEV);
     }
     
-    try(Object_Create(&gAnalogJoystickDriverClass, sizeof(AnalogJoystickDriver), &pDriver));
+    try(Object_Create(&kAnalogJoystickDriverClass, sizeof(AnalogJoystickDriver), &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
@@ -507,7 +462,7 @@ catch:
     return err;
 }
 
-static void _AnalogJoystickDriver_Deinit(AnalogJoystickDriverRef _Nonnull pDriver)
+static void AnalogJoystickDriver_deinit(AnalogJoystickDriverRef _Nonnull pDriver)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
     
@@ -568,14 +523,17 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull pDriver)
 }
 
 
+CLASS_IMPLEMENTATION(AnalogJoystickDriver, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, AnalogJoystickDriver, Object)
+);
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Light Pen Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct _LightPenDriver {
-    Resource                    super;
-
+CLASS_INTERFACE(LightPenDriver, IOResource,
     EventDriverRef _Nonnull     eventDriver;
     GraphicsDriverRef _Nonnull  gdevice;
     InterruptHandlerID          irqHandler;
@@ -591,22 +549,9 @@ typedef struct _LightPenDriver {
     Int8                        sampleIndex;    // Current sample in the range 0..<sampleCount
     Int8                        triggerCount;   // Number of times that the light pen has triggered in the 'sampleCount' interval
     Int8                        port;
-} LightPenDriver;
+);
 
-
-static void _LightPenDriver_Deinit(LightPenDriverRef _Nonnull pDriver);
 extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull pDriver);
-
-
-static ResourceClass gLightPenDriverClass = {
-    (Func_Object_Deinit)_LightPenDriver_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
 
 
 ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver)
@@ -619,7 +564,7 @@ ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, 
         throw(ENODEV);
     }
     
-    try(Object_Create(&gLightPenDriverClass, sizeof(LightPenDriver), &pDriver));
+    try(Object_Create(&kLightPenDriverClass, sizeof(LightPenDriver), &pDriver));
     
     pDriver->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     pDriver->gdevice = Object_RetainAs(EventDriver_GetGraphicsDriver(pEventDriver), GraphicsDriver);
@@ -656,7 +601,7 @@ catch:
     return err;
 }
 
-static void _LightPenDriver_Deinit(LightPenDriverRef _Nonnull pDriver)
+static void LightPenDriver_deinit(LightPenDriverRef _Nonnull pDriver)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->irqHandler));
     
@@ -715,3 +660,8 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull pDriver)
 
     EventDriver_ReportLightPenDeviceChange(pDriver->eventDriver, xAbs, yAbs, hasPosition, buttonsDown);
 }
+
+
+CLASS_IMPLEMENTATION(LightPenDriver, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, LightPenDriver, Object)
+);

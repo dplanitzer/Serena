@@ -120,9 +120,7 @@ extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 // Graphics Driver
 //
 
-typedef struct _GraphicsDriver {
-    Resource                super;
-
+CLASS_INTERFACE(GraphicsDriver, IOResource,
     Screen* _Nonnull        screen;
     Sprite* _Nonnull        nullSprite;
     Lock                    lock;   // protects the driver and the current screen
@@ -131,7 +129,7 @@ typedef struct _GraphicsDriver {
     Semaphore               vblank_sema;
     Bool                    isLightPenEnabled;  // Applies to all screens
     MousePainter            mousePainter;
-} GraphicsDriver;
+);
 
 
 extern void _GraphicsDriver_Deinit(GraphicsDriverRef _Nonnull pDriver);

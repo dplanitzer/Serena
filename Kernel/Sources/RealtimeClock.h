@@ -10,7 +10,7 @@
 #define RealtimeClock_h
 
 #include <klib/klib.h>
-#include "Resource.h"
+#include "IOResource.h"
 #include "SystemDescription.h"
 
 
@@ -32,8 +32,11 @@ extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 extern Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
 
-struct _RealtimeClock;
-typedef struct _RealtimeClock* RealtimeClockRef;
+CLASS_FORWARD(RealtimeClock);
+enum RealtimeClockMethodIndex {
+    kRealtimeClockMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
+
 
 extern ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver);
 

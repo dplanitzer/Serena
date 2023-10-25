@@ -34,7 +34,7 @@ typedef struct _Process {
     AddressSpaceRef _Nonnull    addressSpace;
 
     // UObjects
-    UObjectRef* _Nonnull        uobjects;
+    ObjectRef* _Nonnull         uobjects;
     Int                         uobjectCapacity;
     Int                         uobjectCount;
 

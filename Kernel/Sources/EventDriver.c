@@ -42,23 +42,12 @@ static const UInt8 gUSBHIDKeyFlags[256] = {
 };
 
 
-static ResourceClass gEventDriverClass = {
-    (Func_Object_Deinit)_EventDriver_Deinit,
-    (Func_Resource_Open)_EventDriver_Open,
-    (Func_Resource_Dup)_EventDriver_Dup,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)_EventDriver_Read,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
-
-
 ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
     EventDriver* pDriver;
     
-    try(Object_Create(&gEventDriverClass, sizeof(EventDriver), &pDriver));
+    try(Object_Create(&kEventDriverClass, sizeof(EventDriver), &pDriver));
 
     Lock_Init(&pDriver->lock);
     pDriver->gdevice = Object_RetainAs(gdevice, GraphicsDriver);
@@ -108,7 +97,7 @@ catch:
     return err;
 }
 
-void _EventDriver_Deinit(EventDriverRef _Nonnull pDriver)
+void EventDriver_deinit(EventDriverRef _Nonnull pDriver)
 {
     for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
         EventDriver_DestroyInputControllerForPort(pDriver, i);
@@ -551,30 +540,30 @@ UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode _EventDriver_Open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon)
+ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
-    ResconRef pRescon;
+    IOChannelRef pChannel;
 
-    try(Rescon_Create((ResourceRef) pDriver, options, sizeof(EventDriverChannel), &pRescon));
-    Rescon_GetStateAs(pRescon, EventDriverChannel)->timeout = kTimeInterval_Infinity;
-    *pOutRescon = pRescon;
+    try(IOChannel_Create((IOResourceRef) pDriver, options, sizeof(EventDriverChannel), &pChannel));
+    IOChannel_GetStateAs(pChannel, EventDriverChannel)->timeout = kTimeInterval_Infinity;
+    *pOutChannel = pChannel;
     return EOK;
 
 catch:
-    *pOutRescon = NULL;
+    *pOutChannel = NULL;
     return err;
 }
 
-ErrorCode _EventDriver_Dup(EventDriverRef _Nonnull pDriver, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon)
+ErrorCode EventDriver_dup(EventDriverRef _Nonnull pDriver, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return Rescon_CreateCopy(pInRescon, sizeof(EventDriverChannel), pOutRescon);
+    return IOChannel_CreateCopy(pInChannel, sizeof(EventDriverChannel), pOutChannel);
 }
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Blocks the caller if more events are requested
 // than are queued.
-ByteCount _EventDriver_Read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
@@ -593,3 +582,11 @@ ByteCount _EventDriver_Read(EventDriverRef _Nonnull pDriver, EventDriverChannel*
 catch:
     return -err;
 }
+
+
+CLASS_IMPLEMENTATION(EventDriver, IOResource,
+OVERRIDE_METHOD_IMPL(open, EventDriver, IOResource)
+OVERRIDE_METHOD_IMPL(dup, EventDriver, IOResource)
+OVERRIDE_METHOD_IMPL(read, EventDriver, IOResource)
+OVERRIDE_METHOD_IMPL(deinit, EventDriver, Object)
+);

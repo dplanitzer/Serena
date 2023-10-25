@@ -12,11 +12,11 @@
 
 
 // The realtime clock
-typedef struct _RealtimeClock {
+CLASS_INTERFACE(RealtimeClock, IOResource,
     Int     type;
     Lock    lock;
     // XXX not fully implemented yet
-} RealtimeClock;
+);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -42,19 +42,6 @@ Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* 
 // MARK: -
 // MARK: RealtimeClock
 
-static void _RealtimeClock_Deinit(RealtimeClockRef _Nonnull pClock);
-
-static ResourceClass gRealtimeClockClass = {
-    (Func_Object_Deinit)_RealtimeClock_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
-
-
 // Checks whether the system has a RTC installed and returns a realtime clock
 // object ifg that's the case; otherwise NULL is returned
 ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver)
@@ -62,7 +49,7 @@ ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, Realt
     decl_try_err();
     RealtimeClockRef pClock;
     
-    try(Object_Create(&gRealtimeClockClass, sizeof(RealtimeClock), &pClock));
+    try(Object_Create(&kRealtimeClockClass, sizeof(RealtimeClock), &pClock));
     Lock_Init(&pClock->lock);
     
     *pOutDriver = pClock;
@@ -74,7 +61,7 @@ catch:
     return err;
 }
 
-static void _RealtimeClock_Deinit(RealtimeClockRef _Nonnull pClock)
+static void RealtimeClock_deinit(RealtimeClockRef _Nonnull pClock)
 {
     Lock_Deinit(&pClock->lock);
 }
@@ -152,3 +139,8 @@ catch:
     *pOutNumBytesWritten = 0;
     return err;
 }
+
+
+CLASS_IMPLEMENTATION(RealtimeClock, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, RealtimeClock, Object)
+);

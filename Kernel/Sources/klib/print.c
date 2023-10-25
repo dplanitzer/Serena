@@ -229,7 +229,7 @@ void _printv(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, Charac
 #define PRINT_BUFFER_CAPACITY   80
 
 static ConsoleRef   gConsole;
-static ResconRef    gConsoleChannel;
+static IOChannelRef gConsoleChannel;
 static Character    gPrintBuffer[PRINT_BUFFER_CAPACITY];
 
 
@@ -239,7 +239,7 @@ void print_init(void)
     Lock_Init(&gLock);
     gConsole = (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
     assert(gConsole != NULL);
-    try_bang(Resource_Open(gConsole, kConsoleName, FWRITE, &gConsoleChannel));
+    try_bang(IOResource_Open(gConsole, kConsoleName, FWRITE, &gConsoleChannel));
 }
 
 // Print formatted
@@ -254,7 +254,7 @@ void print(const Character* _Nonnull format, ...)
 
 static void printv_console_sink_locked(void* _Nullable pContext, const Character* _Nonnull pBuffer, ByteCount nBytes)
 {
-    UObject_Write(gConsoleChannel, pBuffer, nBytes);
+    IOChannel_Write(gConsoleChannel, pBuffer, nBytes);
 }
 
 void printv(const Character* _Nonnull format, va_list ap)

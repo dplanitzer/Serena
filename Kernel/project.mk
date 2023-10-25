@@ -22,7 +22,9 @@ KERNEL_ASM_INCLUDES := -I$(LIBABI_HEADERS_DIR) -I$(KERNEL_SOURCES_DIR)
 
 #KERNEL_GENERATE_DEPS = -deps -depfile=$(patsubst $(KERNEL_BUILD_DIR)/%.o,$(KERNEL_BUILD_DIR)/%.d,$@)
 KERNEL_GENERATE_DEPS := 
-KERNEL_DONTWARN := -dontwarn=51 -dontwarn=148 -dontwarn=208
+KERNEL_AS_DONTWARN := -nowarn=62
+KERNEL_CC_DONTWARN := -dontwarn=51 -dontwarn=148 -dontwarn=208
+KERNEL_LD_DONTWARN := -nowarn=22
 
 
 # --------------------------------------------------------------------------
@@ -48,18 +50,18 @@ $(KERNEL_PRODUCT_DIR):
 
 $(KERNEL_BIN_FILE): $(KLIB_OBJS) $(CONSOLE_OBJS) $(KERNEL_OBJS) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking Kernel
-	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script -o $@ $^
+	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script $(KERNEL_LD_DONTWARN) -o $@ $^
 
 
 -include $(KERNEL_DEPS)
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) $(KERNEL_C_INCLUDES) $(KERNEL_DONTWARN) $(KERNEL_GENERATE_DEPS) -o $@ $<
+	@$(CC) $(CC_OPT_SETTING) $(CC_GENERATE_DEBUG_INFO) $(CC_PREPROCESSOR_DEFINITIONS) $(KERNEL_C_INCLUDES) $(KERNEL_CC_DONTWARN) $(KERNEL_GENERATE_DEPS) -o $@ $<
 
 $(KERNEL_BUILD_DIR)/%.o : $(KERNEL_SOURCES_DIR)/%.s
 	@echo $<
-	@$(AS) $(KERNEL_ASM_INCLUDES) -nowarn=62 -o $@ $<
+	@$(AS) $(KERNEL_ASM_INCLUDES) $(KERNEL_AS_DONTWARN) -o $@ $<
 
 
 clean-kernel:

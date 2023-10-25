@@ -54,6 +54,10 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     gSystemDescription = pSysDesc;
 
 
+    // Register all classes from the __class section
+    RegisterClasses();
+
+
     // Create the boot allocator
     BootAllocator boot_alloc;
     BootAllocator_Init(&boot_alloc, pSysDesc);
@@ -136,6 +140,10 @@ static void OnMain(void)
 
     // Initialize the kernel print services
     print_init();
+
+
+    // Debug printing
+    //PrintClasses();
 
 
     // Initialize all other drivers

@@ -11,15 +11,16 @@
 
 #include <klib/klib.h>
 #include "EventDriver.h"
-#include "Resource.h"
 
 
 //
 // Keyboard input driver
 //
 
-struct _KeyboardDriver;
-typedef struct _KeyboardDriver* KeyboardDriverRef;
+CLASS_FORWARD(KeyboardDriver);
+enum KeyboardDriverMethodIndex {
+    kKeyboardDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
 
 extern ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -31,8 +32,10 @@ extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver
 // Mouse input driver
 //
 
-struct _MouseDriver;
-typedef struct _MouseDriver* MouseDriverRef;
+CLASS_FORWARD(MouseDriver);
+enum MouseDriverMethodIndex {
+    kMouseDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
 
 extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -41,8 +44,10 @@ extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int po
 // Digital Joystick input driver
 //
 
-struct _DigitalJoystickDriver;
-typedef struct _DigitalJoystickDriver* DigitalJoystickDriverRef;
+CLASS_FORWARD(DigitalJoystickDriver);
+enum DigitalJoystickDriverMethodIndex {
+    kDigitalJoystickDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
 
 extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -51,8 +56,11 @@ extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriv
 // Analog Joystick (Paddles) input driver
 //
 
-struct _AnalogJoystickDriver;
-typedef struct _AnalogJoystickDriver* AnalogJoystickDriverRef;
+CLASS_FORWARD(AnalogJoystickDriver);
+enum AnalogJoystickDriverMethodIndex {
+    kAnalogJoystickDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
+
 
 extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -61,8 +69,10 @@ extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDrive
 // Light Pen input driver
 //
 
-struct _LightPenDriver;
-typedef struct _LightPenDriver* LightPenDriverRef;
+CLASS_FORWARD(LightPenDriver);
+enum LightPenDriverMethodIndex {
+    kLightPenDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
 
 extern ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
 

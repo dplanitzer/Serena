@@ -13,8 +13,10 @@
 #include "EventDriver.h"
 #include "GraphicsDriver.h"
 
-struct _Console;
-typedef struct _Console* ConsoleRef;
+CLASS_FORWARD(Console);
+enum ConsoleMethodIndex {
+    kConsoleMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
 
 extern ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole);
 

@@ -11,31 +11,83 @@
 
 #include <klib/klib.h>
 
-#define Func0(__rtype, __name) \
-    __rtype (*__name)(void* self)
 
-#define FuncN(__rtype, __name, ...) \
-    __rtype (*__name)(void* self, __VA_ARGS__)
+#ifdef __section
+#define _ClassSection __section("__class")
+#else
+#define _ClassSection
+#endif
+
+#define CLASS_FORWARD(__name) \
+struct _##__name; \
+typedef struct _##__name* __name##Ref
 
 
-struct _Object;
-typedef struct _Object* ObjectRef;
+#define INSTANCE_METHOD_IMPL(__name, __className) \
+{ k##__className##MethodIndex_##__name , (Method) __className##_##__name },
 
-// Deallocate whatever internal resources the object is holding.
-typedef Func0(void, Func_Object_Deinit);
+#define OVERRIDE_METHOD_IMPL(__name, __className, __superClassName) \
+{ k##__superClassName##MethodIndex_##__name , (Method) __className##_##__name },
 
-typedef struct _Class {
-    Func_Object_Deinit _Nullable    deinit;
+
+#define __CLASS_IMPLEMENTATION(__name, __super, ...) \
+static Method g##__name##VTable[k##__name##MethodIndex_Count];\
+static const struct MethodDecl gMethodImpls_##__name[] = { __VA_ARGS__ {0, (Method)0} }; \
+Class _ClassSection k##__name##Class = {g##__name##VTable, __super, #__name, sizeof(__name), k##__name##MethodIndex_Count, 0, gMethodImpls_##__name}
+
+#define __ROOT_CLASS_INTERFACE(__name, __super, __ivars_decls) \
+extern Class k##__name##Class; \
+typedef struct _##__name { __super __ivars_decls } __name
+
+
+#define ROOT_CLASS_IMPLEMENTATION(__name, ...) __CLASS_IMPLEMENTATION(__name, NULL, __VA_ARGS__)
+#define ROOT_CLASS_INTERFACE(__name, __ivar_decls) __ROOT_CLASS_INTERFACE(__name, , __ivar_decls)
+
+
+#define CLASS_IMPLEMENTATION(__name, __super, ...) __CLASS_IMPLEMENTATION(__name, &k##__super##Class, __VA_ARGS__)
+#define CLASS_INTERFACE(__name, __super, __ivar_decls) __ROOT_CLASS_INTERFACE(__name, __super super;, __ivar_decls)
+
+
+#define INSTANCE_METHOD_0(__rtype, __className, __methodName) \
+typedef __rtype (*__className##Method_##__methodName)(void* self)
+
+#define INSTANCE_METHOD_N(__rtype, __className, __methodName, ...) \
+typedef __rtype (*__className##Method_##__methodName)(void* self, __VA_ARGS__)
+
+
+typedef void (*Method)(void* self, ...);
+
+struct MethodDecl {
+    Int             index;
+    Method _Nonnull method;
+};
+
+#define CLASSF_INITIALIZED  1
+
+typedef struct __Class {
+    Method* _Nonnull            vtable;
+    struct __Class* _Nonnull    super;
+    const char* _Nonnull        name;
+    ByteCount                   instanceSize;
+    Int16                       methodCount;
+    UInt16                      flags;
+    const struct MethodDecl* _Nonnull methodList;
 } Class;
+typedef Class* ClassRef;
 
-typedef struct _Class* ClassRef;
 
+CLASS_FORWARD(Object);
 
-typedef struct _Object {
+ROOT_CLASS_INTERFACE(Object,
     ClassRef _Nonnull   class;
     AtomicInt           retainCount;
-} Object;
-
+);
+enum ObjectMethodIndex {
+    kObjectMethodIndex_deinit,
+    
+    kObjectMethodIndex_Count = kObjectMethodIndex_deinit + 1
+};
+INSTANCE_METHOD_0(void, Object, deinit);
 
 extern ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount instanceSize, ObjectRef _Nullable * _Nonnull pOutObject);
 
@@ -71,57 +123,26 @@ extern void _Object_Release(ObjectRef _Nullable self);
 #define Object_Release(__self) \
     _Object_Release((ObjectRef) __self)
 
-// Returns the class of the object cast to the given static class type. Does not
-// check whether the dynamic class type is actually the same as the provided
-// static class type.
-#define Object_GetClassAs(__self, __classType) \
-    ((__classType##ClassRef) ((ObjectRef)__self)->class)
+#define Object_GetClass(__self)\
+((Class*)(((ObjectRef)(__self))->class))
 
-// Checks whether the receiver of the given static class type implements a method
-// with the given name.
-#define Object_Implements(__self, __classType, __funcName) \
-    (Object_GetClassAs(__self, __classType)->__funcName != NULL)
+#define Object_InstanceOf(__self, __className) \
+    (Object_GetClass(__self) == &k##__className##Class)
 
+#define Object_Invoke(__methodName, __methodClassName, __self, ...) \
+((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self, __VA_ARGS__)
 
-////////////////////////////////////////////////////////////////////////////////
+// Scans the "__class" data section bounded by the '_class' and '_eclass' linker
+// symbols for class records and:
+// - builds the vtable for each class
+// - validates the vtable
+// Must be called after the DATA and BSS segments have been established and before
+// and code is invoked that might use objects.
+// Note that this function is not concurrency safe.
+extern void RegisterClasses(void);
 
-struct _UObject;
-typedef struct _UObject* UObjectRef;
+// Prints all registered classes
+// Note that this function is not concurrency safe.
+extern void PrintClasses(void);
 
-
-typedef FuncN(ByteCount, Func_UObject_Read, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-typedef FuncN(ByteCount, Func_UObject_Write, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
-
-// Close the resource. The purpose of the close operation is:
-// - flush all data that was written and is still buffered/cached to the underlying device
-// - if a write operation is ongoing at the time of the close then let this write operation finish and sync the underlying device
-// - if a read operation is ongoing at the time of the close then interrupt the read with an EINTR error
-// The resource should be internally marked as closed and all future read/write/etc operations on the resource should do nothing
-// and instead return a suitable status. Eg a write should return EIO and a read should return EOF.
-// It is permissible for a close operation to block the caller for some (reasonable) amount of time to complete the flush.
-// The close operation may return an error. Returning an error will not stop the kernel from completing the close and eventually
-// deallocating the resource. The error is passed on to the caller but is purely advisory in nature. The close operation is
-// required to mark the resource as closed whether the close internally succeeded or failed. 
-typedef Func0(ErrorCode, Func_UObject_Close);
-
-typedef struct _UObjectClass {
-    Class                           super;
-    Func_UObject_Read _Nullable     read;
-    Func_UObject_Write _Nullable    write;
-    Func_UObject_Close _Nullable    close;
-} UObjectClass;
-
-typedef struct _UObjectClass* UObjectClassRef;
-
-typedef Object UObject;
-
-#define UObject_Close(__pRes) \
-    Object_GetClassAs(__pRes, UObject)->close(__pRes)
-
-#define UObject_Read(__pRes, __pBuffer, __nBytesToRead) \
-    Object_GetClassAs(__pRes, UObject)->read(__pRes, __pBuffer, __nBytesToRead)
-
-#define UObject_Write(__pRes, __pBuffer, __nBytesToWrite) \
-    Object_GetClassAs(__pRes, UObject)->write(__pRes, __pBuffer, __nBytesToWrite)
-    
 #endif /* Object_h */

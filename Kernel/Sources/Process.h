@@ -73,7 +73,7 @@ extern ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCou
 // and thus you have to release it once the call returns. The call returns a
 // descriptor which can be used to refer to the object from user and/or kernel
 // space.
-extern ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, UObjectRef _Nonnull pObject, Int* _Nonnull pOutDescriptor);
+extern ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, ObjectRef _Nonnull pObject, Int* _Nonnull pOutDescriptor);
 
 // Unregisters the user object identified by the given descriptor. The object is
 // removed from the process' user object table and a strong reference to the
@@ -81,11 +81,11 @@ extern ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, UObjectRef _
 // and then release() to release the strong reference to the object. Closing the
 // object will mark the object as done and the object will be deallocated once
 // the last strong reference to it has been released.
-extern ErrorCode Process_UnregisterUObject(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject);
+extern ErrorCode Process_UnregisterUObject(ProcessRef _Nonnull pProc, Int fd, ObjectRef _Nullable * _Nonnull pOutObject);
 
 // Looks up the user object identified by the given descriptor and returns a
 // strong reference to it if found. The caller should call release() on the
 // object once it is no longer needed.
-extern ErrorCode Process_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, UObjectRef _Nullable * _Nonnull pOutObject);
+extern ErrorCode Process_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, ObjectRef _Nullable * _Nonnull pOutObject);
 
 #endif /* Process_h */

@@ -36,7 +36,7 @@ typedef struct _LogicalJoystick {
 // Per port input controller state
 typedef struct _InputControllerState {
     InputControllerType     type;
-    ResourceRef _Nullable   driver;
+    IOResourceRef _Nullable driver;
 } InputControllerState;
 
 
@@ -49,9 +49,7 @@ typedef struct _InputControllerState {
 // may contribute to their state. Eg multiple keyboards may contribute to the
 // logical keyboard and multiple mice and other devices such as a joystick or
 // light pen may contribute to the state of the logical mouse. 
-typedef struct _EventDriver {
-    Resource                    super;
-
+CLASS_INTERFACE(EventDriver, IOResource,
     Lock                        lock;
     GraphicsDriverRef _Nonnull  gdevice;
     HIDEventQueueRef _Nonnull   eventQueue;
@@ -91,7 +89,7 @@ typedef struct _EventDriver {
 
     // Logical Joystick Devices
     LogicalJoystick             joystick[MAX_INPUT_CONTROLLER_PORTS];
-} EventDriver;
+);
 
 
 // Resource Context
@@ -100,13 +98,13 @@ typedef struct _EventDriverChannel {
 } EventDriverChannel;
 
 
-extern void _EventDriver_Deinit(EventDriverRef _Nonnull pDriver);
+extern void EventDriver_deinit(EventDriverRef _Nonnull pDriver);
 
 extern ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
 extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
 
-extern ErrorCode _EventDriver_Open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
-extern ErrorCode _EventDriver_Dup(EventDriverRef _Nonnull pDriver, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon);
-extern ByteCount _EventDriver_Read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+extern ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern ErrorCode EventDriver_dup(EventDriverRef _Nonnull pDriver, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 
 #endif /* EventDriverPriv_h */

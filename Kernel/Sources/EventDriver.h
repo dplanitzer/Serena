@@ -12,11 +12,13 @@
 #include <klib/klib.h>
 #include "GraphicsDriver.h"
 #include "HIDEvent.h"
-#include "Resource.h"
+#include "IOResource.h"
 
 
-struct _EventDriver;
-typedef struct _EventDriver* EventDriverRef;
+CLASS_FORWARD(EventDriver);
+enum EventDriverMethodIndex {
+    kEventDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
+};
 
 
 // Input controller types

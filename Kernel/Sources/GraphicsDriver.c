@@ -358,16 +358,6 @@ static const ColorTable gDefaultColorTable = {
     0x0000      // XXX Mouse cursor
 };
 
-static ResourceClass gGraphicsDriverClass = {
-    (Func_Object_Deinit)_GraphicsDriver_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
-
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
@@ -377,7 +367,7 @@ ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pix
     GraphicsDriver* pDriver;
     Screen* pScreen;
     
-    try(Object_Create(&gGraphicsDriverClass, sizeof(GraphicsDriver), &pDriver));
+    try(Object_Create(&kGraphicsDriverClass, sizeof(GraphicsDriver), &pDriver));
     pDriver->isLightPenEnabled = false;
     Lock_Init(&pDriver->lock);
     
@@ -434,7 +424,7 @@ catch:
 }
 
 // Deallocates the given graphics driver.
-void _GraphicsDriver_Deinit(GraphicsDriverRef _Nonnull pDriver)
+void GraphicsDriver_deinit(GraphicsDriverRef _Nonnull pDriver)
 {
     GraphicsDriver_StopVideoRefresh_Locked(pDriver);
         
@@ -941,3 +931,8 @@ void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const By
 
     GraphicsDriver_EndDrawing(pDriver);
 }
+
+
+CLASS_IMPLEMENTATION(GraphicsDriver, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, GraphicsDriver, Object)
+);

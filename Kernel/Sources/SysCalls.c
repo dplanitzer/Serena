@@ -8,7 +8,7 @@
 
 #include "DriverManager.h"
 #include "Process.h"
-#include "Resource.h"
+#include "IOResource.h"
 #include "VirtualProcessor.h"
 
 
@@ -21,14 +21,14 @@ typedef struct _SYS_open_args {
 Int _SYSCALL_open(const SYS_open_args* _Nonnull pArgs)
 {
     decl_try_err();
-    ResourceRef pConsole = NULL;
-    ResconRef pChannel = NULL;
+    IOResourceRef pConsole = NULL;
+    IOChannelRef pChannel = NULL;
     Int desc;
 
     if (String_Equals(pArgs->path, "/dev/console")) {
-        try_null(pConsole, (ResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-        try(Resource_Open(pConsole, pArgs->path, pArgs->options, &pChannel));
-        try(Process_RegisterUObject(Process_GetCurrent(), (UObjectRef) pChannel, &desc));
+        try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+        try(IOResource_Open(pConsole, pArgs->path, pArgs->options, &pChannel));
+        try(Process_RegisterUObject(Process_GetCurrent(), (ObjectRef) pChannel, &desc));
         Object_Release(pChannel);
 
         return desc;
@@ -50,15 +50,17 @@ typedef struct _SYS_close_args {
 Int _SYSCALL_close(const SYS_close_args* _Nonnull pArgs)
 {
     decl_try_err();
-    UObjectRef pObj;
+    ObjectRef pObj;
 
     try(Process_UnregisterUObject(Process_GetCurrent(), pArgs->fd, &pObj));
 
     // The error that close() returns is purely advisory and thus we'll proceed
     // with releasing the resource in any case.
-    if (Object_Implements(pObj, UObject, close)) {
-        err = UObject_Close(pObj);
-    }
+    //XXX
+    //if (Object_Implements(pObj, UObject, close)) {
+    //    err = UObject_Close(pObj);
+    //}
+    //XXX
     Object_Release(pObj);
     return -err;
 
@@ -77,12 +79,12 @@ typedef struct _SYS_read_args {
 ByteCount _SYSCALL_read(const SYS_read_args* _Nonnull pArgs)
 {
     decl_try_err();
-    UObjectRef pObj;
+    ObjectRef pObj;
     ByteCount nb = 0;
 
     try(Process_GetOwnedUObjectForDescriptor(Process_GetCurrent(), pArgs->fd, &pObj));
-    if (Object_Implements(pObj, UObject, read)) {
-        nb = UObject_Read(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    if (Object_InstanceOf(pObj, IOChannel)) {
+        nb = IOChannel_Read(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
     } else {
         throw(EBADF);
     }
@@ -105,12 +107,12 @@ typedef struct _SYS_write_args {
 ByteCount _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
-    UObjectRef pObj;
+    ObjectRef pObj;
     ByteCount nb = 0;
 
     try(Process_GetOwnedUObjectForDescriptor(Process_GetCurrent(), pArgs->fd, &pObj));
-    if (Object_Implements(pObj, UObject, read)) {
-        nb = UObject_Write(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    if (Object_InstanceOf(pObj, IOChannel)) {
+        nb = IOChannel_Write(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
     } else {
         throw(EBADF);
     }

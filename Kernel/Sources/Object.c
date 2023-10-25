@@ -8,6 +8,18 @@
 
 #include "Object.h"
 
+extern char _class;
+extern char _eclass;
+
+
+void Object_deinit(ObjectRef _Nonnull self)
+{
+}
+
+ROOT_CLASS_IMPLEMENTATION(Object,
+INSTANCE_METHOD_IMPL(deinit, Object)
+);
+
 ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount instanceSize, ObjectRef _Nullable * _Nonnull pOutObject)
 {
     decl_try_err();
@@ -45,9 +57,93 @@ void _Object_Release(ObjectRef _Nullable self)
     // negative which is fine. In that sense a negative reference count signals
     // that the object is dead.
     if (rc == 0) {
-        if (self->class->deinit) {
-            self->class->deinit(self);
-        }
+        self->class->vtable[kObjectMethodIndex_deinit](self);
         kfree((Byte*) self);
+    }
+}
+
+static void RegisterClass(ClassRef _Nonnull pClass)
+{
+    if ((pClass->flags & CLASSF_INITIALIZED) != 0) {
+        return;
+    }
+
+    // Make sure that the super class is registered
+    ClassRef pSuperClass = pClass->super;
+    if (pSuperClass) {
+        RegisterClass(pSuperClass);
+    }
+
+
+    // Copy the super class vtable
+    if (pSuperClass) {
+        for (Int i = 0; i < pSuperClass->methodCount; i++) {
+            pClass->vtable[i] = pSuperClass->vtable[i];
+        }
+    }
+
+
+    // Override methods in the VTable with methods from our method list
+    const struct MethodDecl* pCurMethod = pClass->methodList;
+    while (pCurMethod->method) {
+        assert(pCurMethod->index >= 0 && pCurMethod->index < pClass->methodCount);
+        pClass->vtable[pCurMethod->index] = pCurMethod->method;
+        pCurMethod++;
+    }
+
+
+    // Make sure that none if the VTable entries is NULL or a bogus pointer
+    const Int parentMethodCount = (pSuperClass) ? pSuperClass->methodCount : 0;
+    for (Int i = parentMethodCount; i < pClass->methodCount; i++) {
+        if (pClass->vtable[i] == NULL) {
+            fatal("RegisterClass: missing %s method at vtable index #%d\n", pClass->name, i);
+            // NOT REACHED
+        }
+    }
+
+    pClass->flags |= CLASSF_INITIALIZED;
+}
+
+// Scans the "__class" data section bounded by the '_class' and '_eclass' linker
+// symbols for class records and:
+// - builds the vtable for each class
+// - validates the vtable
+// Must be called after the DATA and BSS segments have been established and before
+// and code is invoked that might use objects.
+// Note that this function is not concurrency safe.
+void RegisterClasses(void)
+{
+    ClassRef pClass = (ClassRef)&_class;
+    ClassRef pEndClass = (ClassRef)&_eclass;
+
+    while (pClass < pEndClass) {
+        RegisterClass(pClass);
+        pClass++;
+    }
+}
+
+// Prints all registered classes
+// Note that this function is not concurrency safe.
+void PrintClasses(void)
+{
+    ClassRef pClass = (ClassRef)&_class;
+    ClassRef pEndClass = (ClassRef)&_eclass;
+
+    print("_class: %p, _eclass: %p\n", pClass, pEndClass);
+
+    while (pClass < pEndClass) {
+        if (pClass->super) {
+            print("%s : %s\t\t", pClass->name, pClass->super->name);
+        } else {
+            print("%s\t\t\t\t", pClass->name);
+        }
+        print("mths: %d\tisize: %d\n", pClass->methodCount, pClass->instanceSize);
+
+#if 0
+        for (Int i = 0; i < pClass->methodCount; i++) {
+            print("%d: 0x%p\n", i, pClass->vtable[i]);
+        }
+#endif
+        pClass++;
     }
 }

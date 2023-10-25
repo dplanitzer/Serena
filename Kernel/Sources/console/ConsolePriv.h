@@ -62,12 +62,10 @@ Int TabStops_GetPreviousNthStop(TabStops* pStops, Int xLoc, Int nth);
 
 
 // The console object.
-typedef struct _Console {
-    Resource                    super;
-    
+CLASS_INTERFACE(Console, IOResource,
     Lock                        lock;
     EventDriverRef _Nonnull     eventDriver;
-    ResconRef _Nonnull          eventDriverChannel;
+    IOChannelRef _Nonnull       eventDriverChannel;
     GraphicsDriverRef _Nonnull  gdevice;
     RGBColor                    backgroundColor;
     RGBColor                    textColor;
@@ -87,7 +85,7 @@ typedef struct _Console {
     Bool                        isTextCursorOn;             // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
     Bool                        isTextCursorSingleCycleOn;  // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
     Bool                        isTextCursorVisible;        // global text cursor visibility switch
-} Console;
+);
 
 
 // Takes care of mapping a USB key scan code to a character or character sequence.
@@ -103,7 +101,7 @@ typedef struct _ConsoleChannel {
 } ConsoleChannel;
 
 
-extern void _Console_Deinit(ConsoleRef _Nonnull pConsole);
+extern void Console_deinit(ConsoleRef _Nonnull pConsole);
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
@@ -114,10 +112,10 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
 
-extern ErrorCode _Console_Open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon);
-extern ErrorCode _Console_Dup(ConsoleRef _Nonnull pConsole, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon);
-extern ByteCount _Console_Read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-extern ByteCount _Console_Write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite);
+extern ErrorCode Console_open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+extern ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite);
 
 //
 // Keymaps

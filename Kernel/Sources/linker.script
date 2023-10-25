@@ -6,11 +6,12 @@ SECTIONS {
     . = 0xfc0000;
 
     .text :
-        { __text = . ; cpu_vectors_asm.o(.text) *(.text) __etext = . ; } AT> kernel_rom
+        { __text = . ; cpu_vectors_asm.o(CODE) *(CODE) __etext = . ; } AT> kernel_rom
     
     .data 0x3000 : AT(LOADADDR(.text) + SIZEOF(.text))
-        { __data = . ; *(.data) __edata = . ; } AT> kernel_rom
+        { __data = . ; *(DATA) ;
+          __class = . ; *(__class) __eclass = . ; __edata = . ; } AT> kernel_rom
     
     .bss : AT(LOADADDR(.data) + SIZEOF(.data))
-        { __bss = . ; *(.bss) __ebss = . ; } AT> kernel_rom
+        { __bss = . ; *(BSS) __ebss = . ; } AT> kernel_rom
 }

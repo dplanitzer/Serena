@@ -9,17 +9,6 @@
 #include "ConsolePriv.h"
 
 
-static ResourceClass gConsoleClass = {
-    (Func_Object_Deinit)_Console_Deinit,
-    (Func_Resource_Open)_Console_Open,
-    (Func_Resource_Dup)_Console_Dup,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)_Console_Read,
-    (Func_Resource_Write)_Console_Write,
-    (Func_Resource_Close)NULL
-};
-
-
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
 // \param pEventDriver the event driver to provide keyboard input
@@ -30,12 +19,12 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     decl_try_err();
     Console* pConsole;
 
-    try(Object_Create(&gConsoleClass, sizeof(Console), &pConsole));
+    try(Object_Create(&kConsoleClass, sizeof(Console), &pConsole));
     
     Lock_Init(&pConsole->lock);
 
     pConsole->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(Resource_Open(pConsole->eventDriver, "", FREAD, &pConsole->eventDriverChannel));
+    try(IOResource_Open(pConsole->eventDriver, "", FREAD, &pConsole->eventDriverChannel));
 
     pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
 
@@ -85,7 +74,7 @@ catch:
 
 // Deallocates the console.
 // \param pConsole the console
-void _Console_Deinit(ConsoleRef _Nonnull pConsole)
+void Console_deinit(ConsoleRef _Nonnull pConsole)
 {
     Console_SetCursorBlinkingEnabled_Locked(pConsole, false);
     GraphicsDriver_RelinquishSprite(pConsole->gdevice, pConsole->textCursor);
@@ -102,7 +91,7 @@ void _Console_Deinit(ConsoleRef _Nonnull pConsole)
     pConsole->gdevice = NULL;
 
     if (pConsole->eventDriverChannel) {
-        Resource_Close(pConsole->eventDriver, pConsole->eventDriverChannel);
+        IOResource_Close(pConsole->eventDriver, pConsole->eventDriverChannel);
         Object_Release(pConsole->eventDriverChannel);
         pConsole->eventDriverChannel = NULL;
     }
@@ -902,45 +891,45 @@ static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_actio
 // Read/Write
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode _Console_Open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, ResconRef _Nullable * _Nonnull pOutRescon)
+ErrorCode Console_open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
-    ResconRef pRescon;
+    IOChannelRef pChannel;
     const KeyMap* pKeyMap = (const KeyMap*) &gKeyMap_usa[0];
     const ByteCount keyMapSize = KeyMap_GetMaxOutputByteCount(pKeyMap);
 
-    try(Rescon_Create((ResourceRef) pConsole, options, sizeof(ConsoleChannel) + sizeof(Byte) * (keyMapSize - 1), &pRescon));
-    ConsoleChannel* pChannel = Rescon_GetStateAs(pRescon, ConsoleChannel);
-    pChannel->map = pKeyMap;
-    pChannel->capacity = keyMapSize;
+    try(IOChannel_Create((IOResourceRef) pConsole, options, sizeof(ConsoleChannel) + sizeof(Byte) * (keyMapSize - 1), &pChannel));
+    ConsoleChannel* pChannel0 = IOChannel_GetStateAs(pChannel, ConsoleChannel);
+    pChannel0->map = pKeyMap;
+    pChannel0->capacity = keyMapSize;
 
-    *pOutRescon = pRescon;
+    *pOutChannel = pChannel;
     return EOK;
 
 catch:
-    *pOutRescon = NULL;
+    *pOutChannel = NULL;
     return err;
 }
 
-ErrorCode _Console_Dup(ConsoleRef _Nonnull pConsole, ResconRef _Nonnull pInRescon, ResconRef _Nullable * _Nonnull pOutRescon)
+ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
-    ResconRef pNewRescon;
+    IOChannelRef pNewChannel;
 
-    try(Rescon_CreateCopy(pInRescon, sizeof(ConsoleChannel) + sizeof(Byte) * (Rescon_GetStateAs(pInRescon, ConsoleChannel)->capacity - 1), &pNewRescon));
-    ConsoleChannel* pChannel = Rescon_GetStateAs(pNewRescon, ConsoleChannel);
+    try(IOChannel_CreateCopy(pInChannel, sizeof(ConsoleChannel) + sizeof(Byte) * (IOChannel_GetStateAs(pInChannel, ConsoleChannel)->capacity - 1), &pNewChannel));
+    ConsoleChannel* pChannel = IOChannel_GetStateAs(pNewChannel, ConsoleChannel);
     pChannel->startIndex = 0;
     pChannel->count = 0;
 
-    *pOutRescon = pNewRescon;
+    *pOutChannel = pNewChannel;
     return EOK;
 
 catch:
-    *pOutRescon = NULL;
+    *pOutChannel = NULL;
     return err;
 }
 
-ByteCount _Console_Read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     HIDEvent evt;
     Int evtCount;
@@ -968,7 +957,7 @@ ByteCount _Console_Read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull p
         // long time would prevent any other process from working with the
         // console
         Lock_Unlock(&pConsole->lock);
-        nEvtBytesRead = UObject_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
+        nEvtBytesRead = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
@@ -1007,7 +996,7 @@ ByteCount _Console_Read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull p
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes writte; a negative error code if an error was encountered
-ByteCount _Console_Write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
+ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
 {
     const unsigned char* pChars = (const unsigned char*) pBytes;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
@@ -1022,3 +1011,12 @@ ByteCount _Console_Write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull 
 
     return nBytesToWrite;
 }
+
+
+CLASS_IMPLEMENTATION(Console, IOResource,
+OVERRIDE_METHOD_IMPL(open, Console, IOResource)
+OVERRIDE_METHOD_IMPL(dup, Console, IOResource)
+OVERRIDE_METHOD_IMPL(read, Console, IOResource)
+OVERRIDE_METHOD_IMPL(write, Console, IOResource)
+OVERRIDE_METHOD_IMPL(deinit, Console, Object)
+);

@@ -264,19 +264,7 @@ static void mfm_encode_sector(const UInt32* input, UInt32* output, Int data_size
 // MARK: API
 ////////////////////////////////////////////////////////////////////////////////
 
-static void _FloppyDisk_Deinit(FloppyDisk* _Nonnull pDisk);
 static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk);
-
-
-static ResourceClass gFloppyDiskClass = {
-    (Func_Object_Deinit)_FloppyDisk_Deinit,
-    (Func_Resource_Open)NULL,
-    (Func_Resource_Dup)NULL,
-    (Func_Resource_Command)NULL,
-    (Func_Resource_Read)NULL,
-    (Func_Resource_Write)NULL,
-    (Func_Resource_Close)NULL
-};
 
 
 // Allocates a floppy disk object. The object is set up to manage the physical
@@ -286,7 +274,7 @@ ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk
     decl_try_err();
     FloppyDisk* pDisk;
     
-    try(Object_Create(&gFloppyDiskClass, sizeof(FloppyDisk), &pDisk));
+    try(Object_Create(&kFloppyDiskClass, sizeof(FloppyDisk), &pDisk));
     try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (Byte**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;
@@ -307,7 +295,7 @@ catch:
     return err;
 }
 
-static void _FloppyDisk_Deinit(FloppyDisk* _Nonnull pDisk)
+static void FloppyDisk_deinit(FloppyDisk* _Nonnull pDisk)
 {
     kfree((Byte*)pDisk->track_buffer);
     pDisk->track_buffer = NULL;
@@ -727,3 +715,8 @@ ErrorCode FloppyDisk_WriteSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylin
 catch:
     return err;
 }
+
+
+CLASS_IMPLEMENTATION(FloppyDisk, IOResource,
+OVERRIDE_METHOD_IMPL(deinit, FloppyDisk, Object)
+);
