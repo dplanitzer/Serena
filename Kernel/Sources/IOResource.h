@@ -21,12 +21,16 @@ CLASS_INTERFACE(IOChannel, Object,
     Byte                    state[1];
 );
 enum IOChannelMethodIndex {
-    kIOChannelMethodIndex_read = kObjectMethodIndex_deinit + 1,
+    kIOChannelMethodIndex_dup = kObjectMethodIndex_deinit + 1,
+    kIOChannelMethodIndex_command,
+    kIOChannelMethodIndex_read,
     kIOChannelMethodIndex_write,
     kIOChannelMethodIndex_close,
 
     kIOChannelMethodIndex_Count = kIOChannelMethodIndex_close + 1
 };
+INSTANCE_METHOD_N(ErrorCode, IOChannel, dup, IOChannelRef _Nullable * _Nonnull pOutChannel);
+INSTANCE_METHOD_N(ErrorCode, IOChannel, command, Int op, va_list ap);
 INSTANCE_METHOD_N(ByteCount, IOChannel, read, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 INSTANCE_METHOD_N(ByteCount, IOChannel, write, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
 INSTANCE_METHOD_0(ErrorCode, IOChannel, close);
@@ -42,6 +46,12 @@ extern ErrorCode IOChannel_CreateCopy(IOChannelRef _Nonnull pInChannel, ByteCoun
 
 #define IOChannel_GetStateAs(__self, __type) \
     ((__type*) &__self->state[0])
+
+#define IOChannel_Dup(__self, __pOutChannel) \
+Object_InvokeN(dup, IOChannel, __self, __pOutChannel)
+
+#define IOChannel_Command(__self, __op, __ap) \
+Object_InvokeN(command, IOChannel, __self, __op, __ap)
 
 #define IOChannel_Read(__self, __pBuffer, __nBytesToRead) \
 Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead)
@@ -80,7 +90,7 @@ INSTANCE_METHOD_N(ErrorCode, IOResource, open, const Character* _Nonnull pPath, 
 INSTANCE_METHOD_N(ErrorCode, IOResource, dup, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Executes the resource specific command 'op'.
-INSTANCE_METHOD_N(ErrorCode, IOResource, command, Int op, va_list ap);
+INSTANCE_METHOD_N(ErrorCode, IOResource, command, void* _Nonnull pContext, Int op, va_list ap);
 
 INSTANCE_METHOD_N(ByteCount, IOResource, read, void* _Nonnull pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 INSTANCE_METHOD_N(ByteCount, IOResource, write, void* _Nonnull pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
@@ -104,16 +114,16 @@ Object_InvokeN(open, IOResource, __self, __pPath, __options, __pOutChannel)
 #define IOResource_Dup(__self, __pChannel, __pOutChannel) \
 Object_InvokeN(dup, IOResource, __self, __pChannel, __pOutChannel)
 
-#define IOResource_Close(__self, __pChannel) \
-Object_InvokeN(close, IOResource, __self, __pChannel)
-
-#define IOResource_Command(__self, __op, __ap) \
-Object_InvokeN(command, IOResource, __self, __op, __ap)
+#define IOResource_Command(__self, __pChannel, __op, __ap) \
+Object_InvokeN(command, IOResource, __self, __pChannel, __op, __ap)
 
 #define IOResource_Read(__self, __pChannel, __pBuffer, __nBytesToRead) \
 Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead)
 
 #define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)
-    
+
+#define IOResource_Close(__self, __pChannel) \
+Object_InvokeN(close, IOResource, __self, __pChannel)
+
 #endif /* IOResource_h */

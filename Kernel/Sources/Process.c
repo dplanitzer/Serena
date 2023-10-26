@@ -320,10 +320,13 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-//    if ((pArgs->options & SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE) == 0) {
-//        if (pProc->uobjectCount >= 1 && pProc->uobjects[0]) {
-//        }
-//    }
+    if ((pArgs->options & SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE) == 0) {
+        for (Int i = 0; i < 3; i++) {
+            if (i < pProc->ioChannelsCount && pProc->ioChannels[i]) {
+                try(IOChannel_Dup(pProc->ioChannels[i], &pChildProc->ioChannels[i])); 
+            }
+        }
+    }
 
     Process_AddChildProcess_Locked(pProc, pChildProc);
     try(Process_Exec_Locked(pChildProc, pArgs->execbase, pArgs->argv, pArgs->envp));
@@ -500,7 +503,7 @@ ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount coun
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: UObjects / Descriptors
+// MARK: IOChannels / Descriptors
 ////////////////////////////////////////////////////////////////////////////////
 
 // Registers the given I/O channel with the process. This action allows the

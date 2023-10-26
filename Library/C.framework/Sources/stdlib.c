@@ -19,13 +19,6 @@ void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp)
     __gProcessArguments = argsp;
     environ = argsp->envp;
 
-    // XXX
-    const int stdin_fd = open("/dev/console", O_RDONLY);
-    assert(stdin_fd == 0);
-    const int stdout_fd = open("/dev/console", O_WRONLY);
-    assert(stdout_fd == 1);
-    // XXX
-
     __exit_init();
     __malloc_init();
 }

@@ -6,6 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,7 +38,7 @@ static void child_process(void)
 }
 
 
-void main_closure(int argc, char *argv[])
+void app_main(int argc, char *argv[])
 {
     printf(" pid: %d\nargc: %d\n", getpid(), argc);
     for (int i = 0; i < argc; i++) {
@@ -78,7 +79,7 @@ void main_closure(int argc, char *argv[])
 ////////////////////////////////////////////////////////////////////////////////
 
 #if 1
-void main_closure(int argc, char *argv[])
+void app_main(int argc, char *argv[])
 {
     printf("Console v1.0\nReady.\n\n");
 
@@ -95,3 +96,16 @@ void main_closure(int argc, char *argv[])
 }
 
 #endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Common startup
+////////////////////////////////////////////////////////////////////////////////
+
+void main_closure(int argc, char *argv[])
+{
+    assert(open("/dev/console", O_RDONLY) == 0);
+    assert(open("/dev/console", O_WRONLY) == 1);
+
+    app_main(argc, argv);
+}

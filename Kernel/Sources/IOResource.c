@@ -47,6 +47,16 @@ catch:
     return err;
 }
 
+ByteCount IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    return IOResource_Dup(self->resource, self, pOutChannel);
+}
+
+ByteCount IOChannel_command(IOChannelRef _Nonnull self, Int op, va_list ap)
+{
+    return IOResource_Command(self->resource, self->state, op, ap);
+}
+
 ByteCount IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     if ((self->options & FREAD) == 0) {
@@ -77,6 +87,8 @@ void IOChannel_deinit(IOChannelRef _Nonnull self)
 }
 
 CLASS_IMPLEMENTATION(IOChannel, Object,
+INSTANCE_METHOD_IMPL(dup, IOChannel)
+INSTANCE_METHOD_IMPL(command, IOChannel)
 INSTANCE_METHOD_IMPL(read, IOChannel)
 INSTANCE_METHOD_IMPL(write, IOChannel)
 INSTANCE_METHOD_IMPL(close, IOChannel)
@@ -109,7 +121,7 @@ ErrorCode IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pCha
 }
 
 // Executes the resource specific command 'op'.
-ErrorCode IOResource_command(IOResourceRef _Nonnull self, Int op, va_list ap)
+ErrorCode IOResource_command(IOResourceRef _Nonnull self, void* _Nonnull pContext, Int op, va_list ap)
 {
     return EBADF;
 }

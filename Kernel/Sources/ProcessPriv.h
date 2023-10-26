@@ -22,6 +22,7 @@
 typedef struct __process_arguments_t ProcessArguments;
 
 
+// Must be >= 3
 #define INITIAL_DESC_TABLE_SIZE 64
 #define DESC_TABLE_INCREMENT    128
 
