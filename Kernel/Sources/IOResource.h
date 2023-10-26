@@ -10,7 +10,6 @@
 #define IOResource_h
 
 #include <klib/klib.h>
-#include "Object.h"
 
 CLASS_FORWARD(IOChannel);
 CLASS_FORWARD(IOResource);

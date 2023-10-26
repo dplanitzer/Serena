@@ -9,7 +9,9 @@
 #ifndef Object_h
 #define Object_h
 
-#include <klib/klib.h>
+#include <klib/Atomic.h>
+#include <klib/Error.h>
+#include <klib/Types.h>
 
 
 #ifdef __section
@@ -127,7 +129,7 @@ extern void _Object_Release(ObjectRef _Nullable self);
     _Object_Release((ObjectRef) __self)
 
 #define Object_GetClass(__self)\
-((Class*)(((ObjectRef)(__self))->class))
+    ((Class*)(((ObjectRef)(__self))->class))
 
 extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass);
 
@@ -135,7 +137,7 @@ extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTarge
     _Object_InstanceOf(__self, &k##__className##Class)
 
 #define Object_Invoke(__methodName, __methodClassName, __self, ...) \
-((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self, __VA_ARGS__)
+    ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self, __VA_ARGS__)
 
 // Scans the "__class" data section bounded by the '_class' and '_eclass' linker
 // symbols for class records and:

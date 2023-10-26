@@ -7,6 +7,8 @@
 //
 
 #include "Object.h"
+#include "Kalloc.h"
+#include "Log.h"
 
 extern char _class;
 extern char _eclass;

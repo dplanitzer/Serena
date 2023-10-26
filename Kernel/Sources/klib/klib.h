@@ -21,6 +21,7 @@
 #include <klib/List.h>
 #include <klib/Log.h>
 #include <klib/RingBuffer.h>
+#include <klib/Object.h>
 #include <klib/TimeInterval.h>
 
 #endif /* klib_h */

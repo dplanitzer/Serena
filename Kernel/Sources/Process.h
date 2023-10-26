@@ -10,7 +10,6 @@
 #define Process_h
 
 #include <klib/klib.h>
-#include "Object.h"
 
 
 struct _Process;
