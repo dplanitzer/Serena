@@ -136,7 +136,10 @@ extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTarge
 #define Object_InstanceOf(__self, __className) \
     _Object_InstanceOf(__self, &k##__className##Class)
 
-#define Object_Invoke(__methodName, __methodClassName, __self, ...) \
+#define Object_Invoke0(__methodName, __methodClassName, __self) \
+    ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self)
+
+#define Object_InvokeN(__methodName, __methodClassName, __self, ...) \
     ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self, __VA_ARGS__)
 
 // Scans the "__class" data section bounded by the '_class' and '_eclass' linker

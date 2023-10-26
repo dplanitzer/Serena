@@ -10,7 +10,7 @@
 #define Process_h
 
 #include <klib/klib.h>
-
+#include "IOResource.h"
 
 struct _Process;
 typedef struct _Process* ProcessRef;
@@ -66,25 +66,25 @@ extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Ar
 extern ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount count, Byte* _Nullable * _Nonnull pOutMem);
 
 
-// Registers the given user object with the process. This action allows the
-// process to use this user object. The process maintains a strong reference to
-// the object until it is unregistered. Note that the process retains the object
-// and thus you have to release it once the call returns. The call returns a
-// descriptor which can be used to refer to the object from user and/or kernel
-// space.
-extern ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, ObjectRef _Nonnull pObject, Int* _Nonnull pOutDescriptor);
+// Registers the given I/O channel with the process. This action allows the
+// process to use this I/O channel. The process maintains a strong reference to
+// the channel until it is unregistered. Note that the process retains the
+// channel and thus you have to release it once the call returns. The call
+// returns a descriptor which can be used to refer to the channel from user
+// and/or kernel space.
+extern ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, Int* _Nonnull pOutDescriptor);
 
-// Unregisters the user object identified by the given descriptor. The object is
-// removed from the process' user object table and a strong reference to the
-// object is returned. The caller should call close() on the object to close it
-// and then release() to release the strong reference to the object. Closing the
-// object will mark the object as done and the object will be deallocated once
+// Unregisters the I/O channel identified by the given descriptor. The channel
+// is removed from the process' I/O channel table and a strong reference to the
+// channel is returned. The caller should call close() on the channel to close
+// it and then release() to release the strong reference to the channel. Closing
+// the channel will mark itself as done and the channel will be deallocated once
 // the last strong reference to it has been released.
-extern ErrorCode Process_UnregisterUObject(ProcessRef _Nonnull pProc, Int fd, ObjectRef _Nullable * _Nonnull pOutObject);
+extern ErrorCode Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-// Looks up the user object identified by the given descriptor and returns a
+// Looks up the I/O channel identified by the given descriptor and returns a
 // strong reference to it if found. The caller should call release() on the
-// object once it is no longer needed.
-extern ErrorCode Process_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, ObjectRef _Nullable * _Nonnull pOutObject);
+// channel once it is no longer needed.
+extern ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 #endif /* Process_h */

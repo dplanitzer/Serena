@@ -34,9 +34,9 @@ typedef struct _Process {
     AddressSpaceRef _Nonnull    addressSpace;
 
     // UObjects
-    ObjectRef* _Nonnull         uobjects;
-    Int                         uobjectCapacity;
-    Int                         uobjectCount;
+    IOChannelRef* _Nonnull      ioChannels;
+    Int                         ioChannelsCapacity;
+    Int                         ioChannelsCount;
 
     // Process image
     Byte* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
@@ -55,9 +55,9 @@ typedef struct _Process {
 
 extern ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc);
 
-// Unregisters all registered user objects. Ignores any errors that may be
-// returned from the close() call of an object.
-extern void Process_UnregisterAllUObjects_Locked(ProcessRef _Nonnull pProc);
+// Unregisters all registered I/O channels. Ignores any errors that may be
+// returned from the close() call of a channel.
+extern void Process_UnregisterAllIOChannels_Locked(ProcessRef _Nonnull pProc);
 
 // Adds the given process as a child to the given process. 'pOtherProc' must not
 // already be a child of another process.

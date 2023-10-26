@@ -62,9 +62,9 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
     try(AddressSpace_Create(&pProc->addressSpace));
 
-    try(kalloc_cleared(sizeof(ObjectRef) * INITIAL_DESC_TABLE_SIZE, (Byte**)&pProc->uobjects));
-    pProc->uobjectCapacity = INITIAL_DESC_TABLE_SIZE;
-    pProc->uobjectCount = 0;
+    try(kalloc_cleared(sizeof(IOChannelRef) * INITIAL_DESC_TABLE_SIZE, (Byte**)&pProc->ioChannels));
+    pProc->ioChannelsCapacity = INITIAL_DESC_TABLE_SIZE;
+    pProc->ioChannelsCount = 0;
 
     List_Init(&pProc->children);
     ListNode_Init(&pProc->siblings);
@@ -81,9 +81,9 @@ catch:
 void Process_Destroy(ProcessRef _Nullable pProc)
 {
     if (pProc) {
-        Process_UnregisterAllUObjects_Locked(pProc);
-        kfree((Byte*) pProc->uobjects);
-        pProc->uobjects = NULL;
+        Process_UnregisterAllIOChannels_Locked(pProc);
+        kfree((Byte*) pProc->ioChannels);
+        pProc->ioChannels = NULL;
 
         ListNode_Deinit(&pProc->siblings);
         List_Deinit(&pProc->children);
@@ -503,22 +503,22 @@ ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount coun
 // MARK: UObjects / Descriptors
 ////////////////////////////////////////////////////////////////////////////////
 
-// Registers the given user object with the process. This action allows the
-// process to use this user object. The process maintains a strong reference to
-// the object until it is unregistered. Note that the process retains the object
-// and thus you have to release it once the call returns. The call returns a
-// descriptor which can be used to refer to the object from user and/or kernel
-// space.
-ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, ObjectRef _Nonnull pObject, Int* _Nonnull pOutDescriptor)
+// Registers the given I/O channel with the process. This action allows the
+// process to use this I/O channel. The process maintains a strong reference to
+// the channel until it is unregistered. Note that the process retains the
+// channel and thus you have to release it once the call returns. The call
+// returns a descriptor which can be used to refer to the channel from user
+// and/or kernel space.
+ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, Int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
 
     Lock_Lock(&pProc->lock);
 
     // Find the lowest descriptor id that is available
-    Int fd = pProc->uobjectCount;
-    for (Int i = 0; i < pProc->uobjectCount; i++) {
-        if (pProc->uobjects[i] == NULL) {
+    Int fd = pProc->ioChannelsCount;
+    for (Int i = 0; i < pProc->ioChannelsCount; i++) {
+        if (pProc->ioChannels[i] == NULL) {
             fd = i;
             break;
         }
@@ -527,25 +527,25 @@ ErrorCode Process_RegisterUObject(ProcessRef _Nonnull pProc, ObjectRef _Nonnull 
 
     // Expand the descriptor table if we didn't find any empty slot and the table
     // has reached its capacity
-    if (fd == pProc->uobjectCount && pProc->uobjectCount == pProc->uobjectCapacity) {
-        const ByteCount newCapacity = sizeof(ObjectRef) * (pProc->uobjectCapacity + DESC_TABLE_INCREMENT);
-        ObjectRef* pNewUObjects;
+    if (fd == pProc->ioChannelsCount && pProc->ioChannelsCount == pProc->ioChannelsCapacity) {
+        const ByteCount newCapacity = sizeof(ObjectRef) * (pProc->ioChannelsCapacity + DESC_TABLE_INCREMENT);
+        IOChannelRef* pNewIOChannels;
 
-        try(kalloc_cleared(newCapacity, (Byte**)&pNewUObjects));
+        try(kalloc_cleared(newCapacity, (Byte**)&pNewIOChannels));
 
-        for (Int i = 0; i < pProc->uobjectCount; i++) {
-            pNewUObjects[i] = pProc->uobjects[i];
+        for (Int i = 0; i < pProc->ioChannelsCount; i++) {
+            pNewIOChannels[i] = pProc->ioChannels[i];
         }
-        kfree((Byte*) pProc->uobjects);
-        pProc->uobjects = pNewUObjects;
-        pProc->uobjectCapacity += DESC_TABLE_INCREMENT;
+        kfree((Byte*) pProc->ioChannels);
+        pProc->ioChannels = pNewIOChannels;
+        pProc->ioChannelsCapacity += DESC_TABLE_INCREMENT;
     }
 
 
-    // Register the object in the slot we found
-    pProc->uobjects[fd] = Object_RetainAs(pObject, Object);
-    if (fd == pProc->uobjectCount) {
-        pProc->uobjectCount++;
+    // Register the channel in the slot we found
+    pProc->ioChannels[fd] = Object_RetainAs(pChannel, IOChannel);
+    if (fd == pProc->ioChannelsCount) {
+        pProc->ioChannelsCount++;
     }
 
     Lock_Unlock(&pProc->lock);
@@ -559,74 +559,69 @@ catch:
     return err;
 }
 
-// Unregisters the user object identified by the given descriptor. The object is
-// removed from the process' user object table and a strong reference to the
-// object is returned. The caller should call close() on the object to close it
-// and then release() to release the strong reference to the object. Closing the
-// object will mark the object as done and the object will be deallocated once
+// Unregisters the I/O channel identified by the given descriptor. The channel
+// is removed from the process' I/O channel table and a strong reference to the
+// channel is returned. The caller should call close() on the channel to close
+// it and then release() to release the strong reference to the channel. Closing
+// the channel will mark itself as done and the channel will be deallocated once
 // the last strong reference to it has been released.
-ErrorCode Process_UnregisterUObject(ProcessRef _Nonnull pProc, Int fd, ObjectRef _Nullable * _Nonnull pOutObject)
+ErrorCode Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
     Lock_Lock(&pProc->lock);
 
-    if (fd < 0 || fd >= pProc->uobjectCount || pProc->uobjects[fd] == NULL) {
+    if (fd < 0 || fd >= pProc->ioChannelsCount || pProc->ioChannels[fd] == NULL) {
         throw(EBADF);
     }
 
-    *pOutObject = pProc->uobjects[fd];
-    pProc->uobjects[fd] = NULL;
+    *pOutChannel = pProc->ioChannels[fd];
+    pProc->ioChannels[fd] = NULL;
     Lock_Unlock(&pProc->lock);
 
     return EOK;
 
 catch:
     Lock_Unlock(&pProc->lock);
-    *pOutObject = NULL;
+    *pOutChannel = NULL;
     return err;
 }
 
-// Unregisters all registered user objects. Ignores any errors that may be
-// returned from the close() call of an object.
-void Process_UnregisterAllUObjects_Locked(ProcessRef _Nonnull pProc)
+// Unregisters all registered I/O channels. Ignores any errors that may be
+// returned from the close() call of a channel.
+void Process_UnregisterAllIOChannels_Locked(ProcessRef _Nonnull pProc)
 {
-    for (Int i = 0; i < pProc->uobjectCount; i++) {
-        ObjectRef pObj = pProc->uobjects[i];
+    for (Int i = 0; i < pProc->ioChannelsCount; i++) {
+        IOChannelRef pChannel = pProc->ioChannels[i];
 
-        if (pObj) {
-            pProc->uobjects[i] = NULL;
-
-//XXX
-//            if (Object_Implements(pObj, UObject, close)) {
-//                UObject_Close(pObj);
-//            }
-//XXX
-            Object_Release(pObj);
+        if (pChannel) {
+            pProc->ioChannels[i] = NULL;
+            IOChannel_Close(pChannel);
+            Object_Release(pChannel);
         }
     }
 }
 
-// Looks up the user object identified by the given descriptor and returns a
+// Looks up the I/O channel identified by the given descriptor and returns a
 // strong reference to it if found. The caller should call release() on the
-// object once it is no longer needed.
-ErrorCode Process_GetOwnedUObjectForDescriptor(ProcessRef _Nonnull pProc, Int fd, ObjectRef _Nullable * _Nonnull pOutObject)
+// channel once it is no longer needed.
+ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
     Lock_Lock(&pProc->lock);
     
-    if (fd < 0 || fd >= pProc->uobjectCount || pProc->uobjects[fd] == NULL) {
+    if (fd < 0 || fd >= pProc->ioChannelsCount || pProc->ioChannels[fd] == NULL) {
         throw(EBADF);
     }
 
-    *pOutObject = Object_RetainAs(pProc->uobjects[fd], Object);
+    *pOutChannel = Object_RetainAs(pProc->ioChannels[fd], IOChannel);
     Lock_Unlock(&pProc->lock);
 
     return EOK;
 
 catch:
     Lock_Unlock(&pProc->lock);
-    *pOutObject = NULL;
+    *pOutChannel = NULL;
     return err;
 }

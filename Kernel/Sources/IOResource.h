@@ -44,13 +44,13 @@ extern ErrorCode IOChannel_CreateCopy(IOChannelRef _Nonnull pInChannel, ByteCoun
     ((__type*) &__self->state[0])
 
 #define IOChannel_Read(__self, __pBuffer, __nBytesToRead) \
-Object_Invoke(read, IOChannel, __self, __pBuffer, __nBytesToRead)
+Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead)
 
 #define IOChannel_Write(__self, __pBuffer, __nBytesToWrite) \
-Object_Invoke(write, IOChannel, __self, __pBuffer, __nBytesToWrite)
+Object_InvokeN(write, IOChannel, __self, __pBuffer, __nBytesToWrite)
 
 #define IOChannel_Close(__self) \
-Object_Invoke(read, IOChannel, __self)
+Object_Invoke0(close, IOChannel, __self)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -99,21 +99,21 @@ INSTANCE_METHOD_N(ErrorCode, IOResource, close, void* _Nonnull pContext);
 
 
 #define IOResource_Open(__self, __pPath, __options, __pOutChannel) \
-Object_Invoke(open, IOResource, __self, __pPath, __options, __pOutChannel)
+Object_InvokeN(open, IOResource, __self, __pPath, __options, __pOutChannel)
 
 #define IOResource_Dup(__self, __pChannel, __pOutChannel) \
-Object_Invoke(dup, IOResource, __self, __pChannel, __pOutChannel)
+Object_InvokeN(dup, IOResource, __self, __pChannel, __pOutChannel)
 
 #define IOResource_Close(__self, __pChannel) \
-Object_Invoke(close, IOResource, __self, __pChannel)
+Object_InvokeN(close, IOResource, __self, __pChannel)
 
 #define IOResource_Command(__self, __op, __ap) \
-Object_Invoke(command, IOResource, __self, __op, __ap)
+Object_InvokeN(command, IOResource, __self, __op, __ap)
 
 #define IOResource_Read(__self, __pChannel, __pBuffer, __nBytesToRead) \
-Object_Invoke(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead)
+Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead)
 
 #define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite) \
-Object_Invoke(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)
+Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)
     
 #endif /* IOResource_h */

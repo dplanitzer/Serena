@@ -28,7 +28,7 @@ Int _SYSCALL_open(const SYS_open_args* _Nonnull pArgs)
     if (String_Equals(pArgs->path, "/dev/console")) {
         try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
         try(IOResource_Open(pConsole, pArgs->path, pArgs->options, &pChannel));
-        try(Process_RegisterUObject(Process_GetCurrent(), (ObjectRef) pChannel, &desc));
+        try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, &desc));
         Object_Release(pChannel);
 
         return desc;
@@ -50,18 +50,13 @@ typedef struct _SYS_close_args {
 Int _SYSCALL_close(const SYS_close_args* _Nonnull pArgs)
 {
     decl_try_err();
-    ObjectRef pObj;
+    IOChannelRef pChannel;
 
-    try(Process_UnregisterUObject(Process_GetCurrent(), pArgs->fd, &pObj));
-
+    try(Process_UnregisterIOChannel(Process_GetCurrent(), pArgs->fd, &pChannel));
     // The error that close() returns is purely advisory and thus we'll proceed
     // with releasing the resource in any case.
-    //XXX
-    //if (Object_Implements(pObj, UObject, close)) {
-    //    err = UObject_Close(pObj);
-    //}
-    //XXX
-    Object_Release(pObj);
+    err = IOChannel_Close(pChannel);
+    Object_Release(pChannel);
     return -err;
 
 catch:
@@ -79,20 +74,16 @@ typedef struct _SYS_read_args {
 ByteCount _SYSCALL_read(const SYS_read_args* _Nonnull pArgs)
 {
     decl_try_err();
-    ObjectRef pObj;
+    IOChannelRef pChannel;
     ByteCount nb = 0;
 
-    try(Process_GetOwnedUObjectForDescriptor(Process_GetCurrent(), pArgs->fd, &pObj));
-    if (Object_InstanceOf(pObj, IOChannel)) {
-        nb = IOChannel_Read(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
-    } else {
-        throw(EBADF);
-    }
-    Object_Release(pObj);
+    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
+    nb = IOChannel_Read(pChannel, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    Object_Release(pChannel);
     return nb;
 
 catch:
-    Object_Release(pObj);
+    Object_Release(pChannel);
     return -err;
 }
 
@@ -107,20 +98,16 @@ typedef struct _SYS_write_args {
 ByteCount _SYSCALL_write(const SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
-    ObjectRef pObj;
+    IOChannelRef pChannel;
     ByteCount nb = 0;
 
-    try(Process_GetOwnedUObjectForDescriptor(Process_GetCurrent(), pArgs->fd, &pObj));
-    if (Object_InstanceOf(pObj, IOChannel)) {
-        nb = IOChannel_Write(pObj, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
-    } else {
-        throw(EBADF);
-    }
-    Object_Release(pObj);
+    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
+    nb = IOChannel_Write(pChannel, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    Object_Release(pChannel);
     return nb;
 
 catch:
-    Object_Release(pObj);
+    Object_Release(pChannel);
     return -err;
 }
 
