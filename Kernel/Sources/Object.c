@@ -64,6 +64,21 @@ void _Object_Release(ObjectRef _Nullable self)
     }
 }
 
+Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass)
+{
+    ClassRef curTargetClass = pTargetClass;
+    ClassRef objClass = Object_GetClass(pObj);
+
+    while (curTargetClass) {
+        if (objClass == curTargetClass) {
+            return true;
+        }
+        curTargetClass = curTargetClass->super;
+    }
+
+    return false;
+}
+
 static void RegisterClass(ClassRef _Nonnull pClass)
 {
     if ((pClass->flags & CLASSF_INITIALIZED) != 0) {

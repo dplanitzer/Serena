@@ -129,8 +129,10 @@ extern void _Object_Release(ObjectRef _Nullable self);
 #define Object_GetClass(__self)\
 ((Class*)(((ObjectRef)(__self))->class))
 
+extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass);
+
 #define Object_InstanceOf(__self, __className) \
-    (Object_GetClass(__self) == &k##__className##Class)
+    _Object_InstanceOf(__self, &k##__className##Class)
 
 #define Object_Invoke(__methodName, __methodClassName, __self, ...) \
 ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self, __VA_ARGS__)
