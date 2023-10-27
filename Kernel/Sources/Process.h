@@ -67,7 +67,7 @@ extern void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc);
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
-extern ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessRef _Nullable * _Nullable pOutChildProc);
+extern ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, Int * _Nullable pOutChildPid);
 
 extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
 

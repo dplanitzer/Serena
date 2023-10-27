@@ -60,7 +60,7 @@ void app_main(int argc, char *argv[])
         spargs.execbase = (void*)0xfe0000;
         spargs.argv = child_argv;
         spargs.envp = NULL;
-        spawnp(&spargs);
+        spawnp(&spargs, NULL);
 
         // Do a parent's work
         parent_process();

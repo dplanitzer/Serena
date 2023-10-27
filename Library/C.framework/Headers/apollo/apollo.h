@@ -42,7 +42,7 @@ pid_t getpid(void);
 pid_t getppid(void);
 
 
-extern errno_t spawnp(const spawn_arguments_t *args);
+extern errno_t spawnp(const spawn_arguments_t *args, pid_t *rpid);
 extern errno_t waitpid(pid_t pid, waitpid_result_t *result);
 
 extern process_arguments_t *getpargs(void);

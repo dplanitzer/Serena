@@ -51,7 +51,7 @@ pid_t getppid(void)
     return __syscall(SC_getppid);
 }
 
-errno_t spawnp(const spawn_arguments_t *args)
+errno_t spawnp(const spawn_arguments_t *args, pid_t *rpid)
 {
     spawn_arguments_t kargs = *args;
     errno_t r;
@@ -64,7 +64,7 @@ errno_t spawnp(const spawn_arguments_t *args)
         kargs.envp = environ;
     }
 
-    __failable_syscall(r, SC_spawn_process, &kargs);
+    __failable_syscall(r, SC_spawn_process, &kargs, rpid);
     return r;
 }
 

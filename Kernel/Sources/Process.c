@@ -427,7 +427,7 @@ void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
-ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessRef _Nullable * _Nullable pOutChildProc)
+ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, Int * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
@@ -454,8 +454,8 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     try(Process_Exec_Locked(pChildProc, pArgs->execbase, pArgs->argv, pArgs->envp));
     Lock_Unlock(&pProc->lock);
 
-    if (pOutChildProc) {
-        *pOutChildProc = pChildProc;
+    if (pOutChildPid) {
+        *pOutChildPid = pChildProc->pid;
     }
 
     return EOK;
@@ -467,8 +467,8 @@ catch:
     if (needsUnlock) {
         Lock_Unlock(&pProc->lock);
     }
-    if (pOutChildProc) {
-        *pOutChildProc = NULL;
+    if (pOutChildPid) {
+        *pOutChildPid = 0;
     }
     return err;
 }

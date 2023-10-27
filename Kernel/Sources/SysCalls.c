@@ -202,6 +202,7 @@ Int _SYSCALL_exit(const struct SYS_exit_args* _Nonnull pArgs)
 struct SYS_spawn_process_args {
     Int                             scno;
     const SpawnArguments* _Nullable spawnArgs;
+    Int* _Nullable                  pOutPid;
 };
 
 Int _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
@@ -209,8 +210,7 @@ Int _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
     decl_try_err();
 
     throw_ifnull(pArgs->spawnArgs, EPARAM);
-    try(Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, NULL));
-
+    try(Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, pArgs->pOutPid));
     return EOK;
 
 catch:
@@ -234,6 +234,7 @@ Int _SYSCALL_getpargs(void)
 {
     return (Int) Process_GetArgumentsBaseAddress(Process_GetCurrent());
 }
+
 
 struct SYS_waitpid_args {
     Int                                 scno;
