@@ -68,6 +68,14 @@ errno_t spawnp(const spawn_arguments_t *args)
     return r;
 }
 
+errno_t waitpid(pid_t pid, waitpid_result_t *result)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_waitpid, pid, result);
+    return r;
+}
+
 process_arguments_t *getpargs(void)
 {
     return (process_arguments_t *) __syscall(SC_getpargs);

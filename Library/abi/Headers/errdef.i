@@ -32,6 +32,7 @@ E2BIG       equ 19
 ENOENT      equ 20
 ENOTBLK     equ 21
 EBADF       equ 22
+ECHILD      equ 23
 
 __EFIRST    equ 1
 __ELAST     equ 22

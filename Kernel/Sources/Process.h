@@ -18,6 +18,9 @@ typedef struct _Process* ProcessRef;
 // The process spawn arguments specify how a child process should be created.
 typedef struct __spawn_arguments_t SpawnArguments;
 
+// The process termination status generated when a child process terminates.
+typedef struct __waitpid_result_t ProcessTerminationStatus;
+
 
 extern ProcessRef _Nonnull  gRootProcess;
 
@@ -47,6 +50,12 @@ extern void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode);
 // Returns true if the process is marked for termination and false otherwise.
 extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
+// Waits for the child process with teh given PID to terminate and returns the
+// termination status. Returns ECHILD if there are no tombstones of terminated
+// child processes available or the PID is not the PID of a child process of
+// the receiver. Otherwise blocks the caller until the requested process or any
+// child process (pid == -1) has exited.
+extern ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, Int pid, ProcessTerminationStatus* _Nullable pStatus);
 
 extern Int Process_GetId(ProcessRef _Nonnull pProc);
 extern Int Process_GetParentId(ProcessRef _Nonnull pProc);

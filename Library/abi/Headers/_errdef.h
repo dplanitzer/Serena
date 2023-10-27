@@ -33,6 +33,7 @@
 #define ENOENT      20
 #define ENOTBLK     21
 #define EBADF       22
+#define ECHILD      23
 
 #define __EFIRST    1
 #define __ELAST     22

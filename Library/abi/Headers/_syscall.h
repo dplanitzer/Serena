@@ -21,5 +21,6 @@
 #define SC_getpargs             9   // struct __process_arguments_t * _Nonnull getpargs(void)
 #define SC_open                 10  // int open(const char * _Nonnull name, int options)
 #define SC_close                11  // errno_t close(int fd)
+#define SC_waitpid              12  // errno_t waitpid(pid_t pid, struct __waitpid_result_t * _Nullable result)
 
 #endif /* __SYSCALLS_H */

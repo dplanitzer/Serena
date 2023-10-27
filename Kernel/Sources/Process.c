@@ -68,6 +68,10 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
 
     List_Init(&pProc->children);
     ListNode_Init(&pProc->siblings);
+    pProc->parent = NULL;
+
+    List_Init(&pProc->tombstones);
+    ConditionVariable_Init(&pProc->tombstoneSignaler);
 
     *pOutProc = pProc;
     return EOK;
@@ -84,6 +88,9 @@ void Process_Destroy(ProcessRef _Nullable pProc)
         Process_UnregisterAllIOChannels_Locked(pProc);
         kfree((Byte*) pProc->ioChannels);
         pProc->ioChannels = NULL;
+
+        Process_DestroyAllTombstones_Locked(pProc);
+        ConditionVariable_Deinit(&pProc->tombstoneSignaler);
 
         ListNode_Deinit(&pProc->siblings);
         List_Deinit(&pProc->children);
@@ -102,6 +109,113 @@ void Process_Destroy(ProcessRef _Nullable pProc)
 
         kfree((Byte*) pProc);
     }
+}
+
+// Frees all tombstones
+void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
+{
+    ProcessTombstone* pCurTombstone = (ProcessTombstone*)pProc->tombstones.first;
+
+    while (pCurTombstone) {
+        ProcessTombstone* nxt = (ProcessTombstone*)pCurTombstone->node.next;
+
+        kfree((Byte*)pCurTombstone);
+        pCurTombstone = nxt;
+    }
+}
+
+// Creates a new tombstone for the given child process with the given exit status
+void Process_CommissionTombstone(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode)
+{
+    ProcessTombstone* pTombstone;
+
+    if (kalloc_cleared(sizeof(ProcessTombstone), (Byte**)&pTombstone) != EOK) {
+        print("Broken tombstone for %d:%d\n", pProc->pid, childPid);
+        return;
+    }
+
+    ListNode_Init(&pTombstone->node);
+    pTombstone->pid = childPid;
+    pTombstone->status = childExitCode;
+
+    Lock_Lock(&pProc->lock);
+    List_InsertAfterLast(&pProc->tombstones, &pTombstone->node);
+    ConditionVariable_BroadcastAndUnlock(&pProc->tombstoneSignaler, &pProc->lock);
+}
+
+// Waits for the child process with teh given PID to terminate and returns the
+// termination status. Returns ECHILD if there are no tombstones of terminated
+// child processes available or the PID is not the PID of a child process of
+// the receiver. Otherwise blocks the caller until the requested process or any
+// child process (pid == -1) has exited.
+ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, Int pid, ProcessTerminationStatus* _Nullable pStatus)
+{
+    decl_try_err();
+
+    Lock_Lock(&pProc->lock);
+    if (pid == -1 && List_IsEmpty(&pProc->tombstones)) {
+        throw(ECHILD);
+    }
+
+    
+    // Need to wait for a child to terminate
+    while (true) {
+        const ProcessTombstone* pTombstone = NULL;
+
+        if (pid == -1) {
+            // Any tombstone is good, return the first one (oldest) that was recorded
+            pTombstone = (ProcessTombstone*)pProc->tombstones.first;
+        } else {
+            // Look for the specific child process
+            List_ForEach(&pProc->tombstones, ProcessTombstone, {
+                if (pCurNode->pid == pid) {
+                    pTombstone = pCurNode;
+                    break;
+                }
+            })
+
+            if (pTombstone == NULL) {
+                // Looks like the child isn't dead yet or 'pid' isn't referring to a child. Make sure it does
+                Bool okay = false;
+
+                List_ForEach(&pProc->children, Process, {
+                    if (pCurNode->pid == pid) {
+                        okay = true;
+                        break;
+                    }
+                })
+
+                if (!okay) {
+                    throw(ECHILD);
+                }
+            }
+        }
+
+        if (pTombstone) {
+            if (pStatus) {
+                pStatus->pid = pTombstone->pid;
+                pStatus->status = pTombstone->status;
+            }
+
+            List_Remove(&pProc->tombstones, &pTombstone->node);
+            kfree((Byte*) pTombstone);
+            break;
+        }
+
+
+        // Wait for a child to terminate
+        try(ConditionVariable_Wait(&pProc->tombstoneSignaler, &pProc->lock, kTimeInterval_Infinity));
+    }
+    Lock_Unlock(&pProc->lock);
+    return EOK;
+
+catch:
+    Lock_Unlock(&pProc->lock);
+    if (pStatus) {
+        pStatus->pid = 0;
+        pStatus->status = 0;
+    }
+    return err;
 }
 
 // Stops the given process and all children, grand-children, etc.
@@ -227,6 +341,14 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
     // Stop this process and all its children before we free any resources
     Process_RecursivelyStop(pProc);
+
+
+    // Let our parent know that we're dead now and that it should remember us by
+    // commissioning a beautiful tombstone for us.
+    // XXX Calling a function on the parent may not be safe. What if the parent
+    // XXX itself has terminated and gone away by now? pProc->parent would be
+    // XXX invalid if it wouldn't have been set to NULL
+    Process_CommissionTombstone(pProc->parent, pProc->pid, pProc->exitCode);
 
 
     // Finally destroy the process and all its children.

@@ -11,6 +11,7 @@
 
 #include "Process.h"
 #include "AddressSpace.h"
+#include "ConditionVariable.h"
 #include "DispatchQueue.h"
 #include "Lock.h"
 
@@ -20,6 +21,19 @@
 // variables tables. These tables store pointers to nul-terminated strings and
 // the last entry in the table contains a NULL.
 typedef struct __process_arguments_t ProcessArguments;
+
+
+// A process tombstone is created by a process that voluntarily or involuntarily
+// exits. It records the PID and status of the exiting process. The tombstone is
+// added to the parent process of the process that exits.
+// This data structure is created by the exiting (child) process and is then
+// handed over to the parent process which takes ownership. Once this happens
+// the data structure is protected by the parent's lock.
+typedef struct __ProcessTombstone {
+    ListNode    node;
+    Int         pid;        // PID of process that exited
+    Int         status;     // Exit status
+} ProcessTombstone;
 
 
 // Must be >= 3
@@ -34,7 +48,7 @@ typedef struct _Process {
     DispatchQueueRef _Nonnull   mainDispatchQueue;
     AddressSpaceRef _Nonnull    addressSpace;
 
-    // UObjects
+    // IOChannels
     IOChannelRef* _Nonnull      ioChannels;
     Int                         ioChannelsCapacity;
     Int                         ioChannelsCount;
@@ -47,10 +61,12 @@ typedef struct _Process {
     AtomicBool                  isTerminating;  // true if the process is going through the termination process
     Int                         exitCode;       // Exit code of the first exit() call that initiated the termination of this process
 
-    // Child processes (protected by 'lock')
+    // Child process related properties (protected by 'lock')
     List                        children;
     ListNode                    siblings;
     ProcessRef _Nullable _Weak  parent;
+    List                        tombstones;
+    ConditionVariable           tombstoneSignaler;
 } Process;
 
 
@@ -59,6 +75,12 @@ extern ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutPro
 // Unregisters all registered I/O channels. Ignores any errors that may be
 // returned from the close() call of a channel.
 extern void Process_UnregisterAllIOChannels_Locked(ProcessRef _Nonnull pProc);
+
+// Frees all tombstones
+extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc);
+
+// Creates a new tombstone for the given child process with the given exit status
+extern void Process_CommissionTombstone(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode);
 
 // Adds the given process as a child to the given process. 'pOtherProc' must not
 // already be a child of another process.

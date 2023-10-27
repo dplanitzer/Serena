@@ -21,8 +21,9 @@ SC_getppid              equ 8   ; int getppid(void)
 SC_getpargs             equ 9   ; struct __process_arguments_t* _Nonnull getpargs(void)
 SC_open                 equ 10  ; int open(const char * _Nonnull name, int options)
 SC_close                equ 11  ; errno_t close(int fd)
+SC_waitpid              equ 12  ; errno_t waitpid(pid_t pid, struct __waitpid_result_t * _Nullable result)
 
-SC_numberOfCalls        equ 12   ; number of system calls
+SC_numberOfCalls        equ 13   ; number of system calls
 
 
 ; System call macro.

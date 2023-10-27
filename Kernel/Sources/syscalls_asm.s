@@ -23,6 +23,7 @@
     xref __SYSCALL_getpargs
     xref __SYSCALL_open
     xref __SYSCALL_close
+    xref __SYSCALL_waitpid
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -41,6 +42,7 @@ syscall_table:
     dc.l __SYSCALL_getpargs
     dc.l __SYSCALL_open
     dc.l __SYSCALL_close
+    dc.l __SYSCALL_waitpid
 
 
 ;-------------------------------------------------------------------------------

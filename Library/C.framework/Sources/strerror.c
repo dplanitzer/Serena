@@ -33,8 +33,9 @@ char *strerror(int err_no)
         /*ENOEXEC*/     "Not an executable file",
         /*E2BIG*/       "Argument too big",
         /*ENOENT*/      "No such file or directory",
-        /*ENOTBLK*/     "Not a block device"
-        /*EBADF*/       "Not a valid descriptor"
+        /*ENOTBLK*/     "Not a block device",
+        /*EBADF*/       "Not a valid descriptor",
+        /*ECHILD*/      "Not a child process"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

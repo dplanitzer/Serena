@@ -51,4 +51,11 @@ struct __spawn_arguments_t {
     unsigned int                        options;
 };
 
+
+// The result of a waitpid system call.
+struct __waitpid_result_t {
+    int/*pid_t*/    pid;        // PID of the child process
+    int             status;     // Child process exit status
+};
+
 #endif /* __KBIDEF_H */
