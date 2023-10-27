@@ -12,6 +12,7 @@
 #include <_cmndef.h>
 #include <_kbidef.h>
 #include <apollo/types.h>
+#include <time.h>
 
 __CPP_BEGIN
 
@@ -46,6 +47,10 @@ extern errno_t spawnp(const spawn_arguments_t *args, pid_t *rpid);
 extern errno_t waitpid(pid_t pid, waitpid_result_t *result);
 
 extern process_arguments_t *getpargs(void);
+
+extern errno_t nanosleep(const struct timespec *delay);
+extern errno_t usleep(useconds_t delay);
+extern errno_t sleep(time_t delay);
 
 __CPP_END
 

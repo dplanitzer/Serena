@@ -23,15 +23,17 @@ int count2;
 
 static void parent_process(void)
 {
+    struct timespec delay = {0, 250*1000*1000};
     printf("Hello World, from process #1!  [%d]\n", count1++);
-    __syscall(SC_sleep, 0, 250*1000*1000);
+    nanosleep(&delay);
     __syscall(SC_dispatch_async, (void*)parent_process);
 }
 
 static void child_process(void)
 {
+    struct timespec delay = {1, 0*1000*1000};
     printf("Hello World, from process #2!          [%d]\n", count2++);
-    __syscall(SC_sleep, 1, 0*1000*1000);
+    nanosleep(&delay);
     __syscall(SC_dispatch_async, (void*)child_process);
     //exit(0);
     //puts("oops\n");

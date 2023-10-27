@@ -82,6 +82,7 @@ extern TimeInterval TimeInterval_Add(TimeInterval t0, TimeInterval t1);
 extern TimeInterval TimeInterval_Subtract(TimeInterval t0, TimeInterval t1);
 
 
+#define ONE_SECOND_IN_NANOS (1000 * 1000 * 1000)
 #define kQuantums_Infinity      INT32_MAX
 #define kQuantums_MinusInfinity INT32_MIN
 extern const TimeInterval       kTimeInterval_Zero;

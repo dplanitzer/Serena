@@ -11,7 +11,7 @@ _SYSCALL_I  set 1
 
 SC_read                 equ 0   ; ssize_t read(int fd, const char * _Nonnull buffer, size_t count)
 SC_write                equ 1   ; ssize_t write(int fd, const char * _Nonnull buffer, size_t count)
-SC_sleep                equ 2   ; errno_t sleep(struct {int secs, int nanosecs})
+SC_sleep                equ 2   ; errno_t sleep(const struct timespec * _Nonnull delay)
 SC_dispatch_async       equ 3   ; errno_t dispatch_async(void * _Nonnull pUserClosure)
 SC_alloc_address_space  equ 4   ; errno_t alloc_address_space(int nbytes, void **pOutMem)
 SC_exit                 equ 5   ; _Noreturn exit(int status)

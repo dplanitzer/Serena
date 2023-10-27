@@ -80,3 +80,40 @@ process_arguments_t *getpargs(void)
 {
     return (process_arguments_t *) __syscall(SC_getpargs);
 }
+
+errno_t nanosleep(const struct timespec *delay)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_sleep, delay);
+    return r;
+}
+
+errno_t usleep(useconds_t delay)
+{
+    const useconds_t ONE_SECOND = 1000 * 1000;
+
+    if (delay >= ONE_SECOND) {
+        return EINVAL;
+    }
+    if (delay <= 0) {
+        return 0;
+    }
+
+    struct timespec ts;
+    ts.tv_sec = delay / ONE_SECOND;
+    ts.tv_nsec = delay - ts.tv_sec * ONE_SECOND;
+    return nanosleep(&ts);
+}
+
+errno_t sleep(time_t delay)
+{
+    if (delay <= 0) {
+        return 0;
+    }
+
+    struct timespec ts;
+    ts.tv_sec = delay;
+    ts.tv_nsec = 0;
+    return nanosleep(&ts);
+}

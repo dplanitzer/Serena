@@ -9,7 +9,6 @@
 #include "TimeInterval.h"
 
 
-#define ONE_SECOND_IN_NANOS (1000 * 1000 * 1000)
 const TimeInterval kTimeInterval_Zero = {0, 0};
 const TimeInterval kTimeInterval_Infinity = {INT32_MAX, ONE_SECOND_IN_NANOS};
 const TimeInterval kTimeInterval_MinusInfinity = {INT32_MIN, ONE_SECOND_IN_NANOS};

@@ -20,6 +20,12 @@ typedef long time_t;
 
 extern double difftime(time_t stop_time, time_t start_time);
 
+
+struct timespec {
+    time_t  tv_sec;
+    long    tv_nsec;
+};
+
 __CPP_END
 
 #endif /* _TIME_H */

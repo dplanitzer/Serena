@@ -113,14 +113,25 @@ catch:
 
 
 struct SYS_sleep_args {
-    Int             scno;
-    TimeInterval    ti;
+    Int                             scno;
+    const TimeInterval* _Nonnull    delay;
 };
 
 Int _SYSCALL_sleep(const struct SYS_sleep_args* _Nonnull pArgs)
 {
-    const ErrorCode err = VirtualProcessor_Sleep(pArgs->ti);
-    return (err == EOK) ? EOK : -err;
+    decl_try_err();
+
+    if (pArgs->delay == NULL) {
+        throw(EPARAM);
+    }
+    if (pArgs->delay->nanoseconds < 0 || pArgs->delay->nanoseconds >= ONE_SECOND_IN_NANOS) {
+        throw(EINVAL);
+    }
+
+    return VirtualProcessor_Sleep(*(pArgs->delay));
+
+catch:
+    return err;
 }
 
 
