@@ -1013,7 +1013,7 @@ ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull p
 }
 
 
-CLASS_IMPLEMENTATION(Console, IOResource,
+CLASS_METHODS(Console, IOResource,
 OVERRIDE_METHOD_IMPL(open, Console, IOResource)
 OVERRIDE_METHOD_IMPL(dup, Console, IOResource)
 OVERRIDE_METHOD_IMPL(read, Console, IOResource)

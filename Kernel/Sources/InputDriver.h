@@ -17,7 +17,7 @@
 // Keyboard input driver
 //
 
-CLASS_FORWARD(KeyboardDriver);
+OPAQUE_CLASS(KeyboardDriver, IOResource);
 enum KeyboardDriverMethodIndex {
     kKeyboardDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };
@@ -32,7 +32,7 @@ extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver
 // Mouse input driver
 //
 
-CLASS_FORWARD(MouseDriver);
+OPAQUE_CLASS(MouseDriver, IOResource);
 enum MouseDriverMethodIndex {
     kMouseDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };
@@ -44,7 +44,7 @@ extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int po
 // Digital Joystick input driver
 //
 
-CLASS_FORWARD(DigitalJoystickDriver);
+OPAQUE_CLASS(DigitalJoystickDriver, IOResource);
 enum DigitalJoystickDriverMethodIndex {
     kDigitalJoystickDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };
@@ -56,7 +56,7 @@ extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriv
 // Analog Joystick (Paddles) input driver
 //
 
-CLASS_FORWARD(AnalogJoystickDriver);
+OPAQUE_CLASS(AnalogJoystickDriver, IOResource);
 enum AnalogJoystickDriverMethodIndex {
     kAnalogJoystickDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };
@@ -69,7 +69,7 @@ extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDrive
 // Light Pen input driver
 //
 
-CLASS_FORWARD(LightPenDriver);
+OPAQUE_CLASS(LightPenDriver, IOResource);
 enum LightPenDriverMethodIndex {
     kLightPenDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };

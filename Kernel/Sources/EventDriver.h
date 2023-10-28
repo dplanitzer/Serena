@@ -15,7 +15,7 @@
 #include "IOResource.h"
 
 
-CLASS_FORWARD(EventDriver);
+OPAQUE_CLASS(EventDriver, IOResource);
 enum EventDriverMethodIndex {
     kEventDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };

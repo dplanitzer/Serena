@@ -11,11 +11,10 @@
 
 #include <klib/klib.h>
 
-CLASS_FORWARD(IOChannel);
 CLASS_FORWARD(IOResource);
 
 
-CLASS_INTERFACE(IOChannel, Object,
+OPEN_CLASS_WITH_REF(IOChannel, Object,
     IOResourceRef _Nonnull  resource;
     UInt                    options;
     Byte                    state[1];
@@ -29,11 +28,11 @@ enum IOChannelMethodIndex {
 
     kIOChannelMethodIndex_Count = kIOChannelMethodIndex_close + 1
 };
-INSTANCE_METHOD_N(ErrorCode, IOChannel, dup, IOChannelRef _Nullable * _Nonnull pOutChannel);
-INSTANCE_METHOD_N(ErrorCode, IOChannel, command, Int op, va_list ap);
-INSTANCE_METHOD_N(ByteCount, IOChannel, read, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-INSTANCE_METHOD_N(ByteCount, IOChannel, write, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
-INSTANCE_METHOD_0(ErrorCode, IOChannel, close);
+METHOD_TYPE_N(ErrorCode, IOChannel, dup, IOChannelRef _Nullable * _Nonnull pOutChannel);
+METHOD_TYPE_N(ErrorCode, IOChannel, command, Int op, va_list ap);
+METHOD_TYPE_N(ByteCount, IOChannel, read, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+METHOD_TYPE_N(ByteCount, IOChannel, write, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+METHOD_TYPE_0(ErrorCode, IOChannel, close);
 
 #define FREAD   0x0001
 #define FWRITE  0x0002
@@ -65,7 +64,7 @@ Object_Invoke0(close, IOChannel, __self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CLASS_INTERFACE(IOResource, Object,);
+OPEN_CLASS(IOResource, Object,);
 enum IOResourceMethodIndex {
     kIOResourceMethodIndex_open = kObjectMethodIndex_deinit + 1,
     kIOResourceMethodIndex_dup,
@@ -82,18 +81,18 @@ enum IOResourceMethodIndex {
 // will be represented by a (file) descriptor in user space. The resource context
 // maintains state that is specific to this connection. This state will be
 // protected by the resource's internal locking mechanism.
-INSTANCE_METHOD_N(ErrorCode, IOResource, open, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
+METHOD_TYPE_N(ErrorCode, IOResource, open, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Creates an independent copy of the passed in rescon. Note that this function
 // is allowed to return a strong reference to the rescon that was passed in if
 // the rescon state is immutable. 
-INSTANCE_METHOD_N(ErrorCode, IOResource, dup, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
+METHOD_TYPE_N(ErrorCode, IOResource, dup, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Executes the resource specific command 'op'.
-INSTANCE_METHOD_N(ErrorCode, IOResource, command, void* _Nonnull pContext, Int op, va_list ap);
+METHOD_TYPE_N(ErrorCode, IOResource, command, void* _Nonnull pContext, Int op, va_list ap);
 
-INSTANCE_METHOD_N(ByteCount, IOResource, read, void* _Nonnull pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-INSTANCE_METHOD_N(ByteCount, IOResource, write, void* _Nonnull pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+METHOD_TYPE_N(ByteCount, IOResource, read, void* _Nonnull pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+METHOD_TYPE_N(ByteCount, IOResource, write, void* _Nonnull pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
 
 // Close the resource. The purpose of the close operation is:
 // - flush all data that was written and is still buffered/cached to the underlying device
@@ -105,7 +104,7 @@ INSTANCE_METHOD_N(ByteCount, IOResource, write, void* _Nonnull pContext, const B
 // The close operation may return an error. Returning an error will not stop the kernel from completing the close and eventually
 // deallocating the resource. The error is passed on to the caller but is purely advisory in nature. The close operation is
 // required to mark the resource as closed whether the close internally succeeded or failed. 
-INSTANCE_METHOD_N(ErrorCode, IOResource, close, void* _Nonnull pContext);
+METHOD_TYPE_N(ErrorCode, IOResource, close, void* _Nonnull pContext);
 
 
 #define IOResource_Open(__self, __pPath, __options, __pOutChannel) \

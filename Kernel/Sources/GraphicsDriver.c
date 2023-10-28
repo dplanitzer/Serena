@@ -933,6 +933,6 @@ void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const By
 }
 
 
-CLASS_IMPLEMENTATION(GraphicsDriver, IOResource,
+CLASS_METHODS(GraphicsDriver, IOResource,
 OVERRIDE_METHOD_IMPL(deinit, GraphicsDriver, Object)
 );

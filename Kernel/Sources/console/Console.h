@@ -13,7 +13,7 @@
 #include "EventDriver.h"
 #include "GraphicsDriver.h"
 
-CLASS_FORWARD(Console);
+OPAQUE_CLASS(Console, IOResource);
 enum ConsoleMethodIndex {
     kConsoleMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };

@@ -584,7 +584,7 @@ catch:
 }
 
 
-CLASS_IMPLEMENTATION(EventDriver, IOResource,
+CLASS_METHODS(EventDriver, IOResource,
 OVERRIDE_METHOD_IMPL(open, EventDriver, IOResource)
 OVERRIDE_METHOD_IMPL(dup, EventDriver, IOResource)
 OVERRIDE_METHOD_IMPL(read, EventDriver, IOResource)

@@ -264,12 +264,12 @@ static void mfm_encode_sector(const UInt32* input, UInt32* output, Int data_size
 // MARK: API
 ////////////////////////////////////////////////////////////////////////////////
 
-static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk);
+static void FloppyDisk_InvalidateTrackBuffer(FloppyDiskRef _Nonnull pDisk);
 
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-ErrorCode FloppyDisk_Create(Int drive, FloppyDisk* _Nullable * _Nonnull pOutDisk)
+ErrorCode FloppyDisk_Create(Int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDisk* pDisk;
@@ -295,14 +295,14 @@ catch:
     return err;
 }
 
-static void FloppyDisk_deinit(FloppyDisk* _Nonnull pDisk)
+static void FloppyDisk_deinit(FloppyDiskRef _Nonnull pDisk)
 {
     kfree((Byte*)pDisk->track_buffer);
     pDisk->track_buffer = NULL;
 }
 
 // Invalidates the track cache.
-static void FloppyDisk_InvalidateTrackBuffer(FloppyDisk* _Nonnull pDisk)
+static void FloppyDisk_InvalidateTrackBuffer(FloppyDiskRef _Nonnull pDisk)
 {
     if ((pDisk->flags & FLOPPY_FLAG_TRACK_BUFFER_VALID) != 0) {
         pDisk->flags &= ~FLOPPY_FLAG_TRACK_BUFFER_VALID;
@@ -330,7 +330,7 @@ static inline ErrorCode FloppyDisk_StatusFromDriveStatus(UInt drvstat)
 // waits for at most 500ms for the disk to become ready.
 // Returns S_OK if the drive is ready; ETIMEDOUT  if the drive failed to become
 // ready in time.
-static ErrorCode FloppyDisk_WaitDriveReady(FloppyDisk* _Nonnull pDisk)
+static ErrorCode FloppyDisk_WaitDriveReady(FloppyDiskRef _Nonnull pDisk)
 {
     decl_try_err();
 
@@ -353,7 +353,7 @@ catch:
 // least once.
 // Note that this function is expected to implicitly acknowledge a disk change if
 // it has actually seeked.
-static ErrorCode FloppyDisk_SeekToTrack_0(FloppyDisk* _Nonnull pDisk)
+static ErrorCode FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull pDisk)
 {
     decl_try_err();
     Bool did_step_once = false;
@@ -399,7 +399,7 @@ catch:
 // implicitly and accidently acknowledge a disk change as a side effect of seeking.
 // The user of the API needs to become aware of the disk change so that he can actually
 // handle it in a sensible way.
-static ErrorCode FloppyDisk_SeekTo(FloppyDisk* _Nonnull pDisk, Int cylinder, Int head)
+static ErrorCode FloppyDisk_SeekTo(FloppyDiskRef _Nonnull pDisk, Int cylinder, Int head)
 {
     decl_try_err();
     const Int diff = cylinder - pDisk->cylinder;
@@ -467,7 +467,7 @@ catch:
 // Note that this function leaves the floppy motor turned on and that it implicitly
 // acknowledges any pending disk change.
 // Upper layer code should treat this function like a disk change.
-ErrorCode FloppyDisk_Reset(FloppyDisk* _Nonnull pDisk)
+ErrorCode FloppyDisk_Reset(FloppyDiskRef _Nonnull pDisk)
 {
     decl_try_err();
 
@@ -499,7 +499,7 @@ catch:
 }
 
 // Returns the current floppy drive status.
-ErrorCode FloppyDisk_GetStatus(FloppyDisk* _Nonnull pDisk)
+ErrorCode FloppyDisk_GetStatus(FloppyDiskRef _Nonnull pDisk)
 {
     return FloppyDisk_StatusFromDriveStatus(fdc_get_drive_status(&pDisk->ciabprb));
 }
@@ -513,7 +513,7 @@ ErrorCode FloppyDisk_GetStatus(FloppyDisk* _Nonnull pDisk)
 // in this case to acknowledge the disk change. If the FloppyDisk_GetStatus()
 // function continues to return EDISKCHANGE after acking' the disk change, then
 // you know that there is no disk in the disk drive.
-void FloppyDisk_AcknowledgeDiskChange(FloppyDisk* _Nonnull pDisk)
+void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull pDisk)
 {
     // Step by one track. This clears the disk change drive state if there is a
     // disk in the drive. If the disk change state doesn't change after the seek
@@ -526,7 +526,7 @@ void FloppyDisk_AcknowledgeDiskChange(FloppyDisk* _Nonnull pDisk)
 }
 
 // Turns the drive motor on and blocks the caller until the disk is ready.
-void FloppyDisk_MotorOn(FloppyDisk* _Nonnull pDisk)
+void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull pDisk)
 {
     fdc_set_drive_motor(&pDisk->ciabprb, 1);
     
@@ -538,12 +538,12 @@ void FloppyDisk_MotorOn(FloppyDisk* _Nonnull pDisk)
 }
 
 // Turns the drive motor off.
-void FloppyDisk_MotorOff(FloppyDisk* _Nonnull pDisk)
+void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull pDisk)
 {
     fdc_set_drive_motor(&pDisk->ciabprb, 0);
 }
 
-static ErrorCode FloppyDisk_ReadTrack(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder)
+static ErrorCode FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder)
 {
     decl_try_err();
     
@@ -620,7 +620,7 @@ catch:
     return err;
 }
 
-ErrorCode FloppyDisk_ReadSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder, Int sector, Byte* _Nonnull pBuffer)
+ErrorCode FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder, Int sector, Byte* _Nonnull pBuffer)
 {
     decl_try_err();
     
@@ -655,7 +655,7 @@ catch:
     return err;
 }
 
-static ErrorCode FloppyDisk_WriteTrack(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder)
+static ErrorCode FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder)
 {
     decl_try_err();
     
@@ -683,7 +683,7 @@ catch:
     return err;
 }
 
-ErrorCode FloppyDisk_WriteSector(FloppyDisk* _Nonnull pDisk, Int head, Int cylinder, Int sector, const Byte* pBuffer)
+ErrorCode FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder, Int sector, const Byte* pBuffer)
 {
     decl_try_err();
     
@@ -717,6 +717,6 @@ catch:
 }
 
 
-CLASS_IMPLEMENTATION(FloppyDisk, IOResource,
+CLASS_METHODS(FloppyDisk, IOResource,
 OVERRIDE_METHOD_IMPL(deinit, FloppyDisk, Object)
 );

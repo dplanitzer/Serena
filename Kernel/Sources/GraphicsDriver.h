@@ -87,7 +87,7 @@ extern Int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig
 extern Bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
 
 
-CLASS_FORWARD(GraphicsDriver);
+OPAQUE_CLASS(GraphicsDriver, IOResource);
 enum GraphicsDriverMethodIndex {
     kGraphicsDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };

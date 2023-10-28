@@ -49,7 +49,7 @@ typedef struct _InputControllerState {
 // may contribute to their state. Eg multiple keyboards may contribute to the
 // logical keyboard and multiple mice and other devices such as a joystick or
 // light pen may contribute to the state of the logical mouse. 
-CLASS_INTERFACE(EventDriver, IOResource,
+CLASS_IVARS(EventDriver, IOResource,
     Lock                        lock;
     GraphicsDriverRef _Nonnull  gdevice;
     HIDEventQueueRef _Nonnull   eventQueue;

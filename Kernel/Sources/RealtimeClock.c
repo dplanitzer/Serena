@@ -12,7 +12,7 @@
 
 
 // The realtime clock
-CLASS_INTERFACE(RealtimeClock, IOResource,
+CLASS_IVARS(RealtimeClock, IOResource,
     Int     type;
     Lock    lock;
     // XXX not fully implemented yet
@@ -141,6 +141,6 @@ catch:
 }
 
 
-CLASS_IMPLEMENTATION(RealtimeClock, IOResource,
+CLASS_METHODS(RealtimeClock, IOResource,
 OVERRIDE_METHOD_IMPL(deinit, RealtimeClock, Object)
 );

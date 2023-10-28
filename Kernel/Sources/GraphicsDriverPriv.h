@@ -120,7 +120,7 @@ extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 // Graphics Driver
 //
 
-CLASS_INTERFACE(GraphicsDriver, IOResource,
+CLASS_IVARS(GraphicsDriver, IOResource,
     Screen* _Nonnull        screen;
     Sprite* _Nonnull        nullSprite;
     Lock                    lock;   // protects the driver and the current screen

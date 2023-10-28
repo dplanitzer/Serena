@@ -32,7 +32,7 @@ extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 extern Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
 
-CLASS_FORWARD(RealtimeClock);
+OPAQUE_CLASS(RealtimeClock, IOResource);
 enum RealtimeClockMethodIndex {
     kRealtimeClockMethodIndex_Count = kIOResourceMethodIndex_close + 1
 };

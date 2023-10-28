@@ -86,12 +86,12 @@ void IOChannel_deinit(IOChannelRef _Nonnull self)
     self->resource = NULL;
 }
 
-CLASS_IMPLEMENTATION(IOChannel, Object,
-INSTANCE_METHOD_IMPL(dup, IOChannel)
-INSTANCE_METHOD_IMPL(command, IOChannel)
-INSTANCE_METHOD_IMPL(read, IOChannel)
-INSTANCE_METHOD_IMPL(write, IOChannel)
-INSTANCE_METHOD_IMPL(close, IOChannel)
+CLASS_METHODS(IOChannel, Object,
+METHOD_IMPL(dup, IOChannel)
+METHOD_IMPL(command, IOChannel)
+METHOD_IMPL(read, IOChannel)
+METHOD_IMPL(write, IOChannel)
+METHOD_IMPL(close, IOChannel)
 OVERRIDE_METHOD_IMPL(deinit, IOChannel, Object)
 );
 
@@ -143,11 +143,11 @@ ErrorCode IOResource_close(IOResourceRef _Nonnull self, void* _Nonnull pContext)
 }
 
 
-CLASS_IMPLEMENTATION(IOResource, Object,
-INSTANCE_METHOD_IMPL(open, IOResource)
-INSTANCE_METHOD_IMPL(dup, IOResource)
-INSTANCE_METHOD_IMPL(command, IOResource)
-INSTANCE_METHOD_IMPL(read, IOResource)
-INSTANCE_METHOD_IMPL(write, IOResource)
-INSTANCE_METHOD_IMPL(close, IOResource)
+CLASS_METHODS(IOResource, Object,
+METHOD_IMPL(open, IOResource)
+METHOD_IMPL(dup, IOResource)
+METHOD_IMPL(command, IOResource)
+METHOD_IMPL(read, IOResource)
+METHOD_IMPL(write, IOResource)
+METHOD_IMPL(close, IOResource)
 );

@@ -62,7 +62,7 @@ Int TabStops_GetPreviousNthStop(TabStops* pStops, Int xLoc, Int nth);
 
 
 // The console object.
-CLASS_INTERFACE(Console, IOResource,
+CLASS_IVARS(Console, IOResource,
     Lock                        lock;
     EventDriverRef _Nonnull     eventDriver;
     IOChannelRef _Nonnull       eventDriverChannel;

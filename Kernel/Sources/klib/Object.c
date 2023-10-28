@@ -18,8 +18,8 @@ void Object_deinit(ObjectRef _Nonnull self)
 {
 }
 
-ROOT_CLASS_IMPLEMENTATION(Object,
-INSTANCE_METHOD_IMPL(deinit, Object)
+ROOT_CLASS_METHODS(Object,
+METHOD_IMPL(deinit, Object)
 );
 
 ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)

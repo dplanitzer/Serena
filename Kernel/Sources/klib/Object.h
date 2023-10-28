@@ -20,41 +20,61 @@
 #define _ClassSection
 #endif
 
-#define CLASS_FORWARD(__name) \
-struct _##__name; \
-typedef struct _##__name* __name##Ref
+
+#define METHOD_TYPE_0(__rtype, __className, __methodName) \
+typedef __rtype (*__className##Method_##__methodName)(void* self)
+
+#define METHOD_TYPE_N(__rtype, __className, __methodName, ...) \
+typedef __rtype (*__className##Method_##__methodName)(void* self, __VA_ARGS__)
 
 
-#define INSTANCE_METHOD_IMPL(__name, __className) \
+#define METHOD_IMPL(__name, __className) \
 { k##__className##MethodIndex_##__name , (Method) __className##_##__name },
 
 #define OVERRIDE_METHOD_IMPL(__name, __className, __superClassName) \
 { k##__superClassName##MethodIndex_##__name , (Method) __className##_##__name },
 
 
-#define __CLASS_IMPLEMENTATION(__name, __super, ...) \
+#define __CLASS_METHODS(__name, __super, ...) \
 static Method g##__name##VTable[k##__name##MethodIndex_Count];\
 static const struct MethodDecl gMethodImpls_##__name[] = { __VA_ARGS__ {0, (Method)0} }; \
 Class _ClassSection k##__name##Class = {g##__name##VTable, __super, #__name, sizeof(__name), k##__name##MethodIndex_Count, 0, gMethodImpls_##__name}
 
-#define __ROOT_CLASS_INTERFACE(__name, __super, __ivars_decls) \
+#define __CLASS_IVARS(__name, __super, __ivars_decls) \
 extern Class k##__name##Class; \
 typedef struct _##__name { __super __ivars_decls } __name
 
 
-#define ROOT_CLASS_IMPLEMENTATION(__name, ...) __CLASS_IMPLEMENTATION(__name, NULL, __VA_ARGS__)
-#define ROOT_CLASS_INTERFACE(__name, __ivar_decls) __ROOT_CLASS_INTERFACE(__name, , __ivar_decls)
+#define CLASS_FORWARD(__name) \
+struct _##__name; \
+typedef struct _##__name* __name##Ref
 
 
-#define CLASS_IMPLEMENTATION(__name, __super, ...) __CLASS_IMPLEMENTATION(__name, &k##__super##Class, __VA_ARGS__)
-#define CLASS_INTERFACE(__name, __super, __ivar_decls) __ROOT_CLASS_INTERFACE(__name, __super super;, __ivar_decls)
+#define OPEN_ROOT_CLASS_WITH_REF(__name, __ivar_decls) \
+__CLASS_IVARS(__name, , __ivar_decls); \
+typedef struct _##__name* __name##Ref
+
+#define ROOT_CLASS_METHODS(__name, ...) \
+__CLASS_METHODS(__name, NULL, __VA_ARGS__)
 
 
-#define INSTANCE_METHOD_0(__rtype, __className, __methodName) \
-typedef __rtype (*__className##Method_##__methodName)(void* self)
+#define OPEN_CLASS(__name, __super, __ivar_decls)\
+__CLASS_IVARS(__name, __super super;, __ivar_decls)
 
-#define INSTANCE_METHOD_N(__rtype, __className, __methodName, ...) \
-typedef __rtype (*__className##Method_##__methodName)(void* self, __VA_ARGS__)
+#define OPEN_CLASS_WITH_REF(__name, __super, __ivar_decls)\
+__CLASS_IVARS(__name, __super super;, __ivar_decls); \
+typedef struct _##__name* __name##Ref
+
+
+#define OPAQUE_CLASS(__name, __superName) \
+struct _##__name; \
+typedef struct _##__name* __name##Ref
+
+#define CLASS_IVARS(__name, __super, __ivar_decls) \
+__CLASS_IVARS(__name, __super super;, __ivar_decls)
+
+#define CLASS_METHODS(__name, __super, ...) \
+__CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 
 
 typedef void (*Method)(void* self, ...);
@@ -66,21 +86,26 @@ struct MethodDecl {
 
 #define CLASSF_INITIALIZED  1
 
-typedef struct __Class {
-    Method* _Nonnull            vtable;
-    struct __Class* _Nonnull    super;
-    const char* _Nonnull        name;
-    ByteCount                   instanceSize;
-    Int16                       methodCount;
-    UInt16                      flags;
+typedef struct _Class {
+    Method* _Nonnull        vtable;
+    struct _Class* _Nonnull super;
+    const char* _Nonnull    name;
+    ByteCount               instanceSize;
+    Int16                   methodCount;
+    UInt16                  flags;
     const struct MethodDecl* _Nonnull methodList;
 } Class;
-typedef Class* ClassRef;
+typedef struct _Class* ClassRef;
 
 
-CLASS_FORWARD(Object);
-
-ROOT_CLASS_INTERFACE(Object,
+// The Object class. This is the root class aka top type of the object system.
+// All other classes derive directly or indirectly from Object. The only
+// operations supported by Object are reference counting based memory management
+// and dynamic method invocation.
+// Dynamic method invocation is implemented via index-based method dispatching.
+// Every methd is assigned an index and this index is used to look up the
+// implementation of a method.
+OPEN_ROOT_CLASS_WITH_REF(Object,
     ClassRef _Nonnull   class;
     AtomicInt           retainCount;
 );
@@ -89,8 +114,14 @@ enum ObjectMethodIndex {
     
     kObjectMethodIndex_Count = kObjectMethodIndex_deinit + 1
 };
-INSTANCE_METHOD_0(void, Object, deinit);
+METHOD_TYPE_0(void, Object, deinit);
 
+
+// Allocates an instance of the given class. 'extraByteCount' is the number of
+// extra bytes that should be allocated for the instance on top of the instance
+// size recorded in the class. Returns an error if allocation has failed for
+// some reason. The returned object has a reference count of 1. All object
+// instance variables are initially set to 0.
 extern ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
 
 #define Object_Create(__className, __pOutObject) \
@@ -98,6 +129,7 @@ extern ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCou
 
 #define Object_CreateWithExtraBytes(__className, __extraByteCount, __pOutObject) \
     _Object_Create(&k##__className##Class, __extraByteCount, (ObjectRef*)__pOutObject)
+
 
 // Reference counting model for objects:
 //
@@ -131,16 +163,22 @@ extern void _Object_Release(ObjectRef _Nullable self);
 #define Object_GetClass(__self)\
     ((Class*)(((ObjectRef)(__self))->class))
 
+
+// Returns true if the given object is an instance of the given class or one of
+// the super classes.
 extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass);
 
 #define Object_InstanceOf(__self, __className) \
     _Object_InstanceOf(__self, &k##__className##Class)
 
+
+// Invokes a dynamic method with the given arguments.
 #define Object_Invoke0(__methodName, __methodClassName, __self) \
     ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self)
 
 #define Object_InvokeN(__methodName, __methodClassName, __self, ...) \
     ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self, __VA_ARGS__)
+
 
 // Scans the "__class" data section bounded by the '_class' and '_eclass' linker
 // symbols for class records and:
