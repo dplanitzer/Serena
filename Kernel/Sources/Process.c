@@ -322,8 +322,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
 
     // Terminate all my children and wait for them to be dead
-    Bool done = false;
-    while (!done) {
+    while (true) {
         const Int pid = Process_GetAnyChildPid(pProc);
 
         if (pid <= 0) {
