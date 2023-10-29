@@ -332,7 +332,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
         ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pid);
         
         Process_Terminate(pCurChild, 0);
-        Process_WaitForTerminationOfChild(pProc, -1, NULL);
+        Process_WaitForTerminationOfChild(pProc, pid, NULL);
         Object_Release(pCurChild);
     }
 
