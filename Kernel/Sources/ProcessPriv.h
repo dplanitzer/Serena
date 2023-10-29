@@ -40,10 +40,14 @@ typedef struct __ProcessTombstone {
 #define INITIAL_DESC_TABLE_SIZE 64
 #define DESC_TABLE_INCREMENT    128
 
+// XXX revist this: dynamic array, paged array, maybe set
+#define CHILD_PROC_CAPACITY 4
 
-typedef struct _Process {
-    Int                         pid;
+CLASS_IVARS(Process, Object,
     Lock                        lock;
+    
+    Int                         ppid;       // parent's PID
+    Int                         pid;        // my PID
 
     DispatchQueueRef _Nonnull   mainDispatchQueue;
     AddressSpaceRef _Nonnull    addressSpace;
@@ -61,16 +65,15 @@ typedef struct _Process {
     AtomicBool                  isTerminating;  // true if the process is going through the termination process
     Int                         exitCode;       // Exit code of the first exit() call that initiated the termination of this process
 
-    // Child process related properties (protected by 'lock')
-    List                        children;
-    ListNode                    siblings;
-    ProcessRef _Nullable _Weak  parent;
-    List                        tombstones;
+    // Child process related properties
+    Int* _Nonnull               childPids;      // PIDs of all my child processes
+    List                        tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
     ConditionVariable           tombstoneSignaler;
-} Process;
+);
 
 
-extern ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc);
+extern ErrorCode Process_Create(Int ppid, ProcessRef _Nullable * _Nonnull pOutProc);
+extern void Process_deinit(ProcessRef _Nonnull pProc);
 
 // Unregisters all registered I/O channels. Ignores any errors that may be
 // returned from the close() call of a channel.
@@ -79,16 +82,18 @@ extern void Process_UnregisterAllIOChannels_Locked(ProcessRef _Nonnull pProc);
 // Frees all tombstones
 extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc);
 
+// Returns true if the process is the root process
+#define Process_IsRoot(__pProc) (pProc->pid == 1)
+
 // Creates a new tombstone for the given child process with the given exit status
-extern void Process_CommissionTombstone(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode);
+extern void Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode);
 
-// Adds the given process as a child to the given process. 'pOtherProc' must not
-// already be a child of another process.
-extern void Process_AddChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
+// Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
+// be the PID of the receiver.
+extern void Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid);
 
-// Removes the given process from 'pProc'. Does nothing if the given process is
-// not a child of 'pProc'.
-extern void Process_RemoveChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc);
+// Abandons the process with the given PID as a child of the receiver.
+extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, Int childPid);
 
 // Loads an executable from the given executable file into the process address
 // space.

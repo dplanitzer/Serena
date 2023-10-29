@@ -8,13 +8,16 @@
 
 #include "ProcessPriv.h"
 #include "GemDosExecutableLoader.h"
+#include "ProcessManager.h"
 
 
-ProcessRef  gRootProcess;
+CLASS_METHODS(Process, Object,
+OVERRIDE_METHOD_IMPL(deinit, Process, Object)
+);
 
 
 // Returns the next PID available for use by a new process.
-Int Process_GetNextAvailablePID(void)
+static Int Process_GetNextAvailablePID(void)
 {
     static volatile AtomicInt gNextAvailablePid = 0;
     return AtomicInt_Increment(&gNextAvailablePid);
@@ -31,33 +34,39 @@ ProcessRef _Nullable Process_GetCurrent(void)
 }
 
 
-
-ErrorCode Process_CreateRootProcess(void* _Nonnull pExecBase, ProcessRef _Nullable * _Nonnull pOutProc)
+ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
 {
-    decl_try_err();
-    Process* pProc;
-    
-    try(Process_Create(Process_GetNextAvailablePID(), &pProc));
-    try(Process_Exec_Locked(pProc, (Byte*)0xfe0000, NULL, NULL));
+    return Process_Create(1, pOutProc);
+}
 
-    *pOutProc = pProc;
-    return EOK;
-
-catch:
-    Process_Destroy(pProc);
-    *pOutProc = NULL;
+// Loads an executable from the given executable file into the process address
+// space. This is only meant to get the root process going.
+// \param pProc the process into which the executable image should be loaded
+// \param pExecAddr pointer to a GemDOS formatted executable file in memory
+// XXX expects that the address space is empty at call time
+// XXX the executable format is GemDOS
+// XXX the executable file must be loacted at the address 'pExecAddr'
+ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
+{
+    Lock_Lock(&pProc->lock);
+    const ErrorCode err = Process_Exec_Locked(pProc, pExecAddr, NULL, NULL);
+    Lock_Unlock(&pProc->lock);
     return err;
 }
 
-ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
+
+
+ErrorCode Process_Create(Int ppid, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
-    Process* pProc;
+    ProcessRef pProc;
     
-    try(kalloc_cleared(sizeof(Process), (Byte**) &pProc));
-    
-    pProc->pid = pid;
+    try(Object_Create(Process, &pProc));
+
     Lock_Init(&pProc->lock);
+
+    pProc->ppid = ppid;
+    pProc->pid = Process_GetNextAvailablePID();
 
     try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
     try(AddressSpace_Create(&pProc->addressSpace));
@@ -66,9 +75,7 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     pProc->ioChannelsCapacity = INITIAL_DESC_TABLE_SIZE;
     pProc->ioChannelsCount = 0;
 
-    List_Init(&pProc->children);
-    ListNode_Init(&pProc->siblings);
-    pProc->parent = NULL;
+    try(kalloc_cleared(sizeof(Int) * CHILD_PROC_CAPACITY, (Byte**)&pProc->childPids));
 
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
@@ -77,38 +84,34 @@ ErrorCode Process_Create(Int pid, ProcessRef _Nullable * _Nonnull pOutProc)
     return EOK;
 
 catch:
-    Process_Destroy(pProc);
+    Object_Release(pProc);
     *pOutProc = NULL;
     return err;
 }
 
-void Process_Destroy(ProcessRef _Nullable pProc)
+void Process_deinit(ProcessRef _Nonnull pProc)
 {
-    if (pProc) {
-        Process_UnregisterAllIOChannels_Locked(pProc);
-        kfree((Byte*) pProc->ioChannels);
-        pProc->ioChannels = NULL;
+    Process_UnregisterAllIOChannels_Locked(pProc);
+    kfree((Byte*) pProc->ioChannels);
+    pProc->ioChannels = NULL;
 
-        Process_DestroyAllTombstones_Locked(pProc);
-        ConditionVariable_Deinit(&pProc->tombstoneSignaler);
+    Process_DestroyAllTombstones_Locked(pProc);
+    ConditionVariable_Deinit(&pProc->tombstoneSignaler);
 
-        ListNode_Deinit(&pProc->siblings);
-        List_Deinit(&pProc->children);
-        pProc->parent = NULL;
+    kfree((Byte*)pProc->childPids);
 
-        AddressSpace_Destroy(pProc->addressSpace);
-        pProc->addressSpace = NULL;
-        pProc->imageBase = NULL;
-        pProc->argumentsBase = NULL;
+    AddressSpace_Destroy(pProc->addressSpace);
+    pProc->addressSpace = NULL;
+    pProc->imageBase = NULL;
+    pProc->argumentsBase = NULL;
 
-        DispatchQueue_Destroy(pProc->mainDispatchQueue);
-        pProc->mainDispatchQueue = NULL;
+    DispatchQueue_Destroy(pProc->mainDispatchQueue);
+    pProc->mainDispatchQueue = NULL;
 
-        Lock_Deinit(&pProc->lock);
-        pProc->pid = 0;
+    pProc->pid = 0;
+    pProc->ppid = 0;
 
-        kfree((Byte*) pProc);
-    }
+    Lock_Deinit(&pProc->lock);
 }
 
 // Frees all tombstones
@@ -125,7 +128,7 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
 }
 
 // Creates a new tombstone for the given child process with the given exit status
-void Process_CommissionTombstone(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode)
+void Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode)
 {
     ProcessTombstone* pTombstone;
 
@@ -139,6 +142,7 @@ void Process_CommissionTombstone(ProcessRef _Nonnull pProc, Int childPid, Int ch
     pTombstone->status = childExitCode;
 
     Lock_Lock(&pProc->lock);
+    Process_AbandonChild_Locked(pProc, childPid);
     List_InsertAfterLast(&pProc->tombstones, &pTombstone->node);
     ConditionVariable_BroadcastAndUnlock(&pProc->tombstoneSignaler, &pProc->lock);
 }
@@ -178,12 +182,12 @@ ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, Int pid, 
                 // Looks like the child isn't dead yet or 'pid' isn't referring to a child. Make sure it does
                 Bool okay = false;
 
-                List_ForEach(&pProc->children, Process, {
-                    if (pCurNode->pid == pid) {
+                for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
+                    if (pProc->childPids[i] == pid) {
                         okay = true;
                         break;
                     }
-                })
+                }
 
                 if (!okay) {
                     throw(ECHILD);
@@ -236,10 +240,13 @@ static void Process_RecursivelyStop(ProcessRef _Nonnull pProc)
 
     // Recursively stop all children
     Lock_Lock(&pProc->lock);
-    ProcessRef pCurChild = (ProcessRef) pProc->children.first;
-    while(pCurChild) {
-        Process_RecursivelyStop(pCurChild);
-        pCurChild = (ProcessRef) pCurChild->siblings.next;
+    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
+        if (pProc->childPids[i] > 0) {
+            ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pProc->childPids[i]);
+
+            Process_RecursivelyStop(pCurChild);
+            Object_Release(pCurChild);
+        }
     }
     Lock_Unlock(&pProc->lock);
 }
@@ -251,27 +258,21 @@ static void Process_RecursivelyDestroy(ProcessRef _Nonnull pProc)
     Bool done = false;
 
     // Recurse down the process tree
-    while (!done) {
-        ProcessRef pChildProc;
+    Lock_Lock(&pProc->lock);
+    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
+        if (pProc->childPids[i] > 0) {
+            ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pProc->childPids[i]);
 
-        Lock_Lock(&pProc->lock);
-        if (!List_IsEmpty(&pProc->children)) {
-            pChildProc = (ProcessRef) List_RemoveFirst(&pProc->children);
-        } else {
-            pChildProc = NULL;
-        }
-        Lock_Unlock(&pProc->lock);
-
-        if (pChildProc) {
-            Process_RecursivelyDestroy(pChildProc);
-        } else {
-            done = true;
+            Process_RecursivelyDestroy(pCurChild);
+            Object_Release(pCurChild);
         }
     }
+    Lock_Unlock(&pProc->lock);
 
 
     // Destroy processes on the way back up the tree
-    Process_Destroy(pProc);
+    ProcessManager_Unregister(gProcessManager, pProc);
+    Object_Release(pProc);
 }
 
 // Runs on the kernel main dispatch queue and terminates the given process.
@@ -327,7 +328,7 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
     // Notes on terminating a process tree:
     //
-    // If a process terminates voluntarily or involuntarily will by default
+    // If a process terminates voluntarily or involuntarily then it'll by default
     // also terminate all its child, grand-child, etc processes. This is done in
     // a way where the individual steps of the termination are not observable to
     // the child nor the parent process. This means that termination is atomic
@@ -345,10 +346,14 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
     // Let our parent know that we're dead now and that it should remember us by
     // commissioning a beautiful tombstone for us.
-    // XXX Calling a function on the parent may not be safe. What if the parent
-    // XXX itself has terminated and gone away by now? pProc->parent would be
-    // XXX invalid if it wouldn't have been set to NULL
-    Process_CommissionTombstone(pProc->parent, pProc->pid, pProc->exitCode);
+    if (!Process_IsRoot(pProc)) {
+        ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, pProc->ppid);
+
+        if (pParentProc) {
+            Process_OnChildDidTerminate(pParentProc, pProc->pid, pProc->exitCode);
+            Object_Release(pParentProc);
+        }
+    }
 
 
     // Finally destroy the process and all its children.
@@ -365,7 +370,7 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode)
 {
     // We do not allow exiting the root process
-    if (pProc == gRootProcess) {
+    if (Process_IsRoot(pProc)) {
         abort();
     }
 
@@ -408,10 +413,8 @@ Int Process_GetId(ProcessRef _Nonnull pProc)
 
 Int Process_GetParentId(ProcessRef _Nonnull pProc)
 {
-    // Need to lock to protect against the process destruction since we're accessing the parent field
     Lock_Lock(&pProc->lock);
-    assert(pProc->parent);
-    const Int ppid = pProc->parent->pid;
+    const Int ppid = pProc->ppid;
     Lock_Unlock(&pProc->lock);
 
     return ppid;
@@ -433,7 +436,7 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     ProcessRef pChildProc = NULL;
     Bool needsUnlock = false;
 
-    try(Process_Create(Process_GetNextAvailablePID(), &pChildProc));
+    try(Process_Create(pProc->pid, &pChildProc));
 
     // Note that we do not lock the child process altough we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
@@ -450,7 +453,7 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
         }
     }
 
-    Process_AddChildProcess_Locked(pProc, pChildProc);
+    Process_AdoptChild_Locked(pProc, pChildProc->pid);
     try(Process_Exec_Locked(pChildProc, pArgs->execbase, pArgs->argv, pArgs->envp));
     Lock_Unlock(&pProc->lock);
 
@@ -462,7 +465,7 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
 
 catch:
     if (pChildProc) {
-        Process_RemoveChildProcess_Locked(pProc, pChildProc);
+        Process_AbandonChild_Locked(pProc, pChildProc->pid);
     }
     if (needsUnlock) {
         Lock_Unlock(&pProc->lock);
@@ -591,23 +594,27 @@ catch:
     return err;
 }
 
-// Adds the given process as a child to the given process. 'pOtherProc' must not
-// already be a child of another process.
-void Process_AddChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
+// Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
+// be the PID of the receiver.
+void Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
 {
-    assert(pOtherProc->parent == NULL);
-
-    List_InsertAfterLast(&pProc->children, &pOtherProc->siblings);
-    pOtherProc->parent = pProc;
+    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
+        if (pProc->childPids[i] == 0) {
+            pProc->childPids[i] = childPid;
+            return;
+        }
+    }
+    assert(false);
 }
 
-// Removes the given process from 'pProc'. Does nothing if the given process is
-// not a child of 'pProc'.
-void Process_RemoveChildProcess_Locked(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pOtherProc)
+// Abandons the process with the given PID as a child of the receiver.
+void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
 {
-    if (pOtherProc->parent == pProc) {
-        List_Remove(&pProc->children, &pOtherProc->siblings);
-        pOtherProc->parent = NULL;
+    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
+        if (pProc->childPids[i] == childPid) {
+            pProc->childPids[i] = 0;
+            break;
+        }
     }
 }
 

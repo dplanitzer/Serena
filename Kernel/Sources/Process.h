@@ -12,8 +12,10 @@
 #include <klib/klib.h>
 #include "IOResource.h"
 
-struct _Process;
-typedef struct _Process* ProcessRef;
+OPAQUE_CLASS(Process, Object);
+enum ProcessMethodIndex {
+    kProcessMethodIndex_Count = kObjectMethodIndex_deinit + 1
+};
 
 // The process spawn arguments specify how a child process should be created.
 typedef struct __spawn_arguments_t SpawnArguments;
@@ -25,9 +27,6 @@ typedef struct __waitpid_result_t ProcessTerminationStatus;
 extern ProcessRef _Nonnull  gRootProcess;
 
 
-// Returns the next PID available for use by a new process.
-extern Int Process_GetNextAvailablePID(void);
-
 // Returns the process associated with the calling execution context. Returns
 // NULL if the execution context is not associated with a process. This will
 // never be the case inside of a system call.
@@ -35,8 +34,17 @@ extern ProcessRef _Nullable Process_GetCurrent(void);
 
 
 // Creates the root process which is the first process of the OS.
-extern ErrorCode Process_CreateRootProcess(void* _Nonnull pExecBase, ProcessRef _Nullable * _Nonnull pOutProc);
-extern void Process_Destroy(ProcessRef _Nullable pProc);
+extern ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc);
+
+// Loads an executable from the given executable file into the process address
+// space. This is only meant to get the root process going.
+// \param pProc the process into which the executable image should be loaded
+// \param pExecAddr pointer to a GemDOS formatted executable file in memory
+// XXX expects that the address space is empty at call time
+// XXX the executable format is GemDOS
+// XXX the executable file must be loacted at the address 'pExecAddr'
+extern ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr);
+
 
 // Triggers the termination of the given process. The termination may be caused
 // voluntarily (some VP currently owned by the process triggers this call) or

@@ -14,6 +14,7 @@
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "Process.h"
+#include "ProcessManager.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
 
@@ -150,8 +151,17 @@ static void OnMain(void)
     try_bang(DriverManager_AutoConfigure(gDriverManager));
 
 #if 1
-    // Create the root process and kick it off running
-    try_bang(Process_CreateRootProcess((void*)0xfe0000, &gRootProcess));
+    // Create the root process
+    ProcessRef pRootProc;
+    try_bang(RootProcess_Create(&pRootProc));
+
+
+    // Create the process manager
+    try_bang(ProcessManager_Create(pRootProc, &gProcessManager));
+
+
+    // Get the root process going
+    try_bang(RootProcess_Exec(pRootProc, (void*)0xfe0000));
 #else
     // XXX Unit tests
     void DispatchQueue_RunTests(void);

@@ -127,12 +127,12 @@ __CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 // 1.b one METHOD_TYPE per dynamically dispatched method defined by the class
 // 1.c define a __classNameMethodIndex enum with one index per dynamically dispatched method
 //
-// 1. In the (private) .h file:
-// 1.a CLASS_IVARS
+// 2. In the (private) .h file:
+// 2.a CLASS_IVARS
 //
-// 2. In the .c file:
-// 2.a add the implementation of dynamically dispatched methods
-// 2.b CLASS_METHODS with one METHOD_IMPL per dynamically dispatched method
+// 3. In the .c file:
+// 3.a add the implementation of dynamically dispatched methods
+// 3.b CLASS_METHODS with one METHOD_IMPL per dynamically dispatched method
 //
 
 typedef void (*Method)(void* self, ...);
