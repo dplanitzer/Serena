@@ -230,61 +230,30 @@ catch:
     return err;
 }
 
-// Stops the given process and all children, grand-children, etc.
-static void Process_RecursivelyStop(ProcessRef _Nonnull pProc)
+// Returns the PID of *any* of the receiver's children. This is used by the
+// termination code to terminate all children. We don't care about the order
+// in which we terminate the children but we do care that we trigger the
+// termination of all of them. Keep in mind that a child may itself trigger its
+// termination concurrently with our termination. The process is inherently
+// racy and thus we need to be defensive about things. Returns 0 if there are
+// no more children.
+static Int Process_GetAnyChildPid(ProcessRef _Nonnull pProc)
 {
-    // Be sure to mark the process as terminating
-    AtomicBool_Set(&pProc->isTerminating, true);
+    Int pid = -1;
 
-
-    // Terminate all dispatch queues. This takes care of aborting user space
-    // invocations.
-    DispatchQueue_Terminate(pProc->mainDispatchQueue);
-
-
-    // Wait for all dispatch queues to have reached 'terminated' state
-    DispatchQueue_WaitForTerminationCompleted(pProc->mainDispatchQueue);
-
-
-    // Recursively stop all children
     Lock_Lock(&pProc->lock);
     for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
         if (pProc->childPids[i] > 0) {
-            ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pProc->childPids[i]);
-
-            Process_RecursivelyStop(pCurChild);
-            Object_Release(pCurChild);
+            pid = pProc->childPids[i];
+            break;
         }
     }
     Lock_Unlock(&pProc->lock);
-}
-
-// Recursively destroys a tree of processes. The destruction is executed bottom-
-// up.
-static void Process_RecursivelyDestroy(ProcessRef _Nonnull pProc)
-{
-    Bool done = false;
-
-    // Recurse down the process tree
-    Lock_Lock(&pProc->lock);
-    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
-        if (pProc->childPids[i] > 0) {
-            ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pProc->childPids[i]);
-
-            Process_RecursivelyDestroy(pCurChild);
-            Object_Release(pCurChild);
-        }
-    }
-    Lock_Unlock(&pProc->lock);
-
-
-    // Destroy processes on the way back up the tree
-    ProcessManager_Unregister(gProcessManager, pProc);
-    Object_Release(pProc);
+    return pid;
 }
 
 // Runs on the kernel main dispatch queue and terminates the given process.
-static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
+void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 {
     // Notes on terminating a process:
     //
@@ -337,19 +306,36 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     // Notes on terminating a process tree:
     //
     // If a process terminates voluntarily or involuntarily then it'll by default
-    // also terminate all its child, grand-child, etc processes. This is done in
-    // a way where the individual steps of the termination are not observable to
-    // the child nor the parent process. This means that termination is atomic
-    // from the viewpoint of the parent and the child.
-    //
-    // The way we achieve this is by breaking the termination down into two
-    // separate phases: the first one goes top-down and puts a process and all
-    // its children at rest by terminating their dispatch queues and the second
-    // phase then goes bottom-up and frees the process and all its children.
+    // also terminate all its child, grand-child, etc processes. Every process
+    // in the tree first erminates its children before it completes its own
+    // termination. Doing it this way ensures that a parent process won't
+    // (magically) disappear before all its children have terminated.
 
 
-    // Stop this process and all its children before we free any resources
-    Process_RecursivelyStop(pProc);
+    // Terminate all dispatch queues. This takes care of aborting user space
+    // invocations.
+    DispatchQueue_Terminate(pProc->mainDispatchQueue);
+
+
+    // Wait for all dispatch queues to have reached 'terminated' state
+    DispatchQueue_WaitForTerminationCompleted(pProc->mainDispatchQueue);
+
+
+    // Terminate all my children and wait for them to be dead
+    Bool done = false;
+    while (!done) {
+        const Int pid = Process_GetAnyChildPid(pProc);
+
+        if (pid <= 0) {
+            break;
+        }
+
+        ProcessRef pCurChild = ProcessManager_CopyProcessForPid(gProcessManager, pid);
+        
+        Process_Terminate(pCurChild, 0);
+        Process_WaitForTerminationOfChild(pProc, -1, NULL);
+        Object_Release(pCurChild);
+    }
 
 
     // Let our parent know that we're dead now and that it should remember us by
@@ -366,8 +352,9 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     }
 
 
-    // Finally destroy the process and all its children.
-    Process_RecursivelyDestroy(pProc);
+    // Finally destroy the process.
+    ProcessManager_Unregister(gProcessManager, pProc);
+    Object_Release(pProc);
 }
 
 // Triggers the termination of the given process. The termination may be caused
