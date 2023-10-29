@@ -128,13 +128,19 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
 }
 
 // Creates a new tombstone for the given child process with the given exit status
-void Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode)
+ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode)
 {
     ProcessTombstone* pTombstone;
 
+    if (Process_IsTerminating(pProc)) {
+        // We're terminating ourselves. Let the child know so that it can bother
+        // someone else (session leader) with it's tombstone request.
+        return ESRCH;
+    }
+
     if (kalloc_cleared(sizeof(ProcessTombstone), (Byte**)&pTombstone) != EOK) {
         print("Broken tombstone for %d:%d\n", pProc->pid, childPid);
-        return;
+        return EOK;
     }
 
     ListNode_Init(&pTombstone->node);
@@ -145,6 +151,8 @@ void Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int ch
     Process_AbandonChild_Locked(pProc, childPid);
     List_InsertAfterLast(&pProc->tombstones, &pTombstone->node);
     ConditionVariable_BroadcastAndUnlock(&pProc->tombstoneSignaler, &pProc->lock);
+    
+    return EOK;
 }
 
 // Waits for the child process with teh given PID to terminate and returns the
@@ -350,7 +358,9 @@ static void _Process_DoTerminate(ProcessRef _Nonnull pProc)
         ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, pProc->ppid);
 
         if (pParentProc) {
-            Process_OnChildDidTerminate(pParentProc, pProc->pid, pProc->exitCode);
+            if (Process_OnChildDidTerminate(pParentProc, pProc->pid, pProc->exitCode) == ESRCH) {
+                // XXX Try the session leader next. Give up if this fails too.
+            }
             Object_Release(pParentProc);
         }
     }

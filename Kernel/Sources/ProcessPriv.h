@@ -86,7 +86,7 @@ extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc);
 #define Process_IsRoot(__pProc) (pProc->pid == 1)
 
 // Creates a new tombstone for the given child process with the given exit status
-extern void Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode);
+extern ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode);
 
 // Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
