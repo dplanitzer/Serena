@@ -344,7 +344,12 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
         if (pParentProc) {
             if (Process_OnChildDidTerminate(pParentProc, pProc->pid, pProc->exitCode) == ESRCH) {
-                // XXX Try the session leader next. Give up if this fails too.
+                // XXXsession Try the session leader next. Give up if this fails too.
+                // XXXsession. Unconditionally falling back to the root process for now.
+                // Just drop the tombstone request if no one wants it.
+                ProcessRef pRootProc = ProcessManager_CopyRootProcess(gProcessManager);
+                Process_OnChildDidTerminate(pRootProc, pProc->pid, pProc->exitCode);
+                Object_Release(pRootProc);
             }
             Object_Release(pParentProc);
         }
