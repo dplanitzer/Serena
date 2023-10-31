@@ -90,6 +90,8 @@ ErrorCode kalloc_options(ByteCount nbytes, UInt options, Byte* _Nullable * _Nonn
 {
     decl_try_err();
     
+    assert(nbytes >= 0);
+    
     Lock_Lock(&gLock);
     if ((options & KALLOC_OPTION_UNIFIED) != 0) {
         try(Allocator_AllocateBytes(gUnifiedMemory, nbytes, pOutPtr));
