@@ -443,11 +443,11 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
 
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
     try(Process_Exec_Locked(pChildProc, pArgs->execbase, pArgs->argv, pArgs->envp));
-    Lock_Unlock(&pProc->lock);
-    needsUnlock = false;
 
     try(ProcessManager_Register(gProcessManager, pChildProc));
     Object_Release(pChildProc);
+
+    Lock_Unlock(&pProc->lock);
 
     if (pOutChildPid) {
         *pOutChildPid = pChildProc->pid;
