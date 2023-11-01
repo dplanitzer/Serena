@@ -38,10 +38,6 @@ typedef struct __ProcessTombstone {
 
 // Must be >= 3
 #define INITIAL_DESC_TABLE_SIZE 64
-#define DESC_TABLE_INCREMENT    128
-
-// XXX revist this: dynamic array, paged array, maybe set
-#define CHILD_PROC_CAPACITY 4
 
 CLASS_IVARS(Process, Object,
     Lock                        lock;
@@ -53,9 +49,7 @@ CLASS_IVARS(Process, Object,
     AddressSpaceRef _Nonnull    addressSpace;
 
     // IOChannels
-    IOChannelRef* _Nonnull      ioChannels;
-    Int                         ioChannelsCapacity;
-    Int                         ioChannelsCount;
+    ObjectArray                 ioChannels;
 
     // Process image
     Byte* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
@@ -66,7 +60,7 @@ CLASS_IVARS(Process, Object,
     Int                         exitCode;       // Exit code of the first exit() call that initiated the termination of this process
 
     // Child process related properties
-    Int* _Nonnull               childPids;      // PIDs of all my child processes
+    IntArray                    childPids;      // PIDs of all my child processes
     List                        tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
     ConditionVariable           tombstoneSignaler;
 );
@@ -75,9 +69,9 @@ CLASS_IVARS(Process, Object,
 extern ErrorCode Process_Create(Int ppid, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull pProc);
 
-// Unregisters all registered I/O channels. Ignores any errors that may be
-// returned from the close() call of a channel.
-extern void Process_UnregisterAllIOChannels_Locked(ProcessRef _Nonnull pProc);
+// Closes all registered I/O channels. Ignores any errors that may be returned
+// from the close() call of a channel.
+extern void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull pProc);
 
 // Frees all tombstones
 extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc);
@@ -93,7 +87,7 @@ extern void _Process_DoTerminate(ProcessRef _Nonnull pProc);
 
 // Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-extern void Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid);
+extern ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid);
 
 // Abandons the process with the given PID as a child of the receiver.
 extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, Int childPid);

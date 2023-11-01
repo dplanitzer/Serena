@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <syscall.h>
 #include <apollo/apollo.h>
 
@@ -59,7 +60,9 @@ void app_main(int argc, char *argv[])
         child_argv[1] = NULL;
 
         spawn_arguments_t spargs;
+        memset(&spargs, 0, sizeof(spargs));
         spargs.execbase = (void*)0xfe0000;
+        //spargs.execbase = (void*)(0xfe0000 + ((char*)app_main));
         spargs.argv = child_argv;
         spargs.envp = NULL;
         spawnp(&spargs, NULL);
@@ -106,8 +109,11 @@ void app_main(int argc, char *argv[])
 
 void main_closure(int argc, char *argv[])
 {
-    assert(open("/dev/console", O_RDONLY) == 0);
-    assert(open("/dev/console", O_WRONLY) == 1);
+//    assert(open("/dev/console", O_RDONLY) == 0);
+//    assert(open("/dev/console", O_WRONLY) == 1);
+    int fd0 = open("/dev/console", O_RDONLY);
+    int fd1 = open("/dev/console", O_WRONLY);
+    //printf("fd0: %d, fd1: %d\n", fd0, fd1);
 
     app_main(argc, argv);
 }

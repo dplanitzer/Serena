@@ -55,6 +55,24 @@ extern ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray
     assert(idx >= 0 && idx < (pArray)->count); \
     ((elementType*)(pArray)->data)[idx] = element
 
+#define GenericArray_RemoveIdenticalTo(didRemove, pArray, element, elementType) \
+    { \
+        elementType* __p = (elementType*)(pArray)->data; \
+        const Int __count = (pArray)->count; \
+        for (Int i = 0; i < __count; i++) { \
+            if (__p[i] == element) { \
+                i++; \
+                for (; i < __count; i++) { \
+                    __p[i - 1] = __p[i]; \
+                } \
+                (pArray)->count--; \
+                didRemove = true; \
+                break; \
+            } \
+        } \
+        didRemove = false; \
+    }
+
 #define GenericArray_RemoveAt(oldElement, pArray, elementType, idx) \
     { \
         assert(idx >= 0 && idx < (pArray)->count); \
@@ -67,6 +85,21 @@ extern ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray
     }
 
 extern void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, Bool keepCapacity);
+
+#define GenericArray_FirstIndexOf(idx, pArray, element, elementType) \
+    { \
+        const elementType* __p = (const elementType*)(pArray)->data; \
+        for (Int i = 0; i < pArray->count; i++) { \
+            if (__p[i] == element) { \
+                idx = i; \
+                break; \
+            } \
+        } \
+        idx = -1; \
+    }
+
+#define GenericArray_GetFirst(r, pArray, elementType, defaultValue) \
+    (r) = ((pArray)->count > 0) ? ((const elementType*) (pArray)->data)[0] : (defaultValue)
 
 
 // An array that stores Int values
@@ -86,8 +119,17 @@ extern ErrorCode IntArray_InsertAt(IntArrayRef _Nonnull pArray, Int element, Int
 
 #define IntArray_ReplaceAt(pArray, element, idx) GenericArray_ReplaceAt((IntArrayRef)pArray, element, Int, idx)
 
+extern void IntArray_Remove(IntArrayRef _Nonnull pArray, Int element);
 extern void IntArray_RemoveAt(IntArrayRef _Nonnull pArray, Int idx);
 #define IntArray_RemoveAll(pArray, keepCapacity) GenericArray_RemoveAll((IntArrayRef)pArray, keepCapacity)
+
+extern Bool IntArray_Contains(IntArrayRef _Nonnull pArray, Int element);
+
+static inline Int IntArray_GetFirst(IntArrayRef _Nonnull pArray, Int defaultValue) {
+    Int r;
+    GenericArray_GetFirst(r, pArray, Int, defaultValue);
+    return r;
+}
 
 
 // An array that stores nullable ObjectRef values
@@ -108,7 +150,13 @@ extern ErrorCode ObjectArray_InsertAt(ObjectArrayRef _Nonnull pArray, ObjectRef 
 
 extern void ObjectArray_ReplaceAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, Int idx);
 
+extern void ObjectArray_RemoveIdenticalTo(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element);
 extern void ObjectArray_RemoveAt(ObjectArrayRef _Nonnull pArray, Int idx);
 extern void ObjectArray_RemoveAll(ObjectArrayRef _Nonnull pArray, Bool keepCapacity);
+
+// Returns the original object and sets the entry it occupied to NULL. Note that
+// the caller is responsible for releasing the object. This function does not
+// release it. It transfers ownership to the caller.
+extern ObjectRef _Nullable ObjectArray_ExtractOwnershipAt(ObjectArrayRef _Nonnull pArray, Int idx);
 
 #endif /* Array_h */

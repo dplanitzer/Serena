@@ -71,10 +71,24 @@ ErrorCode IntArray_InsertAt(IntArrayRef _Nonnull pArray, Int element, Int idx)
     return err;
 }
 
+void IntArray_Remove(IntArrayRef _Nonnull pArray, Int element)
+{
+    Bool dummy;
+    GenericArray_RemoveIdenticalTo(dummy, pArray, element, Int);
+}
+
 void IntArray_RemoveAt(IntArrayRef _Nonnull pArray, Int idx)
 {
     Int dummy;
     GenericArray_RemoveAt(dummy, pArray, Int, idx);
+}
+
+Bool IntArray_Contains(IntArrayRef _Nonnull pArray, Int element)
+{
+    Int idx;
+
+    GenericArray_FirstIndexOf(idx, pArray, element, Int);
+    return idx != -1;
 }
 
 
@@ -121,6 +135,16 @@ void ObjectArray_ReplaceAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable e
     }
 }
 
+void ObjectArray_RemoveIdenticalTo(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element)
+{
+    Bool didRemove;
+
+    GenericArray_RemoveIdenticalTo(didRemove, pArray, element, ObjectRef);
+    if (didRemove) {
+        Object_Release(element);
+    }
+}
+
 void ObjectArray_RemoveAt(ObjectArrayRef _Nonnull pArray, Int idx)
 {
     ObjectRef oldElement;
@@ -136,3 +160,14 @@ void ObjectArray_RemoveAll(ObjectArrayRef _Nonnull pArray, Bool keepCapacity)
     }
     GenericArray_RemoveAll(pArray, keepCapacity);
 }
+
+ObjectRef _Nullable ObjectArray_ExtractOwnershipAt(ObjectArrayRef _Nonnull pArray, Int idx)
+{
+    assert(idx >= 0 && idx < pArray->count);
+
+    ObjectRef* __p = (ObjectRef*)pArray->data;
+    ObjectRef element = __p[idx];
+    __p[idx] = NULL;
+    return element;
+}
+

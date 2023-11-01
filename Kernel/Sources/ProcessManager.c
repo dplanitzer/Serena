@@ -12,10 +12,9 @@
 
 typedef struct _ProcessManager {
     Lock                    lock;
-    ProcessRef* _Nonnull    procs;      // XXX revisit dynamic array vs list vs hashtable (what we really want)
+    ObjectArray             procs;      // XXX list vs hashtable (what we really want)
     ProcessRef _Nonnull     rootProc;
 } ProcessManager;
-#define PROC_CAPACITY   16
 
 
 ProcessManagerRef   gProcessManager;
@@ -29,8 +28,8 @@ ErrorCode ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef
     
     try_bang(kalloc(sizeof(ProcessManager), (Byte**)&pManager));
     Lock_Init(&pManager->lock);
-    try_bang(kalloc_cleared(sizeof(ProcessRef) * PROC_CAPACITY, (Byte**)&pManager->procs));
-    pManager->procs[PROC_CAPACITY - 1] = Object_RetainAs(pRootProc, Process);
+    try_bang(ObjectArray_Init(&pManager->procs, 16));
+    try_bang(ObjectArray_Add(&pManager->procs, (ObjectRef) pRootProc));
     pManager->rootProc = pRootProc;
 
     *pOutManager = pManager;
@@ -56,10 +55,10 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
     ProcessRef pProc = NULL;
 
     Lock_Lock(&pManager->lock);
-    for (Int i = 0; i < PROC_CAPACITY; i++) {
-        ProcessRef pCurProc = pManager->procs[i];
+    for (Int i = 0; i < ObjectArray_GetCount(&pManager->procs); i++) {
+        ProcessRef pCurProc = (ProcessRef) ObjectArray_GetAt(&pManager->procs, i);
 
-        if (pCurProc && pCurProc->pid == pid) {
+        if (pCurProc->pid == pid) {
             pProc = Object_RetainAs(pCurProc, Process);
             break;
         }
@@ -73,20 +72,14 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 // that's equal to some other registered process.
 // A process will only become visible to other processes after it has been
 // registered with the process manager. 
-void ProcessManager_Register(ProcessManagerRef _Nonnull pManager, ProcessRef _Nonnull pProc)
+ErrorCode ProcessManager_Register(ProcessManagerRef _Nonnull pManager, ProcessRef _Nonnull pProc)
 {
-    Bool okay = false;
+    decl_try_err();
 
     Lock_Lock(&pManager->lock);
-    for (Int i = 0; i < PROC_CAPACITY; i++) {
-        if (pManager->procs[i] == NULL) {
-            pManager->procs[i] = Object_RetainAs(pProc, Process);
-            okay = true;
-            break;
-        }
-    }
-    assert(okay);
+    err = ObjectArray_Add(&pManager->procs, (ObjectRef) pProc);
     Lock_Unlock(&pManager->lock);
+    return err;
 }
 
 // Deregisters the given process from the process manager. This makes the process
@@ -96,12 +89,6 @@ void ProcessManager_Unregister(ProcessManagerRef _Nonnull pManager, ProcessRef _
 {
     Lock_Lock(&pManager->lock);
     assert(pProc != pManager->rootProc);
-    for (Int i = 0; i < PROC_CAPACITY; i++) {
-        if (pManager->procs[i] == pProc) {
-            Object_Release(pManager->procs[i]);
-            pManager->procs[i] = NULL;
-            break;
-        }
-    }
+    ObjectArray_RemoveIdenticalTo(&pManager->procs, (ObjectRef) pProc);
     Lock_Unlock(&pManager->lock);
 }

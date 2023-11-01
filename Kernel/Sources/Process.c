@@ -71,11 +71,8 @@ ErrorCode Process_Create(Int ppid, ProcessRef _Nullable * _Nonnull pOutProc)
     try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
     try(AddressSpace_Create(&pProc->addressSpace));
 
-    try(kalloc_cleared(sizeof(IOChannelRef) * INITIAL_DESC_TABLE_SIZE, (Byte**)&pProc->ioChannels));
-    pProc->ioChannelsCapacity = INITIAL_DESC_TABLE_SIZE;
-    pProc->ioChannelsCount = 0;
-
-    try(kalloc_cleared(sizeof(Int) * CHILD_PROC_CAPACITY, (Byte**)&pProc->childPids));
+    try(ObjectArray_Init(&pProc->ioChannels, INITIAL_DESC_TABLE_SIZE));
+    try(IntArray_Init(&pProc->childPids, 0));
 
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
@@ -91,14 +88,12 @@ catch:
 
 void Process_deinit(ProcessRef _Nonnull pProc)
 {
-    Process_UnregisterAllIOChannels_Locked(pProc);
-    kfree((Byte*) pProc->ioChannels);
-    pProc->ioChannels = NULL;
+    Process_CloseAllIOChannels_Locked(pProc);
+    ObjectArray_Deinit(&pProc->ioChannels);
 
     Process_DestroyAllTombstones_Locked(pProc);
     ConditionVariable_Deinit(&pProc->tombstoneSignaler);
-
-    kfree((Byte*)pProc->childPids);
+    IntArray_Deinit(&pProc->childPids);
 
     AddressSpace_Destroy(pProc->addressSpace);
     pProc->addressSpace = NULL;
@@ -188,16 +183,7 @@ ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, Int pid, 
 
             if (pTombstone == NULL) {
                 // Looks like the child isn't dead yet or 'pid' isn't referring to a child. Make sure it does
-                Bool okay = false;
-
-                for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
-                    if (pProc->childPids[i] == pid) {
-                        okay = true;
-                        break;
-                    }
-                }
-
-                if (!okay) {
+                if (!IntArray_Contains(&pProc->childPids, pid)) {
                     throw(ECHILD);
                 }
             }
@@ -239,15 +225,8 @@ catch:
 // no more children.
 static Int Process_GetAnyChildPid(ProcessRef _Nonnull pProc)
 {
-    Int pid = -1;
-
     Lock_Lock(&pProc->lock);
-    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
-        if (pProc->childPids[i] > 0) {
-            pid = pProc->childPids[i];
-            break;
-        }
-    }
+    const Int pid = IntArray_GetFirst(&pProc->childPids, -1);
     Lock_Unlock(&pProc->lock);
     return pid;
 }
@@ -447,16 +426,28 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     needsUnlock = true;
 
     if ((pArgs->options & SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE) == 0) {
-        for (Int i = 0; i < 3; i++) {
-            if (i < pProc->ioChannelsCount && pProc->ioChannels[i]) {
-                try(IOChannel_Dup(pProc->ioChannels[i], &pChildProc->ioChannels[i])); 
+        const Int nStdIoChannelsToInherit = __min(3, ObjectArray_GetCount(&pProc->ioChannels));
+
+        for (Int i = 0; i < nStdIoChannelsToInherit; i++) {
+            IOChannelRef pCurChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
+
+            if (pCurChannel) {
+                IOChannelRef pNewChannel;
+                try(IOChannel_Dup(pCurChannel, &pNewChannel));
+                ObjectArray_Add(&pChildProc->ioChannels, (ObjectRef) pNewChannel);
+            } else {
+                ObjectArray_Add(&pChildProc->ioChannels, NULL);
             }
         }
     }
 
-    Process_AdoptChild_Locked(pProc, pChildProc->pid);
+    try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
     try(Process_Exec_Locked(pChildProc, pArgs->execbase, pArgs->argv, pArgs->envp));
     Lock_Unlock(&pProc->lock);
+    needsUnlock = false;
+
+    try(ProcessManager_Register(gProcessManager, pChildProc));
+    Object_Release(pChildProc);
 
     if (pOutChildPid) {
         *pOutChildPid = pChildProc->pid;
@@ -471,6 +462,9 @@ catch:
     if (needsUnlock) {
         Lock_Unlock(&pProc->lock);
     }
+
+    Object_Release(pChildProc);
+
     if (pOutChildPid) {
         *pOutChildPid = 0;
     }
@@ -597,26 +591,15 @@ catch:
 
 // Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-void Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
+ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
 {
-    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
-        if (pProc->childPids[i] == 0) {
-            pProc->childPids[i] = childPid;
-            return;
-        }
-    }
-    assert(false);
+    return IntArray_Add(&pProc->childPids, childPid);
 }
 
 // Abandons the process with the given PID as a child of the receiver.
 void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
 {
-    for (Int i = 0; i < CHILD_PROC_CAPACITY; i++) {
-        if (pProc->childPids[i] == childPid) {
-            pProc->childPids[i] = 0;
-            break;
-        }
-    }
+    IntArray_Remove(&pProc->childPids, childPid);
 }
 
 ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
@@ -649,36 +632,22 @@ ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Non
     Lock_Lock(&pProc->lock);
 
     // Find the lowest descriptor id that is available
-    Int fd = pProc->ioChannelsCount;
-    for (Int i = 0; i < pProc->ioChannelsCount; i++) {
-        if (pProc->ioChannels[i] == NULL) {
+    Int fd = ObjectArray_GetCount(&pProc->ioChannels);
+    Bool hasFoundSlot = false;
+    for (Int i = 0; i < fd; i++) {
+        if (ObjectArray_GetAt(&pProc->ioChannels, i) == NULL) {
             fd = i;
+            hasFoundSlot = true;
             break;
         }
     }
 
 
-    // Expand the descriptor table if we didn't find any empty slot and the table
-    // has reached its capacity
-    if (fd == pProc->ioChannelsCount && pProc->ioChannelsCount == pProc->ioChannelsCapacity) {
-        const ByteCount newCapacity = sizeof(ObjectRef) * (pProc->ioChannelsCapacity + DESC_TABLE_INCREMENT);
-        IOChannelRef* pNewIOChannels;
-
-        try(kalloc_cleared(newCapacity, (Byte**)&pNewIOChannels));
-
-        for (Int i = 0; i < pProc->ioChannelsCount; i++) {
-            pNewIOChannels[i] = pProc->ioChannels[i];
-        }
-        kfree((Byte*) pProc->ioChannels);
-        pProc->ioChannels = pNewIOChannels;
-        pProc->ioChannelsCapacity += DESC_TABLE_INCREMENT;
-    }
-
-
-    // Register the channel in the slot we found
-    pProc->ioChannels[fd] = Object_RetainAs(pChannel, IOChannel);
-    if (fd == pProc->ioChannelsCount) {
-        pProc->ioChannelsCount++;
+    // Expand the descriptor table if we didn't find an empty slot
+    if (hasFoundSlot) {
+        ObjectArray_ReplaceAt(&pProc->ioChannels, (ObjectRef) pChannel, fd);
+    } else {
+        try(ObjectArray_Add(&pProc->ioChannels, (ObjectRef) pChannel));
     }
 
     Lock_Unlock(&pProc->lock);
@@ -704,12 +673,11 @@ ErrorCode Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, Int fd, IOChann
 
     Lock_Lock(&pProc->lock);
 
-    if (fd < 0 || fd >= pProc->ioChannelsCount || pProc->ioChannels[fd] == NULL) {
+    if (fd < 0 || fd >= ObjectArray_GetCount(&pProc->ioChannels) || ObjectArray_GetAt(&pProc->ioChannels, fd) == NULL) {
         throw(EBADF);
     }
 
-    *pOutChannel = pProc->ioChannels[fd];
-    pProc->ioChannels[fd] = NULL;
+    *pOutChannel = (IOChannelRef) ObjectArray_ExtractOwnershipAt(&pProc->ioChannels, fd);
     Lock_Unlock(&pProc->lock);
 
     return EOK;
@@ -720,17 +688,15 @@ catch:
     return err;
 }
 
-// Unregisters all registered I/O channels. Ignores any errors that may be
-// returned from the close() call of a channel.
-void Process_UnregisterAllIOChannels_Locked(ProcessRef _Nonnull pProc)
+// Closes all registered I/O channels. Ignores any errors that may be returned
+// from the close() call of a channel.
+void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull pProc)
 {
-    for (Int i = 0; i < pProc->ioChannelsCount; i++) {
-        IOChannelRef pChannel = pProc->ioChannels[i];
+    for (Int i = 0; i < ObjectArray_GetCount(&pProc->ioChannels); i++) {
+        IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
 
         if (pChannel) {
-            pProc->ioChannels[i] = NULL;
             IOChannel_Close(pChannel);
-            Object_Release(pChannel);
         }
     }
 }
@@ -744,11 +710,16 @@ ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, 
 
     Lock_Lock(&pProc->lock);
     
-    if (fd < 0 || fd >= pProc->ioChannelsCount || pProc->ioChannels[fd] == NULL) {
+    if (fd < 0 || fd >= ObjectArray_GetCount(&pProc->ioChannels)) {
         throw(EBADF);
     }
 
-    *pOutChannel = Object_RetainAs(pProc->ioChannels[fd], IOChannel);
+    IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, fd);
+    if (pChannel == NULL) {
+        throw(EBADF);
+    }
+
+    *pOutChannel = Object_RetainAs(pChannel, IOChannel);
     Lock_Unlock(&pProc->lock);
 
     return EOK;
