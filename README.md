@@ -18,6 +18,15 @@ There are a number of (unit) tests for kernel and user space. However you curren
 
 Finally there is the beginning of a standard C library for user space programs available. The library implements C99 level functionality.
 
+The following hardware is supported at this time:
+
+* Amiga 2000, 3000 and 4000 motherboards
+* Newer than the original chipsets work, but their specific features are not used
+* Motorola 68030, 68040 and 68060 CPU. Note that the CPU has to be at least a 68030 class CPU
+* Motorola 68881 and 68882 FPU
+* Standard Commodore Amiga floppy drive
+* Zorro II and Zorro III memory expansion boards
+
 The following kernel services are implemented at this time:
 
 * Kernel and user space separation in the sense of code privilege separation (not memory space separation)
@@ -38,7 +47,11 @@ The following kernel services are implemented at this time:
 * Simple graphics driver (not taking advantage of the Blitter yet)
 * VT100 compatible interactive console driver
 * System calls for process and I/O management
-* Beginnings of a C99 standard C library for user space programs
+
+The following user space services are available at this time:
+
+* Beginnings of a C99 compatible standard C library
+* Beginnings of a system call interface with support for processes, time and file I/O
 
 Note that there is no support for a file system or shell yet. Also the level of completeness and correctness of the various modules varies substantially. Things are generically planned to improve over time :)
 
