@@ -33,9 +33,9 @@ extern Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const Gregoria
 
 
 OPAQUE_CLASS(RealtimeClock, IOResource);
-enum RealtimeClockMethodIndex {
-    kRealtimeClockMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _RealtimeClockMethodTable {
+    IOResourceMethodTable   super;
+} RealtimeClockMethodTable;
 
 
 extern ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver);

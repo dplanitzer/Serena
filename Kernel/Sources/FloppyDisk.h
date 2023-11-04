@@ -70,9 +70,9 @@ OPEN_CLASS_WITH_REF(FloppyDisk, IOResource,
     UInt8               flags;
     FdcControlByte      ciabprb;                                    // shadow copy of the CIA BPRB register for this floppy drive
 );
-enum FloppyDiskMethodIndex {
-    kFloppyDiskMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _FloppyDiskMethodTable {
+    IOResourceMethodTable   super;
+} FloppyDiskMethodTable;
 
 
 

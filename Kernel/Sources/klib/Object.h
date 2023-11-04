@@ -16,41 +16,30 @@
 
 // This section stores all class data structures. The class data structures are
 // defined by the macros below.
-#ifdef __section
+#ifdef __VBCC__
 #define _ClassSection __section("__class")
 #else
 #define _ClassSection
 #endif
 
 
-// Defines the type/signature/prototype of a method. A method has at least a
-// self argument which is the first argument and a pointer that points to the
-// object instance on which the method is supposed to operate. More arguments
-// may follow self. See below how to use this.
-#define METHOD_TYPE_0(__rtype, __className, __methodName) \
-typedef __rtype (*__className##Method_##__methodName)(void* self)
-
-#define METHOD_TYPE_N(__rtype, __className, __methodName, ...) \
-typedef __rtype (*__className##Method_##__methodName)(void* self, __VA_ARGS__)
-
-
 // A method implementation declaration. This adds the method named '__name' of
 // the class named '__className' to this class. Use this macro to declare a
 // method that does not override the equally named superclass method.
 #define METHOD_IMPL(__name, __className) \
-{ k##__className##MethodIndex_##__name , (Method) __className##_##__name },
+{ (Method) __className##_##__name, offsetof(struct _##__className##MethodTable, __name) },
 
-// Same as METHOD_IMPL except that it declares the method '__name' of class
-// '__className' to be an override of the equally named method of class
-// '__superClassName'.
+// Same as METHOD_IMPL except that it declares the method '__name' to be an override
+// of the method with the same name and type signature which was originally defined
+// in the class '__superClassName'.
 #define OVERRIDE_METHOD_IMPL(__name, __className, __superClassName) \
-{ k##__superClassName##MethodIndex_##__name , (Method) __className##_##__name },
+{ (Method) __className##_##__name, offsetof(struct _##__superClassName##MethodTable, __name) },
 
 
 #define __CLASS_METHODS(__name, __super, ...) \
-static Method g##__name##VTable[k##__name##MethodIndex_Count];\
-static const struct MethodDecl gMethodImpls_##__name[] = { __VA_ARGS__ {0, (Method)0} }; \
-Class _ClassSection k##__name##Class = {g##__name##VTable, __super, #__name, sizeof(__name), k##__name##MethodIndex_Count, 0, gMethodImpls_##__name}
+static struct _##__name##MethodTable g##__name##VTable; \
+static const struct MethodDecl gMethodImpls_##__name[] = { __VA_ARGS__ {(Method)0, 0} }; \
+Class _ClassSection k##__name##Class = {(Method*)&g##__name##VTable, __super, #__name, sizeof(__name), (Int16) sizeof(struct _##__name##MethodTable)/sizeof(Method), 0, gMethodImpls_##__name}
 
 #define __CLASS_IVARS(__name, __super, __ivars_decls) \
 extern Class k##__name##Class; \
@@ -90,7 +79,7 @@ typedef struct _##__name* __name##Ref
 
 // Defines an opaque class. An opaque class supports limited subclassing only.
 // Overriding methods is supported but adding ivars is not. This macro should
-// be placed in the publically accessible header file of the class.
+// be placed in the publicly accessible header file of the class.
 #define OPAQUE_CLASS(__name, __superName) \
 struct _##__name; \
 typedef struct _##__name* __name##Ref
@@ -135,23 +124,23 @@ __CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 // 3.b CLASS_METHODS with one METHOD_IMPL per dynamically dispatched method
 //
 
-typedef void (*Method)(void* self, ...);
+typedef void (*Method)(void* _Nonnull self, ...);
 
 struct MethodDecl {
-    Int             index;
     Method _Nonnull method;
+    ByteCount       offset;
 };
 
 #define CLASSF_INITIALIZED  1
 
 typedef struct _Class {
-    Method* _Nonnull        vtable;
-    struct _Class* _Nonnull super;
-    const char* _Nonnull    name;
-    ByteCount               instanceSize;
-    Int16                   methodCount;
-    UInt16                  flags;
-    const struct MethodDecl* _Nonnull methodList;
+    Method* _Nonnull                    vtable;
+    struct _Class* _Nonnull             super;
+    const char* _Nonnull                name;
+    ByteCount                           instanceSize;
+    Int16                               methodCount;
+    UInt16                              flags;
+    const struct MethodDecl* _Nonnull   methodList;
 } Class;
 typedef struct _Class* ClassRef;
 
@@ -161,18 +150,16 @@ typedef struct _Class* ClassRef;
 // operations supported by Object are reference counting based memory management
 // and dynamic method invocation.
 // Dynamic method invocation is implemented via index-based method dispatching.
-// Every methd is assigned an index and this index is used to look up the
+// Every method is assigned an index and this index is used to look up the
 // implementation of a method.
 OPEN_ROOT_CLASS_WITH_REF(Object,
     ClassRef _Nonnull   class;
     AtomicInt           retainCount;
 );
-enum ObjectMethodIndex {
-    kObjectMethodIndex_deinit,
-    
-    kObjectMethodIndex_Count = kObjectMethodIndex_deinit + 1
-};
-METHOD_TYPE_0(void, Object, deinit);
+
+typedef struct _ObjectMethodTable {
+    void    (*deinit)(void* _Nonnull self);
+} ObjectMethodTable;
 
 
 // Allocates an instance of the given class. 'extraByteCount' is the number of
@@ -232,10 +219,10 @@ extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTarge
 
 // Invokes a dynamic method with the given arguments.
 #define Object_Invoke0(__methodName, __methodClassName, __self) \
-    ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self)
+    ((struct _##__methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self)
 
 #define Object_InvokeN(__methodName, __methodClassName, __self, ...) \
-    ((__methodClassName##Method_##__methodName)(Object_GetClass(__self)->vtable[k##__methodClassName##MethodIndex_##__methodName]))(__self, __VA_ARGS__)
+    ((struct _##__methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
 
 
 // Scans the "__class" data section bounded by the '_class' and '_eclass' linker

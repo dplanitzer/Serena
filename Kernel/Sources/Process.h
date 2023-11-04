@@ -13,9 +13,9 @@
 #include "IOResource.h"
 
 OPAQUE_CLASS(Process, Object);
-enum ProcessMethodIndex {
-    kProcessMethodIndex_Count = kObjectMethodIndex_deinit + 1
-};
+typedef struct _ProcessMethodTable {
+    ObjectMethodTable   super;
+} ProcessMethodTable;
 
 // The process spawn arguments specify how a child process should be created.
 typedef struct __spawn_arguments_t SpawnArguments;
@@ -42,7 +42,7 @@ extern ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc);
 // \param pExecAddr pointer to a GemDOS formatted executable file in memory
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-// XXX the executable file must be loacted at the address 'pExecAddr'
+// XXX the executable file must be located at the address 'pExecAddr'
 extern ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr);
 
 

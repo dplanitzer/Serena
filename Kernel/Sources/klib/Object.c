@@ -7,6 +7,7 @@
 //
 
 #include "Object.h"
+#include "Bytes.h"
 #include "Kalloc.h"
 #include "Log.h"
 
@@ -61,7 +62,7 @@ void _Object_Release(ObjectRef _Nullable self)
     // negative which is fine. In that sense a negative reference count signals
     // that the object is dead.
     if (rc == 0) {
-        self->class->vtable[kObjectMethodIndex_deinit](self);
+        ((ObjectMethodTable*)self->class->vtable)->deinit(self);
         kfree((Byte*) self);
     }
 }
@@ -96,17 +97,16 @@ static void RegisterClass(ClassRef _Nonnull pClass)
 
     // Copy the super class vtable
     if (pSuperClass) {
-        for (Int i = 0; i < pSuperClass->methodCount; i++) {
-            pClass->vtable[i] = pSuperClass->vtable[i];
-        }
+        Bytes_CopyRange((Byte*)pClass->vtable, (const Byte*)pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
     }
 
 
     // Override methods in the VTable with methods from our method list
     const struct MethodDecl* pCurMethod = pClass->methodList;
     while (pCurMethod->method) {
-        assert(pCurMethod->index >= 0 && pCurMethod->index < pClass->methodCount);
-        pClass->vtable[pCurMethod->index] = pCurMethod->method;
+        Method* pSlot = (Method*)((Byte*)pClass->vtable + pCurMethod->offset);
+
+        *pSlot = pCurMethod->method;
         pCurMethod++;
     }
 
@@ -156,9 +156,9 @@ void PrintClasses(void)
         } else {
             print("%s\t\t\t\t", pClass->name);
         }
-        print("mths: %d\tisize: %d\n", pClass->methodCount, pClass->instanceSize);
+        print("mcount: %d\tisize: %d\n", pClass->methodCount, pClass->instanceSize);
 
-#if 0
+#if 1
         for (Int i = 0; i < pClass->methodCount; i++) {
             print("%d: 0x%p\n", i, pClass->vtable[i]);
         }

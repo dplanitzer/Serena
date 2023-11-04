@@ -19,7 +19,13 @@ __CPP_BEGIN
 typedef __ptrdiff_t ptrdiff_t;
 
 
-#define offset(type, member) __offsetof(type, member)
+#ifdef __VBCC__
+#define offsetof(type, member) __offsetof(type, member)
+#else
+#define offsetof(type, member) \
+    ((ByteCount)((char *)&((type *)0)->member - (char *)0))
+#endif
+
 
 __CPP_END
 

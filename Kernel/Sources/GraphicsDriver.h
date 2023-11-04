@@ -88,9 +88,10 @@ extern Bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
 
 
 OPAQUE_CLASS(GraphicsDriver, IOResource);
-enum GraphicsDriverMethodIndex {
-    kGraphicsDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _GraphicsDriverMethodTable {
+    IOResourceMethodTable   super;
+} GraphicsDriverMethodTable;
+
 
 typedef Int SpriteID;
 

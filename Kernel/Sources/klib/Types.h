@@ -26,6 +26,12 @@
 #define _Noreturn   void
 #endif
 
+#ifdef __VBCC__
+#define offsetof(type, member) __offsetof(type, member)
+#else
+#define offsetof(type, member) \
+    ((ByteCount)((char *)&((type *)0)->member - (char *)0))
+#endif
 
 // The Byte type represents raw, untyped memory. Raw memory may be reinterpreted
 // or converted to typed memory but this requires the execution of some piece of

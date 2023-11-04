@@ -16,9 +16,9 @@
 
 
 OPAQUE_CLASS(EventDriver, IOResource);
-enum EventDriverMethodIndex {
-    kEventDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _EventDriverMethodTable {
+    IOResourceMethodTable   super;
+} EventDriverMethodTable;
 
 
 // Input controller types

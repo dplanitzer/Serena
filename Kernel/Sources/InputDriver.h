@@ -18,9 +18,9 @@
 //
 
 OPAQUE_CLASS(KeyboardDriver, IOResource);
-enum KeyboardDriverMethodIndex {
-    kKeyboardDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _KeyboardDriverMethodTable {
+    IOResourceMethodTable   super;
+} KeyboardDriverMethodTable;
 
 extern ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -33,9 +33,9 @@ extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver
 //
 
 OPAQUE_CLASS(MouseDriver, IOResource);
-enum MouseDriverMethodIndex {
-    kMouseDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _MouseDriverMethodTable {
+    IOResourceMethodTable   super;
+} MouseDriverMethodTable;
 
 extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -45,9 +45,9 @@ extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int po
 //
 
 OPAQUE_CLASS(DigitalJoystickDriver, IOResource);
-enum DigitalJoystickDriverMethodIndex {
-    kDigitalJoystickDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _DigitalJoystickDriverMethodTable {
+    IOResourceMethodTable   super;
+} DigitalJoystickDriverMethodTable;
 
 extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -57,9 +57,9 @@ extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriv
 //
 
 OPAQUE_CLASS(AnalogJoystickDriver, IOResource);
-enum AnalogJoystickDriverMethodIndex {
-    kAnalogJoystickDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _AnalogJoystickDriverMethodTable {
+    IOResourceMethodTable   super;
+} AnalogJoystickDriverMethodTable;
 
 
 extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
@@ -70,9 +70,9 @@ extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDrive
 //
 
 OPAQUE_CLASS(LightPenDriver, IOResource);
-enum LightPenDriverMethodIndex {
-    kLightPenDriverMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _LightPenDriverMethodTable {
+    IOResourceMethodTable   super;
+} LightPenDriverMethodTable;
 
 extern ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
 

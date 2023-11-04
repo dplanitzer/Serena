@@ -14,9 +14,9 @@
 #include "GraphicsDriver.h"
 
 OPAQUE_CLASS(Console, IOResource);
-enum ConsoleMethodIndex {
-    kConsoleMethodIndex_Count = kIOResourceMethodIndex_close + 1
-};
+typedef struct _ConsoleMethodTable {
+    IOResourceMethodTable   super;
+} ConsoleMethodTable;
 
 extern ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole);
 
