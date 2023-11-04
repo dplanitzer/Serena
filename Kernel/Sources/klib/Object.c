@@ -158,7 +158,7 @@ void PrintClasses(void)
         }
         print("mcount: %d\tisize: %d\n", pClass->methodCount, pClass->instanceSize);
 
-#if 1
+#if 0
         for (Int i = 0; i < pClass->methodCount; i++) {
             print("%d: 0x%p\n", i, pClass->vtable[i]);
         }
