@@ -34,8 +34,9 @@ ENOTBLK     equ 21
 EBADF       equ 22
 ECHILD      equ 23
 ESRCH       equ 24
+ESPIPE      equ 25
 
 __EFIRST    equ 1
-__ELAST     equ 24
+__ELAST     equ 25
 
         endif   ; _ERRDEF_I

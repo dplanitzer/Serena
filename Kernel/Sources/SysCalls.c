@@ -112,6 +112,30 @@ catch:
 }
 
 
+struct SYS_seek_args {
+    Int                     scno;
+    Int                     fd;
+    Int64                   offset;
+    Int64* _Nullable        outPosition;
+    Int                     whence;
+};
+
+Int _SYSCALL_seek(const struct SYS_seek_args* _Nonnull pArgs)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
+    try(IOChannel_Seek(pChannel, pArgs->offset, pArgs->outPosition, pArgs->whence));
+    Object_Release(pChannel);
+    return EOK;
+
+catch:
+    Object_Release(pChannel);
+    return err;
+}
+
+
 struct SYS_sleep_args {
     Int                             scno;
     const TimeInterval* _Nonnull    delay;

@@ -35,9 +35,10 @@
 #define EBADF       22
 #define ECHILD      23
 #define ESRCH       24
+#define ESPIPE      25
 
 #define __EFIRST    1
-#define __ELAST     24
+#define __ELAST     25
 
 typedef int __errno_t;
 

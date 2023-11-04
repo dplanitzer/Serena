@@ -75,6 +75,21 @@ ByteCount IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuff
     return IOResource_Write(self->resource, self->state, pBuffer, nBytesToWrite);
 }
 
+ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, Int64 offset, Int64* pOutPosition, Int whence)
+{
+    switch (whence) {
+        case SEEK_SET:
+        case SEEK_CUR:
+        case SEEK_END:
+            break;
+
+        default:
+            return EINVAL;
+    }
+
+    return IOResource_Seek(self->resource, self->state, offset, pOutPosition, whence);
+}
+
 ErrorCode IOChannel_close(IOChannelRef _Nonnull self)
 {
     return IOResource_Close(self->resource, self->state);
@@ -91,6 +106,7 @@ METHOD_IMPL(dup, IOChannel)
 METHOD_IMPL(command, IOChannel)
 METHOD_IMPL(read, IOChannel)
 METHOD_IMPL(write, IOChannel)
+METHOD_IMPL(seek, IOChannel)
 METHOD_IMPL(close, IOChannel)
 OVERRIDE_METHOD_IMPL(deinit, IOChannel, Object)
 );
@@ -111,9 +127,9 @@ ErrorCode IOResource_open(IOResourceRef _Nonnull self, const Character* _Nonnull
     return EBADF;
 }
 
-// Creates an independent copy of the passed in rescon. Note that this function
-// is allowed to return a strong reference to the rescon that was passed in if
-// the rescon state is immutable. 
+// Creates an independent copy of the passed in I/O channel. Note that this function
+// is allowed to return a strong reference to the channel that was passed in if
+// the channel state is immutable. 
 ErrorCode IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     *pOutChannel = NULL;
@@ -136,6 +152,11 @@ ByteCount IOResource_write(IOResourceRef _Nonnull self, void* _Nonnull pContext,
     return -EBADF;
 }
 
+ErrorCode IOResource_seek(IOResourceRef _Nonnull self, void* _Nonnull pContext, Int64 offset, Int64* pOutPosition, Int whence)
+{
+    return ESPIPE;
+}
+
 // See UObject.close()
 ErrorCode IOResource_close(IOResourceRef _Nonnull self, void* _Nonnull pContext)
 {
@@ -149,5 +170,6 @@ METHOD_IMPL(dup, IOResource)
 METHOD_IMPL(command, IOResource)
 METHOD_IMPL(read, IOResource)
 METHOD_IMPL(write, IOResource)
+METHOD_IMPL(seek, IOResource)
 METHOD_IMPL(close, IOResource)
 );

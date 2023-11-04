@@ -24,6 +24,8 @@ typedef __errno_t errno_t;
 
 typedef long useconds_t;
 
+typedef long long off_t;
+
 __CPP_END
 
 #endif /* _APOLLO_TYPES_H */

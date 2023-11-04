@@ -22,5 +22,6 @@
 #define SC_open                 10  // int open(const char * _Nonnull name, int options)
 #define SC_close                11  // errno_t close(int fd)
 #define SC_waitpid              12  // errno_t waitpid(pid_t pid, struct __waitpid_result_t * _Nullable result)
+#define SC_seek                 13  // errno_t seek(int fd, off_t offset, off_t *newpos, int whence)
 
 #endif /* __SYSCALLS_H */

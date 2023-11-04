@@ -24,6 +24,7 @@
     xref __SYSCALL_open
     xref __SYSCALL_close
     xref __SYSCALL_waitpid
+    xref __SYSCALL_seek
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -43,6 +44,7 @@ syscall_table:
     dc.l __SYSCALL_open
     dc.l __SYSCALL_close
     dc.l __SYSCALL_waitpid
+    dc.l __SYSCALL_seek
 
 
 ;-------------------------------------------------------------------------------

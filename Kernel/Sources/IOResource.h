@@ -24,6 +24,7 @@ enum IOChannelMethodIndex {
     kIOChannelMethodIndex_command,
     kIOChannelMethodIndex_read,
     kIOChannelMethodIndex_write,
+    kIOChannelMethodIndex_seek,
     kIOChannelMethodIndex_close,
 
     kIOChannelMethodIndex_Count = kIOChannelMethodIndex_close + 1
@@ -32,6 +33,7 @@ METHOD_TYPE_N(ErrorCode, IOChannel, dup, IOChannelRef _Nullable * _Nonnull pOutC
 METHOD_TYPE_N(ErrorCode, IOChannel, command, Int op, va_list ap);
 METHOD_TYPE_N(ByteCount, IOChannel, read, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 METHOD_TYPE_N(ByteCount, IOChannel, write, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+METHOD_TYPE_N(ErrorCode, IOChannel, seek, Int64 offset, Int64* _Nullable pOutPosition, Int whence);
 METHOD_TYPE_0(ErrorCode, IOChannel, close);
 
 #define FREAD   0x0001
@@ -58,6 +60,9 @@ Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead)
 #define IOChannel_Write(__self, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOChannel, __self, __pBuffer, __nBytesToWrite)
 
+#define IOChannel_Seek(__self, __offset, __pOutPosition, __whence) \
+Object_InvokeN(seek, IOChannel, __self, __offset, __pOutPosition, __whence)
+
 #define IOChannel_Close(__self) \
 Object_Invoke0(close, IOChannel, __self)
 
@@ -71,6 +76,7 @@ enum IOResourceMethodIndex {
     kIOResourceMethodIndex_command,
     kIOResourceMethodIndex_read,
     kIOResourceMethodIndex_write,
+    kIOResourceMethodIndex_seek,
     kIOResourceMethodIndex_close,
 
     kIOResourceMethodIndex_Count = kIOResourceMethodIndex_close + 1
@@ -83,16 +89,24 @@ enum IOResourceMethodIndex {
 // protected by the resource's internal locking mechanism.
 METHOD_TYPE_N(ErrorCode, IOResource, open, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-// Creates an independent copy of the passed in rescon. Note that this function
-// is allowed to return a strong reference to the rescon that was passed in if
-// the rescon state is immutable. 
+// Creates an independent copy of the passed in I/O channel. Note that this function
+// is allowed to return a strong reference to the channel that was passed in if
+// the channel state is immutable. 
 METHOD_TYPE_N(ErrorCode, IOResource, dup, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Executes the resource specific command 'op'.
-METHOD_TYPE_N(ErrorCode, IOResource, command, void* _Nonnull pContext, Int op, va_list ap);
+METHOD_TYPE_N(ErrorCode, IOResource, command, void* _Nonnull pChannel, Int op, va_list ap);
 
-METHOD_TYPE_N(ByteCount, IOResource, read, void* _Nonnull pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-METHOD_TYPE_N(ByteCount, IOResource, write, void* _Nonnull pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+METHOD_TYPE_N(ByteCount, IOResource, read, void* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+METHOD_TYPE_N(ByteCount, IOResource, write, void* _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+
+// Changes the position of the given I/O channel to the new location implied by
+// the combination of 'offset' and 'whence'. Returns the new position and error
+// status.
+#define SEEK_SET    0
+#define SEEK_CUR    1
+#define SEEK_END    2
+METHOD_TYPE_N(ErrorCode, IOResource, seek, void* _Nonnull pChannel, Int64 offset, Int64* _Nullable pOutPosition, Int whence);
 
 // Close the resource. The purpose of the close operation is:
 // - flush all data that was written and is still buffered/cached to the underlying device
@@ -104,7 +118,7 @@ METHOD_TYPE_N(ByteCount, IOResource, write, void* _Nonnull pContext, const Byte*
 // The close operation may return an error. Returning an error will not stop the kernel from completing the close and eventually
 // deallocating the resource. The error is passed on to the caller but is purely advisory in nature. The close operation is
 // required to mark the resource as closed whether the close internally succeeded or failed. 
-METHOD_TYPE_N(ErrorCode, IOResource, close, void* _Nonnull pContext);
+METHOD_TYPE_N(ErrorCode, IOResource, close, void* _Nonnull pChannel);
 
 
 #define IOResource_Open(__self, __pPath, __options, __pOutChannel) \
@@ -121,6 +135,9 @@ Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead)
 
 #define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)
+
+#define IOResource_Seek(__self, __pChannel, __offset, __pOutPosition, __whence) \
+Object_InvokeN(seek, IOResource, __self, __pChannel, __offset, __pOutPosition, __whence)
 
 #define IOResource_Close(__self, __pChannel) \
 Object_InvokeN(close, IOResource, __self, __pChannel)

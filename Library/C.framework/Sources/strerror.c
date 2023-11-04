@@ -36,7 +36,8 @@ char *strerror(int err_no)
         /*ENOTBLK*/     "Not a block device",
         /*EBADF*/       "Not a valid descriptor",
         /*ECHILD*/      "Not a child process",
-        /*ESRCH*/       "No such process"
+        /*ESRCH*/       "No such process",
+        /*ESPIPE*/      "Not a file"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

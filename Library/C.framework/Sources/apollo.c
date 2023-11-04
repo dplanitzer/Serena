@@ -32,6 +32,14 @@ ssize_t write(int fd, const void *buffer, size_t nbytes)
     return r;
 }
 
+errno_t seek(int fd, off_t offset, off_t *newpos, int whence)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_seek, fd, offset, newpos, whence);
+    return r;
+}
+
 errno_t close(int fd)
 {
     errno_t r;

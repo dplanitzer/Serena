@@ -31,10 +31,18 @@ typedef struct __waitpid_result_t waitpid_result_t;
 #define O_RDWR      (O_RDONLY | O_WRONLY)
 
 
+// XXX make this SEEK_XXX and make stdio.h pick this up (and just this), once we're putting the real API in place
+#define S_WHENCE_SET    0
+#define S_WHENCE_CUR    1
+#define S_WHENCE_END    2
+
+
 int open(const char *path, int options);
 
 ssize_t read(int fd, void *buffer, size_t nbytes);
 ssize_t write(int fd, const void *buffer, size_t nbytes);
+
+errno_t seek(int fd, off_t offset, off_t *newpos, int whence);
 
 errno_t close(int fd);
 
