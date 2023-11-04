@@ -101,8 +101,7 @@ __CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 //
 // 1. In the (public) .h file:
 // 1.a OPEN_CLASS
-// 1.b one METHOD_TYPE per dynamically dispatched method defined by the class
-// 1.c define a __classNameMethodIndex enum with one index per dynamically dispatched method
+// 1.b define a struct __classNameMethodTable with the dynamically dispatched methods that the class defines
 //
 // 2. In the .c file:
 // 2.a add the implementation of dynamically dispatched methods
@@ -113,8 +112,7 @@ __CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 //
 // 1. In the (public) .h file:
 // 1.a OPAQUE_CLASS
-// 1.b one METHOD_TYPE per dynamically dispatched method defined by the class
-// 1.c define a __classNameMethodIndex enum with one index per dynamically dispatched method
+// 1.b define a struct __classNameMethodTable with the dynamically dispatched methods that the class defines
 //
 // 2. In the (private) .h file:
 // 2.a CLASS_IVARS
