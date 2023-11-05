@@ -49,7 +49,7 @@ typedef UInt16  HIDKeyCode;
 // HID event data
 typedef struct _HIDEventData_KeyUpDown {
     UInt32      flags;          // Modifier keys
-    HIDKeyCode  keyCode;        // USB HID keyscan code
+    HIDKeyCode  keyCode;        // USB HID key scan code
     Bool        isRepeat;       // True if this is an auto-repeated key down; false otherwise
 } HIDEventData_KeyUpDown;
 

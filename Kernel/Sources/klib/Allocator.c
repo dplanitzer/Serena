@@ -257,7 +257,7 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 
 // Allocates a new heap. An allocator manages the memory region described by the
 // given memory descriptor. Additional memory regions may be added later. The
-// heap managment data structures are stored inside those memory regions.
+// heap management data structures are stored inside those memory regions.
 // \param pMemDesc the initial memory region to manage
 // \param pOutAllocator receives the allocator reference
 // \return an error or EOK

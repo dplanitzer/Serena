@@ -76,7 +76,7 @@ Bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
 // expanded by 'count' bytes. A pointer to the first byte in the newly allocated
 // address space portion is return in 'pOutMem'. 'pOutMem' is set to NULL and a
 // suitable error is returned if the allocation failed. 'count' must be greater
-// than 0 and a multipler of the CPU page size.
+// than 0 and a multiple of the CPU page size.
 ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count, Byte* _Nullable * _Nonnull pOutMem)
 {
     decl_try_err();

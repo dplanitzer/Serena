@@ -177,7 +177,7 @@ typedef struct _VirtualProcessor {
 
     // Dispatch queue state
     void* _Nullable _Weak                   dispatchQueue;                      // Dispatch queue this VP is currently assigned to
-    Int8                                    dispatchQueueConcurrenyLaneIndex;   // Index of the concurrency lane in the dispatch queue this VP is assigned to
+    Int8                                    dispatchQueueConcurrencyLaneIndex;  // Index of the concurrency lane in the dispatch queue this VP is assigned to
     Int8                                    reserved2[3];
 } VirtualProcessor;
 
@@ -225,7 +225,7 @@ extern void VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force);
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
 // pool.
-extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrenyLaneIndex);
+extern void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrencyLaneIndex);
 
 // Sets the closure which the virtual processor should run when it is resumed.
 // This function may only be called while the VP is suspended.

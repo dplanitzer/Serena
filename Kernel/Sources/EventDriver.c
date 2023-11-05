@@ -13,14 +13,14 @@
 
 // USB Keycode -> kHIDEventModifierFlag_XXX values which are be or'd / and'd into pDriver->modifierFlags.
 // Bit 7 indicates whether the key is left or right: 0 -> left; 1 -> right
-// shift    0x01
-// option   0x02
-// ctrl     0x04
-// command  0x08
-// capslock 0x10
-// keypad   0x20
-// func     0x40
-// isRight  0x80
+// shift        0x01
+// option       0x02
+// ctrl         0x04
+// command      0x08
+// caps lock    0x10
+// keypad       0x20
+// func         0x40
+// isRight      0x80
 static const UInt8 gUSBHIDKeyFlags[256] = {
     0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // $00 - $0f
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // $10 - $1f
@@ -183,7 +183,7 @@ void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HID
 // logical mouse device and posts suitable events to the event queue.
 // Must be called from the interrupt context with interrupts turned off.
 // \param xDelta change in mouse position X since last invocation
-// \param yDelta change in mouse posution Y since last invocation
+// \param yDelta change in mouse position Y since last invocation
 // \param buttonsDown absolute state of the mouse buttons (0 -> left button, 1 -> right button, 2-> middle button, ...) 
 void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xDelta, Int16 yDelta, UInt32 buttonsDown)
 {

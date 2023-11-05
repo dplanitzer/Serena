@@ -51,4 +51,4 @@ extern Size Surface_GetPixelSize(Surface* _Nonnull pSurface);
 extern ErrorCode Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access);
 extern void Surface_UnlockPixels(Surface* _Nonnull pSurface);
 
-#endif /* Framebuffer_h */
+#endif /* Surface_h */

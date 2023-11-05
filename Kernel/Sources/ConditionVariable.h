@@ -33,7 +33,7 @@ extern void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar);
 extern void ConditionVariable_SignalAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock);
 extern void ConditionVariable_BroadcastAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock);
 
-// Blocks the caller until the conditiona variable has received a signal or the
+// Blocks the caller until the condition variable has received a signal or the
 // wait has timed out. Note that this function may return EINTR which means that
 // the ConditionVariable_Wait() call is happening in the context of a system
 // call that should be aborted.

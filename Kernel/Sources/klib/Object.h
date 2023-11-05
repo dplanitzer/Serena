@@ -228,7 +228,7 @@ extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTarge
 // - builds the vtable for each class
 // - validates the vtable
 // Must be called after the DATA and BSS segments have been established and before
-// and code is invoked that might use objects.
+// any code is invoked that might use objects.
 // Note that this function is not concurrency safe.
 extern void RegisterClasses(void);
 

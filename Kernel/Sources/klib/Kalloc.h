@@ -27,7 +27,7 @@ extern ErrorCode kalloc_options(ByteCount nbytes, UInt options, Byte* _Nullable 
 
 // Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
 // NULL if the memory could not be allocated. The returned memory is not
-// necessarily accessibe to I/O DMA operations. Use kalloc_options() with a
+// necessarily accessible to I/O DMA operations. Use kalloc_options() with a
 // suitable option if DMA accessability is desired.
 static inline ErrorCode kalloc(ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
 {

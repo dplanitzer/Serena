@@ -19,7 +19,7 @@ void Lock_Deinit(Lock* _Nonnull pLock)
 // Blocks the caller until the lock can be taken successfully.
 void Lock_Lock(Lock* _Nonnull pLock)
 {
-    // The wait is uninterruptable
+    // The wait is uninterruptible
     try_bang(ULock_Lock(pLock, 0));
 }
 

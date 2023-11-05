@@ -128,4 +128,8 @@ typedef struct _DispatchQueue {
 
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 
+static ErrorCode DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
+static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer);
+
 #endif /* DispatchQueuePriv_h */

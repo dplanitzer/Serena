@@ -125,7 +125,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
     pVP->vpid = AtomicInt_Add(&gNextAvailableVpid, 1);
 
     pVP->dispatchQueue = NULL;
-    pVP->dispatchQueueConcurrenyLaneIndex = -1;
+    pVP->dispatchQueueConcurrencyLaneIndex = -1;
 }
 
 // Creates a new virtual processor.
@@ -157,11 +157,11 @@ void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
 // pool.
-void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrenyLaneIndex)
+void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrencyLaneIndex)
 {
     VP_ASSERT_ALIVE(pVP);
     pVP->dispatchQueue = pQueue;
-    pVP->dispatchQueueConcurrenyLaneIndex = concurrenyLaneIndex;
+    pVP->dispatchQueueConcurrencyLaneIndex = concurrencyLaneIndex;
 }
 
 // Sets the closure which the virtual processor should run when it is resumed.
@@ -288,7 +288,7 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
 
             // The system call may currently be waiting on something (some
             // resource). Interrupt the wait. If the system call tries to do
-            // aditional waits on its way back out to user space, then all those
+            // additional waits on its way back out to user space, then all those
             // (interruptable) waits will be immediately aborted since the call-
             // as-user invocation is now marked as aborted.
             if (pVP->state == kVirtualProcessorState_Waiting) {

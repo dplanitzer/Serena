@@ -22,7 +22,7 @@
 // An interrupt ID
 typedef Int InterruptID;
 
-// The ID that represents a specifc registered interrupt handler
+// The ID that represents a specific registered interrupt handler
 typedef Int InterruptHandlerID;
 
 // Closure which is invoked when an interrupt happens
@@ -47,7 +47,7 @@ extern ErrorCode InterruptController_CreateForLocalCPU(void);
 extern ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId);
 
 // Registers a counting semaphore which will receive a release call for every
-// occurence of an interrupt with ID 'interruptId'.
+// occurrence of an interrupt with ID 'interruptId'.
 extern ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId);
 
 // Removes the interrupt handler for the given handler ID. Does nothing if no
@@ -68,7 +68,7 @@ extern Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef
 extern void InterruptController_OnInterrupt(struct _InterruptHandlerArray* _Nonnull pArray);
 
 // Returns the number of uninitialized interrupts that have happened since boot.
-// An uninitialized interrupt is an interrupt request from a periphial that does
+// An uninitialized interrupt is an interrupt request from a peripheral that does
 // not have a IRQ vector number set up for the interrupt.
 extern Int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController);
 

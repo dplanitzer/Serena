@@ -83,7 +83,7 @@ Size Surface_GetPixelSize(Surface* _Nonnull pSurface)
 // Locks the surface pixels for access. 'access' specifies whether the pixels
 // will be read, written or both.
 // \param pSurface the surface
-// \param access the acess mode
+// \param access the access mode
 // \return EOK if the surface pixels could be locked; EBUSY otherwise
 ErrorCode Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access)
 {

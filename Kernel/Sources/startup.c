@@ -82,7 +82,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 // context. Interrupts and DMAs are still turned off.
 //
 // Phase 1 initialization is responsible for bringing up the interrupt handling,
-// basic memort management, monotonic clock and the kernel main dispatch queue.
+// basic memory management, monotonic clock and the kernel main dispatch queue.
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
     // Initialize the kernel heap

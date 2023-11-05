@@ -41,7 +41,7 @@ extern void HIDEventQueue_Put(HIDEventQueueRef _Nonnull pQueue, HIDEventType typ
 
 // Removes the oldest event from the queue and returns a copy of it. Blocks the
 // caller if the queue is empty. The caller stays blocked until either an event
-// has arrived or 'timeout' has ellapsed. Returns EOK if an event has been
+// has arrived or 'timeout' has elapsed. Returns EOK if an event has been
 // successfully dequeued or ETIMEDOUT if no event has arrived and the wait has
 // timed out.
 extern ErrorCode HIDEventQueue_Get(HIDEventQueueRef _Nonnull pQueue, HIDEvent* _Nonnull pOutEvent, TimeInterval timeout);

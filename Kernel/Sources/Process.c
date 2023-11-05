@@ -45,7 +45,7 @@ ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
 // \param pExecAddr pointer to a GemDOS formatted executable file in memory
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-// XXX the executable file must be loacted at the address 'pExecAddr'
+// XXX the executable file must be located at the address 'pExecAddr'
 ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
 {
     Lock_Lock(&pProc->lock);
@@ -269,7 +269,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     // before we continue.
     // Note also that a system call that takes a kernel lock must eventually drop
     // this lock (it can not endlessly hold it) and it is expected to drop the
-    // lock ASAP (it can not take unecessarily long to release the lock). That's
+    // lock ASAP (it can not take unnecessarily long to release the lock). That's
     // why it is fine that Lock_Lock() is not interruptable even in the face of
     // the ability to terminate a process voluntarily/involuntarily.
     // The top-level system call handler checks whether a process is terminating
@@ -277,7 +277,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     // is the only required process termination check in a system call. All other
     // checks are voluntarily.
     // That said, every wait also does a check for process termination and the
-    // wait immediatly returns with an EINTR if the process is in the process of
+    // wait immediately returns with an EINTR if the process is in the process of
     // being terminated. The only exception to this is the wait that Lock_Lock()
     // does since this kind of lock is a kernel lock that is used to preserve the
     // integrity of kernel data structures.
@@ -286,7 +286,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     //
     // If a process terminates voluntarily or involuntarily then it'll by default
     // also terminate all its child, grand-child, etc processes. Every process
-    // in the tree first erminates its children before it completes its own
+    // in the tree first terminates its children before it completes its own
     // termination. Doing it this way ensures that a parent process won't
     // (magically) disappear before all its children have terminated.
 
@@ -418,7 +418,7 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
 
     try(Process_Create(pProc->pid, &pChildProc));
 
-    // Note that we do not lock the child process altough we're reaching directly
+    // Note that we do not lock the child process although we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
     // here can yet see the child process and thus call functions on it.
 
@@ -561,7 +561,7 @@ catch:
 // space.
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-// XXX the executable file must be loacted at the address 'pExecAddr'
+// XXX the executable file must be located at the address 'pExecAddr'
 ErrorCode Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
 {
     GemDosExecutableLoader loader;

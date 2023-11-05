@@ -349,10 +349,10 @@ catch:
     return err;
 }
 
-// Seeks to track #0 and selects head #0. Returns EOK if the function seeked at
+// Seeks to track #0 and selects head #0. Returns EOK if the function sought at
 // least once.
 // Note that this function is expected to implicitly acknowledge a disk change if
-// it has actually seeked.
+// it has actually sought.
 static ErrorCode FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull pDisk)
 {
     decl_try_err();
@@ -396,7 +396,7 @@ catch:
 // (0: outermost, 80: innermost, +: inward, -: outward).
 // Returns EDISKCHANGE if the disk has changed.
 // Note that we purposefully treat a disk change as an error. We don't want to
-// implicitly and accidently acknowledge a disk change as a side effect of seeking.
+// implicitly and accidentally acknowledge a disk change as a side effect of seeking.
 // The user of the API needs to become aware of the disk change so that he can actually
 // handle it in a sensible way.
 static ErrorCode FloppyDisk_SeekTo(FloppyDiskRef _Nonnull pDisk, Int cylinder, Int head)
@@ -606,7 +606,7 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull pDisk, Int head, In
         
         // Record the sector. Note that a sector may appear more than once because
         // we may have read more data from the disk than fits in a single track. We
-        // keep the first occurence of a sector.
+        // keep the first occurrence of a sector.
         if (sector_table[header.sector] == 0) {
             sector_table[header.sector] = i;
         }

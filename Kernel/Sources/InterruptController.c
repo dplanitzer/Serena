@@ -136,7 +136,7 @@ ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _
 }
 
 // Registers a counting semaphore which will receive a release call for every
-// occurence of an interrupt with ID 'interruptId'.
+// occurrence of an interrupt with ID 'interruptId'.
 ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId)
 {
     InterruptHandler handler;
@@ -308,7 +308,7 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 }
 
 // Returns the number of uninitialized interrupts that have happened since boot.
-// An uninitialized interrupt is an interrupt request from a periphial that does
+// An uninitialized interrupt is an interrupt request from a peripheral that does
 // not have a IRQ vector number set up for the interrupt.
 Int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController)
 {

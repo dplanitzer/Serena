@@ -114,7 +114,7 @@ static Bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
 }
 
 // Informs the key repeater that the user is now pressing down the key 'keyCode'.
-// This implicitly cancels an ongoig key repeat of a different key. Note that at
+// This implicitly cancels an ongoing key repeat of a different key. Note that at
 // most one key can be repeated at any given time.
 void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull pRepeater, HIDKeyCode keyCode)
 {

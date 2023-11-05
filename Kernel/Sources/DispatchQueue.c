@@ -11,11 +11,6 @@
 DispatchQueueRef    gMainDispatchQueue;
 
 
-static ErrorCode DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
-static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem);
-static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer);
-
-
 ErrorCode DispatchQueue_Create(Int minConcurrency, Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
     decl_try_err();
@@ -250,7 +245,7 @@ catch:
 // method that runs on the virtual processor to execute work items.
 static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue, VirtualProcessor* _Nonnull pVP)
 {
-    Int conLaneIdx = pVP->dispatchQueueConcurrenyLaneIndex;
+    Int conLaneIdx = pVP->dispatchQueueConcurrencyLaneIndex;
 
     assert(conLaneIdx >= 0 && conLaneIdx < pQueue->maxConcurrency);
 
@@ -281,7 +276,7 @@ catch:
     return err;
 }
 
-// Reqlinquishes the given work item. A work item owned by the dispatch queue is
+// Relinquishes the given work item. A work item owned by the dispatch queue is
 // moved back to the item reuse cache if possible or freed if the cache is full.
 // Does nothing if the dispatch queue does not own the item.
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem)
@@ -321,7 +316,7 @@ catch:
     return err;
 }
 
-// Reqlinquishes the given timer. A timer owned by the queue is moved back to the
+// Relinquishes the given timer. A timer owned by the queue is moved back to the
 // timer reuse queue if possible or freed id the reuse cache is already full.
 // Does nothing if the queue does not own the timer.
 static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer)
@@ -339,7 +334,7 @@ static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue,
     }
 }
 
-// Creates a completion signaler. Tries to reusean existing completion signaler
+// Creates a completion signaler. Tries to reuse an existing completion signaler
 // from the completion signaler cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
 static ErrorCode DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue, CompletionSignaler* _Nullable * _Nonnull pOutComp)
@@ -361,7 +356,7 @@ catch:
     return err;
 }
 
-// Reqlinquishes the given completion signaler back to the completion signaler
+// Relinquishes the given completion signaler back to the completion signaler
 // cache if possible. The completion signaler is freed if the cache is at capacity.
 static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _Nonnull pQueue, CompletionSignaler* _Nonnull pItem)
 {

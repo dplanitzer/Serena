@@ -279,7 +279,7 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
     assert(pVP->state != kVirtualProcessorState_Waiting);
 
     // Immediately return instead of waiting if we are in the middle of an abort
-    // of a call-as-user invoction.
+    // of a call-as-user invocation.
     if ((pVP->flags & (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) == (VP_FLAG_CAU_IN_PROGRESS | VP_FLAG_CAU_ABORTED)) {
         return EINTR;
     }
@@ -385,7 +385,7 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
 // will never fail with an error. This doesn't mean that calling this function
 // will always result in a virtual processor wakeup. If the wait queue is empty
 // then no wakeups will happen. Also a virtual processor that sits in an
-// uninterruptable wait or that was suspended while being in a wait state will
+// uninterruptible wait or that was suspended while being in a wait state will
 // not get woken up.
 // May be called from an interrupt context.
 void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
@@ -399,7 +399,7 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
     }
     
 
-    // Do not wake up the virtual processor if it is in an uninterruptable wait.
+    // Do not wake up the virtual processor if it is in an uninterruptible wait.
     if (wakeUpReason == WAKEUP_REASON_INTERRUPTED && (pVP->flags & VP_FLAG_INTERRUPTABLE_WAIT) == 0) {
         return;
     }
@@ -474,7 +474,7 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     assert(pVP == pScheduler->running);
     
     // We don't need to save the old preemption state because this VP is going
-    // away and we will never contrext switch back to it
+    // away and we will never context switch back to it
     (void) VirtualProcessorScheduler_DisablePreemption();
     
     // Put the VP on the finalization queue

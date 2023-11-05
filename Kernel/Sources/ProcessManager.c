@@ -37,7 +37,7 @@ ErrorCode ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef
 }
 
 // Returns a strong reference to the root process. This is the process that has
-// no parent but all other processes are directly or indirectly descandants of
+// no parent but all other processes are directly or indirectly descendants of
 // the root process. The root process never changes identity and never goes
 // away.
 ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Nonnull pManager)
