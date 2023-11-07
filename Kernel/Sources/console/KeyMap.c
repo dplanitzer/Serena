@@ -88,7 +88,7 @@ static ByteCount KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const
 
 // Maps the given up/down key event to a sequence of bytes. Usually that
 // sequence is only a single byte long. However it may be multiple bytes
-// long or of length 0. The length of teh sequence the event was mapped to is
+// long or of length 0. The length of the sequence the event was mapped to is
 // returned. If that length is zero then the key press or release should be
 // ignored. Note that this function returns a sequence of bytes and not a
 // C string. Consequently the sequence is not nul-terminated.

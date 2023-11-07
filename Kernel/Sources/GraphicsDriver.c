@@ -572,7 +572,7 @@ ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDri
     try(GraphicsDriver_WaitForVerticalBlank_Locked(pDriver));
     
     
-    // Associate the mouse painter with teh new screen
+    // Associate the mouse painter with the new screen
     MousePainter_SetSurface(&pDriver->mousePainter, pNewScreen->framebuffer);
     MousePainter_SetVisible(&pDriver->mousePainter, wasMouseCursorVisible);
 

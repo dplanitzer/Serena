@@ -90,7 +90,7 @@ void Pipe_Close(PipeRef _Nonnull pPipe, PipeClosing mode)
             break;
     }
 
-    // Always wake the reader and the writer since teh close may be triggered
+    // Always wake the reader and the writer since the close may be triggered
     // by an unrelated 3rd process.
     ConditionVariable_BroadcastAndUnlock(&pPipe->reader, &pPipe->lock);
     ConditionVariable_BroadcastAndUnlock(&pPipe->writer, &pPipe->lock);

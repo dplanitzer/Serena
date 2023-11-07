@@ -58,7 +58,7 @@ extern void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode);
 // Returns true if the process is marked for termination and false otherwise.
 extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 
-// Waits for the child process with teh given PID to terminate and returns the
+// Waits for the child process with the given PID to terminate and returns the
 // termination status. Returns ECHILD if there are no tombstones of terminated
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any

@@ -248,14 +248,14 @@ extern void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, Closure1
 // whether the userspace code is currently executing in userspace or a system
 // call:
 // 1) running in userspace: execution is immediately aborted and no attempt is
-//                          made to unwind the userspace stack or free any
+//                          made to unwind the userspace stack or to free any
 //                          userspace resources.
 // 2) executing a system call: the system call is allowed to run to completion.
 //                          However all interruptable waits will be interrupted
 //                          no matter whether the VP is currently sitting in an
 //                          interruptable wait or it enters it. This behavior
-//                          will stay in effect until the system call has
-//                          completed. Once the system call has finished and the
+//                          will stay in effect until the VP has returned from
+//                          the system. Once the system call has finished and the
 //                          call-as-user invocation has been aborted, waits will
 //                          not be interrupted anymore.
 extern ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP);

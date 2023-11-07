@@ -335,7 +335,7 @@ ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull p
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue. Expects to be called from an interrupt context and thus defers
-// context switches until teh return from the interrupt context.
+// context switches until the return from the interrupt context.
 void VirtualProcessorScheduler_WakeUpAllFromInterruptContext(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue)
 {
     register ListNode* pCurNode = pWaitQueue->first;    

@@ -97,7 +97,7 @@ extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
 // \param pProc the process into which the executable image should be loaded
 // \param pExecAddr pointer to a GemDOS formatted executable file in memory
 // \param pArgv the command line arguments for the process. NULL means that the arguments are {path, NULL}
-// \param pEnv the environment for teh process. Null means that the process inherits the environment from its parent
+// \param pEnv the environment for the process. Null means that the process inherits the environment from its parent
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'

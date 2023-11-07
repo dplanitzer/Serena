@@ -13,7 +13,7 @@
 // - Unshield() leaves a copy of the mouse cursor behind if the mouse cursor is outside the shielding rect
 // - we need to clip the mouse cursor if it goes partially (completely) off screen
 // - SetMouseCursor() does not immediately update the screen. You have to move the mouse to see the change
-// - SetVisible() may have teh same problem. Need to check
+// - SetVisible() may have the same problem. Need to check
 // XXX
 static void MousePainter_RestoreSavedImage(MousePainter* _Nonnull pPainter);
 static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter);

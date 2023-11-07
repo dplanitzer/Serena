@@ -195,7 +195,7 @@ static void zorro3_auto_config_shutup(void)
 }
 
 // Tells the board which is currently visible in the auto config space to
-// shut up. This causes the bus to make teh next board in the chain available
+// shut up. This causes the bus to make the next board in the chain available
 // for configuration. The shut up board will enter idle state until the next
 // system reset.
 static void zorro_auto_config_shutup(UInt8 bus)

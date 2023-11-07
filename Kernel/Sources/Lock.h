@@ -24,7 +24,7 @@ static inline void Lock_Init(Lock* _Nonnull pLock) {
 // is holding the lock.
 extern void Lock_Deinit(Lock* _Nonnull pLock);
 
-// Attempts to acquire the given lock. True is return if teh lock has been
+// Attempts to acquire the given lock. True is return if the lock has been
 // successfully acquired and false otherwise.
 static inline Bool Lock_TryLock(Lock* _Nonnull pLock) {
     return ULock_TryLock(pLock) == EOK;

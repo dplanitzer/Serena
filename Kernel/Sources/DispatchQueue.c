@@ -371,7 +371,7 @@ static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _No
 
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible. Expects to be called with the dispatch queue held. Returns
-// with teh dispatch queue unlocked.
+// with the dispatch queue unlocked.
 static ErrorCode DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     decl_try_err();

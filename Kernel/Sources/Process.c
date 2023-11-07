@@ -150,7 +150,7 @@ ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, I
     return EOK;
 }
 
-// Waits for the child process with teh given PID to terminate and returns the
+// Waits for the child process with the given PID to terminate and returns the
 // termination status. Returns ECHILD if there are no tombstones of terminated
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
@@ -250,7 +250,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     //    to user space. So the return to user space is redirected to a piece of
     //    code that aborts the user space invocation. The VP then returns back
     //    to the dispatch queue main loop.
-    // 3) A VP may be in waiting state because it was executing a system call that
+    // 3) A VP may be in waiting state because it executed a system call that
     //    invoked a blocking function. This wait will be interrupted/aborted as
     //    a side-effect of aborting the call-as-user invocation. Additionally all
     //    further abortable waits that the VP wants to take are immediately aborted
@@ -285,9 +285,9 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
     // Notes on terminating a process tree:
     //
     // If a process terminates voluntarily or involuntarily then it'll by default
-    // also terminate all its child, grand-child, etc processes. Every process
-    // in the tree first terminates its children before it completes its own
-    // termination. Doing it this way ensures that a parent process won't
+    // also terminate all its children, grand-children, etc processes. Every
+    // process in the tree first terminates its children before it completes its
+    // own termination. Doing it this way ensures that a parent process won't
     // (magically) disappear before all its children have terminated.
 
 
@@ -420,7 +420,7 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
 
     // Note that we do not lock the child process although we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
-    // here can yet see the child process and thus call functions on it.
+    // here can see the child process yet and thus call functions on it.
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
@@ -589,7 +589,7 @@ catch:
     return err;
 }
 
-// Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
+// Adopts the process with the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
 ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
 {
