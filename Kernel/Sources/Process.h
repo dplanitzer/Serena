@@ -10,7 +10,7 @@
 #define Process_h
 
 #include <klib/klib.h>
-#include "IOResource.h"
+#include "Filesystem.h"
 
 OPAQUE_CLASS(Process, Object);
 typedef struct _ProcessMethodTable {
@@ -34,7 +34,7 @@ extern ProcessRef _Nullable Process_GetCurrent(void);
 
 
 // Creates the root process which is the first process of the OS.
-extern ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc);
+extern ErrorCode RootProcess_Create(InodeRef _Nonnull pRootDir, ProcessRef _Nullable * _Nonnull pOutProc);
 
 // Loads an executable from the given executable file into the process address
 // space. This is only meant to get the root process going.
@@ -63,7 +63,7 @@ extern Bool Process_IsTerminating(ProcessRef _Nonnull pProc);
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-extern ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, Int pid, ProcessTerminationStatus* _Nullable pStatus);
+extern ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, ProcessId pid, ProcessTerminationStatus* _Nullable pStatus);
 
 extern Int Process_GetId(ProcessRef _Nonnull pProc);
 extern Int Process_GetParentId(ProcessRef _Nonnull pProc);
@@ -75,7 +75,7 @@ extern void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc);
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
 // and environment it will receive and which descriptors it will inherit.
-extern ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, Int * _Nullable pOutChildPid);
+extern ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessId * _Nullable pOutChildPid);
 
 extern ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
 
@@ -103,5 +103,19 @@ extern ErrorCode Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, Int fd, 
 // strong reference to it if found. The caller should call release() on the
 // channel once it is no longer needed.
 extern ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+
+// Sets the receiver's root directory to the given path. Note that the path must
+// point to a directory that is a child or the current root directory of the
+// process.
+extern ErrorCode Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const Character* pPath);
+
+// Sets the receiver's current working directory to the given path.
+extern ErrorCode Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath);
+
+// Returns the current working directory in the form of a path. The path is
+// written to the provided buffer 'pBuffer'. The buffer size must be at least as
+// large as length(path) + 1.
+extern ErrorCode Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, Character* _Nonnull pBuffer, ByteCount bufferSize);
 
 #endif /* Process_h */

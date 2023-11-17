@@ -48,6 +48,8 @@ struct __spawn_arguments_t {
     void* _Nonnull                      execbase;
     const char* _Nullable * _Nullable   argv;
     const char* _Nullable * _Nullable   envp;
+    const char* _Nullable               root_dir;       // Process root directory, if not NULL; otherwise inherited from the parent
+    const char* _Nullable               cw_dir;         // Process current working directory, if not NULL; otherwise inherited from the parent
     unsigned int                        options;
 };
 

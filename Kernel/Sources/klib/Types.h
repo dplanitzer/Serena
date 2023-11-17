@@ -161,8 +161,27 @@ typedef struct _Float96 {
 typedef char                Character;
 
 
+// Various Kernel API types
+typedef Int     FilesystemId;
+typedef Int     ProcessId;
+typedef UInt32  UserId;
+typedef UInt32  GroupId;
+
+
 // A callback function that takes a single (context) pointer argument
 typedef void (* _Nonnull Closure1Arg_Func)(Byte* _Nullable pContext);
+
+
+// Minimum size for types
+// (Spelled out in a comment because C is stupid and doesn't give us a simple & easy
+// way to statically compare the size of two types. Supporting that would be just
+// too easy you know and the language only has had like 50 years to mature...)
+// 
+// UserId       <= Int
+// GroupId      <= Int
+// ErrorCode    <= Int
+// ProcessId    <= Int
+// FilesystemId <= Int
 
 
 // Size constructors
@@ -189,8 +208,13 @@ extern const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int field
 
 
 // String
-extern Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonnull pSrc);
 extern ByteCount String_Length(const Character* _Nonnull pStr);
+extern ByteCount String_LengthUpToLength(const Character* _Nonnull pStr, ByteCount strsz);
+
+extern Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonnull pSrc);
+extern Character* _Nonnull String_CopyUpToLength(Character* _Nonnull pDst, const Character* _Nonnull pSrc, ByteCount count);
+
 extern Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs);
+extern Bool String_EqualsUpToLength(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count);
 
 #endif /* Types_h */

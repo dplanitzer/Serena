@@ -14,6 +14,7 @@
 #include "ConditionVariable.h"
 #include "DispatchQueue.h"
 #include "Lock.h"
+#include "PathResolver.h"
 
 
 // The process arguments descriptor is stored in the process address space and
@@ -42,8 +43,8 @@ typedef struct __ProcessTombstone {
 CLASS_IVARS(Process, Object,
     Lock                        lock;
     
-    Int                         ppid;       // parent's PID
-    Int                         pid;        // my PID
+    ProcessId                   ppid;       // parent's PID
+    ProcessId                   pid;        // my PID
 
     DispatchQueueRef _Nonnull   mainDispatchQueue;
     AddressSpaceRef _Nonnull    addressSpace;
@@ -51,6 +52,9 @@ CLASS_IVARS(Process, Object,
     // IOChannels
     ObjectArray                 ioChannels;
 
+    // Filesystems/Namespace
+    PathResolver                pathResolver;
+    
     // Process image
     Byte* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
     Byte* _Nullable _Weak       argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
@@ -66,7 +70,7 @@ CLASS_IVARS(Process, Object,
 );
 
 
-extern ErrorCode Process_Create(Int ppid, ProcessRef _Nullable * _Nonnull pOutProc);
+extern ErrorCode Process_Create(ProcessId ppid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull pProc);
 
 // Closes all registered I/O channels. Ignores any errors that may be returned
@@ -80,17 +84,17 @@ extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc);
 #define Process_IsRoot(__pProc) (pProc->pid == 1)
 
 // Creates a new tombstone for the given child process with the given exit status
-extern ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode);
+extern ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPid, Int childExitCode);
 
 // Runs on the kernel main dispatch queue and terminates the given process.
 extern void _Process_DoTerminate(ProcessRef _Nonnull pProc);
 
 // Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-extern ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid);
+extern ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid);
 
 // Abandons the process with the given PID as a child of the receiver.
-extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, Int childPid);
+extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid);
 
 // Loads an executable from the given executable file into the process address
 // space.

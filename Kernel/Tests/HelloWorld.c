@@ -83,7 +83,7 @@ void app_main(int argc, char *argv[])
 // Interactive Console
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0
 void app_main(int argc, char *argv[])
 {
     printf("Console v1.0\nReady.\n\n");
@@ -98,6 +98,57 @@ void app_main(int argc, char *argv[])
         putchar(ch);
         //printf("0x%hhx\n", ch);
     }
+}
+
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// File I/O
+////////////////////////////////////////////////////////////////////////////////
+
+#if 1
+static void pwd(void)
+{
+    char buf[128];
+    const errno_t err = getcwd(buf, sizeof(buf));
+
+    if (err == 0) {
+        printf("cwd: \"%s\"\n", buf);
+    } else {
+        printf("pwd error: %s\n", strerror(err));
+    }
+}
+
+static void chdir(const char* path)
+{
+    const errno_t err = setcwd(path);
+
+    if (err != 0) {
+        printf("chdir error: %s\n", strerror(err));
+    }
+}
+
+void app_main(int argc, char *argv[])
+{
+    char buf[16];
+    errno_t err;
+
+    printf("File I/O\n\n");
+
+    pwd();
+    chdir("/Users");
+    pwd();
+    chdir("/Users/Admin");
+    pwd();
+    chdir("/Users/Tester");
+    pwd();
+    chdir("/Users");
+    pwd();
+    chdir("Admin");
+    pwd();
+
+    sleep(200);
 }
 
 #endif

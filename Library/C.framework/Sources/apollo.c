@@ -49,6 +49,23 @@ errno_t close(int fd)
 }
 
 
+errno_t setcwd(const char* path)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_setcwd, path);
+    return r;
+}
+
+errno_t getcwd(char* buffer, size_t bufferSize)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_getcwd, buffer, bufferSize);
+    return r;
+}
+
+
 pid_t getpid(void)
 {
     return __syscall(SC_getpid);

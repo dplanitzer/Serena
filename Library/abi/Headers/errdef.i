@@ -35,8 +35,12 @@ EBADF       equ 22
 ECHILD      equ 23
 ESRCH       equ 24
 ESPIPE      equ 25
+ENOTDIR     equ 26
+ENAMETOOLONG    equ 27
+EACCESS     equ 28
+
 
 __EFIRST    equ 1
-__ELAST     equ 25
+__ELAST     equ 28
 
         endif   ; _ERRDEF_I

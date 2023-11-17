@@ -9,6 +9,26 @@
 #include "Types.h"
 
 
+ByteCount String_Length(const Character* _Nonnull pStr)
+{
+    const Character* p = pStr;
+
+    while(*p++ != '\0');
+
+    return p - pStr - 1;
+}
+
+ByteCount String_LengthUpToLength(const Character* _Nonnull pStr, ByteCount strsz)
+{
+    ByteCount len = 0;
+
+    while (*pStr++ != '\0' && len < strsz) {
+        len++;
+    }
+
+    return len;
+}
+
 // Copies the characters of 'pSrc' to 'pDst'. Returns a pointer that points to
 // the first byte past the '\0' byte in the destination string. 
 Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonnull pSrc)
@@ -21,18 +41,36 @@ Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonn
     return pDst;
 }
 
-ByteCount String_Length(const Character* _Nonnull pStr)
+Character* _Nonnull String_CopyUpToLength(Character* _Nonnull pDst, const Character* _Nonnull pSrc, ByteCount count)
 {
-    const Character* p = pStr;
+    while (*pSrc != '\0' && count > 0) {
+        *pDst++ = *pSrc++;
+        count--;
+    }
+    if (count > 0) {
+        *pDst++ = '\0';
+    }
 
-    while(*p++ != '\0');
-
-    return p - pStr - 1;
+    return pDst;
 }
 
 Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs)
 {
     while (*pLhs != '\0') {
+        if (*pLhs != *pRhs) {
+            return false;
+        }
+
+        pLhs++;
+        pRhs++;
+    }
+
+    return true;
+}
+
+Bool String_EqualsUpToLength(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count)
+{
+    while (*pLhs != '\0' && count-- > 0) {
         if (*pLhs != *pRhs) {
             return false;
         }

@@ -136,6 +136,37 @@ catch:
 }
 
 
+struct SYS_setcwd_args {
+    Int                     scno;
+    Character* _Nullable    path;
+};
+
+Int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
+{
+    if (pArgs->path == NULL) {
+        return EINVAL;
+    }
+
+    return Process_SetCurrentWorkingDirectoryPath(Process_GetCurrent(), pArgs->path);
+}
+
+
+struct SYS_getcwd_args {
+    Int                     scno;
+    Character* _Nullable    buffer;
+    ByteCount               bufferSize;
+};
+
+Int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
+{
+    if (pArgs->buffer == NULL || pArgs->bufferSize < 0) {
+        return EINVAL;
+    }
+
+    return Process_GetCurrentWorkingDirectoryPath(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
+}
+
+
 struct SYS_sleep_args {
     Int                             scno;
     const TimeInterval* _Nonnull    delay;
@@ -237,7 +268,7 @@ Int _SYSCALL_exit(const struct SYS_exit_args* _Nonnull pArgs)
 struct SYS_spawn_process_args {
     Int                             scno;
     const SpawnArguments* _Nullable spawnArgs;
-    Int* _Nullable                  pOutPid;
+    ProcessId* _Nullable            pOutPid;
 };
 
 Int _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
@@ -273,7 +304,7 @@ Int _SYSCALL_getpargs(void)
 
 struct SYS_waitpid_args {
     Int                                 scno;
-    Int                                 pid;
+    ProcessId                           pid;
     ProcessTerminationStatus* _Nullable status;
 };
 

@@ -33,7 +33,7 @@ ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCount, Obj
     }
 
     try(kalloc_cleared(pClass->instanceSize + extraByteCount, (Byte**) &pObject));
-    pObject->class = pClass;
+    pObject->clazz = pClass;
     pObject->retainCount = 1;
     *pOutObject = pObject;
     return EOK;
@@ -62,7 +62,7 @@ void _Object_Release(ObjectRef _Nullable self)
     // negative which is fine. In that sense a negative reference count signals
     // that the object is dead.
     if (rc == 0) {
-        ((ObjectMethodTable*)self->class->vtable)->deinit(self);
+        ((ObjectMethodTable*)self->clazz->vtable)->deinit(self);
         kfree((Byte*) self);
     }
 }

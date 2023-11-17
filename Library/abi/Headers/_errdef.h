@@ -36,9 +36,12 @@
 #define ECHILD      23
 #define ESRCH       24
 #define ESPIPE      25
+#define ENOTDIR     26
+#define ENAMETOOLONG    27
+#define EACCESS     28
 
 #define __EFIRST    1
-#define __ELAST     25
+#define __ELAST     28
 
 typedef int __errno_t;
 

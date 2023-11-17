@@ -11,6 +11,7 @@
 
 #include <_cmndef.h>
 #include <_kbidef.h>
+#include <_syslimits.h>
 #include <apollo/types.h>
 #include <time.h>
 
@@ -37,6 +38,10 @@ typedef struct __waitpid_result_t waitpid_result_t;
 #define S_WHENCE_END    2
 
 
+#define PATH_MAX __PATH_MAX
+#define NAME_MAX __PATH_COMPONENT_MAX
+
+
 int open(const char *path, int options);
 
 ssize_t read(int fd, void *buffer, size_t nbytes);
@@ -47,6 +52,10 @@ errno_t seek(int fd, off_t offset, off_t *newpos, int whence);
 errno_t close(int fd);
 
 
+errno_t setcwd(const char* path);
+errno_t getcwd(char* buffer, size_t bufferSize);
+
+
 pid_t getpid(void);
 pid_t getppid(void);
 
@@ -55,6 +64,7 @@ extern errno_t spawnp(const spawn_arguments_t *args, pid_t *rpid);
 extern errno_t waitpid(pid_t pid, waitpid_result_t *result);
 
 extern process_arguments_t *getpargs(void);
+
 
 extern errno_t nanosleep(const struct timespec *delay);
 extern errno_t usleep(useconds_t delay);

@@ -151,7 +151,7 @@ typedef struct _Class* ClassRef;
 // Every method is assigned an index and this index is used to look up the
 // implementation of a method.
 OPEN_ROOT_CLASS_WITH_REF(Object,
-    ClassRef _Nonnull   class;
+    ClassRef _Nonnull   clazz;
     AtomicInt           retainCount;
 );
 
@@ -204,7 +204,7 @@ extern void _Object_Release(ObjectRef _Nullable self);
     _Object_Release((ObjectRef) __self)
 
 #define Object_GetClass(__self)\
-    ((Class*)(((ObjectRef)(__self))->class))
+    ((Class*)(((ObjectRef)(__self))->clazz))
 
 
 // Returns true if the given object is an instance of the given class or one of

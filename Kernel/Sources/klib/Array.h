@@ -36,6 +36,7 @@ extern ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray
 #define GenericArray_IsEmpty(pArray) ((pArray)->count == 0)
 
 #define GenericArray_GetAt(pArray, elementType, idx) ((elementType*)(pArray)->data)[idx]
+#define GenericArray_GetRefAt(pArray, elementType, idx) (&((elementType*)(pArray)->data)[idx])
 
 #define GenericArray_InsertAt(ec, pArray, element, elementType, idx) \
     ec = EOK; \

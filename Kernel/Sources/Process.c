@@ -17,7 +17,7 @@ OVERRIDE_METHOD_IMPL(deinit, Process, Object)
 
 
 // Returns the next PID available for use by a new process.
-static Int Process_GetNextAvailablePID(void)
+static ProcessId Process_GetNextAvailablePID(void)
 {
     static volatile AtomicInt gNextAvailablePid = 0;
     return AtomicInt_Increment(&gNextAvailablePid);
@@ -34,9 +34,9 @@ ProcessRef _Nullable Process_GetCurrent(void)
 }
 
 
-ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
+ErrorCode RootProcess_Create(InodeRef _Nonnull pRootDir, ProcessRef _Nullable * _Nonnull pOutProc)
 {
-    return Process_Create(1, pOutProc);
+    return Process_Create(1, pRootDir, pRootDir, pOutProc);
 }
 
 // Loads an executable from the given executable file into the process address
@@ -56,7 +56,7 @@ ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
 
 
 
-ErrorCode Process_Create(Int ppid, ProcessRef _Nullable * _Nonnull pOutProc)
+ErrorCode Process_Create(Int ppid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
     ProcessRef pProc;
@@ -74,6 +74,8 @@ ErrorCode Process_Create(Int ppid, ProcessRef _Nullable * _Nonnull pOutProc)
     try(ObjectArray_Init(&pProc->ioChannels, INITIAL_DESC_TABLE_SIZE));
     try(IntArray_Init(&pProc->childPids, 0));
 
+    try(PathResolver_Init(&pProc->pathResolver, pRootDir, pCurDir));
+
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
 
@@ -90,6 +92,8 @@ void Process_deinit(ProcessRef _Nonnull pProc)
 {
     Process_CloseAllIOChannels_Locked(pProc);
     ObjectArray_Deinit(&pProc->ioChannels);
+
+    PathResolver_Deinit(&pProc->pathResolver);
 
     Process_DestroyAllTombstones_Locked(pProc);
     ConditionVariable_Deinit(&pProc->tombstoneSignaler);
@@ -123,7 +127,7 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
 }
 
 // Creates a new tombstone for the given child process with the given exit status
-ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, Int childExitCode)
+ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPid, Int childExitCode)
 {
     ProcessTombstone* pTombstone;
 
@@ -155,7 +159,7 @@ ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, Int childPid, I
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, Int pid, ProcessTerminationStatus* _Nullable pStatus)
+ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, ProcessId pid, ProcessTerminationStatus* _Nullable pStatus)
 {
     decl_try_err();
 
@@ -302,7 +306,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 
     // Terminate all my children and wait for them to be dead
     while (true) {
-        const Int pid = Process_GetAnyChildPid(pProc);
+        const ProcessId pid = Process_GetAnyChildPid(pProc);
 
         if (pid <= 0) {
             break;
@@ -385,16 +389,16 @@ Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
     return pProc->isTerminating;
 }
 
-Int Process_GetId(ProcessRef _Nonnull pProc)
+ProcessId Process_GetId(ProcessRef _Nonnull pProc)
 {
     // The PID is constant over the lifetime of the process. No need to lock here
     return pProc->pid;
 }
 
-Int Process_GetParentId(ProcessRef _Nonnull pProc)
+ProcessId Process_GetParentId(ProcessRef _Nonnull pProc)
 {
     Lock_Lock(&pProc->lock);
-    const Int ppid = pProc->ppid;
+    const ProcessId ppid = pProc->ppid;
     Lock_Unlock(&pProc->lock);
 
     return ppid;
@@ -410,20 +414,21 @@ void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
-ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, Int * _Nullable pOutChildPid)
+ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessId * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
     Bool needsUnlock = false;
 
-    try(Process_Create(pProc->pid, &pChildProc));
+    Lock_Lock(&pProc->lock);
+    needsUnlock = true;
+
+    try(Process_Create(pProc->pid, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, &pChildProc));
+
 
     // Note that we do not lock the child process although we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
-
-    Lock_Lock(&pProc->lock);
-    needsUnlock = true;
 
     if ((pArgs->options & SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE) == 0) {
         const Int nStdIoChannelsToInherit = __min(3, ObjectArray_GetCount(&pProc->ioChannels));
@@ -439,6 +444,13 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
                 ObjectArray_Add(&pChildProc->ioChannels, NULL);
             }
         }
+    }
+
+    if (pArgs->root_dir && pArgs->root_dir[0] != '\0') {
+        try(Process_SetRootDirectoryPath(pChildProc, pArgs->root_dir));
+    }
+    if (pArgs->cw_dir && pArgs->cw_dir[0] != '\0') {
+        try(Process_SetCurrentWorkingDirectoryPath(pChildProc, pArgs->cw_dir));
     }
 
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
@@ -591,13 +603,13 @@ catch:
 
 // Adopts the process with the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
+ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid)
 {
     return IntArray_Add(&pProc->childPids, childPid);
 }
 
 // Abandons the process with the given PID as a child of the receiver.
-void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, Int childPid)
+void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid)
 {
     IntArray_Remove(&pProc->childPids, childPid);
 }
@@ -727,5 +739,39 @@ ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, 
 catch:
     Lock_Unlock(&pProc->lock);
     *pOutChannel = NULL;
+    return err;
+}
+
+// Sets the receiver's root directory to the given path. Note that the path must
+// point to a directory that is a child or the current root directory of the
+// process.
+ErrorCode Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const Character* pPath)
+{
+    Lock_Lock(&pProc->lock);
+    const ErrorCode err = PathResolver_SetRootDirectoryPath(&pProc->pathResolver, pPath);
+    Lock_Unlock(&pProc->lock);
+
+    return err;
+}
+
+// Sets the receiver's current working directory to the given path.
+ErrorCode Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath)
+{
+    Lock_Lock(&pProc->lock);
+    const ErrorCode err = PathResolver_SetCurrentWorkingDirectoryPath(&pProc->pathResolver, pPath);
+    Lock_Unlock(&pProc->lock);
+
+    return err;
+}
+
+// Returns the current working directory in the form of a path. The path is
+// written to the provided buffer 'pBuffer'. The buffer size must be at least as
+// large as length(path) + 1.
+ErrorCode Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, Character* _Nonnull pBuffer, ByteCount bufferSize)
+{
+    Lock_Lock(&pProc->lock);
+    const ErrorCode err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pBuffer, bufferSize);
+    Lock_Unlock(&pProc->lock);
+
     return err;
 }

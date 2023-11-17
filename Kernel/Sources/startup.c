@@ -10,11 +10,13 @@
 #include "BootAllocator.h"
 #include "DispatchQueue.h"
 #include "DriverManager.h"
+#include "FilesystemManager.h"
 #include "InterruptController.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
 #include "Process.h"
 #include "ProcessManager.h"
+#include "RamFS.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
 
@@ -123,6 +125,20 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
+// Figures out from which filesystem to boot and sets up the initial global
+// filesystem structure.
+static InodeRef _Nonnull filesystem_init(void)
+{
+    FilesystemRef pRamFS;
+
+    // XXX for now always a RAM disk
+    try_bang(RamFS_Create((RamFSRef*)&pRamFS));
+    try_bang(FilesystemManager_Create(pRamFS, &gFilesystemManager));
+    Object_Release(pRamFS);
+
+    return Filesystem_CopyRootNode(pRamFS);
+}
+
 // Called by the boot virtual processor after it has finished initializing all
 // dispatch queue related services.
 //
@@ -150,10 +166,15 @@ static void OnMain(void)
     // Initialize all other drivers
     try_bang(DriverManager_AutoConfigure(gDriverManager));
 
+
+    // Figure out what boot filesystem to use and initialize the filesystem manager with it
+    InodeRef pRootDir = filesystem_init();
+
+
 #if 1
     // Create the root process
     ProcessRef pRootProc;
-    try_bang(RootProcess_Create(&pRootProc));
+    try_bang(RootProcess_Create(pRootDir, &pRootProc));
 
 
     // Create the process manager

@@ -12,11 +12,14 @@
 #include <_cmndef.h>
 #include <_nulldef.h>
 #include <_sizedef.h>
+#include <_syslimits.h>
 #include <stdarg.h>
 
 __CPP_BEGIN
 
 #define EOF -1
+#define FOPEN_MAX 16
+#define FILENAME_MAX __PATH_MAX
 #define BUFSIZ  4096
 
 #define _IONBF  0
