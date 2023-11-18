@@ -88,7 +88,7 @@ ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isLig
     const Int nInstructions = nFrameInstructions + 1;
     CopperProgram* pProg;
     
-    try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (Byte**) &pProg));
+    try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (void**) &pProg));
     CopperInstruction* ip = pProg->entry;
 
     ip = CopperCompiler_CompileScreenRefreshProgram(ip, pScreen, isLightPenEnabled, isOddField);
@@ -106,7 +106,7 @@ catch:
 // Frees the given Copper program.
 void CopperProgram_Destroy(CopperProgram* _Nullable pProg)
 {
-    kfree((Byte*)pProg);
+    kfree(pProg);
 }
 
 

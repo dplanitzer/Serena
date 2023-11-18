@@ -38,7 +38,7 @@ ErrorCode HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _
     decl_try_err();
     HIDKeyRepeater* pRepeater;
     
-    try(kalloc_cleared(sizeof(HIDKeyRepeater), (Byte**)&pRepeater));
+    try(kalloc_cleared(sizeof(HIDKeyRepeater), (void**) &pRepeater));
     pRepeater->eventDriver = pEventDriver;
     pRepeater->repeatersInUseCount = 0;
     pRepeater->initialKeyRepeatDelay = TimeInterval_MakeMilliseconds(300);
@@ -58,7 +58,7 @@ void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull pRepeater)
 {
     if (pRepeater) {
         pRepeater->eventDriver = NULL;
-        kfree((Byte*) pRepeater);
+        kfree(pRepeater);
     }
 }
 

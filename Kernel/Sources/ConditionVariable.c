@@ -16,7 +16,7 @@ ErrorCode ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutC
     ConditionVariable* pCondVar;
     decl_try_err();
 
-    try(kalloc(sizeof(ConditionVariable), (Byte**) &pCondVar));
+    try(kalloc(sizeof(ConditionVariable), (void**) &pCondVar));
     ConditionVariable_Init(pCondVar);
     pCondVar->name[0] = '\0';
     *pOutCondVar = pCondVar;
@@ -31,7 +31,7 @@ void ConditionVariable_Destroy(ConditionVariable* _Nullable pCondVar)
 {
     if (pCondVar) {
         ConditionVariable_Deinit(pCondVar);
-        kfree((Byte*)pCondVar);
+        kfree(pCondVar);
     }
 }
 

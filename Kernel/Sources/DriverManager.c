@@ -49,7 +49,7 @@ static void DriverEntry_Destroy(DriverEntry* _Nullable pEntry)
         Object_Release(pEntry->instance);
         pEntry->instance = NULL;
         
-        kfree((Byte*)pEntry);
+        kfree(pEntry);
     }
 }
 
@@ -61,7 +61,7 @@ static ErrorCode DriverEntry_Create(const Character* _Nonnull pName, DriverRef _
     decl_try_err();
     DriverEntry* pEntry = NULL;
 
-    try(kalloc_cleared(sizeof(DriverEntry), (Byte**)&pEntry));
+    try(kalloc_cleared(sizeof(DriverEntry), (void**) &pEntry));
     SListNode_Init(&pEntry->node);
     pEntry->name = pName;
     pEntry->instance = pDriverInstance;
@@ -88,7 +88,7 @@ ErrorCode DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutManager
     decl_try_err();
     DriverManager* pManager;
     
-    try(kalloc_cleared(sizeof(DriverManager), (Byte**) &pManager));
+    try(kalloc_cleared(sizeof(DriverManager), (void**) &pManager));
     Lock_Init(&pManager->lock);
     SList_Init(&pManager->drivers);
     pManager->isZorroBusConfigured = false;
@@ -117,7 +117,7 @@ void DriverManager_Destroy(DriverManagerRef _Nullable pManager)
         
         SList_Deinit(&pManager->drivers);
         Lock_Deinit(&pManager->lock);
-        kfree((Byte*)pManager);
+        kfree(pManager);
     }
 }
 

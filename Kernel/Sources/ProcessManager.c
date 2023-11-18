@@ -26,7 +26,7 @@ ErrorCode ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef
     decl_try_err();
     ProcessManagerRef pManager;
     
-    try_bang(kalloc(sizeof(ProcessManager), (Byte**)&pManager));
+    try_bang(kalloc(sizeof(ProcessManager), (void**) &pManager));
     Lock_Init(&pManager->lock);
     try_bang(ObjectArray_Init(&pManager->procs, 16));
     try_bang(ObjectArray_Add(&pManager->procs, (ObjectRef) pRootProc));

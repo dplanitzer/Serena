@@ -312,7 +312,7 @@ static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _
     return NULL;
 }
 
-Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr)
+Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ptr == BYTE_PTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
@@ -320,11 +320,11 @@ Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr)
         return true;
     }
 
-    const Bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) != NULL;
+    const Bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, (Byte*)ptr) != NULL;
     return r;
 }
 
-ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
+ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ByteCount nbytes, void* _Nullable * _Nonnull pOutPtr)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
@@ -374,7 +374,7 @@ catch:
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nullable ptr)
+ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ptr == BYTE_PTR_MAX) {
         return EOK;
@@ -387,7 +387,7 @@ ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, Byte* _Nul
         return ENOTBLK;
     }
     
-    MemBlock* pBlockToFree = (MemBlock*)(ptr - sizeof(MemBlock));
+    MemBlock* pBlockToFree = (MemBlock*)((Byte*)ptr - sizeof(MemBlock));
     
     
     // Remove the block 'ptr' from the list of allocated blocks

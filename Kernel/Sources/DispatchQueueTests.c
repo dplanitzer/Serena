@@ -100,7 +100,7 @@ void DispatchQueue_RunTests(void)
 {
     struct State* pState;
     
-    try_bang(kalloc(sizeof(struct State), (Byte**)&pState));
+    try_bang(kalloc(sizeof(struct State), &pState));
     
     Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState), &pState->timer);
     pState->value = 0;

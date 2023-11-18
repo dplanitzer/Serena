@@ -13,8 +13,9 @@
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the first byte that is equal to 'mark'. -1 if 'mark' does
 // not appear in the given range.
-Int Bytes_FindFirst(const Byte* _Nonnull p, Int nbytes, Byte mark)
+Int Bytes_FindFirst(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 {
+    const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p;
     const Byte* end_p = p + nbytes;
     
@@ -31,8 +32,9 @@ Int Bytes_FindFirst(const Byte* _Nonnull p, Int nbytes, Byte mark)
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the first byte that is not equal to 'mark'. -1 if 'mark'
 // appears in the given range.
-Int Bytes_FindFirstNotEquals(const Byte* _Nonnull p, Int nbytes, Byte mark)
+Int Bytes_FindFirstNotEquals(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 {
+    const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p;
     const Byte* end_p = p + nbytes;
     
@@ -49,8 +51,9 @@ Int Bytes_FindFirstNotEquals(const Byte* _Nonnull p, Int nbytes, Byte mark)
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the last byte that is equal to 'mark'. -1 if 'mark' does not
 // appear in the given range.
-Int Bytes_FindLast(const Byte* _Nonnull p, Int nbytes, Byte mark)
+Int Bytes_FindLast(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 {
+    const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p + nbytes - 1;
     
     while (cur_p >= p) {
@@ -66,8 +69,9 @@ Int Bytes_FindLast(const Byte* _Nonnull p, Int nbytes, Byte mark)
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the last byte that is not equal to 'mark'. -1 if 'mark'
 // appears in the given range.
-Int Bytes_FindLastNotEquals(const Byte* _Nonnull p, Int nbytes, Byte mark)
+Int Bytes_FindLastNotEquals(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 {
+    const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p;
     
     while (cur_p >= p) {
@@ -80,11 +84,13 @@ Int Bytes_FindLastNotEquals(const Byte* _Nonnull p, Int nbytes, Byte mark)
     return -1;
 }
 
-// Compares the bytes at 's1' with the bytes at 's2' and returns the offset to
+// Compares the bytes at 'p1' with the bytes at 'p2' and returns the offset to
 // the first byte that do not compare equal. -1 is returned if all bytes are
 // equal.
-Int Bytes_FindFirstDifference(const Byte* _Nonnull s1, const Byte* _Nonnull s2, Int len)
+Int Bytes_FindFirstDifference(const void* _Nonnull p1, const void* _Nonnull p2, Int len)
 {
+    const Byte* s1 = (const Byte*)p1;
+    const Byte* s2 = (const Byte*)p2;
     const Byte* start_s1_p = s1;
     const Byte* end_s1_p = s1 + len;
     
@@ -100,14 +106,16 @@ Int Bytes_FindFirstDifference(const Byte* _Nonnull s1, const Byte* _Nonnull s2, 
     return -1;
 }
 
-// Copies 'n' contiguous bytes in memory from 'src' to 'dst'.
-void Bytes_CopyRange(Byte* _Nonnull dst, const Byte* _Nonnull src, Int n)
+// Copies 'n' contiguous bytes in memory from 'pSrc' to 'pDst'.
+void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, Int n)
 {
     assert(n >= 0);
-    if (src == dst || n == 0) {
+    if (pSrc == pDst || n == 0) {
         return;
     }
     
+    const Byte* src = (const Byte*)pSrc;
+    Byte* dst = (Byte*)pDst;
     const Byte* src_upper = src + n;
     const Byte* src_upper_incl = src + n - 1;
     Byte* dst_upper_incl = dst + n - 1;
@@ -154,10 +162,11 @@ void Bytes_CopyRange(Byte* _Nonnull dst, const Byte* _Nonnull src, Int n)
     }
 }
 
-// Zeros out 'len' contiguous bytes in memory starting at 'p'
-void Bytes_ClearRange(Byte* _Nonnull p, Int len)
+// Zeros out 'len' contiguous bytes in memory starting at 'pBytes'
+void Bytes_ClearRange(void* _Nonnull pBytes, Int len)
 {
     assert(len >= 0);
+    Byte* p = (Byte*)pBytes;
     const Byte* end = p + len;
     UInt leadingByteCount = ((UInt)p) & 0x03;
     
@@ -179,8 +188,9 @@ void Bytes_ClearRange(Byte* _Nonnull p, Int len)
 }
 
 // Sets all bytes in the given range to 'byte'
-void Bytes_SetRange(Byte* _Nonnull p, Int len, Byte byte)
+void Bytes_SetRange(void* _Nonnull pBytes, Int len, Byte byte)
 {
+    Byte* p = (Byte*)pBytes;
     Byte* end = p + len;
     
     assert(len >= 0);

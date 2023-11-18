@@ -23,31 +23,25 @@
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-extern ErrorCode kalloc_options(ByteCount nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr);
+extern ErrorCode kalloc_options(ByteCount nbytes, UInt options, void* _Nullable * _Nonnull pOutPtr);
 
 // Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
 // NULL if the memory could not be allocated. The returned memory is not
 // necessarily accessible to I/O DMA operations. Use kalloc_options() with a
 // suitable option if DMA accessability is desired.
-static inline ErrorCode kalloc(ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
-{
-    return kalloc_options(nbytes, 0, pOutPtr);
-}
+#define kalloc(__nbytes, __pOutPtr) \
+    kalloc_options(__nbytes, 0, __pOutPtr)
 
 // Same as kalloc() but allocated memory that is filled with zeros.
-static inline ErrorCode kalloc_cleared(ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
-{
-    return kalloc_options(nbytes, KALLOC_OPTION_CLEAR, pOutPtr);
-}
+#define kalloc_cleared(__nbytes, __pOutPtr) \
+    kalloc_options(__nbytes, KALLOC_OPTION_CLEAR, __pOutPtr)
 
 // Same as kalloc() but allocates unified memory.
-static inline ErrorCode kalloc_unified(ByteCount nbytes, Byte* _Nullable * _Nonnull pOutPtr)
-{
-    return kalloc_options(nbytes, KALLOC_OPTION_UNIFIED, pOutPtr);
-}
+#define kalloc_unified(__nbytes, __pOutPtr) \
+    kalloc_options(__nbytes, KALLOC_OPTION_UNIFIED, __pOutPtr)
 
 // Frees kernel memory allocated with the kalloc() function.
-extern void kfree(Byte* _Nullable ptr);
+extern void kfree(void* _Nullable ptr);
 
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.

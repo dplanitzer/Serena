@@ -19,7 +19,7 @@ ErrorCode InterruptController_CreateForLocalCPU(void)
     InterruptController* pController = &gInterruptControllerStorage;
 
     for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
-        try(kalloc(0, (Byte**) &pController->handlers[i].start));
+        try(kalloc(0, (void**) &pController->handlers[i].start));
         pController->handlers[i].count = 0;
     }
     
@@ -67,7 +67,7 @@ static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef 
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].start;
     InterruptHandler* pNewHandlers = NULL;
     
-    try(kalloc(sizeof(InterruptHandler) * newCount, (Byte**) &pNewHandlers));
+    try(kalloc(sizeof(InterruptHandler) * newCount, (void**) &pNewHandlers));
 
     
     // Allocate a new handler ID
@@ -101,7 +101,7 @@ static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef 
     
     
     // Free the old handler array
-    kfree((Byte*) pOldHandlers);
+    kfree(pOldHandlers);
     
     *pOutId = handlerId;
     Lock_Unlock(&pController->lock);
@@ -190,7 +190,7 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].start;
     InterruptHandler* pNewHandlers;
     
-    try(kalloc(sizeof(InterruptHandler) * newCount, (Byte**) &pNewHandlers));
+    try(kalloc(sizeof(InterruptHandler) * newCount, (void**) &pNewHandlers));
     
     
     // Copy over the handlers that we want to retain
@@ -215,7 +215,7 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
     
     
     // Free the old handler array
-    kfree((Byte*) pOldHandlers);
+    kfree(pOldHandlers);
     
     Lock_Unlock(&pController->lock);
     return EOK;

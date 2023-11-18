@@ -121,7 +121,7 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
     while (pCurTombstone) {
         ProcessTombstone* nxt = (ProcessTombstone*)pCurTombstone->node.next;
 
-        kfree((Byte*)pCurTombstone);
+        kfree(pCurTombstone);
         pCurTombstone = nxt;
     }
 }
@@ -137,7 +137,7 @@ ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId child
         return ESRCH;
     }
 
-    if (kalloc_cleared(sizeof(ProcessTombstone), (Byte**)&pTombstone) != EOK) {
+    if (kalloc_cleared(sizeof(ProcessTombstone), (void**) &pTombstone) != EOK) {
         print("Broken tombstone for %d:%d\n", pProc->pid, childPid);
         return EOK;
     }
@@ -200,7 +200,7 @@ ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, ProcessId
             }
 
             List_Remove(&pProc->tombstones, &pTombstone->node);
-            kfree((Byte*) pTombstone);
+            kfree(pTombstone);
             break;
         }
 

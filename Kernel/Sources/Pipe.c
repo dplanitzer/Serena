@@ -38,7 +38,7 @@ ErrorCode Pipe_Create(Int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
         return EPARAM;
     }
     
-    try(kalloc_cleared(sizeof(Pipe), (Byte**) &pPipe));
+    try(kalloc_cleared(sizeof(Pipe), (void**) &pPipe));
     
     Lock_Init(&pPipe->lock);
     ConditionVariable_Init(&pPipe->reader);
@@ -63,7 +63,7 @@ void Pipe_Destroy(PipeRef _Nullable pPipe)
         ConditionVariable_Deinit(&pPipe->reader);
         ConditionVariable_Deinit(&pPipe->writer);
         Lock_Deinit(&pPipe->lock);
-        kfree((Byte*)pPipe);
+        kfree(pPipe);
     }
 }
 

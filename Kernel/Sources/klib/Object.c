@@ -32,7 +32,7 @@ ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCount, Obj
         extraByteCount--;   // Account for the byte defined in the IOChannel structure
     }
 
-    try(kalloc_cleared(pClass->instanceSize + extraByteCount, (Byte**) &pObject));
+    try(kalloc_cleared(pClass->instanceSize + extraByteCount, (void**) &pObject));
     pObject->clazz = pClass;
     pObject->retainCount = 1;
     *pOutObject = pObject;
@@ -63,7 +63,7 @@ void _Object_Release(ObjectRef _Nullable self)
     // that the object is dead.
     if (rc == 0) {
         ((ObjectMethodTable*)self->clazz->vtable)->deinit(self);
-        kfree((Byte*) self);
+        kfree(self);
     }
 }
 

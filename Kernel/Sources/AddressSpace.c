@@ -29,7 +29,7 @@ ErrorCode AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSpace)
     decl_try_err();
     AddressSpaceRef pSpace;
 
-    try(kalloc_cleared(sizeof(AddressSpace), (Byte**) &pSpace));
+    try(kalloc_cleared(sizeof(AddressSpace), (void**) &pSpace));
     SList_Init(&pSpace->mblocks);
     Lock_Init(&pSpace->lock);
 
@@ -56,7 +56,7 @@ void AddressSpace_Destroy(AddressSpaceRef _Nullable pSpace)
             }
 
             SListNode_Deinit(&pCurMemBlocks->node);
-            kfree((Byte*) pCurMemBlocks);
+            kfree(pCurMemBlocks);
 
             pCurMemBlocks = pNextMemBlocks;
         }
@@ -98,7 +98,7 @@ ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count
     // request
     if (SList_IsEmpty(&pSpace->mblocks)
         || ((MemBlocks*)pSpace->mblocks.last)->count == MEM_BLOCKS_CAPACITY) {
-        try(kalloc_cleared(sizeof(MemBlocks), (Byte**) &pMemBlocks));
+        try(kalloc_cleared(sizeof(MemBlocks), (void**) &pMemBlocks));
         SListNode_Init(&pMemBlocks->node);
         SList_InsertAfterLast(&pSpace->mblocks, &pMemBlocks->node);
     } else {
@@ -107,7 +107,7 @@ ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count
 
 
     // Allocate the memory block
-    try(kalloc(count, &pMem));
+    try(kalloc(count, (void**) &pMem));
 
 
     // Add the memory block to our list

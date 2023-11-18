@@ -30,7 +30,7 @@ ErrorCode VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnu
     decl_try_err();
     VirtualProcessorPool* pPool;
     
-    try(kalloc_cleared(sizeof(VirtualProcessorPool), (Byte**) &pPool));
+    try(kalloc_cleared(sizeof(VirtualProcessorPool), (void**) &pPool));
     List_Init(&pPool->inuse_queue);
     List_Init(&pPool->reuse_queue);
     Lock_Init(&pPool->lock);
@@ -52,7 +52,7 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pPool)
         List_Deinit(&pPool->inuse_queue);
         List_Deinit(&pPool->reuse_queue);
         Lock_Deinit(&pPool->lock);
-        kfree((Byte*)pPool);
+        kfree(pPool);
     }
 }
 

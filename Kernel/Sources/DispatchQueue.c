@@ -23,7 +23,7 @@ ErrorCode DispatchQueue_Create(Int minConcurrency, Int maxConcurrency, Int qos, 
         throw(EPARAM);
     }
     
-    try(kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (Byte**) &pQueue));
+    try(kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (void**) &pQueue));
     SList_Init(&pQueue->item_queue);
     SList_Init(&pQueue->timer_queue);
     SList_Init(&pQueue->item_cache_queue);
@@ -175,7 +175,7 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull pQueue)
     pQueue->owning_process = NULL;
     pQueue->virtual_processor_pool = NULL;
 
-    kfree((Byte*) pQueue);
+    kfree(pQueue);
 }
 
 // Destroys the dispatch queue. The queue is first terminated if it isn't already

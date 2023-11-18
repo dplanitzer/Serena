@@ -33,10 +33,10 @@ ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, Filesyst
     decl_try_err();
     FilesystemManagerRef pManager;
     
-    try_bang(kalloc(sizeof(FilesystemManager), (Byte**)&pManager));
+    try_bang(kalloc(sizeof(FilesystemManager), (void**) &pManager));
     Lock_Init(&pManager->lock);
     List_Init(&pManager->fileSystems);
-    try_bang(kalloc_cleared(sizeof(Mountpoint), (Byte**)&pManager->root));
+    try_bang(kalloc_cleared(sizeof(Mountpoint), (void**) &pManager->root));
     List_InsertAfter(&pManager->fileSystems, &pManager->root->node, NULL);
     pManager->root->fileSystem = Object_RetainAs(pRootFileSys, Filesystem);
     pManager->root->mountedAtNode = Filesystem_CopyRootNode(pRootFileSys);
@@ -126,7 +126,7 @@ ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, Filesy
     });
 
     Mountpoint* pMount;
-    throw(kalloc_cleared(sizeof(Mountpoint), (Byte**)&pMount));
+    throw(kalloc_cleared(sizeof(Mountpoint), (void**) &pMount));
     pMount->fileSystem = Object_RetainAs(pFileSys, Filesystem);
     pMount->mountedAtNode = Object_RetainAs(pDirNode, Inode);
 
@@ -165,7 +165,7 @@ void FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, Filesyste
         pMount->fileSystem = NULL;
         Object_Release(pMount->mountedAtNode);
         pMount->mountedAtNode = NULL;
-        kfree((Byte*)pMount);
+        kfree(pMount);
     }
 
     Lock_Unlock(&pManager->lock);

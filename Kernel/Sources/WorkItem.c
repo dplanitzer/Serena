@@ -30,7 +30,7 @@ ErrorCode WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQ
     decl_try_err();
     WorkItemRef pItem;
     
-    try(kalloc(sizeof(WorkItem), (Byte**) &pItem));
+    try(kalloc(sizeof(WorkItem), (void**) &pItem));
     WorkItem_Init(pItem, kItemType_Immediate, closure, isOwnedByQueue);
     *pOutItem = pItem;
     return EOK;
@@ -66,7 +66,7 @@ void WorkItem_Destroy(WorkItemRef _Nullable pItem)
 {
     if (pItem) {
         WorkItem_Deinit(pItem);
-        kfree((Byte*) pItem);
+        kfree(pItem);
     }
 }
 
@@ -120,7 +120,7 @@ ErrorCode Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, Di
     decl_try_err();
     TimerRef pTimer;
     
-    try(kalloc(sizeof(Timer), (Byte**) &pTimer));
+    try(kalloc(sizeof(Timer), (void**) &pTimer));
     Timer_Init(pTimer, deadline, interval, closure, isOwnedByQueue);
     *pOutTimer = pTimer;
     return EOK;
@@ -143,7 +143,7 @@ void Timer_Destroy(TimerRef _Nullable pTimer)
 {
     if (pTimer) {
         Timer_Deinit(pTimer);
-        kfree((Byte*) pTimer);
+        kfree(pTimer);
     }
 }
 
@@ -165,7 +165,7 @@ ErrorCode CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOu
     decl_try_err();
     CompletionSignaler* pItem;
     
-    try(kalloc(sizeof(CompletionSignaler), (Byte**) &pItem));
+    try(kalloc(sizeof(CompletionSignaler), (void**) &pItem));
     CompletionSignaler_Init(pItem);
     Semaphore_Init(&pItem->semaphore, 0);
     *pOutComp = pItem;
@@ -188,6 +188,6 @@ void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem)
     if (pItem) {
         CompletionSignaler_Deinit(pItem);
         Semaphore_Deinit(&pItem->semaphore);
-        kfree((Byte*) pItem);
+        kfree(pItem);
     }
 }

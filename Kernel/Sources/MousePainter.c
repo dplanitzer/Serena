@@ -25,7 +25,7 @@ ErrorCode MousePainter_Init(MousePainter* _Nonnull pPainter)
 {
     decl_try_err();
 
-    try(kalloc(sizeof(UInt16) * MOUSE_CURSOR_HEIGHT * 2, (Byte**) &pPainter->bitmapMaskBuffer));
+    try(kalloc(sizeof(UInt16) * MOUSE_CURSOR_HEIGHT * 2, (void**) &pPainter->bitmapMaskBuffer));
     pPainter->bitmap = (UInt16*) pPainter->bitmapMaskBuffer;
     pPainter->mask = (UInt16*) &pPainter->bitmapMaskBuffer[sizeof(UInt16) * MOUSE_CURSOR_HEIGHT];
     pPainter->background = NULL;
@@ -45,7 +45,7 @@ ErrorCode MousePainter_Init(MousePainter* _Nonnull pPainter)
     pPainter->curFlags.hasSavedImage = false;
     pPainter->curX = 0;
     pPainter->curY = 0;
-    try(kalloc(sizeof(UInt32) * MOUSE_CURSOR_HEIGHT * 5, (Byte**) &pPainter->savedImage));
+    try(kalloc(sizeof(UInt32) * MOUSE_CURSOR_HEIGHT * 5, (void**) &pPainter->savedImage));
 
     return EOK;
 
@@ -55,14 +55,14 @@ catch:
 
 void MousePainter_Deinit(MousePainter* _Nonnull pPainter)
 {
-    kfree((Byte*) pPainter->savedImage);
+    kfree(pPainter->savedImage);
     pPainter->savedImage = NULL;
 
     pPainter->background = NULL;
     pPainter->bitmap = NULL;
     pPainter->mask = NULL;
 
-    kfree((Byte*) pPainter->bitmapMaskBuffer);
+    kfree(pPainter->bitmapMaskBuffer);
     pPainter->bitmapMaskBuffer = NULL;
 }
 

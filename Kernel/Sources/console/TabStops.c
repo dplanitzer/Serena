@@ -17,7 +17,7 @@ ErrorCode TabStops_Init(TabStops* _Nonnull pStops, Int nStops, Int tabWidth)
 
     assert(tabWidth >= 0 && tabWidth <= INT8_MAX);
 
-    try(kalloc(sizeof(Int8) * nStops, (Byte**) &pStops->stops));
+    try(kalloc(sizeof(Int8) * nStops, (void**) &pStops->stops));
     pStops->capacity = nStops;
     pStops->count = nStops;
 
@@ -32,7 +32,7 @@ catch:
 
 void TabStops_Deinit(TabStops* _Nonnull pStops)
 {
-    kfree((Byte*) pStops->stops);
+    kfree(pStops->stops);
     pStops->stops = NULL;
 }
 
@@ -62,9 +62,9 @@ ErrorCode TabStops_InsertStop(TabStops* _Nonnull pStops, Int xLoc)
         const Int newCapacity = (pStops->capacity > 0) ? pStops->capacity * 2 : 8;
         Int8* pNewStops;
 
-        try(kalloc(sizeof(Int8) * newCapacity, (Byte**)&pNewStops));
-        Bytes_CopyRange((Byte*) pNewStops, (const Byte*) pStops->stops, sizeof(Int8) * pStops->count);
-        kfree((Byte*) pStops->stops);
+        try(kalloc(sizeof(Int8) * newCapacity, (void**) &pNewStops));
+        Bytes_CopyRange(pNewStops, pStops->stops, sizeof(Int8) * pStops->count);
+        kfree(pStops->stops);
         pStops->stops = pNewStops;
         pStops->capacity = newCapacity;
     }
@@ -93,7 +93,7 @@ void TabStops_RemoveStop(TabStops* _Nonnull pStops, Int xLoc)
     }
 
     if (idx >= 0) {
-        Bytes_CopyRange((Byte*)&pStops->stops[idx], (Byte*)&pStops->stops[idx + 1], (pStops->count - 1 - idx) * sizeof(Int8));
+        Bytes_CopyRange(&pStops->stops[idx], &pStops->stops[idx + 1], (pStops->count - 1 - idx) * sizeof(Int8));
         pStops->count--;
     }
 }

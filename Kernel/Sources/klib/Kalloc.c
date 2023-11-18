@@ -86,7 +86,7 @@ catch:
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-ErrorCode kalloc_options(ByteCount nbytes, UInt options, Byte* _Nullable * _Nonnull pOutPtr)
+ErrorCode kalloc_options(ByteCount nbytes, UInt options, void* _Nullable * _Nonnull pOutPtr)
 {
     decl_try_err();
     
@@ -116,7 +116,7 @@ catch:
 }
 
 // Frees kernel memory allocated with the kalloc() function.
-void kfree(Byte* _Nullable ptr)
+void kfree(void* _Nullable ptr)
 {
     Lock_Lock(&gLock);
     const ErrorCode err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);

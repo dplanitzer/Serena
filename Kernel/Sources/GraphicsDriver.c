@@ -101,10 +101,10 @@ Bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
 static void Sprite_Destroy(Sprite* _Nullable pSprite)
 {
     if (pSprite) {
-        kfree((Byte*) pSprite->data);
+        kfree(pSprite->data);
         pSprite->data = NULL;
         
-        kfree((Byte*)pSprite);
+        kfree(pSprite);
     }
 }
 
@@ -114,7 +114,7 @@ static ErrorCode Sprite_Create(const UInt16* _Nonnull pPlanes[2], Int height, Sp
     decl_try_err();
     Sprite* pSprite;
     
-    try(kalloc_cleared(sizeof(Sprite), (Byte**) &pSprite));
+    try(kalloc_cleared(sizeof(Sprite), (void**) &pSprite));
     pSprite->x = 0;
     pSprite->y = 0;
     pSprite->height = (UInt16)height;
@@ -123,7 +123,7 @@ static ErrorCode Sprite_Create(const UInt16* _Nonnull pPlanes[2], Int height, Sp
 
     // Construct the sprite DMA data
     const Int nWords = 2 + 2*height + 2;
-    try(kalloc_options(sizeof(UInt16) * nWords, KALLOC_OPTION_UNIFIED, (Byte**) &pSprite->data));
+    try(kalloc_options(sizeof(UInt16) * nWords, KALLOC_OPTION_UNIFIED, (void**) &pSprite->data));
     const UInt16* sp0 = pPlanes[0];
     const UInt16* sp1 = pPlanes[1];
     UInt16* dp = pSprite->data;
@@ -192,7 +192,7 @@ static void Screen_Destroy(Screen* _Nullable pScreen)
         Surface_Destroy(pScreen->framebuffer);
         pScreen->framebuffer = NULL;
         
-        kfree((Byte*)pScreen);
+        kfree(pScreen);
     }
 }
 
@@ -205,7 +205,7 @@ static ErrorCode Screen_Create(const ScreenConfiguration* _Nonnull pConfig, Pixe
     decl_try_err();
     Screen* pScreen;
     
-    try(kalloc_cleared(sizeof(Screen), (Byte**) &pScreen));
+    try(kalloc_cleared(sizeof(Screen), (void**) &pScreen));
     
     pScreen->screenConfig = pConfig;
     pScreen->pixelFormat = pixelFormat;

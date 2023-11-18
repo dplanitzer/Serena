@@ -45,7 +45,7 @@ ErrorCode _Nullable ULock_Create(ULock* _Nullable * _Nonnull pOutLock)
     decl_try_err();
     ULock* pLock = NULL;
     
-    try(kalloc(sizeof(ULock), (Byte**) &pLock));
+    try(kalloc(sizeof(ULock), (void**) &pLock));
     ULock_Init(pLock);
     
     *pOutLock = pLock;
@@ -64,7 +64,7 @@ ErrorCode ULock_Destroy(ULock* _Nullable pLock)
 
     if (pLock) {
         try(ULock_Deinit(pLock));
-        kfree((Byte*)pLock);
+        kfree(pLock);
     }
 
 catch:

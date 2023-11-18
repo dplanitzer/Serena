@@ -37,7 +37,7 @@ ErrorCode HIDEventQueue_Create(Int capacity, HIDEventQueueRef _Nullable * _Nonnu
     HIDEventQueue* pQueue;
     
     assert(powerOfTwoCapacity <= UINT8_MAX/2);
-    try(kalloc_cleared(sizeof(HIDEventQueue) + (powerOfTwoCapacity - 1) * sizeof(HIDEvent), (Byte**)&pQueue));
+    try(kalloc_cleared(sizeof(HIDEventQueue) + (powerOfTwoCapacity - 1) * sizeof(HIDEvent), (void**) &pQueue));
     Semaphore_Init(&pQueue->semaphore, 0);
     pQueue->capacity = powerOfTwoCapacity;
     pQueue->capacityMask = powerOfTwoCapacity - 1;
@@ -58,7 +58,7 @@ void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull pQueue)
 {
     if (pQueue) {
         Semaphore_Deinit(&pQueue->semaphore);
-        kfree((Byte*) pQueue);
+        kfree(pQueue);
     }
 }
 

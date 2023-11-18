@@ -20,7 +20,7 @@ ErrorCode RingBuffer_Init(RingBuffer* _Nonnull pBuffer, Int capacity)
     pBuffer->capacity = Int_NextPowerOf2(capacity);
     pBuffer->readIdx = 0;
     pBuffer->writeIdx = 0;
-    try(kalloc(pBuffer->capacity, &pBuffer->data));
+    try(kalloc(pBuffer->capacity, (void**) &pBuffer->data));
     return EOK;
 
 catch:

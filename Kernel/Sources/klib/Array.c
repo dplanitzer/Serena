@@ -11,7 +11,7 @@
 
 ErrorCode GenericArray_Init(struct _GenericArray* _Nonnull pArray, Int elementSize, Int initialCapacity)
 {
-    const ErrorCode err = kalloc(elementSize * initialCapacity, &pArray->data);
+    const ErrorCode err = kalloc(elementSize * initialCapacity, (void**)&pArray->data);
     
     if (err == EOK) {
         pArray->count = 0;
@@ -34,7 +34,7 @@ ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, Int e
 {
     const Int newCapacity = (pArray->capacity > 0) ? pArray->capacity * 2 : 8;
     Byte* pNewData;
-    const ErrorCode err = kalloc(elementSize * newCapacity, &pNewData);
+    const ErrorCode err = kalloc(elementSize * newCapacity, (void**)&pNewData);
 
     if (err == EOK) {
         if (pArray->count > 0) {

@@ -60,7 +60,7 @@ static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
         Semaphore_Deinit(&pDma->inuse);
         Semaphore_Deinit(&pDma->done);
         
-        kfree((Byte*)pDma);
+        kfree(pDma);
     }
 }
 
@@ -70,7 +70,7 @@ ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
     decl_try_err();
     FloppyDMA* pDma;
     
-    try(kalloc_cleared(sizeof(FloppyDMA), (Byte**) &pDma));
+    try(kalloc_cleared(sizeof(FloppyDMA), (void**) &pDma));
 
     Semaphore_Init(&pDma->inuse, 1);
     Semaphore_Init(&pDma->done, 0);
@@ -275,7 +275,7 @@ ErrorCode FloppyDisk_Create(Int drive, FloppyDiskRef _Nullable * _Nonnull pOutDi
     FloppyDisk* pDisk;
     
     try(Object_Create(FloppyDisk, &pDisk));
-    try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (Byte**) &pDisk->track_buffer));
+    try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (void**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;
     pDisk->head = -1;
@@ -297,7 +297,7 @@ catch:
 
 static void FloppyDisk_deinit(FloppyDiskRef _Nonnull pDisk)
 {
-    kfree((Byte*)pDisk->track_buffer);
+    kfree(pDisk->track_buffer);
     pDisk->track_buffer = NULL;
 }
 

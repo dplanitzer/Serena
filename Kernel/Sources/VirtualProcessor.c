@@ -36,7 +36,7 @@ ErrorCode ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, Int size)
         // XXX so that we can ensure that the VP doesn't suddenly stand there with its pants
         // XXX way down. However we don't worry about this right now since we'll move to virtual
         // XXX memory anyway.
-        try(kalloc(pStack->size, (Byte**) &pStack->base));
+        try(kalloc(pStack->size, (void**) &pStack->base));
     }
     
     return EOK;
@@ -72,7 +72,7 @@ void __func_VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
     ListNode_Deinit(&pVP->owner.queue_entry);
     ExecutionStack_Destroy(&pVP->kernel_stack);
     ExecutionStack_Destroy(&pVP->user_stack);
-    kfree((Byte*)pVP);
+    kfree(pVP);
 }
 
 static const VirtualProcessorVTable gVirtualProcessorVTable = {
@@ -135,14 +135,14 @@ ErrorCode VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP)
     decl_try_err();
     VirtualProcessor* pVP = NULL;
     
-    try(kalloc_cleared(sizeof(VirtualProcessor), (Byte**) &pVP));
+    try(kalloc_cleared(sizeof(VirtualProcessor), (void**) &pVP));
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_NORMAL);
     
     *pOutVP = pVP;
     return EOK;
     
 catch:
-    kfree((Byte*)pVP);
+    kfree(pVP);
     *pOutVP = NULL;
     return err;
 }
@@ -186,7 +186,7 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     }
     try(ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize));
     
-    Bytes_ClearRange((Byte*)&pVP->save_area, sizeof(CpuContext));
+    Bytes_ClearRange(&pVP->save_area, sizeof(CpuContext));
     pVP->save_area.a[7] = (UInt32) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
     pVP->save_area.usp = (UInt32) ExecutionStack_GetInitialTop(&pVP->user_stack);
     pVP->save_area.pc = (UInt32) closure.func;

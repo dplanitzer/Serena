@@ -16,7 +16,7 @@ Semaphore* _Nullable Semaphore_Create(Int value)
 {
     Semaphore* pSemaphore;
     
-    if (kalloc(sizeof(Semaphore), (Byte**) &pSemaphore) == EOK) {
+    if (kalloc(sizeof(Semaphore), (void**) &pSemaphore) == EOK) {
         Semaphore_Init(pSemaphore, value);
     }
     return pSemaphore;
@@ -26,7 +26,7 @@ void Semaphore_Destroy(Semaphore* _Nullable pSemaphore)
 {
     if (pSemaphore) {
         Semaphore_Deinit(pSemaphore);
-        kfree((Byte*)pSemaphore);
+        kfree(pSemaphore);
     }
 }
 

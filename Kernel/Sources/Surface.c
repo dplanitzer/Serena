@@ -35,7 +35,7 @@ ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface
     decl_try_err();
     Surface* pSurface;
     
-    try(kalloc_cleared(sizeof(Surface), (Byte**) &pSurface));
+    try(kalloc_cleared(sizeof(Surface), (void**) &pSurface));
     
     pSurface->width = width;
     pSurface->height = height;
@@ -49,7 +49,7 @@ ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface
     const Int bytesPerPlane = pSurface->bytesPerRow * pSurface->height;
     
     for (Int i = 0; i < pSurface->planeCount; i++) {
-        try(kalloc_options(bytesPerPlane, KALLOC_OPTION_UNIFIED, (Byte**) &pSurface->planes[i]));
+        try(kalloc_options(bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &pSurface->planes[i]));
     }
     
     *pOutSurface = pSurface;
@@ -71,7 +71,7 @@ void Surface_Destroy(Surface* _Nullable pSurface)
             pSurface->planes[i] = NULL;
         }
         
-        kfree((Byte*)pSurface);
+        kfree(pSurface);
     }
 }
 

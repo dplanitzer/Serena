@@ -41,10 +41,10 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     const Int bss_size = &_ebss - &_bss;
 
     // Copy the kernel data segment from ROM to RAM
-    Bytes_CopyRange((Byte*)&_data, (Byte*)&_etext, data_size);
+    Bytes_CopyRange(&_data, &_etext, data_size);
 
     // Initialize the BSS segment
-    Bytes_ClearRange((Byte*)&_bss, bss_size);
+    Bytes_ClearRange(&_bss, bss_size);
 
 
     // Carve the kernel data and bss out from memory descriptor #0 to ensure that
