@@ -18,7 +18,7 @@ ByteCount String_Length(const Character* _Nonnull pStr)
     return p - pStr - 1;
 }
 
-ByteCount String_LengthUpToLength(const Character* _Nonnull pStr, ByteCount strsz)
+ByteCount String_LengthUpTo(const Character* _Nonnull pStr, ByteCount strsz)
 {
     ByteCount len = 0;
 
@@ -41,7 +41,7 @@ Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonn
     return pDst;
 }
 
-Character* _Nonnull String_CopyUpToLength(Character* _Nonnull pDst, const Character* _Nonnull pSrc, ByteCount count)
+Character* _Nonnull String_CopyUpTo(Character* _Nonnull pDst, const Character* _Nonnull pSrc, ByteCount count)
 {
     while (*pSrc != '\0' && count > 0) {
         *pDst++ = *pSrc++;
@@ -68,7 +68,7 @@ Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRh
     return true;
 }
 
-Bool String_EqualsUpToLength(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count)
+Bool String_EqualsUpTo(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count)
 {
     while (*pLhs != '\0' && count-- > 0) {
         if (*pLhs != *pRhs) {

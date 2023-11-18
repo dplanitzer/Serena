@@ -68,48 +68,67 @@ static ErrorCode _Nullable DirectoryNode_CopyParent(RamFS_DirectoryRef _Nonnull 
 
 static ErrorCode DirectoryNode_CopyNodeForName(RamFS_DirectoryRef _Nonnull self, const PathComponent* pComponent, InodeRef _Nullable * _Nonnull pOutNode)
 {
+    decl_try_err();
+    DirectoryHeader* pHeader = &self->header;
+    const DirectoryEntry* pEntry = NULL;
+
     if (pComponent->count > kMaxFilenameLength) {
-        return ENAMETOOLONG;
+        throw(ENAMETOOLONG);
     }
 
-    DirectoryHeader* pHeader = &self->header;
     for (Int i = 0; i < GenericArray_GetCount(pHeader); i++) {
         const DirectoryEntry* pCurEntry = GenericArray_GetRefAt(pHeader, DirectoryEntry, i);
 
-        if (String_EqualsUpToLength(pCurEntry->filename, pComponent->name, __min(pComponent->count, kMaxFilenameLength))) {
-            *pOutNode = Object_RetainAs(pCurEntry->node, Inode);
-            return EOK;
+        if (String_EqualsUpTo(pCurEntry->filename, pComponent->name, __min(pComponent->count, kMaxFilenameLength))) {
+            pEntry = pCurEntry;
+            break;
         }
     }
 
+    if (pEntry) {
+        *pOutNode = Object_RetainAs(pEntry->node, Inode);
+        return EOK;
+    } else {
+        throw(ENOENT);
+    }
+
+catch:
     *pOutNode = NULL;
-    return ENOENT;
+    return err;
 }
 
 static ErrorCode DirectoryNode_GetNameOfNode(RamFS_DirectoryRef _Nonnull self, InodeRef _Nonnull pNode, MutablePathComponent* _Nonnull pComponent)
 {
+    decl_try_err();
     DirectoryHeader* pHeader = &self->header;
-
-    pComponent->name[0] = '\0';
-    pComponent->count = 0;
+    const DirectoryEntry* pEntry = NULL;
 
     for (Int i = 0; i < GenericArray_GetCount(pHeader); i++) {
         const DirectoryEntry* pCurEntry = GenericArray_GetRefAt(pHeader, DirectoryEntry, i);
 
         if (pCurEntry->node == pNode) {
-            const ByteCount len = String_LengthUpToLength(pCurEntry->filename, kMaxFilenameLength);
-
-            if (len > pComponent->capacity) {
-                return ERANGE;
-            }
-
-            String_CopyUpToLength(pComponent->name, pCurEntry->filename, len);
-            pComponent->count = len;
-            return EOK;
+            pEntry = pCurEntry;
+            break;
         }
     }
 
-    return ENOENT;
+    if (pEntry) {
+        const ByteCount len = String_LengthUpTo(pEntry->filename, kMaxFilenameLength);
+
+        if (len > pComponent->capacity) {
+            throw(ERANGE);
+        }
+
+        String_CopyUpTo(pComponent->name, pEntry->filename, len);
+        pComponent->count = len;
+        return EOK;
+    } else {
+        throw(ENOENT);
+    }
+
+catch:
+    pComponent->count = 0;
+    return err;
 }
 
 static ErrorCode DirectoryNode_AddEntry(RamFS_DirectoryRef _Nonnull self, const Character* _Nonnull pFilename, InodeRef _Nonnull pChildNode)
@@ -121,7 +140,7 @@ static ErrorCode DirectoryNode_AddEntry(RamFS_DirectoryRef _Nonnull self, const 
     }
 
     DirectoryEntry entry;
-    Character* p = String_CopyUpToLength(entry.filename, pFilename, kMaxFilenameLength);
+    Character* p = String_CopyUpTo(entry.filename, pFilename, kMaxFilenameLength);
     while (p < &entry.filename[kMaxFilenameLength]) *p++ = '\0';
     entry.node = Object_RetainAs(pChildNode, Inode);
 
@@ -158,7 +177,7 @@ ErrorCode RamFS_Create(RamFSRef _Nullable * _Nonnull pOutFileSys)
     RamFSRef self;
 
     try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
-    try(DirectoryNode_Create(self, NULL, (RamFS_DirectoryRef*)&self->root));
+    try(DirectoryNode_Create(self, NULL, &self->root));
     // XXX set up permissions
     // XXX set up user & group id
 
@@ -168,18 +187,18 @@ ErrorCode RamFS_Create(RamFSRef _Nullable * _Nonnull pOutFileSys)
     RamFS_DirectoryRef pUsersAdminDir;
     RamFS_DirectoryRef pUsersTesterDir;
 
-    try(DirectoryNode_Create(self, (RamFS_DirectoryRef) self->root, &pSystemDir));
-    try(DirectoryNode_Create(self, (RamFS_DirectoryRef) self->root, &pUsersDir));
-    try(DirectoryNode_Create(self, (RamFS_DirectoryRef) pUsersDir, &pUsersAdminDir));
-    try(DirectoryNode_Create(self, (RamFS_DirectoryRef) pUsersDir, &pUsersTesterDir));
+    try(DirectoryNode_Create(self, self->root, &pSystemDir));
+    try(DirectoryNode_Create(self, self->root, &pUsersDir));
+    try(DirectoryNode_Create(self, pUsersDir, &pUsersAdminDir));
+    try(DirectoryNode_Create(self, pUsersDir, &pUsersTesterDir));
 
-    try(DirectoryNode_AddEntry((RamFS_DirectoryRef)self->root, "System", (InodeRef)pSystemDir));
+    try(DirectoryNode_AddEntry(self->root, "System", (InodeRef)pSystemDir));
     Object_Release(pSystemDir);
-    try(DirectoryNode_AddEntry((RamFS_DirectoryRef) self->root, "Users", (InodeRef)pUsersDir));
+    try(DirectoryNode_AddEntry(self->root, "Users", (InodeRef)pUsersDir));
     Object_Release(pUsersDir);
-    try(DirectoryNode_AddEntry((RamFS_DirectoryRef) pUsersDir, "Admin", (InodeRef)pUsersAdminDir));
+    try(DirectoryNode_AddEntry(pUsersDir, "Admin", (InodeRef)pUsersAdminDir));
     Object_Release(pUsersAdminDir);
-    try(DirectoryNode_AddEntry((RamFS_DirectoryRef) pUsersDir, "Tester", (InodeRef)pUsersTesterDir));
+    try(DirectoryNode_AddEntry(pUsersDir, "Tester", (InodeRef)pUsersTesterDir));
     Object_Release(pUsersTesterDir);
     // XXX for now (testing)
 

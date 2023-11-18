@@ -14,27 +14,6 @@
 // MARK: Inode
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Inode_Create(Int8 type, FilesystemId fsid, void* _Nullable refcon, InodeRef _Nullable * _Nonnull pOutInode)
-{
-    decl_try_err();
-    InodeRef pNode;
-
-    try(Object_CreateWithExtraBytes(Inode, 0, &pNode));
-    pNode->type = type;
-    pNode->permissions = 0;
-    pNode->uid = 0;
-    pNode->gid = 0;
-    pNode->fsid = fsid;
-    pNode->u.mountedFileSys = 0;
-    pNode->refcon = refcon;
-    *pOutInode = pNode;
-    return EOK;
-
-catch:
-    *pOutInode = NULL;
-    return err;
-}
-
 ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
@@ -47,7 +26,6 @@ ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilesystemId fsid, In
     pNode->gid = 0;
     pNode->fsid = fsid;
     pNode->u.mountedFileSys = 0;
-    pNode->refcon = NULL;
     *pOutNode = pNode;
     return EOK;
 
@@ -84,15 +62,20 @@ void Inode_SetMountedFilesystemId(InodeRef _Nonnull pNode, FilesystemId fsid)
     pNode->u.mountedFileSys = fsid;
 }
 
-ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull pChildNode, InodeRef _Nonnull pOtherNode, Bool* _Nonnull pOutResult)
+// Returns true if the receiver is a child node of 'pOtherNode' or it is 'pOtherNode';
+// otherwise returns false. An Error is returned if the relationship can not be
+// successful established because eg the function detects that the node or one of
+// its parents is owned by a file system that is not currently mounted or because
+// of a lack of permissions.
+ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, Bool* _Nonnull pOutResult)
 {
-    if (pChildNode == pOtherNode) {
+    if (self == pOtherNode) {
         *pOutResult = true;
         return EOK;
     }
 
     *pOutResult = false;
-    InodeRef pCurNode = Object_RetainAs(pChildNode, Inode);
+    InodeRef pCurNode = Object_RetainAs(self, Inode);
     FilesystemRef pCurFilesystem = Inode_CopyFilesystem(pCurNode);
 
     while (true) {
@@ -195,7 +178,6 @@ ErrorCode Filesystem_copyNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonn
 
 ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, MutablePathComponent* _Nonnull pComponent)
 {
-    pComponent->name[0] = '\0';
     pComponent->count = 0;
     return ENOENT;
 }

@@ -13,16 +13,20 @@
 
 CLASS_FORWARD(Filesystem);
 
+
 #define IREAD   0x0004
 #define IWRITE  0x0002
 #define IEXEC   0x0001
 
+// The Inode type.
 typedef enum _InodeType {
-    kInode_RegularFile = 0,
-    kInode_Directory
+    kInode_RegularFile = 0,     // A regular file that stores data
+    kInode_Directory,           // A directory which stores information about child nodes
 } InodeType;
 
 
+// An Inode represents the meta information of a file or directory. This is an
+// abstract class that must be subclassed and fully implemented by a file system.
 OPEN_CLASS_WITH_REF(Inode, Object,
     Int8            type;
     UInt8           flags;
@@ -33,15 +37,14 @@ OPEN_CLASS_WITH_REF(Inode, Object,
     union {
         FilesystemId    mountedFileSys;     // (Directory) The ID of the filesystem mounted on top of this directory; 0 if this directory is not a mount point
     }               u;
-    void*           refcon; // Filesystem specific information
 );
-
 typedef struct _InodeMethodTable {
     ObjectMethodTable   super;
 } InodeMethodTable;
 
 
-extern ErrorCode Inode_Create(Int8 type, FilesystemId fsid, void* _Nullable refcon, InodeRef _Nullable * _Nonnull pOutInode);
+// Creates an instance of the abstract Inode class. Should only ever be called
+// by the implement of a creation function for a concrete Inode subclass.
 extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns the type of the node.
@@ -64,14 +67,6 @@ extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilesystemId f
 #define Inode_GetGroupId(__self) \
     ((InodeRef)__self)->gid
 
-// Returns the node's refcon field. The refcon is defined by the filesystem that
-// has created and owns the node. The refcon is usually also type specific.
-// Filesystem implementor can use this macro to get the refcon. However a user of
-// a filesystem should always use the accessor function that the filesystem
-// provides to ensure proper memory management (eg ref counting). 
-#define Inode_GetRefcon(__self) \
-    ((InodeRef)__self)->refcon
-
 // Returns the ID of the filesystem to which this node belongs.
 #define Inode_GetFilesystemId(__self) \
     ((InodeRef)__self)->fsid
@@ -90,16 +85,28 @@ extern FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull pNode);
 // node if the give filesystem ID is 0.
 extern void Inode_SetMountedFilesystemId(InodeRef _Nonnull pNode, FilesystemId fsid);
 
+// Returns true if the receiver is a child node of 'pOtherNode' or it is 'pOtherNode';
+// otherwise returns false. An Error is returned if the relationship can not be
+// successful established because eg the function detects that the node or one of
+// its parents is owned by a file system that is not currently mounted or because
+// of a lack of permissions.
 extern ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull pChildNode, InodeRef _Nonnull pOtherNode, Bool* _Nonnull pOutResult);
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Describes a single component (name) of a path. A path is a sequence of path
+// components separated by a '/' character. Note that a path component is not a
+// NUL terminated string. The length of the component is given explicitly by the
+// count field.
 typedef struct _PathComponent {
     const Character* _Nonnull   name;
     ByteCount                   count;
 } PathComponent;
 
+// Mutable version of PathComponent. 'count' must be set on return to the actual
+// length of the generated/edited path component. 'capacity' is the maximum length
+// that the path component may take on.
 typedef struct _MutablePathComponent {
     Character* _Nonnull name;
     ByteCount           count;
@@ -107,10 +114,11 @@ typedef struct _MutablePathComponent {
 } MutablePathComponent;
 
 
+// A file system stores Inodes. The Inodes may form a tree. This is an abstract
+// base  class that must be subclassed and fully implemented by a file system.
 OPEN_CLASS(Filesystem, IOResource,
     FilesystemId        fsid;
 );
-
 typedef struct _FilesystemMethodTable {
     IOResourceMethodTable   super;
 
@@ -118,15 +126,24 @@ typedef struct _FilesystemMethodTable {
     InodeRef _Nonnull (*copyRootNode)(void* _Nonnull self);
 
     // Returns EOK and the parent node of the given node if it exists and ENOENT
-    // and NULL if the given node is the root node of the namespace.
+    // and NULL if the given node is the root node of the namespace. This function
+    // will always be called with a node that is owned by the file system.
     ErrorCode (*copyParentOfNode)(void* _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Returns EOK and the node that corresponds to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
     // function will always only be called with proper node names. Eg never with
-    // "." nor "..".
+    // "." nor "..". If the path component name is longer than what is supported
+    // by the file system, ENAMETOOLONG should be returned.
     ErrorCode (*copyNodeForName)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, InodeRef _Nullable * _Nonnull pOutNode);
 
+    // Returns the name of the node 'pNode' which a child of the directory node
+    // 'pParentNode'. 'pNode' may be of any type. The name is returned in the
+    // mutable path component 'pComponent'. 'count' in path component is 0 on
+    // entry and should be set to the actual length of the name on exit. The
+    // function is expected to return EOK if the parent node contains 'pNode'
+    // and ENOENT otherwise. If the name of 'pNode' as stored in the file system
+    // is > the capacity of the path component, then ERANGE should be returned.
     ErrorCode (*getNameOfNode)(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, MutablePathComponent* _Nonnull pComponent);
 } FilesystemMethodTable;
 

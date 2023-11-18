@@ -209,12 +209,12 @@ extern const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int field
 
 // String
 extern ByteCount String_Length(const Character* _Nonnull pStr);
-extern ByteCount String_LengthUpToLength(const Character* _Nonnull pStr, ByteCount strsz);
+extern ByteCount String_LengthUpTo(const Character* _Nonnull pStr, ByteCount strsz);
 
 extern Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonnull pSrc);
-extern Character* _Nonnull String_CopyUpToLength(Character* _Nonnull pDst, const Character* _Nonnull pSrc, ByteCount count);
+extern Character* _Nonnull String_CopyUpTo(Character* _Nonnull pDst, const Character* _Nonnull pSrc, ByteCount count);
 
 extern Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs);
-extern Bool String_EqualsUpToLength(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count);
+extern Bool String_EqualsUpTo(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count);
 
 #endif /* Types_h */

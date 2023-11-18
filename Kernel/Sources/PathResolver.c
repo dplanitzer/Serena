@@ -54,7 +54,6 @@ ErrorCode PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnul
     pResolver->currentWorkingDirectory = Object_RetainAs(pCurrentWorkingDirectory, Inode);
     pResolver->pathComponent.name = pResolver->nameBuffer;
     pResolver->pathComponent.count = 0;
-    pResolver->nameBuffer[0] = '\0';
     
     return EOK;
 
@@ -93,6 +92,7 @@ ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, 
     return EOK;
 
 catch:
+    Object_Release(pNode);
     return err;
 }
 
@@ -268,14 +268,11 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const
             }
             pResolver->nameBuffer[ni++] = pPath[pi++];
         }
-        pResolver->nameBuffer[ni] = '\0';
 
 
         // Treat a path that ends in a trailing '/' as if it would be "/."
         if (ni == 0) {
-            pResolver->nameBuffer[0] = '.';
-            pResolver->nameBuffer[1] = '\0';
-            ni = 1;
+            pResolver->nameBuffer[0] = '.'; ni = 1;
         }
         pResolver->pathComponent.count = ni;
 
