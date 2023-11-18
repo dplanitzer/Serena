@@ -131,9 +131,6 @@ static void chdir(const char* path)
 
 void app_main(int argc, char *argv[])
 {
-    char buf[16];
-    errno_t err;
-
     printf("File I/O\n\n");
 
     pwd();

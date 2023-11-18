@@ -324,10 +324,6 @@ ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir,
     *p = '\0';
 
     while (true) {
-        if (p < pBuffer) {
-            throw(ERANGE);
-        }
-
         InodeRef pParentNode;
         err = Filesystem_CopyParentOfNode(pCurFilesystem, pCurNode, &pParentNode);
         if (err == ENOENT) {
@@ -358,10 +354,17 @@ ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir,
         Object_Release(pCurNode);
         pCurNode = pParentNode;
 
+        if (p <= pBuffer) {
+            throw(ERANGE);
+        }
+
         *(--p) = '/';
     }
 
     if (*p == '\0') {
+        if (p <= pBuffer) {
+            throw(ERANGE);
+        }
         *(--p) = '/';
     }
     
