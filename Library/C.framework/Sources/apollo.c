@@ -76,6 +76,11 @@ pid_t getppid(void)
     return __syscall(SC_getppid);
 }
 
+uid_t getuid(void)
+{
+    return __syscall(SC_getuid);
+}
+
 errno_t spawnp(const spawn_arguments_t *args, pid_t *rpid)
 {
     spawn_arguments_t kargs = *args;

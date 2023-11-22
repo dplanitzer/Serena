@@ -132,6 +132,7 @@ static void chdir(const char* path)
 void app_main(int argc, char *argv[])
 {
     printf("File I/O\n\n");
+    printf("uid: %ld\n\n", getuid());
 
     pwd();
     chdir("/Users");

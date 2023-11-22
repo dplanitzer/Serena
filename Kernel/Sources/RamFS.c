@@ -18,6 +18,11 @@ typedef struct _DirectoryEntry {
 } DirectoryEntry;
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Directory Inode
+////////////////////////////////////////////////////////////////////////////////
+
 OPEN_CLASS_WITH_REF(RamFS_Directory, Inode,
     InodeRef _Nullable _Weak    parent; // parent directory; NULL if this is the root node
     DirectoryHeader             header;
@@ -27,23 +32,12 @@ typedef struct _RamFS_DirectoryMethodTable {
 } RamFS_DirectoryMethodTable;
 
 
-CLASS_IVARS(RamFS, Filesystem,
-    RamFS_DirectoryRef _Nonnull   root;
-);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Directory Inode
-////////////////////////////////////////////////////////////////////////////////
-
-
-static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, RamFS_DirectoryRef _Nullable pParentDir, RamFS_DirectoryRef _Nullable * _Nonnull pOutDir)
+static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, RamFS_DirectoryRef _Nullable pParentDir, FilePermissions permissions, User user, RamFS_DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     RamFS_DirectoryRef pDir;
 
-    try(Inode_AbstractCreate(&kRamFS_DirectoryClass, kInode_Directory, Filesystem_GetId(self), (InodeRef*)&pDir));
+    try(Inode_AbstractCreate(&kRamFS_DirectoryClass, kInode_Directory, permissions, user, Filesystem_GetId(self), (InodeRef*)&pDir));
     try(GenericArray_Init(&pDir->header, sizeof(DirectoryEntry), 4));
     pDir->parent = (InodeRef) pParentDir;
     *pOutDir = pDir;
@@ -167,6 +161,12 @@ OVERRIDE_METHOD_IMPL(deinit, RamFS_Directory, Object)
 // MARK: RAM Disk
 ////////////////////////////////////////////////////////////////////////////////
 
+CLASS_IVARS(RamFS, Filesystem,
+    RamFS_DirectoryRef _Nonnull root;
+    Bool                        isReadOnly;     // true if mounted read-only; false if mounted read-write
+);
+
+
 // Creates an instance of a filesystem subclass. Users of a concrete filesystem
 // should not use this function to allocate an instance of the concrete filesystem.
 // This function is for use by Filesystem subclassers to define the filesystem
@@ -175,9 +175,12 @@ ErrorCode RamFS_Create(RamFSRef _Nullable * _Nonnull pOutFileSys)
 {
     decl_try_err();
     RamFSRef self;
+    User user = {kRootUserId, kRootGroupId};
+    FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
 
     try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
-    try(DirectoryNode_Create(self, NULL, &self->root));
+    try(DirectoryNode_Create(self, NULL, dirPerms, user, &self->root));
     // XXX set up permissions
     // XXX set up user & group id
 
@@ -187,10 +190,10 @@ ErrorCode RamFS_Create(RamFSRef _Nullable * _Nonnull pOutFileSys)
     RamFS_DirectoryRef pUsersAdminDir;
     RamFS_DirectoryRef pUsersTesterDir;
 
-    try(DirectoryNode_Create(self, self->root, &pSystemDir));
-    try(DirectoryNode_Create(self, self->root, &pUsersDir));
-    try(DirectoryNode_Create(self, pUsersDir, &pUsersAdminDir));
-    try(DirectoryNode_Create(self, pUsersDir, &pUsersTesterDir));
+    try(DirectoryNode_Create(self, self->root, dirPerms, user, &pSystemDir));
+    try(DirectoryNode_Create(self, self->root, dirPerms, user, &pUsersDir));
+    try(DirectoryNode_Create(self, pUsersDir, dirPerms, user, &pUsersAdminDir));
+    try(DirectoryNode_Create(self, pUsersDir, dirPerms, user, &pUsersTesterDir));
 
     try(DirectoryNode_AddEntry(self->root, "System", (InodeRef)pSystemDir));
     Object_Release(pSystemDir);
@@ -216,6 +219,22 @@ void RamFS_deinit(RamFSRef _Nonnull self)
     self->root = NULL;
 }
 
+// Checks whether the given user should be granted access to the given node based
+// on the requested permission. Returns EOK if access should be granted and a suitable
+// error code if it should be denied.
+static ErrorCode RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, User user, FilePermissions permission)
+{
+    if (permission == kFilePermission_Write) {
+        if (self->isReadOnly) {
+            return EROFS;
+        }
+
+        // XXX once we support actual text mapping, we'll need to check whether the text file is in use
+    }
+
+    return Inode_CheckAccess(pNode, user, permission);
+}
+
 // Returns EOK and the parent node of the given node if it exists and ENOENT
 // and NULL if the given node is the root node of the namespace. 
 InodeRef _Nonnull RamFS_copyRootNode(RamFSRef _Nonnull self)
@@ -227,6 +246,12 @@ InodeRef _Nonnull RamFS_copyRootNode(RamFSRef _Nonnull self)
 // and NULL if the given node is the root node of the namespace. 
 ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nullable * _Nonnull pOutNode)
 {
+    User user = {kRootUserId, kRootGroupId};
+    ErrorCode err = RamFS_CheckAccess_Locked(self, pNode, user, kFilePermission_Execute);
+    if (err != EOK) {
+        return err;
+    }
+
     return DirectoryNode_CopyParent((RamFS_DirectoryRef) pNode, pOutNode);
 }
 
@@ -236,6 +261,12 @@ ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode
 // "." nor "..".
 ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, InodeRef _Nullable * _Nonnull pOutNode)
 {
+    User user = {kRootUserId, kRootGroupId};
+    ErrorCode err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute);
+    if (err != EOK) {
+        return err;
+    }
+
     return DirectoryNode_CopyNodeForName((RamFS_DirectoryRef) pParentNode, pComponent, pOutNode);
 }
 

@@ -296,6 +296,12 @@ Int _SYSCALL_getppid(void)
 }
 
 
+Int _SYSCALL_getuid(void)
+{
+    return Process_GetRealUserId(Process_GetCurrent());
+}
+
+
 Int _SYSCALL_getpargs(void)
 {
     return (Int) Process_GetArgumentsBaseAddress(Process_GetCurrent());

@@ -164,8 +164,19 @@ typedef char                Character;
 // Various Kernel API types
 typedef Int     FilesystemId;
 typedef Int     ProcessId;
+typedef UInt32  FilePermissions;
 typedef UInt32  UserId;
 typedef UInt32  GroupId;
+
+enum {
+    kRootUserId = 1,    // XXX 1 for now to force file permission checks on 0,
+    kRootGroupId = 1    // XXX 1 for now to force file permission checks on 0,
+};
+
+typedef struct _User {
+    UserId  uid;
+    GroupId gid;
+} User;
 
 
 // A callback function that takes a single (context) pointer argument

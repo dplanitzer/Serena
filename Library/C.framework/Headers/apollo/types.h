@@ -16,7 +16,10 @@
 
 __CPP_BEGIN
 
-typedef int pid_t;
+typedef long pid_t;
+
+typedef long uid_t;
+typedef long gid_t;
 
 typedef __ssize_t ssize_t;
 

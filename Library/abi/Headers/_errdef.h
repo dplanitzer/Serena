@@ -39,9 +39,10 @@
 #define ENOTDIR     26
 #define ENAMETOOLONG    27
 #define EACCESS     28
+#define EROFS       29
 
 #define __EFIRST    1
-#define __ELAST     28
+#define __ELAST     29
 
 typedef int __errno_t;
 

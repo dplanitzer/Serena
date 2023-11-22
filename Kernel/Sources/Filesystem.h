@@ -14,9 +14,32 @@
 CLASS_FORWARD(Filesystem);
 
 
-#define IREAD   0x0004
-#define IWRITE  0x0002
-#define IEXEC   0x0001
+enum {
+    kFilePermission_Read = 0x04,
+    kFilePermission_Write = 0x02,
+    kFilePermission_Execute = 0x01
+};
+
+enum {
+    kFilePermissionScope_Other = 16,
+    kFilePermissionScope_Group = 8,
+    kFilePermissionScope_User = 0,
+
+    kFilePermissionScope_Mask = 0x00ff,
+    kFilePermissionScope_BitWidth = 8
+};
+
+#define FilePermissions_Make(__other, __group, __user) \
+  (((__other) & kFilePermissionScope_Mask) << kFilePermissionScope_Other) \
+| (((__group) & kFilePermissionScope_Mask) << kFilePermissionScope_Group) \
+| (((__user) & kFilePermissionScope_Mask) << kFilePermissionScope_User)
+
+#define FilePermissions_Get(__permissions, __scope) \
+(((__permissions) >> (__scope)) & kFilePermissionScope_Mask)
+
+#define FilePermissions_Set(__permissions, __scope, __bits) \
+((__permissions) & ~(kFilePermissionsScope_Mask << (__scope))) | (((__bits) & kFilePermissionsScope_Mask) << (__scope))
+
 
 // The Inode type.
 typedef enum _InodeType {
@@ -30,7 +53,7 @@ typedef enum _InodeType {
 OPEN_CLASS_WITH_REF(Inode, Object,
     Int8            type;
     UInt8           flags;
-    UInt16          permissions;
+    FilePermissions permissions;
     UserId          uid;
     GroupId         gid;
     FilesystemId    fsid;   // ID of the filesystem that owns this node
@@ -45,7 +68,7 @@ typedef struct _InodeMethodTable {
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilePermissions permissions, User user, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns the type of the node.
 #define Inode_GetType(__self) \
@@ -73,24 +96,28 @@ extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilesystemId f
 
 // Returns a strong reference to the filesystem that owns the given note. Returns
 // NULL if the filesystem isn't mounted.
-extern FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull pNode);
+extern FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self);
 
 // If the node is a directory and another file system is mounted at this directory,
 // then this function returns the filesystem ID of the mounted directory; otherwise
 // 0 is returned.
-extern FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull pNode);
+extern FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull self);
 
 // Marks the given node as a mount point at which the filesystem with the given
 // filesystem ID is mounted. Converts the node back into a regular directory
 // node if the give filesystem ID is 0.
-extern void Inode_SetMountedFilesystemId(InodeRef _Nonnull pNode, FilesystemId fsid);
+extern void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fsid);
 
 // Returns true if the receiver is a child node of 'pOtherNode' or it is 'pOtherNode';
 // otherwise returns false. An Error is returned if the relationship can not be
 // successful established because eg the function detects that the node or one of
 // its parents is owned by a file system that is not currently mounted or because
 // of a lack of permissions.
-extern ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull pChildNode, InodeRef _Nonnull pOtherNode, Bool* _Nonnull pOutResult);
+extern ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, Bool* _Nonnull pOutResult);
+
+// Returns EOK if the given user has the permission to access/user the node the
+// way implied by 'permission'; a suitable error code otherwise.
+extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
 
 
 ////////////////////////////////////////////////////////////////////////////////

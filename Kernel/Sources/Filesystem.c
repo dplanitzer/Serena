@@ -14,16 +14,16 @@
 // MARK: Inode
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilePermissions permissions, User user, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode;
 
     try(_Object_Create(pClass, 0, (ObjectRef*)&pNode));
     pNode->type = type;
-    pNode->permissions = 0;
-    pNode->uid = 0;
-    pNode->gid = 0;
+    pNode->permissions = permissions;
+    pNode->uid = user.uid;
+    pNode->gid = user.gid;
     pNode->fsid = fsid;
     pNode->u.mountedFileSys = 0;
     *pOutNode = pNode;
@@ -36,18 +36,18 @@ catch:
 
 // Returns a strong reference to the filesystem that owns the given note. Returns
 // NULL if the filesystem isn't mounted.
-FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull pNode)
+FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self)
 {
-    return FilesystemManager_CopyFilesystemForId(gFilesystemManager, Inode_GetFilesystemId(pNode));
+    return FilesystemManager_CopyFilesystemForId(gFilesystemManager, Inode_GetFilesystemId(self));
 }
 
 // If the node is a directory and another file system is mounted at this directory,
 // then this function returns the filesystem ID of the mounted directory; otherwise
 // 0 is returned.
-FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull pNode)
+FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull self)
 {
-    if (pNode->type == kInode_Directory && pNode->u.mountedFileSys > 0) {
-        return pNode->u.mountedFileSys;
+    if (self->type == kInode_Directory && self->u.mountedFileSys > 0) {
+        return self->u.mountedFileSys;
     } else {
         return 0;
     }
@@ -56,10 +56,10 @@ FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull pNode)
 // Marks the given node as a mount point at which the filesystem with the given
 // filesystem ID is mounted. Converts the node back into a regular directory
 // node if the give filesystem ID is 0.
-void Inode_SetMountedFilesystemId(InodeRef _Nonnull pNode, FilesystemId fsid)
+void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fsid)
 {
-    assert(pNode->type == kInode_Directory);
-    pNode->u.mountedFileSys = fsid;
+    assert(self->type == kInode_Directory);
+    self->u.mountedFileSys = fsid;
 }
 
 // Returns true if the receiver is a child node of 'pOtherNode' or it is 'pOtherNode';
@@ -107,6 +107,34 @@ ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNo
     }
 
     return EOK;
+}
+
+// Returns EOK if the given user has the permission to access/user the node the
+// way implied by 'permission'; a suitable error code otherwise.
+ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission)
+{
+    // XXX revisit this once we put a proper user permission model in place
+    if (user.uid == kRootUserId) {
+        return EOK;
+    }
+
+    FilePermissions reqPerms = 0;
+
+    if (Inode_GetUserId(self) == user.uid) {
+        reqPerms = FilePermissions_Make(0, 0, permission);
+    }
+    else if (Inode_GetGroupId(self) == user.gid) {
+        reqPerms = FilePermissions_Make(0, permission, 0);
+    }
+    else {
+        reqPerms = FilePermissions_Make(permission, 0, 0);
+    }
+
+    if ((Inode_GetPermissions(self) & reqPerms) != 0) {
+        return EOK;
+    }
+
+    return EACCESS;
 }
 
 void Inode_deinit(InodeRef _Nonnull self)

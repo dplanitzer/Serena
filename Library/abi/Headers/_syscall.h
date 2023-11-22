@@ -25,5 +25,6 @@
 #define SC_seek                 13  // errno_t seek(int fd, off_t offset, off_t *newpos, int whence)
 #define SC_getcwd               14  // errno_t getcwd(char* buffer, size_t bufferSize)
 #define SC_setcwd               15  // errno_t setcwd(const char* path)
+#define SC_getuid               16  // uid_t getuid(void)
 
 #endif /* __SYSCALLS_H */

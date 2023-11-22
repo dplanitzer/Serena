@@ -68,6 +68,8 @@ extern ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, Pr
 extern Int Process_GetId(ProcessRef _Nonnull pProc);
 extern Int Process_GetParentId(ProcessRef _Nonnull pProc);
 
+extern UserId Process_GetRealUserId(ProcessRef _Nonnull pProc);
+
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
 extern void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc);

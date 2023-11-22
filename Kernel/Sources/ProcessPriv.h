@@ -30,7 +30,7 @@ typedef struct __process_arguments_t ProcessArguments;
 // This data structure is created by the exiting (child) process and is then
 // handed over to the parent process which takes ownership. Once this happens
 // the data structure is protected by the parent's lock.
-typedef struct __ProcessTombstone {
+typedef struct _ProcessTombstone {
     ListNode    node;
     Int         pid;        // PID of process that exited
     Int         status;     // Exit status
@@ -55,6 +55,9 @@ CLASS_IVARS(Process, Object,
     // Filesystems/Namespace
     PathResolver                pathResolver;
     
+    // User identity
+    User                        realUser;       // User identity inherited from the parent process / set at spawn time
+    
     // Process image
     Byte* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
     Byte* _Nullable _Weak       argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
@@ -70,7 +73,7 @@ CLASS_IVARS(Process, Object,
 );
 
 
-extern ErrorCode Process_Create(ProcessId ppid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc);
+extern ErrorCode Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull pProc);
 
 // Closes all registered I/O channels. Ignores any errors that may be returned

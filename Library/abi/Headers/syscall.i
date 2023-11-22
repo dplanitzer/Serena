@@ -25,8 +25,9 @@ SC_waitpid              equ 12  ; errno_t waitpid(pid_t pid, struct __waitpid_re
 SC_seek                 equ 13  ; errno_t seek(int fd, off_t offset, off_t *newpos, int whence)
 SC_getcwd               equ 14  ; errno_t getcwd(char* buffer, size_t bufferSize)
 SC_setcwd               equ 15  ; errno_t setcwd(const char* path)
+SC_getuid               equ 16  ; uid_t getuid(void)
 
-SC_numberOfCalls        equ 16   ; number of system calls
+SC_numberOfCalls        equ 17   ; number of system calls
 
 
 ; System call macro.

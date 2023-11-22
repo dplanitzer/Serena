@@ -36,7 +36,9 @@ ProcessRef _Nullable Process_GetCurrent(void)
 
 ErrorCode RootProcess_Create(InodeRef _Nonnull pRootDir, ProcessRef _Nullable * _Nonnull pOutProc)
 {
-    return Process_Create(1, pRootDir, pRootDir, pOutProc);
+    User user = {kRootUserId, kRootGroupId};
+
+    return Process_Create(1, user, pRootDir, pRootDir, pOutProc);
 }
 
 // Loads an executable from the given executable file into the process address
@@ -56,7 +58,7 @@ ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
 
 
 
-ErrorCode Process_Create(Int ppid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc)
+ErrorCode Process_Create(Int ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
     ProcessRef pProc;
@@ -75,6 +77,7 @@ ErrorCode Process_Create(Int ppid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull
     try(IntArray_Init(&pProc->childPids, 0));
 
     try(PathResolver_Init(&pProc->pathResolver, pRootDir, pCurDir));
+    pProc->realUser = user;
 
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
@@ -404,6 +407,15 @@ ProcessId Process_GetParentId(ProcessRef _Nonnull pProc)
     return ppid;
 }
 
+UserId Process_GetRealUserId(ProcessRef _Nonnull pProc)
+{
+    Lock_Lock(&pProc->lock);
+    const UserId uid = pProc->realUser.uid;
+    Lock_Unlock(&pProc->lock);
+
+    return uid;
+}
+
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
 void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
@@ -423,7 +435,7 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    try(Process_Create(pProc->pid, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, &pChildProc));
+    try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, &pChildProc));
 
 
     // Note that we do not lock the child process although we're reaching directly

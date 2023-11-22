@@ -38,9 +38,10 @@ ESPIPE      equ 25
 ENOTDIR     equ 26
 ENAMETOOLONG    equ 27
 EACCESS     equ 28
+EROFS       equ 29
 
 
 __EFIRST    equ 1
-__ELAST     equ 28
+__ELAST     equ 29
 
         endif   ; _ERRDEF_I
