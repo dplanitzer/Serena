@@ -9,6 +9,8 @@
 #include "PathResolver.h"
 #include "FilesystemManager.h"
 
+extern ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir, User user, Character* pBuffer, ByteCount bufferSize);
+
 // Tracks our current position in the global filesystem
 typedef struct _InodeIterator {
     InodeRef _Nonnull       inode;
@@ -69,17 +71,17 @@ void PathResolver_Deinit(PathResolverRef _Nonnull pResolver)
     pResolver->currentWorkingDirectory = NULL;
 }
 
-ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, const Character* pPath)
+ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath)
 {
     decl_try_err();
     InodeRef pNode;
     Bool isChildOfOldRoot;
 
-    try(PathResolver_CopyNodeForPath(pResolver, pPath, &pNode));
+    try(PathResolver_CopyNodeForPath(pResolver, pPath, user, &pNode));
     if (!Inode_IsDirectory(pNode)) {
         throw(ENOTDIR);
     }
-    try(Inode_IsChildOfNode(pNode, pResolver->rootDirectory, &isChildOfOldRoot));
+    try(Inode_IsChildOfNode(pNode, pResolver->rootDirectory, user, &isChildOfOldRoot));
     if (!isChildOfOldRoot) {
         throw(ENOENT);
     }
@@ -96,17 +98,17 @@ catch:
     return err;
 }
 
-ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, Character* pBuffer, ByteCount bufferSize)
+ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize)
 {
-    return MakePathFromInode(pResolver->currentWorkingDirectory, pResolver->rootDirectory, pBuffer, bufferSize);
+    return MakePathFromInode(pResolver->currentWorkingDirectory, pResolver->rootDirectory, user, pBuffer, bufferSize);
 }
 
-ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath)
+ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath)
 {
     decl_try_err();
     InodeRef pNode;
 
-    try(PathResolver_CopyNodeForPath(pResolver, pPath, &pNode));
+    try(PathResolver_CopyNodeForPath(pResolver, pPath, user, &pNode));
     if (!Inode_IsDirectory(pNode)) {
         throw(ENOTDIR);
     }
@@ -122,7 +124,7 @@ catch:
     return err;
 }
 
-static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
+static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, InodeIterator* _Nonnull pIter, const PathComponent* pComponent, User user)
 {
     // The current directory better be an actual directory
     if (!Inode_IsDirectory(pIter->inode)) {
@@ -138,7 +140,7 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
 
         if (pComponent->name[1] == '.') {
             InodeRef parentNode;
-            ErrorCode err = Filesystem_CopyParentOfNode(pIter->fileSystem, pIter->inode, &parentNode);
+            ErrorCode err = Filesystem_CopyParentOfNode(pIter->fileSystem, pIter->inode, user, &parentNode);
 
             if (err == EOK) {
                 // We're moving to a parent node in the same filesystem
@@ -170,7 +172,7 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
                     return err;
                 }
 
-                try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, &parentNode));
+                try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &parentNode));
 
                 Object_Release(pIter->inode);
                 pIter->inode = parentNode;
@@ -189,7 +191,7 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
     // Ask the current filesystem for the inode that is named by the tuple
     // (parent-inode, path-component)
     InodeRef childNode;
-    const ErrorCode err = Filesystem_CopyNodeForName(pIter->fileSystem, pIter->inode, pComponent, &childNode);
+    const ErrorCode err = Filesystem_CopyNodeForName(pIter->fileSystem, pIter->inode, pComponent, user, &childNode);
     if (err != EOK) {
         return err;
     }
@@ -222,7 +224,7 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
     return EOK;
 }
 
-ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeIterator iter;
@@ -279,7 +281,7 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const
 
         // Ask the current namespace for the inode that is named by the tuple
         // (parent-inode, path-component)
-        try(PathResolver_UpdateIterator(pResolver, &iter, &pResolver->pathComponent));
+        try(PathResolver_UpdateIterator(pResolver, &iter, &pResolver->pathComponent, user));
 
 
         // We're done if we've reached the end of the path. Otherwise continue
@@ -300,7 +302,7 @@ catch:
 }
 
 
-ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir, Character* pBuffer, ByteCount bufferSize)
+ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir, User user, Character* pBuffer, ByteCount bufferSize)
 {
     decl_try_err();
     InodeRef pCurNode = Object_RetainAs(pNode, Inode);
@@ -322,7 +324,7 @@ ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir,
 
     while (true) {
         InodeRef pParentNode;
-        err = Filesystem_CopyParentOfNode(pCurFilesystem, pCurNode, &pParentNode);
+        err = Filesystem_CopyParentOfNode(pCurFilesystem, pCurNode, user, &pParentNode);
         if (err == ENOENT) {
             if (pCurNode == pRootDir) {
                 break;
@@ -332,7 +334,7 @@ ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir,
             FilesystemRef pMountingFilesystem;
 
             try(FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, Inode_GetFilesystemId(pCurNode), &pMountingDir, &pMountingFilesystem));
-            try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, &pParentNode));
+            try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &pParentNode));
 
             Object_Release(pCurFilesystem);
             pCurFilesystem = pMountingFilesystem;
@@ -343,7 +345,7 @@ ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir,
         pathComponent.name = pBuffer;
         pathComponent.count = 0;
         pathComponent.capacity = p - pBuffer;
-        try(Filesystem_GetNameOfNode(pCurFilesystem, pParentNode, pCurNode, &pathComponent));
+        try(Filesystem_GetNameOfNode(pCurFilesystem, pParentNode, pCurNode, user, &pathComponent));
 
         p -= pathComponent.count;
         Bytes_CopyRange(p, pathComponent.name, pathComponent.count);

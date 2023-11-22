@@ -760,7 +760,7 @@ catch:
 ErrorCode Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const Character* pPath)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = PathResolver_SetRootDirectoryPath(&pProc->pathResolver, pPath);
+    const ErrorCode err = PathResolver_SetRootDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -770,7 +770,7 @@ ErrorCode Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const Characte
 ErrorCode Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = PathResolver_SetCurrentWorkingDirectoryPath(&pProc->pathResolver, pPath);
+    const ErrorCode err = PathResolver_SetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -782,7 +782,7 @@ ErrorCode Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, cons
 ErrorCode Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, Character* _Nonnull pBuffer, ByteCount bufferSize)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pBuffer, bufferSize);
+    const ErrorCode err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
     Lock_Unlock(&pProc->lock);
 
     return err;

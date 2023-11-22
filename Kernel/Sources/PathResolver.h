@@ -26,14 +26,11 @@ typedef struct _PathResolver* PathResolverRef;
 extern ErrorCode PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory);
 extern void PathResolver_Deinit(PathResolverRef _Nonnull pResolver);
 
-extern ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, const Character* pPath);
+extern ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath);
 
-extern ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, Character* pBuffer, ByteCount bufferSize);
-extern ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath);
+extern ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize);
+extern ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath);
 
-extern ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, InodeRef _Nullable * _Nonnull pOutNode);
-
-
-extern ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir, Character* pBuffer, ByteCount bufferSize);
+extern ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, User user, InodeRef _Nullable * _Nonnull pOutNode);
 
 #endif /* PathResolver_h */

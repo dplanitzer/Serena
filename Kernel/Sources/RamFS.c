@@ -244,9 +244,8 @@ InodeRef _Nonnull RamFS_copyRootNode(RamFSRef _Nonnull self)
 
 // Returns EOK and the parent node of the given node if it exists and ENOENT
 // and NULL if the given node is the root node of the namespace. 
-ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    User user = {kRootUserId, kRootGroupId};
     ErrorCode err = RamFS_CheckAccess_Locked(self, pNode, user, kFilePermission_Execute);
     if (err != EOK) {
         return err;
@@ -259,9 +258,8 @@ ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
 // function will always only be called with proper node names. Eg never with
 // "." nor "..".
-ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    User user = {kRootUserId, kRootGroupId};
     ErrorCode err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute);
     if (err != EOK) {
         return err;
@@ -270,8 +268,13 @@ ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParen
     return DirectoryNode_CopyNodeForName((RamFS_DirectoryRef) pParentNode, pComponent, pOutNode);
 }
 
-ErrorCode RamFS_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, MutablePathComponent* _Nonnull pComponent)
+ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, User user, MutablePathComponent* _Nonnull pComponent)
 {
+    ErrorCode err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute);
+    if (err != EOK) {
+        return err;
+    }
+
     return DirectoryNode_GetNameOfNode((RamFS_DirectoryRef) pParentNode, pNode, pComponent);
 }
 

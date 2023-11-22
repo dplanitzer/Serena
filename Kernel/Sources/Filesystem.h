@@ -113,10 +113,12 @@ extern void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fs
 // successful established because eg the function detects that the node or one of
 // its parents is owned by a file system that is not currently mounted or because
 // of a lack of permissions.
-extern ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, Bool* _Nonnull pOutResult);
+extern ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, User user, Bool* _Nonnull pOutResult);
 
-// Returns EOK if the given user has the permission to access/user the node the
-// way implied by 'permission'; a suitable error code otherwise.
+// Returns EOK if the given user has at least the permissions 'permission' to
+// access and/or manipulate the node; a suitable error code otherwise. The
+// 'permission' parameter represents a set of the permissions of a single
+// permission scope.
 extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
 
 
@@ -155,14 +157,14 @@ typedef struct _FilesystemMethodTable {
     // Returns EOK and the parent node of the given node if it exists and ENOENT
     // and NULL if the given node is the root node of the namespace. This function
     // will always be called with a node that is owned by the file system.
-    ErrorCode (*copyParentOfNode)(void* _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nullable * _Nonnull pOutNode);
+    ErrorCode (*copyParentOfNode)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Returns EOK and the node that corresponds to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
     // function will always only be called with proper node names. Eg never with
     // "." nor "..". If the path component name is longer than what is supported
     // by the file system, ENAMETOOLONG should be returned.
-    ErrorCode (*copyNodeForName)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, InodeRef _Nullable * _Nonnull pOutNode);
+    ErrorCode (*copyNodeForName)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Returns the name of the node 'pNode' which a child of the directory node
     // 'pParentNode'. 'pNode' may be of any type. The name is returned in the
@@ -171,7 +173,7 @@ typedef struct _FilesystemMethodTable {
     // function is expected to return EOK if the parent node contains 'pNode'
     // and ENOENT otherwise. If the name of 'pNode' as stored in the file system
     // is > the capacity of the path component, then ERANGE should be returned.
-    ErrorCode (*getNameOfNode)(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, MutablePathComponent* _Nonnull pComponent);
+    ErrorCode (*getNameOfNode)(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, User user, MutablePathComponent* _Nonnull pComponent);
 } FilesystemMethodTable;
 
 
@@ -188,13 +190,13 @@ extern ErrorCode Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _N
 #define Filesystem_CopyRootNode(__self) \
 Object_Invoke0(copyRootNode, Filesystem, __self)
 
-#define Filesystem_CopyParentOfNode(__self, __pNode, __pOutNode) \
-Object_InvokeN(copyParentOfNode, Filesystem, __self, __pNode, __pOutNode)
+#define Filesystem_CopyParentOfNode(__self, __pNode, __user, __pOutNode) \
+Object_InvokeN(copyParentOfNode, Filesystem, __self, __pNode, __user, __pOutNode)
 
-#define Filesystem_CopyNodeForName(__self, __pParentNode, __pComponent, __pOutNode) \
-Object_InvokeN(copyNodeForName, Filesystem, __self, __pParentNode, __pComponent, __pOutNode)
+#define Filesystem_CopyNodeForName(__self, __pParentNode, __pComponent, __user, __pOutNode) \
+Object_InvokeN(copyNodeForName, Filesystem, __self, __pParentNode, __pComponent, __user, __pOutNode)
 
-#define Filesystem_GetNameOfNode(__self, __pParentNode, __pNode, __pComponent) \
-Object_InvokeN(getNameOfNode, Filesystem, __self, __pParentNode, __pNode, __pComponent)
+#define Filesystem_GetNameOfNode(__self, __pParentNode, __pNode, __user, __pComponent) \
+Object_InvokeN(getNameOfNode, Filesystem, __self, __pParentNode, __pNode, __user, __pComponent)
 
 #endif /* Filesystem_h */

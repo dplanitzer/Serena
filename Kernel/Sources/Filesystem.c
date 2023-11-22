@@ -67,7 +67,7 @@ void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fsid)
 // successful established because eg the function detects that the node or one of
 // its parents is owned by a file system that is not currently mounted or because
 // of a lack of permissions.
-ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, Bool* _Nonnull pOutResult)
+ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, User user, Bool* _Nonnull pOutResult)
 {
     if (self == pOtherNode) {
         *pOutResult = true;
@@ -80,7 +80,7 @@ ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNo
 
     while (true) {
         InodeRef pParentNode;
-        ErrorCode err = Filesystem_CopyParentOfNode(pCurFilesystem, pCurNode, &pParentNode);
+        ErrorCode err = Filesystem_CopyParentOfNode(pCurFilesystem, pCurNode, user, &pParentNode);
         Object_Release(pCurNode);
 
         if (err == ENOENT) {
@@ -93,7 +93,7 @@ ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNo
                 break;
             }
 
-            try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, &pParentNode));
+            try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &pParentNode));
         }
 
         if (pParentNode == pOtherNode) {
@@ -109,14 +109,18 @@ ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNo
     return EOK;
 }
 
-// Returns EOK if the given user has the permission to access/user the node the
-// way implied by 'permission'; a suitable error code otherwise.
+// Returns EOK if the given user has at least the permissions 'permission' to
+// access and/or manipulate the node; a suitable error code otherwise. The
+// 'permission' parameter represents a set of the permissions of a single
+// permission scope.
 ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission)
 {
     // XXX revisit this once we put a proper user permission model in place
-    if (user.uid == kRootUserId) {
-        return EOK;
-    }
+    // XXX forcing superuser off for now since it's the only user we got at this
+    // XXX time and we want the file permissions to actually do something.
+    //if (user.uid == kRootUserId) {
+    //    return EOK;
+    //}
 
     FilePermissions reqPerms = 0;
 
@@ -130,7 +134,7 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
         reqPerms = FilePermissions_Make(permission, 0, 0);
     }
 
-    if ((Inode_GetPermissions(self) & reqPerms) != 0) {
+    if ((Inode_GetPermissions(self) & reqPerms) == reqPerms) {
         return EOK;
     }
 
@@ -188,7 +192,7 @@ InodeRef _Nonnull Filesystem_copyRootNode(FilesystemRef _Nonnull self)
 
 // Returns EOK and the parent node of the given node if it exists and ENOENT
 // and NULL if the given node is the root node of the namespace. 
-ErrorCode Filesystem_copyParentOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Filesystem_copyParentOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
     return ENOENT;
@@ -198,13 +202,13 @@ ErrorCode Filesystem_copyParentOfNode(FilesystemRef _Nonnull self, InodeRef _Non
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
 // function will always only be called with proper node names. Eg never with
 // "." nor "..".
-ErrorCode Filesystem_copyNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Filesystem_copyNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
     return ENOENT;
 }
 
-ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, MutablePathComponent* _Nonnull pComponent)
+ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, User user, MutablePathComponent* _Nonnull pComponent)
 {
     pComponent->count = 0;
     return ENOENT;
