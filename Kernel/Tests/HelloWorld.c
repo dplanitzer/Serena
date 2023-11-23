@@ -145,6 +145,8 @@ void app_main(int argc, char *argv[])
     pwd();
     chdir("Admin");
     pwd();
+    chdir("../Tester");
+    pwd();
 
     sleep(200);
 }

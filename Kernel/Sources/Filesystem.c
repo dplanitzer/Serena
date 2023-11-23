@@ -62,53 +62,6 @@ void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fsid)
     self->u.mountedFileSys = fsid;
 }
 
-// Returns true if the receiver is a child node of 'pOtherNode' or it is 'pOtherNode';
-// otherwise returns false. An Error is returned if the relationship can not be
-// successful established because eg the function detects that the node or one of
-// its parents is owned by a file system that is not currently mounted or because
-// of a lack of permissions.
-ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, User user, Bool* _Nonnull pOutResult)
-{
-    if (self == pOtherNode) {
-        *pOutResult = true;
-        return EOK;
-    }
-
-    *pOutResult = false;
-    InodeRef pCurNode = Object_RetainAs(self, Inode);
-    FilesystemRef pCurFilesystem = Inode_CopyFilesystem(pCurNode);
-
-    while (true) {
-        InodeRef pParentNode;
-        ErrorCode err = Filesystem_CopyParentOfNode(pCurFilesystem, pCurNode, user, &pParentNode);
-        Object_Release(pCurNode);
-
-        if (err == ENOENT) {
-            InodeRef pMountingDir;
-            FilesystemRef pMountingFilesystem;
-
-            err = FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, Filesystem_GetId(pCurFilesystem), &pMountingDir, &pMountingFilesystem);
-            if (err != EOK) {
-                Object_Release(pCurFilesystem);
-                break;
-            }
-
-            try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &pParentNode));
-        }
-
-        if (pParentNode == pOtherNode) {
-            *pOutResult = true;
-            Object_Release(pParentNode);
-            Object_Release(pCurFilesystem);
-            break;
-        }
-
-        pCurNode = pParentNode;
-    }
-
-    return EOK;
-}
-
 // Returns EOK if the given user has at least the permissions 'permission' to
 // access and/or manipulate the node; a suitable error code otherwise. The
 // 'permission' parameter represents a set of the permissions of a single

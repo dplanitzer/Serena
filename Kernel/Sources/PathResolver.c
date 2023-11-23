@@ -9,8 +9,6 @@
 #include "PathResolver.h"
 #include "FilesystemManager.h"
 
-extern ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir, User user, Character* pBuffer, ByteCount bufferSize);
-
 // Tracks our current position in the global filesystem
 typedef struct _InodeIterator {
     InodeRef _Nonnull       inode;
@@ -49,6 +47,9 @@ static void InodeIterator_Deinit(InodeIterator* pIterator)
 // MARK: PathResolver
 ////////////////////////////////////////////////////////////////////////////////
 
+static ErrorCode PathResolver_UpdateIteratorWithParentNode(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter);
+
+
 ErrorCode PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory)
 {
     decl_try_err();
@@ -75,17 +76,18 @@ ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, 
 {
     decl_try_err();
     InodeRef pNode;
-    Bool isChildOfOldRoot;
 
+    // Get the inode that represents the new directory
     try(PathResolver_CopyNodeForPath(pResolver, pPath, user, &pNode));
+
+
+    // Make sure that it is actually a directory
     if (!Inode_IsDirectory(pNode)) {
         throw(ENOTDIR);
     }
-    try(Inode_IsChildOfNode(pNode, pResolver->rootDirectory, user, &isChildOfOldRoot));
-    if (!isChildOfOldRoot) {
-        throw(ENOENT);
-    }
 
+
+    // Remember the new inode as our root directory
     if (pResolver->rootDirectory != pNode) {
         Object_Release(pResolver->rootDirectory);
         pResolver->rootDirectory = pNode;
@@ -100,7 +102,63 @@ catch:
 
 ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize)
 {
-    return MakePathFromInode(pResolver->currentWorkingDirectory, pResolver->rootDirectory, user, pBuffer, bufferSize);
+    InodeIterator iter;
+    InodeRef pCurNode = NULL;
+    decl_try_err();
+
+    try(InodeIterator_Init(&iter, pResolver->currentWorkingDirectory));
+
+    if (bufferSize <= 0) {
+        throw(EINVAL);
+    }
+
+    // We walk up the filesystem from 'pNode' to the global root of the filesystem
+    // and we build the path right aligned in the user provided buffer. We'll move
+    // the path such that it'll start at 'pBuffer' once we're done.
+    MutablePathComponent pathComponent;
+    Character* p = &pBuffer[bufferSize - 1];
+    *p = '\0';
+
+    while (iter.inode != pResolver->rootDirectory) {
+        Object_Release(pCurNode);
+        pCurNode = Object_RetainAs(iter.inode, Inode);
+
+        try(PathResolver_UpdateIteratorWithParentNode(pResolver, user, &iter));
+
+        pathComponent.name = pBuffer;
+        pathComponent.count = 0;
+        pathComponent.capacity = p - pBuffer;
+        try(Filesystem_GetNameOfNode(iter.fileSystem, iter.inode, pCurNode, user, &pathComponent));
+
+        p -= pathComponent.count;
+        Bytes_CopyRange(p, pathComponent.name, pathComponent.count);
+
+        if (p <= pBuffer) {
+            throw(ERANGE);
+        }
+
+        *(--p) = '/';
+    }
+
+    if (*p == '\0') {
+        if (p <= pBuffer) {
+            throw(ERANGE);
+        }
+        *(--p) = '/';
+    }
+    
+    Bytes_CopyRange(pBuffer, p, &pBuffer[bufferSize] - p);
+    Object_Release(pCurNode);
+    InodeIterator_Deinit(&iter);
+
+    return EOK;
+
+catch:
+    Object_Release(pCurNode);
+    InodeIterator_Deinit(&iter);
+    pBuffer[0] = '\0';
+
+    return err;
 }
 
 ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath)
@@ -108,11 +166,17 @@ ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
     decl_try_err();
     InodeRef pNode;
 
+    // Get the inode that represents the new directory
     try(PathResolver_CopyNodeForPath(pResolver, pPath, user, &pNode));
+
+
+    // Make sure that it is actually a directory
     if (!Inode_IsDirectory(pNode)) {
         throw(ENOTDIR);
     }
 
+
+    // Remember the new inode as our root directory
     if (pResolver->currentWorkingDirectory != pNode) {
         Object_Release(pResolver->currentWorkingDirectory);
         pResolver->currentWorkingDirectory = pNode;
@@ -124,7 +188,67 @@ catch:
     return err;
 }
 
-static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, InodeIterator* _Nonnull pIter, const PathComponent* pComponent, User user)
+// Updates the given inode iterator with the parent node of the node to which the
+// iterator points. Returns the iterator's inode itself if that inode is the path
+// resolver's root directory. Returns a suitable error code and leaves the iterator
+// unchanged if an error (eg access denied) occurs.
+static ErrorCode PathResolver_UpdateIteratorWithParentNode(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
+{
+    // Nothing to do if the iterator points to our root node
+    if (pIter->inode == pResolver->rootDirectory) {
+        return EOK;
+    }
+
+
+    InodeRef parentNode;
+    ErrorCode err = Filesystem_CopyParentOfNode(pIter->fileSystem, pIter->inode, user, &parentNode);
+
+    if (err == EOK) {
+        // We're moving to a parent node in the same file system
+        Object_Release(pIter->inode);
+        pIter->inode = parentNode;
+        return EOK;
+    }
+    
+    if (err != ENOENT) {
+        // Some error (eg insufficient permissions). Just return
+        return err;
+    }
+
+    // The pIter->inode is the root of a file system that is mounted somewhere
+    // below the global file system root. We need to find the node in the parent
+    // file system that is mounting pIter->inode and we the need to find the
+    // parent of this inode. Note that such a parent always exists and that it
+    // is necessarily in the same parent file system in which the mounting node
+    // is (because you can not mount a file system on the root node of another
+    // file system).
+    InodeRef pMountingDir;
+    FilesystemRef pMountingFilesystem;
+
+    err = FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, pIter->fsid, &pMountingDir, &pMountingFilesystem);
+    if (err != EOK) {
+        Object_Release(parentNode);
+        return err;
+    }
+
+    err = Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &parentNode);
+    if (err != EOK) {
+        Object_Release(parentNode);
+        Object_Release(pMountingDir);
+        Object_Release(pMountingFilesystem);
+        return err;
+    }
+
+    Object_Release(pIter->inode);
+    pIter->inode = parentNode;
+    Object_Release(pIter->fileSystem);
+    pIter->fileSystem = pMountingFilesystem;
+    pIter->fsid = Filesystem_GetId(pMountingFilesystem);
+
+    return EOK;
+}
+
+static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
     // The current directory better be an actual directory
     if (!Inode_IsDirectory(pIter->inode)) {
@@ -139,51 +263,7 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
         }
 
         if (pComponent->name[1] == '.') {
-            InodeRef parentNode;
-            ErrorCode err = Filesystem_CopyParentOfNode(pIter->fileSystem, pIter->inode, user, &parentNode);
-
-            if (err == EOK) {
-                // We're moving to a parent node in the same filesystem
-                Object_Release(pIter->inode);
-                pIter->inode = parentNode;
-                return EOK;
-            }
-
-            if (err == ENOENT) {
-                // The pIter->inode is the root of a filesystem. Loop back to the
-                // global root if pIter->inode is the global root. So "/.." is
-                // the same as "/."
-                if (pIter->inode == pResolver->rootDirectory) {
-                    return EOK;
-                }
-
-                // The pIter->inode is the root of a filesystem that is mounted
-                // somewhere below the global filesystem root. We need to find
-                // the node in the parent filesystem that is mounting pIter->inode
-                // and we the need to find the parent of this inode. Note that such
-                // a parent always exists and that it is necessarily in the same
-                // parent filesystem in which the mounting node is (because you
-                // can not mount a filesystem on the root node of another filesystem).
-                InodeRef pMountingDir;
-                FilesystemRef pMountingFilesystem;
-
-                err = FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, pIter->fsid, &pMountingDir, &pMountingFilesystem);
-                if (err != EOK) {
-                    return err;
-                }
-
-                try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &parentNode));
-
-                Object_Release(pIter->inode);
-                pIter->inode = parentNode;
-                Object_Release(pIter->fileSystem);
-                pIter->fileSystem = pMountingFilesystem;
-                pIter->fsid = Filesystem_GetId(pMountingFilesystem);
-
-                return EOK;
-            }
-
-            return err;
+            return PathResolver_UpdateIteratorWithParentNode(pResolver, user, pIter);
         }
     }
 
@@ -224,6 +304,13 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
     return EOK;
 }
 
+// Looks up the inode named by the given path. The path may be relative or absolute.
+// If it is relative then the resolution starts with the current working directory.
+// If it is absolute then the resolution starts with the root directory. The path
+// may contain the well-known name '.' which stands for 'this directory' and '..'
+// which stands for 'the parent directory'. Note that this function does not allow
+// you to leave the subtree rotted by the root directory. Any attempt to go to a
+// parent of the root directory will send you back to the root directory.
 ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
@@ -281,7 +368,7 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const
 
         // Ask the current namespace for the inode that is named by the tuple
         // (parent-inode, path-component)
-        try(PathResolver_UpdateIterator(pResolver, &iter, &pResolver->pathComponent, user));
+        try(PathResolver_UpdateIterator(pResolver, user, &iter, &pResolver->pathComponent));
 
 
         // We're done if we've reached the end of the path. Otherwise continue
@@ -298,85 +385,5 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const
 catch:
     InodeIterator_Deinit(&iter);
     *pOutNode = NULL;
-    return err;
-}
-
-
-ErrorCode MakePathFromInode(InodeRef _Nonnull pNode, InodeRef _Nonnull pRootDir, User user, Character* pBuffer, ByteCount bufferSize)
-{
-    decl_try_err();
-    InodeRef pCurNode = Object_RetainAs(pNode, Inode);
-    FilesystemRef pCurFilesystem = Inode_CopyFilesystem(pCurNode);
-
-    if (bufferSize <= 0) {
-        throw(EINVAL);
-    }
-    if (pCurFilesystem == NULL) {
-        throw(EACCESS);
-    }
-
-    // We walk up the filesystem from 'pNode' to the global root of the filesystem
-    // and we build the path right aligned in the user provided buffer. We'll move
-    // the path such that it'll start at 'pBuffer' once we're done.
-    MutablePathComponent pathComponent;
-    Character* p = &pBuffer[bufferSize - 1];
-    *p = '\0';
-
-    while (true) {
-        InodeRef pParentNode;
-        err = Filesystem_CopyParentOfNode(pCurFilesystem, pCurNode, user, &pParentNode);
-        if (err == ENOENT) {
-            if (pCurNode == pRootDir) {
-                break;
-            }
-
-            InodeRef pMountingDir;
-            FilesystemRef pMountingFilesystem;
-
-            try(FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, Inode_GetFilesystemId(pCurNode), &pMountingDir, &pMountingFilesystem));
-            try_bang(Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &pParentNode));
-
-            Object_Release(pCurFilesystem);
-            pCurFilesystem = pMountingFilesystem;
-        } else if (err != EOK) {
-            throw(err);
-        }
-
-        pathComponent.name = pBuffer;
-        pathComponent.count = 0;
-        pathComponent.capacity = p - pBuffer;
-        try(Filesystem_GetNameOfNode(pCurFilesystem, pParentNode, pCurNode, user, &pathComponent));
-
-        p -= pathComponent.count;
-        Bytes_CopyRange(p, pathComponent.name, pathComponent.count);
-
-        Object_Release(pCurNode);
-        pCurNode = pParentNode;
-
-        if (p <= pBuffer) {
-            throw(ERANGE);
-        }
-
-        *(--p) = '/';
-    }
-
-    if (*p == '\0') {
-        if (p <= pBuffer) {
-            throw(ERANGE);
-        }
-        *(--p) = '/';
-    }
-    
-    Bytes_CopyRange(pBuffer, p, &pBuffer[bufferSize] - p);
-    Object_Release(pCurFilesystem);
-    Object_Release(pCurNode);
-
-    return EOK;
-
-catch:
-    Object_Release(pCurFilesystem);
-    Object_Release(pCurNode);
-    pBuffer[0] = '\0';
-
     return err;
 }

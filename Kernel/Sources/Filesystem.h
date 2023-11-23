@@ -108,13 +108,6 @@ extern FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull self);
 // node if the give filesystem ID is 0.
 extern void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fsid);
 
-// Returns true if the receiver is a child node of 'pOtherNode' or it is 'pOtherNode';
-// otherwise returns false. An Error is returned if the relationship can not be
-// successful established because eg the function detects that the node or one of
-// its parents is owned by a file system that is not currently mounted or because
-// of a lack of permissions.
-extern ErrorCode Inode_IsChildOfNode(InodeRef _Nonnull self, InodeRef _Nonnull pOtherNode, User user, Bool* _Nonnull pOutResult);
-
 // Returns EOK if the given user has at least the permissions 'permission' to
 // access and/or manipulate the node; a suitable error code otherwise. The
 // 'permission' parameter represents a set of the permissions of a single
