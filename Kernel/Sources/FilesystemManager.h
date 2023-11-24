@@ -42,7 +42,7 @@ extern ErrorCode FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(Fil
 // Mounts the given filesystem at the given node. The node must be a directory
 // node. The same filesystem instance may be mounted at multiple different
 // directories.
-extern ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull pDirNode);
+extern ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull pDirNode);
 
 // Unmounts the given filesystem from the given directory.
 extern void FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull pDirNode);

@@ -33,16 +33,23 @@ ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, Filesyst
     decl_try_err();
     FilesystemManagerRef pManager;
     
-    try_bang(kalloc(sizeof(FilesystemManager), (void**) &pManager));
+    try(kalloc(sizeof(FilesystemManager), (void**) &pManager));
     Lock_Init(&pManager->lock);
     List_Init(&pManager->fileSystems);
-    try_bang(kalloc_cleared(sizeof(Mountpoint), (void**) &pManager->root));
+    try(kalloc_cleared(sizeof(Mountpoint), (void**) &pManager->root));
     List_InsertAfter(&pManager->fileSystems, &pManager->root->node, NULL);
     pManager->root->fileSystem = Object_RetainAs(pRootFileSys, Filesystem);
     pManager->root->mountedAtNode = Filesystem_CopyRootNode(pRootFileSys);
 
+    Byte params;
+    try(Filesystem_OnMount(pRootFileSys, &params, 0));
+
     *pOutManager = pManager;
     return EOK;
+
+catch:
+    *pOutManager = NULL;
+    return err;
 }
 
 // Returns a strong reference to the root of the global filesystem.
@@ -107,7 +114,7 @@ ErrorCode _Nullable FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(
 // Mounts the given filesystem at the given node. The node must be a directory
 // node. The same filesystem instance may be mounted at multiple different
 // directories.
-ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull pDirNode)
+ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull pDirNode)
 {
     decl_try_err();
     FilesystemId fsid = Filesystem_GetId(pFileSys);
@@ -124,6 +131,8 @@ ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, Filesy
             throw(EINVAL);
         }
     });
+
+    try(Filesystem_OnMount(pFileSys, pParams, paramsSize));
 
     Mountpoint* pMount;
     throw(kalloc_cleared(sizeof(Mountpoint), (void**) &pMount));

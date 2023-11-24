@@ -34,6 +34,16 @@ catch:
     return err;
 }
 
+// Returns the user of the node.
+User Inode_GetUser(InodeRef _Nonnull self)
+{
+    User user;
+
+    user.uid = self->uid;
+    user.gid = self->gid;
+    return user;
+}
+
 // Returns a strong reference to the filesystem that owns the given note. Returns
 // NULL if the filesystem isn't mounted.
 FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self)
@@ -87,7 +97,7 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
         reqPerms = FilePermissions_Make(permission, 0, 0);
     }
 
-    if ((Inode_GetPermissions(self) & reqPerms) == reqPerms) {
+    if ((Inode_GetFilePermissions(self) & reqPerms) == reqPerms) {
         return EOK;
     }
 
@@ -134,6 +144,23 @@ catch:
     return err;
 }
 
+// Invoked when an instance of this file system is mounted.
+ErrorCode Filesystem_onMount(void* _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
+{
+    return EOK;
+}
+
+// Invoked when a mounted instance of this file system is unmounted. A file
+// system may return an error. Note however that this error is purely advisory
+// and the file system implementation is required to do everything it can to
+// successfully unmount. Unmount errors are ignored and the file system manager
+// will complete the unmount in any case.
+ErrorCode Filesystem_onUnmount(void* _Nonnull self)
+{
+    return EOK;
+}
+
+
 // Returns EOK and the parent node of the given node if it exists and ENOENT
 // and NULL if the given node is the root node of the namespace. 
 InodeRef _Nonnull Filesystem_copyRootNode(FilesystemRef _Nonnull self)
@@ -168,6 +195,8 @@ ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnul
 }
 
 CLASS_METHODS(Filesystem, IOResource,
+METHOD_IMPL(onMount, Filesystem)
+METHOD_IMPL(onUnmount, Filesystem)
 METHOD_IMPL(copyRootNode, Filesystem)
 METHOD_IMPL(copyParentOfNode, Filesystem)
 METHOD_IMPL(copyNodeForName, Filesystem)

@@ -79,8 +79,11 @@ extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilePermission
     (Inode_GetType(__self) == kInode_Directory)
 
 // Returns the permissions of the node.
-#define Inode_GetPermissions(__self) \
+#define Inode_GetFilePermissions(__self) \
     ((InodeRef)__self)->permissions
+
+// Returns the user of the node.
+extern User Inode_GetUser(InodeRef _Nonnull self);
 
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
@@ -144,6 +147,16 @@ OPEN_CLASS(Filesystem, IOResource,
 typedef struct _FilesystemMethodTable {
     IOResourceMethodTable   super;
 
+    // Invoked when an instance of this file system is mounted.
+    ErrorCode (*onMount)(void* _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize);
+
+    // Invoked when a mounted instance of this file system is unmounted. A file
+    // system may return an error. Note however that this error is purely advisory
+    // and the file system implementation is required to do everything it can to
+    // successfully unmount. Unmount errors are ignored and the file system manager
+    // will complete the unmount in any case.
+    ErrorCode (*onUnmount)(void* _Nonnull self);
+
     // Returns a strong reference to the root directory node of the filesystem.
     InodeRef _Nonnull (*copyRootNode)(void* _Nonnull self);
 
@@ -179,6 +192,12 @@ extern ErrorCode Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _N
 // Returns the filesystem ID of the given filesystem.
 #define Filesystem_GetId(__fs) \
     ((FilesystemRef)(__fs))->fsid
+
+#define Filesystem_OnMount(__self, __pParams, __paramsSize) \
+Object_InvokeN(onMount, Filesystem, __self, __pParams, __paramsSize)
+
+#define Filesystem_OnUnmount(__self) \
+Object_Invoke0(onUnmount, Filesystem, __self)
 
 #define Filesystem_CopyRootNode(__self) \
 Object_Invoke0(copyRootNode, Filesystem, __self)

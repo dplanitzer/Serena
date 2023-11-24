@@ -17,10 +17,9 @@ typedef struct _RamFSMethodTable {
 } RamFSMethodTable;
 
 
-// Creates an instance of a filesystem subclass. Users of a concrete filesystem
-// should not use this function to allocate an instance of the concrete filesystem.
-// This function is for use by Filesystem subclassers to define the filesystem
-// specific instance allocation function.
-ErrorCode RamFS_Create(RamFSRef _Nullable * _Nonnull pOutFileSys);
+// Creates an instance of RAM-FS. RAM-FS is a volatile file system that does not
+// survive system restarts. The 'rootDirUser' parameter specifies the user and
+// group ID of the root directory.
+ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileSys);
 
 #endif /* RamFS_h */

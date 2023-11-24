@@ -167,22 +167,41 @@ CLASS_IVARS(RamFS, Filesystem,
 );
 
 
-// Creates an instance of a filesystem subclass. Users of a concrete filesystem
-// should not use this function to allocate an instance of the concrete filesystem.
-// This function is for use by Filesystem subclassers to define the filesystem
-// specific instance allocation function.
-ErrorCode RamFS_Create(RamFSRef _Nullable * _Nonnull pOutFileSys)
+// Creates an instance of RAM-FS. RAM-FS is a volatile file system that does not
+// survive system restarts. The 'rootDirUser' parameter specifies the user and
+// group ID of the root directory.
+ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileSys)
 {
     decl_try_err();
     RamFSRef self;
-    User user = {kRootUserId, kRootGroupId};
+
+    try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
+
     FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
 
-    try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
-    try(DirectoryNode_Create(self, NULL, dirPerms, user, &self->root));
-    // XXX set up permissions
-    // XXX set up user & group id
+    try(DirectoryNode_Create(self, NULL, dirPerms, rootDirUser, &self->root));
+
+    *pOutFileSys = self;
+    return EOK;
+
+catch:
+    *pOutFileSys = NULL;
+    return err;
+}
+
+void RamFS_deinit(RamFSRef _Nonnull self)
+{
+    Object_Release(self->root);
+    self->root = NULL;
+}
+
+// Invoked when an instance of this file system is mounted.
+ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
+{
+    decl_try_err();
+    const User user = Inode_GetUser((InodeRef) self->root);
+    const FilePermissions dirPerms = Inode_GetFilePermissions(self->root);
 
     // XXX for now (testing)
     RamFS_DirectoryRef pSystemDir;
@@ -205,18 +224,10 @@ ErrorCode RamFS_Create(RamFSRef _Nullable * _Nonnull pOutFileSys)
     Object_Release(pUsersTesterDir);
     // XXX for now (testing)
 
-    *pOutFileSys = self;
     return EOK;
 
 catch:
-    *pOutFileSys = NULL;
     return err;
-}
-
-void RamFS_deinit(RamFSRef _Nonnull self)
-{
-    Object_Release(self->root);
-    self->root = NULL;
 }
 
 // Checks whether the given user should be granted access to the given node based
@@ -280,6 +291,7 @@ ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentN
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
+OVERRIDE_METHOD_IMPL(onMount, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyRootNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyParentOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)

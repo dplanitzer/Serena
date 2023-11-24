@@ -132,7 +132,8 @@ static InodeRef _Nonnull filesystem_init(void)
     FilesystemRef pRamFS;
 
     // XXX for now always a RAM disk
-    try_bang(RamFS_Create((RamFSRef*)&pRamFS));
+    User rootDirUser = {kRootUserId, kRootGroupId};
+    try_bang(RamFS_Create(rootDirUser, (RamFSRef*)&pRamFS));
     try_bang(FilesystemManager_Create(pRamFS, &gFilesystemManager));
     Object_Release(pRamFS);
 
