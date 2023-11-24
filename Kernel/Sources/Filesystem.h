@@ -56,7 +56,8 @@ OPEN_CLASS_WITH_REF(Inode, Object,
     FilePermissions permissions;
     UserId          uid;
     GroupId         gid;
-    FilesystemId    fsid;   // ID of the filesystem that owns this node
+    InodeId         noid;   // Filesystem specific ID of the inode
+    FilesystemId    fsid;   // Globally unique ID of the filesystem that owns this node
     union {
         FilesystemId    mountedFileSys;     // (Directory) The ID of the filesystem mounted on top of this directory; 0 if this directory is not a mount point
     }               u;
@@ -68,7 +69,7 @@ typedef struct _InodeMethodTable {
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilePermissions permissions, User user, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns the type of the node.
 #define Inode_GetType(__self) \
@@ -93,6 +94,10 @@ extern User Inode_GetUser(InodeRef _Nonnull self);
 #define Inode_GetGroupId(__self) \
     ((InodeRef)__self)->gid
 
+// Returns the filesystem specific ID of the node.
+#define Inode_GetId(__self) \
+    ((InodeRef)__self)->noid
+
 // Returns the ID of the filesystem to which this node belongs.
 #define Inode_GetFilesystemId(__self) \
     ((InodeRef)__self)->fsid
@@ -116,6 +121,9 @@ extern void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fs
 // 'permission' parameter represents a set of the permissions of a single
 // permission scope.
 extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
+
+// Returns true if the receiver and 'pOther' are the same node; false otherwise
+extern Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 
 
 ////////////////////////////////////////////////////////////////////////////////

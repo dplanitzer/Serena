@@ -162,8 +162,9 @@ typedef char                Character;
 
 
 // Various Kernel API types
-typedef Int     FilesystemId;
 typedef Int     ProcessId;
+typedef Int32   FilesystemId;
+typedef Int32   InodeId;    // XXX should probably be 64bit
 typedef UInt32  FilePermissions;
 typedef UInt32  UserId;
 typedef UInt32  GroupId;

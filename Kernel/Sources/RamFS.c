@@ -32,12 +32,12 @@ typedef struct _RamFS_DirectoryMethodTable {
 } RamFS_DirectoryMethodTable;
 
 
-static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, RamFS_DirectoryRef _Nullable pParentDir, FilePermissions permissions, User user, RamFS_DirectoryRef _Nullable * _Nonnull pOutDir)
+static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, InodeId id, RamFS_DirectoryRef _Nullable pParentDir, FilePermissions permissions, User user, RamFS_DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     RamFS_DirectoryRef pDir;
 
-    try(Inode_AbstractCreate(&kRamFS_DirectoryClass, kInode_Directory, permissions, user, Filesystem_GetId(self), (InodeRef*)&pDir));
+    try(Inode_AbstractCreate(&kRamFS_DirectoryClass, kInode_Directory, id, Filesystem_GetId(self), permissions, user, (InodeRef*)&pDir));
     try(GenericArray_Init(&pDir->header, sizeof(DirectoryEntry), 4));
     pDir->parent = (InodeRef) pParentDir;
     *pOutDir = pDir;
@@ -100,7 +100,7 @@ static ErrorCode DirectoryNode_GetNameOfNode(RamFS_DirectoryRef _Nonnull self, I
     for (Int i = 0; i < GenericArray_GetCount(pHeader); i++) {
         const DirectoryEntry* pCurEntry = GenericArray_GetRefAt(pHeader, DirectoryEntry, i);
 
-        if (pCurEntry->node == pNode) {
+        if (Inode_Equals(pCurEntry->node, pNode)) {
             pEntry = pCurEntry;
             break;
         }
@@ -180,7 +180,7 @@ ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileS
     FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
 
-    try(DirectoryNode_Create(self, NULL, dirPerms, rootDirUser, &self->root));
+    try(DirectoryNode_Create(self, 0, NULL, dirPerms, rootDirUser, &self->root));
 
     *pOutFileSys = self;
     return EOK;
@@ -209,10 +209,10 @@ ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, By
     RamFS_DirectoryRef pUsersAdminDir;
     RamFS_DirectoryRef pUsersTesterDir;
 
-    try(DirectoryNode_Create(self, self->root, dirPerms, user, &pSystemDir));
-    try(DirectoryNode_Create(self, self->root, dirPerms, user, &pUsersDir));
-    try(DirectoryNode_Create(self, pUsersDir, dirPerms, user, &pUsersAdminDir));
-    try(DirectoryNode_Create(self, pUsersDir, dirPerms, user, &pUsersTesterDir));
+    try(DirectoryNode_Create(self, 1, self->root, dirPerms, user, &pSystemDir));
+    try(DirectoryNode_Create(self, 2, self->root, dirPerms, user, &pUsersDir));
+    try(DirectoryNode_Create(self, 3, pUsersDir, dirPerms, user, &pUsersAdminDir));
+    try(DirectoryNode_Create(self, 4, pUsersDir, dirPerms, user, &pUsersTesterDir));
 
     try(DirectoryNode_AddEntry(self->root, "System", (InodeRef)pSystemDir));
     Object_Release(pSystemDir);

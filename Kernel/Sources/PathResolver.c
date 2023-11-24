@@ -189,7 +189,7 @@ catch:
 static ErrorCode PathResolver_UpdateIteratorWithParentNode(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
 {
     // Nothing to do if the iterator points to our root node
-    if (pIter->inode == pResolver->rootDirectory) {
+    if (Inode_Equals(pIter->inode, pResolver->rootDirectory)) {
         return EOK;
     }
 

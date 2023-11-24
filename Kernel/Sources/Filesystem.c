@@ -14,7 +14,7 @@
 // MARK: Inode
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilePermissions permissions, User user, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode;
@@ -24,8 +24,10 @@ ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, FilePermissions permi
     pNode->permissions = permissions;
     pNode->uid = user.uid;
     pNode->gid = user.gid;
+    pNode->noid = id;
     pNode->fsid = fsid;
     pNode->u.mountedFileSys = 0;
+
     *pOutNode = pNode;
     return EOK;
 
@@ -104,6 +106,12 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
     return EACCESS;
 }
 
+// Returns true if the receiver and 'pOther' are the same node; false otherwise
+Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
+{
+    return self->fsid == pOther->fsid && self->noid == pOther->noid;
+}
+
 void Inode_deinit(InodeRef _Nonnull self)
 {
 }
@@ -121,8 +129,11 @@ OVERRIDE_METHOD_IMPL(deinit, Inode, Object)
 // Returns the next available FSID.
 static FilesystemId Filesystem_GetNextAvailableId(void)
 {
+    // XXX want to:
+    // XXX handle overflow (wrap around)
+    // XXX make sure the generated id isn't actually in use by someone else
     static volatile AtomicInt gNextAvailableId = 0;
-    return AtomicInt_Increment(&gNextAvailableId);
+    return (FilesystemId) AtomicInt_Increment(&gNextAvailableId);
 }
 
 // Creates an instance of a filesystem subclass. Users of a concrete filesystem
