@@ -25,7 +25,6 @@ ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Filesyste
     pNode->user = user;
     pNode->noid = id;
     pNode->fsid = fsid;
-    pNode->u.mountedFileSys = 0;
 
     *pOutNode = pNode;
     return EOK;
@@ -40,27 +39,6 @@ catch:
 FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self)
 {
     return FilesystemManager_CopyFilesystemForId(gFilesystemManager, Inode_GetFilesystemId(self));
-}
-
-// If the node is a directory and another file system is mounted at this directory,
-// then this function returns the filesystem ID of the mounted directory; otherwise
-// 0 is returned.
-FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull self)
-{
-    if (self->type == kInode_Directory && self->u.mountedFileSys > 0) {
-        return self->u.mountedFileSys;
-    } else {
-        return 0;
-    }
-}
-
-// Marks the given node as a mount point at which the filesystem with the given
-// filesystem ID is mounted. Converts the node back into a regular directory
-// node if the give filesystem ID is 0.
-void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fsid)
-{
-    assert(self->type == kInode_Directory);
-    self->u.mountedFileSys = fsid;
 }
 
 // Returns EOK if the given user has at least the permissions 'permission' to
@@ -194,6 +172,21 @@ ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnul
     return ENOENT;
 }
 
+// If the node is a directory and another file system is mounted at this directory,
+// then this function returns the filesystem ID of the mounted directory; otherwise
+// 0 is returned.
+FilesystemId Filesystem_getFilesystemMountedOnNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
+{
+    return 0;
+}
+
+// Marks the given directory node as a mount point at which the filesystem
+// with the given filesystem ID is mounted. Converts the node back into a
+// regular directory node if the give filesystem ID is 0.
+void Filesystem_setFilesystemMountedOnNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, FilesystemId fsid)
+{
+}
+
 CLASS_METHODS(Filesystem, IOResource,
 METHOD_IMPL(onMount, Filesystem)
 METHOD_IMPL(onUnmount, Filesystem)
@@ -201,4 +194,6 @@ METHOD_IMPL(copyRootNode, Filesystem)
 METHOD_IMPL(copyParentOfNode, Filesystem)
 METHOD_IMPL(copyNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
+METHOD_IMPL(getFilesystemMountedOnNode, Filesystem)
+METHOD_IMPL(setFilesystemMountedOnNode, Filesystem)
 );

@@ -7,6 +7,7 @@
 //
 
 #include "RamFS.h"
+#include "Lock.h"
 
 #define kMaxFilenameLength  32
 
@@ -24,8 +25,9 @@ typedef struct _DirectoryEntry {
 ////////////////////////////////////////////////////////////////////////////////
 
 OPEN_CLASS_WITH_REF(RamFS_Directory, Inode,
-    InodeRef _Nullable _Weak    parent; // parent directory; NULL if this is the root node
+    InodeRef _Nullable _Weak    parent;             // Parent directory; NULL if this is the root node
     DirectoryHeader             header;
+    FilesystemId                mountedFileSys;     // (Directory) The ID of the filesystem mounted on top of this directory; 0 if this directory is not a mount point
 );
 typedef struct _RamFS_DirectoryMethodTable {
     InodeMethodTable    super;
@@ -40,6 +42,8 @@ static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, InodeId id, RamFS_
     try(Inode_AbstractCreate(&kRamFS_DirectoryClass, kInode_Directory, id, Filesystem_GetId(self), permissions, user, (InodeRef*)&pDir));
     try(GenericArray_Init(&pDir->header, sizeof(DirectoryEntry), 4));
     pDir->parent = (InodeRef) pParentDir;
+    pDir->mountedFileSys = 0;
+
     *pOutDir = pDir;
     return EOK;
 
@@ -163,6 +167,7 @@ OVERRIDE_METHOD_IMPL(deinit, RamFS_Directory, Object)
 
 CLASS_IVARS(RamFS, Filesystem,
     RamFS_DirectoryRef _Nonnull root;
+    Lock                        lock;           // Shared between filesystem proper and inodes
     Bool                        isReadOnly;     // true if mounted read-only; false if mounted read-write
 );
 
@@ -176,6 +181,7 @@ ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileS
     RamFSRef self;
 
     try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
+    Lock_Init(&self->lock);
 
     FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
@@ -194,12 +200,15 @@ void RamFS_deinit(RamFSRef _Nonnull self)
 {
     Object_Release(self->root);
     self->root = NULL;
+    Lock_Deinit(&self->lock);
 }
 
 // Invoked when an instance of this file system is mounted.
 ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
 {
     decl_try_err();
+
+    Lock_Lock(&self->lock);
     const User user = Inode_GetUser((InodeRef) self->root);
     const FilePermissions dirPerms = Inode_GetFilePermissions(self->root);
 
@@ -223,10 +232,12 @@ ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, By
     try(DirectoryNode_AddEntry(pUsersDir, "Tester", (InodeRef)pUsersTesterDir));
     Object_Release(pUsersTesterDir);
     // XXX for now (testing)
+    Lock_Unlock(&self->lock);
 
     return EOK;
 
 catch:
+    Lock_Unlock(&self->lock);
     return err;
 }
 
@@ -250,6 +261,7 @@ static ErrorCode RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonn
 // and NULL if the given node is the root node of the namespace. 
 InodeRef _Nonnull RamFS_copyRootNode(RamFSRef _Nonnull self)
 {
+    // Our root node is a constant field, no need for locking
     return Object_RetainAs(self->root, Inode);
 }
 
@@ -257,12 +269,16 @@ InodeRef _Nonnull RamFS_copyRootNode(RamFSRef _Nonnull self)
 // and NULL if the given node is the root node of the namespace. 
 ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    ErrorCode err = RamFS_CheckAccess_Locked(self, pNode, user, kFilePermission_Execute);
-    if (err != EOK) {
-        return err;
-    }
+    decl_try_err();
 
-    return DirectoryNode_CopyParent((RamFS_DirectoryRef) pNode, pOutNode);
+    Lock_Lock(&self->lock);
+    err = RamFS_CheckAccess_Locked(self, pNode, user, kFilePermission_Execute);
+    if (err == EOK) {
+        err = DirectoryNode_CopyParent((RamFS_DirectoryRef) pNode, pOutNode);
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
 }
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
@@ -271,23 +287,54 @@ ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode
 // "." nor "..".
 ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    ErrorCode err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute);
-    if (err != EOK) {
-        return err;
-    }
+    decl_try_err();
 
-    return DirectoryNode_CopyNodeForName((RamFS_DirectoryRef) pParentNode, pComponent, pOutNode);
+    Lock_Lock(&self->lock);
+    err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute);
+    if (err == EOK) {
+        err = DirectoryNode_CopyNodeForName((RamFS_DirectoryRef) pParentNode, pComponent, pOutNode);
+    }
+    Lock_Unlock(&self->lock);
+    
+    return err;
 }
 
 ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, User user, MutablePathComponent* _Nonnull pComponent)
 {
-    ErrorCode err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute);
-    if (err != EOK) {
-        return err;
-    }
+    decl_try_err();
 
-    return DirectoryNode_GetNameOfNode((RamFS_DirectoryRef) pParentNode, pNode, pComponent);
+    Lock_Lock(&self->lock);
+    err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute);
+    if (err == EOK) {
+        err = DirectoryNode_GetNameOfNode((RamFS_DirectoryRef) pParentNode, pNode, pComponent);
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
 }
+
+// If the node is a directory and another file system is mounted at this directory,
+// then this function returns the filesystem ID of the mounted directory; otherwise
+// 0 is returned.
+FilesystemId RamFS_getFilesystemMountedOnNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode)
+{
+    Lock_Lock(&self->lock);
+    const FilesystemId fsid = (Inode_IsDirectory(pNode)) ? ((RamFS_DirectoryRef)pNode)->mountedFileSys : 0;
+    Lock_Unlock(&self->lock);
+
+    return fsid;
+}
+
+// Marks the given directory node as a mount point at which the filesystem
+// with the given filesystem ID is mounted. Converts the node back into a
+// regular directory node if the give filesystem ID is 0.
+void RamFS_setFilesystemMountedOnNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, FilesystemId fsid)
+{
+    Lock_Lock(&self->lock);
+    ((RamFS_DirectoryRef)pNode)->mountedFileSys = fsid;
+    Lock_Unlock(&self->lock);
+}
+
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
@@ -296,4 +343,6 @@ OVERRIDE_METHOD_IMPL(copyRootNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyParentOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(getFilesystemMountedOnNode, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(setFilesystemMountedOnNode, RamFS, Filesystem)
 );

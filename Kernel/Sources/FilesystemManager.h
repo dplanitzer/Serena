@@ -36,7 +36,9 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemM
 
 // Returns the node that mounts the filesystem with the given filesystem ID. Also
 // returns the filesystem that owns the mounting node. ENOENT and NULLs are
-// returned if the filesystem was never mounted or is no longer mounted.
+// returned if the filesystem was never mounted or is no longer mounted. EOK and
+// NULLs are returned if 'fsid' is the root filesystem (it has no parent file
+// system).
 extern ErrorCode FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(FilesystemManagerRef _Nonnull pManager, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode, FilesystemRef _Nullable * _Nonnull pOutFilesystem);
 
 // Mounts the given filesystem at the given node. The node must be a directory
@@ -45,6 +47,6 @@ extern ErrorCode FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(Fil
 extern ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull pDirNode);
 
 // Unmounts the given filesystem from the given directory.
-extern void FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull pDirNode);
+extern ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull pDirNode);
 
 #endif /* FilesystemManager_h */

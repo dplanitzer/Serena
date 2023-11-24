@@ -262,8 +262,8 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
 
     // Ask the current filesystem for the inode that is named by the tuple
     // (parent-inode, path-component)
-    InodeRef childNode;
-    const ErrorCode err = Filesystem_CopyNodeForName(pIter->fileSystem, pIter->inode, pComponent, user, &childNode);
+    InodeRef pChildNode;
+    const ErrorCode err = Filesystem_CopyNodeForName(pIter->fileSystem, pIter->inode, pComponent, user, &pChildNode);
     if (err != EOK) {
         return err;
     }
@@ -271,10 +271,10 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
 
     // Just return the node we looked up without changing the filesystem if the
     // node is not a mount point
-    const FilesystemId mountedFsId = Inode_GetMountedFilesystemId(childNode);
+    const FilesystemId mountedFsId = Filesystem_GetFilesystemMountedOnNode(pIter->fileSystem, pChildNode);
     if (mountedFsId == 0) {
         Object_Release(pIter->inode);
-        pIter->inode = childNode;
+        pIter->inode = pChildNode;
         return EOK;
     }
 
@@ -286,7 +286,7 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
         return ENOENT;
     }
 
-    Object_Release(childNode);
+    Object_Release(pChildNode);
     pIter->fsid = Filesystem_GetId(mountedFilesystem);
     Object_AssignMovingOwnership(&pIter->fileSystem, mountedFilesystem);
     Object_AssignMovingOwnership(&pIter->inode, Filesystem_CopyRootNode(mountedFilesystem));

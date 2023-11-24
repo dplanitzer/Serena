@@ -14,6 +14,11 @@
 CLASS_FORWARD(Filesystem);
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Inode
+////////////////////////////////////////////////////////////////////////////////
+
 enum {
     kFilePermission_Read = 0x04,
     kFilePermission_Write = 0x02,
@@ -57,26 +62,21 @@ OPEN_CLASS_WITH_REF(Inode, Object,
     User            user;
     InodeId         noid;   // Filesystem specific ID of the inode
     FilesystemId    fsid;   // Globally unique ID of the filesystem that owns this node
-    union {
-        FilesystemId    mountedFileSys;     // (Directory) The ID of the filesystem mounted on top of this directory; 0 if this directory is not a mount point
-    }               u;
 );
 typedef struct _InodeMethodTable {
     ObjectMethodTable   super;
 } InodeMethodTable;
 
 
+//
+// Only filesystem implementations should call the following functions. They do
+// not have any locking builtin. It is the job of the filesystem implementation
+// to add and use locking.
+//
+
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
 extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode);
-
-// Returns the type of the node.
-#define Inode_GetType(__self) \
-    ((InodeRef)__self)->type
-
-// Returns true if the node is a directory; false otherwise.
-#define Inode_IsDirectory(__self) \
-    (Inode_GetType(__self) == kInode_Directory)
 
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \
@@ -94,6 +94,25 @@ extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Fi
 #define Inode_GetGroupId(__self) \
     ((InodeRef)__self)->user.gid
 
+// Returns EOK if the given user has at least the permissions 'permission' to
+// access and/or manipulate the node; a suitable error code otherwise. The
+// 'permission' parameter represents a set of the permissions of a single
+// permission scope.
+extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
+
+
+//
+// The following functions may be used by any code and they are concurrency safe.
+//
+
+// Returns the type of the node.
+#define Inode_GetType(__self) \
+    ((InodeRef)__self)->type
+
+// Returns true if the node is a directory; false otherwise.
+#define Inode_IsDirectory(__self) \
+    (Inode_GetType(__self) == kInode_Directory)
+
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \
     ((InodeRef)__self)->noid
@@ -106,26 +125,13 @@ extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Fi
 // NULL if the filesystem isn't mounted.
 extern FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self);
 
-// If the node is a directory and another file system is mounted at this directory,
-// then this function returns the filesystem ID of the mounted directory; otherwise
-// 0 is returned.
-extern FilesystemId Inode_GetMountedFilesystemId(InodeRef _Nonnull self);
-
-// Marks the given node as a mount point at which the filesystem with the given
-// filesystem ID is mounted. Converts the node back into a regular directory
-// node if the give filesystem ID is 0.
-extern void Inode_SetMountedFilesystemId(InodeRef _Nonnull self, FilesystemId fsid);
-
-// Returns EOK if the given user has at least the permissions 'permission' to
-// access and/or manipulate the node; a suitable error code otherwise. The
-// 'permission' parameter represents a set of the permissions of a single
-// permission scope.
-extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
-
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Path Component
 ////////////////////////////////////////////////////////////////////////////////
 
 // Describes a single component (name) of a path. A path is a sequence of path
@@ -147,13 +153,44 @@ typedef struct _MutablePathComponent {
 } MutablePathComponent;
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Filesystem
+////////////////////////////////////////////////////////////////////////////////
+
 // A file system stores Inodes. The Inodes may form a tree. This is an abstract
 // base  class that must be subclassed and fully implemented by a file system.
+//
+// Locking protocol
+//
+// A filesystem is responsible for implementing a locking protocol for the inodes
+// that it owns and manages. The filesystem implementor can implement any of the
+// following locking models:
+//
+// a) Single lock: one lock maintained by the filesystem object which protects
+//                 the filesystem proper state and all inodes manages by the
+//                 filesystem. This is the simplest and least efficient model.
+//
+// b) Fine-grained locking: the filesystem maintains separate locks for itself
+//                          and every single inode that it owns. Eg it adds a
+//                          lock to its Inode subclass and one lock to its
+//                          Filesystem subclass. Most complicated and efficient
+//                          model.
+//
+// c) Medium-grained locking: the filesystem maintains a set of locks for its
+//                            inodes. It partitions its inodes (eg by inode id)
+//                            and assigns one lock to each partition. Less resource
+//                            use compared to (b).
+//
 OPEN_CLASS(Filesystem, IOResource,
     FilesystemId        fsid;
 );
 typedef struct _FilesystemMethodTable {
     IOResourceMethodTable   super;
+
+    //
+    // Mounting/Unmounting
+    //
 
     // Invoked when an instance of this file system is mounted.
     ErrorCode (*onMount)(void* _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize);
@@ -164,6 +201,11 @@ typedef struct _FilesystemMethodTable {
     // successfully unmount. Unmount errors are ignored and the file system manager
     // will complete the unmount in any case.
     ErrorCode (*onUnmount)(void* _Nonnull self);
+
+
+    //
+    // Filesystem Navigation
+    //
 
     // Returns a strong reference to the root directory node of the filesystem.
     InodeRef _Nonnull (*copyRootNode)(void* _Nonnull self);
@@ -187,7 +229,23 @@ typedef struct _FilesystemMethodTable {
     // function is expected to return EOK if the parent node contains 'pNode'
     // and ENOENT otherwise. If the name of 'pNode' as stored in the file system
     // is > the capacity of the path component, then ERANGE should be returned.
-    ErrorCode (*getNameOfNode)(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, User user, MutablePathComponent* _Nonnull pComponent);
+    ErrorCode (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, User user, MutablePathComponent* _Nonnull pComponent);
+
+
+    //
+    // Get/Set Inode Attributes
+    //
+
+    // If the node is a directory and another file system is mounted at this directory,
+    // then this function returns the filesystem ID of the mounted directory; otherwise
+    // 0 is returned.
+    FilesystemId (*getFilesystemMountedOnNode)(void* _Nonnull self, InodeRef _Nonnull pNode);
+
+    // Marks the given directory node as a mount point at which the filesystem
+    // with the given filesystem ID is mounted. Converts the node back into a
+    // regular directory node if the give filesystem ID is 0.
+    void (*setFilesystemMountedOnNode)(void* _Nonnull self, InodeRef _Nonnull pNode, FilesystemId fsid);
+
 } FilesystemMethodTable;
 
 
@@ -218,5 +276,11 @@ Object_InvokeN(copyNodeForName, Filesystem, __self, __pParentNode, __pComponent,
 
 #define Filesystem_GetNameOfNode(__self, __pParentNode, __pNode, __user, __pComponent) \
 Object_InvokeN(getNameOfNode, Filesystem, __self, __pParentNode, __pNode, __user, __pComponent)
+
+#define Filesystem_GetFilesystemMountedOnNode(__self, __pNode) \
+Object_InvokeN(getFilesystemMountedOnNode, Filesystem, __self, __pNode)
+
+#define Filesystem_SetFilesystemMountedOnNode(__self, __pNode, __fsid) \
+Object_InvokeN(setFilesystemMountedOnNode, Filesystem, __self, __pNode, __fsid)
 
 #endif /* Filesystem_h */
