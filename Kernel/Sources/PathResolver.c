@@ -88,10 +88,7 @@ ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, 
 
 
     // Remember the new inode as our root directory
-    if (pResolver->rootDirectory != pNode) {
-        Object_Release(pResolver->rootDirectory);
-        pResolver->rootDirectory = pNode;
-    }
+    Object_AssignMovingOwnership(&pResolver->rootDirectory, pNode);
 
     return EOK;
 
@@ -177,10 +174,7 @@ ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
 
 
     // Remember the new inode as our root directory
-    if (pResolver->currentWorkingDirectory != pNode) {
-        Object_Release(pResolver->currentWorkingDirectory);
-        pResolver->currentWorkingDirectory = pNode;
-    }
+    Object_AssignMovingOwnership(&pResolver->currentWorkingDirectory, pNode);
 
     return EOK;
 
@@ -239,10 +233,8 @@ static ErrorCode PathResolver_UpdateIteratorWithParentNode(PathResolverRef _Nonn
         return err;
     }
 
-    Object_Release(pIter->inode);
-    pIter->inode = parentNode;
-    Object_Release(pIter->fileSystem);
-    pIter->fileSystem = pMountingFilesystem;
+    Object_AssignMovingOwnership(&pIter->inode, parentNode);
+    Object_AssignMovingOwnership(&pIter->fileSystem, pMountingFilesystem);
     pIter->fsid = Filesystem_GetId(pMountingFilesystem);
 
     return EOK;
@@ -295,11 +287,9 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
     }
 
     Object_Release(childNode);
-    Object_Release(pIter->inode);
-    pIter->inode = Filesystem_CopyRootNode(mountedFilesystem);
-    Object_Release(pIter->fileSystem);
-    pIter->fileSystem = mountedFilesystem;
     pIter->fsid = Filesystem_GetId(mountedFilesystem);
+    Object_AssignMovingOwnership(&pIter->fileSystem, mountedFilesystem);
+    Object_AssignMovingOwnership(&pIter->inode, Filesystem_CopyRootNode(mountedFilesystem));
 
     return EOK;
 }

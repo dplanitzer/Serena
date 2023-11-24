@@ -195,6 +195,7 @@ static inline ObjectRef _Nonnull _Object_Retain(ObjectRef _Nonnull self)
 #define Object_RetainAs(__self, __classType) \
     ((__classType##Ref) _Object_Retain((ObjectRef) __self))
 
+
 // Releases a strong reference on the given object. Deallocates the object when
 // the reference count transitions from 1 to 0. Invokes the deinit method on
 // the object if the object should be deallocated.
@@ -205,6 +206,26 @@ extern void _Object_Release(ObjectRef _Nullable self);
 
 #define Object_GetClass(__self)\
     ((Class*)(((ObjectRef)(__self))->clazz))
+
+
+// Assigns the object reference 'pNewObject' to 'pOldObject' by retaining
+// 'pNewObject' and releasing 'pOldObject' in the correct order.
+extern void _Object_Assign(ObjectRef _Nullable * _Nonnull pOldObject, ObjectRef _Nullable pNewObject);
+
+#define Object_Assign(__pOldObject, __pNewObject) \
+    _Object_Assign((ObjectRef*)__pOldObject, (ObjectRef)__pNewObject)
+
+
+// Assigns 'pNewObject' to the location that holds 'pOldObject' and moves ownership
+// of 'pNewObject' from the owner to the location that holds 'pOldObject'. What
+// this means is that this function expects that 'pNewObject' is +1, it releases
+// 'pOldObject' and stores 'pNewObject' in 'pOldObject'. If both storage locations
+// point to the same object then it releases 'pNewObject'. Once this function
+// returns 'pOldObject' is properly updated and at +1 while 'pNewObject' is at +0.
+extern void _Object_AssignMovingOwnership(ObjectRef _Nullable * _Nonnull pOldObject, ObjectRef _Nullable pNewObject);
+
+#define Object_AssignMovingOwnership(__pOldObject, __pNewObject) \
+    _Object_AssignMovingOwnership((ObjectRef*)__pOldObject, (ObjectRef)__pNewObject)
 
 
 // Returns true if the given object is an instance of the given class or one of
