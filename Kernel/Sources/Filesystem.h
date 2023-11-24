@@ -55,6 +55,8 @@ typedef enum _InodeType {
 
 // An Inode represents the meta information of a file or directory. This is an
 // abstract class that must be subclassed and fully implemented by a file system.
+// See the description of the Filesystem class to learn about how locking for
+// Inodes works.
 OPEN_CLASS_WITH_REF(Inode, Object,
     Int8            type;
     UInt8           flags;
@@ -161,6 +163,13 @@ typedef struct _MutablePathComponent {
 // A file system stores Inodes. The Inodes may form a tree. This is an abstract
 // base  class that must be subclassed and fully implemented by a file system.
 //
+// Inode state
+//
+// It is the responsibility of the filesystem to provide the required functionality
+// to modify the state of inodes and doing it in a way that preserves consistency
+// in the face on concurrency. Thus it is the job of the filesystem to implement
+// and apply a locking model for inodes. See "Locking protocol" below.
+// 
 // Locking protocol
 //
 // A filesystem is responsible for implementing a locking protocol for the inodes

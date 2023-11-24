@@ -192,6 +192,9 @@ ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, File
     const Mountpoint* pDirNodeMount = FilesystemManager_GetMountpointForFilesystemId_Locked(pManager, mountedOnFsid);
 
     if (pMount) {
+        // The error returned from OnUnmount is purely advisory but will not stop the unmount from completing
+        err = Filesystem_OnUnmount(pMount->fileSystem);
+
         if (pDirNodeMount) {
             Filesystem_SetFilesystemMountedOnNode(pDirNodeMount->fileSystem, pDirNode, 0);
         }
@@ -204,9 +207,6 @@ ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, File
         pMount->mountedAtNode = NULL;
         kfree(pMount);
     }
-
-    Lock_Unlock(&pManager->lock);
-    return EOK;
 
 catch:
     Lock_Unlock(&pManager->lock);
