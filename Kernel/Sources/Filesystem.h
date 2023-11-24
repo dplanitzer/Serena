@@ -54,8 +54,7 @@ OPEN_CLASS_WITH_REF(Inode, Object,
     Int8            type;
     UInt8           flags;
     FilePermissions permissions;
-    UserId          uid;
-    GroupId         gid;
+    User            user;
     InodeId         noid;   // Filesystem specific ID of the inode
     FilesystemId    fsid;   // Globally unique ID of the filesystem that owns this node
     union {
@@ -84,15 +83,16 @@ extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Fi
     ((InodeRef)__self)->permissions
 
 // Returns the user of the node.
-extern User Inode_GetUser(InodeRef _Nonnull self);
+#define Inode_GetUser(__self) \
+    ((InodeRef)__self)->user
 
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
-    ((InodeRef)__self)->uid
+    ((InodeRef)__self)->user.uid
 
 // Returns the group ID of the node.
 #define Inode_GetGroupId(__self) \
-    ((InodeRef)__self)->gid
+    ((InodeRef)__self)->user.gid
 
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \

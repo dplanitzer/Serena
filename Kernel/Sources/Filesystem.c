@@ -22,8 +22,7 @@ ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Filesyste
     try(_Object_Create(pClass, 0, (ObjectRef*)&pNode));
     pNode->type = type;
     pNode->permissions = permissions;
-    pNode->uid = user.uid;
-    pNode->gid = user.gid;
+    pNode->user = user;
     pNode->noid = id;
     pNode->fsid = fsid;
     pNode->u.mountedFileSys = 0;
@@ -34,16 +33,6 @@ ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Filesyste
 catch:
     *pOutNode = NULL;
     return err;
-}
-
-// Returns the user of the node.
-User Inode_GetUser(InodeRef _Nonnull self)
-{
-    User user;
-
-    user.uid = self->uid;
-    user.gid = self->gid;
-    return user;
 }
 
 // Returns a strong reference to the filesystem that owns the given note. Returns
