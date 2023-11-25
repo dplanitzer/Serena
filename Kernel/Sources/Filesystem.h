@@ -30,8 +30,8 @@ enum {
     kFilePermissionScope_Group = 8,
     kFilePermissionScope_User = 0,
 
-    kFilePermissionScope_Mask = 0x00ff,
-    kFilePermissionScope_BitWidth = 8
+    kFilePermissionScope_Mask = 0x07,
+    kFilePermissionScope_BitWidth = 3
 };
 
 #define FilePermissions_Make(__other, __group, __user) \
@@ -39,6 +39,9 @@ enum {
 | (((__group) & kFilePermissionScope_Mask) << kFilePermissionScope_Group) \
 | (((__user) & kFilePermissionScope_Mask) << kFilePermissionScope_User)
 
+#define FilePermissions_MakeFromOctal(__3_x_3_octal) \
+    (__3_x_3_octal)
+    
 #define FilePermissions_Get(__permissions, __scope) \
 (((__permissions) >> (__scope)) & kFilePermissionScope_Mask)
 
