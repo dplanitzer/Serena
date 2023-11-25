@@ -40,9 +40,11 @@
 #define ENAMETOOLONG    27
 #define EACCESS     28
 #define EROFS       29
+#define ENOSPC      30
+#define EEXIST      31
 
 #define __EFIRST    1
-#define __ELAST     29
+#define __ELAST     31
 
 typedef int __errno_t;
 

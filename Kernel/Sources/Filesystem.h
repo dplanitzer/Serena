@@ -26,18 +26,19 @@ enum {
 };
 
 enum {
-    kFilePermissionScope_Other = 16,
-    kFilePermissionScope_Group = 8,
-    kFilePermissionScope_User = 0,
+    kFilePermissionScope_BitWidth = 3,
+
+    kFilePermissionScope_User = 2*kFilePermissionScope_BitWidth,
+    kFilePermissionScope_Group = kFilePermissionScope_BitWidth,
+    kFilePermissionScope_Other = 0,
 
     kFilePermissionScope_Mask = 0x07,
-    kFilePermissionScope_BitWidth = 3
 };
 
-#define FilePermissions_Make(__other, __group, __user) \
-  (((__other) & kFilePermissionScope_Mask) << kFilePermissionScope_Other) \
+#define FilePermissions_Make(__user, __group, __other) \
+  (((__user) & kFilePermissionScope_Mask) << kFilePermissionScope_User) \
 | (((__group) & kFilePermissionScope_Mask) << kFilePermissionScope_Group) \
-| (((__user) & kFilePermissionScope_Mask) << kFilePermissionScope_User)
+| (((__other) & kFilePermissionScope_Mask) << kFilePermissionScope_Other)
 
 #define FilePermissions_MakeFromOctal(__3_x_3_octal) \
     (__3_x_3_octal)
@@ -148,6 +149,10 @@ typedef struct _PathComponent {
     ByteCount                   count;
 } PathComponent;
 
+// Initializes a path component from a NUL-terminated string
+extern PathComponent PathComponent_MakeFromCString(const Character* _Nonnull pCString);
+
+
 // Mutable version of PathComponent. 'count' must be set on return to the actual
 // length of the generated/edited path component. 'capacity' is the maximum length
 // that the path component may take on.
@@ -232,7 +237,7 @@ typedef struct _FilesystemMethodTable {
     // function will always only be called with proper node names. Eg never with
     // "." nor "..". If the path component name is longer than what is supported
     // by the file system, ENAMETOOLONG should be returned.
-    ErrorCode (*copyNodeForName)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode);
+    ErrorCode (*copyNodeForName)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Returns the name of the node 'pNode' which a child of the directory node
     // 'pParentNode'. 'pNode' may be of any type. The name is returned in the
@@ -257,6 +262,15 @@ typedef struct _FilesystemMethodTable {
     // with the given filesystem ID is mounted. Converts the node back into a
     // regular directory node if the give filesystem ID is 0.
     void (*setFilesystemMountedOnNode)(void* _Nonnull self, InodeRef _Nonnull pNode, FilesystemId fsid);
+
+
+    //
+    // Filesystem Operations
+    //
+
+    // Creates an empty directory as a child of the given directory node and with
+    // the given name, user and file permissions
+    ErrorCode (*createDirectory)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions);
 
 } FilesystemMethodTable;
 
@@ -294,5 +308,8 @@ Object_InvokeN(getFilesystemMountedOnNode, Filesystem, __self, __pNode)
 
 #define Filesystem_SetFilesystemMountedOnNode(__self, __pNode, __fsid) \
 Object_InvokeN(setFilesystemMountedOnNode, Filesystem, __self, __pNode, __fsid)
+
+#define Filesystem_CreateDirectory(__self, __pParentNode, __pName, __user, __permissions) \
+Object_InvokeN(createDirectory, Filesystem, __self, __pParentNode, __pName, __user, __permissions)
 
 #endif /* Filesystem_h */

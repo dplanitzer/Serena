@@ -57,13 +57,13 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
     FilePermissions reqPerms = 0;
 
     if (Inode_GetUserId(self) == user.uid) {
-        reqPerms = FilePermissions_Make(0, 0, permission);
+        reqPerms = FilePermissions_Make(permission, 0, 0);
     }
     else if (Inode_GetGroupId(self) == user.gid) {
         reqPerms = FilePermissions_Make(0, permission, 0);
     }
     else {
-        reqPerms = FilePermissions_Make(permission, 0, 0);
+        reqPerms = FilePermissions_Make(0, 0, permission);
     }
 
     if ((Inode_GetFilePermissions(self) & reqPerms) == reqPerms) {
@@ -86,6 +86,22 @@ void Inode_deinit(InodeRef _Nonnull self)
 CLASS_METHODS(Inode, Object,
 OVERRIDE_METHOD_IMPL(deinit, Inode, Object)
 );
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Path Component
+////////////////////////////////////////////////////////////////////////////////
+
+// Initializes a path component from a NUL-terminated string
+PathComponent PathComponent_MakeFromCString(const Character* _Nonnull pCString)
+{
+    PathComponent pc;
+
+    pc.name = pCString;
+    pc.count = String_Length(pCString);
+    return pc;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -160,7 +176,7 @@ ErrorCode Filesystem_copyParentOfNode(FilesystemRef _Nonnull self, InodeRef _Non
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
 // function will always only be called with proper node names. Eg never with
 // "." nor "..".
-ErrorCode Filesystem_copyNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Filesystem_copyNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
     return ENOENT;
@@ -187,6 +203,13 @@ void Filesystem_setFilesystemMountedOnNode(FilesystemRef _Nonnull self, InodeRef
 {
 }
 
+// Creates an empty directory as a child of the given directory node and with
+// the given name, user and file permissions
+ErrorCode Filesystem_createDirectory(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions)
+{
+    return EACCESS;
+}
+
 CLASS_METHODS(Filesystem, IOResource,
 METHOD_IMPL(onMount, Filesystem)
 METHOD_IMPL(onUnmount, Filesystem)
@@ -196,4 +219,5 @@ METHOD_IMPL(copyNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
 METHOD_IMPL(getFilesystemMountedOnNode, Filesystem)
 METHOD_IMPL(setFilesystemMountedOnNode, Filesystem)
+METHOD_IMPL(createDirectory, Filesystem)
 );

@@ -54,7 +54,7 @@ CLASS_IVARS(Process, Object,
 
     // Filesystems/Namespace
     PathResolver                pathResolver;
-    FilePermissions             fileCreationMask;   // Mask of file permissions that should be accepted when a user tries to create a file system object
+    FilePermissions             fileCreationMask;   // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
     
     // User identity
     User                        realUser;       // User identity inherited from the parent process / set at spawn time

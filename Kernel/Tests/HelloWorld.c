@@ -129,11 +129,25 @@ static void chdir(const char* path)
     }
 }
 
+static void _mkdir(const char* path)
+{
+    const errno_t err = mkdir(path, 0777);
+    if (err != 0) {
+        printf("mkdir error: %s\n", strerror(err));
+    }
+}
+
 void app_main(int argc, char *argv[])
 {
     printf("File I/O\n\n");
-    printf("uid: %ld\n\n", getuid());
+    printf("uid: %ld\n", getuid());
+    printf("umask: 0%o\n\n", getumask());
 
+    _mkdir("/Users");
+    _mkdir("/Users/Admin");
+    _mkdir("/Users/Tester");
+
+//while(true) {
     pwd();
     chdir("/Users");
     pwd();
@@ -147,6 +161,7 @@ void app_main(int argc, char *argv[])
     pwd();
     chdir("../Tester");
     pwd();
+//}
 
     sleep(200);
 }

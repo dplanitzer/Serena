@@ -30,6 +30,7 @@
     xref __SYSCALL_getuid
     xref __SYSCALL_getumask
     xref __SYSCALL_setumask
+    xref __SYSCALL_mkdir
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -55,6 +56,7 @@ syscall_table:
     dc.l __SYSCALL_getuid
     dc.l __SYSCALL_getumask
     dc.l __SYSCALL_setumask
+    dc.l __SYSCALL_mkdir
 
 
 ;-------------------------------------------------------------------------------
@@ -85,7 +87,7 @@ syscall_table:
 ;
 ; The system call returns the error code in d0.
 ;
-; There are a couple advantages to this admitently unusual system call ABI:
+; There are a couple advantages to this admittedly unusual system call ABI:
 ; - the kernel does not have to save d0 since it holds the return value
 ; - it gives the user space more flexibility:
 ; -- user space can either implement a __syscall() subroutine or inline the system

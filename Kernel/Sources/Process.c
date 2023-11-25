@@ -38,7 +38,7 @@ ErrorCode RootProcess_Create(InodeRef _Nonnull pRootDir, ProcessRef _Nullable * 
 {
     User user = {kRootUserId, kRootGroupId};
 
-    return Process_Create(1, user, pRootDir, pRootDir, FilePermissions_MakeFromOctal(045) /* 022 umask */, pOutProc);
+    return Process_Create(1, user, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc);
 }
 
 // Loads an executable from the given executable file into the process address
@@ -436,7 +436,7 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    const FilePermissions childUMask = ((pArgs->options & SPAWN_OVERRIDE_UMASK) != 0) ? FileCreationMaskFromUMask(pArgs->umask) : pProc->fileCreationMask;
+    const FilePermissions childUMask = ((pArgs->options & SPAWN_OVERRIDE_UMASK) != 0) ? (pArgs->umask & 0777) : pProc->fileCreationMask;
     try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, pProc->fileCreationMask, &pChildProc));
 
 
@@ -807,4 +807,29 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask
     Lock_Lock(&pProc->lock);
     pProc->fileCreationMask = mask & 0777;
     Lock_Unlock(&pProc->lock);
+}
+
+// Creates a new directory. 'permissions' are the file permissions that should be
+// assigned to the new directory (modulo the file creation mask).
+ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* pPath, FilePermissions permissions)
+{
+    decl_try_err();
+    PathResolverResult r;
+
+    Lock_Lock(&pProc->lock);
+
+    err = PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOrParent, pPath, pProc->realUser, &r);
+    if (err == ENOENT && r.inode) {
+        // Target does not exist but the parent directory does exist, create the target
+        const PathComponent pc = PathComponent_MakeFromCString(r.pathSuffix);
+        err = Filesystem_CreateDirectory(r.fileSystem, r.inode, &pc, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
+    }
+    else if (err == EOK) {
+        // Directory or file of the given name exists, treat it as an error
+        err = EEXIST;
+    }
+
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
 }

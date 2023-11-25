@@ -129,16 +129,14 @@ catch:
     return err;
 }
 
-static ErrorCode DirectoryNode_AddEntry(RamFS_DirectoryRef _Nonnull self, const Character* _Nonnull pFilename, InodeRef _Nonnull pChildNode)
+static ErrorCode DirectoryNode_AddEntry(RamFS_DirectoryRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pChildNode)
 {
-    const ByteCount nameLen = String_Length(pFilename);
-
-    if (nameLen > kMaxFilenameLength) {
+    if (pName->count > kMaxFilenameLength) {
         return ENAMETOOLONG;
     }
 
     DirectoryEntry entry;
-    Character* p = String_CopyUpTo(entry.filename, pFilename, kMaxFilenameLength);
+    Character* p = String_CopyUpTo(entry.filename, pName->name, pName->count);
     while (p < &entry.filename[kMaxFilenameLength]) *p++ = '\0';
     entry.node = Object_RetainAs(pChildNode, Inode);
 
@@ -168,8 +166,12 @@ OVERRIDE_METHOD_IMPL(deinit, RamFS_Directory, Object)
 CLASS_IVARS(RamFS, Filesystem,
     RamFS_DirectoryRef _Nonnull root;
     Lock                        lock;           // Shared between filesystem proper and inodes
+    Int                         nextAvailableInodeId;
     Bool                        isReadOnly;     // true if mounted read-only; false if mounted read-write
 );
+
+static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);
+
 
 
 // Creates an instance of RAM-FS. RAM-FS is a volatile file system that does not
@@ -182,11 +184,12 @@ ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileS
 
     try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
     Lock_Init(&self->lock);
+    self->nextAvailableInodeId = 0;
 
     FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
 
-    try(DirectoryNode_Create(self, 0, NULL, dirPerms, rootDirUser, &self->root));
+    try(DirectoryNode_Create(self, RamFS_GetNextAvailableInodeId_Locked(self), NULL, dirPerms, rootDirUser, &self->root));
 
     *pOutFileSys = self;
     return EOK;
@@ -203,42 +206,15 @@ void RamFS_deinit(RamFSRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
+static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self)
+{
+    return (InodeId) self->nextAvailableInodeId++;
+}
+
 // Invoked when an instance of this file system is mounted.
 ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    const User user = Inode_GetUser((InodeRef) self->root);
-    const FilePermissions dirPerms = Inode_GetFilePermissions(self->root);
-
-    // XXX for now (testing)
-    RamFS_DirectoryRef pSystemDir;
-    RamFS_DirectoryRef pUsersDir;
-    RamFS_DirectoryRef pUsersAdminDir;
-    RamFS_DirectoryRef pUsersTesterDir;
-
-    try(DirectoryNode_Create(self, 1, self->root, dirPerms, user, &pSystemDir));
-    try(DirectoryNode_Create(self, 2, self->root, dirPerms, user, &pUsersDir));
-    try(DirectoryNode_Create(self, 3, pUsersDir, dirPerms, user, &pUsersAdminDir));
-    try(DirectoryNode_Create(self, 4, pUsersDir, dirPerms, user, &pUsersTesterDir));
-
-    try(DirectoryNode_AddEntry(self->root, "System", (InodeRef)pSystemDir));
-    Object_Release(pSystemDir);
-    try(DirectoryNode_AddEntry(self->root, "Users", (InodeRef)pUsersDir));
-    Object_Release(pUsersDir);
-    try(DirectoryNode_AddEntry(pUsersDir, "Admin", (InodeRef)pUsersAdminDir));
-    Object_Release(pUsersAdminDir);
-    try(DirectoryNode_AddEntry(pUsersDir, "Tester", (InodeRef)pUsersTesterDir));
-    Object_Release(pUsersTesterDir);
-    // XXX for now (testing)
-    Lock_Unlock(&self->lock);
-
     return EOK;
-
-catch:
-    Lock_Unlock(&self->lock);
-    return err;
 }
 
 // Checks whether the given user should be granted access to the given node based
@@ -285,7 +261,7 @@ ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
 // function will always only be called with proper node names. Eg never with
 // "." nor "..".
-ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
 
@@ -335,6 +311,35 @@ void RamFS_setFilesystemMountedOnNode(RamFSRef _Nonnull self, InodeRef _Nonnull 
     Lock_Unlock(&self->lock);
 }
 
+// Creates an empty directory as a child of the given directory node and with
+// the given name, user and file permissions
+ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    RamFS_DirectoryRef pNewDir;
+
+    if (!Inode_IsDirectory(pParentNode)) {
+        throw(ENOTDIR);
+    }
+
+    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+    InodeRef pDummy;
+    if (DirectoryNode_CopyNodeForName((RamFS_DirectoryRef)pParentNode, pName, &pDummy) != ENOENT) {
+        Object_Release(pDummy);
+        throw(EEXIST);
+    }
+
+    try(DirectoryNode_Create(self, RamFS_GetNextAvailableInodeId_Locked(self), (RamFS_DirectoryRef)pParentNode, permissions, user, &pNewDir));
+    try(DirectoryNode_AddEntry((RamFS_DirectoryRef)pParentNode, pName, (InodeRef)pNewDir));
+
+catch:
+    Object_Release(pNewDir);
+    Lock_Unlock(&self->lock);
+    return err;
+}
+
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
@@ -345,4 +350,5 @@ OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFilesystemMountedOnNode, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
 );

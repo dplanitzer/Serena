@@ -41,7 +41,9 @@ char *strerror(int err_no)
         /*ENOTDIR*/         "Not a directory",
         /*ENAMETOOLONG*/    "Name too long",
         /*EACCESS*/         "Insufficient permissions",
-        /*EROFS*/           "Read-only file system"
+        /*EROFS*/           "Read-only file system",
+        /*ENOSPC*/          "No space",
+        /*EEXIST*/          "File exists"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

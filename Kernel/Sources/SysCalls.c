@@ -136,6 +136,24 @@ catch:
 }
 
 
+struct SYS_mkdir_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+    UInt32                      mode;   // XXX User space passes UInt16, we need UInt32 because the C compiler for m68k does this kind of promotion
+};
+
+Int _SYSCALL_mkdir(const struct SYS_mkdir_args* _Nonnull pArgs)
+{
+    decl_try_err();
+
+    if (pArgs->path == NULL) {
+        return ENOTDIR;
+    }
+
+    return Process_CreateDirectory(Process_GetCurrent(), pArgs->path, (FilePermissions) pArgs->mode);
+}
+
+
 struct SYS_getcwd_args {
     Int                     scno;
     Character* _Nullable    buffer;
@@ -169,7 +187,7 @@ Int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
 
 Int _SYSCALL_getumask(void)
 {
-    return (Int) UMaskFromFileCreationMask(Process_GetFileCreationMask(Process_GetCurrent()));
+    return (Int) Process_GetFileCreationMask(Process_GetCurrent());
 }
 
 
@@ -180,7 +198,7 @@ struct SYS_setumask_args {
 
 Int _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)
 {
-    Process_SetFileCreationMask(Process_GetCurrent(), FileCreationMaskFromUMask(pArgs->mask));
+    Process_SetFileCreationMask(Process_GetCurrent(), pArgs->mask);
     return EOK;
 }
 

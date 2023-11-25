@@ -51,6 +51,8 @@ extern errno_t seek(int fd, off_t offset, off_t *newpos, int whence);
 
 extern errno_t close(int fd);
 
+extern errno_t mkdir(const char* path, mode_t mode);
+
 
 extern errno_t getcwd(char* buffer, size_t bufferSize);
 extern errno_t setcwd(const char* path);

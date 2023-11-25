@@ -24,14 +24,32 @@ typedef struct _PathResolver {
 typedef struct _PathResolver* PathResolverRef;
 
 
+// The path resolution mode
+typedef enum _PathResolutionMode {
+    // Return just the inode named by the path. This is the target node of the
+    // path. An error and NULL is returned if no such node exists or if the node
+    // is not accessible.
+    kPathResolutionMode_TargetOnly,
+
+    // Returns the inode named by the path if it exists and the parent inode if
+    // the target inode does not exist but the parent inode does exist. Returns
+    // an error and NULL if the target inode is not accessible or the resolution
+    // fails for some other kind of error.
+    kPathResolutionMode_TargetOrParent,
+
+    // Similar to the TargetOrParent mode except that the lookup returns the
+    // ancestor node that is closest to the target node and that does exist.
+    // Otherwise behaves exactly like TargetOrParent mode.
+    kPathResolutionMode_TargetOrAncestor
+
+} PathResolutionMode;
+
 // The result of a path resolution operation.
 typedef struct _PathResolverResult {
-    InodeRef _Nullable      ancestorNode;       // Existing and accessible ancestor node closest to the targetNode
-    FilesystemRef _Nullable ancestorFilesystem; // The filesystem of the ancestor node
+    InodeRef _Nullable          inode;          // The inode named by the path if it exists and the parent inode otherwise, if requested
+    FilesystemRef _Nullable     fileSystem;     // The filesystem that owns the returned inode
 
-    InodeRef _Nullable      targetNode;         // Node named by the path, if it exists
-    FilesystemRef _Nullable targetFilesystem;   // Filesystem owned the node named by the path, if it exists
-    ErrorCode               error;              // EOK if the target node exists and is accessible; suitable error code otherwise
+    const Character* _Nonnull   pathSuffix;     // Points to the first character of the path component following the parent or ancestor
 } PathResolverResult;
 
 
@@ -47,14 +65,6 @@ extern ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pRes
 extern ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize);
 extern ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath);
 
-enum {
-    // Return information about the node and filesystem that is the closest existing
-    // and accessible ancestor node of the path's target node. Usually that is the
-    // immediate parent node (directory) of the target node. It may however be a
-    // grandparent if the target node and neither it's parent exists or is accessible.
-    kPathResolutionOption_IncludeAncestor = 1
-};
-
-extern PathResolverResult PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, UInt options, User user);
+extern ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const Character* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
 
 #endif /* PathResolver_h */

@@ -28,5 +28,6 @@
 #define SC_getuid               16  // uid_t getuid(void)
 #define SC_getumask             17  // mode_t getumask(void)
 #define SC_setumask             18  // void setumask(mode_t mask)
+#define SC_mkdir                19  // errno_t mkdir(const char* path, mode_t mode)
 
 #endif /* __SYSCALLS_H */
