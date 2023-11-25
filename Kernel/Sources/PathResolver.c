@@ -9,6 +9,35 @@
 #include "PathResolver.h"
 #include "FilesystemManager.h"
 
+static void PathResolverResult_Init(PathResolverResult* pResult)
+{
+    pResult->ancestorNode = NULL;
+    pResult->ancestorFilesystem = NULL;
+    pResult->targetNode = NULL;
+    pResult->targetFilesystem = NULL;
+    pResult->error = EOK;
+}
+
+void PathResolverResult_Deinit(PathResolverResult* pResult)
+{
+    Object_Release(pResult->ancestorNode);
+    pResult->ancestorNode = NULL;
+    Object_Release(pResult->ancestorFilesystem);
+    pResult->ancestorFilesystem = NULL;
+
+    Object_Release(pResult->targetNode);
+    pResult->targetNode = NULL;
+    Object_Release(pResult->targetFilesystem);
+    pResult->targetFilesystem = NULL;
+    pResult->error = EOK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: InodeIterator
+////////////////////////////////////////////////////////////////////////////////
+
 // Tracks our current position in the global filesystem
 typedef struct _InodeIterator {
     InodeRef _Nonnull       inode;
@@ -75,25 +104,28 @@ void PathResolver_Deinit(PathResolverRef _Nonnull pResolver)
 ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath)
 {
     decl_try_err();
-    InodeRef pNode;
 
     // Get the inode that represents the new directory
-    try(PathResolver_CopyNodeForPath(pResolver, pPath, user, &pNode));
+    PathResolverResult r = PathResolver_CopyNodeForPath(pResolver, pPath, 0, user);
+    if (r.error != EOK) {
+        throw(r.error);
+    }
 
 
     // Make sure that it is actually a directory
-    if (!Inode_IsDirectory(pNode)) {
+    if (!Inode_IsDirectory(r.targetNode)) {
         throw(ENOTDIR);
     }
 
 
     // Remember the new inode as our root directory
-    Object_AssignMovingOwnership(&pResolver->rootDirectory, pNode);
+    Object_Assign(&pResolver->rootDirectory, r.targetNode);
 
+    PathResolverResult_Deinit(&r);
     return EOK;
 
 catch:
-    Object_Release(pNode);
+    PathResolverResult_Deinit(&r);
     return err;
 }
 
@@ -161,24 +193,28 @@ catch:
 ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath)
 {
     decl_try_err();
-    InodeRef pNode;
 
     // Get the inode that represents the new directory
-    try(PathResolver_CopyNodeForPath(pResolver, pPath, user, &pNode));
+    PathResolverResult r = PathResolver_CopyNodeForPath(pResolver, pPath, 0, user);
+    if (r.error != EOK) {
+        throw(r.error);
+    }
 
 
     // Make sure that it is actually a directory
-    if (!Inode_IsDirectory(pNode)) {
+    if (!Inode_IsDirectory(r.targetNode)) {
         throw(ENOTDIR);
     }
 
 
     // Remember the new inode as our root directory
-    Object_AssignMovingOwnership(&pResolver->currentWorkingDirectory, pNode);
+    Object_Assign(&pResolver->currentWorkingDirectory, r.targetNode);
 
+    PathResolverResult_Deinit(&r);
     return EOK;
 
 catch:
+    PathResolverResult_Deinit(&r);
     return err;
 }
 
@@ -301,14 +337,18 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
 // which stands for 'the parent directory'. Note that this function does not allow
 // you to leave the subtree rotted by the root directory. Any attempt to go to a
 // parent of the root directory will send you back to the root directory.
-ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, User user, InodeRef _Nullable * _Nonnull pOutNode)
+PathResolverResult PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const Character* _Nonnull pPath, UInt options, User user)
 {
     decl_try_err();
     InodeIterator iter;
+    PathResolverResult r;
     Int pi = 0;
 
+    PathResolverResult_Init(&r);
+
     if (pPath[0] == '\0') {
-        return ENOENT;
+        r.error = ENOENT;
+        return r;
     }
 
 
@@ -356,24 +396,34 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, const
         pResolver->pathComponent.count = ni;
 
 
+        // Update the ancestor information if needed
+        if ((options & kPathResolutionOption_IncludeAncestor) != 0) {
+            Object_Assign(&r.ancestorNode, iter.inode);
+            Object_Assign(&r.ancestorFilesystem, iter.fileSystem);
+        }
+
+
         // Ask the current namespace for the inode that is named by the tuple
         // (parent-inode, path-component)
         try(PathResolver_UpdateIterator(pResolver, user, &iter, &pResolver->pathComponent));
 
 
         // We're done if we've reached the end of the path. Otherwise continue
-        // continue with the updated iterator
+        // with the updated iterator
         if (pPath[pi] == '\0') {
             break;
         }
     }
 
-    *pOutNode = Object_RetainAs(iter.inode, Inode);
-    InodeIterator_Deinit(&iter);
-    return EOK;
+    // Note that we move (ownership) of the target node & filesystem from the
+    // iterator to the result
+    r.targetNode = iter.inode;
+    r.targetFilesystem = iter.fileSystem;
+    r.error = EOK;
+    return r;
 
 catch:
     InodeIterator_Deinit(&iter);
-    *pOutNode = NULL;
-    return err;
+    r.error = err;
+    return r;
 }
