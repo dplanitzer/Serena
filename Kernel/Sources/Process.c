@@ -38,7 +38,7 @@ ErrorCode RootProcess_Create(InodeRef _Nonnull pRootDir, ProcessRef _Nullable * 
 {
     User user = {kRootUserId, kRootGroupId};
 
-    return Process_Create(1, user, pRootDir, pRootDir, pOutProc);
+    return Process_Create(1, user, pRootDir, pRootDir, FilePermissions_MakeFromOctal(045) /* 022 umask */, pOutProc);
 }
 
 // Loads an executable from the given executable file into the process address
@@ -58,7 +58,7 @@ ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
 
 
 
-ErrorCode Process_Create(Int ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc)
+ErrorCode Process_Create(Int ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
     ProcessRef pProc;
@@ -77,6 +77,7 @@ ErrorCode Process_Create(Int ppid, User user, InodeRef _Nonnull pRootDir, InodeR
     try(IntArray_Init(&pProc->childPids, 0));
 
     try(PathResolver_Init(&pProc->pathResolver, pRootDir, pCurDir));
+    pProc->fileCreationMask = fileCreationMask;
     pProc->realUser = user;
 
     List_Init(&pProc->tombstones);
@@ -435,7 +436,8 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, &pChildProc));
+    const FilePermissions childUMask = ((pArgs->options & SPAWN_OVERRIDE_UMASK) != 0) ? FileCreationMaskFromUMask(pArgs->umask) : pProc->fileCreationMask;
+    try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, pProc->fileCreationMask, &pChildProc));
 
 
     // Note that we do not lock the child process although we're reaching directly
@@ -786,4 +788,23 @@ ErrorCode Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, Char
     Lock_Unlock(&pProc->lock);
 
     return err;
+}
+
+// Returns the file creation mask of the receiver. Bits cleared in this mask
+// should be removed from the file permissions that user space sent to create a
+// file system object (note that this is the compliment of umask).
+FilePermissions Process_GetFileCreationMask(ProcessRef _Nonnull pProc)
+{
+    Lock_Lock(&pProc->lock);
+    const FilePermissions mask = pProc->fileCreationMask;
+    Lock_Unlock(&pProc->lock);
+    return mask;
+}
+
+// Sets the file creation mask of the receiver.
+void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask)
+{
+    Lock_Lock(&pProc->lock);
+    pProc->fileCreationMask = mask & 0777;
+    Lock_Unlock(&pProc->lock);
 }

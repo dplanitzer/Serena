@@ -23,6 +23,13 @@ typedef struct __spawn_arguments_t SpawnArguments;
 // The process termination status generated when a child process terminates.
 typedef struct __waitpid_result_t ProcessTerminationStatus;
 
+// Returns a file creation mask from the given umask
+#define FileCreationMaskFromUMask(__umask) \
+((FilePermissions)(~(__umask) & 0777))
+
+// Returns an umask from the given file creation mask
+#define UMaskFromFileCreationMask(__permissions) \
+((UInt16)(~(__permissions) & 0777))
 
 extern ProcessRef _Nonnull  gRootProcess;
 
@@ -119,5 +126,13 @@ extern ErrorCode Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pPro
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
 extern ErrorCode Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, Character* _Nonnull pBuffer, ByteCount bufferSize);
+
+// Returns the file creation mask of the receiver. Bits cleared in this mask
+// should be removed from the file permissions that user space sent to create a
+// file system object (note that this is the compliment of umask).
+extern FilePermissions Process_GetFileCreationMask(ProcessRef _Nonnull pProc);
+
+// Sets the file creation mask of the receiver.
+extern void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask);
 
 #endif /* Process_h */

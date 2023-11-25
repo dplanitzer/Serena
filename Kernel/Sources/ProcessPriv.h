@@ -54,6 +54,7 @@ CLASS_IVARS(Process, Object,
 
     // Filesystems/Namespace
     PathResolver                pathResolver;
+    FilePermissions             fileCreationMask;   // Mask of file permissions that should be accepted when a user tries to create a file system object
     
     // User identity
     User                        realUser;       // User identity inherited from the parent process / set at spawn time
@@ -73,7 +74,7 @@ CLASS_IVARS(Process, Object,
 );
 
 
-extern ErrorCode Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, ProcessRef _Nullable * _Nonnull pOutProc);
+extern ErrorCode Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull pProc);
 
 // Closes all registered I/O channels. Ignores any errors that may be returned

@@ -42,25 +42,29 @@ typedef struct __waitpid_result_t waitpid_result_t;
 #define NAME_MAX __PATH_COMPONENT_MAX
 
 
-int open(const char *path, int options);
+extern int open(const char *path, int options);
 
-ssize_t read(int fd, void *buffer, size_t nbytes);
-ssize_t write(int fd, const void *buffer, size_t nbytes);
+extern ssize_t read(int fd, void *buffer, size_t nbytes);
+extern ssize_t write(int fd, const void *buffer, size_t nbytes);
 
-errno_t seek(int fd, off_t offset, off_t *newpos, int whence);
+extern errno_t seek(int fd, off_t offset, off_t *newpos, int whence);
 
-errno_t close(int fd);
-
-
-errno_t setcwd(const char* path);
-errno_t getcwd(char* buffer, size_t bufferSize);
+extern errno_t close(int fd);
 
 
-pid_t getpid(void);
-pid_t getppid(void);
+extern errno_t getcwd(char* buffer, size_t bufferSize);
+extern errno_t setcwd(const char* path);
 
 
-uid_t getuid(void);
+extern mode_t getumask(void);
+extern void setumask(mode_t mask);
+
+
+extern pid_t getpid(void);
+extern pid_t getppid(void);
+
+
+extern uid_t getuid(void);
 
 
 extern errno_t spawnp(const spawn_arguments_t *args, pid_t *rpid);

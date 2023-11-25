@@ -26,5 +26,7 @@
 #define SC_getcwd               14  // errno_t getcwd(char* buffer, size_t bufferSize)
 #define SC_setcwd               15  // errno_t setcwd(const char* path)
 #define SC_getuid               16  // uid_t getuid(void)
+#define SC_getumask             17  // mode_t getumask(void)
+#define SC_setumask             18  // void setumask(mode_t mask)
 
 #endif /* __SYSCALLS_H */

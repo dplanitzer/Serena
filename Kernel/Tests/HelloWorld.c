@@ -43,7 +43,7 @@ static void child_process(void)
 
 void app_main(int argc, char *argv[])
 {
-    printf(" pid: %d\nargc: %d\n", getpid(), argc);
+    printf(" pid: %ld\nargc: %d\n", getpid(), argc);
     for (int i = 0; i < argc; i++) {
         if (argv[i]) {
             puts(argv[i]);
@@ -71,7 +71,7 @@ void app_main(int argc, char *argv[])
         parent_process();
     } else {
         // Child process
-        printf("ppid: %d\n\n", getppid());
+        printf("ppid: %ld\n\n", getppid());
         child_process();
     }
 }

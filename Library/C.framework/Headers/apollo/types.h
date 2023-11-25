@@ -29,6 +29,8 @@ typedef long useconds_t;
 
 typedef long long off_t;
 
+typedef unsigned short mode_t;
+
 __CPP_END
 
 #endif /* _APOLLO_TYPES_H */

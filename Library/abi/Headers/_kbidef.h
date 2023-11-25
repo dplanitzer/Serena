@@ -29,9 +29,14 @@ struct __process_arguments_t {
 };
 
 
-// Child process shoud not inherit the default descriptors. The default
+// Child process should not inherit the default descriptors. The default
 // descriptors are the parent process' stdin, stdout and stderr descriptors.
 #define SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE 0x0001
+
+// Instructs the spawn() call to set the umask of the newly spawned process to
+// the umask field in the spawn arguments struct rather than the umask field of
+// the parent process.
+#define SPAWN_OVERRIDE_UMASK 0x0002
 
 // The 'envp' pointer points to a table of nul-terminated strings of the form
 // 'key=value'. The last entry in the table has to be NULL. All these strings
@@ -50,6 +55,7 @@ struct __spawn_arguments_t {
     const char* _Nullable * _Nullable   envp;
     const char* _Nullable               root_dir;       // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;         // Process current working directory, if not NULL; otherwise inherited from the parent
+    unsigned short                      umask;          // Override umask
     unsigned int                        options;
 };
 

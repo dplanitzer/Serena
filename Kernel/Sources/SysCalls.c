@@ -136,6 +136,22 @@ catch:
 }
 
 
+struct SYS_getcwd_args {
+    Int                     scno;
+    Character* _Nullable    buffer;
+    ByteCount               bufferSize;
+};
+
+Int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
+{
+    if (pArgs->buffer == NULL || pArgs->bufferSize < 0) {
+        return EINVAL;
+    }
+
+    return Process_GetCurrentWorkingDirectoryPath(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
+}
+
+
 struct SYS_setcwd_args {
     Int                     scno;
     Character* _Nullable    path;
@@ -151,19 +167,21 @@ Int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
 }
 
 
-struct SYS_getcwd_args {
-    Int                     scno;
-    Character* _Nullable    buffer;
-    ByteCount               bufferSize;
+Int _SYSCALL_getumask(void)
+{
+    return (Int) UMaskFromFileCreationMask(Process_GetFileCreationMask(Process_GetCurrent()));
+}
+
+
+struct SYS_setumask_args {
+    Int     scno;
+    UInt16  mask;
 };
 
-Int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
+Int _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)
 {
-    if (pArgs->buffer == NULL || pArgs->bufferSize < 0) {
-        return EINVAL;
-    }
-
-    return Process_GetCurrentWorkingDirectoryPath(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
+    Process_SetFileCreationMask(Process_GetCurrent(), FileCreationMaskFromUMask(pArgs->mask));
+    return EOK;
 }
 
 

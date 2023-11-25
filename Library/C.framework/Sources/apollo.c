@@ -49,14 +49,6 @@ errno_t close(int fd)
 }
 
 
-errno_t setcwd(const char* path)
-{
-    errno_t r;
-
-    __failable_syscall(r, SC_setcwd, path);
-    return r;
-}
-
 errno_t getcwd(char* buffer, size_t bufferSize)
 {
     errno_t r;
@@ -65,6 +57,24 @@ errno_t getcwd(char* buffer, size_t bufferSize)
     return r;
 }
 
+errno_t setcwd(const char* path)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_setcwd, path);
+    return r;
+}
+
+
+mode_t getumask(void)
+{
+    return __syscall(SC_getumask);
+}
+
+void setumask(mode_t mask)
+{
+    __syscall(SC_setumask, mask);
+}
 
 pid_t getpid(void)
 {

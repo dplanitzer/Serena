@@ -28,6 +28,8 @@
     xref __SYSCALL_getcwd
     xref __SYSCALL_setcwd
     xref __SYSCALL_getuid
+    xref __SYSCALL_getumask
+    xref __SYSCALL_setumask
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -51,6 +53,8 @@ syscall_table:
     dc.l __SYSCALL_getcwd
     dc.l __SYSCALL_setcwd
     dc.l __SYSCALL_getuid
+    dc.l __SYSCALL_getumask
+    dc.l __SYSCALL_setumask
 
 
 ;-------------------------------------------------------------------------------

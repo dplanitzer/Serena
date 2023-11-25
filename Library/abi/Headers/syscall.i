@@ -26,8 +26,10 @@ SC_seek                 equ 13  ; errno_t seek(int fd, off_t offset, off_t *newp
 SC_getcwd               equ 14  ; errno_t getcwd(char* buffer, size_t bufferSize)
 SC_setcwd               equ 15  ; errno_t setcwd(const char* path)
 SC_getuid               equ 16  ; uid_t getuid(void)
+SC_getumask             equ 17  ; mode_t getumask(void)
+SC_setumask             equ 18  ; void setumask(mode_t mask)
 
-SC_numberOfCalls        equ 17   ; number of system calls
+SC_numberOfCalls        equ 19   ; number of system calls
 
 
 ; System call macro.
