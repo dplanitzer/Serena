@@ -13,6 +13,8 @@
 
 CLASS_FORWARD(Filesystem);
 
+typedef struct _file_info_t FileInfo;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -62,12 +64,13 @@ typedef enum _InodeType {
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
 OPEN_CLASS_WITH_REF(Inode, Object,
-    Int8            type;
+    FileType        type;
     UInt8           flags;
     FilePermissions permissions;
     User            user;
     InodeId         noid;   // Filesystem specific ID of the inode
     FilesystemId    fsid;   // Globally unique ID of the filesystem that owns this node
+    FileOffset      size;   // File size
 );
 typedef struct _InodeMethodTable {
     ObjectMethodTable   super;
@@ -82,15 +85,21 @@ typedef struct _InodeMethodTable {
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \
     ((InodeRef)__self)->permissions
 
+#define Inode_SetFilePermissions(__self, __perms) \
+    ((InodeRef)__self)->permissions = __perms
+
 // Returns the user of the node.
 #define Inode_GetUser(__self) \
     ((InodeRef)__self)->user
+
+#define Inode_SetUser(__self, __user) \
+    ((InodeRef)__self)->user = __user
 
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
@@ -105,6 +114,15 @@ extern ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Fi
 // 'permission' parameter represents a set of the permissions of a single
 // permission scope.
 extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
+
+#define Inode_GetFileSize(__self) \
+    ((InodeRef)__self)->size
+
+#define Inode_SetFileSize(__self, __size) \
+    ((InodeRef)__self)->size = __size
+
+// Returns a file info record from the node data.
+extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 
 
 //
@@ -253,6 +271,10 @@ typedef struct _FilesystemMethodTable {
     // Get/Set Inode Attributes
     //
 
+    // Returns a file info record for the given Inode. The Inode may be of any
+    // file type.
+    ErrorCode (*getFileInfo)(void* _Nonnull self, InodeRef _Nonnull pNode, FileInfo* _Nonnull pOutInfo);
+
     // If the node is a directory and another file system is mounted at this directory,
     // then this function returns the filesystem ID of the mounted directory; otherwise
     // 0 is returned.
@@ -291,6 +313,7 @@ Object_InvokeN(onMount, Filesystem, __self, __pParams, __paramsSize)
 #define Filesystem_OnUnmount(__self) \
 Object_Invoke0(onUnmount, Filesystem, __self)
 
+
 #define Filesystem_CopyRootNode(__self) \
 Object_Invoke0(copyRootNode, Filesystem, __self)
 
@@ -303,11 +326,16 @@ Object_InvokeN(copyNodeForName, Filesystem, __self, __pParentNode, __pComponent,
 #define Filesystem_GetNameOfNode(__self, __pParentNode, __pNode, __user, __pComponent) \
 Object_InvokeN(getNameOfNode, Filesystem, __self, __pParentNode, __pNode, __user, __pComponent)
 
+
+#define Filesystem_GetFileInfo(__self, __pNode, __pOutInfo) \
+Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
+
 #define Filesystem_GetFilesystemMountedOnNode(__self, __pNode) \
 Object_InvokeN(getFilesystemMountedOnNode, Filesystem, __self, __pNode)
 
 #define Filesystem_SetFilesystemMountedOnNode(__self, __pNode, __fsid) \
 Object_InvokeN(setFilesystemMountedOnNode, Filesystem, __self, __pNode, __fsid)
+
 
 #define Filesystem_CreateDirectory(__self, __pParentNode, __pName, __user, __permissions) \
 Object_InvokeN(createDirectory, Filesystem, __self, __pParentNode, __pName, __user, __permissions)

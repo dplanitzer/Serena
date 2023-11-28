@@ -833,3 +833,19 @@ ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* pP
     Lock_Unlock(&pProc->lock);
     return err;
 }
+
+// Returns information about the file at the given path.
+ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, FileInfo* _Nonnull pOutInfo)
+{
+    decl_try_err();
+    PathResolverResult r;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_GetFileInfo(r.fileSystem, r.inode, pOutInfo));
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}

@@ -66,4 +66,33 @@ struct __waitpid_result_t {
     int             status;     // Child process exit status
 };
 
+
+struct _time_interval_t {
+    long    seconds;
+    long    nanoseconds;        // 0..<1billion
+};
+
+
+typedef long long _file_offset_t;
+typedef unsigned short _file_permissions_t;
+typedef signed char _file_type_t;
+typedef long _filesystem_id;
+typedef long _file_id;
+typedef unsigned long _uid_t;
+typedef unsigned long _gid_t;
+
+struct _file_info_t {
+    struct _time_interval_t lastAccessTime;
+    struct _time_interval_t lastModificationTime;
+    struct _time_interval_t lastStatusChangeTime;
+    _file_offset_t          size;
+    _uid_t                  uid;
+    _gid_t                  gid;
+    _file_permissions_t     permissions;
+    _file_type_t            type;
+    char                    reserved;
+    _filesystem_id          filesystemId;
+    _file_id                fileId;
+};
+
 #endif /* __KBIDEF_H */

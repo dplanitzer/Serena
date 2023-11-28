@@ -58,6 +58,9 @@ extern errno_t getcwd(char* buffer, size_t bufferSize);
 extern errno_t setcwd(const char* path);
 
 
+extern errno_t getfileinfo(const char* path, struct _file_info_t* info);
+
+
 extern mode_t getumask(void);
 extern void setumask(mode_t mask);
 

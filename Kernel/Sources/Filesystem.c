@@ -14,7 +14,7 @@
 // MARK: Inode
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode;
@@ -25,6 +25,7 @@ ErrorCode Inode_AbstractCreate(ClassRef pClass, Int8 type, InodeId id, Filesyste
     pNode->user = user;
     pNode->noid = id;
     pNode->fsid = fsid;
+    pNode->size = 0ll;
 
     *pOutNode = pNode;
     return EOK;
@@ -71,6 +72,25 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
     }
 
     return EACCESS;
+}
+
+// Returns a file info record from the node data.
+void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
+{
+    pOutInfo->lastAccessTime.seconds = 0;
+    pOutInfo->lastAccessTime.nanoseconds = 0;
+    pOutInfo->lastModificationTime.seconds = 0;
+    pOutInfo->lastModificationTime.nanoseconds = 0;
+    pOutInfo->lastStatusChangeTime.seconds = 0;
+    pOutInfo->lastStatusChangeTime.nanoseconds = 0;
+    pOutInfo->size = self->size;
+    pOutInfo->uid = self->user.uid;
+    pOutInfo->gid = self->user.gid;
+    pOutInfo->permissions = self->permissions;
+    pOutInfo->type = self->type;
+    pOutInfo->reserved = 0;
+    pOutInfo->filesystemId = self->fsid;
+    pOutInfo->fileId = self->noid;
 }
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
@@ -188,6 +208,13 @@ ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnul
     return ENOENT;
 }
 
+// Returns a file info record for the given Inode. The Inode may be of any
+// file type.
+ErrorCode Filesystem_getFileInfo(void* _Nonnull self, InodeRef _Nonnull pNode, FileInfo* _Nonnull pOutInfo)
+{
+    return ENOENT;
+}
+
 // If the node is a directory and another file system is mounted at this directory,
 // then this function returns the filesystem ID of the mounted directory; otherwise
 // 0 is returned.
@@ -217,6 +244,7 @@ METHOD_IMPL(copyRootNode, Filesystem)
 METHOD_IMPL(copyParentOfNode, Filesystem)
 METHOD_IMPL(copyNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
+METHOD_IMPL(getFileInfo, Filesystem)
 METHOD_IMPL(getFilesystemMountedOnNode, Filesystem)
 METHOD_IMPL(setFilesystemMountedOnNode, Filesystem)
 METHOD_IMPL(createDirectory, Filesystem)

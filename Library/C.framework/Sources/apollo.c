@@ -75,6 +75,14 @@ errno_t setcwd(const char* path)
 }
 
 
+errno_t getfileinfo(const char* path, struct _file_info_t* info)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_getfileinfo, path, info);
+    return r;
+}
+
 mode_t getumask(void)
 {
     return __syscall(SC_getumask);

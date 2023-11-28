@@ -131,4 +131,7 @@ extern void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissio
 // assigned to the new directory (modulo the file creation mask).
 extern ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* pPath, FilePermissions permissions);
 
+// Returns information about the file at the given path.
+extern ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, FileInfo* _Nonnull pOutInfo);
+
 #endif /* Process_h */

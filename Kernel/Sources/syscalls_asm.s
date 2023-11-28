@@ -31,6 +31,7 @@
     xref __SYSCALL_getumask
     xref __SYSCALL_setumask
     xref __SYSCALL_mkdir
+    xref __SYSCALL_getfileinfo
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -57,6 +58,7 @@ syscall_table:
     dc.l __SYSCALL_getumask
     dc.l __SYSCALL_setumask
     dc.l __SYSCALL_mkdir
+    dc.l __SYSCALL_getfileinfo
 
 
 ;-------------------------------------------------------------------------------

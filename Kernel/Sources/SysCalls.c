@@ -171,8 +171,8 @@ Int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
 
 
 struct SYS_setcwd_args {
-    Int                     scno;
-    Character* _Nullable    path;
+    Int                         scno;
+    const Character* _Nullable  path;
 };
 
 Int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
@@ -182,6 +182,22 @@ Int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
     }
 
     return Process_SetCurrentWorkingDirectoryPath(Process_GetCurrent(), pArgs->path);
+}
+
+
+struct SYS_getfileinfo_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+    FileInfo* _Nullable         outInfo;
+};
+
+Int _SYSCALL_getfileinfo(const struct SYS_getfileinfo_args* _Nonnull pArgs)
+{
+    if (pArgs->path == NULL || pArgs->outInfo == NULL) {
+        return EINVAL;
+    }
+
+    return Process_GetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->outInfo);
 }
 
 

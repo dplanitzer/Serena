@@ -168,6 +168,8 @@ typedef Int32   FilesystemId;
 typedef Int32   InodeId;    // XXX should probably be 64bit
 
 typedef UInt16  FilePermissions;
+typedef Int8    FileType;
+typedef Int64   FileOffset;
 
 typedef UInt32  UserId;
 typedef UInt32  GroupId;

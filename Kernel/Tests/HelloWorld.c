@@ -137,6 +137,25 @@ static void _mkdir(const char* path)
     }
 }
 
+static void print_fileinfo(const char* path)
+{
+    struct _file_info_t info;
+    const errno_t err = getfileinfo(path, &info);
+    if (err != 0) {
+        printf("getfileinfo error: %s\n", strerror(err));
+        return;
+    }
+
+    printf("Info for \"%s\":\n", path);
+    printf("size: %lld\n", info.size);
+    printf("uid:  %lu\n", info.uid);
+    printf("gid:  %lu\n", info.gid);
+    printf("permissions: 0%hu\n", info.permissions);
+    printf("type: %hhd\n", info.type);
+    printf("fsid: %ld\n", info.filesystemId);
+    printf("inid: %ld\n", info.fileId);
+}
+
 void app_main(int argc, char *argv[])
 {
     printf("File I/O\n\n");
@@ -162,6 +181,10 @@ void app_main(int argc, char *argv[])
     chdir("../Tester");
     pwd();
 //}
+
+    print_fileinfo("/Users");
+    printf("\n");
+    print_fileinfo("/Users/Admin");
 
     sleep(200);
 }
