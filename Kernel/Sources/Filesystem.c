@@ -14,7 +14,7 @@
 // MARK: Inode
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode;
@@ -23,9 +23,9 @@ ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, Files
     pNode->type = type;
     pNode->permissions = permissions;
     pNode->user = user;
-    pNode->noid = id;
+    pNode->inid = id;
     pNode->fsid = fsid;
-    pNode->size = 0ll;
+    pNode->size = size;
 
     *pOutNode = pNode;
     return EOK;
@@ -90,13 +90,13 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
     pOutInfo->type = self->type;
     pOutInfo->reserved = 0;
     pOutInfo->filesystemId = self->fsid;
-    pOutInfo->fileId = self->noid;
+    pOutInfo->fileId = self->inid;
 }
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
 {
-    return self->fsid == pOther->fsid && self->noid == pOther->noid;
+    return self->fsid == pOther->fsid && self->inid == pOther->inid;
 }
 
 void Inode_deinit(InodeRef _Nonnull self)

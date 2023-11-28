@@ -26,7 +26,7 @@ typedef struct _IOChannelMethodTable {
     ErrorCode   (*command)(void* _Nonnull self, Int op, va_list ap);
     ByteCount   (*read)(void* _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
     ByteCount   (*write)(void* _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
-    ErrorCode   (*seek)(void* _Nonnull self, Int64 offset, Int64* _Nullable pOutPosition, Int whence);
+    ErrorCode   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence);
     ErrorCode   (*close)(void* _Nonnull self);
 } IOChannelMethodTable;
 
@@ -92,7 +92,7 @@ typedef struct _IOResourceMethodTable {
     // Changes the position of the given I/O channel to the new location implied by
     // the combination of 'offset' and 'whence'. Returns the new position and error
     // status.
-    ErrorCode   (*seek)(void* _Nonnull self, void* _Nonnull pChannel, Int64 offset, Int64* _Nullable pOutPosition, Int whence);
+    ErrorCode   (*seek)(void* _Nonnull self, void* _Nonnull pChannel, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence);
 
     // Close the resource. The purpose of the close operation is:
     // - flush all data that was written and is still buffered/cached to the underlying device

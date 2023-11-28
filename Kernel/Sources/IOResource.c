@@ -75,7 +75,7 @@ ByteCount IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuff
     return IOResource_Write(self->resource, self->state, pBuffer, nBytesToWrite);
 }
 
-ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, Int64 offset, Int64* pOutPosition, Int whence)
+ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, Int whence)
 {
     switch (whence) {
         case SEEK_SET:
@@ -152,7 +152,7 @@ ByteCount IOResource_write(IOResourceRef _Nonnull self, void* _Nonnull pContext,
     return -EBADF;
 }
 
-ErrorCode IOResource_seek(IOResourceRef _Nonnull self, void* _Nonnull pContext, Int64 offset, Int64* pOutPosition, Int whence)
+ErrorCode IOResource_seek(IOResourceRef _Nonnull self, void* _Nonnull pContext, FileOffset offset, FileOffset* pOutPosition, Int whence)
 {
     return ESPIPE;
 }

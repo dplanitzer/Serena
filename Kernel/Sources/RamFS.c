@@ -39,7 +39,7 @@ static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, InodeId id, RamFS_
     decl_try_err();
     RamFS_DirectoryRef pDir;
 
-    try(Inode_AbstractCreate(&kRamFS_DirectoryClass, kInode_Directory, id, Filesystem_GetId(self), permissions, user, (InodeRef*)&pDir));
+    try(Inode_AbstractCreate(&kRamFS_DirectoryClass, kInode_Directory, id, Filesystem_GetId(self), permissions, user, 0ll, (InodeRef*)&pDir));
     try(GenericArray_Init(&pDir->header, sizeof(DirectoryEntry), 4));
     pDir->parent = (InodeRef) pParentDir;
     pDir->mountedFileSys = 0;
@@ -142,6 +142,9 @@ static ErrorCode DirectoryNode_AddEntry(RamFS_DirectoryRef _Nonnull self, const 
 
     ErrorCode err = EOK;
     GenericArray_InsertAt(err, &self->header, entry, DirectoryEntry, GenericArray_GetCount(&self->header));
+    if (err == EOK) {
+        Inode_IncrementFileSize(self, sizeof(entry));
+    }
 
     return err;
 }

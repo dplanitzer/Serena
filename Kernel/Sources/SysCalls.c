@@ -115,8 +115,8 @@ catch:
 struct SYS_seek_args {
     Int                     scno;
     Int                     fd;
-    Int64                   offset;
-    Int64* _Nullable        outPosition;
+    FileOffset              offset;
+    FileOffset* _Nullable   outPosition;
     Int                     whence;
 };
 

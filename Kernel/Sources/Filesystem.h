@@ -68,7 +68,7 @@ OPEN_CLASS_WITH_REF(Inode, Object,
     UInt8           flags;
     FilePermissions permissions;
     User            user;
-    InodeId         noid;   // Filesystem specific ID of the inode
+    InodeId         inid;   // Filesystem specific ID of the inode
     FilesystemId    fsid;   // Globally unique ID of the filesystem that owns this node
     FileOffset      size;   // File size
 );
@@ -85,7 +85,7 @@ typedef struct _InodeMethodTable {
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \
@@ -121,6 +121,12 @@ extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermis
 #define Inode_SetFileSize(__self, __size) \
     ((InodeRef)__self)->size = __size
 
+#define Inode_IncrementFileSize(__self, __delta) \
+    ((InodeRef)__self)->size += (__delta)
+
+#define Inode_DecrementFileSize(__self, __delta) \
+    ((InodeRef)__self)->size -= (__delta)
+
 // Returns a file info record from the node data.
 extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 
@@ -139,7 +145,7 @@ extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInf
 
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \
-    ((InodeRef)__self)->noid
+    ((InodeRef)__self)->inid
 
 // Returns the ID of the filesystem to which this node belongs.
 #define Inode_GetFilesystemId(__self) \
