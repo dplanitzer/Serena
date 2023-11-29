@@ -14,10 +14,14 @@
 CLASS_FORWARD(IOResource);
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: I/O Channel
+////////////////////////////////////////////////////////////////////////////////
+
 OPEN_CLASS_WITH_REF(IOChannel, Object,
     IOResourceRef _Nonnull  resource;
-    UInt                    options;
-    Byte                    state[1];
+    UInt                    mode;
 );
 
 typedef struct _IOChannelMethodTable {
@@ -34,13 +38,7 @@ typedef struct _IOChannelMethodTable {
 #define FWRITE  0x0002
 
 
-extern ErrorCode IOChannel_Create(IOResourceRef _Nonnull pResource, UInt options, ByteCount stateSize, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-// Creates a copy of the given I/O channel with a state size of 'stateSize'.
-extern ErrorCode IOChannel_CreateCopy(IOChannelRef _Nonnull pInChannel, ByteCount stateSize, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-#define IOChannel_GetStateAs(__self, __type) \
-    ((__type*) &__self->state[0])
+// I/O Channel functions for use by I/O channel users.
 
 #define IOChannel_Dup(__self, __pOutChannel) \
 Object_InvokeN(dup, IOChannel, __self, __pOutChannel)
@@ -61,6 +59,29 @@ Object_InvokeN(seek, IOChannel, __self, __offset, __pOutPosition, __whence)
 Object_Invoke0(close, IOChannel, __self)
 
 
+// I/O Channel functions for use by subclassers
+
+// Creates an instance of an I/O channel. Subclassers should call this method in
+// their own constructor implementation and then initialize the subclass specific
+// properties. 
+extern ErrorCode IOChannel_AbstractCreate(ClassRef _Nonnull pClass, IOResourceRef _Nonnull pResource, UInt mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+// Creates a copy of the given I/O channel. Subclassers should call this in their
+// own copying implementation and then copy the subclass specific properties.
+extern ErrorCode IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+// Returns an *unowned* reference to the underlying resource. 
+#define IOChannel_GetResource(__self) \
+    ((IOChannelRef)__self)->resource
+
+// Returns the I/O channel mode.
+#define IOChannel_GetMode(__self) \
+    ((IOChannelRef)__self)->mode
+    
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: I/O Resource
 ////////////////////////////////////////////////////////////////////////////////
 
 OPEN_CLASS(IOResource, Object,);
@@ -76,7 +97,7 @@ typedef struct _IOResourceMethodTable {
     // will be represented by a (file) descriptor in user space. The resource context
     // maintains state that is specific to this connection. This state will be
     // protected by the resource's internal locking mechanism.
-    ErrorCode   (*open)(void* _Nonnull self, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    ErrorCode   (*open)(void* _Nonnull self, const Character* _Nonnull pPath, UInt mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Creates an independent copy of the passed in I/O channel. Note that this function
     // is allowed to return a strong reference to the channel that was passed in if
@@ -84,15 +105,15 @@ typedef struct _IOResourceMethodTable {
     ErrorCode   (*dup)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Executes the resource specific command 'op'.
-    ErrorCode   (*command)(void* _Nonnull self, void* _Nonnull pChannel, Int op, va_list ap);
+    ErrorCode   (*command)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Int op, va_list ap);
 
-    ByteCount   (*read)(void* _Nonnull self, void* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-    ByteCount   (*write)(void* _Nonnull self, void* _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+    ByteCount   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+    ByteCount   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
 
     // Changes the position of the given I/O channel to the new location implied by
     // the combination of 'offset' and 'whence'. Returns the new position and error
     // status.
-    ErrorCode   (*seek)(void* _Nonnull self, void* _Nonnull pChannel, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence);
+    ErrorCode   (*seek)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence);
 
     // Close the resource. The purpose of the close operation is:
     // - flush all data that was written and is still buffered/cached to the underlying device
@@ -104,7 +125,7 @@ typedef struct _IOResourceMethodTable {
     // The close operation may return an error. Returning an error will not stop the kernel from completing the close and eventually
     // deallocating the resource. The error is passed on to the caller but is purely advisory in nature. The close operation is
     // required to mark the resource as closed whether the close internally succeeded or failed. 
-    ErrorCode   (*close)(void* _Nonnull self, void* _Nonnull pChannel);
+    ErrorCode   (*close)(void* _Nonnull self, IOChannelRef _Nonnull pChannel);
 } IOResourceMethodTable;
 
 #define IOResource_Open(__self, __pPath, __options, __pOutChannel) \

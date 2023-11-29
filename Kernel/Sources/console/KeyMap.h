@@ -34,7 +34,7 @@
 // *) Marking: the associated character is returned
 // *) Combining: the associated character is added to a buffer. This action
 //               continues until the user presses a key that is associated with
-//               a marking character. The marking character is still appened to
+//               a marking character. The marking character is still appended to
 //               the buffer and the buffer is drained and its contents returned.
 //
 // The combining action gives the same functionality that dead keys gave in the

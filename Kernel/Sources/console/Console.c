@@ -9,6 +9,27 @@
 #include "ConsolePriv.h"
 
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: ConsoleChannel
+////////////////////////////////////////////////////////////////////////////////
+
+void ConsoleChannel_deinit(ConsoleChannelRef _Nonnull self)
+{
+    kfree(self->buffer);
+    self->buffer = NULL;
+}
+
+CLASS_METHODS(ConsoleChannel, IOChannel,
+OVERRIDE_METHOD_IMPL(deinit, ConsoleChannel, Object)
+);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Console
+////////////////////////////////////////////////////////////////////////////////
+
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
 // \param pEventDriver the event driver to provide keyboard input
@@ -891,45 +912,44 @@ static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_actio
 // Read/Write
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Console_open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel)
+ErrorCode Console_open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt mode, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
-    IOChannelRef pChannel;
+    ConsoleChannelRef pChannel;
     const KeyMap* pKeyMap = (const KeyMap*) &gKeyMap_usa[0];
     const ByteCount keyMapSize = KeyMap_GetMaxOutputByteCount(pKeyMap);
 
-    try(IOChannel_Create((IOResourceRef) pConsole, options, sizeof(ConsoleChannel) + sizeof(Byte) * (keyMapSize - 1), &pChannel));
-    ConsoleChannel* pChannel0 = IOChannel_GetStateAs(pChannel, ConsoleChannel);
-    pChannel0->map = pKeyMap;
-    pChannel0->capacity = keyMapSize;
-
-    *pOutChannel = pChannel;
-    return EOK;
+    try(IOChannel_AbstractCreate(&kConsoleChannelClass, (IOResourceRef) pConsole, mode, (IOChannelRef*)&pChannel));
+    try(kalloc(keyMapSize, (void**)&pChannel->buffer));
+    pChannel->map = pKeyMap;
+    pChannel->capacity = keyMapSize;
+    pChannel->count = 0;
+    pChannel->startIndex = 0;
 
 catch:
-    *pOutChannel = NULL;
+    *pOutChannel = pChannel;
     return err;
 }
 
-ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
+ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pInChannel, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
-    IOChannelRef pNewChannel;
+    ConsoleChannelRef pNewChannel;
 
-    try(IOChannel_CreateCopy(pInChannel, sizeof(ConsoleChannel) + sizeof(Byte) * (IOChannel_GetStateAs(pInChannel, ConsoleChannel)->capacity - 1), &pNewChannel));
-    ConsoleChannel* pChannel = IOChannel_GetStateAs(pNewChannel, ConsoleChannel);
-    pChannel->startIndex = 0;
-    pChannel->count = 0;
-
-    *pOutChannel = pNewChannel;
-    return EOK;
+    try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
+    try(kalloc(pInChannel->capacity, (void**)&pNewChannel->buffer));
+    pNewChannel->map = pInChannel->map;
+    pNewChannel->capacity = pInChannel->capacity;
+    pNewChannel->count = 0;
+    pNewChannel->startIndex = 0;
 
 catch:
-    *pOutChannel = NULL;
+    *pOutChannel = pNewChannel;
     return err;
+
 }
 
-ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     HIDEvent evt;
     Int evtCount;
@@ -995,8 +1015,8 @@ ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pC
 // \param pConsole the console
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
-// \return the number of bytes writte; a negative error code if an error was encountered
-ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
+// \return the number of bytes written; a negative error code if an error was encountered
+ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
 {
     const unsigned char* pChars = (const unsigned char*) pBytes;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;

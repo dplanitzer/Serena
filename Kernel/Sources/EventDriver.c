@@ -8,6 +8,20 @@
 
 #include "EventDriverPriv.h"
 
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: EventDriverChannel
+////////////////////////////////////////////////////////////////////////////////
+
+CLASS_METHODS(EventDriverChannel, IOChannel,
+);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: EventDriver
+////////////////////////////////////////////////////////////////////////////////
+
 //extern const UInt16 gArrow_Bits[];
 //extern const UInt16 gArrow_Mask[];
 
@@ -540,30 +554,36 @@ UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel)
+ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt mode, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
-    IOChannelRef pChannel;
+    EventDriverChannelRef pChannel;
 
-    try(IOChannel_Create((IOResourceRef) pDriver, options, sizeof(EventDriverChannel), &pChannel));
-    IOChannel_GetStateAs(pChannel, EventDriverChannel)->timeout = kTimeInterval_Infinity;
-    *pOutChannel = pChannel;
-    return EOK;
+    try(IOChannel_AbstractCreate(&kEventDriverChannelClass, (IOResourceRef) pDriver, mode, (IOChannelRef*)&pChannel));
+    pChannel->timeout = kTimeInterval_Infinity;
 
 catch:
-    *pOutChannel = NULL;
+    *pOutChannel = pChannel;
     return err;
 }
 
-ErrorCode EventDriver_dup(EventDriverRef _Nonnull pDriver, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
+ErrorCode EventDriver_dup(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pInChannel, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return IOChannel_CreateCopy(pInChannel, sizeof(EventDriverChannel), pOutChannel);
+    decl_try_err();
+    EventDriverChannelRef pNewChannel;
+
+    try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
+    pNewChannel->timeout = pInChannel->timeout;
+
+catch:
+    *pOutChannel = pNewChannel;
+    return err;
 }
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Blocks the caller if more events are requested
 // than are queued.
-ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;

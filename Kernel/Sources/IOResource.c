@@ -13,37 +13,36 @@
 // MARK: IOChannel
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode IOChannel_Create(IOResourceRef _Nonnull pResource, UInt options, ByteCount stateSize, IOChannelRef _Nullable * _Nonnull pOutChannel)
+// Creates an instance of an I/O channel. Subclassers should call this method in
+// their own constructor implementation and then initialize the subclass specific
+// properties. 
+ErrorCode IOChannel_AbstractCreate(ClassRef _Nonnull pClass, IOResourceRef _Nonnull pResource, UInt mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Object_CreateWithExtraBytes(IOChannel, stateSize, &pChannel));
+    try(_Object_Create(pClass, 0, (ObjectRef*)&pChannel));
     pChannel->resource = Object_RetainAs(pResource, IOResource);
-    pChannel->options = options;
-    *pOutChannel = pChannel;
-    return EOK;
+    pChannel->mode = mode;
 
 catch:
-    *pOutChannel = NULL;
+    *pOutChannel = pChannel;
     return err;
 }
 
-ErrorCode IOChannel_CreateCopy(IOChannelRef _Nonnull pInChannel, ByteCount stateSize, IOChannelRef _Nullable * _Nonnull pOutChannel)
+// Creates a copy of the given I/O channel. Subclassers should call this in their
+// own copying implementation and then copy the subclass specific properties.
+ErrorCode IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Object_CreateWithExtraBytes(IOChannel, stateSize, &pChannel));
+    try(_Object_Create(Object_GetClass(pInChannel), 0, (ObjectRef*)&pChannel));
     pChannel->resource = Object_RetainAs(pInChannel->resource, IOResource);
-    pChannel->options = pInChannel->options;
-    Bytes_CopyRange(&pChannel->state[0], &pInChannel->state[0], stateSize);
-
-    *pOutChannel = pChannel;
-    return EOK;
+    pChannel->mode = pInChannel->mode;
 
 catch:
-    *pOutChannel = NULL;
+    *pOutChannel = pChannel;
     return err;
 }
 
@@ -54,25 +53,25 @@ ByteCount IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _No
 
 ByteCount IOChannel_command(IOChannelRef _Nonnull self, Int op, va_list ap)
 {
-    return IOResource_Command(self->resource, self->state, op, ap);
+    return IOResource_Command(self->resource, self, op, ap);
 }
 
 ByteCount IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
-    if ((self->options & FREAD) == 0) {
+    if ((self->mode & FREAD) == 0) {
         return -EBADF;
     }
 
-    return IOResource_Read(self->resource, self->state, pBuffer, nBytesToRead);
+    return IOResource_Read(self->resource, self, pBuffer, nBytesToRead);
 }
 
 ByteCount IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
 {
-    if ((self->options & FWRITE) == 0) {
+    if ((self->mode & FWRITE) == 0) {
         return -EBADF;
     }
 
-    return IOResource_Write(self->resource, self->state, pBuffer, nBytesToWrite);
+    return IOResource_Write(self->resource, self, pBuffer, nBytesToWrite);
 }
 
 ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, Int whence)
@@ -87,12 +86,12 @@ ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffs
             return EINVAL;
     }
 
-    return IOResource_Seek(self->resource, self->state, offset, pOutPosition, whence);
+    return IOResource_Seek(self->resource, self, offset, pOutPosition, whence);
 }
 
 ErrorCode IOChannel_close(IOChannelRef _Nonnull self)
 {
-    return IOResource_Close(self->resource, self->state);
+    return IOResource_Close(self->resource, self);
 }
 
 void IOChannel_deinit(IOChannelRef _Nonnull self)
@@ -121,7 +120,7 @@ OVERRIDE_METHOD_IMPL(deinit, IOChannel, Object)
 // will be represented by a (file) descriptor in user space. The resource context
 // maintains state that is specific to this connection. This state will be
 // protected by the resource's internal locking mechanism.
-ErrorCode IOResource_open(IOResourceRef _Nonnull self, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel)
+ErrorCode IOResource_open(IOResourceRef _Nonnull self, const Character* _Nonnull pPath, UInt mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     *pOutChannel = NULL;
     return EBADF;
@@ -137,28 +136,28 @@ ErrorCode IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pCha
 }
 
 // Executes the resource specific command 'op'.
-ErrorCode IOResource_command(IOResourceRef _Nonnull self, void* _Nonnull pContext, Int op, va_list ap)
+ErrorCode IOResource_command(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Int op, va_list ap)
 {
     return EBADF;
 }
 
-ByteCount IOResource_read(IOResourceRef _Nonnull self, void* _Nonnull pContext, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ByteCount IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     return -EBADF;
 }
 
-ByteCount IOResource_write(IOResourceRef _Nonnull self, void* _Nonnull pContext, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
+ByteCount IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
 {
     return -EBADF;
 }
 
-ErrorCode IOResource_seek(IOResourceRef _Nonnull self, void* _Nonnull pContext, FileOffset offset, FileOffset* pOutPosition, Int whence)
+ErrorCode IOResource_seek(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset offset, FileOffset* pOutPosition, Int whence)
 {
     return ESPIPE;
 }
 
 // See UObject.close()
-ErrorCode IOResource_close(IOResourceRef _Nonnull self, void* _Nonnull pContext)
+ErrorCode IOResource_close(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
     return EOK;
 }

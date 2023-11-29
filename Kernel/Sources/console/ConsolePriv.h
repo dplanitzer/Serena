@@ -92,16 +92,17 @@ CLASS_IVARS(Console, IOResource,
 // We may leave partial character sequences in the buffer if a Console_Read() didn't
 // read all bytes of a sequence. The next Console_Read() will first receive the
 // remaining buffered bytes before it receives bytes from new events.
-typedef struct _ConsoleChannel {
+OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
     const KeyMap* _Nonnull  map;
+    Byte*                   buffer;     // Holds a full or partial byte sequence produced by a key down event
     ByteCount               capacity;   // Maximum number of bytes the buffer can hold
     ByteCount               count;      // Number of bytes stored in the buffer
     Int                     startIndex; // Index of first byte in the buffer where a partial byte sequence begins
-    Byte                    buffer[1];  // Holds a full or partial byte sequence produced by a key down event
-} ConsoleChannel;
+);
+typedef struct _ConsoleChannelMethodTable {
+    IOChannelMethodTable    super;
+} ConsoleChannelMethodTable;
 
-
-extern void Console_deinit(ConsoleRef _Nonnull pConsole);
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
@@ -112,10 +113,6 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
 static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
 
-extern ErrorCode Console_open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
-extern ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
-extern ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
-extern ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannel* _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite);
 
 //
 // Keymaps

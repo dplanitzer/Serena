@@ -79,7 +79,7 @@ typedef struct _InodeMethodTable {
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \

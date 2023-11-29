@@ -42,6 +42,72 @@ typedef struct _MutablePathComponent {
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: File
+////////////////////////////////////////////////////////////////////////////////
+
+OPEN_CLASS_WITH_REF(File, IOChannel,
+    InodeRef _Nonnull   inode;
+    FileOffset          offset;
+);
+
+typedef struct _FileMethodTable {
+    IOChannelMethodTable    super;
+} FileMethodTable;
+
+
+extern ErrorCode File_Create(FilesystemRef _Nonnull pFilesystem, UInt mode, InodeRef _Nonnull pNode, FileRef _Nullable * _Nonnull pOutFile);
+
+// Creates a copy of the given file.
+extern ErrorCode File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _Nonnull pOutFile);
+
+// Returns the node that represents the physical file
+#define File_GetInode(__self) \
+    ((FileRef)__self)->inode
+
+// Returns the offset at which the next read/write should start
+#define File_GetOffset(__self) \
+    ((FileRef)__self)->offset
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Directory
+////////////////////////////////////////////////////////////////////////////////
+
+// File positions/seeking and directories:
+// The only allowed seeks are of the form seek(SEEK_SET) with an absolute position
+// that was previously obtained from another seek or a value of 0 to rewind to the
+// beginning of the directory listing. The seek position represents the index of
+// the first directory entry that should be returned by the next read() operation.
+// It is not a byte offset. This way it doesn't matter to the user of the read()
+// and seek() call how exactly the contents of a directory is stored in the file
+// system.  
+OPEN_CLASS_WITH_REF(Directory, IOChannel,
+    InodeRef _Nonnull   inode;
+    FileOffset          offset;
+);
+
+typedef struct _DirectoryMethodTable {
+    IOChannelMethodTable    super;
+} DirectoryMethodTable;
+
+
+extern ErrorCode Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, DirectoryRef _Nullable * _Nonnull pOutDir);
+
+// Creates a copy of the given directory descriptor.
+extern ErrorCode Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef _Nullable * _Nonnull pOutDir);
+
+// Returns the node that represents the physical directory
+#define Directory_GetInode(__self) \
+    ((DirectoryRef)__self)->inode
+
+// Returns the index of the directory entry at which the next read should start
+#define Directory_GetEntryIndex(__self) \
+    ((DirectoryRef)__self)->offset
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: Filesystem
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -146,12 +212,27 @@ typedef struct _FilesystemMethodTable {
 
 
     //
-    // Filesystem Operations
+    // Directory Operations
     //
 
     // Creates an empty directory as a child of the given directory node and with
     // the given name, user and file permissions
     ErrorCode (*createDirectory)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions);
+
+    // Opens the directory represented by the given node. Returns a directory
+    // descriptor object which is teh I/O channel that allows you to read the
+    // directory content.
+    ErrorCode (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull pDirNode, DirectoryRef _Nullable * _Nonnull pOutDir);
+
+    // Reads the next set of directory entries. The first entry read is the one
+    // at the current directory index stored in 'pDir'. This function guarantees
+    // that it will only ever return complete directories entries. It will never
+    // return a partial entry. Consequently the provided buffer must be big enough
+    // to hold at least one directory entry.
+    ByteCount (*readDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+
+    // Closes the given directory I/O channel.
+    ErrorCode (*closeDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir);
 
 } FilesystemMethodTable;
 
@@ -198,5 +279,14 @@ Object_InvokeN(setFilesystemMountedOnNode, Filesystem, __self, __pNode, __fsid)
 
 #define Filesystem_CreateDirectory(__self, __pParentNode, __pName, __user, __permissions) \
 Object_InvokeN(createDirectory, Filesystem, __self, __pParentNode, __pName, __user, __permissions)
+
+#define Filesystem_OpenDirectory(__self, __pDirNode, __pOutDir) \
+Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __pOutDir)
+
+#define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead) \
+Object_InvokeN(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead)
+
+#define Filesystem_CloseDirectory(__self, __pDir) \
+Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)
 
 #endif /* Filesystem_h */

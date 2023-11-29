@@ -354,6 +354,17 @@ catch:
     return err;
 }
 
+// Reads the next set of directory entries. The first entry read is the one
+// at the current directory index stored in 'pDir'. This function guarantees
+// that it will only ever return complete directories entries. It will never
+// return a partial entry. Consequently the provided buffer must be big enough
+// to hold at least one directory entry.
+ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+{
+    // XXX
+    return -EIO;
+}
+
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
@@ -366,4 +377,5 @@ OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
 );

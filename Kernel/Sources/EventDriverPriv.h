@@ -92,19 +92,16 @@ CLASS_IVARS(EventDriver, IOResource,
 );
 
 
-// Resource Context
-typedef struct _EventDriverChannel {
+// Event Driver I/O Channel
+OPEN_CLASS_WITH_REF(EventDriverChannel, IOChannel,
     TimeInterval    timeout;
-} EventDriverChannel;
+);
+typedef struct _EventDriverChannelMethodTable {
+    IOChannelMethodTable    super;
+} EventDriverChannelMethodTable;
 
-
-extern void EventDriver_deinit(EventDriverRef _Nonnull pDriver);
 
 extern ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
 extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
-
-extern ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt options, IOChannelRef _Nullable * _Nonnull pOutChannel);
-extern ErrorCode EventDriver_dup(EventDriverRef _Nonnull pDriver, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
-extern ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannel* _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
 
 #endif /* EventDriverPriv_h */

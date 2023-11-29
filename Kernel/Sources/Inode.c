@@ -9,7 +9,7 @@
 #include "Inode.h"
 #include "FilesystemManager.h"
 
-ErrorCode Inode_AbstractCreate(ClassRef pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode;
