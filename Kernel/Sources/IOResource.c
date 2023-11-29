@@ -76,17 +76,7 @@ ByteCount IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuff
 
 ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, Int whence)
 {
-    switch (whence) {
-        case SEEK_SET:
-        case SEEK_CUR:
-        case SEEK_END:
-            break;
-
-        default:
-            return EINVAL;
-    }
-
-    return IOResource_Seek(self->resource, self, offset, pOutPosition, whence);
+    return ESPIPE;
 }
 
 ErrorCode IOChannel_close(IOChannelRef _Nonnull self)
@@ -151,11 +141,6 @@ ByteCount IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pC
     return -EBADF;
 }
 
-ErrorCode IOResource_seek(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset offset, FileOffset* pOutPosition, Int whence)
-{
-    return ESPIPE;
-}
-
 // See UObject.close()
 ErrorCode IOResource_close(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
@@ -169,6 +154,5 @@ METHOD_IMPL(dup, IOResource)
 METHOD_IMPL(command, IOResource)
 METHOD_IMPL(read, IOResource)
 METHOD_IMPL(write, IOResource)
-METHOD_IMPL(seek, IOResource)
 METHOD_IMPL(close, IOResource)
 );

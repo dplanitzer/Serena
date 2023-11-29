@@ -110,11 +110,6 @@ typedef struct _IOResourceMethodTable {
     ByteCount   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
     ByteCount   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
 
-    // Changes the position of the given I/O channel to the new location implied by
-    // the combination of 'offset' and 'whence'. Returns the new position and error
-    // status.
-    ErrorCode   (*seek)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence);
-
     // Close the resource. The purpose of the close operation is:
     // - flush all data that was written and is still buffered/cached to the underlying device
     // - if a write operation is ongoing at the time of the close then let this write operation finish and sync the underlying device
@@ -142,9 +137,6 @@ Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead)
 
 #define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)
-
-#define IOResource_Seek(__self, __pChannel, __offset, __pOutPosition, __whence) \
-Object_InvokeN(seek, IOResource, __self, __pChannel, __offset, __pOutPosition, __whence)
 
 #define IOResource_Close(__self, __pChannel) \
 Object_InvokeN(close, IOResource, __self, __pChannel)
