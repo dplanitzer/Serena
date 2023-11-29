@@ -651,11 +651,9 @@ ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount coun
 // channel and thus you have to release it once the call returns. The call
 // returns a descriptor which can be used to refer to the channel from user
 // and/or kernel space.
-ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, Int* _Nonnull pOutDescriptor)
+static ErrorCode Process_RegisterIOChannel_Locked(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, Int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
-
-    Lock_Lock(&pProc->lock);
 
     // Find the lowest descriptor id that is available
     Int fd = ObjectArray_GetCount(&pProc->ioChannels);
@@ -676,14 +674,25 @@ ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Non
         try(ObjectArray_Add(&pProc->ioChannels, (ObjectRef) pChannel));
     }
 
-    Lock_Unlock(&pProc->lock);
-
     *pOutDescriptor = fd;
     return EOK;
 
 catch:
-    Lock_Unlock(&pProc->lock);
     *pOutDescriptor = -1;
+    return err;
+}
+
+// Registers the given I/O channel with the process. This action allows the
+// process to use this I/O channel. The process maintains a strong reference to
+// the channel until it is unregistered. Note that the process retains the
+// channel and thus you have to release it once the call returns. The call
+// returns a descriptor which can be used to refer to the channel from user
+// and/or kernel space.
+ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, Int* _Nonnull pOutDescriptor)
+{
+    Lock_Lock(&pProc->lock);
+    const ErrorCode err = Process_RegisterIOChannel_Locked(pProc, pChannel, pOutDescriptor);
+    Lock_Unlock(&pProc->lock);
     return err;
 }
 
@@ -755,6 +764,12 @@ catch:
     *pOutChannel = NULL;
     return err;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: File I/O
+////////////////////////////////////////////////////////////////////////////////
 
 // Sets the receiver's root directory to the given path. Note that the path must
 // point to a directory that is a child or the current root directory of the
@@ -847,5 +862,29 @@ ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath,
 catch:
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
+    return err;
+}
+
+// Opens the directory at the given path and returns an I/O channel that represents
+// the open directory.
+ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* pPath, Int* _Nonnull pOutDescriptor)
+{
+    decl_try_err();
+    PathResolverResult r;
+    DirectoryRef pDir;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_OpenDirectory(r.fileSystem, r.inode, &pDir));
+    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return EOK;
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    Object_Release(pDir);
+    *pOutDescriptor = -1;
     return err;
 }

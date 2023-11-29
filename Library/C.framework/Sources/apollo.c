@@ -16,6 +16,14 @@ int open(const char *path, int options)
     return __syscall(SC_open, path, options);
 }
 
+errno_t opendir(const char* path, int* fd)
+{
+    ssize_t r;
+
+    __failable_syscall(r, SC_opendir, fd);
+    return r;
+}
+
 ssize_t read(int fd, void *buffer, size_t nbytes)
 {
     ssize_t r;

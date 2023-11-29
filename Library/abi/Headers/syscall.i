@@ -30,8 +30,9 @@ SC_getumask             equ 17  ; mode_t getumask(void)
 SC_setumask             equ 18  ; void setumask(mode_t mask)
 SC_mkdir                equ 19  ; errno_t mkdir(const char* path, mode_t mode)
 SC_getfileinfo          equ 20  ; errno_t getfileinfo(const char* path, struct _file_info_t* info)
+SC_opendir              equ 21  ; errno_t opendir(const char* path, int* fd)
 
-SC_numberOfCalls        equ 21   ; number of system calls
+SC_numberOfCalls        equ 22   ; number of system calls
 
 
 ; System call macro.

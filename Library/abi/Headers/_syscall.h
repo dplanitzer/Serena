@@ -30,5 +30,6 @@
 #define SC_setumask             18  // void setumask(mode_t mask)
 #define SC_mkdir                19  // errno_t mkdir(const char* path, mode_t mode)
 #define SC_getfileinfo          20  // errno_t getfileinfo(const char* path, struct _file_info_t* info)
+#define SC_opendir              21  // errno_t opendir(const char* path, int* fd)
 
 #endif /* __SYSCALLS_H */

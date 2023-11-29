@@ -14,7 +14,7 @@
 
 struct SYS_open_args {
     Int                         scno;
-    const Character* _Nonnull   path;
+    const Character* _Nullable  path;
     UInt                        options;
 };
 
@@ -24,6 +24,10 @@ Int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
     IOResourceRef pConsole = NULL;
     IOChannelRef pChannel = NULL;
     Int desc;
+
+    if (pArgs->path == NULL) {
+        throw(EINVAL);
+    }
 
     if (String_Equals(pArgs->path, "/dev/console")) {
         try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
@@ -39,6 +43,22 @@ Int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
 catch:
     Object_Release(pChannel);
     return -err;
+}
+
+
+struct SYS_opendir_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+    Int* _Nullable              outFd;
+};
+
+Int _SYSCALL_opendir(const struct SYS_opendir_args* _Nonnull pArgs)
+{
+    if (pArgs->path == NULL || pArgs->outFd == NULL) {
+        return EINVAL;
+    }
+
+    return Process_OpenDirectory(Process_GetCurrent(), pArgs->path, pArgs->outFd);
 }
 
 

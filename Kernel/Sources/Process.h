@@ -134,4 +134,8 @@ extern ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Charac
 // Returns information about the file at the given path.
 extern ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, FileInfo* _Nonnull pOutInfo);
 
+// Opens the directory at the given path and returns an I/O channel that represents
+// the open directory.
+extern ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* pPath, Int* _Nonnull pOutDescriptor);
+
 #endif /* Process_h */
