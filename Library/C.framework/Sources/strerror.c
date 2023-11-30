@@ -43,7 +43,8 @@ char *strerror(int err_no)
         /*EACCESS*/         "Insufficient permissions",
         /*EROFS*/           "Read-only file system",
         /*ENOSPC*/          "No space",
-        /*EEXIST*/          "File exists"
+        /*EEXIST*/          "File exists",
+        /*EOVERFLOW*/       "Value overflow"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

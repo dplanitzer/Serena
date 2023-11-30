@@ -137,6 +137,46 @@ static void _mkdir(const char* path)
     }
 }
 
+static int _opendir(const char* path)
+{
+    int fd;
+    const errno_t err = opendir(path, &fd);
+    if (err != 0) {
+        printf("opendir error: %s\n", strerror(err));
+    }
+    return fd;
+}
+
+static size_t _read(int fd, void* buffer, size_t nbytes)
+{
+    ssize_t r = read(fd, buffer, nbytes);
+
+    if (r < 0) {
+        printf("read error: %s\n", strerror(-r));
+    }
+    return (size_t)r;
+}
+
+static size_t _write(int fd, const void* buffer, size_t nbytes)
+{
+    ssize_t r = write(fd, buffer, nbytes);
+
+    if (r < 0) {
+        printf("write error: %s\n", strerror(-r));
+    }
+    return (size_t)r;
+}
+
+static void _close(int fd)
+{
+    const errno_t err = close(fd);
+
+    if (err != 0) {
+        printf("close error: %s\n", strerror(err));
+    }
+}
+
+
 static void print_fileinfo(const char* path)
 {
     struct _file_info_t info;
@@ -153,7 +193,7 @@ static void print_fileinfo(const char* path)
     printf("permissions: 0%ho\n", info.permissions);
     printf("type: %hhd\n", info.type);
     printf("fsid: %ld\n", info.filesystemId);
-    printf("inid: %ld\n", info.fileId);
+    printf("inid: %ld\n", info.inodeId);
 }
 
 void app_main(int argc, char *argv[])
@@ -166,6 +206,7 @@ void app_main(int argc, char *argv[])
     _mkdir("/Users/Admin");
     _mkdir("/Users/Tester");
 
+#if 0
 //while(true) {
     pwd();
     chdir("/Users");
@@ -185,7 +226,23 @@ void app_main(int argc, char *argv[])
     print_fileinfo("/Users");
     printf("\n");
     print_fileinfo("/Users/Admin");
+#else
+    const int fd = _opendir("/Users");
+    struct _directory_entry_t dirent;
 
+    while (true) {
+        const ssize_t r = _read(fd, &dirent, sizeof(dirent));
+        if (r == 0) {
+            break;
+        }
+
+        printf("%ld:\t\"%s\"\n", dirent.inodeId, dirent.name);
+    }
+    _close(fd);
+
+    printf("Ready.\n");
+
+#endif
     sleep(200);
 }
 

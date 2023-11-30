@@ -85,7 +85,7 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
     pOutInfo->type = self->type;
     pOutInfo->reserved = 0;
     pOutInfo->filesystemId = self->fsid;
-    pOutInfo->fileId = self->inid;
+    pOutInfo->inodeId = self->inid;
 }
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise

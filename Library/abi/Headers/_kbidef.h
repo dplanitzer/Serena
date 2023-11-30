@@ -11,6 +11,7 @@
 
 #include <_nulldef.h>
 #include <_dmdef.h>
+#include <_syslimits.h>
 
 // The process arguments descriptor is stored in the process address space and
 // it contains a pointer to the base of the command line arguments and environment
@@ -77,7 +78,7 @@ typedef long long _file_offset_t;
 typedef unsigned short _file_permissions_t;
 typedef signed char _file_type_t;
 typedef long _filesystem_id;
-typedef long _file_id;
+typedef long _inode_id;
 typedef unsigned long _uid_t;
 typedef unsigned long _gid_t;
 
@@ -92,7 +93,13 @@ struct _file_info_t {
     _file_type_t            type;
     char                    reserved;
     _filesystem_id          filesystemId;
-    _file_id                fileId;
+    _inode_id               inodeId;
+};
+
+
+struct _directory_entry_t {
+    _inode_id   inodeId;
+    char        name[__PATH_COMPONENT_MAX];
 };
 
 #endif /* __KBIDEF_H */

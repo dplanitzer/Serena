@@ -174,6 +174,9 @@ ErrorCode Directory_seek(DirectoryRef _Nonnull self, FileOffset offset, FileOffs
     if (whence != SEEK_SET || offset < 0) {
         return EINVAL;
     }
+    if (offset > (FileOffset)INT_MAX) {
+        return EOVERFLOW;
+    }
 
     self->offset = offset;
     return EOK;

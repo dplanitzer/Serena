@@ -42,9 +42,10 @@
 #define EROFS       29
 #define ENOSPC      30
 #define EEXIST      31
+#define EOVERFLOW   32
 
 #define __EFIRST    1
-#define __ELAST     31
+#define __ELAST     32
 
 typedef int __errno_t;
 

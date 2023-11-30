@@ -12,6 +12,9 @@
 #include "IOResource.h"
 #include "Inode.h"
 
+typedef struct _directory_entry_t   DirectoryEntry;
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Path Component
@@ -68,6 +71,10 @@ extern ErrorCode File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _
 #define File_GetOffset(__self) \
     ((FileRef)__self)->offset
 
+// Increments the offset at which the next read/write should start
+#define File_IncrementOffset(__self, __delta) \
+    ((FileRef)__self)->offset += (FileOffset)(__delta)
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -84,7 +91,7 @@ extern ErrorCode File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _
 // system.  
 OPEN_CLASS_WITH_REF(Directory, IOChannel,
     InodeRef _Nonnull   inode;
-    FileOffset          offset;
+    Int                 offset;
 );
 
 typedef struct _DirectoryMethodTable {
@@ -102,8 +109,12 @@ extern ErrorCode Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef
     ((DirectoryRef)__self)->inode
 
 // Returns the index of the directory entry at which the next read should start
-#define Directory_GetEntryIndex(__self) \
+#define Directory_GetOffset(__self) \
     ((DirectoryRef)__self)->offset
+
+// Increments the index of the directory entry at which the next read should start
+#define Directory_IncrementOffset(__self, __delta) \
+    ((DirectoryRef)__self)->offset += (__delta)
 
 
 ////////////////////////////////////////////////////////////////////////////////

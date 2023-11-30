@@ -20,7 +20,7 @@ errno_t opendir(const char* path, int* fd)
 {
     ssize_t r;
 
-    __failable_syscall(r, SC_opendir, fd);
+    __failable_syscall(r, SC_opendir, path, fd);
     return r;
 }
 
