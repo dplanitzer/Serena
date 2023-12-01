@@ -197,7 +197,15 @@ static Int Directory_ReadEntries(RamFS_DirectoryRef _Nonnull self, DirectoryEntr
 
 void RamFS_Directory_deinit(RamFS_DirectoryRef _Nonnull self)
 {
-    GenericArray_Deinit(&self->header);
+    RamFS_DirectoryHeader* pHeader = &self->header;
+
+    for (Int i = 0; i < GenericArray_GetCount(pHeader); i++) {
+        RamFS_DirectoryEntry* pCurEntry = GenericArray_GetRefAt(pHeader, RamFS_DirectoryEntry, i);
+
+        Object_Release(pCurEntry->node);
+        pCurEntry->node = NULL;
+    }
+    GenericArray_Deinit(pHeader);
 }
 
 CLASS_METHODS(RamFS_Directory, Inode,
