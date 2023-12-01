@@ -314,8 +314,10 @@ ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
-// function will always only be called with proper node names. Eg never with
-// "." nor "..".
+// function has the support the special names "." (node itself) and ".."
+// (parent of node) in addition to "regular" filenames. If the path component
+// name is longer than what is supported by the file system, ENAMETOOLONG
+// should be returned.
 ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
@@ -421,7 +423,8 @@ catch:
 // at the current directory index stored in 'pDir'. This function guarantees
 // that it will only ever return complete directories entries. It will never
 // return a partial entry. Consequently the provided buffer must be big enough
-// to hold at least one directory entry.
+// to hold at least one directory entry. Note that this function is expected
+// to return "." for the entry at index #0 and ".." for the entry at index #1.
 ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     Lock_Lock(&self->lock);

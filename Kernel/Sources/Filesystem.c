@@ -268,8 +268,10 @@ ErrorCode Filesystem_copyParentOfNode(FilesystemRef _Nonnull self, InodeRef _Non
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
-// function will always only be called with proper node names. Eg never with
-// "." nor "..".
+// function has the support the special names "." (node itself) and ".."
+// (parent of node) in addition to "regular" filenames. If the path component
+// name is longer than what is supported by the file system, ENAMETOOLONG
+// should be returned.
 ErrorCode Filesystem_copyNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
@@ -330,7 +332,8 @@ ErrorCode Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnul
 // at the current directory index stored in 'pDir'. This function guarantees
 // that it will only ever return complete directories entries. It will never
 // return a partial entry. Consequently the provided buffer must be big enough
-// to hold at least one directory entry.
+// to hold at least one directory entry. Note that this function is expected
+// to return "." for the entry at index #0 and ".." for the entry at index #1.
 ByteCount Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     return -EIO;
