@@ -65,10 +65,10 @@ void File_deinit(FileRef _Nonnull self)
     self->inode = NULL;
 }
 
-ErrorCode File_seek(FileRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence)
+ErrorCode File_seek(FileRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence)
 {
-    if(pOutPosition) {
-        *pOutPosition = self->offset;
+    if(pOutOldPosition) {
+        *pOutOldPosition = self->offset;
     }
 
     FileOffset newOffset;
@@ -165,11 +165,11 @@ ByteCount Directory_write(DirectoryRef _Nonnull self, const Byte* _Nonnull pBuff
     return EBADF;
 }
 
-ErrorCode Directory_seek(DirectoryRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence)
+ErrorCode Directory_seek(DirectoryRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence)
 {
     
-    if(pOutPosition) {
-        *pOutPosition = self->offset;
+    if(pOutOldPosition) {
+        *pOutOldPosition = self->offset;
     }
     if (whence != SEEK_SET || offset < 0) {
         return EINVAL;

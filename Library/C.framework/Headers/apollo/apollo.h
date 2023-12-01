@@ -48,7 +48,8 @@ extern errno_t opendir(const char* path, int* fd);
 extern ssize_t read(int fd, void *buffer, size_t nbytes);
 extern ssize_t write(int fd, const void *buffer, size_t nbytes);
 
-extern errno_t seek(int fd, off_t offset, off_t *newpos, int whence);
+extern errno_t tell(int fd, off_t* pos);
+extern errno_t seek(int fd, off_t offset, off_t *oldpos, int whence);
 
 extern errno_t close(int fd);
 

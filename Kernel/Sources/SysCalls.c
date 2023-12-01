@@ -136,7 +136,7 @@ struct SYS_seek_args {
     Int                     scno;
     Int                     fd;
     FileOffset              offset;
-    FileOffset* _Nullable   outPosition;
+    FileOffset* _Nullable   outOldPosition;
     Int                     whence;
 };
 
@@ -146,7 +146,7 @@ Int _SYSCALL_seek(const struct SYS_seek_args* _Nonnull pArgs)
     IOChannelRef pChannel;
 
     try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
-    try(IOChannel_Seek(pChannel, pArgs->offset, pArgs->outPosition, pArgs->whence));
+    try(IOChannel_Seek(pChannel, pArgs->offset, pArgs->outOldPosition, pArgs->whence));
     Object_Release(pChannel);
     return EOK;
 

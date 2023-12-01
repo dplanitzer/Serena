@@ -40,11 +40,19 @@ ssize_t write(int fd, const void *buffer, size_t nbytes)
     return r;
 }
 
-errno_t seek(int fd, off_t offset, off_t *newpos, int whence)
+errno_t tell(int fd, off_t* pos)
 {
     errno_t r;
 
-    __failable_syscall(r, SC_seek, fd, offset, newpos, whence);
+    __failable_syscall(r, SC_seek, fd, (off_t)0, pos, (int)S_WHENCE_CUR);
+    return r;
+}
+
+errno_t seek(int fd, off_t offset, off_t *oldpos, int whence)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_seek, fd, offset, oldpos, whence);
     return r;
 }
 

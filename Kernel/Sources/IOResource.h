@@ -30,7 +30,7 @@ typedef struct _IOChannelMethodTable {
     ErrorCode   (*command)(void* _Nonnull self, Int op, va_list ap);
     ByteCount   (*read)(void* _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
     ByteCount   (*write)(void* _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
-    ErrorCode   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutPosition, Int whence);
+    ErrorCode   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence);
     ErrorCode   (*close)(void* _Nonnull self);
 } IOChannelMethodTable;
 
@@ -52,8 +52,8 @@ Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead)
 #define IOChannel_Write(__self, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOChannel, __self, __pBuffer, __nBytesToWrite)
 
-#define IOChannel_Seek(__self, __offset, __pOutPosition, __whence) \
-Object_InvokeN(seek, IOChannel, __self, __offset, __pOutPosition, __whence)
+#define IOChannel_Seek(__self, __offset, __pOutOldPosition, __whence) \
+Object_InvokeN(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
 
 #define IOChannel_Close(__self) \
 Object_Invoke0(close, IOChannel, __self)
