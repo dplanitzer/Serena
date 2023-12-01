@@ -211,6 +211,10 @@ typedef struct _FilesystemMethodTable {
     // file type.
     ErrorCode (*getFileInfo)(void* _Nonnull self, InodeRef _Nonnull pNode, FileInfo* _Nonnull pOutInfo);
 
+    // Modifies one or more attributes stored in the file info record of the given
+    // Inode. The Inode may be of any type.
+    ErrorCode (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull pNode, MutableFileInfo* _Nonnull pInfo);
+
     // If the node is a directory and another file system is mounted at this directory,
     // then this function returns the filesystem ID of the mounted directory; otherwise
     // 0 is returned.
@@ -280,6 +284,9 @@ Object_InvokeN(getNameOfNode, Filesystem, __self, __pParentNode, __pNode, __user
 
 #define Filesystem_GetFileInfo(__self, __pNode, __pOutInfo) \
 Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
+
+#define Filesystem_SetFileInfo(__self, __pNode, __pInfo) \
+Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __pInfo)
 
 #define Filesystem_GetFilesystemMountedOnNode(__self, __pNode) \
 Object_InvokeN(getFilesystemMountedOnNode, Filesystem, __self, __pNode)

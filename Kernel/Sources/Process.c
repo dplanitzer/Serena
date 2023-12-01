@@ -865,6 +865,22 @@ catch:
     return err;
 }
 
+// Modifies information about the file at the given path.
+ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, MutableFileInfo* _Nonnull pInfo)
+{
+    decl_try_err();
+    PathResolverResult r;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_SetFileInfo(r.fileSystem, r.inode, pInfo));
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
 ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* pPath, Int* _Nonnull pOutDescriptor)

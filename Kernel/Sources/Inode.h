@@ -14,6 +14,7 @@
 CLASS_FORWARD(Filesystem);
 
 typedef struct _file_info_t FileInfo;
+typedef struct _mutable_file_info_t MutableFileInfo;
 
 enum {
     kFilePermission_Read = 0x04,
@@ -124,6 +125,9 @@ extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermis
 // Returns a file info record from the node data.
 extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 
+// Modifies the node's file info.
+extern void Inode_SetFileInfo(InodeRef _Nonnull self, MutableFileInfo* _Nonnull pInfo);
+ 
 
 //
 // The following functions may be used by any code and they are concurrency safe.

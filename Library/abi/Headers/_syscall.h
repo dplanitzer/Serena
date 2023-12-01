@@ -31,5 +31,6 @@
 #define SC_mkdir                19  // errno_t mkdir(const char* path, mode_t mode)
 #define SC_getfileinfo          20  // errno_t getfileinfo(const char* path, struct _file_info_t* info)
 #define SC_opendir              21  // errno_t opendir(const char* path, int* fd)
+#define SC_setfileinfo          22  // errno_t setfileinfo(const char* path, struct _mutable_file_info_t* info)
 
 #endif /* __SYSCALLS_H */

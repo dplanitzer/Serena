@@ -221,6 +221,22 @@ Int _SYSCALL_getfileinfo(const struct SYS_getfileinfo_args* _Nonnull pArgs)
 }
 
 
+struct SYS_setfileinfo_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+    MutableFileInfo* _Nullable  info;
+};
+
+Int _SYSCALL_setfileinfo(const struct SYS_setfileinfo_args* _Nonnull pArgs)
+{
+    if (pArgs->path == NULL || pArgs->info == NULL) {
+        return EINVAL;
+    }
+
+    return Process_SetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->info);
+}
+
+
 Int _SYSCALL_getumask(void)
 {
     return (Int) Process_GetFileCreationMask(Process_GetCurrent());

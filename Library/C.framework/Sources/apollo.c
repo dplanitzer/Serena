@@ -91,6 +91,14 @@ errno_t getfileinfo(const char* path, struct _file_info_t* info)
     return r;
 }
 
+errno_t setfileinfo(const char* path, struct _mutable_file_info_t* info)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_setfileinfo, path, info);
+    return r;
+}
+
 mode_t getumask(void)
 {
     return __syscall(SC_getumask);

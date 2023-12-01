@@ -33,6 +33,7 @@
     xref __SYSCALL_mkdir
     xref __SYSCALL_getfileinfo
     xref __SYSCALL_opendir
+    xref __SYSCALL_setfileinfo
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -61,6 +62,7 @@ syscall_table:
     dc.l __SYSCALL_mkdir
     dc.l __SYSCALL_getfileinfo
     dc.l __SYSCALL_opendir
+    dc.l __SYSCALL_setfileinfo
 
 
 ;-------------------------------------------------------------------------------

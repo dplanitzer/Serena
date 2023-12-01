@@ -286,7 +286,14 @@ ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnul
 // file type.
 ErrorCode Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, FileInfo* _Nonnull pOutInfo)
 {
-    return ENOENT;
+    return EIO;
+}
+
+// Modifies one or more attributes stored in the file info record of the given
+// Inode. The Inode may be of any type.
+ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, MutableFileInfo* _Nonnull pInfo)
+{
+    return EIO;
 }
 
 // If the node is a directory and another file system is mounted at this directory,
@@ -345,6 +352,7 @@ METHOD_IMPL(copyParentOfNode, Filesystem)
 METHOD_IMPL(copyNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
 METHOD_IMPL(getFileInfo, Filesystem)
+METHOD_IMPL(setFileInfo, Filesystem)
 METHOD_IMPL(getFilesystemMountedOnNode, Filesystem)
 METHOD_IMPL(setFilesystemMountedOnNode, Filesystem)
 METHOD_IMPL(createDirectory, Filesystem)

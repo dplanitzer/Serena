@@ -83,9 +83,9 @@ typedef unsigned long _uid_t;
 typedef unsigned long _gid_t;
 
 struct _file_info_t {
-    struct _time_interval_t lastAccessTime;
-    struct _time_interval_t lastModificationTime;
-    struct _time_interval_t lastStatusChangeTime;
+    struct _time_interval_t accessTime;
+    struct _time_interval_t modificationTime;
+    struct _time_interval_t statusChangeTime;
     _file_offset_t          size;
     _uid_t                  uid;
     _gid_t                  gid;
@@ -94,6 +94,24 @@ struct _file_info_t {
     char                    reserved;
     _filesystem_id          filesystemId;
     _inode_id               inodeId;
+};
+
+enum {
+    kModifyFileInfo_AccessTime = 1,
+    kModifyFileInfo_ModificationTime = 2,
+    kModifyFileInfo_UserId = 4,
+    kModifyFileInfo_GroupId = 8,
+    kModifyFileInfo_Permissions = 16
+};
+
+struct _mutable_file_info_t {
+    unsigned long           modify;
+    struct _time_interval_t accessTime;
+    struct _time_interval_t modificationTime;
+    _uid_t                  uid;
+    _gid_t                  gid;
+    _file_permissions_t     permissions;
+    unsigned short          permissionsModifyMask;  // Only modify permissions whose bit is set here
 };
 
 

@@ -347,6 +347,17 @@ ErrorCode RamFS_getFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Fil
     return EOK;
 }
 
+// Modifies one or more attributes stored in the file info record of the given
+// Inode. The Inode may be of any type.
+ErrorCode RamFS_setFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, MutableFileInfo* _Nonnull pInfo)
+{
+    Lock_Lock(&self->lock);
+    Inode_SetFileInfo(pNode, pInfo);
+    Lock_Unlock(&self->lock);
+
+    return EOK;
+}
+
 // If the node is a directory and another file system is mounted at this directory,
 // then this function returns the filesystem ID of the mounted directory; otherwise
 // 0 is returned.
@@ -426,6 +437,7 @@ OVERRIDE_METHOD_IMPL(copyParentOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(setFileInfo, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)

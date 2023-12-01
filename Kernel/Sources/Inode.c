@@ -72,12 +72,12 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
 // Returns a file info record from the node data.
 void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    pOutInfo->lastAccessTime.seconds = 0;
-    pOutInfo->lastAccessTime.nanoseconds = 0;
-    pOutInfo->lastModificationTime.seconds = 0;
-    pOutInfo->lastModificationTime.nanoseconds = 0;
-    pOutInfo->lastStatusChangeTime.seconds = 0;
-    pOutInfo->lastStatusChangeTime.nanoseconds = 0;
+    pOutInfo->accessTime.seconds = 0;
+    pOutInfo->accessTime.nanoseconds = 0;
+    pOutInfo->modificationTime.seconds = 0;
+    pOutInfo->modificationTime.nanoseconds = 0;
+    pOutInfo->statusChangeTime.seconds = 0;
+    pOutInfo->statusChangeTime.nanoseconds = 0;
     pOutInfo->size = self->size;
     pOutInfo->uid = self->user.uid;
     pOutInfo->gid = self->user.gid;
@@ -86,6 +86,27 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
     pOutInfo->reserved = 0;
     pOutInfo->filesystemId = self->fsid;
     pOutInfo->inodeId = self->inid;
+}
+
+// Modifies the node's file info.
+void Inode_SetFileInfo(InodeRef _Nonnull self, MutableFileInfo* _Nonnull pInfo)
+{
+    UInt32  modify = pInfo->modify;
+
+    if ((modify & kModifyFileInfo_UserId) == kModifyFileInfo_UserId) {
+        self->user.uid = pInfo->uid;
+    }
+
+    if ((modify & kModifyFileInfo_GroupId) == kModifyFileInfo_GroupId) {
+        self->user.gid = pInfo->gid;
+    }
+
+    if ((modify & kModifyFileInfo_Permissions) == kModifyFileInfo_Permissions) {
+        self->permissions &= ~pInfo->permissionsModifyMask;
+        self->permissions |= (pInfo->permissions & pInfo->permissionsModifyMask);
+    }
+
+    // XXX handle modifiable time values
 }
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
