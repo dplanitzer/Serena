@@ -428,6 +428,26 @@ ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir
     return nEntriesRead * sizeof(DirectoryEntry);
 }
 
+// Verifies that the given node is accessible assuming the given access mode.
+ErrorCode RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, User user, Int mode)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if ((mode & kAccess_Readable) == kAccess_Readable) {
+        err = Inode_CheckAccess(pNode, user, kFilePermission_Read);
+    }
+    if (err == EOK && ((mode & kAccess_Writable) == kAccess_Writable)) {
+        err = Inode_CheckAccess(pNode, user, kFilePermission_Write);
+    }
+    if (err == EOK && ((mode & kAccess_Executable) == kAccess_Executable)) {
+        err = Inode_CheckAccess(pNode, user, kFilePermission_Execute);
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
+}
+
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
@@ -442,4 +462,6 @@ OVERRIDE_METHOD_IMPL(getFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(checkAccess, RamFS, Filesystem)
+
 );

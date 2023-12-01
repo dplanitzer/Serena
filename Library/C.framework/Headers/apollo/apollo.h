@@ -63,6 +63,9 @@ extern errno_t getfileinfo(const char* path, struct _file_info_t* info);
 extern errno_t setfileinfo(const char* path, struct _mutable_file_info_t* info);
 
 
+extern errno_t access(const char* path, int mode);
+
+
 extern mode_t getumask(void);
 extern void setumask(mode_t mask);
 

@@ -249,6 +249,14 @@ typedef struct _FilesystemMethodTable {
     // Closes the given directory I/O channel.
     ErrorCode (*closeDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir);
 
+
+    //
+    // General File/Directory Operations
+    //
+
+    // Verifies that the given node is accessible assuming the given access mode.
+    ErrorCode (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, Int mode);
+
 } FilesystemMethodTable;
 
 
@@ -306,5 +314,9 @@ Object_InvokeN(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToR
 
 #define Filesystem_CloseDirectory(__self, __pDir) \
 Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)
+
+
+#define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
+Object_InvokeN(checkAccess, Filesystem, __self, __pNode, __user, __mode)
 
 #endif /* Filesystem_h */

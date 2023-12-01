@@ -237,6 +237,22 @@ Int _SYSCALL_setfileinfo(const struct SYS_setfileinfo_args* _Nonnull pArgs)
 }
 
 
+struct SYS_access_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+    Int                         mode;
+};
+
+Int _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
+{
+    if (pArgs->path == NULL) {
+        return EINVAL;
+    }
+
+    return Process_CheckFileAccess(Process_GetCurrent(), pArgs->path, pArgs->mode);
+}
+
+
 Int _SYSCALL_getumask(void)
 {
     return (Int) Process_GetFileCreationMask(Process_GetCurrent());

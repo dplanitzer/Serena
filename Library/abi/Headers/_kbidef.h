@@ -120,4 +120,13 @@ struct _directory_entry_t {
     char        name[__PATH_COMPONENT_MAX];
 };
 
+
+enum {
+    kAccess_Readable = 1,
+    kAccess_Writable = 2,
+    kAccess_Executable = 4,
+    kAccess_Searchable = kAccess_Executable,    // For directories
+    kAccess_Exists = 0
+};
+
 #endif /* __KBIDEF_H */

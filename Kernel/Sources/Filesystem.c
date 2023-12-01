@@ -343,6 +343,12 @@ ErrorCode Filesystem_closeDirectory(FilesystemRef _Nonnull self, DirectoryRef _N
     return EOK;
 }
 
+// Verifies that the given node is accessible assuming the given access mode.
+ErrorCode Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, User user, Int mode)
+{
+    return EACCESS;
+}
+
 
 CLASS_METHODS(Filesystem, IOResource,
 METHOD_IMPL(onMount, Filesystem)
@@ -359,4 +365,5 @@ METHOD_IMPL(createDirectory, Filesystem)
 METHOD_IMPL(openDirectory, Filesystem)
 METHOD_IMPL(readDirectory, Filesystem)
 METHOD_IMPL(closeDirectory, Filesystem)
+METHOD_IMPL(checkAccess, Filesystem)
 );

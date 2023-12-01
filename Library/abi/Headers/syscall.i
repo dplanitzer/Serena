@@ -32,8 +32,9 @@ SC_mkdir                equ 19  ; errno_t mkdir(const char* path, mode_t mode)
 SC_getfileinfo          equ 20  ; errno_t getfileinfo(const char* path, struct _file_info_t* info)
 SC_opendir              equ 21  ; errno_t opendir(const char* path, int* fd)
 SC_setfileinfo          equ 22  ; errno_t setfileinfo(const char* path, struct _mutable_file_info_t* info)
+SC_access               equ 23  ; errno_t access(const char* path, int mode)
 
-SC_numberOfCalls        equ 23   ; number of system calls
+SC_numberOfCalls        equ 24   ; number of system calls
 
 
 ; System call macro.

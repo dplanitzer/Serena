@@ -826,7 +826,7 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* pPath, FilePermissions permissions)
+ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FilePermissions permissions)
 {
     decl_try_err();
     PathResolverResult r;
@@ -850,7 +850,7 @@ ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* pP
 }
 
 // Returns information about the file at the given path.
-ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, FileInfo* _Nonnull pOutInfo)
+ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileInfo* _Nonnull pOutInfo)
 {
     decl_try_err();
     PathResolverResult r;
@@ -866,7 +866,7 @@ catch:
 }
 
 // Modifies information about the file at the given path.
-ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, MutableFileInfo* _Nonnull pInfo)
+ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo)
 {
     decl_try_err();
     PathResolverResult r;
@@ -881,9 +881,29 @@ catch:
     return err;
 }
 
+// Returns EOK if the given file is accessible assuming the given access mode;
+// returns a suitable error otherwise. If the mode is 0, then a check whether the
+// file exists at all is executed.
+ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int mode)
+{
+    decl_try_err();
+    PathResolverResult r;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    if (mode != 0) {
+        try(Filesystem_CheckAccess(r.fileSystem, r.inode, pProc->realUser, mode));
+    }
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
-ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* pPath, Int* _Nonnull pOutDescriptor)
+ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
     PathResolverResult r;

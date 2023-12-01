@@ -129,16 +129,21 @@ extern void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissio
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-extern ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* pPath, FilePermissions permissions);
+extern ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FilePermissions permissions);
 
 // Returns information about the file at the given path.
-extern ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, FileInfo* _Nonnull pOutInfo);
+extern ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
 
 // Modifies information about the file at the given path.
-extern ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* pPath, MutableFileInfo* _Nonnull pInfo);
+extern ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo);
+
+// Returns EOK if the given file is accessible assuming the given access mode;
+// returns a suitable error otherwise. If the mode is 0, then a check whether the
+// file exists at all is executed.
+extern ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int mode);
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
-extern ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* pPath, Int* _Nonnull pOutDescriptor);
+extern ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int* _Nonnull pOutDescriptor);
 
 #endif /* Process_h */
