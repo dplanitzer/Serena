@@ -272,6 +272,16 @@ static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull
     }
 
 
+    // Note that if we do a lookup for ".", that we get back the same inode with
+    // which we started but with an extra +1 ref count. We keep the iterator
+    // intact and we drop the extra +1 ref in this case.
+    if (pComponent->count == 1 && pComponent->name[0] == '.') {
+        assert(Inode_Equals(pIter->inode, pChildNode));
+        Object_Release(pChildNode);
+        return EOK;
+    }
+
+
     // Just return the node we looked up without changing the filesystem if the
     // node isn't a mount point
     const FilesystemId mountedFsId = Filesystem_GetFilesystemMountedOnNode(pIter->fileSystem, pChildNode);
