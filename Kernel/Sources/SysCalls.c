@@ -296,7 +296,23 @@ Int _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
         return EINVAL;
     }
 
-    return Process_UnlinkInode(Process_GetCurrent(), pArgs->path);
+    return Process_Unlink(Process_GetCurrent(), pArgs->path);
+}
+
+
+struct SYS_rename_args {
+    Int                         scno;
+    const Character* _Nullable  oldPath;
+    const Character* _Nullable  newPath;
+};
+
+Int _SYSCALL_rename(const struct SYS_rename_args* _Nonnull pArgs)
+{
+    if (pArgs->oldPath == NULL || pArgs->newPath == NULL) {
+        return EINVAL;
+    }
+
+    return Process_Rename(Process_GetCurrent(), pArgs->oldPath, pArgs->newPath);
 }
 
 

@@ -139,6 +139,14 @@ errno_t unlink(const char* path)
     return r;
 }
 
+errno_t rename(const char* oldpath, const char* newpath)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_rename, oldpath, newpath);
+    return r;
+}
+
 mode_t getumask(void)
 {
     return __syscall(SC_getumask);

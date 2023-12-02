@@ -970,7 +970,7 @@ catch:
 }
 
 // Unlinks the inode at the path 'pPath'.
-ErrorCode Process_UnlinkInode(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath)
+ErrorCode Process_Unlink(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath)
 {
     decl_try_err();
     PathResolverResult r;
@@ -985,6 +985,38 @@ ErrorCode Process_UnlinkInode(ProcessRef _Nonnull pProc, const Character* _Nonnu
 
 catch:
     PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
+// Renames the file or directory at 'pOldPath' to the new location 'pNewPath'.
+ErrorCode Process_Rename(ProcessRef _Nonnull pProc, const Character* pOldPath, const Character* pNewPath)
+{
+    decl_try_err();
+    PathResolverResult or, nr;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetAndParent, pOldPath, pProc->realUser, &or));
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOrParent, pNewPath, pProc->realUser, &nr));
+
+    // Can not rename a mount point
+    // XXX implement this check once we've refined the mount point handling (return EBUSY)
+
+    // newpath and oldpath have to be in the same filesystem
+    // XXX implement me
+
+    // newpath can't be a child of oldpath
+    // XXX implement me
+
+    // unlink the target node if one exists for newpath
+    // XXX implement me
+    
+    const PathComponent newName = PathComponent_MakeFromCString(nr.pathSuffix);
+    try(Filesystem_Rename(or.fileSystem, or.inode, or.parentInode, &newName, nr.parentInode, pProc->realUser));
+
+catch:
+    PathResolverResult_Deinit(&or);
+    PathResolverResult_Deinit(&nr);
     Lock_Unlock(&pProc->lock);
     return err;
 }

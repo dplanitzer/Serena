@@ -276,6 +276,11 @@ typedef struct _FilesystemMethodTable {
     // The parent node is guaranteed to be a node owned by the filesystem.
     ErrorCode (*unlink)(void* _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, User user);
 
+    // Renames the node 'pNode' which is an immediate child of the node 'pParentNode'.
+    // such that it becomes a child of 'pNewParentNode' with the name 'pNewName'.
+    // All nodes are guaranteed to be owned by the filesystem.
+    ErrorCode (*rename)(void* _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, const PathComponent* pNewName, InodeRef _Nonnull pNewParentNode, User user);
+
 } FilesystemMethodTable;
 
 
@@ -340,5 +345,8 @@ Object_InvokeN(checkAccess, Filesystem, __self, __pNode, __user, __mode)
 
 #define Filesystem_Unlink(__self, __pNode, __pParentNode, __user) \
 Object_InvokeN(unlink, Filesystem, __self, __pNode, __pParentNode, __user)
+
+#define Filesystem_Rename(__self, __pNode, __pParentNode, __pNewName, __pNewParentNode, __user) \
+Object_InvokeN(rename, Filesystem, __self, __pNode, __pParentNode, __pNewName, __pNewParentNode, __user)
 
 #endif /* Filesystem_h */

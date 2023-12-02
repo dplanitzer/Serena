@@ -36,5 +36,6 @@
 #define SC_fgetfileinfo         24  // fgetfileinfo(int fd, struct _file_info_t* info)
 #define SC_fsetfileinfo         25  // fsetfileinfo(int fd, struct _mutable_file_info_t* info)
 #define SC_unlink               26  // errno_t unlink(const char* path)
+#define SC_rename               27  // errno_t rename(const char* oldpath, const char* newpath)
 
 #endif /* __SYSCALLS_H */

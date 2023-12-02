@@ -365,6 +365,15 @@ ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode
     return EACCESS;
 }
 
+// Renames the node 'pNode' which is an immediate child of the node 'pParentNode'.
+// such that it becomes a child of 'pNewParentNode' with the name 'pNewName'.
+// All nodes are guaranteed to be owned by the filesystem.
+ErrorCode Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, const PathComponent* pNewName, InodeRef _Nonnull pNewParentNode, User user)
+{
+    return EACCESS;
+}
+
+
 CLASS_METHODS(Filesystem, IOResource,
 METHOD_IMPL(onMount, Filesystem)
 METHOD_IMPL(onUnmount, Filesystem)
@@ -382,4 +391,5 @@ METHOD_IMPL(readDirectory, Filesystem)
 METHOD_IMPL(closeDirectory, Filesystem)
 METHOD_IMPL(checkAccess, Filesystem)
 METHOD_IMPL(unlink, Filesystem)
+METHOD_IMPL(rename, Filesystem)
 );

@@ -488,6 +488,15 @@ ErrorCode RamFS_unlink(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef
     return EACCESS;
 }
 
+// Renames the node 'pNode' which is an immediate child of the node 'pParentNode'.
+// such that it becomes a child of 'pNewParentNode' with the name 'pNewName'.
+// All nodes are guaranteed to be owned by the filesystem.
+ErrorCode RamFS_rename(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, const PathComponent* pNewName, InodeRef _Nonnull pNewParentNode, User user)
+{
+    // XXX implement me
+    return EACCESS;
+}
+
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
@@ -505,4 +514,5 @@ OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(checkAccess, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(unlink, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(rename, RamFS, Filesystem)
 );

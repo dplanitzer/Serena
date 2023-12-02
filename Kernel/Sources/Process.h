@@ -153,6 +153,9 @@ extern ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int
 extern ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int mode);
 
 // Unlinks the inode at the path 'pPath'.
-extern ErrorCode Process_UnlinkInode(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath);
+extern ErrorCode Process_Unlink(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath);
+
+// Renames the file or directory at 'pOldPath' to the new location 'pNewPath'.
+extern ErrorCode Process_Rename(ProcessRef _Nonnull pProc, const Character* pOldPath, const Character* pNewPath);
 
 #endif /* Process_h */
