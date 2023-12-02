@@ -233,7 +233,7 @@ extern void _Object_AssignMovingOwnership(ObjectRef _Nullable * _Nonnull pOldObj
 extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass);
 
 #define Object_InstanceOf(__self, __className) \
-    _Object_InstanceOf(__self, &k##__className##Class)
+    _Object_InstanceOf((ObjectRef)__self, &k##__className##Class)
 
 
 // Invokes a dynamic method with the given arguments.

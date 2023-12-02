@@ -33,5 +33,7 @@
 #define SC_opendir              21  // errno_t opendir(const char* path, int* fd)
 #define SC_setfileinfo          22  // errno_t setfileinfo(const char* path, struct _mutable_file_info_t* info)
 #define SC_access               23  // errno_t access(const char* path, int mode)
+#define SC_fgetfileinfo         24  // fgetfileinfo(int fd, struct _file_info_t* info)
+#define SC_fsetfileinfo         25  // fsetfileinfo(int fd, struct _mutable_file_info_t* info)
 
 #endif /* __SYSCALLS_H */

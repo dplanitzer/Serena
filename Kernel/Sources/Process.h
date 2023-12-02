@@ -138,8 +138,14 @@ extern ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Characte
 // Returns information about the file at the given path.
 extern ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
 
+// Same as above but with respect to the given I/O channel.
+extern ErrorCode Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, FileInfo* _Nonnull pOutInfo);
+
 // Modifies information about the file at the given path.
 extern ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo);
+
+// Same as above but with respect to the given I/O channel.
+extern ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, MutableFileInfo* _Nonnull pInfo);
 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the

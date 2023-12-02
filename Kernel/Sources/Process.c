@@ -889,6 +889,28 @@ catch:
     return err;
 }
 
+// Same as above but with respect to the given I/O channel.
+ErrorCode Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, FileInfo* _Nonnull pOutInfo)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
+    if (Object_InstanceOf(pChannel, File)) {
+        try(Filesystem_GetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pOutInfo));
+    }
+    else if (Object_InstanceOf(pChannel, Directory)) {
+        try(Filesystem_GetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pOutInfo));
+    }
+    else {
+        throw(EBADF);
+    }
+
+catch:
+    Object_Release(pChannel);
+    return err;
+}
+
 // Modifies information about the file at the given path.
 ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo)
 {
@@ -902,6 +924,28 @@ ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnu
 catch:
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
+    return err;
+}
+
+// Same as above but with respect to the given I/O channel.
+ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, MutableFileInfo* _Nonnull pInfo)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
+    if (Object_InstanceOf(pChannel, File)) {
+        try(Filesystem_SetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pInfo));
+    }
+    else if (Object_InstanceOf(pChannel, Directory)) {
+        try(Filesystem_SetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pInfo));
+    }
+    else {
+        throw(EBADF);
+    }
+
+catch:
+    Object_Release(pChannel);
     return err;
 }
 

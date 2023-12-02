@@ -63,6 +63,9 @@ extern errno_t setcwd(const char* path);
 extern errno_t getfileinfo(const char* path, struct _file_info_t* info);
 extern errno_t setfileinfo(const char* path, struct _mutable_file_info_t* info);
 
+extern errno_t fgetfileinfo(int fd, struct _file_info_t* info);
+extern errno_t fsetfileinfo(int fd, struct _mutable_file_info_t* info);
+
 
 extern errno_t access(const char* path, int mode);
 

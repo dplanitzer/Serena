@@ -107,6 +107,22 @@ errno_t setfileinfo(const char* path, struct _mutable_file_info_t* info)
     return r;
 }
 
+errno_t fgetfileinfo(int fd, struct _file_info_t* info)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_fgetfileinfo, fd, info);
+    return r;
+}
+
+errno_t fsetfileinfo(int fd, struct _mutable_file_info_t* info)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_fsetfileinfo, fd, info);
+    return r;
+}
+
 errno_t access(const char* path, int mode)
 {
     errno_t r;

@@ -63,6 +63,10 @@ extern ErrorCode File_Create(FilesystemRef _Nonnull pFilesystem, UInt mode, Inod
 // Creates a copy of the given file.
 extern ErrorCode File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _Nonnull pOutFile);
 
+// Returns the filesystem to which this file (I/O channel) connects
+#define File_GetFilesystem(__self) \
+    (FilesystemRef)IOChannel_GetResource((FileRef)__self)
+
 // Returns the node that represents the physical file
 #define File_GetInode(__self) \
     ((FileRef)__self)->inode
@@ -103,6 +107,10 @@ extern ErrorCode Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _
 
 // Creates a copy of the given directory descriptor.
 extern ErrorCode Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef _Nullable * _Nonnull pOutDir);
+
+// Returns the filesystem to which this directory (I/O channel) connects
+#define Directory_GetFilesystem(__self) \
+    (FilesystemRef)IOChannel_GetResource((FileRef)__self)
 
 // Returns the node that represents the physical directory
 #define Directory_GetInode(__self) \

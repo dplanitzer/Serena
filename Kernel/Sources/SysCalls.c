@@ -237,6 +237,38 @@ Int _SYSCALL_setfileinfo(const struct SYS_setfileinfo_args* _Nonnull pArgs)
 }
 
 
+struct SYS_fgetfileinfo_args {
+    Int                 scno;
+    Int                 fd;
+    FileInfo* _Nullable outInfo;
+};
+
+Int _SYSCALL_fgetfileinfo(const struct SYS_fgetfileinfo_args* _Nonnull pArgs)
+{
+    if (pArgs->outInfo == NULL) {
+        return EINVAL;
+    }
+
+    return Process_GetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->fd, pArgs->outInfo);
+}
+
+
+struct SYS_fsetfileinfo_args {
+    Int                         scno;
+    Int                         fd;
+    MutableFileInfo* _Nullable  info;
+};
+
+Int _SYSCALL_fsetfileinfo(const struct SYS_fsetfileinfo_args* _Nonnull pArgs)
+{
+    if (pArgs->info == NULL) {
+        return EINVAL;
+    }
+
+    return Process_SetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->fd, pArgs->info);
+}
+
+
 struct SYS_access_args {
     Int                         scno;
     const Character* _Nullable  path;
