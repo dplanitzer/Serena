@@ -75,7 +75,7 @@ static void InodeIterator_Deinit(InodeIterator* pIterator)
 // MARK: PathResolver
 ////////////////////////////////////////////////////////////////////////////////
 
-static ErrorCode PathResolver_UpdateIteratorWithParentNode(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter);
+static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter);
 
 
 ErrorCode PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory)
@@ -155,7 +155,7 @@ ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
         Object_Release(pCurNode);
         pCurNode = Object_RetainAs(iter.inode, Inode);
 
-        try(PathResolver_UpdateIteratorWithParentNode(pResolver, user, &iter));
+        try(PathResolver_UpdateIteratorWalkingUp(pResolver, user, &iter));
 
         pathComponent.name = pBuffer;
         pathComponent.count = 0;
@@ -202,7 +202,7 @@ ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
 // iterator points. Returns the iterator's inode itself if that inode is the path
 // resolver's root directory. Returns a suitable error code and leaves the iterator
 // unchanged if an error (eg access denied) occurs.
-static ErrorCode PathResolver_UpdateIteratorWithParentNode(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
+static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
 {
     // Nothing to do if the iterator points to our root node
     if (Inode_Equals(pIter->inode, pResolver->rootDirectory)) {
@@ -258,24 +258,14 @@ static ErrorCode PathResolver_UpdateIteratorWithParentNode(PathResolverRef _Nonn
 
 // Updates the inode iterator with the inode that represents the given path
 // component and returns EOK if that works out. Otherwise returns a suitable
-// error and leaves the passed in iterator unchanged.
-static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
+// error and leaves the passed in iterator unchanged. This function handles the
+// case that we want to walk down the filesystem tree.
+static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
-    // The current directory better be an actual directory
-    if (!Inode_IsDirectory(pIter->inode)) {
-        return ENOTDIR;
-    }
-
-
-    // Handle ".."
-    if (pComponent->count == 2 && pComponent->name[0] == '.' && pComponent->name[1] == '.') {
-        return PathResolver_UpdateIteratorWithParentNode(pResolver, user, pIter);
-    }
-
+    InodeRef pChildNode;
 
     // Ask the current filesystem for the inode that is named by the tuple
     // (parent-inode, path-component)
-    InodeRef pChildNode;
     const ErrorCode err = Filesystem_CopyNodeForName(pIter->fileSystem, pIter->inode, pComponent, user, &pChildNode);
     if (err != EOK) {
         return err;
@@ -304,6 +294,27 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
     Object_AssignMovingOwnership(&pIter->inode, Filesystem_CopyRootNode(mountedFilesystem));
 
     return EOK;
+}
+
+// Updates the inode iterator with the inode that represents the given path
+// component and returns EOK if that works out. Otherwise returns a suitable
+// error and leaves the passed in iterator unchanged.
+static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
+{
+    // The current directory better be an actual directory
+    if (!Inode_IsDirectory(pIter->inode)) {
+        return ENOTDIR;
+    }
+
+
+    // Walk up the filesystem tree if the path component is "..", sideways if
+    // the path component is "." and down if it is any other name.
+    if (pComponent->count == 2 && pComponent->name[0] == '.' && pComponent->name[1] == '.') {
+        return PathResolver_UpdateIteratorWalkingUp(pResolver, user, pIter);
+    }
+    else {
+        return PathResolver_UpdateIteratorWalkingDown(pResolver, user, pIter, pComponent);
+    }
 }
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
