@@ -199,7 +199,9 @@ void RamFS_Directory_deinit(RamFS_DirectoryRef _Nonnull self)
 {
     RamFS_DirectoryHeader* pHeader = &self->header;
 
-    for (Int i = 0; i < GenericArray_GetCount(pHeader); i++) {
+    // Note that the first 2 entries are "." and ".." respective and that they
+    // are weak references.
+    for (Int i = 2; i < GenericArray_GetCount(pHeader); i++) {
         RamFS_DirectoryEntry* pCurEntry = GenericArray_GetRefAt(pHeader, RamFS_DirectoryEntry, i);
 
         Object_Release(pCurEntry->node);

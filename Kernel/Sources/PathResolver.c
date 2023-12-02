@@ -13,6 +13,8 @@ static void PathResolverResult_Init(PathResolverResult* pResult, const Character
 {
     pResult->inode = NULL;
     pResult->fileSystem = NULL;
+    pResult->parentInode = NULL;
+    pResult->parentFileSystem = NULL;
     pResult->pathSuffix = pPath;
 }
 
@@ -22,6 +24,11 @@ void PathResolverResult_Deinit(PathResolverResult* pResult)
     pResult->inode = NULL;
     Object_Release(pResult->fileSystem);
     pResult->fileSystem = NULL;
+
+    Object_Release(pResult->parentInode);
+    pResult->parentInode = NULL;
+    Object_Release(pResult->parentFileSystem);
+    pResult->parentFileSystem = NULL;
 }
 
 
@@ -322,6 +329,9 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
 // which stands for 'the parent directory'. Note that this function does not allow
 // you to leave the subtree rotted by the root directory. Any attempt to go to a
 // parent of the root directory will send you back to the root directory.
+// Note that the caller of this function has to eventually call
+// PathResolverResult_Deinit() on the returned result no matter whether this
+// function has returned with EOK or some error.
 ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const Character* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult)
 {
     decl_try_err();
@@ -377,6 +387,12 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathR
             pResolver->nameBuffer[0] = '.'; ni = 1;
         }
         pResolver->pathComponent.count = ni;
+
+
+        if (mode == kPathResolutionMode_TargetAndParent) {
+            Object_Assign(&pResult->parentInode, iter.inode);
+            Object_Assign(&pResult->parentFileSystem, iter.fileSystem);
+        }
 
 
         // Ask the current namespace for the inode that is named by the tuple

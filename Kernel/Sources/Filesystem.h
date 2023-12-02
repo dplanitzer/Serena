@@ -181,9 +181,14 @@ typedef struct _FilesystemMethodTable {
     // Returns a strong reference to the root directory node of the filesystem.
     InodeRef _Nonnull (*copyRootNode)(void* _Nonnull self);
 
-    // Returns EOK and the parent node of the given node if it exists and ENOENT
-    // and NULL if the given node is the root node of the namespace. This function
-    // will always be called with a node that is owned by the file system.
+    // Returns the parent of 'pNode' and EOK if the parent exists and 'pNode' is
+    // not the root (directory) of the filesystem. Returns ENOENT and NULL if
+    // 'pNode' is the root of the filesystem. Note that this function is expected
+    // to return the parent no matter whether 'pNode' is a directory or a file.
+    // Thus this is a superset of the functionality implemented by calling
+    // copyNodeForName("..") since this only works for directories and not files.
+    // This function will always be called with a node that is owned by the file
+    // system.
     ErrorCode (*copyParentOfNode)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Returns EOK and the node that corresponds to the tuple (parent-node, name),
