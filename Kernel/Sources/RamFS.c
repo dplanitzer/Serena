@@ -361,13 +361,16 @@ ErrorCode RamFS_getFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Fil
 
 // Modifies one or more attributes stored in the file info record of the given
 // Inode. The Inode may be of any type.
-ErrorCode RamFS_setFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, MutableFileInfo* _Nonnull pInfo)
+ErrorCode RamFS_setFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    Lock_Lock(&self->lock);
-    Inode_SetFileInfo(pNode, pInfo);
-    Lock_Unlock(&self->lock);
+    decl_try_err();
 
-    return EOK;
+    Lock_Lock(&self->lock);
+    try(Inode_SetFileInfo(pNode, user, pInfo));
+
+catch:
+    Lock_Unlock(&self->lock);
+    return err;
 }
 
 // If the node is a directory and another file system is mounted at this directory,

@@ -88,11 +88,21 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
     pOutInfo->inodeId = self->inid;
 }
 
-// Modifies the node's file info.
-void Inode_SetFileInfo(InodeRef _Nonnull self, MutableFileInfo* _Nonnull pInfo)
+// Modifies the node's file info if the operation is permissible based on the
+// given user and inode permissions status.
+ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
     UInt32  modify = pInfo->modify;
 
+    // We first validate that the request operation is permissible.
+    if ((modify & (kModifyFileInfo_UserId|kModifyFileInfo_GroupId)) != 0) {
+        if (user.uid != Inode_GetUserId(self) && user.uid != kRootUserId) {
+            return EPERM;
+        }
+    }
+
+
+    // We got permissions. Now update the data as requested.
     if ((modify & kModifyFileInfo_UserId) == kModifyFileInfo_UserId) {
         self->user.uid = pInfo->uid;
     }
@@ -107,6 +117,8 @@ void Inode_SetFileInfo(InodeRef _Nonnull self, MutableFileInfo* _Nonnull pInfo)
     }
 
     // XXX handle modifiable time values
+
+    return EOK;
 }
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise

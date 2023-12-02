@@ -299,7 +299,7 @@ ErrorCode Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 
 // Modifies one or more attributes stored in the file info record of the given
 // Inode. The Inode may be of any type.
-ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, MutableFileInfo* _Nonnull pInfo)
+ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, User user, MutableFileInfo* _Nonnull pInfo)
 {
     return EIO;
 }

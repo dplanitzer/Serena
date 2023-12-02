@@ -125,8 +125,9 @@ extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermis
 // Returns a file info record from the node data.
 extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 
-// Modifies the node's file info.
-extern void Inode_SetFileInfo(InodeRef _Nonnull self, MutableFileInfo* _Nonnull pInfo);
+// Modifies the node's file info if the operation is permissible based on the
+// given user and inode permissions status.
+extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
  
 
 //

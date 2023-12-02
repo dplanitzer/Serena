@@ -919,7 +919,7 @@ ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnu
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_SetFileInfo(r.fileSystem, r.inode, pInfo));
+    try(Filesystem_SetFileInfo(r.fileSystem, r.inode, pProc->realUser, pInfo));
 
 catch:
     PathResolverResult_Deinit(&r);
@@ -935,10 +935,10 @@ ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, Mu
 
     try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
     if (Object_InstanceOf(pChannel, File)) {
-        try(Filesystem_SetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pInfo));
+        try(Filesystem_SetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, pInfo));
     }
     else if (Object_InstanceOf(pChannel, Directory)) {
-        try(Filesystem_SetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pInfo));
+        try(Filesystem_SetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pProc->realUser, pInfo));
     }
     else {
         throw(EBADF);
