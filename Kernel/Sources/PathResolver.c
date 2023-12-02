@@ -267,15 +267,9 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
     }
 
 
-    // Handle "." and ".."
-    if (pComponent->count <= 2 && pComponent->name[0] == '.') {
-        if (pComponent->count == 1) {
-            return EOK;
-        }
-
-        if (pComponent->name[1] == '.') {
-            return PathResolver_UpdateIteratorWithParentNode(pResolver, user, pIter);
-        }
+    // Handle ".."
+    if (pComponent->count == 2 && pComponent->name[0] == '.' && pComponent->name[1] == '.') {
+        return PathResolver_UpdateIteratorWithParentNode(pResolver, user, pIter);
     }
 
 
@@ -289,11 +283,10 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
 
 
     // Just return the node we looked up without changing the filesystem if the
-    // node is not a mount point
+    // node isn't a mount point
     const FilesystemId mountedFsId = Filesystem_GetFilesystemMountedOnNode(pIter->fileSystem, pChildNode);
     if (mountedFsId == 0) {
-        Object_Release(pIter->inode);
-        pIter->inode = pChildNode;
+        Object_Assign(&pIter->inode, pChildNode);
         return EOK;
     }
 
