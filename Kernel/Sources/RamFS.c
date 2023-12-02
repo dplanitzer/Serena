@@ -421,6 +421,22 @@ catch:
     return err;
 }
 
+// Opens the directory represented by the given node. Returns a directory
+// descriptor object which is teh I/O channel that allows you to read the
+// directory content.
+ErrorCode RamFS_openDirectory(RamFSRef _Nonnull self, InodeRef _Nonnull pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    try(Inode_CheckAccess(pDirNode, user, kFilePermission_Read));
+    try(Directory_Create((FilesystemRef)self, pDirNode, pOutDir));
+
+catch:
+    Lock_Unlock(&self->lock);
+    return err;
+}
+
 // Reads the next set of directory entries. The first entry read is the one
 // at the current directory index stored in 'pDir'. This function guarantees
 // that it will only ever return complete directories entries. It will never
@@ -474,6 +490,7 @@ OVERRIDE_METHOD_IMPL(setFileInfo, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(checkAccess, RamFS, Filesystem)
 

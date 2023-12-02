@@ -243,7 +243,7 @@ typedef struct _FilesystemMethodTable {
     // Opens the directory represented by the given node. Returns a directory
     // descriptor object which is teh I/O channel that allows you to read the
     // directory content.
-    ErrorCode (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull pDirNode, DirectoryRef _Nullable * _Nonnull pOutDir);
+    ErrorCode (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir);
 
     // Reads the next set of directory entries. The first entry read is the one
     // at the current directory index stored in 'pDir'. This function guarantees
@@ -313,8 +313,8 @@ Object_InvokeN(setFilesystemMountedOnNode, Filesystem, __self, __pNode, __fsid)
 #define Filesystem_CreateDirectory(__self, __pParentNode, __pName, __user, __permissions) \
 Object_InvokeN(createDirectory, Filesystem, __self, __pParentNode, __pName, __user, __permissions)
 
-#define Filesystem_OpenDirectory(__self, __pDirNode, __pOutDir) \
-Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __pOutDir)
+#define Filesystem_OpenDirectory(__self, __pDirNode, __user, __pOutDir) \
+Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __user, __pOutDir)
 
 #define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead) \
 Object_InvokeN(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead)

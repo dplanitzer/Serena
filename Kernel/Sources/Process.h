@@ -131,6 +131,10 @@ extern void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissio
 // assigned to the new directory (modulo the file creation mask).
 extern ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FilePermissions permissions);
 
+// Opens the directory at the given path and returns an I/O channel that represents
+// the open directory.
+extern ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int* _Nonnull pOutDescriptor);
+
 // Returns information about the file at the given path.
 extern ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
 
@@ -141,9 +145,5 @@ extern ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character*
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
 extern ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int mode);
-
-// Opens the directory at the given path and returns an I/O channel that represents
-// the open directory.
-extern ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int* _Nonnull pOutDescriptor);
 
 #endif /* Process_h */

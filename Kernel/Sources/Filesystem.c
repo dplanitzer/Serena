@@ -329,9 +329,9 @@ ErrorCode Filesystem_createDirectory(FilesystemRef _Nonnull self, InodeRef _Nonn
 // Opens the directory represented by the given node. Returns a directory
 // descriptor object which is teh I/O channel that allows you to read the
 // directory content.
-ErrorCode Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull pDirNode, DirectoryRef _Nullable * _Nonnull pOutDir)
+ErrorCode Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
 {
-    return Directory_Create(self, pDirNode, pOutDir);
+    return EACCESS;
 }
 
 // Reads the next set of directory entries. The first entry read is the one

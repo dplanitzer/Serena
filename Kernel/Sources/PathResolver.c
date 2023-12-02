@@ -100,7 +100,7 @@ void PathResolver_Deinit(PathResolverRef _Nonnull pResolver)
     pResolver->currentWorkingDirectory = NULL;
 }
 
-ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath)
+static ErrorCode PathResolver_SetDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath, InodeRef _Nullable * _Nonnull pDirToAssign)
 {
     decl_try_err();
     PathResolverResult r;
@@ -115,12 +115,21 @@ ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, 
     }
 
 
-    // Remember the new inode as our root directory
-    Object_Assign(&pResolver->rootDirectory, r.inode);
+    // Make sure that we do have search permission on the last path component (directory)
+    try(Filesystem_CheckAccess(r.fileSystem, r.inode, user, kFilePermission_Execute));
+
+
+    // Remember the new inode as our new directory
+    Object_Assign(pDirToAssign, r.inode);
 
 catch:
     PathResolverResult_Deinit(&r);
     return err;
+}
+
+ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath)
+{
+    return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->rootDirectory);
 }
 
 ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize)
@@ -186,25 +195,7 @@ catch:
 
 ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath)
 {
-    decl_try_err();
-    PathResolverResult r;
-
-    // Get the inode that represents the new directory
-    try(PathResolver_CopyNodeForPath(pResolver, kPathResolutionMode_TargetOnly, pPath, user, &r));
-
-
-    // Make sure that it is actually a directory
-    if (!Inode_IsDirectory(r.inode)) {
-        throw(ENOTDIR);
-    }
-
-
-    // Remember the new inode as our root directory
-    Object_Assign(&pResolver->currentWorkingDirectory, r.inode);
-
-catch:
-    PathResolverResult_Deinit(&r);
-    return err;
+    return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->currentWorkingDirectory);
 }
 
 // Updates the given inode iterator with the parent node of the node to which the

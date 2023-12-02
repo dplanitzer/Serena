@@ -849,6 +849,30 @@ ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _N
     return err;
 }
 
+// Opens the directory at the given path and returns an I/O channel that represents
+// the open directory.
+ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int* _Nonnull pOutDescriptor)
+{
+    decl_try_err();
+    PathResolverResult r;
+    DirectoryRef pDir;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_OpenDirectory(r.fileSystem, r.inode, pProc->realUser, &pDir));
+    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return EOK;
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    Object_Release(pDir);
+    *pOutDescriptor = -1;
+    return err;
+}
+
 // Returns information about the file at the given path.
 ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileInfo* _Nonnull pOutInfo)
 {
@@ -898,29 +922,5 @@ ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _N
 catch:
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
-    return err;
-}
-
-// Opens the directory at the given path and returns an I/O channel that represents
-// the open directory.
-ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int* _Nonnull pOutDescriptor)
-{
-    decl_try_err();
-    PathResolverResult r;
-    DirectoryRef pDir;
-
-    Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_OpenDirectory(r.fileSystem, r.inode, &pDir));
-    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
-    PathResolverResult_Deinit(&r);
-    Lock_Unlock(&pProc->lock);
-    return EOK;
-
-catch:
-    PathResolverResult_Deinit(&r);
-    Lock_Unlock(&pProc->lock);
-    Object_Release(pDir);
-    *pOutDescriptor = -1;
     return err;
 }
