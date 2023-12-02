@@ -35,5 +35,6 @@
 #define SC_access               23  // errno_t access(const char* path, int mode)
 #define SC_fgetfileinfo         24  // fgetfileinfo(int fd, struct _file_info_t* info)
 #define SC_fsetfileinfo         25  // fsetfileinfo(int fd, struct _mutable_file_info_t* info)
+#define SC_unlink               26  // errno_t unlink(const char* path)
 
 #endif /* __SYSCALLS_H */

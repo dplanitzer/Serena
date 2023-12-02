@@ -968,3 +968,23 @@ catch:
     Lock_Unlock(&pProc->lock);
     return err;
 }
+
+// Unlinks the inode at the path 'pPath'.
+ErrorCode Process_UnlinkInode(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath)
+{
+    decl_try_err();
+    PathResolverResult r;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetAndParent, pPath, pProc->realUser, &r));
+
+    // Can not unlink a mount point
+    // XXX implement this check once we've refined the mount point handling (return EBUSY)
+
+    try(Filesystem_Unlink(r.fileSystem, r.inode, r.parentInode, pProc->realUser));
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}

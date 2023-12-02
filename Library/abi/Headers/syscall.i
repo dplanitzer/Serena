@@ -35,8 +35,9 @@ SC_setfileinfo          equ 22  ; errno_t setfileinfo(const char* path, struct _
 SC_access               equ 23  ; errno_t access(const char* path, int mode)
 SC_fgetfileinfo         equ 24  ; fgetfileinfo(int fd, struct _file_info_t* info)
 SC_fsetfileinfo         equ 25  ; fsetfileinfo(int fd, struct _mutable_file_info_t* info)
+SC_unlink               equ 26  ; errno_t unlink(const char* path)
 
-SC_numberOfCalls        equ 26   ; number of system calls
+SC_numberOfCalls        equ 27   ; number of system calls
 
 
 ; System call macro.

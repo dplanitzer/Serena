@@ -358,6 +358,12 @@ ErrorCode Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EACCESS;
 }
 
+// Unlink the node 'pNode' which is an immediate child of the node 'pParentNode'.
+// The parent node is guaranteed to be a node owned by the filesystem.
+ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, User user)
+{
+    return EACCESS;
+}
 
 CLASS_METHODS(Filesystem, IOResource,
 METHOD_IMPL(onMount, Filesystem)
@@ -375,4 +381,5 @@ METHOD_IMPL(openDirectory, Filesystem)
 METHOD_IMPL(readDirectory, Filesystem)
 METHOD_IMPL(closeDirectory, Filesystem)
 METHOD_IMPL(checkAccess, Filesystem)
+METHOD_IMPL(unlink, Filesystem)
 );

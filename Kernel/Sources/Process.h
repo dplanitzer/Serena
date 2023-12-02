@@ -152,4 +152,7 @@ extern ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int
 // file exists at all is executed.
 extern ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int mode);
 
+// Unlinks the inode at the path 'pPath'.
+extern ErrorCode Process_UnlinkInode(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath);
+
 #endif /* Process_h */

@@ -272,6 +272,10 @@ typedef struct _FilesystemMethodTable {
     // Verifies that the given node is accessible assuming the given access mode.
     ErrorCode (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, Int mode);
 
+    // Unlink the node 'pNode' which is an immediate child of the node 'pParentNode'.
+    // The parent node is guaranteed to be a node owned by the filesystem.
+    ErrorCode (*unlink)(void* _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, User user);
+
 } FilesystemMethodTable;
 
 
@@ -333,5 +337,8 @@ Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)
 
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
 Object_InvokeN(checkAccess, Filesystem, __self, __pNode, __user, __mode)
+
+#define Filesystem_Unlink(__self, __pNode, __pParentNode, __user) \
+Object_InvokeN(unlink, Filesystem, __self, __pNode, __pParentNode, __user)
 
 #endif /* Filesystem_h */

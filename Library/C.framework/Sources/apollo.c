@@ -131,6 +131,14 @@ errno_t access(const char* path, int mode)
     return r;
 }
 
+errno_t unlink(const char* path)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_unlink, path);
+    return r;
+}
+
 mode_t getumask(void)
 {
     return __syscall(SC_getumask);

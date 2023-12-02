@@ -68,6 +68,7 @@ extern errno_t fsetfileinfo(int fd, struct _mutable_file_info_t* info);
 
 
 extern errno_t access(const char* path, int mode);
+extern errno_t unlink(const char* path);    // deletes files and (empty) directories
 
 
 extern mode_t getumask(void);

@@ -285,6 +285,21 @@ Int _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
 }
 
 
+struct SYS_unlink_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+};
+
+Int _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
+{
+    if (pArgs->path == NULL) {
+        return EINVAL;
+    }
+
+    return Process_UnlinkInode(Process_GetCurrent(), pArgs->path);
+}
+
+
 Int _SYSCALL_getumask(void)
 {
     return (Int) Process_GetFileCreationMask(Process_GetCurrent());

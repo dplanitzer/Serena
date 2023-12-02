@@ -480,6 +480,14 @@ ErrorCode RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Use
     return err;
 }
 
+// Unlink the node 'pNode' which is an immediate child of the node 'pParentNode'.
+// The parent node is guaranteed to be a node owned by the filesystem.
+ErrorCode RamFS_unlink(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, User user)
+{
+    // XXX implement me
+    return EACCESS;
+}
+
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
@@ -496,5 +504,5 @@ OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(checkAccess, RamFS, Filesystem)
-
+OVERRIDE_METHOD_IMPL(unlink, RamFS, Filesystem)
 );
