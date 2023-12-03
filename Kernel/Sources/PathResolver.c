@@ -282,26 +282,21 @@ static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull
     }
 
 
-    // Just return the node we looked up without changing the filesystem if the
-    // node isn't a mount point
-    const FilesystemId mountedFsId = Filesystem_GetFilesystemMountedOnNode(pIter->fileSystem, pChildNode);
-    if (mountedFsId == 0) {
+    // Check whether the new inode is a mountpoint. If not then we just update
+    // the iterator with the new node. If it is a mountpoint then we have to
+    // switch to the mounted filesystem and its root node instead.
+    FilesystemRef pMountedFileSys;
+    InodeRef pMountedFileSysRootNode;
+
+    if (!FilesystemManager_IsNodeMountpoint(gFilesystemManager, pChildNode, &pMountedFileSys, &pMountedFileSysRootNode)) {
         Object_Assign(&pIter->inode, pChildNode);
-        return EOK;
     }
-
-
-    // The node is a mount point. Figure out what the mounted filesystem is
-    // and return the root node of this filesystem
-    FilesystemRef mountedFilesystem = FilesystemManager_CopyFilesystemForId(gFilesystemManager, mountedFsId);
-    if (mountedFilesystem == NULL) {
-        return ENOENT;
+    else {
+        Object_Release(pChildNode);
+        pIter->fsid = Filesystem_GetId(pMountedFileSys);
+        Object_AssignMovingOwnership(&pIter->fileSystem, pMountedFileSys);
+        Object_AssignMovingOwnership(&pIter->inode, pMountedFileSysRootNode);
     }
-
-    Object_Release(pChildNode);
-    pIter->fsid = Filesystem_GetId(mountedFilesystem);
-    Object_AssignMovingOwnership(&pIter->fileSystem, mountedFilesystem);
-    Object_AssignMovingOwnership(&pIter->inode, Filesystem_CopyRootNode(mountedFilesystem));
 
     return EOK;
 }

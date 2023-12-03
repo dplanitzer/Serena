@@ -41,9 +41,14 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemM
 // system).
 extern ErrorCode FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(FilesystemManagerRef _Nonnull pManager, FilesystemId fsid, InodeRef _Nullable * _Nonnull pOutNode, FilesystemRef _Nullable * _Nonnull pOutFilesystem);
 
+// Checks whether the given node is a mount point and returns the mount point
+// information if it is. Otherwise returns false. The returned mount point
+// information is the filesystem and its root node, that is mounted at the given
+// node.
+extern Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull pNode, FilesystemRef _Nullable * _Nonnull pMountedFilesystem, InodeRef _Nullable * _Nonnull pMountedRootNode);
+
 // Mounts the given filesystem at the given node. The node must be a directory
-// node. The same filesystem instance may be mounted at multiple different
-// directories.
+// node. A filesystem instance may be mounted at at most one directory.
 extern ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull pDirNode);
 
 // Unmounts the given filesystem from the given directory.

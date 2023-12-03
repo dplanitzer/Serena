@@ -229,16 +229,6 @@ typedef struct _FilesystemMethodTable {
     // Inode. The Inode may be of any type.
     ErrorCode (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, MutableFileInfo* _Nonnull pInfo);
 
-    // If the node is a directory and another file system is mounted at this directory,
-    // then this function returns the filesystem ID of the mounted directory; otherwise
-    // 0 is returned.
-    FilesystemId (*getFilesystemMountedOnNode)(void* _Nonnull self, InodeRef _Nonnull pNode);
-
-    // Marks the given directory node as a mount point at which the filesystem
-    // with the given filesystem ID is mounted. Converts the node back into a
-    // regular directory node if the give filesystem ID is 0.
-    void (*setFilesystemMountedOnNode)(void* _Nonnull self, InodeRef _Nonnull pNode, FilesystemId fsid);
-
 
     //
     // Directory Operations
@@ -319,12 +309,6 @@ Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 
 #define Filesystem_SetFileInfo(__self, __pNode, __user, __pInfo) \
 Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
-
-#define Filesystem_GetFilesystemMountedOnNode(__self, __pNode) \
-Object_InvokeN(getFilesystemMountedOnNode, Filesystem, __self, __pNode)
-
-#define Filesystem_SetFilesystemMountedOnNode(__self, __pNode, __fsid) \
-Object_InvokeN(setFilesystemMountedOnNode, Filesystem, __self, __pNode, __fsid)
 
 
 #define Filesystem_CreateDirectory(__self, __pParentNode, __pName, __user, __permissions) \

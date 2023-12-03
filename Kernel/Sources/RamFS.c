@@ -31,7 +31,6 @@ OPEN_CLASS_WITH_REF(RamFS_Directory, Inode,
     // .
     // [n] userEntryN-1
     RamFS_DirectoryHeader       header;
-    FilesystemId                mountedFileSys;     // (Directory) The ID of the filesystem mounted on top of this directory; 0 if this directory is not a mount point
 );
 typedef struct _RamFS_DirectoryMethodTable {
     InodeMethodTable    super;
@@ -49,7 +48,6 @@ static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, InodeId id, RamFS_
     try(GenericArray_Init(&pDir->header, sizeof(RamFS_DirectoryEntry), 8));
     try(DirectoryNode_AddWellKnownEntry(pDir, ".", (InodeRef) pDir));
     try(DirectoryNode_AddWellKnownEntry(pDir, "..", (pParentDir) ? (InodeRef) pParentDir : (InodeRef) pDir));
-    pDir->mountedFileSys = 0;
 
     *pOutDir = pDir;
     return EOK;
@@ -373,28 +371,6 @@ catch:
     return err;
 }
 
-// If the node is a directory and another file system is mounted at this directory,
-// then this function returns the filesystem ID of the mounted directory; otherwise
-// 0 is returned.
-FilesystemId RamFS_getFilesystemMountedOnNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode)
-{
-    Lock_Lock(&self->lock);
-    const FilesystemId fsid = (Inode_IsDirectory(pNode)) ? ((RamFS_DirectoryRef)pNode)->mountedFileSys : 0;
-    Lock_Unlock(&self->lock);
-
-    return fsid;
-}
-
-// Marks the given directory node as a mount point at which the filesystem
-// with the given filesystem ID is mounted. Converts the node back into a
-// regular directory node if the give filesystem ID is 0.
-void RamFS_setFilesystemMountedOnNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, FilesystemId fsid)
-{
-    Lock_Lock(&self->lock);
-    ((RamFS_DirectoryRef)pNode)->mountedFileSys = fsid;
-    Lock_Unlock(&self->lock);
-}
-
 // Creates an empty directory as a child of the given directory node and with
 // the given name, user and file permissions
 ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions)
@@ -507,8 +483,6 @@ OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFileInfo, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(getFilesystemMountedOnNode, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(setFilesystemMountedOnNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)

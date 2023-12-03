@@ -54,6 +54,12 @@ typedef enum _InodeType {
 } InodeType;
 
 
+// Inode flags
+enum {
+    kInodeFlag_IsMountpoint = 1,    // owned and protected by the FilesystemManager
+};
+
+
 // An Inode represents the meta information of a file or directory. This is an
 // abstract class that must be subclassed and fully implemented by a file system.
 // See the description of the Filesystem class to learn about how locking for
@@ -130,6 +136,17 @@ extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInf
 extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
  
 
+//
+// Only the FilesystemManager should call the following functions.
+//
+
+#define Inode_IsMountpoint(__self) \
+    (((InodeRef)__self)->flags & kInodeFlag_IsMountpoint) != 0
+
+#define Inode_SetMountpoint(__self, __flag) \
+    if(__flag) {((InodeRef)__self)->flags |= kInodeFlag_IsMountpoint;} else {((InodeRef)__self)->flags &= ~kInodeFlag_IsMountpoint;}
+
+    
 //
 // The following functions may be used by any code and they are concurrency safe.
 //

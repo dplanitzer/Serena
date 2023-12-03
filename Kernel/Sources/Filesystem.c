@@ -304,21 +304,6 @@ ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
-// If the node is a directory and another file system is mounted at this directory,
-// then this function returns the filesystem ID of the mounted directory; otherwise
-// 0 is returned.
-FilesystemId Filesystem_getFilesystemMountedOnNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
-{
-    return 0;
-}
-
-// Marks the given directory node as a mount point at which the filesystem
-// with the given filesystem ID is mounted. Converts the node back into a
-// regular directory node if the give filesystem ID is 0.
-void Filesystem_setFilesystemMountedOnNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, FilesystemId fsid)
-{
-}
-
 // Creates an empty directory as a child of the given directory node and with
 // the given name, user and file permissions
 ErrorCode Filesystem_createDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions)
@@ -383,8 +368,6 @@ METHOD_IMPL(copyNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
 METHOD_IMPL(getFileInfo, Filesystem)
 METHOD_IMPL(setFileInfo, Filesystem)
-METHOD_IMPL(getFilesystemMountedOnNode, Filesystem)
-METHOD_IMPL(setFilesystemMountedOnNode, Filesystem)
 METHOD_IMPL(createDirectory, Filesystem)
 METHOD_IMPL(openDirectory, Filesystem)
 METHOD_IMPL(readDirectory, Filesystem)
