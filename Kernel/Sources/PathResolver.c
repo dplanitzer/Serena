@@ -259,7 +259,7 @@ static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull p
 // Updates the inode iterator with the inode that represents the given path
 // component and returns EOK if that works out. Otherwise returns a suitable
 // error and leaves the passed in iterator unchanged. This function handles the
-// case that we want to walk down the filesystem tree.
+// case that we want to walk down the filesystem tree or sideways (".").
 static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
     InodeRef pChildNode;
