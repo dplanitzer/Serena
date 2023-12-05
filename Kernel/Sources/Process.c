@@ -837,7 +837,7 @@ ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _N
     if (err == ENOENT && r.inode) {
         // Target does not exist but the parent directory does exist, create the target
         const PathComponent pc = PathComponent_MakeFromCString(r.pathSuffix);
-        err = Filesystem_CreateDirectory(r.fileSystem, r.inode, &pc, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
+        err = Filesystem_CreateDirectory(r.filesystem, r.inode, &pc, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
     }
     else if (err == EOK) {
         // Directory or file of the given name exists, treat it as an error
@@ -859,7 +859,7 @@ ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Non
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_OpenDirectory(r.fileSystem, r.inode, pProc->realUser, &pDir));
+    try(Filesystem_OpenDirectory(r.filesystem, r.inode, pProc->realUser, &pDir));
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
@@ -881,7 +881,7 @@ ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnu
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_GetFileInfo(r.fileSystem, r.inode, pOutInfo));
+    try(Filesystem_GetFileInfo(r.filesystem, r.inode, pOutInfo));
 
 catch:
     PathResolverResult_Deinit(&r);
@@ -919,7 +919,7 @@ ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnu
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_SetFileInfo(r.fileSystem, r.inode, pProc->realUser, pInfo));
+    try(Filesystem_SetFileInfo(r.filesystem, r.inode, pProc->realUser, pInfo));
 
 catch:
     PathResolverResult_Deinit(&r);
@@ -960,7 +960,7 @@ ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _N
     Lock_Lock(&pProc->lock);
     try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     if (mode != 0) {
-        try(Filesystem_CheckAccess(r.fileSystem, r.inode, pProc->realUser, mode));
+        try(Filesystem_CheckAccess(r.filesystem, r.inode, pProc->realUser, mode));
     }
 
 catch:
@@ -981,7 +981,7 @@ ErrorCode Process_Unlink(ProcessRef _Nonnull pProc, const Character* _Nonnull pP
     // Can not unlink a mount point
     // XXX implement this check once we've refined the mount point handling (return EBUSY)
 
-    try(Filesystem_Unlink(r.fileSystem, r.inode, r.parentInode, pProc->realUser));
+    try(Filesystem_Unlink(r.filesystem, r.inode, r.parentInode, pProc->realUser));
 
 catch:
     PathResolverResult_Deinit(&r);
@@ -1012,7 +1012,7 @@ ErrorCode Process_Rename(ProcessRef _Nonnull pProc, const Character* pOldPath, c
     // XXX implement me
     
     const PathComponent newName = PathComponent_MakeFromCString(nr.pathSuffix);
-    try(Filesystem_Rename(or.fileSystem, or.inode, or.parentInode, &newName, nr.parentInode, pProc->realUser));
+    try(Filesystem_Rename(or.filesystem, or.inode, or.parentInode, &newName, nr.parentInode, pProc->realUser));
 
 catch:
     PathResolverResult_Deinit(&or);

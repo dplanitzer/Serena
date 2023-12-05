@@ -53,10 +53,10 @@ typedef enum _PathResolutionMode {
 // The result of a path resolution operation.
 typedef struct _PathResolverResult {
     InodeRef _Nullable          inode;          // The inode named by the path if it exists and the parent inode otherwise, if requested
-    FilesystemRef _Nullable     fileSystem;     // The filesystem that owns the returned inode
+    FilesystemRef _Nullable     filesystem;     // The filesystem that owns the returned inode
 
     InodeRef _Nullable          parentInode;        // Only set if the resolution mode is TargetAndParent and the target exists
-    FilesystemRef _Nullable     parentFileSystem;   // Only set if the resolution mode is TargetAndParent and the target exists
+    FilesystemRef _Nullable     parentFilesystem;   // Only set if the resolution mode is TargetAndParent and the target exists
 
     const Character* _Nonnull   pathSuffix;     // Points to the first character of the path component following the parent or ancestor
 } PathResolverResult;
