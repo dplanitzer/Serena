@@ -1,5 +1,5 @@
 //
-//  _syscalldef.h
+//  _syscall.h
 //  Apollo
 //
 //  Created by Dietmar Planitzer on 9/2/23.
@@ -37,5 +37,6 @@
 #define SC_fsetfileinfo         25  // fsetfileinfo(int fd, struct _mutable_file_info_t* info)
 #define SC_unlink               26  // errno_t unlink(const char* path)
 #define SC_rename               27  // errno_t rename(const char* oldpath, const char* newpath)
+#define SC_ioctl                28  // errno_t ioctl(int fd, int cmd, ...)
 
 #endif /* __SYSCALLS_H */

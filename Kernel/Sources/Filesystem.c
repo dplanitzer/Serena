@@ -150,11 +150,6 @@ ByteCount Directory_dup(DirectoryRef _Nonnull self, DirectoryRef _Nullable * _No
     return EBADF;
 }
 
-ByteCount Directory_command(DirectoryRef _Nonnull self, Int op, va_list ap)
-{
-    return EBADF;
-}
-
 ByteCount Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead);
@@ -190,7 +185,6 @@ ErrorCode Directory_close(DirectoryRef _Nonnull self)
 CLASS_METHODS(Directory, IOChannel,
 OVERRIDE_METHOD_IMPL(deinit, Directory, Object)
 OVERRIDE_METHOD_IMPL(dup, Directory, IOChannel)
-OVERRIDE_METHOD_IMPL(command, Directory, IOChannel)
 OVERRIDE_METHOD_IMPL(read, Directory, IOChannel)
 OVERRIDE_METHOD_IMPL(write, Directory, IOChannel)
 OVERRIDE_METHOD_IMPL(seek, Directory, IOChannel)

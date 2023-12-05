@@ -53,8 +53,6 @@ extern errno_t seek(int fd, off_t offset, off_t *oldpos, int whence);
 
 extern errno_t close(int fd);
 
-extern errno_t mkdir(const char* path, mode_t mode);
-
 
 extern errno_t getcwd(char* buffer, size_t bufferSize);
 extern errno_t setcwd(const char* path);
@@ -67,9 +65,14 @@ extern errno_t fgetfileinfo(int fd, struct _file_info_t* info);
 extern errno_t fsetfileinfo(int fd, struct _mutable_file_info_t* info);
 
 
+extern errno_t ioctl(int fd, int cmd, ...);
+extern errno_t fdctl(int fd, int cmd, ...);
+
+
 extern errno_t access(const char* path, int mode);
 extern errno_t unlink(const char* path);    // deletes files and (empty) directories
 extern errno_t rename(const char* oldpath, const char* newpath);
+extern errno_t mkdir(const char* path, mode_t mode);
 
 
 extern mode_t getumask(void);

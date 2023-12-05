@@ -147,6 +147,10 @@ extern ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character*
 // Same as above but with respect to the given I/O channel.
 extern ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, MutableFileInfo* _Nonnull pInfo);
 
+// Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
+// resource identified by the given descriptor.
+extern ErrorCode Process_vIOControl(ProcessRef _Nonnull pProc, Int fd, Int cmd, va_list ap);
+
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.

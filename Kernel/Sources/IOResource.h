@@ -27,7 +27,7 @@ OPEN_CLASS_WITH_REF(IOChannel, Object,
 typedef struct _IOChannelMethodTable {
     ObjectMethodTable   super;
     ErrorCode   (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
-    ErrorCode   (*command)(void* _Nonnull self, Int op, va_list ap);
+    ErrorCode   (*ioctl)(void* _Nonnull self, Int cmd, va_list ap);
     ByteCount   (*read)(void* _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
     ByteCount   (*write)(void* _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
     ErrorCode   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence);
@@ -43,8 +43,7 @@ typedef struct _IOChannelMethodTable {
 #define IOChannel_Dup(__self, __pOutChannel) \
 Object_InvokeN(dup, IOChannel, __self, __pOutChannel)
 
-#define IOChannel_Command(__self, __op, __ap) \
-Object_InvokeN(command, IOChannel, __self, __op, __ap)
+extern ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap);
 
 #define IOChannel_Read(__self, __pBuffer, __nBytesToRead) \
 Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead)
@@ -104,11 +103,11 @@ typedef struct _IOResourceMethodTable {
     // the channel state is immutable. 
     ErrorCode   (*dup)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-    // Executes the resource specific command 'op'.
-    ErrorCode   (*command)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Int op, va_list ap);
-
     ByteCount   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
     ByteCount   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+
+    // Executes the resource specific command 'cmd'.
+    ErrorCode   (*ioctl)(void* _Nonnull self, Int cmd, va_list ap);
 
     // Close the resource. The purpose of the close operation is:
     // - flush all data that was written and is still buffered/cached to the underlying device
@@ -129,14 +128,14 @@ Object_InvokeN(open, IOResource, __self, __pPath, __options, __pOutChannel)
 #define IOResource_Dup(__self, __pChannel, __pOutChannel) \
 Object_InvokeN(dup, IOResource, __self, __pChannel, __pOutChannel)
 
-#define IOResource_Command(__self, __pChannel, __op, __ap) \
-Object_InvokeN(command, IOResource, __self, __pChannel, __op, __ap)
-
 #define IOResource_Read(__self, __pChannel, __pBuffer, __nBytesToRead) \
 Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead)
 
 #define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)
+
+#define IOResource_vIOControl(__self, __cmd, __ap) \
+Object_InvokeN(ioctl, IOResource, __self, __cmd, __ap)
 
 #define IOResource_Close(__self, __pChannel) \
 Object_InvokeN(close, IOResource, __self, __pChannel)

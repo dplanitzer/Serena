@@ -269,6 +269,19 @@ Int _SYSCALL_fsetfileinfo(const struct SYS_fsetfileinfo_args* _Nonnull pArgs)
 }
 
 
+struct SYS_ioctl_args {
+    Int                 scno;
+    Int                 fd;
+    Int                 cmd;
+    va_list _Nullable   ap;
+};
+
+Int _SYSCALL_ioctl(const struct SYS_ioctl_args* _Nonnull pArgs)
+{
+    return Process_vIOControl(Process_GetCurrent(), pArgs->fd, pArgs->cmd, pArgs->ap);
+}
+
+
 struct SYS_access_args {
     Int                         scno;
     const Character* _Nullable  path;

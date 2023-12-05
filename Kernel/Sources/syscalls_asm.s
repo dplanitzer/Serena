@@ -39,6 +39,7 @@
     xref __SYSCALL_fsetfileinfo
     xref __SYSCALL_unlink
     xref __SYSCALL_rename
+    xref __SYSCALL_ioctl
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -73,6 +74,7 @@ syscall_table:
     dc.l __SYSCALL_fsetfileinfo
     dc.l __SYSCALL_unlink
     dc.l __SYSCALL_rename
+    dc.l __SYSCALL_ioctl
 
 
 ;-------------------------------------------------------------------------------

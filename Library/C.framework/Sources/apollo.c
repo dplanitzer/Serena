@@ -9,6 +9,7 @@
 #include <apollo/apollo.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include <_varargs.h>
 
 
 int open(const char *path, int options)
@@ -65,15 +66,6 @@ errno_t close(int fd)
 }
 
 
-errno_t mkdir(const char* path, mode_t mode)
-{
-    errno_t r;
-
-    __failable_syscall(r, SC_mkdir, path, mode);
-    return r;
-}
-
-
 errno_t getcwd(char* buffer, size_t bufferSize)
 {
     errno_t r;
@@ -123,6 +115,40 @@ errno_t fsetfileinfo(int fd, struct _mutable_file_info_t* info)
     return r;
 }
 
+
+errno_t ioctl(int fd, int cmd, ...)
+{
+    errno_t r;
+    va_list ap;
+
+    va_start(ap, cmd);
+    if (IsIOChannelCommand(cmd)) {
+        r = EINVAL;
+    } else {
+        __failable_syscall(r, SC_ioctl, fd, cmd, ap);
+    }
+    va_end(ap);
+
+    return r;
+}
+
+errno_t fdctl(int fd, int cmd, ...)
+{
+    errno_t r;
+    va_list ap;
+
+    va_start(ap, cmd);
+    if (IsIOChannelCommand(cmd)) {
+        __failable_syscall(r, SC_ioctl, fd, cmd, ap);
+    } else {
+        r = EINVAL;
+    }
+    va_end(ap);
+    
+    return r;
+}
+
+
 errno_t access(const char* path, int mode)
 {
     errno_t r;
@@ -146,6 +172,15 @@ errno_t rename(const char* oldpath, const char* newpath)
     __failable_syscall(r, SC_rename, oldpath, newpath);
     return r;
 }
+
+errno_t mkdir(const char* path, mode_t mode)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_mkdir, path, mode);
+    return r;
+}
+
 
 mode_t getumask(void)
 {

@@ -51,9 +51,19 @@ ByteCount IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _No
     return IOResource_Dup(self->resource, self, pOutChannel);
 }
 
-ByteCount IOChannel_command(IOChannelRef _Nonnull self, Int op, va_list ap)
+ByteCount IOChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
 {
-    return IOResource_Command(self->resource, self, op, ap);
+    return EINVAL;
+}
+
+ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+{
+    if (IsIOChannelCommand(cmd)) {
+        return Object_InvokeN(ioctl, IOChannel, self, cmd, ap);
+    }
+    else {
+        return IOResource_vIOControl(self->resource, cmd, ap);
+    }
 }
 
 ByteCount IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
@@ -92,7 +102,7 @@ void IOChannel_deinit(IOChannelRef _Nonnull self)
 
 CLASS_METHODS(IOChannel, Object,
 METHOD_IMPL(dup, IOChannel)
-METHOD_IMPL(command, IOChannel)
+METHOD_IMPL(ioctl, IOChannel)
 METHOD_IMPL(read, IOChannel)
 METHOD_IMPL(write, IOChannel)
 METHOD_IMPL(seek, IOChannel)
@@ -125,12 +135,6 @@ ErrorCode IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pCha
     return EBADF;
 }
 
-// Executes the resource specific command 'op'.
-ErrorCode IOResource_command(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Int op, va_list ap)
-{
-    return EBADF;
-}
-
 ByteCount IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     return -EBADF;
@@ -147,11 +151,17 @@ ErrorCode IOResource_close(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pC
     return EOK;
 }
 
+// Executes the resource specific command 'cmd'.
+ErrorCode IOResource_ioctl(IOResourceRef _Nonnull self, Int cmd, va_list ap)
+{
+    return EINVAL;
+}
+
 
 CLASS_METHODS(IOResource, Object,
 METHOD_IMPL(open, IOResource)
 METHOD_IMPL(dup, IOResource)
-METHOD_IMPL(command, IOResource)
+METHOD_IMPL(ioctl, IOResource)
 METHOD_IMPL(read, IOResource)
 METHOD_IMPL(write, IOResource)
 METHOD_IMPL(close, IOResource)

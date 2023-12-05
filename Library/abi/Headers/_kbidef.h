@@ -129,4 +129,9 @@ enum {
     kAccess_Exists = 0
 };
 
+
+#define IOResourceCommand(__cmd) (__cmd)
+#define IOChannelCommand(__cmd) -(__cmd)
+#define IsIOChannelCommand(__cmd) ((__cmd) < 0)
+
 #endif /* __KBIDEF_H */

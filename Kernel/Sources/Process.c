@@ -949,6 +949,21 @@ catch:
     return err;
 }
 
+// Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
+// resource identified by the given descriptor.
+ErrorCode Process_vIOControl(ProcessRef _Nonnull pProc, Int fd, Int cmd, va_list ap)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
+    err = IOChannel_vIOControl(pChannel, cmd, ap);
+
+catch:
+    Object_Release(pChannel);
+    return err;
+}
+
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
