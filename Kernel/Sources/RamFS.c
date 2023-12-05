@@ -296,22 +296,6 @@ InodeRef _Nonnull RamFS_copyRootNode(RamFSRef _Nonnull self)
     return Object_RetainAs(self->root, Inode);
 }
 
-// Returns EOK and the parent node of the given node if it exists and ENOENT
-// and NULL if the given node is the root node of the namespace. 
-ErrorCode RamFS_copyParentOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, User user, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    err = RamFS_CheckAccess_Locked(self, pNode, user, kFilePermission_Execute);
-    if (err == EOK) {
-        err = DirectoryNode_CopyParent((RamFS_DirectoryRef) pNode, pOutNode);
-    }
-    Lock_Unlock(&self->lock);
-
-    return err;
-}
-
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
 // function has the support the special names "." (node itself) and ".."
@@ -478,7 +462,6 @@ CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
 OVERRIDE_METHOD_IMPL(onMount, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyRootNode, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(copyParentOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)

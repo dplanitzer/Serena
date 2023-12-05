@@ -59,7 +59,7 @@ char *strncpy(char *dst, const char *src, size_t count)
 {
     char *r = dst;
 
-    while (*src != '\0' && count > 0) {
+    while (count > 0 && *src != '\0') {
         *dst++ = *src++;
         count--;
     }
@@ -101,7 +101,7 @@ char *strncat(char *dst, const char *src, size_t count)
 {
     char *p = &dst[strlen(dst)];
 
-    while (*src != '\0' && count > 0) {
+    while (count > 0 && *src != '\0') {
         *p++ = *src++;
         count--;
     }
@@ -112,28 +112,23 @@ char *strncat(char *dst, const char *src, size_t count)
 
 int strcmp(const char *lhs, const char *rhs)
 {
-    while (*lhs != '\0') {
-        const char d = *lhs++ - *rhs++;
-
-        if (d != 0) {
-            return d;
-        }
+    while (*lhs != '\0' && *lhs == *rhs) {
+        lhs++;
+        rhs++;
     }
 
-    return 0;
+    return *((unsigned char*)lhs) - *((unsigned char*)rhs);
 }
 
 int strncmp(const char *lhs, const char *rhs, size_t count)
 {
-    while (*lhs != '\0' && count-- > 0) {
-        const char d = *lhs++ - *rhs++;
-
-        if (d != 0) {
-            return d;
-        }
+    while (count > 0 && *lhs != '\0' && *lhs == *rhs) {
+        lhs++;
+        rhs++;
+        count--;
     }
 
-    return 0;
+    return (count == 0) ? 0 : *((unsigned char*)lhs) - *((unsigned char*)rhs);
 }
 
 char *strchr(const char *str, int ch)

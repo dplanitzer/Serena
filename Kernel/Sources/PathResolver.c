@@ -204,54 +204,53 @@ ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
 // unchanged if an error (eg access denied) occurs.
 static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
 {
+    static const PathComponent gParentPathComponent = { "..", 2 };
+
     // Nothing to do if the iterator points to our root node
     if (Inode_Equals(pIter->inode, pResolver->rootDirectory)) {
         return EOK;
     }
 
 
-    InodeRef parentNode;
-    ErrorCode err = Filesystem_CopyParentOfNode(pIter->fileSystem, pIter->inode, user, &parentNode);
+    InodeRef pParentNode;
+    ErrorCode err = Filesystem_CopyNodeForName(pIter->fileSystem, pIter->inode, &gParentPathComponent, user, &pParentNode);
+    if (err != EOK) {
+        return err;
+    }
 
-    if (err == EOK) {
+    if (!Inode_Equals(pIter->inode, pParentNode)) {
         // We're moving to a parent node in the same file system
-        Object_Release(pIter->inode);
-        pIter->inode = parentNode;
-        return EOK;
+        Object_Assign(&pIter->inode, pParentNode);
     }
-    
-    if (err != ENOENT) {
-        // Some error (eg insufficient permissions). Just return
-        return err;
+    else {
+        // The pIter->inode is the root of a file system that is mounted somewhere
+        // below the global file system root. We need to find the node in the parent
+        // file system that is mounting pIter->inode and we the need to find the
+        // parent of this inode. Note that such a parent always exists and that it
+        // is necessarily in the same parent file system in which the mounting node
+        // is (because you can not mount a file system on the root node of another
+        // file system).
+        InodeRef pMountingDir;
+        FilesystemRef pMountingFilesystem;
+
+        err = FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, pIter->fsid, &pMountingDir, &pMountingFilesystem);
+        if (err != EOK) {
+            Object_Release(pParentNode);
+            return err;
+        }
+
+        err = Filesystem_CopyNodeForName(pMountingFilesystem, pMountingDir, &gParentPathComponent, user, &pParentNode);
+        if (err != EOK) {
+            Object_Release(pParentNode);
+            Object_Release(pMountingDir);
+            Object_Release(pMountingFilesystem);
+            return err;
+        }
+
+        Object_AssignMovingOwnership(&pIter->inode, pParentNode);
+        Object_AssignMovingOwnership(&pIter->fileSystem, pMountingFilesystem);
+        pIter->fsid = Filesystem_GetId(pMountingFilesystem);
     }
-
-    // The pIter->inode is the root of a file system that is mounted somewhere
-    // below the global file system root. We need to find the node in the parent
-    // file system that is mounting pIter->inode and we the need to find the
-    // parent of this inode. Note that such a parent always exists and that it
-    // is necessarily in the same parent file system in which the mounting node
-    // is (because you can not mount a file system on the root node of another
-    // file system).
-    InodeRef pMountingDir;
-    FilesystemRef pMountingFilesystem;
-
-    err = FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, pIter->fsid, &pMountingDir, &pMountingFilesystem);
-    if (err != EOK) {
-        Object_Release(parentNode);
-        return err;
-    }
-
-    err = Filesystem_CopyParentOfNode(pMountingFilesystem, pMountingDir, user, &parentNode);
-    if (err != EOK) {
-        Object_Release(parentNode);
-        Object_Release(pMountingDir);
-        Object_Release(pMountingFilesystem);
-        return err;
-    }
-
-    Object_AssignMovingOwnership(&pIter->inode, parentNode);
-    Object_AssignMovingOwnership(&pIter->fileSystem, pMountingFilesystem);
-    pIter->fsid = Filesystem_GetId(pMountingFilesystem);
 
     return EOK;
 }

@@ -258,20 +258,6 @@ InodeRef _Nonnull Filesystem_copyRootNode(FilesystemRef _Nonnull self)
     return NULL;
 }
 
-// Returns the parent of 'pNode' and EOK if the parent exists and 'pNode' is
-// not the root (directory) of the filesystem. Returns ENOENT and NULL if
-// 'pNode' is the root of the filesystem. Note that this function is expected
-// to return the parent no matter whether 'pNode' is a directory or a file.
-// Thus this is a superset of the functionality implemented by calling
-// copyNodeForName("..") since this only works for directories and not files.
-// This function will always be called with a node that is owned by the file
-// system.
-ErrorCode Filesystem_copyParentOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, User user, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    *pOutNode = NULL;
-    return ENOENT;
-}
-
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
 // function has the support the special names "." (node itself) and ".."
@@ -363,7 +349,6 @@ CLASS_METHODS(Filesystem, IOResource,
 METHOD_IMPL(onMount, Filesystem)
 METHOD_IMPL(onUnmount, Filesystem)
 METHOD_IMPL(copyRootNode, Filesystem)
-METHOD_IMPL(copyParentOfNode, Filesystem)
 METHOD_IMPL(copyNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
 METHOD_IMPL(getFileInfo, Filesystem)

@@ -56,28 +56,21 @@ Character* _Nonnull String_CopyUpTo(Character* _Nonnull pDst, const Character* _
 
 Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs)
 {
-    while (*pLhs != '\0') {
-        if (*pLhs != *pRhs) {
-            return false;
-        }
-
+    while (*pLhs != '\0' && *pLhs == *pRhs) {
         pLhs++;
         pRhs++;
     }
 
-    return true;
+    return (*pLhs == *pRhs) ? true : false;
 }
 
 Bool String_EqualsUpTo(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count)
 {
-    while (*pLhs != '\0' && count-- > 0) {
-        if (*pLhs != *pRhs) {
-            return false;
-        }
-
+    while (count > 0 && *pLhs != '\0' && *pLhs == *pRhs) {
         pLhs++;
         pRhs++;
+        count--;
     }
 
-    return true;
+    return (count == 0 || *pLhs == *pRhs) ? true : false;
 }
