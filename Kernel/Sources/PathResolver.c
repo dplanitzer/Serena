@@ -41,7 +41,6 @@ void PathResolverResult_Deinit(PathResolverResult* pResult)
 typedef struct _InodeIterator {
     InodeRef _Nonnull       inode;
     FilesystemRef _Nonnull  fileSystem;
-    FilesystemId            fsid;
 } InodeIterator;
 
 static void InodeIterator_Deinit(InodeIterator* pIterator);
@@ -50,8 +49,7 @@ static void InodeIterator_Deinit(InodeIterator* pIterator);
 static ErrorCode InodeIterator_Init(InodeIterator* pIterator, InodeRef pFirstNode)
 {
     pIterator->inode = Object_RetainAs(pFirstNode, Inode);
-    pIterator->fsid = Inode_GetFilesystemId(pFirstNode);
-    pIterator->fileSystem = FilesystemManager_CopyFilesystemForId(gFilesystemManager, pIterator->fsid);
+    pIterator->fileSystem = Inode_CopyFilesystem(pFirstNode);
 
     if (pIterator->fileSystem == NULL) {
         InodeIterator_Deinit(pIterator);
@@ -233,7 +231,7 @@ static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull p
         InodeRef pMountingDir;
         FilesystemRef pMountingFilesystem;
 
-        err = FilesystemManager_CopyNodeAndFilesystemMountingFilesystemId(gFilesystemManager, pIter->fsid, &pMountingDir, &pMountingFilesystem);
+        err = FilesystemManager_CopyMountpointOfFilesystem(gFilesystemManager, pIter->fileSystem, &pMountingDir, &pMountingFilesystem);
         if (err != EOK) {
             Object_Release(pParentNode);
             return err;
@@ -249,7 +247,6 @@ static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull p
 
         Object_AssignMovingOwnership(&pIter->inode, pParentNode);
         Object_AssignMovingOwnership(&pIter->fileSystem, pMountingFilesystem);
-        pIter->fsid = Filesystem_GetId(pMountingFilesystem);
     }
 
     return EOK;
@@ -292,7 +289,6 @@ static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull
     }
     else {
         Object_Release(pChildNode);
-        pIter->fsid = Filesystem_GetId(pMountedFileSys);
         Object_AssignMovingOwnership(&pIter->fileSystem, pMountedFileSys);
         Object_AssignMovingOwnership(&pIter->inode, pMountedFileSysRootNode);
     }
