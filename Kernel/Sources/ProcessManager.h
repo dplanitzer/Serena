@@ -37,6 +37,9 @@ extern ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Non
 // once no longer needed.
 extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull pManager, Int pid);
 
+// Returns true if any process is using the given filesystem.
+extern Bool ProcessManager_IsAnyProcessUsingFilesystem(ProcessManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys);
+
 
 // Registers the given process with the process manager. Note that this function
 // does not validate whether the process is already registered or has a PID

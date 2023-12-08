@@ -53,4 +53,12 @@ extern ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager,
 // Unmounts the given filesystem from the given directory.
 extern ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull pDirNode);
 
+// This function should be called from a filesystem onUnmount() implementation
+// to verify that the unmount can be completed safely. Eg no more open files
+// exist that reference the filesystem. Note that the filesystem must do this
+// call as part of its atomic unmount sequence. Eg the filesystem must lock its
+// state, ensure that any operations that might have been ongoing have completed,
+// then call this function before proceeding with the unmount.
+extern Bool FilesystemManager_CanSafelyUnmountFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys);
+ 
 #endif /* FilesystemManager_h */

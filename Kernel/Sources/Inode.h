@@ -10,6 +10,7 @@
 #define Inode_h
 
 #include <klib/klib.h>
+#include "Lock.h"
 
 CLASS_FORWARD(Filesystem);
 
@@ -65,6 +66,7 @@ enum {
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
 OPEN_CLASS_WITH_REF(Inode, Object,
+    Lock            lock;
     FileType        type;
     UInt8           flags;
     FilePermissions permissions;
@@ -87,6 +89,17 @@ typedef struct _InodeMethodTable {
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
 extern ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode);
+
+#define Inode_Lock(__self) \
+    Lock_Lock(&((InodeRef)__self)->lock)
+
+#define Inode_Unlock(__self) \
+    Lock_Unlock(&((InodeRef)__self)->lock)
+
+
+//
+// The following methods may only be called while holding the inode lock.
+//
 
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \
@@ -148,7 +161,8 @@ extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFil
 
     
 //
-// The following functions may be used by any code and they are concurrency safe.
+// The following functions may be used by any code and may be called without
+// taking the inode lock first.
 //
 
 // Returns the type of the node.

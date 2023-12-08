@@ -8,6 +8,7 @@
 
 #include "FilesystemManager.h"
 #include "Lock.h"
+#include "ProcessManager.h"
 
 
 typedef struct _Mountpoint {
@@ -250,4 +251,15 @@ ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, File
 catch:
     Lock_Unlock(&pManager->lock);
     return err;
+}
+
+// This function should be called from a filesystem onUnmount() implementation
+// to verify that the unmount can be completed safely. Eg no more open files
+// exist that reference the filesystem. Note that the filesystem must do this
+// call as part of its atomic unmount sequence. Eg the filesystem must lock its
+// state, ensure that any operations that might have been ongoing have completed,
+// then call this function before proceeding with the unmount.
+Bool FilesystemManager_CanSafelyUnmountFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys)
+{
+    return ProcessManager_IsAnyProcessUsingFilesystem(gProcessManager, pFileSys);
 }

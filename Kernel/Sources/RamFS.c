@@ -6,38 +6,14 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "RamFS.h"
-#include "Lock.h"
-
-#define kMaxFilenameLength  32
-
-typedef struct _GenericArray RamFS_DirectoryHeader;
-
-typedef struct _RamFS_DirectoryEntry {
-    InodeRef _Nonnull   node;
-    Character           filename[kMaxFilenameLength];
-} RamFS_DirectoryEntry;
+#include "RamFSPriv.h"
+#include "FilesystemManager.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Directory Inode
 ////////////////////////////////////////////////////////////////////////////////
-
-OPEN_CLASS_WITH_REF(RamFS_Directory, Inode,
-    // [0] "."
-    // [1] ".."
-    // [2] userEntry0
-    // .
-    // [n] userEntryN-1
-    RamFS_DirectoryHeader       header;
-);
-typedef struct _RamFS_DirectoryMethodTable {
-    InodeMethodTable    super;
-} RamFS_DirectoryMethodTable;
-
-static ErrorCode DirectoryNode_AddWellKnownEntry(RamFS_DirectoryRef _Nonnull self, const Character* _Nonnull pName, InodeRef _Nonnull pNode);
-
 
 static ErrorCode DirectoryNode_Create(RamFSRef _Nonnull self, InodeId id, RamFS_DirectoryRef _Nullable pParentDir, FilePermissions permissions, User user, RamFS_DirectoryRef _Nullable * _Nonnull pOutDir)
 {
@@ -218,17 +194,6 @@ OVERRIDE_METHOD_IMPL(deinit, RamFS_Directory, Object)
 // MARK: RAM Disk
 ////////////////////////////////////////////////////////////////////////////////
 
-CLASS_IVARS(RamFS, Filesystem,
-    RamFS_DirectoryRef _Nonnull root;
-    Lock                        lock;           // Shared between filesystem proper and inodes
-    Int                         nextAvailableInodeId;
-    Bool                        isReadOnly;     // true if mounted read-only; false if mounted read-write
-);
-
-static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);
-
-
-
 // Creates an instance of RAM-FS. RAM-FS is a volatile file system that does not
 // survive system restarts. The 'rootDirUser' parameter specifies the user and
 // group ID of the root directory.
@@ -239,7 +204,11 @@ ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileS
 
     try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
     Lock_Init(&self->lock);
+    ConditionVariable_Init(&self->notifier);
     self->nextAvailableInodeId = 0;
+    self->busyCount = 0;
+    self->isMounted = false;
+    self->isReadOnly = false;
 
     FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
@@ -258,6 +227,7 @@ void RamFS_deinit(RamFSRef _Nonnull self)
 {
     Object_Release(self->root);
     self->root = NULL;
+    ConditionVariable_Deinit(&self->notifier);
     Lock_Deinit(&self->lock);
 }
 
@@ -266,10 +236,35 @@ static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self)
     return (InodeId) self->nextAvailableInodeId++;
 }
 
-// Invoked when an instance of this file system is mounted.
-ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
+// Call this function at the beginning of a FS operation. It validates that starting
+// the operation is permissible.
+static ErrorCode RamFS_BeginOperation(RamFSRef _Nonnull self)
 {
-    return EOK;
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+
+    // This function should only ever be called while the FS is mounted
+    assert(self->isMounted);
+
+    self->busyCount++;
+
+catch:
+    Lock_Unlock(&self->lock);
+    return err;
+}
+
+// Call this function at the end of a FS operation.
+static void RamFS_EndOperation(RamFSRef _Nonnull self)
+{
+    Lock_Lock(&self->lock);
+    self->busyCount--;
+
+    if (self->busyCount == 0) {
+        ConditionVariable_BroadcastAndUnlock(&self->notifier, &self->lock);
+    } else {
+        Lock_Unlock(&self->lock);
+    }
 }
 
 // Checks whether the given user should be granted access to the given node based
@@ -286,6 +281,60 @@ static ErrorCode RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonn
     }
 
     return Inode_CheckAccess(pNode, user, permission);
+}
+
+
+// Invoked when an instance of this file system is mounted. Note that the
+// kernel guarantees that no operations will be issued to the filesystem
+// before onMount() has returned with EOK.
+ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if (self->isMounted) {
+        throw(EIO);
+    }
+    self->isMounted = true;
+
+catch:
+    Lock_Unlock(&self->lock);
+    return err;
+}
+
+// Invoked when a mounted instance of this file system is unmounted. A file
+// system may return an error. Note however that this error is purely advisory
+// and the file system implementation is required to do everything it can to
+// successfully unmount. Unmount errors are ignored and the file system manager
+// will complete the unmount in any case.
+ErrorCode RamFS_onUnmount(RamFSRef _Nonnull self)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if (!self->isMounted) {
+        throw(EIO);
+    }
+
+    // There might be one or more operations currently ongoing. Wait until they
+    // are done.
+    while(self->busyCount > 0) {
+        try(ConditionVariable_Wait(&self->notifier, &self->lock, kTimeInterval_Infinity));
+    }
+
+
+    // Make sure that there are no open files anywhere referencing us
+    if (!FilesystemManager_CanSafelyUnmountFilesystem(gFilesystemManager, (FilesystemRef)self)) {
+        throw(EBUSY);
+    }
+
+    // XXX Flush dirty buffers to disk
+
+    self->isMounted = false;
+
+catch:
+    Lock_Unlock(&self->lock);
+    return err;
 }
 
 // Returns EOK and the parent node of the given node if it exists and ENOENT
@@ -306,12 +355,16 @@ ErrorCode RamFS_copyNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull pParen
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
-    err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute);
-    if (err == EOK) {
-        err = DirectoryNode_CopyNodeForName((RamFS_DirectoryRef) pParentNode, pComponent, pOutNode);
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
     }
-    Lock_Unlock(&self->lock);
+    Inode_Lock(pParentNode);
+    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
+    try(DirectoryNode_CopyNodeForName((RamFS_DirectoryRef) pParentNode, pComponent, pOutNode));
+
+catch:
+    Inode_Unlock(pParentNode);
+    RamFS_EndOperation(self);
     
     return err;
 }
@@ -320,12 +373,16 @@ ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentN
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
-    err = RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute);
-    if (err == EOK) {
-        err = DirectoryNode_GetNameOfNode((RamFS_DirectoryRef) pParentNode, pNode, pComponent);
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
     }
-    Lock_Unlock(&self->lock);
+    Inode_Lock(pParentNode);
+    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
+    try(DirectoryNode_GetNameOfNode((RamFS_DirectoryRef) pParentNode, pNode, pComponent));
+
+catch:
+    Inode_Unlock(pParentNode);
+    RamFS_EndOperation(self);
 
     return err;
 }
@@ -334,9 +391,15 @@ ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentN
 // file type.
 ErrorCode RamFS_getFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, FileInfo* _Nonnull pOutInfo)
 {
-    Lock_Lock(&self->lock);
+    decl_try_err();
+
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
+    }
+    Inode_Lock(pNode);
     Inode_GetFileInfo(pNode, pOutInfo);
-    Lock_Unlock(&self->lock);
+    Inode_Unlock(pNode);
+    RamFS_EndOperation(self);
 
     return EOK;
 }
@@ -347,11 +410,15 @@ ErrorCode RamFS_setFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Use
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
+    }
+    Inode_Lock(pNode);
     try(Inode_SetFileInfo(pNode, user, pInfo));
 
 catch:
-    Lock_Unlock(&self->lock);
+    Inode_Unlock(pNode);
+    RamFS_EndOperation(self);
     return err;
 }
 
@@ -360,9 +427,12 @@ catch:
 ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions)
 {
     decl_try_err();
-
-    Lock_Lock(&self->lock);
     RamFS_DirectoryRef pNewDir;
+
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
+    }
+    Inode_Lock(pParentNode);
 
     if (!Inode_IsDirectory(pParentNode)) {
         throw(ENOTDIR);
@@ -380,23 +450,28 @@ ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, InodeRef _Nonnull pParen
 
 catch:
     Object_Release(pNewDir);
-    Lock_Unlock(&self->lock);
+    Inode_Unlock(pParentNode);
+    RamFS_EndOperation(self);
     return err;
 }
 
 // Opens the directory represented by the given node. Returns a directory
-// descriptor object which is teh I/O channel that allows you to read the
+// descriptor object which is the I/O channel that allows you to read the
 // directory content.
 ErrorCode RamFS_openDirectory(RamFSRef _Nonnull self, InodeRef _Nonnull pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
+    }
+    Inode_Lock(pDirNode);
     try(Inode_CheckAccess(pDirNode, user, kFilePermission_Read));
     try(Directory_Create((FilesystemRef)self, pDirNode, pOutDir));
 
 catch:
-    Lock_Unlock(&self->lock);
+    Inode_Unlock(pDirNode);
+    RamFS_EndOperation(self);
     return err;
 }
 
@@ -408,14 +483,23 @@ catch:
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
 ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
-    Lock_Lock(&self->lock);
+    decl_try_err();
+    RamFS_DirectoryRef pDirNode = (RamFS_DirectoryRef)Directory_GetInode(pDir);
+
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
+    }
+    Inode_Lock(pDirNode);
+
     const Int nMaxEntriesToRead = nBytesToRead / sizeof(DirectoryEntry);
-    const Int nEntriesRead = Directory_ReadEntries((RamFS_DirectoryRef)Directory_GetInode(pDir), (DirectoryEntry*)pBuffer, (Int) Directory_GetOffset(pDir), nMaxEntriesToRead);
+    const Int nEntriesRead = Directory_ReadEntries(pDirNode, (DirectoryEntry*)pBuffer, (Int) Directory_GetOffset(pDir), nMaxEntriesToRead);
     
     if (nEntriesRead > 0) {
         Directory_IncrementOffset(pDir, nEntriesRead);
     }
-    Lock_Unlock(&self->lock);
+
+    Inode_Unlock(pDirNode);
+    RamFS_EndOperation(self);
 
     return nEntriesRead * sizeof(DirectoryEntry);
 }
@@ -425,7 +509,11 @@ ErrorCode RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Use
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    if ((err = RamFS_BeginOperation(self)) != EOK) {
+        return err;
+    }
+    Inode_Lock(pNode);
+
     if ((mode & kAccess_Readable) == kAccess_Readable) {
         err = Inode_CheckAccess(pNode, user, kFilePermission_Read);
     }
@@ -435,7 +523,9 @@ ErrorCode RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Use
     if (err == EOK && ((mode & kAccess_Executable) == kAccess_Executable)) {
         err = Inode_CheckAccess(pNode, user, kFilePermission_Execute);
     }
-    Lock_Unlock(&self->lock);
+
+    Inode_Unlock(pNode);
+    RamFS_EndOperation(self);
 
     return err;
 }
@@ -461,6 +551,7 @@ ErrorCode RamFS_rename(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
 OVERRIDE_METHOD_IMPL(onMount, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(onUnmount, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyRootNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)

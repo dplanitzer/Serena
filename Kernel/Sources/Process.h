@@ -105,6 +105,12 @@ extern ErrorCode Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, Int fd, 
 // channel once it is no longer needed.
 extern ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
+// Returns true if the process is using the given filesystem or false if not. A
+// process is using a filesystem if root directory or current working directory
+// is stored on the filesystem or the process has an open file that is located
+// on the filesystem.
+extern Bool Process_IsUsingFilesystem(ProcessRef _Nonnull pProc, FilesystemRef _Nonnull pFileSys);
+
 
 // Sets the receiver's root directory to the given path. Note that the path must
 // point to a directory that is a child or the current root directory of the

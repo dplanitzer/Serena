@@ -765,6 +765,27 @@ catch:
     return err;
 }
 
+// Returns true if the process is using the given filesystem or false if not. A
+// process is using a filesystem if root directory or current working directory
+// is stored on the filesystem or the process has an open file that is located
+// on the filesystem.
+Bool Process_IsUsingFilesystem(ProcessRef _Nonnull pProc, FilesystemRef _Nonnull pFileSys)
+{
+    Bool isUsing = false;
+
+    Lock_Lock(&pProc->lock);
+    for (Int i = 0; i < ObjectArray_GetCount(&pProc->ioChannels); i++) {
+        IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
+
+        if (pChannel && IOChannel_GetResource(pChannel) == (IOResourceRef)pFileSys) {
+            isUsing = true;
+            break;
+        }
+    }
+    Lock_Unlock(&pProc->lock);
+    return isUsing;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -

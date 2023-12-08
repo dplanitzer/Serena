@@ -15,6 +15,7 @@ ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, InodeId 
     InodeRef pNode;
 
     try(_Object_Create(pClass, 0, (ObjectRef*)&pNode));
+    Lock_Init(&pNode->lock);
     pNode->type = type;
     pNode->permissions = permissions;
     pNode->user = user;
@@ -129,6 +130,7 @@ Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
 
 void Inode_deinit(InodeRef _Nonnull self)
 {
+    Lock_Deinit(&self->lock);
 }
 
 CLASS_METHODS(Inode, Object,

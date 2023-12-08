@@ -226,7 +226,9 @@ catch:
     return err;
 }
 
-// Invoked when an instance of this file system is mounted.
+// Invoked when an instance of this file system is mounted. Note that the
+// kernel guarantees that no operations will be issued to the filesystem
+// before onMount() has returned with EOK.
 ErrorCode Filesystem_onMount(FilesystemRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
 {
     return EOK;

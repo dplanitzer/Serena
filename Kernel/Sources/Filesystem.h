@@ -142,24 +142,8 @@ extern ErrorCode Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef
 // 
 // Locking protocol
 //
-// A filesystem is responsible for implementing a locking protocol for the inodes
-// that it owns and manages. The filesystem implementor can implement any of the
-// following locking models:
-//
-// a) Single lock: one lock maintained by the filesystem object which protects
-//                 the filesystem proper state and all inodes manages by the
-//                 filesystem. This is the simplest and least efficient model.
-//
-// b) Fine-grained locking: the filesystem maintains separate locks for itself
-//                          and every single inode that it owns. Eg it adds a
-//                          lock to its Inode subclass and one lock to its
-//                          Filesystem subclass. Most complicated and efficient
-//                          model.
-//
-// c) Medium-grained locking: the filesystem maintains a set of locks for its
-//                            inodes. It partitions its inodes (eg by inode id)
-//                            and assigns one lock to each partition. Less resource
-//                            use compared to (b).
+// Every inode has a lock associated with it. The filesystem (XXX currently)
+// must lock the inode before it accesses or modifies any of its properties. 
 //
 OPEN_CLASS(Filesystem, IOResource,
     FilesystemId        fsid;
@@ -171,7 +155,9 @@ typedef struct _FilesystemMethodTable {
     // Mounting/Unmounting
     //
 
-    // Invoked when an instance of this file system is mounted.
+    // Invoked when an instance of this file system is mounted. Note that the
+    // kernel guarantees that no operations will be issued to the filesystem
+    // before onMount() has returned with EOK.
     ErrorCode (*onMount)(void* _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize);
 
     // Invoked when a mounted instance of this file system is unmounted. A file
