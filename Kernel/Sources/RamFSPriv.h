@@ -48,13 +48,13 @@ static ErrorCode DirectoryNode_AddWellKnownEntry(RamFS_DirectoryRef _Nonnull sel
 //
 
 CLASS_IVARS(RamFS, Filesystem,
-    RamFS_DirectoryRef _Nonnull root;
-    Lock                        lock;           // Shared between filesystem proper and inodes
-    ConditionVariable           notifier;
-    Int                         nextAvailableInodeId;
-    Int                         busyCount;      // == 0 -> not busy; > 0 -> busy
-    Bool                        isMounted;
-    Bool                        isReadOnly;     // true if mounted read-only; false if mounted read-write
+    Lock                            lock;           // Shared between filesystem proper and inodes
+    User                            rootDirUser;    // User we should use for the root directory
+    RamFS_DirectoryRef _Nullable    root;           // NULL when not mounted; root node while mounted
+    ConditionVariable               notifier;
+    Int                             nextAvailableInodeId;
+    Int                             busyCount;      // == 0 -> not busy; > 0 -> busy
+    Bool                            isReadOnly;     // true if mounted read-only; false if mounted read-write
 );
 
 static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);

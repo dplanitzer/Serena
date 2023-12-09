@@ -205,15 +205,11 @@ ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileS
     try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->notifier);
+    self->root = NULL;
+    self->rootDirUser = rootDirUser;
     self->nextAvailableInodeId = 0;
     self->busyCount = 0;
-    self->isMounted = false;
     self->isReadOnly = false;
-
-    FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
-
-    try(DirectoryNode_Create(self, RamFS_GetNextAvailableInodeId_Locked(self), NULL, dirPerms, rootDirUser, &self->root));
 
     *pOutFileSys = self;
     return EOK;
@@ -245,7 +241,7 @@ static ErrorCode RamFS_BeginOperation(RamFSRef _Nonnull self)
     Lock_Lock(&self->lock);
 
     // This function should only ever be called while the FS is mounted
-    assert(self->isMounted);
+    assert(self->root != NULL);
 
     self->busyCount++;
 
@@ -286,18 +282,30 @@ static ErrorCode RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonn
 
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
-// before onMount() has returned with EOK.
-ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
+// before onMount() has returned with EOK. This function must return a
+// properly initialized node that represents the root directory of the
+// filesystem.
+ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable * _Nonnull pOutRootNode)
 {
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    if (self->isMounted) {
+
+    if (self->root) {
         throw(EIO);
     }
-    self->isMounted = true;
+
+    const FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    const FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
+
+    try(DirectoryNode_Create(self, RamFS_GetNextAvailableInodeId_Locked(self), NULL, dirPerms, self->rootDirUser, &self->root));
+    *pOutRootNode = (InodeRef)self->root;
+
+    Lock_Unlock(&self->lock);
+    return EOK;
 
 catch:
+    *pOutRootNode = NULL;
     Lock_Unlock(&self->lock);
     return err;
 }
@@ -312,7 +320,7 @@ ErrorCode RamFS_onUnmount(RamFSRef _Nonnull self)
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    if (!self->isMounted) {
+    if (self->root == NULL) {
         throw(EIO);
     }
 
@@ -330,20 +338,14 @@ ErrorCode RamFS_onUnmount(RamFSRef _Nonnull self)
 
     // XXX Flush dirty buffers to disk
 
-    self->isMounted = false;
+    Object_Release(self->root);
+    self->root = NULL;
 
 catch:
     Lock_Unlock(&self->lock);
     return err;
 }
 
-// Returns EOK and the parent node of the given node if it exists and ENOENT
-// and NULL if the given node is the root node of the namespace. 
-InodeRef _Nonnull RamFS_copyRootNode(RamFSRef _Nonnull self)
-{
-    // Our root node is a constant field, no need for locking
-    return Object_RetainAs(self->root, Inode);
-}
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
@@ -557,7 +559,6 @@ CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
 OVERRIDE_METHOD_IMPL(onMount, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onUnmount, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(copyRootNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)

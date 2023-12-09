@@ -228,8 +228,10 @@ catch:
 
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
-// before onMount() has returned with EOK.
-ErrorCode Filesystem_onMount(FilesystemRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
+// before onMount() has returned with EOK. This function must return a
+// properly initialized node that represents the root directory of the
+// filesystem.
+ErrorCode Filesystem_onMount(FilesystemRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable * _Nonnull pOutRootNode)
 {
     return EOK;
 }
@@ -244,15 +246,6 @@ ErrorCode Filesystem_onUnmount(FilesystemRef _Nonnull self)
     return EOK;
 }
 
-
-// Returns EOK and the parent node of the given node if it exists and ENOENT
-// and NULL if the given node is the root node of the namespace. 
-InodeRef _Nonnull Filesystem_copyRootNode(FilesystemRef _Nonnull self)
-{
-    abort();
-    // NOT REACHED
-    return NULL;
-}
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
@@ -349,7 +342,6 @@ ErrorCode Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _N
 CLASS_METHODS(Filesystem, IOResource,
 METHOD_IMPL(onMount, Filesystem)
 METHOD_IMPL(onUnmount, Filesystem)
-METHOD_IMPL(copyRootNode, Filesystem)
 METHOD_IMPL(copyNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
 METHOD_IMPL(getFileInfo, Filesystem)

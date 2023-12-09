@@ -45,15 +45,17 @@ ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, Filesyst
     List_Init(&pManager->fileSystems);
 
     try(kalloc_cleared(sizeof(Mountpoint), (void**) &pManager->root));
+
+    Byte dummy;
+    InodeRef pRootNode;
+    try(Filesystem_OnMount(pRootFileSys, &dummy, 0, &pRootNode));
+
     pManager->root->mountedFilesystem = Object_RetainAs(pRootFileSys, Filesystem);
-    pManager->root->mountedInode = Filesystem_CopyRootNode(pRootFileSys);
+    pManager->root->mountedInode = pRootNode;
     pManager->root->mountingFilesystem = NULL;
     pManager->root->mountingInode = NULL;
 
     List_InsertAfter(&pManager->fileSystems, &pManager->root->node, NULL);
-
-    Byte dummy;
-    try(Filesystem_OnMount(pRootFileSys, &dummy, 0));
 
     *pOutManager = pManager;
     return EOK;
@@ -196,15 +198,18 @@ ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, Filesy
     }
 
 
+    Mountpoint* pMount;
+    throw(kalloc_cleared(sizeof(Mountpoint), (void**) &pMount));
+
+
     // Notify the filesystem that we are mounting it
-    try(Filesystem_OnMount(pFileSys, pParams, paramsSize));
+    InodeRef pRootNode;
+    try(Filesystem_OnMount(pFileSys, pParams, paramsSize, &pRootNode));
 
 
     // Update our mount table
-    Mountpoint* pMount;
-    throw(kalloc_cleared(sizeof(Mountpoint), (void**) &pMount));
     pMount->mountedFilesystem = Object_RetainAs(pFileSys, Filesystem);
-    pMount->mountedInode = Filesystem_CopyRootNode(pFileSys);
+    pMount->mountedInode = pRootNode;
     pMount->mountingFilesystem = Object_RetainAs(pDirNodeMount->mountedFilesystem, Filesystem);
     pMount->mountingInode = Object_RetainAs(pDirNode, Inode);
 
