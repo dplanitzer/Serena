@@ -34,7 +34,7 @@ extern InodeRef _Nonnull FilesystemManager_CopyRootNode(FilesystemManagerRef _No
 // namespace.
 extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerRef _Nonnull pManager, FilesystemId fsid);
 
-// Returns the mountpoint information of the node and filesystem that mount the
+// Returns the mountpoint information of the node and filesystem that mounts the
 // given filesystem. ENOENT and NULLs are returned if the filesystem was never
 // mounted or is no longer mounted. EOK and NULLs are returned if 'pFileSys' is
 // the root filesystem (it has no parent file system).

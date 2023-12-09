@@ -16,9 +16,11 @@ typedef struct _Mountpoint {
     
     // The FS that we are mounting...
     FilesystemRef _Nonnull  mountedFilesystem;
+    InodeRef _Nonnull       mountedInode;
 
     // ...in this place
-    InodeRef _Nullable      mountingNode;       // Only ever NULL for the root FS
+    FilesystemRef _Nullable mountingFilesystem;     // Only ever NULL for the root FS
+    InodeRef _Nullable      mountingInode;          // Only ever NULL for the root FS
 } Mountpoint;
 
 typedef struct _FilesystemManager {
@@ -44,8 +46,10 @@ ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, Filesyst
 
     try(kalloc_cleared(sizeof(Mountpoint), (void**) &pManager->root));
     pManager->root->mountedFilesystem = Object_RetainAs(pRootFileSys, Filesystem);
-    pManager->root->mountingNode = NULL;
-    
+    pManager->root->mountedInode = Filesystem_CopyRootNode(pRootFileSys);
+    pManager->root->mountingFilesystem = NULL;
+    pManager->root->mountingInode = NULL;
+
     List_InsertAfter(&pManager->fileSystems, &pManager->root->node, NULL);
 
     Byte dummy;
@@ -64,9 +68,7 @@ catch:
 static Mountpoint* _Nullable FilesystemManager_GetMountpointForFilesystemId_Locked(FilesystemManagerRef _Nonnull pManager, FilesystemId fsid)
 {
     List_ForEach(&pManager->fileSystems, Mountpoint, {
-        FilesystemRef pCurFileSys = pCurNode->mountedFilesystem;
-
-        if (Filesystem_GetId(pCurFileSys) == fsid) {
+        if (Filesystem_GetId(pCurNode->mountedFilesystem) == fsid) {
             return pCurNode;
         }
     });
@@ -79,7 +81,7 @@ static Mountpoint* _Nullable FilesystemManager_GetMountpointForFilesystemId_Lock
 static Mountpoint* _Nullable FilesystemManager_GetMountpointForInode_Locked(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull pNode)
 {
     List_ForEach(&pManager->fileSystems, Mountpoint, {
-        if (Inode_Equals(pNode, pCurNode->mountingNode)) {
+        if (Inode_Equals(pNode, pCurNode->mountingInode)) {
             return pCurNode;
         }
     });
@@ -98,7 +100,7 @@ FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef
 InodeRef _Nonnull FilesystemManager_CopyRootNode(FilesystemManagerRef _Nonnull pManager)
 {
     // rootNode is a constant value, so no locking needed
-    return Filesystem_CopyRootNode(pManager->root->mountedFilesystem);
+    return Object_RetainAs(pManager->root->mountedInode, Inode);
 }
 
 // Returns the filesystem for the given filesystem ID. NULL is returned if no
@@ -114,7 +116,7 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerR
     return pFileSys;
 }
 
-// Returns the mountpoint information of the node and filesystem that mount the
+// Returns the mountpoint information of the node and filesystem that mounts the
 // given filesystem. ENOENT and NULLs are returned if the filesystem was never
 // mounted or is no longer mounted. EOK and NULLs are returned if 'pFileSys' is
 // the root filesystem (it has no parent file system).
@@ -125,8 +127,8 @@ ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Non
     ErrorCode err;
 
     if (pMount) {
-        *pOutMountingNode = (pMount->mountingNode) ? Object_RetainAs(pMount->mountingNode, Inode) : NULL;
-        *pOutMountingFilesystem = (pMount->mountingNode) ? Object_RetainAs(FilesystemManager_GetMountpointForFilesystemId_Locked(pManager, Inode_GetFilesystemId(pMount->mountingNode))->mountedFilesystem, Filesystem) : NULL;
+        *pOutMountingNode = (pMount->mountingInode) ? Object_RetainAs(pMount->mountingInode, Inode) : NULL;
+        *pOutMountingFilesystem = (pMount->mountingInode) ? Object_RetainAs(pMount->mountingFilesystem, Filesystem) : NULL;
         err = EOK;
     } else {
         *pOutMountingNode = NULL;
@@ -152,7 +154,7 @@ Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, 
         const Mountpoint* pMountpoint = FilesystemManager_GetMountpointForInode_Locked(pManager, pNode);
 
         *pMountedFilesystem = Object_RetainAs(pMountpoint->mountedFilesystem, Filesystem);
-        *pMountedRootNode = Filesystem_CopyRootNode(*pMountedFilesystem);
+        *pMountedRootNode = Object_RetainAs(pMountpoint->mountedInode, Inode);
     } else {
         *pMountedFilesystem = NULL;
         *pMountedRootNode = NULL;
@@ -202,7 +204,9 @@ ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, Filesy
     Mountpoint* pMount;
     throw(kalloc_cleared(sizeof(Mountpoint), (void**) &pMount));
     pMount->mountedFilesystem = Object_RetainAs(pFileSys, Filesystem);
-    pMount->mountingNode = Object_RetainAs(pDirNode, Inode);
+    pMount->mountedInode = Filesystem_CopyRootNode(pFileSys);
+    pMount->mountingFilesystem = Object_RetainAs(pDirNodeMount->mountedFilesystem, Filesystem);
+    pMount->mountingInode = Object_RetainAs(pDirNode, Inode);
 
     List_InsertAfterLast(&pManager->fileSystems, &pMount->node);
     Inode_SetMountpoint(pDirNode, true);
@@ -248,8 +252,12 @@ ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, File
 
     Object_Release(pMount->mountedFilesystem);
     pMount->mountedFilesystem = NULL;
-    Object_Release(pMount->mountingNode);
-    pMount->mountingNode = NULL;
+    Object_Release(pMount->mountedInode);
+    pMount->mountedInode = NULL;
+    Object_Release(pMount->mountingFilesystem);
+    pMount->mountingFilesystem = NULL;
+    Object_Release(pMount->mountingInode);
+    pMount->mountingInode = NULL;
     kfree(pMount);
 
 catch:
