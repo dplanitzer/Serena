@@ -150,7 +150,8 @@ extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFil
  
 
 //
-// Only the FilesystemManager should call the following functions.
+// Only the FilesystemManager should call the following functions. The filesystem
+// manager must hold the inode lock while calling these functions.
 //
 
 #define Inode_IsMountpoint(__self) \

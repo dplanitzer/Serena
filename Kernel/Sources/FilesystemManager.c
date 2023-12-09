@@ -31,8 +31,8 @@ typedef struct _FilesystemManager {
 FilesystemManagerRef    gFilesystemManager;
 
 
-// Creates the filesystem manager. The provided filesystem becomes the root of
-// the global filesystem. Also known as "/".
+// Creates the filesystem manager. The provided filesystem is automatically
+// mounted as the root filesystem.
 ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager)
 {
     decl_try_err();
@@ -98,7 +98,7 @@ FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef
 InodeRef _Nonnull FilesystemManager_CopyRootNode(FilesystemManagerRef _Nonnull pManager)
 {
     // rootNode is a constant value, so no locking needed
-    return Object_RetainAs(pManager->root->mountingNode, Inode);
+    return Filesystem_CopyRootNode(pManager->root->mountedFilesystem);
 }
 
 // Returns the filesystem for the given filesystem ID. NULL is returned if no
@@ -145,7 +145,9 @@ ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Non
 Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull pNode, FilesystemRef _Nullable * _Nonnull pMountedFilesystem, InodeRef _Nullable * _Nonnull pMountedRootNode)
 {
     Lock_Lock(&pManager->lock);
+    Inode_Lock(pNode);
     const Bool isMountpoint = Inode_IsMountpoint(pNode);
+
     if (isMountpoint) {
         const Mountpoint* pMountpoint = FilesystemManager_GetMountpointForInode_Locked(pManager, pNode);
 
@@ -155,6 +157,8 @@ Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, 
         *pMountedFilesystem = NULL;
         *pMountedRootNode = NULL;
     }
+
+    Inode_Unlock(pNode);
     Lock_Unlock(&pManager->lock);
     
     return isMountpoint;
@@ -165,13 +169,15 @@ Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, 
 ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull pDirNode)
 {
     decl_try_err();
-    const FilesystemId mountingFsid = Filesystem_GetId(pFileSys);
-    const FilesystemId mountedOnFsid = Inode_GetFilesystemId(pDirNode);
+
+    Lock_Lock(&pManager->lock);
+    Inode_Lock(pDirNode);
 
     // Make sure that 'pDirNode' isn't owned by the filesystem we want to mount
     // and that the filesystem instance we want to mount isn't already mounted
     // somewhere else 
-    Lock_Lock(&pManager->lock);
+    const FilesystemId mountingFsid = Filesystem_GetId(pFileSys);
+    const FilesystemId mountedOnFsid = Inode_GetFilesystemId(pDirNode);
     if (mountedOnFsid == mountingFsid) {
         throw(EINVAL);
     }
@@ -201,11 +207,8 @@ ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, Filesy
     List_InsertAfterLast(&pManager->fileSystems, &pMount->node);
     Inode_SetMountpoint(pDirNode, true);
 
-    Lock_Unlock(&pManager->lock);
-
-    return EOK;
-
 catch:
+    Inode_Unlock(pDirNode);
     Lock_Unlock(&pManager->lock);
     return err;
 }
@@ -216,10 +219,11 @@ ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, File
     decl_try_err();
 
     Lock_Lock(&pManager->lock);
-    const FilesystemId unmountingFsid = Filesystem_GetId(pFileSys);
+    Inode_Lock(pDirNode);
 
 
     // Make sure that 'pFileSys' is actually mounted at 'pDirNode'
+    const FilesystemId unmountingFsid = Filesystem_GetId(pFileSys);
     Mountpoint* pMount = NULL;
     
     if (Inode_IsMountpoint(pDirNode)) {
@@ -249,6 +253,7 @@ ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, File
     kfree(pMount);
 
 catch:
+    Inode_Unlock(pDirNode);
     Lock_Unlock(&pManager->lock);
     return err;
 }

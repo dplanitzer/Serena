@@ -137,7 +137,7 @@ static InodeRef _Nonnull filesystem_init(void)
     try_bang(FilesystemManager_Create(pRamFS, &gFilesystemManager));
     Object_Release(pRamFS);
 
-    return Filesystem_CopyRootNode(pRamFS);
+    return FilesystemManager_CopyRootNode(gFilesystemManager);
 }
 
 // Called by the boot virtual processor after it has finished initializing all

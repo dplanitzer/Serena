@@ -42,7 +42,7 @@ typedef struct _PathResolverResult {
     InodeRef _Nullable          inode;          // The inode named by the path if it exists and the parent inode otherwise, if requested
     FilesystemRef _Nullable     filesystem;     // The filesystem that owns the returned inode
 
-    PathComponent               lastPathComponent;  // Last path component if the resolution mode is ParentOnly
+    PathComponent               lastPathComponent;  // Last path component if the resolution mode is ParentOnly. Note that this stores a reference into the path that was passed to the resolution function
 } PathResolverResult;
 
 

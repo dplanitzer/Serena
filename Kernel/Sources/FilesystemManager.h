@@ -19,8 +19,8 @@ typedef struct _FilesystemManager* FilesystemManagerRef;
 extern FilesystemManagerRef _Nonnull  gFilesystemManager;
 
 
-// Creates the filesystem manager. The provided filesystem becomes the root of
-// the global filesystem. Also known as "/".
+// Creates the filesystem manager. The provided filesystem is automatically
+// mounted as the root filesystem.
 extern ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager);
 
 // Returns a strong reference to the root of the global filesystem.
