@@ -31,22 +31,9 @@ typedef enum _PathResolutionMode {
     // is not accessible.
     kPathResolutionMode_TargetOnly,
 
-    // Returns the inode named by the path if it exists or the parent inode if
-    // the target inode does not exist but the parent inode does exist. Returns
-    // an error and NULL if the target inode is not accessible or the resolution
-    // fails for some other kind of error.
-    kPathResolutionMode_TargetOrParent,
-
-    // Similar to the TargetOrParent mode except that the lookup returns the
-    // ancestor node that is closest to the target node and that does exist.
-    // Otherwise behaves exactly like TargetOrParent mode.
-    kPathResolutionMode_TargetOrAncestor,
-
-    // Returns both the inode named by the path if it exists and the it's parent
-    // node. Returns an error and a NULL target and parent node if the target
-    // node does not exist, is not accessible or the resolution fails for some
-    // other kind of error.
-    kPathResolutionMode_TargetAndParent
+    // Returns just the inode that is the parent of the inode named by the path.
+    // An error and NULL is returned if no such node exists or is accessible.
+    kPathResolutionMode_ParentOnly
 
 } PathResolutionMode;
 
@@ -55,10 +42,7 @@ typedef struct _PathResolverResult {
     InodeRef _Nullable          inode;          // The inode named by the path if it exists and the parent inode otherwise, if requested
     FilesystemRef _Nullable     filesystem;     // The filesystem that owns the returned inode
 
-    InodeRef _Nullable          parentInode;        // Only set if the resolution mode is TargetAndParent and the target exists
-    FilesystemRef _Nullable     parentFilesystem;   // Only set if the resolution mode is TargetAndParent and the target exists
-
-    const Character* _Nonnull   pathSuffix;     // Points to the first character of the path component following the parent or ancestor
+    PathComponent               lastPathComponent;  // Last path component if the resolution mode is ParentOnly
 } PathResolverResult;
 
 

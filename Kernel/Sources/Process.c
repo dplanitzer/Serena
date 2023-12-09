@@ -854,17 +854,10 @@ ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _N
 
     Lock_Lock(&pProc->lock);
 
-    err = PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOrParent, pPath, pProc->realUser, &r);
-    if (err == ENOENT && r.inode) {
-        // Target does not exist but the parent directory does exist, create the target
-        const PathComponent pc = PathComponent_MakeFromCString(r.pathSuffix);
-        err = Filesystem_CreateDirectory(r.filesystem, r.inode, &pc, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
-    }
-    else if (err == EOK) {
-        // Directory or file of the given name exists, treat it as an error
-        err = EEXIST;
-    }
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_CreateDirectory(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777)));
 
+catch:
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return err;
@@ -1012,12 +1005,12 @@ ErrorCode Process_Unlink(ProcessRef _Nonnull pProc, const Character* _Nonnull pP
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetAndParent, pPath, pProc->realUser, &r));
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
 
     // Can not unlink a mount point
     // XXX implement this check once we've refined the mount point handling (return EBUSY)
 
-    try(Filesystem_Unlink(r.filesystem, r.inode, r.parentInode, pProc->realUser));
+    try(Filesystem_Unlink(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser));
 
 catch:
     PathResolverResult_Deinit(&r);
@@ -1032,8 +1025,8 @@ ErrorCode Process_Rename(ProcessRef _Nonnull pProc, const Character* pOldPath, c
     PathResolverResult or, nr;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetAndParent, pOldPath, pProc->realUser, &or));
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOrParent, pNewPath, pProc->realUser, &nr));
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pOldPath, pProc->realUser, &or));
+    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pNewPath, pProc->realUser, &nr));
 
     // Can not rename a mount point
     // XXX implement this check once we've refined the mount point handling (return EBUSY)
@@ -1047,8 +1040,7 @@ ErrorCode Process_Rename(ProcessRef _Nonnull pProc, const Character* pOldPath, c
     // unlink the target node if one exists for newpath
     // XXX implement me
     
-    const PathComponent newName = PathComponent_MakeFromCString(nr.pathSuffix);
-    try(Filesystem_Rename(or.filesystem, or.inode, or.parentInode, &newName, nr.parentInode, pProc->realUser));
+    try(Filesystem_Rename(or.filesystem, &or.lastPathComponent, or.inode, &nr.lastPathComponent, nr.inode, pProc->realUser));
 
 catch:
     PathResolverResult_Deinit(&or);

@@ -9,13 +9,12 @@
 #include "PathResolver.h"
 #include "FilesystemManager.h"
 
-static void PathResolverResult_Init(PathResolverResult* pResult, const Character* _Nonnull pPath)
+static void PathResolverResult_Init(PathResolverResult* pResult)
 {
     pResult->inode = NULL;
     pResult->filesystem = NULL;
-    pResult->parentInode = NULL;
-    pResult->parentFilesystem = NULL;
-    pResult->pathSuffix = pPath;
+    pResult->lastPathComponent.name = NULL;
+    pResult->lastPathComponent.count = 0;
 }
 
 void PathResolverResult_Deinit(PathResolverResult* pResult)
@@ -24,11 +23,6 @@ void PathResolverResult_Deinit(PathResolverResult* pResult)
     pResult->inode = NULL;
     Object_Release(pResult->filesystem);
     pResult->filesystem = NULL;
-
-    Object_Release(pResult->parentInode);
-    pResult->parentInode = NULL;
-    Object_Release(pResult->parentFilesystem);
-    pResult->parentFilesystem = NULL;
 }
 
 
@@ -333,7 +327,7 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathR
     InodeIterator iter;
     Int pi = 0;
 
-    PathResolverResult_Init(pResult, pPath);
+    PathResolverResult_Init(pResult);
 
     if (pPath[0] == '\0') {
         return ENOENT;
@@ -368,7 +362,7 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathR
         
 
         // Pick up the next path component
-        Int ni = 0, pathSuffixStartIdx = pi;
+        Int ni = 0;
         while (pPath[pi] != '\0' && pPath[pi] != '/') {
             if (pi >= kMaxPathLength || ni >= kMaxPathComponentLength) {
                 throw(ENAMETOOLONG);
@@ -384,35 +378,27 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathR
         pResolver->pathComponent.count = ni;
 
 
-        if (mode == kPathResolutionMode_TargetAndParent) {
-            Object_Assign(&pResult->parentInode, iter.inode);
-            Object_Assign(&pResult->parentFilesystem, iter.filesystem);
+        // Check whether we're done if the resolution mode is ParentOnly
+        if (mode == kPathResolutionMode_ParentOnly) {
+            Int si = pi;
+            while(pPath[si] == '/') si++;
+
+            if (pPath[si] == '\0') {
+                // This is the last path component. The iterator is pointing at
+                // the parent node.
+                pResult->inode = iter.inode;
+                pResult->filesystem = iter.filesystem;
+                pResult->lastPathComponent.name = &pPath[pi - ni];
+                pResult->lastPathComponent.count = ni;
+
+                return EOK;
+            }
         }
 
 
         // Ask the current namespace for the inode that is named by the tuple
         // (parent-inode, path-component)
-        err = PathResolver_UpdateIterator(pResolver, user, &iter, &pResolver->pathComponent);
-        if (err == ENOENT) {
-            // Scan until we find the start of the next path component
-            while(pPath[pi] == '/') pi++;
-
-            if ((mode == kPathResolutionMode_TargetOrAncestor)
-                || (mode == kPathResolutionMode_TargetOrParent && pPath[pi] == '\0')) {
-                // Some path component doesn't exist and the caller is asking for
-                // ancestor or parent information. Let's return the ancestor that
-                // does exist. Note that we do a move of ownership here.
-                pResult->inode = iter.inode;
-                pResult->filesystem = iter.filesystem;
-                pResult->pathSuffix = &pPath[pathSuffixStartIdx];
-
-                return ENOENT;
-            }
-
-            throw(err);
-        } else if (err != EOK) {
-            throw(err);
-        }
+        try(PathResolver_UpdateIterator(pResolver, user, &iter, &pResolver->pathComponent));
 
 
         // We're done if we've reached the end of the path. Otherwise continue
@@ -426,7 +412,8 @@ ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathR
     // iterator to the result
     pResult->inode = iter.inode;
     pResult->filesystem = iter.filesystem;
-    pResult->pathSuffix = &pPath[pi];
+    pResult->lastPathComponent.name = &pPath[pi];
+    pResult->lastPathComponent.count = 0;
     return EOK;
 
 catch:

@@ -287,8 +287,9 @@ ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 }
 
 // Creates an empty directory as a child of the given directory node and with
-// the given name, user and file permissions
-ErrorCode Filesystem_createDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions)
+// the given name, user and file permissions. Returns EEXIST if a node with
+// the given name already exists.
+ErrorCode Filesystem_createDirectory(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, User user, FilePermissions permissions)
 {
     return EACCESS;
 }
@@ -325,17 +326,21 @@ ErrorCode Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EACCESS;
 }
 
-// Unlink the node 'pNode' which is an immediate child of the node 'pParentNode'.
-// The parent node is guaranteed to be a node owned by the filesystem.
-ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, User user)
+// Unlink the node identified by the path component 'pName' and which is an
+// immediate child of the (directory) node 'pParentNode'. The parent node is
+// guaranteed to be a node owned by the filesystem.
+// This function must validate that a directory entry with the given name
+// actually exists, is a file or an empty directory before it attempts to
+// remove the entry from the parent node.
+ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, User user)
 {
     return EACCESS;
 }
 
-// Renames the node 'pNode' which is an immediate child of the node 'pParentNode'.
-// such that it becomes a child of 'pNewParentNode' with the name 'pNewName'.
-// All nodes are guaranteed to be owned by the filesystem.
-ErrorCode Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, const PathComponent* pNewName, InodeRef _Nonnull pNewParentNode, User user)
+// Renames the node with name 'pName' and which is an immediate child of the
+// node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
+// the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
+ErrorCode Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull pNewParentNode, User user)
 {
     return EACCESS;
 }

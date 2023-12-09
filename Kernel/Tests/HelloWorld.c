@@ -207,7 +207,7 @@ void app_main(int argc, char *argv[])
     _mkdir("/Users/Tester");
 
 #if 0
-while(true) {
+//while(true) {
     pwd();
     chdir("/Users");
     pwd();
@@ -221,7 +221,7 @@ while(true) {
     pwd();
     chdir("../Tester");
     pwd();
-}
+//}
 
     print_fileinfo("/Users");
     printf("\n");

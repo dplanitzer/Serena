@@ -211,8 +211,9 @@ typedef struct _FilesystemMethodTable {
     //
 
     // Creates an empty directory as a child of the given directory node and with
-    // the given name, user and file permissions
-    ErrorCode (*createDirectory)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, User user, FilePermissions permissions);
+    // the given name, user and file permissions. Returns EEXIST if a node with
+    // the given name already exists.
+    ErrorCode (*createDirectory)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, User user, FilePermissions permissions);
 
     // Opens the directory represented by the given node. Returns a directory
     // descriptor object which is teh I/O channel that allows you to read the
@@ -238,14 +239,18 @@ typedef struct _FilesystemMethodTable {
     // Verifies that the given node is accessible assuming the given access mode.
     ErrorCode (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, Int mode);
 
-    // Unlink the node 'pNode' which is an immediate child of the node 'pParentNode'.
-    // The parent node is guaranteed to be a node owned by the filesystem.
-    ErrorCode (*unlink)(void* _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, User user);
+    // Unlink the node identified by the path component 'pName' and which is an
+    // immediate child of the (directory) node 'pParentNode'. The parent node is
+    // guaranteed to be a node owned by the filesystem.
+    // This function must validate that a directory entry with the given name
+    // actually exists, is a file or an empty directory before it attempts to
+    // remove the entry from the parent node.
+    ErrorCode (*unlink)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, User user);
 
-    // Renames the node 'pNode' which is an immediate child of the node 'pParentNode'.
-    // such that it becomes a child of 'pNewParentNode' with the name 'pNewName'.
-    // All nodes are guaranteed to be owned by the filesystem.
-    ErrorCode (*rename)(void* _Nonnull self, InodeRef _Nonnull pNode, InodeRef _Nonnull pParentNode, const PathComponent* pNewName, InodeRef _Nonnull pNewParentNode, User user);
+    // Renames the node with name 'pName' and which is an immediate child of the
+    // node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
+    // the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
+    ErrorCode (*rename)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull pNewParentNode, User user);
 
 } FilesystemMethodTable;
 
@@ -284,8 +289,8 @@ Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
-#define Filesystem_CreateDirectory(__self, __pParentNode, __pName, __user, __permissions) \
-Object_InvokeN(createDirectory, Filesystem, __self, __pParentNode, __pName, __user, __permissions)
+#define Filesystem_CreateDirectory(__self, __pName, __pParentNode, __user, __permissions) \
+Object_InvokeN(createDirectory, Filesystem, __self, __pName, __pParentNode, __user, __permissions)
 
 #define Filesystem_OpenDirectory(__self, __pDirNode, __user, __pOutDir) \
 Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __user, __pOutDir)
@@ -300,10 +305,10 @@ Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
 Object_InvokeN(checkAccess, Filesystem, __self, __pNode, __user, __mode)
 
-#define Filesystem_Unlink(__self, __pNode, __pParentNode, __user) \
-Object_InvokeN(unlink, Filesystem, __self, __pNode, __pParentNode, __user)
+#define Filesystem_Unlink(__self, __pName, __pParentNode, __user) \
+Object_InvokeN(unlink, Filesystem, __self, __pName, __pParentNode, __user)
 
-#define Filesystem_Rename(__self, __pNode, __pParentNode, __pNewName, __pNewParentNode, __user) \
-Object_InvokeN(rename, Filesystem, __self, __pNode, __pParentNode, __pNewName, __pNewParentNode, __user)
+#define Filesystem_Rename(__self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user) \
+Object_InvokeN(rename, Filesystem, __self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user)
 
 #endif /* Filesystem_h */
