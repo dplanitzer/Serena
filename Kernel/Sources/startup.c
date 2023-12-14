@@ -129,15 +129,23 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 // filesystem structure.
 static InodeRef _Nonnull filesystem_init(void)
 {
+    decl_try_err();
     FilesystemRef pRamFS;
 
     // XXX for now always a RAM disk
     User rootDirUser = {kRootUserId, kRootGroupId};
-    try_bang(RamFS_Create(rootDirUser, (RamFSRef*)&pRamFS));
-    try_bang(FilesystemManager_Create(pRamFS, &gFilesystemManager));
+    try(RamFS_Create(rootDirUser, (RamFSRef*)&pRamFS));
+    try(FilesystemManager_Create(pRamFS, &gFilesystemManager));
     Object_Release(pRamFS);
 
-    return FilesystemManager_CopyRootNode(gFilesystemManager);
+    InodeRef pRootNode;
+    try(FilesystemManager_CopyRootNode(gFilesystemManager, &pRootNode));
+
+    return pRootNode;
+
+catch:
+    print("Root filesystem mount failure: %d.\nHalting.\n", err);
+    while(true);
 }
 
 // Called by the boot virtual processor after it has finished initializing all
@@ -176,6 +184,7 @@ static void OnMain(void)
     // Create the root process
     ProcessRef pRootProc;
     try_bang(RootProcess_Create(pRootDir, &pRootProc));
+    Object_Release(pRootDir);
 
 
     // Create the process manager

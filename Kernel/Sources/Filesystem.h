@@ -157,10 +157,8 @@ typedef struct _FilesystemMethodTable {
 
     // Invoked when an instance of this file system is mounted. Note that the
     // kernel guarantees that no operations will be issued to the filesystem
-    // before onMount() has returned with EOK. This function must return a
-    // properly initialized node that represents the root directory of the
-    // filesystem.
-    ErrorCode (*onMount)(void* _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable * _Nonnull pOutRootNode);
+    // before onMount() has returned with EOK.
+    ErrorCode (*onMount)(void* _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize);
 
     // Invoked when a mounted instance of this file system is unmounted. A file
     // system may return an error. Note however that this error is purely advisory
@@ -173,6 +171,10 @@ typedef struct _FilesystemMethodTable {
     //
     // Filesystem Navigation
     //
+
+    // Returns the root node of the filesystem if the filesystem is currently in
+    // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
+    ErrorCode (*copyRootNode)(void* _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Returns EOK and the node that corresponds to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
@@ -265,12 +267,15 @@ extern ErrorCode Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _N
 #define Filesystem_GetId(__fs) \
     ((FilesystemRef)(__fs))->fsid
 
-#define Filesystem_OnMount(__self, __pParams, __paramsSize, __pOutRootNode) \
-Object_InvokeN(onMount, Filesystem, __self, __pParams, __paramsSize, __pOutRootNode)
+#define Filesystem_OnMount(__self, __pParams, __paramsSize) \
+Object_InvokeN(onMount, Filesystem, __self, __pParams, __paramsSize)
 
 #define Filesystem_OnUnmount(__self) \
 Object_Invoke0(onUnmount, Filesystem, __self)
 
+
+#define Filesystem_CopyRootNode(__self, __pOutNode) \
+Object_InvokeN(copyRootNode, Filesystem, __self, __pOutNode)
 
 #define Filesystem_CopyNodeForName(__self, __pParentNode, __pComponent, __user, __pOutNode) \
 Object_InvokeN(copyNodeForName, Filesystem, __self, __pParentNode, __pComponent, __user, __pOutNode)

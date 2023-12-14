@@ -259,16 +259,18 @@ static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull
     // Check whether the new inode is a mountpoint. If not then we just update
     // the iterator with the new node. If it is a mountpoint then we have to
     // switch to the mounted filesystem and its root node instead.
-    FilesystemRef pMountedFileSys;
-    InodeRef pMountedFileSysRootNode;
+    FilesystemRef pMountedFileSys = FilesystemManager_CopyFilesystemMountedAtNode(gFilesystemManager, pChildNode);
 
-    if (!FilesystemManager_IsNodeMountpoint(gFilesystemManager, pChildNode, &pMountedFileSys, &pMountedFileSysRootNode)) {
+    if (pMountedFileSys == NULL) {
         Object_AssignMovingOwnership(&pIter->inode, pChildNode);
     }
     else {
+        Object_Release(pChildNode);
+
+        InodeRef pMountedFileSysRootNode;
+        try(Filesystem_CopyRootNode(pMountedFileSys, &pMountedFileSysRootNode));
         Object_AssignMovingOwnership(&pIter->filesystem, pMountedFileSys);
         Object_AssignMovingOwnership(&pIter->inode, pMountedFileSysRootNode);
-        Object_Release(pChildNode);
     }
 
 catch:

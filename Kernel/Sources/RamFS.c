@@ -282,10 +282,8 @@ static ErrorCode RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonn
 
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
-// before onMount() has returned with EOK. This function must return a
-// properly initialized node that represents the root directory of the
-// filesystem.
-ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable * _Nonnull pOutRootNode)
+// before onMount() has returned with EOK.
+ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
 {
     decl_try_err();
 
@@ -299,13 +297,8 @@ ErrorCode RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, By
     const FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
 
     try(DirectoryNode_Create(self, RamFS_GetNextAvailableInodeId_Locked(self), NULL, dirPerms, self->rootDirUser, &self->root));
-    *pOutRootNode = (InodeRef)self->root;
-
-    Lock_Unlock(&self->lock);
-    return EOK;
 
 catch:
-    *pOutRootNode = NULL;
     Lock_Unlock(&self->lock);
     return err;
 }
@@ -346,6 +339,17 @@ catch:
     return err;
 }
 
+
+// Returns the root node of the filesystem if the filesystem is currently in
+// mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
+ErrorCode RamFS_copyRootNode(RamFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    Lock_Lock(&self->lock);
+    *pOutNode = (InodeRef) self->root;
+    Lock_Unlock(&self->lock);
+
+    return (*pOutNode) ? EOK : ENOENT;
+}
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
@@ -567,6 +571,7 @@ CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
 OVERRIDE_METHOD_IMPL(onMount, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onUnmount, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(copyRootNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(copyNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)

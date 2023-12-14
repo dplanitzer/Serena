@@ -26,8 +26,10 @@ extern ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, F
 // Returns a strong reference to the root of the global filesystem.
 extern FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef _Nonnull pManager);
 
-// Returns the node that represents the root of the global filesystem.
-extern InodeRef _Nonnull FilesystemManager_CopyRootNode(FilesystemManagerRef _Nonnull pManager);
+// Returns the node that represents the root of the global filesystem. Note that
+// this function may fail if the root node of the root filesystem can not be read
+// from disk.
+extern ErrorCode FilesystemManager_CopyRootNode(FilesystemManagerRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns the filesystem for the given filesystem ID. NULL is returned if no
 // file system for the given ID is registered/mounted anywhere in the global
@@ -40,11 +42,9 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemM
 // the root filesystem (it has no parent file system).
 extern ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem);
 
-// Checks whether the given node is a mount point and returns the mount point
-// information if it is. Otherwise returns false. The returned mount point
-// information is the filesystem and its root node, that is mounted at the given
-// node.
-extern Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull pNode, FilesystemRef _Nullable * _Nonnull pMountedFilesystem, InodeRef _Nullable * _Nonnull pMountedRootNode);
+// Checks whether the given node is a mount point and returns the filesystem
+// mounted at that node, if it is. Otherwise returns NULL.
+extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull pNode);
 
 // Mounts the given filesystem at the given node. The node must be a directory
 // node. A filesystem instance may be mounted at at most one directory.
