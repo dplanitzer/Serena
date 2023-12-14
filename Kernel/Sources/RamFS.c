@@ -79,7 +79,7 @@ catch:
     return err;
 }
 
-static ErrorCode DirectoryNode_GetNameOfNode(RamFS_DirectoryRef _Nonnull self, InodeRef _Nonnull pNode, MutablePathComponent* _Nonnull pComponent)
+static ErrorCode DirectoryNode_GetNameOfNode(RamFS_DirectoryRef _Nonnull self, InodeId id, MutablePathComponent* _Nonnull pComponent)
 {
     decl_try_err();
     RamFS_DirectoryHeader* pHeader = &self->header;
@@ -88,7 +88,7 @@ static ErrorCode DirectoryNode_GetNameOfNode(RamFS_DirectoryRef _Nonnull self, I
     for (Int i = 0; i < GenericArray_GetCount(pHeader); i++) {
         const RamFS_DirectoryEntry* pCurEntry = GenericArray_GetRefAt(pHeader, RamFS_DirectoryEntry, i);
 
-        if (Inode_Equals(pCurEntry->node, pNode)) {
+        if (Inode_GetId(pCurEntry->node) == id) {
             pEntry = pCurEntry;
             break;
         }
@@ -371,7 +371,15 @@ catch:
     return err;
 }
 
-ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeRef _Nonnull pNode, User user, MutablePathComponent* _Nonnull pComponent)
+// Returns the name of the node with the id 'id' which a child of the
+// directory node 'pParentNode'. 'id' may be of any type. The name is
+// returned in the mutable path component 'pComponent'. 'count' in path
+// component is 0 on entry and should be set to the actual length of the
+// name on exit. The function is expected to return EOK if the parent node
+// contains 'id' and ENOENT otherwise. If the name of 'id' as stored in the
+// file system is > the capacity of the path component, then ERANGE should
+// be returned.
+ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
 {
     decl_try_err();
 
@@ -380,7 +388,7 @@ ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull pParentN
     }
     Inode_Lock(pParentNode);
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
-    try(DirectoryNode_GetNameOfNode((RamFS_DirectoryRef) pParentNode, pNode, pComponent));
+    try(DirectoryNode_GetNameOfNode((RamFS_DirectoryRef) pParentNode, id, pComponent));
 
 catch:
     Inode_Unlock(pParentNode);

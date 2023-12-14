@@ -127,7 +127,6 @@ ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, 
 ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize)
 {
     InodeIterator iter;
-    InodeRef pCurNode = NULL;
     decl_try_err();
 
     try(InodeIterator_Init(&iter, pResolver->currentWorkingDirectory));
@@ -144,15 +143,14 @@ ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
     *p = '\0';
 
     while (iter.inode != pResolver->rootDirectory) {
-        Object_Release(pCurNode);
-        pCurNode = Object_RetainAs(iter.inode, Inode);
+        const InodeId childInodeIdToLookup = Inode_GetId(iter.inode);
 
         try(PathResolver_UpdateIteratorWalkingUp(pResolver, user, &iter));
 
         pathComponent.name = pBuffer;
         pathComponent.count = 0;
         pathComponent.capacity = p - pBuffer;
-        try(Filesystem_GetNameOfNode(iter.filesystem, iter.inode, pCurNode, user, &pathComponent));
+        try(Filesystem_GetNameOfNode(iter.filesystem, iter.inode, childInodeIdToLookup, user, &pathComponent));
 
         p -= pathComponent.count;
         Bytes_CopyRange(p, pathComponent.name, pathComponent.count);
@@ -172,16 +170,12 @@ ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
     }
     
     Bytes_CopyRange(pBuffer, p, &pBuffer[bufferSize] - p);
-    Object_Release(pCurNode);
     InodeIterator_Deinit(&iter);
-
     return EOK;
 
 catch:
-    Object_Release(pCurNode);
     InodeIterator_Deinit(&iter);
     pBuffer[0] = '\0';
-
     return err;
 }
 
@@ -197,6 +191,10 @@ ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
 static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
 {
     static const PathComponent gParentPathComponent = { "..", 2 };
+    InodeRef pParentNode = NULL;
+    InodeRef pMountingDir = NULL;
+    FilesystemRef pMountingFilesystem = NULL;
+    decl_try_err();
 
     // Nothing to do if the iterator points to our root node
     if (Inode_Equals(pIter->inode, pResolver->rootDirectory)) {
@@ -204,46 +202,35 @@ static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull p
     }
 
 
-    InodeRef pParentNode;
-    ErrorCode err = Filesystem_CopyNodeForName(pIter->filesystem, pIter->inode, &gParentPathComponent, user, &pParentNode);
-    if (err != EOK) {
-        return err;
-    }
+    try(Filesystem_CopyNodeForName(pIter->filesystem, pIter->inode, &gParentPathComponent, user, &pParentNode));
 
     if (!Inode_Equals(pIter->inode, pParentNode)) {
         // We're moving to a parent node in the same file system
-        Object_Assign(&pIter->inode, pParentNode);
-    }
-    else {
-        // The pIter->inode is the root of a file system that is mounted somewhere
-        // below the global file system root. We need to find the node in the parent
-        // file system that is mounting pIter->inode and we the need to find the
-        // parent of this inode. Note that such a parent always exists and that it
-        // is necessarily in the same parent file system in which the mounting node
-        // is (because you can not mount a file system on the root node of another
-        // file system).
-        InodeRef pMountingDir;
-        FilesystemRef pMountingFilesystem;
-
-        err = FilesystemManager_CopyMountpointOfFilesystem(gFilesystemManager, pIter->filesystem, &pMountingDir, &pMountingFilesystem);
-        if (err != EOK) {
-            Object_Release(pParentNode);
-            return err;
-        }
-
-        err = Filesystem_CopyNodeForName(pMountingFilesystem, pMountingDir, &gParentPathComponent, user, &pParentNode);
-        if (err != EOK) {
-            Object_Release(pParentNode);
-            Object_Release(pMountingDir);
-            Object_Release(pMountingFilesystem);
-            return err;
-        }
-
         Object_AssignMovingOwnership(&pIter->inode, pParentNode);
-        Object_AssignMovingOwnership(&pIter->filesystem, pMountingFilesystem);
+        return EOK;
     }
+
+    // The pIter->inode is the root of a file system that is mounted somewhere
+    // below the global file system root. We need to find the node in the parent
+    // file system that is mounting pIter->inode and we the need to find the
+    // parent of this inode. Note that such a parent always exists and that it
+    // is necessarily in the same parent file system in which the mounting node
+    // is (because you can not mount a file system on the root node of another
+    // file system).
+    try(FilesystemManager_CopyMountpointOfFilesystem(gFilesystemManager, pIter->filesystem, &pMountingDir, &pMountingFilesystem));
+    try(Filesystem_CopyNodeForName(pMountingFilesystem, pMountingDir, &gParentPathComponent, user, &pParentNode));
+
+    Object_AssignMovingOwnership(&pIter->inode, pParentNode);
+    Object_AssignMovingOwnership(&pIter->filesystem, pMountingFilesystem);
+    Object_Release(pMountingDir);
 
     return EOK;
+
+catch:
+    Object_Release(pParentNode);
+    Object_Release(pMountingDir);
+    Object_Release(pMountingFilesystem);
+    return err;
 }
 
 // Updates the inode iterator with the inode that represents the given path
@@ -252,21 +239,18 @@ static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull p
 // case that we want to walk down the filesystem tree or sideways (".").
 static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
-    InodeRef pChildNode;
+    InodeRef pChildNode = NULL;
+    decl_try_err();
 
     // Ask the current filesystem for the inode that is named by the tuple
     // (parent-inode, path-component)
-    const ErrorCode err = Filesystem_CopyNodeForName(pIter->filesystem, pIter->inode, pComponent, user, &pChildNode);
-    if (err != EOK) {
-        return err;
-    }
+    try(Filesystem_CopyNodeForName(pIter->filesystem, pIter->inode, pComponent, user, &pChildNode));
 
 
     // Note that if we do a lookup for ".", that we get back the same inode with
     // which we started but with an extra +1 ref count. We keep the iterator
     // intact and we drop the extra +1 ref in this case.
-    if (pComponent->count == 1 && pComponent->name[0] == '.') {
-        assert(Inode_Equals(pIter->inode, pChildNode));
+    if (pIter->inode == pChildNode) {
         Object_Release(pChildNode);
         return EOK;
     }
@@ -279,15 +263,16 @@ static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull
     InodeRef pMountedFileSysRootNode;
 
     if (!FilesystemManager_IsNodeMountpoint(gFilesystemManager, pChildNode, &pMountedFileSys, &pMountedFileSysRootNode)) {
-        Object_Assign(&pIter->inode, pChildNode);
+        Object_AssignMovingOwnership(&pIter->inode, pChildNode);
     }
     else {
-        Object_Release(pChildNode);
         Object_AssignMovingOwnership(&pIter->filesystem, pMountedFileSys);
         Object_AssignMovingOwnership(&pIter->inode, pMountedFileSysRootNode);
+        Object_Release(pChildNode);
     }
 
-    return EOK;
+catch:
+    return err;
 }
 
 // Updates the inode iterator with the inode that represents the given path
