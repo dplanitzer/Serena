@@ -598,20 +598,60 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define BPLHPTL     0x1ee
 #define FMODE       0x1fc
 
-#define BPLCON0F_ECSENA 0x0001
-#define BPLCON0F_ERSY   0x0002
-#define BPLCON0F_LACE   0x0004
-#define BPLCON0F_LPEN   0x0008
-#define BPLCON0F_BPU3   0x0010
-#define BPLCON0F_BYPASS 0x0020
-#define BPLCON0F_SHRES  0x0040
-#define BPLCON0F_UHRES  0x0080
-#define BPLCON0F_GAUD   0x0100
-#define BPLCON0F_COLOR  0x0200
-#define BPLCON0F_DPF    0x0400
-#define BPLCON0F_HAM    0x0800
-#define BPLCON0F_BPUx   0x7000      // mask (12..14)
-#define BPLCON0F_HIRES  0x8000
+#define ADKCONF_USE0V1      0x0001
+#define ADKCONF_USE1V2      0x0002
+#define ADKCONF_USE2V3      0x0004
+#define ADKCONF_USE3VN      0x0008
+#define ADKCONF_USE0P1      0x0010
+#define ADKCONF_USE1P2      0x0020
+#define ADKCONF_USE2P3      0x0040
+#define ADKCONF_USE3PN      0x0080
+#define ADKCONF_FAST        0x0100
+#define ADKCONF_WORDSYNC    0x0200
+#define ADKCONF_UARTBRK     0x0400
+#define ADKCONF_MFMPREC     0x0400
+#define ADKCONF_PRECOMP     0x6000      // mask (13..14)
+#define ADKCONF_SETCLR      0x8000
+
+#define AUDxVOLF_LEVEL      0x003f      // mask (0..5)
+#define AUDxVOLF_FORCEMAX   0x0040
+
+#define BEAMCON0F_HSYTRUE   0x0001
+#define BEAMCON0F_VSYTRUE   0x0002
+#define BEAMCON0F_CSYTRUE   0x0004
+#define BEAMCON0F_BLANKEN   0x0008
+#define BEAMCON0F_VARCSYEN  0x0010
+#define BEAMCON0F_PAL       0x0020
+#define BEAMCON0F_DUAL      0x0040
+#define BEAMCON0F_VARBEAMEN 0x0080
+#define BEAMCON0F_VARHSYEN  0x0100
+#define BEAMCON0F_VARVSYEN  0x0200
+#define BEAMCON0F_CSCBEN    0x0400
+#define BEAMCON0F_LOLDIS    0x0800
+#define BEAMCON0F_VARVBEN   0x1000
+#define BEAMCON0F_LPENDIS   0x2000
+#define BEAMCON0F_HARDDIS   0x4000
+
+#define BLTSIZE_WIDTH       0x003f      // mask (0..5)
+#define BLTSIZE_HEIGHT      0xffc0      // mask (6..15)
+
+#define BPLCON0F_ECSENA     0x0001
+#define BPLCON0F_ERSY       0x0002
+#define BPLCON0F_LACE       0x0004
+#define BPLCON0F_LPEN       0x0008
+#define BPLCON0F_BPU3       0x0010
+#define BPLCON0F_BYPASS     0x0020
+#define BPLCON0F_SHRES      0x0040
+#define BPLCON0F_UHRES      0x0080
+#define BPLCON0F_GAUD       0x0100
+#define BPLCON0F_COLOR      0x0200
+#define BPLCON0F_DPF        0x0400
+#define BPLCON0F_HAM        0x0800
+#define BPLCON0F_BPUx       0x7000      // mask (12..14)
+#define BPLCON0F_HIRES      0x8000
+
+#define BPLCON1F_PF1H       0x000f      // mask (0..3)
+#define BPLCON1F_PF2H       0x00f0      // mask (4..7)
 
 #define BPLCON2F_PF1P       0x0007      // mask (0..2)
 #define BPLCON2F_PF2P       0x0038      // mask (3..5)
@@ -622,6 +662,42 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define BPLCON2F_ZDCTEN     0x0400
 #define BPLCON2F_ZDBPEN     0x0800
 #define BPLCON2F_ZDBPSEL    0x7000      // mask (12..14)
+
+#define BPLCON3F_BRDNTRAN   0x0010
+#define BPLCON3F_BRDRBLNK   0x0020
+
+#define CLXCONF_MVBP1       0x0001
+#define CLXCONF_MVBP2       0x0002
+#define CLXCONF_MVBP3       0x0004
+#define CLXCONF_MVBP4       0x0008
+#define CLXCONF_MVBP5       0x0010
+#define CLXCONF_MVBP6       0x0020
+#define CLXCONF_ENBP1       0x0040
+#define CLXCONF_ENBP2       0x0080
+#define CLXCONF_ENBP3       0x0100
+#define CLXCONF_ENBP4       0x0200
+#define CLXCONF_ENBP5       0x0400
+#define CLXCONF_ENBP6       0x0800
+#define CLXCONF_ENSP1       0x1000
+#define CLXCONF_ENSP3       0x2000
+#define CLXCONF_ENSP5       0x4000
+#define CLXCONF_ENSP7       0x8000
+
+#define CLXDATF_PF1PF2      0x0001
+#define CLXDATF_PF1SPR0     0x0002
+#define CLXDATF_PF1SPR2     0x0004
+#define CLXDATF_PF1SPR4     0x0008
+#define CLXDATF_PF1SPR6     0x0010
+#define CLXDATF_PF2SPR0     0x0020
+#define CLXDATF_PF2SPR2     0x0040
+#define CLXDATF_PF2SPR4     0x0080
+#define CLXDATF_PF2SPR6     0x0100
+#define CLXDATF_SPR0SPR2    0x0200
+#define CLXDATF_SPR0SPR4    0x0400
+#define CLXDATF_SPR0SPR6    0x0800
+#define CLXDATF_SPR2SPR4    0x1000
+#define CLXDATF_SPR2SPR6    0x2000
+#define CLXDATF_SPR4SPR6    0x4000
 
 #define COPCONF_DANG        0x0002
 
@@ -641,15 +717,53 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 #define DMACONF_BBUSY       0x4000
 #define DMACONF_SETCLR      0x8000
 
-#define POTGORF_START   0x0001
-#define POTGORF_DATLX   0x0100
-#define POTGORF_OUTLX   0x0200
-#define POTGORF_DATLY   0x0400
-#define POTGORF_OUTLY   0x0800
-#define POTGORF_DATRX   0x1000
-#define POTGORF_OUTRX   0x2000
-#define POTGORF_DATRY   0x4000
-#define POTGORF_OUTRY   0x8000
+#define INTENAF_TBE         0x0001
+#define INTENAF_DSKBLK      0x0002
+#define INTENAF_SOFT        0x0004
+#define INTENAF_PORTS       0x0008
+#define INTENAF_COPER       0x0010
+#define INTENAF_VERTB       0x0020
+#define INTENAF_BLIT        0x0040
+#define INTENAF_AUD0        0x0080
+#define INTENAF_AUD1        0x0100
+#define INTENAF_AUD2        0x0200
+#define INTENAF_AUD3        0x0400
+#define INTENAF_RBF         0x0800
+#define INTENAF_DSKSYN      0x1000
+#define INTENAF_EXTER       0x2000
+#define INTENAF_INTEN       0x4000
+#define INTENAF_SETCLR      0x8000
+    
+#define INTREQF_TBE         0x0001
+#define INTREQF_DSKBLK      0x0002
+#define INTREQF_SOFT        0x0004
+#define INTREQF_PORTS       0x0008
+#define INTREQF_COPER       0x0010
+#define INTREQF_VERTB       0x0020
+#define INTREQF_BLIT        0x0040
+#define INTREQF_AUD0        0x0080
+#define INTREQF_AUD1        0x0100
+#define INTREQF_AUD2        0x0200
+#define INTREQF_AUD3        0x0400
+#define INTREQF_RBF         0x0800
+#define INTREQF_DSKSYN      0x1000
+#define INTREQF_EXTER       0x2000
+#define INTREQF_INTEN       0x4000
+#define INTREQF_SETCLR      0x8000
+
+#define POTGORF_START       0x0001
+#define POTGORF_DATLX       0x0100
+#define POTGORF_OUTLX       0x0200
+#define POTGORF_DATLY       0x0400
+#define POTGORF_OUTLY       0x0800
+#define POTGORF_DATRX       0x1000
+#define POTGORF_OUTRX       0x2000
+#define POTGORF_DATRY       0x4000
+#define POTGORF_OUTRY       0x8000
+
+#define VPOSRF_LOL          0x0080
+#define VPOSRF_AGNUSID      0x7f00      // mask (8..14)
+#define VPOSRF_LOF          0x8000
 
 
 // Copper instructions
