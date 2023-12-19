@@ -39,7 +39,7 @@ typedef enum _PathResolutionMode {
 
 // The result of a path resolution operation.
 typedef struct _PathResolverResult {
-    InodeRef _Nullable          inode;          // The inode named by the path if it exists and the parent inode otherwise, if requested
+    InodeRef _Nullable _Locked  inode;          // The inode named by the path if it exists and the parent inode otherwise, if requested
     FilesystemRef _Nullable     filesystem;     // The filesystem that owns the returned inode
 
     PathComponent               lastPathComponent;  // Last path component if the resolution mode is ParentOnly. Note that this stores a reference into the path that was passed to the resolution function
@@ -68,6 +68,6 @@ extern ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _No
 // Note that the caller of this function has to eventually call
 // PathResolverResult_Deinit() on the returned result no matter whether this
 // function has returned with EOK or some error.
-extern ErrorCode PathResolver_CopyNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const Character* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
+extern ErrorCode PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const Character* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
 
 #endif /* PathResolver_h */

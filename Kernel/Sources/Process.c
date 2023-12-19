@@ -7,6 +7,7 @@
 //
 
 #include "ProcessPriv.h"
+#include "FilesystemManager.h"
 #include "GemDosExecutableLoader.h"
 #include "ProcessManager.h"
 
@@ -34,11 +35,23 @@ ProcessRef _Nullable Process_GetCurrent(void)
 }
 
 
-ErrorCode RootProcess_Create(InodeRef _Nonnull pRootDir, ProcessRef _Nullable * _Nonnull pOutProc)
+ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
 {
     User user = {kRootUserId, kRootGroupId};
+    FilesystemRef pRootFileSys = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
+    InodeRef pRootDir = NULL;
+    decl_try_err();
 
-    return Process_Create(1, user, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc);
+    try(Filesystem_AcquireRootNode(pRootFileSys, &pRootDir));
+    try(Process_Create(1, user, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc));
+    Filesystem_RelinquishNode(pRootFileSys, pRootDir);
+
+    return EOK;
+
+catch:
+    Object_Release(pRootFileSys);
+    *pOutProc = NULL;
+    return err;
 }
 
 // Loads an executable from the given executable file into the process address
@@ -58,7 +71,7 @@ ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
 
 
 
-ErrorCode Process_Create(Int ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
+ErrorCode Process_Create(Int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
     ProcessRef pProc;
@@ -765,27 +778,6 @@ catch:
     return err;
 }
 
-// Returns true if the process is using the given filesystem or false if not. A
-// process is using a filesystem if root directory or current working directory
-// is stored on the filesystem or the process has an open file that is located
-// on the filesystem.
-Bool Process_IsUsingFilesystem(ProcessRef _Nonnull pProc, FilesystemRef _Nonnull pFileSys)
-{
-    Bool isUsing = false;
-
-    Lock_Lock(&pProc->lock);
-    for (Int i = 0; i < ObjectArray_GetCount(&pProc->ioChannels); i++) {
-        IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
-
-        if (pChannel && IOChannel_GetResource(pChannel) == (IOResourceRef)pFileSys) {
-            isUsing = true;
-            break;
-        }
-    }
-    Lock_Unlock(&pProc->lock);
-    return isUsing;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -854,7 +846,7 @@ ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _N
 
     Lock_Lock(&pProc->lock);
 
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
     try(Filesystem_CreateDirectory(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777)));
 
 catch:
@@ -872,7 +864,7 @@ ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Non
     DirectoryRef pDir;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenDirectory(r.filesystem, r.inode, pProc->realUser, &pDir));
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
     PathResolverResult_Deinit(&r);
@@ -894,7 +886,7 @@ ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnu
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_GetFileInfo(r.filesystem, r.inode, pOutInfo));
 
 catch:
@@ -932,7 +924,7 @@ ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnu
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_SetFileInfo(r.filesystem, r.inode, pProc->realUser, pInfo));
 
 catch:
@@ -987,7 +979,7 @@ ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _N
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     if (mode != 0) {
         try(Filesystem_CheckAccess(r.filesystem, r.inode, pProc->realUser, mode));
     }
@@ -1005,7 +997,7 @@ ErrorCode Process_Unlink(ProcessRef _Nonnull pProc, const Character* _Nonnull pP
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
 
     // Can not unlink a mount point
     // XXX implement this check once we've refined the mount point handling (return EBUSY)
@@ -1025,8 +1017,8 @@ ErrorCode Process_Rename(ProcessRef _Nonnull pProc, const Character* pOldPath, c
     PathResolverResult or, nr;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pOldPath, pProc->realUser, &or));
-    try(PathResolver_CopyNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pNewPath, pProc->realUser, &nr));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pOldPath, pProc->realUser, &or));
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pNewPath, pProc->realUser, &nr));
 
     // Can not rename a mount point
     // XXX implement this check once we've refined the mount point handling (return EBUSY)

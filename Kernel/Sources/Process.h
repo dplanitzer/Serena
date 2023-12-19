@@ -33,7 +33,7 @@ extern ProcessRef _Nullable Process_GetCurrent(void);
 
 
 // Creates the root process which is the first process of the OS.
-extern ErrorCode RootProcess_Create(InodeRef _Nonnull pRootDir, ProcessRef _Nullable * _Nonnull pOutProc);
+extern ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc);
 
 // Loads an executable from the given executable file into the process address
 // space. This is only meant to get the root process going.
@@ -104,12 +104,6 @@ extern ErrorCode Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, Int fd, 
 // strong reference to it if found. The caller should call release() on the
 // channel once it is no longer needed.
 extern ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-// Returns true if the process is using the given filesystem or false if not. A
-// process is using a filesystem if root directory or current working directory
-// is stored on the filesystem or the process has an open file that is located
-// on the filesystem.
-extern Bool Process_IsUsingFilesystem(ProcessRef _Nonnull pProc, FilesystemRef _Nonnull pFileSys);
 
 
 // Sets the receiver's root directory to the given path. Note that the path must

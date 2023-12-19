@@ -9,26 +9,39 @@
 #include "Inode.h"
 #include "FilesystemManager.h"
 
-ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    InodeRef pNode;
+    InodeRef self;
 
-    try(_Object_Create(pClass, 0, (ObjectRef*)&pNode));
-    Lock_Init(&pNode->lock);
-    pNode->type = type;
-    pNode->permissions = permissions;
-    pNode->user = user;
-    pNode->inid = id;
-    pNode->fsid = fsid;
-    pNode->size = size;
+    try(kalloc_cleared(sizeof(Inode), (void**) &self));
+    Lock_Init(&self->lock);
+    self->fsid = fsid;
+    self->inid = id;
+    self->useCount = 0;
+    self->linkCount = 1;
+    self->size = size;
+    self->type = type;
+    self->permissions = permissions;
+    self->user.uid = uid;
+    self->user.gid = gid;
+    self->refcon = refcon;
 
-    *pOutNode = pNode;
+    *pOutNode = self;
     return EOK;
 
 catch:
     *pOutNode = NULL;
     return err;
+}
+
+void Inode_Destroy(InodeRef _Nullable self)
+{
+    if (self) {
+        self->refcon = NULL;
+        Lock_Deinit(&self->lock);
+        kfree(self);
+    }
 }
 
 // Returns a strong reference to the filesystem that owns the given note. Returns
@@ -128,11 +141,30 @@ Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
     return self->fsid == pOther->fsid && self->inid == pOther->inid;
 }
 
-void Inode_deinit(InodeRef _Nonnull self)
+// Reacquires the given node and returns a new reference to the node. The node
+// is returned in locked state.
+InodeRef _Nonnull _Locked Inode_Reacquire(InodeRef _Nonnull self)
 {
-    Lock_Deinit(&self->lock);
+    FilesystemRef pFileSys = Inode_CopyFilesystem(self);
+    InodeRef pNewRef = Filesystem_ReacquireNode(pFileSys, self);
+    Object_Release(pFileSys);
+    return pNewRef;
 }
 
-CLASS_METHODS(Inode, Object,
-OVERRIDE_METHOD_IMPL(deinit, Inode, Object)
-);
+// Reacquires the given node and returns a new reference to the node. The node
+// is returned in unlocked state.
+InodeRef _Nonnull Inode_ReacquireUnlocked(InodeRef _Nonnull self)
+{
+    FilesystemRef pFileSys = Inode_CopyFilesystem(self);
+    InodeRef pNewRef = Filesystem_ReacquireUnlockedNode(pFileSys, self);
+    Object_Release(pFileSys);
+    return pNewRef;
+}
+
+// Relinquishes the node.
+void Inode_Relinquish(InodeRef _Nonnull self)
+{
+    FilesystemRef pFileSys = Inode_CopyFilesystem(self);
+    Filesystem_RelinquishNode(pFileSys, self);
+    Object_Release(pFileSys);
+}

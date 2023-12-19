@@ -22,6 +22,10 @@
 #define _Weak
 #endif
 
+#ifndef _Locked
+#define _Locked
+#endif
+
 #ifndef _Noreturn
 #define _Noreturn   void
 #endif

@@ -17,7 +17,7 @@ typedef struct _RamFSMethodTable {
 } RamFSMethodTable;
 
 
-// Creates an instance of RAM-FS. RAM-FS is a volatile file system that does not
+// Creates an instance of RamFS. RamFS is a volatile file system that does not
 // survive system restarts. The 'rootDirUser' parameter specifies the user and
 // group ID of the root directory.
 ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileSys);

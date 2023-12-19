@@ -8,7 +8,6 @@
 
 #include "FilesystemManager.h"
 #include "Lock.h"
-#include "ProcessManager.h"
 
 
 typedef struct _Mountpoint {
@@ -121,14 +120,12 @@ static Mountpoint* _Nullable FilesystemManager_GetMountpointForInode_Locked(File
 // Internal mount function. Mounts the given filesystem at the given place. If
 // 'pDirNodeToMountAt' is NULL then 'pFileSysToMount' is mounted as the root
 // filesystem.
-static ErrorCode FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable pDirNodeToMountAt)
+static ErrorCode FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable _Locked pDirNodeToMountAt)
 {
     const Mountpoint* pDirNodeMount = NULL;
     decl_try_err();
 
     if (pDirNodeToMountAt) {
-        Inode_Lock(pDirNodeToMountAt);
-
         // Make sure that 'pDirNodeToMountAt' isn't owned by the filesystem we want
         // to mount and that the filesystem instance we want to mount isn't already
         // mounted somewhere else 
@@ -161,8 +158,8 @@ static ErrorCode FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull se
 
     // Update our mount table
     pMount->mountedFilesystem = Object_RetainAs(pFileSysToMount, Filesystem);
-    pMount->mountingFilesystem = (pDirNodeMount) ? Object_RetainAs(pDirNodeMount->mountedFilesystem, Filesystem) : NULL;
-    pMount->mountingInode = (pDirNodeToMountAt) ? Object_RetainAs(pDirNodeToMountAt, Inode) : NULL;
+    pMount->mountingFilesystem = (pDirNodeToMountAt) ? Object_RetainAs(pDirNodeMount->mountedFilesystem, Filesystem) : NULL;
+    pMount->mountingInode = (pDirNodeToMountAt) ? Filesystem_ReacquireUnlockedNode(pMount->mountingFilesystem, pDirNodeToMountAt) : NULL;
 
     if (List_IsEmpty(&self->mountpoints)) {
         self->rootMountpoint = pMount;
@@ -175,19 +172,13 @@ static ErrorCode FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull se
     }
 
 catch:
-    if (pDirNodeToMountAt) {
-        Inode_Unlock(pDirNodeToMountAt);
-    }
     return err;
 }
 
 // Unmounts the given filesystem from the given directory.
-ErrorCode FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToUnmount, InodeRef _Nonnull pDirNode)
+static ErrorCode FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToUnmount, InodeRef _Nonnull _Locked pDirNode)
 {
     decl_try_err();
-
-    Inode_Lock(pDirNode);
-
 
     // Make sure that 'pFileSys' is actually mounted at 'pDirNode'
     const FilesystemId unmountingFsid = Filesystem_GetId(pFileSysToUnmount);
@@ -215,14 +206,15 @@ ErrorCode FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull self, F
 
     Object_Release(pMount->mountedFilesystem);
     pMount->mountedFilesystem = NULL;
+    if (pMount->mountingInode) {
+        Filesystem_RelinquishNode(pMount->mountingFilesystem, pMount->mountingInode);
+        pMount->mountingInode = NULL;
+    }
     Object_Release(pMount->mountingFilesystem);
     pMount->mountingFilesystem = NULL;
-    Object_Release(pMount->mountingInode);
-    pMount->mountingInode = NULL;
     kfree(pMount);
 
 catch:
-    Inode_Unlock(pDirNode);
     return err;
 }
 
@@ -235,18 +227,6 @@ FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef
     Lock_Unlock(&self->lock);
 
     return pFileSys;
-}
-
-// Returns the node that represents the root of the global filesystem. Note that
-// this function may fail if the root node of the root filesystem can not be read
-// from disk.
-ErrorCode FilesystemManager_CopyRootNode(FilesystemManagerRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    Lock_Lock(&self->lock);
-    const ErrorCode err = Filesystem_CopyRootNode(self->rootMountpoint->mountedFilesystem, pOutNode);
-    Lock_Unlock(&self->lock);
-
-    return err;
 }
 
 // Returns the filesystem for the given filesystem ID. NULL is returned if no
@@ -266,14 +246,14 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerR
 // given filesystem. ENOENT and NULLs are returned if the filesystem was never
 // mounted or is no longer mounted. EOK and NULLs are returned if 'pFileSys' is
 // the root filesystem (it has no parent file system).
-ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem)
+ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem)
 {
     Lock_Lock(&pManager->lock);
     const Mountpoint* pMount = FilesystemManager_GetMountpointForFilesystemId_Locked(pManager, Filesystem_GetId(pFileSys));
     ErrorCode err;
 
     if (pMount) {
-        *pOutMountingNode = (pMount->mountingInode) ? Object_RetainAs(pMount->mountingInode, Inode) : NULL;
+        *pOutMountingNode = (pMount->mountingInode) ? Filesystem_ReacquireNode(pMount->mountingFilesystem, pMount->mountingInode) : NULL;
         *pOutMountingFilesystem = (pMount->mountingInode) ? Object_RetainAs(pMount->mountingFilesystem, Filesystem) : NULL;
         err = EOK;
     } else {
@@ -288,12 +268,11 @@ ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Non
 
 // Checks whether the given node is a mount point and returns the filesystem
 // mounted at that node, if it is. Otherwise returns NULL.
-FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull pNode)
+FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode)
 {
     FilesystemRef pFileSys = NULL;
 
     Lock_Lock(&pManager->lock);
-    Inode_Lock(pNode);
 
     if (Inode_IsMountpoint(pNode)) {
         const Mountpoint* pMount = FilesystemManager_GetMountpointForInode_Locked(pManager, pNode);
@@ -302,7 +281,6 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Filesystem
         pFileSys = Object_RetainAs(pMount->mountedFilesystem, Filesystem);
     }
 
-    Inode_Unlock(pNode);
     Lock_Unlock(&pManager->lock);
     
     return pFileSys;
@@ -310,7 +288,7 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Filesystem
 
 // Mounts the given filesystem at the given node. The node must be a directory
 // node. A filesystem instance may be mounted at at most one directory.
-ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull pDirNode)
+ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull _Locked pDirNode)
 {
     Lock_Lock(&self->lock);
     const ErrorCode err = FilesystemManager_Mount_Locked(self, pFileSys, pParams, paramsSize, pDirNode);
@@ -319,21 +297,10 @@ ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, Filesystem
 }
 
 // Unmounts the given filesystem from the given directory.
-ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull pDirNode)
+ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode)
 {
     Lock_Lock(&self->lock);
     const ErrorCode err = FilesystemManager_Unmount_Locked(self, pFileSys, pDirNode);
     Lock_Unlock(&self->lock);
     return err;
-}
-
-// This function should be called from a filesystem onUnmount() implementation
-// to verify that the unmount can be completed safely. Eg no more open files
-// exist that reference the filesystem. Note that the filesystem must do this
-// call as part of its atomic unmount sequence. Eg the filesystem must lock its
-// state, ensure that any operations that might have been ongoing have completed,
-// then call this function before proceeding with the unmount.
-Bool FilesystemManager_CanSafelyUnmountFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys)
-{
-    return ProcessManager_IsAnyProcessUsingFilesystem(gProcessManager, pFileSys);
 }

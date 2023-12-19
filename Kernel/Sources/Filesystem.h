@@ -58,6 +58,7 @@ typedef struct _FileMethodTable {
 } FileMethodTable;
 
 
+// Creates a file object.
 extern ErrorCode File_Create(FilesystemRef _Nonnull pFilesystem, UInt mode, InodeRef _Nonnull pNode, FileRef _Nullable * _Nonnull pOutFile);
 
 // Creates a copy of the given file.
@@ -103,6 +104,7 @@ typedef struct _DirectoryMethodTable {
 } DirectoryMethodTable;
 
 
+// Creates a directory object.
 extern ErrorCode Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, DirectoryRef _Nullable * _Nonnull pOutDir);
 
 // Creates a copy of the given directory descriptor.
@@ -147,6 +149,8 @@ extern ErrorCode Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef
 //
 OPEN_CLASS(Filesystem, IOResource,
     FilesystemId        fsid;
+    Lock                inodeManagementLock;
+    PointerArray        inodesInUse;
 );
 typedef struct _FilesystemMethodTable {
     IOResourceMethodTable   super;
@@ -174,15 +178,16 @@ typedef struct _FilesystemMethodTable {
 
     // Returns the root node of the filesystem if the filesystem is currently in
     // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
-    ErrorCode (*copyRootNode)(void* _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode);
+    ErrorCode (*acquireRootNode)(void* _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
     // Returns EOK and the node that corresponds to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
-    // function has the support the special names "." (node itself) and ".."
-    // (parent of node) in addition to "regular" filenames. If the path component
-    // name is longer than what is supported by the file system, ENAMETOOLONG
-    // should be returned.
-    ErrorCode (*copyNodeForName)(void* _Nonnull self, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable * _Nonnull pOutNode);
+    // function has to support the special names "." (node itself) and ".."
+    // (parent of node) in addition to "regular" filenames. If 'pParentNode' is
+    // the root node of the filesystem and 'pComponent' is ".." then 'pParentNode'
+    // should be returned. If the path component name is longer than what is
+    // supported by the file system, ENAMETOOLONG should be returned.
+    ErrorCode (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
     // directory node 'pParentNode'. 'id' may be of any type. The name is
@@ -192,7 +197,7 @@ typedef struct _FilesystemMethodTable {
     // contains 'id' and ENOENT otherwise. If the name of 'id' as stored in the
     // file system is > the capacity of the path component, then ERANGE should
     // be returned.
-    ErrorCode (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent);
+    ErrorCode (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent);
 
 
     //
@@ -201,11 +206,11 @@ typedef struct _FilesystemMethodTable {
 
     // Returns a file info record for the given Inode. The Inode may be of any
     // file type.
-    ErrorCode (*getFileInfo)(void* _Nonnull self, InodeRef _Nonnull pNode, FileInfo* _Nonnull pOutInfo);
+    ErrorCode (*getFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo);
 
     // Modifies one or more attributes stored in the file info record of the given
     // Inode. The Inode may be of any type.
-    ErrorCode (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, MutableFileInfo* _Nonnull pInfo);
+    ErrorCode (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo);
 
 
     //
@@ -215,12 +220,12 @@ typedef struct _FilesystemMethodTable {
     // Creates an empty directory as a child of the given directory node and with
     // the given name, user and file permissions. Returns EEXIST if a node with
     // the given name already exists.
-    ErrorCode (*createDirectory)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, User user, FilePermissions permissions);
+    ErrorCode (*createDirectory)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions);
 
     // Opens the directory represented by the given node. Returns a directory
     // descriptor object which is teh I/O channel that allows you to read the
     // directory content.
-    ErrorCode (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir);
+    ErrorCode (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir);
 
     // Reads the next set of directory entries. The first entry read is the one
     // at the current directory index stored in 'pDir'. This function guarantees
@@ -239,7 +244,7 @@ typedef struct _FilesystemMethodTable {
     //
 
     // Verifies that the given node is accessible assuming the given access mode.
-    ErrorCode (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull pNode, User user, Int mode);
+    ErrorCode (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, Int mode);
 
     // Unlink the node identified by the path component 'pName' and which is an
     // immediate child of the (directory) node 'pParentNode'. The parent node is
@@ -247,15 +252,37 @@ typedef struct _FilesystemMethodTable {
     // This function must validate that a directory entry with the given name
     // actually exists, is a file or an empty directory before it attempts to
     // remove the entry from the parent node.
-    ErrorCode (*unlink)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, User user);
+    ErrorCode (*unlink)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user);
 
     // Renames the node with name 'pName' and which is an immediate child of the
     // node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
     // the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
-    ErrorCode (*rename)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull pNewParentNode, User user);
+    ErrorCode (*rename)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pNewParentNode, User user);
+
+
+    //
+    // Required override points for subclassers
+    //
+
+    // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested
+    // inode off the disk. The override should read the inode data from the disk,
+    // create and inode instance and fill it in with the data from the disk and
+    // then return it. It should return a suitable error and NULL if the inode
+    // data can not be read off the disk.
+    ErrorCode (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
+
+    // Invoked when Filesystem_RelinquishNode() has determined that the inode is
+    // no longer being referenced by any directory and that the on-disk
+    // representation should be deleted from the disk and deallocated. This
+    // operation is assumed to never fail.
+    void (*onRemoveNodeFromDisk)(void* _Nonnull self, InodeId id);
 
 } FilesystemMethodTable;
 
+
+//
+// Methods for use by filesystem users.
+//
 
 // Creates an instance of a filesystem subclass. Users of a concrete filesystem
 // should not use this function to allocate an instance of the concrete filesystem.
@@ -274,11 +301,11 @@ Object_InvokeN(onMount, Filesystem, __self, __pParams, __paramsSize)
 Object_Invoke0(onUnmount, Filesystem, __self)
 
 
-#define Filesystem_CopyRootNode(__self, __pOutNode) \
-Object_InvokeN(copyRootNode, Filesystem, __self, __pOutNode)
+#define Filesystem_AcquireRootNode(__self, __pOutNode) \
+Object_InvokeN(acquireRootNode, Filesystem, __self, __pOutNode)
 
-#define Filesystem_CopyNodeForName(__self, __pParentNode, __pComponent, __user, __pOutNode) \
-Object_InvokeN(copyNodeForName, Filesystem, __self, __pParentNode, __pComponent, __user, __pOutNode)
+#define Filesystem_AcquireNodeForName(__self, __pParentNode, __pComponent, __user, __pOutNode) \
+Object_InvokeN(acquireNodeForName, Filesystem, __self, __pParentNode, __pComponent, __user, __pOutNode)
 
 #define Filesystem_GetNameOfNode(__self, __pParentNode, __id, __user, __pComponent) \
 Object_InvokeN(getNameOfNode, Filesystem, __self, __pParentNode, __id, __user, __pComponent)
@@ -312,5 +339,42 @@ Object_InvokeN(unlink, Filesystem, __self, __pName, __pParentNode, __user)
 
 #define Filesystem_Rename(__self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user) \
 Object_InvokeN(rename, Filesystem, __self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user)
+
+// Acquires a new reference to the given node. The returned node is locked.
+extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
+
+// Acquires a new reference to the given node. The returned node is NOT locked.
+extern InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
+
+// Relinquishes the given node back to the filesystem. This method will invoke
+// the filesystem onRemoveNodeFromDisk() if no directory is referencing the inode
+// anymore. This will remove the inode from disk.
+extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
+
+
+//
+// Methods for use by filesystem subclassers.
+//
+
+// Acquires the inode with the ID 'id'. The node is returned in a locked state.
+// This methods guarantees that there will always only be at most one inode instance
+// in memory at any given time and that only one VP can access/modify the inode.
+// Once you're done with the inode, you should relinquish it back to the filesystem.
+// This method should be used by subclassers to acquire inodes in order to return
+// them to a filesystem user.
+// This method calls the filesystem method onReadNodeFromDisk() to read the
+// requested inode off the disk if there is no inode instance in memory at the
+// time this method is called.
+extern ErrorCode Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+
+// Returns true if the filesystem can be safely unmounted which means that no
+// inodes owned by the filesystem is currently in memory.
+extern Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
+
+#define Filesystem_OnReadNodeFromDisk(__self, __id, __pOutNode) \
+Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pOutNode)
+
+#define Filesystem_OnRemoveNodeFromDisk(__self, __id) \
+Object_InvokeN(onRemoveNodeFromDisk, Filesystem, __self, __id)
 
 #endif /* Filesystem_h */

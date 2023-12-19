@@ -228,6 +228,7 @@ void app_main(int argc, char *argv[])
     print_fileinfo("/Users/Admin");
 #else
     const int fd = _opendir("/Users");
+    //const int fd = _opendir("/");
     struct _directory_entry_t dirent;
 
     while (true) {

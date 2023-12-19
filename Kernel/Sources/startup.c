@@ -127,7 +127,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
 // Figures out from which filesystem to boot and sets up the initial global
 // filesystem structure.
-static InodeRef _Nonnull filesystem_init(void)
+static void _Nonnull init_boot_filesystem(void)
 {
     decl_try_err();
     FilesystemRef pRamFS;
@@ -137,11 +137,7 @@ static InodeRef _Nonnull filesystem_init(void)
     try(RamFS_Create(rootDirUser, (RamFSRef*)&pRamFS));
     try(FilesystemManager_Create(pRamFS, &gFilesystemManager));
     Object_Release(pRamFS);
-
-    InodeRef pRootNode;
-    try(FilesystemManager_CopyRootNode(gFilesystemManager, &pRootNode));
-
-    return pRootNode;
+    return;
 
 catch:
     print("Root filesystem mount failure: %d.\nHalting.\n", err);
@@ -176,16 +172,15 @@ static void OnMain(void)
     try_bang(DriverManager_AutoConfigure(gDriverManager));
 
 
-    // Figure out what boot filesystem to use and initialize the filesystem manager with it
-    InodeRef pRootDir = filesystem_init();
+    // Figure out what boot filesystem to use and initialize the filesystem
+    // manager with it.
+    init_boot_filesystem();
 
 
 #if 1
     // Create the root process
     ProcessRef pRootProc;
-    try_bang(RootProcess_Create(pRootDir, &pRootProc));
-    Object_Release(pRootDir);
-
+    try_bang(RootProcess_Create(&pRootProc));
 
     // Create the process manager
     try_bang(ProcessManager_Create(pRootProc, &gProcessManager));

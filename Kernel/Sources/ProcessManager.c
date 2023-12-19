@@ -67,24 +67,6 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
     return pProc;
 }
 
-// Returns true if any process is using the given filesystem.
-Bool ProcessManager_IsAnyProcessUsingFilesystem(ProcessManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys)
-{
-    Bool isUsing = false;
-
-    Lock_Lock(&pManager->lock);
-    for (Int i = 0; i < ObjectArray_GetCount(&pManager->procs); i++) {
-        ProcessRef pCurProc = (ProcessRef) ObjectArray_GetAt(&pManager->procs, i);
-
-        if (Process_IsUsingFilesystem(pCurProc, pFileSys)) {
-            isUsing = true;
-            break;
-        }
-    }
-    Lock_Unlock(&pManager->lock);
-    return isUsing;
-}
-
 // Registers the given process with the process manager. Note that this function
 // does not validate whether the process is already registered or has a PID
 // that's equal to some other registered process.

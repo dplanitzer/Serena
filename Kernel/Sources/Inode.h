@@ -65,30 +65,30 @@ enum {
 // abstract class that must be subclassed and fully implemented by a file system.
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
-OPEN_CLASS_WITH_REF(Inode, Object,
-    Lock            lock;
-    FileType        type;
-    UInt8           flags;
-    FilePermissions permissions;
-    User            user;
-    InodeId         inid;   // Filesystem specific ID of the inode
-    FilesystemId    fsid;   // Globally unique ID of the filesystem that owns this node
-    FileOffset      size;   // File size
-);
-typedef struct _InodeMethodTable {
-    ObjectMethodTable   super;
-} InodeMethodTable;
+typedef struct _Inode {
+    Lock                lock;
+    FilesystemId        fsid;       // Globally unique ID of the filesystem that owns this node
+    InodeId             inid;       // Filesystem specific ID of the inode
+    FileOffset          size;       // File size
+    Int                 useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
+    Int                 linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
+    void*               refcon;     // Filesystem specific information
+    FileType            type;
+    UInt8               flags;
+    FilePermissions     permissions;
+    User                user;
+} Inode;
+typedef struct _Inode* InodeRef;
 
 
 //
-// Only filesystem implementations should call the following functions. They do
-// not have any locking builtin. It is the job of the filesystem implementation
-// to add and use locking.
+// Only filesystem implementations should call the following functions.
 //
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, InodeId id, FilesystemId fsid, FilePermissions permissions, User user, FileOffset size, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode);
+extern void Inode_Destroy(InodeRef _Nonnull self);
 
 #define Inode_Lock(__self) \
     Lock_Lock(&((InodeRef)__self)->lock)
@@ -97,31 +97,43 @@ extern ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, I
     Lock_Unlock(&((InodeRef)__self)->lock)
 
 
-//
-// The following methods may only be called while holding the inode lock.
-//
+// Increment/decrement the link count
+#define Inode_Link(__self) \
+    (__self)->linkCount++
+
+#define Inode_Unlink(__self) \
+    (__self)->linkCount--
+
+// Associate/disassociate filesystem specific information with the node. The
+// inode will not free this pointer.
+#define Inode_GetRefConAs(__self, __type) \
+    (__type)((__self)->refcon)
+
+#define Inode_SetRefCon(__self, __ptr) \
+    (__self)->refcon = (__ptr)
+
 
 // Returns the permissions of the node.
 #define Inode_GetFilePermissions(__self) \
-    ((InodeRef)__self)->permissions
+    (__self)->permissions
 
 #define Inode_SetFilePermissions(__self, __perms) \
-    ((InodeRef)__self)->permissions = __perms
+    (__self)->permissions = __perms
 
 // Returns the user of the node.
 #define Inode_GetUser(__self) \
-    ((InodeRef)__self)->user
+    (__self)->user
 
 #define Inode_SetUser(__self, __user) \
-    ((InodeRef)__self)->user = __user
+    (__self)->user = __user
 
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
-    ((InodeRef)__self)->user.uid
+    (__self)->user.uid
 
 // Returns the group ID of the node.
 #define Inode_GetGroupId(__self) \
-    ((InodeRef)__self)->user.gid
+    (__self)->user.gid
 
 // Returns EOK if the given user has at least the permissions 'permission' to
 // access and/or manipulate the node; a suitable error code otherwise. The
@@ -130,16 +142,16 @@ extern ErrorCode Inode_AbstractCreate(ClassRef _Nonnull pClass, FileType type, I
 extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
 
 #define Inode_GetFileSize(__self) \
-    ((InodeRef)__self)->size
+    (__self)->size
 
 #define Inode_SetFileSize(__self, __size) \
-    ((InodeRef)__self)->size = __size
+    (__self)->size = __size
 
 #define Inode_IncrementFileSize(__self, __delta) \
-    ((InodeRef)__self)->size += (__delta)
+    (__self)->size += (__delta)
 
 #define Inode_DecrementFileSize(__self, __delta) \
-    ((InodeRef)__self)->size -= (__delta)
+    (__self)->size -= (__delta)
 
 // Returns a file info record from the node data.
 extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
@@ -155,20 +167,21 @@ extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFil
 //
 
 #define Inode_IsMountpoint(__self) \
-    (((InodeRef)__self)->flags & kInodeFlag_IsMountpoint) != 0
+    ((__self)->flags & kInodeFlag_IsMountpoint) != 0
 
 #define Inode_SetMountpoint(__self, __flag) \
-    if(__flag) {((InodeRef)__self)->flags |= kInodeFlag_IsMountpoint;} else {((InodeRef)__self)->flags &= ~kInodeFlag_IsMountpoint;}
+    if(__flag) {(__self)->flags |= kInodeFlag_IsMountpoint;} else {(__self)->flags &= ~kInodeFlag_IsMountpoint;}
 
     
 //
-// The following functions may be used by any code and may be called without
-// taking the inode lock first.
+// The following functions may be used by filesystem implementations and code
+// that lives outside of a filesystem. The caller does not have to hold the inode
+// lock to use these functions.
 //
 
 // Returns the type of the node.
 #define Inode_GetType(__self) \
-    ((InodeRef)__self)->type
+    (__self)->type
 
 // Returns true if the node is a directory; false otherwise.
 #define Inode_IsDirectory(__self) \
@@ -176,11 +189,11 @@ extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFil
 
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \
-    ((InodeRef)__self)->inid
+    (__self)->inid
 
 // Returns the ID of the filesystem to which this node belongs.
 #define Inode_GetFilesystemId(__self) \
-    ((InodeRef)__self)->fsid
+    (__self)->fsid
 
 // Returns a strong reference to the filesystem that owns the given note. Returns
 // NULL if the filesystem isn't mounted.
@@ -188,5 +201,16 @@ extern FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self);
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
+
+// Reacquires the given node and returns a new reference to the node. The node
+// is returned in locked state.
+extern InodeRef _Nonnull _Locked Inode_Reacquire(InodeRef _Nonnull self);
+
+// Reacquires the given node and returns a new reference to the node. The node
+// is returned in unlocked state.
+extern InodeRef _Nonnull Inode_ReacquireUnlocked(InodeRef _Nonnull self);
+
+// Relinquishes the node.
+extern void Inode_Relinquish(InodeRef _Nonnull self);
 
 #endif /* Inode_h */

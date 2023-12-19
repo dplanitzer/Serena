@@ -94,6 +94,32 @@ Bool IntArray_Contains(IntArrayRef _Nonnull pArray, Int element)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: Array<Pointer?>
+////////////////////////////////////////////////////////////////////////////////
+
+ErrorCode PointerArray_InsertAt(PointerArrayRef _Nonnull pArray, void* _Nullable element, Int idx)
+{
+    decl_try_err();
+
+    GenericArray_InsertAt(err, pArray, element, void*, idx);
+    return err;
+}
+
+void PointerArray_Remove(PointerArrayRef _Nonnull pArray, void* _Nullable element)
+{
+    Bool dummy;
+    GenericArray_RemoveIdenticalTo(dummy, pArray, element, void*);
+}
+
+void PointerArray_RemoveAt(PointerArrayRef _Nonnull pArray, Int idx)
+{
+    void* dummy;
+    GenericArray_RemoveAt(dummy, pArray, void*, idx);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: Array<Object?>
 ////////////////////////////////////////////////////////////////////////////////
 

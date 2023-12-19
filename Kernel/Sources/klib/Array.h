@@ -133,6 +133,29 @@ static inline Int IntArray_GetFirst(IntArrayRef _Nonnull pArray, Int defaultValu
 }
 
 
+// An array that stores pointers
+typedef struct _GenericArray PointerArray;
+typedef PointerArray* PointerArrayRef;
+
+#define PointerArray_Init(pArray, initialCapacity)  GenericArray_Init((PointerArrayRef)pArray, sizeof(void*), initialCapacity)
+#define PointerArray_Deinit(pArray) GenericArray_Deinit((PointerArrayRef)pArray)
+
+#define PointerArray_GetCount(pArray) ((PointerArrayRef)pArray)->count
+#define PointerArray_IsEmpty(pArray) (((PointerArrayRef)pArray)->count == 0)
+
+#define PointerArray_GetAt(pArray, idx) GenericArray_GetAt((PointerArrayRef)pArray, void*, idx)
+#define PointerArray_GetAtAs(pArray, idx, ty) (ty)(GenericArray_GetAt((PointerArrayRef)pArray, void*, idx))
+
+extern ErrorCode PointerArray_InsertAt(PointerArrayRef _Nonnull pArray, void* _Nullable element, Int idx);
+#define PointerArray_Add(pArray, element) PointerArray_InsertAt((PointerArrayRef)pArray, element, (pArray)->count)
+
+#define PointerArray_ReplaceAt(pArray, element, idx) GenericArray_ReplaceAt((PointerArrayRef)pArray, element, void*, idx)
+
+extern void PointerArray_Remove(PointerArrayRef _Nonnull pArray, void* _Nullable element);
+extern void PointerArray_RemoveAt(PointerArrayRef _Nonnull pArray, Int idx);
+#define PointerArray_RemoveAll(pArray, keepCapacity) GenericArray_RemoveAll((PointerArrayRef)pArray, keepCapacity)
+
+
 // An array that stores nullable ObjectRef values
 typedef struct _GenericArray ObjectArray;
 typedef ObjectArray* ObjectArrayRef;
