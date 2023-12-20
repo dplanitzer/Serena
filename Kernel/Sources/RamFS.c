@@ -242,7 +242,7 @@ catch:
 // create and inode instance and fill it in with the data from the disk and
 // then return it. It should return a suitable error and NULL if the inode
 // data can not be read off the disk.
-ErrorCode RamFS_onReadNodeFromDisk(RamFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode RamFS_onReadNodeFromDisk(RamFSRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
 {
     RamFS_DirectoryRef pDir = NULL;
     decl_try_err();
@@ -368,7 +368,7 @@ catch:
 // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
 ErrorCode RamFS_acquireRootNode(RamFSRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
-    return Filesystem_AcquireNodeWithId((FilesystemRef)self, kRootInodeId, pOutNode);
+    return Filesystem_AcquireNodeWithId((FilesystemRef)self, kRootInodeId, NULL, pOutNode);
 }
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
@@ -385,7 +385,7 @@ ErrorCode RamFS_acquireNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Lo
 
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
     try(RamFS_Directory_GetNodeIdForName(Inode_GetRefConAs(pParentNode, RamFS_DirectoryRef), pComponent, &childId));
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, childId, pOutNode));
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, childId, NULL, pOutNode));
 
 catch:
     return err;

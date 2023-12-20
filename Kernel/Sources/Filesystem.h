@@ -269,7 +269,13 @@ typedef struct _FilesystemMethodTable {
     // create and inode instance and fill it in with the data from the disk and
     // then return it. It should return a suitable error and NULL if the inode
     // data can not be read off the disk.
-    ErrorCode (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
+    // The 'pContext' argument is a filesystem implementation defined argument
+    // which may be used to help in finding an inode on disk. Ie if the on-disk
+    // data layout of a filesystem does not store inodes as independent objects
+    // and instead stores them as directory entries inside a directory file then
+    // this argument could be used as a pointer to the disk block(s) that hold
+    // the directory content.
+    ErrorCode (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Invoked when Filesystem_RelinquishNode() has determined that the inode is
     // no longer being referenced by any directory and that the on-disk
@@ -365,14 +371,18 @@ extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Non
 // This method calls the filesystem method onReadNodeFromDisk() to read the
 // requested inode off the disk if there is no inode instance in memory at the
 // time this method is called.
-extern ErrorCode Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+// \param self the filesystem instance
+// \param id the id of the inode to acquire
+// \param pContext an optional context tp help the acquire method to find the inode
+// \param pOutNode receives the acquired inode
+extern ErrorCode Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
 // Returns true if the filesystem can be safely unmounted which means that no
 // inodes owned by the filesystem is currently in memory.
 extern Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
 
-#define Filesystem_OnReadNodeFromDisk(__self, __id, __pOutNode) \
-Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pOutNode)
+#define Filesystem_OnReadNodeFromDisk(__self, __id, __pContext, __pOutNode) \
+Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pContext, __pOutNode)
 
 #define Filesystem_OnRemoveNodeFromDisk(__self, __id) \
 Object_InvokeN(onRemoveNodeFromDisk, Filesystem, __self, __id)
