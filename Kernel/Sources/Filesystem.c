@@ -287,20 +287,22 @@ catch:
 // Acquires a new reference to the given node. The returned node is locked.
 InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
-    InodeRef pOutNode;
+    Lock_Lock(&self->inodeManagementLock);
+    pNode->useCount++;
+    //XXX Inode_Lock(pNode);
+    Lock_Unlock(&self->inodeManagementLock);
 
-    try_bang(Filesystem_AcquireNodeWithId(self, Inode_GetId(pNode), NULL, &pOutNode));
-    return pOutNode;
+    return pNode;
 }
 
 // Acquires a new reference to the given node. The returned node is NOT locked.
 InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
-    InodeRef pOutNode;
+    Lock_Lock(&self->inodeManagementLock);
+    pNode->useCount++;
+    Lock_Unlock(&self->inodeManagementLock);
 
-    try_bang(Filesystem_AcquireNodeWithId(self, Inode_GetId(pNode), NULL, &pOutNode));
-    //XXX Inode_Unlock(pOutNode);
-    return pOutNode;
+    return pNode;
 }
 
 // Relinquishes the given node back to the filesystem. This method will invoke
