@@ -57,7 +57,8 @@ typedef enum _InodeType {
 
 // Inode flags
 enum {
-    kInodeFlag_IsMountpoint = 1,    // owned and protected by the FilesystemManager
+    kInodeFlag_IsMountpoint = 1,    // owned and protected by the FilesystemManager lock
+    kInodeFlag_IsModified = 2,      // owned and protected by the Inode lock
 };
 
 
@@ -87,8 +88,11 @@ typedef struct _Inode* InodeRef;
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, Int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);
+
+#define Inode_GetLinkCount(__self) \
+    (__self)->linkCount
 
 #define Inode_Lock(__self) \
     Lock_Lock(&((InodeRef)__self)->lock)
@@ -153,13 +157,19 @@ extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermis
 #define Inode_DecrementFileSize(__self, __delta) \
     (__self)->size -= (__delta)
 
+#define Inode_IsModified(__self) \
+    (((__self)->flags & kInodeFlag_IsModified) != 0)
+
+#define Inode_MarkModified(__self) \
+    ((__self)->flags |= kInodeFlag_IsModified)
+
 // Returns a file info record from the node data.
 extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 
 // Modifies the node's file info if the operation is permissible based on the
 // given user and inode permissions status.
 extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
- 
+
 
 //
 // Only the FilesystemManager should call the following functions. The filesystem

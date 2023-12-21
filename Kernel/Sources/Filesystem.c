@@ -14,6 +14,9 @@
 // MARK: Path Component
 ////////////////////////////////////////////////////////////////////////////////
 
+const PathComponent kPathComponent_Self = {".", 1};
+const PathComponent kPathComponent_Parent = {"..", 2};
+
 // Initializes a path component from a NUL-terminated string
 PathComponent PathComponent_MakeFromCString(const Character* _Nonnull pCString)
 {
@@ -311,19 +314,23 @@ InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull self, 
 void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     Lock_Lock(&self->inodeManagementLock);
-    assert(pNode->useCount > 0);
-    pNode->useCount--;
 
     assert(pNode->linkCount >= 0);
     if (pNode->linkCount == 0) {
         Filesystem_OnRemoveNodeFromDisk(self, Inode_GetId(pNode));
     }
-    //XXX Inode_Unlock(pNode);
+    else if (Inode_IsModified(pNode)) {
+        Filesystem_OnWriteNodeToDisk(self, pNode);
+    }
 
+    assert(pNode->useCount > 0);
+    pNode->useCount--;
     if (pNode->useCount == 0) {
         PointerArray_Remove(&self->inodesInUse, pNode);
         Inode_Destroy(pNode);
     }
+    //XXX Inode_Unlock(pNode);
+
 
     Lock_Unlock(&self->inodeManagementLock);
 }
@@ -344,6 +351,14 @@ Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
 // then return it. It should return a suitable error and NULL if the inode
 // data can not be read off the disk.
 ErrorCode Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    return EIO;
+}
+
+// Invoked when the inode is relinquished and it is marked as modified. The
+// filesystem override should write the inode meta-data back to the 
+// corresponding disk node.
+ErrorCode Filesystem_onWriteNodeToDisk(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     return EIO;
 }
@@ -488,6 +503,7 @@ ErrorCode Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _N
 CLASS_METHODS(Filesystem, IOResource,
 OVERRIDE_METHOD_IMPL(deinit, Filesystem, Object)
 METHOD_IMPL(onReadNodeFromDisk, Filesystem)
+METHOD_IMPL(onWriteNodeToDisk, Filesystem)
 METHOD_IMPL(onRemoveNodeFromDisk, Filesystem)
 METHOD_IMPL(onMount, Filesystem)
 METHOD_IMPL(onUnmount, Filesystem)

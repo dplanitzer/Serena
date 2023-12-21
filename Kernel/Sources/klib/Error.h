@@ -48,6 +48,6 @@ typedef __errno_t ErrorCode;
 #define throw_ifnull(p, e)  if ((p) == NULL) { err = e; goto catch; }
 
 // Set 'err' to the given error and go to the 'catch' label.
-#define throw(e)            err = e; goto catch;
+#define throw(e)            {err = e; goto catch;}
 
 #endif /* Error_h */

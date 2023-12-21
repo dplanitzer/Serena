@@ -12,166 +12,42 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Directory Content
+// MARK: Disk Node
 ////////////////////////////////////////////////////////////////////////////////
 
-static ErrorCode RamFS_Directory_Create(InodeId id, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, RamFS_DirectoryRef _Nullable * _Nonnull pOutDir)
+static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, RamDiskNodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    RamFS_DirectoryRef self;
+    RamDiskNodeRef self;
 
-    try(kalloc_cleared(sizeof(RamFS_Directory), (void**)&self));
-    try(GenericArray_Init(&self->header, sizeof(RamFS_DirectoryEntry), 8));
+    try(kalloc_cleared(sizeof(RamDiskNode), (void**)&self));
+    try(kalloc_cleared(sizeof(RamDirectoryContent), (void**)&self->content));
+    try(GenericArray_Init(self->content, sizeof(RamDirectoryEntry), 8));
     self->inid = id;
-    self->linkCount = 0;
+    self->linkCount = 1;
     self->uid = uid;
     self->gid = gid;
     self->permissions = permissions;
+    self->type = type;
     self->size = 0ll;
 
-    try(RamFS_Directory_AddWellKnownEntry(self, ".", id));
-    try(RamFS_Directory_AddWellKnownEntry(self, "..", parentId));
-
-    *pOutDir = self;
+    *pOutNode = self;
     return EOK;
 
 catch:
-    RamFS_Directory_Destroy(self);
-    *pOutDir = NULL;
+    RamDiskNode_Destroy(self);
+    *pOutNode = NULL;
     return err;
 }
 
-static void RamFS_Directory_Destroy(RamFS_DirectoryRef _Nullable self)
+static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self)
 {
     if (self) {
-        GenericArray_Deinit(&self->header);
+        GenericArray_Deinit(self->content);
+        kfree(self->content);
+        self->content = NULL;
         kfree(self);
     }
-}
-
-static FileOffset RamFS_Directory_GetFileSize(RamFS_DirectoryRef _Nonnull self)
-{
-    return GenericArray_GetCount(&self->header) * sizeof(RamFS_DirectoryEntry);
-}
-
-static InodeId RamFS_Directory_GetParentNodeId(RamFS_DirectoryRef _Nonnull self)
-{
-    return GenericArray_GetRefAt(&self->header,RamFS_DirectoryEntry, 1)->id;
-}
-
-static ErrorCode RamFS_Directory_GetNodeIdForName(RamFS_DirectoryRef _Nonnull self, const PathComponent* pComponent, InodeId* _Nonnull pOutId)
-{
-    decl_try_err();
-    const RamFS_DirectoryEntry* pEntry = NULL;
-
-    if (pComponent->count > kMaxFilenameLength) {
-        throw(ENAMETOOLONG);
-    }
-
-    for (Int i = 0; i < GenericArray_GetCount(&self->header); i++) {
-        const RamFS_DirectoryEntry* pCurEntry = GenericArray_GetRefAt(&self->header, RamFS_DirectoryEntry, i);
-
-        if (String_EqualsUpTo(pCurEntry->filename, pComponent->name, __min(pComponent->count, kMaxFilenameLength))) {
-            pEntry = pCurEntry;
-            break;
-        }
-    }
-    if (pEntry == NULL) {
-        throw(ENOENT);
-    }
-
-    *pOutId = pEntry->id;
-    return EOK;
-
-catch:
-    *pOutId = 0;
-    return err;
-}
-
-static ErrorCode RamFS_Directory_GetNameOfNode(RamFS_DirectoryRef _Nonnull self, InodeId id, MutablePathComponent* _Nonnull pComponent)
-{
-    decl_try_err();
-    const RamFS_DirectoryEntry* pEntry = NULL;
-
-    for (Int i = 0; i < GenericArray_GetCount(&self->header); i++) {
-        const RamFS_DirectoryEntry* pCurEntry = GenericArray_GetRefAt(&self->header, RamFS_DirectoryEntry, i);
-
-        if (pCurEntry->id == id) {
-            pEntry = pCurEntry;
-            break;
-        }
-    }
-    if (pEntry == NULL) {
-        throw(ENOENT);
-    }
-
-    const ByteCount len = String_LengthUpTo(pEntry->filename, kMaxFilenameLength);
-    if (len > pComponent->capacity) {
-        throw(ERANGE);
-    }
-
-    String_CopyUpTo(pComponent->name, pEntry->filename, len);
-    pComponent->count = len;
-    return EOK;
-
-catch:
-    pComponent->count = 0;
-    return err;
-}
-
-// Adds a weak reference to the given Inode as a well-known entry (".", "..") to the directory
-static ErrorCode RamFS_Directory_AddWellKnownEntry(RamFS_DirectoryRef _Nonnull self, const Character* _Nonnull pName, InodeId id)
-{
-    RamFS_DirectoryEntry entry;
-    Character* p = String_CopyUpTo(entry.filename, pName, kMaxFilenameLength);
-    while (p < &entry.filename[kMaxFilenameLength]) *p++ = '\0';
-    entry.id = id;
-
-    ErrorCode err = EOK;
-    GenericArray_InsertAt(err, &self->header, entry, RamFS_DirectoryEntry, GenericArray_GetCount(&self->header));
-    if (err == EOK) {
-        self->size += sizeof(entry);
-    }
-
-    return err;
-}
-
-static ErrorCode RamFS_Directory_AddEntry(RamFS_DirectoryRef _Nonnull self, const PathComponent* _Nonnull pName, InodeId id)
-{
-    if (pName->count > kMaxFilenameLength) {
-        return ENAMETOOLONG;
-    }
-
-    RamFS_DirectoryEntry entry;
-    Character* p = String_CopyUpTo(entry.filename, pName->name, pName->count);
-    while (p < &entry.filename[kMaxFilenameLength]) *p++ = '\0';
-    entry.id = id;
-
-    ErrorCode err = EOK;
-    GenericArray_InsertAt(err, &self->header, entry, RamFS_DirectoryEntry, GenericArray_GetCount(&self->header));
-    if (err == EOK) {
-        self->size += sizeof(entry);
-    }
-
-    return err;
-}
-
-static Int RamFS_Directory_ReadEntries(RamFS_DirectoryRef _Nonnull self, DirectoryEntry* pBuffer, Int startIndex, Int nMaxEntriesToRead)
-{
-    const Int readLimit = __min(GenericArray_GetCount(&self->header), startIndex + nMaxEntriesToRead);
-    Int nEntriesRead = 0;
-
-    for (Int i = startIndex; i < readLimit; i++) {
-        const RamFS_DirectoryEntry* pCurEntry = GenericArray_GetRefAt(&self->header, RamFS_DirectoryEntry, i);
-
-        pBuffer->inodeId = pCurEntry->id;
-        String_CopyUpTo(pBuffer->name, pCurEntry->filename, kMaxFilenameLength);
-
-        pBuffer++;
-        nEntriesRead++;
-    }
-
-    return nEntriesRead;
 }
 
 
@@ -210,7 +86,7 @@ catch:
 void RamFS_deinit(RamFSRef _Nonnull self)
 {
     for(Int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
-        RamFS_Directory_Destroy(PointerArray_GetAtAs(&self->dnodes, i, RamFS_DirectoryRef));
+        RamDiskNode_Destroy(PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef));
     }
     PointerArray_Deinit(&self->dnodes);
     ConditionVariable_Deinit(&self->notifier);
@@ -224,17 +100,27 @@ static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self)
 
 static ErrorCode RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self)
 {
+    decl_try_err();
     const FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     const FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
-    RamFS_DirectoryRef pRootDir;
-    decl_try_err();
 
-    try(RamFS_Directory_Create(kRootInodeId, kRootInodeId, self->rootDirUser.uid, self->rootDirUser.gid, dirPerms, &pRootDir));
-    try(PointerArray_Add(&self->dnodes, pRootDir));
+    try(RamFS_CreateDirectoryDiskNode(self, kRootInodeId, kRootInodeId, self->rootDirUser.uid, self->rootDirUser.gid, dirPerms));
     return EOK;
 
 catch:
     return err;
+}
+
+static Int RamFS_GetIndexOfDiskNodeForId(RamFSRef _Nonnull self, InodeId id)
+{
+    for (Int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
+        RamDiskNodeRef pCurDiskNode = PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef);
+
+        if (pCurDiskNode->inid == id) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested inode
@@ -244,31 +130,43 @@ catch:
 // data can not be read off the disk.
 ErrorCode RamFS_onReadNodeFromDisk(RamFSRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    RamFS_DirectoryRef pDir = NULL;
     decl_try_err();
-
-    for (Int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
-        RamFS_DirectoryRef pCurDir = PointerArray_GetAtAs(&self->dnodes, i, RamFS_DirectoryRef);
-
-        if (pCurDir->inid == id) {
-            pDir = pCurDir;
-            break;
-        }
-    }
-    if (pDir == NULL) {
-        throw(ENOENT);
-    }
+    const Int dIdx = RamFS_GetIndexOfDiskNodeForId(self, id);
+    if (dIdx < 0) throw(ENOENT);
+    const RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
 
     return Inode_Create(
         Filesystem_GetId(self),
         id,
-        kInode_Directory,
-        pDir->uid,
-        pDir->gid,
-        pDir->permissions,
-        pDir->size,
-        pDir,
+        pDiskNode->type,
+        pDiskNode->linkCount,
+        pDiskNode->uid,
+        pDiskNode->gid,
+        pDiskNode->permissions,
+        pDiskNode->size,
+        pDiskNode->content,
         pOutNode);
+
+catch:
+    return err;
+}
+
+// Invoked when the inode is relinquished and it is marked as modified. The
+// filesystem override should write the inode meta-data back to the 
+// corresponding disk node.
+ErrorCode RamFS_onWriteNodeToDisk(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
+{
+    decl_try_err();
+    const Int dIdx = RamFS_GetIndexOfDiskNodeForId(self, Inode_GetId(pNode));
+    if (dIdx < 0) throw(ENOENT);
+    RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
+
+    pDiskNode->linkCount = Inode_GetLinkCount(pNode);
+    pDiskNode->uid = Inode_GetUserId(pNode);
+    pDiskNode->gid = Inode_GetGroupId(pNode);
+    pDiskNode->permissions = Inode_GetFilePermissions(pNode);
+    pDiskNode->size = Inode_GetFileSize(pNode);
+    return EOK;
 
 catch:
     return err;
@@ -280,14 +178,13 @@ catch:
 // operation is assumed to never fail.
 void RamFS_onRemoveNodeFromDisk(RamFSRef _Nonnull self, InodeId id)
 {
-    for (Int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
-        RamFS_DirectoryRef pCurDir = PointerArray_GetAtAs(&self->dnodes, i, RamFS_DirectoryRef);
+    const Int dIdx = RamFS_GetIndexOfDiskNodeForId(self, id);
 
-        if (pCurDir->inid == id) {
-            RamFS_Directory_Destroy(pCurDir);
-            PointerArray_RemoveAt(&self->dnodes, i);
-            break;
-        }
+    if (dIdx >= 0) {
+        RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
+
+        RamDiskNode_Destroy(pDiskNode);
+        PointerArray_RemoveAt(&self->dnodes, dIdx);
     }
 }
 
@@ -381,13 +278,33 @@ ErrorCode RamFS_acquireRootNode(RamFSRef _Nonnull self, InodeRef _Nullable _Lock
 ErrorCode RamFS_acquireNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
-    InodeId childId;
 
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
-    try(RamFS_Directory_GetNodeIdForName(Inode_GetRefConAs(pParentNode, RamFS_DirectoryRef), pComponent, &childId));
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, childId, NULL, pOutNode));
+
+    if (pComponent->count > kMaxFilenameLength) {
+        throw(ENAMETOOLONG);
+    }
+
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pParentNode, RamDirectoryContentRef);
+    const RamDirectoryEntry* pEntry = NULL;
+
+    for (Int i = 0; i < GenericArray_GetCount(pDirContent); i++) {
+        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
+
+        if (String_EqualsUpTo(pCurEntry->filename, pComponent->name, __min(pComponent->count, kMaxFilenameLength))) {
+            pEntry = pCurEntry;
+            break;
+        }
+    }
+    if (pEntry == NULL) {
+        throw(ENOENT);
+    }
+
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pEntry->id, NULL, pOutNode));
+    return EOK;
 
 catch:
+    *pOutNode = NULL;
     return err;
 }
 
@@ -404,9 +321,33 @@ ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked 
     decl_try_err();
 
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
-    try(RamFS_Directory_GetNameOfNode(Inode_GetRefConAs(pParentNode, RamFS_DirectoryRef), id, pComponent));
+
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pParentNode, RamDirectoryContentRef);
+    const RamDirectoryEntry* pEntry = NULL;
+
+    for (Int i = 0; i < GenericArray_GetCount(pDirContent); i++) {
+        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
+
+        if (pCurEntry->id == id) {
+            pEntry = pCurEntry;
+            break;
+        }
+    }
+    if (pEntry == NULL) {
+        throw(ENOENT);
+    }
+
+    const ByteCount len = String_LengthUpTo(pEntry->filename, kMaxFilenameLength);
+    if (len > pComponent->capacity) {
+        throw(ERANGE);
+    }
+
+    String_CopyUpTo(pComponent->name, pEntry->filename, len);
+    pComponent->count = len;
+    return EOK;
 
 catch:
+    pComponent->count = 0;
     return err;
 }
 
@@ -433,6 +374,50 @@ catch:
     return err;
 }
 
+static ErrorCode RamFS_AddDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull pDirNode, const PathComponent* _Nonnull pName, InodeId id)
+{
+    if (pName->count > kMaxFilenameLength) {
+        return ENAMETOOLONG;
+    }
+
+    RamDirectoryEntry entry;
+    Character* p = String_CopyUpTo(entry.filename, pName->name, pName->count);
+    while (p < &entry.filename[kMaxFilenameLength]) *p++ = '\0';
+    entry.id = id;
+
+    ErrorCode err = EOK;
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pDirNode, RamDirectoryContentRef);
+    GenericArray_InsertAt(err, pDirContent, entry, RamDirectoryEntry, GenericArray_GetCount(pDirContent));
+    if (err == EOK) {
+        Inode_IncrementFileSize(pDirNode, sizeof(entry));
+        Inode_MarkModified(pDirNode);
+    }
+
+    return err;
+}
+
+static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId id, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions)
+{
+    decl_try_err();
+    RamDiskNodeRef pDiskNode = NULL;
+    InodeRef pDirNode = NULL;
+
+    try(RamDiskNode_Create(id, kInode_Directory, uid, gid, permissions, &pDiskNode));
+    try(PointerArray_Add(&self->dnodes, pDiskNode));
+
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, id, NULL, &pDirNode));
+    try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Self, id));
+    try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Parent, parentId));
+    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
+
+    return EOK;
+
+catch:
+    //RamDiskNode_Destroy(pDiskNode);
+    // XXX fix missing cleanup
+    return err;
+}
+
 // Creates an empty directory as a child of the given directory node and with
 // the given name, user and file permissions. Returns EEXIST if a node with
 // the given name already exists.
@@ -440,27 +425,33 @@ ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _No
 {
     decl_try_err();
 
+    // 'pParentNode' must be a directory
     if (!Inode_IsDirectory(pParentNode)) {
         throw(ENOTDIR);
     }
+
+
+    // We must have write permissions for 'pParentNode'
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
 
-    RamFS_DirectoryRef pParentDir = Inode_GetRefConAs(pParentNode, RamFS_DirectoryRef);
-    InodeId dummyId;
 
-    if (RamFS_Directory_GetNodeIdForName(pParentDir, pName, &dummyId) == EOK) {
-        throw(EEXIST);
+    // Make sure that 'pParentNode' has no entry named 'pName'
+    RamDirectoryContentRef pParentDirContent = Inode_GetRefConAs(pParentNode, RamDirectoryContentRef);
+    for (Int i = 0; i < GenericArray_GetCount(pParentDirContent); i++) {
+        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pParentDirContent, RamDirectoryEntry, i);
+
+        if (String_EqualsUpTo(pCurEntry->filename, pName->name, __min(pName->count, kMaxFilenameLength))) {
+            throw(EEXIST);
+        }
     }
 
-    RamFS_DirectoryRef pNewDir;
     const InodeId newDirId = RamFS_GetNextAvailableInodeId_Locked(self);
-    try(RamFS_Directory_Create(newDirId, Inode_GetId(pParentNode), user.uid, user.gid, permissions, &pNewDir));
-    try(RamFS_Directory_AddEntry(pParentDir, pName, newDirId));
-    try(PointerArray_Add(&self->dnodes, pNewDir));
+    try(RamFS_CreateDirectoryDiskNode(self, newDirId, Inode_GetId(pParentNode), user.uid, user.gid, permissions));
+    try(RamFS_AddDirectoryEntry(self, pParentNode, pName, newDirId));
     return EOK;
 
 catch:
-    RamFS_Directory_Destroy(pNewDir);
+    // XXX Unlink new dir disk node
     return err;
 }
 
@@ -486,12 +477,23 @@ catch:
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
 ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
-    decl_try_err();
-    RamFS_DirectoryRef pDirNode = Inode_GetRefConAs(Directory_GetInode(pDir), RamFS_DirectoryRef);
-
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(Directory_GetInode(pDir), RamDirectoryContentRef);
+    DirectoryEntry* pOut = (DirectoryEntry*)pBuffer;
+    const Int startIndex = (Int) Directory_GetOffset(pDir);
     const Int nMaxEntriesToRead = nBytesToRead / sizeof(DirectoryEntry);
-    const Int nEntriesRead = RamFS_Directory_ReadEntries(pDirNode, (DirectoryEntry*)pBuffer, (Int) Directory_GetOffset(pDir), nMaxEntriesToRead);
-    
+    const Int readLimit = __min(GenericArray_GetCount(pDirContent), startIndex + nMaxEntriesToRead);
+    Int nEntriesRead = 0;
+
+    for (Int i = startIndex; i < readLimit; i++) {
+        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
+
+        pOut->inodeId = pCurEntry->id;
+        String_CopyUpTo(pOut->name, pCurEntry->filename, kMaxFilenameLength);
+
+        pOut++;
+        nEntriesRead++;
+    }
+
     if (nEntriesRead > 0) {
         Directory_IncrementOffset(pDir, nEntriesRead);
     }
@@ -542,6 +544,7 @@ ErrorCode RamFS_rename(RamFSRef _Nonnull self, const PathComponent* _Nonnull pNa
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
 OVERRIDE_METHOD_IMPL(onReadNodeFromDisk, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(onWriteNodeToDisk, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onRemoveNodeFromDisk, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onMount, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onUnmount, RamFS, Filesystem)

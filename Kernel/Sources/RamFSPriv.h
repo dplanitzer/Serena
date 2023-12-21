@@ -21,10 +21,10 @@
 // RamFS Directories
 //
 
-typedef struct _RamFS_DirectoryEntry {
+typedef struct _RamDirectoryEntry {
     InodeId     id;
     Character   filename[kMaxFilenameLength];
-} RamFS_DirectoryEntry;
+} RamDirectoryEntry;
 
 
 // Directory content organisation:
@@ -33,19 +33,24 @@ typedef struct _RamFS_DirectoryEntry {
 // [2] userEntry0
 // .
 // [n] userEntryN-1
-typedef struct _RamFS_Directory {
-    struct _GenericArray    header;
-    InodeId                 inid;
-    Int                     linkCount;
-    UserId                  uid;
-    GroupId                 gid;
-    FilePermissions         permissions;
-    FileOffset              size;
-} RamFS_Directory;
-typedef RamFS_Directory* RamFS_DirectoryRef;
+typedef struct _GenericArray RamDirectoryContent;
+typedef RamDirectoryContent* RamDirectoryContentRef;
 
-static void RamFS_Directory_Destroy(RamFS_DirectoryRef _Nullable self);
-static ErrorCode RamFS_Directory_AddWellKnownEntry(RamFS_DirectoryRef _Nonnull self, const Character* _Nonnull pName, InodeId id);
+
+typedef struct _RamDiskNode {
+    InodeId                             inid;
+    UserId                              uid;
+    GroupId                             gid;
+    FilePermissions                     permissions;
+    Int                                 linkCount;
+    InodeType                           type;
+    FileOffset                          size;
+    RamDirectoryContentRef _Nullable    content;
+} RamDiskNode;
+typedef RamDiskNode* RamDiskNodeRef;
+
+static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, RamDiskNodeRef _Nullable * _Nonnull pOutNode);
+static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self);
 
 
 //
@@ -56,7 +61,7 @@ CLASS_IVARS(RamFS, Filesystem,
     Lock                lock;           // Shared between filesystem proper and inodes
     User                rootDirUser;    // User we should use for the root directory
     ConditionVariable   notifier;
-    PointerArray        dnodes;
+    PointerArray        dnodes;         // Array<RamDiskNodeRef>
     Int                 nextAvailableInodeId;
     Bool                isMounted;
     Bool                isReadOnly;     // true if mounted read-only; false if mounted read-write
@@ -64,5 +69,6 @@ CLASS_IVARS(RamFS, Filesystem,
 
 static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);
 static ErrorCode RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self);
+static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId id, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions);
 
 #endif /* RamFSPriv_h */

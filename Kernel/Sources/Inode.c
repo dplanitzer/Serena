@@ -9,7 +9,7 @@
 #include "Inode.h"
 #include "FilesystemManager.h"
 
-ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, Int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef self;
@@ -19,7 +19,7 @@ ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, UserId uid,
     self->fsid = fsid;
     self->inid = id;
     self->useCount = 0;
-    self->linkCount = 1;
+    self->linkCount = linkCount;
     self->size = size;
     self->type = type;
     self->permissions = permissions;

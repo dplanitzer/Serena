@@ -29,6 +29,13 @@ typedef struct _PathComponent {
     ByteCount                   count;
 } PathComponent;
 
+
+// Path component representing "."
+extern const PathComponent kPathComponent_Self;
+
+// Path component representing ".."
+extern const PathComponent kPathComponent_Parent;
+
 // Initializes a path component from a NUL-terminated string
 extern PathComponent PathComponent_MakeFromCString(const Character* _Nonnull pCString);
 
@@ -277,6 +284,11 @@ typedef struct _FilesystemMethodTable {
     // the directory content.
     ErrorCode (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode);
 
+    // Invoked when the inode is relinquished and it is marked as modified. The
+    // filesystem override should write the inode meta-data back to the 
+    // corresponding disk node.
+    ErrorCode (*onWriteNodeToDisk)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode);
+
     // Invoked when Filesystem_RelinquishNode() has determined that the inode is
     // no longer being referenced by any directory and that the on-disk
     // representation should be deleted from the disk and deallocated. This
@@ -383,6 +395,9 @@ extern Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
 
 #define Filesystem_OnReadNodeFromDisk(__self, __id, __pContext, __pOutNode) \
 Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pContext, __pOutNode)
+
+#define Filesystem_OnWriteNodeToDisk(__self, __pNode) \
+Object_InvokeN(onWriteNodeToDisk, Filesystem, __self, __pNode)
 
 #define Filesystem_OnRemoveNodeFromDisk(__self, __id) \
 Object_InvokeN(onRemoveNodeFromDisk, Filesystem, __self, __id)
