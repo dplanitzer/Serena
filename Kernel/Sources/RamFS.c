@@ -413,18 +413,19 @@ static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId p
     decl_try_err();
     InodeRef pDirNode = NULL;
 
-    try(Filesystem_AllocateDiskNode((FilesystemRef)self, kInode_Directory, NULL, pOutId));
-    const InodeId id = *pOutId;
+    try(Filesystem_AllocateNode((FilesystemRef)self, kInode_Directory, uid, gid, permissions, NULL, &pDirNode));
+    const InodeId id = Inode_GetId(pDirNode);
 
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, id, NULL, &pDirNode));
     try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Self, id));
     try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id));
-    Inode_SetUserId(pDirNode, uid);
-    Inode_SetGroupId(pDirNode, gid);
-    Inode_SetFilePermissions(pDirNode, permissions);
+    
+    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
+    *pOutId = id;
+    return EOK;
 
 catch:
     Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
+    *pOutId = 0;
     return err;
 }
 

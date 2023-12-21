@@ -244,16 +244,43 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     Lock_Deinit(&self->inodeManagementLock);
 }
 
-// Allocates a new inode on disk and returns its id. The allocation is protected
+// Allocates a new inode on disk and in-core. The allocation is protected
 // by the same lock that is used to protect the acquisition, relinquishing,
 // write-back and deletion of inodes. The returned inode id is not visible to
 // any other thread of execution until it is explicitly shared with other code.
-ErrorCode Filesystem_AllocateDiskNode(FilesystemRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId * _Nonnull pOutId)
+ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
-    Lock_Lock(&self->inodeManagementLock);
-    const ErrorCode err = Filesystem_OnAllocateNodeOnDisk(self, type, pContext, pOutId);
-    Lock_Unlock(&self->inodeManagementLock);
+    decl_try_err();
+    InodeId id = 0;
+    InodeRef pNode = NULL;
 
+    Lock_Lock(&self->inodeManagementLock);
+
+    try(Filesystem_OnAllocateNodeOnDisk(self, type, pContext, &id));
+    try(Filesystem_OnReadNodeFromDisk(self, id, pContext, &pNode));
+    try(PointerArray_Add(&self->inodesInUse, pNode));
+    pNode->useCount++;
+    
+    Inode_SetUserId(pNode, uid);
+    Inode_SetGroupId(pNode, gid);
+    Inode_SetFilePermissions(pNode, permissions);
+    Inode_MarkModified(pNode);
+
+    Lock_Unlock(&self->inodeManagementLock);
+    *pOutNode = pNode;
+    return EOK;
+
+catch:
+    if (pNode == NULL && id > 0) {
+        Filesystem_OnRemoveNodeFromDisk(self, id);
+    }
+    Lock_Unlock(&self->inodeManagementLock);
+    
+    if (pNode) {
+        Inode_Unlink(pNode);
+        Filesystem_RelinquishNode(self, pNode);
+    }
+    *pOutNode = NULL;
     return err;
 }
 

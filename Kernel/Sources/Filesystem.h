@@ -379,11 +379,11 @@ extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nul
 // Methods for use by filesystem subclassers.
 //
 
-// Allocates a new inode on disk and returns its id. The allocation is protected
+// Allocates a new inode on disk and in-core. The allocation is protected
 // by the same lock that is used to protect the acquisition, relinquishing,
 // write-back and deletion of inodes. The returned inode id is not visible to
 // any other thread of execution until it is explicitly shared with other code.
-extern ErrorCode Filesystem_AllocateDiskNode(FilesystemRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId * _Nonnull pOutId);
+extern ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
 // Acquires the inode with the ID 'id'. The node is returned in a locked state.
 // This methods guarantees that there will always only be at most one inode instance
