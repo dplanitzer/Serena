@@ -15,7 +15,7 @@
 // MARK: Disk Node
 ////////////////////////////////////////////////////////////////////////////////
 
-static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, RamDiskNodeRef _Nullable * _Nonnull pOutNode)
+static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, RamDiskNodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     RamDiskNodeRef self;
@@ -25,11 +25,7 @@ static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, UserId uid, Grou
     try(GenericArray_Init(self->content, sizeof(RamDirectoryEntry), 8));
     self->inid = id;
     self->linkCount = 1;
-    self->uid = uid;
-    self->gid = gid;
-    self->permissions = permissions;
     self->type = type;
-    self->size = 0ll;
 
     *pOutNode = self;
     return EOK;
@@ -69,7 +65,7 @@ ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileS
     ConditionVariable_Init(&self->notifier);
     PointerArray_Init(&self->dnodes, 16);
     self->rootDirUser = rootDirUser;
-    self->nextAvailableInodeId = kRootInodeId + 1;
+    self->nextAvailableInodeId = 1;
     self->isMounted = false;
     self->isReadOnly = false;
 
@@ -93,18 +89,13 @@ void RamFS_deinit(RamFSRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self)
-{
-    return (InodeId) self->nextAvailableInodeId++;
-}
-
 static ErrorCode RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self)
 {
     decl_try_err();
     const FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     const FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
 
-    try(RamFS_CreateDirectoryDiskNode(self, kRootInodeId, kRootInodeId, self->rootDirUser.uid, self->rootDirUser.gid, dirPerms));
+    try(RamFS_CreateDirectoryDiskNode(self, 0, self->rootDirUser.uid, self->rootDirUser.gid, dirPerms, &self->rootDirId));
     return EOK;
 
 catch:
@@ -121,6 +112,27 @@ static Int RamFS_GetIndexOfDiskNodeForId(RamFSRef _Nonnull self, InodeId id)
         }
     }
     return -1;
+}
+
+// Invoked when Filesystem_AllocateNode() is called. Subclassers should
+// override this method to allocate the on-disk representation of an inode
+// of the given type.
+ErrorCode RamFS_onAllocateNodeOnDisk(RamFSRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
+{
+    decl_try_err();
+    const InodeId id = (InodeId) self->nextAvailableInodeId++;
+    RamDiskNodeRef pDiskNode = NULL;
+
+    try(RamDiskNode_Create(id, type, &pDiskNode));
+    try(PointerArray_Add(&self->dnodes, pDiskNode));
+    *pOutId = id;
+
+    return EOK;
+
+catch:
+    RamDiskNode_Destroy(pDiskNode);
+    *pOutId = 0;
+    return err;
 }
 
 // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested inode
@@ -265,7 +277,7 @@ catch:
 // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
 ErrorCode RamFS_acquireRootNode(RamFSRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
-    return Filesystem_AcquireNodeWithId((FilesystemRef)self, kRootInodeId, NULL, pOutNode);
+    return Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirId, NULL, pOutNode);
 }
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
@@ -396,25 +408,23 @@ static ErrorCode RamFS_AddDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnu
     return err;
 }
 
-static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId id, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions)
+static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId)
 {
     decl_try_err();
-    RamDiskNodeRef pDiskNode = NULL;
     InodeRef pDirNode = NULL;
 
-    try(RamDiskNode_Create(id, kInode_Directory, uid, gid, permissions, &pDiskNode));
-    try(PointerArray_Add(&self->dnodes, pDiskNode));
+    try(Filesystem_AllocateDiskNode((FilesystemRef)self, kInode_Directory, NULL, pOutId));
+    const InodeId id = *pOutId;
 
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, id, NULL, &pDirNode));
     try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Self, id));
-    try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Parent, parentId));
-    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
-
-    return EOK;
+    try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id));
+    Inode_SetUserId(pDirNode, uid);
+    Inode_SetGroupId(pDirNode, gid);
+    Inode_SetFilePermissions(pDirNode, permissions);
 
 catch:
-    //RamDiskNode_Destroy(pDiskNode);
-    // XXX fix missing cleanup
+    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
     return err;
 }
 
@@ -445,8 +455,8 @@ ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _No
         }
     }
 
-    const InodeId newDirId = RamFS_GetNextAvailableInodeId_Locked(self);
-    try(RamFS_CreateDirectoryDiskNode(self, newDirId, Inode_GetId(pParentNode), user.uid, user.gid, permissions));
+    InodeId newDirId = 0;
+    try(RamFS_CreateDirectoryDiskNode(self, Inode_GetId(pParentNode), user.uid, user.gid, permissions, &newDirId));
     try(RamFS_AddDirectoryEntry(self, pParentNode, pName, newDirId));
     return EOK;
 
@@ -543,6 +553,7 @@ ErrorCode RamFS_rename(RamFSRef _Nonnull self, const PathComponent* _Nonnull pNa
 
 CLASS_METHODS(RamFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
+OVERRIDE_METHOD_IMPL(onAllocateNodeOnDisk, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onReadNodeFromDisk, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onWriteNodeToDisk, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onRemoveNodeFromDisk, RamFS, Filesystem)

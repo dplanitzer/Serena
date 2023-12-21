@@ -14,7 +14,6 @@
 #include "Lock.h"
 
 #define kMaxFilenameLength  32
-#define kRootInodeId 1
 
 
 //
@@ -49,7 +48,7 @@ typedef struct _RamDiskNode {
 } RamDiskNode;
 typedef RamDiskNode* RamDiskNodeRef;
 
-static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, RamDiskNodeRef _Nullable * _Nonnull pOutNode);
+static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, RamDiskNodeRef _Nullable * _Nonnull pOutNode);
 static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self);
 
 
@@ -61,6 +60,7 @@ CLASS_IVARS(RamFS, Filesystem,
     Lock                lock;           // Shared between filesystem proper and inodes
     User                rootDirUser;    // User we should use for the root directory
     ConditionVariable   notifier;
+    InodeId             rootDirId;
     PointerArray        dnodes;         // Array<RamDiskNodeRef>
     Int                 nextAvailableInodeId;
     Bool                isMounted;
@@ -69,6 +69,6 @@ CLASS_IVARS(RamFS, Filesystem,
 
 static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);
 static ErrorCode RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self);
-static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId id, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions);
+static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);
 
 #endif /* RamFSPriv_h */

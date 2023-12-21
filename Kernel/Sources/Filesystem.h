@@ -271,6 +271,11 @@ typedef struct _FilesystemMethodTable {
     // Required override points for subclassers
     //
 
+    // Invoked when Filesystem_AllocateNode() is called. Subclassers should
+    // override this method to allocate the on-disk representation of an inode
+    // of the given type.
+    ErrorCode (*onAllocateNodeOnDisk)(void* _Nonnull, InodeType type, void* _Nullable pContext, InodeId* _Nonnull pOutId);
+
     // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested
     // inode off the disk. The override should read the inode data from the disk,
     // create and inode instance and fill it in with the data from the disk and
@@ -367,12 +372,18 @@ extern InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull
 // Relinquishes the given node back to the filesystem. This method will invoke
 // the filesystem onRemoveNodeFromDisk() if no directory is referencing the inode
 // anymore. This will remove the inode from disk.
-extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
+extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked pNode);
 
 
 //
 // Methods for use by filesystem subclassers.
 //
+
+// Allocates a new inode on disk and returns its id. The allocation is protected
+// by the same lock that is used to protect the acquisition, relinquishing,
+// write-back and deletion of inodes. The returned inode id is not visible to
+// any other thread of execution until it is explicitly shared with other code.
+extern ErrorCode Filesystem_AllocateDiskNode(FilesystemRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId * _Nonnull pOutId);
 
 // Acquires the inode with the ID 'id'. The node is returned in a locked state.
 // This methods guarantees that there will always only be at most one inode instance
@@ -392,6 +403,9 @@ extern ErrorCode Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, Inode
 // Returns true if the filesystem can be safely unmounted which means that no
 // inodes owned by the filesystem is currently in memory.
 extern Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
+
+#define Filesystem_OnAllocateNodeOnDisk(__self, __type, __pContext, __pOutId) \
+Object_InvokeN(onAllocateNodeOnDisk, Filesystem, __self, __type, __pContext, __pOutId)
 
 #define Filesystem_OnReadNodeFromDisk(__self, __id, __pContext, __pOutNode) \
 Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pContext, __pOutNode)

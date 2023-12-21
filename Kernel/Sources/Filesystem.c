@@ -244,6 +244,19 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     Lock_Deinit(&self->inodeManagementLock);
 }
 
+// Allocates a new inode on disk and returns its id. The allocation is protected
+// by the same lock that is used to protect the acquisition, relinquishing,
+// write-back and deletion of inodes. The returned inode id is not visible to
+// any other thread of execution until it is explicitly shared with other code.
+ErrorCode Filesystem_AllocateDiskNode(FilesystemRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId * _Nonnull pOutId)
+{
+    Lock_Lock(&self->inodeManagementLock);
+    const ErrorCode err = Filesystem_OnAllocateNodeOnDisk(self, type, pContext, pOutId);
+    Lock_Unlock(&self->inodeManagementLock);
+
+    return err;
+}
+
 // Acquires the inode with the ID 'id'. The node is returned in a locked state.
 // This methods guarantees that there will always only be at most one inode instance
 // in memory at any given time and that only one VP can access/modify the inode.
@@ -311,8 +324,12 @@ InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull self, 
 // Relinquishes the given node back to the filesystem. This method will invoke
 // the filesystem onRemoveNodeFromDisk() if no directory is referencing the inode
 // anymore. This will remove the inode from disk.
-void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
+void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked pNode)
 {
+    if (pNode == NULL) {
+        return;
+    }
+    
     Lock_Lock(&self->inodeManagementLock);
 
     assert(pNode->linkCount >= 0);
@@ -343,6 +360,14 @@ Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
     const Bool ok = PointerArray_IsEmpty(&self->inodesInUse);
     Lock_Unlock(&self->inodeManagementLock);
     return ok;
+}
+
+// Invoked when Filesystem_AllocateNode() is called. Subclassers should
+// override this method to allocate the on-disk representation of an inode
+// of the given type.
+ErrorCode Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
+{
+    return EIO;
 }
 
 // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested inode
@@ -502,6 +527,7 @@ ErrorCode Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _N
 
 CLASS_METHODS(Filesystem, IOResource,
 OVERRIDE_METHOD_IMPL(deinit, Filesystem, Object)
+METHOD_IMPL(onAllocateNodeOnDisk, Filesystem)
 METHOD_IMPL(onReadNodeFromDisk, Filesystem)
 METHOD_IMPL(onWriteNodeToDisk, Filesystem)
 METHOD_IMPL(onRemoveNodeFromDisk, Filesystem)

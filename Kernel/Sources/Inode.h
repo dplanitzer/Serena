@@ -135,9 +135,15 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
 #define Inode_GetUserId(__self) \
     (__self)->user.uid
 
+#define Inode_SetUserId(__self, __uid) \
+    (__self)->user.uid = __uid
+
 // Returns the group ID of the node.
 #define Inode_GetGroupId(__self) \
     (__self)->user.gid
+
+#define Inode_SetGroupId(__self, __gid) \
+    (__self)->user.gid = __gid
 
 // Returns EOK if the given user has at least the permissions 'permission' to
 // access and/or manipulate the node; a suitable error code otherwise. The
