@@ -92,6 +92,7 @@ struct _file_info_t {
     _file_permissions_t     permissions;
     _file_type_t            type;
     char                    reserved;
+    long                    linkCount;
     _filesystem_id          filesystemId;
     _inode_id               inodeId;
 };

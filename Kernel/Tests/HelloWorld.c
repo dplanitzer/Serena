@@ -187,13 +187,14 @@ static void print_fileinfo(const char* path)
     }
 
     printf("Info for \"%s\":\n", path);
-    printf("size: %lld\n", info.size);
-    printf("uid:  %lu\n", info.uid);
-    printf("gid:  %lu\n", info.gid);
-    printf("permissions: 0%ho\n", info.permissions);
-    printf("type: %hhd\n", info.type);
-    printf("fsid: %ld\n", info.filesystemId);
-    printf("inid: %ld\n", info.inodeId);
+    printf("  size:   %lld\n", info.size);
+    printf("  uid:    %lu\n", info.uid);
+    printf("  gid:    %lu\n", info.gid);
+    printf("  permissions: 0%ho\n", info.permissions);
+    printf("  type:   %hhd\n", info.type);
+    printf("  nlinks: %ld\n", info.linkCount);
+    printf("  fsid:   %ld\n", info.filesystemId);
+    printf("  inid:   %ld\n", info.inodeId);
 }
 
 void app_main(int argc, char *argv[])
@@ -206,7 +207,7 @@ void app_main(int argc, char *argv[])
     _mkdir("/Users/Admin");
     _mkdir("/Users/Tester");
 
-#if 0
+#if 1
 //while(true) {
     pwd();
     chdir("/Users");

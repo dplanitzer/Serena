@@ -98,6 +98,7 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
     pOutInfo->permissions = self->permissions;
     pOutInfo->type = self->type;
     pOutInfo->reserved = 0;
+    pOutInfo->linkCount = self->linkCount;
     pOutInfo->filesystemId = self->fsid;
     pOutInfo->inodeId = self->inid;
 }

@@ -227,7 +227,6 @@ ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
 // unchanged if an error (eg access denied) occurs.
 static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
 {
-    static const PathComponent gParentPathComponent = { "..", 2 };
     InodeRef _Locked pParentNode = NULL;
     InodeRef _Locked pMountingDir = NULL;
     InodeRef _Locked pParentOfMountingDir = NULL;
@@ -240,7 +239,7 @@ static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull p
     }
 
 
-    try(Filesystem_AcquireNodeForName(pIter->filesystem, pIter->inode, &gParentPathComponent, user, &pParentNode));
+    try(Filesystem_AcquireNodeForName(pIter->filesystem, pIter->inode, &kPathComponent_Parent, user, &pParentNode));
 
     if (!Inode_Equals(pIter->inode, pParentNode)) {
         // We're moving to a parent node in the same file system
@@ -256,7 +255,7 @@ static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull p
     // is (because you can not mount a file system on the root node of another
     // file system).
     try(FilesystemManager_CopyMountpointOfFilesystem(gFilesystemManager, pIter->filesystem, &pMountingDir, &pMountingFilesystem));
-    try(Filesystem_AcquireNodeForName(pMountingFilesystem, pMountingDir, &gParentPathComponent, user, &pParentOfMountingDir));
+    try(Filesystem_AcquireNodeForName(pMountingFilesystem, pMountingDir, &kPathComponent_Parent, user, &pParentOfMountingDir));
 
     InodeIterator_Update(pIter, pParentOfMountingDir);
     Filesystem_RelinquishNode(pMountingFilesystem, pMountingDir);
