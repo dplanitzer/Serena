@@ -386,7 +386,44 @@ catch:
     return err;
 }
 
-static ErrorCode RamFS_AddDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull pDirNode, const PathComponent* _Nonnull pName, InodeId id)
+static Bool RamFS_IsDirectoryEmpty(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode)
+{
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pDirNode, RamDirectoryContentRef);
+
+    return pDirContent->count > 2;
+}
+
+static ErrorCode RamFS_RemoveDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName)
+{
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pDirNode, RamDirectoryContentRef);
+    RamDirectoryEntry* pEntry = NULL;
+
+    if (pName->count > kMaxFilenameLength) {
+        return ENAMETOOLONG;
+    }
+    if (pName->count == 0) {
+        return ENOENT;
+    }
+
+    for (Int i = 0; i < GenericArray_GetCount(pDirContent); i++) {
+        RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
+
+        if (String_EqualsUpTo(pCurEntry->filename, pName->name, __min(pName->count, kMaxFilenameLength))) {
+            pEntry = pCurEntry;
+            break;
+        }
+    }
+    if (pEntry == NULL) {
+        return ENOENT;
+    }
+
+    pEntry->id = 0;
+    pEntry->filename[0] = '\0';
+
+    return EOK;
+}
+
+static ErrorCode RamFS_AddDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id)
 {
     if (pName->count > kMaxFilenameLength) {
         return ENAMETOOLONG;
@@ -411,14 +448,14 @@ static ErrorCode RamFS_AddDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnu
 static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId)
 {
     decl_try_err();
-    InodeRef pDirNode = NULL;
+    InodeRef _Locked pDirNode = NULL;
 
     try(Filesystem_AllocateNode((FilesystemRef)self, kInode_Directory, uid, gid, permissions, NULL, &pDirNode));
     const InodeId id = Inode_GetId(pDirNode);
 
     try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Self, id));
     try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id));
-    
+
     Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
     *pOutId = id;
     return EOK;
@@ -538,8 +575,41 @@ ErrorCode RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pN
 // remove the entry from the parent node.
 ErrorCode RamFS_unlink(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user)
 {
-    // XXX implement me
-    return EACCESS;
+    decl_try_err();
+    InodeRef _Locked pNodeToUnlink = NULL;
+
+    //XXX we don't handle unlink(".") correctly
+
+    // We must have write permissions for 'pParentNode'
+    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+
+
+    // Acquire the node to unlink
+    try(Filesystem_AcquireNodeForName((FilesystemRef)self, pParentNode, pName, user, &pNodeToUnlink));
+
+
+    // A directory must be empty in order to be allowed to unlink it
+    if (Inode_IsDirectory(pNodeToUnlink) && RamFS_IsDirectoryEmpty(self, pNodeToUnlink)) {
+        throw(EBUSY);
+    }
+
+
+    // The node may not be a mountpoint
+    if (FilesystemManager_IsNodeMountpoint(gFilesystemManager, pNodeToUnlink)) {
+        throw(EBUSY);
+    }
+
+
+    // Remove the directory entry in the parent directory
+    try(RamFS_RemoveDirectoryEntry(self, pParentNode, pName));
+
+
+    // Unlink the node itself
+    Inode_Unlink(pNodeToUnlink);
+
+catch:
+    Filesystem_RelinquishNode((FilesystemRef)self, pNodeToUnlink);
+    return err;
 }
 
 // Renames the node with name 'pName' and which is an immediate child of the

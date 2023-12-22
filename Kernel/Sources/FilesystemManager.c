@@ -266,6 +266,16 @@ ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Non
     return err;
 }
 
+// Returns true if the given node is a mountpoint and false otherwise.
+Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode)
+{
+    Lock_Lock(&pManager->lock);
+    const Bool r = Inode_IsMountpoint(pNode);
+    Lock_Unlock(&pManager->lock);
+    
+    return r;
+}
+
 // Checks whether the given node is a mount point and returns the filesystem
 // mounted at that node, if it is. Otherwise returns NULL.
 FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode)

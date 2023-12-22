@@ -37,6 +37,9 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemM
 // the root filesystem (it has no parent file system).
 extern ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem);
 
+// Returns true if the given node is a mountpoint and false otherwise.
+extern Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode);
+
 // Checks whether the given node is a mount point and returns the filesystem
 // mounted at that node, if it is. Otherwise returns NULL.
 extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode);
