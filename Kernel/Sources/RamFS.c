@@ -460,31 +460,19 @@ catch:
     return err;
 }
 
-static ErrorCode RamFS_InsertDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id)
+// Inserts a new directory entry of the form (pName, id) into the directory node
+// 'pDirNode'. 'pEmptyEntry' is an optional insertion hint. If this pointer exists
+// then the directory entry that it points to will be reused for the new directory
+// entry; otherwise a completely new entry will be added to the directory.
+// NOTE: this function does not verify that the new entry is unique. The caller
+// has to ensure that it doesn't try to add a duplicate entry to the directory.
+static ErrorCode RamFS_InsertDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, RamDirectoryEntry* _Nullable pEmptyEntry)
 {
+    decl_try_err();
+
     if (pName->count > kMaxFilenameLength) {
         return ENAMETOOLONG;
     }
-
-
-    // Make sure that 'pDirNode' doesn't already have an entry with name 'pName'.
-    // Also figure out whether there's an empty entry that we can reuse.
-    decl_try_err();
-    RamDirectoryEntry* pEmptyEntry;
-    RamDirectoryEntry* pExistingEntry;
-    RamDirectoryQuery q;
-
-    q.kind = kDirectoryQuery_PathComponent;
-    q.u.pc = pName;
-    err = DirectoryNode_GetEntry(pDirNode, &q, &pEmptyEntry, &pExistingEntry);
-    if (err == EOK) {
-        return EEXIST;
-    }
-    if (err != ENOENT) {
-        return err;
-    }
-    err = EOK;
-
 
     if (pEmptyEntry) {
         // Reuse an empty entry if it exists
@@ -523,8 +511,8 @@ static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId p
     try(Filesystem_AllocateNode((FilesystemRef)self, kInode_Directory, uid, gid, permissions, NULL, &pDirNode));
     const InodeId id = Inode_GetId(pDirNode);
 
-    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Self, id));
-    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id));
+    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Self, id, NULL));
+    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id, NULL));
 
     Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
     *pOutId = id;
@@ -553,9 +541,29 @@ ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _No
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
 
 
+    // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
+    // Also figure out whether there's an empty entry that we can reuse.
+    RamDirectoryEntry* pEmptyEntry;
+    RamDirectoryEntry* pExistingEntry;
+    RamDirectoryQuery q;
+
+    q.kind = kDirectoryQuery_PathComponent;
+    q.u.pc = pName;
+    err = DirectoryNode_GetEntry(pParentNode, &q, &pEmptyEntry, &pExistingEntry);
+    if (err != ENOENT) {
+        if (err == EOK) {
+            throw(EEXIST);
+        } else {
+            throw(err);
+        }
+    }
+    err = EOK;
+
+
+    // Create the new directory and add it to its parent directory
     InodeId newDirId = 0;
     try(RamFS_CreateDirectoryDiskNode(self, Inode_GetId(pParentNode), user.uid, user.gid, permissions, &newDirId));
-    try(RamFS_InsertDirectoryEntry(self, pParentNode, pName, newDirId));
+    try(RamFS_InsertDirectoryEntry(self, pParentNode, pName, newDirId, pEmptyEntry));
     return EOK;
 
 catch:
