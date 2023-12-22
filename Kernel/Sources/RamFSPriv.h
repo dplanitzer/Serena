@@ -48,6 +48,20 @@ typedef struct _RamDiskNode {
 } RamDiskNode;
 typedef RamDiskNode* RamDiskNodeRef;
 
+
+enum RamDirectoryQueryKind {
+    kDirectoryQuery_PathComponent,
+    kDirectoryQuery_InodeId
+};
+
+typedef struct RamDirectoryQuery {
+    Int     kind;
+    union _u {
+        const PathComponent* _Nonnull   pc;
+        InodeId                         id;
+    }       u;
+} RamDirectoryQuery;
+
 static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, RamDiskNodeRef _Nullable * _Nonnull pOutNode);
 static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self);
 

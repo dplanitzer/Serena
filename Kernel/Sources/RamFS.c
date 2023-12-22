@@ -49,6 +49,96 @@ static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: Inode extensions
+////////////////////////////////////////////////////////////////////////////////
+
+// Returns true if the given directory node is empty (contains just "." and "..").
+static Bool DirectoryNode_IsEmpty(InodeRef _Nonnull _Locked self)
+{
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(self, RamDirectoryContentRef);
+
+    return pDirContent->count <= 2;
+}
+
+// Returns a reference to the directory entry that holds 'pName'. NULL and a
+// suitable error is returned if no such entry exists or 'pName' is empty or
+// too long.
+static ErrorCode DirectoryNode_GetEntry(InodeRef _Nonnull _Locked self, const RamDirectoryQuery* _Nonnull pQuery, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+{
+    if (pOutEmptyPtr) {
+        *pOutEmptyPtr = NULL;
+    }
+    *pOutEntryPtr = NULL;
+
+    if (pQuery->kind == kDirectoryQuery_PathComponent) {
+        if (pQuery->u.pc->count == 0) {
+            return ENOENT;
+        }
+        if (pQuery->u.pc->count > kMaxFilenameLength) {
+            return ENAMETOOLONG;
+        }
+    }
+
+    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(self, RamDirectoryContentRef);
+
+    for (Int i = 0; i < GenericArray_GetCount(pDirContent); i++) {
+        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
+
+        if (pCurEntry->id == 0) {
+            if (pOutEmptyPtr) {
+                *pOutEmptyPtr = (RamDirectoryEntry*)pCurEntry;
+            }
+            continue;
+        }
+
+        switch (pQuery->kind) {
+            case kDirectoryQuery_PathComponent:
+                if (String_EqualsUpTo(pCurEntry->filename, pQuery->u.pc->name, __min(pQuery->u.pc->count, kMaxFilenameLength))) {
+                    *pOutEntryPtr = (RamDirectoryEntry*)pCurEntry;
+                    return EOK;
+                }
+                break;
+
+            case kDirectoryQuery_InodeId:
+                if (pCurEntry->id == pQuery->u.id) {
+                   *pOutEntryPtr = (RamDirectoryEntry*)pCurEntry;
+                    return EOK;
+                }
+                break;
+
+            default:
+                abort();
+        }
+    }
+    return ENOENT;
+}
+
+// Returns a reference to the directory entry that holds 'pName'. NULL and a
+// suitable error is returned if no such entry exists or 'pName' is empty or
+// too long.
+static inline ErrorCode DirectoryNode_GetEntryForName(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+{
+    RamDirectoryQuery q;
+
+    q.kind = kDirectoryQuery_PathComponent;
+    q.u.pc = pName;
+    return DirectoryNode_GetEntry(self, &q, NULL, pOutEntryPtr);
+}
+
+// Returns a reference to the directory entry that holds 'id'. NULL and a
+// suitable error is returned if no such entry exists.
+static ErrorCode DirectoryNode_GetEntryForId(InodeRef _Nonnull _Locked self, InodeId id, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+{
+    RamDirectoryQuery q;
+
+    q.kind = kDirectoryQuery_InodeId;
+    q.u.id = id;
+    return DirectoryNode_GetEntry(self, &q, NULL, pOutEntryPtr);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: Filesystem
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -287,31 +377,13 @@ ErrorCode RamFS_acquireRootNode(RamFSRef _Nonnull self, InodeRef _Nullable _Lock
 // the root node of the filesystem and 'pComponent' is ".." then 'pParentNode'
 // should be returned. If the path component name is longer than what is
 // supported by the file system, ENAMETOOLONG should be returned.
-ErrorCode RamFS_acquireNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+ErrorCode RamFS_acquireNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pName, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
+    RamDirectoryEntry* pEntry;
 
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
-
-    if (pComponent->count > kMaxFilenameLength) {
-        throw(ENAMETOOLONG);
-    }
-
-    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pParentNode, RamDirectoryContentRef);
-    const RamDirectoryEntry* pEntry = NULL;
-
-    for (Int i = 0; i < GenericArray_GetCount(pDirContent); i++) {
-        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
-
-        if (String_EqualsUpTo(pCurEntry->filename, pComponent->name, __min(pComponent->count, kMaxFilenameLength))) {
-            pEntry = pCurEntry;
-            break;
-        }
-    }
-    if (pEntry == NULL) {
-        throw(ENOENT);
-    }
-
+    try(DirectoryNode_GetEntryForName(pParentNode, pName, &pEntry));
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pEntry->id, NULL, pOutNode));
     return EOK;
 
@@ -331,23 +403,10 @@ catch:
 ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
 {
     decl_try_err();
+    RamDirectoryEntry* pEntry;
 
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
-
-    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pParentNode, RamDirectoryContentRef);
-    const RamDirectoryEntry* pEntry = NULL;
-
-    for (Int i = 0; i < GenericArray_GetCount(pDirContent); i++) {
-        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
-
-        if (pCurEntry->id == id) {
-            pEntry = pCurEntry;
-            break;
-        }
-    }
-    if (pEntry == NULL) {
-        throw(ENOENT);
-    }
+    try(DirectoryNode_GetEntryForId(pParentNode, id, &pEntry));
 
     const ByteCount len = String_LengthUpTo(pEntry->filename, kMaxFilenameLength);
     if (len > pComponent->capacity) {
@@ -386,59 +445,70 @@ catch:
     return err;
 }
 
-static Bool RamFS_IsDirectoryEmpty(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode)
-{
-    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pDirNode, RamDirectoryContentRef);
-
-    return pDirContent->count > 2;
-}
-
 static ErrorCode RamFS_RemoveDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName)
 {
-    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pDirNode, RamDirectoryContentRef);
-    RamDirectoryEntry* pEntry = NULL;
+    decl_try_err();
+    RamDirectoryEntry* pEntry;
 
-    if (pName->count > kMaxFilenameLength) {
-        return ENAMETOOLONG;
-    }
-    if (pName->count == 0) {
-        return ENOENT;
-    }
-
-    for (Int i = 0; i < GenericArray_GetCount(pDirContent); i++) {
-        RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pDirContent, RamDirectoryEntry, i);
-
-        if (String_EqualsUpTo(pCurEntry->filename, pName->name, __min(pName->count, kMaxFilenameLength))) {
-            pEntry = pCurEntry;
-            break;
-        }
-    }
-    if (pEntry == NULL) {
-        return ENOENT;
-    }
-
+    try(DirectoryNode_GetEntryForName(pDirNode, pName, &pEntry));
     pEntry->id = 0;
     pEntry->filename[0] = '\0';
 
     return EOK;
+
+catch:
+    return err;
 }
 
-static ErrorCode RamFS_AddDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id)
+static ErrorCode RamFS_InsertDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id)
 {
     if (pName->count > kMaxFilenameLength) {
         return ENAMETOOLONG;
     }
 
-    RamDirectoryEntry entry;
-    Character* p = String_CopyUpTo(entry.filename, pName->name, pName->count);
-    while (p < &entry.filename[kMaxFilenameLength]) *p++ = '\0';
-    entry.id = id;
 
-    ErrorCode err = EOK;
-    RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pDirNode, RamDirectoryContentRef);
-    GenericArray_InsertAt(err, pDirContent, entry, RamDirectoryEntry, GenericArray_GetCount(pDirContent));
+    // Make sure that 'pDirNode' doesn't already have an entry with name 'pName'.
+    // Also figure out whether there's an empty entry that we can reuse.
+    decl_try_err();
+    RamDirectoryEntry* pEmptyEntry;
+    RamDirectoryEntry* pExistingEntry;
+    RamDirectoryQuery q;
+
+    q.kind = kDirectoryQuery_PathComponent;
+    q.u.pc = pName;
+    err = DirectoryNode_GetEntry(pDirNode, &q, &pEmptyEntry, &pExistingEntry);
     if (err == EOK) {
-        Inode_IncrementFileSize(pDirNode, sizeof(entry));
+        return EEXIST;
+    }
+    if (err != ENOENT) {
+        return err;
+    }
+    err = EOK;
+
+
+    if (pEmptyEntry) {
+        // Reuse an empty entry if it exists
+        Character* p = String_CopyUpTo(pEmptyEntry->filename, pName->name, pName->count);
+        while (p < &pEmptyEntry->filename[kMaxFilenameLength]) *p++ = '\0';
+        pEmptyEntry->id = id;
+    }
+    else {
+        // Append a new entry to the directory file
+        RamDirectoryEntry entry;
+        Character* p = String_CopyUpTo(entry.filename, pName->name, pName->count);
+        while (p < &entry.filename[kMaxFilenameLength]) *p++ = '\0';
+        entry.id = id;
+
+        RamDirectoryContentRef pDirContent = Inode_GetRefConAs(pDirNode, RamDirectoryContentRef);
+        GenericArray_InsertAt(err, pDirContent, entry, RamDirectoryEntry, GenericArray_GetCount(pDirContent));
+        if (err == EOK) {
+            Inode_IncrementFileSize(pDirNode, sizeof(RamDirectoryEntry));
+        }
+    }
+
+
+    // Mark the directory as modified
+    if (err == EOK) {
         Inode_MarkModified(pDirNode);
     }
 
@@ -453,8 +523,8 @@ static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId p
     try(Filesystem_AllocateNode((FilesystemRef)self, kInode_Directory, uid, gid, permissions, NULL, &pDirNode));
     const InodeId id = Inode_GetId(pDirNode);
 
-    try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Self, id));
-    try(RamFS_AddDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id));
+    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Self, id));
+    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id));
 
     Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
     *pOutId = id;
@@ -483,19 +553,9 @@ ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _No
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
 
 
-    // Make sure that 'pParentNode' has no entry named 'pName'
-    RamDirectoryContentRef pParentDirContent = Inode_GetRefConAs(pParentNode, RamDirectoryContentRef);
-    for (Int i = 0; i < GenericArray_GetCount(pParentDirContent); i++) {
-        const RamDirectoryEntry* pCurEntry = GenericArray_GetRefAt(pParentDirContent, RamDirectoryEntry, i);
-
-        if (String_EqualsUpTo(pCurEntry->filename, pName->name, __min(pName->count, kMaxFilenameLength))) {
-            throw(EEXIST);
-        }
-    }
-
     InodeId newDirId = 0;
     try(RamFS_CreateDirectoryDiskNode(self, Inode_GetId(pParentNode), user.uid, user.gid, permissions, &newDirId));
-    try(RamFS_AddDirectoryEntry(self, pParentNode, pName, newDirId));
+    try(RamFS_InsertDirectoryEntry(self, pParentNode, pName, newDirId));
     return EOK;
 
 catch:
@@ -589,7 +649,7 @@ ErrorCode RamFS_unlink(RamFSRef _Nonnull self, const PathComponent* _Nonnull pNa
 
 
     // A directory must be empty in order to be allowed to unlink it
-    if (Inode_IsDirectory(pNodeToUnlink) && RamFS_IsDirectoryEmpty(self, pNodeToUnlink)) {
+    if (Inode_IsDirectory(pNodeToUnlink) && !DirectoryNode_IsEmpty(pNodeToUnlink)) {
         throw(EBUSY);
     }
 
