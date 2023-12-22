@@ -648,12 +648,12 @@ ErrorCode RamFS_unlink(RamFSRef _Nonnull self, const PathComponent* _Nonnull pNa
 
     //XXX we don't handle unlink(".") correctly
 
-    // We must have write permissions for 'pParentNode'
-    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
-
-
     // Acquire the node to unlink
     try(Filesystem_AcquireNodeForName((FilesystemRef)self, pParentNode, pName, user, &pNodeToUnlink));
+
+
+    // We must have write permissions for 'pParentNode'
+    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
 
 
     // A directory must be empty in order to be allowed to unlink it
