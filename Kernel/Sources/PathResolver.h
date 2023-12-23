@@ -54,6 +54,7 @@ extern ErrorCode PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef 
 extern void PathResolver_Deinit(PathResolverRef _Nonnull pResolver);
 
 extern ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath);
+extern Bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode);
 
 extern ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize);
 extern ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath);

@@ -227,6 +227,8 @@ void app_main(int argc, char *argv[])
     print_fileinfo("/Users");
     printf("\n");
     print_fileinfo("/Users/Admin");
+#elif 0
+    unlink("/Users/Tester");
 #else
     const int fd = _opendir("/Users");
     //const int fd = _opendir("/");

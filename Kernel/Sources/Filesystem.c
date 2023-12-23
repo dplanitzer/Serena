@@ -532,13 +532,13 @@ ErrorCode Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EACCESS;
 }
 
-// Unlink the node identified by the path component 'pName' and which is an
-// immediate child of the (directory) node 'pParentNode'. The parent node is
-// guaranteed to be a node owned by the filesystem.
-// This function must validate that a directory entry with the given name
-// actually exists, is a file or an empty directory before it attempts to
-// remove the entry from the parent node.
-ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user)
+// Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
+// Both nodes are guaranteed to be members of the same filesystem. 'pNode'
+// is guaranteed to exist and that it isn't a mountpoint and not the root
+// node of the filesystem.
+// This function must validate that that if 'pNode' is a directory, that the
+// directory is empty (contains nothing except "." and "..").
+ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentNode, User user)
 {
     return EACCESS;
 }

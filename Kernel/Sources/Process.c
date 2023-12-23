@@ -995,16 +995,52 @@ ErrorCode Process_Unlink(ProcessRef _Nonnull pProc, const Character* _Nonnull pP
 {
     decl_try_err();
     PathResolverResult r;
+    InodeRef _Locked pSecondNode = NULL;
+    InodeRef _Weak _Locked pParentNode = NULL;
+    InodeRef _Weak _Locked pNodeToUnlink = NULL;
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
 
-    // Can not unlink a mount point
-    // XXX implement this check once we've refined the mount point handling (return EBUSY)
 
-    try(Filesystem_Unlink(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser));
+    // Get the inode of the file/directory to unlink. Note that there are two cases here:
+    // unlink("."): we need to grab the parent of the directory and make r.inode the node to unlink
+    // unlink("anything_else"): r.inode is our parent and we look up the target
+    if (r.lastPathComponent.count == 1 && r.lastPathComponent.name[0] == '.') {
+        try(Filesystem_AcquireNodeForName(r.filesystem, r.inode, &kPathComponent_Parent, pProc->realUser, &pSecondNode));
+        pNodeToUnlink = r.inode;
+        pParentNode = pSecondNode;
+    }
+    else {
+        try(Filesystem_AcquireNodeForName(r.filesystem, r.inode, &r.lastPathComponent, pProc->realUser, &pSecondNode));
+        pNodeToUnlink = pSecondNode;
+        pParentNode = r.inode;
+    }
+
+
+    // Can not unlink a mountpoint
+    if (FilesystemManager_IsNodeMountpoint(gFilesystemManager, pNodeToUnlink)) {
+        throw(EBUSY);
+    }
+
+
+    // Can not unlink the root of a filesystem
+    if (Inode_IsDirectory(pNodeToUnlink) && Inode_GetId(pNodeToUnlink) == Inode_GetId(pParentNode)) {
+        throw(EBUSY);
+    }
+
+
+    // Can not unlink the process' root directory
+    if (PathResolver_IsRootDirectory(&pProc->pathResolver, pNodeToUnlink)) {
+        throw(EBUSY);
+    }
+
+    try(Filesystem_Unlink(r.filesystem, pNodeToUnlink, pParentNode, pProc->realUser));
 
 catch:
+    if (pSecondNode) {
+        Filesystem_RelinquishNode(r.filesystem, pSecondNode);
+    }
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return err;

@@ -445,12 +445,12 @@ catch:
     return err;
 }
 
-static ErrorCode RamFS_RemoveDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName)
+static ErrorCode RamFS_RemoveDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove)
 {
     decl_try_err();
     RamDirectoryEntry* pEntry;
 
-    try(DirectoryNode_GetEntryForName(pDirNode, pName, &pEntry));
+    try(DirectoryNode_GetEntryForId(pDirNode, idToRemove, &pEntry));
     pEntry->id = 0;
     pEntry->filename[0] = '\0';
 
@@ -635,22 +635,15 @@ ErrorCode RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pN
     return err;
 }
 
-// Unlink the node identified by the path component 'pName' and which is an
-// immediate child of the (directory) node 'pParentNode'. The parent node is
-// guaranteed to be a node owned by the filesystem.
-// This function must validate that a directory entry with the given name
-// actually exists, is a file or an empty directory before it attempts to
-// remove the entry from the parent node.
-ErrorCode RamFS_unlink(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user)
+// Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
+// Both nodes are guaranteed to be members of the same filesystem. 'pNode'
+// is guaranteed to exist and that it isn't a mountpoint and not the root
+// node of the filesystem.
+// This function must validate that that if 'pNode' is a directory, that the
+// directory is empty (contains nothing except "." and "..").
+ErrorCode RamFS_unlink(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pParentNode, User user)
 {
     decl_try_err();
-    InodeRef _Locked pNodeToUnlink = NULL;
-
-    //XXX we don't handle unlink(".") correctly
-
-    // Acquire the node to unlink
-    try(Filesystem_AcquireNodeForName((FilesystemRef)self, pParentNode, pName, user, &pNodeToUnlink));
-
 
     // We must have write permissions for 'pParentNode'
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
@@ -662,21 +655,14 @@ ErrorCode RamFS_unlink(RamFSRef _Nonnull self, const PathComponent* _Nonnull pNa
     }
 
 
-    // The node may not be a mountpoint
-    if (FilesystemManager_IsNodeMountpoint(gFilesystemManager, pNodeToUnlink)) {
-        throw(EBUSY);
-    }
-
-
     // Remove the directory entry in the parent directory
-    try(RamFS_RemoveDirectoryEntry(self, pParentNode, pName));
+    try(RamFS_RemoveDirectoryEntry(self, pParentNode, Inode_GetId(pNodeToUnlink)));
 
 
     // Unlink the node itself
     Inode_Unlink(pNodeToUnlink);
 
 catch:
-    Filesystem_RelinquishNode((FilesystemRef)self, pNodeToUnlink);
     return err;
 }
 

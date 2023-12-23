@@ -253,13 +253,13 @@ typedef struct _FilesystemMethodTable {
     // Verifies that the given node is accessible assuming the given access mode.
     ErrorCode (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, Int mode);
 
-    // Unlink the node identified by the path component 'pName' and which is an
-    // immediate child of the (directory) node 'pParentNode'. The parent node is
-    // guaranteed to be a node owned by the filesystem.
-    // This function must validate that a directory entry with the given name
-    // actually exists, is a file or an empty directory before it attempts to
-    // remove the entry from the parent node.
-    ErrorCode (*unlink)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user);
+    // Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
+    // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
+    // is guaranteed to exist and that it isn't a mountpoint and not the root
+    // node of the filesystem.
+    // This function must validate that that if 'pNode' is a directory, that the
+    // directory is empty (contains nothing except "." and "..").
+    ErrorCode (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentNode, User user);
 
     // Renames the node with name 'pName' and which is an immediate child of the
     // node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
@@ -357,8 +357,8 @@ Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
 Object_InvokeN(checkAccess, Filesystem, __self, __pNode, __user, __mode)
 
-#define Filesystem_Unlink(__self, __pName, __pParentNode, __user) \
-Object_InvokeN(unlink, Filesystem, __self, __pName, __pParentNode, __user)
+#define Filesystem_Unlink(__self, __pNode, __pParentNode, __user) \
+Object_InvokeN(unlink, Filesystem, __self, __pNode, __pParentNode, __user)
 
 #define Filesystem_Rename(__self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user) \
 Object_InvokeN(rename, Filesystem, __self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user)

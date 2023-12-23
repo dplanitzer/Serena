@@ -161,6 +161,13 @@ ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, 
     return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->rootDirectory);
 }
 
+// Returns true if the given node represents the resolver's root directory.
+Bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode)
+{
+    return Inode_GetFilesystemId(pResolver->rootDirectory) == Inode_GetFilesystemId(pNode)
+        && Inode_GetId(pResolver->rootDirectory) == Inode_GetId(pNode);
+}
+
 ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize)
 {
     InodeIterator iter;
