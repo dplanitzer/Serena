@@ -13,18 +13,17 @@
 #include "ConditionVariable.h"
 #include "Lock.h"
 
-#define kMaxFilenameLength  32
+#define kMaxFilenameLength      28
+#define kRamDiskBlockSize       512
+#define kRamDiskBlockSizeMask   (kRamDiskBlockSize - 1)
+#define kRamDirectoryEntriesPerDiskBlock        (kRamDiskBlockSize / sizeof(RamDirectoryEntry))
+#define kRamDirectoryEntriesPerDiskBlockMask    (kRamDirectoryEntriesPerDiskBlock - 1)
+#define kMaxDirectDataBlockPointers 120
 
 
 //
 // RamFS Directories
 //
-
-typedef struct _RamDirectoryEntry {
-    InodeId     id;
-    Character   filename[kMaxFilenameLength];
-} RamDirectoryEntry;
-
 
 // Directory content organisation:
 // [0] "."
@@ -32,21 +31,11 @@ typedef struct _RamDirectoryEntry {
 // [2] userEntry0
 // .
 // [n] userEntryN-1
-typedef struct _GenericArray RamDirectoryContent;
-typedef RamDirectoryContent* RamDirectoryContentRef;
-
-
-typedef struct _RamDiskNode {
-    InodeId                             inid;
-    UserId                              uid;
-    GroupId                             gid;
-    FilePermissions                     permissions;
-    Int                                 linkCount;
-    InodeType                           type;
-    FileOffset                          size;
-    RamDirectoryContentRef _Nullable    content;
-} RamDiskNode;
-typedef RamDiskNode* RamDiskNodeRef;
+// This should be mod(RamDiskBlockSize, RamDirectoryEntrySize) == 0
+typedef struct _RamDirectoryEntry {
+    InodeId     id;
+    Character   filename[kMaxFilenameLength];
+} RamDirectoryEntry;
 
 
 enum RamDirectoryQueryKind {
@@ -62,8 +51,38 @@ typedef struct RamDirectoryQuery {
     }       u;
 } RamDirectoryQuery;
 
+
+//
+// RamFS Disk Nodes
+//
+
+typedef struct _RamFileContent {
+    Byte* _Nullable p[kMaxDirectDataBlockPointers];
+} RamFileContent;
+
+
+typedef struct _RamDiskNode {
+    InodeId                             id;
+    UserId                              uid;
+    GroupId                             gid;
+    FilePermissions                     permissions;
+    Int                                 linkCount;
+    InodeType                           type;
+    FileOffset                          size;
+    RamFileContent                      content;
+} RamDiskNode;
+typedef RamDiskNode* RamDiskNodeRef;
+
 static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, RamDiskNodeRef _Nullable * _Nonnull pOutNode);
 static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self);
+
+
+//
+// RamFS Inode Refcon
+//
+
+#define Inode_GetFileContent(__self) \
+    Inode_GetRefConAs(__self, RamFileContent*)
 
 
 //

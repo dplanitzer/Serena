@@ -129,6 +129,10 @@ extern ErrorCode Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef
 #define Directory_GetOffset(__self) \
     ((DirectoryRef)__self)->offset
 
+// Sets the index of the directory entry that should be considered first on the next read
+#define Directory_SetOffset(__self, __newOffset) \
+    ((DirectoryRef)__self)->offset = (__newOffset)
+    
 // Increments the index of the directory entry at which the next read should start
 #define Directory_IncrementOffset(__self, __delta) \
     ((DirectoryRef)__self)->offset += (__delta)
