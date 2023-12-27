@@ -14,10 +14,11 @@
 #include "Lock.h"
 
 #define kMaxFilenameLength      28
-#define kRamDiskBlockSize       512
-#define kRamDiskBlockSizeMask   (kRamDiskBlockSize - 1)
-#define kRamDirectoryEntriesPerDiskBlock        (kRamDiskBlockSize / sizeof(RamDirectoryEntry))
-#define kRamDirectoryEntriesPerDiskBlockMask    (kRamDirectoryEntriesPerDiskBlock - 1)
+#define kRamBlockSizeShift      9
+#define kRamBlockSize           (1 << 9)
+#define kRamBlockSizeMask       (kRamBlockSize - 1)
+#define kRamDirectoryEntriesPerBlock        (kRamBlockSize / sizeof(RamDirectoryEntry))
+#define kRamDirectoryEntriesPerBlockMask    (kRamDirectoryEntriesPerBlock - 1)
 #define kMaxDirectDataBlockPointers 120
 
 
@@ -56,33 +57,30 @@ typedef struct RamDirectoryQuery {
 // RamFS Disk Nodes
 //
 
-typedef struct _RamFileContent {
+typedef struct _RamBlockMap {
     Byte* _Nullable p[kMaxDirectDataBlockPointers];
-} RamFileContent;
+} RamBlockMap;
 
 
 typedef struct _RamDiskNode {
-    InodeId                             id;
-    UserId                              uid;
-    GroupId                             gid;
-    FilePermissions                     permissions;
-    Int                                 linkCount;
-    InodeType                           type;
-    FileOffset                          size;
-    RamFileContent                      content;
+    InodeId             id;
+    UserId              uid;
+    GroupId             gid;
+    FilePermissions     permissions;
+    Int                 linkCount;
+    InodeType           type;
+    FileOffset          size;
+    RamBlockMap         blockMap;
 } RamDiskNode;
 typedef RamDiskNode* RamDiskNodeRef;
-
-static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, RamDiskNodeRef _Nullable * _Nonnull pOutNode);
-static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self);
 
 
 //
 // RamFS Inode Refcon
 //
 
-#define Inode_GetFileContent(__self) \
-    Inode_GetRefConAs(__self, RamFileContent*)
+#define Inode_GetBlockMap(__self) \
+    Inode_GetRefConAs(__self, RamBlockMap*)
 
 
 //
@@ -98,10 +96,22 @@ CLASS_IVARS(RamFS, Filesystem,
     Int                 nextAvailableInodeId;
     Bool                isMounted;
     Bool                isReadOnly;     // true if mounted read-only; false if mounted read-write
+    Byte                emptyBlock[kRamBlockSize];  // Block filled with zeros used by the read() function if there's no disk block with data
 );
+
+typedef ByteCount (*RamReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ByteCount n);
+typedef void (*RamWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ByteCount n);
+
+typedef enum _BlockAccessMode {
+    kBlock_Read = 0,
+    kBlock_Write
+} BlockAccessMode;
+
 
 static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);
 static ErrorCode RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self);
 static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);
+static void RamFS_DestroyDiskNode(RamFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode);
+static ErrorCode RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Int blockIdx, BlockAccessMode mode, Byte* _Nullable * _Nonnull pOutDiskBlock);
 
 #endif /* RamFSPriv_h */

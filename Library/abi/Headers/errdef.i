@@ -42,8 +42,9 @@ EROFS           equ 29
 ENOSPC          equ 30
 EEXIST          equ 31
 EOVERFLOW       equ 32
+EFBIG           equ 33
 
 __EFIRST    equ 1
-__ELAST     equ 32
+__ELAST     equ 33
 
         endif   ; _ERRDEF_I

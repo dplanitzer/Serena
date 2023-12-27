@@ -44,7 +44,8 @@ char *strerror(int err_no)
         /*EROFS*/           "Read-only file system",
         /*ENOSPC*/          "No space",
         /*EEXIST*/          "File exists",
-        /*EOVERFLOW*/       "Value overflow"
+        /*EOVERFLOW*/       "Value overflow",
+        /*EFBIG*/           "File too big"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

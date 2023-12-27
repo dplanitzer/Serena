@@ -207,7 +207,7 @@ void app_main(int argc, char *argv[])
     _mkdir("/Users/Admin");
     _mkdir("/Users/Tester");
 
-#if 1
+#if 0
 //while(true) {
     pwd();
     chdir("/Users");

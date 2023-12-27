@@ -166,7 +166,7 @@ extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermis
 #define Inode_IsModified(__self) \
     (((__self)->flags & kInodeFlag_IsModified) != 0)
 
-#define Inode_MarkModified(__self) \
+#define Inode_SetModified(__self) \
     ((__self)->flags |= kInodeFlag_IsModified)
 
 // Returns a file info record from the node data.

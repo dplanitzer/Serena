@@ -45,7 +45,8 @@ __rshuint64:
 ; 64bit unsigned shift left
 __lshuint64:
     inline
-    cargs lui64_saved_d7.l, lui64_xl.l, lui64_xh.l, lui64_s.l
+    cargs lui64_saved_d7.l, lui64_xh.l, lui64_xl.l, lui64_s.l
+        movem.l d7, -(sp)
         move.l  lui64_s(sp), d7
         and.l   #$3f, d7                ; the shift range is 0 - 63
         beq.s   .L1
@@ -53,8 +54,8 @@ __lshuint64:
         move.l  lui64_xh(sp), d0
         move.l  lui64_xl(sp), d1
 .L2:
-        lsl.l   #1, d0                  ; shift left by one bit per loop iteration
-        roxl.l  d1
+        lsl.l   #1, d1                  ; shift left by one bit per loop iteration
+        roxl.l  d0
         dbra    d7, .L2
 .L1:
         movem.l (sp)+, d7

@@ -264,7 +264,7 @@ ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, InodeType type, U
     Inode_SetUserId(pNode, uid);
     Inode_SetGroupId(pNode, gid);
     Inode_SetFilePermissions(pNode, permissions);
-    Inode_MarkModified(pNode);
+    Inode_SetModified(pNode);
 
     Lock_Unlock(&self->inodeManagementLock);
     *pOutNode = pNode;

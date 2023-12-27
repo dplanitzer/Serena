@@ -11,42 +11,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Disk Node
-////////////////////////////////////////////////////////////////////////////////
-
-static ErrorCode RamDiskNode_Create(InodeId id, InodeType type, RamDiskNodeRef _Nullable * _Nonnull pOutNode)
-{
-    decl_try_err();
-    RamDiskNodeRef self;
-
-    try(kalloc_cleared(sizeof(RamDiskNode), (void**)&self));
-    self->id = id;
-    self->linkCount = 1;
-    self->type = type;
-
-    *pOutNode = self;
-    return EOK;
-
-catch:
-    RamDiskNode_Destroy(self);
-    *pOutNode = NULL;
-    return err;
-}
-
-static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self)
-{
-    if (self) {
-        for (Int i = 0; i < kMaxDirectDataBlockPointers; i++) {
-            kfree(self->content.p[i]);
-            self->content.p[i] = NULL;
-        }
-        kfree(self);
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
 // MARK: Inode extensions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -54,96 +18,6 @@ static void RamDiskNode_Destroy(RamDiskNodeRef _Nullable self)
 static Bool DirectoryNode_IsEmpty(InodeRef _Nonnull _Locked self)
 {
     return Inode_GetFileSize(self) <= sizeof(RamDirectoryEntry) * 2;
-}
-
-// Returns a reference to the directory entry that holds 'pName'. NULL and a
-// suitable error is returned if no such entry exists or 'pName' is empty or
-// too long.
-static ErrorCode DirectoryNode_GetEntry(InodeRef _Nonnull _Locked self, const RamDirectoryQuery* _Nonnull pQuery, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
-{
-    if (pOutEmptyPtr) {
-        *pOutEmptyPtr = NULL;
-    }
-    *pOutEntryPtr = NULL;
-
-    if (pQuery->kind == kDirectoryQuery_PathComponent) {
-        if (pQuery->u.pc->count == 0) {
-            return ENOENT;
-        }
-        if (pQuery->u.pc->count > kMaxFilenameLength) {
-            return ENAMETOOLONG;
-        }
-    }
-
-    RamFileContent* pContent = Inode_GetFileContent(self);
-    const Int nDirEntries = Inode_GetFileSize(self) / sizeof(RamDirectoryEntry);
-    Int i = 0, bi = 0, ei = 0;
-    const RamDirectoryEntry* pBaseEntry = (const RamDirectoryEntry*)pContent->p[bi++];
-    while (i < nDirEntries) {
-        const RamDirectoryEntry* pCurEntry = &pBaseEntry[ei];
-
-        if (pCurEntry->id > 0) {
-            switch (pQuery->kind) {
-                case kDirectoryQuery_PathComponent:
-                    if (String_EqualsUpTo(pCurEntry->filename, pQuery->u.pc->name, __min(pQuery->u.pc->count, kMaxFilenameLength))) {
-                        *pOutEntryPtr = (RamDirectoryEntry*)pCurEntry;
-                        return EOK;
-                    }
-                    break;
-
-                case kDirectoryQuery_InodeId:
-                    if (pCurEntry->id == pQuery->u.id) {
-                       *pOutEntryPtr = (RamDirectoryEntry*)pCurEntry;
-                        return EOK;
-                    }
-                    break;
-
-                default:
-                    abort();
-            }
-        }
-        else {
-            if (pOutEmptyPtr) {
-                *pOutEmptyPtr = (RamDirectoryEntry*)pCurEntry;
-            }
-        }
-
-        i++;
-        ei++;
-
-        if (ei == kRamDirectoryEntriesPerDiskBlock) {
-            if (bi >= kMaxDirectDataBlockPointers) {
-                break;
-            }
-            pBaseEntry = (const RamDirectoryEntry*)pContent->p[bi++];
-            ei = 0;
-        }
-    }
-
-    return ENOENT;
-}
-
-// Returns a reference to the directory entry that holds 'pName'. NULL and a
-// suitable error is returned if no such entry exists or 'pName' is empty or
-// too long.
-static inline ErrorCode DirectoryNode_GetEntryForName(InodeRef _Nonnull _Locked self, const PathComponent* _Nonnull pName, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
-{
-    RamDirectoryQuery q;
-
-    q.kind = kDirectoryQuery_PathComponent;
-    q.u.pc = pName;
-    return DirectoryNode_GetEntry(self, &q, NULL, pOutEntryPtr);
-}
-
-// Returns a reference to the directory entry that holds 'id'. NULL and a
-// suitable error is returned if no such entry exists.
-static ErrorCode DirectoryNode_GetEntryForId(InodeRef _Nonnull _Locked self, InodeId id, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
-{
-    RamDirectoryQuery q;
-
-    q.kind = kDirectoryQuery_InodeId;
-    q.u.id = id;
-    return DirectoryNode_GetEntry(self, &q, NULL, pOutEntryPtr);
 }
 
 
@@ -160,8 +34,8 @@ ErrorCode RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileS
     decl_try_err();
     RamFSRef self;
 
-    assert(sizeof(RamDiskNode) <= kRamDiskBlockSize);
-    assert(sizeof(RamDirectoryEntry) * kRamDirectoryEntriesPerDiskBlock == kRamDiskBlockSize);
+    assert(sizeof(RamDiskNode) <= kRamBlockSize);
+    assert(sizeof(RamDirectoryEntry) * kRamDirectoryEntriesPerBlock == kRamBlockSize);
     
     try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
     Lock_Init(&self->lock);
@@ -185,7 +59,7 @@ catch:
 void RamFS_deinit(RamFSRef _Nonnull self)
 {
     for(Int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
-        RamDiskNode_Destroy(PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef));
+        RamFS_DestroyDiskNode(self, PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef));
     }
     PointerArray_Deinit(&self->dnodes);
     ConditionVariable_Deinit(&self->notifier);
@@ -226,16 +100,31 @@ ErrorCode RamFS_onAllocateNodeOnDisk(RamFSRef _Nonnull self, InodeType type, voi
     const InodeId id = (InodeId) self->nextAvailableInodeId++;
     RamDiskNodeRef pDiskNode = NULL;
 
-    try(RamDiskNode_Create(id, type, &pDiskNode));
+    try(kalloc_cleared(sizeof(RamDiskNode), (void**)&pDiskNode));
+    pDiskNode->id = id;
+    pDiskNode->linkCount = 1;
+    pDiskNode->type = type;
+
     try(PointerArray_Add(&self->dnodes, pDiskNode));
     *pOutId = id;
 
     return EOK;
 
 catch:
-    RamDiskNode_Destroy(pDiskNode);
+    RamFS_DestroyDiskNode(self, pDiskNode);
     *pOutId = 0;
     return err;
+}
+
+static void RamFS_DestroyDiskNode(RamFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode)
+{
+    if (pDiskNode) {
+        for (Int i = 0; i < kMaxDirectDataBlockPointers; i++) {
+            kfree(pDiskNode->blockMap.p[i]);
+            pDiskNode->blockMap.p[i] = NULL;
+        }
+        kfree(pDiskNode);
+    }
 }
 
 // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested inode
@@ -259,7 +148,7 @@ ErrorCode RamFS_onReadNodeFromDisk(RamFSRef _Nonnull self, InodeId id, void* _Nu
         pDiskNode->gid,
         pDiskNode->permissions,
         pDiskNode->size,
-        &pDiskNode->content,
+        &pDiskNode->blockMap,
         pOutNode);
 
 catch:
@@ -298,7 +187,7 @@ void RamFS_onRemoveNodeFromDisk(RamFSRef _Nonnull self, InodeId id)
     if (dIdx >= 0) {
         RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
 
-        RamDiskNode_Destroy(pDiskNode);
+        RamFS_DestroyDiskNode(self, pDiskNode);
         PointerArray_RemoveAt(&self->dnodes, dIdx);
     }
 }
@@ -317,6 +206,217 @@ static ErrorCode RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonn
     }
 
     return Inode_CheckAccess(pNode, user, permission);
+}
+
+// Returns true if the array of directory entries starting at 'pEntry' and holding
+// 'nEntries' entries contains a directory entry that matches 'pQuery'.
+static Bool xHasMatchingDirectoryEntry(const RamDirectoryQuery* _Nonnull pQuery, const RamDirectoryEntry* _Nonnull pEntry, Int nEntries, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+{
+    while (nEntries-- > 0) {
+        if (pEntry->id > 0) {
+            switch (pQuery->kind) {
+                case kDirectoryQuery_PathComponent:
+                    if (String_EqualsUpTo(pEntry->filename, pQuery->u.pc->name, __min(pQuery->u.pc->count, kMaxFilenameLength))) {
+                        *pOutEntryPtr = (RamDirectoryEntry*)pEntry;
+                        return true;
+                    }
+                    break;
+
+                case kDirectoryQuery_InodeId:
+                    if (pEntry->id == pQuery->u.id) {
+                       *pOutEntryPtr = (RamDirectoryEntry*)pEntry;
+                        return true;
+                    }
+                    break;
+
+                default:
+                    abort();
+            }
+        }
+        else if (pOutEmptyPtr) {
+            *pOutEmptyPtr = (RamDirectoryEntry*)pEntry;
+        }
+        pEntry++;
+    }
+
+    return false;
+}
+
+// Returns a reference to the directory entry that holds 'pName'. NULL and a
+// suitable error is returned if no such entry exists or 'pName' is empty or
+// too long.
+static ErrorCode RamFS_GetDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const RamDirectoryQuery* _Nonnull pQuery, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+{
+    decl_try_err();
+    const FileOffset fileSize = Inode_GetFileSize(pNode);
+    FileOffset offset = 0ll;
+
+    if (pOutEmptyPtr) {
+        *pOutEmptyPtr = NULL;
+    }
+    *pOutEntryPtr = NULL;
+
+    if (pQuery->kind == kDirectoryQuery_PathComponent) {
+        if (pQuery->u.pc->count == 0) {
+            return ENOENT;
+        }
+        if (pQuery->u.pc->count > kMaxFilenameLength) {
+            return ENAMETOOLONG;
+        }
+    }
+
+    while (true) {
+        const Int blockIdx = offset >> (FileOffset)kRamBlockSizeShift;
+        const ByteCount nBytesAvailable = (ByteCount)__min((FileOffset)kRamBlockSize, fileSize - offset);
+        Byte* pDiskBlock;
+
+        if (nBytesAvailable <= 0) {
+            break;
+        }
+
+        try(RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock));
+        const RamDirectoryEntry* pCurEntry = (const RamDirectoryEntry*)pDiskBlock;
+        const Int nDirEntries = nBytesAvailable / sizeof(RamDirectoryEntry);
+        if (xHasMatchingDirectoryEntry(pQuery, pCurEntry, nDirEntries, pOutEmptyPtr, pOutEntryPtr)) {
+            return EOK;
+        }
+        offset += (FileOffset)nBytesAvailable;
+    }
+    return ENOENT;
+
+catch:
+    return err;
+}
+
+// Returns a reference to the directory entry that holds 'pName'. NULL and a
+// suitable error is returned if no such entry exists or 'pName' is empty or
+// too long.
+static inline ErrorCode RamFS_GetDirectoryEntryForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const PathComponent* _Nonnull pName, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+{
+    RamDirectoryQuery q;
+
+    q.kind = kDirectoryQuery_PathComponent;
+    q.u.pc = pName;
+    return RamFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
+}
+
+// Returns a reference to the directory entry that holds 'id'. NULL and a
+// suitable error is returned if no such entry exists.
+static ErrorCode RamFS_GetDirectoryEntryForId(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeId id, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+{
+    RamDirectoryQuery q;
+
+    q.kind = kDirectoryQuery_InodeId;
+    q.u.id = id;
+    return RamFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
+}
+
+// Looks up the disk block that corresponds to the logical block address 'blockIdx'.
+// The first logical block is #0 at the very beginning of the file 'pNode'. Logical
+// block addresses increment by one until the end of the file. Note that not every
+// logical block address may be backed by an actual disk block. A missing disk block
+// is substituted at read time by an empty block.
+// NOTE: never marks the inode as modified. The caller has to take care of this.
+static ErrorCode RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Int blockIdx, BlockAccessMode mode, Byte* _Nullable * _Nonnull pOutDiskBlock)
+{
+    decl_try_err();
+    Byte* pDiskBlock = NULL;
+
+    if (blockIdx < 0 || blockIdx >= kMaxDirectDataBlockPointers) {
+        throw(EFBIG);
+    }
+
+    RamBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
+    pDiskBlock = pBlockMap->p[blockIdx];
+
+    if (pDiskBlock) {
+        *pOutDiskBlock = pDiskBlock;
+    }
+    else {
+        if (mode == kBlock_Read) {
+            *pOutDiskBlock = self->emptyBlock;
+        }
+        else {
+            try(kalloc_cleared(kRamBlockSize, (void**)&pDiskBlock));
+            pBlockMap->p[blockIdx] = pDiskBlock;
+        }
+    }
+
+catch:
+    *pOutDiskBlock = pDiskBlock;
+    return err;
+}
+
+// Reads 'nBytesToRead' bytes from the file 'pNode' starting at offset 'offset'.
+// This functions reads a block full of data from teh backing store and then
+// invokes 'cb' with this block of data. 'cb' is expected to process the data.
+// Note that 'cb' may process just a subset of the data and it returns how much
+// of the data it has processed. This amount of bytes is then subtracted from
+// 'nBytesToRead'. However the offset is always advanced by a full block size.
+// This process continues until 'nBytesToRead' has decreased to 0, EOF or an
+// error is encountered. Whatever comes first. 
+static ErrorCode RamFS_xRead(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ByteCount nBytesToRead, RamReadCallback _Nonnull cb, void* _Nullable pContext, ByteCount* _Nonnull pOutBytesRead)
+{
+    decl_try_err();
+    const FileOffset fileSize = Inode_GetFileSize(pNode);
+    ByteCount nOriginalBytesToRead = nBytesToRead;
+
+    if (offset < 0ll) {
+        throw(EINVAL);
+    }
+
+    while (nBytesToRead > 0) {
+        const Int blockIdx = offset >> (FileOffset)kRamBlockSizeShift;
+        const ByteCount blockOffset = offset & (FileOffset)kRamBlockSizeMask;
+        const ByteCount nBytesAvailable = (ByteCount)__min((FileOffset)(kRamBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
+        Byte* pDiskBlock;
+
+        if (nBytesAvailable <= 0) {
+            break;
+        }
+
+        try(RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock));
+        nBytesToRead -= cb(pContext, pDiskBlock + blockOffset, nBytesAvailable);
+        offset += (FileOffset)nBytesAvailable;
+    }
+
+catch:
+    *pOutBytesRead = nOriginalBytesToRead - nBytesToRead;
+    return err;
+}
+
+// Writes 'nBytesToWrite' bytes to the file 'pNode' starting at offset 'offset'.
+// 'cb' is used to copy the data from teh source to the disk block(s).
+static ErrorCode RamFS_xWrite(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ByteCount nBytesToWrite, RamWriteCallback _Nonnull cb, void* _Nullable pContext, ByteCount* _Nonnull pOutBytesWritten)
+{
+    decl_try_err();
+    ByteCount nBytesWritten = 0;
+
+    if (offset < 0ll) {
+        throw(EINVAL);
+    }
+
+    while (nBytesToWrite > 0) {
+        const Int blockIdx = offset >> (FileOffset)kRamBlockSizeShift;
+        const ByteCount blockOffset = offset & (FileOffset)kRamBlockSizeMask;
+        const ByteCount nBytesAvailable = __min(kRamBlockSize - blockOffset, nBytesToWrite);
+        Byte* pDiskBlock;
+
+        try(RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Write, &pDiskBlock));
+        cb(pDiskBlock + blockOffset, pContext, nBytesAvailable);
+        nBytesWritten += nBytesAvailable;
+        offset += (FileOffset)nBytesAvailable;
+    }
+
+catch:
+    if (nBytesWritten > 0) {
+        if (offset > Inode_GetFileSize(pNode)) {
+            Inode_SetFileSize(pNode, offset);
+        }
+        Inode_SetModified(pNode);
+    }
+    *pOutBytesWritten = nBytesWritten;
+    return err;
 }
 
 
@@ -396,7 +496,7 @@ ErrorCode RamFS_acquireNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Lo
     RamDirectoryEntry* pEntry;
 
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
-    try(DirectoryNode_GetEntryForName(pParentNode, pName, &pEntry));
+    try(RamFS_GetDirectoryEntryForName(self, pParentNode, pName, &pEntry));
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pEntry->id, NULL, pOutNode));
     return EOK;
 
@@ -419,7 +519,7 @@ ErrorCode RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked 
     RamDirectoryEntry* pEntry;
 
     try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
-    try(DirectoryNode_GetEntryForId(pParentNode, id, &pEntry));
+    try(RamFS_GetDirectoryEntryForId(self, pParentNode, id, &pEntry));
 
     const ByteCount len = String_LengthUpTo(pEntry->filename, kMaxFilenameLength);
     if (len > pComponent->capacity) {
@@ -463,7 +563,7 @@ static ErrorCode RamFS_RemoveDirectoryEntry(RamFSRef _Nonnull self, InodeRef _No
     decl_try_err();
     RamDirectoryEntry* pEntry;
 
-    try(DirectoryNode_GetEntryForId(pDirNode, idToRemove, &pEntry));
+    try(RamFS_GetDirectoryEntryForId(self, pDirNode, idToRemove, &pEntry));
     pEntry->id = 0;
     pEntry->filename[0] = '\0';
 
@@ -489,20 +589,20 @@ static ErrorCode RamFS_InsertDirectoryEntry(RamFSRef _Nonnull self, InodeRef _No
 
     if (pEmptyEntry == NULL) {
         // Append a new entry
-        RamFileContent* pContent = Inode_GetFileContent(pDirNode);
+        RamBlockMap* pContent = Inode_GetBlockMap(pDirNode);
         const FileOffset size = Inode_GetFileSize(pDirNode);
-        const Int blockIdx = size / kRamDiskBlockSize;
-        const Int remainder = size & kRamDiskBlockSizeMask;
+        const Int blockIdx = size / kRamBlockSize;
+        const Int remainder = size & kRamBlockSizeMask;
 
         if (size == 0) {
-            try(kalloc(kRamDiskBlockSize, (void**)&pContent->p[0]));
+            try(kalloc(kRamBlockSize, (void**)&pContent->p[0]));
             pEmptyEntry = (RamDirectoryEntry*)pContent->p[0];
         }
-        else if (remainder < kRamDiskBlockSize) {
+        else if (remainder < kRamBlockSize) {
             pEmptyEntry = (RamDirectoryEntry*)(pContent->p[blockIdx] + remainder);
         }
         else {
-            try(kalloc(kRamDiskBlockSize, (void**)&pContent->p[blockIdx + 1]));
+            try(kalloc(kRamBlockSize, (void**)&pContent->p[blockIdx + 1]));
             pEmptyEntry = (RamDirectoryEntry*)pContent->p[blockIdx + 1];
         }
 
@@ -518,7 +618,7 @@ static ErrorCode RamFS_InsertDirectoryEntry(RamFSRef _Nonnull self, InodeRef _No
 
     // Mark the directory as modified
     if (err == EOK) {
-        Inode_MarkModified(pDirNode);
+        Inode_SetModified(pDirNode);
     }
 
 catch:
@@ -571,7 +671,7 @@ ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _No
 
     q.kind = kDirectoryQuery_PathComponent;
     q.u.pc = pName;
-    err = DirectoryNode_GetEntry(pParentNode, &q, &pEmptyEntry, &pExistingEntry);
+    err = RamFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
     if (err != ENOENT) {
         if (err == EOK) {
             throw(EEXIST);
@@ -614,44 +714,77 @@ catch:
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+static ByteCount xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const RamDirectoryEntry* _Nonnull pIn, ByteCount nBytesToRead)
 {
-    InodeRef _Locked pDirNode = Directory_GetInode(pDir);
-    RamFileContent* pContent = Inode_GetFileContent(pDirNode);
-    DirectoryEntry* pOut = (DirectoryEntry*)pBuffer;
-    const Int startIndex = (Int) Directory_GetOffset(pDir);
-    const Int nMaxEntriesToRead = nBytesToRead / sizeof(DirectoryEntry);
-    const Int nDirEntries = Inode_GetFileSize(pDirNode) / sizeof(RamDirectoryEntry);
-    const Int readLimit = __min(nDirEntries, startIndex + nMaxEntriesToRead);
-    Int i = startIndex;
-    Int bi = startIndex / kRamDirectoryEntriesPerDiskBlock;
-    Int ei = startIndex & kRamDirectoryEntriesPerDiskBlockMask;
-    const RamDirectoryEntry* pBaseEntry = (const RamDirectoryEntry*)pContent->p[bi++];
+    ByteCount nBytesCopied = 0;
 
-    while (i < readLimit) {
-        const RamDirectoryEntry* pCurEntry = &pBaseEntry[ei];
-
-        if (pCurEntry->id > 0) {
-            pOut->inodeId = pCurEntry->id;
-            String_CopyUpTo(pOut->name, pCurEntry->filename, kMaxFilenameLength);
+    while (nBytesToRead > 0) {
+        if (pIn->id > 0) {
+            pOut->inodeId = pIn->id;
+            String_CopyUpTo(pOut->name, pIn->filename, kMaxFilenameLength);
+            nBytesCopied += sizeof(RamDirectoryEntry);
             pOut++;
         }
-
-        i++;
-        ei++;
-
-        if (ei == kRamDirectoryEntriesPerDiskBlock) {
-            if (bi >= kMaxDirectDataBlockPointers) {
-                break;
-            }
-            pBaseEntry = (const RamDirectoryEntry*)pContent->p[bi++];
-            ei = 0;
-        }
+        pIn++;
+        nBytesToRead -= sizeof(RamDirectoryEntry);
     }
 
-    Directory_SetOffset(pDir, i);
+    return nBytesCopied;
+}
 
-    return ((Byte*)pOut) - pBuffer;
+ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+{
+    InodeRef _Locked pNode = Directory_GetInode(pDir);
+    const ByteCount nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(RamDirectoryEntry);
+    ByteCount nBytesRead;
+
+    const ErrorCode err = RamFS_xRead(self, 
+        pNode, 
+        Directory_GetOffset(pDir),
+        nBytesToReadFromDirectory,
+        (RamReadCallback)xCopyOutDirectoryEntries,
+        pBuffer,
+        &nBytesRead);
+    Directory_IncrementOffset(pDir, nBytesRead);
+    return (err == EOK) ? nBytesRead : -err;
+}
+
+static ByteCount xCopyOutFileContent(Byte* _Nonnull pOut, const Byte* _Nonnull pIn, ByteCount nBytesToRead)
+{
+    Bytes_CopyRange(pOut, pIn, nBytesToRead);
+    return nBytesToRead;
+}
+
+ByteCount RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+{
+    InodeRef _Locked pNode = File_GetInode(pFile);
+    ByteCount nBytesRead;
+
+    const ErrorCode err = RamFS_xRead(self, 
+        pNode, 
+        File_GetOffset(pFile),
+        nBytesToRead,
+        (RamReadCallback)xCopyOutFileContent,
+        pBuffer,
+        &nBytesRead);
+    File_IncrementOffset(pFile, nBytesRead);
+    return (err == EOK) ? nBytesRead : -err;
+}
+
+ByteCount RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
+{
+    InodeRef _Locked pNode = File_GetInode(pFile);
+    ByteCount nBytesWritten;
+
+    const ErrorCode err = RamFS_xWrite(self, 
+        pNode, 
+        File_GetOffset(pFile),
+        nBytesToWrite,
+        (RamWriteCallback)Bytes_CopyRange,
+        pBuffer,
+        &nBytesWritten);
+    File_IncrementOffset(pFile, nBytesWritten);
+    return (err == EOK) ? nBytesWritten : -err;
 }
 
 // Verifies that the given node is accessible assuming the given access mode.
@@ -729,6 +862,8 @@ OVERRIDE_METHOD_IMPL(setFileInfo, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(read, RamFS, IOResource)
+OVERRIDE_METHOD_IMPL(write, RamFS, IOResource)
 OVERRIDE_METHOD_IMPL(checkAccess, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(unlink, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(rename, RamFS, Filesystem)

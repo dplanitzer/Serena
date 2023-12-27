@@ -103,7 +103,7 @@ extern ErrorCode File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _
 // system.  
 OPEN_CLASS_WITH_REF(Directory, IOChannel,
     InodeRef _Nonnull   inode;
-    Int                 offset;
+    FileOffset          offset;
 );
 
 typedef struct _DirectoryMethodTable {
