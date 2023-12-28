@@ -749,6 +749,56 @@ ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir
     return (err == EOK) ? nBytesRead : -err;
 }
 
+// Creates an empty file and returns the inode of that file. The behavior is
+// non-exclusive by default. Meaning the file is created if it does not 
+// exist and the file's inode is merrily acquired if it already exists. If
+// the mode is exclusive then the file is created if it doesn't exist and
+// an error is thrown if the file exists. Note that the file is not opened.
+// This must be done by calling the open() method.
+ErrorCode RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+{
+    decl_try_err();
+
+    // 'pParentNode' must be a directory
+    if (!Inode_IsDirectory(pParentNode)) {
+        throw(ENOTDIR);
+    }
+
+
+    // We must have write permissions for 'pParentNode'
+    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+
+
+    // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
+    // Also figure out whether there's an empty entry that we can reuse.
+    RamDirectoryEntry* pEmptyEntry;
+    RamDirectoryEntry* pExistingEntry;
+    RamDirectoryQuery q;
+
+    q.kind = kDirectoryQuery_PathComponent;
+    q.u.pc = pName;
+    err = RamFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
+    if (err != ENOENT) {
+        if (err == EOK) {
+            throw(EEXIST);
+        } else {
+            throw(err);
+        }
+    }
+    err = EOK;
+
+
+    // Create the new file and add it to its parent directory
+    try(Filesystem_AllocateNode((FilesystemRef)self, kInode_RegularFile, user.uid, user.gid, permissions, NULL, pOutNode));
+    try(RamFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(*pOutNode), pEmptyEntry));
+
+    return EOK;
+
+catch:
+    // XXX Unlink new file disk node if necessary
+    return err;
+}
+
 // Opens a resource context/channel to the resource. This new resource context
 // will be represented by a (file) descriptor in user space. The resource context
 // maintains state that is specific to this connection. This state will be
@@ -972,6 +1022,7 @@ OVERRIDE_METHOD_IMPL(acquireNodeForName, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFileInfo, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(createFile, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)

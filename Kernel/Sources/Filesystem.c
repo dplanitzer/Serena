@@ -492,6 +492,17 @@ ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
+// Creates an empty file and returns the inode of that file. The behavior is
+// non-exclusive by default. Meaning the file is created if it does not 
+// exist and the file's inode is merrily acquired if it already exists. If
+// the mode is exclusive then the file is created if it doesn't exist and
+// an error is thrown if the file exists. Note that the file is not opened.
+// This must be done by calling the open() method.
+ErrorCode Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+{
+    return EIO;
+}
+
 // Creates an empty directory as a child of the given directory node and with
 // the given name, user and file permissions. Returns EEXIST if a node with
 // the given name already exists.
@@ -577,6 +588,7 @@ METHOD_IMPL(acquireNodeForName, Filesystem)
 METHOD_IMPL(getNameOfNode, Filesystem)
 METHOD_IMPL(getFileInfo, Filesystem)
 METHOD_IMPL(setFileInfo, Filesystem)
+METHOD_IMPL(createFile, Filesystem)
 METHOD_IMPL(createDirectory, Filesystem)
 METHOD_IMPL(openDirectory, Filesystem)
 METHOD_IMPL(readDirectory, Filesystem)

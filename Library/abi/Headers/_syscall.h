@@ -40,5 +40,6 @@
 #define SC_ioctl                28  // errno_t ioctl(int fd, int cmd, ...)
 #define SC_truncate             29  // errno_t truncate(const char* _Nonnull path, off_t length)
 #define SC_ftruncate            30  // errno_t ftruncate(int fd, off_t length)
+#define SC_mkfile               31  // int creat(const char* _Nonnull path, int options, int permissions)
 
 #endif /* __SYSCALLS_H */

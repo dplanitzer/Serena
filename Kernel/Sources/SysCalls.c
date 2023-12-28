@@ -12,6 +12,29 @@
 #include "VirtualProcessor.h"
 
 
+struct SYS_mkfile_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+    UInt                        options;
+    UInt                        permissions;
+};
+
+Int _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
+{
+    decl_try_err();
+    Int desc;
+
+    if (pArgs->path == NULL) {
+        throw(EINVAL);
+    }
+
+    try(Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->options, (FilePermissions)pArgs->permissions, &desc));
+    return desc;
+
+catch:
+    return -err;
+}
+
 struct SYS_open_args {
     Int                         scno;
     const Character* _Nullable  path;

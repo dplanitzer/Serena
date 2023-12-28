@@ -225,7 +225,20 @@ typedef struct _FilesystemMethodTable {
 
 
     //
-    // Directory Operations
+    // File Specific Operations
+    //
+
+    // Creates an empty file and returns the inode of that file. The behavior is
+    // non-exclusive by default. Meaning the file is created if it does not 
+    // exist and the file's inode is merrily acquired if it already exists. If
+    // the mode is exclusive then the file is created if it doesn't exist and
+    // an error is thrown if the file exists. Note that the file is not opened.
+    // This must be done by calling the open() method.
+    ErrorCode (*createFile)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+
+
+    //
+    // Directory Specific Operations
     //
 
     // Creates an empty directory as a child of the given directory node and with
@@ -352,6 +365,10 @@ Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 
 #define Filesystem_SetFileInfo(__self, __pNode, __user, __pInfo) \
 Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
+
+
+#define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __permissions, __pOutNode) \
+Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __permissions, __pOutNode)
 
 
 #define Filesystem_CreateDirectory(__self, __pName, __pParentNode, __user, __permissions) \

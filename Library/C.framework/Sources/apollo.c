@@ -12,6 +12,11 @@
 #include <_varargs.h>
 
 
+int creat(const char* path, int options, int permissions)
+{
+    return __syscall(SC_mkfile, path, options, permissions);
+}
+
 int open(const char *path, int options)
 {
     return __syscall(SC_open, path, options);

@@ -837,6 +837,30 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask
     Lock_Unlock(&pProc->lock);
 }
 
+// Creates a file in the given filesystem location.
+ErrorCode Process_CreateFile(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, UInt options, FilePermissions permissions, Int* _Nonnull pOutDescriptor)
+{
+    decl_try_err();
+    PathResolverResult r;
+    InodeRef _Locked pFileNode = NULL;
+    FileRef pFile = NULL;
+
+    Lock_Lock(&pProc->lock);
+
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777), &pFileNode));
+    try(IOResource_Open(r.filesystem, pFileNode, options, pProc->realUser, (IOChannelRef*)&pFile));
+    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pFile, pOutDescriptor));
+
+catch:
+    if (pFileNode) {
+        Filesystem_RelinquishNode(r.filesystem, pFileNode);
+    }
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
 ErrorCode Process_Open(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, UInt options, Int* _Nonnull pOutDescriptor)

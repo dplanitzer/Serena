@@ -40,8 +40,9 @@ SC_rename               equ 27  ; errno_t rename(const char* oldpath, const char
 SC_ioctl                equ 28  ; errno_t ioctl(int fd, int cmd, ...)
 SC_truncate             equ 29  ; errno_t truncate(const char* path, off_t length)
 SC_ftruncate            equ 30  ; errno_t ftruncate(int fd, off_t length)
+SC_mkfile               equ 31  ; int creat(const char* _Nonnull path, int options, int permissions)
 
-SC_numberOfCalls        equ 31   ; number of system calls
+SC_numberOfCalls        equ 32   ; number of system calls
 
 
 ; System call macro.
