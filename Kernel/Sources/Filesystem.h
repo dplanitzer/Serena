@@ -234,7 +234,7 @@ typedef struct _FilesystemMethodTable {
     // the mode is exclusive then the file is created if it doesn't exist and
     // an error is thrown if the file exists. Note that the file is not opened.
     // This must be done by calling the open() method.
-    ErrorCode (*createFile)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+    ErrorCode (*createFile)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, UInt options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
 
     //
@@ -367,8 +367,8 @@ Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
-#define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __permissions, __pOutNode) \
-Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __permissions, __pOutNode)
+#define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode) \
+Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode)
 
 
 #define Filesystem_CreateDirectory(__self, __pName, __pParentNode, __user, __permissions) \

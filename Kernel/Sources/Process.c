@@ -848,7 +848,7 @@ ErrorCode Process_CreateFile(ProcessRef _Nonnull pProc, const Character* _Nonnul
     Lock_Lock(&pProc->lock);
 
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777), &pFileNode));
+    try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pFileNode));
     try(IOResource_Open(r.filesystem, pFileNode, options, pProc->realUser, (IOChannelRef*)&pFile));
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pFile, pOutDescriptor));
 

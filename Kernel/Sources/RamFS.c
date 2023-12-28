@@ -755,7 +755,7 @@ ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir
 // the mode is exclusive then the file is created if it doesn't exist and
 // an error is thrown if the file exists. Note that the file is not opened.
 // This must be done by calling the open() method.
-ErrorCode RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+ErrorCode RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, UInt options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
 
@@ -778,14 +778,21 @@ ErrorCode RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull
     q.kind = kDirectoryQuery_PathComponent;
     q.u.pc = pName;
     err = RamFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
-    if (err != ENOENT) {
-        if (err == EOK) {
+    if (err == ENOENT) {
+        err = EOK;
+    } else if (err == EOK) {
+        if ((options & O_EXCL) == O_EXCL) {
+            // Exclusive mode: File already exists -> throw an error
             throw(EEXIST);
-        } else {
-            throw(err);
         }
+        else {
+            // Non-exclusive mode: File already exists -> acquire it and let the caller open it
+            try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pExistingEntry->id, NULL, pOutNode));
+            return EOK;
+        }
+    } else {
+        throw(err);
     }
-    err = EOK;
 
 
     // Create the new file and add it to its parent directory

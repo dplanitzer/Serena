@@ -498,7 +498,7 @@ ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 // the mode is exclusive then the file is created if it doesn't exist and
 // an error is thrown if the file exists. Note that the file is not opened.
 // This must be done by calling the open() method.
-ErrorCode Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+ErrorCode Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, UInt options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     return EIO;
 }
