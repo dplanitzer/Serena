@@ -672,14 +672,13 @@ ErrorCode RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _No
     q.kind = kDirectoryQuery_PathComponent;
     q.u.pc = pName;
     err = RamFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
-    if (err != ENOENT) {
-        if (err == EOK) {
-            throw(EEXIST);
-        } else {
-            throw(err);
-        }
+    if (err == ENOENT) {
+        err = EOK;
+    } else if (err == EOK) {
+        throw(EEXIST);
+    } else {
+        throw(err);
     }
-    err = EOK;
 
 
     // Create the new directory and add it to its parent directory
