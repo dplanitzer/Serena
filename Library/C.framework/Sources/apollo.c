@@ -116,6 +116,22 @@ errno_t fsetfileinfo(int fd, struct _mutable_file_info_t* info)
 }
 
 
+errno_t truncate(const char *path, off_t length)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_truncate, path, length);
+    return r;
+}
+
+errno_t ftruncate(int fd, off_t length)
+{
+    errno_t r;
+
+    __failable_syscall(r, SC_ftruncate, fd, length);
+    return r;
+}
+
 errno_t ioctl(int fd, int cmd, ...)
 {
     errno_t r;

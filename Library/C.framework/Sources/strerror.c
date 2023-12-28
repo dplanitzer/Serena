@@ -45,7 +45,8 @@ char *strerror(int err_no)
         /*ENOSPC*/          "No space",
         /*EEXIST*/          "File exists",
         /*EOVERFLOW*/       "Value overflow",
-        /*EFBIG*/           "File too big"
+        /*EFBIG*/           "File too big",
+        /*EISDIR*/          "Is a directory"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

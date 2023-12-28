@@ -147,6 +147,13 @@ extern ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character*
 // Same as above but with respect to the given I/O channel.
 extern ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, MutableFileInfo* _Nonnull pInfo);
 
+// Sets the length of an existing file. The file may either be reduced in size
+// or expanded.
+extern ErrorCode Process_TruncateFile(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileOffset length);
+
+// Same as above but the file is identified by the given I/O channel.
+extern ErrorCode Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, Int fd, FileOffset length);
+
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
 extern ErrorCode Process_vIOControl(ProcessRef _Nonnull pProc, Int fd, Int cmd, va_list ap);

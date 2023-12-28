@@ -62,6 +62,10 @@ typedef struct _RamBlockMap {
 } RamBlockMap;
 
 
+// NOTE: disk nodes own the data blocks of a file/directory. Inodes are set up
+// with a pointer to the disk node block map. So inodes manipulate the block map
+// directly instead of copying it back and forth. That's okay because the inode
+// lock effectively protects the disk node sitting behind the inode. 
 typedef struct _RamDiskNode {
     InodeId             id;
     UserId              uid;
@@ -113,5 +117,6 @@ static ErrorCode RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self);
 static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);
 static void RamFS_DestroyDiskNode(RamFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode);
 static ErrorCode RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, Int blockIdx, BlockAccessMode mode, Byte* _Nullable * _Nonnull pOutDiskBlock);
+static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
 
 #endif /* RamFSPriv_h */

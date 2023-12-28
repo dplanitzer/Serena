@@ -40,6 +40,8 @@
     xref __SYSCALL_unlink
     xref __SYSCALL_rename
     xref __SYSCALL_ioctl
+    xref __SYSCALL_truncate
+    xref __SYSCALL_ftruncate
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
@@ -75,6 +77,8 @@ syscall_table:
     dc.l __SYSCALL_unlink
     dc.l __SYSCALL_rename
     dc.l __SYSCALL_ioctl
+    dc.l __SYSCALL_truncate
+    dc.l __SYSCALL_ftruncate
 
 
 ;-------------------------------------------------------------------------------

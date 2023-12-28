@@ -269,6 +269,34 @@ Int _SYSCALL_fsetfileinfo(const struct SYS_fsetfileinfo_args* _Nonnull pArgs)
 }
 
 
+struct SYS_truncate_args {
+    Int                         scno;
+    const Character* _Nullable  path;
+    FileOffset                  length;
+};
+
+Int _SYSCALL_truncate(const struct SYS_truncate_args* _Nonnull pArgs)
+{
+    if (pArgs->path == NULL) {
+        return EINVAL;
+    }
+
+    return Process_TruncateFile(Process_GetCurrent(), pArgs->path, pArgs->length);
+}
+
+
+struct SYS_ftruncate_args {
+    Int         scno;
+    Int         fd;
+    FileOffset  length;
+};
+
+Int _SYSCALL_ftruncate(const struct SYS_ftruncate_args* _Nonnull pArgs)
+{
+    return Process_TruncateFileFromIOChannel(Process_GetCurrent(), pArgs->fd, pArgs->length);
+}
+
+
 struct SYS_ioctl_args {
     Int                 scno;
     Int                 fd;

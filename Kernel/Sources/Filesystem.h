@@ -257,6 +257,15 @@ typedef struct _FilesystemMethodTable {
     // Verifies that the given node is accessible assuming the given access mode.
     ErrorCode (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, Int mode);
 
+    // Change the size of the file 'pNode' to 'length'. EINVAL is returned if
+    // the new length is negative. No longer needed blocks are deallocated if
+    // the new length is less than the old length and zero-fille blocks are
+    // allocated and assigned to the file if the new length is longer than the
+    // old length. Note that a filesystem implementation is free to defer the
+    // actual allocation of the new blocks until an attempt is made to read or
+    // write them.
+    ErrorCode (*truncate)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length);
+
     // Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
     // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
     // is guaranteed to exist and that it isn't a mountpoint and not the root
@@ -360,6 +369,9 @@ Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)
 
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
 Object_InvokeN(checkAccess, Filesystem, __self, __pNode, __user, __mode)
+
+#define Filesystem_Truncate(__self, __pNode, __user, __length) \
+Object_InvokeN(truncate, Filesystem, __self, __pNode, __user, __length)
 
 #define Filesystem_Unlink(__self, __pNode, __pParentNode, __user) \
 Object_InvokeN(unlink, Filesystem, __self, __pNode, __pParentNode, __user)

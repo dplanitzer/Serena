@@ -65,6 +65,10 @@ extern errno_t fgetfileinfo(int fd, struct _file_info_t* info);
 extern errno_t fsetfileinfo(int fd, struct _mutable_file_info_t* info);
 
 
+extern errno_t truncate(const char *path, off_t length);
+extern errno_t ftruncate(int fd, off_t length);
+
+
 extern errno_t ioctl(int fd, int cmd, ...);
 extern errno_t fdctl(int fd, int cmd, ...);
 

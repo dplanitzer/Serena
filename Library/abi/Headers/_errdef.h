@@ -44,9 +44,10 @@
 #define EEXIST      31
 #define EOVERFLOW   32
 #define EFBIG       33
+#define EISDIR      34
 
 #define __EFIRST    1
-#define __ELAST     33
+#define __ELAST     34
 
 typedef int __errno_t;
 

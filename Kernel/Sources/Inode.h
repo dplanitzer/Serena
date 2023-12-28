@@ -203,6 +203,10 @@ extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFil
 #define Inode_IsDirectory(__self) \
     (Inode_GetType(__self) == kInode_Directory)
 
+// Returns true if the node is a regular file; false otherwise.
+#define Inode_IsRegularFile(__self) \
+    (Inode_GetType(__self) == kInode_RegularFile)
+
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \
     (__self)->inid

@@ -955,6 +955,45 @@ catch:
     return err;
 }
 
+// Sets the length of an existing file. The file may either be reduced in size
+// or expanded.
+ErrorCode Process_TruncateFile(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileOffset length)
+{
+    decl_try_err();
+    PathResolverResult r;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_Truncate(r.filesystem, r.inode, pProc->realUser, length));
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
+// Same as above but the file is identified by the given I/O channel.
+ErrorCode Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, Int fd, FileOffset length)
+{
+    decl_try_err();
+    IOChannelRef pChannel;
+
+    try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
+    if (Object_InstanceOf(pChannel, File)) {
+        try(Filesystem_Truncate(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, length));
+    }
+    else if (Object_InstanceOf(pChannel, Directory)) {
+        throw(EISDIR);
+    }
+    else {
+        throw(ENOTDIR);
+    }
+
+catch:
+    Object_Release(pChannel);
+    return err;
+}
+
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
 ErrorCode Process_vIOControl(ProcessRef _Nonnull pProc, Int fd, Int cmd, va_list ap)

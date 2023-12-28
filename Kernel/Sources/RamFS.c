@@ -366,7 +366,7 @@ static ErrorCode RamFS_xRead(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked p
     }
 
     while (nBytesToRead > 0) {
-        const Int blockIdx = offset >> (FileOffset)kRamBlockSizeShift;
+        const Int blockIdx = (Int)(offset >> (FileOffset)kRamBlockSizeShift);   //XXX blockIdx should be 64bit
         const ByteCount blockOffset = offset & (FileOffset)kRamBlockSizeMask;
         const ByteCount nBytesAvailable = (ByteCount)__min((FileOffset)(kRamBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
         Byte* pDiskBlock;
@@ -397,7 +397,7 @@ static ErrorCode RamFS_xWrite(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked 
     }
 
     while (nBytesToWrite > 0) {
-        const Int blockIdx = offset >> (FileOffset)kRamBlockSizeShift;
+        const Int blockIdx = (Int)(offset >> (FileOffset)kRamBlockSizeShift);   //XXX blockIdx should be 64bit
         const ByteCount blockOffset = offset & (FileOffset)kRamBlockSizeMask;
         const ByteCount nBytesAvailable = __min(kRamBlockSize - blockOffset, nBytesToWrite);
         Byte* pDiskBlock;
@@ -749,6 +749,31 @@ ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir
     return (err == EOK) ? nBytesRead : -err;
 }
 
+// Opens a resource context/channel to the resource. This new resource context
+// will be represented by a (file) descriptor in user space. The resource context
+// maintains state that is specific to this connection. This state will be
+// protected by the resource's internal locking mechanism.
+ErrorCode RamFS_open(RamFSRef _Nonnull self, const Character* _Nonnull pPath, UInt mode, FileRef _Nullable * _Nonnull pOutFile)
+{
+    return EIO;
+}
+
+// Close the resource. The purpose of the close operation is:
+// - flush all data that was written and is still buffered/cached to the underlying device
+// - if a write operation is ongoing at the time of the close then let this write operation finish and sync the underlying device
+// - if a read operation is ongoing at the time of the close then interrupt the read with an EINTR error
+// The resource should be internally marked as closed and all future read/write/etc operations on the resource should do nothing
+// and instead return a suitable status. Eg a write should return EIO and a read should return EOF.
+// It is permissible for a close operation to block the caller for some (reasonable) amount of time to complete the flush.
+// The close operation may return an error. Returning an error will not stop the kernel from completing the close and eventually
+// deallocating the resource. The error is passed on to the caller but is purely advisory in nature. The close operation is
+// required to mark the resource as closed whether the close internally succeeded or failed. 
+ErrorCode RamFS_close(RamFSRef _Nonnull self, FileRef _Nonnull pFile)
+{
+    // Nothing to do for now
+    return EOK;
+}
+
 static ByteCount xCopyOutFileContent(Byte* _Nonnull pOut, const Byte* _Nonnull pIn, ByteCount nBytesToRead)
 {
     Bytes_CopyRange(pOut, pIn, nBytesToRead);
@@ -785,6 +810,68 @@ ByteCount RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const Byte
         &nBytesWritten);
     File_IncrementOffset(pFile, nBytesWritten);
     return (err == EOK) ? nBytesWritten : -err;
+}
+
+// Internal file truncation function. Shortens the file 'pNode' to the new and
+// smaller size 'length'. Does not support increasing the size of a file. Expects
+// that 'pNode' is a regular file.
+static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length)
+{
+    const FileOffset oldLength = Inode_GetFileSize(pNode);
+    const FileOffset oldLengthRoundedUpToBlockBoundary = __Ceil_PowerOf2(oldLength, kRamBlockSize);
+    const Int firstBlockIdx = (Int)(oldLengthRoundedUpToBlockBoundary >> (FileOffset)kRamBlockSizeShift);    //XXX blockIdx should be 64bit
+    RamBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
+
+    for (Int i = firstBlockIdx; i < kMaxDirectDataBlockPointers; i++) {
+        Byte* pBlockPtr = pBlockMap->p[i];
+
+        if (pBlockPtr) {
+            kfree(pBlockPtr);
+            pBlockMap->p[i] = NULL;
+        }
+    }
+
+    Inode_SetFileSize(pNode, length);
+    Inode_SetModified(pNode);
+}
+
+// Change the size of the file 'pNode' to 'length'. EINVAL is returned if
+// the new length is negative. No longer needed blocks are deallocated if
+// the new length is less than the old length and zero-fille blocks are
+// allocated and assigned to the file if the new length is longer than the
+// old length. Note that a filesystem implementation is free to defer the
+// actual allocation of the new blocks until an attempt is made to read or
+// write them.
+ErrorCode RamFS_truncate(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length)
+{
+    decl_try_err();
+
+    if (Inode_IsDirectory(pNode)) {
+        throw(EISDIR);
+    }
+    if (!Inode_IsRegularFile(pNode)) {
+        throw(ENOTDIR);
+    }
+    if (length < 0) {
+        throw(EINVAL);
+    }
+    try(Inode_CheckAccess(pNode, user, kFilePermission_Write));
+
+    const FileOffset oldLength = Inode_GetFileSize(pNode);
+    if (oldLength < length) {
+        // Expansion in size
+        // Just set the new file size. The needed blocks will be allocated on
+        // demand when read/write is called to manipulate the new data range.
+        Inode_SetFileSize(pNode, length);
+        Inode_SetModified(pNode); 
+    }
+    else if (oldLength > length) {
+        // Reduction in size
+        RamFS_xTruncateFile(self, pNode, length);
+    }
+
+catch:
+    return err;
 }
 
 // Verifies that the given node is accessible assuming the given access mode.
@@ -862,8 +949,11 @@ OVERRIDE_METHOD_IMPL(setFileInfo, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
+OVERRIDE_METHOD_IMPL(open, RamFS, IOResource)
+OVERRIDE_METHOD_IMPL(close, RamFS, IOResource)
 OVERRIDE_METHOD_IMPL(read, RamFS, IOResource)
 OVERRIDE_METHOD_IMPL(write, RamFS, IOResource)
+OVERRIDE_METHOD_IMPL(truncate, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(checkAccess, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(unlink, RamFS, Filesystem)
 OVERRIDE_METHOD_IMPL(rename, RamFS, Filesystem)

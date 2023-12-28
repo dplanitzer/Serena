@@ -532,6 +532,18 @@ ErrorCode Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EACCESS;
 }
 
+// Change the size of the file 'pNode' to 'length'. EINVAL is returned if
+// the new length is negative. No longer needed blocks are deallocated if
+// the new length is less than the old length and zero-fille blocks are
+// allocated and assigned to the file if the new length is longer than the
+// old length. Note that a filesystem implementation is free to defer the
+// actual allocation of the new blocks until an attempt is made to read or
+// write them.
+ErrorCode Filesystem_truncate(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length)
+{
+    return EIO;
+}
+
 // Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
 // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
 // is guaranteed to exist and that it isn't a mountpoint and not the root
@@ -570,6 +582,7 @@ METHOD_IMPL(openDirectory, Filesystem)
 METHOD_IMPL(readDirectory, Filesystem)
 METHOD_IMPL(closeDirectory, Filesystem)
 METHOD_IMPL(checkAccess, Filesystem)
+METHOD_IMPL(truncate, Filesystem)
 METHOD_IMPL(unlink, Filesystem)
 METHOD_IMPL(rename, Filesystem)
 );
