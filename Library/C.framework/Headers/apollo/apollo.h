@@ -27,11 +27,6 @@ typedef struct __waitpid_result_t waitpid_result_t;
 #define STDERR_FILENO   2
 
 
-#define O_RDONLY    0x0001
-#define O_WRONLY    0x0002
-#define O_RDWR      (O_RDONLY | O_WRONLY)
-
-
 // XXX make this SEEK_XXX and make stdio.h pick this up (and just this), once we're putting the real API in place
 #define S_WHENCE_SET    0
 #define S_WHENCE_CUR    1

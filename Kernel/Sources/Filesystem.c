@@ -122,7 +122,7 @@ ErrorCode Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull
     decl_try_err();
     DirectoryRef pDir;
 
-    try(IOChannel_AbstractCreate(&kDirectoryClass, (IOResourceRef)pFilesystem, FREAD, (IOChannelRef*)&pDir));
+    try(IOChannel_AbstractCreate(&kDirectoryClass, (IOResourceRef)pFilesystem, O_RDONLY, (IOChannelRef*)&pDir));
     pDir->inode = Inode_ReacquireUnlocked(pNode);
     pDir->offset = 0ll;
 

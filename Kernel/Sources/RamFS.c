@@ -752,10 +752,36 @@ ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir
 // Opens a resource context/channel to the resource. This new resource context
 // will be represented by a (file) descriptor in user space. The resource context
 // maintains state that is specific to this connection. This state will be
-// protected by the resource's internal locking mechanism.
-ErrorCode RamFS_open(RamFSRef _Nonnull self, const Character* _Nonnull pPath, UInt mode, FileRef _Nullable * _Nonnull pOutFile)
+// protected by the resource's internal locking mechanism. 'pNode' represents
+// the named resource instance that should be represented by the I/O channel.
+ErrorCode RamFS_open(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, UInt mode, User user, FileRef _Nullable * _Nonnull pOutFile)
 {
-    return EIO;
+    decl_try_err();
+    FilePermissions permissions = 0;
+
+    if (Inode_IsDirectory(pNode)) {
+        throw(EISDIR);
+    }
+
+    if ((mode & O_RDWR) == 0) {
+        throw(EACCESS);
+    }
+    if ((mode & O_RDONLY) != 0) {
+        permissions |= kFilePermission_Read;
+    }
+    if ((mode & O_WRONLY) != 0) {
+        permissions |= kFilePermission_Write;
+    }
+
+    try(Inode_CheckAccess(pNode, user, permissions));
+    try(File_Create((FilesystemRef)self, mode, pNode, pOutFile));
+
+    if ((mode & O_TRUNC) != 0) {
+        RamFS_xTruncateFile(self, pNode, 0);
+    }
+    
+catch:
+    return err;
 }
 
 // Close the resource. The purpose of the close operation is:

@@ -135,4 +135,12 @@ enum {
 #define IOChannelCommand(__cmd) -(__cmd)
 #define IsIOChannelCommand(__cmd) ((__cmd) < 0)
 
+
+#define O_RDONLY    0x0001
+#define O_WRONLY    0x0002
+#define O_RDWR      (O_RDONLY | O_WRONLY)
+#define O_APPEND    0x0004
+#define O_CREAT     0x0008
+#define O_TRUNC     0x0010
+
 #endif /* __KBIDEF_H */

@@ -554,7 +554,7 @@ UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, const Character* _Nonnull pPath, UInt mode, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
+ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, InodeRef _Nonnull _Locked pNode, UInt mode, User user, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     EventDriverChannelRef pChannel;

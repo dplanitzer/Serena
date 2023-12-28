@@ -39,13 +39,14 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 {
     decl_try_err();
     Console* pConsole;
+    User user = {kRootUserId, kRootGroupId};//XXX
 
     try(Object_Create(Console, &pConsole));
     
     Lock_Init(&pConsole->lock);
 
     pConsole->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(IOResource_Open(pConsole->eventDriver, "", FREAD, &pConsole->eventDriverChannel));
+    try(IOResource_Open(pConsole->eventDriver, NULL/*XXX*/, O_RDONLY, user, &pConsole->eventDriverChannel));
 
     pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
 
@@ -912,7 +913,7 @@ static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_actio
 // Read/Write
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Console_open(ConsoleRef _Nonnull pConsole, const Character* _Nonnull pPath, UInt mode, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
+ErrorCode Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked pNode, UInt mode, User user, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ConsoleChannelRef pChannel;

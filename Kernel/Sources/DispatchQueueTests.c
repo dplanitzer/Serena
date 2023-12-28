@@ -200,10 +200,11 @@ static void OnMainClosure(Byte* _Nonnull pValue)
     EventDriverRef pEventDriver;
     IOChannelRef pChannel;
     HIDEvent evt;
+    User user = {kRootUserId, kRootGroupId};
 
     pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
     assert(pEventDriver != NULL);
-    assert(IOResource_Open(pEventDriver, kEventsDriverName, FREAD, &pChannel) == EOK);
+    assert(IOResource_Open(pEventDriver, NULL/*XXX*/, O_RDONLY, user, &pChannel) == EOK);
 
     print("Event loop\n");
     while (true) {

@@ -837,6 +837,30 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask
     Lock_Unlock(&pProc->lock);
 }
 
+// Opens the given file or named resource. Opening directories is handled by the
+// Process_OpenDirectory() function.
+ErrorCode Process_Open(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, UInt options, Int* _Nonnull pOutDescriptor)
+{
+    decl_try_err();
+    PathResolverResult r;
+    FileRef pFile;
+
+    Lock_Lock(&pProc->lock);
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(IOResource_Open(r.filesystem, r.inode, options, pProc->realUser, (IOChannelRef*)&pFile));
+    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pFile, pOutDescriptor));
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    return EOK;
+
+catch:
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    Object_Release(pFile);
+    *pOutDescriptor = -1;
+    return err;
+}
+
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
 ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FilePermissions permissions)

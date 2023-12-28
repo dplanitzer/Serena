@@ -30,15 +30,17 @@ Int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
     }
 
     if (String_Equals(pArgs->path, "/dev/console")) {
+        User user = {kRootUserId, kRootGroupId}; //XXX
         try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-        try(IOResource_Open(pConsole, pArgs->path, pArgs->options, &pChannel));
+        try(IOResource_Open(pConsole, NULL/*XXX*/, pArgs->options, user, &pChannel));
         try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, &desc));
         Object_Release(pChannel);
-
-        return desc;
+    }
+    else {
+        try(Process_Open(Process_GetCurrent(), pArgs->path, pArgs->options, &desc));
     }
 
-    return ENODEV;
+    return desc;
 
 catch:
     Object_Release(pChannel);

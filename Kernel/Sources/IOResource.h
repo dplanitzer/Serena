@@ -10,6 +10,7 @@
 #define IOResource_h
 
 #include <klib/klib.h>
+#include "Inode.h"
 
 CLASS_FORWARD(IOResource);
 
@@ -33,9 +34,6 @@ typedef struct _IOChannelMethodTable {
     ErrorCode   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence);
     ErrorCode   (*close)(void* _Nonnull self);
 } IOChannelMethodTable;
-
-#define FREAD   0x0001
-#define FWRITE  0x0002
 
 
 // I/O Channel functions for use by I/O channel users.
@@ -95,8 +93,9 @@ typedef struct _IOResourceMethodTable {
     // Opens a resource context/channel to the resource. This new resource context
     // will be represented by a (file) descriptor in user space. The resource context
     // maintains state that is specific to this connection. This state will be
-    // protected by the resource's internal locking mechanism.
-    ErrorCode   (*open)(void* _Nonnull self, const Character* _Nonnull pPath, UInt mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    // protected by the resource's internal locking mechanism. 'pNode' represents
+    // the named resource instance that should be represented by the I/O channel. 
+    ErrorCode   (*open)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, UInt mode, User user, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Creates an independent copy of the passed in I/O channel. Note that this function
     // is allowed to return a strong reference to the channel that was passed in if
@@ -122,8 +121,8 @@ typedef struct _IOResourceMethodTable {
     ErrorCode   (*close)(void* _Nonnull self, IOChannelRef _Nonnull pChannel);
 } IOResourceMethodTable;
 
-#define IOResource_Open(__self, __pPath, __options, __pOutChannel) \
-Object_InvokeN(open, IOResource, __self, __pPath, __options, __pOutChannel)
+#define IOResource_Open(__self, __pNode, __options, __user, __pOutChannel) \
+Object_InvokeN(open, IOResource, __self, __pNode, __options, __user, __pOutChannel)
 
 #define IOResource_Dup(__self, __pChannel, __pOutChannel) \
 Object_InvokeN(dup, IOResource, __self, __pChannel, __pOutChannel)

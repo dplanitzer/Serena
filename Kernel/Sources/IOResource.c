@@ -23,7 +23,7 @@ ErrorCode IOChannel_AbstractCreate(ClassRef _Nonnull pClass, IOResourceRef _Nonn
 
     try(_Object_Create(pClass, 0, (ObjectRef*)&pChannel));
     pChannel->resource = Object_RetainAs(pResource, IOResource);
-    pChannel->mode = mode;
+    pChannel->mode = mode & (O_RDWR | O_APPEND);
 
 catch:
     *pOutChannel = pChannel;
@@ -68,7 +68,7 @@ ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
 
 ByteCount IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
-    if ((self->mode & FREAD) == 0) {
+    if ((self->mode & O_RDONLY) == 0) {
         return -EBADF;
     }
 
@@ -77,7 +77,7 @@ ByteCount IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, Byt
 
 ByteCount IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
 {
-    if ((self->mode & FWRITE) == 0) {
+    if ((self->mode & O_WRONLY) == 0) {
         return -EBADF;
     }
 
@@ -119,8 +119,9 @@ OVERRIDE_METHOD_IMPL(deinit, IOChannel, Object)
 // Opens a resource context/channel to the resource. This new resource context
 // will be represented by a (file) descriptor in user space. The resource context
 // maintains state that is specific to this connection. This state will be
-// protected by the resource's internal locking mechanism.
-ErrorCode IOResource_open(IOResourceRef _Nonnull self, const Character* _Nonnull pPath, UInt mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+// protected by the resource's internal locking mechanism. 'pNode' represents
+// the named resource instance that should be represented by the I/O channel.
+ErrorCode IOResource_open(IOResourceRef _Nonnull self, InodeRef _Nonnull _Locked pNode, UInt mode, User user, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     *pOutChannel = NULL;
     return EBADF;

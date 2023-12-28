@@ -236,10 +236,11 @@ static Character    gPrintBuffer[PRINT_BUFFER_CAPACITY];
 // Initializes the print subsystem.
 void print_init(void)
 {
+    User user = {kRootUserId, kRootGroupId}; //XXX
     Lock_Init(&gLock);
     gConsole = (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
     assert(gConsole != NULL);
-    try_bang(IOResource_Open(gConsole, kConsoleName, FWRITE, &gConsoleChannel));
+    try_bang(IOResource_Open(gConsole, NULL/*XXX*/, O_WRONLY, user, &gConsoleChannel));
 }
 
 // Print formatted

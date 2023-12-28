@@ -127,6 +127,10 @@ extern FilePermissions Process_GetFileCreationMask(ProcessRef _Nonnull pProc);
 // Sets the file creation mask of the receiver.
 extern void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask);
 
+// Opens the given file or named resource. Opening directories is handled by the
+// Process_OpenDirectory() function.
+extern ErrorCode Process_Open(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, UInt options, Int* _Nonnull pOutDescriptor);
+
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
 extern ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FilePermissions permissions);
