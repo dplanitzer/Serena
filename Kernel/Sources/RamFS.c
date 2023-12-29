@@ -7,6 +7,7 @@
 //
 
 #include "RamFSPriv.h"
+#include "MonotonicClock.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -167,15 +168,16 @@ ErrorCode RamFS_onWriteNodeToDisk(RamFSRef _Nonnull self, InodeRef _Nonnull _Loc
     const Int dIdx = RamFS_GetIndexOfDiskNodeForId(self, Inode_GetId(pNode));
     if (dIdx < 0) throw(ENOENT);
     RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
 
     if (Inode_IsAccessed(pNode)) {
-        pDiskNode->accessTime = kTimeInterval_Zero; //XXX use current time
+        pDiskNode->accessTime = curTime;
     }
     if (Inode_IsUpdated(pNode)) {
-        pDiskNode->accessTime = kTimeInterval_Zero; //XXX use current time
+        pDiskNode->accessTime = curTime;
     }
     if (Inode_IsStatusChanged(pNode)) {
-        pDiskNode->statusChangeTime = kTimeInterval_Zero; //XXX use current time
+        pDiskNode->statusChangeTime = curTime;
     }
     pDiskNode->size = Inode_GetFileSize(pNode);
     pDiskNode->linkCount = Inode_GetLinkCount(pNode);
