@@ -8,6 +8,7 @@
 
 #include "Inode.h"
 #include "FilesystemManager.h"
+#include "MonotonicClock.h"
 
 ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, Int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
 {
@@ -90,12 +91,34 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
 // Returns a file info record from the node data.
 void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    pOutInfo->accessTime.seconds = self->accessTime.seconds;
-    pOutInfo->accessTime.nanoseconds = self->accessTime.nanoseconds;
-    pOutInfo->modificationTime.seconds = self->modificationTime.seconds;
-    pOutInfo->modificationTime.nanoseconds = self->modificationTime.nanoseconds;
-    pOutInfo->statusChangeTime.seconds = self->statusChangeTime.seconds;
-    pOutInfo->statusChangeTime.nanoseconds = self->statusChangeTime.nanoseconds;
+    TimeInterval curTime;
+
+    if (Inode_IsModified(self)) {
+        curTime = MonotonicClock_GetCurrentTime();
+    }
+
+    if (Inode_IsAccessed(self)) {
+        pOutInfo->accessTime.seconds = curTime.seconds;
+        pOutInfo->accessTime.nanoseconds = curTime.nanoseconds;
+    } else {
+        pOutInfo->accessTime.seconds = self->accessTime.seconds;
+        pOutInfo->accessTime.nanoseconds = self->accessTime.nanoseconds;
+    }
+    if (Inode_IsUpdated(self)) {
+        pOutInfo->modificationTime.seconds = curTime.seconds;
+        pOutInfo->modificationTime.nanoseconds = curTime.nanoseconds;
+    } else {
+        pOutInfo->modificationTime.seconds = self->modificationTime.seconds;
+        pOutInfo->modificationTime.nanoseconds = self->modificationTime.nanoseconds;
+    }
+    if (Inode_IsStatusChanged(self)) {
+        pOutInfo->statusChangeTime.seconds = curTime.seconds;
+        pOutInfo->statusChangeTime.nanoseconds = curTime.nanoseconds;
+    } else {
+        pOutInfo->statusChangeTime.seconds = self->statusChangeTime.seconds;
+        pOutInfo->statusChangeTime.nanoseconds = self->statusChangeTime.nanoseconds;
+    }
+    
     pOutInfo->size = self->size;
     pOutInfo->uid = self->uid;
     pOutInfo->gid = self->gid;
