@@ -94,7 +94,7 @@ static Int RamFS_GetIndexOfDiskNodeForId(RamFSRef _Nonnull self, InodeId id)
 // Invoked when Filesystem_AllocateNode() is called. Subclassers should
 // override this method to allocate the on-disk representation of an inode
 // of the given type.
-ErrorCode RamFS_onAllocateNodeOnDisk(RamFSRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
+ErrorCode RamFS_onAllocateNodeOnDisk(RamFSRef _Nonnull self, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
 {
     decl_try_err();
     const InodeId id = (InodeId) self->nextAvailableInodeId++;
@@ -148,6 +148,9 @@ ErrorCode RamFS_onReadNodeFromDisk(RamFSRef _Nonnull self, InodeId id, void* _Nu
         pDiskNode->gid,
         pDiskNode->permissions,
         pDiskNode->size,
+        pDiskNode->accessTime,
+        pDiskNode->modificationTime,
+        pDiskNode->statusChangeTime,
         &pDiskNode->blockMap,
         pOutNode);
 
@@ -165,11 +168,20 @@ ErrorCode RamFS_onWriteNodeToDisk(RamFSRef _Nonnull self, InodeRef _Nonnull _Loc
     if (dIdx < 0) throw(ENOENT);
     RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
 
+    if (Inode_IsAccessed(pNode)) {
+        pDiskNode->accessTime = kTimeInterval_Zero; //XXX use current time
+    }
+    if (Inode_IsUpdated(pNode)) {
+        pDiskNode->accessTime = kTimeInterval_Zero; //XXX use current time
+    }
+    if (Inode_IsStatusChanged(pNode)) {
+        pDiskNode->statusChangeTime = kTimeInterval_Zero; //XXX use current time
+    }
+    pDiskNode->size = Inode_GetFileSize(pNode);
     pDiskNode->linkCount = Inode_GetLinkCount(pNode);
     pDiskNode->uid = Inode_GetUserId(pNode);
     pDiskNode->gid = Inode_GetGroupId(pNode);
     pDiskNode->permissions = Inode_GetFilePermissions(pNode);
-    pDiskNode->size = Inode_GetFileSize(pNode);
     return EOK;
 
 catch:
@@ -382,6 +394,9 @@ static ErrorCode RamFS_xRead(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked p
 
 catch:
     *pOutBytesRead = nOriginalBytesToRead - nBytesToRead;
+    if (*pOutBytesRead > 0) {
+        Inode_SetModified(pNode, kInodeFlag_Accessed);
+    }
     return err;
 }
 
@@ -413,7 +428,7 @@ catch:
         if (offset > Inode_GetFileSize(pNode)) {
             Inode_SetFileSize(pNode, offset);
         }
-        Inode_SetModified(pNode);
+        Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
     }
     *pOutBytesWritten = nBytesWritten;
     return err;
@@ -618,7 +633,7 @@ static ErrorCode RamFS_InsertDirectoryEntry(RamFSRef _Nonnull self, InodeRef _No
 
     // Mark the directory as modified
     if (err == EOK) {
-        Inode_SetModified(pDirNode);
+        Inode_SetModified(pDirNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
     }
 
 catch:
@@ -630,7 +645,7 @@ static ErrorCode RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId p
     decl_try_err();
     InodeRef _Locked pDirNode = NULL;
 
-    try(Filesystem_AllocateNode((FilesystemRef)self, kInode_Directory, uid, gid, permissions, NULL, &pDirNode));
+    try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_Directory, uid, gid, permissions, NULL, &pDirNode));
     const InodeId id = Inode_GetId(pDirNode);
 
     try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Self, id, NULL));
@@ -795,7 +810,7 @@ ErrorCode RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull
 
 
     // Create the new file and add it to its parent directory
-    try(Filesystem_AllocateNode((FilesystemRef)self, kInode_RegularFile, user.uid, user.gid, permissions, NULL, pOutNode));
+    try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_RegularFile, user.uid, user.gid, permissions, NULL, pOutNode));
     try(RamFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(*pOutNode), pEmptyEntry));
 
     return EOK;
@@ -914,7 +929,7 @@ static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locke
     }
 
     Inode_SetFileSize(pNode, length);
-    Inode_SetModified(pNode);
+    Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 }
 
 // Change the size of the file 'pNode' to 'length'. EINVAL is returned if
@@ -945,7 +960,7 @@ ErrorCode RamFS_truncate(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
         // Just set the new file size. The needed blocks will be allocated on
         // demand when read/write is called to manipulate the new data range.
         Inode_SetFileSize(pNode, length);
-        Inode_SetModified(pNode); 
+        Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged); 
     }
     else if (oldLength > length) {
         // Reduction in size
@@ -1000,6 +1015,7 @@ ErrorCode RamFS_unlink(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeTo
 
     // Unlink the node itself
     Inode_Unlink(pNodeToUnlink);
+    Inode_SetModified(pNodeToUnlink, kInodeFlag_StatusChanged);
 
 catch:
     return err;

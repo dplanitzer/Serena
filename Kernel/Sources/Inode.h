@@ -49,16 +49,18 @@ enum {
 
 
 // The Inode type.
-typedef enum _InodeType {
-    kInode_RegularFile = 0,     // A regular file that stores data
-    kInode_Directory,           // A directory which stores information about child nodes
-} InodeType;
+enum {
+    kFileType_RegularFile = 0,  // A regular file that stores data
+    kFileType_Directory,        // A directory which stores information about child nodes
+};
 
 
 // Inode flags
 enum {
-    kInodeFlag_IsMountpoint = 1,    // owned and protected by the FilesystemManager lock
-    kInodeFlag_IsModified = 2,      // owned and protected by the Inode lock
+    kInodeFlag_IsMountpoint = 0x01,     // [FilesystemManager lock]
+    kInodeFlag_Accessed = 0x04,         // [Inode lock] access date needs update
+    kInodeFlag_Updated = 0x02,          // [Inode lock] mod date needs update
+    kInodeFlag_StatusChanged = 0x08,    // [Inode lock] status changed date needs update
 };
 
 
@@ -67,17 +69,21 @@ enum {
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
 typedef struct _Inode {
+    TimeInterval        accessTime;
+    TimeInterval        modificationTime;
+    TimeInterval        statusChangeTime;
+    FileOffset          size;       // File size
     Lock                lock;
     FilesystemId        fsid;       // Globally unique ID of the filesystem that owns this node
     InodeId             inid;       // Filesystem specific ID of the inode
-    FileOffset          size;       // File size
     Int                 useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
     Int                 linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
     void*               refcon;     // Filesystem specific information
     FileType            type;
     UInt8               flags;
     FilePermissions     permissions;
-    User                user;
+    UserId              uid;
+    GroupId             gid;
 } Inode;
 typedef struct _Inode* InodeRef;
 
@@ -88,11 +94,17 @@ typedef struct _Inode* InodeRef;
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, Int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode);
+extern ErrorCode Inode_Create(FilesystemId fsid, InodeId id,
+                    FileType type,
+                    Int linkCount,
+                    UserId uid, GroupId gid, FilePermissions permissions,
+                    FileOffset size,
+                    TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+                    void* refcon,
+                    InodeRef _Nullable * _Nonnull pOutNode);
 extern void Inode_Destroy(InodeRef _Nonnull self);
 
-#define Inode_GetLinkCount(__self) \
-    (__self)->linkCount
+// Inode locking
 
 #define Inode_Lock(__self) \
     Lock_Lock(&((InodeRef)__self)->lock)
@@ -101,12 +113,50 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
     Lock_Unlock(&((InodeRef)__self)->lock)
 
 
-// Increment/decrement the link count
+// Inode timestamps
+
+#define Inode_GetAccessTime(__self) \
+    (__self)->accessTime
+
+#define Inode_GetModificationTime(__self) \
+    (__self)->modificationTime
+
+#define Inode_GetStatusChangeTime(__self) \
+    (__self)->statusChangeTime
+
+
+// Inode modified and timestamp changed flags
+
+#define Inode_IsModified(__self) \
+    (((__self)->flags & (kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged)) != 0)
+
+#define Inode_SetModified(__self, __mflags) \
+    ((__self)->flags |= ((__mflags) & (kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged)))
+
+#define Inode_ClearModified(__self) \
+    ((__self)->flags &= ~(kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged))
+
+#define Inode_IsAccessed(__self) \
+    (((__self)->flags & kInodeFlag_Accessed) != 0)
+
+#define Inode_IsUpdated(__self) \
+    (((__self)->flags & kInodeFlag_Updated) != 0)
+
+#define Inode_IsStatusChanged(__self) \
+    (((__self)->flags & kInodeFlag_StatusChanged) != 0)
+
+
+// Inode link counts
+
+#define Inode_GetLinkCount(__self) \
+    (__self)->linkCount
+
 #define Inode_Link(__self) \
     (__self)->linkCount++
 
 #define Inode_Unlink(__self) \
     (__self)->linkCount--
+
 
 // Associate/disassociate filesystem specific information with the node. The
 // inode will not free this pointer.
@@ -124,32 +174,28 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
 #define Inode_SetFilePermissions(__self, __perms) \
     (__self)->permissions = __perms
 
-// Returns the user of the node.
-#define Inode_GetUser(__self) \
-    (__self)->user
-
-#define Inode_SetUser(__self, __user) \
-    (__self)->user = __user
-
 // Returns the User ID of the node.
 #define Inode_GetUserId(__self) \
-    (__self)->user.uid
+    (__self)->uid
 
 #define Inode_SetUserId(__self, __uid) \
-    (__self)->user.uid = __uid
+    (__self)->uid = __uid
 
 // Returns the group ID of the node.
 #define Inode_GetGroupId(__self) \
-    (__self)->user.gid
+    (__self)->gid
 
 #define Inode_SetGroupId(__self, __gid) \
-    (__self)->user.gid = __gid
+    (__self)->gid = __gid
 
 // Returns EOK if the given user has at least the permissions 'permission' to
 // access and/or manipulate the node; a suitable error code otherwise. The
 // 'permission' parameter represents a set of the permissions of a single
 // permission scope.
 extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
+
+
+// Inode file size
 
 #define Inode_GetFileSize(__self) \
     (__self)->size
@@ -163,11 +209,6 @@ extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermis
 #define Inode_DecrementFileSize(__self, __delta) \
     (__self)->size -= (__delta)
 
-#define Inode_IsModified(__self) \
-    (((__self)->flags & kInodeFlag_IsModified) != 0)
-
-#define Inode_SetModified(__self) \
-    ((__self)->flags |= kInodeFlag_IsModified)
 
 // Returns a file info record from the node data.
 extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
@@ -196,16 +237,16 @@ extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFil
 //
 
 // Returns the type of the node.
-#define Inode_GetType(__self) \
+#define Inode_GetFileType(__self) \
     (__self)->type
 
 // Returns true if the node is a directory; false otherwise.
 #define Inode_IsDirectory(__self) \
-    (Inode_GetType(__self) == kInode_Directory)
+    (Inode_GetFileType(__self) == kFileType_Directory)
 
 // Returns true if the node is a regular file; false otherwise.
 #define Inode_IsRegularFile(__self) \
-    (Inode_GetType(__self) == kInode_RegularFile)
+    (Inode_GetFileType(__self) == kFileType_RegularFile)
 
 // Returns the filesystem specific ID of the node.
 #define Inode_GetId(__self) \

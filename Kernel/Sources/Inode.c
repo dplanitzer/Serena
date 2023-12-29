@@ -9,23 +9,27 @@
 #include "Inode.h"
 #include "FilesystemManager.h"
 
-ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, Int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
+ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, Int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef self;
 
     try(kalloc_cleared(sizeof(Inode), (void**) &self));
+    self->accessTime = accessTime;
+    self->modificationTime = modTime;
+    self->statusChangeTime = statusChangeTime;
+    self->size = size;
     Lock_Init(&self->lock);
     self->fsid = fsid;
     self->inid = id;
     self->useCount = 0;
     self->linkCount = linkCount;
-    self->size = size;
-    self->type = type;
-    self->permissions = permissions;
-    self->user.uid = uid;
-    self->user.gid = gid;
     self->refcon = refcon;
+    self->type = type;
+    self->flags = 0;
+    self->permissions = permissions;
+    self->uid = uid;
+    self->gid = gid;
 
     *pOutNode = self;
     return EOK;
@@ -86,15 +90,15 @@ ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions p
 // Returns a file info record from the node data.
 void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    pOutInfo->accessTime.seconds = 0;
-    pOutInfo->accessTime.nanoseconds = 0;
-    pOutInfo->modificationTime.seconds = 0;
-    pOutInfo->modificationTime.nanoseconds = 0;
-    pOutInfo->statusChangeTime.seconds = 0;
-    pOutInfo->statusChangeTime.nanoseconds = 0;
+    pOutInfo->accessTime.seconds = self->accessTime.seconds;
+    pOutInfo->accessTime.nanoseconds = self->accessTime.nanoseconds;
+    pOutInfo->modificationTime.seconds = self->modificationTime.seconds;
+    pOutInfo->modificationTime.nanoseconds = self->modificationTime.nanoseconds;
+    pOutInfo->statusChangeTime.seconds = self->statusChangeTime.seconds;
+    pOutInfo->statusChangeTime.nanoseconds = self->statusChangeTime.nanoseconds;
     pOutInfo->size = self->size;
-    pOutInfo->uid = self->user.uid;
-    pOutInfo->gid = self->user.gid;
+    pOutInfo->uid = self->uid;
+    pOutInfo->gid = self->gid;
     pOutInfo->permissions = self->permissions;
     pOutInfo->type = self->type;
     pOutInfo->reserved = 0;
@@ -119,11 +123,11 @@ ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* 
 
     // We got permissions. Now update the data as requested.
     if ((modify & kModifyFileInfo_UserId) == kModifyFileInfo_UserId) {
-        self->user.uid = pInfo->uid;
+        self->uid = pInfo->uid;
     }
 
     if ((modify & kModifyFileInfo_GroupId) == kModifyFileInfo_GroupId) {
-        self->user.gid = pInfo->gid;
+        self->gid = pInfo->gid;
     }
 
     if ((modify & kModifyFileInfo_Permissions) == kModifyFileInfo_Permissions) {
@@ -131,7 +135,19 @@ ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* 
         self->permissions |= (pInfo->permissions & pInfo->permissionsModifyMask);
     }
 
-    // XXX handle modifiable time values
+    // Update timestamps
+    if ((modify & kModifyFileInfo_AccessTime) == kModifyFileInfo_AccessTime) {
+        self->accessTime.seconds = pInfo->accessTime.seconds;
+        self->accessTime.nanoseconds = pInfo->accessTime.nanoseconds;
+        Inode_SetModified(self, kInodeFlag_Accessed);
+    }
+    if ((modify & kModifyFileInfo_ModificationTime) == kModifyFileInfo_ModificationTime) {
+        self->modificationTime.seconds = pInfo->modificationTime.seconds;
+        self->modificationTime.nanoseconds = pInfo->modificationTime.nanoseconds;
+        Inode_SetModified(self, kInodeFlag_Updated);
+    }
+
+    Inode_SetModified(self, kInodeFlag_StatusChanged);
 
     return EOK;
 }

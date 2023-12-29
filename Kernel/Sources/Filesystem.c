@@ -248,7 +248,7 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
 // by the same lock that is used to protect the acquisition, relinquishing,
 // write-back and deletion of inodes. The returned inode id is not visible to
 // any other thread of execution until it is explicitly shared with other code.
-ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeId id = 0;
@@ -264,7 +264,7 @@ ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, InodeType type, U
     Inode_SetUserId(pNode, uid);
     Inode_SetGroupId(pNode, gid);
     Inode_SetFilePermissions(pNode, permissions);
-    Inode_SetModified(pNode);
+    Inode_SetModified(pNode, kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
 
     Lock_Unlock(&self->inodeManagementLock);
     *pOutNode = pNode;
@@ -359,6 +359,7 @@ void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _
     
     Lock_Lock(&self->inodeManagementLock);
 
+    // XXX take FS readonly status into account here
     assert(pNode->linkCount >= 0);
     if (pNode->linkCount == 0) {
         Filesystem_OnRemoveNodeFromDisk(self, Inode_GetId(pNode));
@@ -366,6 +367,7 @@ void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _
     else if (Inode_IsModified(pNode)) {
         Filesystem_OnWriteNodeToDisk(self, pNode);
     }
+    Inode_ClearModified(pNode);
 
     assert(pNode->useCount > 0);
     pNode->useCount--;
@@ -392,7 +394,7 @@ Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
 // Invoked when Filesystem_AllocateNode() is called. Subclassers should
 // override this method to allocate the on-disk representation of an inode
 // of the given type.
-ErrorCode Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, InodeType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
+ErrorCode Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
 {
     return EIO;
 }

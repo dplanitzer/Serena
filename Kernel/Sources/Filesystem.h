@@ -300,7 +300,7 @@ typedef struct _FilesystemMethodTable {
     // Invoked when Filesystem_AllocateNode() is called. Subclassers should
     // override this method to allocate the on-disk representation of an inode
     // of the given type.
-    ErrorCode (*onAllocateNodeOnDisk)(void* _Nonnull, InodeType type, void* _Nullable pContext, InodeId* _Nonnull pOutId);
+    ErrorCode (*onAllocateNodeOnDisk)(void* _Nonnull, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId);
 
     // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested
     // inode off the disk. The override should read the inode data from the disk,
@@ -416,7 +416,7 @@ extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nul
 // by the same lock that is used to protect the acquisition, relinquishing,
 // write-back and deletion of inodes. The returned inode id is not visible to
 // any other thread of execution until it is explicitly shared with other code.
-extern ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, InodeType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+extern ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
 // Acquires the inode with the ID 'id'. The node is returned in a locked state.
 // This methods guarantees that there will always only be at most one inode instance

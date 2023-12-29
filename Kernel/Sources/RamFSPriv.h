@@ -19,7 +19,7 @@
 #define kRamBlockSizeMask       (kRamBlockSize - 1)
 #define kRamDirectoryEntriesPerBlock        (kRamBlockSize / sizeof(RamDirectoryEntry))
 #define kRamDirectoryEntriesPerBlockMask    (kRamDirectoryEntriesPerBlock - 1)
-#define kMaxDirectDataBlockPointers 120
+#define kMaxDirectDataBlockPointers 114
 
 
 //
@@ -67,20 +67,23 @@ typedef struct _RamBlockMap {
 // directly instead of copying it back and forth. That's okay because the inode
 // lock effectively protects the disk node sitting behind the inode. 
 typedef struct _RamDiskNode {
+    TimeInterval        accessTime;
+    TimeInterval        modificationTime;
+    TimeInterval        statusChangeTime;
+    FileOffset          size;
     InodeId             id;
     UserId              uid;
     GroupId             gid;
     FilePermissions     permissions;
     Int                 linkCount;
-    InodeType           type;
-    FileOffset          size;
+    FileType            type;
     RamBlockMap         blockMap;
 } RamDiskNode;
 typedef RamDiskNode* RamDiskNodeRef;
 
 
 //
-// RamFS Inode Refcon
+// RamFS Inode Block Map
 //
 
 #define Inode_GetBlockMap(__self) \
