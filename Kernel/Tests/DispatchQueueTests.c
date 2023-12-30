@@ -1,20 +1,22 @@
 //
 //  DispatchQueueTests.c
-//  Apollo
+//  Kernel Tests
 //
 //  Created by Dietmar Planitzer on 5/3/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <klib/klib.h>
-#include "DispatchQueue.h"
-#include "DriverManager.h"
-#include "EventDriver.h"
-#include "MonotonicClock.h"
-#include "Pipe.h"
-#include "SystemDescription.h"
-#include "RealtimeClock.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <syscall.h>
+#include <apollo/apollo.h>
 
+// XXX
+// XXX Port these to user space (was written for kernel space originally)
+// XXX
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -194,7 +196,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#if 1
+#if 0
 static void OnMainClosure(Byte* _Nonnull pValue)
 {
     EventDriverRef pEventDriver;

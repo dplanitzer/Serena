@@ -112,7 +112,7 @@ static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull p
     }
 
 
-    // Only add 'pLine' to teh history if it is different from what's currently
+    // Only add 'pLine' to the history if it is different from what's currently
     // on top of the history stack
     if (self->historyCount > 0) {
         if (!strcmp(self->history[self->historyCount - 1], pLine)) {

@@ -177,7 +177,6 @@ static void OnMain(void)
     init_boot_filesystem();
 
 
-#if 1
     // Create the root process
     ProcessRef pRootProc;
     try_bang(RootProcess_Create(&pRootProc));
@@ -188,12 +187,4 @@ static void OnMain(void)
 
     // Get the root process going
     try_bang(RootProcess_Exec(pRootProc, (void*)0xfe0000));
-#else
-    // XXX Unit tests
-    void DispatchQueue_RunTests(void);
-
-    //InterruptController_Dump(gInterruptController);
-    DispatchQueue_RunTests();
-    // XXX
-#endif
 }
