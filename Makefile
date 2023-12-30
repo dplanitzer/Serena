@@ -74,9 +74,13 @@ export KERNEL_BUILD_DIR := $(BUILD_DIR)/Kernel
 export KERNEL_PRODUCT_DIR := $(PRODUCT_DIR)/Kernel
 export KERNEL_TESTS_BUILD_DIR := $(BUILD_DIR)/Kernel/Tests
 
+SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/sh
+export SH_BUILD_DIR := $(BUILD_DIR)/Commands/sh
+
 ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
 export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/Kernel.bin
 export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/KernelTests.bin
+export SH_BIN_FILE := $(SH_BUILD_DIR)/sh.bin
 
 LIBABI_PROJECT_DIR := $(WORKSPACE_DIR)/Library/abi
 export LIBABI_HEADERS_DIR := $(LIBABI_PROJECT_DIR)/Headers
@@ -103,6 +107,7 @@ all:
 	$(MAKE) build-libc
 	$(MAKE) build-kernel
 	$(MAKE) build-kernel-tests
+	$(MAKE) build-sh
 	$(MAKE) build-kernel-rom
 	@echo Done
 
@@ -112,16 +117,23 @@ include $(KERNEL_PROJECT_DIR)/project.mk
 
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
+include $(SH_PROJECT_DIR)/project.mk
+
 build-kernel-rom: $(ROM_FILE)
 
-$(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
+#$(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
+#	@echo Making ROM
+#	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
+
+$(ROM_FILE): $(KERNEL_BIN_FILE) $(SH_BIN_FILE) finalizerom.py
 	@echo Making ROM
-	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
+	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(SH_BIN_FILE) $(ROM_FILE)
 
 
 clean-kernel-rom:
 	$(MAKE) clean-kernel
 	$(MAKE) clean-kernel-tests
+	$(MAKE) clean-sh
 	
 clean:
 	@echo Cleaning...
