@@ -22,14 +22,7 @@ At this point a very simple shell exists which allows you to navigate the RAM-ba
 
 Finally there is the beginning of a standard C library for user space programs available. The library implements C99 level functionality.
 
-The following hardware is supported at this time:
-
-* Amiga 2000, 3000 and 4000 motherboards
-* Newer than the original chipsets work, but their specific features are not used
-* Motorola 68030, 68040 and 68060 CPU. Note that the CPU has to be at least a 68030 class CPU
-* Motorola 68881 and 68882 FPU
-* Standard Commodore Amiga floppy drive
-* Zorro II and Zorro III memory expansion boards
+## Features
 
 The following kernel services are implemented at this time:
 
@@ -64,6 +57,17 @@ The following user space programs are available at this time:
 * A simple shell with command history support
 
 The level of completeness and correctness of the various modules varies quite a bit at this time. Things are generically planned to improve over time :)
+
+## Supported Hardware
+
+The following hardware is supported at this time:
+
+* Amiga 2000, 3000 and 4000 motherboards
+* Newer than the original chipsets work, but their specific features are not used
+* Motorola 68030, 68040 and 68060 CPU. Note that the CPU has to be at least a 68030 class CPU
+* Motorola 68881 and 68882 FPU
+* Standard Commodore Amiga floppy drive
+* Zorro II and Zorro III memory expansion boards
 
 ## Getting Started
 
