@@ -91,7 +91,7 @@ static inline Rect Rect_Make(Int left, Int top, Int right, Int bottom) {
 }
 
 static inline Bool Rect_IsEmpty(Rect r) {
-    return (r.right == r.left) || (r.bottom == r.top);
+    return (r.right <= r.left) || (r.bottom <= r.top);
 }
 
 static inline Bool Rect_IsInfinite(Rect r) {

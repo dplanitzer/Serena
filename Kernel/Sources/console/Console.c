@@ -187,7 +187,7 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
         }
 
         GraphicsDriver_FillRect(pConsole->gdevice,
-                            Rect_Make(left * pConsole->characterWidth, y * pConsole->lineHeight, right * pConsole->characterWidth, pConsole->lineHeight),
+                            Rect_Make(left * pConsole->characterWidth, y * pConsole->lineHeight, right * pConsole->characterWidth, (y + 1) * pConsole->lineHeight),
                             Color_MakeIndex(0));
     }
 }

@@ -195,10 +195,9 @@ void main_closure(int argc, char *argv[])
 
 
     LineReaderRef pLineReader;
-    LineReader_Create(79, &pLineReader);
+    LineReader_Create(79, 10, ">", &pLineReader);
 
     while (true) {
-        printf(">");
         char* line = LineReader_ReadLine(pLineReader);
         puts("");
         parse_and_execute_line(line);
