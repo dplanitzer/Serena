@@ -909,7 +909,7 @@ ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Non
 {
     decl_try_err();
     PathResolverResult r;
-    DirectoryRef pDir;
+    DirectoryRef pDir = NULL;
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));

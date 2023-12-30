@@ -20,7 +20,7 @@ static void _chdir(const char* path)
     const errno_t err = setcwd(path);
 
     if (err != 0) {
-        printf("chdir error: %s\n", strerror(err));
+        printf("Error: %s.\n", strerror(err));
     }
 }
 
@@ -28,16 +28,17 @@ static void _mkdir(const char* path)
 {
     const errno_t err = mkdir(path, 0777);
     if (err != 0) {
-        printf("mkdir error: %s\n", strerror(err));
+        printf("Error: %s.\n", strerror(err));
     }
 }
 
 static int _opendir(const char* path)
 {
-    int fd;
+    int fd = -1;
     const errno_t err = opendir(path, &fd);
+
     if (err != 0) {
-        printf("opendir error: %s\n", strerror(err));
+        printf("Error: %s.\n", strerror(err));
     }
     return fd;
 }
@@ -47,7 +48,7 @@ static size_t _read(int fd, void* buffer, size_t nbytes)
     ssize_t r = read(fd, buffer, nbytes);
 
     if (r < 0) {
-        printf("read error: %s\n", strerror(-r));
+        printf("Error: %s.\n", strerror(-r));
     }
     return (size_t)r;
 }
@@ -57,7 +58,7 @@ static size_t _write(int fd, const void* buffer, size_t nbytes)
     ssize_t r = write(fd, buffer, nbytes);
 
     if (r < 0) {
-        printf("write error: %s\n", strerror(-r));
+        printf("Error: %s.\n", strerror(-r));
     }
     return (size_t)r;
 }
@@ -67,7 +68,7 @@ static void _close(int fd)
     const errno_t err = close(fd);
 
     if (err != 0) {
-        printf("close error: %s\n", strerror(err));
+        printf("Error: %s.\n", strerror(err));
     }
 }
 
@@ -124,17 +125,19 @@ static void sh_ls(char* line)
     }
 
     const int fd = _opendir(path);
-    struct _directory_entry_t dirent;
+    if (fd != -1) {
+        while (true) {
+            struct _directory_entry_t dirent;
+            const ssize_t r = _read(fd, &dirent, sizeof(dirent));
+        
+            if (r == 0) {
+                break;
+            }
 
-    while (true) {
-        const ssize_t r = _read(fd, &dirent, sizeof(dirent));
-        if (r == 0) {
-            break;
+            printf("%ld:\t\"%s\"\n", dirent.inodeId, dirent.name);
         }
-
-        printf("%ld:\t\"%s\"\n", dirent.inodeId, dirent.name);
+        _close(fd);
     }
-    _close(fd);
 }
 
 
