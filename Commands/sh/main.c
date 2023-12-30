@@ -140,6 +140,24 @@ static void sh_ls(char* line)
     }
 }
 
+static void sh_pwd(char* line)
+{
+    char* trailer = skip_whitespace(line);
+
+    if (*trailer != '\0') {
+        printf("Warning: ignored unexpected arguments");
+    }
+
+    char buf[128];  //XXX Should be PATH_MAX, however our user stack is not big enough to park it there
+    const errno_t err = getcwd(buf, sizeof(buf));
+
+    if (err == 0) {
+        printf("%s\n", buf);
+    } else {
+        printf("Error: %s.\n", strerror(err));
+    }
+}
+
 
 static void parse_and_execute_line(char* line)
 {
@@ -150,6 +168,9 @@ static void parse_and_execute_line(char* line)
     }
     else if (!strncmp(line, "ls", 2)) {
         sh_ls(skip_non_whitespace(line));
+    }
+    else if (!strncmp(line, "pwd", 3)) {
+        sh_pwd(skip_non_whitespace(line));
     }
     else {
         printf("Error: unknown command.\n");
