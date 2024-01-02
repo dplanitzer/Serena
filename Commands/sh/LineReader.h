@@ -6,6 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <stdbool.h>
 #include <apollo/apollo.h>
 
 
@@ -14,11 +15,13 @@ typedef struct _LineReader {
     int     maxX;
 
     const char* prompt;
+    char*   savedLine;  // Line saved if 'line' was dirty when user hits crsr-up/down
+    bool    isDirty;
 
     char**  history;
     int     historyCapacity;
     int     historyCount;
-    int     historyCurrentSelection;
+    int     historyIndex;
 
     int     lineCapacity;
     int     lineCount;

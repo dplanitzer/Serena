@@ -23,12 +23,14 @@ errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _N
         self->lineCount = 0;
         self->x = 0;
         self->maxX = maxLineLength - 1;
+        self->savedLine = NULL;
+        self->isDirty = false;
         self->line[0] = '\0';
 
         self->history = (char**)calloc(historyCapacity, sizeof(char*));
         self->historyCapacity = historyCapacity;
         self->historyCount = 0;
-        self->historyCurrentSelection = 0;
+        self->historyIndex = 0;
 
         if (historyCapacity > 0 && self->history == NULL) {
             LineReader_Destroy(self);
@@ -63,6 +65,8 @@ void LineReader_Destroy(LineReaderRef _Nullable self)
         
         free(self->prompt);
         self->prompt = NULL;
+        free(self->savedLine);
+        self->savedLine = NULL;
 
         free(self);
     }
@@ -73,6 +77,22 @@ static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
     printf("%s", self->prompt);
 }
 
+static void LineReader_OnUserInput(LineReaderRef _Nonnull self)
+{
+    self->isDirty = true;
+    self->historyIndex = self->historyCount;
+}
+
+static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self)
+{
+    if (self->isDirty) {
+        free(self->savedLine);
+        self->savedLine = strdup(self->line);
+        self->isDirty = false;
+    }
+}
+
+// Does not mark the line reader input as dirty
 static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull pNewLine)
 {
     strncpy(self->line, pNewLine, self->lineCapacity - 1);
@@ -97,12 +117,12 @@ static void LineReader_PrintHistory(LineReaderRef _Nonnull self, const char* _No
     printf("\nafter %s:\n", info);
     if (self->historyCount > 0) {
         for (int i = self->historyCount - 1; i >= 0; i--) {
-            printf("  \"%s\"\n", self->history[i]);
+            printf("%d:  \"%s\"\n", i, self->history[i]);
         }
     } else {
         printf("  <empty>\n");
     }
-    printf("sel idx: %d\n", self->historyCurrentSelection);
+    printf("sel idx: %d\n", self->historyIndex);
 }
 
 static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull pLine)
@@ -123,49 +143,48 @@ static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull p
 
     // Add 'pLine' to the history. It replaces the oldest entry if the history
     // is at capacity.
-    if (self->historyCount < self->historyCapacity) {
-        self->history[self->historyCount] = strdup(pLine);
-        if (self->history[self->historyCount]) {
-            self->historyCount++;
-            self->historyCurrentSelection = self->historyCount - 1;
-        }
-    }
-    else {
+    if (self->historyCount == self->historyCapacity) {
         free(self->history[0]);
 
         for (int i = 1; i < self->historyCount; i++) {
             self->history[i - 1] = self->history[i];
         }
 
-        self->history[self->historyCount - 1] = strdup(pLine);
-        if (self->history[self->historyCount - 1] == NULL) {
-            self->historyCount--;
-        }
+        self->historyCount--;
     }
 
-    //LineReader_PrintHistory(self, "push");
+    self->history[self->historyCount] = strdup(pLine);
+    if (self->history[self->historyCount]) {
+        self->historyCount++;
+    }
 }
 
 static void LineReader_MoveHistoryUp(LineReaderRef _Nonnull self)
 {
-    if (self->historyCapacity > 0) {
-        LineReader_SetLine(self, self->history[self->historyCurrentSelection]);
-        if (self->historyCurrentSelection > 0) {
-            self->historyCurrentSelection--;
-        }
+    if (self->historyCount == 0 || self->historyIndex < 1) {
+        return;
     }
-    //LineReader_PrintHistory(self, "up");
+
+    LineReader_SaveLineIfDirty(self);
+
+    self->historyIndex--;
+    LineReader_SetLine(self, self->history[self->historyIndex]);
 }
 
 static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
 {
-    if (self->historyCapacity > 0) {
-        if (self->historyCurrentSelection < self->historyCount - 1) {
-            self->historyCurrentSelection++;
-        }
-        LineReader_SetLine(self, self->history[self->historyCurrentSelection]);
+    if (self->historyCount == 0 || self->historyIndex == self->historyCount) {
+        return;
     }
-    //LineReader_PrintHistory(self, "down");
+
+    self->historyIndex++;
+    if (self->historyIndex < self->historyCount) {
+        LineReader_SetLine(self, self->history[self->historyIndex]);
+    } else {
+        LineReader_SetLine(self, self->savedLine);
+        free(self->savedLine);
+        self->savedLine = NULL;
+    }
 }
 
 static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
@@ -173,6 +192,7 @@ static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
     if (self->x > 0) {
         printf("\033[D");   // cursor left
         self->x--;
+        LineReader_OnUserInput(self);
     }
 }
 
@@ -181,6 +201,7 @@ static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
     if (self->x < self->maxX) {
         printf("\033[C");   // cursor right
         self->x++;
+        LineReader_OnUserInput(self);
     }
 }
 
@@ -197,6 +218,7 @@ static void LineReader_DeleteCharacter(LineReaderRef _Nonnull self)
     self->lineCount--;
 
     putchar(8);
+    LineReader_OnUserInput(self);
 }
 
 // XXX Replace this with a proper ESC sequence parser
@@ -247,6 +269,8 @@ static void LineReader_AcceptCharacter(LineReaderRef _Nonnull self, int ch)
     if (self->lineCount > self->maxX + 1) {
         self->lineCount = self->maxX + 1;
     }
+
+    LineReader_OnUserInput(self);
 }
 
 char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
@@ -258,6 +282,8 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
     self->line[0] = '\0';
     self->lineCount = 0;
     self->x = 0;
+    self->isDirty = false;
+    self->historyIndex = self->historyCount;
 
     while (!done) {
         const int ch = getchar();
