@@ -77,6 +77,12 @@ static void LineReader_PrintPrompt(LineReaderRef _Nonnull self)
     printf("%s", self->prompt);
 }
 
+static void LineReader_PrintInputLine(LineReaderRef _Nonnull self)
+{
+    self->line[self->lineCount] = '\0';
+    printf("%s", self->line);
+}
+
 static void LineReader_OnUserInput(LineReaderRef _Nonnull self)
 {
     self->isDirty = true;
@@ -92,7 +98,9 @@ static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self)
     }
 }
 
-// Does not mark the line reader input as dirty
+// Replaces the content of the input line with the given string and moves the
+// text cursor after the last character in the line. Note that this function
+// does not mark the line reader input as dirty.
 static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull pNewLine)
 {
     strncpy(self->line, pNewLine, self->lineCapacity - 1);
@@ -192,7 +200,6 @@ static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
     if (self->x > 0) {
         printf("\033[D");   // cursor left
         self->x--;
-        LineReader_OnUserInput(self);
     }
 }
 
@@ -201,8 +208,28 @@ static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
     if (self->x < self->maxX) {
         printf("\033[C");   // cursor right
         self->x++;
-        LineReader_OnUserInput(self);
     }
+}
+
+static void LineReader_MoveCursorToBeginningOfLine(LineReaderRef _Nonnull self)
+{
+    printf("\033[%dG", (int)strlen(self->prompt) + 1);
+    self->x = 0;
+}
+
+static void LineReader_MoveCursorToEndOfLine(LineReaderRef _Nonnull self)
+{
+    printf("\033[%dG", (int)strlen(self->prompt) + 1 + self->lineCount);
+    self->x = self->lineCount;
+}
+
+static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
+{
+    // Clear the screen but preserve the current state of the input line. This
+    // action does not count as dirtying the input buffer.
+    printf("\033[2J\033[0;0H");
+    LineReader_PrintPrompt(self);
+    LineReader_PrintInputLine(self);
 }
 
 static void LineReader_DeleteCharacter(LineReaderRef _Nonnull self)
@@ -293,8 +320,20 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
                 done = true;
                 break;
 
+            case 1:
+                LineReader_MoveCursorToBeginningOfLine(self);
+                break;
+
+            case 5:
+                LineReader_MoveCursorToEndOfLine(self);
+                break;
+
             case 8:
                 LineReader_DeleteCharacter(self);
+                break;
+
+            case 12:
+                LineReader_ClearScreen(self);
                 break;
 
             case 033:
