@@ -423,7 +423,7 @@ errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nulla
 
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
-// internal alignment costraints.
+// internal alignment constraints.
 size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
 {
     MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));

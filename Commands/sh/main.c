@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "LineReader.h"
+#include "Parser.h"
 
 
 static void _chdir(const char* path)
@@ -72,39 +73,12 @@ static void _close(int fd)
     }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
-static char* skip_whitespace(char* str)
+
+static void sh_cd(ScriptRef _Nonnull pScript)
 {
-    while(*str != '\0') {
-        if (!isspace(*str)) {
-            break;
-        }
-        str++;
-    }
-
-    return str;
-}
-
-static char* skip_non_whitespace(char* str)
-{
-    while(*str != '\0') {
-        if (isspace(*str)) {
-            break;
-        }
-        str++;
-    }
-
-    return str;
-}
-
-
-static void sh_cd(char* line)
-{
-    char* path = skip_whitespace(line);
-    char* trailing_ws = skip_non_whitespace(path);
-    *trailing_ws = '\0';
+    char* path = (pScript->wordCount > 1) ? pScript->words[1] : "";
     
     if (*path == '\0') {
         printf("Error: expected a path.\n");
@@ -114,15 +88,9 @@ static void sh_cd(char* line)
     }
 }
 
-static void sh_ls(char* line)
+static void sh_ls(ScriptRef _Nonnull pScript)
 {
-    char* path = skip_whitespace(line);
-    char* trailing_ws = skip_non_whitespace(path);
-    *trailing_ws = '\0';
-
-    if (*path == '\0') {
-        path = ".";
-    }
+    char* path = (pScript->wordCount > 1) ? pScript->words[1] : ".";
 
     const int fd = _opendir(path);
     if (fd != -1) {
@@ -140,11 +108,9 @@ static void sh_ls(char* line)
     }
 }
 
-static void sh_pwd(char* line)
+static void sh_pwd(ScriptRef _Nonnull pScript)
 {
-    char* trailer = skip_whitespace(line);
-
-    if (*trailer != '\0') {
+    if (pScript->wordCount > 1) {
         printf("Warning: ignored unexpected arguments");
     }
 
@@ -159,18 +125,22 @@ static void sh_pwd(char* line)
 }
 
 
-static void parse_and_execute_line(char* line)
+static void execute_script(ScriptRef _Nonnull pScript)
 {
-    line = skip_whitespace(line);
+    if (pScript->wordCount < 1) {
+        return;
+    }
 
-    if (!strncmp(line, "cd", 2)) {
-        sh_cd(skip_non_whitespace(line));
+    const char* cmd = pScript->words[0];
+
+    if (!strcmp(cmd, "cd")) {
+        sh_cd(pScript);
     }
-    else if (!strncmp(line, "ls", 2)) {
-        sh_ls(skip_non_whitespace(line));
+    else if (!strcmp(cmd, "ls")) {
+        sh_ls(pScript);
     }
-    else if (!strncmp(line, "pwd", 3)) {
-        sh_pwd(skip_non_whitespace(line));
+    else if (!strcmp(cmd, "pwd")) {
+        sh_pwd(pScript);
     }
     else {
         printf("Error: unknown command.\n");
@@ -187,19 +157,25 @@ void main_closure(int argc, char *argv[])
     int fd0 = open("/dev/console", O_RDONLY);
     int fd1 = open("/dev/console", O_WRONLY);
 
-    printf("Apollo Shell v0.1.\n\n");
+    printf("Apollo v0.1.\nCopyright 2023, Dietmar Planitzer.\n\n");
 
     _mkdir("/Users");
     _mkdir("/Users/Admin");
     _mkdir("/Users/Tester");
 
 
-    LineReaderRef pLineReader;
+    LineReaderRef pLineReader = NULL;
+    ScriptRef pScript = NULL;
+    ParserRef pParser = NULL;
+
     LineReader_Create(79, 10, ">", &pLineReader);
+    Script_Create(&pScript);
+    Parser_Create(&pParser);
 
     while (true) {
         char* line = LineReader_ReadLine(pLineReader);
         puts("");
-        parse_and_execute_line(line);
+        Parser_Parse(pParser, line, pScript);
+        execute_script(pScript);
     }
 }
