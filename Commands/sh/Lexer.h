@@ -33,7 +33,7 @@ typedef struct _Lexer {
     int                     textIndex;
 
     char* _Nonnull          wordBuffer;
-    int                     wordBufferCapacity;
+    int                     wordBufferCapacity;     // max number of characters we can store excluding the trailing NUL
     int                     wordBufferCount;
 
     Token                   t;

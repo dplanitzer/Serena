@@ -23,7 +23,7 @@ errno_t Lexer_Init(LexerRef _Nonnull self)
     self->text = "";
     self->textIndex = 0;
 
-    self->wordBuffer = (char*)malloc(INITIAL_WORD_BUFFER_CAPACITY);
+    self->wordBuffer = (char*)malloc(INITIAL_WORD_BUFFER_CAPACITY + 1);
     if (self->wordBuffer == NULL) {
         Lexer_Deinit(self);
         return ENOMEM;
@@ -65,7 +65,7 @@ static void Lexer_ScanWord(LexerRef _Nonnull self)
 
         if (self->wordBufferCount == self->wordBufferCapacity) {
             int newCapacity = self->wordBufferCapacity * 2;
-            char* pNewWordBuffer = (char*) realloc(self->wordBuffer, newCapacity);
+            char* pNewWordBuffer = (char*) realloc(self->wordBuffer, newCapacity + 1);
 
             assert(pNewWordBuffer != NULL);
             self->wordBuffer = pNewWordBuffer;
@@ -76,7 +76,7 @@ static void Lexer_ScanWord(LexerRef _Nonnull self)
     }
 
     self->textIndex--;
-    self->wordBuffer[self->wordBufferCount] = '\0'; // XXX this here may write past the end of the word buffer
+    self->wordBuffer[self->wordBufferCount] = '\0';
 }
 
 void Lexer_ConsumeToken(LexerRef _Nonnull self)

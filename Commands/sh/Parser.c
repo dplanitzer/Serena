@@ -20,12 +20,14 @@ errno_t Script_Create(ScriptRef _Nullable * _Nonnull pOutScript)
     ScriptRef self = (ScriptRef)calloc(1, sizeof(Script));
 
     if (self == NULL) {
+        *pOutScript = NULL;
         return ENOMEM;
     }
 
     self->words = (char**)calloc(8, sizeof(char*));
     if (self->words == NULL) {
         Script_Destroy(self);
+        *pOutScript = NULL;
         return ENOMEM;
     }
     self->wordCapacity = 8;
@@ -72,14 +74,14 @@ static errno_t Script_AddWord(ScriptRef _Nonnull self, const char* _Nonnull pWor
 {
     if (self->wordCount == self->wordCapacity) {
         int newCapacity = self->wordCapacity * 2;
-        char** pNewWords = (char**)realloc(self->words, newCapacity);
+        char** pNewWords = (char**)realloc(self->words, newCapacity * sizeof(char*));
 
         assert(pNewWords != NULL);
         self->words = pNewWords;
         self->wordCapacity = newCapacity;
     }
 
-    self->words[self->wordCount] = (char*)strdup(pWord);
+    self->words[self->wordCount] = strdup(pWord);
     assert(self->words[self->wordCount] != NULL);
     self->wordCount++;
     
@@ -94,12 +96,14 @@ errno_t Parser_Create(ParserRef _Nullable * _Nonnull pOutParser)
     ParserRef self = (ParserRef)calloc(1, sizeof(Parser));
 
     if (self == NULL) {
+        *pOutParser = NULL;
         return ENOMEM;
     }
 
     const errno_t err = Lexer_Init(&self->lexer);
     if (err != 0) {
         Parser_Destroy(self);
+        *pOutParser = NULL;
         return err;
     }
 

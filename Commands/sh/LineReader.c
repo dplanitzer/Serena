@@ -15,7 +15,7 @@
 
 errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt, LineReaderRef _Nullable * _Nonnull pOutReader)
 {
-    LineReaderRef self = (LineReaderRef)calloc(1, sizeof(LineReader) + maxLineLength);
+    LineReaderRef self = (LineReaderRef)calloc(1, sizeof(LineReader) + maxLineLength + 1);
 
     if (self) {
         self->lineCapacity = maxLineLength + 1;
@@ -33,12 +33,14 @@ errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _N
 
         if (historyCapacity > 0 && self->history == NULL) {
             LineReader_Destroy(self);
+            *pOutReader = NULL;
             return ENOMEM;
         }
 
         self->prompt = strdup(pPrompt);
         if (self == NULL) {
             LineReader_Destroy(self);
+            *pOutReader = NULL;
             return ENOMEM;
         }
 
