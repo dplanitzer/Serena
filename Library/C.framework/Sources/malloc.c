@@ -107,3 +107,11 @@ void *realloc(void *ptr, size_t new_size)
 
     return np;
 }
+
+void malloc_dump(void)
+{
+#ifdef ALLOCATOR_DEBUG
+    Allocator_DumpMemoryRegions(__gAllocator);
+    Allocator_Dump(__gAllocator);
+#endif
+}

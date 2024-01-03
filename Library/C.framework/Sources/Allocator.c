@@ -434,40 +434,42 @@ size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull p
 #ifdef ALLOCATOR_DEBUG
 void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 {
-    puts("Free list:\n");
+    puts("Free:\n");
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
     while (pCurRegion != NULL) {
         MemBlock* pCurBlock = pCurRegion->first_free_block;
 
         while (pCurBlock) {
-            printf("   0x%p, %z\n", ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
+            printf("   0x%p: {a: 0x%p, n: 0x%p, s: %zd}\n", ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size - sizeof(MemBlock));
             pCurBlock = pCurBlock->next;
         }
 
         pCurRegion = (MemRegion*)pCurRegion->node.next;
     }
+    puts("");
     
-    puts("\nAlloc list:\n");
+    puts("Allocated:\n");
     MemBlock* pCurBlock = pAllocator->first_allocated_block;
     while (pCurBlock) {
         char* pCurBlockBase = (char*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
         
-        printf("   0x%p, %z\n", pCurBlockBase + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
+        printf("   0x%p, {a: 0x%p, n: 0x%p s: %zd}\n", pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size - sizeof(MemBlock));
         pCurBlock = pCurBlock->next;
-    }
-    
-    puts("-------------------------------\n");
+    }    
+    puts("");
 }
 
 void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
 {
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
 
+    puts("Mem Regions:\n");
     while (pCurRegion != NULL) {
         printf("   lower: 0x%p, upper: 0x%p\n", pCurRegion->lower, pCurRegion->upper);
 
         pCurRegion = (MemRegion*)pCurRegion->node.next;
     }
+    puts("");
 }
 #endif

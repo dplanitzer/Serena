@@ -423,30 +423,30 @@ ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nul
 
 void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 {
-    print("Free list:\n");
+    print("Free:\n");
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
     while (pCurRegion != NULL) {
         MemBlock* pCurBlock = pCurRegion->first_free_block;
 
         while (pCurBlock) {
-            print("   0x%p, %lu\n", ((Byte*)pCurBlock) + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
+            print("   0x%p: {a: 0x%p, n: 0x%p, s: %lu}\n", ((Byte*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size - sizeof(MemBlock));
             pCurBlock = pCurBlock->next;
         }
 
         pCurRegion = (MemRegion*)pCurRegion->node.next;
     }
+    print("\n");
     
-    print("\nAlloc list:\n");
+    print("Allocated:\n");
     MemBlock* pCurBlock = pAllocator->first_allocated_block;
     while (pCurBlock) {
         Byte* pCurBlockBase = (Byte*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
         
-        print("   0x%p, %lu\n", pCurBlockBase + sizeof(MemBlock), pCurBlock->size - sizeof(MemBlock));
+        print("   0x%p, {a: 0x%p, n: 0x%p s: %lu}\n", pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size - sizeof(MemBlock));
         pCurBlock = pCurBlock->next;
     }
-    
-    print("-------------------------------\n");
+    print("\n");
 }
 
 void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)

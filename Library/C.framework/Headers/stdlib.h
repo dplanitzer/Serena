@@ -12,6 +12,7 @@
 #include <_cmndef.h>
 #include <_nulldef.h>
 #include <_sizedef.h>
+#include <malloc.h>
 #include <stdnoreturn.h>
 
 __CPP_BEGIN
@@ -36,12 +37,6 @@ extern long long strtoll(const char *str, char **str_end, int base);
 
 extern unsigned long strtoul(const char *str, char **str_end, int base);
 extern unsigned long long strtoull(const char *str, char **str_end, int base);
-
-
-extern void *malloc(size_t size);
-extern void *calloc(size_t num, size_t size);
-extern void *realloc(void *ptr, size_t new_size);
-extern void free(void *ptr);
 
 
 extern int abs(int n);

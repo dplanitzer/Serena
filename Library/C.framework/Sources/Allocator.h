@@ -12,7 +12,7 @@
 #include <__stddef.h>
 
 // Enable for debugging support
-//#define ALLOCATOR_DEBUG
+#define ALLOCATOR_DEBUG
 
 
 // A memory descriptor describes a contiguous range of RAM
