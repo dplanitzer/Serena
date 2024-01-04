@@ -25,7 +25,7 @@
 // size includes the header size.
 typedef struct _MemBlock {
     struct _MemBlock* _Nullable next;
-    size_t                      size;   // Max size of a free block is 4GB; max size of an allocated block is 2GB
+    size_t                      size;   // The size includes sizeof(MemBlock). Max size of a free block is 4GB; max size of an allocated block is 2GB
 } MemBlock;
 
 
@@ -35,14 +35,14 @@ typedef struct _MemRegion {
     SListNode           node;
     char* _Nonnull      lower;
     char* _Nonnull      upper;
-    MemBlock* _Nullable first_free_block;   // Every memory region has its own private free list
+    MemBlock* _Nullable first_free_block;   // Every memory region has its own private free list. Note that the blocks on this list are ordered by increasing base address
 } MemRegion;
 
 
 // An allocator manages memory from a pool of memory contiguous regions.
 typedef struct _Allocator {
     SList               regions;
-    MemBlock* _Nullable first_allocated_block;
+    MemBlock* _Nullable first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
 } Allocator;
 
 
@@ -107,9 +107,9 @@ static bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, char* _Nu
 static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, size_t nBytesToAlloc)
 {
     // first fit search
-    MemBlock* pPrevBlock = NULL;
     MemBlock* pCurBlock = pMemRegion->first_free_block;
     MemBlock* pFoundBlock = NULL;
+    MemBlock* pPrevFoundBlock = NULL;
     
     while (pCurBlock) {
         if (pCurBlock->size >= nBytesToAlloc) {
@@ -117,7 +117,7 @@ static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegio
             break;
         }
         
-        pPrevBlock = pCurBlock;
+        pPrevFoundBlock = pCurBlock;
         pCurBlock = pCurBlock->next;
     }
     
@@ -125,36 +125,42 @@ static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegio
         return NULL;
     }
     
-    // Save the pointer to the next free block (because we may override this
-    // pointer below)
-    MemBlock* pNextFreeBlock = pCurBlock->next;
-    
-    
-    // Split the existing free block into an allocated block and a new
-    // (and smaller) free block
-    size_t nNewFreeBytes = pCurBlock->size - nBytesToAlloc;
-    MemBlock* pAllocedBlock = pCurBlock;
-    MemBlock* pNewFreeBlock = (MemBlock*)((char*)pCurBlock + nBytesToAlloc);
-    
-    
-    // Initialize the allocated block
-    pAllocedBlock->next = NULL;
-    pAllocedBlock->size = nBytesToAlloc;
-    
-    
-    // Initialize the new free block and replace the old one in the free list
-    // with this new one
-    pNewFreeBlock->next = pNextFreeBlock;
-    pNewFreeBlock->size = nNewFreeBytes;
-    if (pPrevBlock) {
-        pPrevBlock->next = pNewFreeBlock;
-    } else {
-        pMemRegion->first_free_block = pNewFreeBlock;
+    MemBlock* pAllocatedBlock = NULL;
+
+    if (pFoundBlock->size == nBytesToAlloc) {
+        // Case 1: We want to allocate the whole free block
+        if (pPrevFoundBlock) {
+            pPrevFoundBlock->next = pFoundBlock->next;
+        }
+        else {
+            pMemRegion->first_free_block = pFoundBlock->next;
+        }
+        // Size doesn't change
+        pFoundBlock->next = NULL;
+        pAllocatedBlock = pFoundBlock;
+    }
+    else {
+        // Case 2: We want to allocate the first 'nBytesToAlloc' bytes of the free block
+        MemBlock* pRemainingFreeBlock = (MemBlock*)((char*)pCurBlock + nBytesToAlloc);
+
+        pRemainingFreeBlock->next = pFoundBlock->next;
+        pRemainingFreeBlock->size = pFoundBlock->size - nBytesToAlloc;
+
+        if (pPrevFoundBlock) {
+            pPrevFoundBlock->next = pRemainingFreeBlock;
+        }
+        else {
+            pMemRegion->first_free_block = pRemainingFreeBlock;
+        }
+
+        pFoundBlock->size = nBytesToAlloc;
+        pFoundBlock->next = NULL;
+        pAllocatedBlock = pFoundBlock;
     }
     
     
     // Return the allocated memory
-    return pAllocedBlock;
+    return pAllocatedBlock;
 }
 
 // Deallocates the given memory block. Expects that the memory block is managed
@@ -172,79 +178,80 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
     char* pUpperToFree = pLowerToFree + pBlockToFree->size;
     
     
-    // Go through the free list and find the block that is right below the block
-    // we want to free and the block that is right above the block we want to
-    // free. We'll then merge everything into the lowest block and we remove the
-    // highest block from the free list. That's the simplest way to do things.
-    // NOTE: an allocated block may be bordered by a free block on both sides!
-    MemBlock* pUpperPrevFreeBlock = NULL;
-    MemBlock* pLowerPrevFreeBlock = NULL;
-    MemBlock* pUpperFreeBlock = NULL;
+    // Find the free memory blocks just below and above 'pBlockToFree'. These
+    // will be the predecessor and successor of 'pBlockToFree' on the free list
+    bool isUpperFreeBlockAdjacent = false;
+    bool isLowerFreeBlockAdjacent = false;
     MemBlock* pLowerFreeBlock = NULL;
-    MemBlock* pPrevBlock = NULL;
+    MemBlock* pUpperFreeBlock = NULL;
     MemBlock* pCurBlock = pMemRegion->first_free_block;
-
+    
     while (pCurBlock) {
         char* pCurBlockLower = (char*)pCurBlock;
         char* pCurBlockUpper = pCurBlockLower + pCurBlock->size;
-        
-        if (pCurBlockLower == pUpperToFree) {
-            // This is the block above the block we want to free
-            pUpperFreeBlock = pCurBlock;
-            pUpperPrevFreeBlock = pPrevBlock;
-        }
-        
-        if (pCurBlockUpper == pLowerToFree) {
-            // This is the block below the block we want to free
+
+        if (pCurBlockUpper <= pLowerToFree) {
             pLowerFreeBlock = pCurBlock;
-            pLowerPrevFreeBlock = pPrevBlock;
+            isLowerFreeBlockAdjacent = pCurBlockUpper == pLowerToFree;
         }
-        
-        if (pUpperFreeBlock && pLowerFreeBlock) {
+        else if (pCurBlockLower >= pUpperToFree) {
+            pUpperFreeBlock = pCurBlock;
+            isUpperFreeBlockAdjacent = pCurBlockLower == pUpperToFree;
             break;
         }
-        
-        pPrevBlock = pCurBlock;
+
         pCurBlock = pCurBlock->next;
     }
-    
-    if (pLowerFreeBlock) {
-        // Case 1: adjacent to lower free block -> merge everything into the
-        // lower free block
-        pLowerFreeBlock->size += pBlockToFree->size;
-        pLowerFreeBlock->size += pUpperFreeBlock->size;
-        
-        if (pUpperPrevFreeBlock) {
-            pUpperPrevFreeBlock->next = pUpperFreeBlock->next;
-        } else {
-            pMemRegion->first_free_block = pUpperFreeBlock->next;
+
+
+    // Update the free list
+    if (!isLowerFreeBlockAdjacent && !isUpperFreeBlockAdjacent) {
+        // Case 1: our block is surrounded by allocated blocks.
+        // Merging: nothing.
+        if (pLowerFreeBlock) {
+            pBlockToFree->next = pLowerFreeBlock->next;
+            pLowerFreeBlock->next = pBlockToFree;
         }
-        
+        else {
+            pBlockToFree->next = pUpperFreeBlock;
+            pMemRegion->first_free_block = pBlockToFree;
+        }
+    }
+    else if (isUpperFreeBlockAdjacent && !isLowerFreeBlockAdjacent) {
+        // Case 2: our block has a free upper neighbor and an allocated lower neighbor
+        // Merging: upper & me
+        pBlockToFree->size += pUpperFreeBlock->size;
+
+        if (pLowerFreeBlock) {
+            pBlockToFree->next = pUpperFreeBlock->next;
+            pLowerFreeBlock->next = pBlockToFree;
+        }
+        else {
+            pBlockToFree->next = pUpperFreeBlock->next;
+            pMemRegion->first_free_block = pBlockToFree;
+        }
+
         pUpperFreeBlock->next = NULL;
         pUpperFreeBlock->size = 0;
+    }
+    else if (!isUpperFreeBlockAdjacent && isLowerFreeBlockAdjacent) {
+        // Case 3: our block has a free lower neighbor and an allocated upper neighbor
+        // Merging: lower & me
+        pLowerFreeBlock->size += pBlockToFree->size;
+
         pBlockToFree->next = NULL;
         pBlockToFree->size = 0;
     }
-    else if (pUpperFreeBlock) {
-        // Case 2: adjacent to upper free block -> merge everything into the
-        // block we want to free
-        pBlockToFree->size += pUpperFreeBlock->size;
-        
-        pBlockToFree->next = pUpperFreeBlock->next;
-        if (pUpperPrevFreeBlock) {
-            pUpperPrevFreeBlock->next = pBlockToFree;
-        } else {
-            pMemRegion->first_free_block = pBlockToFree;
-        }
-        
+    else {
+        // Case 4: our block is surrounded by free blocks
+        // Merging: upper & lower & me
+        pLowerFreeBlock->size = pLowerFreeBlock->size + pBlockToFree->size + pUpperFreeBlock->size;
+        pLowerFreeBlock->next = pUpperFreeBlock->next;
+
+        pBlockToFree->next = NULL;
+        pBlockToFree->size = 0;
         pUpperFreeBlock->next = NULL;
         pUpperFreeBlock->size = 0;
-    }
-    else {
-        // Case 3: no adjacent free block -> add the block-to-free as is to the
-        // free list
-        pBlockToFree->next = pMemRegion->first_free_block;
-        pMemRegion->first_free_block = pBlockToFree;
     }
 }
 
@@ -257,7 +264,7 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 
 // Allocates a new heap. An allocator manages the memory region described by the
 // given memory descriptor. Additional memory regions may be added later. The
-// heap managment data structures are stored inside those memory regions.
+// heap management data structures are stored inside those memory regions.
 // \param pMemDesc the initial memory region to manage
 // \param pOutAllocator receives the allocator reference
 // \return an error or EOK
@@ -345,7 +352,7 @@ errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes,
     // Go through the available memory region trying to allocate the memory block
     // until it works.
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
-    while(pCurRegion != NULL) {
+    while (pCurRegion) {
         pMemBlock = MemRegion_AllocMemBlock(pCurRegion, nBytesToAlloc);
         if (pMemBlock != NULL) {
             break;
@@ -442,7 +449,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
         
         printf(" Region: 0x%p - 0x%p, s: 0x%p\n", pCurRegion->lower, pCurRegion->upper, pCurRegion->first_free_block);
         while (pCurBlock) {
-            printf("  %d:  0x%p: {a: 0x%p, n: 0x%p, s: %zd}\n", i, ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size - sizeof(MemBlock));
+            printf("  %d:  0x%p: {a: 0x%p, n: 0x%p, s: %zd}\n", i, ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
             pCurBlock = pCurBlock->next;
             i++;
         }
@@ -458,7 +465,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
         char* pCurBlockBase = (char*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
         
-        printf(" %d:  0x%p, {a: 0x%p, n: 0x%p s: %zd}\n", i, pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size - sizeof(MemBlock));
+        printf(" %d:  0x%p, {a: 0x%p, n: 0x%p s: %zd}\n", i, pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
         pCurBlock = pCurBlock->next;
         i++;
     }    
