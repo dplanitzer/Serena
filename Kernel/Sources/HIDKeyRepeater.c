@@ -84,6 +84,7 @@ static Bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
     // Everything except:
     // - modifier keys
     // - caps lock
+    // - tab, return, esc
     // - some function keys (print screen, etc)
     // - key controller messages (errors)
     switch (keyCode) {
@@ -97,11 +98,56 @@ static Bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
         case KEY_RIGHTMETA:
 
         case KEY_CAPSLOCK:
+
+        case KEY_TAB:
+        case KEY_ENTER:
+        case KEY_KPENTER:
+        case KEY_ESC:
+
         case KEY_SYSRQ:
         case KEY_SCROLLLOCK:
         case KEY_NUMLOCK:
+        case KEY_PAUSE:
+        case KEY_INSERT:
         case KEY_POWER:
-            
+        case KEY_COMPOSE:
+        case KEY_OPEN:
+        case KEY_HELP:
+        case KEY_PROPS:
+        case KEY_FRONT:
+        case KEY_STOP:
+        case KEY_AGAIN:
+        case KEY_UNDO:
+        case KEY_CUT:
+        case KEY_COPY:
+        case KEY_PASTE:
+        case KEY_FIND:
+        case KEY_MUTE:
+
+        case KEY_RO:
+        case KEY_KATAKANAHIRAGANA:
+        case KEY_YEN:
+        case KEY_HENKAN:
+        case KEY_MUHENKAN:
+        case KEY_HANGEUL:
+        case KEY_HANJA:
+        case KEY_KATAKANA:
+        case KEY_HIRAGANA:
+        case KEY_ZENKAKUHANKAKU:
+
+        case KEY_MEDIA_PLAYPAUSE:
+        case KEY_MEDIA_STOPCD:
+        case KEY_MEDIA_EJECTCD:
+        case KEY_MEDIA_MUTE:
+        case KEY_MEDIA_WWW:
+        case KEY_MEDIA_STOP:
+        case KEY_MEDIA_FIND:
+        case KEY_MEDIA_EDIT:
+        case KEY_MEDIA_SLEEP:
+        case KEY_MEDIA_COFFEE:
+        case KEY_MEDIA_REFRESH:
+        case KEY_MEDIA_CALC: 
+
         case KEY_NONE:
         case KEY_ERR_OVF:
         case KEY_ERR_POST:

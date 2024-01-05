@@ -228,7 +228,7 @@ static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
 {
     // Clear the screen but preserve the current state of the input line. This
     // action does not count as dirtying the input buffer.
-    printf("\033[2J\033[0;0H");
+    printf("\033[2J\033[H");
     LineReader_PrintPrompt(self);
     LineReader_PrintInputLine(self);
 }
