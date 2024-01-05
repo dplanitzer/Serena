@@ -146,6 +146,7 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     Console_SetCursorVisible_Locked(pConsole, true);
     Console_SetCursorBlinkingEnabled_Locked(pConsole, true);
     pConsole->lineBreakMode = kLineBreakMode_WrapCharacterAndScroll;
+    pConsole->irMode = kIRMode_Replace;
 
     return EOK;
 
@@ -452,6 +453,10 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int 
 static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     // The cursor position is always valid and inside the framebuffer
+    if (pConsole->irMode == kIRMode_Insert) {
+        Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right - 1, pConsole->y + 1), Point_Make(pConsole->x + 1, pConsole->y));
+    }
+
     GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
     Console_MoveCursor_Locked(pConsole, 1, 0);
 }
@@ -824,11 +829,17 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             if (has_private_use_char(pConsole, '?')) {
                 Console_Execute_CSI_QuestMark_h_Locked(pConsole, get_csi_parameter(pConsole, 0));
             }
+            else if (get_csi_parameter(pConsole, 0) == 4) {
+                pConsole->irMode = kIRMode_Insert;
+            }
             break;
 
         case 'l':
             if (has_private_use_char(pConsole, '?')) {
                 Console_Execute_CSI_QuestMark_l_Locked(pConsole, get_csi_parameter(pConsole, 0));
+            }
+            else if (get_csi_parameter(pConsole, 0) == 4) {
+                pConsole->irMode = kIRMode_Replace;
             }
             break;
 

@@ -28,6 +28,12 @@
 //
 
 
+typedef enum _IRMode {
+    kIRMode_Replace = 0,    // Newly entered characters override old characters
+    kIRMode_Insert          // Newly entered characters push old characters to the right
+} IRMode;
+
+
 typedef enum _LineBreakMode {
     kLineBreakMode_Clamp = 0,       // Force the insertion point to the last character cell in the line, if it would move past the right margin
     kLineBreakMode_WrapCharacter,   // Move the insertion point to the beginning of the next line if it moves past the right margin. Force the
@@ -35,6 +41,7 @@ typedef enum _LineBreakMode {
     kLineBreakMode_WrapCharacterAndScroll   // Move the insertion point to the beginning of the next line if it moves past the right margin and
                                             // scroll the screen content up one line if it moves past the bottom margin
 } LineBreakMode;
+
 
 // The values are chosen based on the EL (Erase in Line) CSI (CSI n K)
 typedef enum _ClearLineMode {
@@ -77,6 +84,7 @@ CLASS_IVARS(Console, IOResource,
     Int                         x;
     Int                         y;
     LineBreakMode               lineBreakMode;
+    IRMode                      irMode;
     Point                       savedCursorPosition;
     vtparse_t                   vtparse;
     SpriteID                    textCursor;

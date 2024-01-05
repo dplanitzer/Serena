@@ -157,6 +157,7 @@ void main_closure(int argc, char *argv[])
     int fd0 = open("/dev/console", O_RDONLY);
     int fd1 = open("/dev/console", O_WRONLY);
 
+    printf("\033[4h");  // Switch the console to insert mode
     printf("Apollo v0.1.\nCopyright 2023, Dietmar Planitzer.\n\n");
 
     _mkdir("/Users");
@@ -168,7 +169,7 @@ void main_closure(int argc, char *argv[])
     ScriptRef pScript = NULL;
     ParserRef pParser = NULL;
 
-    LineReader_Create(79, 10, ">", &pLineReader);
+    LineReader_Create(78, 10, ">", &pLineReader);
     Script_Create(&pScript);
     Parser_Create(&pParser);
 
