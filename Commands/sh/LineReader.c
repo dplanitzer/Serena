@@ -285,15 +285,18 @@ static void LineReader_ReadEscapeSequence(LineReaderRef _Nonnull self)
 static void LineReader_AcceptCharacter(LineReaderRef _Nonnull self, int ch)
 {
     self->line[self->x] = (char)ch;
-    putchar(ch);
 
-    if (self->x == self->maxX) {
-        printf("\033[D");   // cursor left
-    } else {
+    if (self->x < self->maxX) {
+        putchar(ch);
         self->x++;
+        self->lineCount++;
+    }
+    else {
+        // replace mode, auto-wrap off, output character, move cursor left, auto-wrap on, insertion mode
+        // auto-wrap off: to stop the console from scrolling when we hit the bottom right screen corner
+        printf("\033[4l\033[?7l%c\033[D\033[?7h\033[4h", ch);
     }
 
-    self->lineCount++;
     if (self->lineCount > self->maxX + 1) {
         self->lineCount = self->maxX + 1;
     }

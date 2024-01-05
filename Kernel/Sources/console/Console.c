@@ -145,7 +145,7 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     Console_MoveCursorTo_Locked(pConsole, 0, 0);
     Console_SetCursorVisible_Locked(pConsole, true);
     Console_SetCursorBlinkingEnabled_Locked(pConsole, true);
-    pConsole->lineBreakMode = kLineBreakMode_WrapCharacterAndScroll;
+    pConsole->flags.isAutoWrapEnabled = true;
     pConsole->irMode = kIRMode_Replace;
 
     return EOK;
@@ -379,57 +379,55 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 
 // Moves the console position by the given delta values.
 // \param pConsole the console
+// \param mode how the cursor movement should be handled if it tries to go past the margins
 // \param dx the X delta
 // \param dy the Y delta
-static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, Int dx, Int dy)
+static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy)
 {
+    const Int aX = 0;
+    const Int aY = 0;
     const Int eX = pConsole->bounds.right - 1;
     const Int eY = pConsole->bounds.bottom - 1;
     Int x = pConsole->x + dx;
     Int y = pConsole->y + dy;
 
-    switch (pConsole->lineBreakMode) {
-        case kLineBreakMode_Clamp:
-            x = __max(__min(x, eX), 0);
-            y = __max(__min(y, eY), 0);
+    switch (mode) {
+        case kCursorMovement_Clamp:
+            x = __max(__min(x, eX), aX);
+            y = __max(__min(y, eY), aY);
             break;
 
-        case kLineBreakMode_WrapCharacter:
-            if (x < 0) {
-                x = eX;
-                y--;
+        case kCursorMovement_AutoWrap:
+            if (x < aX) {
+                x = aX;
             }
             else if (x >= eX) {
-                x = 0;
+                x = aX;
                 y++;
             }
 
-            if (y < 0) {
-                y = 0;
-            }
-            else if (y >= eY) {
-                y = eY;
-            }
-            break;
-
-        case kLineBreakMode_WrapCharacterAndScroll:
-            if (x < 0) {
-                x = eX;
-                y--;
-            }
-            else if (x >= eX) {
-                x = 0;
-                y++;
-            }
-
-            if (y < 0) {
+            if (y < aY) {
                 Console_ScrollBy_Locked(pConsole, 0, y);
-                y = 0;
+                y = aY;
             }
             else if (y >= eY) {
                 Console_ScrollBy_Locked(pConsole, 0, y - eY);
                 y = eY;
             }
+            break;
+
+        case kCursorMovement_AutoScroll:
+            x = __max(__min(x, eX), aX);
+
+            if (y < aY) {
+                Console_ScrollBy_Locked(pConsole, 0, y);
+                y = aY;
+            }
+            else if (y >= eY) {
+                Console_ScrollBy_Locked(pConsole, 0, y - eY);
+                y = eY;
+            }
+
             break;
 
         default:
@@ -458,7 +456,7 @@ static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char
     }
 
     GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
-    Console_MoveCursor_Locked(pConsole, 1, 0);
+    Console_MoveCursor_Locked(pConsole, (pConsole->flags.isAutoWrapEnabled) ? kCursorMovement_AutoWrap : kCursorMovement_Clamp, 1, 0);
 }
 
 static void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole)
@@ -472,7 +470,7 @@ static void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole)
         // BS moves 1 cell to the left
         Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right, pConsole->y + 1), Point_Make(pConsole->x - 1, pConsole->y));
         Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
-        Console_MoveCursor_Locked(pConsole, -1, 0);
+        Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, -1, 0);
     }
 }
 
@@ -503,7 +501,7 @@ static void Console_Execute_VTS_Locked(ConsoleRef _Nonnull pConsole)
 // Line feed may be IND or NEL depending on a setting (that doesn't exist yet)
 static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole)
 {
-    Console_MoveCursor_Locked(pConsole, -pConsole->x, 1);
+    Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, -pConsole->x, 1);
 }
 
 static void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
@@ -512,14 +510,6 @@ static void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
         // DEL does not change the position.
         Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), Point_Make(pConsole->x, pConsole->y));
         Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
-    }
-}
-
-static void Console_Execute_CCH_Locked(ConsoleRef _Nonnull pConsole)
-{
-    if (pConsole->x > 0) {
-        Console_MoveCursor_Locked(pConsole, -1, 0);
-        GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[0x20][0], pConsole->x, pConsole->y);
     }
 }
 
@@ -534,6 +524,7 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
 
         case 0x08:  // BS (Backspace)
+        case 0x94:  // CCH (Cancel Character (replace the previous character with a space))
             Console_Execute_BS_Locked(pConsole);
             break;
 
@@ -559,11 +550,11 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
             
         case 0x84:  // IND (Index)
-            Console_MoveCursor_Locked(pConsole, 0, 1);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, 1);
             break;
 
         case 0x85:  // NEL (Next Line)
-            Console_MoveCursor_Locked(pConsole, -pConsole->x, 1);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, -pConsole->x, 1);
             break;
 
         case 0x88:  // HTS (Horizontal Tabulation Set)
@@ -575,11 +566,7 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
 
         case 0x8d:  // RI (Reverse Line Feed)
-            Console_MoveCursor_Locked(pConsole, 0, -1);
-            break;
-            
-        case 0x94:  // CCH (Cancel Character (replace the previous character with a space))
-            Console_Execute_CCH_Locked(pConsole);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, -1);
             break;
             
         default:
@@ -695,29 +682,71 @@ static void Console_Execute_CSI_ECH_Locked(ConsoleRef _Nonnull pConsole, Int nCh
         ' ');
 }
 
-static void Console_Execute_CSI_QuestMark_h_Locked(ConsoleRef _Nonnull pConsole, Int param)
+static void Console_Execute_CSI_h_Locked(ConsoleRef _Nonnull pConsole)
 {
-    switch (param) {
-        case 25:
-            Console_SetCursorVisible_Locked(pConsole, true);
-            break;
+    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
 
-        default:
-            // Ignore
-            break;
+    for (Int i = 0; i < pConsole->vtparse.num_params; i++) {
+        const Int p = get_nth_csi_parameter(pConsole, i, 0);
+
+        if (!isPrivateMode) {
+            switch (p) {
+                case 4:
+                    pConsole->irMode = kIRMode_Insert;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        else {
+            switch (p) {
+                case 7:
+                    pConsole->flags.isAutoWrapEnabled = true;
+                    break;
+
+                case 25:
+                    Console_SetCursorVisible_Locked(pConsole, true);
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 }
 
-static void Console_Execute_CSI_QuestMark_l_Locked(ConsoleRef _Nonnull pConsole, Int param)
+static void Console_Execute_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
 {
-    switch (param) {
-        case 25:
-            Console_SetCursorVisible_Locked(pConsole, false);
-            break;
+    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
 
-        default:
-            // Ignore
-            break;
+    for (Int i = 0; i < pConsole->vtparse.num_params; i++) {
+        const Int p = get_nth_csi_parameter(pConsole, i, 0);
+
+        if (!isPrivateMode) {
+            switch (p) {
+                case 4:
+                    pConsole->irMode = kIRMode_Replace;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        else {
+            switch (p) {
+                case 7:
+                    pConsole->flags.isAutoWrapEnabled = false;
+                    break;
+                    
+                case 25:
+                    Console_SetCursorVisible_Locked(pConsole, false);
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 }
 
@@ -725,19 +754,19 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
 {
     switch (ch) {
         case 'A':
-            Console_MoveCursor_Locked(pConsole, 0, -get_csi_parameter(pConsole, 1));
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, -get_csi_parameter(pConsole, 1));
             break;
 
         case 'B':
-            Console_MoveCursor_Locked(pConsole, 0, get_csi_parameter(pConsole, 1));
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, get_csi_parameter(pConsole, 1));
             break;
 
         case 'C':
-            Console_MoveCursor_Locked(pConsole, get_csi_parameter(pConsole, 1), 0);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, get_csi_parameter(pConsole, 1), 0);
             break;
 
         case 'D':
-            Console_MoveCursor_Locked(pConsole, -get_csi_parameter(pConsole, 1), 0);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, -get_csi_parameter(pConsole, 1), 0);
             break;
 
         case 'E':
@@ -758,7 +787,7 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'I':
-            Console_MoveCursor_Locked(pConsole, TabStops_GetNextNthStop(&pConsole->hTabStops, pConsole->x, get_csi_parameter(pConsole, 1), Rect_GetWidth(pConsole->bounds)), 0);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, TabStops_GetNextNthStop(&pConsole->hTabStops, pConsole->x, get_csi_parameter(pConsole, 1), Rect_GetWidth(pConsole->bounds)), 0);
             break;
 
         case 'J':
@@ -798,11 +827,11 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'Y':
-            Console_MoveCursor_Locked(pConsole, 0, TabStops_GetNextNthStop(&pConsole->vTabStops, pConsole->y, get_csi_parameter(pConsole, 1), Rect_GetHeight(pConsole->bounds)));
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, TabStops_GetNextNthStop(&pConsole->vTabStops, pConsole->y, get_csi_parameter(pConsole, 1), Rect_GetHeight(pConsole->bounds)));
             break;
 
         case 'Z':
-            Console_MoveCursor_Locked(pConsole, TabStops_GetPreviousNthStop(&pConsole->hTabStops, pConsole->x, get_csi_parameter(pConsole, 1)), 0);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, TabStops_GetPreviousNthStop(&pConsole->hTabStops, pConsole->x, get_csi_parameter(pConsole, 1)), 0);
             break;
 
         case '`':
@@ -810,7 +839,7 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'a':
-            Console_MoveCursor_Locked(pConsole, get_csi_parameter(pConsole, 1), 0);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, get_csi_parameter(pConsole, 1), 0);
             break;
 
         case 'd':
@@ -818,7 +847,7 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'e':
-            Console_MoveCursor_Locked(pConsole, 0, get_csi_parameter(pConsole, 1));
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, get_csi_parameter(pConsole, 1));
             break;
 
         case 'g':
@@ -826,21 +855,11 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'h':
-            if (has_private_use_char(pConsole, '?')) {
-                Console_Execute_CSI_QuestMark_h_Locked(pConsole, get_csi_parameter(pConsole, 0));
-            }
-            else if (get_csi_parameter(pConsole, 0) == 4) {
-                pConsole->irMode = kIRMode_Insert;
-            }
+            Console_Execute_CSI_h_Locked(pConsole);
             break;
 
         case 'l':
-            if (has_private_use_char(pConsole, '?')) {
-                Console_Execute_CSI_QuestMark_l_Locked(pConsole, get_csi_parameter(pConsole, 0));
-            }
-            else if (get_csi_parameter(pConsole, 0) == 4) {
-                pConsole->irMode = kIRMode_Replace;
-            }
+            Console_Execute_CSI_l_Locked(pConsole);
             break;
 
         default:
@@ -867,11 +886,11 @@ static void Console_ESC_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'D':
-            Console_MoveCursor_Locked(pConsole, 0, 1);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, 1);
             break;
 
         case 'E':
-            Console_MoveCursor_Locked(pConsole, -pConsole->x, 1);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, -pConsole->x, 1);
             break;
 
         case 'H':
@@ -883,7 +902,7 @@ static void Console_ESC_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             break;
 
         case 'M':
-            Console_MoveCursor_Locked(pConsole, 0, -1);
+            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, -1);
             break;
             
         default:

@@ -34,13 +34,11 @@ typedef enum _IRMode {
 } IRMode;
 
 
-typedef enum _LineBreakMode {
-    kLineBreakMode_Clamp = 0,       // Force the insertion point to the last character cell in the line, if it would move past the right margin
-    kLineBreakMode_WrapCharacter,   // Move the insertion point to the beginning of the next line if it moves past the right margin. Force the
-                                    // insertion point to the last character cell of the last line if it would move past the bottom margin
-    kLineBreakMode_WrapCharacterAndScroll   // Move the insertion point to the beginning of the next line if it moves past the right margin and
-                                            // scroll the screen content up one line if it moves past the bottom margin
-} LineBreakMode;
+typedef enum _CursorMovement {
+    kCursorMovement_Clamp = 0,      // Insertion point movement is restricted to the screen area. No scrolling our auto-wrap is done.
+    kCursorMovement_AutoWrap,       // Move the insertion point to the beginning of the next line if it moves past the right margin and scroll the screen content up a line if it moves past the bottom margin
+    kCursorMovement_AutoScroll      // Horizontal insertion pointer is clamped and vertical movement will scroll the screen up/down if the insertion pointer moves past teh bottom/top edge of the screen
+} CursorMovement;
 
 
 // The values are chosen based on the EL (Erase in Line) CSI (CSI n K)
@@ -83,7 +81,6 @@ CLASS_IVARS(Console, IOResource,
     Rect                        bounds;
     Int                         x;
     Int                         y;
-    LineBreakMode               lineBreakMode;
     IRMode                      irMode;
     Point                       savedCursorPosition;
     vtparse_t                   vtparse;
@@ -93,6 +90,9 @@ CLASS_IVARS(Console, IOResource,
     Bool                        isTextCursorOn;             // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
     Bool                        isTextCursorSingleCycleOn;  // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
     Bool                        isTextCursorVisible;        // global text cursor visibility switch
+    struct {
+        UInt    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past teh right margin
+    }                           flags;
 );
 
 
