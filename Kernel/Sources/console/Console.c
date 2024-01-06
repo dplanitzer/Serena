@@ -146,7 +146,7 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     Console_SetCursorVisible_Locked(pConsole, true);
     Console_SetCursorBlinkingEnabled_Locked(pConsole, true);
     pConsole->flags.isAutoWrapEnabled = true;
-    pConsole->irMode = kIRMode_Replace;
+    pConsole->flags.isInsertionMode = false;
 
     return EOK;
 
@@ -401,7 +401,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMoveme
             if (x < aX) {
                 x = aX;
             }
-            else if (x >= eX) {
+            else if (x > eX) {
                 x = aX;
                 y++;
             }
@@ -410,7 +410,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMoveme
                 Console_ScrollBy_Locked(pConsole, 0, y);
                 y = aY;
             }
-            else if (y >= eY) {
+            else if (y > eY) {
                 Console_ScrollBy_Locked(pConsole, 0, y - eY);
                 y = eY;
             }
@@ -423,7 +423,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMoveme
                 Console_ScrollBy_Locked(pConsole, 0, y);
                 y = aY;
             }
-            else if (y >= eY) {
+            else if (y > eY) {
                 Console_ScrollBy_Locked(pConsole, 0, y - eY);
                 y = eY;
             }
@@ -451,7 +451,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMoveme
 static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     // The cursor position is always valid and inside the framebuffer
-    if (pConsole->irMode == kIRMode_Insert) {
+    if (pConsole->flags.isInsertionMode) {
         Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right - 1, pConsole->y + 1), Point_Make(pConsole->x + 1, pConsole->y));
     }
 
@@ -692,7 +692,7 @@ static void Console_Execute_CSI_h_Locked(ConsoleRef _Nonnull pConsole)
         if (!isPrivateMode) {
             switch (p) {
                 case 4:
-                    pConsole->irMode = kIRMode_Insert;
+                    pConsole->flags.isInsertionMode = true;
                     break;
 
                 default:
@@ -726,7 +726,7 @@ static void Console_Execute_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
         if (!isPrivateMode) {
             switch (p) {
                 case 4:
-                    pConsole->irMode = kIRMode_Replace;
+                    pConsole->flags.isInsertionMode = false;
                     break;
 
                 default:
@@ -738,7 +738,7 @@ static void Console_Execute_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
                 case 7:
                     pConsole->flags.isAutoWrapEnabled = false;
                     break;
-                    
+
                 case 25:
                     Console_SetCursorVisible_Locked(pConsole, false);
                     break;

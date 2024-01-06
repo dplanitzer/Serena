@@ -28,12 +28,6 @@
 //
 
 
-typedef enum _IRMode {
-    kIRMode_Replace = 0,    // Newly entered characters override old characters
-    kIRMode_Insert          // Newly entered characters push old characters to the right
-} IRMode;
-
-
 typedef enum _CursorMovement {
     kCursorMovement_Clamp = 0,      // Insertion point movement is restricted to the screen area. No scrolling our auto-wrap is done.
     kCursorMovement_AutoWrap,       // Move the insertion point to the beginning of the next line if it moves past the right margin and scroll the screen content up a line if it moves past the bottom margin
@@ -81,7 +75,6 @@ CLASS_IVARS(Console, IOResource,
     Rect                        bounds;
     Int                         x;
     Int                         y;
-    IRMode                      irMode;
     Point                       savedCursorPosition;
     vtparse_t                   vtparse;
     SpriteID                    textCursor;
@@ -92,6 +85,7 @@ CLASS_IVARS(Console, IOResource,
     Bool                        isTextCursorVisible;        // global text cursor visibility switch
     struct {
         UInt    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past teh right margin
+        UInt    isInsertionMode: 1;     // true if insertion mode is active; false if replace mode is active
     }                           flags;
 );
 

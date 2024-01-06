@@ -292,9 +292,9 @@ static void LineReader_AcceptCharacter(LineReaderRef _Nonnull self, int ch)
         self->lineCount++;
     }
     else {
-        // replace mode, auto-wrap off, output character, move cursor left, auto-wrap on, insertion mode
+        // replace mode, auto-wrap off, save cursor position, output character, restore cursor position, auto-wrap on, insertion mode
         // auto-wrap off: to stop the console from scrolling when we hit the bottom right screen corner
-        printf("\033[4l\033[?7l%c\033[D\033[?7h\033[4h", ch);
+        printf("\033[4l\033[?7l\0337%c\0338\033[?7h\033[4h", ch);
     }
 
     if (self->lineCount > self->maxX + 1) {

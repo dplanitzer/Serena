@@ -169,7 +169,7 @@ void main_closure(int argc, char *argv[])
     ScriptRef pScript = NULL;
     ParserRef pParser = NULL;
 
-    LineReader_Create(78, 10, ">", &pLineReader);
+    LineReader_Create(79, 10, ">", &pLineReader);
     Script_Create(&pScript);
     Parser_Create(&pParser);
 
