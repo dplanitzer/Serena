@@ -105,7 +105,6 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
     pConsole->textCursorBlinker = NULL;
         
     TabStops_Deinit(&pConsole->hTabStops);
-    TabStops_Deinit(&pConsole->vTabStops);
         
     Lock_Deinit(&pConsole->lock);
 
@@ -138,9 +137,6 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 
     TabStops_Deinit(&pConsole->hTabStops);
     try(TabStops_Init(&pConsole->hTabStops, __max(Rect_GetWidth(pConsole->bounds) / 8, 0), 8));
-
-    TabStops_Deinit(&pConsole->vTabStops);
-    try(TabStops_Init(&pConsole->vTabStops, 0, 0));
 
     Console_MoveCursorTo_Locked(pConsole, 0, 0);
     Console_SetCursorVisible_Locked(pConsole, true);
@@ -365,18 +361,6 @@ static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
     }
 }
 
-// Sets the console position. The next print() will start printing at this
-// location.
-// \param pConsole the console
-// \param x the X position
-// \param y the Y position
-static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
-{
-    pConsole->x = __max(__min(x, pConsole->bounds.right - 1), 0);
-    pConsole->y = __max(__min(y, pConsole->bounds.bottom - 1), 0);
-    Console_CursorDidMove_Locked(pConsole);
-}
-
 // Moves the console position by the given delta values.
 // \param pConsole the console
 // \param mode how the cursor movement should be handled if it tries to go past the margins
@@ -384,6 +368,10 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 // \param dy the Y delta
 static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy)
 {
+    if (dx == 0 && dy == 0) {
+        return;
+    }
+    
     const Int aX = 0;
     const Int aY = 0;
     const Int eX = pConsole->bounds.right - 1;
@@ -440,6 +428,16 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMoveme
     Console_CursorDidMove_Locked(pConsole);
 }
 
+// Sets the console position. The next print() will start printing at this
+// location.
+// \param pConsole the console
+// \param x the X position
+// \param y the Y position
+static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
+{
+    Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, x - pConsole->x, y - pConsole->y);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Processing input bytes
@@ -461,6 +459,7 @@ static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char
 
 static void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole)
 {
+    // XXX implement me
     // XXX flash screen?
 }
 
@@ -484,20 +483,6 @@ static void Console_Execute_HTS_Locked(ConsoleRef _Nonnull pConsole)
     TabStops_InsertStop(&pConsole->hTabStops, pConsole->x);
 }
 
-static void Console_Execute_VT_Locked(ConsoleRef _Nonnull pConsole)
-{
-    if (pConsole->vTabStops.count > 0) {
-        Console_MoveCursorTo_Locked(pConsole, pConsole->x, TabStops_GetNextStop(&pConsole->vTabStops, pConsole->y, Rect_GetHeight(pConsole->bounds)));
-    } else {
-        Console_Execute_LF_Locked(pConsole);
-    }
-}
-
-static void Console_Execute_VTS_Locked(ConsoleRef _Nonnull pConsole)
-{
-    TabStops_InsertStop(&pConsole->vTabStops, pConsole->y);
-}
-
 // Line feed may be IND or NEL depending on a setting (that doesn't exist yet)
 static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole)
 {
@@ -519,12 +504,16 @@ static void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
 static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     switch (ch) {
+        case 0x05:  // ENQ (Transmit answerback message)
+            // XXX implement me
+            break;
+
         case 0x07:  // BEL (Bell)
             Console_Execute_BEL_Locked(pConsole);
             break;
 
         case 0x08:  // BS (Backspace)
-        case 0x94:  // CCH (Cancel Character (replace the previous character with a space))
+        case 0x94:  // CCH (Cancel Character)
             Console_Execute_BS_Locked(pConsole);
             break;
 
@@ -533,12 +522,9 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
 
         case 0x0a:  // LF (Line Feed)
-        case 0x0c:  // FF (Form Feed / New Page / Clear Screen)
-            Console_Execute_LF_Locked(pConsole);
-            break;
-
         case 0x0b:  // VT (Vertical Tab)
-            Console_Execute_VT_Locked(pConsole);
+        case 0x0c:  // FF (Form Feed)
+            Console_Execute_LF_Locked(pConsole);
             break;
 
         case 0x0d:  // CR (Carriage Return)
@@ -559,10 +545,6 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
 
         case 0x88:  // HTS (Horizontal Tabulation Set)
             Console_Execute_HTS_Locked(pConsole);
-            break;
-
-        case 0x8a:  // VTS (Vertical Tabulation Set)
-            Console_Execute_VTS_Locked(pConsole);
             break;
 
         case 0x8d:  // RI (Reverse Line Feed)
@@ -622,25 +604,13 @@ static void Console_Execute_CSI_CTC_Locked(ConsoleRef _Nonnull pConsole, Int op)
             Console_Execute_HTS_Locked(pConsole);
             break;
 
-        case 1:
-            Console_Execute_VTS_Locked(pConsole);
-            break;
-
         case 2:
             TabStops_RemoveStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 3:
-            TabStops_RemoveStop(&pConsole->vTabStops, pConsole->y);
             break;
 
         case 4:
         case 5:
             TabStops_RemoveAllStops(&pConsole->hTabStops);
-            break;
-
-        case 6:
-            TabStops_RemoveAllStops(&pConsole->vTabStops);
             break;
 
         default:
@@ -656,17 +626,9 @@ static void Console_Execute_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, Int op)
             TabStops_RemoveStop(&pConsole->hTabStops, pConsole->x);
             break;
 
-        case 1:
-            TabStops_RemoveStop(&pConsole->vTabStops, pConsole->y);
-            break;
-
         case 2:
         case 3:
             TabStops_RemoveAllStops(&pConsole->hTabStops);
-            break;
-
-        case 4:
-            TabStops_RemoveAllStops(&pConsole->vTabStops);
             break;
 
         default:
@@ -826,10 +788,6 @@ static void Console_CSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
             Console_Execute_CSI_ECH_Locked(pConsole, get_csi_parameter(pConsole, 1));
             break;
 
-        case 'Y':
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, TabStops_GetNextNthStop(&pConsole->vTabStops, pConsole->y, get_csi_parameter(pConsole, 1), Rect_GetHeight(pConsole->bounds)));
-            break;
-
         case 'Z':
             Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, TabStops_GetPreviousNthStop(&pConsole->hTabStops, pConsole->x, get_csi_parameter(pConsole, 1)), 0);
             break;
@@ -895,10 +853,6 @@ static void Console_ESC_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned c
 
         case 'H':
             Console_Execute_HTS_Locked(pConsole);
-            break;
-
-        case 'J':
-            Console_Execute_VTS_Locked(pConsole);
             break;
 
         case 'M':

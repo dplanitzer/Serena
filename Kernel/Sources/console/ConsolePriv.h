@@ -71,7 +71,6 @@ CLASS_IVARS(Console, IOResource,
     Int                         lineHeight;     // In pixels
     Int                         characterWidth; // In pixels
     TabStops                    hTabStops;
-    TabStops                    vTabStops;
     Rect                        bounds;
     Int                         x;
     Int                         y;
