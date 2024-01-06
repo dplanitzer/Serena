@@ -79,13 +79,14 @@ CLASS_IVARS(Console, IOResource,
     vtparse_t                   vtparse;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
-    Bool                        isTextCursorBlinkerEnabled; // true if the text cursor should blink. Visibility is a separate state
-    Bool                        isTextCursorOn;             // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
-    Bool                        isTextCursorSingleCycleOn;  // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
-    Bool                        isTextCursorVisible;        // global text cursor visibility switch
     struct {
         UInt    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past teh right margin
         UInt    isInsertionMode: 1;     // true if insertion mode is active; false if replace mode is active
+
+        UInt    isTextCursorBlinkerEnabled:1;   // true if the text cursor should blink. Visibility is a separate state
+        UInt    isTextCursorOn:1;               // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
+        UInt    isTextCursorSingleCycleOn:1;    // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
+        UInt    isTextCursorVisible:1;          // global text cursor visibility switch
     }                           flags;
 );
 
