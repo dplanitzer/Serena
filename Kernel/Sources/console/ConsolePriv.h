@@ -23,8 +23,68 @@
 // <https://vt100.net/annarbor/aaa-ug/section6.html>
 // <https://vt100.net/emu/dec_ansi_parser>
 // <https://en.wikipedia.org/wiki/ANSI_escape_code>
+// <https://en.wikipedia.org/wiki/VT52>
 // <https://nvlpubs.nist.gov/nistpubs/Legacy/FIPS/fipspub86.pdf>
 // <https://noah.org/python/pexpect/ANSI-X3.64.htm>
+//
+
+
+typedef enum _CompatibilityMode {
+    kCompatibilityMode_VT52 = 0,
+    kCompatibilityMode_VT52_AtariExtensions,
+    kCompatibilityMode_VT102
+} CompatibilityMode;
+#define kCompatibilityMode_ANSI kCompatibilityMode_VT102
+
+
+// Unimplemented functionality:
+//  VT102:
+//      - bell
+//      - shift in/out (character set selection)
+//      - answerback message
+//      - (DECSCLM) animated vs non-animated scroll
+//      - (DECSTBM) scroll region
+//      - (DECOM) origin
+//      - (DECCOLM) columns per line (80 vs 132)
+//      - (DECSCNM) screen background
+//      - (LNM) linefeed/new line mode
+//      - (KAM) keyboard action mode (questionable)
+//      - (DECARM) auto repeat mode
+//      - (SRM) local echo
+//      - (DECCKM) cursor key mode
+//      - (DECKPAM) application key mode
+//      - (DECKPNM) numeric keypad mode
+//      - (SCS) select character set
+//      - (SS2) single shift 2
+//      - (SS3) single shift 3
+//      - (SGR) select graphic rendition
+//      - (DECDHL) double-height line
+//      - (DECSWL) single-width line
+//      - (DECDWL) double-width line
+//      - (MC) media copy
+//      - (DECPEX) printer extent mode
+//      - (DECPFF) print termination character
+//      - (DSR) device status report
+//      - (CPR) cursor position report
+//      - (DA) device attributes
+//      - (DECID) identify terminal
+//      - (DECTST) tests
+//      - (DECALN) screen alignment display
+//      - (DECLL) keyboard indicator
+//
+//  VT52:
+//      - (ESC Y) direct cursor address
+//      - (ESC =) keypad character selection
+//      - (ESC >) keypad character selection
+//      - (ESC F) enter graphics mode
+//      - (ESC G) exit graphics mode
+//      - (ESC ^) auto print on
+//      - (ESC _) auto print off
+//      - (ESC W) print controller on
+//      - (ESC X) print controller off
+//      - (ESC V) print cursor line
+//      - (ESC ]) print screen
+//      - (ESC Z) identify
 //
 
 
@@ -60,6 +120,17 @@ Int TabStops_GetNextNthStop(TabStops* pStops, Int xLoc, Int nth, Int xWidth);
 Int TabStops_GetPreviousNthStop(TabStops* pStops, Int xLoc, Int nth);
 
 
+// Saved cursor state:
+// - cursor position
+// - cursor attributes
+// - character set
+// - origin mode
+typedef struct _SavedState {
+    Int     x;
+    Int     y;
+} SavedState;
+
+
 // The console object.
 CLASS_IVARS(Console, IOResource,
     Lock                        lock;
@@ -74,10 +145,11 @@ CLASS_IVARS(Console, IOResource,
     Rect                        bounds;
     Int                         x;
     Int                         y;
-    Point                       savedCursorPosition;
+    SavedState                  savedCursorState;
     vtparse_t                   vtparse;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
+    CompatibilityMode           compatibilityMode;
     struct {
         UInt    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past teh right margin
         UInt    isInsertionMode: 1;     // true if insertion mode is active; false if replace mode is active
