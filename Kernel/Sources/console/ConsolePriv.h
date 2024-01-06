@@ -86,6 +86,11 @@ typedef enum _CompatibilityMode {
 //      - (ESC ]) print screen
 //      - (ESC Z) identify
 //
+// VT52 Atari Extensions:
+//      - (ESC b) foreground color
+//      - (ESC c) background color
+//      - (ESC p) reverse video
+//      - (ESC q) normal video
 
 
 typedef enum _CursorMovement {

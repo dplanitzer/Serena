@@ -296,7 +296,18 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
     }
 }
 
-static void Console_OnTextCursorBlink(Console* _Nonnull pConsole)
+static void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole)
+{
+    pConsole->savedCursorState.x = pConsole->x;
+    pConsole->savedCursorState.y = pConsole->y;
+}
+
+static void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole)
+{
+    Console_MoveCursorTo_Locked(pConsole, pConsole->savedCursorState.x, pConsole->savedCursorState.y);
+}
+
+static void Console_OnTextCursorBlink(ConsoleRef _Nonnull pConsole)
 {
     Lock_Lock(&pConsole->lock);
     
@@ -739,10 +750,9 @@ static void Console_CSI_ANSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsig
             Console_Execute_CSI_TBC_Locked(pConsole, get_csi_parameter(pConsole, 0));
             break;
 
-        case 'K': { // ANSI: EL
+        case 'K':   // ANSI: EL
             Console_ClearLine_Locked(pConsole, pConsole->y, (ClearLineMode) get_csi_parameter(pConsole, 0));
             break;
-        }
 
         case 'J':   // ANSI: ED
             Console_ClearScreen_Locked(pConsole, (ClearScreenMode) get_csi_parameter(pConsole, 0));
@@ -791,12 +801,11 @@ static void Console_ESC_ANSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
 
         case '7':   // ANSI: DECSC
-            pConsole->savedCursorState.x = pConsole->x;
-            pConsole->savedCursorState.y = pConsole->y;
+            Console_SaveCursorState_Locked(pConsole);
             break;
 
         case '8':   // ANSI: DECRC
-            Console_MoveCursorTo_Locked(pConsole, pConsole->savedCursorState.x, pConsole->savedCursorState.y);
+            Console_RestoreCursorState_Locked(pConsole);
             break;
 
         case 'H':   // ANSI: HTS
@@ -858,7 +867,55 @@ static void Console_ESC_VT52_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
             
         default:
-            // Ignore
+            if (pConsole->compatibilityMode == kCompatibilityMode_VT52_AtariExtensions) {
+                switch (ch) {
+                case 'E': // VT52+Atari: Clear screen
+                    Console_MoveCursorTo_Locked(pConsole, 0, 0);
+                    Console_ClearScreen_Locked(pConsole, kClearScreenMode_Whole);
+                    break;
+
+                case 'd': // VT52+Atari: Clear to start of screen
+                    Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToBeginning);
+                    break;
+
+                case 'e': // VT52+Atari: Show cursor
+                    Console_SetCursorVisible_Locked(pConsole, true);
+                    break;
+
+                case 'f': // VT52+Atari: Hide cursor
+                    Console_SetCursorVisible_Locked(pConsole, false);
+                    break;
+
+                case 'j': // VT52+Atari: Save cursor
+                    Console_SaveCursorState_Locked(pConsole);
+                    break;
+
+                case 'k': // VT52+Atari: Restore cursor
+                    Console_RestoreCursorState_Locked(pConsole);
+                    break;
+
+                case 'l': // VT52+Atari: Clear line and move cursor to the left margin
+                    Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_Whole);
+                    Console_MoveCursorTo_Locked(pConsole, 0, pConsole->y);
+                    break;
+
+                case 'o': // VT52+Atari: Clear to start of line
+                    Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_ToBeginning);
+                    break;
+
+                case 'v': // VT52+Atari: Auto-wrap on
+                    pConsole->flags.isAutoWrapEnabled = true;
+                    break;
+
+                case 'w': // VT52+Atari: Auto-wrap off
+                    pConsole->flags.isAutoWrapEnabled = false;
+                    break;
+
+                default:
+                    // Ignore
+                    break;
+                }
+            }
             break;
     }
 }
