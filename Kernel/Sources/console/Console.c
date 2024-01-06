@@ -84,7 +84,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
 
     // Clear the console screen
-    Console_ClearScreen_Locked(pConsole);
+    Console_ClearScreen_Locked(pConsole, kClearScreenMode_WhileAndScrollback);
     
     *pOutConsole = pConsole;
     return err;
@@ -234,15 +234,35 @@ static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, Int dX, Int dY
         }
     }
     else {
-        Console_ClearScreen_Locked(pConsole);
+        Console_ClearScreen_Locked(pConsole, kClearScreenMode_Whole);
     }
 }
 
 // Clears the console screen.
 // \param pConsole the console
-static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole)
+// \param mode the clear screen mode
+static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreenMode mode)
 {
-    GraphicsDriver_Clear(pConsole->gdevice);
+    switch (mode) {
+        case kClearScreenMode_ToEnd:
+            Console_FillRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
+            Console_FillRect_Locked(pConsole, Rect_Make(0, pConsole->y + 1, pConsole->bounds.right, pConsole->bounds.bottom), ' ');
+            break;
+
+        case kClearScreenMode_ToBeginning:
+            Console_FillRect_Locked(pConsole, Rect_Make(0, pConsole->y, pConsole->x, pConsole->y + 1), ' ');
+            Console_FillRect_Locked(pConsole, Rect_Make(0, 0, pConsole->bounds.right, pConsole->y - 1), ' ');
+            break;
+
+        case kClearScreenMode_Whole:
+        case kClearScreenMode_WhileAndScrollback:
+            GraphicsDriver_Clear(pConsole->gdevice);
+            break;
+
+        default:
+            // Ignore
+            break;
+    }
 }
 
 // Clears the specified line. Does not change the cursor position.
@@ -268,7 +288,8 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
                 break;
 
             default:
-                abort();
+                // Ignore
+                return;
         }
 
         Console_FillRect_Locked(pConsole, Rect_Make(left, y, right, y + 1), ' ');
@@ -568,30 +589,6 @@ static Int get_nth_csi_parameter(ConsoleRef _Nonnull pConsole, Int idx, Int defV
     return (val > 0) ? val : defValue;
 }
 
-static void Console_Execute_CSI_ED_Locked(ConsoleRef _Nonnull pConsole, Int mode)
-{
-    switch (mode) {
-        case 0: // cursor to end of screen
-            Console_FillRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
-            Console_FillRect_Locked(pConsole, Rect_Make(0, pConsole->y + 1, pConsole->bounds.right, pConsole->bounds.bottom), ' ');
-            break;
-
-        case 1: // beginning of screen to cursor
-            Console_FillRect_Locked(pConsole, Rect_Make(0, pConsole->y, pConsole->x, pConsole->y + 1), ' ');
-            Console_FillRect_Locked(pConsole, Rect_Make(0, 0, pConsole->bounds.right, pConsole->y - 1), ' ');
-            break;
-
-        case 2:     // Clear screen
-        case 3:     // Clear screen + scrollback buffer (we got none)
-            Console_ClearScreen_Locked(pConsole);
-            break;
-
-        default:
-            // Ignore
-            break;
-    }
-}
-
 static void Console_Execute_CSI_CTC_Locked(ConsoleRef _Nonnull pConsole, Int op)
 {
     switch (op) {
@@ -743,15 +740,12 @@ static void Console_CSI_ANSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
 
         case 'K': { // ANSI: EL
-            const Int mode = get_csi_parameter(pConsole, 0);
-            if (mode < 3) {
-                Console_ClearLine_Locked(pConsole, pConsole->y, (ClearLineMode) mode);
-            }
+            Console_ClearLine_Locked(pConsole, pConsole->y, (ClearLineMode) get_csi_parameter(pConsole, 0));
             break;
         }
 
         case 'J':   // ANSI: ED
-            Console_Execute_CSI_ED_Locked(pConsole, get_csi_parameter(pConsole, 0));
+            Console_ClearScreen_Locked(pConsole, (ClearScreenMode) get_csi_parameter(pConsole, 0));
             break;
 
         case 'P':   // ANSI: DCH
@@ -856,7 +850,7 @@ static void Console_ESC_VT52_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsig
             break;
 
         case 'J':   // VT52: Erase to end of screen
-            Console_Execute_CSI_ED_Locked(pConsole, 0);
+            Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToEnd);
             break;
 
         case '<':   // VT52: DECANM

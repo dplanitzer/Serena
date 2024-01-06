@@ -95,12 +95,21 @@ typedef enum _CursorMovement {
 } CursorMovement;
 
 
-// The values are chosen based on the EL (Erase in Line) CSI (CSI n K)
+// The values are chosen based on the ANSI EL command
 typedef enum _ClearLineMode {
     kClearLineMode_ToEnd = 0,           // Clear from the cursor position to the end of the line
     kClearLineMode_ToBeginning = 1,     // Clear from the cursor position to the beginning of the line
-    kClearLineMode_Whole = 2,           // Clear whole line
+    kClearLineMode_Whole = 2,           // Clear the whole line
 } ClearLineMode;
+
+
+// The values are chosen based on the ANSI ED command
+typedef enum _ClearScreenMode {
+    kClearScreenMode_ToEnd = 0,             // Clear from the cursor position to the end of the screen
+    kClearScreenMode_ToBeginning = 1,       // Clear from the cursor position to the beginning of the screen
+    kClearScreenMode_Whole = 2,             // Clear the whole screen
+    kClearScreenMode_WhileAndScrollback = 3 // Clear the whole screen and the scrollback buffer
+} ClearScreenMode;
 
 
 // Stores up to 255 tab stop positions.
@@ -179,7 +188,7 @@ typedef struct _ConsoleChannelMethodTable {
 
 
 static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
-static void Console_ClearScreen_Locked(Console* _Nonnull pConsole);
+static void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
 static void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled);
 static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
 static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
