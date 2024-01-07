@@ -550,6 +550,7 @@ void vt52parse_do_state_change(vt52parse_t *parser, vt52_state_change_t change, 
             }
             else {
                 parser->cb(parser, VT52PARSE_ACTION_ESC_DISPATCH, ch);
+                new_state = VT52PARSE_STATE_GROUND;
             }
             break;
 
