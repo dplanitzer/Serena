@@ -6,11 +6,11 @@
  * This code is in the public domain.
  */
 
-#include "vtparse.h"
+#include "vt500parse.h"
 
-void vtparse_init(vtparse_t *parser, vtparse_callback_t cb, void* user_data)
+void vt500parse_init(vt500parse_t *parser, vt500parse_callback_t cb, void* user_data)
 {
-    parser->state                  = VTPARSE_STATE_GROUND;
+    parser->state                  = VT500PARSE_STATE_GROUND;
     parser->num_intermediate_chars = 0;
     parser->num_params             = 0;
     parser->ignore_flagged         = 0;
@@ -18,30 +18,30 @@ void vtparse_init(vtparse_t *parser, vtparse_callback_t cb, void* user_data)
     parser->user_data              = user_data;
 }
 
-static void do_action(vtparse_t *parser, vtparse_action_t action, unsigned char ch)
+static void do_action(vt500parse_t *parser, vt500parse_action_t action, unsigned char ch)
 {
     /* Some actions we handle internally (like parsing parameters), others
      * we hand to our client for processing */
 
     switch(action) {
-        case VTPARSE_ACTION_PRINT:
-        case VTPARSE_ACTION_EXECUTE:
-        case VTPARSE_ACTION_HOOK:
-        case VTPARSE_ACTION_PUT:
-        case VTPARSE_ACTION_OSC_START:
-        case VTPARSE_ACTION_OSC_PUT:
-        case VTPARSE_ACTION_OSC_END:
-        case VTPARSE_ACTION_UNHOOK:
-        case VTPARSE_ACTION_CSI_DISPATCH:
-        case VTPARSE_ACTION_ESC_DISPATCH:
+        case VT500PARSE_ACTION_PRINT:
+        case VT500PARSE_ACTION_EXECUTE:
+        case VT500PARSE_ACTION_HOOK:
+        case VT500PARSE_ACTION_PUT:
+        case VT500PARSE_ACTION_OSC_START:
+        case VT500PARSE_ACTION_OSC_PUT:
+        case VT500PARSE_ACTION_OSC_END:
+        case VT500PARSE_ACTION_UNHOOK:
+        case VT500PARSE_ACTION_CSI_DISPATCH:
+        case VT500PARSE_ACTION_ESC_DISPATCH:
             parser->cb(parser, action, ch);
             break;
 
-        case VTPARSE_ACTION_IGNORE:
+        case VT500PARSE_ACTION_IGNORE:
             /* do nothing */
             break;
 
-        case VTPARSE_ACTION_COLLECT:
+        case VT500PARSE_ACTION_COLLECT:
         {
             /* Append the character to the intermediate params */
             if(parser->num_intermediate_chars + 1 > MAX_INTERMEDIATE_CHARS)
@@ -52,7 +52,7 @@ static void do_action(vtparse_t *parser, vtparse_action_t action, unsigned char 
             break;
         }
 
-        case VTPARSE_ACTION_PARAM:
+        case VT500PARSE_ACTION_PARAM:
         {
             /* process the param character */
             if(ch == ';')
@@ -81,23 +81,23 @@ static void do_action(vtparse_t *parser, vtparse_action_t action, unsigned char 
             break;
         }
 
-        case VTPARSE_ACTION_CLEAR:
+        case VT500PARSE_ACTION_CLEAR:
             parser->num_intermediate_chars = 0;
             parser->num_params            = 0;
             parser->ignore_flagged        = 0;
             break;
 
         default:
-            parser->cb(parser, VTPARSE_ACTION_ERROR, 0);
+            parser->cb(parser, VT500PARSE_ACTION_ERROR, 0);
     }
 }
 
-void vtparse_do_state_change(vtparse_t *parser, state_change_t change, unsigned char ch)
+void vt500parse_do_state_change(vt500parse_t *parser, state_change_t change, unsigned char ch)
 {
     /* A state change is an action and/or a new state to transition to. */
 
-    vtparse_state_t  new_state = STATE(change);
-    vtparse_action_t action    = ACTION(change);
+    vt500parse_state_t  new_state = STATE(change);
+    vt500parse_action_t action    = ACTION(change);
 
 
     if(new_state)
@@ -108,8 +108,8 @@ void vtparse_do_state_change(vtparse_t *parser, state_change_t change, unsigned 
          *   3. the entry action of the new state
          */
 
-        vtparse_action_t exit_action = EXIT_ACTIONS[parser->state-1];
-        vtparse_action_t entry_action = ENTRY_ACTIONS[new_state-1];
+        vt500parse_action_t exit_action = VT500_EXIT_ACTIONS[parser->state-1];
+        vt500parse_action_t entry_action = VT500_ENTRY_ACTIONS[new_state-1];
 
         if(exit_action)
             do_action(parser, exit_action, 0);
@@ -127,14 +127,3 @@ void vtparse_do_state_change(vtparse_t *parser, state_change_t change, unsigned 
         do_action(parser, action, ch);
     }
 }
-
-void vtparse(vtparse_t *parser, const unsigned char *data, int len)
-{
-    int i;
-    for(i = 0; i < len; i++)
-    {
-        const unsigned char ch = data[i];
-        vtparse_byte(parser, ch);
-    }
-}
-

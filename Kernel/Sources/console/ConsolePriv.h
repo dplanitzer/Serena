@@ -13,7 +13,7 @@
 #include "DispatchQueue.h"
 #include "KeyMap.h"
 #include "Lock.h"
-#include "vtparse.h"
+#include "vt500parse.h"
 
 
 //
@@ -160,7 +160,7 @@ CLASS_IVARS(Console, IOResource,
     Int                         x;
     Int                         y;
     SavedState                  savedCursorState;
-    vtparse_t                   vtparse;
+    vt500parse_t                vtparse;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
     CompatibilityMode           compatibilityMode;
@@ -199,7 +199,7 @@ static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
 static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
 static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
 static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
-static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b);
+static void Console_ParseInputBytes_Locked(struct vt500parse* pParse, vt500parse_action_t action, unsigned char b);
 
 
 //

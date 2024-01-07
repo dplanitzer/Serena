@@ -58,7 +58,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
 
     // Initialize the ANSI escape sequence parser
-    vtparse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
+    vt500parse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
 
 
     // Allocate the text cursor (sprite)
@@ -920,18 +920,18 @@ static void Console_ESC_VT52_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsig
     }
 }
 
-static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_action_t action, unsigned char b)
+static void Console_ParseInputBytes_Locked(struct vt500parse* pParse, vt500parse_action_t action, unsigned char b)
 {
     ConsoleRef pConsole = (ConsoleRef) pParse->user_data;
 
     switch (action) {
-        case VTPARSE_ACTION_CSI_DISPATCH:
+        case VT500PARSE_ACTION_CSI_DISPATCH:
             if (pConsole->compatibilityMode == kCompatibilityMode_ANSI) {
                 Console_CSI_ANSI_Dispatch_Locked(pConsole, b);
             }
             break;
 
-        case VTPARSE_ACTION_ESC_DISPATCH:
+        case VT500PARSE_ACTION_ESC_DISPATCH:
             if (pConsole->compatibilityMode == kCompatibilityMode_ANSI) {
                 Console_ESC_ANSI_Dispatch_Locked(pConsole, b);
             } else {
@@ -939,11 +939,11 @@ static void Console_ParseInputBytes_Locked(struct vtparse* pParse, vtparse_actio
             }
             break;
 
-        case VTPARSE_ACTION_EXECUTE:
+        case VT500PARSE_ACTION_EXECUTE:
             Console_ExecuteByte_C0_C1_Locked(pConsole, b);
             break;
 
-        case VTPARSE_ACTION_PRINT:
+        case VT500PARSE_ACTION_PRINT:
             Console_PrintByte_Locked(pConsole, b);
             break;
 
@@ -1071,7 +1071,7 @@ ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull
     while (pChars < pCharsEnd) {
         const unsigned char by = *pChars++;
 
-        vtparse_byte(&pConsole->vtparse, by);
+        vt500parse_byte(&pConsole->vtparse, by);
     }
     Lock_Unlock(&pConsole->lock);
 
