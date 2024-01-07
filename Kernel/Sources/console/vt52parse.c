@@ -515,11 +515,6 @@ void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_dat
 
 void vt52parse_do_state_change(vt52parse_t *parser, vt52_state_change_t change, unsigned char ch)
 {
-    // The only state handled by the VT52_CHAR_TABLE is VT52PARSE_STATE_GROUND.
-    // Once we see an ESC we switch to a separate much smaller state machine to
-    // parse the ESC. This way we can quickly detect whether a character should
-    // be executed, printed or is the beginning of an escape sequence and we can
-    // get away with a far smaller state table compared to VT500.
     vt52parse_state_t  new_state = STATE(change);
     vt52parse_action_t action    = ACTION(change);
 
