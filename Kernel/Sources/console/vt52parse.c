@@ -12,7 +12,7 @@
 #define STATE(state_change)  (state_change >> 4)
 
 
-const vt52_state_change_t VT52_STATE_TABLE[3][256] = {
+static const vt52_state_change_t VT52_STATE_TABLE[3][256] = {
     {  /* VT52PARSE_STATE_GROUND = 1 */
 /*0  */  VT52PARSE_ACTION_IGNORE             | (VT52PARSE_STATE_GROUND            << 4),
 /*1  */  VT52PARSE_ACTION_EXECUTE            | (VT52PARSE_STATE_GROUND            << 4),
@@ -502,7 +502,7 @@ const vt52_state_change_t VT52_STATE_TABLE[3][256] = {
 };
 
 
-void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data)
+void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data, int isAtariExtensionsEnabled)
 {
     parser->state                       = VT52PARSE_STATE_GROUND;
     parser->cb                          = cb;
@@ -510,11 +510,12 @@ void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_dat
     parser->num_params                  = 0;
     parser->esc_code_seen               = 0;
     parser->num_params_to_collect       = 0;
-    parser->is_atari_extensions_enabled = 0;
+    parser->is_atari_extensions_enabled = isAtariExtensionsEnabled;
 }
 
-void vt52parse_do_state_change(vt52parse_t *parser, vt52_state_change_t change, unsigned char ch)
+void vt52parse_do_state_change(vt52parse_t *parser, unsigned char ch)
 {
+    const vt52_state_change_t change = VT52_STATE_TABLE[(parser)->state-1][ch];
     vt52parse_state_t  new_state = STATE(change);
     vt52parse_action_t action    = ACTION(change);
 
@@ -522,7 +523,7 @@ void vt52parse_do_state_change(vt52parse_t *parser, vt52_state_change_t change, 
         case VT52PARSE_ACTION_PRINT:
         case VT52PARSE_ACTION_EXECUTE:
         case VT52PARSE_ACTION_ESC_DISPATCH:
-            parser->cb(parser, action, ch);
+            parser->cb(parser->user_data, action, ch);
             break;
 
         case VT52PARSE_ACTION_ESC_START:
@@ -549,7 +550,7 @@ void vt52parse_do_state_change(vt52parse_t *parser, vt52_state_change_t change, 
                 parser->esc_code_seen = ch;
             }
             else {
-                parser->cb(parser, VT52PARSE_ACTION_ESC_DISPATCH, ch);
+                parser->cb(parser->user_data, VT52PARSE_ACTION_ESC_DISPATCH, ch);
                 new_state = VT52PARSE_STATE_GROUND;
             }
             break;
@@ -559,13 +560,13 @@ void vt52parse_do_state_change(vt52parse_t *parser, vt52_state_change_t change, 
                 parser->params[parser->num_params++] = ch;
             }
             else {
-                parser->cb(parser, VT52PARSE_ACTION_ESC_DISPATCH, parser->esc_code_seen);
+                parser->cb(parser->user_data, VT52PARSE_ACTION_ESC_DISPATCH, parser->esc_code_seen);
                 new_state = VT52PARSE_STATE_GROUND;
             }
             break;
 
         default:
-            parser->cb(parser, VT52PARSE_ACTION_ERROR, 0);
+            parser->cb(parser->user_data, VT52PARSE_ACTION_ERROR, 0);
     }
 
     parser->state = new_state;

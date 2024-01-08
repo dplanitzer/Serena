@@ -27,7 +27,7 @@ typedef enum {
 } vt52parse_action_t;
 
 typedef unsigned char vt52_state_change_t;
-typedef void (*vt52parse_callback_t)(struct vt52parse*, vt52parse_action_t, unsigned char);
+typedef void (*vt52parse_callback_t)(void*, vt52parse_action_t, unsigned char);
 
 typedef struct vt52parse {
     vt52parse_state_t      state;
@@ -40,10 +40,5 @@ typedef struct vt52parse {
     char                   is_atari_extensions_enabled;
 } vt52parse_t;
 
-extern const vt52_state_change_t VT52_STATE_TABLE[3][256];
-
-void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data);
-void vt52parse_do_state_change(vt52parse_t *parser, vt52_state_change_t change, unsigned char ch);
-
-#define vt52parse_byte(parser, ch) \
-        vt52parse_do_state_change(parser, VT52_STATE_TABLE[(parser)->state-1][ch], ch)
+void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data, int isAtariExtensionsEnabled);
+void vt52parse_do_state_change(vt52parse_t *parser, unsigned char ch);

@@ -34,7 +34,7 @@ static void do_action(vt500parse_t *parser, vt500parse_action_t action, unsigned
         case VT500PARSE_ACTION_UNHOOK:
         case VT500PARSE_ACTION_CSI_DISPATCH:
         case VT500PARSE_ACTION_ESC_DISPATCH:
-            parser->cb(parser, action, ch);
+            parser->cb(parser->user_data, action, ch);
             break;
 
         case VT500PARSE_ACTION_IGNORE:
@@ -88,14 +88,14 @@ static void do_action(vt500parse_t *parser, vt500parse_action_t action, unsigned
             break;
 
         default:
-            parser->cb(parser, VT500PARSE_ACTION_ERROR, 0);
+            parser->cb(parser->user_data, VT500PARSE_ACTION_ERROR, 0);
     }
 }
 
-void vt500parse_do_state_change(vt500parse_t *parser, state_change_t change, unsigned char ch)
+void vt500parse_do_state_change(vt500parse_t *parser, unsigned char ch)
 {
     /* A state change is an action and/or a new state to transition to. */
-
+    const state_change_t change = VT500_STATE_TABLE[(parser)->state-1][ch];
     vt500parse_state_t  new_state = STATE(change);
     vt500parse_action_t action    = ACTION(change);
 

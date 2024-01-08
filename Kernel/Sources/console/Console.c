@@ -58,7 +58,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
 
     // Initialize the ANSI escape sequence parser
-    vt500parse_init(&pConsole->vtparse, Console_ParseInputBytes_Locked, pConsole);
+    vtparser_init(&pConsole->vtparser, (vtparser_callback_t)Console_ParseInputBytes_Locked, pConsole);
 
 
     // Allocate the text cursor (sprite)
@@ -585,18 +585,18 @@ static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsig
 
 static Bool has_private_use_char(ConsoleRef _Nonnull pConsole, Character ch)
 {
-    return pConsole->vtparse.num_intermediate_chars > 0 && pConsole->vtparse.intermediate_chars[0] == ch;
+    return pConsole->vtparser.u.vt500.num_intermediate_chars > 0 && pConsole->vtparser.u.vt500.intermediate_chars[0] == ch;
 }
 
 static Int get_csi_parameter(ConsoleRef _Nonnull pConsole, Int defValue)
 {
-    const Int val = (pConsole->vtparse.num_params > 0) ? pConsole->vtparse.params[0] : 0;
+    const Int val = (pConsole->vtparser.u.vt500.num_params > 0) ? pConsole->vtparser.u.vt500.params[0] : 0;
     return (val > 0) ? val : defValue;
 }
 
 static Int get_nth_csi_parameter(ConsoleRef _Nonnull pConsole, Int idx, Int defValue)
 {
-    const Int val = (pConsole->vtparse.num_params > idx) ? pConsole->vtparse.params[idx] : 0;
+    const Int val = (pConsole->vtparser.u.vt500.num_params > idx) ? pConsole->vtparser.u.vt500.params[idx] : 0;
     return (val > 0) ? val : defValue;
 }
 
@@ -643,7 +643,7 @@ static void Console_Execute_CSI_h_Locked(ConsoleRef _Nonnull pConsole)
 {
     const Bool isPrivateMode = has_private_use_char(pConsole, '?');
 
-    for (Int i = 0; i < pConsole->vtparse.num_params; i++) {
+    for (Int i = 0; i < pConsole->vtparser.u.vt500.num_params; i++) {
         const Int p = get_nth_csi_parameter(pConsole, i, 0);
 
         if (!isPrivateMode) {
@@ -677,7 +677,7 @@ static void Console_Execute_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
 {
     const Bool isPrivateMode = has_private_use_char(pConsole, '?');
 
-    for (Int i = 0; i < pConsole->vtparse.num_params; i++) {
+    for (Int i = 0; i < pConsole->vtparser.u.vt500.num_params; i++) {
         const Int p = get_nth_csi_parameter(pConsole, i, 0);
 
         if (!isPrivateMode) {
@@ -920,10 +920,8 @@ static void Console_ESC_VT52_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsig
     }
 }
 
-static void Console_ParseInputBytes_Locked(struct vt500parse* pParse, vt500parse_action_t action, unsigned char b)
+static void Console_ParseInputBytes_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b)
 {
-    ConsoleRef pConsole = (ConsoleRef) pParse->user_data;
-
     switch (action) {
         case VT500PARSE_ACTION_CSI_DISPATCH:
             if (pConsole->compatibilityMode == kCompatibilityMode_ANSI) {
@@ -1071,7 +1069,7 @@ ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull
     while (pChars < pCharsEnd) {
         const unsigned char by = *pChars++;
 
-        vt500parse_byte(&pConsole->vtparse, by);
+        vtparser_byte(&pConsole->vtparser, by);
     }
     Lock_Unlock(&pConsole->lock);
 

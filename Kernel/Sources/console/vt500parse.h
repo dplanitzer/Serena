@@ -21,7 +21,7 @@ extern "C" {
 
 struct vt500parse;
 
-typedef void (*vt500parse_callback_t)(struct vt500parse*, vt500parse_action_t, unsigned char);
+typedef void (*vt500parse_callback_t)(void*, vt500parse_action_t, unsigned char);
 
 // <https://vt100.net/emu/dec_ansi_parser>
 typedef struct vt500parse {
@@ -36,11 +36,10 @@ typedef struct vt500parse {
 } vt500parse_t;
 
 void vt500parse_init(vt500parse_t *parser, vt500parse_callback_t cb, void* user_data);
-
-void vt500parse_do_state_change(vt500parse_t *parser, state_change_t change, unsigned char ch);
+void vt500parse_do_state_change(vt500parse_t *parser, unsigned char ch);
 
 #define vt500parse_byte(parser, ch) \
-        vt500parse_do_state_change(parser, VT500_STATE_TABLE[(parser)->state-1][ch], ch)
+        vt500parse_do_state_change(parser, ch)
 
 
 #ifdef __cplusplus
