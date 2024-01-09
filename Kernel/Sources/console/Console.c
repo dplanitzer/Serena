@@ -160,10 +160,14 @@ void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMod
     switch (mode) {
         case kCompatibilityMode_VT52:
             vtmode = VTPARSER_MODE_VT52;
+            pConsole->flags.isInsertionMode = false;
+            pConsole->flags.isAutoWrapEnabled = false;
             break;
 
         case kCompatibilityMode_VT52_AtariExtensions:
             vtmode = VTPARSER_MODE_VT52_ATARI;
+            pConsole->flags.isInsertionMode = false;
+            pConsole->flags.isAutoWrapEnabled = false;
             break;
 
         case kCompatibilityMode_VT102:
@@ -514,9 +518,13 @@ void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole)
 void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (pConsole->x > 0) {
-        // BS moves 1 cell to the left
-        Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right, pConsole->y + 1), Point_Make(pConsole->x - 1, pConsole->y));
-        Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
+        // BS moves 1 cell to the left. It moves all characters in the line and
+        // to the right of the cursor one column to the left if insertion mode
+        // is enabled.
+        if (pConsole->flags.isInsertionMode) {
+            Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right, pConsole->y + 1), Point_Make(pConsole->x - 1, pConsole->y));
+            Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - 1, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
+        }
         Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, -1, 0);
     }
 }
