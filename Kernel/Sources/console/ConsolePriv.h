@@ -73,7 +73,6 @@ typedef enum _CompatibilityMode {
 //      - (DECLL) keyboard indicator
 //
 //  VT52:
-//      - (ESC Y) direct cursor address
 //      - (ESC =) keypad character selection
 //      - (ESC >) keypad character selection
 //      - (ESC F) enter graphics mode

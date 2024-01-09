@@ -560,10 +560,9 @@ void vt52parse_do_state_change(vt52parse_t *parser, unsigned char ch)
             break;
 
         case VT52PARSE_ACTION_COLLECT_BYTE:
-            if (parser->num_params < parser->num_params_to_collect) {
-                parser->params[parser->num_params++] = ch;
-            }
-            else {
+            parser->params[parser->num_params++] = ch;
+
+            if (parser->num_params == parser->num_params_to_collect) {
                 parser->cb(parser->user_data, VT52PARSE_ACTION_ESC_DISPATCH, parser->esc_code_seen);
                 new_state = VT52PARSE_STATE_GROUND;
             }
