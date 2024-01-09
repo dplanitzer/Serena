@@ -58,7 +58,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
 
     // Initialize the ANSI escape sequence parser
-    vtparser_init(&pConsole->vtparser, (vtparser_callback_t)Console_ParseInputBytes_Locked, pConsole);
+    vtparser_init(&pConsole->vtparser, (vt52parse_callback_t)Console_VT52_ParseByte_Locked, (vt500parse_callback_t)Console_VT102_ParseByte_Locked, pConsole);
 
 
     // Allocate the text cursor (sprite)
@@ -121,7 +121,7 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
     pConsole->eventDriver = NULL;
 }
 
-static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
+ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 {
     decl_try_err();
     const Surface* pFramebuffer;
@@ -150,6 +150,33 @@ static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 
 catch:
     return err;
+}
+
+// Switches the console to the given compatibility mode
+void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMode mode)
+{
+    vtparser_mode_t vtmode;
+
+    switch (mode) {
+        case kCompatibilityMode_VT52:
+            vtmode = VTPARSER_MODE_VT52;
+            break;
+
+        case kCompatibilityMode_VT52_AtariExtensions:
+            vtmode = VTPARSER_MODE_VT52_ATARI;
+            break;
+
+        case kCompatibilityMode_VT102:
+            vtmode = VTPARSER_MODE_VT102;
+            break;
+
+        default:
+            abort();
+            break;
+    }
+
+    vtparser_set_mode(&pConsole->vtparser, vtmode);
+    pConsole->compatibilityMode = mode;
 }
 
 // Copies the content of 'srcRect' to 'dstLoc'. Does not change the cursor
@@ -241,7 +268,7 @@ static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, Int dX, Int dY
 // Clears the console screen.
 // \param pConsole the console
 // \param mode the clear screen mode
-static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreenMode mode)
+void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreenMode mode)
 {
     switch (mode) {
         case kClearScreenMode_ToEnd:
@@ -266,7 +293,7 @@ static void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreen
 }
 
 // Clears the specified line. Does not change the cursor position.
-static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearLineMode mode)
+void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearLineMode mode)
 {
     if (Rect_Contains(pConsole->bounds, 0, y)) {
         Int left, right;
@@ -296,13 +323,13 @@ static void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearL
     }
 }
 
-static void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole)
+void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole)
 {
     pConsole->savedCursorState.x = pConsole->x;
     pConsole->savedCursorState.y = pConsole->y;
 }
 
-static void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole)
+void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole)
 {
     Console_MoveCursorTo_Locked(pConsole, pConsole->savedCursorState.x, pConsole->savedCursorState.y);
 }
@@ -342,7 +369,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _No
     }
 }
 
-static void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled)
+void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled)
 {
     if (pConsole->flags.isTextCursorBlinkerEnabled != isEnabled) {
         pConsole->flags.isTextCursorBlinkerEnabled = isEnabled;
@@ -350,7 +377,7 @@ static void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, 
     }
 }
 
-static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible)
+void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible)
 {
     if (pConsole->flags.isTextCursorVisible != isVisible) {
         pConsole->flags.isTextCursorVisible = isVisible;
@@ -376,7 +403,7 @@ static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
 // \param mode how the cursor movement should be handled if it tries to go past the margins
 // \param dx the X delta
 // \param dy the Y delta
-static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy)
+void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy)
 {
     if (dx == 0 && dy == 0) {
         return;
@@ -443,7 +470,7 @@ static void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMoveme
 // \param pConsole the console
 // \param x the X position
 // \param y the Y position
-static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
+void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
 {
     Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, x - pConsole->x, y - pConsole->y);
 }
@@ -456,7 +483,7 @@ static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 // Interprets the given byte as a character, maps it to a glyph and prints it.
 // \param pConsole the console
 // \param ch the character
-static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
+void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     // The cursor position is always valid and inside the framebuffer
     if (pConsole->flags.isInsertionMode) {
@@ -467,24 +494,24 @@ static void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char
     Console_MoveCursor_Locked(pConsole, (pConsole->flags.isAutoWrapEnabled) ? kCursorMovement_AutoWrap : kCursorMovement_Clamp, 1, 0);
 }
 
-static void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole)
+void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole)
 {
     // XXX implement me
     // XXX flash screen?
 }
 
-static void Console_Execute_HT_Locked(ConsoleRef _Nonnull pConsole)
+void Console_Execute_HT_Locked(ConsoleRef _Nonnull pConsole)
 {
     Console_MoveCursorTo_Locked(pConsole, TabStops_GetNextStop(&pConsole->hTabStops, pConsole->x, Rect_GetWidth(pConsole->bounds)), pConsole->y);
 }
 
 // Line feed may be IND or NEL depending on a setting (that doesn't exist yet)
-static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole)
+void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole)
 {
     Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, -pConsole->x, 1);
 }
 
-static void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole)
+void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (pConsole->x > 0) {
         // BS moves 1 cell to the left
@@ -494,7 +521,7 @@ static void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole)
     }
 }
 
-static void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
+void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (pConsole->x < pConsole->bounds.right - 1) {
         // DEL does not change the position.
@@ -503,13 +530,13 @@ static void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
     }
 }
 
-static void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, Int nChars)
+void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, Int nChars)
 {
     Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + nChars, pConsole->y, pConsole->bounds.right - nChars, pConsole->y + 1), Point_Make(pConsole->x, pConsole->y));
     Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - nChars, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
 }
 
-static void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
+void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
 {
     if (pConsole->y < pConsole->bounds.bottom) {
         Console_CopyRect_Locked(pConsole, Rect_Make(0, pConsole->y + 1, pConsole->bounds.right, pConsole->bounds.bottom - nLines), Point_Make(pConsole->x, pConsole->y + 2));
@@ -517,438 +544,10 @@ static void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
     }
 }
 
-static void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
+void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
 {
     Console_CopyRect_Locked(pConsole, Rect_Make(0, pConsole->y + 1, pConsole->bounds.right, pConsole->bounds.bottom - nLines), Point_Make(pConsole->x, pConsole->y));
     Console_FillRect_Locked(pConsole, Rect_Make(0, pConsole->bounds.bottom - nLines, pConsole->bounds.right, pConsole->bounds.bottom), ' ');
-}
-
-
-// Interprets the given byte as a C0/C1 control character and either executes it or ignores it.
-// \param pConsole the console
-// \param ch the character
-static void Console_ExecuteByte_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
-{
-    switch (ch) {
-        case 0x05:  // ENQ (Transmit answerback message)
-            // XXX implement me
-            break;
-
-        case 0x07:  // BEL (Bell)
-            Console_Execute_BEL_Locked(pConsole);
-            break;
-
-        case 0x08:  // BS (Backspace)
-        case 0x94:  // CCH (Cancel Character)
-            Console_Execute_BS_Locked(pConsole);
-            break;
-
-        case 0x09:  // HT (Tab)
-            Console_Execute_HT_Locked(pConsole);
-            break;
-
-        case 0x0a:  // LF (Line Feed)
-        case 0x0b:  // VT (Vertical Tab)
-        case 0x0c:  // FF (Form Feed)
-            Console_Execute_LF_Locked(pConsole);
-            break;
-
-        case 0x0d:  // CR (Carriage Return)
-            Console_MoveCursorTo_Locked(pConsole, 0, pConsole->y);
-            break;
-            
-        case 0x7f:  // DEL (Delete)
-            Console_Execute_DEL_Locked(pConsole);
-            break;
-            
-        case 0x84:  // IND (Index)
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, 1);
-            break;
-
-        case 0x85:  // NEL (Next Line)
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, -pConsole->x, 1);
-            break;
-
-        case 0x88:  // HTS (Horizontal Tabulation Set)
-            TabStops_InsertStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 0x8d:  // RI (Reverse Line Feed)
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, -1);
-            break;
-            
-        default:
-            // Ignore it
-            break;
-    }
-}
-
-static Bool has_private_use_char(ConsoleRef _Nonnull pConsole, Character ch)
-{
-    return pConsole->vtparser.u.vt500.num_intermediate_chars > 0 && pConsole->vtparser.u.vt500.intermediate_chars[0] == ch;
-}
-
-static Int get_csi_parameter(ConsoleRef _Nonnull pConsole, Int defValue)
-{
-    const Int val = (pConsole->vtparser.u.vt500.num_params > 0) ? pConsole->vtparser.u.vt500.params[0] : 0;
-    return (val > 0) ? val : defValue;
-}
-
-static Int get_nth_csi_parameter(ConsoleRef _Nonnull pConsole, Int idx, Int defValue)
-{
-    const Int val = (pConsole->vtparser.u.vt500.num_params > idx) ? pConsole->vtparser.u.vt500.params[idx] : 0;
-    return (val > 0) ? val : defValue;
-}
-
-static void Console_Execute_CSI_CTC_Locked(ConsoleRef _Nonnull pConsole, Int op)
-{
-    switch (op) {
-        case 0:
-            TabStops_InsertStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 2:
-            TabStops_RemoveStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 4:
-        case 5:
-            TabStops_RemoveAllStops(&pConsole->hTabStops);
-            break;
-
-        default:
-            // Ignore
-            break;
-    }
-}
-
-static void Console_Execute_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, Int op)
-{
-    switch (op) {
-        case 0:
-            TabStops_RemoveStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 3:
-            TabStops_RemoveAllStops(&pConsole->hTabStops);
-            break;
-
-        default:
-            // Ignore
-            break;
-    }
-}
-
-static void Console_Execute_CSI_h_Locked(ConsoleRef _Nonnull pConsole)
-{
-    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
-
-    for (Int i = 0; i < pConsole->vtparser.u.vt500.num_params; i++) {
-        const Int p = get_nth_csi_parameter(pConsole, i, 0);
-
-        if (!isPrivateMode) {
-            switch (p) {
-                case 4: // ANSI: IRM
-                    pConsole->flags.isInsertionMode = true;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        else {
-            switch (p) {
-                case 7: // ANSI: DECAWM
-                    pConsole->flags.isAutoWrapEnabled = true;
-                    break;
-
-                case 25:
-                    Console_SetCursorVisible_Locked(pConsole, true);
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-}
-
-static void Console_Execute_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
-{
-    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
-
-    for (Int i = 0; i < pConsole->vtparser.u.vt500.num_params; i++) {
-        const Int p = get_nth_csi_parameter(pConsole, i, 0);
-
-        if (!isPrivateMode) {
-            switch (p) {
-                case 4: // ANSI: IRM
-                    pConsole->flags.isInsertionMode = false;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        else {
-            switch (p) {
-                case 2: // ANSI: VT52ANM
-                    pConsole->compatibilityMode = kCompatibilityMode_VT52;
-                    break;
-
-                case 7: // ANSI: DECAWM
-                    pConsole->flags.isAutoWrapEnabled = false;
-                    break;
-
-                case 25:
-                    Console_SetCursorVisible_Locked(pConsole, false);
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-}
-
-static void Console_CSI_ANSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
-{
-    switch (ch) {
-        case 'h':
-            Console_Execute_CSI_h_Locked(pConsole);
-            break;
-
-        case 'l':
-            Console_Execute_CSI_l_Locked(pConsole);
-            break;
-
-        case 'A':   // ANSI: CUU
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, -get_csi_parameter(pConsole, 1));
-            break;
-
-        case 'B':   // ANSI: CUD
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, get_csi_parameter(pConsole, 1));
-            break;
-
-        case 'C':   // ANSI: CUF
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, get_csi_parameter(pConsole, 1), 0);
-            break;
-
-        case 'D':   // ANSI: CUB
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, -get_csi_parameter(pConsole, 1), 0);
-            break;
-
-        case 'H':   // ANSI: CUP
-            Console_MoveCursorTo_Locked(pConsole, 0, 0);
-            break;
-
-        case 'f':   // ANSI: HVP
-            Console_MoveCursorTo_Locked(pConsole, get_nth_csi_parameter(pConsole, 1, 1) - 1, get_nth_csi_parameter(pConsole, 0, 1) - 1);
-            break;
-
-        case 'g':   // ANSI: TBC
-            Console_Execute_CSI_TBC_Locked(pConsole, get_csi_parameter(pConsole, 0));
-            break;
-
-        case 'K':   // ANSI: EL
-            Console_ClearLine_Locked(pConsole, pConsole->y, (ClearLineMode) get_csi_parameter(pConsole, 0));
-            break;
-
-        case 'J':   // ANSI: ED
-            Console_ClearScreen_Locked(pConsole, (ClearScreenMode) get_csi_parameter(pConsole, 0));
-            break;
-
-        case 'P':   // ANSI: DCH
-            Console_Execute_DCH_Locked(pConsole, get_csi_parameter(pConsole, 1));
-            break;
-
-        case 'L':   // ANSI: IL
-            Console_Execute_IL_Locked(pConsole, get_csi_parameter(pConsole, 1));
-            break;
-
-        case 'M':   // ANSI: DL
-            Console_Execute_DL_Locked(pConsole, get_csi_parameter(pConsole, 1));
-            break;
-
-        // XXX for now. Not a VT102 thing
-        case 'G':
-            Console_MoveCursorTo_Locked(pConsole, get_csi_parameter(pConsole, 1) - 1, pConsole->y);
-            break;
-
-        case 'W':
-            Console_Execute_CSI_CTC_Locked(pConsole, get_csi_parameter(pConsole, 0));
-            break;
-
-        default:
-            // Ignore
-            break;
-    }
-}
-
-static void Console_ESC_ANSI_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
-{
-    switch (ch) {
-        case 'D':   // ANSI: IND
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, 1);
-            break;
-
-        case 'M':   // ANSI: RI
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, -1);
-            break;
-
-        case 'E':   // ANSI: NEL
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, -pConsole->x, 1);
-            break;
-
-        case '7':   // ANSI: DECSC
-            Console_SaveCursorState_Locked(pConsole);
-            break;
-
-        case '8':   // ANSI: DECRC
-            Console_RestoreCursorState_Locked(pConsole);
-            break;
-
-        case 'H':   // ANSI: HTS
-            TabStops_InsertStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 'c':   // ANSI: RIS
-            Console_ResetState_Locked(pConsole);
-            break;
-
-        default:
-            // Ignore
-            break;
-    }
-}
-
-static void Console_ESC_VT52_Dispatch_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
-{
-    switch (ch) {
-        case 'A':   // VT52: Cursor up
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, -1);
-            break;
-
-        case 'B':   // VT52: Cursor down
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, 1);
-            break;
-
-        case 'C':   // VT52: Cursor right
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 1, 0);
-            break;
-
-        case 'D':   // VT52: Cursor left
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, -1, 0);
-            break;
-
-        case 'H':   // VT52: Cursor home
-            Console_MoveCursorTo_Locked(pConsole, 0, 0);
-            break;
-
-        case 'Y':   // VT52: Direct cursor address
-        // XXX implement me
-            //Console_MoveCursorTo_Locked(pConsole, nextChar - 037 - 1, nextChar - 037 - 1);
-            break;
-
-        case 'I':   // VT52: Reverse linefeed 
-            Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, -1);
-            break;
-
-        case 'K':   // VT52: Erase to end of line
-            Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_ToEnd);
-            break;
-
-        case 'J':   // VT52: Erase to end of screen
-            Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToEnd);
-            break;
-
-        case '<':   // VT52: DECANM
-            pConsole->compatibilityMode = kCompatibilityMode_ANSI;
-            break;
-            
-        default:
-            if (pConsole->compatibilityMode == kCompatibilityMode_VT52_AtariExtensions) {
-                switch (ch) {
-                case 'E': // VT52+Atari: Clear screen
-                    Console_MoveCursorTo_Locked(pConsole, 0, 0);
-                    Console_ClearScreen_Locked(pConsole, kClearScreenMode_Whole);
-                    break;
-
-                case 'd': // VT52+Atari: Clear to start of screen
-                    Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToBeginning);
-                    break;
-
-                case 'e': // VT52+Atari: Show cursor
-                    Console_SetCursorVisible_Locked(pConsole, true);
-                    break;
-
-                case 'f': // VT52+Atari: Hide cursor
-                    Console_SetCursorVisible_Locked(pConsole, false);
-                    break;
-
-                case 'j': // VT52+Atari: Save cursor
-                    Console_SaveCursorState_Locked(pConsole);
-                    break;
-
-                case 'k': // VT52+Atari: Restore cursor
-                    Console_RestoreCursorState_Locked(pConsole);
-                    break;
-
-                case 'l': // VT52+Atari: Clear line and move cursor to the left margin
-                    Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_Whole);
-                    Console_MoveCursorTo_Locked(pConsole, 0, pConsole->y);
-                    break;
-
-                case 'o': // VT52+Atari: Clear to start of line
-                    Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_ToBeginning);
-                    break;
-
-                case 'v': // VT52+Atari: Auto-wrap on
-                    pConsole->flags.isAutoWrapEnabled = true;
-                    break;
-
-                case 'w': // VT52+Atari: Auto-wrap off
-                    pConsole->flags.isAutoWrapEnabled = false;
-                    break;
-
-                default:
-                    // Ignore
-                    break;
-                }
-            }
-            break;
-    }
-}
-
-static void Console_ParseInputBytes_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b)
-{
-    switch (action) {
-        case VT500PARSE_ACTION_CSI_DISPATCH:
-            if (pConsole->compatibilityMode == kCompatibilityMode_ANSI) {
-                Console_CSI_ANSI_Dispatch_Locked(pConsole, b);
-            }
-            break;
-
-        case VT500PARSE_ACTION_ESC_DISPATCH:
-            if (pConsole->compatibilityMode == kCompatibilityMode_ANSI) {
-                Console_ESC_ANSI_Dispatch_Locked(pConsole, b);
-            } else {
-                Console_ESC_VT52_Dispatch_Locked(pConsole, b);
-            }
-            break;
-
-        case VT500PARSE_ACTION_EXECUTE:
-            Console_ExecuteByte_C0_C1_Locked(pConsole, b);
-            break;
-
-        case VT500PARSE_ACTION_PRINT:
-            Console_PrintByte_Locked(pConsole, b);
-            break;
-
-        default:
-            // Ignore
-            break;
-    }
 }
 
 

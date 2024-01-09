@@ -192,14 +192,29 @@ typedef struct _ConsoleChannelMethodTable {
 } ConsoleChannelMethodTable;
 
 
-static ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
-static void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
-static void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled);
+extern ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
+extern void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearLineMode mode);
+extern void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled);
+extern void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
 static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
-static void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
-static void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
-static void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
-static void Console_ParseInputBytes_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
+extern void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
+extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy);
+extern void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
+extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_action_t action, unsigned char b);
+extern void Console_VT102_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
+
+extern void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch);
+extern void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_Execute_HT_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, Int nChars);
+extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines);
+extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines);
 
 
 //

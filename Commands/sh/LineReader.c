@@ -199,7 +199,9 @@ static void LineReader_MoveHistoryDown(LineReaderRef _Nonnull self)
 static void LineReader_MoveCursorLeft(LineReaderRef _Nonnull self)
 {
     if (self->x > 0) {
-        printf("\033[D");   // cursor left
+        //printf("\033[D");   // cursor left
+        printf("\033[?2l\033D\033<");
+        //printf("\033[?2l\033D");
         self->x--;
     }
 }

@@ -40,5 +40,6 @@ typedef struct vt52parse {
     char                   is_atari_extensions_enabled;
 } vt52parse_t;
 
-void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data, int isAtariExtensionsEnabled);
+void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data);
+void vt52parse_reset(vt52parse_t *parser);
 void vt52parse_do_state_change(vt52parse_t *parser, unsigned char ch);

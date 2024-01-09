@@ -36,10 +36,8 @@ typedef struct vt500parse {
 } vt500parse_t;
 
 void vt500parse_init(vt500parse_t *parser, vt500parse_callback_t cb, void* user_data);
+void vt500parse_reset(vt500parse_t *parser);
 void vt500parse_do_state_change(vt500parse_t *parser, unsigned char ch);
-
-#define vt500parse_byte(parser, ch) \
-        vt500parse_do_state_change(parser, ch)
 
 
 #ifdef __cplusplus

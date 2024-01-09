@@ -10,12 +10,17 @@
 
 void vt500parse_init(vt500parse_t *parser, vt500parse_callback_t cb, void* user_data)
 {
+    vt500parse_reset(parser);
+    parser->cb        = cb;
+    parser->user_data = user_data;
+}
+
+void vt500parse_reset(vt500parse_t *parser)
+{
     parser->state                  = VT500PARSE_STATE_GROUND;
     parser->num_intermediate_chars = 0;
     parser->num_params             = 0;
     parser->ignore_flagged         = 0;
-    parser->cb                     = cb;
-    parser->user_data              = user_data;
 }
 
 static void do_action(vt500parse_t *parser, vt500parse_action_t action, unsigned char ch)
@@ -95,7 +100,7 @@ static void do_action(vt500parse_t *parser, vt500parse_action_t action, unsigned
 void vt500parse_do_state_change(vt500parse_t *parser, unsigned char ch)
 {
     /* A state change is an action and/or a new state to transition to. */
-    const state_change_t change = VT500_STATE_TABLE[(parser)->state-1][ch];
+    const state_change_t change = VT500_STATE_TABLE[parser->state-1][ch];
     vt500parse_state_t  new_state = STATE(change);
     vt500parse_action_t action    = ACTION(change);
 

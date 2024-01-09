@@ -501,21 +501,25 @@ static const vt52_state_change_t VT52_STATE_TABLE[3][256] = {
   }
 };
 
+void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data)
+{
+    vt52parse_reset(parser);
+    parser->cb        = cb;
+    parser->user_data = user_data;
+}
 
-void vt52parse_init(vt52parse_t *parser, vt52parse_callback_t cb, void* user_data, int isAtariExtensionsEnabled)
+void vt52parse_reset(vt52parse_t *parser)
 {
     parser->state                       = VT52PARSE_STATE_GROUND;
-    parser->cb                          = cb;
-    parser->user_data                   = user_data;
     parser->num_params                  = 0;
     parser->esc_code_seen               = 0;
     parser->num_params_to_collect       = 0;
-    parser->is_atari_extensions_enabled = isAtariExtensionsEnabled;
+    parser->is_atari_extensions_enabled = 0;
 }
 
 void vt52parse_do_state_change(vt52parse_t *parser, unsigned char ch)
 {
-    const vt52_state_change_t change = VT52_STATE_TABLE[(parser)->state-1][ch];
+    const vt52_state_change_t change = VT52_STATE_TABLE[parser->state-1][ch];
     vt52parse_state_t  new_state = STATE(change);
     vt52parse_action_t action    = ACTION(change);
 

@@ -17,23 +17,18 @@ typedef enum {
    VTPARSER_MODE_VT102,
 } vtparser_mode_t;
 
-typedef int vtparser_action_t;
-
-typedef void (*vtparser_callback_t)(void*, vtparser_action_t, unsigned char);
 typedef void (*vtparser_do_change_callback_t)(void*, unsigned char);
 
 typedef struct vtparser {
-    union {
-        vt52parse_t     vt52;
-        vt500parse_t    vt500;
-    }                               u;
+    vt52parse_t                     vt52;
+    vt500parse_t                    vt500;
     vtparser_do_change_callback_t   do_change_cb;
-    vtparser_callback_t             cb;
-    void*                           user_data;
+    void*                           do_change_parser;
 } vtparser_t;
 
-void vtparser_init(vtparser_t *parser, vtparser_callback_t cb, void* user_data);
+// VT102 is the default mode
+void vtparser_init(vtparser_t *parser, vt52parse_callback_t vt52_cb, vt500parse_callback_t vt500_cb, void* user_data);
 void vtparser_set_mode(vtparser_t *parser, vtparser_mode_t mode);
 
 #define vtparser_byte(parser, ch) \
-        (parser)->do_change_cb(parser, ch)
+        (parser)->do_change_cb((parser)->do_change_parser, ch)
