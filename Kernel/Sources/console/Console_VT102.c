@@ -86,28 +86,6 @@ static void Console_VT102_Execute_C0_C1_Locked(ConsoleRef _Nonnull pConsole, uns
     }
 }
 
-static void Console_VT102_CSI_CTC_Locked(ConsoleRef _Nonnull pConsole, Int op)
-{
-    switch (op) {
-        case 0:
-            TabStops_InsertStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 2:
-            TabStops_RemoveStop(&pConsole->hTabStops, pConsole->x);
-            break;
-
-        case 4:
-        case 5:
-            TabStops_RemoveAllStops(&pConsole->hTabStops);
-            break;
-
-        default:
-            // Ignore
-            break;
-    }
-}
-
 static void Console_VT102_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, Int op)
 {
     switch (op) {
@@ -254,15 +232,6 @@ static void Console_VT102_CSI_Locked(ConsoleRef _Nonnull pConsole, unsigned char
 
         case 'M':   // ANSI: DL
             Console_Execute_DL_Locked(pConsole, get_csi_parameter(pConsole, 1));
-            break;
-
-        // XXX for now. Not a VT102 thing
-        case 'G':
-            Console_MoveCursorTo_Locked(pConsole, get_csi_parameter(pConsole, 1) - 1, pConsole->y);
-            break;
-
-        case 'W':
-            Console_VT102_CSI_CTC_Locked(pConsole, get_csi_parameter(pConsole, 0));
             break;
 
         default:

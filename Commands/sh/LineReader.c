@@ -214,13 +214,13 @@ static void LineReader_MoveCursorRight(LineReaderRef _Nonnull self)
 
 static void LineReader_MoveCursorToBeginningOfLine(LineReaderRef _Nonnull self)
 {
-    printf("\033[%dG", (int)strlen(self->prompt) + 1);
+    printf("\015\033[%dC", (int)strlen(self->prompt));
     self->x = 0;
 }
 
 static void LineReader_MoveCursorToEndOfLine(LineReaderRef _Nonnull self)
 {
-    printf("\033[%dG", (int)strlen(self->prompt) + 1 + self->lineCount);
+    printf("\015\033[%dC", (int)strlen(self->prompt) + self->lineCount);
     self->x = self->lineCount;
 }
 
