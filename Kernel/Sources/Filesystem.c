@@ -71,6 +71,18 @@ void File_deinit(FileRef _Nonnull self)
     }
 }
 
+ErrorCode File_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kIOChannelCommand_GetType:
+            *((Int*) va_arg(ap, Int*)) = kIOChannelType_File;
+            return EOK;
+
+        default:
+            return ENOTIOCTLCMD;
+    }
+}
+
 ErrorCode File_seek(FileRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence)
 {
     if(pOutOldPosition) {
@@ -107,6 +119,7 @@ ErrorCode File_seek(FileRef _Nonnull self, FileOffset offset, FileOffset* _Nulla
 
 CLASS_METHODS(File, IOChannel,
 OVERRIDE_METHOD_IMPL(deinit, File, Object)
+OVERRIDE_METHOD_IMPL(ioctl, File, IOChannel)
 OVERRIDE_METHOD_IMPL(seek, File, IOChannel)
 );
 
@@ -159,6 +172,18 @@ ByteCount Directory_dup(DirectoryRef _Nonnull self, DirectoryRef _Nullable * _No
     return EBADF;
 }
 
+ErrorCode Directory_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kIOChannelCommand_GetType:
+            *((Int*) va_arg(ap, Int*)) = kIOChannelType_Directory;
+            return EOK;
+
+        default:
+            return ENOTIOCTLCMD;
+    }
+}
+
 ByteCount Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead);
@@ -194,6 +219,7 @@ ErrorCode Directory_close(DirectoryRef _Nonnull self)
 CLASS_METHODS(Directory, IOChannel,
 OVERRIDE_METHOD_IMPL(deinit, Directory, Object)
 OVERRIDE_METHOD_IMPL(dup, Directory, IOChannel)
+OVERRIDE_METHOD_IMPL(ioctl, Directory, IOChannel)
 OVERRIDE_METHOD_IMPL(read, Directory, IOChannel)
 OVERRIDE_METHOD_IMPL(write, Directory, IOChannel)
 OVERRIDE_METHOD_IMPL(seek, Directory, IOChannel)

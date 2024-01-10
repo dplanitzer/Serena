@@ -137,35 +137,25 @@ errno_t ftruncate(int fd, off_t length)
     return r;
 }
 
+
+IOChannelType fgettype(int fd)
+{
+    long type;
+
+    ioctl(fd, kIOChannelCommand_GetType, &type);
+    return type;
+}
+
+
 errno_t ioctl(int fd, int cmd, ...)
 {
     errno_t r;
     va_list ap;
 
     va_start(ap, cmd);
-    if (IsIOChannelCommand(cmd)) {
-        r = EINVAL;
-    } else {
-        __failable_syscall(r, SC_ioctl, fd, cmd, ap);
-    }
+    __failable_syscall(r, SC_ioctl, fd, cmd, ap);
     va_end(ap);
 
-    return r;
-}
-
-errno_t fdctl(int fd, int cmd, ...)
-{
-    errno_t r;
-    va_list ap;
-
-    va_start(ap, cmd);
-    if (IsIOChannelCommand(cmd)) {
-        __failable_syscall(r, SC_ioctl, fd, cmd, ap);
-    } else {
-        r = EINVAL;
-    }
-    va_end(ap);
-    
     return r;
 }
 

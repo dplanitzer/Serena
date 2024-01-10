@@ -46,7 +46,8 @@ char *strerror(int err_no)
         /*EEXIST*/          "File exists",
         /*EOVERFLOW*/       "Value overflow",
         /*EFBIG*/           "File too big",
-        /*EISDIR*/          "Is a directory"
+        /*EISDIR*/          "Is a directory",
+        /*ENOTIOCTLCMD*/    "Not an IOCTL command"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

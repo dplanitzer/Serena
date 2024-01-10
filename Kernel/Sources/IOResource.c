@@ -51,9 +51,9 @@ ByteCount IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _No
     return IOResource_Dup(self->resource, self, pOutChannel);
 }
 
-ByteCount IOChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+ErrorCode IOChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
 {
-    return EINVAL;
+    return ENOTIOCTLCMD;
 }
 
 ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
@@ -155,7 +155,7 @@ ErrorCode IOResource_close(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pC
 // Executes the resource specific command 'cmd'.
 ErrorCode IOResource_ioctl(IOResourceRef _Nonnull self, Int cmd, va_list ap)
 {
-    return EINVAL;
+    return ENOTIOCTLCMD;
 }
 
 

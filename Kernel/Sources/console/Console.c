@@ -14,7 +14,20 @@
 // MARK: ConsoleChannel
 ////////////////////////////////////////////////////////////////////////////////
 
+ErrorCode ConsoleChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kIOChannelCommand_GetType:
+            *((Int*) va_arg(ap, Int*)) = kIOChannelType_Terminal;
+            return EOK;
+
+        default:
+            return ENOTIOCTLCMD;
+    }
+}
+
 CLASS_METHODS(ConsoleChannel, IOChannel,
+OVERRIDE_METHOD_IMPL(ioctl, ConsoleChannel, IOChannel)
 );
 
 

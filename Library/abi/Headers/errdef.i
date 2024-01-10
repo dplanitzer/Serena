@@ -44,8 +44,9 @@ EEXIST          equ 31
 EOVERFLOW       equ 32
 EFBIG           equ 33
 EISDIR          equ 34
+ENOTIOCTLCMD    equ 35
 
 __EFIRST    equ 1
-__ELAST     equ 34
+__ELAST     equ 35
 
         endif   ; _ERRDEF_I
