@@ -560,7 +560,7 @@ ErrorCode Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked p
 {
     decl_try_err();
     ConsoleChannelRef pChannel;
-    const KeyMap* pKeyMap = (const KeyMap*) &gKeyMap_usa[0];
+    const KeyMap* pKeyMap = (const KeyMap*) gKeyMap_usa;
 
     try(IOChannel_AbstractCreate(&kConsoleChannelClass, (IOResourceRef) pConsole, mode, (IOChannelRef*)&pChannel));
     Bytes_ClearRange(pChannel->buffer, kKeyMap_MaxByteSequenceLength);
@@ -610,15 +610,12 @@ ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
     // Now wait for events and map them to byte sequences if we still got space
     // in the user provided buffer
     while (nBytesRead < nBytesToRead) {
-        ByteCount nEvtBytesRead;
-        evtCount = 1;
-
         // Drop the console lock while getting an event since the get events call
         // may block and holding the lock while being blocked for a potentially
         // long time would prevent any other process from working with the
         // console
         Lock_Unlock(&pConsole->lock);
-        nEvtBytesRead = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
+        const ByteCount nEvtBytesRead = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
@@ -644,6 +641,7 @@ ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
             pChannel->startIndex = i;
+            break;
         }
     }
 

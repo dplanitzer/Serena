@@ -182,8 +182,8 @@ CLASS_IVARS(Console, IOResource,
 OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
     const KeyMap* _Nonnull  map;
     Byte                    buffer[kKeyMap_MaxByteSequenceLength];  // Holds a full or partial byte sequence produced by a key down event
-    ByteCount               count;      // Number of bytes stored in the buffer
-    Int                     startIndex; // Index of first byte in the buffer where a partial byte sequence begins
+    Int8                    count;      // Number of bytes stored in the buffer
+    Int8                    startIndex; // Index of first byte in the buffer where a partial byte sequence begins
 );
 typedef struct _ConsoleChannelMethodTable {
     IOChannelMethodTable    super;
