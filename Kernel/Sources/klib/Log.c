@@ -1,5 +1,5 @@
 //
-//  print.c
+//  Log.c
 //  Apollo
 //
 //  Created by Dietmar Planitzer on 7/17/23.
