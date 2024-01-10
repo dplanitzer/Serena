@@ -9,12 +9,11 @@
 #include "KeyMap.h"
 
 
-// Returns the maximum size of the output buffer that is needed for the
-// KeyMap_Map() function.
-ByteCount KeyMap_GetMaxOutputByteCount(const KeyMap* _Nonnull pMap)
+// Returns true if the given key map is valid and false otherwise.
+// XXX Should check that all offsets are inside the pMap->size range.
+Bool KeyMap_IsValid(const KeyMap* _Nonnull pMap)
 {
     const Byte* pMapBase = (const Byte*) pMap;
-    ByteCount maxOutChars = 0;
 
     for (UInt16 r = 0; r < pMap->rangeCount; r++) {
         const KeyMapRange* pCurRange = (const KeyMapRange*)(pMapBase + pMap->rangeOffset[r]);
@@ -25,7 +24,10 @@ ByteCount KeyMap_GetMaxOutputByteCount(const KeyMap* _Nonnull pMap)
                 const UInt16* pCurTraps = (const UInt16*)(pMapBase + pCurRange->traps);
 
                 for (UInt16 k = 0; k <= keyCodeCount; k++) {
-                    maxOutChars = __max(maxOutChars, String_Length((const char*)(pMapBase + pCurTraps[k])));
+                    // XXX This should really only check at most kKeyMap_MaxByteSequenceLength+1 bytes
+                    if (String_Length((const char*)(pMapBase + pCurTraps[k])) > kKeyMap_MaxByteSequenceLength) {
+                        return false;
+                    }
                 }
             } break;
 
@@ -33,7 +35,7 @@ ByteCount KeyMap_GetMaxOutputByteCount(const KeyMap* _Nonnull pMap)
                 break;
         }
     }
-    return maxOutChars;
+    return true;
 }
 
 

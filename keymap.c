@@ -26,10 +26,15 @@
 // USB key scan code
 typedef uint16_t    USBKeyCode;
 
+// Longest possible byte sequence that a key can produce and that KeyMap_Map()
+// will return.
+// The max length is chosen such that a single key stroke can be mapped to
+// 4 UTF-32 characters.
+#define kKeyMap_MaxByteSequenceLength   16
+
 // A small string. This is the kind of string we are willing to store in a string
-// based key trap. Max length including the trailing \0 is 8 bytes for now.
-#define MAX_SMALL_STRING_LEN    7
-typedef char        SmallString[MAX_SMALL_STRING_LEN+1];
+// based key trap. Max length including the trailing \0 is 17 bytes for now.
+typedef char        SmallString[kKeyMap_MaxByteSequenceLength+1];
 
 
 // Key Map Types:
@@ -45,6 +50,7 @@ typedef enum _KeyType {
     kKeyType_4Bytes = 0,
     kKeyType_String = 3
 } KeyType;
+
 
 typedef struct _Key {
     KeyType     type;
@@ -251,7 +257,7 @@ static void readIdentifier(FILE *s, int firstChar, SmallString id)
     int i = 0;
 
     id[i++] = (char) firstChar;
-    while (i < MAX_SMALL_STRING_LEN - 1) {
+    while (i < kKeyMap_MaxByteSequenceLength - 1) {
         const int ch = km_getc(s);
 
         if (!isalpha(ch)) {
@@ -334,7 +340,7 @@ static void readStringLiteral(FILE *s, SmallString str)
 {
     int i = 0;
 
-    while (i < MAX_SMALL_STRING_LEN) {
+    while (i < kKeyMap_MaxByteSequenceLength) {
         int ch = km_getc(s);
 
         if (ch == '\\') {
@@ -1071,7 +1077,7 @@ static void decompileKeyTrap_Type3(uint16_t keyTrapOffset, uint16_t usbKeyCode, 
     SmallString str;
     int i = 0;
 
-    while (i < MAX_SMALL_STRING_LEN) {
+    while (i < kKeyMap_MaxByteSequenceLength) {
         str[i] = (char) read8(data, &stringOffset);
         if (str[i] == '\0') {
             break;

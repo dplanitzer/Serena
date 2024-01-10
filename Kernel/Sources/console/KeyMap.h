@@ -87,12 +87,16 @@ typedef struct _KeyMap {
 } KeyMap;
 
 
-// XXX Should have something like a KeyMap_Validate() that checks that all offsets
-// XXX are inside the pMap->size range
+// Longest possible byte sequence that a key can produce and that KeyMap_Map()
+// will return.
+// The max length is chosen such that a single key stroke can be mapped to
+// 4 UTF-32 characters.
+#define kKeyMap_MaxByteSequenceLength   16
 
-// Returns the maximum size of the output buffer that is needed for the
-// KeyMap_Map() function.
-extern ByteCount KeyMap_GetMaxOutputByteCount(const KeyMap* _Nonnull pMap);
+
+// Returns true if the given key map is valid and false otherwise.
+// XXX Should check that all offsets are inside the pMap->size range.
+extern Bool KeyMap_IsValid(const KeyMap* _Nonnull pMap);
 
 // Maps the given up/down key event to a sequence of bytes. Usually that
 // sequence is only a single byte long. However it may be multiple bytes

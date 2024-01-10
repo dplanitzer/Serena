@@ -181,8 +181,7 @@ CLASS_IVARS(Console, IOResource,
 // remaining buffered bytes before it receives bytes from new events.
 OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
     const KeyMap* _Nonnull  map;
-    Byte*                   buffer;     // Holds a full or partial byte sequence produced by a key down event
-    ByteCount               capacity;   // Maximum number of bytes the buffer can hold
+    Byte                    buffer[kKeyMap_MaxByteSequenceLength];  // Holds a full or partial byte sequence produced by a key down event
     ByteCount               count;      // Number of bytes stored in the buffer
     Int                     startIndex; // Index of first byte in the buffer where a partial byte sequence begins
 );

@@ -14,14 +14,7 @@
 // MARK: ConsoleChannel
 ////////////////////////////////////////////////////////////////////////////////
 
-void ConsoleChannel_deinit(ConsoleChannelRef _Nonnull self)
-{
-    kfree(self->buffer);
-    self->buffer = NULL;
-}
-
 CLASS_METHODS(ConsoleChannel, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, ConsoleChannel, Object)
 );
 
 
@@ -568,12 +561,10 @@ ErrorCode Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked p
     decl_try_err();
     ConsoleChannelRef pChannel;
     const KeyMap* pKeyMap = (const KeyMap*) &gKeyMap_usa[0];
-    const ByteCount keyMapSize = KeyMap_GetMaxOutputByteCount(pKeyMap);
 
     try(IOChannel_AbstractCreate(&kConsoleChannelClass, (IOResourceRef) pConsole, mode, (IOChannelRef*)&pChannel));
-    try(kalloc(keyMapSize, (void**)&pChannel->buffer));
+    Bytes_ClearRange(pChannel->buffer, kKeyMap_MaxByteSequenceLength);
     pChannel->map = pKeyMap;
-    pChannel->capacity = keyMapSize;
     pChannel->count = 0;
     pChannel->startIndex = 0;
 
@@ -588,9 +579,8 @@ ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull p
     ConsoleChannelRef pNewChannel;
 
     try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
-    try(kalloc(pInChannel->capacity, (void**)&pNewChannel->buffer));
+    Bytes_ClearRange(pNewChannel->buffer, kKeyMap_MaxByteSequenceLength);
     pNewChannel->map = pInChannel->map;
-    pNewChannel->capacity = pInChannel->capacity;
     pNewChannel->count = 0;
     pNewChannel->startIndex = 0;
 
@@ -642,7 +632,7 @@ ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
         }
 
 
-        pChannel->count = KeyMap_Map(pChannel->map, &evt.data.key, pChannel->buffer, pChannel->capacity);
+        pChannel->count = KeyMap_Map(pChannel->map, &evt.data.key, pChannel->buffer, kKeyMap_MaxByteSequenceLength);
 
         Int i = 0;
         while (nBytesRead < nBytesToRead && pChannel->count > 0) {
