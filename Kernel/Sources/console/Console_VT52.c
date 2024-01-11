@@ -138,6 +138,10 @@ static void Console_VT52_ESC_Locked(ConsoleRef _Nonnull pConsole, unsigned char 
             Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToEnd);
             break;
 
+        case 'Z':   // VT52: Identify terminal type
+            Console_PostReport_Locked(pConsole, "\033/K");  // VT52 without copier
+            break;
+
         case '<':   // VT52: DECANM
             Console_SetCompatibilityMode(pConsole, kCompatibilityMode_ANSI);
             break;

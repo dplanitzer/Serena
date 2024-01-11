@@ -175,15 +175,90 @@ static void Console_VT102_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
     }
 }
 
+static void Console_VT102_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
+{
+    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
+
+    for (Int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
+        const Int p = get_nth_csi_parameter(pConsole, i, 0);
+
+        if (!isPrivateMode) {
+            switch (p) {
+                case 5: // ANSI: DSR (request status of terminal)
+                    Console_PostReport_Locked(pConsole, "\033[0n");   // OK
+                    break;
+
+                case 6: { // ANSI: DSR (request cursor position)
+                    Character numbuf[11];
+                    Character buf[MAX_MESSAGE_LENGTH + 1];
+                    Character* ptr = &buf[0];
+                    *ptr++ = '\033';
+                    *ptr++ = '[';
+                    if (pConsole-> x > 0 || pConsole->y > 0) {
+                        const Character* lb = Int64_ToString(pConsole->y + 1, 10, 10, '\0', numbuf, 11);
+                        while (*lb != '\0') {
+                            *ptr++ = *lb++;
+                        }
+                        *ptr++ = ';';
+                        const Character* cb = Int64_ToString(pConsole->x + 1, 10, 10, '\0', numbuf, 11);
+                        while (*cb != '\0') {
+                            *ptr++ = *cb++;
+                        }
+                    }
+                    *ptr++ = 'R';
+                    *ptr = '\0';
+                    Console_PostReport_Locked(pConsole, buf);
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+        else {
+            switch (p) {
+                case 15: // ANSI: DSR (request status of printer)
+                    Console_PostReport_Locked(pConsole, "\033[?13n");  // None
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+}
+
+static void Console_VT102_CSI_c_Locked(ConsoleRef _Nonnull pConsole)
+{
+    const Int p = get_nth_csi_parameter(pConsole, 0, 0);
+
+    switch (p) {
+        case 0: // ANSI: DA
+            Console_PostReport_Locked(pConsole, "\033[?6c");   // VT102
+            break;
+
+        default:
+            break;
+    }
+}
+
 static void Console_VT102_CSI_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     switch (ch) {
+        case 'c':
+            Console_VT102_CSI_c_Locked(pConsole);
+            break;
+
         case 'h':
             Console_VT102_CSI_h_Locked(pConsole);
             break;
 
         case 'l':
             Console_VT102_CSI_l_Locked(pConsole);
+            break;
+
+        case 'n':
+            Console_VT102_CSI_n_Locked(pConsole);
             break;
 
         case 'A':   // ANSI: CUU
@@ -265,6 +340,10 @@ static void Console_VT102_ESC_Locked(ConsoleRef _Nonnull pConsole, unsigned char
 
         case 'H':   // ANSI: HTS
             TabStops_InsertStop(&pConsole->hTabStops, pConsole->x);
+            break;
+
+        case 'Z':   // ANSI: DECID
+            Console_PostReport_Locked(pConsole, "\033[?6c");  // VT102
             break;
 
         case 'c':   // ANSI: RIS

@@ -29,7 +29,7 @@ const Character* _Nonnull Int64_ToString(Int64 val, Int base, Int fieldWidth, Ch
         p0--;
     }
     
-    pString[maxLength - 1] = '\0';
+    *p = '\0';
     do {
         p--;
         Int64_DivMod(absval, base, &q, &r);

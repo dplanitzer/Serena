@@ -53,6 +53,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
     pConsole->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     try(IOResource_Open(pConsole->eventDriver, NULL/*XXX*/, O_RDONLY, user, &pConsole->eventDriverChannel));
+    try(RingBuffer_Init(&pConsole->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
 
@@ -107,6 +108,7 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
 {
     Console_SetCursorBlinkingEnabled_Locked(pConsole, false);
     GraphicsDriver_RelinquishSprite(pConsole->gdevice, pConsole->textCursor);
+    RingBuffer_Deinit(&pConsole->reportsQueue);
 
     Timer_Destroy(pConsole->textCursorBlinker);
     pConsole->textCursorBlinker = NULL;
@@ -487,6 +489,32 @@ void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// Terminal reports queue
+////////////////////////////////////////////////////////////////////////////////
+
+// Posts a terminal report to the reports queue. The message length may not
+// exceed MAX_MESSAGE_LENGTH.
+void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const Character* msg)
+{
+    const ByteCount nBytesToWrite = String_Length(msg) + 1;
+    assert(nBytesToWrite < (MAX_MESSAGE_LENGTH + 1));
+
+    // Make space for the new message by removing the oldest (full) message(s)
+    while (RingBuffer_WritableCount(&pConsole->reportsQueue) < nBytesToWrite) {
+        Byte b;
+
+        // Remove a full message
+        do {
+            RingBuffer_GetByte(&pConsole->reportsQueue, &b);
+        } while (b != 0);
+    }
+
+    // Queue the new terminal report (including the trailing \0)
+    RingBuffer_PutBytes(&pConsole->reportsQueue, (const Byte*)msg, nBytesToWrite);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Processing input bytes
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -576,7 +604,7 @@ ErrorCode Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked p
     const KeyMap* pKeyMap = (const KeyMap*) gKeyMap_usa;
 
     try(IOChannel_AbstractCreate(&kConsoleChannelClass, (IOResourceRef) pConsole, mode, (IOChannelRef*)&pChannel));
-    Bytes_ClearRange(pChannel->buffer, kKeyMap_MaxByteSequenceLength);
+    Bytes_ClearRange(pChannel->buffer, MAX_MESSAGE_LENGTH);
     pChannel->map = pKeyMap;
     pChannel->count = 0;
     pChannel->startIndex = 0;
@@ -592,7 +620,7 @@ ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull p
     ConsoleChannelRef pNewChannel;
 
     try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
-    Bytes_ClearRange(pNewChannel->buffer, kKeyMap_MaxByteSequenceLength);
+    Bytes_ClearRange(pNewChannel->buffer, MAX_MESSAGE_LENGTH);
     pNewChannel->map = pInChannel->map;
     pNewChannel->count = 0;
     pNewChannel->startIndex = 0;
@@ -603,46 +631,29 @@ catch:
 
 }
 
-ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+static ByteCount Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
-    HIDEvent evt;
-    Int evtCount;
     ByteCount nBytesRead = 0;
-    ErrorCode err = EOK;
 
-    Lock_Lock(&pConsole->lock);
-
-    // First check whether we got a partial key byte sequence sitting in our key
-    // mapping buffer and copy that one out.
-    while (nBytesRead < nBytesToRead && pChannel->count > 0) {
-        pBuffer[nBytesRead++] = pChannel->buffer[pChannel->startIndex++];
-        pChannel->count--;
-    }
-
-
-    // Now wait for events and map them to byte sequences if we still got space
-    // in the user provided buffer
     while (nBytesRead < nBytesToRead) {
-        // Drop the console lock while getting an event since the get events call
-        // may block and holding the lock while being blocked for a potentially
-        // long time would prevent any other process from working with the
-        // console
-        Lock_Unlock(&pConsole->lock);
-        const ByteCount nEvtBytesRead = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
-        Lock_Lock(&pConsole->lock);
-        // XXX we are currently assuming here that no relevant console state has
-        // XXX changed while we didn't hold the lock. Confirm that this is okay
-        if (nEvtBytesRead < 0) {
-            err = (ErrorCode) -nEvtBytesRead;
+        Bool done = false;
+
+        while (true) {
+            Byte b;
+
+            if (RingBuffer_GetByte(&pConsole->reportsQueue, &b) == 0) {
+                done = true;
+                break;
+            }
+            if (b == 0) {
+                break;
+            }
+
+            pChannel->buffer[pChannel->count++] = b;
+        }
+        if (done) {
             break;
         }
-
-        if (evt.type != kHIDEventType_KeyDown) {
-            continue;
-        }
-
-
-        pChannel->count = KeyMap_Map(pChannel->map, &evt.data.key, pChannel->buffer, kKeyMap_MaxByteSequenceLength);
 
         Int i = 0;
         while (nBytesRead < nBytesToRead && pChannel->count > 0) {
@@ -657,9 +668,103 @@ ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
             break;
         }
     }
+    
+    return nBytesRead;
+}
+
+static ByteCount Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+{
+    HIDEvent evt;
+    ByteCount nBytesRead = 0;
+    ErrorCode err = EOK;
+
+    while (nBytesRead < nBytesToRead) {
+        // Drop the console lock while getting an event since the get events call
+        // may block and holding the lock while being blocked for a potentially
+        // long time would prevent any other process from working with the
+        // console
+        Lock_Unlock(&pConsole->lock);
+        // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
+        // XXX Or, probably, that's how the event driver read() should work in general 
+        const ByteCount nEvtBytesRead = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
+        Lock_Lock(&pConsole->lock);
+        // XXX we are currently assuming here that no relevant console state has
+        // XXX changed while we didn't hold the lock. Confirm that this is okay
+        if (nEvtBytesRead < 0) {
+            err = (ErrorCode) -nEvtBytesRead;
+            break;
+        }
+
+        if (evt.type != kHIDEventType_KeyDown) {
+            continue;
+        }
+
+
+        pChannel->count = KeyMap_Map(pChannel->map, &evt.data.key, pChannel->buffer, MAX_MESSAGE_LENGTH);
+
+        Int i = 0;
+        while (nBytesRead < nBytesToRead && pChannel->count > 0) {
+            pBuffer[nBytesRead++] = pChannel->buffer[i++];
+            pChannel->count--;
+        }
+
+        if (pChannel->count > 0) {
+            // We ran out of space in the buffer that the user gave us. Remember
+            // which bytes we need to copy next time read() is called.
+            pChannel->startIndex = i;
+            break;
+        }
+    }
+    
+    return (err == EOK) ? nBytesRead : -err;
+}
+
+// Note that this read implementation will only block if there is no buffered
+// data, no terminal reports and no events are available. It tries to do a
+// non-blocking read as hard as possible even if it can't fully fill the user
+// provided buffer. 
+ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+{
+    HIDEvent evt;
+    Int evtCount;
+    ByteCount nBytesRead = 0;
+    decl_try_err();
+
+    Lock_Lock(&pConsole->lock);
+
+    // First check whether we got a partial key byte sequence sitting in our key
+    // mapping buffer and copy that one out.
+    while (nBytesRead < nBytesToRead && pChannel->count > 0) {
+        pBuffer[nBytesRead++] = pChannel->buffer[pChannel->startIndex++];
+        pChannel->count--;
+    }
+
+
+    if (!RingBuffer_IsEmpty(&pConsole->reportsQueue)) {
+        // Now check whether there are terminal reports pending. Those take
+        // priority over input device events.
+        const ByteCount r = Console_ReadReports_NonBlocking_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead);
+        if (r >= 0) {
+            nBytesRead += r;
+        } else {
+            err = (ErrorCode) -r;
+        }
+    }
+
+
+    if (nBytesRead == 0 && err == EOK) {
+        // We haven't read any data so far. Read input events and block if none
+        // are available either.
+        const ByteCount r = Console_ReadEvents_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead);
+        if (r >= 0) {
+            nBytesRead += r;
+        } else {
+            err = (ErrorCode) -r;
+        }
+    }
 
     Lock_Unlock(&pConsole->lock);
-    
+
     return (err == EOK) ? nBytesRead : -err;
 }
 

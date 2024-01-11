@@ -64,10 +64,6 @@ typedef enum _CompatibilityMode {
 //      - (MC) media copy
 //      - (DECPEX) printer extent mode
 //      - (DECPFF) print termination character
-//      - (DSR) device status report
-//      - (CPR) cursor position report
-//      - (DA) device attributes
-//      - (DECID) identify terminal
 //      - (DECTST) tests
 //      - (DECALN) screen alignment display
 //      - (DECLL) keyboard indicator
@@ -83,7 +79,6 @@ typedef enum _CompatibilityMode {
 //      - (ESC X) print controller off
 //      - (ESC V) print cursor line
 //      - (ESC ]) print screen
-//      - (ESC Z) identify
 //
 // VT52 Atari Extensions:
 //      - (ESC b) foreground color
@@ -150,6 +145,7 @@ CLASS_IVARS(Console, IOResource,
     EventDriverRef _Nonnull     eventDriver;
     IOChannelRef _Nonnull       eventDriverChannel;
     GraphicsDriverRef _Nonnull  gdevice;
+    RingBuffer                  reportsQueue;
     RGBColor                    backgroundColor;
     RGBColor                    textColor;
     Int                         lineHeight;     // In pixels
@@ -175,13 +171,17 @@ CLASS_IVARS(Console, IOResource,
 );
 
 
+// Big enough to hold the result of a key mapping and the longest possible
+// terminal report message.
+#define MAX_MESSAGE_LENGTH kKeyMap_MaxByteSequenceLength
+
 // Takes care of mapping a USB key scan code to a character or character sequence.
 // We may leave partial character sequences in the buffer if a Console_Read() didn't
 // read all bytes of a sequence. The next Console_Read() will first receive the
 // remaining buffered bytes before it receives bytes from new events.
 OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
     const KeyMap* _Nonnull  map;
-    Byte                    buffer[kKeyMap_MaxByteSequenceLength];  // Holds a full or partial byte sequence produced by a key down event
+    Byte                    buffer[MAX_MESSAGE_LENGTH];  // Holds a full or partial byte sequence produced by a key down event
     Int8                    count;      // Number of bytes stored in the buffer
     Int8                    startIndex; // Index of first byte in the buffer where a partial byte sequence begins
 );
@@ -203,6 +203,8 @@ extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMoveme
 extern void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
 extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_action_t action, unsigned char b);
 extern void Console_VT102_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
+
+extern void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const Character* msg);
 
 extern void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch);
 extern void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole);
