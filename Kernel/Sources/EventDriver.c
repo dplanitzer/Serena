@@ -581,20 +581,21 @@ catch:
 }
 
 // Returns events in the order oldest to newest. As many events are returned as
-// fit in the provided buffer. Blocks the caller if more events are requested
-// than are queued.
+// fit in the provided buffer. Only blocks the caller if no events are queued.
 ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
     ByteCount nBytesRead = 0;
+    Int i;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        try(HIDEventQueue_Get(pDriver->eventQueue, pEvent, pChannel->timeout));
+        try(HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? pChannel->timeout : kTimeInterval_Zero));
         //assert(HIDEventQueue_GetOverflowCount(pDriver->eventQueue) == 0);
         
         nBytesRead += sizeof(HIDEvent);
         pEvent++;
+        i++;
     }
 
     return nBytesRead;
