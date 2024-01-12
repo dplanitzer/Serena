@@ -59,7 +59,7 @@ static void Lexer_ScanWord(LexerRef _Nonnull self)
     while (true) {
         const char ch = self->text[self->textIndex++];
 
-        if (ch == '\0' || !isgraph(ch)) {
+        if (ch == '\0' || ch == '#' || !isgraph(ch)) {
             break;
         }
 
@@ -101,6 +101,13 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
             case '\v':
             case '\f':
                 while(isblank(self->text[self->textIndex])) {
+                    self->textIndex++;
+                }
+                break;
+
+            case '#':
+                self->textIndex++;
+                while(self->text[self->textIndex] != '\n') {
                     self->textIndex++;
                 }
                 break;
