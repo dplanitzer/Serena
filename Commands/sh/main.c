@@ -25,6 +25,15 @@ static void _chdir(const char* path)
     }
 }
 
+static void _remove(const char* path)
+{
+    const errno_t err = unlink(path);
+
+    if (err != 0) {
+        printf("Error: %s.\n", strerror(err));
+    }
+}
+
 static void _mkdir(const char* path)
 {
     const errno_t err = mkdir(path, 0777);
@@ -124,6 +133,30 @@ static void sh_pwd(ScriptRef _Nonnull pScript)
     }
 }
 
+static void sh_mkdir(ScriptRef _Nonnull pScript)
+{
+    char* path = (pScript->wordCount > 1) ? pScript->words[1] : "";
+
+    if (*path == '\0') {
+        printf("Error: expected a path");
+        return;
+    }
+
+    _mkdir(path);
+}
+
+static void sh_rm(ScriptRef _Nonnull pScript)
+{
+    char* path = (pScript->wordCount > 1) ? pScript->words[1] : "";
+
+    if (*path == '\0') {
+        printf("Error: expected a path");
+        return;
+    }
+
+    _remove(path);
+}
+
 
 static void execute_script(ScriptRef _Nonnull pScript)
 {
@@ -141,6 +174,12 @@ static void execute_script(ScriptRef _Nonnull pScript)
     }
     else if (!strcmp(cmd, "pwd")) {
         sh_pwd(pScript);
+    }
+    else if (!strcmp(cmd, "mkdir")) {
+        sh_mkdir(pScript);
+    }
+    else if (!strcmp(cmd, "rm")) {
+        sh_rm(pScript);
     }
     else {
         printf("Error: unknown command.\n");
