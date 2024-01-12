@@ -32,13 +32,13 @@
 typedef enum _CompatibilityMode {
     kCompatibilityMode_VT52 = 0,
     kCompatibilityMode_VT52_AtariExtensions,
-    kCompatibilityMode_VT102
+    kCompatibilityMode_VT100
 } CompatibilityMode;
-#define kCompatibilityMode_ANSI kCompatibilityMode_VT102
+#define kCompatibilityMode_ANSI kCompatibilityMode_VT100
 
 
 // Unimplemented functionality:
-//  VT102:
+//  VT100:
 //      - bell
 //      - shift in/out (character set selection)
 //      - answerback message
@@ -55,8 +55,6 @@ typedef enum _CompatibilityMode {
 //      - (DECKPAM) application key mode
 //      - (DECKPNM) numeric keypad mode
 //      - (SCS) select character set
-//      - (SS2) single shift 2
-//      - (SS3) single shift 3
 //      - (SGR) select graphic rendition
 //      - (DECDHL) double-height line
 //      - (DECSWL) single-width line
@@ -202,7 +200,7 @@ extern void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y
 extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy);
 extern void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
 extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_action_t action, unsigned char b);
-extern void Console_VT102_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
+extern void Console_VT100_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
 
 extern void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const Character* msg);
 

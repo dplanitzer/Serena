@@ -9,10 +9,10 @@
 #include "ConsolePriv.h"
 
 
-// Interprets the given byte as a C0/C1 control character and either executes it or ignores it.
+// Interprets the given byte as a C0 control character and either executes it or ignores it.
 // \param pConsole the console
 // \param ch the character
-static void Console_VT52_Execute_C0_C1_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
+static void Console_VT52_Execute_C0_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     switch (ch) {
         case 0x07:  // BEL (Bell)
@@ -95,27 +95,27 @@ static void Console_VT52_ESC_Atari_Locked(ConsoleRef _Nonnull pConsole, unsigned
 static void Console_VT52_ESC_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     switch (ch) {
-        case 'A':   // VT52: Cursor up
+        case 'A':   // Cursor up
             Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, -1);
             break;
 
-        case 'B':   // VT52: Cursor down
+        case 'B':   // Cursor down
             Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 0, 1);
             break;
 
-        case 'C':   // VT52: Cursor right
+        case 'C':   // Cursor right
             Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, 1, 0);
             break;
 
-        case 'D':   // VT52: Cursor left
+        case 'D':   // Cursor left
             Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, -1, 0);
             break;
 
-        case 'H':   // VT52: Cursor home
+        case 'H':   // Cursor home
             Console_MoveCursorTo_Locked(pConsole, 0, 0);
             break;
 
-        case 'Y': { // VT52: Direct cursor address
+        case 'Y': { // Direct cursor address
             const Int y = pConsole->vtparser.vt52.params[0] - 040;
             const Int x = pConsole->vtparser.vt52.params[1] - 040;
 
@@ -126,26 +126,30 @@ static void Console_VT52_ESC_Locked(ConsoleRef _Nonnull pConsole, unsigned char 
         }
             break;
 
-        case 'I':   // VT52: Reverse linefeed 
+        case 'I':   // Reverse linefeed 
             Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, -1);
             break;
 
-        case 'K':   // VT52: Erase to end of line
+        case 'K':   // Erase to end of line
             Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_ToEnd);
             break;
 
-        case 'J':   // VT52: Erase to end of screen
+        case 'J':   // Erase to end of screen
             Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToEnd);
             break;
 
-        case 'Z':   // VT52: Identify terminal type
+        case 'Z':   // Identify terminal type
             Console_PostReport_Locked(pConsole, "\033/K");  // VT52 without copier
             break;
 
-        case '<':   // VT52: DECANM
+        case '<':   // DECANM
             Console_SetCompatibilityMode(pConsole, kCompatibilityMode_ANSI);
             break;
             
+        case '?':   // Alternate keypad mode echo back
+            // Next byte is the character to print. Just ignore the ESC ?
+            break;
+
         default:
             if (pConsole->compatibilityMode == kCompatibilityMode_VT52_AtariExtensions) {
                 Console_VT52_ESC_Atari_Locked(pConsole, ch);
@@ -162,7 +166,7 @@ void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_actio
             break;
 
         case VT52PARSE_ACTION_EXECUTE:
-            Console_VT52_Execute_C0_C1_Locked(pConsole, b);
+            Console_VT52_Execute_C0_Locked(pConsole, b);
             break;
 
         case VT52PARSE_ACTION_PRINT:

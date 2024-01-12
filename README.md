@@ -44,7 +44,7 @@ The following kernel services are implemented at this time:
 * Zorro II and III expansion board detection and enumeration
 * Event driver with support for keyboard, mouse, digital Joystick, analog joystick (paddles) and light pens
 * Simple graphics driver (not taking advantage of the Blitter yet)
-* VT52, VT102 and ANSI compatible interactive console
+* VT52 and VT100 series compatible interactive console
 
 The following user space services are available at this time:
 

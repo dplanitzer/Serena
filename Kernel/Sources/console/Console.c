@@ -65,7 +65,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
 
     // Initialize the ANSI escape sequence parser
-    vtparser_init(&pConsole->vtparser, (vt52parse_callback_t)Console_VT52_ParseByte_Locked, (vt500parse_callback_t)Console_VT102_ParseByte_Locked, pConsole);
+    vtparser_init(&pConsole->vtparser, (vt52parse_callback_t)Console_VT52_ParseByte_Locked, (vt500parse_callback_t)Console_VT100_ParseByte_Locked, pConsole);
 
 
     // Allocate the text cursor (sprite)
@@ -178,8 +178,8 @@ void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMod
             pConsole->flags.isAutoWrapEnabled = false;
             break;
 
-        case kCompatibilityMode_VT102:
-            vtmode = VTPARSER_MODE_VT102;
+        case kCompatibilityMode_VT100:
+            vtmode = VTPARSER_MODE_VT100;
             break;
 
         default:

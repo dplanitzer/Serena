@@ -14,7 +14,7 @@ struct vtparser;
 typedef enum {
    VTPARSER_MODE_VT52 = 0,
    VTPARSER_MODE_VT52_ATARI,
-   VTPARSER_MODE_VT102,
+   VTPARSER_MODE_VT100,
 } vtparser_mode_t;
 
 typedef void (*vtparser_do_change_callback_t)(void*, unsigned char);
@@ -26,7 +26,7 @@ typedef struct vtparser {
     void*                           do_change_parser;
 } vtparser_t;
 
-// VT102 is the default mode
+// VT100 is the default mode
 void vtparser_init(vtparser_t *parser, vt52parse_callback_t vt52_cb, vt500parse_callback_t vt500_cb, void* user_data);
 void vtparser_set_mode(vtparser_t *parser, vtparser_mode_t mode);
 
