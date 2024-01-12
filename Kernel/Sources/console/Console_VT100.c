@@ -188,11 +188,11 @@ static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
 
         if (!isPrivateMode) {
             switch (p) {
-                case 5: // DSR (request status of terminal)
+                case 5: // Request status of terminal
                     Console_PostReport_Locked(pConsole, "\033[0n");   // OK
                     break;
 
-                case 6: { // DSR (request cursor position)
+                case 6: { // Request cursor position
                     Character numbuf[11];
                     Character buf[MAX_MESSAGE_LENGTH + 1];
                     Character* ptr = &buf[0];
@@ -221,7 +221,7 @@ static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
         }
         else {
             switch (p) {
-                case 15: // DSR (request status of printer)
+                case 15: // Request status of printer
                     Console_PostReport_Locked(pConsole, "\033[?13n");  // None
                     break;
 
@@ -237,8 +237,31 @@ static void Console_VT100_CSI_c_Locked(ConsoleRef _Nonnull pConsole)
     const Int p = get_nth_csi_parameter(pConsole, 0, 0);
 
     switch (p) {
-        case 0: // ANSI: DA
+        case 0:
             Console_PostReport_Locked(pConsole, "\033[?6c");   // VT100
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void Console_VT100_CSI_y_Locked(ConsoleRef _Nonnull pConsole)
+{
+    if (get_nth_csi_parameter(pConsole, 0, 0) != 2) {
+        return;
+    }
+
+    switch (get_nth_csi_parameter(pConsole, 1, 0)) {
+        case 1:
+        case 2:
+        case 4:
+        case 9:
+        case 10:
+        case 12:
+        case 16:
+        case 24:
+            Console_PostReport_Locked(pConsole, "\033[0n");   // OK
             break;
 
         default:
@@ -249,7 +272,7 @@ static void Console_VT100_CSI_c_Locked(ConsoleRef _Nonnull pConsole)
 static void Console_VT100_CSI_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     switch (ch) {
-        case 'c':
+        case 'c':   // DA
             Console_VT100_CSI_c_Locked(pConsole);
             break;
 
@@ -261,8 +284,12 @@ static void Console_VT100_CSI_Locked(ConsoleRef _Nonnull pConsole, unsigned char
             Console_VT100_CSI_l_Locked(pConsole);
             break;
 
-        case 'n':
+        case 'n':   // DSR
             Console_VT100_CSI_n_Locked(pConsole);
+            break;
+
+        case 'y':   // DECTST
+            Console_VT100_CSI_y_Locked(pConsole);
             break;
 
         case 'A':   // CUU

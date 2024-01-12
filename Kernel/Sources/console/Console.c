@@ -56,6 +56,7 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
     try(RingBuffer_Init(&pConsole->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
+    pConsole->keyMap = (const KeyMap*) gKeyMap_usa;
 
     pConsole->lineHeight = GLYPH_HEIGHT;
     pConsole->characterWidth = GLYPH_WIDTH;
@@ -112,7 +113,8 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
 
     Timer_Destroy(pConsole->textCursorBlinker);
     pConsole->textCursorBlinker = NULL;
-        
+    pConsole->keyMap = NULL;
+
     TabStops_Deinit(&pConsole->hTabStops);
         
     Lock_Deinit(&pConsole->lock);
@@ -601,13 +603,11 @@ ErrorCode Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked p
 {
     decl_try_err();
     ConsoleChannelRef pChannel;
-    const KeyMap* pKeyMap = (const KeyMap*) gKeyMap_usa;
 
     try(IOChannel_AbstractCreate(&kConsoleChannelClass, (IOResourceRef) pConsole, mode, (IOChannelRef*)&pChannel));
-    Bytes_ClearRange(pChannel->buffer, MAX_MESSAGE_LENGTH);
-    pChannel->map = pKeyMap;
-    pChannel->count = 0;
-    pChannel->startIndex = 0;
+    Bytes_ClearRange(pChannel->rdBuffer, MAX_MESSAGE_LENGTH);
+    pChannel->rdCount = 0;
+    pChannel->rdIndex = 0;
 
 catch:
     *pOutChannel = pChannel;
@@ -620,10 +620,9 @@ ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull p
     ConsoleChannelRef pNewChannel;
 
     try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
-    Bytes_ClearRange(pNewChannel->buffer, MAX_MESSAGE_LENGTH);
-    pNewChannel->map = pInChannel->map;
-    pNewChannel->count = 0;
-    pNewChannel->startIndex = 0;
+    Bytes_ClearRange(pNewChannel->rdBuffer, MAX_MESSAGE_LENGTH);
+    pNewChannel->rdCount = 0;
+    pNewChannel->rdIndex = 0;
 
 catch:
     *pOutChannel = pNewChannel;
@@ -649,22 +648,22 @@ static ByteCount Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pCon
                 break;
             }
 
-            pChannel->buffer[pChannel->count++] = b;
+            pChannel->rdBuffer[pChannel->rdCount++] = b;
         }
         if (done) {
             break;
         }
 
         Int i = 0;
-        while (nBytesRead < nBytesToRead && pChannel->count > 0) {
-            pBuffer[nBytesRead++] = pChannel->buffer[i++];
-            pChannel->count--;
+        while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
+            pBuffer[nBytesRead++] = pChannel->rdBuffer[i++];
+            pChannel->rdCount--;
         }
 
-        if (pChannel->count > 0) {
+        if (pChannel->rdCount > 0) {
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
-            pChannel->startIndex = i;
+            pChannel->rdIndex = i;
             break;
         }
     }
@@ -700,18 +699,18 @@ static ByteCount Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, Console
         }
 
 
-        pChannel->count = KeyMap_Map(pChannel->map, &evt.data.key, pChannel->buffer, MAX_MESSAGE_LENGTH);
+        pChannel->rdCount = KeyMap_Map(pConsole->keyMap, &evt.data.key, pChannel->rdBuffer, MAX_MESSAGE_LENGTH);
 
         Int i = 0;
-        while (nBytesRead < nBytesToRead && pChannel->count > 0) {
-            pBuffer[nBytesRead++] = pChannel->buffer[i++];
-            pChannel->count--;
+        while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
+            pBuffer[nBytesRead++] = pChannel->rdBuffer[i++];
+            pChannel->rdCount--;
         }
 
-        if (pChannel->count > 0) {
+        if (pChannel->rdCount > 0) {
             // We ran out of space in the buffer that the user gave us. Remember
             // which bytes we need to copy next time read() is called.
-            pChannel->startIndex = i;
+            pChannel->rdIndex = i;
             break;
         }
     }
@@ -734,9 +733,9 @@ ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
 
     // First check whether we got a partial key byte sequence sitting in our key
     // mapping buffer and copy that one out.
-    while (nBytesRead < nBytesToRead && pChannel->count > 0) {
-        pBuffer[nBytesRead++] = pChannel->buffer[pChannel->startIndex++];
-        pChannel->count--;
+    while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
+        pBuffer[nBytesRead++] = pChannel->rdBuffer[pChannel->rdIndex++];
+        pChannel->rdCount--;
     }
 
 

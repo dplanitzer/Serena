@@ -62,7 +62,6 @@ typedef enum _CompatibilityMode {
 //      - (MC) media copy
 //      - (DECPEX) printer extent mode
 //      - (DECPFF) print termination character
-//      - (DECTST) tests
 //      - (DECALN) screen alignment display
 //      - (DECLL) keyboard indicator
 //
@@ -143,6 +142,8 @@ CLASS_IVARS(Console, IOResource,
     EventDriverRef _Nonnull     eventDriver;
     IOChannelRef _Nonnull       eventDriverChannel;
     GraphicsDriverRef _Nonnull  gdevice;
+    const KeyMap* _Nonnull      keyMap;
+    vtparser_t                  vtparser;
     RingBuffer                  reportsQueue;
     RGBColor                    backgroundColor;
     RGBColor                    textColor;
@@ -153,7 +154,6 @@ CLASS_IVARS(Console, IOResource,
     Int                         x;
     Int                         y;
     SavedState                  savedCursorState;
-    vtparser_t                  vtparser;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
     CompatibilityMode           compatibilityMode;
@@ -167,26 +167,6 @@ CLASS_IVARS(Console, IOResource,
         UInt    isTextCursorVisible:1;          // global text cursor visibility switch
     }                           flags;
 );
-
-
-// Big enough to hold the result of a key mapping and the longest possible
-// terminal report message.
-#define MAX_MESSAGE_LENGTH kKeyMap_MaxByteSequenceLength
-
-// Takes care of mapping a USB key scan code to a character or character sequence.
-// We may leave partial character sequences in the buffer if a Console_Read() didn't
-// read all bytes of a sequence. The next Console_Read() will first receive the
-// remaining buffered bytes before it receives bytes from new events.
-OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
-    const KeyMap* _Nonnull  map;
-    Byte                    buffer[MAX_MESSAGE_LENGTH];  // Holds a full or partial byte sequence produced by a key down event
-    Int8                    count;      // Number of bytes stored in the buffer
-    Int8                    startIndex; // Index of first byte in the buffer where a partial byte sequence begins
-);
-typedef struct _ConsoleChannelMethodTable {
-    IOChannelMethodTable    super;
-} ConsoleChannelMethodTable;
-
 
 extern ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
@@ -213,6 +193,26 @@ extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, Int nChars);
 extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines);
 extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines);
+
+
+// Big enough to hold the result of a key mapping and the longest possible
+// terminal report message.
+#define MAX_MESSAGE_LENGTH kKeyMap_MaxByteSequenceLength
+
+// The console I/O channel
+//
+// Takes care of mapping a USB key scan code to a character or character sequence.
+// We may leave partial character sequences in the buffer if a Console_Read() didn't
+// read all bytes of a sequence. The next Console_Read() will first receive the
+// remaining buffered bytes before it receives bytes from new events.
+OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
+    Byte    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
+    Int8    rdCount;                        // Number of bytes stored in the buffer
+    Int8    rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
+);
+typedef struct _ConsoleChannelMethodTable {
+    IOChannelMethodTable    super;
+} ConsoleChannelMethodTable;
 
 
 //
