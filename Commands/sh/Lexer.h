@@ -6,6 +6,9 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#ifndef Lexer_h
+#define Lexer_h
+
 #include <apollo/apollo.h>
 
 
@@ -55,3 +58,5 @@ extern void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable text);
 
 // Consumes the current token and advances the current lexer position.
 extern void Lexer_ConsumeToken(LexerRef _Nonnull self);
+
+#endif  /* Lexer_h */

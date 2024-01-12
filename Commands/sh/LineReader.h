@@ -6,6 +6,9 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#ifndef LineReader_h
+#define LineReader_h
+
 #include <stdbool.h>
 #include <apollo/apollo.h>
 
@@ -34,3 +37,5 @@ extern errno_t LineReader_Create(int maxLineLength, int historyCapacity, const c
 extern void LineReader_Destroy(LineReaderRef _Nullable self);
 
 extern char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self);
+
+#endif  /* LineReader_h */

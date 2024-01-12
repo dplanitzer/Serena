@@ -59,7 +59,7 @@ static void Lexer_ScanWord(LexerRef _Nonnull self)
     while (true) {
         const char ch = self->text[self->textIndex++];
 
-        if (ch == '\0' || ch == '#' || !isgraph(ch)) {
+        if (ch == '\0' || ch == '#' || ch == ';' || !isgraph(ch)) {
             break;
         }
 

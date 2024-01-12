@@ -15,82 +15,6 @@
 #include <string.h>
 
 
-errno_t Script_Create(ScriptRef _Nullable * _Nonnull pOutScript)
-{
-    ScriptRef self = (ScriptRef)calloc(1, sizeof(Script));
-
-    if (self == NULL) {
-        *pOutScript = NULL;
-        return ENOMEM;
-    }
-
-    self->words = (char**)calloc(8, sizeof(char*));
-    if (self->words == NULL) {
-        Script_Destroy(self);
-        *pOutScript = NULL;
-        return ENOMEM;
-    }
-    self->wordCapacity = 8;
-
-    *pOutScript = self;
-    return 0;
-}
-
-void Script_Destroy(ScriptRef _Nullable self)
-{
-    if (self) {
-        if (self->words) {
-            for (int i = 0; i < self->wordCount; i++) {
-                free(self->words[i]);
-                self->words[i] = NULL;
-            }
-            free(self->words);
-            self->words = NULL;
-        }
-
-        free(self);
-    }
-}
-
-void Script_Print(ScriptRef _Nonnull self)
-{
-    printf("{ ");
-    for (int i = 0; i < self->wordCount; i++) {
-        printf("\"%s\" ", self->words[i]);
-    }
-    printf("}");
-}
-
-static void Script_Reset(ScriptRef _Nonnull self)
-{
-    for (int i = 0; i < self->wordCount; i++) {
-        free(self->words[i]);
-        self->words[i] = NULL;
-    }
-    self->wordCount = 0;
-}
-
-static errno_t Script_AddWord(ScriptRef _Nonnull self, const char* _Nonnull pWord)
-{
-    if (self->wordCount == self->wordCapacity) {
-        int newCapacity = self->wordCapacity * 2;
-        char** pNewWords = (char**)realloc(self->words, newCapacity * sizeof(char*));
-
-        assert(pNewWords != NULL);
-        self->words = pNewWords;
-        self->wordCapacity = newCapacity;
-    }
-
-    self->words[self->wordCount] = strdup(pWord);
-    assert(self->words[self->wordCount] != NULL);
-    self->wordCount++;
-    
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-
 errno_t Parser_Create(ParserRef _Nullable * _Nonnull pOutParser)
 {
     ParserRef self = (ParserRef)calloc(1, sizeof(Parser));
@@ -124,6 +48,8 @@ void Parser_Destroy(ParserRef _Nullable self)
 // Expects that the current token on entry is a WORD token.
 static void Parser_Statement(ParserRef _Nonnull self)
 {
+    StatementRef pStatement = NULL;
+
     while (true) {
         const Token* t = Lexer_GetToken(&self->lexer);
 
@@ -131,8 +57,16 @@ static void Parser_Statement(ParserRef _Nonnull self)
             break;
         }
 
-        Script_AddWord(self->script, t->u.word.text);
+        if (pStatement == NULL) {
+            Statement_Create(&pStatement);
+        }
+
+        Statement_AddWord(pStatement, t->u.word.text);
         Lexer_ConsumeToken(&self->lexer);
+    }
+
+    if (pStatement) {
+        Script_AddStatement(self->script, pStatement);
     }
 }
 
