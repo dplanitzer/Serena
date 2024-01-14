@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #define INITIAL_WORD_BUFFER_CAPACITY    16
@@ -22,13 +23,7 @@ errno_t Lexer_Init(LexerRef _Nonnull self)
 
     self->text = "";
     self->textIndex = 0;
-
-    self->wordBuffer = (char*)malloc(INITIAL_WORD_BUFFER_CAPACITY + 1);
-    if (self->wordBuffer == NULL) {
-        Lexer_Deinit(self);
-        return ENOMEM;
-    }
-    self->wordBufferCapacity = INITIAL_WORD_BUFFER_CAPACITY;
+    self->wordBufferCapacity = 0;
     self->wordBufferCount = 0;
     
     return 0;
@@ -52,31 +47,65 @@ void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable text)
     Lexer_ConsumeToken(self);
 }
 
+static void Lexer_AddCharToWordBuffer(LexerRef _Nonnull self, char ch)
+{
+    if (self->wordBufferCount == self->wordBufferCapacity) {
+        int newCapacity = (self->wordBufferCapacity > 0) ? self->wordBufferCapacity * 2 : INITIAL_WORD_BUFFER_CAPACITY;
+        char* pNewWordBuffer = (char*) realloc(self->wordBuffer, newCapacity);
+
+        assert(pNewWordBuffer != NULL);
+        self->wordBuffer = pNewWordBuffer;
+        self->wordBufferCapacity = newCapacity;
+    }
+
+    self->wordBuffer[self->wordBufferCount++] = ch;
+}
+
+// Scans a single quoted string. Expects that the current input position is at
+// the first character of the string contents.
+static void Lexer_ScanSingleQuotedString(LexerRef _Nonnull self)
+{
+    self->wordBufferCount = 0;
+
+    while (true) {
+        const char ch = self->text[self->textIndex];
+
+        if (ch == '\'') {
+            self->textIndex++;
+            break;
+        }
+        else if (ch == '\0') {
+            printf("Error: unexpected end of string\n");
+            break;
+        }
+
+        self->textIndex++;
+        Lexer_AddCharToWordBuffer(self, ch);
+    }
+
+    Lexer_AddCharToWordBuffer(self, '\0');
+    self->wordBufferCount--;
+}
+
+// Scans a word. Expects that the current input position is at the first character
+// of the word.
 static void Lexer_ScanWord(LexerRef _Nonnull self)
 {
     self->wordBufferCount = 0;
 
     while (true) {
-        const char ch = self->text[self->textIndex++];
+        const char ch = self->text[self->textIndex];
 
         if (ch == '\0' || ch == '#' || ch == ';' || !isgraph(ch)) {
             break;
         }
 
-        if (self->wordBufferCount == self->wordBufferCapacity) {
-            int newCapacity = self->wordBufferCapacity * 2;
-            char* pNewWordBuffer = (char*) realloc(self->wordBuffer, newCapacity + 1);
-
-            assert(pNewWordBuffer != NULL);
-            self->wordBuffer = pNewWordBuffer;
-            self->wordBufferCapacity = newCapacity;
-        }
-
-        self->wordBuffer[self->wordBufferCount++] = ch;
+        self->textIndex++;
+        Lexer_AddCharToWordBuffer(self, ch);
     }
 
-    self->textIndex--;
-    self->wordBuffer[self->wordBufferCount] = '\0';
+    Lexer_AddCharToWordBuffer(self, '\0');
+    self->wordBufferCount--;
 }
 
 void Lexer_ConsumeToken(LexerRef _Nonnull self)
@@ -111,6 +140,14 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                     self->textIndex++;
                 }
                 break;
+
+            case '\'':
+                self->textIndex++;
+                Lexer_ScanSingleQuotedString(self);
+                self->t.id = kToken_Word;
+                self->t.u.word.text = self->wordBuffer;
+                self->t.u.word.length = self->wordBufferCount;
+                return;
 
             default:
                 if (isgraph(ch)) {

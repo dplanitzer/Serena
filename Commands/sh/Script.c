@@ -132,7 +132,7 @@ void Script_Print(ScriptRef _Nonnull self)
         Statement_Print(st);
         st = st->next;
     }
-    printf("}");
+    printf("}\n");
 }
 
 void Script_AddStatement(ScriptRef _Nonnull self, StatementRef _Nonnull pStatement)

@@ -141,7 +141,7 @@ static void sh_ls(StatementRef _Nonnull pStatement)
 static void sh_pwd(StatementRef _Nonnull pStatement)
 {
     if (pStatement->wordCount > 1) {
-        printf("Warning: ignored unexpected arguments");
+        printf("Warning: ignored unexpected arguments\n");
     }
 
     char buf[128];  //XXX Should be PATH_MAX, however our user stack is not big enough to park it there
@@ -159,7 +159,7 @@ static void sh_mkdir(StatementRef _Nonnull pStatement)
     char* path = (pStatement->wordCount > 1) ? pStatement->words[1] : "";
 
     if (*path == '\0') {
-        printf("Error: expected a path");
+        printf("Error: expected a path\n");
         return;
     }
 
