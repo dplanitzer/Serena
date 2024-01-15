@@ -230,7 +230,7 @@ static Bool xHasMatchingDirectoryEntry(const RamDirectoryQuery* _Nonnull pQuery,
         if (pEntry->id > 0) {
             switch (pQuery->kind) {
                 case kDirectoryQuery_PathComponent:
-                    if (String_EqualsUpTo(pEntry->filename, pQuery->u.pc->name, __min(pQuery->u.pc->count, kMaxFilenameLength))) {
+                    if (PathComponent_EqualsString(pQuery->u.pc, pEntry->filename)) {
                         *pOutEntryPtr = (RamDirectoryEntry*)pEntry;
                         return true;
                     }

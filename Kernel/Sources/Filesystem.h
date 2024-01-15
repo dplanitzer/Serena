@@ -39,6 +39,9 @@ extern const PathComponent kPathComponent_Parent;
 // Initializes a path component from a NUL-terminated string
 extern PathComponent PathComponent_MakeFromCString(const Character* _Nonnull pCString);
 
+// Returns true if the given path component is equal to the given nul-terminated
+// string.
+extern Bool PathComponent_EqualsString(const PathComponent* pc, const Character* rhs);
 
 // Mutable version of PathComponent. 'count' must be set on return to the actual
 // length of the generated/edited path component. 'capacity' is the maximum length

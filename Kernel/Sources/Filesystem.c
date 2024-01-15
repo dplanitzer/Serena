@@ -27,6 +27,28 @@ PathComponent PathComponent_MakeFromCString(const Character* _Nonnull pCString)
     return pc;
 }
 
+// Returns true if the given path component is equal to the given nul-terminated
+// string.
+Bool PathComponent_EqualsString(const PathComponent* pc, const Character* rhs)
+{
+    const Character* lhs = pc->name;
+    Int n = pc->count;
+
+    if (rhs[pc->count] != '\0') {
+        return false;
+    }
+
+    while (*rhs && n > 0) {
+        if (*rhs != *lhs) {
+            return false;
+        }
+
+        n--; lhs++; rhs++;
+    }
+
+    return (*rhs == '\0' && n == 0) ? true : false;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
