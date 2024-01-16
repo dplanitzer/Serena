@@ -163,7 +163,7 @@ static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self)
             return;
             
         // XXX add \uxxxx and \Uxxxxyyyy (Unicode) support
-        
+
         case '\0':
             return;
 
@@ -214,6 +214,33 @@ static void Lexer_ScanDoubleQuotedString(LexerRef _Nonnull self)
     self->wordBufferCount--;
 }
 
+// Returns true if the given character is a valid word character; false otherwise.
+// Characters which are not valid word characters are used to separate words.
+static bool isWordChar(char ch)
+{
+    switch (ch) {
+        case '\0':
+            return false;
+
+        case '{':
+        case '}':
+        case '[':
+        case ']':
+        case '(':
+        case ')':
+        case '|':
+        case '<':
+        case '>':
+        case '&':
+        case '#':
+        case ';':
+            return false;
+
+        default:
+            return (isgraph(ch) != 0) ? true : false;
+    }
+}
+
 // Scans a word. Expects that the current input position is at the first character
 // of the word.
 static void Lexer_ScanWord(LexerRef _Nonnull self)
@@ -223,7 +250,7 @@ static void Lexer_ScanWord(LexerRef _Nonnull self)
     while (true) {
         const char ch = self->text[self->textIndex];
 
-        if (ch == '\0' || ch == '#' || ch == ';' || !isgraph(ch)) {
+        if (!isWordChar(ch)) {
             break;
         }
 
@@ -285,7 +312,7 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                 return;
 
             default:
-                if (isgraph(ch)) {
+                if (isWordChar(ch)) {
                     Lexer_ScanWord(self);
                     self->t.id = kToken_Word;
                     self->t.u.word.text = self->wordBuffer;
