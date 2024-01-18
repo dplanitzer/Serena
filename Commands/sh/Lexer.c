@@ -234,6 +234,7 @@ static bool isWordChar(char ch)
         case '&':
         case '#':
         case ';':
+        case '$':
             return false;
 
         default:
