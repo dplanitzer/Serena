@@ -16,10 +16,15 @@
 #include <ctype.h>
 
 
-// Compile on Windows:
+// To compile on Windows:
 // - open a Visual Studio Command Line environment
 // - cd to the Apollo folder
 // - cl keymap.c
+//
+// To compile on POSIX:
+// - open a terminal window
+// - cd to the Apollo folder
+// - gcc keymap.c -o keymap
 //
 
 
@@ -164,7 +169,7 @@ static char* createPathWithReplacedExtension(const char* path, const char* newEx
 
 static char* createFilenameFromPath(const char* path)
 {
-    char* pathFilename = strrchr(path, '/');
+    const char* pathFilename = strrchr(path, '/');
     if (pathFilename == NULL) pathFilename = strrchr(path, '\\');
     pathFilename = (pathFilename) ? pathFilename + 1 : path;
     const char* pathExtension = strrchr(pathFilename, '.');
@@ -610,9 +615,9 @@ static void freeKeyMap(KeyMap* kmap)
 // Ranges finder
 ////////////////////////////////////////////////////////////////////////////////
 
-static int keyCodeSorter(const Key* lhs, const Key* rhs)
+static int keyCodeSorter(const void* lhs, const void* rhs)
 {
-    return ((int) lhs->keyCode) - ((int) rhs->keyCode);
+    return ((int) ((const Key*)lhs)->keyCode) - ((int) ((const Key*)rhs)->keyCode);
 }
 
 static void calculateKeyRanges(KeyMap* kmap)
