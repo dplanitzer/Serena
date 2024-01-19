@@ -16,11 +16,17 @@
 #include <ctype.h>
 
 
-// Compile on Windows:
+// To compile on Windows:
 // - open a Visual Studio Command Line environment
 // - cd to the Apollo folder
 // - cl libtool.c
 //
+// To compile on POSIX:
+// - open a terminal window
+// - cd to the Apollo folder
+// - gcc libtool.c -o libtool
+//
+
 
 // An 'ar' without all the legacy stuff and things that aren't relevant to the
 // use case of creating and maintaining static libraries.
@@ -147,7 +153,7 @@ static void fwrite_require(const void* data, size_t size, FILE* s)
 
 static char* createFilenameFromPath(const char* path)
 {
-    char* pathFilename = strrchr(path, '/');
+    const char* pathFilename = strrchr(path, '/');
     if (pathFilename == NULL) pathFilename = strrchr(path, '\\');
     pathFilename = (pathFilename) ? pathFilename + 1 : path;
     const size_t filenameLength = strlen(pathFilename);
