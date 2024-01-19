@@ -151,12 +151,12 @@ static char* createPathWithReplacedExtension(const char* path, const char* newEx
     const char* oldPathExtension = strrchr(path, '.');
     const size_t oldExtensionLength = (oldPathExtension) ? strlen(oldPathExtension + 1) : 0;
     const size_t newExtensionLength = (newExtension) ? strlen(newExtension) : 0;
-    const size_t oldPathLengthWithDotSanseExtension = oldPathOverallLength - oldExtensionLength;
-    char* newPath = malloc(oldPathLengthWithDotSanseExtension + newExtensionLength + 1);
+    const size_t oldPathLengthWithDotSansExtension = oldPathOverallLength - oldExtensionLength;
+    char* newPath = malloc(oldPathLengthWithDotSansExtension + newExtensionLength + 1);
 
     if (newPath) {
-        strncpy(newPath, path, oldPathLengthWithDotSanseExtension);
-        newPath[oldPathLengthWithDotSanseExtension] = '\0';
+        strncpy(newPath, path, oldPathLengthWithDotSansExtension);
+        newPath[oldPathLengthWithDotSansExtension] = '\0';
         strcat(newPath, newExtension);
     }
     return newPath;
