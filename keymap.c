@@ -662,10 +662,10 @@ static void calculateKeyRanges(KeyMap* kmap)
 // Compile keymaps
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef enum _Endinness {
+typedef enum _Endianness {
     Endian_Big = 0,
     Endian_Little
-} Endinness;
+} Endianness;
 
 typedef struct _Data {
     uint8_t*    bytes;
