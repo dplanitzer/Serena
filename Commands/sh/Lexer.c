@@ -14,97 +14,125 @@
 #include <stdio.h>
 #include <string.h>
 
-#define INITIAL_WORD_BUFFER_CAPACITY    16
+#define INITIAL_TEXT_BUFFER_CAPACITY    16
 
 
 errno_t Lexer_Init(LexerRef _Nonnull self)
 {
     memset(self, 0, sizeof(Lexer));
 
-    self->text = "";
-    self->textIndex = 0;
-    self->wordBufferCapacity = 0;
-    self->wordBufferCount = 0;
+    self->source = "";
+    self->sourceIndex = 0;
+    self->textBufferCapacity = 0;
+    self->textBufferCount = 0;
+    self->column = 1;
+    self->line = 1;
+    self->t.id = kToken_Eof;
     
     return 0;
 }
 
 void Lexer_Deinit(LexerRef _Nonnull self)
 {
-    self->text = NULL;
-    free(self->wordBuffer);
-    self->wordBuffer = NULL;
+    self->source = NULL;
+    free(self->textBuffer);
+    self->textBuffer = NULL;
 }
 
 // Sets the lexer input. Note that the lexer maintains a reference to the input
 // text. It does not copy it.
-void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable text)
+void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable source)
 {
-    self->text = (text) ? text : "";
-    self->textIndex = 0;
+    self->source = (source) ? source : "";
+    self->sourceIndex = 0;
 
     // Get the first token
     Lexer_ConsumeToken(self);
 }
 
-static void Lexer_AddCharToWordBuffer(LexerRef _Nonnull self, char ch)
+static void Lexer_AddCharToTextBuffer(LexerRef _Nonnull self, char ch)
 {
-    if (self->wordBufferCount == self->wordBufferCapacity) {
-        int newCapacity = (self->wordBufferCapacity > 0) ? self->wordBufferCapacity * 2 : INITIAL_WORD_BUFFER_CAPACITY;
-        char* pNewWordBuffer = (char*) realloc(self->wordBuffer, newCapacity);
+    if (self->textBufferCount == self->textBufferCapacity) {
+        int newCapacity = (self->textBufferCapacity > 0) ? self->textBufferCapacity * 2 : INITIAL_TEXT_BUFFER_CAPACITY;
+        char* pNewTextBuffer = (char*) realloc(self->textBuffer, newCapacity);
 
-        assert(pNewWordBuffer != NULL);
-        self->wordBuffer = pNewWordBuffer;
-        self->wordBufferCapacity = newCapacity;
+        assert(pNewTextBuffer != NULL);
+        self->textBuffer = pNewTextBuffer;
+        self->textBufferCapacity = newCapacity;
     }
 
-    self->wordBuffer[self->wordBufferCount++] = ch;
+    self->textBuffer[self->textBufferCount++] = ch;
+}
+
+// Scans a variable name. Expects that the current input position is at the first
+// character of the variable name.
+static void Lexer_ScanVariableName(LexerRef _Nonnull self)
+{
+    self->textBufferCount = 0;
+
+    while (true) {
+        const char ch = self->source[self->sourceIndex];
+
+        if (ch == '\0' || (!isalnum(ch) && ch != '_')) {
+            break;
+        }
+
+        self->sourceIndex++;
+        self->column++;
+        Lexer_AddCharToTextBuffer(self, ch);
+    }
+
+    Lexer_AddCharToTextBuffer(self, '\0');
+    self->textBufferCount--;
 }
 
 // Scans a single quoted string. Expects that the current input position is at
 // the first character of the string contents.
 static void Lexer_ScanSingleQuotedString(LexerRef _Nonnull self)
 {
-    self->wordBufferCount = 0;
+    self->textBufferCount = 0;
 
     while (true) {
-        const char ch = self->text[self->textIndex];
+        const char ch = self->source[self->sourceIndex];
 
         if (ch == '\0') {
             printf("Error: unexpected end of string\n");
             break;
         }
 
-        self->textIndex++;
+        self->sourceIndex++;
+        self->column++;
 
         if (ch == '\'') {
             break;
         }
-        Lexer_AddCharToWordBuffer(self, ch);
+        Lexer_AddCharToTextBuffer(self, ch);
     }
 
-    Lexer_AddCharToWordBuffer(self, '\0');
-    self->wordBufferCount--;
+    Lexer_AddCharToTextBuffer(self, '\0');
+    self->textBufferCount--;
 }
 
-// Scans an octal code escape sequence of one, two or three digits. Expects that
-// the current input position is at the first (valid) digit
+// Scans an octal code escape sequence of one, two or three digits into the text
+// buffer at its current position. Expects that the current input position is at
+// the first (valid) digit
 static void Lexer_ScanOctalEscapeSequence(LexerRef _Nonnull self)
 {
     int val = 0;
 
     for (int i = 0; i < 3; i++) {
-        char ch = self->text[self->textIndex];
+        char ch = self->source[self->sourceIndex];
 
         if (ch < '0' || ch > '7') {
             break;
         }
 
-        self->textIndex++;
+        self->sourceIndex++;
+        self->column++;
         val = (val << 3) + (ch - '0');
     }
 
-    Lexer_AddCharToWordBuffer(self, val & 0xff);
+    Lexer_AddCharToTextBuffer(self, val & 0xff);
 }
 
 // Scans a single byte escape code in the form of a hexadecimal number. Expects
@@ -114,25 +142,26 @@ static void Lexer_ScanHexByteEscapeSequence(LexerRef _Nonnull self)
     int val = 0;
 
     for (int i = 0; i < 2; i++) {
-        char ch = self->text[self->textIndex];
+        char ch = self->source[self->sourceIndex];
 
         if (!isxdigit(ch)) {
             break;
         }
 
-        self->textIndex++;
+        self->sourceIndex++;
+        self->column++;
         const int d = (ch >= 'a') ? ch - 'a' : ((ch >= 'A') ? ch - 'A' : ch - '0');
         val = (val << 4) + d;
     }
 
-    Lexer_AddCharToWordBuffer(self, val & 0xff);
+    Lexer_AddCharToTextBuffer(self, val & 0xff);
 }
 
 // Scans an escape sequence. Expects that the current input position is at the
 // first character following the initial '\' character.
-static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self)
+static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self, bool allowLineContinuationEscape)
 {
-    char ch = self->text[self->textIndex];
+    char ch = self->source[self->sourceIndex];
 
     switch (ch) {
         case 'a':   ch = 0x07;  break;
@@ -158,23 +187,51 @@ static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self)
             return;
 
         case 'x':
-            self->textIndex++;
+        case 'X':
+            self->sourceIndex++;
+            self->column++;
             Lexer_ScanHexByteEscapeSequence(self);
             return;
             
         // XXX add \uxxxx and \Uxxxxyyyy (Unicode) support
 
         case '\0':
+            printf("Error: incomplete escape sequence\n");
             return;
+
+        case '\r':
+            if (allowLineContinuationEscape) {
+                self->sourceIndex++;
+                self->column = 1;
+                if (self->source[self->sourceIndex + 1] != '\n') {
+                    ch = '\n';
+                    break;
+                }
+                // Fall through
+            } else {
+                // Fall through
+            }
+            
+        case '\n':
+            if (allowLineContinuationEscape) {
+                self->sourceIndex++;
+                self->column = 1;
+                self->line++;
+                ch = '\n';
+                break;
+            } else {
+                // Fall through
+            }
 
         default:
             printf("Error: unexpected escape sequence (ignored)\n");
-            self->textIndex++;
+            self->sourceIndex++;
+            self->column++;
             return;
     }
 
-    self->textIndex++;
-    Lexer_AddCharToWordBuffer(self, ch);
+    self->sourceIndex++;
+    Lexer_AddCharToTextBuffer(self, ch);
 }
 
 // Scans a double quoted string. Expects that the current input position is at
@@ -183,17 +240,18 @@ static void Lexer_ScanDoubleQuotedString(LexerRef _Nonnull self)
 {
     bool done = false;
 
-    self->wordBufferCount = 0;
+    self->textBufferCount = 0;
 
     while (!done) {
-        const char ch = self->text[self->textIndex];
+        const char ch = self->source[self->sourceIndex];
 
         if (ch == '\0') {
             printf("Error: unexpected end of string\n");
             break;
         }
 
-        self->textIndex++;
+        self->sourceIndex++;
+        self->column++;
 
         switch(ch) {
             case '"':
@@ -201,31 +259,27 @@ static void Lexer_ScanDoubleQuotedString(LexerRef _Nonnull self)
                 break;
 
             case '\\':
-                Lexer_ScanEscapeSequence(self);
+                Lexer_ScanEscapeSequence(self, false);
                 break;
 
             default:
-                Lexer_AddCharToWordBuffer(self, ch);
+                Lexer_AddCharToTextBuffer(self, ch);
                 break;
         }
     }
 
-    Lexer_AddCharToWordBuffer(self, '\0');
-    self->wordBufferCount--;
+    Lexer_AddCharToTextBuffer(self, '\0');
+    self->textBufferCount--;
 }
 
-// Returns true if the given character is a valid word character; false otherwise.
+// Returns true if the given character is a valid morpheme character; false otherwise.
 // Characters which are not valid word characters are used to separate words.
-static bool isWordChar(char ch)
+static bool isMorphemeChar(char ch)
 {
     switch (ch) {
         case '\0':
             return false;
 
-        case '{':
-        case '}':
-        case '[':
-        case ']':
         case '(':
         case ')':
         case '|':
@@ -235,6 +289,9 @@ static bool isWordChar(char ch)
         case '#':
         case ';':
         case '$':
+        case '\"':
+        case '\'':
+        case '\\':
             return false;
 
         default:
@@ -242,88 +299,191 @@ static bool isWordChar(char ch)
     }
 }
 
-// Scans a word. Expects that the current input position is at the first character
-// of the word.
-static void Lexer_ScanWord(LexerRef _Nonnull self)
+// Scans a morpheme. Expects that the current input position is at the first
+// character of the morpheme.
+static void Lexer_ScanMorpheme(LexerRef _Nonnull self)
 {
-    self->wordBufferCount = 0;
+    self->textBufferCount = 0;
 
     while (true) {
-        const char ch = self->text[self->textIndex];
+        const char ch = self->source[self->sourceIndex];
 
-        if (!isWordChar(ch)) {
+        if (!isMorphemeChar(ch)) {
             break;
         }
 
-        self->textIndex++;
-        Lexer_AddCharToWordBuffer(self, ch);
+        self->sourceIndex++;
+        self->column++;
+        Lexer_AddCharToTextBuffer(self, ch);
     }
 
-    Lexer_AddCharToWordBuffer(self, '\0');
-    self->wordBufferCount--;
+    Lexer_AddCharToTextBuffer(self, '\0');
+    self->textBufferCount--;
+}
+
+static void Lexer_SkipWhitespace(LexerRef _Nonnull self)
+{
+    while (true) {
+        const char ch = self->source[self->sourceIndex];
+
+        if (ch != ' ' && ch != '\t' && ch != '\v' && ch != '\f') {
+            break;
+        }
+
+        self->sourceIndex++;
+        self->column++;
+    }
+}
+
+static void Lexer_SkipEndOfLineComment(LexerRef _Nonnull self)
+{
+    while (true) {
+        const char ch = self->source[self->sourceIndex];
+
+        if (ch == '\n' || (ch == '\r' && self->source[self->sourceIndex + 1] == '\n')) {
+            break;
+        }
+
+        self->sourceIndex++;
+        self->column++;
+    }
+}
+
+static bool hasTrailingWhitespace(LexerRef _Nonnull self)
+{
+    const char ch = self->source[self->sourceIndex];
+    return (ch == '\0' || isspace(ch));
 }
 
 void Lexer_ConsumeToken(LexerRef _Nonnull self)
 {
+    self->t.column = self->column;
+    self->t.line = self->line;
+    self->t.length = 0;
+    self->t.u.string = NULL;
+    
     while (true) {
-        const char ch = self->text[self->textIndex];
+        const char ch = self->source[self->sourceIndex];
 
         switch (ch) {
             case '\0':
                 self->t.id = kToken_Eof;
-                return;
-
-            case '\n':
-            case '\r':
-            case ';':
-                self->t.id = kToken_Eos;
-                self->textIndex++;
+                self->t.hasTrailingWhitespace = true;
                 return;
 
             case ' ':
             case '\t':
             case '\v':
             case '\f':
-                while(isblank(self->text[self->textIndex])) {
-                    self->textIndex++;
-                }
+                Lexer_SkipWhitespace(self);
                 break;
 
             case '#':
-                self->textIndex++;
-                while(self->text[self->textIndex] != '\n') {
-                    self->textIndex++;
-                }
+                Lexer_SkipEndOfLineComment(self);
                 break;
 
+            case '\r':
+                self->sourceIndex++;
+                self->column = 1;
+                if (self->source[self->sourceIndex + 1] != '\n') {
+                    break;
+                }
+                // Fall through
+
+            case '\n':
+                self->sourceIndex++;
+                self->column = 1;
+                self->line++;
+
+                self->t.id = kToken_Newline;
+                self->t.length = (ch == '\n') ? 1 : 2;
+                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
+                return;
+
+            case '(':
+            case ')':
+            case '<':
+            case '>':
+            case '|':
+            case '&':
+            case ';':
+                self->sourceIndex++;
+                self->column++;
+
+                self->t.id = ch;
+                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
+                return;
+
+            case '$':
+                self->sourceIndex++;
+                self->column++;
+                Lexer_ScanVariableName(self);
+
+                self->t.id = kToken_VariableName;
+                self->t.u.string = self->textBuffer;
+                self->t.length = self->textBufferCount;
+                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
+                return;
+
             case '\'':
-                self->textIndex++;
+                self->sourceIndex++;
+                self->column++;
                 Lexer_ScanSingleQuotedString(self);
-                self->t.id = kToken_Word;
-                self->t.u.word.text = self->wordBuffer;
-                self->t.u.word.length = self->wordBufferCount;
+
+                self->t.id = kToken_SingleQuotedString;
+                self->t.u.string = self->textBuffer;
+                self->t.length = self->textBufferCount;
+                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
 
             case '"':
-                self->textIndex++;
+                self->sourceIndex++;
+                self->column++;
                 Lexer_ScanDoubleQuotedString(self);
-                self->t.id = kToken_Word;
-                self->t.u.word.text = self->wordBuffer;
-                self->t.u.word.length = self->wordBufferCount;
+
+                self->t.id = kToken_DoubleQuotedString;
+                self->t.u.string = self->textBuffer;
+                self->t.length = self->textBufferCount;
+                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
 
-            default:
-                if (isWordChar(ch)) {
-                    Lexer_ScanWord(self);
-                    self->t.id = kToken_Word;
-                    self->t.u.word.text = self->wordBuffer;
-                    self->t.u.word.length = self->wordBufferCount;
+            case '\\':
+                self->sourceIndex++;
+                self->column++;
+                self->textBufferCount = 0;
+                Lexer_ScanEscapeSequence(self, true);
+                Lexer_AddCharToTextBuffer(self, '\0');
+                self->textBufferCount--;
+
+                if (self->textBufferCount == 1 && self->textBuffer[0] == '\n') {
+                    // a line continuation escape
+                    break;
                 }
                 else {
+                    self->t.id = kToken_EscapeSequence;
+                    self->t.u.string = self->textBuffer;
+                    self->t.length = self->textBufferCount;
+                    self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
+                    return;
+                }
+
+            default:
+                if (isMorphemeChar(ch)) {
+                    Lexer_ScanMorpheme(self);
+
+                    self->t.id = kToken_UnquotedString;
+                    self->t.u.string = self->textBuffer;
+                    self->t.length = self->textBufferCount;
+                }
+                else {
+                    self->sourceIndex++;
+                    self->column++;
+
                     self->t.id = kToken_Character;
                     self->t.u.character = ch;
-                    self->textIndex++;
+                    self->t.length = 1;
                 }
+                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
         }
     }

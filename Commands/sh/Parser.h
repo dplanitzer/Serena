@@ -13,8 +13,7 @@
 #include "Script.h"
 
 typedef struct _Parser {
-    Lexer                           lexer;
-    ScriptRef _Nullable /* weak */  script;
+    Lexer   lexer;
 } Parser;
 typedef Parser* ParserRef;
 

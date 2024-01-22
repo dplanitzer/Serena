@@ -92,6 +92,12 @@ errno_t Interpreter_Create(InterpreterRef _Nullable * _Nonnull pOutInterpreter)
         return ENOMEM;
     }
 
+    if (StackAllocator_Create(1024, 8192, &self->allocator) != 0) {
+        Interpreter_Destroy(self);
+        *pOutInterpreter = NULL;
+        return ENOMEM;
+    }
+
     *pOutInterpreter = self;
     return 0;
 }
@@ -99,28 +105,119 @@ errno_t Interpreter_Create(InterpreterRef _Nullable * _Nonnull pOutInterpreter)
 void Interpreter_Destroy(InterpreterRef _Nullable self)
 {
     if (self) {
+        StackAllocator_Destroy(self->allocator);
         free(self);
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-static void sh_cd(StatementRef _Nonnull pStatement)
+static char* _Nullable Interpreter_ExpandWord(InterpreterRef _Nonnull self, WordRef _Nonnull pWord)
 {
-    char* path = (pStatement->wordCount > 1) ? pStatement->words[1] : "";
-    
-    if (*path == '\0') {
-        printf("Error: expected a path.\n");
+    size_t wordSize = 0;
+    MorphemeRef pCurMorpheme;
+
+    // Figure out how big the expanded word will be
+    pCurMorpheme = pWord->morphemes;
+    while (pCurMorpheme) {
+        switch (pCurMorpheme->type) {
+            case kMorpheme_UnquotedString:
+            case kMorpheme_SingleQuotedString:
+            case kMorpheme_DoubleQuotedString:
+            case kMorpheme_EscapeSequence: {
+                const StringMorpheme* mp = (StringMorpheme*)pCurMorpheme;
+                wordSize += strlen(mp->string);
+                break;
+            }
+
+            case kMorpheme_VariableReference:
+                // XXX
+                break;
+
+            case kMorpheme_NestedBlock:
+                // XXX
+                break;
+        }
+
+        pCurMorpheme = pCurMorpheme->next;
     }
-    else {
-        _chdir(path);
+    wordSize++;
+
+    char* str = (char*)StackAllocator_Alloc(self->allocator, wordSize);
+    if (str == NULL) {
+        printf("OOM\n");
+        return NULL;
     }
+
+
+    // Do the actual expansion
+    *str = '\0';
+    pCurMorpheme = pWord->morphemes;
+    while (pCurMorpheme) {
+        switch (pCurMorpheme->type) {
+            case kMorpheme_UnquotedString:
+            case kMorpheme_SingleQuotedString:
+            case kMorpheme_DoubleQuotedString:
+            case kMorpheme_EscapeSequence: {
+                const StringMorpheme* mp = (StringMorpheme*)pCurMorpheme;
+                strcat(str, mp->string);
+                break;
+            }
+
+            case kMorpheme_VariableReference:
+                // XXX
+                break;
+
+            case kMorpheme_NestedBlock:
+                // XXX
+                break;
+        }
+
+        pCurMorpheme = pCurMorpheme->next;
+    }
+
+    return str;
 }
 
-static void sh_ls(StatementRef _Nonnull pStatement)
+static char* _Nullable Interpreter_GetArgumentAt(InterpreterRef _Nonnull self, WordRef _Nullable pArgs, int idx, char* _Nullable pDefault)
 {
-    char* path = (pStatement->wordCount > 1) ? pStatement->words[1] : ".";
+    WordRef pCurWord = pArgs;
+    int i = 0;
+
+    while (i < idx) {
+        if (pCurWord == NULL) {
+            return pDefault;
+        }
+
+        pCurWord = pCurWord->next;
+        i++;
+    }
+
+    char* str = Interpreter_ExpandWord(self, pCurWord);
+    if (str == NULL || *str == '\0') {
+        return pDefault;
+    }
+    return str;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+static void sh_cd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+{
+    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, NULL);
+    
+    if (path == NULL) {
+        printf("Error: expected a path.\n");
+        return;
+    }
+
+    _chdir(path);
+}
+
+static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+{
+    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, ".");
 
     const int fd = _opendir(path);
     if (fd != -1) {
@@ -138,9 +235,9 @@ static void sh_ls(StatementRef _Nonnull pStatement)
     }
 }
 
-static void sh_pwd(StatementRef _Nonnull pStatement)
+static void sh_pwd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
 {
-    if (pStatement->wordCount > 1) {
+    if (pArgs) {
         printf("Warning: ignored unexpected arguments\n");
     }
 
@@ -154,11 +251,11 @@ static void sh_pwd(StatementRef _Nonnull pStatement)
     }
 }
 
-static void sh_mkdir(StatementRef _Nonnull pStatement)
+static void sh_mkdir(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
 {
-    char* path = (pStatement->wordCount > 1) ? pStatement->words[1] : "";
+    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, NULL);
 
-    if (*path == '\0') {
+    if (path == NULL) {
         printf("Error: expected a path\n");
         return;
     }
@@ -166,11 +263,11 @@ static void sh_mkdir(StatementRef _Nonnull pStatement)
     _mkdir(path);
 }
 
-static void sh_rm(StatementRef _Nonnull pStatement)
+static void sh_rm(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
 {
-    char* path = (pStatement->wordCount > 1) ? pStatement->words[1] : "";
+    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, NULL);
 
-    if (*path == '\0') {
+    if (path == NULL) {
         printf("Error: expected a path");
         return;
     }
@@ -179,41 +276,51 @@ static void sh_rm(StatementRef _Nonnull pStatement)
 }
 
 
-static void execute_statement(StatementRef _Nonnull pStatement)
+////////////////////////////////////////////////////////////////////////////////
+
+static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonnull pSentence)
 {
-    if (pStatement->wordCount < 1) {
+    if (pSentence->words == NULL) {
         return;
     }
 
-    const char* cmd = pStatement->words[0];
+    const char* cmd = Interpreter_ExpandWord(self, pSentence->words);
+    WordRef pArgs = pSentence->words->next;
 
     if (!strcmp(cmd, "cd")) {
-        sh_cd(pStatement);
+        sh_cd(self, pArgs);
     }
-    else if (!strcmp(cmd, "ls")) {
-        sh_ls(pStatement);
+    else if (!strcmp(cmd, "list")) {
+        sh_ls(self, pArgs);
     }
     else if (!strcmp(cmd, "pwd")) {
-        sh_pwd(pStatement);
+        sh_pwd(self, pArgs);
     }
-    else if (!strcmp(cmd, "mkdir")) {
-        sh_mkdir(pStatement);
+    else if (!strcmp(cmd, "makedir")) {
+        sh_mkdir(self, pArgs);
     }
-    else if (!strcmp(cmd, "rm")) {
-        sh_rm(pStatement);
+    else if (!strcmp(cmd, "delete")) {
+        sh_rm(self, pArgs);
     }
     else {
         printf("Error: unknown command.\n");
     }
 }
 
+static void Interpreter_Block(InterpreterRef _Nonnull self, BlockRef _Nonnull pBlock)
+{
+    SentenceRef st = pBlock->sentences;
+
+    while (st) {
+        Interpreter_Sentence(self, st);
+        st = st->next;
+    }
+}
+
 // Interprets 'pScript' and executes all its statements.
 void Interpreter_Execute(InterpreterRef _Nonnull self, ScriptRef _Nonnull pScript)
 {
-    StatementRef st = pScript->statements;
-
-    while (st) {
-        execute_statement(st);
-        st = st->next;
-    }
+    //Script_Print(pScript);
+    Interpreter_Block(self, pScript->block);
+    StackAllocator_DeallocAll(self->allocator);
 }

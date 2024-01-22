@@ -233,17 +233,18 @@ static void LineReader_ClearScreen(LineReaderRef _Nonnull self)
     LineReader_PrintInputLine(self);
 }
 
-static void LineReader_DeleteCharacter(LineReaderRef _Nonnull self)
+static void LineReader_Backspace(LineReaderRef _Nonnull self)
 {
     if (self->x == 0) {
         return;
     }
 
-    for(int i = self->x; i < self->lineCount; i++) {
-        self->line[i - 1] = self->line[i];
-    }
+    //XXX insert vs replace
+    //for(int i = self->x; i < self->lineCount; i++) {
+    //    self->line[i - 1] = self->line[i];
+    //}
     self->x--;
-    self->lineCount--;
+    //XXXself->lineCount--;
 
     putchar(8);
     LineReader_OnUserInput(self);
@@ -294,7 +295,8 @@ static void LineReader_AcceptCharacter(LineReaderRef _Nonnull self, int ch)
     else {
         // replace mode, auto-wrap off, save cursor position, output character, restore cursor position, auto-wrap on, insertion mode
         // auto-wrap off: to stop the console from scrolling when we hit the bottom right screen corner
-        printf("\033[4l\033[?7l\0337%c\0338\033[?7h\033[4h", ch);
+        //XXX not yet printf("\033[4l\033[?7l\0337%c\0338\033[?7h\033[4h", ch);
+        printf("\033[?7l\0337%c\0338\033[?7h", ch);
     }
 
     if (self->lineCount > self->maxX + 1) {
@@ -333,7 +335,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
                 break;
 
             case 8:
-                LineReader_DeleteCharacter(self);
+                LineReader_Backspace(self);
                 break;
 
             case 12:

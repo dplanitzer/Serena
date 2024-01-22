@@ -149,19 +149,6 @@ void _printv(PrintSink_Func _Nonnull pSinkFunc, void* _Nullable pContext, Charac
                 done = true;
                 break;
                 
-            case '\\':
-                ch = *format++;
-                switch (ch) {
-                    case '\0':
-                        done = true;
-                        break;
-                        
-                    default:
-                        _printv_char(ch);
-                        break;
-                }
-                break;
-                
             case '%': {
                 const Character paddingChar = parse_padding_char(format, &parsedLen);
                 format += parsedLen;

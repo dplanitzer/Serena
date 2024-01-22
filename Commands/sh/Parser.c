@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
+static void Parser_Block(ParserRef _Nonnull self, bool isNested, BlockRef _Nullable * _Nonnull pOutBlock);
+
 
 errno_t Parser_Create(ParserRef _Nullable * _Nonnull pOutParser)
 {
@@ -44,70 +46,217 @@ void Parser_Destroy(ParserRef _Nullable self)
     }
 }
 
-// statement: WORD+
-// Expects that the current token on entry is a WORD token.
-static void Parser_Statement(ParserRef _Nonnull self)
+static void Parser_SkipUntilStartOfNextSentence(ParserRef _Nonnull self)
 {
-    StatementRef pStatement = NULL;
+    bool done = false;
 
-    while (true) {
-        const Token* t = Lexer_GetToken(&self->lexer);
-
-        if (t->id != kToken_Word) {
-            break;
-        }
-
-        if (pStatement == NULL) {
-            Statement_Create(&pStatement);
-        }
-
-        Statement_AddWord(pStatement, t->u.word.text);
-        Lexer_ConsumeToken(&self->lexer);
-    }
-
-    if (pStatement) {
-        Script_AddStatement(self->script, pStatement);
-    }
-}
-
-// script: (statement? EOS)*
-static void Parser_Script(ParserRef _Nonnull self)
-{
-    while (true) {
+    while (!done) {
         const Token* t = Lexer_GetToken(&self->lexer);
         
+        Lexer_ConsumeToken(&self->lexer);
         switch (t->id) {
+            case kToken_Newline:
+            case kToken_Semicolon:
+            case kToken_Ampersand:
             case kToken_Eof:
-                return;
-
-            case kToken_Word:
-                Parser_Statement(self);
+                done = true;
                 break;
 
-            case kToken_Eos:
-                Lexer_ConsumeToken(&self->lexer);
+            case kToken_ClosingParenthesis:
+                done = true;
                 break;
 
             default:
-                printf("Error: unexpected input.\n");
-                // Consume the token to try and resync
-                Lexer_ConsumeToken(&self->lexer);
                 break;
         }
     }
+}
+
+// nested_block: '(' sentence* ')'
+// Expects that the current token on entry is a '(' token.
+static void Parser_NestedBlock(ParserRef _Nonnull self, WordRef _Nonnull pWord)
+{
+    BlockRef pBlock = NULL;
+    MorphemeRef pMorpheme = NULL;
+
+    Lexer_ConsumeToken(&self->lexer);
+
+    Parser_Block(self, true, &pBlock);
+
+    const Token* t = Lexer_GetToken(&self->lexer);
+    switch (t->id) {
+        case kToken_ClosingParenthesis:
+            Lexer_ConsumeToken(&self->lexer);
+            BlockMorpheme_Create(pBlock, &pMorpheme);
+            Word_AddMorpheme(pWord, pMorpheme);
+            break;
+
+        case kToken_Eof:
+            printf("Error: unexpected end of script\n");
+            break;
+
+        default:
+            printf("Error: garbage in nested block\n");
+            Parser_SkipUntilStartOfNextSentence(self);
+            break;
+    }
+}
+
+static int GetMorphemeFromToken(TokenId id)
+{
+    switch (id) {
+        case kToken_UnquotedString:     return kMorpheme_UnquotedString;
+        case kToken_SingleQuotedString: return kMorpheme_SingleQuotedString;
+        case kToken_DoubleQuotedString: return kMorpheme_DoubleQuotedString;
+        case kToken_VariableName:       return kMorpheme_VariableReference;
+        case kToken_EscapeSequence:     return kMorpheme_EscapeSequence;
+        default: return -1;
+    }
+}
+
+// word: (UNQUOTED_STRING
+//          | SINGLE_QUOTED_STRING 
+//          | DOUBLE_QUOTED_STRING 
+//          | VARIABLE_REFERENCE 
+//          | ESCAPE_SEQUENCE 
+//          | nested_block
+//       )+
+// Expects that the current token on entry is a morpheme token.
+static bool Parser_Word(ParserRef _Nonnull self, bool isNested, SentenceRef _Nonnull pSentence)
+{
+    WordRef pWord = NULL;
+    bool done = false;
+    bool hasError = false;
+
+    Word_Create(&pWord);
+
+    while (!done) {
+        const Token* t = Lexer_GetToken(&self->lexer);
+
+        switch (t->id) {
+            case kToken_OpeningParenthesis:
+                Parser_NestedBlock(self, pWord);
+                break;
+
+            case kToken_Newline:
+            case kToken_Semicolon:
+            case kToken_Ampersand:
+            case kToken_Eof:
+                done = true;
+                break;
+
+            case kToken_ClosingParenthesis:
+                if (isNested) {
+                    done = true;
+                    break;
+                }
+                // Fall through
+
+            default: {
+                const MorphemeType morphType = GetMorphemeFromToken(t->id);
+                if (morphType >= 0) {
+                    MorphemeRef pMorpheme = NULL;
+                    StringMorpheme_Create(morphType, t->u.string, &pMorpheme);
+                    Word_AddMorpheme(pWord, pMorpheme);
+
+                    if (t->hasTrailingWhitespace) {
+                        done = true;
+                    }
+                    Lexer_ConsumeToken(&self->lexer);
+                }
+                else {
+                    printf("Error: unexpected character '%c'.\n", t->id);
+                    hasError = true;
+                    done = true;
+                }
+                break;
+            }
+        }
+    }
+
+    Sentence_AddWord(pSentence, pWord);
+    return hasError;
+}
+
+// sentenceTerminator: EOF | '\n' | ';' | '&' | ')'
+// Also accepts ')' as a sentence terminator if we are currently inside a nested
+// sentence
+static bool Parser_IsAtSentenceTerminator(ParserRef _Nonnull self, bool isNested)
+{
+    const Token* t = Lexer_GetToken(&self->lexer);
+
+    switch (t->id) {
+        case kToken_Eof:
+        case kToken_Newline:
+        case kToken_Semicolon:
+        case kToken_Ampersand:
+            return true;
+
+        case kToken_ClosingParenthesis:
+            return isNested;
+
+        default:
+            return false;
+    }
+}
+
+// sentence: word* sentenceTerminator
+// Expects that the current token on entry is part of a word.
+static void Parser_Sentence(ParserRef _Nonnull self, bool isNested, BlockRef _Nonnull pBlock)
+{
+    SentenceRef pSentence = NULL;
+
+    Sentence_Create(&pSentence);
+
+    while (!Parser_IsAtSentenceTerminator(self, isNested)) {
+        if(Parser_Word(self, isNested, pSentence)) {
+            Parser_SkipUntilStartOfNextSentence(self);
+            break;
+        }
+    }
+
+    // Consume the sentence terminator except if this sentence is nested and it
+    // is terminated by a ')' since the closing parenthesis will be consumed by
+    // the rule for nested blocks
+    const TokenId id = Lexer_GetToken(&self->lexer)->id;
+    if (!(isNested && id == kToken_ClosingParenthesis)) {
+        Lexer_ConsumeToken(&self->lexer);
+    }
+    pSentence->terminator = id;
+
+    Block_AddSentence(pBlock, pSentence);
+}
+
+// block: sentence*
+static void Parser_Block(ParserRef _Nonnull self, bool isNested, BlockRef _Nullable * _Nonnull pOutBlock)
+{
+    BlockRef pBlock = NULL;
+
+    Block_Create(&pBlock);
+
+    while (true) {
+        const Token* t = Lexer_GetToken(&self->lexer);
+        
+        if (t->id == kToken_Eof || (isNested && t->id == kToken_ClosingParenthesis)) {
+            break;
+        }
+
+        Parser_Sentence(self, isNested, pBlock);
+    }
+
+    *pOutBlock = pBlock;
 }
 
 // Parses the text 'text' and updates the script object 'pScript' to reflect the
 // result of parsing 'text'.
 void Parser_Parse(ParserRef _Nonnull self, const char* _Nonnull text, ScriptRef _Nonnull pScript)
 {
+    BlockRef pBlock = NULL;
+
     Script_Reset(pScript);
 
-    self->script = pScript;
     Lexer_SetInput(&self->lexer, text);
-    
-    Parser_Script(self);
-
+    Parser_Block(self, false, &pBlock);
+    Script_SetBlock(pScript, pBlock);
     Lexer_SetInput(&self->lexer, NULL);
-    self->script = NULL;
 }

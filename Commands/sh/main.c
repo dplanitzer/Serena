@@ -24,7 +24,9 @@ void main_closure(int argc, char *argv[])
     int fd0 = open("/dev/console", O_RDONLY);
     int fd1 = open("/dev/console", O_WRONLY);
 
-    printf("\033[4h");  // Switch the console to insert mode
+    // XXX disabled insertion mode for now because the line reader doesn't support
+    // XXX it properly yet
+    //printf("\033[4h");  // Switch the console to insert mode
     printf("Apollo v0.1.\nCopyright 2023, Dietmar Planitzer.\n\n");
 
     _mkdir("/Users");

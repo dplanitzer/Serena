@@ -236,19 +236,6 @@ errno_t __vprintf(CharacterStream* _Nonnull pStream, const char* _Nonnull format
                 done = true;
                 break;
                 
-            case '\\':
-                ch = *format++;
-                switch (ch) {
-                    case '\0':
-                        done = true;
-                        break;
-                        
-                    default:
-                        __vprintf_char(pStream, ch);
-                        break;
-                }
-                break;
-                
             case '%': {
                 const char paddingChar = parse_padding_char(format, &parsedLen);
                 format += parsedLen;

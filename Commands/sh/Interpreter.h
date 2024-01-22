@@ -10,9 +10,10 @@
 #define Interpreter_h
 
 #include "Script.h"
+#include "StackAllocator.h"
 
 typedef struct Interpreter {
-    int dummy;
+    StackAllocatorRef allocator;
 } Interpreter;
 typedef Interpreter* InterpreterRef;
 

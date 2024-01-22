@@ -10,35 +10,51 @@
 #define Lexer_h
 
 #include <apollo/apollo.h>
+#include <stdbool.h>
 
 
-typedef enum _TokenId {
-    kToken_Eof = 0,         // End of file
-    kToken_Eos,             // End of statement
-    kToken_Character,       // Some character that doesn't start any of the other tokens (note that this includes things like ASCII control codes)
-    kToken_Word,
+typedef enum TokenId {
+    kToken_Eof = 0,                     // -            End of file
+    kToken_Character,                   // character    Some character that doesn't start any of the other tokens (note that this includes things like ASCII control codes)
+    kToken_UnquotedString,              // string
+    kToken_SingleQuotedString,          // string
+    kToken_DoubleQuotedString,          // string
+    kToken_VariableName,                // string
+    kToken_EscapeSequence,              // string
+    kToken_Semicolon = ';',             // -
+    kToken_Newline = '\n',              // -
+    kToken_OpeningParenthesis = '(',    // -
+    kToken_ClosingParenthesis = ')',    // -
+    kToken_Less = '<',                  // -
+    kToken_Greater = '>',               // -
+    kToken_Bar = '|',                   // -
+    kToken_Ampersand = '&'              // -
 } TokenId;
 
 typedef struct _Token {
     TokenId         id;
     union {
-        struct Word {
-            const char* text;
-            int         length;
-        }       word;
-        char    character;
+        const char* string;
+        char        character;
     }               u;
+    int             column;     // column & line at the start of the token
+    int             line;
+    int             length;     // token length in terms of characters
+    bool            hasTrailingWhitespace;
 } Token;
 
 
 typedef struct _Lexer {
-    const char* _Nonnull    text;
-    int                     textIndex;
+    const char* _Nonnull    source;
+    int                     sourceIndex;
 
-    char* _Nonnull          wordBuffer;
-    int                     wordBufferCapacity;     // max number of characters we can store excluding the trailing NUL
-    int                     wordBufferCount;
+    char* _Nonnull          textBuffer;
+    int                     textBufferCapacity;     // max number of characters we can store excluding the trailing NUL
+    int                     textBufferCount;
 
+    int                     column;                 // current column & line
+    int                     line;
+    
     Token                   t;
 } Lexer;
 typedef Lexer* LexerRef;
@@ -49,7 +65,7 @@ extern void Lexer_Deinit(LexerRef _Nonnull self);
 
 // Sets the lexer input. Note that the lexer maintains a reference to the input
 // text. It does not copy it.
-extern void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable text);
+extern void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable source);
 
 // Returns the token at the current lexer position. This function does not
 // consume the token. The caller must copy whatever data it wants to retain.
