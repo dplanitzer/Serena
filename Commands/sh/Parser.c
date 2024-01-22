@@ -41,6 +41,7 @@ void Parser_Destroy(ParserRef _Nullable self)
 {
     if (self) {
         Lexer_Deinit(&self->lexer);
+        self->scriptAllocator = NULL;
 
         free(self);
     }
@@ -87,7 +88,7 @@ static void Parser_NestedBlock(ParserRef _Nonnull self, WordRef _Nonnull pWord)
     switch (t->id) {
         case kToken_ClosingParenthesis:
             Lexer_ConsumeToken(&self->lexer);
-            BlockMorpheme_Create(pBlock, &pMorpheme);
+            BlockMorpheme_Create(self->scriptAllocator, pBlock, &pMorpheme);
             Word_AddMorpheme(pWord, pMorpheme);
             break;
 
@@ -128,7 +129,7 @@ static bool Parser_Word(ParserRef _Nonnull self, bool isNested, SentenceRef _Non
     bool done = false;
     bool hasError = false;
 
-    Word_Create(&pWord);
+    Word_Create(self->scriptAllocator, &pWord);
 
     while (!done) {
         const Token* t = Lexer_GetToken(&self->lexer);
@@ -156,7 +157,7 @@ static bool Parser_Word(ParserRef _Nonnull self, bool isNested, SentenceRef _Non
                 const MorphemeType morphType = GetMorphemeFromToken(t->id);
                 if (morphType >= 0) {
                     MorphemeRef pMorpheme = NULL;
-                    StringMorpheme_Create(morphType, t->u.string, &pMorpheme);
+                    StringMorpheme_Create(self->scriptAllocator, morphType, t->u.string, &pMorpheme);
                     Word_AddMorpheme(pWord, pMorpheme);
 
                     if (t->hasTrailingWhitespace) {
@@ -206,7 +207,7 @@ static void Parser_Sentence(ParserRef _Nonnull self, bool isNested, BlockRef _No
 {
     SentenceRef pSentence = NULL;
 
-    Sentence_Create(&pSentence);
+    Sentence_Create(self->scriptAllocator, &pSentence);
 
     while (!Parser_IsAtSentenceTerminator(self, isNested)) {
         if(Parser_Word(self, isNested, pSentence)) {
@@ -232,7 +233,7 @@ static void Parser_Block(ParserRef _Nonnull self, bool isNested, BlockRef _Nulla
 {
     BlockRef pBlock = NULL;
 
-    Block_Create(&pBlock);
+    Block_Create(self->scriptAllocator, &pBlock);
 
     while (true) {
         const Token* t = Lexer_GetToken(&self->lexer);
@@ -256,7 +257,9 @@ void Parser_Parse(ParserRef _Nonnull self, const char* _Nonnull text, ScriptRef 
     Script_Reset(pScript);
 
     Lexer_SetInput(&self->lexer, text);
+    self->scriptAllocator = pScript->allocator;
     Parser_Block(self, false, &pBlock);
+    self->scriptAllocator = NULL;
     Script_SetBlock(pScript, pBlock);
     Lexer_SetInput(&self->lexer, NULL);
 }

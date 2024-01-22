@@ -11,6 +11,7 @@
 
 #include <apollo/apollo.h>
 #include "Lexer.h"
+#include "StackAllocator.h"
 
 struct Morpheme;
 typedef struct Morpheme* MorphemeRef;
@@ -46,7 +47,7 @@ typedef struct Morpheme {
 
 typedef struct StringMorpheme {
     Morpheme        super;
-    char* _Nonnull  string;
+    char            string[1];
 } StringMorpheme;
 
 typedef struct BlockMorpheme {
@@ -54,9 +55,8 @@ typedef struct BlockMorpheme {
     BlockRef _Nonnull   block;
 } BlockMorpheme;
 
-extern errno_t StringMorpheme_Create(MorphemeType type, const char* _Nonnull pString, MorphemeRef _Nullable * _Nonnull pOutMorpheme);
-extern errno_t BlockMorpheme_Create(BlockRef _Nonnull pBlock, MorphemeRef _Nullable * _Nonnull pOutMorpheme);  // Takes ownership of the block
-extern void Morpheme_Destroy(MorphemeRef _Nullable self);
+extern errno_t StringMorpheme_Create(StackAllocatorRef _Nonnull pAllocator, MorphemeType type, const char* _Nonnull pString, MorphemeRef _Nullable * _Nonnull pOutMorpheme);
+extern errno_t BlockMorpheme_Create(StackAllocatorRef _Nonnull pAllocator, BlockRef _Nonnull pBlock, MorphemeRef _Nullable * _Nonnull pOutMorpheme);  // Takes ownership of the block
 extern void Morpheme_Print(MorphemeRef _Nonnull self);
 
 
@@ -67,8 +67,7 @@ typedef struct Word {
     MorphemeRef _Nonnull    lastMorpheme;
 } Word;
 
-extern errno_t Word_Create(WordRef _Nullable * _Nonnull pOutWord);
-extern void Word_Destroy(WordRef _Nullable self);
+extern errno_t Word_Create(StackAllocatorRef _Nonnull pAllocator, WordRef _Nullable * _Nonnull pOutWord);
 extern void Word_Print(WordRef _Nonnull self);
 extern void Word_AddMorpheme(WordRef _Nonnull self, MorphemeRef _Nonnull pMorpheme);
 
@@ -81,8 +80,7 @@ typedef struct Sentence {
     TokenId                 terminator;
 } Sentence;
 
-extern errno_t Sentence_Create(SentenceRef _Nullable * _Nonnull pOutSentence);
-extern void Sentence_Destroy(SentenceRef _Nullable self);
+extern errno_t Sentence_Create(StackAllocatorRef _Nonnull pAllocator, SentenceRef _Nullable * _Nonnull pOutSentence);
 extern void Sentence_Print(SentenceRef _Nonnull self);
 extern void Sentence_AddWord(SentenceRef _Nonnull self, WordRef _Nonnull pWord);
 
@@ -93,17 +91,19 @@ typedef struct Block {
     SentenceRef _Nullable   lastSentence;
 } Block;
 
-extern errno_t Block_Create(BlockRef _Nullable * _Nonnull pOutBlock);
-extern void Block_Destroy(BlockRef _Nullable self);
+extern errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, BlockRef _Nullable * _Nonnull pOutBlock);
 extern void Block_Print(BlockRef _Nonnull self);
 extern void Block_AddSentence(BlockRef _Nonnull self, SentenceRef _Nonnull pSentence);
 
 
 
 typedef struct Script {
-    BlockRef _Nullable  block;
+    BlockRef _Nullable          block;
+    StackAllocatorRef _Nonnull  allocator;
 } Script;
 
+// The script manages a stack allocator which is used to store all nodes in the
+// AST that the script manages.
 extern errno_t Script_Create(ScriptRef _Nullable * _Nonnull pOutScript);
 extern void Script_Destroy(ScriptRef _Nullable self);
 extern void Script_Reset(ScriptRef _Nonnull self);

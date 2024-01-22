@@ -19,9 +19,10 @@
 // MARK: Morpheme
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t StringMorpheme_Create(MorphemeType type, const char* _Nonnull pString, MorphemeRef _Nullable * _Nonnull pOutMorpheme)
+errno_t StringMorpheme_Create(StackAllocatorRef _Nonnull pAllocator, MorphemeType type, const char* _Nonnull pString, MorphemeRef _Nullable * _Nonnull pOutMorpheme)
 {
-    StringMorpheme* self = (StringMorpheme*)calloc(1, sizeof(StringMorpheme));
+    size_t len = strlen(pString);
+    StringMorpheme* self = (StringMorpheme*)StackAllocator_ClearAlloc(pAllocator, sizeof(StringMorpheme) + len);
 
     if (self == NULL) {
         *pOutMorpheme = NULL;
@@ -29,20 +30,15 @@ errno_t StringMorpheme_Create(MorphemeType type, const char* _Nonnull pString, M
     }
 
     self->super.type = type;
-    self->string = strdup(pString);
-    if (self->string == NULL) {
-        Morpheme_Destroy((MorphemeRef)self);
-        *pOutMorpheme = NULL;
-        return ENOMEM;
-    }
+    strcpy(self->string, pString);
 
     *pOutMorpheme = (MorphemeRef)self;
     return 0;
 }
 
-errno_t BlockMorpheme_Create(BlockRef _Nonnull pBlock, MorphemeRef _Nullable * _Nonnull pOutMorpheme)
+errno_t BlockMorpheme_Create(StackAllocatorRef _Nonnull pAllocator, BlockRef _Nonnull pBlock, MorphemeRef _Nullable * _Nonnull pOutMorpheme)
 {
-    BlockMorpheme* self = (BlockMorpheme*)calloc(1, sizeof(BlockMorpheme));
+    BlockMorpheme* self = (BlockMorpheme*)StackAllocator_ClearAlloc(pAllocator, sizeof(BlockMorpheme));
 
     if (self == NULL) {
         *pOutMorpheme = NULL;
@@ -54,28 +50,6 @@ errno_t BlockMorpheme_Create(BlockRef _Nonnull pBlock, MorphemeRef _Nullable * _
 
     *pOutMorpheme = (MorphemeRef)self;
     return 0;
-}
-
-void Morpheme_Destroy(MorphemeRef _Nullable self)
-{
-    if (self) {
-        switch (self->type) {
-            case kMorpheme_NestedBlock: {
-                BlockMorpheme* mp = (BlockMorpheme*)self;
-                Block_Destroy(mp->block);
-                mp->block = NULL;
-            }
-            break;
-
-            default: {
-                StringMorpheme* mp = (StringMorpheme*)self;
-                free(mp->string);
-                mp->string = NULL;
-            }
-            break;
-        }
-        free(self);
-    }
 }
 
 void Morpheme_Print(MorphemeRef _Nonnull self)
@@ -122,33 +96,12 @@ void Morpheme_Print(MorphemeRef _Nonnull self)
 // MARK: Word
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Word_Create(WordRef _Nullable * _Nonnull pOutWord)
+errno_t Word_Create(StackAllocatorRef _Nonnull pAllocator, WordRef _Nullable * _Nonnull pOutWord)
 {
-    WordRef self = (WordRef)calloc(1, sizeof(Word));
-
-    if (self == NULL) {
-        *pOutWord = NULL;
-        return ENOMEM;
-    }
+    WordRef self = (WordRef)StackAllocator_ClearAlloc(pAllocator, sizeof(Word));
 
     *pOutWord = self;
-    return 0;
-}
-
-void Word_Destroy(WordRef _Nullable self)
-{
-    if (self) {
-        MorphemeRef mp = self->morphemes;
-
-        while(mp) {
-            MorphemeRef nx = mp->next;
-            Morpheme_Destroy(mp);
-            mp = nx;
-        }
-        self->morphemes = NULL;
-        self->lastMorpheme = NULL;
-        free(self);
-    }
+    return (self) ? 0 : ENOMEM;
 }
 
 void Word_Print(WordRef _Nonnull self)
@@ -179,33 +132,12 @@ void Word_AddMorpheme(WordRef _Nonnull self, MorphemeRef _Nonnull pMorpheme)
 // MARK: Sentence
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Sentence_Create(SentenceRef _Nullable * _Nonnull pOutSentence)
+errno_t Sentence_Create(StackAllocatorRef _Nonnull pAllocator, SentenceRef _Nullable * _Nonnull pOutSentence)
 {
-    SentenceRef self = (SentenceRef)calloc(1, sizeof(Sentence));
-
-    if (self == NULL) {
-        *pOutSentence = NULL;
-        return ENOMEM;
-    }
+    SentenceRef self = (SentenceRef)StackAllocator_ClearAlloc(pAllocator, sizeof(Sentence));
 
     *pOutSentence = self;
-    return 0;
-}
-
-void Sentence_Destroy(SentenceRef _Nullable self)
-{
-    if (self) {
-        WordRef wd = self->words;
-
-        while(wd) {
-            WordRef nx = wd->next;
-            Word_Destroy(wd);
-            wd = nx;
-        }
-        self->words = NULL;
-        self->lastWord = NULL;
-        free(self);
-    }
+    return (self) ? 0 : ENOMEM;
 }
 
 void Sentence_Print(SentenceRef _Nonnull self)
@@ -248,33 +180,12 @@ void Sentence_AddWord(SentenceRef _Nonnull self, WordRef _Nonnull pWord)
 // MARK: Block
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Block_Create(BlockRef _Nullable * _Nonnull pOutBlock)
+errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, BlockRef _Nullable * _Nonnull pOutBlock)
 {
-    BlockRef self = (BlockRef)calloc(1, sizeof(Block));
-
-    if (self == NULL) {
-        *pOutBlock = NULL;
-        return ENOMEM;
-    }
+    BlockRef self = (BlockRef)StackAllocator_ClearAlloc(pAllocator, sizeof(Block));
 
     *pOutBlock = self;
-    return 0;
-}
-
-void Block_Destroy(BlockRef _Nullable self)
-{
-    if (self) {
-        SentenceRef st = self->sentences;
-
-        while(st) {
-            SentenceRef nx = st->next;
-            Sentence_Destroy(st);
-            st = nx;
-        }
-        self->sentences = NULL;
-        self->lastSentence = NULL;
-        free(self);
-    }
+    return (self) ? 0 : ENOMEM;
 }
 
 void Block_Print(BlockRef _Nonnull self)
@@ -316,6 +227,11 @@ errno_t Script_Create(ScriptRef _Nullable * _Nonnull pOutScript)
         *pOutScript = NULL;
         return ENOMEM;
     }
+    if (StackAllocator_Create(512, 4096, &self->allocator) != 0) {
+        Script_Destroy(self);
+        *pOutScript = NULL;
+        return ENOMEM;
+    }
 
     *pOutScript = self;
     return 0;
@@ -323,14 +239,16 @@ errno_t Script_Create(ScriptRef _Nullable * _Nonnull pOutScript)
 
 void Script_Reset(ScriptRef _Nonnull self)
 {
-    Block_Destroy(self->block);
+    StackAllocator_DeallocAll(self->allocator);
     self->block = NULL;
 }
 
 void Script_Destroy(ScriptRef _Nullable self)
 {
     if (self) {
-        Script_Reset(self);
+        StackAllocator_Destroy(self->allocator);
+        self->allocator = NULL;
+        self->block = NULL;
         free(self);
     }
 }
@@ -343,8 +261,5 @@ void Script_Print(ScriptRef _Nonnull self)
 
 void Script_SetBlock(ScriptRef _Nonnull self, BlockRef _Nonnull pBlock)
 {
-    if (self->block != pBlock) {
-        Block_Destroy(self->block);
-        self->block = pBlock;
-    }
+    self->block = pBlock;
 }

@@ -10,7 +10,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <string.h>
 #include <_math.h>
 
 #if __LP64__
@@ -76,6 +76,16 @@ void* _Nullable StackAllocator_Alloc(StackAllocatorRef _Nonnull self, size_t nby
     self->tosPtr += alignedByteCount;
 
     return pBasePtr;
+}
+
+void* _Nullable StackAllocator_ClearAlloc(StackAllocatorRef _Nonnull self, size_t nbytes)
+{
+    void* ptr = StackAllocator_Alloc(self, nbytes);
+
+    if (ptr) {
+        memset(ptr, 0, nbytes);
+    }
+    return ptr;
 }
 
 void StackAllocator_DeallocAll(StackAllocatorRef _Nonnull self)

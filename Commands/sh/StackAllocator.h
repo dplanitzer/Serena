@@ -46,6 +46,7 @@ extern void StackAllocator_Destroy(StackAllocatorRef _Nullable self);
 // Allocates 'nbytes' bytes from the top of the stack and guarantees that the
 // returned pointer will be aligned appropriately and for access efficiency.
 extern void* _Nullable StackAllocator_Alloc(StackAllocatorRef _Nonnull self, size_t nbytes);
+extern void* _Nullable StackAllocator_ClearAlloc(StackAllocatorRef _Nonnull self, size_t nbytes);
 extern void StackAllocator_DeallocAll(StackAllocatorRef _Nonnull self);
 
 #endif  /* StackAllocator_h */
