@@ -11,7 +11,7 @@
 
 #include "Filesystem.h"
 
-#define kMaxPathLength          __PATH_MAX
+#define kMaxPathLength          (__PATH_MAX-1)
 #define kMaxPathComponentLength __PATH_COMPONENT_MAX
 
 

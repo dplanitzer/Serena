@@ -16,7 +16,7 @@ CLASS_FORWARD(Filesystem);
 
 typedef struct _file_info_t FileInfo;
 typedef struct _mutable_file_info_t MutableFileInfo;
-
+#if 0
 enum {
     kFilePermission_Read = 0x04,
     kFilePermission_Write = 0x02,
@@ -53,7 +53,7 @@ enum {
     kFileType_RegularFile = 0,  // A regular file that stores data
     kFileType_Directory,        // A directory which stores information about child nodes
 };
-
+#endif
 
 // Inode flags
 enum {

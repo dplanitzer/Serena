@@ -13,9 +13,20 @@
 #include "StackAllocator.h"
 
 typedef struct Interpreter {
-    StackAllocatorRef allocator;
+    StackAllocatorRef _Nonnull  allocator;
+    char* _Nonnull              pathBuffer; // Buffer big enough to hold one absolute path of max length
 } Interpreter;
 typedef Interpreter* InterpreterRef;
+
+typedef errno_t (*DirectoryIteratorCallback)(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, struct _directory_entry_t* _Nonnull pEntry, void* _Nullable pContext);
+
+struct DirectoryEntryFormat {
+    int linkCountWidth;
+    int uidWidth;
+    int gidWidth;
+    int sizeWidth;
+    int inodeIdWidth;
+};
 
 
 extern errno_t Interpreter_Create(InterpreterRef _Nullable * _Nonnull pOutInterpreter);

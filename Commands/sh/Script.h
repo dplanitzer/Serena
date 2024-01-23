@@ -31,7 +31,6 @@ typedef struct Script* ScriptRef;
 
 
 typedef enum MorphemeType {
-    // Compoundable morphemes
     kMorpheme_UnquotedString,           // StringMorpheme
     kMorpheme_SingleQuotedString,       // StringMorpheme
     kMorpheme_DoubleQuotedString,       // StringMorpheme

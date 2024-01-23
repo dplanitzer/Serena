@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <_math.h>
 
 
 static void _chdir(const char* path)
@@ -49,6 +50,14 @@ static int _opendir(const char* path)
         printf("Error: %s.\n", strerror(err));
     }
     return fd;
+}
+
+void _getfileinfo(const char* path, struct _file_info_t* info)
+{
+    const errno_t err = getfileinfo(path, info);
+    if (err != 0) {
+        printf("Error: %s.\n", strerror(err));
+    }
 }
 
 static size_t _read(int fd, void* buffer, size_t nbytes)
@@ -98,6 +107,13 @@ errno_t Interpreter_Create(InterpreterRef _Nullable * _Nonnull pOutInterpreter)
         return ENOMEM;
     }
 
+    self->pathBuffer = (char*)malloc(PATH_MAX);
+    if (self->pathBuffer == NULL) {
+        Interpreter_Destroy(self);
+        *pOutInterpreter = NULL;
+        return ENOMEM;
+    }
+
     *pOutInterpreter = self;
     return 0;
 }
@@ -106,6 +122,9 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
 {
     if (self) {
         StackAllocator_Destroy(self->allocator);
+        self->allocator = NULL;
+        free(self->pathBuffer);
+        self->pathBuffer = NULL;
         free(self);
     }
 }
@@ -215,13 +234,78 @@ static void sh_cd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
     _chdir(path);
 }
 
-static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+static void file_permissions_to_text(_file_permissions_t perms, char* _Nonnull buf)
 {
-    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, ".");
+    if ((perms & kFilePermission_Read) == kFilePermission_Read) {
+        buf[0] = 'r';
+    }
+    if ((perms & kFilePermission_Write) == kFilePermission_Write) {
+        buf[1] = 'w';
+    }
+    if ((perms & kFilePermission_Execute) == kFilePermission_Execute) {
+        buf[2] = 'x';
+    }
+}
 
+static errno_t calc_dir_entry_format(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, struct _directory_entry_t* _Nonnull pEntry, void* _Nullable pContext)
+{
+    struct DirectoryEntryFormat* fmt = (struct DirectoryEntryFormat*)pContext;
+    struct _file_info_t info;
+
+    strcpy(self->pathBuffer, pDirPath);
+    strcat(self->pathBuffer, "/");
+    strcat(self->pathBuffer, pEntry->name);
+
+    _getfileinfo(self->pathBuffer, &info);
+
+    sprintf(self->pathBuffer, "%ld", info.linkCount);
+    fmt->linkCountWidth = __max(fmt->linkCountWidth, strlen(self->pathBuffer));
+    sprintf(self->pathBuffer, "%lu", info.uid);
+    fmt->uidWidth = __max(fmt->uidWidth, strlen(self->pathBuffer));
+    sprintf(self->pathBuffer, "%lu", info.gid);
+    fmt->gidWidth = __max(fmt->gidWidth, strlen(self->pathBuffer));
+    sprintf(self->pathBuffer, "%lld", info.size);
+    fmt->sizeWidth = __max(fmt->sizeWidth, strlen(self->pathBuffer));
+    sprintf(self->pathBuffer, "%ld", info.inodeId);
+    fmt->inodeIdWidth = __max(fmt->inodeIdWidth, strlen(self->pathBuffer));
+
+    return 0;
+}
+
+static errno_t print_dir_entry(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, struct _directory_entry_t* _Nonnull pEntry, void* _Nullable pContext)
+{
+    struct DirectoryEntryFormat* fmt = (struct DirectoryEntryFormat*)pContext;
+    struct _file_info_t info;
+
+    strcpy(self->pathBuffer, pDirPath);
+    strcat(self->pathBuffer, "/");
+    strcat(self->pathBuffer, pEntry->name);
+
+    _getfileinfo(self->pathBuffer, &info);
+
+    char tp[11];
+    for (int i = 0; i < sizeof(tp); i++) {
+        tp[i] = '-';
+    }
+    if (info.type == kFileType_Directory) {
+        tp[0] = 'd';
+    }
+    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_User), &tp[1]);
+    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_Group), &tp[4]);
+    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_Other), &tp[7]);
+    tp[10] = '\0';
+
+    printf("%s %ld %lu %lu  %lld %ld %s\n", tp, info.linkCount, info.uid, info.gid, info.size, info.inodeId, pEntry->name);
+    return 0;
+}
+
+static void iterate_dir(InterpreterRef _Nonnull self, const char* _Nonnull path, DirectoryIteratorCallback _Nonnull cb, void* _Nullable pContext)
+{
     const int fd = _opendir(path);
+    errno_t err = 0;
+
     if (fd != -1) {
-        while (true) {
+        while (err == 0) {
             struct _directory_entry_t dirent;
             const ssize_t r = _read(fd, &dirent, sizeof(dirent));
         
@@ -229,10 +313,21 @@ static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
                 break;
             }
 
-            printf("%ld:\t\"%s\"\n", dirent.inodeId, dirent.name);
+            err = cb(self, path, &dirent, pContext);
         }
         _close(fd);
     }
+}
+
+static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+{
+    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, ".");
+    struct DirectoryEntryFormat fmt = {0};
+
+    //XXX not yet
+    //iterate_dir(self, path, calc_dir_entry_format, &fmt);
+    //printf("%d, %d, %d, %d, %d", fmt.linkCountWidth, fmt.uidWidth, fmt.gidWidth, fmt.sizeWidth, fmt.inodeIdWidth);
+    iterate_dir(self, path, print_dir_entry, &fmt);
 }
 
 static void sh_pwd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
@@ -241,11 +336,10 @@ static void sh_pwd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
         printf("Warning: ignored unexpected arguments\n");
     }
 
-    char buf[128];  //XXX Should be PATH_MAX, however our user stack is not big enough to park it there
-    const errno_t err = getcwd(buf, sizeof(buf));
+    const errno_t err = getcwd(self->pathBuffer, PATH_MAX);
 
     if (err == 0) {
-        printf("%s\n", buf);
+        printf("%s\n", self->pathBuffer);
     } else {
         printf("Error: %s.\n", strerror(err));
     }
