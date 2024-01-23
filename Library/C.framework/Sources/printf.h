@@ -11,8 +11,8 @@
 
 #include <__stddef.h>
 
-extern const char* _Nonnull __lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);
-extern const char* _Nonnull __ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);
+extern const char* _Nonnull __lltoa(int64_t val, int radix, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);
+extern const char* _Nonnull __ulltoa(uint64_t val, int radix, bool isUppercase, int fieldWidth, char paddingChar, char* _Nonnull pString, size_t maxLength);
 
 
 struct _CharacterStream;

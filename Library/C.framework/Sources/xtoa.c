@@ -14,7 +14,7 @@
 const char* gLowerDigits = "0123456789abcdef";
 const char* gUpperDigits = "0123456789ABCDEF";
 
-const char *__lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
+const char *__lltoa(int64_t val, int radix, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
 {
     char *p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
     char *p = &pString[maxLength - 1];
@@ -29,7 +29,7 @@ const char *__lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, cha
     pString[maxLength - 1] = '\0';
     do {
         p--;
-        __Int64_DivMod(absval, base, &q, &r);
+        __Int64_DivMod(absval, radix, &q, &r);
         *p = digits[r];
         absval = q;
     } while (absval && p >= p0);
@@ -54,7 +54,7 @@ const char *__lltoa(int64_t val, int base, bool isUppercase, int fieldWidth, cha
     return __max(p, p0);
 }
 
-const char *__ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
+const char *__ulltoa(uint64_t val, int radix, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
 {
     char *p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
     char *p = &pString[maxLength - 1];
@@ -64,7 +64,7 @@ const char *__ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, c
     pString[maxLength - 1] = '\0';
     do {
         p--;
-        __Int64_DivMod(val, base, &q, &r);
+        __Int64_DivMod(val, radix, &q, &r);
         *p = digits[r];
         val = q;
     } while (val && p >= p0);
@@ -77,4 +77,41 @@ const char *__ulltoa(uint64_t val, int base, bool isUppercase, int fieldWidth, c
     }
     
     return __max(p, p0);
+}
+
+char *itoa(int val, char *buf, int radix)
+{
+    if (radix != 8 && radix != 10 && radix != 16 || buf == NULL) {
+        return NULL;
+    }
+
+    char t[12];
+    const char* p = __lltoa(val, radix, 0, 11, 0, t, sizeof(t));
+    while (*p != '\0') { *buf++ = *p++; }
+    *buf = '\0';
+}
+
+char *ltoa(long val, char *buf, int radix)
+{
+    if (radix != 8 && radix != 10 && radix != 16 || buf == NULL) {
+        return NULL;
+    }
+
+    char t[12];
+    const char* p = __lltoa(val, radix, 0, 11, 0, t, sizeof(t));
+
+    while (*p != '\0') { *buf++ = *p++; }
+    *buf = '\0';
+}
+
+char *lltoa(long long val, char *buf, int radix)
+{
+    if (radix != 8 && radix != 10 && radix != 16 || buf == NULL) {
+        return NULL;
+    }
+
+    char t[22];
+    const char* p = __lltoa(val, radix, 0, 21, 0, t, sizeof(t));
+    while (*p != '\0') { *buf++ = *p++; }
+    *buf = '\0';
 }

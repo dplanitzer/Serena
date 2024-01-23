@@ -258,15 +258,15 @@ static errno_t calc_dir_entry_format(InterpreterRef _Nonnull self, const char* _
 
     _getfileinfo(self->pathBuffer, &info);
 
-    sprintf(self->pathBuffer, "%ld", info.linkCount);
+    itoa(info.linkCount, self->pathBuffer, 10);
     fmt->linkCountWidth = __max(fmt->linkCountWidth, strlen(self->pathBuffer));
-    sprintf(self->pathBuffer, "%lu", info.uid);
+    itoa(info.uid, self->pathBuffer, 10);
     fmt->uidWidth = __max(fmt->uidWidth, strlen(self->pathBuffer));
-    sprintf(self->pathBuffer, "%lu", info.gid);
+    itoa(info.gid, self->pathBuffer, 10);
     fmt->gidWidth = __max(fmt->gidWidth, strlen(self->pathBuffer));
-    sprintf(self->pathBuffer, "%lld", info.size);
+    lltoa(info.size, self->pathBuffer, 10);
     fmt->sizeWidth = __max(fmt->sizeWidth, strlen(self->pathBuffer));
-    sprintf(self->pathBuffer, "%ld", info.inodeId);
+    itoa(info.inodeId, self->pathBuffer, 10);
     fmt->inodeIdWidth = __max(fmt->inodeIdWidth, strlen(self->pathBuffer));
 
     return 0;
@@ -326,7 +326,7 @@ static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
 
     //XXX not yet
     //iterate_dir(self, path, calc_dir_entry_format, &fmt);
-    //printf("%d, %d, %d, %d, %d", fmt.linkCountWidth, fmt.uidWidth, fmt.gidWidth, fmt.sizeWidth, fmt.inodeIdWidth);
+    //printf("%d, %d, %d, %d, %d\n", fmt.linkCountWidth, fmt.uidWidth, fmt.gidWidth, fmt.sizeWidth, fmt.inodeIdWidth);
     iterate_dir(self, path, print_dir_entry, &fmt);
 }
 
