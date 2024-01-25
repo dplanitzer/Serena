@@ -268,7 +268,7 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 // \param pMemDesc the initial memory region to manage
 // \param pOutAllocator receives the allocator reference
 // \return an error or EOK
-errno_t Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+errno_t __Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
     decl_try_err();
 
@@ -293,7 +293,7 @@ catch:
 }
 
 // Adds the given memory region to the allocator's available memory pool.
-errno_t Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
+errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
 {
     MemRegion* pMemRegion;
     decl_try_err();
@@ -319,7 +319,7 @@ static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _
     return NULL;
 }
 
-bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+bool __Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
@@ -331,7 +331,7 @@ bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
     return r;
 }
 
-errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes, void* _Nullable * _Nonnull pOutPtr)
+errno_t __Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes, void* _Nullable * _Nonnull pOutPtr)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
@@ -381,7 +381,7 @@ catch:
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+errno_t __Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         return 0;
@@ -431,7 +431,7 @@ errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nulla
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
+size_t __Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
 {
     MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
 
@@ -439,7 +439,7 @@ size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull p
 }
 
 #ifdef ALLOCATOR_DEBUG
-void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
+void __Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 {
     puts("Free:");
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
@@ -472,7 +472,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
     puts("");
 }
 
-void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
+void __Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
 {
     MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
 

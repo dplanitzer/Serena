@@ -32,7 +32,7 @@ void __malloc_init(void)
     try_bang(__alloc_address_space(INITIAL_HEAP_SIZE, &ptr));
     md.lower = ptr;
     md.upper = ((char*)ptr) + INITIAL_HEAP_SIZE;
-    try_bang(Allocator_Create(&md, &__gAllocator));
+    try_bang(__Allocator_Create(&md, &__gAllocator));
 }
 
 static errno_t __malloc_expand_backingstore_by(size_t nbytes)
@@ -45,7 +45,7 @@ static errno_t __malloc_expand_backingstore_by(size_t nbytes)
         md.lower = ptr;
         md.upper = ((char*)ptr) + nbytes;
 
-        err = Allocator_AddMemoryRegion(__gAllocator, &md);
+        err = __Allocator_AddMemoryRegion(__gAllocator, &md);
     }
     return err;
 }
@@ -54,7 +54,7 @@ void *malloc(size_t size)
 {
     // XXX add locking
     void* ptr = NULL;
-    errno_t err = Allocator_AllocateBytes(__gAllocator, size, &ptr);
+    errno_t err = __Allocator_AllocateBytes(__gAllocator, size, &ptr);
 
     if (err == ENOMEM) {
         const size_t ceiledSize = __Ceil_PowerOf2(size, CPU_PAGE_SIZE);
@@ -62,7 +62,7 @@ void *malloc(size_t size)
 
         err = __malloc_expand_backingstore_by(__min(ceiledSize, minExpansionSize));
         if (err == 0) {
-            err = Allocator_AllocateBytes(__gAllocator, size, &ptr);
+            err = __Allocator_AllocateBytes(__gAllocator, size, &ptr);
         }
     }
 
@@ -76,7 +76,7 @@ void *malloc(size_t size)
 void free(void *ptr)
 {
     // XXX add locking
-    Allocator_DeallocateBytes(__gAllocator, ptr);
+    __Allocator_DeallocateBytes(__gAllocator, ptr);
 }
 
 void *calloc(size_t num, size_t size)
@@ -92,7 +92,7 @@ void *calloc(size_t num, size_t size)
 
 void *realloc(void *ptr, size_t new_size)
 {
-    const size_t old_size = (ptr) ? Allocator_GetBlockSize(__gAllocator, ptr) : 0;
+    const size_t old_size = (ptr) ? __Allocator_GetBlockSize(__gAllocator, ptr) : 0;
     
     if (old_size == new_size) {
         return ptr;
@@ -111,6 +111,6 @@ void *realloc(void *ptr, size_t new_size)
 void malloc_dump(void)
 {
 #ifdef ALLOCATOR_DEBUG
-    Allocator_Dump(__gAllocator);
+    __Allocator_Dump(__gAllocator);
 #endif
 }

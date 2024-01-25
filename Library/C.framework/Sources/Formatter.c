@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 
-errno_t Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext)
+errno_t __Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext)
 {
     self->sink = pSinkFunc;
     self->context = pContext;
@@ -22,7 +22,7 @@ errno_t Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull p
     return 0;
 }
 
-void Formatter_Deinit(FormatterRef _Nullable self)
+void __Formatter_Deinit(FormatterRef _Nullable self)
 {
     self->sink = NULL;
     self->context = NULL;
@@ -399,30 +399,20 @@ static void Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int radi
 
 static void Formatter_FormatPointer(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    uint64_t v64;
-    uint32_t v32;
-    bool is32bit;
-    char * pCanonDigits;
+    ConversionSpec spec2 = *spec;
+    spec2.flags.isAlternativeForm = true;
+    spec2.flags.padWithZeros = true;
 
 #if __VOID_PTR_WIDTH == 32
-    v32 = (uint32_t)va_arg(*ap, void*);
-    is32bit = true;
+    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, self->digits);
+    spec2.precision = 8;
 #elif __VOID_PTR_WIDTH == 64
-    v64 = (uint64_t)va_arg(*ap, void*);
-    is32bit = false;
+    char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, self->digits);
+    spec2.precision = 16;
 #else
 #error "unknown __VOID_PTR_WIDTH"
 #endif
 
-    if (is32bit) {
-        pCanonDigits = __ui32toa(v32, 16, false, self->digits);
-    } else {
-        pCanonDigits = __ui64toa(v64, 16, false, self->digits);
-    }
-
-    ConversionSpec spec2 = *spec;
-    spec2.flags.isAlternativeForm = true;
-    spec2.flags.padWithZeros = true;
     Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits);
 }
 
@@ -470,7 +460,7 @@ static void Formatter_FormatArgument(FormatterRef _Nonnull self, char conversion
     }
 }
 
-errno_t Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap)
+errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap)
 {
     ConversionSpec spec;
     errno_t err = 0;
@@ -490,12 +480,12 @@ errno_t Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull forma
     return Formatter_Flush(self);
 }
 
-errno_t Formatter_Format(FormatterRef _Nonnull self, const char* _Nonnull format, ...)
+errno_t __Formatter_Format(FormatterRef _Nonnull self, const char* _Nonnull format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    const errno_t r = Formatter_vFormat(self, format, ap);
+    const errno_t r = __Formatter_vFormat(self, format, ap);
     va_end(ap);
     return r;
 }
