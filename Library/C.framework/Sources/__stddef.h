@@ -78,8 +78,8 @@ extern char *__strcat(char *dst, const char *src);
 #define DIGIT_BUFFER_CAPACITY 24
 
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-extern char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits);
-extern char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits);
+extern char* _Nonnull __i32toa(int32_t val, int radix, bool isUppercase, char* _Nonnull digits);
+extern char* _Nonnull __i64toa(int64_t val, int radix, bool isUppercase, char* _Nonnull digits);
 
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
 // 'radix' must be 8, 10 or 16

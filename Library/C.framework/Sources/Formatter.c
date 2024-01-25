@@ -11,15 +11,13 @@
 #include <stdlib.h>
 
 
-errno_t __Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext)
+void __Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext)
 {
     self->sink = pSinkFunc;
     self->context = pContext;
     self->charactersWritten = 0;
-    self->bufferCapacity = FORMATTER_BUFFER_CAPACITY - 1;   // reserve the last character for the '\0' (end of string marker)
+    self->bufferCapacity = FORMATTER_BUFFER_CAPACITY;
     self->bufferCount = 0;
-
-    return 0;
 }
 
 void __Formatter_Deinit(FormatterRef _Nullable self)
@@ -363,9 +361,9 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
     }
 
     if (is32bit) {
-        pCanonDigits = __i32toa(v32, self->digits);
+        pCanonDigits = __i32toa(v32, 10, false, self->digits);
     } else {
-        pCanonDigits = __i64toa(v64, self->digits);
+        pCanonDigits = __i64toa(v64, 10, false, self->digits);
     }
 
     return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
@@ -502,14 +500,4 @@ errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull for
 
 catch:
     return err;
-}
-
-errno_t __Formatter_Format(FormatterRef _Nonnull self, const char* _Nonnull format, ...)
-{
-    va_list ap;
-    
-    va_start(ap, format);
-    const errno_t r = __Formatter_vFormat(self, format, ap);
-    va_end(ap);
-    return r;
 }

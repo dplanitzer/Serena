@@ -8,7 +8,6 @@
 
 #include <stdlib.h>
 #include <__stddef.h>
-#include "printf.h"
 
 static char* _Nonnull copy_constant(char* _Nonnull digits, const char* cst)
 {
@@ -23,9 +22,13 @@ static char* _Nonnull copy_constant(char* _Nonnull digits, const char* cst)
     return digits;
 }
 
+static const char* gLowerDigits = "0123456789abcdef";
+static const char* gUpperDigits = "0123456789ABCDEF";
+
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
+char* _Nonnull __i32toa(int32_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
+    const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
     char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
     char sign;
     int i = 1;
@@ -49,8 +52,8 @@ char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
 
     *p-- = '\0';
     do {
-        *p-- = '0' + (val % 10);
-        val /= 10;
+        *p-- = ds[val % radix];
+        val /= radix;
         i++;
     } while (val != 0);
 
@@ -61,8 +64,9 @@ char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
 }
 
 // 'digits' must be at least DIGIT_BUFFER_CAPACITY bytes big
-char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
+char* _Nonnull __i64toa(int64_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
+    const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
     char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
     char sign;
     int64_t q, r;
@@ -80,8 +84,8 @@ char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
 
     *p-- = '\0';
     do {
-        __Int64_DivMod(val, 10, &q, &r);
-        *p-- = '0' + r;
+        __Int64_DivMod(val, radix, &q, &r);
+        *p-- = ds[r];
         val = q;
         i++;
     } while (val != 0);
@@ -91,10 +95,6 @@ char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
 
     return p;
 }
-
-
-static const char* gLowerDigits = "0123456789abcdef";
-static const char* gUpperDigits = "0123456789ABCDEF";
 
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
 // 'radix' must be 8, 10 or 16
@@ -140,71 +140,13 @@ char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnu
     return p;
 }
 
-/// @brief /////////////////////////////////////////////////////////////////////
-
-const char *__lltoa(int64_t val, int radix, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
+static char* _Nonnull copy_out(char* _Nonnull buf, const char* _Nonnull pCanonDigits)
 {
-    char *p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
-    char *p = &pString[maxLength - 1];
-    const char* digits = (isUppercase) ? gUpperDigits : gLowerDigits;
-    int64_t absval = (val < 0) ? -val : val;
-    int64_t q, r;
-    
-    if (val < 0) {
-        p0--;
-    }
-    
-    pString[maxLength - 1] = '\0';
-    do {
-        p--;
-        __Int64_DivMod(absval, radix, &q, &r);
-        *p = digits[r];
-        absval = q;
-    } while (absval && p >= p0);
-    
-    if (val < 0) {
-        p--;
-        *p = '-';
-        // Convert a zero padding char to a space 'cause zero padding doesn't make
-        // sense if the number is negative.
-        if (paddingChar == '0') {
-            paddingChar = ' ';
-        }
-    }
-    
-    if (paddingChar != '\0') {
-        while (p > p0) {
-            p--;
-            *p = paddingChar;
-        }
-    }
-    
-    return __max(p, p0);
-}
+    const char* p = (pCanonDigits[1] == '+') ? &pCanonDigits[2] : &pCanonDigits[1];
 
-const char *__ulltoa(uint64_t val, int radix, bool isUppercase, int fieldWidth, char paddingChar, char *pString, size_t maxLength)
-{
-    char *p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
-    char *p = &pString[maxLength - 1];
-    const char* digits = (isUppercase) ? gUpperDigits : gLowerDigits;
-    int64_t q, r;
-    
-    pString[maxLength - 1] = '\0';
-    do {
-        p--;
-        __Int64_DivMod(val, radix, &q, &r);
-        *p = digits[r];
-        val = q;
-    } while (val && p >= p0);
-    
-    if (paddingChar != '\0') {
-        while (p > p0) {
-            p--;
-            *p = paddingChar;
-        }
-    }
-    
-    return __max(p, p0);
+    while (*p != '\0') { *buf++ = *p++; }
+    *buf = '\0';
+    return buf;
 }
 
 char *itoa(int val, char *buf, int radix)
@@ -213,10 +155,8 @@ char *itoa(int val, char *buf, int radix)
         return NULL;
     }
 
-    char t[12];
-    const char* p = __lltoa(val, radix, 0, 11, 0, t, sizeof(t));
-    while (*p != '\0') { *buf++ = *p++; }
-    *buf = '\0';
+    char t[DIGIT_BUFFER_CAPACITY];
+    return copy_out(buf, __i32toa((int32_t)val, radix, false, t));
 }
 
 char *ltoa(long val, char *buf, int radix)
@@ -225,11 +165,8 @@ char *ltoa(long val, char *buf, int radix)
         return NULL;
     }
 
-    char t[12];
-    const char* p = __lltoa(val, radix, 0, 11, 0, t, sizeof(t));
-
-    while (*p != '\0') { *buf++ = *p++; }
-    *buf = '\0';
+    char t[DIGIT_BUFFER_CAPACITY];
+    return copy_out(buf, __i32toa((int32_t)val, radix, false, t));
 }
 
 char *lltoa(long long val, char *buf, int radix)
@@ -238,8 +175,6 @@ char *lltoa(long long val, char *buf, int radix)
         return NULL;
     }
 
-    char t[22];
-    const char* p = __lltoa(val, radix, 0, 21, 0, t, sizeof(t));
-    while (*p != '\0') { *buf++ = *p++; }
-    *buf = '\0';
+    char t[DIGIT_BUFFER_CAPACITY];
+    return copy_out(buf, __i64toa((int64_t)val, radix, false, t));
 }

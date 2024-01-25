@@ -59,10 +59,9 @@ typedef struct Formatter {
 } Formatter;
 
 
-extern errno_t __Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext);
+extern void __Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext);
 extern void __Formatter_Deinit(FormatterRef _Nullable self);
 
-extern errno_t __Formatter_Format(FormatterRef _Nonnull self, const char* _Nonnull format, ...);
 extern errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
 
 #endif  /* Formatter_h */
