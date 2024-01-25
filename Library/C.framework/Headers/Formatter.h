@@ -29,7 +29,6 @@ typedef errno_t (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const char * _
 #define LENGTH_MODIFIER_z       6
 #define LENGTH_MODIFIER_t       7
 #define LENGTH_MODIFIER_L       8
-#define LENGTH_MODIFIER_COUNT   9
 
 // <https://en.cppreference.com/w/c/io/fprintf>
 typedef struct ConversionSpec {
@@ -47,9 +46,6 @@ typedef struct ConversionSpec {
 } ConversionSpec;
 
 
-// Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 22 (octal 64bit) + 1 + 1 = 25 bytes
-// A digit string is generated in a canonical representation: string length, sign, digits ..., NUL
-#define FORMATTER_DIGIT_BUFFER_CAPACITY 24
 #define FORMATTER_BUFFER_CAPACITY 64
 
 typedef struct Formatter {
@@ -59,7 +55,7 @@ typedef struct Formatter {
     size_t                      bufferCount;
     size_t                      bufferCapacity;
     char                        buffer[FORMATTER_BUFFER_CAPACITY];
-    char                        digits[FORMATTER_DIGIT_BUFFER_CAPACITY];
+    char                        digits[DIGIT_BUFFER_CAPACITY];
 } Formatter;
 
 
