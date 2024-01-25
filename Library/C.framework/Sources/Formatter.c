@@ -327,43 +327,41 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
 {
     int64_t v64;
     int32_t v32;
-    bool is32bit;
+    int nbits;
     char * pCanonDigits;
 
     switch (spec->lengthModifier) {
-        case LENGTH_MODIFIER_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); is32bit = true;   break;
-        case LENGTH_MODIFIER_h:     v32 = (int32_t)(short)va_arg(*ap, int); is32bit = true;         break;
-        case LENGTH_MODIFIER_none:  v32 = (int32_t)va_arg(*ap, int); is32bit = true;                break;
-        case LENGTH_MODIFIER_l:     v32 = (int32_t)va_arg(*ap, long); is32bit = true;               break;
-        case LENGTH_MODIFIER_ll:    v64 = (int64_t)va_arg(*ap, long long); is32bit = false;         break;
-#if INTMAX_WIDTH == 32
-        case LENGTH_MODIFIER_j:     v32 = (int32_t)va_arg(*ap, intmax_t); is32bit = true;   break;
-#elif INTMAX_WIDTH == 64
-        case LENGTH_MODIFIER_j:     v64 = (int64_t)va_arg(*ap, intmax_t); is32bit = false;  break;
+        case LENGTH_MODIFIER_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
+        case LENGTH_MODIFIER_h:     v32 = (int32_t)(short)va_arg(*ap, int); nbits = INT32_WIDTH;         break;
+        case LENGTH_MODIFIER_none:  v32 = (int32_t)va_arg(*ap, int); nbits = INT32_WIDTH;                break;
+#if __LONG_WIDTH == 64
+        case LENGTH_MODIFIER_l:     v64 = (int64_t)va_arg(*ap, long); nbits = INT64_WIDTH;               break;
 #else
-#error "unknown INTMAX_WIDTH"
+        case LENGTH_MODIFIER_l:     v32 = (int32_t)va_arg(*ap, long); nbits = INT32_WIDTH;               break;
 #endif
-#if __SSIZE_WIDTH == 32
-        case LENGTH_MODIFIER_z:     v32 = (int32_t)va_arg(*ap, ssize_t); is32bit = true;    break;
-#elif __SIZE_WIDTH == 64
-        case LENGTH_MODIFIER_z:     v64 = (int64_t)va_arg(*ap, ssize_t); is32bit = false;   break;
+        case LENGTH_MODIFIER_ll:    v64 = (int64_t)va_arg(*ap, long long); nbits = INT64_WIDTH;          break;
+#if INTMAX_WIDTH == 64
+        case LENGTH_MODIFIER_j:     v64 = (int64_t)va_arg(*ap, intmax_t); nbits = INTMAX_WIDTH; break;
 #else
-#error "unknown __SIZE_WIDTH"
+        case LENGTH_MODIFIER_j:     v32 = (int32_t)va_arg(*ap, intmax_t); nbits = INTMAX_WIDTH; break;
 #endif
-#if __PTRDIFF_WIDTH == 32
-        case LENGTH_MODIFIER_t:     v32 = (int32_t)va_arg(*ap, ptrdiff_t); is32bit = true; break;
-#elif __PTRDIFF_WIDTH == 64
-        case LENGTH_MODIFIER_t:     v64 = (int64_t)va_arg(*ap, ptrdiff_t); is32bit = false; break;
+#if __SIZE_WIDTH == 64
+        case LENGTH_MODIFIER_z:     v64 = (int64_t)va_arg(*ap, ssize_t); nbits = __SSIZE_WIDTH; break;
 #else
-#error "unknown __PTRDIFF_WIDTH"
+        case LENGTH_MODIFIER_z:     v32 = (int32_t)va_arg(*ap, ssize_t); nbits = __SSIZE_WIDTH; break;
 #endif
-        case LENGTH_MODIFIER_L:     v64 = (int64_t)va_arg(*ap, long long); is32bit = false; break;
+#if __PTRDIFF_WIDTH == 64
+        case LENGTH_MODIFIER_t:     v64 = (int64_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH; break;
+#else
+        case LENGTH_MODIFIER_t:     v32 = (int32_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH; break;
+#endif
+        case LENGTH_MODIFIER_L:     v64 = (int64_t)va_arg(*ap, long long); nbits = INT64_WIDTH; break;
     }
 
-    if (is32bit) {
-        pCanonDigits = __i32toa(v32, 10, false, self->digits);
-    } else {
+    if (nbits == 64) {
         pCanonDigits = __i64toa(v64, 10, false, self->digits);
+    } else {
+        pCanonDigits = __i32toa(v32, 10, false, self->digits);
     }
 
     return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
@@ -373,43 +371,41 @@ static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int r
 {
     uint64_t v64;
     uint32_t v32;
-    bool is32bit;
+    int nbits;
     char * pCanonDigits;
 
     switch (spec->lengthModifier) {
-        case LENGTH_MODIFIER_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); is32bit = true;   break;
-        case LENGTH_MODIFIER_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); is32bit = true;  break;
-        case LENGTH_MODIFIER_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); is32bit = true;                  break;
-        case LENGTH_MODIFIER_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); is32bit = true;                 break;
-        case LENGTH_MODIFIER_ll:    v64 = (uint64_t)va_arg(*ap, unsigned long long); is32bit = false;           break;
-#if INTMAX_WIDTH == 32
-        case LENGTH_MODIFIER_j:     v32 = (uint32_t)va_arg(*ap, uintmax_t); is32bit = true;     break;
-#elif INTMAX_WIDTH == 64
-        case LENGTH_MODIFIER_j:     v64 = (uint64_t)va_arg(*ap, uintmax_t); is32bit = false;    break;
+        case LENGTH_MODIFIER_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
+        case LENGTH_MODIFIER_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
+        case LENGTH_MODIFIER_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
+#if __ULONG_WIDTH == 64
+        case LENGTH_MODIFIER_l:     v64 = (uint64_t)va_arg(*ap, unsigned long); nbits = UINT64_WIDTH;                   break;
 #else
-#error "unknown INTMAX_WIDTH"
+        case LENGTH_MODIFIER_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
 #endif
-#if __SSIZE_WIDTH == 32
-        case LENGTH_MODIFIER_z:     v32 = (uint32_t)va_arg(*ap, size_t); is32bit = true;    break;
-#elif __SIZE_WIDTH == 64
-        case LENGTH_MODIFIER_z:     v64 = (uint64_t)va_arg(*ap, size_t); is32bit = false;   break;
+        case LENGTH_MODIFIER_ll:    v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;              break;
+#if UINTMAX_WIDTH == 64
+        case LENGTH_MODIFIER_j:     v64 = (uint64_t)va_arg(*ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
 #else
-#error "unknown __SIZE_WIDTH"
+        case LENGTH_MODIFIER_j:     v32 = (uint32_t)va_arg(*ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
 #endif
-#if __PTRDIFF_WIDTH == 32
-        case LENGTH_MODIFIER_t:     v32 = (uint32_t)va_arg(*ap, ptrdiff_t); is32bit = true;     break;
-#elif __PTRDIFF_WIDTH == 64
-        case LENGTH_MODIFIER_t:     v64 = (uint64_t)va_arg(*ap, ptrdiff_t); is32bit = false;    break;
+#if __SIZE_WIDTH == 64
+        case LENGTH_MODIFIER_z:     v64 = (uint64_t)va_arg(*ap, size_t); nbits = __SIZE_WIDTH;  break;
 #else
-#error "unknown __PTRDIFF_WIDTH"
+        case LENGTH_MODIFIER_z:     v32 = (uint32_t)va_arg(*ap, size_t); nbits = __SIZE_WIDTH;  break;
 #endif
-        case LENGTH_MODIFIER_L:     v64 = (uint64_t)va_arg(*ap, unsigned long long); is32bit = false;   break;
+#if __PTRDIFF_WIDTH == 64
+        case LENGTH_MODIFIER_t:     v64 = (uint64_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH;    break;
+#else
+        case LENGTH_MODIFIER_t:     v32 = (uint32_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH;    break;
+#endif
+        case LENGTH_MODIFIER_L:     v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;  break;
     }
 
-    if (is32bit) {
-        pCanonDigits = __ui32toa(v32, radix, isUppercase, self->digits);
-    } else {
+    if (nbits == 64) {
         pCanonDigits = __ui64toa(v64, radix, isUppercase, self->digits);
+    } else {
+        pCanonDigits = __ui32toa(v32, radix, isUppercase, self->digits);
     }
 
     return Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits);
@@ -421,14 +417,12 @@ static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const Convers
     spec2.flags.isAlternativeForm = true;
     spec2.flags.padWithZeros = true;
 
-#if __VOID_PTR_WIDTH == 32
-    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, self->digits);
-    spec2.precision = 8;
-#elif __VOID_PTR_WIDTH == 64
+#if __VOID_PTR_WIDTH == 64
     char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, self->digits);
     spec2.precision = 16;
 #else
-#error "unknown __VOID_PTR_WIDTH"
+    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, self->digits);
+    spec2.precision = 8;
 #endif
 
     return Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits);
