@@ -60,7 +60,7 @@ static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, lo
     int i = 0;
 
     for (;;) {
-        const char ch = *str++;
+        const char ch = str[i];
         unsigned long long digit;
 
         if (ch >= '0' && ch <= upper_num) {
@@ -73,6 +73,7 @@ static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, lo
 
         const unsigned long long new_val = (val * llbase) + digit;
         if (new_val < val || new_val > upper_bound || i > max_digits) {
+            if (str_end) *str_end = (char*)&str[i + 1];
             *result = (is_neg) ? min_val : max_val;
             return ERANGE;
         }
@@ -81,10 +82,7 @@ static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, lo
         i++;
     }
 
-    if (str_end) {
-        *str_end = (char*)str;
-    }
-
+    if (str_end) *str_end = (char*)&str[i];
     *result = (is_neg) ? -((long long)val) : (long long)val;
     return 0;
 }

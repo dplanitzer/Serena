@@ -14,6 +14,7 @@
 #define __abs(x) (((x) < 0) ? -(x) : (x))
 #define __min(x, y) (((x) < (y) ? (x) : (y)))
 #define __max(x, y) (((x) > (y) ? (x) : (y)))
+#define __clamped(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
 
 #define __Ceil_PowerOf2(x, mask)   (((x) + (mask-1)) & ~(mask-1))
 #define __Floor_PowerOf2(x, mask) ((x) & ~(mask-1))

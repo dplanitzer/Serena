@@ -102,14 +102,14 @@ typedef short               Int16;
 typedef long                Int32;
 typedef long long           Int64;
 
-#define INT8_MIN    -128
-#define INT8_MAX     127
-#define INT16_MIN   -32768
-#define INT16_MAX    32767
-#define INT32_MIN   -2147483648l
-#define INT32_MAX    2147483647l
-#define INT64_MIN   -9223372036854775808ll
-#define INT64_MAX    9223372036854775807ll;
+#define INT8_MIN    0x80
+#define INT8_MAX    0x7f
+#define INT16_MIN   0x8000
+#define INT16_MAX   0x7fff
+#define INT32_MIN   0x80000000l
+#define INT32_MAX   0x7fffffffl
+#define INT64_MIN   0x8000000000000000ll
+#define INT64_MAX   0x7fffffffffffffffll
 
 
 // Unsigned integer types

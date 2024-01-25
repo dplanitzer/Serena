@@ -16,23 +16,23 @@
 __CPP_BEGIN
 
 #define CHAR_BIT 8
-#define CHAR_MIN -128
-#define CHAR_MAX 127
+#define CHAR_MIN 0x80
+#define CHAR_MAX 0x7f
 
-#define SCHAR_MIN -128
-#define SCHAR_MAX 127
+#define SCHAR_MIN 0x80
+#define SCHAR_MAX 0x7f
 
-#define SHRT_MIN -32768
-#define SHRT_MAX 32767
+#define SHRT_MIN 0x8000
+#define SHRT_MAX 0x7fff
 
 #define INT_MIN __INT_MIN
 #define INT_MAX __INT_MAX
 
-#define LONG_MIN -2147483648l
-#define LONG_MAX 2147483647l
+#define LONG_MIN 0x80000000l
+#define LONG_MAX 0x7fffffffl
 
-#define LLONG_MIN -9223372036854775808ll
-#define LLONG_MAX 9223372036854775807ll
+#define LLONG_MIN 0x8000000000000000ll
+#define LLONG_MAX 0x7fffffffffffffffll
 
 #define UCHAR_MAX 255
 #define USHRT_MAX 65535
