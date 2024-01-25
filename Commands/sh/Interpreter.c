@@ -295,7 +295,7 @@ static errno_t print_dir_entry(InterpreterRef _Nonnull self, const char* _Nonnul
     file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_Other), &tp[7]);
     tp[10] = '\0';
 
-    printf("%s %*ld %*lu %*lu  %*lld %*ld %s\n",
+    printf("%s %*ld  %*lu %*lu  %*lld %*ld %s\n",
         tp,
         fmt->linkCountWidth, info.linkCount,
         fmt->uidWidth, info.uid,

@@ -53,7 +53,7 @@ The following user space services are available at this time:
 
 The following user space programs are available at this time:
 
-* A simple shell with command history support
+* A simple [interactive shell](Commands/sh/README.md) with command line editing and history support
 
 The level of completeness and correctness of the various modules varies quite a bit at this time. Things are generically planned to improve over time :)
 
