@@ -295,7 +295,14 @@ static errno_t print_dir_entry(InterpreterRef _Nonnull self, const char* _Nonnul
     file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_Other), &tp[7]);
     tp[10] = '\0';
 
-    printf("%s %ld %lu %lu  %lld %ld %s\n", tp, info.linkCount, info.uid, info.gid, info.size, info.inodeId, pEntry->name);
+    printf("%s %*ld %*lu %*lu  %*lld %*ld %s\n",
+        tp,
+        fmt->linkCountWidth, info.linkCount,
+        fmt->uidWidth, info.uid,
+        fmt->gidWidth, info.gid,
+        fmt->sizeWidth, info.size,
+        fmt->inodeIdWidth, info.inodeId,
+        pEntry->name);
     return 0;
 }
 
@@ -324,9 +331,7 @@ static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
     char* path = Interpreter_GetArgumentAt(self, pArgs, 0, ".");
     struct DirectoryEntryFormat fmt = {0};
 
-    //XXX not yet
-    //iterate_dir(self, path, calc_dir_entry_format, &fmt);
-    //printf("%d, %d, %d, %d, %d\n", fmt.linkCountWidth, fmt.uidWidth, fmt.gidWidth, fmt.sizeWidth, fmt.inodeIdWidth);
+    iterate_dir(self, path, calc_dir_entry_format, &fmt);
     iterate_dir(self, path, print_dir_entry, &fmt);
 }
 
