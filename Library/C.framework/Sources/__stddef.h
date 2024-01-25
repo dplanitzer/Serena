@@ -55,7 +55,7 @@ extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char*
 #define throw_ifnull(p, e)  if ((p) == NULL) { err = e; goto catch; }
 
 // Set 'err' to the given error and go to the 'catch' label.
-#define throw(e)            err = e; goto catch;
+#define throw(e)            { err = e; goto catch; }
 
 
 extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
