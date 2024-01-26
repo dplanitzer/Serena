@@ -70,8 +70,9 @@ void RamFS_deinit(RamFSRef _Nonnull self)
 static ErrorCode RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self)
 {
     decl_try_err();
-    const FilePermissions scopePerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    const FilePermissions dirPerms = FilePermissions_Make(scopePerms, scopePerms, scopePerms);
+    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
+    const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
     try(RamFS_CreateDirectoryDiskNode(self, 0, self->rootDirUser.uid, self->rootDirUser.gid, dirPerms, &self->rootDirId));
     return EOK;
