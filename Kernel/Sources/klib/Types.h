@@ -104,12 +104,16 @@ typedef long long           Int64;
 
 #define INT8_MIN    0x80
 #define INT8_MAX    0x7f
+#define INT8_WIDTH  8
 #define INT16_MIN   0x8000
 #define INT16_MAX   0x7fff
+#define INT16_WIDTH 16
 #define INT32_MIN   0x80000000l
 #define INT32_MAX   0x7fffffffl
+#define INT32_WIDTH 32
 #define INT64_MIN   0x8000000000000000ll
 #define INT64_MAX   0x7fffffffffffffffll
+#define INT64_WIDTH 64
 
 
 // Unsigned integer types
@@ -118,14 +122,18 @@ typedef unsigned short      UInt16;
 typedef unsigned long       UInt32;
 typedef unsigned long long  UInt64;
 
-#define UINT8_MIN   0u
-#define UINT8_MAX   255u
-#define UINT16_MIN  0u
-#define UINT16_MAX  65535u
-#define UINT32_MIN  0ul
-#define UINT32_MAX  4294967295ul
-#define UINT64_MIN  0ull
-#define UINT64_MAX  18446744073709551615ull;
+#define UINT8_MIN       0u
+#define UINT8_MAX       255u
+#define UINT8_WIDTH     8
+#define UINT16_MIN      0u
+#define UINT16_MAX      65535u
+#define UINT16_WIDTH    16
+#define UINT32_MIN      0ul
+#define UINT32_MAX      4294967295ul
+#define UINT32_WIDTH    32
+#define UINT64_MIN      0ull
+#define UINT64_MAX      18446744073709551615ull;
+#define UINT64_WIDTH    64
 
 
 // Integer types which represent the natural word size of the processor.
@@ -219,13 +227,25 @@ extern Int Int_NextPowerOf2(Int n);
 extern UInt UInt_NextPowerOf2(UInt n);
 
 
+// Int32
+// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
+extern const Character* _Nonnull Int32_ToString(Int32 val, Int radix, Bool isUppercase, Character* _Nonnull pBuffer);
+
+
+// UInt32
+// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
+extern const Character* _Nonnull UInt32_ToString(UInt32 val, Int base, Bool isUppercase, Character* _Nonnull pBuffer);
+
+
 // Int64
-extern const Character* _Nonnull Int64_ToString(Int64 val, Int base, Int fieldWidth, Character paddingChar, Character* _Nonnull pString, Int maxLength);
+// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
+extern const Character* _Nonnull Int64_ToString(Int64 val, Int radix, Bool isUppercase, Character* _Nonnull pBuffer);
 extern Int Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64* _Nullable remainder);
 
 
 // UInt64
-extern const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Int fieldWidth, Character paddingChar, Character* _Nonnull pString, Int maxLength);
+// 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
+extern const Character* _Nonnull UInt64_ToString(UInt64 val, Int base, Bool isUppercase, Character* _Nonnull pBuffer);
 
 
 // String
@@ -237,5 +257,21 @@ extern Character* _Nonnull String_CopyUpTo(Character* _Nonnull pDst, const Chara
 
 extern Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs);
 extern Bool String_EqualsUpTo(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count);
+
+
+// Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 22 (octal 64bit) + 1 + 1 = 25 bytes
+// A digit string is generated in a canonical representation: string length, sign, digits ..., NUL
+#define DIGIT_BUFFER_CAPACITY 24
+
+// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
+extern Character* _Nonnull __i32toa(Int32 val, Int radix, Bool isUppercase, Character* _Nonnull digits);
+extern Character* _Nonnull __i64toa(Int64 val, Int radix, Bool isUppercase, Character* _Nonnull digits);
+
+// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
+// 'radix' must be 8, 10 or 16
+extern Character* _Nonnull __ui32toa(UInt32 val, Int radix, Bool isUppercase, Character* _Nonnull digits);
+extern Character* _Nonnull __ui64toa(UInt64 val, Int radix, Bool isUppercase, Character* _Nonnull digits);
+
+extern Int atoi(const Character *str, Character **str_end, Int base);
 
 #endif /* Types_h */

@@ -193,18 +193,18 @@ static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
                     break;
 
                 case 6: { // Request cursor position
-                    Character numbuf[11];
+                    Character numbuf[DIGIT_BUFFER_CAPACITY];
                     Character buf[MAX_MESSAGE_LENGTH + 1];
                     Character* ptr = &buf[0];
                     *ptr++ = '\033';
                     *ptr++ = '[';
                     if (pConsole-> x > 0 || pConsole->y > 0) {
-                        const Character* lb = Int64_ToString(pConsole->y + 1, 10, 10, '\0', numbuf, 11);
+                        const Character* lb = Int32_ToString(pConsole->y + 1, 10, false, numbuf);
                         while (*lb != '\0') {
                             *ptr++ = *lb++;
                         }
                         *ptr++ = ';';
-                        const Character* cb = Int64_ToString(pConsole->x + 1, 10, 10, '\0', numbuf, 11);
+                        const Character* cb = Int32_ToString(pConsole->x + 1, 10, false, numbuf);
                         while (*cb != '\0') {
                             *ptr++ = *cb++;
                         }

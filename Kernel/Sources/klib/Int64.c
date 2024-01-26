@@ -17,47 +17,6 @@
 #include "Types.h"
 
 
-const Character* _Nonnull Int64_ToString(Int64 val, Int base, Int fieldWidth, Character paddingChar, Character* _Nonnull pString, Int maxLength)
-{
-    static const char* gDigit = "0123456789abcdef";
-    Character* p0 = &pString[__max(maxLength - fieldWidth - 1, 0)];
-    Character *p = &pString[maxLength - 1];
-    Int64 absval = (val < 0) ? -val : val;
-    Int64 q, r;
-    
-    if (val < 0) {
-        p0--;
-    }
-    
-    *p = '\0';
-    do {
-        p--;
-        Int64_DivMod(absval, base, &q, &r);
-        *p = (gDigit[r]);
-        absval = q;
-    } while (absval && p >= p0);
-    
-    if (val < 0) {
-        p--;
-        *p = '-';
-        // Convert a zero padding char to a space 'cause zero padding doesn't make
-        // sense if the number is negative.
-        if (paddingChar == '0') {
-            paddingChar = ' ';
-        }
-    }
-    
-    if (paddingChar != '\0') {
-        while (p > p0) {
-            p--;
-            *p = paddingChar;
-        }
-    }
-    
-    return __max(p, p0);
-}
-
-
 typedef union i64 {
     Int64 i;
     unsigned short s[4];

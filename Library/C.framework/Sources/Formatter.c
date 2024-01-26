@@ -53,7 +53,7 @@ catch:
     return err;
 }
 
-static errno_t Formatter_WriteString(FormatterRef _Nonnull self, const char *str, size_t maxChars)
+static errno_t Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str, size_t maxChars)
 {
     decl_try_err();
 

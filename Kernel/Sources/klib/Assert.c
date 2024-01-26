@@ -8,7 +8,10 @@
 
 #include "Assert.h"
 #include "Bytes.h"
+#include "Formatter.h"
 #include "Log.h"
+
+static ErrorCode fprintv_micro_console_sink(FormatterRef _Nonnull self, const Character* _Nonnull pBuffer, ByteCount nBytes);
 
 
 // This implements a micro console that directly controls the graphics hardware.
@@ -64,6 +67,7 @@ typedef struct _MicroConsole {
     Int                         rows;
     Int                         x;
     Int                         y;
+    Formatter                   fmt;
 } MicroConsole;
 
 
@@ -132,6 +136,7 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
     pCon->rows = pCon->config->height / GLYPH_HEIGHT;
     pCon->x = 0;
     pCon->y = 0;
+    Formatter_Init(&pCon->fmt, fprintv_micro_console_sink, pCon, (Character*)PRINT_BUFFER_ADDR, PRINT_BUFFER_CAPACITY);
 
     // Clear the screen
     micro_console_cls(pCon);
@@ -230,14 +235,15 @@ static void micro_console_write(MicroConsole* _Nonnull pCon, const Character* _N
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void fprintv_micro_console_sink(MicroConsole* _Nonnull pCon, const Character* _Nonnull pBuffer, ByteCount nBytes)
+static ErrorCode fprintv_micro_console_sink(FormatterRef _Nonnull self, const Character* _Nonnull pBuffer, ByteCount nBytes)
 {
-    micro_console_write(pCon, pBuffer, nBytes);
+    micro_console_write((MicroConsole*)self->context, pBuffer, nBytes);
+    return EOK;
 }
 
 void fprintv(MicroConsole* _Nonnull pCon, const Character* _Nonnull format, va_list ap)
 {
-    _printv((PrintSink_Func)fprintv_micro_console_sink, pCon, (Character*)PRINT_BUFFER_ADDR, PRINT_BUFFER_CAPACITY, format, ap);
+    Formatter_vFormat(&pCon->fmt, format, ap);
 }
 
 static void fprint(MicroConsole* _Nonnull pCon, const Character* _Nonnull format, ...)

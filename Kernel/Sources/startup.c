@@ -181,6 +181,7 @@ static void OnMain(void)
     ProcessRef pRootProc;
     try_bang(RootProcess_Create(&pRootProc));
 
+
     // Create the process manager
     try_bang(ProcessManager_Create(pRootProc, &gProcessManager));
 
