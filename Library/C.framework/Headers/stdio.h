@@ -92,6 +92,12 @@ extern int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap
 extern int asprintf(char **str_ptr, const char *format, ...);
 extern int vasprintf(char **str_ptr, const char *format, va_list ap);
 
+extern int scanf(const char *format, ...);
+extern int vscanf(const char *format, va_list ap);
+
+extern int sscanf(const char *buffer, const char *format, ...);
+extern int vsscanf(const char *buffer, const char *format, va_list ap);
+
 extern void perror(const char *str);
 
 extern int remove(const char* path);
