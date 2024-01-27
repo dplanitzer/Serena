@@ -94,6 +94,9 @@ extern int vasprintf(char **str_ptr, const char *format, va_list ap);
 
 extern void perror(const char *str);
 
+extern int remove(const char* path);
+extern int rename(const char* oldpath, const char* newpath);
+
 __CPP_END
 
 #endif /* _STDIO_H */

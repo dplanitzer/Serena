@@ -176,7 +176,7 @@ errno_t unlink(const char* path)
     return r;
 }
 
-errno_t rename(const char* oldpath, const char* newpath)
+errno_t sys_rename(const char* oldpath, const char* newpath)
 {
     errno_t r;
 

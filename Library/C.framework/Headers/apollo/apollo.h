@@ -71,7 +71,7 @@ extern errno_t ioctl(int fd, int cmd, ...);
 
 extern errno_t access(const char* path, int mode);
 extern errno_t unlink(const char* path);    // deletes files and (empty) directories
-extern errno_t rename(const char* oldpath, const char* newpath);
+extern errno_t sys_rename(const char* oldpath, const char* newpath);
 extern errno_t mkdir(const char* path, mode_t mode);
 
 

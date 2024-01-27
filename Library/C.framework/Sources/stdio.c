@@ -223,3 +223,31 @@ void perror(const char *str)
     puts(strerror(errno));
     putchar('\n');
 }
+
+int remove(const char* path)
+{
+    decl_try_err();
+
+    err = unlink(path);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    else {
+        return 0;
+    }
+}
+
+int rename(const char* oldpath, const char* newpath)
+{
+    decl_try_err();
+
+    err = sys_rename(oldpath, newpath);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    else {
+        return 0;
+    }
+}
