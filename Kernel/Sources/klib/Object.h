@@ -207,6 +207,9 @@ extern void _Object_Release(ObjectRef _Nullable self);
 #define Object_GetClass(__self)\
     ((Class*)(((ObjectRef)(__self))->clazz))
 
+#define Object_GetSuperclass(__self)\
+    Object_GetClass(__self)->super
+
 
 // Assigns the object reference 'pNewObject' to 'pOldObject' by retaining
 // 'pNewObject' and releasing 'pOldObject' in the correct order.
@@ -236,12 +239,20 @@ extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTarge
     _Object_InstanceOf((ObjectRef)__self, &k##__className##Class)
 
 
-// Invokes a dynamic method with the given arguments.
+// Invokes a dynamically dispatched method with the given arguments.
 #define Object_Invoke0(__methodName, __methodClassName, __self) \
     ((struct _##__methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self)
 
 #define Object_InvokeN(__methodName, __methodClassName, __self, ...) \
     ((struct _##__methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
+
+
+// Invokes a dynamically dispatched method with the given arguments on the superclass of the receiver.
+#define Object_Super0(__methodName, __methodClassName, __self) \
+    ((struct _##__methodClassName##MethodTable *)(Object_GetSuperclass(__self)->vtable))->__methodName(__self)
+
+#define Object_SuperN(__methodName, __methodClassName, __self, ...) \
+    ((struct _##__methodClassName##MethodTable *)(Object_GetSuperclass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
 
 
 // Scans the "__class" data section bounded by the '_class' and '_eclass' linker

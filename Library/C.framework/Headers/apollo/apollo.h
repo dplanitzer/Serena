@@ -65,6 +65,7 @@ extern errno_t truncate(const char *path, off_t length);
 extern errno_t ftruncate(int fd, off_t length);
 
 extern IOChannelType fgettype(int fd);
+extern int fgetmode(int fd);
 
 extern errno_t ioctl(int fd, int cmd, ...);
 

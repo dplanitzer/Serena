@@ -53,8 +53,14 @@ ByteCount IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _No
 
 ErrorCode IOChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
 {
-    return ENOTIOCTLCMD;
-}
+    switch (cmd) {
+        case kIOChannelCommand_GetMode:
+            *((Int*) va_arg(ap, Int*)) = self->mode;
+            return EOK;
+
+        default:
+            return ENOTIOCTLCMD;
+    }}
 
 ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
 {

@@ -22,7 +22,7 @@ ErrorCode ConsoleChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
             return EOK;
 
         default:
-            return ENOTIOCTLCMD;
+            return Object_SuperN(ioctl, IOChannel, self, cmd, ap);
     }
 }
 

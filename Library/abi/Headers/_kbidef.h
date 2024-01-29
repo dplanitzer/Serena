@@ -173,14 +173,14 @@ enum {
 
 // Returns the type of the channel
 // ioctl(Int fd, Int cmd, Int _Nonnull *pOutType)
-#define kIOChannelCommand_GetType    IOChannelCommand(1)
+#define kIOChannelCommand_GetType   IOChannelCommand(1)
 typedef enum {
     kIOChannelType_Terminal,
     kIOChannelType_File,
     kIOChannelType_Directory
 } IOChannelType;
 
-
+#define kIOChannelCommand_GetMode   IOChannelCommand(2)
 #define O_RDONLY    0x0001
 #define O_WRONLY    0x0002
 #define O_RDWR      (O_RDONLY | O_WRONLY)
