@@ -36,20 +36,6 @@ typedef struct fpos_t {
     long long   offset;
 } fpos_t;
 
-typedef long __FILE_Mode;
-
-enum {
-    __kStreamMode_Read = 0x01,      // Allow reading
-    __kStreamMode_Write = 0x02,     // Allow writing
-    __kStreamMode_Append = 0x04,    // Append to the file
-    __kStreamMode_Exclusive = 0x08  // Fail if file already exists instead of creating it
-};
-
-enum {
-    __kStreamDirection_None = 0,
-    __kStreamDirection_Read,
-    __kStreamDirection_Write
-};
 
 typedef __errno_t (*__FILE_read)(void* self, void* pBuffer, __ssize_t nBytesToRead, __ssize_t* pOutBytesRead);
 typedef __errno_t (*__FILE_write)(void* self, const void* pBytes, __ssize_t nBytesToWrite, __ssize_t* pOutBytesWritten);
@@ -88,9 +74,9 @@ typedef struct __FILE {
 } FILE;
 
 extern FILE __StdFile[3];
-#define stdin &__StdFile[0]
-#define stdout &__StdFile[1]
-#define stderr &__StdFile[2]
+#define stdin (&__StdFile[0])
+#define stdout (&__StdFile[1])
+#define stderr (&__StdFile[2])
 
 
 extern FILE *fopen(const char *filename, const char *mode);
