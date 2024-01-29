@@ -21,6 +21,7 @@ void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp)
 
     __exit_init();
     __malloc_init();
+    __stdio_init();
 }
 
 // Returns true if the pointer is known as NOT freeable. Eg because it points

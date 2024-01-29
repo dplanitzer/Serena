@@ -19,7 +19,7 @@
 #define SC_getpid               7   // pid_t getpid(void)
 #define SC_getppid              8   // pid_t getppid(void)
 #define SC_getpargs             9   // struct __process_arguments_t * _Nonnull getpargs(void)
-#define SC_open                 10  // int open(const char * _Nonnull name, int options)
+#define SC_open                 10  // errno_t open(const char * _Nonnull name, int options, int* _Nonnull fd)
 #define SC_close                11  // errno_t close(int fd)
 #define SC_waitpid              12  // errno_t waitpid(pid_t pid, struct __waitpid_result_t * _Nullable result)
 #define SC_seek                 13  // errno_t seek(int fd, off_t offset, off_t * _Nullable newpos, int whence)
@@ -40,6 +40,6 @@
 #define SC_ioctl                28  // errno_t ioctl(int fd, int cmd, ...)
 #define SC_truncate             29  // errno_t truncate(const char* _Nonnull path, off_t length)
 #define SC_ftruncate            30  // errno_t ftruncate(int fd, off_t length)
-#define SC_mkfile               31  // int creat(const char* _Nonnull path, int options, int permissions)
+#define SC_mkfile               31  // errno_t creat(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
 
 #endif /* __SYSCALLS_H */

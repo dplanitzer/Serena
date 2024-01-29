@@ -60,11 +60,11 @@ extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char*
 
 extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
 
-extern errno_t __write(const char* _Nonnull pBuffer, size_t nBytes);
-
 extern void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp);
 extern void __malloc_init(void);
 extern void __exit_init(void);
+extern void __stdio_init(void);
+extern void __stdio_exit(void);
 
 extern bool __is_pointer_NOT_freeable(void* ptr);
 

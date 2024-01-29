@@ -30,12 +30,6 @@ extern void readdir_test(int argc, char *argv[]);
 
 void main_closure(int argc, char *argv[])
 {
-//    assert(open("/dev/console", O_RDONLY) == 0);
-//    assert(open("/dev/console", O_WRONLY) == 1);
-    int fd0 = open("/dev/console", O_RDONLY);
-    int fd1 = open("/dev/console", O_WRONLY);
-    //printf("fd0: %d, fd1: %d\n", fd0, fd1);
-
     //RUN_TEST(child_process_test);
     //RUN_TEST(interactive_console_test);
     //RUN_TEST(chdir_pwd_test);

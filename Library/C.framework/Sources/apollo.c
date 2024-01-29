@@ -12,14 +12,20 @@
 #include <_varargs.h>
 
 
-int creat(const char* path, int options, int permissions)
+errno_t creat(const char* path, int options, int permissions, int* fd)
 {
-    return __syscall(SC_mkfile, path, options, permissions);
+    ssize_t r;
+
+    __failable_syscall(r, SC_mkfile, path, options, permissions, fd);
+    return r;
 }
 
-int open(const char *path, int options)
+errno_t open(const char *path, int options, int* fd)
 {
-    return __syscall(SC_open, path, options);
+    ssize_t r;
+
+    __failable_syscall(r, SC_open, path, options, fd);
+    return r;
 }
 
 errno_t opendir(const char* path, int* fd)

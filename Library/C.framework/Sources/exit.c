@@ -52,6 +52,7 @@ _Noreturn exit(int exit_code)
         pCurNode->func();
     });
 
+    __stdio_exit();
     _Exit(exit_code);
 }
 

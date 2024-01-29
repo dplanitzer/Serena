@@ -37,8 +37,8 @@ typedef struct __waitpid_result_t waitpid_result_t;
 #define NAME_MAX __PATH_COMPONENT_MAX
 
 
-extern int creat(const char* path, int options, int permissions);
-extern int open(const char *path, int options);
+extern errno_t creat(const char* path, int options, int permissions, int* fd);
+extern errno_t open(const char *path, int options, int* fd);
 extern errno_t opendir(const char* path, int* fd);
 
 extern ssize_t read(int fd, void *buffer, size_t nbytes);

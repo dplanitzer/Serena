@@ -17,28 +17,25 @@ struct SYS_mkfile_args {
     const Character* _Nullable  path;
     UInt                        options;
     UInt                        permissions;
+    Int* _Nullable              outFd;
 };
 
 Int _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
 {
     decl_try_err();
-    Int desc;
 
-    if (pArgs->path == NULL) {
-        throw(EINVAL);
+    if (pArgs->path == NULL || pArgs->outFd == NULL) {
+        return EINVAL;
     }
 
-    try(Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->options, (FilePermissions)pArgs->permissions, &desc));
-    return desc;
-
-catch:
-    return -err;
+    return Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->options, (FilePermissions)pArgs->permissions, pArgs->outFd);
 }
 
 struct SYS_open_args {
     Int                         scno;
     const Character* _Nullable  path;
     UInt                        options;
+    Int* _Nullable              outFd;
 };
 
 Int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
@@ -46,9 +43,8 @@ Int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
     decl_try_err();
     IOResourceRef pConsole = NULL;
     IOChannelRef pChannel = NULL;
-    Int desc;
 
-    if (pArgs->path == NULL) {
+    if (pArgs->path == NULL || pArgs->outFd == NULL) {
         throw(EINVAL);
     }
 
@@ -56,18 +52,18 @@ Int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
         User user = {kRootUserId, kRootGroupId}; //XXX
         try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
         try(IOResource_Open(pConsole, NULL/*XXX*/, pArgs->options, user, &pChannel));
-        try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, &desc));
+        try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, pArgs->outFd));
         Object_Release(pChannel);
     }
     else {
-        try(Process_Open(Process_GetCurrent(), pArgs->path, pArgs->options, &desc));
+        try(Process_Open(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->outFd));
     }
 
-    return desc;
+    return EOK;
 
 catch:
     Object_Release(pChannel);
-    return -err;
+    return err;
 }
 
 

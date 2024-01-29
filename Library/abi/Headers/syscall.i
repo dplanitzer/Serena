@@ -19,7 +19,7 @@ SC_spawn_process        equ 6   ; errno_t spawnp(struct __spawn_arguments_t * _N
 SC_getpid               equ 7   ; int getpid(void)
 SC_getppid              equ 8   ; int getppid(void)
 SC_getpargs             equ 9   ; struct __process_arguments_t* _Nonnull getpargs(void)
-SC_open                 equ 10  ; int open(const char * _Nonnull name, int options)
+SC_open                 equ 10  ; errno_t open(const char * _Nonnull name, int options, int* _Nonnull fd)
 SC_close                equ 11  ; errno_t close(int fd)
 SC_waitpid              equ 12  ; errno_t waitpid(pid_t pid, struct __waitpid_result_t * _Nullable result)
 SC_seek                 equ 13  ; errno_t seek(int fd, off_t offset, off_t *newpos, int whence)
@@ -40,7 +40,7 @@ SC_rename               equ 27  ; errno_t rename(const char* oldpath, const char
 SC_ioctl                equ 28  ; errno_t ioctl(int fd, int cmd, ...)
 SC_truncate             equ 29  ; errno_t truncate(const char* path, off_t length)
 SC_ftruncate            equ 30  ; errno_t ftruncate(int fd, off_t length)
-SC_mkfile               equ 31  ; int creat(const char* _Nonnull path, int options, int permissions)
+SC_mkfile               equ 31  ; errno_t creat(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
 
 SC_numberOfCalls        equ 32   ; number of system calls
 

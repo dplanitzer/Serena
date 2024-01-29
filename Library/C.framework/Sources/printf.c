@@ -29,7 +29,13 @@ int printf(const char *format, ...)
 
 static errno_t vprintf_console_sink(FormatterRef _Nullable self, const char* _Nonnull pBuffer, size_t nBytes)
 {
-    return __write(pBuffer, nBytes);
+    const size_t r = fwrite(pBuffer, nBytes, 1, stdout);
+
+    if (r == 1) {
+        return 0;
+    } else {
+        return errno;
+    }
 }
 
 int vprintf(const char *format, va_list ap)

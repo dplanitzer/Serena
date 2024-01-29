@@ -456,7 +456,7 @@ void __Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 
         pCurRegion = (MemRegion*)pCurRegion->node.next;
     }
-    puts("");
+    putchar('\n');
 
     MemBlock* pCurBlock = pAllocator->first_allocated_block;
     int i = 1;
@@ -469,7 +469,7 @@ void __Allocator_Dump(AllocatorRef _Nonnull pAllocator)
         pCurBlock = pCurBlock->next;
         i++;
     }    
-    puts("");
+    putchar('\n');
 }
 
 void __Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
@@ -482,6 +482,6 @@ void __Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
 
         pCurRegion = (MemRegion*)pCurRegion->node.next;
     }
-    puts("");
+    putchar('\n');
 }
 #endif

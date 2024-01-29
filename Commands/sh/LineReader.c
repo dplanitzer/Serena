@@ -44,6 +44,11 @@ errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _N
             return ENOMEM;
         }
 
+        // XXX not the best way or place to do it
+        setvbuf(stdin, NULL, _IONBF, 0);
+        setvbuf(stdout, NULL, _IONBF, 0);
+        // XXX
+        
         *pOutReader = self;
         return 0;
     }

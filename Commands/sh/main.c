@@ -19,11 +19,6 @@ extern void _mkdir(const char*);
 
 void main_closure(int argc, char *argv[])
 {
-//    assert(open("/dev/console", O_RDONLY) == 0);
-//    assert(open("/dev/console", O_WRONLY) == 1);
-    int fd0 = open("/dev/console", O_RDONLY);
-    int fd1 = open("/dev/console", O_WRONLY);
-
     // XXX disabled insertion mode for now because the line reader doesn't support
     // XXX it properly yet
     //printf("\033[4h");  // Switch the console to insert mode
@@ -47,7 +42,7 @@ void main_closure(int argc, char *argv[])
     while (true) {
         char* line = LineReader_ReadLine(pLineReader);
 
-        puts("");
+        putchar('\n');
         
         Parser_Parse(pParser, line, pScript);
         Interpreter_Execute(pInterpreter, pScript);

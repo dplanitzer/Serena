@@ -20,8 +20,12 @@
 
 void interactive_console_test(int argc, char *argv[])
 {
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+
     while (true) {
         const int ch = getchar();
+
         if (ch == EOF) {
             printf("Read error\n");
             continue;
