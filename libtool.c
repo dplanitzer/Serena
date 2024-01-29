@@ -40,6 +40,12 @@
 #define AR_PADDED_SIZE(s)   (((s) + 1ul) & ~1ul)
 
 
+// How to write long names
+typedef enum LongNameFormat {
+    kLongNameFormat_SystemV4 = 0,
+    kLongNameFormat_BSD
+} LongNameFormat;
+
 typedef struct _ArFileHeader {
     char    magic[8];
 } ArFileHeader;
@@ -211,7 +217,7 @@ static void _ArchiveMember_ParseFilenameFromArchive(ArchiveMember* pMember, Arch
     }
     else if (hdr->name[0] == '#' && hdr->name[1] == '1' && hdr->name[2] == '/' && isdigit(hdr->name[3])) {
         // BSD long name
-        nameLen = strtoul(&hdr->name[4], NULL, 10);
+        nameLen = strtoul(&hdr->name[3], NULL, 10);
         if (nameLen == 0 || nameLen >= pMember->size) {
             failed("Corrupt library file");
             // NOT REACHED
@@ -449,21 +455,48 @@ static void Archive_GenerateLongStrings(Archive* pArchive)
     }
 }
 
-static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s)
+static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s, LongNameFormat longNameFormat)
 {
     ArMemberHeader hdr;
+    const size_t nameLen = strlen(pMember->name);
+    bool isExtendedName = false; 
 
     memset(&hdr, ' ', sizeof(hdr));
     
-    const size_t nameLen = strlen(pMember->name);
-    if (nameLen > AR_MAX_MEMBER_NAME_LENGTH) {
-        sprintf(hdr.name, "/%zu", pMember->longStringOffset);
-    } else {
-        memcpy(&hdr.name, pMember->name, nameLen);
-        if (nameLen < AR_MAX_MEMBER_NAME_LENGTH) {
-            hdr.name[nameLen] = '/';
+    switch (longNameFormat) {
+        case kLongNameFormat_SystemV4:
+            if (nameLen > AR_MAX_MEMBER_NAME_LENGTH) {
+                sprintf(hdr.name, "/%zu", pMember->longStringOffset);
+            } else {
+                memcpy(&hdr.name, pMember->name, nameLen);
+                if (nameLen < AR_MAX_MEMBER_NAME_LENGTH) {
+                    hdr.name[nameLen] = '/';
+                }
+            }
+            break;
+
+        case kLongNameFormat_BSD: {
+            bool hasSpace = false;
+            for (int i = 0; i < nameLen; i++) {
+                if (isspace(pMember->name[i])) {
+                    hasSpace = true;
+                    break;
+                }
+            }
+            if (hasSpace || nameLen > AR_MAX_MEMBER_NAME_LENGTH) {
+                sprintf(hdr.name, "#1/%zu", nameLen);
+                isExtendedName = true;
+            } else {
+                memcpy(&hdr.name, pMember->name, nameLen);
+            }
+            break;
         }
+
+        default:
+            abort();
+            break;
     }
+
     sprintf(hdr.mtime, "%d", 0);
     sprintf(hdr.uid, "%d", 0);
     sprintf(hdr.gid, "%d", 0);
@@ -472,6 +505,11 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s)
     memcpy(hdr.eol, AR_EOL, 2);
 
     fwrite_require(&hdr, sizeof(hdr), s);
+
+    if (longNameFormat == kLongNameFormat_BSD && isExtendedName) {
+        fwrite_require(pMember->name, nameLen, s);
+    }
+
     fwrite_require(pMember->data, pMember->size, s);
     if (pMember->paddedSize > pMember->size) {
         fwrite_require("\012", 1, s);
@@ -479,7 +517,7 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s)
 }
 
 // Write a System V.4 style archive 
-static void Archive_Write(Archive* pArchive, const char* libPath)
+static void Archive_Write(Archive* pArchive, const char* libPath, LongNameFormat longNameFormat)
 {
     FILE* s = open_require(libPath, "wb");
     ArFileHeader hdr;
@@ -489,16 +527,18 @@ static void Archive_Write(Archive* pArchive, const char* libPath)
 
     // XXX add support for symbol tables one day
 
-    if (pArchive->longStrings == NULL) {
-        Archive_GenerateLongStrings(pArchive);
-    }
+    if (longNameFormat == kLongNameFormat_SystemV4) {
+        if (pArchive->longStrings == NULL) {
+            Archive_GenerateLongStrings(pArchive);
+        }
 
-    if (pArchive->longStrings) {
-        ArchiveMember_Write(pArchive->longStrings, s);
+        if (pArchive->longStrings) {
+            ArchiveMember_Write(pArchive->longStrings, s, longNameFormat);
+        }
     }
 
     for (size_t i = 0; i < pArchive->count; i++) {
-        ArchiveMember_Write(pArchive->members[i], s);
+        ArchiveMember_Write(pArchive->members[i], s, longNameFormat);
     }
 
     fclose(s);
@@ -509,7 +549,7 @@ static void Archive_Write(Archive* pArchive, const char* libPath)
 // Create Library
 ////////////////////////////////////////////////////////////////////////////////
 
-static void createLibrary(const char* libPath, char* objPaths[], int nObjPaths)
+static void createLibrary(const char* libPath, char* objPaths[], int nObjPaths, LongNameFormat longNameFormat)
 {
     Archive* pArchive = Archive_Create();
 
@@ -517,7 +557,7 @@ static void createLibrary(const char* libPath, char* objPaths[], int nObjPaths)
         Archive_AddMember(pArchive, ArchiveMember_CreateFromPath(objPaths[i]));
     }
 
-    Archive_Write(pArchive, libPath);
+    Archive_Write(pArchive, libPath, longNameFormat);
     Archive_Destroy(pArchive);
 }
 
@@ -567,7 +607,7 @@ int main(int argc, char* argv[])
             if (argc > 2) {
                 char* libPath = argv[2];
 
-                createLibrary(libPath, &argv[3], argc - 3);
+                createLibrary(libPath, &argv[3], argc - 3, kLongNameFormat_BSD);
                 return EXIT_SUCCESS;
             }
         }
