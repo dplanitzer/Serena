@@ -4,6 +4,9 @@
 
 LIBC_SOURCES_DIR := $(LIBC_PROJECT_DIR)/Sources
 
+STDIO_SOURCES_DIR := $(LIBC_SOURCES_DIR)/stdio
+STDIO_BUILD_DIR := $(LIBC_BUILD_DIR)/stdio
+
 LIBC_ASTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_astart.c
 LIBC_CSTART_C_SOURCE := $(LIBC_SOURCES_DIR)/_cstart.c
 
@@ -40,7 +43,9 @@ $(LIBC_PRODUCT_DIR):
 	$(call mkdir_if_needed,$(LIBC_PRODUCT_DIR))
 
 
-$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
+-include $(STDIO_SOURCES_DIR)/package.mk
+
+$(LIBC_LIB_FILE): $(LIBC_OBJS) $(STDIO_OBJS) | $(LIBC_PRODUCT_DIR)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 

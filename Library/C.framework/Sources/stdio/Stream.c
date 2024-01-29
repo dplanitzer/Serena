@@ -1,47 +1,19 @@
 //
-//  stdio.c
+//  Stream.c
 //  Apollo
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdio.h>
-#include <errno.h>
+#include "Stream.h"
 #include <limits.h>
-#include <stdbool.h>
 #include <stdlib.h>
-#include <string.h>
 #include <apollo/apollo.h>
-#include <__stddef.h>
 
-extern errno_t __fdopen_init(FILE* self, int ioc, const char *mode);
 
-FILE __StdFile[3];
 static FILE*   gOpenFiles;
 
-
-void __stdio_init(void)
-{
-    // XXX temporary until we'll put something like an ini process in place
-    int fd0, fd1;
-    //    assert(open("/dev/console", O_RDONLY, &fd0) == 0);
-    //    assert(open("/dev/console", O_WRONLY, &fd1) == 0);
-    open("/dev/console", O_RDONLY, &fd0);
-    open("/dev/console", O_WRONLY, &fd1);
-    // XXX temporary until we'll put something like an ini process in place
-
-    __fdopen_init(stdin, STDIN_FILENO, "r");
-    __fdopen_init(stdout, STDOUT_FILENO, "w");
-    // XXX add support for stderr
-}
-
-void __stdio_exit(void)
-{
-    fflush(NULL);
-    // All open I/O channels will be automatically closed by the kernel when the
-    // process terminates.
-}
 
 static errno_t ioc_read(struct __FILE_fdopen* self, void* pBuffer, ssize_t nBytesToRead, ssize_t* pOutBytesRead)
 {
@@ -661,43 +633,4 @@ int puts(const char *str)
     const int r = fputs(str, stdout);
 
     return (r == 0) ? fputc('\n', stdout) : r;
-}
-
-void perror(const char *str)
-{
-    if (str && *str != '\0') {
-        puts(str);
-        puts(": ");
-    }
-
-    puts(strerror(errno));
-    putchar('\n');
-}
-
-int remove(const char* path)
-{
-    decl_try_err();
-
-    err = unlink(path);
-    if (err != 0) {
-        errno = err;
-        return -1;
-    }
-    else {
-        return 0;
-    }
-}
-
-int rename(const char* oldpath, const char* newpath)
-{
-    decl_try_err();
-
-    err = sys_rename(oldpath, newpath);
-    if (err != 0) {
-        errno = err;
-        return -1;
-    }
-    else {
-        return 0;
-    }
 }

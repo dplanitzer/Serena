@@ -7,10 +7,12 @@
 //
 
 #include <__globals.h>
+#include <stdio.h>
 
 
 // User visible globals
 char ** environ;
+FILE __StdFile[3];
 
 
 // Private globals
