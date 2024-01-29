@@ -33,9 +33,6 @@ typedef struct ConversionSpec {
     Int     minimumFieldWidth;
     Int     precision;
     struct _Flags {
-        unsigned int isLeftJustified:1;
-        unsigned int alwaysShowSign:1;
-        unsigned int showSpaceIfPositive:1;
         unsigned int isAlternativeForm:1;
         unsigned int padWithZeros:1;
         unsigned int hasPrecision:1;

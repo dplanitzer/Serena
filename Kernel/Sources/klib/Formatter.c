@@ -115,9 +115,6 @@ static const Character* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Non
     spec->minimumFieldWidth = 0;
     spec->precision = 0;
     spec->lengthModifier = LENGTH_MODIFIER_none;
-    spec->flags.isLeftJustified = false;
-    spec->flags.alwaysShowSign = false;
-    spec->flags.showSpaceIfPositive = false;
     spec->flags.isAlternativeForm = false;
     spec->flags.padWithZeros = false;
     spec->flags.hasPrecision = false;
@@ -129,9 +126,6 @@ static const Character* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Non
         
         switch (ch) {
             case '\0':  return --format;
-            case '-':   spec->flags.isLeftJustified = true; break;
-            case '+':   spec->flags.alwaysShowSign = true; break;
-            case ' ':   spec->flags.showSpaceIfPositive = true; break;
             case '#':   spec->flags.isAlternativeForm = true; break;
             case '0':   spec->flags.padWithZeros = true; break;
             default:    --format; done = true; break;
@@ -172,15 +166,11 @@ static ErrorCode Formatter_FormatStringField(FormatterRef _Nonnull self, const C
     decl_try_err();
     const ByteCount nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
 
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
+    if (nspaces > 0) {
         try(Formatter_WriteRepChar(self, ' ', nspaces));
     }
 
     try(Formatter_WriteString(self, str, slen));
-
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
-    }
 
 catch:
     return err;
@@ -195,24 +185,20 @@ static ErrorCode Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, 
     const Character* pSign = &pCanonDigits[1];
     const Character* pDigits = &pCanonDigits[2];
 
-    if (!spec->flags.alwaysShowSign && *pSign == '+') {
-        if (spec->flags.showSpaceIfPositive) {
-            pSign = " ";
-        } else {
-            pSign = "";
-            nSign = 0;
-        }
+    if (*pSign == '+') {
+        pSign = "";
+        nSign = 0;
     }
 
     const int slen = nSign + nLeadingZeros + nDigits;
     int nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
 
-    if (spec->flags.padWithZeros && !spec->flags.hasPrecision && !spec->flags.isLeftJustified) {
+    if (spec->flags.padWithZeros && !spec->flags.hasPrecision) {
         nLeadingZeros = nspaces;
         nspaces = 0;
     }
 
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+    if (nspaces > 0) {
         try(Formatter_WriteRepChar(self, ' ', nspaces));
     }
 
@@ -224,10 +210,6 @@ static ErrorCode Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, 
     }
     while(nDigits-- > 0) {
         try(Formatter_WriteChar(self, *pDigits++));
-    }
-
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
     }
 
 catch:
@@ -254,12 +236,12 @@ static ErrorCode Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self
     const int slen = nRadixChars + nLeadingZeros + nDigits;
     int nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
 
-    if (spec->flags.padWithZeros && !spec->flags.hasPrecision && !spec->flags.isLeftJustified) {
+    if (spec->flags.padWithZeros && !spec->flags.hasPrecision) {
         nLeadingZeros = nspaces;
         nspaces = 0;
     }
 
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+    if (nspaces > 0) {
         try(Formatter_WriteRepChar(self, ' ', nspaces));
     }
 
@@ -271,10 +253,6 @@ static ErrorCode Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self
     }
     while(nDigits-- > 0) {
         try(Formatter_WriteChar(self, *pDigits++));
-    }
-
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
     }
 
 catch:
@@ -370,26 +348,6 @@ static ErrorCode Formatter_FormatPointer(FormatterRef _Nonnull self, const Conve
     return Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits);
 }
 
-static ErrorCode Formatter_WriteNumberOfCharactersWritten(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
-{
-    Character* p = va_arg(*ap, Character*);
-    ByteCount n = self->charactersWritten;
-
-    switch (spec->lengthModifier) {
-        case LENGTH_MODIFIER_hh:    *((signed char*)p) = __min(n, INT8_MAX);        break;
-        case LENGTH_MODIFIER_h:     *((short*)p) = __min(n, INT16_MAX);             break;
-        case LENGTH_MODIFIER_none:  *((int*)p) = __min(n, INT32_MAX);               break;
-#if __LONG_WIDTH == 64
-        case LENGTH_MODIFIER_l:     *((long*)p) = __min(n, INT64_MAX);              break;
-#else
-        case LENGTH_MODIFIER_l:     *((long*)p) = __min(n, INT32_MAX);              break;
-#endif
-        case LENGTH_MODIFIER_ll:    *((long long*)p) = __min(n, INT64_MAX);         break;
-        case LENGTH_MODIFIER_z:     *((ByteCount*)p) = __min(n, BYTE_COUNT_MAX);    break;
-    }
-    return 0;
-}
-
 static ErrorCode Formatter_FormatArgument(FormatterRef _Nonnull self, Character conversion, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     switch (conversion) {
@@ -401,7 +359,6 @@ static ErrorCode Formatter_FormatArgument(FormatterRef _Nonnull self, Character 
         case 'x':   return Formatter_FormatUnsignedInteger(self, 16, false, spec, ap);
         case 'X':   return Formatter_FormatUnsignedInteger(self, 16, true, spec, ap);
         case 'u':   return Formatter_FormatUnsignedInteger(self, 10, false, spec, ap);
-        case 'n':   Formatter_WriteNumberOfCharactersWritten(self, spec, ap);
         case 'p':   return Formatter_FormatPointer(self, spec, ap);
         default:    return 0;
     }
