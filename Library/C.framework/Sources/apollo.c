@@ -148,7 +148,7 @@ IOChannelType fgettype(int fd)
 {
     long type;
 
-    ioctl(fd, kIOChannelCommand_GetType, &type);
+    (void) ioctl(fd, kIOChannelCommand_GetType, &type);
     return type;
 }
 
@@ -156,8 +156,8 @@ int fgetmode(int fd)
 {
     long mode;
 
-    ioctl(fd, kIOChannelCommand_GetMode, &mode);
-    return mode;
+    const errno_t err = ioctl(fd, kIOChannelCommand_GetMode, &mode);
+    return (err == 0) ? mode : 0;
 }
 
 errno_t ioctl(int fd, int cmd, ...)

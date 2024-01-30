@@ -15,10 +15,9 @@
 #define EDISKCHANGE     3
 #define ETIMEDOUT       4
 #define ENODEV          5
-#define EPARAM          6
-#define ERANGE          7
-#define EINTR           8
-#define EAGAIN          9
+#define ERANGE          6
+#define EINTR           7
+#define EAGAIN          8
 #define EWOULDBLOCK     9
 #define EPIPE           10
 #define EBUSY           11

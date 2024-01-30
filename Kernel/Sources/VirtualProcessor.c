@@ -427,7 +427,7 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
     
     if (pVP->suspension_count == INT8_MAX) {
         VirtualProcessorScheduler_RestorePreemption(sps);
-        return EPARAM;
+        return EINVAL;
     }
     
     pVP->suspension_count++;

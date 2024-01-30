@@ -406,7 +406,7 @@ Int _SYSCALL_sleep(const struct SYS_sleep_args* _Nonnull pArgs)
     decl_try_err();
 
     if (pArgs->delay == NULL) {
-        throw(EPARAM);
+        throw(EINVAL);
     }
     if (pArgs->delay->nanoseconds < 0 || pArgs->delay->nanoseconds >= ONE_SECOND_IN_NANOS) {
         throw(EINVAL);
@@ -428,7 +428,7 @@ Int _SYSCALL_dispatch_async(const struct SYS_dispatch_async_args* pArgs)
 {
     decl_try_err();
 
-    throw_ifnull(pArgs->userClosure, EPARAM);
+    throw_ifnull(pArgs->userClosure, EINVAL);
     try(Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->userClosure));
     return EOK;
 
@@ -455,7 +455,7 @@ Int _SYSCALL_alloc_address_space(struct SYS_alloc_address_space_args* _Nonnull p
     if (pArgs->nbytes > BYTE_COUNT_MAX) {
         throw(E2BIG);
     }
-    throw_ifnull(pArgs->pOutMem, EPARAM);
+    throw_ifnull(pArgs->pOutMem, EINVAL);
 
     try(Process_AllocateAddressSpace(Process_GetCurrent(),
         __ByteCountByClampingUByteCount(pArgs->nbytes),
@@ -504,7 +504,7 @@ Int _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
 {
     decl_try_err();
 
-    throw_ifnull(pArgs->spawnArgs, EPARAM);
+    throw_ifnull(pArgs->spawnArgs, EINVAL);
     try(Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, pArgs->pOutPid));
     return EOK;
 

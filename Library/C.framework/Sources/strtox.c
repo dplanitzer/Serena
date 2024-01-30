@@ -17,7 +17,7 @@ static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, lo
 {
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0ll;
-        return EPARAM;
+        return EINVAL;
     }
 
 

@@ -10,6 +10,7 @@
 #define Stream_h 1
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <__stddef.h>
 
@@ -32,9 +33,8 @@ enum {
 
 extern __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode);
 
-extern errno_t __fopen_init(FILE* self, __FILE_read readfn, __FILE_write writefn, __FILE_seek seekfn, __FILE_close closefn, __FILE_Mode mode);
-extern errno_t __fdopen_init(FILE* self, int ioc, const char *mode);
-extern FILE *__fopen(__FILE_read readfn, __FILE_write writefn, __FILE_seek seekfn, __FILE_close closefn, __FILE_Mode mode);
+extern errno_t __fopen_init(FILE* self, bool bFreeOnClose, intptr_t context, const FILE_Callbacks* callbacks, const char* mode);
+extern errno_t __fdopen_init(FILE* self, bool bFreeOnClose, int ioc, const char *mode);
 
 __CPP_END
 

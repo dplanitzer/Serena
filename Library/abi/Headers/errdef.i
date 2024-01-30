@@ -15,10 +15,10 @@ ENOMEDIUM       equ 2
 EDISKCHANGE     equ 3
 ETIMEDOUT       equ 4
 ENODEV          equ 5
-EPARAM          equ 6
-ERANGE          equ 7
-EINTR           equ 8
-EAGAIN          equ 9
+ERANGE          equ 6
+EINTR           equ 7
+EAGAIN          equ 8
+EWOULDBLOCK     equ 9
 EPIPE           equ 10
 EBUSY           equ 11
 ENOSYS          equ 12

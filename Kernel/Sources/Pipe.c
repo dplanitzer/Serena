@@ -35,7 +35,7 @@ ErrorCode Pipe_Create(Int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
 
     if (bufferSize < 1) {
         *pOutPipe = NULL;
-        return EPARAM;
+        return EINVAL;
     }
     
     try(kalloc_cleared(sizeof(Pipe), (void**) &pPipe));

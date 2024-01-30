@@ -18,7 +18,6 @@ char *strerror(int err_no)
         /*EDISKCHANGE*/     "Disk changed",
         /*ETIMEDOUT*/       "Timed out",
         /*ENODEV*/          "No such device",
-        /*EPARAM*/          "Invalid parameter",
         /*ERANGE*/          "Out of range parameter",
         /*EINTR*/           "Interrupted",
         /*EAGAIN*/          "Try again",

@@ -56,20 +56,26 @@ __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
     return sm;
 }
 
-errno_t __fopen_init(FILE* self, __FILE_read readfn, __FILE_write writefn, __FILE_seek seekfn, __FILE_close closefn, __FILE_Mode mode)
+errno_t __fopen_init(FILE* self, bool bFreeOnClose, intptr_t context, const FILE_Callbacks* callbacks, const char* mode)
 {
     decl_try_err();
+    __FILE_Mode sm = __fopen_parse_mode(mode);
 
-    if (mode == 0) {
+    if (sm & (__kStreamMode_Read|__kStreamMode_Write) == 0) {
+        return EINVAL;
+    }
+    if ((sm & __kStreamMode_Read) != 0 && callbacks->read == NULL) {
+        return EINVAL;
+    }
+    if ((sm & __kStreamMode_Write) != 0 && callbacks->write == NULL) {
         return EINVAL;
     }
 
-    self->flags.mode = mode;
+    self->cb = *callbacks;
+    self->context = context;
+    self->flags.mode = sm;
     self->flags.mostRecentDirection = __kStreamDirection_None;
-    self->readfn = readfn;
-    self->writefn = writefn;
-    self->seekfn = seekfn;
-    self->closefn = closefn;
+    self->flags.shouldFreeOnClose = bFreeOnClose;
 
     if (gOpenFiles) {
         self->next = gOpenFiles;
@@ -82,13 +88,17 @@ errno_t __fopen_init(FILE* self, __FILE_read readfn, __FILE_write writefn, __FIL
     return 0;
 }
 
-FILE *__fopen(__FILE_read readfn, __FILE_write writefn, __FILE_seek seekfn, __FILE_close closefn, __FILE_Mode mode)
+FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char* mode)
 {
     decl_try_err();
     FILE* self = NULL;
 
+    if (callbacks == NULL || mode == NULL) {
+        throw(EINVAL);
+    }
+
     try_null(self, calloc(1, sizeof(FILE)), ENOMEM);
-    try(__fopen_init(self, readfn, writefn, seekfn, closefn, mode));
+    try(__fopen_init(self, true, (intptr_t)context, callbacks, mode));
     return self;
 
 catch:
@@ -97,39 +107,18 @@ catch:
     return NULL;
 }
 
-FILE *funopen(void* context, __FILE_read readfn, __FILE_write writefn, __FILE_seek seekfn, __FILE_close closefn)
-{
-    decl_try_err();
-    FILE* self = NULL;
-    int sm = 0;
-
-    if (readfn) {
-        sm |= __kStreamMode_Read;
-    }
-    if (writefn) {
-        sm |= __kStreamMode_Write;
-    }
-    if (sm == 0) {
-        throw(EINVAL);
-    }
-
-    try_null(self, __fopen(readfn, writefn, seekfn, closefn, sm), ENOMEM);
-    self->u.callbacks.context = context;
-    return self;
-
-catch:
-    errno = err;
-    return NULL;
-}
-
 int fclose(FILE *s)
 {
-    decl_try_err();
+    int r = 0;
 
     if (s) {
-        err = fflush(s);
-        const errno_t err2 = s->closefn(&s->u);
-        if (err == 0) { err = err2; }
+        r = fflush(s);
+        
+        const errno_t err = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
+        if (r == 0 && err != 0) {
+            errno = err;
+            r = EOF;
+        }
 
         if (gOpenFiles == s) {
             (s->next)->prev = NULL;
@@ -141,9 +130,11 @@ int fclose(FILE *s)
         s->prev = NULL;
         s->next = NULL;
 
-        free(s);
+        if (s->flags.shouldFreeOnClose) {
+            free(s);
+        }
     }
-    return err;
+    return r;
 }
 
 void setbuf(FILE *s, char *buffer)
@@ -179,27 +170,35 @@ int ferror(FILE *s)
 
 long ftell(FILE *s)
 {
-    decl_try_err();
     long long curpos;
 
-    if (s->seekfn == NULL) {
+    if (s->cb.seek == NULL) {
         errno = ESPIPE;
         return (long)EOF;
     }
 
-    err = s->seekfn(&s->u, 0ll, &curpos, SEEK_CUR);
+    const errno_t err = s->cb.seek((void*)s->context, 0ll, &curpos, SEEK_CUR);
+    if (err != 0) {
+        s->flags.hasError = 1;
+        errno = err;
+        return (long)EOF;
+    }
+
 #if __LONG_WIDTH == 64
-    return (err == 0) (long)curpos : (long)EOF;
+    return (long)curpos;
 #else
-    return (err == 0 && curpos <= (long long)LONG_MAX) ? (long)curpos : (long)EOF;
+    if (curpos > (long long)LONG_MAX) {
+        errno = ERANGE;
+        return EOF;
+    } else {
+        return (long)curpos;
+    }
 #endif
 }
 
 int fseek(FILE *s, long offset, int whence)
 {
-    decl_try_err();
-
-    if (s->seekfn == NULL) {
+    if (s->cb.seek == NULL) {
         errno = ESPIPE;
         return EOF;
     }
@@ -221,9 +220,10 @@ int fseek(FILE *s, long offset, int whence)
         }
     }
 
-    err = s->seekfn(&s->u, (long long)offset, NULL, whence);
+    const errno_t err = s->cb.seek((void*)s->context, (long long)offset, NULL, whence);
     if (err != 0) {
         s->flags.hasError = 1;
+        errno = err;
         return EOF;
     }
     if (!(offset == 0ll && whence == SEEK_CUR)) {
@@ -236,22 +236,24 @@ int fseek(FILE *s, long offset, int whence)
 
 int fgetpos(FILE *s, fpos_t *pos)
 {
-    decl_try_err();
-
-    if (s->seekfn == NULL) {
+    if (s->cb.seek == NULL) {
         errno = ESPIPE;
         return EOF;
     }
 
-    err = s->seekfn(&s->u, 0ll, &pos->offset, SEEK_CUR);
-    return (err == 0) ? 0 : EOF;
+    const errno_t err = s->cb.seek((void*)s->context, 0ll, &pos->offset, SEEK_CUR);
+    if (err != 0) {
+        s->flags.hasError = 1;
+        errno = err;
+        return EOF;
+    }
+
+    return 0;
 }
 
 int fsetpos(FILE *s, const fpos_t *pos)
 {
-    decl_try_err();
-
-    if (s->seekfn == NULL) {
+    if (s->cb.seek == NULL) {
         errno = ESPIPE;
         return EOF;
     }
@@ -263,9 +265,10 @@ int fsetpos(FILE *s, const fpos_t *pos)
         }
     }
 
-    err = s->seekfn(&s->u, pos->offset, NULL, SEEK_SET);
+    const errno_t err = s->cb.seek((void*)s->context, pos->offset, NULL, SEEK_SET);
     if (err != 0) {
         s->flags.hasError = 1;
+        errno = err;
         return EOF;
     }
     s->flags.hasEof = 0;
@@ -285,34 +288,39 @@ int fgetc(FILE *s)
 {
     if ((s->flags.mode & __kStreamMode_Read) == 0) {
         s->flags.hasError = 1;
+        errno = EBADF;
         return EOF;
     }
 
+    int r;
     char buf;
     ssize_t nBytesRead;
-    const errno_t r = s->readfn(&s->u, &buf, 1, &nBytesRead);
+    const errno_t err = s->cb.read((void*)s->context, &buf, 1, &nBytesRead);
 
-    if (r == 0) {
+    if (err == 0) {
         if (nBytesRead == 1) {
             s->flags.hasEof = 0;
-            return (int)(unsigned char)buf;
+            r = (int)(unsigned char)buf;
         } else {
             s->flags.hasEof = 1;
+            r = EOF;
         }
     } else {
         s->flags.hasError = 1;
+        errno = err;
+        r = EOF;
     }
 
-    return EOF;
+    return r;
 }
 
 char *fgets(char *str, int count, FILE *s)
 {
-    int err = 0;
     int nBytesToRead = count - 1;
     int nBytesRead = 0;
 
     if (count < 1) {
+        errno = EINVAL;
         return NULL;
     }
 
@@ -338,35 +346,40 @@ int fputc(int ch, FILE *s)
 {
     if ((s->flags.mode & __kStreamMode_Write) == 0) {
         s->flags.hasError = 1;
+        errno = EBADF;
         return EOF;
     }
 
+    int r;
     unsigned char buf = (unsigned char)ch;
     ssize_t nBytesWritten;
-    const errno_t r = s->writefn(&s->u, &buf, 1, &nBytesWritten);
+    const errno_t err = s->cb.write((void*)s->context, &buf, 1, &nBytesWritten);
 
-    if (r == 0) {
+    if (err == 0) {
         if (nBytesWritten == 1) {
             s->flags.hasEof = 0;
-            return (int)buf;
+            r = (int)buf;
         } else {
             s->flags.hasEof = 1;
+            r = EOF;
         }
     } else {
         s->flags.hasError = 1;
+        errno = err;
+        r = EOF;
     }
 
-    return EOF;
+    return r;
 }
 
 int fputs(const char *str, FILE *s)
 {
-    int err = 0;
+    int r = 0;
 
-    while (*str != '\0' && err == 0) {
-        err = fputc(*str++, s);
+    while (*str != '\0' && r == 0) {
+        r = fputc(*str++, s);
     }
-    return err;
+    return r;
 }
 
 int ungetc(int ch, FILE *s)
@@ -436,7 +449,7 @@ static errno_t __write(const char* _Nonnull pBuffer, size_t nBytes)
 
 int fflush(FILE *s)
 {
-    decl_try_err();
+    int r = 0;
 
     if (s) {
         // XXX
@@ -446,16 +459,16 @@ int fflush(FILE *s)
         
         while (pCurFile) {
             if (pCurFile->flags.mostRecentDirection == __kStreamDirection_Write) {
-                const errno_t e = fflush(pCurFile);
+                const int rx = fflush(pCurFile);
 
-                if (err == 0) {
-                    err = e;
+                if (r == 0) {
+                    r = rx;
                 }
             }
             pCurFile = pCurFile->next;
         }
     }
-    return err;
+    return r;
 }
 
 int getchar(void)

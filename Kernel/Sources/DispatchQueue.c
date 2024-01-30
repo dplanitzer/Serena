@@ -17,10 +17,10 @@ ErrorCode DispatchQueue_Create(Int minConcurrency, Int maxConcurrency, Int qos, 
     DispatchQueueRef pQueue = NULL;
 
     if (maxConcurrency < 1 || maxConcurrency > INT8_MAX) {
-        throw(EPARAM);
+        throw(EINVAL);
     }
     if (minConcurrency < 0 || minConcurrency > maxConcurrency) {
-        throw(EPARAM);
+        throw(EINVAL);
     }
     
     try(kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (void**) &pQueue));

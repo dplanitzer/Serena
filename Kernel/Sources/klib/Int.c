@@ -13,7 +13,7 @@ static ErrorCode __atoi64(const Character * _Nonnull str, Character **str_end, I
 {
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0ll;
-        return EPARAM;
+        return EINVAL;
     }
 
 

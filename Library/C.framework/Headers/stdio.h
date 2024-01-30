@@ -15,6 +15,7 @@
 #include <_sizedef.h>
 #include <_syslimits.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 __CPP_BEGIN
 
@@ -37,38 +38,33 @@ typedef struct fpos_t {
 } fpos_t;
 
 
-typedef __errno_t (*__FILE_read)(void* self, void* pBuffer, __ssize_t nBytesToRead, __ssize_t* pOutBytesRead);
-typedef __errno_t (*__FILE_write)(void* self, const void* pBytes, __ssize_t nBytesToWrite, __ssize_t* pOutBytesWritten);
-typedef __errno_t (*__FILE_seek)(void* self, long long offset, long long *outOldOffset, int whence);
-typedef __errno_t (*__FILE_close)(void* self);
+typedef __errno_t (*FILE_Read)(void* self, void* pBuffer, __ssize_t nBytesToRead, __ssize_t* pOutBytesRead);
+typedef __errno_t (*FILE_Write)(void* self, const void* pBytes, __ssize_t nBytesToWrite, __ssize_t* pOutBytesWritten);
+typedef __errno_t (*FILE_Seek)(void* self, long long offset, long long *outOldOffset, int whence);
+typedef __errno_t (*FILE_Close)(void* self);
 
-struct __FILE_funopen {
-    void *  context;
-};
+typedef struct FILE_Callbacks {
+    FILE_Read _Nullable     read;
+    FILE_Write _Nullable    write;
+    FILE_Seek _Nullable     seek;
+    FILE_Close _Nullable    close;
+} FILE_Callbacks;
 
-struct __FILE_fdopen {
-    int fd;
-};
 
-typedef struct __FILE {
-    struct __FILE*              prev;
-    struct __FILE*              next;
-    __FILE_read _Nullable       readfn;
-    __FILE_write _Nullable      writefn;
-    __FILE_seek _Nullable       seekfn;
-    __FILE_close _Nullable      closefn;
-    union __FILE_Stream {
-        struct __FILE_fdopen        ioc;
-        struct __FILE_funopen       callbacks;
-    }                           u;
+typedef struct _FILE {
+    struct _FILE*               prev;
+    struct _FILE*               next;
+    FILE_Callbacks              cb;
+    intptr_t                    context;
     char*                       buffer;
     size_t                      bufferCapacity;
     size_t                      bufferCount;
-    struct __FILE_Flags {
+    struct _FILE_Flags {
         unsigned int mode:3;
         unsigned int mostRecentDirection:2;
         unsigned int hasError:1;
         unsigned int hasEof:1;
+        unsigned int shouldFreeOnClose:1;
     }                           flags;
     long                        reserved[4];
 } FILE;
@@ -81,7 +77,7 @@ extern FILE __StdFile[3];
 
 extern FILE *fopen(const char *filename, const char *mode);
 extern FILE *fdopen(int ioc, const char *mode);
-extern FILE *funopen(void* context, __FILE_read readfn, __FILE_write writefn, __FILE_seek seekfn, __FILE_close closefn);
+extern FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char* mode);
 extern int fclose(FILE *s);
 
 extern int fileno(FILE *s);

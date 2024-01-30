@@ -21,8 +21,8 @@ void __stdio_init(void)
     open("/dev/console", O_WRONLY, &fd1);
     // XXX temporary until we'll put something like an ini process in place
 
-    __fdopen_init(stdin, STDIN_FILENO, "r");
-    __fdopen_init(stdout, STDOUT_FILENO, "w");
+    __fdopen_init(stdin, false, STDIN_FILENO, "r");
+    __fdopen_init(stdout, false, STDOUT_FILENO, "w");
     // XXX add support for stderr
 }
 

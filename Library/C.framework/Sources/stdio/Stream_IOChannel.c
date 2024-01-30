@@ -7,14 +7,13 @@
 //
 
 #include "Stream.h"
-//#include <limits.h>
-//#include <stdlib.h>
+#include <stdlib.h>
 #include <apollo/apollo.h>
 
 
-static errno_t ioc_read(struct __FILE_fdopen* self, void* pBuffer, ssize_t nBytesToRead, ssize_t* pOutBytesRead)
+static errno_t __ioc_read(intptr_t ioc, void* pBuffer, ssize_t nBytesToRead, ssize_t* pOutBytesRead)
 {
-    ssize_t bytesRead = read(self->fd, pBuffer, nBytesToRead);
+    ssize_t bytesRead = read(ioc, pBuffer, nBytesToRead);
 
     if (bytesRead >= 0) {
         *pOutBytesRead = bytesRead;
@@ -25,9 +24,9 @@ static errno_t ioc_read(struct __FILE_fdopen* self, void* pBuffer, ssize_t nByte
     }
 }
 
-static errno_t ioc_write(struct __FILE_fdopen* self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* pOutBytesWritten)
+static errno_t __ioc_write(intptr_t ioc, const void* pBytes, ssize_t nBytesToWrite, ssize_t* pOutBytesWritten)
 {
-    ssize_t bytesWritten = write(self->fd, pBytes, nBytesToWrite);
+    ssize_t bytesWritten = write(ioc, pBytes, nBytesToWrite);
 
     if (bytesWritten >= 0) {
         *pOutBytesWritten = bytesWritten;
@@ -38,52 +37,46 @@ static errno_t ioc_write(struct __FILE_fdopen* self, const void* pBytes, ssize_t
     }
 }
 
-static errno_t ioc_seek(struct __FILE_fdopen* self, long long offset, long long *outOldOffset, int whence)
+static const FILE_Callbacks __FILE_ioc_callbacks = {
+    (FILE_Read)__ioc_read,
+    (FILE_Write)__ioc_write,
+    (FILE_Seek)seek,
+    (FILE_Close)close
+};
+
+
+
+errno_t __fdopen_init(FILE* self, bool bFreeOnClose, int ioc, const char *mode)
 {
-    return seek(self->fd, (off_t)offset, outOldOffset, whence);
-}
-
-static errno_t ioc_close(struct __FILE_fdopen* self)
-{
-    return close(self->fd);
-}
-
-
-
-errno_t __fdopen_init(FILE* self, int ioc, const char *mode)
-{
-    decl_try_err();
     const int sm = __fopen_parse_mode(mode);
+    const int iocmode = fgetmode(ioc);
 
-    if (sm == 0) {
-        throw(EINVAL);
+    // Make sure that 'mode' lines up with what the I/O channel can actually
+    // do
+    if ((sm & __kStreamMode_Read) != 0 && (iocmode & O_RDONLY) == 0) {
+        return EINVAL;
+    }
+    if ((sm & __kStreamMode_Write) != 0 && (iocmode & O_WRONLY) == 0) {
+        return EINVAL;
+    }
+    if ((sm & __kStreamMode_Append) != 0 && (iocmode & O_APPEND) == 0) {
+        return EINVAL;
     }
 
-    try(__fopen_init(self, (__FILE_read)ioc_read, (__FILE_write)ioc_write, (__FILE_seek)ioc_seek, (__FILE_close)ioc_close, sm));
-    self->u.ioc.fd = ioc;
-    return 0;
-
-catch:
-    errno = err;
-    return err;
+    return __fopen_init(self, false, (intptr_t)ioc, &__FILE_ioc_callbacks, mode);
 }
 
 FILE *fdopen(int ioc, const char *mode)
 {
     decl_try_err();
     FILE* self = NULL;
-    const int sm = __fopen_parse_mode(mode);
 
-    if (sm == 0) {
-        throw(EINVAL);
-    }
-
-    try_null(self, __fopen((__FILE_read)ioc_read, (__FILE_write)ioc_write, (__FILE_seek)ioc_seek, (__FILE_close)ioc_close, sm), ENOMEM);
-    self->u.ioc.fd = ioc;
-
+    try_null(self, calloc(1, sizeof(FILE)), ENOMEM);
+    try(__fdopen_init(self, true, ioc, mode));
     return self;
 
 catch:
+    free(self);
     errno = err;
     return NULL;
 }
@@ -92,10 +85,10 @@ FILE *fopen(const char *filename, const char *mode)
 {
     decl_try_err();
     FILE* self = NULL;
-    const int sm = __fopen_parse_mode(mode);
-    int fd = -1;
-
     int options = 0;
+    int ioc = -1;
+    const int sm = __fopen_parse_mode(mode);
+
     if ((sm & __kStreamMode_Read) != 0) {
         options |= O_RDONLY;
     }
@@ -111,7 +104,7 @@ FILE *fopen(const char *filename, const char *mode)
         }
     }
 
-    if (options == 0) {
+    if ((options & O_RDWR) == 0) {
         throw(EINVAL);
     }
 
@@ -119,28 +112,27 @@ FILE *fopen(const char *filename, const char *mode)
     // Open/create the file
     if ((sm & __kStreamMode_Write) == 0) {
         // Read only
-        try(open(filename, options, &fd));
+        try(open(filename, options, &ioc));
     }
     else {
         // Write only or read/write/append
-        try(creat(filename, options, 0666, &fd));
+        try(creat(filename, options, 0666, &ioc));
     }
     
-    try_null(self, __fopen((__FILE_read)ioc_read, (__FILE_write)ioc_write, (__FILE_seek)ioc_seek, (__FILE_close)ioc_close, sm), ENOMEM);
-    self->u.ioc.fd = fd;
+    try_null(self, fopen_callbacks((void*)ioc, &__FILE_ioc_callbacks, mode), ENOMEM);
 
 
-    // Make sure that the return value of ftell() lines up with the actual
-    // end of file position.
+    // Make sure that the return value of ftell() issued before the first write
+    // lines up with the actual end of file position.
     if ((sm & __kStreamMode_Append) != 0) {
-        self->seekfn(&self->u, 0ll, NULL, SEEK_END);
+        self->cb.seek((void*)self->context, 0ll, NULL, SEEK_END);
     }
 
     return self;
 
 catch:
-    if (fd != -1) {
-        close(fd);
+    if (ioc != -1) {
+        close(ioc);
     }
     errno = err;
     return NULL;
@@ -148,5 +140,5 @@ catch:
 
 int fileno(FILE *s)
 {
-    return (s->readfn == (__FILE_read)ioc_read) ? s->u.ioc.fd : EOF;
+    return (s->cb.read == (FILE_Read)__ioc_read) ? (int)s->context : EOF;
 }
