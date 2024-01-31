@@ -374,12 +374,20 @@ int fputc(int ch, FILE *s)
 
 int fputs(const char *str, FILE *s)
 {
-    int r = 0;
+    int nCharsWritten = 0;
 
-    while (*str != '\0' && r == 0) {
-        r = fputc(*str++, s);
+    while (*str != '\0') {
+        const int r = fputc(*str++, s);
+
+        if (r == EOF) {
+            return EOF;
+        }
+
+        if (nCharsWritten < INT_MAX) {
+            nCharsWritten++;
+        }
     }
-    return r;
+    return nCharsWritten;
 }
 
 int ungetc(int ch, FILE *s)
@@ -505,7 +513,14 @@ int putchar(int ch)
 
 int puts(const char *str)
 {
-    const int r = fputs(str, stdout);
-
-    return (r == 0) ? fputc('\n', stdout) : r;
+    const int nCharsWritten = fputs(str, stdout);
+    
+    if (nCharsWritten >= 0) {
+        const int r = fputc('\n', stdout);
+        
+        if (r != EOF) {
+            return (nCharsWritten < INT_MAX) ? nCharsWritten + 1 : INT_MAX;
+        }
+    }
+    return EOF;
 }

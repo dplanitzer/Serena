@@ -1,5 +1,5 @@
 //
-//  Stream.c
+//  Stream_IOChannel.c
 //  Apollo
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -11,7 +11,7 @@
 #include <apollo/apollo.h>
 
 
-static errno_t __ioc_read(intptr_t ioc, void* pBuffer, ssize_t nBytesToRead, ssize_t* pOutBytesRead)
+static errno_t __ioc_read(intptr_t ioc, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     ssize_t bytesRead = read(ioc, pBuffer, nBytesToRead);
 
@@ -24,7 +24,7 @@ static errno_t __ioc_read(intptr_t ioc, void* pBuffer, ssize_t nBytesToRead, ssi
     }
 }
 
-static errno_t __ioc_write(intptr_t ioc, const void* pBytes, ssize_t nBytesToWrite, ssize_t* pOutBytesWritten)
+static errno_t __ioc_write(intptr_t ioc, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     ssize_t bytesWritten = write(ioc, pBytes, nBytesToWrite);
 

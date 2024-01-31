@@ -15,6 +15,7 @@
 #include <_sizedef.h>
 #include <_syslimits.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 __CPP_BEGIN
@@ -38,18 +39,34 @@ typedef struct fpos_t {
 } fpos_t;
 
 
+// A stream defined by a set of callbacks
 typedef __errno_t (*FILE_Read)(void* self, void* pBuffer, __ssize_t nBytesToRead, __ssize_t* pOutBytesRead);
 typedef __errno_t (*FILE_Write)(void* self, const void* pBytes, __ssize_t nBytesToWrite, __ssize_t* pOutBytesWritten);
 typedef __errno_t (*FILE_Seek)(void* self, long long offset, long long *outOldOffset, int whence);
 typedef __errno_t (*FILE_Close)(void* self);
 
-typedef struct FILE_Callbacks {
+typedef struct _FILE_Callbacks {
     FILE_Read _Nullable     read;
     FILE_Write _Nullable    write;
     FILE_Seek _Nullable     seek;
     FILE_Close _Nullable    close;
 } FILE_Callbacks;
 
+
+// A memory-backed stream
+typedef struct _FILE_Memory {
+    void* _Nullable     base;               // the (initial) memory block. The block will be reallocated if necessary and the current capacity is < maximumCapacity
+    size_t              initialEof;         // initial file size. A fread() issued to the stream right after opening will return this data
+    size_t              initialCapacity;    // initial capacity of the memory block. This is the size to which a file can grow before an empty is made to allocate a bigger block
+    size_t              maximumCapacity;    // max size to which the memory block is allowed to grow. If initialCapacity == maximumCapacity then the stream will not grow the memory block
+    bool                freeOnClose;        // true if the memory block should be freed on close; false if not
+} FILE_Memory;
+
+typedef struct _FILE_MemoryQuery {
+    void* _Nullable     base;           // current memory block base pointer
+    size_t              eof;            // offset to where the EOF is in the memory block (aka how much data was written)
+    size_t              capacity;       // how big the memory block really is. Difference between capacity and EOF is storage not used by the file
+} FILE_MemoryQuery;
 
 typedef struct _FILE {
     struct _FILE*               prev;
@@ -77,10 +94,12 @@ extern FILE __StdFile[3];
 
 extern FILE *fopen(const char *filename, const char *mode);
 extern FILE *fdopen(int ioc, const char *mode);
-extern FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char* mode);
+extern FILE *fopen_callbacks(void* context, const FILE_Callbacks *callbacks, const char* mode);
+extern FILE *fopen_memory(FILE_Memory *mem, const char *mode);
 extern int fclose(FILE *s);
 
 extern int fileno(FILE *s);
+extern int filemem(FILE *s, FILE_MemoryQuery *query);
 
 extern void setbuf(FILE *s, char *buffer);
 extern int setvbuf(FILE *s, char *buffer, int mode, size_t size);

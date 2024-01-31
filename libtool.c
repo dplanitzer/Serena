@@ -19,7 +19,7 @@
 // To compile on Windows:
 // - open a Visual Studio Command Line environment
 // - cd to the Apollo folder
-// - cl libtool.c
+// - cl /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS libtool.c
 //
 // To compile on POSIX:
 // - open a terminal window
@@ -36,9 +36,15 @@
 #define AR_LONG_STRINGS_MEMBER_NAME "//"
 #define AR_SYMBOLS_MEMBER_NAME_BSD  "__.SYMDEF"
 #define AR_SYMBOLS_MEMBER_NAME_ELF  "/"
-#define AR_MAX_MEMBER_NAME_LENGTH   16
 #define AR_PADDED_SIZE(s)   (((s) + 1ul) & ~1ul)
 
+#define AR_MAX_MEMBER_NAME_LENGTH   16
+#define AR_MTIME_LENGTH             12
+#define AR_UID_LENGTH               6
+#define AR_GID_LENGTH               6
+#define AR_MODE_LENGTH              8
+#define AR_SIZE_LENGTH              10
+#define AR_EOL_LENGTH               2
 
 // How to write long names
 typedef enum LongNameFormat {
@@ -52,12 +58,12 @@ typedef struct _ArFileHeader {
 
 typedef struct _ArMemberHeader {
     char    name[AR_MAX_MEMBER_NAME_LENGTH];
-    char    mtime[12];
-    char    uid[6];
-    char    gid[6];
-    char    mode[8];
-    char    size[10];
-    char    eol[2];
+    char    mtime[AR_MTIME_LENGTH];
+    char    uid[AR_UID_LENGTH];
+    char    gid[AR_GID_LENGTH];
+    char    mode[AR_MODE_LENGTH];
+    char    size[AR_SIZE_LENGTH];
+    char    eol[AR_EOL_LENGTH];
 } ArMemberHeader;
 
 
@@ -130,6 +136,23 @@ static char* stralloc_require(const char* str, size_t len)
     return p;
 }
 
+static void itoa_unterminated(int val, char* buffer, int bufsiz)
+{
+    char digits[11];
+
+    itoa(val, digits, 10);
+    
+    const int ndigits = (int)strlen(digits);
+    if (ndigits > bufsiz) {
+        failed("Overflow");
+        // NOT REACHED
+    }
+
+    for (int i = 0; i < ndigits; i++) {
+        buffer[i] = digits[i];
+    }
+}
+
 static FILE* open_require(const char* filename, const char* mode)
 {
     FILE* s = fopen(filename, mode);
@@ -193,11 +216,21 @@ static ArchiveMember* ArchiveMember_CreateFromPath(const char* objPath)
     return pMember;
 }
 
-static void _ArchiveMember_ParseFilenameFromArchive(ArchiveMember* pMember, Archive* pArchive, const ArMemberHeader* hdr, FILE* s)
+static void _ArchiveMember_ParseHeader(ArchiveMember* pMember, Archive* pArchive, const ArMemberHeader* hdr, FILE* s)
 {
     size_t nameLen;
     const char* pName;
 
+    // Get the data size
+    pMember->size = strtoul(hdr->size, NULL, 10);
+    if (pMember->size == 0) {
+        failed("Corrupt library file");
+        // NOT REACHED
+    }
+
+
+    // Get the member name. Note that the pMember->size may have to be reduced
+    // by the member name length in some cases
     if (pArchive->longStrings && hdr->name[0] == '/' && isdigit(hdr->name[1])) {
         // System V.4 long name
         pMember->longStringOffset = strtoul(&hdr->name[1], NULL, 10);
@@ -227,6 +260,7 @@ static void _ArchiveMember_ParseFilenameFromArchive(ArchiveMember* pMember, Arch
         fread_require(pMember->name, nameLen, s);
         pMember->name[nameLen] = '\0';
         pMember->longStringOffset = 0;
+        pMember->size -= nameLen;
 
         nameLen = 0;
         pName = NULL;
@@ -283,16 +317,8 @@ static ArchiveMember* ArchiveMember_CreateFromArchive(Archive* pArchive, FILE* s
     ArchiveMember* pMember = (ArchiveMember*) malloc_require(sizeof(ArchiveMember), true);
 
 
-    // Get the data size
-    pMember->size = strtoul(hdr.size, NULL, 10);
-    if (pMember->size == 0) {
-        failed("Corrupt library file");
-        // NOT REACHED
-    }
-
-
-    // Get the member name.
-    _ArchiveMember_ParseFilenameFromArchive(pMember, pArchive, &hdr, s);
+    // Parse the meta information from the archive member header.
+    _ArchiveMember_ParseHeader(pMember, pArchive, &hdr, s);
 
 
     // Get the data
@@ -459,6 +485,7 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s, LongNameFormat 
 {
     ArMemberHeader hdr;
     const size_t nameLen = strlen(pMember->name);
+    size_t memberSize = pMember->size;
     bool isExtendedName = false; 
 
     memset(&hdr, ' ', sizeof(hdr));
@@ -484,7 +511,9 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s, LongNameFormat 
                 }
             }
             if (hasSpace || nameLen > AR_MAX_MEMBER_NAME_LENGTH) {
-                sprintf(hdr.name, "#1/%zu", nameLen);
+                memcpy(hdr.name, "#1/", 3);
+                itoa_unterminated((int)nameLen, &hdr.name[3], AR_MAX_MEMBER_NAME_LENGTH - 3);
+                memberSize += nameLen;
                 isExtendedName = true;
             } else {
                 memcpy(&hdr.name, pMember->name, nameLen);
@@ -497,12 +526,12 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s, LongNameFormat 
             break;
     }
 
-    sprintf(hdr.mtime, "%d", 0);
-    sprintf(hdr.uid, "%d", 0);
-    sprintf(hdr.gid, "%d", 0);
-    sprintf(hdr.mode, "%d", 0600);
-    sprintf(hdr.size, "%zu", pMember->size);
-    memcpy(hdr.eol, AR_EOL, 2);
+    itoa_unterminated(0, hdr.mtime, AR_MTIME_LENGTH);
+    itoa_unterminated(0, hdr.uid, AR_UID_LENGTH);
+    itoa_unterminated(0, hdr.gid, AR_GID_LENGTH);
+    itoa_unterminated(0600, hdr.mode, AR_MODE_LENGTH);
+    itoa_unterminated((int)memberSize, hdr.size, AR_SIZE_LENGTH);
+    memcpy(hdr.eol, AR_EOL, AR_EOL_LENGTH);
 
     fwrite_require(&hdr, sizeof(hdr), s);
 

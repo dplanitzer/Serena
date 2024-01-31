@@ -101,7 +101,7 @@ void *realloc(void *ptr, size_t new_size)
     void *np = malloc(new_size);
 
     if (np) {
-        memcpy(np, ptr, old_size);
+        memcpy(np, ptr, __min(old_size, new_size));
         free(ptr);
     }
 
