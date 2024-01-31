@@ -167,7 +167,7 @@ FILE *fopen_memory(FILE_Memory *mem, const char *mode)
     decl_try_err();
     __FILE_compound* p = NULL;
 
-    try_null(p, calloc(1, sizeof(__FILE_compound)), ENOMEM);
+    try_null(p, malloc(sizeof(__FILE_compound)), ENOMEM);
     FILE* self = &p->file;
     __FILE_memory* mp = &p->mem;
 
@@ -176,6 +176,7 @@ FILE *fopen_memory(FILE_Memory *mem, const char *mode)
     mp->currentCapacity = mem->initialCapacity;
     mp->maximumCapacity = mem->maximumCapacity;
     mp->eofPosition = mem->initialEof;
+    mp->currentPosition = 0;
     mp->freeOnClose = mem->freeOnClose;
 
     return self;

@@ -72,7 +72,7 @@ FILE *fdopen(int ioc, const char *mode)
     decl_try_err();
     FILE* self = NULL;
 
-    try_null(self, calloc(1, sizeof(FILE)), ENOMEM);
+    try_null(self, malloc(sizeof(FILE)), ENOMEM);
     try(__fdopen_init(self, true, ioc, mode));
     return self;
 
@@ -142,7 +142,7 @@ FILE *fopen(const char *filename, const char *mode)
     decl_try_err();
     FILE* self = NULL;
 
-    try_null(self, calloc(1, sizeof(FILE)), ENOMEM);
+    try_null(self, malloc(sizeof(FILE)), ENOMEM);
     try(__fopen_filename_init(self, filename, mode));
     return self;
 
@@ -160,7 +160,6 @@ FILE *freopen(const char *filename, const char *mode, FILE *s)
     }
 
     __fclose(s);
-    memset(s, 0, sizeof(FILE));
     const errno_t err = __fopen_filename_init(s, filename, mode);
     if (err != 0) {
         errno = err;

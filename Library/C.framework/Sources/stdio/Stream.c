@@ -9,6 +9,7 @@
 #include "Stream.h"
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include <apollo/apollo.h>
 
 
@@ -76,6 +77,7 @@ errno_t __fopen_init(FILE* self, bool bFreeOnClose, intptr_t context, const FILE
         return EINVAL;
     }
 
+    memset(self, 0, sizeof(FILE));
     self->cb = *callbacks;
     self->context = context;
     self->flags.mode = sm;
@@ -98,7 +100,7 @@ FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char
     decl_try_err();
     FILE* self = NULL;
 
-    try_null(self, calloc(1, sizeof(FILE)), ENOMEM);
+    try_null(self, malloc(sizeof(FILE)), ENOMEM);
     try(__fopen_init(self, true, (intptr_t)context, callbacks, mode));
     return self;
 
