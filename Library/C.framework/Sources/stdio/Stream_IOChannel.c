@@ -8,6 +8,7 @@
 
 #include "Stream.h"
 #include <stdlib.h>
+#include <string.h>
 #include <apollo/apollo.h>
 
 
@@ -46,7 +47,7 @@ static const FILE_Callbacks __FILE_ioc_callbacks = {
 
 
 
-errno_t __fdopen_init(FILE* self, bool bFreeOnClose, int ioc, const char *mode)
+errno_t __fdopen_init(FILE *self, bool bFreeOnClose, int ioc, const char *mode)
 {
     const int sm = __fopen_parse_mode(mode);
     const int iocmode = fgetmode(ioc);
@@ -81,10 +82,9 @@ catch:
     return NULL;
 }
 
-FILE *fopen(const char *filename, const char *mode)
+errno_t __fopen_filename_init(FILE *self, const char *filename, const char *mode)
 {
     decl_try_err();
-    FILE* self = NULL;
     int options = 0;
     int ioc = -1;
     const int sm = __fopen_parse_mode(mode);
@@ -119,7 +119,7 @@ FILE *fopen(const char *filename, const char *mode)
         try(creat(filename, options, 0666, &ioc));
     }
     
-    try_null(self, fopen_callbacks((void*)ioc, &__FILE_ioc_callbacks, mode), ENOMEM);
+    try(__fopen_init(self, true, (intptr_t)ioc, &__FILE_ioc_callbacks, mode));
 
 
     // Make sure that the return value of ftell() issued before the first write
@@ -128,14 +128,47 @@ FILE *fopen(const char *filename, const char *mode)
         self->cb.seek((void*)self->context, 0ll, NULL, SEEK_END);
     }
 
-    return self;
+    return 0;
 
 catch:
     if (ioc != -1) {
         close(ioc);
     }
+    return err;
+}
+
+FILE *fopen(const char *filename, const char *mode)
+{
+    decl_try_err();
+    FILE* self = NULL;
+
+    try_null(self, calloc(1, sizeof(FILE)), ENOMEM);
+    try(__fopen_filename_init(self, filename, mode));
+    return self;
+
+catch:
+    free(self);
     errno = err;
     return NULL;
+}
+
+FILE *freopen(const char *filename, const char *mode, FILE *s)
+{
+    if ((__fopen_parse_mode(mode) & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
+        fclose(s);
+        return NULL;
+    }
+
+    __fclose(s);
+    memset(s, 0, sizeof(FILE));
+    const errno_t err = __fopen_filename_init(s, filename, mode);
+    if (err != 0) {
+        errno = err;
+        return NULL;
+    }
+    else {
+        return s;
+    }
 }
 
 int fileno(FILE *s)

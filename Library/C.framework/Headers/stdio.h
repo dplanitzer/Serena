@@ -93,6 +93,7 @@ extern FILE __StdFile[3];
 
 
 extern FILE *fopen(const char *filename, const char *mode);
+extern FILE *freopen(const char *filename, const char *mode, FILE *s);
 extern FILE *fdopen(int ioc, const char *mode);
 extern FILE *fopen_callbacks(void* context, const FILE_Callbacks *callbacks, const char* mode);
 extern FILE *fopen_memory(FILE_Memory *mem, const char *mode);

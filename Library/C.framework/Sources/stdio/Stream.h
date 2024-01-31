@@ -35,6 +35,9 @@ extern __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode);
 
 extern errno_t __fopen_init(FILE* self, bool bFreeOnClose, intptr_t context, const FILE_Callbacks* callbacks, const char* mode);
 extern errno_t __fdopen_init(FILE* self, bool bFreeOnClose, int ioc, const char *mode);
+extern errno_t __fopen_filename_init(FILE *self, const char *filename, const char *mode);
+
+extern int __fclose(FILE * _Nonnull s);
 
 __CPP_END
 

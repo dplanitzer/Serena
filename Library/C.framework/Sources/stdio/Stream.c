@@ -59,6 +59,11 @@ __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
 errno_t __fopen_init(FILE* self, bool bFreeOnClose, intptr_t context, const FILE_Callbacks* callbacks, const char* mode)
 {
     decl_try_err();
+
+    if (callbacks == NULL || mode == NULL) {
+        return EINVAL;
+    }
+
     __FILE_Mode sm = __fopen_parse_mode(mode);
 
     if (sm & (__kStreamMode_Read|__kStreamMode_Write) == 0) {
@@ -93,10 +98,6 @@ FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char
     decl_try_err();
     FILE* self = NULL;
 
-    if (callbacks == NULL || mode == NULL) {
-        throw(EINVAL);
-    }
-
     try_null(self, calloc(1, sizeof(FILE)), ENOMEM);
     try(__fopen_init(self, true, (intptr_t)context, callbacks, mode));
     return self;
@@ -107,28 +108,36 @@ catch:
     return NULL;
 }
 
+// Shuts down the given stream but does not free the 's' memory block. 
+int __fclose(FILE * _Nonnull s)
+{
+    int r = fflush(s);
+        
+    const errno_t err = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
+    if (r == 0 && err != 0) {
+        errno = err;
+        r = EOF;
+    }
+
+    if (gOpenFiles == s) {
+        (s->next)->prev = NULL;
+        gOpenFiles = s->next;
+    } else {
+        (s->next)->prev = s->prev;
+        (s->prev)->next = s->next;
+    }
+    s->prev = NULL;
+    s->next = NULL;
+    
+    return r;
+}
+
 int fclose(FILE *s)
 {
     int r = 0;
 
     if (s) {
-        r = fflush(s);
-        
-        const errno_t err = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
-        if (r == 0 && err != 0) {
-            errno = err;
-            r = EOF;
-        }
-
-        if (gOpenFiles == s) {
-            (s->next)->prev = NULL;
-            gOpenFiles = s->next;
-        } else {
-            (s->next)->prev = s->prev;
-            (s->prev)->next = s->next;
-        }
-        s->prev = NULL;
-        s->next = NULL;
+        r = __fclose(s);
 
         if (s->flags.shouldFreeOnClose) {
             free(s);
