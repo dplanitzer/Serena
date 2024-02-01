@@ -11,64 +11,45 @@
 #include <stdlib.h>
 
 
-void __Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext)
-{
-    self->sink = pSinkFunc;
-    self->context = pContext;
-    self->charactersWritten = 0;
-    self->bufferCapacity = FORMATTER_BUFFER_CAPACITY;
-    self->bufferCount = 0;
-}
-
-void __Formatter_Deinit(FormatterRef _Nullable self)
-{
-    self->sink = NULL;
-    self->context = NULL;
-}
-
-static errno_t Formatter_Flush(FormatterRef _Nonnull self)
-{
-    decl_try_err();
-
-    if (self->bufferCount > 0) {
-        try(self->sink(self, self->buffer, self->bufferCount));
-        self->bufferCount = 0;
-    }
-
-catch:
-    return err;
-}
-
 static errno_t Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
 {
-    decl_try_err();
+    const int r = fputc(ch, self->stream);
 
-    if (self->bufferCount == self->bufferCapacity) {
-        try(Formatter_Flush(self));
+    if (r == EOF) {
+        return errno;
     }
-    self->buffer[self->bufferCount++] = ch;
     self->charactersWritten++;
-
-catch:
-    return err;
+    return 0;
 }
 
 static errno_t Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str, size_t maxChars)
 {
-    decl_try_err();
+    if (maxChars == SIZE_MAX) {
+        const int r = fputs(str, self->stream);
 
-    while (maxChars-- > 0) {
-        const char ch = *str++;
-
-        if (ch != '\0') {
-            try(Formatter_WriteChar(self, ch));
-        } else {
-            break;
+        if (r == EOF) {
+            return errno;
+        }
+        self->charactersWritten += r;
+    }
+    else {
+        while (maxChars-- > 0) {
+            const char ch = *str++;
+            
+            if (ch != 0) {
+                const int r = fputc(ch, self->stream);
+                if (r == EOF) {
+                    return errno;
+                }
+                self->charactersWritten++;
+            }
+            else {
+                break;
+            }
         }
     }
 
-catch:
-    return err;
+    return 0;
 }
 
 static errno_t Formatter_WriteRepChar(FormatterRef _Nonnull self, char ch, int count)
@@ -85,45 +66,49 @@ catch:
 
 static const char* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull self, const char * _Nonnull format, ConversionSpec* _Nonnull spec)
 {
-    char ch = *format;
-    
-    if (ch == 'l') {
-        format++;
-        if (*format == 'l') {
+    switch (*format) {
+        case 'l':
             format++;
-            spec->lengthModifier = LENGTH_MODIFIER_ll;
-        } else {
-            spec->lengthModifier = LENGTH_MODIFIER_l;
-        }
-    }
-    else if (ch == 'h') {
-        format++;
-        if (*format == 'h') {
+            if (*format == 'l') {
+                format++;
+                spec->lengthModifier = LENGTH_MODIFIER_ll;
+            } else {
+                spec->lengthModifier = LENGTH_MODIFIER_l;
+            }
+            break;
+
+        case 'h':
             format++;
-            spec->lengthModifier = LENGTH_MODIFIER_hh;
-        } else {
-            spec->lengthModifier = LENGTH_MODIFIER_h;
-        }
-    }
-    else if (ch == 'j') {
-        format++;
-        // intmax_t, uintmax_t
-        spec->lengthModifier = LENGTH_MODIFIER_j;
-    }
-    else if (ch == 'z') {
-        format++;
-        // ssize_t, size_t
-        spec->lengthModifier = LENGTH_MODIFIER_z;
-    }
-    else if (ch == 't') {
-        format++;
-        // ptrdiff_t
-        spec->lengthModifier = LENGTH_MODIFIER_t;
-    }
-    else if (ch == 'L') {
-        format++;
-        // long double
-        spec->lengthModifier = LENGTH_MODIFIER_L;
+            if (*format == 'h') {
+                format++;
+                spec->lengthModifier = LENGTH_MODIFIER_hh;
+            } else {
+                spec->lengthModifier = LENGTH_MODIFIER_h;
+            }
+            break;
+
+        case 'j':
+            format++;
+            spec->lengthModifier = LENGTH_MODIFIER_j;
+            break;
+
+        case 'z':
+            format++;
+            spec->lengthModifier = LENGTH_MODIFIER_z;
+            break;
+
+        case 't':
+            format++;
+            spec->lengthModifier = LENGTH_MODIFIER_t;
+            break;
+
+        case 'L':
+            format++;
+            spec->lengthModifier = LENGTH_MODIFIER_L;
+            break;
+
+        default:
+            break;
     }
     
     return format;
@@ -339,6 +324,7 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
 #else
         case LENGTH_MODIFIER_l:     v32 = (int32_t)va_arg(*ap, long); nbits = INT32_WIDTH;               break;
 #endif
+        case LENGTH_MODIFIER_L:
         case LENGTH_MODIFIER_ll:    v64 = (int64_t)va_arg(*ap, long long); nbits = INT64_WIDTH;          break;
 #if INTMAX_WIDTH == 64
         case LENGTH_MODIFIER_j:     v64 = (int64_t)va_arg(*ap, intmax_t); nbits = INTMAX_WIDTH; break;
@@ -355,7 +341,6 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
 #else
         case LENGTH_MODIFIER_t:     v32 = (int32_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH; break;
 #endif
-        case LENGTH_MODIFIER_L:     v64 = (int64_t)va_arg(*ap, long long); nbits = INT64_WIDTH; break;
     }
 
     if (nbits == 64) {
@@ -383,6 +368,7 @@ static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int r
 #else
         case LENGTH_MODIFIER_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
 #endif
+        case LENGTH_MODIFIER_L:
         case LENGTH_MODIFIER_ll:    v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;              break;
 #if UINTMAX_WIDTH == 64
         case LENGTH_MODIFIER_j:     v64 = (uint64_t)va_arg(*ap, uintmax_t); nbits = UINTMAX_WIDTH;  break;
@@ -399,7 +385,6 @@ static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int r
 #else
         case LENGTH_MODIFIER_t:     v32 = (uint32_t)va_arg(*ap, ptrdiff_t); nbits = __PTRDIFF_WIDTH;    break;
 #endif
-        case LENGTH_MODIFIER_L:     v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;  break;
     }
 
     if (nbits == 64) {
@@ -490,7 +475,7 @@ errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull for
         }
     }
 
-    return Formatter_Flush(self);
+    return 0;
 
 catch:
     return err;

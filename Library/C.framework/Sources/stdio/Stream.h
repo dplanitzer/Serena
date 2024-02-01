@@ -37,6 +37,8 @@ extern errno_t __fopen_init(FILE* self, bool bFreeOnClose, intptr_t context, con
 extern errno_t __fdopen_init(FILE* self, bool bFreeOnClose, int ioc, const char *mode);
 extern errno_t __fopen_filename_init(FILE *self, const char *filename, const char *mode);
 
+extern FILE *__fopen_null(const char *mode);
+
 extern int __fclose(FILE * _Nonnull s);
 
 __CPP_END

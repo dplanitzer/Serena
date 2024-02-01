@@ -9,16 +9,13 @@
 #ifndef Formatter_h
 #define Formatter_h
 
+#include <stdio.h>
 #include <__stddef.h>
 
 
 struct Formatter;
 typedef struct Formatter* FormatterRef;
 
-
-// Writes 'nbytes' bytes from 'pBuffer' to the sink. Returns one of the EXX
-// constants.
-typedef errno_t (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const char * _Nonnull pBuffer, size_t nBytes);
 
 #define LENGTH_MODIFIER_hh      0
 #define LENGTH_MODIFIER_h       1
@@ -29,6 +26,7 @@ typedef errno_t (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const char * _
 #define LENGTH_MODIFIER_z       6
 #define LENGTH_MODIFIER_t       7
 #define LENGTH_MODIFIER_L       8
+
 
 // <https://en.cppreference.com/w/c/io/fprintf>
 typedef struct ConversionSpec {
@@ -46,21 +44,21 @@ typedef struct ConversionSpec {
 } ConversionSpec;
 
 
-#define FORMATTER_BUFFER_CAPACITY 64
-
 typedef struct Formatter {
-    Formatter_SinkFunc _Nonnull sink;
-    void* _Nullable             context;
-    size_t                      charactersWritten;
-    size_t                      bufferCount;
-    size_t                      bufferCapacity;
-    char                        buffer[FORMATTER_BUFFER_CAPACITY];
-    char                        digits[DIGIT_BUFFER_CAPACITY];
+    FILE* _Nonnull  stream;
+    size_t          charactersWritten;
+    char            digits[DIGIT_BUFFER_CAPACITY];
 } Formatter;
 
 
-extern void __Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext);
-extern void __Formatter_Deinit(FormatterRef _Nullable self);
+static inline void __Formatter_Init(FormatterRef _Nonnull self, FILE* _Nonnull pStream) {
+    self->stream = pStream;
+    self->charactersWritten = 0;
+}
+
+static inline void __Formatter_Deinit(FormatterRef _Nullable self) {
+    self->stream = NULL;
+}
 
 extern errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
 

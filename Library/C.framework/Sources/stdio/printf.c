@@ -1,20 +1,16 @@
 //
 //  printf.c
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <errno.h>
 #include <limits.h>
-#include <syscall.h>
 #include "Formatter.h"
+#include "Stream.h"
 
 
 int printf(const char *format, ...)
@@ -27,22 +23,11 @@ int printf(const char *format, ...)
     return r;
 }
 
-static errno_t vprintf_console_sink(FormatterRef _Nullable self, const char* _Nonnull pBuffer, size_t nBytes)
-{
-    const size_t r = fwrite(pBuffer, nBytes, 1, stdout);
-
-    if (r == 1) {
-        return 0;
-    } else {
-        return errno;
-    }
-}
-
 int vprintf(const char *format, va_list ap)
 {
     Formatter fmt;
 
-    __Formatter_Init(&fmt, vprintf_console_sink, NULL);
+    __Formatter_Init(&fmt, stdout);
     const errno_t err = __Formatter_vFormat(&fmt, format, ap);
     const size_t nchars = fmt.charactersWritten;
     __Formatter_Deinit(&fmt);
@@ -51,35 +36,6 @@ int vprintf(const char *format, va_list ap)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
-typedef struct _BufferSink {
-    char* _Nullable buffer;
-    size_t          capacity;
-} BufferSink;
-
-// Note that this sink continues to calculate the number of characters we would
-// want to write even after we've reached the maximum size of the string buffer.
-// See: <https://en.cppreference.com/w/c/io/fprintf>
-static errno_t vprintf_buffer_sink(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, size_t nBytes)
-{
-    BufferSink* pSink = (BufferSink*)self->context;
-
-    if (pSink->capacity > 0 && pSink->buffer) {
-        size_t nBytesToWrite;
-
-        if (self->charactersWritten + nBytes > pSink->capacity) {
-            const size_t nExcessBytes = (self->charactersWritten + nBytes) - pSink->capacity;
-            nBytesToWrite = nBytes - nExcessBytes;
-        }
-        else {
-            nBytesToWrite = nBytes;
-        }
-
-        memcpy(&pSink->buffer[self->charactersWritten], pBuffer, nBytesToWrite);
-    }
-
-    return 0;
-}
 
 int sprintf(char *buffer, const char *format, ...)
 {
@@ -93,23 +49,7 @@ int sprintf(char *buffer, const char *format, ...)
 
 int vsprintf(char *buffer, const char *format, va_list ap)
 {
-    Formatter fmt;
-    BufferSink sink;
-
-    sink.buffer = buffer;
-    sink.capacity = (buffer) ? SIZE_MAX-1 : 0;
-    __Formatter_Init(&fmt, vprintf_buffer_sink, &sink);
-
-    const errno_t err = __Formatter_vFormat(&fmt, format, ap);
-    const size_t nchars = fmt.charactersWritten;
-    __Formatter_Deinit(&fmt);
-
-    if (err == 0) {
-        buffer[nchars] = '\0';
-        return nchars;
-     } else { 
-        return -err;
-     }
+    return vsnprintf(buffer, SIZE_MAX, format, ap);
 }
 
 int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
@@ -124,57 +64,39 @@ int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
 
 int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 {
+    FILE_Memory mem;
     Formatter fmt;
-    BufferSink sink;
+    FILE* fp = NULL;
 
-    sink.buffer = buffer;
-    sink.capacity = (buffer && bufsiz > 0) ? bufsiz - 1 : 0;
-    __Formatter_Init(&fmt, vprintf_buffer_sink, &sink);
-    
+    if (buffer && bufsiz > 0) {
+        mem.base = buffer;
+        mem.initialCapacity = bufsiz - 1;
+        mem.maximumCapacity = bufsiz - 1;
+        mem.initialEof = 0;
+        mem.freeOnClose = false;
+
+        fp = fopen_memory(&mem, "w");
+        if (fp == NULL) {
+            return -errno;
+        }
+    }
+    else {
+        // Use a null stream to calculate the length of the formatted string
+        fp = __fopen_null("w");
+    }
+
+    __Formatter_Init(&fmt, fp);
     const errno_t err = __Formatter_vFormat(&fmt, format, ap);
     const size_t nchars = fmt.charactersWritten;
     __Formatter_Deinit(&fmt);
+    buffer[nchars] = '\0';
+    fclose(fp);
 
-    if (err == 0) {
-        buffer[nchars] = '\0';
-        return nchars;
-     } else { 
-        return -err;
-     }
+    return (err == 0) ? nchars : -err;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
-#define INITIAL_MALLOC_SINK_BUFFER_CAPACITY 256
-#define MIN_GROW_MALLOC_SINK_BUFFER_CAPACITY 128
-typedef struct _MallocSink {
-    char* _Nullable buffer;
-    size_t          capacity;
-} MallocSink;
-
-// Dynamically allocates the memory for the string
-static errno_t vaprintf_malloc_sink(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, size_t nBytes)
-{
-    MallocSink* pSink = (MallocSink*)self->context;
-
-    if (self->charactersWritten == pSink->capacity) {
-        const size_t newCapacity = (pSink->capacity > 0) ? __max(nBytes, MIN_GROW_MALLOC_SINK_BUFFER_CAPACITY) + pSink->capacity : INITIAL_MALLOC_SINK_BUFFER_CAPACITY;
-        char* pNewBuffer = (char*) malloc(newCapacity);
-
-        if (pNewBuffer == NULL) {
-            return -ENOMEM;
-        }
-
-        memcpy(pNewBuffer, pSink->buffer, self->charactersWritten);
-        free(pSink->buffer);
-        pSink->buffer = pNewBuffer;
-    }
-
-    memcpy(&pSink->buffer[self->charactersWritten], pBuffer, nBytes);
-
-    return 0;
-}
 
 int asprintf(char **str_ptr, const char *format, ...)
 {
@@ -188,23 +110,47 @@ int asprintf(char **str_ptr, const char *format, ...)
 
 int vasprintf(char **str_ptr, const char *format, va_list ap)
 {
+    FILE_Memory mem;
+    FILE_MemoryQuery mq;
     Formatter fmt;
-    MallocSink sink;
+    FILE* fp = NULL;
 
-    sink.buffer = NULL;
-    sink.capacity = 0;
-    __Formatter_Init(&fmt, vaprintf_malloc_sink, &sink);
+    if (str_ptr) {
+        *str_ptr = NULL;
+        mem.base = NULL;
+        mem.initialCapacity = 128;
+        mem.maximumCapacity = SIZE_MAX;
+        mem.initialEof = 0;
+        mem.freeOnClose = false;
 
+        fp = fopen_memory(&mem, "w");
+        if (fp == NULL) {
+            return -errno;
+        }
+    }
+    else {
+        // Use a null stream to calculate the length of the formatted string
+        fp = __fopen_null("w");
+    }
+
+    __Formatter_Init(&fmt, fp);
     const errno_t err = __Formatter_vFormat(&fmt, format, ap);
     const size_t nchars = fmt.charactersWritten;
+    const int r = (err == 0) ? fputc('\0', fp) : EOF; // write terminating NUL
     __Formatter_Deinit(&fmt);
+    filemem(fp, &mq);
+    fclose(fp);
 
-    if (err == 0) {
-        sink.buffer[nchars] = '\0';
-        *str_ptr = sink.buffer;
+    if (r != EOF) {
+        if (str_ptr) *str_ptr = mq.base;
         return nchars;
      } else {
-        *str_ptr = NULL; 
-        return -err;
+        if (str_ptr) {
+            // we told the stream to not free the memory block, however we may have
+            // gotten a partially filled block. So free it manually.
+            free(mq.base);
+            *str_ptr = NULL;
+        }
+        return (err != 0) ? -err : -errno;
      }
 }
