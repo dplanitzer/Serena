@@ -7,33 +7,30 @@
 //
 
 #include "Stream.h"
-#include <assert.h>
 #include <string.h>
 #include <apollo/apollo.h>
 
-static __IOChannel_FILE __StdinObj;
-static __IOChannel_FILE __StdoutObj;
-static __IOChannel_FILE __StderrObj;
+static __IOChannel_FILE _StdinObj;
+static __IOChannel_FILE _StdoutObj;
+static __IOChannel_FILE _StderrObj;
 
 
 void __stdio_init(void)
 {
-    //assert(sizeof(FILE) >= sizeof(__IOChannel_FILE));
-
-    // XXX temporary until we'll put something like an ini process in place
+    // XXX temporary until we'll put something like an init process in place
     int fd0, fd1;
     //    assert(open("/dev/console", O_RDONLY, &fd0) == 0);
     //    assert(open("/dev/console", O_WRONLY, &fd1) == 0);
     open("/dev/console", O_RDONLY, &fd0);
     open("/dev/console", O_WRONLY, &fd1);
-    // XXX temporary until we'll put something like an ini process in place
+    // XXX temporary until we'll put something like an init process in place
 
-    __Stdin = (FILE*)&__StdinObj;
-    __Stdout = (FILE*)&__StdoutObj;
-    __Stderr = (FILE*)&__StderrObj;
+    _Stdin = (FILE*)&_StdinObj;
+    _Stdout = (FILE*)&_StdoutObj;
+    _Stderr = (FILE*)&_StderrObj;
 
-    __fdopen_init(&__StdinObj, false, STDIN_FILENO, "r");
-    __fdopen_init(&__StdoutObj, false, STDOUT_FILENO, "w");
+    __fdopen_init(&_StdinObj, false, STDIN_FILENO, "r");
+    __fdopen_init(&_StdoutObj, false, STDOUT_FILENO, "w");
     // XXX add support for stderr
 }
 
@@ -52,7 +49,6 @@ void perror(const char *str)
     }
 
     puts(strerror(errno));
-    putchar('\n');
 }
 
 int remove(const char* path)

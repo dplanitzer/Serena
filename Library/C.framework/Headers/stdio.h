@@ -88,12 +88,12 @@ typedef struct _FILE {
 } FILE;
 
 
-extern FILE* __Stdin;
-#define stdin __Stdin
-extern FILE* __Stdout;
-#define stdout __Stdout
-extern FILE* __Stderr;
-#define stderr __Stderr
+extern FILE* _Stdin;
+extern FILE* _Stdout;
+extern FILE* _Stderr;
+#define stdin _Stdin
+#define stdout _Stdout
+#define stderr _Stderr
 
 
 extern FILE *fopen(const char *filename, const char *mode);
