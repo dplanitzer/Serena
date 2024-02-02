@@ -16,7 +16,6 @@
 #include <_syslimits.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 __CPP_BEGIN
 
@@ -72,7 +71,7 @@ typedef struct _FILE {
     struct _FILE*               prev;
     struct _FILE*               next;
     FILE_Callbacks              cb;
-    intptr_t                    context;
+    void*                       context;
     char*                       buffer;
     size_t                      bufferCapacity;
     size_t                      bufferCount;
@@ -83,13 +82,14 @@ typedef struct _FILE {
         unsigned int hasEof:1;
         unsigned int shouldFreeOnClose:1;
     }                           flags;
-    long                        reserved[4];
 } FILE;
 
-extern FILE __StdFile[3];
-#define stdin (&__StdFile[0])
-#define stdout (&__StdFile[1])
-#define stderr (&__StdFile[2])
+extern FILE* __Stdin;
+#define stdin __Stdin
+extern FILE* __Stdout;
+#define stdout __Stdout
+extern FILE* __Stderr;
+#define stderr __Stderr
 
 
 extern FILE *fopen(const char *filename, const char *mode);

@@ -18,13 +18,13 @@
 // actual data.
 
 
-static errno_t __null_read(void* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+static errno_t __null_read(void* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     *pOutBytesRead = 0;
     return 0;
 }
 
-static errno_t __null_write(void* _Nonnull mp, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+static errno_t __null_write(void* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     *pOutBytesWritten = nBytesToWrite;
     return 0;
@@ -39,13 +39,18 @@ static const FILE_Callbacks __FILE_null_callbacks = {
 
 
 
+errno_t __fopen_null_init(FILE* _Nonnull self, const char *mode)
+{
+    return __fopen_init(self, true, NULL, &__FILE_null_callbacks, mode);
+}
+
 FILE *__fopen_null(const char *mode)
 {
     decl_try_err();
     FILE* self = NULL;
 
-    try_null(self, malloc(sizeof(FILE)), ENOMEM);
-    try(__fopen_init(self, true, (intptr_t)0, &__FILE_null_callbacks, mode));
+    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(FILE)), ENOMEM);
+    try(__fopen_null_init(self, mode));
 
     return self;
 

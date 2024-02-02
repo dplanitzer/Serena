@@ -7,12 +7,19 @@
 //
 
 #include "Stream.h"
+#include <assert.h>
 #include <string.h>
 #include <apollo/apollo.h>
+
+static __IOChannel_FILE __StdinObj;
+static __IOChannel_FILE __StdoutObj;
+static __IOChannel_FILE __StderrObj;
 
 
 void __stdio_init(void)
 {
+    //assert(sizeof(FILE) >= sizeof(__IOChannel_FILE));
+
     // XXX temporary until we'll put something like an ini process in place
     int fd0, fd1;
     //    assert(open("/dev/console", O_RDONLY, &fd0) == 0);
@@ -21,8 +28,12 @@ void __stdio_init(void)
     open("/dev/console", O_WRONLY, &fd1);
     // XXX temporary until we'll put something like an ini process in place
 
-    __fdopen_init(stdin, false, STDIN_FILENO, "r");
-    __fdopen_init(stdout, false, STDOUT_FILENO, "w");
+    __Stdin = (FILE*)&__StdinObj;
+    __Stdout = (FILE*)&__StdoutObj;
+    __Stderr = (FILE*)&__StderrObj;
+
+    __fdopen_init(&__StdinObj, false, STDIN_FILENO, "r");
+    __fdopen_init(&__StdoutObj, false, STDOUT_FILENO, "w");
     // XXX add support for stderr
 }
 

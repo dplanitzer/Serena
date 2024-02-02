@@ -12,8 +12,9 @@
 
 // User visible globals
 char ** environ;
-FILE __StdFile[3];
-
+FILE* __Stdin;
+FILE* __Stdout;
+FILE* __Stderr;
 
 // Private globals
 AllocatorRef __gAllocator;

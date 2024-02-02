@@ -57,10 +57,8 @@ __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
     return sm;
 }
 
-errno_t __fopen_init(FILE* self, bool bFreeOnClose, intptr_t context, const FILE_Callbacks* callbacks, const char* mode)
+errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, const char* mode)
 {
-    decl_try_err();
-
     if (callbacks == NULL || mode == NULL) {
         return EINVAL;
     }
@@ -100,8 +98,8 @@ FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char
     decl_try_err();
     FILE* self = NULL;
 
-    try_null(self, malloc(sizeof(FILE)), ENOMEM);
-    try(__fopen_init(self, true, (intptr_t)context, callbacks, mode));
+    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(FILE)), ENOMEM);
+    try(__fopen_init(self, true, context, callbacks, mode));
     return self;
 
 catch:

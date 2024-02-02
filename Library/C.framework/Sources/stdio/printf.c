@@ -64,9 +64,10 @@ int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
 
 int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 {
+    decl_try_err();
+    __Memory_FILE file;
     FILE_Memory mem;
     Formatter fmt;
-    FILE* fp = NULL;
 
     if (buffer && bufsiz > 0) {
         mem.base = buffer;
@@ -75,22 +76,22 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
         mem.initialEof = 0;
         mem.freeOnClose = false;
 
-        fp = fopen_memory(&mem, "w");
-        if (fp == NULL) {
-            return -errno;
-        }
+        err = __fopen_memory_init(&file, &mem, "w");
     }
     else {
         // Use a null stream to calculate the length of the formatted string
-        fp = __fopen_null("w");
+        err = __fopen_null_init(&file.super, "w");
+    }
+    if (err != 0) {
+        return -err;
     }
 
-    __Formatter_Init(&fmt, fp);
-    const errno_t err = __Formatter_vFormat(&fmt, format, ap);
+    __Formatter_Init(&fmt, &file.super);
+    err = __Formatter_vFormat(&fmt, format, ap);
     const size_t nchars = fmt.charactersWritten;
     __Formatter_Deinit(&fmt);
-    buffer[nchars] = '\0';
-    fclose(fp);
+    buffer[fmt.charactersWritten] = '\0';
+    __fclose(&file.super);
 
     return (err == 0) ? nchars : -err;
 }
@@ -110,10 +111,11 @@ int asprintf(char **str_ptr, const char *format, ...)
 
 int vasprintf(char **str_ptr, const char *format, va_list ap)
 {
+    decl_try_err();
+    __Memory_FILE file;
     FILE_Memory mem;
     FILE_MemoryQuery mq;
     Formatter fmt;
-    FILE* fp = NULL;
 
     if (str_ptr) {
         *str_ptr = NULL;
@@ -123,23 +125,23 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
         mem.initialEof = 0;
         mem.freeOnClose = false;
 
-        fp = fopen_memory(&mem, "w");
-        if (fp == NULL) {
-            return -errno;
-        }
+        err = __fopen_memory_init(&file, &mem, "w");
     }
     else {
         // Use a null stream to calculate the length of the formatted string
-        fp = __fopen_null("w");
+        err = __fopen_null_init(&file.super, "w");
+    }
+    if (err != 0) {
+        return -err;
     }
 
-    __Formatter_Init(&fmt, fp);
-    const errno_t err = __Formatter_vFormat(&fmt, format, ap);
+    __Formatter_Init(&fmt, &file.super);
+    err = __Formatter_vFormat(&fmt, format, ap);
     const size_t nchars = fmt.charactersWritten;
-    const int r = (err == 0) ? fputc('\0', fp) : EOF; // write terminating NUL
+    const int r = (err == 0) ? fputc('\0', &file.super) : EOF; // write terminating NUL
     __Formatter_Deinit(&fmt);
-    filemem(fp, &mq);
-    fclose(fp);
+    filemem(&file.super, &mq);
+    __fclose(&file.super);
 
     if (r != EOF) {
         if (str_ptr) *str_ptr = mq.base;

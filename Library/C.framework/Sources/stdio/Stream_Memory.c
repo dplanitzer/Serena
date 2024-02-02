@@ -23,22 +23,9 @@
 // -------------------------------------------------------
 //    allocated store           storeCapacity            eofPosition
 //
-typedef struct __FILE_memory {
-    char* _Nullable store;
-    size_t          currentCapacity;        // current capacity of the backing store
-    size_t          maximumCapacity;        // maximum permissible backing store capacity
-    size_t          eofPosition;            // has to be >= storeCapacity
-    size_t          currentPosition;        // is kept in the range 0...eofPosition
-    bool            freeOnClose;
-} __FILE_memory;
-
-typedef struct __FILE_compound {
-    FILE            file;
-    __FILE_memory   mem;
-} __FILE_compound;
 
 
-static errno_t __mem_read(__FILE_memory* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+static errno_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     const ssize_t nBytesRead = (ssize_t)__min((size_t)nBytesToRead, mp->eofPosition - mp->currentPosition);
     const ssize_t nBytesToCopy = (ssize_t)__min((size_t)nBytesRead, mp->currentCapacity - mp->currentPosition);
@@ -59,7 +46,7 @@ static errno_t __mem_read(__FILE_memory* _Nonnull mp, void* pBuffer, ssize_t nBy
     return 0;
 }
 
-static errno_t __mem_write(__FILE_memory* _Nonnull mp, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+static errno_t __mem_write(__Memory_FILE_Vars* _Nonnull mp, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     // XXX Generate a disk full error if writing would cause the current position to overflow
     size_t newCurrentPosition = mp->currentPosition + nBytesToWrite;
@@ -109,7 +96,7 @@ static errno_t __mem_write(__FILE_memory* _Nonnull mp, const void* pBytes, ssize
     return 0;
 }
 
-static errno_t __mem_seek(__FILE_memory* _Nonnull mp, long long offset, long long* _Nullable outOldOffset, int whence)
+static errno_t __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, long long* _Nullable outOldOffset, int whence)
 {
     size_t newPosition;
 
@@ -143,7 +130,7 @@ static errno_t __mem_seek(__FILE_memory* _Nonnull mp, long long offset, long lon
     return 0;
 }
 
-static errno_t __mem_close(__FILE_memory* _Nonnull mp)
+static errno_t __mem_close(__Memory_FILE_Vars* _Nonnull mp)
 {
     if (mp->freeOnClose) {
         free(mp->store);
@@ -162,16 +149,10 @@ static const FILE_Callbacks __FILE_mem_callbacks = {
 
 
 
-FILE *fopen_memory(FILE_Memory *mem, const char *mode)
+errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, const char *mode)
 {
-    decl_try_err();
-    __FILE_compound* p = NULL;
+    __Memory_FILE_Vars* mp = &self->v;
 
-    try_null(p, malloc(sizeof(__FILE_compound)), ENOMEM);
-    FILE* self = &p->file;
-    __FILE_memory* mp = &p->mem;
-
-    try(__fopen_init(self, true, (intptr_t)mp, &__FILE_mem_callbacks, mode));
     mp->store = mem->base;
     mp->currentCapacity = mem->initialCapacity;
     mp->maximumCapacity = mem->maximumCapacity;
@@ -179,10 +160,21 @@ FILE *fopen_memory(FILE_Memory *mem, const char *mode)
     mp->currentPosition = 0;
     mp->freeOnClose = mem->freeOnClose;
 
-    return self;
+    return __fopen_init((FILE*)self, true, mp, &__FILE_mem_callbacks, mode);
+}
+
+FILE *fopen_memory(FILE_Memory *mem, const char *mode)
+{
+    decl_try_err();
+    __Memory_FILE* self = NULL;
+
+    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(__Memory_FILE)), ENOMEM);
+    try(__fopen_memory_init(self, mem, mode));
+
+    return (FILE*)self;
 
 catch:
-    free(p);
+    free(self);
     errno = err;
     return NULL;
 }
@@ -195,7 +187,7 @@ int filemem(FILE *s, FILE_MemoryQuery *query)
     }
 
     if (s->cb.read == (FILE_Read)__mem_read) {
-        const __FILE_memory* mp = (__FILE_memory*)s->context;
+        const __Memory_FILE_Vars* mp = (__Memory_FILE_Vars*)s->context;
 
         query->base = mp->store;
         query->eof = mp->eofPosition;
