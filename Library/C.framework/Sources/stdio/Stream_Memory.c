@@ -132,7 +132,7 @@ static errno_t __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, lon
 
 static errno_t __mem_close(__Memory_FILE_Vars* _Nonnull mp)
 {
-    if (mp->freeOnClose) {
+    if (mp->flags.freeOnClose) {
         free(mp->store);
     }
     mp->store = NULL;
@@ -158,7 +158,7 @@ errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, cons
     mp->maximumCapacity = mem->maximumCapacity;
     mp->eofPosition = mem->initialEof;
     mp->currentPosition = 0;
-    mp->freeOnClose = mem->freeOnClose;
+    mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
     return __fopen_init((FILE*)self, true, mp, &__FILE_mem_callbacks, mode);
 }

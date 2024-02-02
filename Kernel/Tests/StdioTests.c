@@ -26,7 +26,7 @@ void fopen_memory_fixed_size_test(int argc, char *argv[])
     mem.initialEof = 0;
     mem.initialCapacity = sizeof(data);
     mem.maximumCapacity = mem.initialCapacity;
-    mem.freeOnClose = false;
+    mem.options = 0;
 
     FILE* fp = fopen_memory(&mem, "rw");
     assertNotNULL(fp);
@@ -51,7 +51,7 @@ void fopen_memory_variable_size_test(int argc, char *argv[])
     mem.initialEof = 0;
     mem.initialCapacity = 0;
     mem.maximumCapacity = 16;
-    mem.freeOnClose = false;
+    mem.options = 0;
 
     FILE* fp = fopen_memory(&mem, "rw");
     assertNotNULL(fp);

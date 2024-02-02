@@ -15,7 +15,6 @@
 #include <_sizedef.h>
 #include <_syslimits.h>
 #include <stdarg.h>
-#include <stdbool.h>
 
 __CPP_BEGIN
 
@@ -58,14 +57,18 @@ typedef struct _FILE_Memory {
     size_t              initialEof;         // initial file size. A fread() issued to the stream right after opening will return this data
     size_t              initialCapacity;    // initial capacity of the memory block. This is the size to which a file can grow before an empty is made to allocate a bigger block
     size_t              maximumCapacity;    // max size to which the memory block is allowed to grow. If initialCapacity == maximumCapacity then the stream will not grow the memory block
-    bool                freeOnClose;        // true if the memory block should be freed on close; false if not
+    unsigned int        options;            // See _IOM_xxx definitions
 } FILE_Memory;
+
+// Free the file memory block when fclose() is called
+#define _IOM_FREE_ON_CLOSE  1
 
 typedef struct _FILE_MemoryQuery {
     void* _Nullable     base;           // current memory block base pointer
     size_t              eof;            // offset to where the EOF is in the memory block (aka how much data was written)
     size_t              capacity;       // how big the memory block really is. Difference between capacity and EOF is storage not used by the file
 } FILE_MemoryQuery;
+
 
 typedef struct _FILE {
     struct _FILE*               prev;
@@ -83,6 +86,7 @@ typedef struct _FILE {
         unsigned int shouldFreeOnClose:1;
     }                           flags;
 } FILE;
+
 
 extern FILE* __Stdin;
 #define stdin __Stdin

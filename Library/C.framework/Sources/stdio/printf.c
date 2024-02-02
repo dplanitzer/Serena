@@ -74,7 +74,7 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
         mem.initialCapacity = bufsiz - 1;
         mem.maximumCapacity = bufsiz - 1;
         mem.initialEof = 0;
-        mem.freeOnClose = false;
+        mem.options = 0;
 
         err = __fopen_memory_init(&file, &mem, "w");
     }
@@ -123,7 +123,7 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
         mem.initialCapacity = 128;
         mem.maximumCapacity = SIZE_MAX;
         mem.initialEof = 0;
-        mem.freeOnClose = false;
+        mem.options = 0;
 
         err = __fopen_memory_init(&file, &mem, "w");
     }

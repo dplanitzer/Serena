@@ -6,6 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 

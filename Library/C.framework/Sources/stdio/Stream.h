@@ -66,7 +66,9 @@ typedef struct __Memory_FILE_Vars {
     size_t          maximumCapacity;        // maximum permissible backing store capacity
     size_t          eofPosition;            // has to be >= storeCapacity
     size_t          currentPosition;        // is kept in the range 0...eofPosition
-    bool            freeOnClose;
+    struct {
+        unsigned int freeOnClose:1;
+    }               flags;
 } __Memory_FILE_Vars;
 
 typedef struct __Memory_FILE {
