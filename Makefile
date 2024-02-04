@@ -114,7 +114,6 @@ all:
 include $(LIBC_PROJECT_DIR)/project.mk
 
 include $(KERNEL_PROJECT_DIR)/project.mk
-
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
 include $(SH_PROJECT_DIR)/project.mk

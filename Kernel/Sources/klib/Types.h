@@ -240,7 +240,7 @@ extern const Character* _Nonnull UInt32_ToString(UInt32 val, Int base, Bool isUp
 // Int64
 // 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
 extern const Character* _Nonnull Int64_ToString(Int64 val, Int radix, Bool isUppercase, Character* _Nonnull pBuffer);
-extern Int Int64_DivMod(Int64 dividend, Int64 divisor, Int64* _Nullable quotient, Int64* _Nullable remainder);
+extern int __divmodi64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
 
 // UInt64

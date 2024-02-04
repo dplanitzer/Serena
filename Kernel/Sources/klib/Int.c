@@ -166,7 +166,7 @@ Character* _Nonnull __i64toa(Int64 val, Int radix, Bool isUppercase, Character* 
 
     *p-- = '\0';
     do {
-        Int64_DivMod(val, radix, &q, &r);
+        __divmodi64(val, radix, &q, &r);
         *p-- = ds[r];
         val = q;
         i++;
@@ -210,7 +210,7 @@ Character* _Nonnull __ui64toa(UInt64 val, Int radix, Bool isUppercase, Character
 
     *p-- = '\0';
     do {
-        Int64_DivMod(val, radix, &q, &r);
+        __divmodi64(val, radix, &q, &r);
         *p-- = ds[r];
         val = q;
         i++;
