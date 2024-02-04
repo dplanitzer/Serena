@@ -58,7 +58,7 @@ extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char*
 #define throw(e)            { err = e; goto catch; }
 
 
-extern errno_t __Int64_DivMod(int64_t dividend, int64_t divisor, int64_t *quotient, int64_t *remainder);
+extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
 extern void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp);
 extern void __malloc_init(void);

@@ -13,12 +13,14 @@
 #include <__globals.h>
 #include <__stddef.h>
 
+extern void __urt_init(struct __process_arguments_t* _Nonnull argsp);
 
 void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
     environ = argsp->envp;
 
+    __urt_init(argsp);
     __exit_init();
     __malloc_init();
     __stdio_init();

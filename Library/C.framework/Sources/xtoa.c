@@ -84,7 +84,7 @@ char* _Nonnull __i64toa(int64_t val, int radix, bool isUppercase, char* _Nonnull
 
     *p-- = '\0';
     do {
-        __Int64_DivMod(val, radix, &q, &r);
+        _divmods64(val, radix, &q, &r);
         *p-- = ds[r];
         val = q;
         i++;
@@ -128,7 +128,7 @@ char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnu
 
     *p-- = '\0';
     do {
-        __Int64_DivMod(val, radix, &q, &r);
+        _divmods64(val, radix, &q, &r);
         *p-- = ds[r];
         val = q;
         i++;

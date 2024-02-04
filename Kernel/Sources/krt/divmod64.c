@@ -14,8 +14,6 @@
 // http://www.hackersdelight.org/hdcodetxt/divmnu.c.txt
 //
 
-extern int __divmodi64(long long dividend, long long divisor, long long* quotient, long long* remainder);
-
 
 #define NULL    ((void*)0)
 
@@ -146,7 +144,7 @@ static int __divmnu(unsigned short  * q, unsigned short  * r,
 }
 
 
-int __divmodi64(long long dividend, long long divisor, long long* quotient, long long* remainder)
+int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder)
 {
     i64_t x, y, qx, rx;
     unsigned short q[4], r[4];
@@ -241,7 +239,7 @@ long long _divsint64_020(long long dividend, long long divisor)
 {
     long long quo;
     
-    __divmodi64(dividend, divisor, &quo, NULL);
+    _divmods64(dividend, divisor, &quo, NULL);
     
     return quo;
 }
@@ -250,7 +248,7 @@ long long _divsint64_060(long long dividend, long long divisor)
 {
     long long quo;
     
-    __divmodi64(dividend, divisor, &quo, NULL);
+    _divmods64(dividend, divisor, &quo, NULL);
     
     return quo;
 }
@@ -259,7 +257,7 @@ long long _modsint64_020(long long dividend, long long divisor)
 {
     long long quo, rem;
     
-    __divmodi64(dividend, divisor, &quo, &rem);
+    _divmods64(dividend, divisor, &quo, &rem);
     
     return rem;
 }
@@ -268,7 +266,7 @@ long long _modsint64_060(long long dividend, long long divisor)
 {
     long long quo, rem;
     
-    __divmodi64(dividend, divisor, &quo, &rem);
+    _divmods64(dividend, divisor, &quo, &rem);
     
     return rem;
 }
@@ -277,7 +275,7 @@ unsigned long long _divuint64_20(unsigned long long dividend, unsigned long long
 {
     long long quo;
     
-    __divmodi64(dividend, divisor, &quo, NULL);
+    _divmods64(dividend, divisor, &quo, NULL);
     
     return (unsigned long long) quo;
 }
@@ -286,7 +284,7 @@ unsigned long long _moduint64_20(unsigned long long dividend, unsigned long long
 {
     long long quo, rem;
     
-    __divmodi64(dividend, divisor, &quo, &rem);
+    _divmods64(dividend, divisor, &quo, &rem);
     
     return (unsigned long long) rem;
 }

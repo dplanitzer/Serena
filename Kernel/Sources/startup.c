@@ -6,6 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <krt/krt.h>
 #include <klib/klib.h>
 #include "BootAllocator.h"
 #include "DispatchQueue.h"
@@ -171,6 +172,11 @@ static void OnMain(void)
     // Initialize all other drivers
     try_bang(DriverManager_AutoConfigure(gDriverManager));
 
+
+    // Initialize the Kernel Runtime Services so that we can make it available
+    // to userspace in the form of the Userspace Runtime Services.
+    krt_init();
+    
 
     // Figure out what boot filesystem to use and initialize the filesystem
     // manager with it.

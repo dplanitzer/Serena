@@ -10,6 +10,7 @@
 #include "FilesystemManager.h"
 #include "GemDosExecutableLoader.h"
 #include "ProcessManager.h"
+#include <krt/krt.h>
 
 
 CLASS_METHODS(Process, Object,
@@ -589,6 +590,7 @@ static ErrorCode Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc
     pProcArgs->argv = pProcArgv;
     pProcArgs->envp = pProcEnv;
     pProcArgs->image_base = NULL;
+    pProcArgs->urt_funcs = gUrtFuncTable;
 
     return EOK;
 

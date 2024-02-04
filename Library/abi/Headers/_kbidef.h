@@ -13,6 +13,20 @@
 #include <_dmdef.h>
 #include <_syslimits.h>
 
+enum {
+    kUrtFunc_asr64 = 0,     // long long _rshint64(long long x, int s)
+    kUrtFunc_lsr64,         // long long _rshint64(long long x, int s)
+    kUrtFunc_lsl64,         // long long _lshint64(long long x, int s)
+    kUrtFunc_divmods64_64,  // int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder)
+    kUrtFunc_muls64_64,     // long long _mulint64(long long x, long long y)
+    kUrtFunc_muls32_64,     // long long _ui32_64_mul(int x, int y)
+
+    kUrtFunc_Count
+};
+
+typedef void (*UrtFunc)(void);
+
+
 // The process arguments descriptor is stored in the process address space and
 // it contains a pointer to the base of the command line arguments and environment
 // variables tables. These tables store pointers to nul-terminated strings and
@@ -27,6 +41,7 @@ struct __process_arguments_t {
     char* _Nullable * _Nonnull  argv;           // Pointer to the base of the command line arguments table. Last entry is NULL
     char* _Nullable * _Nonnull  envp;           // Pointer to the base of the environment table. Last entry holds NULL.
     void* _Nonnull              image_base;     // Pointer to the base of the executable header
+    UrtFunc* _Nonnull           urt_funcs;      // Pointer to the URT function table
 };
 
 

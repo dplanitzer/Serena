@@ -9,6 +9,9 @@
 #include "Types.h"
 #include "Error.h"
 
+extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
+
+
 static ErrorCode __atoi64(const Character * _Nonnull str, Character **str_end, Int base, Int64 min_val, Int64 max_val, Int max_digits, Int64 * _Nonnull result)
 {
     if ((base < 2 && base != 0) || base > 36) {
@@ -166,7 +169,7 @@ Character* _Nonnull __i64toa(Int64 val, Int radix, Bool isUppercase, Character* 
 
     *p-- = '\0';
     do {
-        __divmodi64(val, radix, &q, &r);
+        _divmods64(val, radix, &q, &r);
         *p-- = ds[r];
         val = q;
         i++;
@@ -210,7 +213,7 @@ Character* _Nonnull __ui64toa(UInt64 val, Int radix, Bool isUppercase, Character
 
     *p-- = '\0';
     do {
-        __divmodi64(val, radix, &q, &r);
+        _divmods64(val, radix, &q, &r);
         *p-- = ds[r];
         val = q;
         i++;
