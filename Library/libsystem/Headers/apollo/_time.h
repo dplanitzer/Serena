@@ -10,7 +10,7 @@
 #define _SYS_TIME_H 1
 
 #include <apollo/_cmndef.h>
-#include <_nulldef.h>
+#include <abi/_nulldef.h>
 #include <apollo/_sizedef.h>
 
 __CPP_BEGIN

@@ -10,10 +10,10 @@
 #define _STDIO_H 1
 
 #include <apollo/_cmndef.h>
-#include <_errdef.h>
-#include <_nulldef.h>
+#include <abi/_errdef.h>
+#include <abi/_nulldef.h>
 #include <apollo/_sizedef.h>
-#include <_syslimits.h>
+#include <abi/_syslimits.h>
 #include <stdarg.h>
 
 __CPP_BEGIN

@@ -10,8 +10,8 @@
 #define _STDDEF_H 1
 
 #include <apollo/_cmndef.h>
-#include <_dmdef.h>
-#include <_nulldef.h>
+#include <abi/_dmdef.h>
+#include <abi/_nulldef.h>
 #include <apollo/_sizedef.h>
 
 __CPP_BEGIN

@@ -10,6 +10,6 @@
 #define _STDARG_H 1
 
 #include <apollo/_cmndef.h>
-#include <_varargs.h>
+#include <abi/_varargs.h>
 
 #endif /* _STDARG_H */

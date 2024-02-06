@@ -10,7 +10,7 @@
 #define _LIMITS_H 1
 
 #include <apollo/_cmndef.h>
-#include <_dmdef.h>
+#include <abi/_dmdef.h>
 #include <stddef.h>
 
 __CPP_BEGIN

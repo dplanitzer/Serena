@@ -10,8 +10,8 @@
 #define _SYS_APOLLO_H 1
 
 #include <apollo/_cmndef.h>
-#include <_kbidef.h>
-#include <_syslimits.h>
+#include <abi/_kbidef.h>
+#include <abi/_syslimits.h>
 #include <apollo/types.h>
 
 __CPP_BEGIN

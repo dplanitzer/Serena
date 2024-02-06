@@ -10,7 +10,7 @@
 #define _ASSERT_H 1
 
 #include <apollo/_cmndef.h>
-#include <_nulldef.h>
+#include <abi/_nulldef.h>
 #include <stdnoreturn.h>
 
 __CPP_BEGIN

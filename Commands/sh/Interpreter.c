@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <_math.h>
+#include <abi/_math.h>
 
 
 static void _chdir(const char* path)

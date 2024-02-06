@@ -9,9 +9,9 @@
 #ifndef __KBIDEF_H
 #define __KBIDEF_H 1
 
-#include <_nulldef.h>
-#include <_dmdef.h>
-#include <_syslimits.h>
+#include <abi/_nulldef.h>
+#include <abi/_dmdef.h>
+#include <abi/_syslimits.h>
 
 enum {
     kUrtFunc_asr64 = 0,     // long long _rshint64(long long x, int s)

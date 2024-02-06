@@ -10,7 +10,7 @@
 #define ___GLOBALS_H 1
 
 #include <stdlib.h>
-#include <_kbidef.h>
+#include <abi/_kbidef.h>
 #include "Allocator.h"
 #include "List.h"
 

@@ -9,8 +9,8 @@
 #ifndef _SYS_TYPES_H
 #define _SYS_TYPES_H 1
 
-#include <_dmdef.h>
-#include <_errdef.h>
+#include <abi/_dmdef.h>
+#include <abi/_errdef.h>
 #include <apollo/_cmndef.h>
 #include <apollo/_sizedef.h>
 

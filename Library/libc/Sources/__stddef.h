@@ -10,8 +10,8 @@
 #define ___STDDEF_H 1
 
 #include <apollo/_cmndef.h>
-#include <_kbidef.h>
-#include <_math.h>
+#include <abi/_kbidef.h>
+#include <abi/_math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>

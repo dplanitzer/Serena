@@ -10,7 +10,7 @@
 #define _SYS_SYSCALL_H 1
 
 #include <apollo/_cmndef.h>
-#include <_syscall.h>
+#include <abi/_syscall.h>
 
 __CPP_BEGIN
 

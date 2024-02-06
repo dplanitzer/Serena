@@ -9,7 +9,7 @@
 #ifndef krt_h
 #define krt_h
 
-#include <_kbidef.h>
+#include <abi/_kbidef.h>
 
 extern UrtFunc gUrtFuncTable[];
 
