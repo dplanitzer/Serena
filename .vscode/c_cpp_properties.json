@@ -7,7 +7,7 @@
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
                 "${workspaceFolder}/Library/libsystem/**",
-                "${workspaceFolder}/Library/C.framework/**"
+                "${workspaceFolder}/Library/libc/**"
             ],
             "defines": [
                 "DEBUG=1",

@@ -91,10 +91,10 @@ export LIBSYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/libsystem
 export LIBSYSTEM_PRODUCT_DIR := $(PRODUCT_DIR)/Library/libsystem
 export LIBSYSTEM_LIB_FILE := $(LIBSYSTEM_PRODUCT_DIR)/libsystem.a
 
-LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/C.framework
+LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libc
 export LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/Headers
-export LIBC_BUILD_DIR := $(BUILD_DIR)/Library/C.framework
-export LIBC_PRODUCT_DIR := $(PRODUCT_DIR)/Library/C.framework
+export LIBC_BUILD_DIR := $(BUILD_DIR)/Library/libc
+export LIBC_PRODUCT_DIR := $(PRODUCT_DIR)/Library/libc
 export LIBC_LIB_FILE := $(LIBC_PRODUCT_DIR)/libc.a
 export LIBC_ASTART_FILE := $(LIBC_PRODUCT_DIR)/_astart.o
 export LIBC_CSTART_FILE := $(LIBC_PRODUCT_DIR)/_cstart.o
