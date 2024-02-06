@@ -9,7 +9,7 @@
 #ifndef _STDIO_H
 #define _STDIO_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_errdef.h>
 #include <abi/_nulldef.h>
 #include <apollo/_sizedef.h>

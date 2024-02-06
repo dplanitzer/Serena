@@ -10,7 +10,7 @@
 #define _TIME_H 1
 
 #include <abi/_nulldef.h>
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <apollo/_sizedef.h>
 #include <apollo/_time.h>
 

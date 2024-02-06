@@ -1,13 +1,13 @@
 //
 //  _kbidef.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 9/14/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __KBIDEF_H
-#define __KBIDEF_H 1
+#ifndef __ABI_KBIDEF_H
+#define __ABI_KBIDEF_H 1
 
 #include <abi/_nulldef.h>
 #include <abi/_dmdef.h>
@@ -203,4 +203,4 @@ typedef enum {
 #define O_EXCL      0x0008
 #define O_TRUNC     0x0010
 
-#endif /* __KBIDEF_H */
+#endif /* __ABI_KBIDEF_H */

@@ -1,13 +1,13 @@
 //
 //  _nulldef.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 8/30/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __NULLDEF_H
-#define __NULLDEF_H 1
+#ifndef __ABI_NULLDEF_H
+#define __ABI_NULLDEF_H 1
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -31,4 +31,4 @@
 #endif
 #endif
 
-#endif /* __NULLDEF_H */
+#endif /* __ABI_NULLDEF_H */

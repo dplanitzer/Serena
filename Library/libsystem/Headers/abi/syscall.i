@@ -1,13 +1,13 @@
 ;
 ;  syscall.i
-;  Apollo
+;  libsystem
 ;
 ;  Created by Dietmar Planitzer on 9/6/23.
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-        ifnd _SYSCALL_I
-_SYSCALL_I  set 1
+        ifnd __ABI_SYSCALL_I
+__ABI_SYSCALL_I  set 1
 
 SC_read                 equ 0   ; ssize_t read(int fd, const char * _Nonnull buffer, size_t count)
 SC_write                equ 1   ; ssize_t write(int fd, const char * _Nonnull buffer, size_t count)
@@ -77,4 +77,4 @@ SC_numberOfCalls        equ 32   ; number of system calls
     trap    #0
     endm
 
-        endif   ; _SYSCALL_I
+        endif   ; __ABI_SYSCALL_I

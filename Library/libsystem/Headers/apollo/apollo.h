@@ -9,7 +9,7 @@
 #ifndef _SYS_APOLLO_H
 #define _SYS_APOLLO_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_kbidef.h>
 #include <abi/_syslimits.h>
 #include <apollo/types.h>

@@ -1,13 +1,13 @@
 //
 //  _dmdef.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 8/31/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __DMDEF_H
-#define __DMDEF_H 1
+#ifndef __ABI_DMDEF_H
+#define __ABI_DMDEF_H 1
 
 #define __CHAR_WIDTH 8
 #define __CHAR_MAX_BASE_10_DIGITS 3
@@ -187,4 +187,4 @@ typedef long long __ssize_t;
 
 #endif
 
-#endif /* __DMDEF_H */
+#endif /* __ABI_DMDEF_H */

@@ -9,7 +9,7 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_dmdef.h>
 #include <stddef.h>
 

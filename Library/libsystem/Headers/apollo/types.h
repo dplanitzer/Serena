@@ -11,7 +11,7 @@
 
 #include <abi/_dmdef.h>
 #include <abi/_errdef.h>
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <apollo/_sizedef.h>
 
 __CPP_BEGIN

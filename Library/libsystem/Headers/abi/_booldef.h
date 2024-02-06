@@ -1,13 +1,13 @@
 //
 //  _booldef.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 9/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __BOOLDEF_H
-#define __BOOLDEF_H 1
+#ifndef __ABI_BOOLDEF_H
+#define __ABI_BOOLDEF_H 1
 
 // Note that a boolean value of true must have bit #0 set. All other bits may or
 // may not be set in addition to bit #0. The reason for this design choice is
@@ -24,4 +24,4 @@
 #define __true    1
 #define __false   0
 
-#endif /* __BOOLDEF_H */
+#endif /* __ABI_BOOLDEF_H */

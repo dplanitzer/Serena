@@ -9,7 +9,7 @@
 #ifndef _SYS_TIME_H
 #define _SYS_TIME_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_nulldef.h>
 #include <apollo/_sizedef.h>
 

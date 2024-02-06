@@ -9,7 +9,7 @@
 #ifndef _STDBOOL_H
 #define _STDBOOL_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_booldef.h>
 
 __CPP_BEGIN

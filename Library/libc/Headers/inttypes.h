@@ -9,7 +9,7 @@
 #ifndef _INTTYPES_H
 #define _INTTYPES_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <stdint.h>
 
 __CPP_BEGIN

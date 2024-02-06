@@ -1,13 +1,13 @@
 //
 //  _varargs.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 9/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __VARARGS_H
-#define __VARARGS_H 1
+#ifndef __ABI_VARARGS_H
+#define __ABI_VARARGS_H 1
 
 typedef unsigned char *va_list;
 
@@ -20,4 +20,4 @@ typedef unsigned char *va_list;
 #define va_copy(new,old) ((new)=(old))
 #define va_end(vl) ((vl)=0)
 
-#endif /* __VARARGS_H */
+#endif /* __ABI_VARARGS_H */

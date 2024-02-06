@@ -9,7 +9,7 @@
 #ifndef ___STDDEF_H
 #define ___STDDEF_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_kbidef.h>
 #include <abi/_math.h>
 #include <stdalign.h>

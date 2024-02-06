@@ -1,13 +1,13 @@
 //
 //  _errdef.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 9/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ERRDEF_H
-#define __ERRDEF_H 1
+#ifndef __ABI_ERRDEF_H
+#define __ABI_ERRDEF_H 1
 
 #define __EOK           0
 #define ENOMEM          1
@@ -51,4 +51,4 @@
 
 typedef int __errno_t;
 
-#endif /* __ERRDEF_H */
+#endif /* __ABI_ERRDEF_H */

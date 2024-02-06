@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYS_CMNDEF_H
-#define __SYS_CMNDEF_H 1
+#ifndef __ABI_CMNDEF_H
+#define __ABI_CMNDEF_H 1
 
 
 #ifdef __cplusplus
@@ -22,4 +22,4 @@
 #define __CPP_END
 #endif
 
-#endif /* __SYS_CMNDEF_H */
+#endif /* __ABI_CMNDEF_H */

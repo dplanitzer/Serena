@@ -1,13 +1,13 @@
 //
 //  _syscall.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 9/2/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __SYSCALLS_H
-#define __SYSCALLS_H 1
+#ifndef __ABI_SYSCALLS_H
+#define __ABI_SYSCALLS_H 1
 
 #define SC_read                 0   // ssize_t read(int fd, const char * _Nonnull buffer, size_t count)
 #define SC_write                1   // ssize_t write(int fd, const char * _Nonnull buffer, size_t count)
@@ -42,4 +42,4 @@
 #define SC_ftruncate            30  // errno_t ftruncate(int fd, off_t length)
 #define SC_mkfile               31  // errno_t creat(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
 
-#endif /* __SYSCALLS_H */
+#endif /* __ABI_SYSCALLS_H */

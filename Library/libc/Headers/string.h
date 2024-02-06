@@ -9,7 +9,7 @@
 #ifndef _STRING_H
 #define _STRING_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_nulldef.h>
 #include <apollo/_sizedef.h>
 

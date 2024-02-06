@@ -9,7 +9,7 @@
 #ifndef _ASSERT_H
 #define _ASSERT_H 1
 
-#include <apollo/_cmndef.h>
+#include <abi/_cmndef.h>
 #include <abi/_nulldef.h>
 #include <stdnoreturn.h>
 
