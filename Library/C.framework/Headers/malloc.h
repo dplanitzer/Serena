@@ -9,9 +9,9 @@
 #ifndef _MALLOC_H
 #define _MALLOC_H 1
 
-#include <_cmndef.h>
+#include <apollo/_cmndef.h>
 #include <_nulldef.h>
-#include <_sizedef.h>
+#include <apollo/_sizedef.h>
 
 __CPP_BEGIN
 

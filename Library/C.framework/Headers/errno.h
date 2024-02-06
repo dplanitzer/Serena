@@ -9,7 +9,7 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H 1
 
-#include <_cmndef.h>
+#include <apollo/_cmndef.h>
 #include <_errdef.h>
 
 __CPP_BEGIN

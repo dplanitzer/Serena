@@ -1,19 +1,18 @@
 //
 //  apollo.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 10/12/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _APOLLO_H
-#define _APOLLO_H 1
+#ifndef _SYS_APOLLO_H
+#define _SYS_APOLLO_H 1
 
-#include <_cmndef.h>
+#include <apollo/_cmndef.h>
 #include <_kbidef.h>
 #include <_syslimits.h>
 #include <apollo/types.h>
-#include <time.h>
 
 __CPP_BEGIN
 
@@ -36,6 +35,8 @@ typedef struct __waitpid_result_t waitpid_result_t;
 #define PATH_MAX __PATH_MAX
 #define NAME_MAX __PATH_COMPONENT_MAX
 
+
+extern void system_init(struct __process_arguments_t* _Nonnull argsp);
 
 extern errno_t creat(const char* path, int options, int permissions, int* fd);
 extern errno_t open(const char *path, int options, int* fd);
@@ -99,4 +100,4 @@ extern errno_t sleep(time_t delay);
 
 __CPP_END
 
-#endif /* _APOLLO_H */
+#endif /* _SYS_APOLLO_H */

@@ -1,13 +1,13 @@
 //
 //  _cmndef.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 9/4/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __CMNDEF_H
-#define __CMNDEF_H 1
+#ifndef __SYS_CMNDEF_H
+#define __SYS_CMNDEF_H 1
 
 
 #ifdef __cplusplus
@@ -22,4 +22,4 @@
 #define __CPP_END
 #endif
 
-#endif /* __CMNDEF_H */
+#endif /* __SYS_CMNDEF_H */

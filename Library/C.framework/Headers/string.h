@@ -9,9 +9,9 @@
 #ifndef _STRING_H
 #define _STRING_H 1
 
-#include <_cmndef.h>
+#include <apollo/_cmndef.h>
 #include <_nulldef.h>
-#include <_sizedef.h>
+#include <apollo/_sizedef.h>
 
 __CPP_BEGIN
 

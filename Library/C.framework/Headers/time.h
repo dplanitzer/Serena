@@ -9,22 +9,14 @@
 #ifndef _TIME_H
 #define _TIME_H 1
 
-#include <_cmndef.h>
 #include <_nulldef.h>
-#include <_sizedef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_sizedef.h>
+#include <apollo/_time.h>
 
 __CPP_BEGIN
 
-// Seconds since 00:00, Jan 1st 1970 UTC
-typedef long time_t;
-
 extern double difftime(time_t stop_time, time_t start_time);
-
-
-struct timespec {
-    time_t  tv_sec;
-    long    tv_nsec;
-};
 
 __CPP_END
 

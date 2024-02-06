@@ -9,7 +9,7 @@
 #ifndef _STDINT_H
 #define _STDINT_H 1
 
-#include <_cmndef.h>
+#include <apollo/_cmndef.h>
 #include <_dmdef.h>
 
 __CPP_BEGIN

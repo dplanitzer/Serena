@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <syscall.h>
 #include <apollo/apollo.h>
 #include "Asserts.h"
 

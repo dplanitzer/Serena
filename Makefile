@@ -85,6 +85,12 @@ export SH_BIN_FILE := $(SH_BUILD_DIR)/sh.bin
 LIBABI_PROJECT_DIR := $(WORKSPACE_DIR)/Library/abi
 export LIBABI_HEADERS_DIR := $(LIBABI_PROJECT_DIR)/Headers
 
+LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem
+export LIBSYSTEM_HEADERS_DIR := $(LIBSYSTEM_PROJECT_DIR)/Headers
+export LIBSYSTEM_BUILD_DIR := $(BUILD_DIR)/Library/libsystem
+export LIBSYSTEM_PRODUCT_DIR := $(PRODUCT_DIR)/Library/libsystem
+export LIBSYSTEM_LIB_FILE := $(LIBSYSTEM_PRODUCT_DIR)/libsystem.a
+
 LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/C.framework
 export LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/Headers
 export LIBC_BUILD_DIR := $(BUILD_DIR)/Library/C.framework
@@ -104,6 +110,7 @@ export LIBC_CSTART_FILE := $(LIBC_PRODUCT_DIR)/_cstart.o
 
 all:
 	@echo Building all [$(BUILD_CONFIGURATION)]
+	$(MAKE) build-libsystem
 	$(MAKE) build-libc
 	$(MAKE) build-kernel
 	$(MAKE) build-kernel-tests
@@ -111,6 +118,7 @@ all:
 	$(MAKE) build-kernel-rom
 	@echo Done
 
+include $(LIBSYSTEM_PROJECT_DIR)/project.mk
 include $(LIBC_PROJECT_DIR)/project.mk
 
 include $(KERNEL_PROJECT_DIR)/project.mk

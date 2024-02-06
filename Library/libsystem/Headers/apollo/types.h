@@ -1,18 +1,18 @@
 //
 //  types.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 10/12/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _APOLLO_TYPES_H
-#define _APOLLO_TYPES_H 1
+#ifndef _SYS_TYPES_H
+#define _SYS_TYPES_H 1
 
-#include <_cmndef.h>
 #include <_dmdef.h>
 #include <_errdef.h>
-#include <_sizedef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_sizedef.h>
 
 __CPP_BEGIN
 
@@ -27,10 +27,17 @@ typedef __errno_t errno_t;
 
 typedef long useconds_t;
 
+typedef long time_t;
+
+struct timespec {
+    time_t  tv_sec;
+    long    tv_nsec;
+};
+
 typedef long long off_t;
 
 typedef unsigned short mode_t;
 
 __CPP_END
 
-#endif /* _APOLLO_TYPES_H */
+#endif /* _SYS_TYPES_H */

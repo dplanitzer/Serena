@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <syscall.h>
+#include <apollo/syscall.h>
 #include <apollo/apollo.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +26,7 @@ static void parent_process(void)
     struct timespec delay = {0, 250*1000*1000};
     printf("Hello World, from process #1!  [%d]\n", cpt_count1++);
     nanosleep(&delay);
-    __syscall(SC_dispatch_async, (void*)parent_process);
+    _syscall(SC_dispatch_async, (void*)parent_process);
 }
 
 static void child_process(void)
@@ -34,7 +34,7 @@ static void child_process(void)
     struct timespec delay = {1, 0*1000*1000};
     printf("Hello World, from process #2!          [%d]\n", cpt_count2++);
     nanosleep(&delay);
-    __syscall(SC_dispatch_async, (void*)child_process);
+    _syscall(SC_dispatch_async, (void*)child_process);
     //exit(0);
     //puts("oops\n");
 }

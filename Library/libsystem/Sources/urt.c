@@ -1,18 +1,18 @@
 //
 //  urt.c
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 2/4/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
 #include <_kbidef.h>
-#include <__stddef.h>
+#include <apollo/types.h>
 
 
 static UrtFunc* __gUrtFuncTable;
 
-void __urt_init(struct __process_arguments_t* _Nonnull argsp)
+void system_init(struct __process_arguments_t* _Nonnull argsp)
 {
     __gUrtFuncTable = argsp->urt_funcs;
 }

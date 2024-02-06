@@ -1,6 +1,6 @@
 ;
 ;  syscall_m68k.s
-;  Apollo
+;  libsystem
 ;
 ;  Created by Dietmar Planitzer on 9/2/23.
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -8,12 +8,12 @@
 
     include "syscall.i"
 
-    xdef ___syscall
+    xdef __syscall
 
 
 ;-------------------------------------------------------------------------------
-; errno_t __syscall(int scno, ...)
-___syscall:
+; errno_t _syscall(int scno, ...)
+__syscall:
     lea.l  4(sp), a0
     SYSCALL
     rts

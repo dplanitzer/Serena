@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <syscall.h>
+#include <apollo/syscall.h>
 #include <__globals.h>
 #include <__stddef.h>
 #include "Allocator.h"
@@ -16,7 +16,7 @@
 
 static inline errno_t __alloc_address_space(size_t nbytes, void **ptr)
 {
-    return __syscall(SC_alloc_address_space, nbytes, ptr);
+    return _syscall(SC_alloc_address_space, nbytes, ptr);
 }
 
 // Initializes the malloc subsystem and does the initial heap allocation.

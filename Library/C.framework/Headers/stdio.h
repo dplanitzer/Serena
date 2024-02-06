@@ -9,10 +9,10 @@
 #ifndef _STDIO_H
 #define _STDIO_H 1
 
-#include <_cmndef.h>
+#include <apollo/_cmndef.h>
 #include <_errdef.h>
 #include <_nulldef.h>
-#include <_sizedef.h>
+#include <apollo/_sizedef.h>
 #include <_syslimits.h>
 #include <stdarg.h>
 

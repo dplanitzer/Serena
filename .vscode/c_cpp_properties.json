@@ -6,6 +6,7 @@
                 "${workspaceFolder}/Library/abi/**",
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
+                "${workspaceFolder}/Library/libsystem/**",
                 "${workspaceFolder}/Library/C.framework/**"
             ],
             "defines": [
