@@ -390,7 +390,12 @@ static ErrorCode RamFS_xRead(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked p
             break;
         }
 
-        try(RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock));
+        const ErrorCode e1 = RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock);
+        if (e1 != EOK) {
+            err = (nBytesToRead == nOriginalBytesToRead) ? e1 : EOK;
+            break;
+        }
+
         nBytesToRead -= cb(pContext, pDiskBlock + blockOffset, nBytesAvailable);
         offset += (FileOffset)nBytesAvailable;
     }
@@ -420,7 +425,12 @@ static ErrorCode RamFS_xWrite(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked 
         const ByteCount nBytesAvailable = __min(kRamBlockSize - blockOffset, nBytesToWrite);
         Byte* pDiskBlock;
 
-        try(RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Write, &pDiskBlock));
+        const ErrorCode e1 = RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Write, &pDiskBlock);
+        if (e1 != EOK) {
+            err = (nBytesWritten == 0) ? e1 : EOK;
+            break;
+        }
+        
         cb(pDiskBlock + blockOffset, pContext, nBytesAvailable);
         nBytesWritten += nBytesAvailable;
         offset += (FileOffset)nBytesAvailable;
