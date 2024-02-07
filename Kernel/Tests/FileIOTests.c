@@ -60,17 +60,15 @@ static void _read(int fd, void* buffer, size_t nbytes, ssize_t* nOutBytesRead)
     if (err != 0) {
         printf("read error: %s\n", strerror(err));
     }
-    return;
 }
 
-static size_t _write(int fd, const void* buffer, size_t nbytes)
+static void _write(int fd, const void* buffer, size_t nbytes, ssize_t* nOutBytesWritten)
 {
-    ssize_t r = write(fd, buffer, nbytes);
+    const errno_t err = write(fd, buffer, nbytes, nOutBytesWritten);
 
-    if (r < 0) {
-        printf("write error: %s\n", strerror(-r));
+    if (err != 0) {
+        printf("write error: %s\n", strerror(err));
     }
-    return (size_t)r;
 }
 
 static void _close(int fd)

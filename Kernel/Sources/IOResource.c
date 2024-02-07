@@ -75,23 +75,26 @@ ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
 ErrorCode IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
     if ((self->mode & O_RDONLY) == 0) {
+        *nOutBytesRead = 0;
         return EBADF;
     }
 
     return IOResource_Read(self->resource, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-ByteCount IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
+ErrorCode IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
 {
     if ((self->mode & O_WRONLY) == 0) {
-        return -EBADF;
+        *nOutBytesWritten = 0;
+        return EBADF;
     }
 
-    return IOResource_Write(self->resource, self, pBuffer, nBytesToWrite);
+    return IOResource_Write(self->resource, self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
 ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, Int whence)
 {
+    *pOutPosition = 0;
     return ESPIPE;
 }
 
@@ -144,12 +147,14 @@ ErrorCode IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pCha
 
 ErrorCode IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
+    *nOutBytesRead = 0;
     return EBADF;
 }
 
-ByteCount IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
+ErrorCode IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
 {
-    return -EBADF;
+    *nOutBytesWritten = 0;
+    return EBADF;
 }
 
 // See UObject.close()

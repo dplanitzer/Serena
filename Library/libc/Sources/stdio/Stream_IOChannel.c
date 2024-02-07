@@ -20,15 +20,7 @@ static errno_t __ioc_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, s
 
 static errno_t __ioc_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
-    ssize_t bytesWritten = write(self->ioc, pBytes, nBytesToWrite);
-
-    if (bytesWritten >= 0) {
-        *pOutBytesWritten = bytesWritten;
-        return 0;
-    } else {
-        *pOutBytesWritten = 0;
-        return (errno_t) -bytesWritten;
-    }
+    return write(self->ioc, pBytes, nBytesToWrite, pOutBytesWritten);
 }
 
 static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *outOldOffset, int whence)

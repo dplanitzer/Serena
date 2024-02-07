@@ -23,8 +23,8 @@ static Character    gPrintBuffer[PRINT_BUFFER_CAPACITY];
 
 static ErrorCode printv_console_sink_locked(FormatterRef _Nonnull self, const Character* _Nonnull pBuffer, ByteCount nBytes)
 {
-    IOChannel_Write(gConsoleChannel, pBuffer, nBytes);
-    return EOK;
+    ByteCount nBytesWritten;
+    return IOChannel_Write(gConsoleChannel, pBuffer, nBytes, &nBytesWritten);
 }
 
 // Initializes the print subsystem.

@@ -772,7 +772,7 @@ ErrorCode Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite)
+ErrorCode Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
 {
     const unsigned char* pChars = (const unsigned char*) pBytes;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
@@ -785,7 +785,8 @@ ByteCount Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull
     }
     Lock_Unlock(&pConsole->lock);
 
-    return nBytesToWrite;
+    *nOutBytesWritten = nBytesToWrite;
+    return EOK;
 }
 
 

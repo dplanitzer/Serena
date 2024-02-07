@@ -42,8 +42,8 @@ extern errno_t creat(const char* path, int options, int permissions, int* fd);
 extern errno_t open(const char *path, int options, int* fd);
 extern errno_t opendir(const char* path, int* fd);
 
-extern errno_t read(int fd, void *buffer, size_t nbytes, ssize_t* nOutBytesRead);
-extern ssize_t write(int fd, const void *buffer, size_t nbytes);
+extern errno_t read(int fd, void *buffer, size_t nBytesToRead, ssize_t* nOutBytesRead);
+extern errno_t write(int fd, const void *buffer, size_t nBytesToWrite, ssize_t* nOutBytesWritten);
 
 extern errno_t tell(int fd, off_t* pos);
 extern errno_t seek(int fd, off_t offset, off_t *oldpos, int whence);

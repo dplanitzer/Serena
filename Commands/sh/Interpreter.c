@@ -41,16 +41,6 @@ void _mkdir(const char* path)
     }
 }
 
-static size_t _write(int fd, const void* buffer, size_t nbytes)
-{
-    ssize_t r = write(fd, buffer, nbytes);
-
-    if (r < 0) {
-        printf("Error: %s.\n", strerror(-r));
-    }
-    return (size_t)r;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 

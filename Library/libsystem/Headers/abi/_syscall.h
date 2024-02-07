@@ -9,8 +9,8 @@
 #ifndef __ABI_SYSCALLS_H
 #define __ABI_SYSCALLS_H 1
 
-#define SC_read                 0   // errno_t read(int fd, const char * _Nonnull buffer, size_t count, ssize_t* pOutBytesRead)
-#define SC_write                1   // ssize_t write(int fd, const char * _Nonnull buffer, size_t count)
+#define SC_read                 0   // errno_t read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
+#define SC_write                1   // errno_t write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
 #define SC_sleep                2   // errno_t sleep(const struct timespec * _Nonnull delay)
 #define SC_dispatch_async       3   // errno_t dispatch_async(void * _Nonnull pUserClosure)
 #define SC_alloc_address_space  4   // errno_t alloc_address_space(int nbytes, void **pOutMem)

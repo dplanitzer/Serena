@@ -894,10 +894,9 @@ ErrorCode RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, Byte* _Nonn
     return err;
 }
 
-ByteCount RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
+ErrorCode RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
-    ByteCount nBytesWritten;
 
     const ErrorCode err = RamFS_xWrite(self, 
         pNode, 
@@ -905,9 +904,9 @@ ByteCount RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const Byte
         nBytesToWrite,
         (RamWriteCallback)Bytes_CopyRange,
         pBuffer,
-        &nBytesWritten);
-    File_IncrementOffset(pFile, nBytesWritten);
-    return (err == EOK) ? nBytesWritten : -err;
+        nOutBytesWritten);
+    File_IncrementOffset(pFile, *nOutBytesWritten);
+    return err;
 }
 
 // Internal file truncation function. Shortens the file 'pNode' to the new and

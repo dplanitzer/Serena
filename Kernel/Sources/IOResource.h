@@ -30,7 +30,7 @@ typedef struct _IOChannelMethodTable {
     ErrorCode   (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
     ErrorCode   (*ioctl)(void* _Nonnull self, Int cmd, va_list ap);
     ErrorCode   (*read)(void* _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead);
-    ByteCount   (*write)(void* _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+    ErrorCode   (*write)(void* _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten);
     ErrorCode   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence);
     ErrorCode   (*close)(void* _Nonnull self);
 } IOChannelMethodTable;
@@ -46,8 +46,8 @@ extern ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_li
 #define IOChannel_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define IOChannel_Write(__self, __pBuffer, __nBytesToWrite) \
-Object_InvokeN(write, IOChannel, __self, __pBuffer, __nBytesToWrite)
+#define IOChannel_Write(__self, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+Object_InvokeN(write, IOChannel, __self, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define IOChannel_Seek(__self, __offset, __pOutOldPosition, __whence) \
 Object_InvokeN(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
@@ -103,7 +103,7 @@ typedef struct _IOResourceMethodTable {
     ErrorCode   (*dup)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     ErrorCode   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nBytesRead);
-    ByteCount   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
+    ErrorCode   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten);
 
     // Executes the resource specific command 'cmd'.
     ErrorCode   (*ioctl)(void* _Nonnull self, Int cmd, va_list ap);
@@ -130,8 +130,8 @@ Object_InvokeN(dup, IOResource, __self, __pChannel, __pOutChannel)
 #define IOResource_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite) \
-Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)
+#define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define IOResource_vIOControl(__self, __cmd, __ap) \
 Object_InvokeN(ioctl, IOResource, __self, __cmd, __ap)

@@ -170,8 +170,9 @@ ErrorCode Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, Byt
     return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-ByteCount Directory_write(DirectoryRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
+ErrorCode Directory_write(DirectoryRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
 {
+    *nOutBytesWritten = 0;
     return EBADF;
 }
 

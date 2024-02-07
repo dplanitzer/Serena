@@ -133,23 +133,23 @@ struct SYS_write_args {
     Int                     scno;
     Int                     fd;
     const Byte* _Nonnull    buffer;
-    UByteCount              count;
+    UByteCount              nBytesToWrite;
+    ByteCount* _Nonnull     nBytesWritten;
 };
 
-ByteCount _SYSCALL_write(const struct SYS_write_args* _Nonnull pArgs)
+Int _SYSCALL_write(const struct SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
     IOChannelRef pChannel;
-    ByteCount nb = 0;
 
     try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
-    nb = IOChannel_Write(pChannel, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    try(IOChannel_Write(pChannel, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->nBytesToWrite), pArgs->nBytesWritten));
     Object_Release(pChannel);
-    return nb;
+    return EOK;
 
 catch:
     Object_Release(pChannel);
-    return -err;
+    return err;
 }
 
 

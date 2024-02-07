@@ -26,14 +26,14 @@ errno_t opendir(const char* path, int* fd)
     return (errno_t)_syscall(SC_opendir, path, fd);
 }
 
-errno_t read(int fd, void *buffer, size_t nbytes, ssize_t* nOutBytesRead)
+errno_t read(int fd, void *buffer, size_t nBytesToRead, ssize_t* nOutBytesRead)
 {
-    return (errno_t)_syscall(SC_read, fd, buffer, nbytes, nOutBytesRead);
+    return (errno_t)_syscall(SC_read, fd, buffer, nBytesToRead, nOutBytesRead);
 }
 
-ssize_t write(int fd, const void *buffer, size_t nbytes)
+errno_t write(int fd, const void *buffer, size_t nBytesToWrite, ssize_t* nOutBytesWritten)
 {
-    return (ssize_t)_syscall(SC_write, fd, buffer, nbytes);
+    return (errno_t)_syscall(SC_write, fd, buffer, nBytesToWrite, nOutBytesWritten);
 }
 
 errno_t tell(int fd, off_t* pos)
