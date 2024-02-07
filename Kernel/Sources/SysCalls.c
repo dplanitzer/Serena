@@ -109,23 +109,23 @@ struct SYS_read_args {
     Int                 scno;
     Int                 fd;
     Character* _Nonnull buffer;
-    UByteCount          count;
+    UByteCount          nBytesToRead;
+    ByteCount* _Nonnull nBytesRead;
 };
 
-ByteCount _SYSCALL_read(const struct SYS_read_args* _Nonnull pArgs)
+Int _SYSCALL_read(const struct SYS_read_args* _Nonnull pArgs)
 {
     decl_try_err();
     IOChannelRef pChannel;
-    ByteCount nb = 0;
 
     try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
-    nb = IOChannel_Read(pChannel, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->count));
+    try(IOChannel_Read(pChannel, pArgs->buffer, __ByteCountByClampingUByteCount(pArgs->nBytesToRead), pArgs->nBytesRead));
     Object_Release(pChannel);
-    return nb;
+    return EOK;
 
 catch:
     Object_Release(pChannel);
-    return -err;
+    return err;
 }
 
 

@@ -29,7 +29,7 @@ typedef struct _IOChannelMethodTable {
     ObjectMethodTable   super;
     ErrorCode   (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
     ErrorCode   (*ioctl)(void* _Nonnull self, Int cmd, va_list ap);
-    ByteCount   (*read)(void* _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+    ErrorCode   (*read)(void* _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead);
     ByteCount   (*write)(void* _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
     ErrorCode   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence);
     ErrorCode   (*close)(void* _Nonnull self);
@@ -43,8 +43,8 @@ Object_InvokeN(dup, IOChannel, __self, __pOutChannel)
 
 extern ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap);
 
-#define IOChannel_Read(__self, __pBuffer, __nBytesToRead) \
-Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead)
+#define IOChannel_Read(__self, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+Object_InvokeN(read, IOChannel, __self, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 #define IOChannel_Write(__self, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOChannel, __self, __pBuffer, __nBytesToWrite)
@@ -102,7 +102,7 @@ typedef struct _IOResourceMethodTable {
     // the channel state is immutable. 
     ErrorCode   (*dup)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-    ByteCount   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+    ErrorCode   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nBytesRead);
     ByteCount   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite);
 
     // Executes the resource specific command 'cmd'.
@@ -127,8 +127,8 @@ Object_InvokeN(open, IOResource, __self, __pNode, __options, __user, __pOutChann
 #define IOResource_Dup(__self, __pChannel, __pOutChannel) \
 Object_InvokeN(dup, IOResource, __self, __pChannel, __pOutChannel)
 
-#define IOResource_Read(__self, __pChannel, __pBuffer, __nBytesToRead) \
-Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead)
+#define IOResource_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+Object_InvokeN(read, IOResource, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 #define IOResource_Write(__self, __pChannel, __pBuffer, __nBytesToWrite) \
 Object_InvokeN(write, IOResource, __self, __pChannel, __pBuffer, __nBytesToWrite)

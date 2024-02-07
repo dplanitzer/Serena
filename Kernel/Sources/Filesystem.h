@@ -223,7 +223,7 @@ typedef struct _FilesystemMethodTable {
     // return a partial entry. Consequently the provided buffer must be big enough
     // to hold at least one directory entry. Note that this function is expected
     // to return "." for the entry at index #0 and ".." for the entry at index #1.
-    ByteCount (*readDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead);
+    ErrorCode (*readDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead);
 
     // Closes the given directory I/O channel.
     ErrorCode (*closeDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir);
@@ -343,8 +343,8 @@ Object_InvokeN(createDirectory, Filesystem, __self, __pName, __pParentNode, __us
 #define Filesystem_OpenDirectory(__self, __pDirNode, __user, __pOutDir) \
 Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __user, __pOutDir)
 
-#define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead) \
-Object_InvokeN(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead)
+#define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+Object_InvokeN(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 #define Filesystem_CloseDirectory(__self, __pDir) \
 Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)

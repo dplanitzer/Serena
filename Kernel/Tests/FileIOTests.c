@@ -53,14 +53,14 @@ static int _opendir(const char* path)
     return fd;
 }
 
-static size_t _read(int fd, void* buffer, size_t nbytes)
+static void _read(int fd, void* buffer, size_t nbytes, ssize_t* nOutBytesRead)
 {
-    ssize_t r = read(fd, buffer, nbytes);
+    const errno_t err = read(fd, buffer, nbytes, nOutBytesRead);
 
-    if (r < 0) {
-        printf("read error: %s\n", strerror(-r));
+    if (err != 0) {
+        printf("read error: %s\n", strerror(err));
     }
-    return (size_t)r;
+    return;
 }
 
 static size_t _write(int fd, const void* buffer, size_t nbytes)
@@ -165,7 +165,8 @@ void readdir_test(int argc, char *argv[])
     struct _directory_entry_t dirent;
 
     while (true) {
-        const ssize_t r = _read(fd, &dirent, sizeof(dirent));
+        ssize_t r;
+        _read(fd, &dirent, sizeof(dirent), &r);
         if (r == 0) {
             break;
         }

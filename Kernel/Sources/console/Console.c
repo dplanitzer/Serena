@@ -630,7 +630,7 @@ catch:
 
 }
 
-static ByteCount Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
     ByteCount nBytesRead = 0;
 
@@ -668,14 +668,15 @@ static ByteCount Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pCon
         }
     }
     
-    return nBytesRead;
+    *nOutBytesRead = nBytesRead;
 }
 
-static ByteCount Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+static ErrorCode Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
+    decl_try_err();
     HIDEvent evt;
     ByteCount nBytesRead = 0;
-    ErrorCode err = EOK;
+    ByteCount nEvtBytesRead;
 
     while (nBytesRead < nBytesToRead) {
         // Drop the console lock while getting an event since the get events call
@@ -684,13 +685,13 @@ static ByteCount Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, Console
         // console
         Lock_Unlock(&pConsole->lock);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
-        // XXX Or, probably, that's how the event driver read() should work in general 
-        const ByteCount nEvtBytesRead = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt));
+        // XXX Or, probably, that's how the event driver read() should work in general
+        const ErrorCode e1 = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt), &nEvtBytesRead);
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
-        if (nEvtBytesRead < 0) {
-            err = (ErrorCode) -nEvtBytesRead;
+        if (e1 != EOK) {
+            err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
 
@@ -715,19 +716,21 @@ static ByteCount Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, Console
         }
     }
     
-    return (err == EOK) ? nBytesRead : -err;
+    *nOutBytesRead = nBytesRead;
+    return err;
 }
 
 // Note that this read implementation will only block if there is no buffered
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
+    decl_try_err();
     HIDEvent evt;
     Int evtCount;
     ByteCount nBytesRead = 0;
-    decl_try_err();
+    ByteCount nTmpBytesRead;
 
     Lock_Lock(&pConsole->lock);
 
@@ -742,29 +745,26 @@ ByteCount Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
     if (!RingBuffer_IsEmpty(&pConsole->reportsQueue)) {
         // Now check whether there are terminal reports pending. Those take
         // priority over input device events.
-        const ByteCount r = Console_ReadReports_NonBlocking_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead);
-        if (r >= 0) {
-            nBytesRead += r;
-        } else {
-            err = (ErrorCode) -r;
-        }
+        Console_ReadReports_NonBlocking_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        nBytesRead += nTmpBytesRead;
     }
 
 
     if (nBytesRead == 0 && err == EOK) {
         // We haven't read any data so far. Read input events and block if none
         // are available either.
-        const ByteCount r = Console_ReadEvents_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead);
-        if (r >= 0) {
-            nBytesRead += r;
+        const ErrorCode e1 = Console_ReadEvents_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        if (e1 == EOK) {
+            nBytesRead += nTmpBytesRead;
         } else {
-            err = (ErrorCode) -r;
+            err = (nBytesRead == 0) ? e1 : EOK;
         }
     }
 
     Lock_Unlock(&pConsole->lock);
 
-    return (err == EOK) ? nBytesRead : -err;
+    *nOutBytesRead = nBytesRead;
+    return err;
 }
 
 // Writes the given byte sequence of characters to the console.

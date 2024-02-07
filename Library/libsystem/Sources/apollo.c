@@ -26,9 +26,9 @@ errno_t opendir(const char* path, int* fd)
     return (errno_t)_syscall(SC_opendir, path, fd);
 }
 
-ssize_t read(int fd, void *buffer, size_t nbytes)
+errno_t read(int fd, void *buffer, size_t nbytes, ssize_t* nOutBytesRead)
 {
-    return (ssize_t)_syscall(SC_read, fd, buffer, nbytes);
+    return (errno_t)_syscall(SC_read, fd, buffer, nbytes, nOutBytesRead);
 }
 
 ssize_t write(int fd, const void *buffer, size_t nbytes)

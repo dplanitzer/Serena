@@ -582,7 +582,7 @@ catch:
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
@@ -590,7 +590,14 @@ ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRe
     Int i;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        try(HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? pChannel->timeout : kTimeInterval_Zero));
+        const ErrorCode e1 = HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? pChannel->timeout : kTimeInterval_Zero);
+
+        if (e1 != EOK) {
+            // Return with an error if we were not able to read any event data at
+            // all and return with the data we were able to read otherwise.
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
         //assert(HIDEventQueue_GetOverflowCount(pDriver->eventQueue) == 0);
         
         nBytesRead += sizeof(HIDEvent);
@@ -598,10 +605,8 @@ ByteCount EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRe
         i++;
     }
 
-    return nBytesRead;
-
-catch:
-    return -err;
+    *nOutBytesRead = nBytesRead;
+    return err;
 }
 
 

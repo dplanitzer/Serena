@@ -749,11 +749,10 @@ static ByteCount xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const R
     return nBytesCopied;
 }
 
-ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = Directory_GetInode(pDir);
     const ByteCount nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(RamDirectoryEntry);
-    ByteCount nBytesRead;
 
     const ErrorCode err = RamFS_xRead(self, 
         pNode, 
@@ -761,9 +760,9 @@ ByteCount RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir
         nBytesToReadFromDirectory,
         (RamReadCallback)xCopyOutDirectoryEntries,
         pBuffer,
-        &nBytesRead);
-    Directory_IncrementOffset(pDir, nBytesRead);
-    return (err == EOK) ? nBytesRead : -err;
+        nOutBytesRead);
+    Directory_IncrementOffset(pDir, *nOutBytesRead);
+    return err;
 }
 
 // Creates an empty file and returns the inode of that file. The behavior is
@@ -880,10 +879,9 @@ static ByteCount xCopyOutFileContent(Byte* _Nonnull pOut, const Byte* _Nonnull p
     return nBytesToRead;
 }
 
-ByteCount RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
-    ByteCount nBytesRead;
 
     const ErrorCode err = RamFS_xRead(self, 
         pNode, 
@@ -891,9 +889,9 @@ ByteCount RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, Byte* _Nonn
         nBytesToRead,
         (RamReadCallback)xCopyOutFileContent,
         pBuffer,
-        &nBytesRead);
-    File_IncrementOffset(pFile, nBytesRead);
-    return (err == EOK) ? nBytesRead : -err;
+        nOutBytesRead);
+    File_IncrementOffset(pFile, *nOutBytesRead);
+    return err;
 }
 
 ByteCount RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)

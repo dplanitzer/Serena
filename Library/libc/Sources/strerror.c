@@ -21,6 +21,7 @@ char *strerror(int err_no)
         /*ERANGE*/          "Out of range parameter",
         /*EINTR*/           "Interrupted",
         /*EAGAIN*/          "Try again",
+        /*EWOULDBLOCK*/     "Would block",
         /*EPIPE*/           "Broken pipe",
         /*EBUSY*/           "Busy",
         /*ENOSYS*/          "Not a system call",

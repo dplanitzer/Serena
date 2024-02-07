@@ -9,7 +9,7 @@
         ifnd __ABI_SYSCALL_I
 __ABI_SYSCALL_I  set 1
 
-SC_read                 equ 0   ; ssize_t read(int fd, const char * _Nonnull buffer, size_t count)
+SC_read                 equ 0   ; errno_t read(int fd, const char * _Nonnull buffer, size_t count, ssize_t* pOutBytesRead)
 SC_write                equ 1   ; ssize_t write(int fd, const char * _Nonnull buffer, size_t count)
 SC_sleep                equ 2   ; errno_t sleep(const struct timespec * _Nonnull delay)
 SC_dispatch_async       equ 3   ; errno_t dispatch_async(void * _Nonnull pUserClosure)

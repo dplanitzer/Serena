@@ -165,9 +165,9 @@ ErrorCode Directory_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
     }
 }
 
-ByteCount Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
-    return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead);
+    return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 ByteCount Directory_write(DirectoryRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
@@ -534,9 +534,9 @@ ErrorCode Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnul
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-ByteCount Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
-    return -EIO;
+    return EIO;
 }
 
 // Closes the given directory I/O channel.

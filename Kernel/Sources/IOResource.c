@@ -72,13 +72,13 @@ ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
     }
 }
 
-ByteCount IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
     if ((self->mode & O_RDONLY) == 0) {
-        return -EBADF;
+        return EBADF;
     }
 
-    return IOResource_Read(self->resource, self, pBuffer, nBytesToRead);
+    return IOResource_Read(self->resource, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 ByteCount IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)
@@ -142,9 +142,9 @@ ErrorCode IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pCha
     return EBADF;
 }
 
-ByteCount IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead)
+ErrorCode IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
 {
-    return -EBADF;
+    return EBADF;
 }
 
 ByteCount IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite)

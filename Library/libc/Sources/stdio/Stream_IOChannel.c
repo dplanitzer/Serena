@@ -15,15 +15,7 @@
 
 static errno_t __ioc_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
-    ssize_t bytesRead = read(self->ioc, pBuffer, nBytesToRead);
-
-    if (bytesRead >= 0) {
-        *pOutBytesRead = bytesRead;
-        return 0;
-    } else {
-        *pOutBytesRead = 0;
-        return (errno_t) -bytesRead;
-    }
+    return read(self->ioc, pBuffer, nBytesToRead, pOutBytesRead);
 }
 
 static errno_t __ioc_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)

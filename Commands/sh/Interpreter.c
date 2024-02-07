@@ -41,35 +41,6 @@ void _mkdir(const char* path)
     }
 }
 
-static int _opendir(const char* path)
-{
-    int fd = -1;
-    const errno_t err = opendir(path, &fd);
-
-    if (err != 0) {
-        printf("Error: %s.\n", strerror(err));
-    }
-    return fd;
-}
-
-void _getfileinfo(const char* path, struct _file_info_t* info)
-{
-    const errno_t err = getfileinfo(path, info);
-    if (err != 0) {
-        printf("Error: %s.\n", strerror(err));
-    }
-}
-
-static size_t _read(int fd, void* buffer, size_t nbytes)
-{
-    ssize_t r = read(fd, buffer, nbytes);
-
-    if (r < 0) {
-        printf("Error: %s.\n", strerror(-r));
-    }
-    return (size_t)r;
-}
-
 static size_t _write(int fd, const void* buffer, size_t nbytes)
 {
     ssize_t r = write(fd, buffer, nbytes);
@@ -78,15 +49,6 @@ static size_t _write(int fd, const void* buffer, size_t nbytes)
         printf("Error: %s.\n", strerror(-r));
     }
     return (size_t)r;
-}
-
-static void _close(int fd)
-{
-    const errno_t err = close(fd);
-
-    if (err != 0) {
-        printf("Error: %s.\n", strerror(err));
-    }
 }
 
 
@@ -251,12 +213,16 @@ static errno_t calc_dir_entry_format(InterpreterRef _Nonnull self, const char* _
 {
     struct DirectoryEntryFormat* fmt = (struct DirectoryEntryFormat*)pContext;
     struct _file_info_t info;
+    errno_t err = 0;
 
     strcpy(self->pathBuffer, pDirPath);
     strcat(self->pathBuffer, "/");
     strcat(self->pathBuffer, pEntry->name);
 
-    _getfileinfo(self->pathBuffer, &info);
+    err = getfileinfo(self->pathBuffer, &info);
+    if (err != 0) {
+        return err;
+    }
 
     itoa(info.linkCount, self->pathBuffer, 10);
     fmt->linkCountWidth = __max(fmt->linkCountWidth, strlen(self->pathBuffer));
@@ -276,12 +242,16 @@ static errno_t print_dir_entry(InterpreterRef _Nonnull self, const char* _Nonnul
 {
     struct DirectoryEntryFormat* fmt = (struct DirectoryEntryFormat*)pContext;
     struct _file_info_t info;
+    errno_t err = 0;
 
     strcpy(self->pathBuffer, pDirPath);
     strcat(self->pathBuffer, "/");
     strcat(self->pathBuffer, pEntry->name);
 
-    _getfileinfo(self->pathBuffer, &info);
+    err = getfileinfo(self->pathBuffer, &info);
+    if (err != 0) {
+        return err;
+    }
 
     char tp[11];
     for (int i = 0; i < sizeof(tp); i++) {
@@ -303,36 +273,50 @@ static errno_t print_dir_entry(InterpreterRef _Nonnull self, const char* _Nonnul
         fmt->sizeWidth, info.size,
         fmt->inodeIdWidth, info.inodeId,
         pEntry->name);
+    
     return 0;
 }
 
-static void iterate_dir(InterpreterRef _Nonnull self, const char* _Nonnull path, DirectoryIteratorCallback _Nonnull cb, void* _Nullable pContext)
+static errno_t iterate_dir(InterpreterRef _Nonnull self, const char* _Nonnull path, DirectoryIteratorCallback _Nonnull cb, void* _Nullable pContext)
 {
-    const int fd = _opendir(path);
+    int fd;
     errno_t err = 0;
 
-    if (fd != -1) {
+    err = opendir(path, &fd);
+    if (err == 0) {
         while (err == 0) {
             struct _directory_entry_t dirent;
-            const ssize_t r = _read(fd, &dirent, sizeof(dirent));
-        
-            if (r == 0) {
+            ssize_t r;
+
+            err = read(fd, &dirent, sizeof(dirent), &r);        
+            if (err != 0 || r == 0) {
                 break;
             }
 
             err = cb(self, path, &dirent, pContext);
+            if (err != 0) {
+                break;
+            }
         }
-        _close(fd);
+        close(fd);
     }
+    return err;
 }
 
 static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
 {
     char* path = Interpreter_GetArgumentAt(self, pArgs, 0, ".");
     struct DirectoryEntryFormat fmt = {0};
+    errno_t err;
 
-    iterate_dir(self, path, calc_dir_entry_format, &fmt);
-    iterate_dir(self, path, print_dir_entry, &fmt);
+    err = iterate_dir(self, path, calc_dir_entry_format, &fmt);
+    if (err == 0) {
+        err = iterate_dir(self, path, print_dir_entry, &fmt);
+    }
+
+    if (err != 0) {
+        printf("Error: %s.\n", strerror(err));
+    }
 }
 
 static void sh_pwd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)

@@ -209,8 +209,9 @@ static void OnMainClosure(Byte* _Nonnull pValue)
 
     print("Event loop\n");
     while (true) {
-        const ByteCount nBytesRead = IOChannel_Read(pChannel, (Byte*)&evt, sizeof(evt));
-        if (nBytesRead < 0) {
+        ByteCount nBytesRead;
+        const ErrorCode err = IOChannel_Read(pChannel, (Byte*)&evt, sizeof(evt), &nBytesRead);
+        if (err != EOK) {
             abort();
         }
         
