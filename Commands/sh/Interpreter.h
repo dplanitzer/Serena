@@ -18,6 +18,15 @@ typedef struct Interpreter {
 } Interpreter;
 typedef Interpreter* InterpreterRef;
 
+
+typedef int (*InterpreterCommandCallback)(InterpreterRef _Nonnull, int argc, char** argv);
+
+typedef struct InterpreterCommand {
+    const char*                 name;
+    InterpreterCommandCallback  cb;
+} InterpreterCommand;
+
+
 typedef errno_t (*DirectoryIteratorCallback)(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, struct _directory_entry_t* _Nonnull pEntry, void* _Nullable pContext);
 
 struct DirectoryEntryFormat {
