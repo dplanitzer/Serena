@@ -39,7 +39,7 @@
 #define __CLASS_METHODS(__name, __super, ...) \
 static struct _##__name##MethodTable g##__name##VTable; \
 static const struct MethodDecl gMethodImpls_##__name[] = { __VA_ARGS__ {(Method)0, 0} }; \
-Class _ClassSection k##__name##Class = {(Method*)&g##__name##VTable, __super, #__name, sizeof(__name), (Int16) sizeof(struct _##__name##MethodTable)/sizeof(Method), 0, gMethodImpls_##__name}
+Class _ClassSection k##__name##Class = {(Method*)&g##__name##VTable, __super, #__name, sizeof(__name), (int16_t) sizeof(struct _##__name##MethodTable)/sizeof(Method), 0, gMethodImpls_##__name}
 
 #define __CLASS_IVARS(__name, __super, __ivars_decls) \
 extern Class k##__name##Class; \
@@ -126,7 +126,7 @@ typedef void (*Method)(void* _Nonnull self, ...);
 
 struct MethodDecl {
     Method _Nonnull method;
-    ByteCount       offset;
+    ssize_t       offset;
 };
 
 #define CLASSF_INITIALIZED  1
@@ -135,9 +135,9 @@ typedef struct _Class {
     Method* _Nonnull                    vtable;
     struct _Class* _Nonnull             super;
     const char* _Nonnull                name;
-    ByteCount                           instanceSize;
-    Int16                               methodCount;
-    UInt16                              flags;
+    ssize_t                           instanceSize;
+    int16_t                               methodCount;
+    uint16_t                              flags;
     const struct MethodDecl* _Nonnull   methodList;
 } Class;
 typedef struct _Class* ClassRef;
@@ -165,7 +165,7 @@ typedef struct _ObjectMethodTable {
 // size recorded in the class. Returns an error if allocation has failed for
 // some reason. The returned object has a reference count of 1. All object
 // instance variables are initially set to 0.
-extern ErrorCode _Object_Create(ClassRef _Nonnull pClass, ByteCount extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
+extern errno_t _Object_Create(ClassRef _Nonnull pClass, ssize_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
 
 #define Object_Create(__className, __pOutObject) \
     _Object_Create(&k##__className##Class, 0, (ObjectRef*)__pOutObject)
@@ -233,7 +233,7 @@ extern void _Object_AssignMovingOwnership(ObjectRef _Nullable * _Nonnull pOldObj
 
 // Returns true if the given object is an instance of the given class or one of
 // the super classes.
-extern Bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass);
+extern bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass);
 
 #define Object_InstanceOf(__self, __className) \
     _Object_InstanceOf((ObjectRef)__self, &k##__className##Class)

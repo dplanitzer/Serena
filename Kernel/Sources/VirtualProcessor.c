@@ -24,10 +24,10 @@ void ExecutionStack_Init(ExecutionStack* _Nonnull pStack)
 
 // Sets the size of the execution stack to the given size. Does not attempt to preserve
 // the content of the existing stack.
-ErrorCode ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, Int size)
+errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, int size)
 {
     decl_try_err();
-    const Int newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
+    const int newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
     
     if (pStack->size != newSize) {
         kfree(pStack->base);
@@ -96,7 +96,7 @@ _Noreturn VirtualProcesssor_Relinquish(void)
 //
 // \param pVP the boot virtual processor record
 // \param priority the initial VP priority
-void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
+void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, int priority)
 {
     static volatile AtomicInt gNextAvailableVpid = 0;
 
@@ -119,7 +119,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
     
     pVP->state = kVirtualProcessorState_Ready;
     pVP->flags = 0;
-    pVP->priority = (Int8)priority;
+    pVP->priority = (int8_t)priority;
     pVP->suspension_count = 1;
     
     pVP->vpid = AtomicInt_Add(&gNextAvailableVpid, 1);
@@ -130,7 +130,7 @@ void VirtualProcessor_CommonInit(VirtualProcessor*_Nonnull pVP, Int priority)
 
 // Creates a new virtual processor.
 // \return the new virtual processor; NULL if creation has failed
-ErrorCode VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP)
+errno_t VirtualProcessor_Create(VirtualProcessor* _Nullable * _Nonnull pOutVP)
 {
     decl_try_err();
     VirtualProcessor* pVP = NULL;
@@ -157,7 +157,7 @@ void VirtualProcessor_Destroy(VirtualProcessor* _Nullable pVP)
 // Sets the dispatch queue that has acquired the virtual processor and owns it
 // until the virtual processor is relinquished back to the virtual processor
 // pool.
-void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, Int concurrencyLaneIndex)
+void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nullable pQueue, int concurrencyLaneIndex)
 {
     VP_ASSERT_ALIVE(pVP);
     pVP->dispatchQueue = pQueue;
@@ -169,7 +169,7 @@ void VirtualProcessor_SetDispatchQueue(VirtualProcessor*_Nonnull pVP, void* _Nul
 //
 // \param pVP the virtual processor
 // \param closure the closure description
-ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure)
+errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProcessorClosure closure)
 {
     VP_ASSERT_ALIVE(pVP);
     assert(pVP->suspension_count > 0);
@@ -187,9 +187,9 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     try(ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize));
     
     Bytes_ClearRange(&pVP->save_area, sizeof(CpuContext));
-    pVP->save_area.a[7] = (UInt32) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
-    pVP->save_area.usp = (UInt32) ExecutionStack_GetInitialTop(&pVP->user_stack);
-    pVP->save_area.pc = (UInt32) closure.func;
+    pVP->save_area.a[7] = (uint32_t) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
+    pVP->save_area.usp = (uint32_t) ExecutionStack_GetInitialTop(&pVP->user_stack);
+    pVP->save_area.pc = (uint32_t) closure.func;
     pVP->save_area.sr = 0x2000;     // We start out in supervisor mode
 
 
@@ -213,9 +213,9 @@ ErrorCode VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProc
     Byte* sp = (Byte*) pVP->save_area.a[7];
     sp -= 4; *((Byte**)sp) = closure.context;
     sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_Relinquish;
-    sp -= 4; *((UInt32*)sp) = 0;
-    sp -= 4; *((UInt32*)sp) = 0;
-    pVP->save_area.a[7] = (UInt32)sp;
+    sp -= 4; *((uint32_t*)sp) = 0;
+    sp -= 4; *((uint32_t*)sp) = 0;
+    pVP->save_area.a[7] = (uint32_t)sp;
 
     return EOK;
 
@@ -257,10 +257,10 @@ void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, Closure1Arg_Fun
 //                          completed. Once the system call has finished and the
 //                          call-as-user invocation has been aborted, waits will
 //                          not be interrupted anymore.
-ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
+errno_t VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
 {
     decl_try_err();
-    const Bool isCallerRunningOnVpToManipulate = (VirtualProcessor_GetCurrent() == pVP);
+    const bool isCallerRunningOnVpToManipulate = (VirtualProcessor_GetCurrent() == pVP);
 
     if (!isCallerRunningOnVpToManipulate) {
         try(VirtualProcessor_Suspend(pVP));
@@ -282,8 +282,8 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
             // before it is executing the RTE. So the system call would miss the
             // abort. Changing the RTE return address avoids this problem and
             // ensures that the system call will never miss an abort.
-            UInt32* pReturnAddress = (UInt32*)(pVP->syscall_entry_ksp + 2);
-            *pReturnAddress = (UInt32)cpu_abort_call_as_user;
+            uint32_t* pReturnAddress = (uint32_t*)(pVP->syscall_entry_ksp + 2);
+            *pReturnAddress = (uint32_t)cpu_abort_call_as_user;
 
 
             // The system call may currently be waiting on something (some
@@ -301,7 +301,7 @@ ErrorCode VirtualProcessor_AbortCallAsUser(VirtualProcessor*_Nonnull pVP)
         } else {
             // User space:
             // redirect the VP to the new call
-            pVP->save_area.pc = (UInt32)cpu_abort_call_as_user;
+            pVP->save_area.pc = (uint32_t)cpu_abort_call_as_user;
         }
 
         if (!isCallerRunningOnVpToManipulate) {
@@ -317,7 +317,7 @@ catch:
 
 void VirtualProcessor_Dump(VirtualProcessor* _Nonnull pVP)
 {
-    for (Int i = 0; i < 7; i++) {
+    for (int i = 0; i < 7; i++) {
         print("d%d: %p    a%d: %p\n", i, pVP->save_area.d[i], i, pVP->save_area.a[i]);
     }
     print("d7: %p   ssp: %p\n", pVP->save_area.d[7], pVP->save_area.a[7]);
@@ -339,7 +339,7 @@ _Noreturn VirtualProcessor_Terminate(VirtualProcessor* _Nonnull pVP)
 }
 
 // Sleep for the given number of seconds.
-ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
+errno_t VirtualProcessor_Sleep(TimeInterval delay)
 {
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, delay);
@@ -352,8 +352,8 @@ ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
     
     
     // This is a medium or long wait -> context switch away
-    Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Int err = VirtualProcessorScheduler_WaitOn(
+    int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int err = VirtualProcessorScheduler_WaitOn(
                             gVirtualProcessorScheduler,
                             &gVirtualProcessorScheduler->sleep_queue, 
                             deadline,
@@ -364,11 +364,11 @@ ErrorCode VirtualProcessor_Sleep(TimeInterval delay)
 }
 
 // Returns the priority of the given VP.
-Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
+int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 {
     VP_ASSERT_ALIVE(pVP);
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Int pri = pVP->priority;
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int pri = pVP->priority;
     
     VirtualProcessorScheduler_RestorePreemption(sps);
     return pri;
@@ -378,10 +378,10 @@ Int VirtualProcessor_GetPriority(VirtualProcessor* _Nonnull pVP)
 // the VP if it is currently running. Instead the VP is allowed to finish its
 // current quanta.
 // XXX might want to change that in the future?
-void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
+void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, int priority)
 {
     VP_ASSERT_ALIVE(pVP);
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (pVP->priority != priority) {
         switch (pVP->state) {
@@ -410,20 +410,20 @@ void VirtualProcessor_SetPriority(VirtualProcessor* _Nonnull pVP, Int priority)
 }
 
 // Returns true if the given virtual processor is currently suspended; false otherwise.
-Bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
+bool VirtualProcessor_IsSuspended(VirtualProcessor* _Nonnull pVP)
 {
     VP_ASSERT_ALIVE(pVP);
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Bool isSuspended = pVP->suspension_count > 0;
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const bool isSuspended = pVP->suspension_count > 0;
     VirtualProcessorScheduler_RestorePreemption(sps);
     return isSuspended;
 }
 
 // Suspends the calling virtual processor. This function supports nested calls.
-ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
+errno_t VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 {
     VP_ASSERT_ALIVE(pVP);
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (pVP->suspension_count == INT8_MAX) {
         VirtualProcessorScheduler_RestorePreemption(sps);
@@ -459,10 +459,10 @@ ErrorCode VirtualProcessor_Suspend(VirtualProcessor* _Nonnull pVP)
 // Resumes the given virtual processor. The virtual processor is forcefully
 // resumed if 'force' is true. This means that it is resumed even if the suspension
 // count is > 1.
-void VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, Bool force)
+void VirtualProcessor_Resume(VirtualProcessor* _Nonnull pVP, bool force)
 {
     VP_ASSERT_ALIVE(pVP);
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
     
     if (pVP->suspension_count > 0) {
         pVP->suspension_count = force ? 0 : pVP->suspension_count - 1;

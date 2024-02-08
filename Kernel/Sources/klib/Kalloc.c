@@ -28,9 +28,9 @@ static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemD
     return md;
 }
 
-static ErrorCode create_allocator(MemoryLayout* _Nonnull pMemLayout, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop, Int8 memoryType, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop, int8_t memoryType, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
-    Int i = 0;
+    int i = 0;
     AllocatorRef pAllocator = NULL;
     MemoryDescriptor adjusted_md;
     decl_try_err();
@@ -71,7 +71,7 @@ catch:
 }
 
 // Initializes the kalloc heap.
-ErrorCode kalloc_init(const SystemDescription* _Nonnull pSysDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop)
+errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop)
 {
     decl_try_err();
 
@@ -86,7 +86,7 @@ catch:
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-ErrorCode kalloc_options(ByteCount nbytes, UInt options, void* _Nullable * _Nonnull pOutPtr)
+errno_t kalloc_options(ssize_t nbytes, unsigned int options, void* _Nullable * _Nonnull pOutPtr)
 {
     decl_try_err();
     
@@ -119,7 +119,7 @@ catch:
 void kfree(void* _Nullable ptr)
 {
     Lock_Lock(&gLock);
-    const ErrorCode err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);
+    const errno_t err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);
 
     if (err == ENOTBLK) {
         try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));
@@ -131,7 +131,7 @@ void kfree(void* _Nullable ptr)
 
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.
-ErrorCode kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
+errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
 {
     AllocatorRef pAllocator;
 
@@ -142,7 +142,7 @@ ErrorCode kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
         pAllocator = gCpuOnlyMemory;
     }
 
-    const ErrorCode err = Allocator_AddMemoryRegion(pAllocator, pMemDesc);
+    const errno_t err = Allocator_AddMemoryRegion(pAllocator, pMemDesc);
     Lock_Unlock(&gLock);
 
     return err;

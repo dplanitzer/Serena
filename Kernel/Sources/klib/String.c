@@ -9,18 +9,18 @@
 #include "Types.h"
 
 
-ByteCount String_Length(const Character* _Nonnull pStr)
+ssize_t String_Length(const char* _Nonnull pStr)
 {
-    const Character* p = pStr;
+    const char* p = pStr;
 
     while(*p++ != '\0');
 
     return p - pStr - 1;
 }
 
-ByteCount String_LengthUpTo(const Character* _Nonnull pStr, ByteCount strsz)
+ssize_t String_LengthUpTo(const char* _Nonnull pStr, ssize_t strsz)
 {
-    ByteCount len = 0;
+    ssize_t len = 0;
 
     while (*pStr++ != '\0' && len < strsz) {
         len++;
@@ -31,7 +31,7 @@ ByteCount String_LengthUpTo(const Character* _Nonnull pStr, ByteCount strsz)
 
 // Copies the characters of 'pSrc' to 'pDst'. Returns a pointer that points to
 // the first byte past the '\0' byte in the destination string. 
-Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonnull pSrc)
+char* _Nonnull String_Copy(char* _Nonnull pDst, const char* _Nonnull pSrc)
 {
     while (*pSrc != '\0') {
         *pDst++ = *pSrc++;
@@ -41,7 +41,7 @@ Character* _Nonnull String_Copy(Character* _Nonnull pDst, const Character* _Nonn
     return pDst;
 }
 
-Character* _Nonnull String_CopyUpTo(Character* _Nonnull pDst, const Character* _Nonnull pSrc, ByteCount count)
+char* _Nonnull String_CopyUpTo(char* _Nonnull pDst, const char* _Nonnull pSrc, ssize_t count)
 {
     while (*pSrc != '\0' && count > 0) {
         *pDst++ = *pSrc++;
@@ -54,7 +54,7 @@ Character* _Nonnull String_CopyUpTo(Character* _Nonnull pDst, const Character* _
     return pDst;
 }
 
-Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs)
+bool String_Equals(const char* _Nonnull pLhs, const char* _Nonnull pRhs)
 {
     while (*pLhs != '\0' && *pLhs == *pRhs) {
         pLhs++;
@@ -64,7 +64,7 @@ Bool String_Equals(const Character* _Nonnull pLhs, const Character* _Nonnull pRh
     return (*pLhs == *pRhs) ? true : false;
 }
 
-Bool String_EqualsUpTo(const Character* _Nonnull pLhs, const Character* _Nonnull pRhs, ByteCount count)
+bool String_EqualsUpTo(const char* _Nonnull pLhs, const char* _Nonnull pRhs, ssize_t count)
 {
     while (count > 0 && *pLhs != '\0' && *pLhs == *pRhs) {
         pLhs++;

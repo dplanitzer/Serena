@@ -8,12 +8,12 @@
 
 #include "Types.h"
 
-UInt UInt_NextPowerOf2(UInt n)
+unsigned int UInt_NextPowerOf2(unsigned int n)
 {
     if (n && !(n & (n - 1))) {
         return n;
     } else {
-        UInt p = 1;
+        unsigned int p = 1;
         
         while (p < n) {
             p <<= 1;

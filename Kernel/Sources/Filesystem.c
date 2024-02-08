@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Creates a file object.
-ErrorCode File_Create(FilesystemRef _Nonnull pFilesystem, UInt mode, InodeRef _Nonnull pNode, FileRef _Nullable * _Nonnull pOutFile)
+errno_t File_Create(FilesystemRef _Nonnull pFilesystem, unsigned int mode, InodeRef _Nonnull pNode, FileRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     FileRef pFile;
@@ -30,7 +30,7 @@ catch:
 }
 
 // Creates a copy of the given file.
-ErrorCode File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _Nonnull pOutFile)
+errno_t File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     FileRef pNewFile;
@@ -52,11 +52,11 @@ void File_deinit(FileRef _Nonnull self)
     }
 }
 
-ErrorCode File_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+errno_t File_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetType:
-            *((Int*) va_arg(ap, Int*)) = kIOChannelType_File;
+            *((int*) va_arg(ap, int*)) = kIOChannelType_File;
             return EOK;
 
         default:
@@ -64,7 +64,7 @@ ErrorCode File_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
     }
 }
 
-ErrorCode File_seek(FileRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence)
+errno_t File_seek(FileRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
 {
     if(pOutOldPosition) {
         *pOutOldPosition = self->offset;
@@ -111,7 +111,7 @@ OVERRIDE_METHOD_IMPL(seek, File, IOChannel)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Creates a directory object.
-ErrorCode Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, DirectoryRef _Nullable * _Nonnull pOutDir)
+errno_t Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     DirectoryRef pDir;
@@ -126,7 +126,7 @@ catch:
 }
 
 // Creates a copy of the given directory descriptor.
-ErrorCode Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef _Nullable * _Nonnull pOutDir)
+errno_t Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     DirectoryRef pNewDir;
@@ -148,16 +148,16 @@ void Directory_deinit(DirectoryRef _Nonnull self)
     }
 }
 
-ByteCount Directory_dup(DirectoryRef _Nonnull self, DirectoryRef _Nullable * _Nonnull pOutDir)
+ssize_t Directory_dup(DirectoryRef _Nonnull self, DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     return EBADF;
 }
 
-ErrorCode Directory_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+errno_t Directory_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetType:
-            *((Int*) va_arg(ap, Int*)) = kIOChannelType_Directory;
+            *((int*) va_arg(ap, int*)) = kIOChannelType_Directory;
             return EOK;
 
         default:
@@ -165,18 +165,18 @@ ErrorCode Directory_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
     }
 }
 
-ErrorCode Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+errno_t Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-ErrorCode Directory_write(DirectoryRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
+errno_t Directory_write(DirectoryRef _Nonnull self, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     *nOutBytesWritten = 0;
     return EBADF;
 }
 
-ErrorCode Directory_seek(DirectoryRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, Int whence)
+errno_t Directory_seek(DirectoryRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
 {
     
     if(pOutOldPosition) {
@@ -193,7 +193,7 @@ ErrorCode Directory_seek(DirectoryRef _Nonnull self, FileOffset offset, FileOffs
     return EOK;
 }
 
-ErrorCode Directory_close(DirectoryRef _Nonnull self)
+errno_t Directory_close(DirectoryRef _Nonnull self)
 {
     return Filesystem_CloseDirectory(IOChannel_GetResource(self), self);
 }
@@ -228,7 +228,7 @@ static FilesystemId Filesystem_GetNextAvailableId(void)
 // should not use this function to allocate an instance of the concrete filesystem.
 // This function is for use by Filesystem subclassers to define the filesystem
 // specific instance allocation function.
-ErrorCode Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys)
+errno_t Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys)
 {
     decl_try_err();
     FilesystemRef self;
@@ -256,7 +256,7 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
 // by the same lock that is used to protect the acquisition, relinquishing,
 // write-back and deletion of inodes. The returned inode id is not visible to
 // any other thread of execution until it is explicitly shared with other code.
-ErrorCode Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeId id = 0;
@@ -301,14 +301,14 @@ catch:
 // This method calls the filesystem method onReadNodeFromDisk() to read the
 // requested inode off the disk if there is no inode instance in memory at the
 // time this method is called.
-ErrorCode Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode = NULL;
 
     Lock_Lock(&self->inodeManagementLock);
 
-    for (Int i = 0; i < PointerArray_GetCount(&self->inodesInUse); i++) {
+    for (int i = 0; i < PointerArray_GetCount(&self->inodesInUse); i++) {
         InodeRef pCurNode = (InodeRef)PointerArray_GetAt(&self->inodesInUse, i);
 
         if (Inode_GetId(pCurNode) == id) {
@@ -391,10 +391,10 @@ void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _
 
 // Returns true if the filesystem can be safely unmounted which means that no
 // inodes owned by the filesystem is currently in memory.
-Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
+bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
 {
     Lock_Lock(&self->inodeManagementLock);
-    const Bool ok = PointerArray_IsEmpty(&self->inodesInUse);
+    const bool ok = PointerArray_IsEmpty(&self->inodesInUse);
     Lock_Unlock(&self->inodeManagementLock);
     return ok;
 }
@@ -402,7 +402,7 @@ Bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
 // Invoked when Filesystem_AllocateNode() is called. Subclassers should
 // override this method to allocate the on-disk representation of an inode
 // of the given type.
-ErrorCode Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
+errno_t Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
 {
     return EIO;
 }
@@ -412,7 +412,7 @@ ErrorCode Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, FileType 
 // create and inode instance and fill it in with the data from the disk and
 // then return it. It should return a suitable error and NULL if the inode
 // data can not be read off the disk.
-ErrorCode Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
@@ -420,7 +420,7 @@ ErrorCode Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, InodeId id,
 // Invoked when the inode is relinquished and it is marked as modified. The
 // filesystem override should write the inode meta-data back to the 
 // corresponding disk node.
-ErrorCode Filesystem_onWriteNodeToDisk(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
+errno_t Filesystem_onWriteNodeToDisk(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     return EIO;
 }
@@ -437,7 +437,7 @@ void Filesystem_onRemoveNodeFromDisk(FilesystemRef _Nonnull self, InodeId id)
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
 // before onMount() has returned with EOK.
-ErrorCode Filesystem_onMount(FilesystemRef _Nonnull self, const Byte* _Nonnull pParams, ByteCount paramsSize)
+errno_t Filesystem_onMount(FilesystemRef _Nonnull self, const Byte* _Nonnull pParams, ssize_t paramsSize)
 {
     return EIO;
 }
@@ -447,7 +447,7 @@ ErrorCode Filesystem_onMount(FilesystemRef _Nonnull self, const Byte* _Nonnull p
 // and the file system implementation is required to do everything it can to
 // successfully unmount. Unmount errors are ignored and the file system manager
 // will complete the unmount in any case.
-ErrorCode Filesystem_onUnmount(FilesystemRef _Nonnull self)
+errno_t Filesystem_onUnmount(FilesystemRef _Nonnull self)
 {
     return EOK;
 }
@@ -455,7 +455,7 @@ ErrorCode Filesystem_onUnmount(FilesystemRef _Nonnull self)
 
 // Returns the root node of the filesystem if the filesystem is currently in
 // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
-ErrorCode Filesystem_acquireRootNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t Filesystem_acquireRootNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
     return ENOENT;
@@ -468,7 +468,7 @@ ErrorCode Filesystem_acquireRootNode(FilesystemRef _Nonnull self, InodeRef _Null
 // the root node of the filesystem and 'pComponent' is ".." then 'pParentNode'
 // should be returned. If the path component name is longer than what is
 // supported by the file system, ENAMETOOLONG should be returned.
-ErrorCode Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
     return ENOENT;
@@ -482,7 +482,7 @@ ErrorCode Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _N
 // contains 'id' and ENOENT otherwise. If the name of 'id' as stored in the
 // file system is > the capacity of the path component, then ERANGE should
 // be returned.
-ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
+errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
 {
     pComponent->count = 0;
     return ENOENT;
@@ -490,14 +490,14 @@ ErrorCode Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnul
 
 // Returns a file info record for the given Inode. The Inode may be of any
 // file type.
-ErrorCode Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
+errno_t Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
 {
     return EIO;
 }
 
 // Modifies one or more attributes stored in the file info record of the given
 // Inode. The Inode may be of any type.
-ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
+errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
 {
     return EIO;
 }
@@ -508,7 +508,7 @@ ErrorCode Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 // the mode is exclusive then the file is created if it doesn't exist and
 // an error is thrown if the file exists. Note that the file is not opened.
 // This must be done by calling the open() method.
-ErrorCode Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, UInt options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     return EIO;
 }
@@ -516,7 +516,7 @@ ErrorCode Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent
 // Creates an empty directory as a child of the given directory node and with
 // the given name, user and file permissions. Returns EEXIST if a node with
 // the given name already exists.
-ErrorCode Filesystem_createDirectory(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions)
+errno_t Filesystem_createDirectory(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions)
 {
     return EACCESS;
 }
@@ -524,7 +524,7 @@ ErrorCode Filesystem_createDirectory(FilesystemRef _Nonnull self, const PathComp
 // Opens the directory represented by the given node. Returns a directory
 // descriptor object which is teh I/O channel that allows you to read the
 // directory content.
-ErrorCode Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
+errno_t Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     return EACCESS;
 }
@@ -535,20 +535,20 @@ ErrorCode Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnul
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-ErrorCode Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
 }
 
 // Closes the given directory I/O channel.
-ErrorCode Filesystem_closeDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir)
+errno_t Filesystem_closeDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir)
 {
     Object_Release(pDir);
     return EOK;
 }
 
 // Verifies that the given node is accessible assuming the given access mode.
-ErrorCode Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, Int mode)
+errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, int mode)
 {
     return EACCESS;
 }
@@ -560,7 +560,7 @@ ErrorCode Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 // old length. Note that a filesystem implementation is free to defer the
 // actual allocation of the new blocks until an attempt is made to read or
 // write them.
-ErrorCode Filesystem_truncate(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length)
+errno_t Filesystem_truncate(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length)
 {
     return EIO;
 }
@@ -571,7 +571,7 @@ ErrorCode Filesystem_truncate(FilesystemRef _Nonnull self, InodeRef _Nonnull _Lo
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentNode, User user)
+errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentNode, User user)
 {
     return EACCESS;
 }
@@ -579,7 +579,7 @@ ErrorCode Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Lock
 // Renames the node with name 'pName' and which is an immediate child of the
 // node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
 // the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
-ErrorCode Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pNewParentNode, User user)
+errno_t Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pNewParentNode, User user)
 {
     return EACCESS;
 }

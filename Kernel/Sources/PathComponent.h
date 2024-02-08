@@ -17,8 +17,8 @@
 // NUL terminated string. The length of the component is given explicitly by the
 // count field.
 typedef struct _PathComponent {
-    const Character* _Nonnull   name;
-    ByteCount                   count;
+    const char* _Nonnull   name;
+    ssize_t                   count;
 } PathComponent;
 
 
@@ -29,20 +29,20 @@ extern const PathComponent kPathComponent_Self;
 extern const PathComponent kPathComponent_Parent;
 
 // Initializes a path component from a NUL-terminated string
-extern PathComponent PathComponent_MakeFromCString(const Character* _Nonnull pCString);
+extern PathComponent PathComponent_MakeFromCString(const char* _Nonnull pCString);
 
 // Returns true if the given path component is equal to the given nul-terminated
 // string.
-extern Bool PathComponent_EqualsString(const PathComponent* pc, const Character* rhs);
+extern bool PathComponent_EqualsString(const PathComponent* pc, const char* rhs);
 
 
 // Mutable version of PathComponent. 'count' must be set on return to the actual
 // length of the generated/edited path component. 'capacity' is the maximum length
 // that the path component may take on.
 typedef struct _MutablePathComponent {
-    Character* _Nonnull name;
-    ByteCount           count;
-    ByteCount           capacity;
+    char* _Nonnull name;
+    ssize_t           count;
+    ssize_t           capacity;
 } MutablePathComponent;
 
 // Returns true if the given path component is equal to the given nul-terminated

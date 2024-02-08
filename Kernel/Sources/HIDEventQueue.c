@@ -15,11 +15,11 @@
 // See: <https://www.snellman.net/blog/archive/2016-12-13-ring-buffers/>
 typedef struct _HIDEventQueue {
     Semaphore   semaphore;
-    UInt8       capacity;
-    UInt8       capacityMask;
-    UInt8       readIdx;
-    UInt8       writeIdx;
-    Int         overflowCount;
+    uint8_t       capacity;
+    uint8_t       capacityMask;
+    uint8_t       readIdx;
+    uint8_t       writeIdx;
+    int         overflowCount;
     HIDEvent    data[1];
 } HIDEventQueue;
 
@@ -28,12 +28,12 @@ typedef struct _HIDEventQueue {
 // Allocates an empty event queue. 'capacity' is the queue capacity in terms of
 // the maximum number of events it can store at the same time. This value is
 // rounded up to the next power of 2.
-ErrorCode HIDEventQueue_Create(Int capacity, HIDEventQueueRef _Nullable * _Nonnull pOutQueue)
+errno_t HIDEventQueue_Create(int capacity, HIDEventQueueRef _Nullable * _Nonnull pOutQueue)
 {
     assert(capacity >= 2);
 
     decl_try_err();
-    const Int powerOfTwoCapacity = Int_NextPowerOf2(capacity);
+    const int powerOfTwoCapacity = Int_NextPowerOf2(capacity);
     HIDEventQueue* pQueue;
     
     assert(powerOfTwoCapacity <= UINT8_MAX/2);
@@ -63,35 +63,35 @@ void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull pQueue)
 }
 
 // Returns true if the queue is empty.
-static inline Bool HIDEventQueue_IsEmpty_Locked(HIDEventQueueRef _Nonnull pQueue)
+static inline bool HIDEventQueue_IsEmpty_Locked(HIDEventQueueRef _Nonnull pQueue)
 {
     return pQueue->readIdx == pQueue->writeIdx;
 }
 
 // Returns true if the queue is full.
-static inline Bool HIDEventQueue_IsFull_Locked(HIDEventQueueRef _Nonnull pQueue)
+static inline bool HIDEventQueue_IsFull_Locked(HIDEventQueueRef _Nonnull pQueue)
 {
     return pQueue->writeIdx - pQueue->readIdx == pQueue->capacity;
 }
 
 // Returns the number of reports stored in the ring queue - aka the number of
 // reports that can be read from the queue.
-static inline Int HIDEventQueue_ReadableCount_Locked(HIDEventQueueRef _Nonnull pQueue)
+static inline int HIDEventQueue_ReadableCount_Locked(HIDEventQueueRef _Nonnull pQueue)
 {
     return pQueue->writeIdx - pQueue->readIdx;
 }
 
 // Returns the number of reports that can be written to the queue.
-static inline Int HIDEventQueue_WritableCount_Locked(HIDEventQueueRef _Nonnull pQueue)
+static inline int HIDEventQueue_WritableCount_Locked(HIDEventQueueRef _Nonnull pQueue)
 {
     return pQueue->capacity - (pQueue->writeIdx - pQueue->readIdx);
 }
 
 // Returns true if the queue is empty.
-Bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull pQueue)
+bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull pQueue)
 {
-    const Int irs = cpu_disable_irqs();
-    const Bool r = HIDEventQueue_IsEmpty_Locked(pQueue);
+    const int irs = cpu_disable_irqs();
+    const bool r = HIDEventQueue_IsEmpty_Locked(pQueue);
     cpu_restore_irqs(irs);
 
     return r;
@@ -99,10 +99,10 @@ Bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull pQueue)
 
 // Returns the number of times the queue overflowed. Note that the queue drops
 // the oldest event every time it overflows.
-Int HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull pQueue)
+int HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull pQueue)
 {
-    const Int irs = cpu_disable_irqs();
-    const Int overflowCount = pQueue->overflowCount;
+    const int irs = cpu_disable_irqs();
+    const int overflowCount = pQueue->overflowCount;
     cpu_restore_irqs(irs);
     return overflowCount;
 }
@@ -110,7 +110,7 @@ Int HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull pQueue)
 // Removes all events from the queue.
 void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull pQueue)
 {
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     pQueue->readIdx = 0;
     pQueue->writeIdx = 0;
     cpu_restore_irqs(irs);
@@ -121,7 +121,7 @@ void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull pQueue)
 // interrupt context.
 void HIDEventQueue_Put(HIDEventQueueRef _Nonnull pQueue, HIDEventType type, const HIDEventData* _Nonnull pEventData)
 {
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
 
     if (HIDEventQueue_IsFull_Locked(pQueue)) {
         // Queue is full - remove the oldest report
@@ -143,10 +143,10 @@ void HIDEventQueue_Put(HIDEventQueueRef _Nonnull pQueue, HIDEventType type, cons
 // has arrived or 'timeout' has elapsed. Returns EOK if an event has been
 // successfully dequeued or ETIMEDOUT if no event has arrived and the wait has
 // timed out.
-ErrorCode HIDEventQueue_Get(HIDEventQueueRef _Nonnull pQueue, HIDEvent* _Nonnull pOutEvent, TimeInterval timeout)
+errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull pQueue, HIDEvent* _Nonnull pOutEvent, TimeInterval timeout)
 {
     decl_try_err();
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
 
     while (true) {
         // This implicitly and temporarily reenables IRQs while we are blocked

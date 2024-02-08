@@ -35,7 +35,7 @@ _cpu_enable_irqs:
     rts
 
 ;-------------------------------------------------------------------------------
-; Int cpu_disable_irqs(void)
+; int cpu_disable_irqs(void)
 ; Disables interrupt handling and returns the previous interrupt handling state.
 ; Returns the old IRQ state
 _cpu_disable_irqs:
@@ -44,7 +44,7 @@ _cpu_disable_irqs:
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_restore_irqs(Int state)
+; void cpu_restore_irqs(int state)
 ; Restores the given interrupt handling state.
 _cpu_restore_irqs:
     cargs cri_state.l
@@ -54,7 +54,7 @@ _cpu_restore_irqs:
 
 
 ;-------------------------------------------------------------------------------
-; Int cpu_get_model(void)
+; int cpu_get_model(void)
 ; Returns the CPU model identifier.
 _cpu_get_model:
     inline
@@ -243,7 +243,7 @@ _pop_exception_stack_frame:
 
 
 ;-------------------------------------------------------------------------------
-; Int cpu_verify_ram_4b(Byte* pSrc)
+; int cpu_verify_ram_4b(Byte* pSrc)
 ; Verifies that the 4 bytes starting at the RAM location 'pSrc' can be
 ; successfully read and written without bit corruption. Catches bus errors and
 ; returns -1 if a bus error or corrupted data is detected and 0 on success.
@@ -299,7 +299,7 @@ _cpu_verify_ram_4b:
 
 
 ;-------------------------------------------------------------------------------
-; Int cpu_guarded_read(Byte* src, Byte* buffer, Int buffer_size)
+; int cpu_guarded_read(Byte* src, Byte* buffer, int buffer_size)
 ; Reads the bytes starting at 'src' and writes them to 'buffer'. 'buffer_size'
 ; bytes are read and copied. Catches bus errors and returns -1 in such an event.
 ; Returns 0 if all bytes have been successfully read. Must be called from
@@ -345,7 +345,7 @@ _cpu_guarded_read:
 
 
 ;-------------------------------------------------------------------------------
-; Int cpu_guarded_write(Byte* dst, Byte* buffer, Int buffer_size)
+; int cpu_guarded_write(Byte* dst, Byte* buffer, int buffer_size)
 ; Writes the bytes starting at 'buffer' to 'dst'. 'buffer_size' bytes are written.
 ; Catches bus errors and returns -1 in such an event. Returns 0 if all bytes have
 ; been successfully written. Must be called from supervisor mode.
@@ -390,7 +390,7 @@ _cpu_guarded_write:
 
 
 ;-------------------------------------------------------------------------------
-; void cpu_sleep(Int cpu_type)
+; void cpu_sleep(int cpu_type)
 ; Moves the CPU to (a low power) sleep state until an interrupt occurs.
 _cpu_sleep:
     inline

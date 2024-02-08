@@ -22,7 +22,7 @@ typedef struct _KeyboardDriverMethodTable {
     IOResourceMethodTable   super;
 } KeyboardDriverMethodTable;
 
-extern ErrorCode KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
 
 extern void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
 extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver, TimeInterval initialDelay, TimeInterval repeatDelay);
@@ -37,7 +37,7 @@ typedef struct _MouseDriverMethodTable {
     IOResourceMethodTable   super;
 } MouseDriverMethodTable;
 
-extern ErrorCode MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
 
 
 //
@@ -49,7 +49,7 @@ typedef struct _DigitalJoystickDriverMethodTable {
     IOResourceMethodTable   super;
 } DigitalJoystickDriverMethodTable;
 
-extern ErrorCode DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 
 
 //
@@ -62,7 +62,7 @@ typedef struct _AnalogJoystickDriverMethodTable {
 } AnalogJoystickDriverMethodTable;
 
 
-extern ErrorCode AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 
 
 //
@@ -74,6 +74,6 @@ typedef struct _LightPenDriverMethodTable {
     IOResourceMethodTable   super;
 } LightPenDriverMethodTable;
 
-extern ErrorCode LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, Int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
 
 #endif /* InputDriver_h */

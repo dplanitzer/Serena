@@ -47,95 +47,95 @@
 // CPU register state
 typedef struct _CpuContext {
     // 68000 or better
-    UInt32      d[8];
-    UInt32      a[8];
-    UInt32      usp;
-    UInt32      pc;
-    UInt16      sr;
-    UInt16      padding;
+    uint32_t      d[8];
+    uint32_t      a[8];
+    uint32_t      usp;
+    uint32_t      pc;
+    uint16_t      sr;
+    uint16_t      padding;
     // 68881, 68882, 68040 or better
-    UInt32      fsave[54];  // fsave / frestore data (see M68000PRM p. 6-12)
-    Float96     fp[8];
-    UInt32      fpcr;
-    UInt32      fpsr;
-    UInt32      fpiar;
+    uint32_t      fsave[54];  // fsave / frestore data (see M68000PRM p. 6-12)
+    float96_t     fp[8];
+    uint32_t      fpcr;
+    uint32_t      fpsr;
+    uint32_t      fpiar;
 } CpuContext;
 
 
 // Exception stack frame
 typedef struct _ExceptionStackFrame {
-    UInt16  sr;
-    UInt32  pc;
+    uint16_t  sr;
+    uint32_t  pc;
     struct {
-        UInt16  format: 4;
-        UInt16  vector: 12;
+        uint16_t  format: 4;
+        uint16_t  vector: 12;
     }       fv;
     union {
         struct _Format2 {
-            UInt32  addr;
+            uint32_t  addr;
         }   f2;
         struct _Format3 {
-            UInt32  ea;
+            uint32_t  ea;
         }   f3;
         struct _Format4 {
-            UInt32  ea;
-            UInt32  pcFaultedInstr;
+            uint32_t  ea;
+            uint32_t  pcFaultedInstr;
         }   f4;
         struct _Format7 {
-            UInt32  ea;
-            UInt16  ssw;
-            UInt16  wb3s;
-            UInt16  wb2s;
-            UInt16  wb1s;
-            UInt32  fa;
-            UInt32  wb3a;
-            UInt32  wb3d;
-            UInt32  wb2a;
-            UInt32  wb2d;
-            UInt32  wb1a;
-            UInt32  wb1d;
-            UInt32  pd1;
-            UInt32  pd2;
-            UInt32  pd3;
+            uint32_t  ea;
+            uint16_t  ssw;
+            uint16_t  wb3s;
+            uint16_t  wb2s;
+            uint16_t  wb1s;
+            uint32_t  fa;
+            uint32_t  wb3a;
+            uint32_t  wb3d;
+            uint32_t  wb2a;
+            uint32_t  wb2d;
+            uint32_t  wb1a;
+            uint32_t  wb1d;
+            uint32_t  pd1;
+            uint32_t  pd2;
+            uint32_t  pd3;
         }   f7;
         struct _Format9 {
-            UInt32  ia;
-            UInt16  ir[4];
+            uint32_t  ia;
+            uint16_t  ir[4];
         }   f9;
         struct _FormatA {
-            UInt16  ir0;
-            UInt16  ssw;
-            UInt16  ipsc;
-            UInt16  ipsb;
-            UInt32  dataCycleFaultAddress;
-            UInt16  ir1;
-            UInt16  ir2;
-            UInt32  dataOutputBuffer;
-            UInt16  ir3;
-            UInt16  ir4;
+            uint16_t  ir0;
+            uint16_t  ssw;
+            uint16_t  ipsc;
+            uint16_t  ipsb;
+            uint32_t  dataCycleFaultAddress;
+            uint16_t  ir1;
+            uint16_t  ir2;
+            uint32_t  dataOutputBuffer;
+            uint16_t  ir3;
+            uint16_t  ir4;
         }   fa;
         struct _FormatB {
-            UInt16  ir0;
-            UInt16  ssw;
-            UInt16  ipsc;
-            UInt16  ipsb;
-            UInt32  dataCycleFaultAddress;
-            UInt16  ir1;
-            UInt16  ir2;
-            UInt32  dataOutputBuffer;
-            UInt16  ir3;
-            UInt16  ir4;
-            UInt16  ir5;
-            UInt16  ir6;
-            UInt32  stageBAddress;
-            UInt16  ir7;
-            UInt16  ir8;
-            UInt32  dataInputBuffer;
-            UInt16  ir9;
-            UInt16  ir10;
-            UInt16  ir11;
-            UInt16  version;
-            UInt16  ir[18];
+            uint16_t  ir0;
+            uint16_t  ssw;
+            uint16_t  ipsc;
+            uint16_t  ipsb;
+            uint32_t  dataCycleFaultAddress;
+            uint16_t  ir1;
+            uint16_t  ir2;
+            uint32_t  dataOutputBuffer;
+            uint16_t  ir3;
+            uint16_t  ir4;
+            uint16_t  ir5;
+            uint16_t  ir6;
+            uint32_t  stageBAddress;
+            uint16_t  ir7;
+            uint16_t  ir8;
+            uint32_t  dataInputBuffer;
+            uint16_t  ir9;
+            uint16_t  ir10;
+            uint16_t  ir11;
+            uint16_t  version;
+            uint16_t  ir[18];
         }   fb;
     }       u;
 } ExceptionStackFrame;
@@ -145,17 +145,17 @@ typedef void (* _Nonnull Cpu_UserClosure)(Byte* _Nullable pContext);
 
 
 extern void cpu_enable_irqs(void);
-extern Int cpu_disable_irqs(void);
-extern void cpu_restore_irqs(Int state);
+extern int cpu_disable_irqs(void);
+extern void cpu_restore_irqs(int state);
 
-extern const Character* _Nonnull cpu_get_model_name(Int8 cpu_model);
+extern const char* _Nonnull cpu_get_model_name(int8_t cpu_model);
 
-extern Int cpu_verify_ram_4b(Byte* pSrc);
+extern int cpu_verify_ram_4b(Byte* pSrc);
 
-extern Int cpu_guarded_read(Byte* _Nonnull src, Byte* _Nonnull buffer, Int buffer_size);
-extern Int cpu_guarded_write(Byte* _Nonnull dst, const Byte* _Nonnull buffer, Int buffer_size);
+extern int cpu_guarded_read(Byte* _Nonnull src, Byte* _Nonnull buffer, int buffer_size);
+extern int cpu_guarded_write(Byte* _Nonnull dst, const Byte* _Nonnull buffer, int buffer_size);
 
-extern void cpu_sleep(Int cpu_type);
+extern void cpu_sleep(int cpu_type);
 
 extern void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext);
 extern void cpu_abort_call_as_user(void);
@@ -167,7 +167,7 @@ extern _Noreturn mem_non_recoverable_error(void);
 //
 // FPU
 //
-extern const Character* _Nonnull fpu_get_model_name(Int8 fpu_model);
+extern const char* _Nonnull fpu_get_model_name(int8_t fpu_model);
 
 
 //
@@ -187,17 +187,17 @@ extern const Character* _Nonnull fpu_get_model_name(Int8 fpu_model);
 typedef struct _MemoryDescriptor {
     Byte* _Nonnull  lower;
     Byte* _Nonnull  upper;
-    Int8            type;       // MEM_TYPE_XXX
-    UInt8           reserved[3];
+    int8_t            type;       // MEM_TYPE_XXX
+    uint8_t           reserved[3];
 } MemoryDescriptor;
 
 typedef struct _MemoryLayout {
-    Int                 descriptor_count;
+    int                 descriptor_count;
     MemoryDescriptor    descriptor[MEMORY_DESCRIPTORS_CAPACITY];
 } MemoryLayout;
 
 
-extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, Int8 type);
+extern bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, int8_t type);
 
 
 #define CIAA_BASE           0xbfe001
@@ -225,7 +225,7 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
     volatile Byte* cp = (volatile Byte*) CIAB_BASE
 
 #define CIA_REG_8(cp, r) \
-    ((volatile UInt8*)(cp + r))
+    ((volatile uint8_t*)(cp + r))
 
 
 #define CIA_PRA     0x000
@@ -281,10 +281,10 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
     volatile Byte* cp = (volatile Byte*) CUSTOM_BASE
 
 #define CHIPSET_REG_16(cp, r) \
-    ((volatile UInt16*)(cp + r))
+    ((volatile uint16_t*)(cp + r))
 
 #define CHIPSET_REG_32(cp, r) \
-    ((volatile UInt32*)(cp + r))
+    ((volatile uint32_t*)(cp + r))
 
 
 // 8361 (Regular) or 8370 (Fat) (Agnus-NTSC) = 10, 512KB
@@ -767,7 +767,7 @@ extern Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper,
 
 
 // Copper instructions
-typedef UInt32  CopperInstruction;
+typedef uint32_t  CopperInstruction;
 
 #define COP_MOVE(reg, val)  (((reg) << 16) | (val))
 #define COP_END()           0xfffffffe
@@ -809,23 +809,23 @@ typedef UInt32  CopperInstruction;
 // Stops all hardware timers and DMAs and stops all interrupts of the platform's
 // motherboard chipset.
 extern void chipset_reset(void);
-extern UInt8 chipset_get_version(void);
-extern UInt8 chipset_get_ramsey_version(void);
-extern Bool chipset_is_ntsc(void);
-extern Byte* chipset_get_upper_dma_limit(Int chipset_version);
+extern uint8_t chipset_get_version(void);
+extern uint8_t chipset_get_ramsey_version(void);
+extern bool chipset_is_ntsc(void);
+extern Byte* chipset_get_upper_dma_limit(int chipset_version);
 
-extern void chipset_enable_interrupt(Int interruptId);
-extern void chipset_disable_interrupt(Int interruptId);
+extern void chipset_enable_interrupt(int interruptId);
+extern void chipset_disable_interrupt(int interruptId);
 
 
 #define INTERRUPT_ID_QUANTUM_TIMER  INTERRUPT_ID_CIA_A_TIMER_B
 
 extern void chipset_start_quantum_timer(void);
 extern void chipset_stop_quantum_timer(void);
-extern Int32 chipset_get_quantum_timer_duration_ns(void);
-extern Int32 chipset_get_quantum_timer_elapsed_ns(void);
+extern int32_t chipset_get_quantum_timer_duration_ns(void);
+extern int32_t chipset_get_quantum_timer_elapsed_ns(void);
 
-extern UInt32 chipset_get_hsync_counter(void);
+extern uint32_t chipset_get_hsync_counter(void);
 
 
 //
@@ -846,20 +846,20 @@ extern UInt32 chipset_get_hsync_counter(void);
 // An expansion board
 typedef struct _ExpansionBoard {
     Byte* _Nonnull  start;          // base address
-    UInt            physical_size;  // size of memory space reserved for this board
-    UInt            logical_size;   // size of memory space actually occupied by the board
-    Int8            type;
-    Int8            bus;
-    Int8            slot;
-    Int8            reserved;
-    UInt16          manufacturer;
-    UInt16          product;
-    UInt32          serial_number;
+    unsigned int            physical_size;  // size of memory space reserved for this board
+    unsigned int            logical_size;   // size of memory space actually occupied by the board
+    int8_t            type;
+    int8_t            bus;
+    int8_t            slot;
+    int8_t            reserved;
+    uint16_t          manufacturer;
+    uint16_t          product;
+    uint32_t          serial_number;
     // Update lowmem.i if you add a new property here
 } ExpansionBoard;
 
 typedef struct _ExpansionBus {
-    Int                 board_count;
+    int                 board_count;
     ExpansionBoard      board[EXPANSION_BOARDS_CAPACITY];
 } ExpansionBus;
 

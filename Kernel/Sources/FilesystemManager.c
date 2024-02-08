@@ -28,7 +28,7 @@ typedef struct _FilesystemManager {
     Mountpoint*             rootMountpoint;
 } FilesystemManager;
 
-static ErrorCode FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable pDirNodeToMountAt);
+static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const Byte* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable pDirNodeToMountAt);
 
 
 FilesystemManagerRef    gFilesystemManager;
@@ -36,7 +36,7 @@ FilesystemManagerRef    gFilesystemManager;
 
 // Creates the filesystem manager. The provided filesystem is automatically
 // mounted as the root filesystem.
-ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager)
+errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager)
 {
     decl_try_err();
     FilesystemManagerRef self;
@@ -62,7 +62,7 @@ catch:
 // returned if no filesystem with this fsid is registered.
 static FilesystemRef _Nullable FilesystemManager_GetFilesystemForId_Locked(FilesystemManagerRef _Nonnull self, FilesystemId fsid)
 {
-    for (Int i = 0; i < ObjectArray_GetCount(&self->filesystems); i++) {
+    for (int i = 0; i < ObjectArray_GetCount(&self->filesystems); i++) {
         FilesystemRef pFileSys = (FilesystemRef)ObjectArray_GetAt(&self->filesystems, i);
 
         if (Filesystem_GetId(pFileSys) == fsid) {
@@ -76,7 +76,7 @@ static FilesystemRef _Nullable FilesystemManager_GetFilesystemForId_Locked(Files
 // Registers the given filesystem if it isn't already registered.
 static void FilesystemManager_RegisterFilesystem_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys)
 {
-    for (Int i = 0; i < ObjectArray_GetCount(&self->filesystems); i++) {
+    for (int i = 0; i < ObjectArray_GetCount(&self->filesystems); i++) {
         if ((FilesystemRef)ObjectArray_GetAt(&self->filesystems, i) == pFileSys) {
             return;
         }
@@ -120,7 +120,7 @@ static Mountpoint* _Nullable FilesystemManager_GetMountpointForInode_Locked(File
 // Internal mount function. Mounts the given filesystem at the given place. If
 // 'pDirNodeToMountAt' is NULL then 'pFileSysToMount' is mounted as the root
 // filesystem.
-static ErrorCode FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nullable _Locked pDirNodeToMountAt)
+static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const Byte* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNodeToMountAt)
 {
     const Mountpoint* pDirNodeMount = NULL;
     decl_try_err();
@@ -176,7 +176,7 @@ catch:
 }
 
 // Unmounts the given filesystem from the given directory.
-static ErrorCode FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToUnmount, InodeRef _Nonnull _Locked pDirNode)
+static errno_t FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToUnmount, InodeRef _Nonnull _Locked pDirNode)
 {
     decl_try_err();
 
@@ -246,11 +246,11 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerR
 // given filesystem. ENOENT and NULLs are returned if the filesystem was never
 // mounted or is no longer mounted. EOK and NULLs are returned if 'pFileSys' is
 // the root filesystem (it has no parent file system).
-ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem)
+errno_t FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem)
 {
     Lock_Lock(&pManager->lock);
     const Mountpoint* pMount = FilesystemManager_GetMountpointForFilesystemId_Locked(pManager, Filesystem_GetId(pFileSys));
-    ErrorCode err;
+    errno_t err;
 
     if (pMount) {
         *pOutMountingNode = (pMount->mountingInode) ? Filesystem_ReacquireNode(pMount->mountingFilesystem, pMount->mountingInode) : NULL;
@@ -267,10 +267,10 @@ ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Non
 }
 
 // Returns true if the given node is a mountpoint and false otherwise.
-Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode)
+bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode)
 {
     Lock_Lock(&pManager->lock);
-    const Bool r = Inode_IsMountpoint(pNode);
+    const bool r = Inode_IsMountpoint(pNode);
     Lock_Unlock(&pManager->lock);
     
     return r;
@@ -298,19 +298,19 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Filesystem
 
 // Mounts the given filesystem at the given node. The node must be a directory
 // node. A filesystem instance may be mounted at at most one directory.
-ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull _Locked pDirNode)
+errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nonnull _Locked pDirNode)
 {
     Lock_Lock(&self->lock);
-    const ErrorCode err = FilesystemManager_Mount_Locked(self, pFileSys, pParams, paramsSize, pDirNode);
+    const errno_t err = FilesystemManager_Mount_Locked(self, pFileSys, pParams, paramsSize, pDirNode);
     Lock_Unlock(&self->lock);
     return err;
 }
 
 // Unmounts the given filesystem from the given directory.
-ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode)
+errno_t FilesystemManager_Unmount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode)
 {
     Lock_Lock(&self->lock);
-    const ErrorCode err = FilesystemManager_Unmount_Locked(self, pFileSys, pDirNode);
+    const errno_t err = FilesystemManager_Unmount_Locked(self, pFileSys, pDirNode);
     Lock_Unlock(&self->lock);
     return err;
 }

@@ -9,20 +9,20 @@
 #include "ConsolePriv.h"
 
 
-static Bool has_private_use_char(ConsoleRef _Nonnull pConsole, Character ch)
+static bool has_private_use_char(ConsoleRef _Nonnull pConsole, char ch)
 {
     return pConsole->vtparser.vt500.num_intermediate_chars > 0 && pConsole->vtparser.vt500.intermediate_chars[0] == ch;
 }
 
-static Int get_csi_parameter(ConsoleRef _Nonnull pConsole, Int defValue)
+static int get_csi_parameter(ConsoleRef _Nonnull pConsole, int defValue)
 {
-    const Int val = (pConsole->vtparser.vt500.num_params > 0) ? pConsole->vtparser.vt500.params[0] : 0;
+    const int val = (pConsole->vtparser.vt500.num_params > 0) ? pConsole->vtparser.vt500.params[0] : 0;
     return (val > 0) ? val : defValue;
 }
 
-static Int get_nth_csi_parameter(ConsoleRef _Nonnull pConsole, Int idx, Int defValue)
+static int get_nth_csi_parameter(ConsoleRef _Nonnull pConsole, int idx, int defValue)
 {
-    const Int val = (pConsole->vtparser.vt500.num_params > idx) ? pConsole->vtparser.vt500.params[idx] : 0;
+    const int val = (pConsole->vtparser.vt500.num_params > idx) ? pConsole->vtparser.vt500.params[idx] : 0;
     return (val > 0) ? val : defValue;
 }
 
@@ -81,7 +81,7 @@ static void Console_VT100_Execute_C0_Locked(ConsoleRef _Nonnull pConsole, unsign
             Console_MoveCursor_Locked(pConsole, kCursorMovement_AutoScroll, 0, -1);
             break;
 
-        case 0x94:  // CCH (Cancel Character)
+        case 0x94:  // CCH (Cancel char)
             Console_Execute_BS_Locked(pConsole);
 #endif            
         default:
@@ -90,7 +90,7 @@ static void Console_VT100_Execute_C0_Locked(ConsoleRef _Nonnull pConsole, unsign
     }
 }
 
-static void Console_VT100_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, Int op)
+static void Console_VT100_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, int op)
 {
     switch (op) {
         case 0:
@@ -109,10 +109,10 @@ static void Console_VT100_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, Int op)
 
 static void Console_VT100_CSI_h_Locked(ConsoleRef _Nonnull pConsole)
 {
-    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
+    const bool isPrivateMode = has_private_use_char(pConsole, '?');
 
-    for (Int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
-        const Int p = get_nth_csi_parameter(pConsole, i, 0);
+    for (int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
+        const int p = get_nth_csi_parameter(pConsole, i, 0);
 
         if (!isPrivateMode) {
             switch (p) {
@@ -143,10 +143,10 @@ static void Console_VT100_CSI_h_Locked(ConsoleRef _Nonnull pConsole)
 
 static void Console_VT100_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
 {
-    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
+    const bool isPrivateMode = has_private_use_char(pConsole, '?');
 
-    for (Int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
-        const Int p = get_nth_csi_parameter(pConsole, i, 0);
+    for (int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
+        const int p = get_nth_csi_parameter(pConsole, i, 0);
 
         if (!isPrivateMode) {
             switch (p) {
@@ -181,10 +181,10 @@ static void Console_VT100_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
 
 static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
 {
-    const Bool isPrivateMode = has_private_use_char(pConsole, '?');
+    const bool isPrivateMode = has_private_use_char(pConsole, '?');
 
-    for (Int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
-        const Int p = get_nth_csi_parameter(pConsole, i, 0);
+    for (int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
+        const int p = get_nth_csi_parameter(pConsole, i, 0);
 
         if (!isPrivateMode) {
             switch (p) {
@@ -193,18 +193,18 @@ static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
                     break;
 
                 case 6: { // Request cursor position
-                    Character numbuf[DIGIT_BUFFER_CAPACITY];
-                    Character buf[MAX_MESSAGE_LENGTH + 1];
-                    Character* ptr = &buf[0];
+                    char numbuf[DIGIT_BUFFER_CAPACITY];
+                    char buf[MAX_MESSAGE_LENGTH + 1];
+                    char* ptr = &buf[0];
                     *ptr++ = '\033';
                     *ptr++ = '[';
                     if (pConsole-> x > 0 || pConsole->y > 0) {
-                        const Character* lb = Int32_ToString(pConsole->y + 1, 10, false, numbuf);
+                        const char* lb = Int32_ToString(pConsole->y + 1, 10, false, numbuf);
                         while (*lb != '\0') {
                             *ptr++ = *lb++;
                         }
                         *ptr++ = ';';
-                        const Character* cb = Int32_ToString(pConsole->x + 1, 10, false, numbuf);
+                        const char* cb = Int32_ToString(pConsole->x + 1, 10, false, numbuf);
                         while (*cb != '\0') {
                             *ptr++ = *cb++;
                         }
@@ -234,7 +234,7 @@ static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
 
 static void Console_VT100_CSI_c_Locked(ConsoleRef _Nonnull pConsole)
 {
-    const Int p = get_nth_csi_parameter(pConsole, 0, 0);
+    const int p = get_nth_csi_parameter(pConsole, 0, 0);
 
     switch (p) {
         case 0:

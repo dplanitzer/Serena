@@ -38,12 +38,12 @@ Rect Rect_Intersection(Rect a, Rect b)
     return r;
 }
 
-Bool Rect_IntersectsRect(Rect a, Rect b)
+bool Rect_IntersectsRect(Rect a, Rect b)
 {
-    const Int x0 = __max(a.left, b.left);
-    const Int y0 = __max(a.top, b.top);
-    const Int x1 = __min(a.right, b.right);
-    const Int y1 = __min(a.bottom, b.bottom);
+    const int x0 = __max(a.left, b.left);
+    const int y0 = __max(a.top, b.top);
+    const int x1 = __min(a.right, b.right);
+    const int y1 = __min(a.bottom, b.bottom);
     
     return (x1 - x0) > 0 && (y1 - y0) > 0;
 }

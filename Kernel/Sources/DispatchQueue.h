@@ -53,8 +53,8 @@ typedef struct _DispatchQueue* DispatchQueueRef;
 typedef struct _DispatchQueueClosure {
     Closure1Arg_Func _Nonnull   func;
     Byte* _Nullable _Weak       context;
-    Bool                        isUser;
-    Int8                        reserved[3];
+    bool                        isUser;
+    int8_t                        reserved[3];
 } DispatchQueueClosure;
 
 static inline DispatchQueueClosure DispatchQueueClosure_Make(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
@@ -81,7 +81,7 @@ static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(Closure1Arg_Fun
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
-extern ErrorCode WorkItem_Create(DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem);
+extern errno_t WorkItem_Create(DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem);
 
 // Deallocates the given work item.
 extern void WorkItem_Destroy(WorkItemRef _Nullable pItem);
@@ -92,7 +92,7 @@ extern void WorkItem_Destroy(WorkItemRef _Nullable pItem);
 // closure to check the cancelled state and to act appropriately on it.
 // Clearing the cancelled state of a work item should normally not be necessary.
 // The functionality exists to enable work item caching and reuse.
-extern void WorkItem_SetCancelled(WorkItemRef _Nonnull pItem, Bool flag);
+extern void WorkItem_SetCancelled(WorkItemRef _Nonnull pItem, bool flag);
 
 // Cancels the given work item. The work item is marked as cancelled but it is
 // the responsibility of the work item closure to check the cancelled state and
@@ -102,7 +102,7 @@ static inline void WorkItem_Cancel(WorkItemRef _Nonnull pItem) {
 }
 
 // Returns true if the given work item is in cancelled state.
-extern Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem);
+extern bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem);
 
 
 //
@@ -111,12 +111,12 @@ extern Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem);
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
-extern ErrorCode Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer);
+extern errno_t Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer);
 
 extern void Timer_Destroy(TimerRef _Nullable pTimer);
 
 // See WorkItem_SetCancelled() for an explanation.
-static inline void Timer_SetCancelled(TimerRef _Nonnull pTimer, Bool flag) {
+static inline void Timer_SetCancelled(TimerRef _Nonnull pTimer, bool flag) {
     WorkItem_SetCancelled((WorkItemRef)pTimer, flag);
 }
 
@@ -129,7 +129,7 @@ static inline void Timer_Cancel(TimerRef _Nonnull pTimer) {
 }
 
 // Returns true if the given timer is in cancelled state.
-static inline Bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
+static inline bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
     return WorkItem_IsCancelled((WorkItemRef)pTimer);
 }
 
@@ -161,7 +161,7 @@ extern DispatchQueueRef _Nonnull    gMainDispatchQueue;
 // number > 0 to this argument to ensure that the queue will always have at least
 // this number of virtual processors available. Eg to ensure a certain minimum
 // latency from when a work item is scheduled to when it executes.
-extern ErrorCode DispatchQueue_Create(Int minConcurrency, Int maxConcurrency, Int qos, Int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
+extern errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Terminates the dispatch queue. This does:
 // *) an abort of ongoing call-as-user operations on all VPs attached to the queue
@@ -204,15 +204,15 @@ extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 // possible and the caller remains blocked until the closure has finished
 // execution. This function returns with an EINTR if the queue is flushed or
 // terminated by calling DispatchQueue_Terminate().
-extern ErrorCode DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
+extern errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
-extern ErrorCode DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
+extern errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull pQueue, DispatchQueueClosure closure);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
-extern ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
+extern errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQueue, TimeInterval deadline, DispatchQueueClosure closure);
 
 
 // Synchronously executes the given work item. The work item is executed as
@@ -224,11 +224,11 @@ extern ErrorCode DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull pQue
 // the appropriate action in this case (eg notify some other code). The cancelled
 // state of the work item is not changed, meaning it is not cleared by the
 // dispatch function.
-extern ErrorCode DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+extern errno_t DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
 // Asynchronously executes the given work item. The work item is executed as
 // soon as possible.
-extern ErrorCode DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+extern errno_t DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 
 // Removes all scheduled instances of the given work item from the dispatch queue.
 // Work items are compared by their pointer identity and all items with the same
@@ -248,7 +248,7 @@ extern void DispatchQueue_RemoveWorkItem(DispatchQueueRef _Nonnull pQueue, WorkI
 // closure to check for the cancelled state and to execute the appropriate
 // action in this case (eg notify some other code). The cancelled state of the
 // timer is not changed, meaning it is not cleared by the dispatch function.
-extern ErrorCode DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
+extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
 
 // Removes all scheduled instances of the given timer from the dispatch queue.
 // Timers are compared by their pointer identity and all items with the same

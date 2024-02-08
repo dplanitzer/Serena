@@ -54,10 +54,10 @@ void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSy
     List_Init(&pScheduler->scheduler_wait_queue);
     List_Init(&pScheduler->finalizer_queue);
 
-    for (Int i = 0; i < VP_PRIORITY_COUNT; i++) {
+    for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
         List_Init(&pScheduler->ready_queue.priority[i]);
     }
-    for (Int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
+    for (int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
         pScheduler->ready_queue.populated[i] = 0;
     }
     VirtualProcessorScheduler_AddVirtualProcessor_Locked(
@@ -76,7 +76,7 @@ void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSy
 
 // Called from OnStartup() after the heap has been created. Finishes the scheduler
 // initialization.
-ErrorCode VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler)
+errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler)
 {
     decl_try_err();
 
@@ -106,7 +106,7 @@ catch:
 // Adds the given virtual processor with the given effective priority to the
 // ready queue and resets its time slice length to the length implied by its
 // effective priority.
-void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP, Int effectivePriority)
+void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP, int effectivePriority)
 {
     assert(pVP != NULL);
     assert(pVP->rewa_queue_entry.prev == NULL);
@@ -120,8 +120,8 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
     
     List_InsertAfterLast(&pScheduler->ready_queue.priority[pVP->effectivePriority], &pVP->rewa_queue_entry);
     
-    const Int popByteIdx = pVP->effectivePriority >> 3;
-    const Int popBitIdx = pVP->effectivePriority - (popByteIdx << 3);
+    const int popByteIdx = pVP->effectivePriority >> 3;
+    const int popBitIdx = pVP->effectivePriority - (popByteIdx << 3);
     pScheduler->ready_queue.populated[popByteIdx] |= (1 << popBitIdx);
 }
 
@@ -130,7 +130,7 @@ void VirtualProcessorScheduler_AddVirtualProcessor_Locked(VirtualProcessorSchedu
 void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP)
 {
     // Protect against our scheduling code
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
     
     VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, pVP->priority);
     VirtualProcessorScheduler_RestorePreemption(sps);
@@ -139,13 +139,13 @@ void VirtualProcessorScheduler_AddVirtualProcessor(VirtualProcessorScheduler* _N
 // Takes the given virtual processor off the ready queue.
 void VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(VirtualProcessorScheduler* _Nonnull pScheduler, VirtualProcessor* _Nonnull pVP)
 {
-    register const Int pri = pVP->effectivePriority;
+    register const int pri = pVP->effectivePriority;
     
     List_Remove(&pScheduler->ready_queue.priority[pri], &pVP->rewa_queue_entry);
     
     if (List_IsEmpty(&pScheduler->ready_queue.priority[pri])) {
-        const Int popByteIdx = pri >> 3;
-        const Int popBitIdx = pri - (popByteIdx << 3);
+        const int popByteIdx = pri >> 3;
+        const int popBitIdx = pri - (popByteIdx << 3);
         pScheduler->ready_queue.populated[popByteIdx] &= ~(1 << popBitIdx);
     }
 }
@@ -155,8 +155,8 @@ void VirtualProcessorScheduler_RemoveVirtualProcessor_Locked(VirtualProcessorSch
 // interrupt while the idle VP is the running VP.
 VirtualProcessor* _Nullable VirtualProcessorScheduler_GetHighestPriorityReady(VirtualProcessorScheduler* _Nonnull pScheduler)
 {
-    for (Int popByteIdx = VP_PRIORITY_POP_BYTE_COUNT - 1; popByteIdx >= 0; popByteIdx--) {
-        const UInt8 popByte = pScheduler->ready_queue.populated[popByteIdx];
+    for (int popByteIdx = VP_PRIORITY_POP_BYTE_COUNT - 1; popByteIdx >= 0; popByteIdx--) {
+        const uint8_t popByte = pScheduler->ready_queue.populated[popByteIdx];
         
         if (popByte) {
             if (popByte & 0x80) { return (VirtualProcessor*) pScheduler->ready_queue.priority[(popByteIdx << 3) + 7].first; }
@@ -270,7 +270,7 @@ static void VirtualProcessorScheduler_CancelTimeout(VirtualProcessorScheduler* _
 // are ordered such that the first one to enter the queue is the first one to
 // leave the queue.
 // Returns a timeout or interrupted error.
-ErrorCode VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline, Bool isInterruptable)
+errno_t VirtualProcessorScheduler_WaitOn(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, TimeInterval deadline, bool isInterruptable)
 {
     VirtualProcessor* pVP = (VirtualProcessor*)pScheduler->running;
 
@@ -352,10 +352,10 @@ void VirtualProcessorScheduler_WakeUpAllFromInterruptContext(VirtualProcessorSch
 // Wakes up, up to 'count' waiters on the wait queue 'pWaitQueue'. The woken up
 // VPs are removed from the wait queue. Expects to be called with preemption
 // disabled.
-void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, Int count, Int wakeUpReason, Bool allowContextSwitch)
+void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, int count, int wakeUpReason, bool allowContextSwitch)
 {
     register ListNode* pCurNode = pWaitQueue->first;
-    register Int i = 0;
+    register int i = 0;
     VirtualProcessor* pRunCandidate = NULL;
     
     
@@ -388,7 +388,7 @@ void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Nonnull pS
 // uninterruptible wait or that was suspended while being in a wait state will
 // not get woken up.
 // May be called from an interrupt context.
-void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, VirtualProcessor* _Nonnull pVP, Int wakeUpReason, Bool allowContextSwitch)
+void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, VirtualProcessor* _Nonnull pVP, int wakeUpReason, bool allowContextSwitch)
 {
     assert(pWaitQueue != NULL);
 
@@ -419,8 +419,8 @@ void VirtualProcessorScheduler_WakeUpOne(VirtualProcessorScheduler* _Nonnull pSc
     if (pVP->suspension_count == 0) {
         // Make the VP ready and adjust it's effective priority based on the
         // time it has spent waiting
-        const Int32 quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
-        const Int8 boostedPriority = __min(pVP->effectivePriority + __min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
+        const int32_t quatersSlept = (MonotonicClock_GetCurrentQuantums() - pVP->wait_start_time) / pScheduler->quantums_per_quarter_second;
+        const int8_t boostedPriority = __min(pVP->effectivePriority + __min(quatersSlept, VP_PRIORITY_HIGHEST), VP_PRIORITY_HIGHEST);
         VirtualProcessorScheduler_AddVirtualProcessor_Locked(pScheduler, pVP, boostedPriority);
         
         if (allowContextSwitch) {
@@ -485,8 +485,8 @@ _Noreturn VirtualProcessorScheduler_TerminateVirtualProcessor(VirtualProcessorSc
     // try to context switch to the scheduler VP otherwise we'll context switch
     // to whoever else is the best candidate to run.
     VirtualProcessor* newRunning;
-    const Int FINALIZE_NOW_THRESHOLD = 4;
-    Int dead_vps_count = 0;
+    const int FINALIZE_NOW_THRESHOLD = 4;
+    int dead_vps_count = 0;
     ListNode* pCurNode = pScheduler->finalizer_queue.first;
     while (pCurNode != NULL && dead_vps_count < FINALIZE_NOW_THRESHOLD) {
         pCurNode = pCurNode->next;
@@ -521,7 +521,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull pSch
 
     while (true) {
         List_Init(&dead_vps);
-        const Int sps = VirtualProcessorScheduler_DisablePreemption();
+        const int sps = VirtualProcessorScheduler_DisablePreemption();
 
         // Continue to wait as long as there's nothing to finalize
         while (List_IsEmpty(&pScheduler->finalizer_queue)) {
@@ -562,7 +562,7 @@ _Noreturn VirtualProcessorScheduler_Run(VirtualProcessorScheduler* _Nonnull pSch
 
 static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull pScheduler)
 {
-    for (Int i = 0; i < VP_PRIORITY_COUNT; i++) {
+    for (int i = 0; i < VP_PRIORITY_COUNT; i++) {
         VirtualProcessor* pCurVP = (VirtualProcessor*)pScheduler->ready_queue.priority[i].first;
         
         while (pCurVP) {
@@ -571,7 +571,7 @@ static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorSche
         }
     }
     print("\n");
-    for (Int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
+    for (int i = 0; i < VP_PRIORITY_POP_BYTE_COUNT; i++) {
         print("%hhx, ", pScheduler->ready_queue.populated[i]);
     }
     print("\n");
@@ -588,7 +588,7 @@ VirtualProcessor* VirtualProcessor_GetCurrent(void)
     return (VirtualProcessor*) gVirtualProcessorSchedulerStorage.running;
 }
 
-Int VirtualProcessor_GetCurrentVpid(void)
+int VirtualProcessor_GetCurrentVpid(void)
 {
     return gVirtualProcessorSchedulerStorage.running->vpid;
 }
@@ -614,7 +614,7 @@ static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _No
 
 
     // Allocate the boot virtual processor kernel stack
-    const Int kernelStackSize = CPU_PAGE_SIZE;
+    const int kernelStackSize = CPU_PAGE_SIZE;
     Byte* pKernelStackBase = BootAllocator_Allocate(pBootAlloc, kernelStackSize);
 
 
@@ -645,7 +645,7 @@ static VirtualProcessor* _Nonnull IdleVirtualProcessor_Create(BootAllocator* _No
 
 
     // Allocate the boot virtual processor kernel stack
-    const Int kernelStackSize = CPU_PAGE_SIZE;
+    const int kernelStackSize = CPU_PAGE_SIZE;
     Byte* pKernelStackBase = BootAllocator_Allocate(pBootAlloc, kernelStackSize);
 
 

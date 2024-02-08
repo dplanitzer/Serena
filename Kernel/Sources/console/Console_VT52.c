@@ -116,8 +116,8 @@ static void Console_VT52_ESC_Locked(ConsoleRef _Nonnull pConsole, unsigned char 
             break;
 
         case 'Y': { // Direct cursor address
-            const Int y = pConsole->vtparser.vt52.params[0] - 040;
-            const Int x = pConsole->vtparser.vt52.params[1] - 040;
+            const int y = pConsole->vtparser.vt52.params[0] - 040;
+            const int x = pConsole->vtparser.vt52.params[1] - 040;
 
             // Y and X are treated differently. See: <https://vt100.net/dec/ek-vt5x-op-001.pdf>
             if (y >= pConsole->bounds.top && y <= pConsole->bounds.bottom) {

@@ -29,7 +29,7 @@ sema_SIZEOF             so
 
 
 ;-------------------------------------------------------------------------------
-; void Semaphore_ReleaseMultiple(Semaphore* _Nonnull sema, Int npermits)
+; void Semaphore_ReleaseMultiple(Semaphore* _Nonnull sema, int npermits)
 ; Releases 'npermits' permits to the semaphore.
 _Semaphore_ReleaseMultiple:
     inline
@@ -89,7 +89,7 @@ _Semaphore_ReleaseFromInterruptContext:
 
 
 ;-------------------------------------------------------------------------------
-; ErrorCode Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, Int npermits, TimeInterval deadline)
+; errno_t Semaphore_AcquireMultiple(Semaphore* _Nonnull sema, int npermits, TimeInterval deadline)
 ; Acquires 'npermits' from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have enough permits available.
@@ -142,7 +142,7 @@ _Semaphore_AcquireMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; ErrorCode Semaphore_AcquireAll(Semaphore* _Nonnull sema, TimeInterval deadline, Int* _Nonnull pOutPermitCount)
+; errno_t Semaphore_AcquireAll(Semaphore* _Nonnull sema, TimeInterval deadline, int* _Nonnull pOutPermitCount)
 ; Acquires all permits from the semaphore before the deadline 'deadline' is reached.
 ; This function blocks the caller if 'deadline' is in the future and the semaphore
 ; does not have any permits available.
@@ -198,7 +198,7 @@ _Semaphore_AcquireAll:
 
 
 ;-------------------------------------------------------------------------------
-; Bool Semaphore_TryAcquireMultiple(Semaphore* _Nonnull sema, Int npermits)
+; bool Semaphore_TryAcquireMultiple(Semaphore* _Nonnull sema, int npermits)
 ; Tries to acquire 'npermits' from the semaphore. Returns true if the acquisition
 ; was successful and false otherwise. This function does not block.
 _Semaphore_TryAcquireMultiple:
@@ -229,7 +229,7 @@ _Semaphore_TryAcquireMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; Int Semaphore_TryAcquireAll(Semaphore* _Nonnull sema)
+; int Semaphore_TryAcquireAll(Semaphore* _Nonnull sema)
 ; Drains all available permits from the semaphore. Returns how many permits the
 ; function was able to acquire. This function does not block. A value of 0 is
 ; returned if no permits were available; otherwise the number of acquired permits

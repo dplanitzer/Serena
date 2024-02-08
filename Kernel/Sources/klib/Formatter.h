@@ -19,7 +19,7 @@ typedef struct Formatter* FormatterRef;
 
 // Writes 'nbytes' bytes from 'pBuffer' to the sink. Returns one of the EXX
 // constants.
-typedef ErrorCode (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const Character * _Nonnull pBuffer, ByteCount nBytes);
+typedef errno_t (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const char * _Nonnull pBuffer, ssize_t nBytes);
 
 #define LENGTH_MODIFIER_hh      0
 #define LENGTH_MODIFIER_h       1
@@ -30,30 +30,30 @@ typedef ErrorCode (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const Charac
 
 // <https://en.cppreference.com/w/c/io/fprintf>
 typedef struct ConversionSpec {
-    Int     minimumFieldWidth;
-    Int     precision;
+    int     minimumFieldWidth;
+    int     precision;
     struct _Flags {
         unsigned int isAlternativeForm:1;
         unsigned int padWithZeros:1;
         unsigned int hasPrecision:1;
     }       flags;
-    Int8    lengthModifier;
+    int8_t    lengthModifier;
 } ConversionSpec;
 
 
 typedef struct Formatter {
     Formatter_SinkFunc _Nonnull sink;
     void* _Nullable             context;
-    ByteCount                   charactersWritten;
-    ByteCount                   bufferCount;
-    ByteCount                   bufferCapacity;
-    Character* _Nonnull         buffer;
-    Character                   digits[DIGIT_BUFFER_CAPACITY];
+    ssize_t                   charactersWritten;
+    ssize_t                   bufferCount;
+    ssize_t                   bufferCapacity;
+    char* _Nonnull         buffer;
+    char                   digits[DIGIT_BUFFER_CAPACITY];
 } Formatter;
 
 
-extern void Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext, Character* _Nonnull pBuffer, Int bufferCapacity);
+extern void Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext, char* _Nonnull pBuffer, int bufferCapacity);
 
-extern ErrorCode Formatter_vFormat(FormatterRef _Nonnull self, const Character* _Nonnull format, va_list ap);
+extern errno_t Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
 
 #endif  /* Formatter_h */

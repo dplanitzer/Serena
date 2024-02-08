@@ -27,21 +27,21 @@ typedef enum {
 #define PIPE_DEFAULT_BUFFER_SIZE    256
 
 
-extern ErrorCode Pipe_Create(Int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe);
+extern errno_t Pipe_Create(int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe);
 extern void Pipe_Destroy(PipeRef _Nullable pPipe);
 
 extern void Pipe_Close(PipeRef _Nonnull pPipe, PipeClosing mode);
 
 // Returns the number of bytes that can be read from the pipe without blocking.
-extern Int Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe);
+extern int Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe);
 
 // Returns the number of bytes can be written without blocking.
-extern Int Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull pPipe);
+extern int Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull pPipe);
 
 // Returns the maximum number of bytes that the pipe is capable at storing.
-extern Int Pipe_GetCapacity(PipeRef _Nonnull pPipe);
+extern int Pipe_GetCapacity(PipeRef _Nonnull pPipe);
 
-extern Int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline);
-extern Int Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline);
+extern int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ssize_t nBytes, bool allowBlocking, TimeInterval deadline);
+extern int Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, ssize_t nBytes, bool allowBlocking, TimeInterval deadline);
 
 #endif /* Pipe_h */

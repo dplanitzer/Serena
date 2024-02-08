@@ -33,10 +33,10 @@ enum ItemType {
 typedef struct _CompletionSignaler {
     SListNode   queue_entry;
     Semaphore   semaphore;
-    Bool        isInterrupted;
+    bool        isInterrupted;
 } CompletionSignaler;
 
-extern ErrorCode CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp);
+extern errno_t CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp);
 extern void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem);
 extern void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull pItem);
 extern void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem);
@@ -50,16 +50,16 @@ typedef struct _WorkItem {
     SListNode                               queue_entry;
     DispatchQueueClosure                    closure;
     CompletionSignaler * _Nullable _Weak    completion;
-    Bool                                    is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
+    bool                                    is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
     AtomicBool                              is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
     AtomicBool                              cancelled;              // shared between dispatch queue and queue user
-    Int8                                    type;
+    int8_t                                    type;
 } WorkItem;
 
-extern ErrorCode WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem);
-extern void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, Bool isOwnedByQueue);
+extern errno_t WorkItem_Create_Internal(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem);
+extern void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, bool isOwnedByQueue);
 extern void WorkItem_Deinit(WorkItemRef _Nonnull pItem);
-extern void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, Bool isInterrupted);
+extern void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, bool isInterrupted);
 
 
 //
@@ -72,8 +72,8 @@ typedef struct _Timer {
     TimeInterval    interval;
 } Timer;
 
-extern ErrorCode Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer);
-extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue);
+extern errno_t Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer);
+extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue);
 static inline void Timer_Deinit(TimerRef pTimer) {
     WorkItem_Deinit((WorkItemRef) pTimer);
 }
@@ -113,22 +113,22 @@ typedef struct _DispatchQueue {
     ConditionVariable                   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinqushed itself because the queue is in the process of shutting down
     ProcessRef _Nullable _Weak          owning_process;             // The process that owns this queue
     VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
-    Int                                 items_queued_count;         // Number of work items queued up (item_queue)
-    Int8                                state;                      // The current dispatch queue state
-    Int8                                minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
-    Int8                                maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
-    Int8                                availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
-    Int8                                qos;
-    Int8                                priority;
-    Int8                                item_cache_count;
-    Int8                                timer_cache_count;
-    Int8                                completion_signaler_count;
+    int                                 items_queued_count;         // Number of work items queued up (item_queue)
+    int8_t                                state;                      // The current dispatch queue state
+    int8_t                                minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
+    int8_t                                maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
+    int8_t                                availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
+    int8_t                                qos;
+    int8_t                                priority;
+    int8_t                                item_cache_count;
+    int8_t                                timer_cache_count;
+    int8_t                                completion_signaler_count;
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 
-static ErrorCode DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
+static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem);
 static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer);
 

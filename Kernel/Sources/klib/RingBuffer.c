@@ -11,7 +11,7 @@
 
 // Initializes the ring buffer to empty. 'capacity' is the buffer capacity in bytes.
 // This value is rounded up to the next power of 2.
-ErrorCode RingBuffer_Init(RingBuffer* _Nonnull pBuffer, Int capacity)
+errno_t RingBuffer_Init(RingBuffer* _Nonnull pBuffer, int capacity)
 {
     decl_try_err();
 
@@ -40,7 +40,7 @@ void RingBuffer_Deinit(RingBuffer* _Nonnull pBuffer)
 
 // Puts a single byte into the ring buffer.  Returns 0 if the buffer is empty and
 // no byte has been copied out.
-Int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte)
+int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte)
 {
     if (RingBuffer_ReadableCount(pBuffer) < pBuffer->capacity) {
         pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx++)] = byte;
@@ -52,16 +52,16 @@ Int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte)
 
 // Puts a sequence of bytes into the ring buffer by copying them. Returns the
 // number of bytes that have been successfully copied into the buffer.
-Int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pBytes, Int count)
+int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pBytes, int count)
 {
-    const Int avail = RingBuffer_WritableCount(pBuffer);
+    const int avail = RingBuffer_WritableCount(pBuffer);
     
     if (count == 0 || avail == 0) {
         return 0;
     }
     
-    const Int nBytesToCopy = __min(avail, count);
-    for (Int i = 0; i < nBytesToCopy; i++) {
+    const int nBytesToCopy = __min(avail, count);
+    for (int i = 0; i < nBytesToCopy; i++) {
         pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx + i)] = pBytes[i];
     }
     pBuffer->writeIdx += nBytesToCopy;
@@ -71,7 +71,7 @@ Int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pByte
 
 // Gets a single byte from the ring buffer. Returns 0 if the buffer is empty and
 // no byte has been copied out.
-Int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte)
+int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte)
 {
     if (!RingBuffer_IsEmpty(pBuffer)) {
         *pByte = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx++)];
@@ -85,16 +85,16 @@ Int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte)
 // 0 if the buffer is empty. Returns the number of bytes that have been copied
 // to 'pBytes'. 0 is returned if nothing has been copied because 'count' is 0
 // or the ring buffer is empty.
-Int RingBuffer_GetBytes(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pBytes, Int count)
+int RingBuffer_GetBytes(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pBytes, int count)
 {
-    const Int avail = RingBuffer_ReadableCount(pBuffer);
+    const int avail = RingBuffer_ReadableCount(pBuffer);
     
     if (count == 0 || avail == 0) {
         return 0;
     }
     
-    const Int nBytesToCopy = __min(avail, count);
-    for (Int i = 0; i < nBytesToCopy; i++) {
+    const int nBytesToCopy = __min(avail, count);
+    for (int i = 0; i < nBytesToCopy; i++) {
         pBytes[i] = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx + i)];
     }
     pBuffer->readIdx += nBytesToCopy;

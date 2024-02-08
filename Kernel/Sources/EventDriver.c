@@ -22,8 +22,8 @@ CLASS_METHODS(EventDriverChannel, IOChannel,
 // MARK: EventDriver
 ////////////////////////////////////////////////////////////////////////////////
 
-//extern const UInt16 gArrow_Bits[];
-//extern const UInt16 gArrow_Mask[];
+//extern const uint16_t gArrow_Bits[];
+//extern const uint16_t gArrow_Mask[];
 
 // USB Keycode -> kHIDEventModifierFlag_XXX values which are be or'd / and'd into pDriver->modifierFlags.
 // Bit 7 indicates whether the key is left or right: 0 -> left; 1 -> right
@@ -35,7 +35,7 @@ CLASS_METHODS(EventDriverChannel, IOChannel,
 // keypad       0x20
 // func         0x40
 // isRight      0x80
-static const UInt8 gUSBHIDKeyFlags[256] = {
+static const uint8_t gUSBHIDKeyFlags[256] = {
     0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // $00 - $0f
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // $10 - $1f
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, // $20 - $2f
@@ -56,7 +56,7 @@ static const UInt8 gUSBHIDKeyFlags[256] = {
 };
 
 
-ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
+errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
     EventDriver* pDriver;
@@ -70,8 +70,8 @@ ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef 
 
     pDriver->screenLeft = 0;
     pDriver->screenTop = 0;
-    pDriver->screenRight = (Int16) GraphicsDriver_GetFramebufferSize(gdevice).width;
-    pDriver->screenBottom = (Int16) GraphicsDriver_GetFramebufferSize(gdevice).height;
+    pDriver->screenRight = (int16_t) GraphicsDriver_GetFramebufferSize(gdevice).width;
+    pDriver->screenBottom = (int16_t) GraphicsDriver_GetFramebufferSize(gdevice).height;
     pDriver->mouseCursorHiddenCounter = 1;
     pDriver->isMouseMoveReportingEnabled = false;
 
@@ -91,7 +91,7 @@ ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef 
 
 
     // Open the mouse/joystick/light pen driver
-    for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+    for (int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
         pDriver->port[i].type = kInputControllerType_None;
     }
     try(EventDriver_CreateInputControllerForPort(pDriver, kInputControllerType_Mouse, 0));
@@ -113,7 +113,7 @@ catch:
 
 void EventDriver_deinit(EventDriverRef _Nonnull pDriver)
 {
-    for (Int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
+    for (int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
         EventDriver_DestroyInputControllerForPort(pDriver, i);
     }
     
@@ -142,11 +142,11 @@ GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull
 // the state of the logical keyboard and it posts a suitable keyboard event to
 // the event queue.
 // Must be called from the interrupt context with interrupts turned off.
-void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HIDKeyState keyState, UInt16 keyCode)
+void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HIDKeyState keyState, uint16_t keyCode)
 {
     // Update the key map
-    const UInt32 wordIdx = keyCode >> 5;
-    const UInt32 bitIdx = keyCode - (wordIdx << 5);
+    const uint32_t wordIdx = keyCode >> 5;
+    const uint32_t bitIdx = keyCode - (wordIdx << 5);
 
     if (keyState == kHIDKeyState_Up) {
         pDriver->keyMap[wordIdx] &= ~(1 << bitIdx);
@@ -156,13 +156,13 @@ void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HID
 
 
     // Update the modifier flags
-    const UInt32 logModFlags = (keyCode <= 255) ? pDriver->keyFlags[keyCode] & 0x1f : 0;
-    const Bool isModifierKey = (logModFlags != 0);    
-    UInt32 modifierFlags = pDriver->modifierFlags;
+    const uint32_t logModFlags = (keyCode <= 255) ? pDriver->keyFlags[keyCode] & 0x1f : 0;
+    const bool isModifierKey = (logModFlags != 0);    
+    uint32_t modifierFlags = pDriver->modifierFlags;
 
     if (isModifierKey) {
-        const Bool isRight = (keyCode <= 255) ? pDriver->keyFlags[keyCode] & 0x80 : 0;
-        const UInt32 devModFlags = (isRight) ? logModFlags << 16 : logModFlags << 24;
+        const bool isRight = (keyCode <= 255) ? pDriver->keyFlags[keyCode] & 0x80 : 0;
+        const uint32_t devModFlags = (isRight) ? logModFlags << 16 : logModFlags << 24;
 
         if (keyState == kHIDKeyState_Up) {
             modifierFlags &= ~logModFlags;
@@ -176,8 +176,8 @@ void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HID
 
 
     // Generate and post the keyboard event
-    const UInt32 keyFunc = (keyCode <= 255) ? pDriver->keyFlags[keyCode] & 0x60 : 0;
-    const UInt32 flags = modifierFlags | keyFunc;
+    const uint32_t keyFunc = (keyCode <= 255) ? pDriver->keyFlags[keyCode] & 0x60 : 0;
+    const uint32_t flags = modifierFlags | keyFunc;
     HIDEventType evtType;
     HIDEventData evt;
 
@@ -199,11 +199,11 @@ void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HID
 // \param xDelta change in mouse position X since last invocation
 // \param yDelta change in mouse position Y since last invocation
 // \param buttonsDown absolute state of the mouse buttons (0 -> left button, 1 -> right button, 2-> middle button, ...) 
-void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xDelta, Int16 yDelta, UInt32 buttonsDown)
+void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, int16_t xDelta, int16_t yDelta, uint32_t buttonsDown)
 {
-    const UInt32 oldButtonsDown = pDriver->mouseButtons;
-    const Bool hasButtonsChange = (oldButtonsDown != buttonsDown);
-    const Bool hasPositionChange = (xDelta != 0 || yDelta != 0);
+    const uint32_t oldButtonsDown = pDriver->mouseButtons;
+    const bool hasButtonsChange = (oldButtonsDown != buttonsDown);
+    const bool hasPositionChange = (xDelta != 0 || yDelta != 0);
 
     if (hasPositionChange) {
         pDriver->mouseX += xDelta;
@@ -222,9 +222,9 @@ void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 
 
         // Generate mouse button up/down events
         // XXX should be able to ask the mouse input driver how many buttons it supports
-        for (Int i = 0; i < 3; i++) {
-            const UInt32 old_down = oldButtonsDown & (1 << i);
-            const UInt32 new_down = buttonsDown & (1 << i);
+        for (int i = 0; i < 3; i++) {
+            const uint32_t old_down = oldButtonsDown & (1 << i);
+            const uint32_t new_down = buttonsDown & (1 << i);
             
             if (old_down ^ new_down) {
                 if (old_down == 0 && new_down != 0) {
@@ -259,10 +259,10 @@ void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 
 // \param yAbs absolute light pen Y coordinate
 // \param hasPosition true if the light pen triggered and a position could be sampled
 // \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, Bool hasPosition, UInt32 buttonsDown)
+void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, int16_t xAbs, int16_t yAbs, bool hasPosition, uint32_t buttonsDown)
 {
-    const Int16 xDelta = (hasPosition) ? xAbs - pDriver->mouseX : pDriver->mouseX;
-    const Int16 yDelta = (hasPosition) ? yAbs - pDriver->mouseY : pDriver->mouseY;
+    const int16_t xDelta = (hasPosition) ? xAbs - pDriver->mouseX : pDriver->mouseX;
+    const int16_t yDelta = (hasPosition) ? yAbs - pDriver->mouseY : pDriver->mouseY;
     
     EventDriver_ReportMouseDeviceChange(pDriver, xDelta, yDelta, buttonsDown);
 }
@@ -271,19 +271,19 @@ void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int
 // the event queue.
 // Must be called from the interrupt context with interrupts turned off.
 // \param port the port number identifying the joystick
-// \param xAbs current joystick X axis state (Int16.min -> 100% left, 0 -> resting, Int16.max -> 100% right)
-// \param yAbs current joystick Y axis state (Int16.min -> 100% up, 0 -> resting, Int16.max -> 100% down)
+// \param xAbs current joystick X axis state (int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right)
+// \param yAbs current joystick Y axis state (int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down)
 // \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, Int port, Int16 xAbs, Int16 yAbs, UInt32 buttonsDown)
+void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, int port, int16_t xAbs, int16_t yAbs, uint32_t buttonsDown)
 {
     // Generate joystick button up/down events
-    const UInt32 oldButtonsDown = pDriver->joystick[port].buttonsDown;
+    const uint32_t oldButtonsDown = pDriver->joystick[port].buttonsDown;
 
     if (buttonsDown != oldButtonsDown) {
         // XXX should be able to ask the joystick input driver how many buttons it supports
-        for (Int i = 0; i < 2; i++) {
-            const UInt32 old_down = oldButtonsDown & (1 << i);
-            const UInt32 new_down = buttonsDown & (1 << i);
+        for (int i = 0; i < 2; i++) {
+            const uint32_t old_down = oldButtonsDown & (1 << i);
+            const uint32_t new_down = buttonsDown & (1 << i);
             HIDEventType evtType;
             HIDEventData evt;
 
@@ -306,8 +306,8 @@ void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, Int
     
     
     // Generate motion events
-    const Int16 diffX = xAbs - pDriver->joystick[port].xAbs;
-    const Int16 diffY = yAbs - pDriver->joystick[port].yAbs;
+    const int16_t diffX = xAbs - pDriver->joystick[port].xAbs;
+    const int16_t diffY = yAbs - pDriver->joystick[port].yAbs;
     
     if (diffX != 0 || diffY != 0) {
         HIDEventData evt;
@@ -331,7 +331,7 @@ void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, Int
 
 // Creates a new input controller driver instance for the port 'portId'. Expects that the port
 // is currently unassigned (aka type is == 'none').
-ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
+errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, int portId)
 {
     decl_try_err();
 
@@ -375,14 +375,14 @@ catch:
 
 // Destroys the input controller that is configured for port 'portId'. This frees the input controller
 // specific driver and all associated state
-void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId)
+void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, int portId)
 {
     Object_Release(pDriver->port[portId].driver);
     pDriver->port[portId].driver = NULL;
     pDriver->port[portId].type = kInputControllerType_None;
 }
 
-InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId)
+InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, int portId)
 {
     assert(portId >= 0 && portId < MAX_INPUT_CONTROLLER_PORTS);
     
@@ -392,10 +392,10 @@ InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _No
     return type;
 }
 
-ErrorCode EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId)
+errno_t EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, int portId)
 {
     decl_try_err();
-    Bool needsUnlock = false;
+    bool needsUnlock = false;
 
     if (portId < 0 || portId >= MAX_INPUT_CONTROLLER_PORTS) {
         throw(ENODEV);
@@ -429,11 +429,11 @@ void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, TimeInterva
     Lock_Unlock(&pDriver->lock);
 }
 
-static inline Bool KeyMap_IsKeyDown(const UInt32* _Nonnull pKeyMap, UInt16 keycode)
+static inline bool KeyMap_IsKeyDown(const uint32_t* _Nonnull pKeyMap, uint16_t keycode)
 {
     assert(keycode <= 255);
-    const UInt32 wordIdx = keycode >> 5;
-    const UInt32 bitIdx = keycode - (wordIdx << 5);
+    const uint32_t wordIdx = keycode >> 5;
+    const uint32_t bitIdx = keycode - (wordIdx << 5);
     
     return (pKeyMap[wordIdx] & (1 << bitIdx)) != 0 ? true : false;
 }
@@ -445,22 +445,22 @@ static inline Bool KeyMap_IsKeyDown(const UInt32* _Nonnull pKeyMap, UInt16 keyco
 // potentially (slightly) different from the state you get from inspecting the
 // events in the event stream because the event stream lags the hardware state
 // slightly.
-void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown)
+void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
 {
-    Int oi = 0;
-    const Int irs = cpu_disable_irqs();
+    int oi = 0;
+    const int irs = cpu_disable_irqs();
     
     if (nKeysToCheck > 0 && pKeysToCheck) {
         if (pKeysDown) {
             // Returns at most 'nKeysDown' keys which are in the set 'pKeysToCheck'
-            for (Int i = 0; i < __min(nKeysToCheck, *nKeysDown); i++) {
+            for (int i = 0; i < __min(nKeysToCheck, *nKeysDown); i++) {
                 if (KeyMap_IsKeyDown(pDriver->keyMap, pKeysToCheck[i])) {
                     pKeysDown[oi++] = pKeysToCheck[i];
                 }
             }
         } else {
             // Return the number of keys that are down and which are in the set 'pKeysToCheck'
-            for (Int i = 0; i < nKeysToCheck; i++) {
+            for (int i = 0; i < nKeysToCheck; i++) {
                 if (KeyMap_IsKeyDown(pDriver->keyMap, pKeysToCheck[i])) {
                     oi++;
                 }
@@ -469,14 +469,14 @@ void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const HIDKey
     } else {
         if (pKeysDown) {
             // Return all keys that are down
-            for (Int i = 0; i < *nKeysDown; i++) {
+            for (int i = 0; i < *nKeysDown; i++) {
                 if (KeyMap_IsKeyDown(pDriver->keyMap, (HIDKeyCode)i)) {
                     pKeysDown[oi++] = (HIDKeyCode)i;
                 }
             }
         } else {
             // Return the number of keys that are down
-            for (Int i = 0; i < nKeysToCheck; i++) {
+            for (int i = 0; i < nKeysToCheck; i++) {
                 if (KeyMap_IsKeyDown(pDriver->keyMap, (HIDKeyCode)i)) {
                     oi++;
                 }
@@ -522,7 +522,7 @@ void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver)
     Lock_Unlock(&pDriver->lock);
 }
 
-void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonnull pDriver, Bool flag)
+void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonnull pDriver, bool flag)
 {
     GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(pDriver->gdevice, flag);
 }
@@ -532,7 +532,7 @@ Point EventDriver_GetMouseDevicePosition(EventDriverRef _Nonnull pDriver)
 {
     Point loc;
     
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     loc.x = pDriver->mouseX;
     loc.y = pDriver->mouseY;
     cpu_restore_irqs(irs);
@@ -540,10 +540,10 @@ Point EventDriver_GetMouseDevicePosition(EventDriverRef _Nonnull pDriver)
 }
 
 // Returns a bit mask of all the mouse buttons that are currently pressed.
-UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
+uint32_t EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 {
-    const Int irs = cpu_disable_irqs();
-    const UInt32 buttons = pDriver->mouseButtons;
+    const int irs = cpu_disable_irqs();
+    const uint32_t buttons = pDriver->mouseButtons;
     cpu_restore_irqs(irs);
     return buttons;
 }
@@ -554,7 +554,7 @@ UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode EventDriver_open(EventDriverRef _Nonnull pDriver, InodeRef _Nonnull _Locked pNode, UInt mode, User user, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t EventDriver_open(EventDriverRef _Nonnull pDriver, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     EventDriverChannelRef pChannel;
@@ -567,7 +567,7 @@ catch:
     return err;
 }
 
-ErrorCode EventDriver_dup(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pInChannel, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t EventDriver_dup(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pInChannel, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     EventDriverChannelRef pNewChannel;
@@ -582,15 +582,15 @@ catch:
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-ErrorCode EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+errno_t EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
-    ByteCount nBytesRead = 0;
-    Int i;
+    ssize_t nBytesRead = 0;
+    int i;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        const ErrorCode e1 = HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? pChannel->timeout : kTimeInterval_Zero);
+        const errno_t e1 = HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? pChannel->timeout : kTimeInterval_Zero);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at

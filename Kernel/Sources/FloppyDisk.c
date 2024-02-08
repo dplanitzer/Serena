@@ -31,12 +31,12 @@
 
 
 
-extern UInt fdc_get_drive_status(FdcControlByte* _Nonnull fdc);
-extern void fdc_set_drive_motor(FdcControlByte* _Nonnull fdc, Int onoff);
-extern void fdc_step_head(FdcControlByte* _Nonnull fdc, Int inout);
-extern void fdc_select_head(FdcControlByte* _Nonnull fdc, Int side);
-extern void fdc_io_begin(FdcControlByte* _Nonnull fdc, UInt16* pData, Int nwords, Int readwrite);
-extern UInt fdc_get_io_status(FdcControlByte* _Nonnull fdc);
+extern unsigned int fdc_get_drive_status(FdcControlByte* _Nonnull fdc);
+extern void fdc_set_drive_motor(FdcControlByte* _Nonnull fdc, int onoff);
+extern void fdc_step_head(FdcControlByte* _Nonnull fdc, int inout);
+extern void fdc_select_head(FdcControlByte* _Nonnull fdc, int side);
+extern void fdc_io_begin(FdcControlByte* _Nonnull fdc, uint16_t* pData, int nwords, int readwrite);
+extern unsigned int fdc_get_io_status(FdcControlByte* _Nonnull fdc);
 extern void fdc_io_end(FdcControlByte*  _Nonnull fdc);
 
 
@@ -65,7 +65,7 @@ static void FloppyDMA_Destroy(FloppyDMA* _Nullable pDma)
 }
 
 // Creates the floppy DMA singleton
-ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
+errno_t FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
 {
     decl_try_err();
     FloppyDMA* pDma;
@@ -95,7 +95,7 @@ catch:
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
 // the caller until the DMA is available and all words have been transferred from
 // disk.
-static ErrorCode FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, UInt16* _Nonnull pData, Int nwords, Int readwrite)
+static errno_t FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, int readwrite)
 {
     decl_try_err();
     
@@ -104,7 +104,7 @@ static ErrorCode FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnu
     fdc_io_begin(pFdc, pData, nwords, 0);
     err = Semaphore_Acquire(&pDma->done, TimeInterval_MakeSeconds(10));
     if (err == EOK) {
-        const UInt status = fdc_get_io_status(pFdc);
+        const unsigned int status = fdc_get_io_status(pFdc);
         
         if ((status & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
             err = ENOMEDIUM;
@@ -129,7 +129,7 @@ catch:
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
 // the caller until the DMA is available and all words have been transferred from
 // disk.
-static ErrorCode FloppyDMA_Read(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, UInt16* _Nonnull pData, Int nwords)
+static errno_t FloppyDMA_Read(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords)
 {
     return FloppyDMA_DoIO(pDma, pFdc, pData, nwords, 0);
 }
@@ -137,9 +137,9 @@ static ErrorCode FloppyDMA_Read(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnu
 // Synchronously writes 'nwords' 16bit words from the given word buffer. Blocks
 // the caller until the DMA is available and all words have been transferred to
 // disk.
-static ErrorCode FloppyDMA_Write(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, const UInt16* _Nonnull pData, Int nwords)
+static errno_t FloppyDMA_Write(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, const uint16_t* _Nonnull pData, int nwords)
 {
-    return FloppyDMA_DoIO(pDma, pFdc, (UInt16*)pData, nwords, 1);
+    return FloppyDMA_DoIO(pDma, pFdc, (uint16_t*)pData, nwords, 1);
 }
 
 
@@ -154,13 +154,13 @@ static ErrorCode FloppyDMA_Write(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonn
 
 typedef struct _ADF_SectorHeader
 {
-    UInt8   format;     // Amiga 1.0 format 0xff
-    UInt8   track;
-    UInt8   sector;
-    UInt8   seceow;
-    UInt32  zero;
-    UInt32  header_crc;
-    UInt32  data_crc;
+    uint8_t   format;     // Amiga 1.0 format 0xff
+    uint8_t   track;
+    uint8_t   sector;
+    uint8_t   seceow;
+    uint32_t  zero;
+    uint32_t  header_crc;
+    uint32_t  data_crc;
 } ADF_SectorHeader;
 
 
@@ -184,14 +184,14 @@ typedef struct _ADF_SectorHeader
 // \param input    MFM coded data buffer (size == 2*data_size)
 // \param output    decoded data buffer (size == data_size)
 // \param data_size size in long, 1 for header's info, 4 for header's sector label
-static void mfm_decode_sector(const UInt32* input, UInt32* output, Int data_size)
+static void mfm_decode_sector(const uint32_t* input, uint32_t* output, int data_size)
 {
 #define MASK 0x55555555    /* 01010101 ... 01010101 */
-    UInt32 odd_bits, even_bits;
-    UInt32 chksum = 0;
+    uint32_t odd_bits, even_bits;
+    uint32_t chksum = 0;
     
     /* the decoding is made here long by long : with data_size/4 iterations */
-    for (Int count = 0; count < data_size; count++) {
+    for (int count = 0; count < data_size; count++) {
         odd_bits = *input;                  /* longs with odd bits */
         even_bits = *(input + data_size);   /* longs with even bits : located 'data_size' bytes farther */
         chksum ^= odd_bits;
@@ -211,27 +211,27 @@ static void mfm_decode_sector(const UInt32* input, UInt32* output, Int data_size
 }
 
 // MFM encodes a sector
-static void mfm_encode_sector(const UInt32* input, UInt32* output, Int data_size)
+static void mfm_encode_sector(const uint32_t* input, uint32_t* output, int data_size)
 {
-    UInt32* output_odd = output;
-    UInt32* output_even = output + data_size;
+    uint32_t* output_odd = output;
+    uint32_t* output_even = output + data_size;
     
-    for (Int count = 0; count < data_size; count++) {
-        const UInt32 data = *input;
-        UInt32 odd_bits = 0;
-        UInt32 even_bits = 0;
-        UInt32 prev_odd_bit = 0;
-        UInt32 prev_even_bit = 0;
+    for (int count = 0; count < data_size; count++) {
+        const uint32_t data = *input;
+        uint32_t odd_bits = 0;
+        uint32_t even_bits = 0;
+        uint32_t prev_odd_bit = 0;
+        uint32_t prev_even_bit = 0;
         
         //    user's data bit      MFM coded bits
         //    ---------------      --------------
         //    1                    01
         //    0                    10 if following a 0 data bit
         //    0                    00 if following a 1 data bit
-        for (Int8 i_even = 30; i_even >= 0; i_even -= 2) {
-            const Int8 i_odd = i_even + 1;
-            const UInt32 cur_odd_bit = data & (1 << i_odd);
-            const UInt32 cur_even_bit = data & (1 << i_even);
+        for (int8_t i_even = 30; i_even >= 0; i_even -= 2) {
+            const int8_t i_odd = i_even + 1;
+            const uint32_t cur_odd_bit = data & (1 << i_odd);
+            const uint32_t cur_even_bit = data & (1 << i_even);
             
             if (cur_odd_bit) {
                 odd_bits |= (1 << i_even);
@@ -269,13 +269,13 @@ static void FloppyDisk_InvalidateTrackBuffer(FloppyDiskRef _Nonnull pDisk);
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-ErrorCode FloppyDisk_Create(Int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
+errno_t FloppyDisk_Create(int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDisk* pDisk;
     
     try(Object_Create(FloppyDisk, &pDisk));
-    try(kalloc_options(sizeof(UInt16) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (void**) &pDisk->track_buffer));
+    try(kalloc_options(sizeof(uint16_t) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (void**) &pDisk->track_buffer));
     
     pDisk->track_size = FLOPPY_TRACK_BUFFER_CAPACITY;
     pDisk->head = -1;
@@ -307,14 +307,14 @@ static void FloppyDisk_InvalidateTrackBuffer(FloppyDiskRef _Nonnull pDisk)
     if ((pDisk->flags & FLOPPY_FLAG_TRACK_BUFFER_VALID) != 0) {
         pDisk->flags &= ~FLOPPY_FLAG_TRACK_BUFFER_VALID;
         
-        for (Int i = 0; i < FLOPPY_SECTORS_CAPACITY; i++) {
+        for (int i = 0; i < FLOPPY_SECTORS_CAPACITY; i++) {
             pDisk->track_sectors[i] = 0;
         }
     }
 }
 
 // Computes and returns the floppy status from the given fdc drive status.
-static inline ErrorCode FloppyDisk_StatusFromDriveStatus(UInt drvstat)
+static inline errno_t FloppyDisk_StatusFromDriveStatus(unsigned int drvstat)
 {
     if ((drvstat & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
         return ENOMEDIUM;
@@ -330,12 +330,12 @@ static inline ErrorCode FloppyDisk_StatusFromDriveStatus(UInt drvstat)
 // waits for at most 500ms for the disk to become ready.
 // Returns S_OK if the drive is ready; ETIMEDOUT  if the drive failed to become
 // ready in time.
-static ErrorCode FloppyDisk_WaitDriveReady(FloppyDiskRef _Nonnull pDisk)
+static errno_t FloppyDisk_WaitDriveReady(FloppyDiskRef _Nonnull pDisk)
 {
     decl_try_err();
 
-    for (Int ntries = 0; ntries < 50; ntries++) {
-        const UInt status = fdc_get_drive_status(&pDisk->ciabprb);
+    for (int ntries = 0; ntries < 50; ntries++) {
+        const unsigned int status = fdc_get_drive_status(&pDisk->ciabprb);
         
         if ((status & (1 << CIABPRA_BIT_DSKRDY)) == 0) {
             return EOK;
@@ -353,10 +353,10 @@ catch:
 // least once.
 // Note that this function is expected to implicitly acknowledge a disk change if
 // it has actually sought.
-static ErrorCode FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull pDisk)
+static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull pDisk)
 {
     decl_try_err();
-    Bool did_step_once = false;
+    bool did_step_once = false;
     
     FloppyDisk_InvalidateTrackBuffer(pDisk);
     
@@ -367,7 +367,7 @@ static ErrorCode FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull pDisk)
     try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18)));
     
     for(;;) {
-        const UInt status = fdc_get_drive_status(&pDisk->ciabprb);
+        const unsigned int status = fdc_get_drive_status(&pDisk->ciabprb);
         
         if ((status & (1 << CIABPRA_BIT_DSKTRACK0)) == 0) {
             break;
@@ -399,22 +399,22 @@ catch:
 // implicitly and accidentally acknowledge a disk change as a side effect of seeking.
 // The user of the API needs to become aware of the disk change so that he can actually
 // handle it in a sensible way.
-static ErrorCode FloppyDisk_SeekTo(FloppyDiskRef _Nonnull pDisk, Int cylinder, Int head)
+static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull pDisk, int cylinder, int head)
 {
     decl_try_err();
-    const Int diff = cylinder - pDisk->cylinder;
-    const Int cur_dir = (diff >= 0) ? 1 : -1;
-    const Int last_dir = (pDisk->flags & FLOPPY_FLAG_PREV_STEP_INWARD) ? 1 : -1;
-    const Int nsteps = __abs(diff);
-    const Bool change_side = (pDisk->head != head);
+    const int diff = cylinder - pDisk->cylinder;
+    const int cur_dir = (diff >= 0) ? 1 : -1;
+    const int last_dir = (pDisk->flags & FLOPPY_FLAG_PREV_STEP_INWARD) ? 1 : -1;
+    const int nsteps = __abs(diff);
+    const bool change_side = (pDisk->head != head);
     
     FloppyDisk_InvalidateTrackBuffer(pDisk);
     
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
-    const Int seek_pre_wait_ms = (nsteps > 0 && cur_dir != last_dir) ? 18 : 0;
-    const Int side_pre_wait_ms = 2;
-    const Int pre_wait_ms = __max(seek_pre_wait_ms, side_pre_wait_ms);
+    const int seek_pre_wait_ms = (nsteps > 0 && cur_dir != last_dir) ? 18 : 0;
+    const int side_pre_wait_ms = 2;
+    const int pre_wait_ms = __max(seek_pre_wait_ms, side_pre_wait_ms);
     
     if (pre_wait_ms > 0) {
         try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(pre_wait_ms)));
@@ -423,7 +423,7 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDiskRef _Nonnull pDisk, Int cylinder, I
     
     // Seek if necessary
     if (nsteps > 0) {
-        for (Int i = nsteps; i > 0; i--) {
+        for (int i = nsteps; i > 0; i--) {
             try(FloppyDisk_GetStatus(pDisk));
             
             fdc_step_head(&pDisk->ciabprb, cur_dir);
@@ -447,9 +447,9 @@ static ErrorCode FloppyDisk_SeekTo(FloppyDiskRef _Nonnull pDisk, Int cylinder, I
     
     // Seek settle time: 15ms
     // Head select settle time: 100us
-    const Int seek_settle_us = (nsteps > 0) ? 15*1000 : 0;
-    const Int side_settle_us = (change_side) ? 100 : 0;
-    const Int settle_us = __max(seek_settle_us, side_settle_us);
+    const int seek_settle_us = (nsteps > 0) ? 15*1000 : 0;
+    const int side_settle_us = (change_side) ? 100 : 0;
+    const int settle_us = __max(seek_settle_us, side_settle_us);
     
     if (settle_us > 0) {
         try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(settle_us)));
@@ -467,7 +467,7 @@ catch:
 // Note that this function leaves the floppy motor turned on and that it implicitly
 // acknowledges any pending disk change.
 // Upper layer code should treat this function like a disk change.
-ErrorCode FloppyDisk_Reset(FloppyDiskRef _Nonnull pDisk)
+errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull pDisk)
 {
     decl_try_err();
 
@@ -499,7 +499,7 @@ catch:
 }
 
 // Returns the current floppy drive status.
-ErrorCode FloppyDisk_GetStatus(FloppyDiskRef _Nonnull pDisk)
+errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull pDisk)
 {
     return FloppyDisk_StatusFromDriveStatus(fdc_get_drive_status(&pDisk->ciabprb));
 }
@@ -521,7 +521,7 @@ void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull pDisk)
     // Also invalidate the cache 'cause it is certainly no longer valid.
     FloppyDisk_InvalidateTrackBuffer(pDisk);
     
-    const Int dir = (pDisk->cylinder == 0) ? 1 : -1;
+    const int dir = (pDisk->cylinder == 0) ? 1 : -1;
     fdc_step_head(&pDisk->ciabprb, dir);
 }
 
@@ -530,7 +530,7 @@ void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull pDisk)
 {
     fdc_set_drive_motor(&pDisk->ciabprb, 1);
     
-    const ErrorCode err = FloppyDisk_WaitDriveReady(pDisk);
+    const errno_t err = FloppyDisk_WaitDriveReady(pDisk);
     if (err == ETIMEDOUT) {
         fdc_set_drive_motor(&pDisk->ciabprb, 0);
         return;
@@ -543,7 +543,7 @@ void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull pDisk)
     fdc_set_drive_motor(&pDisk->ciabprb, 0);
 }
 
-static ErrorCode FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder)
+static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull pDisk, int head, int cylinder)
 {
     decl_try_err();
     
@@ -569,17 +569,17 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull pDisk, Int head, In
     
     
     // Clear out the sector table
-    UInt16* track_buffer = pDisk->track_buffer;
-    Int16* sector_table = pDisk->track_sectors;
-    const Int16 track_buffer_size = pDisk->track_size;
+    uint16_t* track_buffer = pDisk->track_buffer;
+    int16_t* sector_table = pDisk->track_sectors;
+    const int16_t track_buffer_size = pDisk->track_size;
     
-    for (Int i = 0; i < FLOPPY_SECTORS_CAPACITY; i++) {
+    for (int i = 0; i < FLOPPY_SECTORS_CAPACITY; i++) {
         sector_table[i] = 0;
     }
     
     
     // Build the sector table
-    for (Int16 i = 0; i < track_buffer_size; i++) {
+    for (int16_t i = 0; i < track_buffer_size; i++) {
         ADF_SectorHeader header;
         
         // Find the sync words
@@ -597,7 +597,7 @@ static ErrorCode FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull pDisk, Int head, In
         }
         
         // MFM decode the sector header
-        mfm_decode_sector((const UInt32*)&track_buffer[i], (UInt32*)&header.format, 1);
+        mfm_decode_sector((const uint32_t*)&track_buffer[i], (uint32_t*)&header.format, 1);
         
         // Validate the sector header. We record valid sectors only.
         if (header.format != ADF_FORMAT_V1 || header.track != cylinder || header.sector >= ADF_DD_SECS_PER_CYL) {
@@ -620,7 +620,7 @@ catch:
     return err;
 }
 
-ErrorCode FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder, Int sector, Byte* _Nonnull pBuffer)
+errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, Byte* _Nonnull pBuffer)
 {
     decl_try_err();
     
@@ -629,20 +629,20 @@ ErrorCode FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cyli
     
     
     // Get the sector
-    const UInt16* track_buffer = pDisk->track_buffer;
-    const Int16* sector_table = pDisk->track_sectors;
-    const Int16 idx = sector_table[sector];
+    const uint16_t* track_buffer = pDisk->track_buffer;
+    const int16_t* sector_table = pDisk->track_sectors;
+    const int16_t idx = sector_table[sector];
     if (idx == 0) {
         return EIO;
     }
     
     
     // MFM decode the sector data
-    mfm_decode_sector((const UInt32*)&track_buffer[idx + 28], (UInt32*)pBuffer, ADF_SECTOR_SIZE / sizeof(UInt32));
+    mfm_decode_sector((const uint32_t*)&track_buffer[idx + 28], (uint32_t*)pBuffer, ADF_SECTOR_SIZE / sizeof(uint32_t));
     
     /*
-     for(Int i = 0; i < ADF_HD_SECS_PER_CYL; i++) {
-     Int offset = sector_table[i];
+     for(int i = 0; i < ADF_HD_SECS_PER_CYL; i++) {
+     int offset = sector_table[i];
      
      if (offset != 0) {
      print("H: %d, C: %d, S: %d -> %d  (0x%x)\n", head, cylinder, i, offset, &track_buffer[offset]);
@@ -655,7 +655,7 @@ catch:
     return err;
 }
 
-static ErrorCode FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder)
+static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull pDisk, int head, int cylinder)
 {
     decl_try_err();
     
@@ -683,7 +683,7 @@ catch:
     return err;
 }
 
-ErrorCode FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder, Int sector, const Byte* pBuffer)
+errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, const Byte* pBuffer)
 {
     decl_try_err();
     
@@ -692,16 +692,16 @@ ErrorCode FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cyl
     
     
     // Override the sector with the new data
-    UInt16* track_buffer = pDisk->track_buffer;
-    const Int16* sector_table = pDisk->track_sectors;
-    const Int16 idx = sector_table[sector];
+    uint16_t* track_buffer = pDisk->track_buffer;
+    const int16_t* sector_table = pDisk->track_sectors;
+    const int16_t idx = sector_table[sector];
     if (idx == 0) {
         return EIO;
     }
     
     
     // MFM encode the sector data
-    mfm_encode_sector((const UInt32*)pBuffer, (UInt32*)&track_buffer[idx + 28], ADF_SECTOR_SIZE / sizeof(UInt32));
+    mfm_encode_sector((const uint32_t*)pBuffer, (uint32_t*)&track_buffer[idx + 28], ADF_SECTOR_SIZE / sizeof(uint32_t));
     
     
     // Write the track back out

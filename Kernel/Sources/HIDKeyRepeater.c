@@ -19,21 +19,21 @@ enum {
 
 typedef struct _HIDKeyRepeater {
     EventDriverRef  eventDriver;
-    Int8            repeatersInUseCount;    // number of repeaters currently in use
-    Int8            reserved[3];
+    int8_t            repeatersInUseCount;    // number of repeaters currently in use
+    int8_t            reserved[3];
     TimeInterval    initialKeyRepeatDelay;        // [200ms...3s]
     TimeInterval    keyRepeatDelay;               // [20ms...2s]
 
     // At most one key may be in key repeat state
     TimeInterval    nextEventTime;
     HIDKeyCode      keyCode;
-    UInt16          state;
+    uint16_t          state;
 } HIDKeyRepeater;
 
 
 
 // Allocates a key repeater object.
-ErrorCode HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutRepeater)
+errno_t HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutRepeater)
 {
     decl_try_err();
     HIDKeyRepeater* pRepeater;
@@ -79,7 +79,7 @@ void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull pRepeater, Tim
 }
 
 // Returns true if the given key should be auto-repeated
-static Bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
+static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
 {
     // Everything except:
     // - modifier keys

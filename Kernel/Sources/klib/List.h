@@ -56,7 +56,7 @@ extern ListNode* _Nullable List_RemoveFirst(List* _Nonnull pList);
 
 extern void List_Split(List* _Nonnull pList, ListNode* _Nullable pFirstNodeOfTail, List* _Nonnull pHeadList, List* _Nonnull pTailList);
 
-static inline Bool List_IsEmpty(List* _Nonnull pList) {
+static inline bool List_IsEmpty(List* _Nonnull pList) {
     return pList->first == NULL;
 }
 
@@ -131,7 +131,7 @@ SListNode* _Nullable SList_RemoveFirst(SList* _Nonnull pList);
 void SList_Remove(SList* _Nonnull pList, SListNode* _Nullable pPrevNode, SListNode* _Nonnull pNodeToRemove);
 
 
-static inline Bool SList_IsEmpty(SList* _Nonnull pList) {
+static inline bool SList_IsEmpty(SList* _Nonnull pList) {
     return pList->first == NULL;
 }
 

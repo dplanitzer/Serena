@@ -20,60 +20,60 @@
 // The TimeInterval type is a saturating type. This means that a time value is set to
 // +/-infinity if a computation overflows / underflows.
 typedef struct _TimeInterval {
-    Int32   seconds;
-    Int32   nanoseconds;        // 0..<1billion
+    int32_t   seconds;
+    int32_t   nanoseconds;        // 0..<1billion
 } TimeInterval;
 
 
-inline TimeInterval TimeInterval_Make(Int32 seconds, Int32 nanoseconds) {
+inline TimeInterval TimeInterval_Make(int32_t seconds, int32_t nanoseconds) {
     TimeInterval ti;
     ti.seconds = seconds;
     ti.nanoseconds = nanoseconds;
     return ti;
 }
 
-inline TimeInterval TimeInterval_MakeSeconds(Int32 seconds) {
+inline TimeInterval TimeInterval_MakeSeconds(int32_t seconds) {
     TimeInterval ti;
     ti.seconds = seconds;
     ti.nanoseconds = 0;
     return ti;
 }
 
-inline TimeInterval TimeInterval_MakeMilliseconds(Int32 millis) {
+inline TimeInterval TimeInterval_MakeMilliseconds(int32_t millis) {
     TimeInterval ti;
     ti.seconds = millis / 1000;
     ti.nanoseconds = (millis - (ti.seconds * 1000)) * 1000 * 1000;
     return ti;
 }
 
-inline TimeInterval TimeInterval_MakeMicroseconds(Int32 micros) {
+inline TimeInterval TimeInterval_MakeMicroseconds(int32_t micros) {
     TimeInterval ti;
     ti.seconds = micros / (1000 * 1000);
     ti.nanoseconds = (micros - (ti.seconds * 1000 * 1000)) * 1000;
     return ti;
 }
 
-inline Bool TimeInterval_IsNegative(TimeInterval ti) {
+inline bool TimeInterval_IsNegative(TimeInterval ti) {
     return ti.seconds < 0 || ti.nanoseconds < 0;
 }
 
-inline Bool TimeInterval_Equals(TimeInterval t0, TimeInterval t1) {
+inline bool TimeInterval_Equals(TimeInterval t0, TimeInterval t1) {
     return t0.nanoseconds == t1.nanoseconds && t0.seconds == t1.seconds;
 }
 
-inline Bool TimeInterval_Less(TimeInterval t0, TimeInterval t1) {
+inline bool TimeInterval_Less(TimeInterval t0, TimeInterval t1) {
     return (t0.seconds < t1.seconds || (t0.seconds == t1.seconds && t0.nanoseconds < t1.nanoseconds));
 }
 
-inline Bool TimeInterval_LessEquals(TimeInterval t0, TimeInterval t1) {
+inline bool TimeInterval_LessEquals(TimeInterval t0, TimeInterval t1) {
     return (t0.seconds < t1.seconds || (t0.seconds == t1.seconds && t0.nanoseconds <= t1.nanoseconds));
 }
 
-inline Bool TimeInterval_Greater(TimeInterval t0, TimeInterval t1) {
+inline bool TimeInterval_Greater(TimeInterval t0, TimeInterval t1) {
     return (t0.seconds > t1.seconds || (t0.seconds == t1.seconds && t0.nanoseconds > t1.nanoseconds));
 }
 
-inline Bool TimeInterval_GreaterEquals(TimeInterval t0, TimeInterval t1) {
+inline bool TimeInterval_GreaterEquals(TimeInterval t0, TimeInterval t1) {
     return (t0.seconds > t1.seconds || (t0.seconds == t1.seconds && t0.nanoseconds >= t1.nanoseconds));
 }
 

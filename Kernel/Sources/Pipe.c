@@ -21,14 +21,14 @@ typedef struct _Pipe {
     ConditionVariable   reader;
     ConditionVariable   writer;
     RingBuffer          buffer;
-    Int8                readSideState;  // current state of the reader side
-    Int8                writeSideState; // current state of the writer side
+    int8_t                readSideState;  // current state of the reader side
+    int8_t                writeSideState; // current state of the writer side
 } Pipe;
 
 
 
 // Creates a pipe with the given buffer size.
-ErrorCode Pipe_Create(Int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
+errno_t Pipe_Create(int bufferSize, PipeRef _Nullable * _Nonnull pOutPipe)
 {
     decl_try_err();
     PipeRef pPipe;
@@ -97,28 +97,28 @@ void Pipe_Close(PipeRef _Nonnull pPipe, PipeClosing mode)
 }
 
 // Returns the number of bytes that can be read from the pipe without blocking.
-Int Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe)
+int Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe)
 {
     Lock_Lock(&pPipe->lock);
-    const Int nbytes = RingBuffer_ReadableCount(&pPipe->buffer);
+    const int nbytes = RingBuffer_ReadableCount(&pPipe->buffer);
     Lock_Unlock(&pPipe->lock);
     return nbytes;
 }
 
 // Returns the number of bytes can be written without blocking.
-Int Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull pPipe)
+int Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull pPipe)
 {
     Lock_Lock(&pPipe->lock);
-    const Int nbytes = RingBuffer_WritableCount(&pPipe->buffer);
+    const int nbytes = RingBuffer_WritableCount(&pPipe->buffer);
     Lock_Unlock(&pPipe->lock);
     return nbytes;
 }
 
 // Returns the maximum number of bytes that the pipe is capable at storing.
-Int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
+int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
 {
     Lock_Lock(&pPipe->lock);
-    const Int nbytes = pPipe->buffer.capacity;
+    const int nbytes = pPipe->buffer.capacity;
     Lock_Unlock(&pPipe->lock);
     return nbytes;
 }
@@ -129,17 +129,17 @@ Int Pipe_GetCapacity(PipeRef _Nonnull pPipe)
 // is read from the pipe and the amount of data read is returned. If blocking is
 // allowed and the pipe has to wait for data to arrive, then the wait will time out
 // after 'deadline' and a timeout error will be returned.
-Int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline)
+int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ssize_t nBytes, bool allowBlocking, TimeInterval deadline)
 {
-    const Int nBytesToRead = __min((Int)nBytes, INT_MAX);
-    Int nBytesRead = 0;
-    ErrorCode err = EOK;
+    const int nBytesToRead = __min((int)nBytes, INT_MAX);
+    int nBytesRead = 0;
+    errno_t err = EOK;
 
     if (nBytesToRead > 0) {
         Lock_Lock(&pPipe->lock);
 
         while (nBytesRead < nBytesToRead && pPipe->readSideState == kPipeState_Open) {
-            const Int nChunkSize = RingBuffer_GetBytes(&pPipe->buffer, &pBuffer[nBytesRead], nBytesToRead - nBytesRead);
+            const int nChunkSize = RingBuffer_GetBytes(&pPipe->buffer, &pBuffer[nBytesRead], nBytesToRead - nBytesRead);
 
             nBytesRead += nChunkSize;
             if (nChunkSize == 0) {
@@ -171,17 +171,17 @@ Int Pipe_Read(PipeRef _Nonnull pPipe, Byte* _Nonnull pBuffer, ByteCount nBytes, 
     return (nBytesRead > 0 || err == EOK) ? nBytesRead : -err;
 }
 
-Int Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, ByteCount nBytes, Bool allowBlocking, TimeInterval deadline)
+int Pipe_Write(PipeRef _Nonnull pPipe, const Byte* _Nonnull pBuffer, ssize_t nBytes, bool allowBlocking, TimeInterval deadline)
 {
-    const Int nBytesToWrite = __min((Int)nBytes, INT_MAX);
-    Int nBytesWritten = 0;
-    ErrorCode err = EOK;
+    const int nBytesToWrite = __min((int)nBytes, INT_MAX);
+    int nBytesWritten = 0;
+    errno_t err = EOK;
 
     if (nBytesToWrite > 0) {
         Lock_Lock(&pPipe->lock);
         
         while (nBytesWritten < nBytesToWrite && pPipe->writeSideState == kPipeState_Open) {
-            const Int nChunkSize = RingBuffer_PutBytes(&pPipe->buffer, &pBuffer[nBytesWritten], nBytesToWrite - nBytesWritten);
+            const int nChunkSize = RingBuffer_PutBytes(&pPipe->buffer, &pBuffer[nBytesWritten], nBytesToWrite - nBytesWritten);
             
             nBytesWritten += nChunkSize;
             if (nChunkSize == 0) {

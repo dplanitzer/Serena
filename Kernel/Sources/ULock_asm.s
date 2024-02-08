@@ -28,7 +28,7 @@ ulock_SIZEOF            so
 
 
 ;-------------------------------------------------------------------------------
-; ErrorCode ULock_TryLock(ULock* _Nonnull pLock)
+; errno_t ULock_TryLock(ULock* _Nonnull pLock)
 ; Attempts to acquire the lock. Returns EOK if successful and EBUSY if the lock
 ; is being held by another virtual processor.
 _ULock_TryLock:
@@ -62,7 +62,7 @@ _ULock_TryLock:
 
 
 ;-------------------------------------------------------------------------------
-; ErrorCode ULock_Lock(ULock* _Nonnull pLock, UInt options)
+; errno_t ULock_Lock(ULock* _Nonnull pLock, unsigned int options)
 ; Acquires the lock. Blocks the caller if the lock is not available.
 _ULock_Lock:
     inline
@@ -123,7 +123,7 @@ _ULock_Lock:
 
 
 ;-------------------------------------------------------------------------------
-; ErrorCode ULock_Unlock(ULock* _Nonnull pLock)
+; errno_t ULock_Unlock(ULock* _Nonnull pLock)
 ; Unlocks the lock.
 _ULock_Unlock:
     inline
@@ -165,7 +165,7 @@ _ULock_Unlock:
 
 
 ;-------------------------------------------------------------------------------
-; Int Lock_GetOwnerVpid(Lock* _Nonnull pLock)
+; int Lock_GetOwnerVpid(Lock* _Nonnull pLock)
 ; Returns the ID of the virtual processor that is currently holding the lock.
 ; Zero is returned if none is holding the lock.
 _ULock_GetOwnerVpid:

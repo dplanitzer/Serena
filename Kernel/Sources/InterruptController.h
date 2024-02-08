@@ -20,10 +20,10 @@
 
 
 // An interrupt ID
-typedef Int InterruptID;
+typedef int InterruptID;
 
 // The ID that represents a specific registered interrupt handler
-typedef Int InterruptHandlerID;
+typedef int InterruptHandlerID;
 
 // Closure which is invoked when an interrupt happens
 typedef void (*InterruptHandler_Closure)(Byte* _Nullable pContext);
@@ -37,31 +37,31 @@ typedef struct _InterruptController* InterruptControllerRef;
 // The shared interrupt controller instance
 extern InterruptControllerRef _Nonnull  gInterruptController;
 
-extern ErrorCode InterruptController_CreateForLocalCPU(void);
+extern errno_t InterruptController_CreateForLocalCPU(void);
 
 
 // Registers a direct interrupt handler. The interrupt controller will invoke the
 // given closure with the given context every time an interrupt with ID 'interruptId'
 // is triggered.
 // NOTE: The closure is invoked in the interrupt context.
-extern ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId);
+extern errno_t InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId);
 
 // Registers a counting semaphore which will receive a release call for every
 // occurrence of an interrupt with ID 'interruptId'.
-extern ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId);
+extern errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId);
 
 // Removes the interrupt handler for the given handler ID. Does nothing if no
 // such handler is registered.
-extern ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);
+extern errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);
 
 // Enables / disables the interrupt handler with the given interrupt handler ID.
 // Note that interrupt handlers are by default disabled (when you add them). You
 // need to enable an interrupt handler before it is able to respond to interrupt
 // requests. A disabled interrupt handler ignores interrupt requests.
-extern void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled);
+extern void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, bool enabled);
 
 // Returns true if the given interrupt handler is enabled; false otherwise.
-extern Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);
+extern bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId);
 
 // Called by the low-level interrupt handler code. Invokes the interrupt handlers
 // for the given interrupt
@@ -70,15 +70,15 @@ extern void InterruptController_OnInterrupt(struct _InterruptHandlerArray* _Nonn
 // Returns the number of uninitialized interrupts that have happened since boot.
 // An uninitialized interrupt is an interrupt request from a peripheral that does
 // not have a IRQ vector number set up for the interrupt.
-extern Int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController);
+extern int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController);
 
 // Returns the number of spurious interrupts that have happened since boot. A
 // spurious interrupt is an interrupt request that was not acknowledged by the
 // hardware.
-extern Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController);
+extern int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController);
 
 // Returns the number of non=maskable interrupts that have happened since boot.
-extern Int InterruptController_GetNonMaskableInterruptCount(InterruptControllerRef _Nonnull pController);
+extern int InterruptController_GetNonMaskableInterruptCount(InterruptControllerRef _Nonnull pController);
 
 extern void InterruptController_Dump(InterruptControllerRef _Nonnull pController);
 

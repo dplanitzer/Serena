@@ -27,7 +27,7 @@ typedef enum _HIDEventType {
 
 
 // Modifier key flags
-// flags UInt32 encoding:
+// flags uint32_t encoding:
 // [15...0]: logical modifier flags
 // [23...16]: right shift / control / option / command pressed
 // [31...24]: left shift / control / option / command pressed
@@ -43,45 +43,45 @@ enum {
 
 
 // HID key codes are based on the USB HID key scan codes
-typedef UInt16  HIDKeyCode;
+typedef uint16_t  HIDKeyCode;
 
 
 // HID event data
 typedef struct _HIDEventData_KeyUpDown {
-    UInt32      flags;          // Modifier keys
+    uint32_t      flags;          // Modifier keys
     HIDKeyCode  keyCode;        // USB HID key scan code
-    Bool        isRepeat;       // True if this is an auto-repeated key down; false otherwise
+    bool        isRepeat;       // True if this is an auto-repeated key down; false otherwise
 } HIDEventData_KeyUpDown;
 
 
 typedef struct _HIDEventData_FlagsChanged {
-    UInt32  flags;              // Modifier keys
+    uint32_t  flags;              // Modifier keys
 } HIDEventData_FlagsChanged;
 
 
 typedef struct _HIDEventData_MouseButton {
-    Int         buttonNumber;   // 0 -> left button, 1 -> right button, 2-> middle button, ...
-    UInt32      flags;          // modifier keys
+    int         buttonNumber;   // 0 -> left button, 1 -> right button, 2-> middle button, ...
+    uint32_t      flags;          // modifier keys
     Point       location;       // Mouse position when the button was pressed / released
 } HIDEventData_MouseButton;
 
 
 typedef struct _HIDEventData_MouseMove {
     Point       location;       // Current mouse position
-    UInt32      flags;          // Modifier keys
+    uint32_t      flags;          // Modifier keys
 } HIDEventData_MouseMove;
 
 
 typedef struct _HIDEventData_JoystickButton {
-    Int         port;           // Input controller port number
-    Int         buttonNumber;
-    UInt32      flags;          // Modifier keys
+    int         port;           // Input controller port number
+    int         buttonNumber;
+    uint32_t      flags;          // Modifier keys
     Vector      direction;      // Joystick direction when the button was pressed / released
 } HIDEventData_JoystickButton;
 
 
 typedef struct _HIDEventData_JoystickMotion {
-    Int         port;           // Input controller port number
+    int         port;           // Input controller port number
     Vector      direction;
 } HIDEventData_JoystickMotion;
 
@@ -98,7 +98,7 @@ typedef union _HIDEventData {
 
 // HID event
 typedef struct _HIDEvent {
-    Int32           type;
+    int32_t           type;
     TimeInterval    eventTime;
     HIDEventData    data;
 } HIDEvent;

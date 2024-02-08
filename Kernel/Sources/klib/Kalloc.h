@@ -23,7 +23,7 @@
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-extern ErrorCode kalloc_options(ByteCount nbytes, UInt options, void* _Nullable * _Nonnull pOutPtr);
+extern errno_t kalloc_options(ssize_t nbytes, unsigned int options, void* _Nullable * _Nonnull pOutPtr);
 
 // Allocates uninitialized CPU-accessible memory from the kernel heap. Returns
 // NULL if the memory could not be allocated. The returned memory is not
@@ -45,12 +45,12 @@ extern void kfree(void* _Nullable ptr);
 
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.
-extern ErrorCode kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc);
+extern errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc);
 
 // Dumps a description of the kalloc heap to the console
 extern void kalloc_dump(void);
 
 // Initializes the kalloc heap.
-extern ErrorCode kalloc_init(const SystemDescription* _Nonnull pSysDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop);
+extern errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop);
 
 #endif /* kalloc_h */

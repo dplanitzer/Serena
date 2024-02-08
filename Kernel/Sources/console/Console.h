@@ -23,6 +23,6 @@ typedef struct _ConsoleMethodTable {
     IOResourceMethodTable   super;
 } ConsoleMethodTable;
 
-extern ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole);
+extern errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole);
 
 #endif /* Console_h */

@@ -11,19 +11,19 @@
 
 // Returns true if the given key map is valid and false otherwise.
 // XXX Should check that all offsets are inside the pMap->size range.
-Bool KeyMap_IsValid(const KeyMap* _Nonnull pMap)
+bool KeyMap_IsValid(const KeyMap* _Nonnull pMap)
 {
     const Byte* pMapBase = (const Byte*) pMap;
 
-    for (UInt16 r = 0; r < pMap->rangeCount; r++) {
+    for (uint16_t r = 0; r < pMap->rangeCount; r++) {
         const KeyMapRange* pCurRange = (const KeyMapRange*)(pMapBase + pMap->rangeOffset[r]);
-        const UInt16 keyCodeCount = pCurRange->upper - pCurRange->lower;
+        const uint16_t keyCodeCount = pCurRange->upper - pCurRange->lower;
 
         switch (pCurRange->type) {
             case KEY_MAP_RANGE_TYPE_3: {
-                const UInt16* pCurTraps = (const UInt16*)(pMapBase + pCurRange->traps);
+                const uint16_t* pCurTraps = (const uint16_t*)(pMapBase + pCurRange->traps);
 
-                for (UInt16 k = 0; k <= keyCodeCount; k++) {
+                for (uint16_t k = 0; k <= keyCodeCount; k++) {
                     // XXX This should really only check at most kKeyMap_MaxByteSequenceLength+1 bytes
                     if (String_Length((const char*)(pMapBase + pCurTraps[k])) > kKeyMap_MaxByteSequenceLength) {
                         return false;
@@ -40,9 +40,9 @@ Bool KeyMap_IsValid(const KeyMap* _Nonnull pMap)
 
 
 
-static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars)
+static ssize_t KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, char* _Nonnull pOutChars)
 {
-    UInt32 evtFlags = pEvent->flags;
+    uint32_t evtFlags = pEvent->flags;
 
     if ((evtFlags & kHIDEventModifierFlag_CapsLock) && (pEvent->keyCode >= KEY_A && pEvent->keyCode <= KEY_Z)) {
         // Treat as shift for caps-able USB key code, except if the shift key is pressed at the same time
@@ -53,10 +53,10 @@ static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const
         }
     }
 
-    const UInt32* pTraps = (const UInt32*)(pMapBase + pRange->traps);
-    const Character* trap = (const Character*) &pTraps[pEvent->keyCode - pRange->lower];
-    const UInt modifierIdx = evtFlags & (kHIDEventModifierFlag_Shift|kHIDEventModifierFlag_Option);
-    Character ch = trap[modifierIdx];
+    const uint32_t* pTraps = (const uint32_t*)(pMapBase + pRange->traps);
+    const char* trap = (const char*) &pTraps[pEvent->keyCode - pRange->lower];
+    const unsigned int modifierIdx = evtFlags & (kHIDEventModifierFlag_Shift|kHIDEventModifierFlag_Option);
+    char ch = trap[modifierIdx];
 
     if (ch == '\0') {
         ch = trap[0];
@@ -71,13 +71,13 @@ static ByteCount KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const
 }
 
 // Maps a USB key code to a nul-terminated UTF8 string. Ignores modifier keys.
-static ByteCount KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, Character* _Nonnull pOutChars, ByteCount maxOutChars)
+static ssize_t KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, char* _Nonnull pOutChars, ssize_t maxOutChars)
 {
-    const UInt16* pTrapOffsets = (const UInt16*)(pMapBase + pRange->traps);
-    const Int adjustedUsbKeyCode = pEvent->keyCode - pRange->lower;
-    const UInt16 targetTrapOffset = pTrapOffsets[adjustedUsbKeyCode];
-    const Character* pTrapString = (const Character*)(pMapBase + targetTrapOffset);
-    ByteCount i = 0;
+    const uint16_t* pTrapOffsets = (const uint16_t*)(pMapBase + pRange->traps);
+    const int adjustedUsbKeyCode = pEvent->keyCode - pRange->lower;
+    const uint16_t targetTrapOffset = pTrapOffsets[adjustedUsbKeyCode];
+    const char* pTrapString = (const char*)(pMapBase + targetTrapOffset);
+    ssize_t i = 0;
     
     while (*pTrapString != '\0' && i < maxOutChars) {
         *pOutChars++ = *pTrapString++;
@@ -94,13 +94,13 @@ static ByteCount KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const
 // returned. If that length is zero then the key press or release should be
 // ignored. Note that this function returns a sequence of bytes and not a
 // C string. Consequently the sequence is not nul-terminated.
-ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ByteCount maxOutBytes)
+ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ssize_t maxOutBytes)
 {
     if (maxOutBytes > 0) {
         const Byte* pMapBase = (const Byte*)pMap;
         const HIDKeyCode usbKeyCode = pEvent->keyCode;
 
-        for (Int i = 0; i < pMap->rangeCount; i++) {
+        for (int i = 0; i < pMap->rangeCount; i++) {
             const KeyMapRange* pCurRange = (const KeyMapRange*)(pMapBase + pMap->rangeOffset[i]);
 
             if (usbKeyCode >= pCurRange->lower && usbKeyCode <= pCurRange->upper) {

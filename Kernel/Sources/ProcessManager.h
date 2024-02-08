@@ -23,7 +23,7 @@ extern ProcessManagerRef _Nonnull  gProcessManager;
 
 
 // Creates the process manager. The provided process becomes the root process.
-extern ErrorCode ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _Nullable * _Nonnull pOutManager);
+extern errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _Nullable * _Nonnull pOutManager);
 
 // Returns a strong reference to the root process. This is the process that has
 // no parent but all other processes are directly or indirectly descendants of
@@ -35,7 +35,7 @@ extern ProcessRef _Nonnull ProcessManager_CopyRootProcess(ProcessManagerRef _Non
 // registered with the process manager and otherwise returns a strong reference
 // to the process object. The caller is responsible for releasing the reference
 // once no longer needed.
-extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull pManager, Int pid);
+extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull pManager, int pid);
 
 
 // Registers the given process with the process manager. Note that this function
@@ -43,7 +43,7 @@ extern ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _
 // that's equal to some other registered process.
 // A process will only become visible to other processes after it has been
 // registered with the process manager.
-extern ErrorCode ProcessManager_Register(ProcessManagerRef _Nonnull pManager, ProcessRef _Nonnull pProc);
+extern errno_t ProcessManager_Register(ProcessManagerRef _Nonnull pManager, ProcessRef _Nonnull pProc);
 
 // Deregisters the given process from the process manager. This makes the process
 // invisible to other processes. Does nothing if the given process isn't

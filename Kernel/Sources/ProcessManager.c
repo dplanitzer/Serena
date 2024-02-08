@@ -21,7 +21,7 @@ ProcessManagerRef   gProcessManager;
 
 
 // Creates the process manager. The provided process becomes the root process.
-ErrorCode ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _Nullable * _Nonnull pOutManager)
+errno_t ProcessManager_Create(ProcessRef _Nonnull pRootProc, ProcessManagerRef _Nullable * _Nonnull pOutManager)
 {
     decl_try_err();
     ProcessManagerRef pManager;
@@ -55,7 +55,7 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
     ProcessRef pProc = NULL;
 
     Lock_Lock(&pManager->lock);
-    for (Int i = 0; i < ObjectArray_GetCount(&pManager->procs); i++) {
+    for (int i = 0; i < ObjectArray_GetCount(&pManager->procs); i++) {
         ProcessRef pCurProc = (ProcessRef) ObjectArray_GetAt(&pManager->procs, i);
 
         if (pCurProc->pid == pid) {
@@ -72,7 +72,7 @@ ProcessRef _Nullable ProcessManager_CopyProcessForPid(ProcessManagerRef _Nonnull
 // that's equal to some other registered process.
 // A process will only become visible to other processes after it has been
 // registered with the process manager. 
-ErrorCode ProcessManager_Register(ProcessManagerRef _Nonnull pManager, ProcessRef _Nonnull pProc)
+errno_t ProcessManager_Register(ProcessManagerRef _Nonnull pManager, ProcessRef _Nonnull pProc)
 {
     decl_try_err();
 

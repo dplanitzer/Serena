@@ -14,16 +14,16 @@
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
 // Why?? 'cause it's easy
-#define GEMDOS_EXEC_MAGIC    ((UInt16) 0x601a)
+#define GEMDOS_EXEC_MAGIC    ((uint16_t) 0x601a)
 typedef struct _GemDosExecutableHeader {
-    UInt16  magic;
-    Int32   text_size;
-    Int32   data_size;
-    Int32   bss_size;
-    Int32   symbol_table_size;
-    Int32   reserved;
-    UInt32  flags;
-    UInt16  is_absolute;    // == 0 -> relocatable executable
+    uint16_t    magic;
+    int32_t     text_size;
+    int32_t     data_size;
+    int32_t     bss_size;
+    int32_t     symbol_table_size;
+    int32_t     reserved;
+    uint32_t    flags;
+    uint16_t    is_absolute;    // == 0 -> relocatable executable
 } GemDosExecutableHeader;
 
 
@@ -35,6 +35,6 @@ typedef struct _GemDosExecutableLoader {
 extern void GemDosExecutableLoader_Init(GemDosExecutableLoader* _Nonnull pLoader, AddressSpaceRef _Nonnull pTargetAddressSpace);
 extern void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader);
 
-extern ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nullable * _Nonnull pOutImageBase, Byte* _Nullable * _Nonnull pOutEntryPoint);
+extern errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nullable * _Nonnull pOutImageBase, Byte* _Nullable * _Nonnull pOutEntryPoint);
 
 #endif /* GemDosExecutableLoader_h */

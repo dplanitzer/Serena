@@ -13,10 +13,10 @@
 #include <Platform.h>
 
 
-extern _Noreturn fatal(const Character* _Nonnull format, ...);
-extern _Noreturn fatalError(const Character* _Nonnull filename, Int line, Int err);
-extern _Noreturn fatalAbort(const Character* _Nonnull filename, Int line);
-extern _Noreturn fatalAssert(const Character* _Nonnull filename, Int line);
+extern _Noreturn fatal(const char* _Nonnull format, ...);
+extern _Noreturn fatalError(const char* _Nonnull filename, int line, int err);
+extern _Noreturn fatalAbort(const char* _Nonnull filename, int line);
+extern _Noreturn fatalAssert(const char* _Nonnull filename, int line);
 extern _Noreturn _fatalException(const ExceptionStackFrame* _Nonnull pFrame);
 
 

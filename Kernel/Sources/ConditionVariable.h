@@ -16,11 +16,11 @@
 // A condition variable
 typedef struct _ConditionVariable {
     List        wait_queue;
-    Character   name[8];
+    char   name[8];
 } ConditionVariable;
 
 
-extern ErrorCode ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar);
+extern errno_t ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar);
 extern void ConditionVariable_Destroy(ConditionVariable* _Nullable pCondVar);
 
 // Initializes a new condition variable.
@@ -37,6 +37,6 @@ extern void ConditionVariable_BroadcastAndUnlock(ConditionVariable* _Nonnull pCo
 // wait has timed out. Note that this function may return EINTR which means that
 // the ConditionVariable_Wait() call is happening in the context of a system
 // call that should be aborted.
-extern ErrorCode ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, TimeInterval deadline);
+extern errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, TimeInterval deadline);
 
 #endif /* ConditionVariable_h */

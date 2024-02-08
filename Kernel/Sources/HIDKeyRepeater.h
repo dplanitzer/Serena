@@ -16,7 +16,7 @@ struct _HIDKeyRepeater;
 typedef struct _HIDKeyRepeater* HIDKeyRepeaterRef;
 
 
-extern ErrorCode HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutRepeater);
+extern errno_t HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutRepeater);
 extern void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull pRepeater);
 
 extern void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull pRepeater, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);

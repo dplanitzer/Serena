@@ -187,7 +187,7 @@ enum {
 #define IsIOChannelCommand(__cmd) ((__cmd) < 0)
 
 // Returns the type of the channel
-// ioctl(Int fd, Int cmd, Int _Nonnull *pOutType)
+// ioctl(int fd, int cmd, int _Nonnull *pOutType)
 #define kIOChannelCommand_GetType   IOChannelCommand(1)
 typedef enum {
     kIOChannelType_Terminal,

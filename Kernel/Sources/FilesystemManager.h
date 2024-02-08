@@ -21,7 +21,7 @@ extern FilesystemManagerRef _Nonnull  gFilesystemManager;
 
 // Creates the filesystem manager. The provided filesystem is automatically
 // mounted as the root filesystem.
-extern ErrorCode FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager);
+extern errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager);
 
 // Returns a strong reference to the root of the global filesystem.
 extern FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef _Nonnull pManager);
@@ -35,10 +35,10 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemM
 // given filesystem. ENOENT and NULLs are returned if the filesystem was never
 // mounted or is no longer mounted. EOK and NULLs are returned if 'pFileSys' is
 // the root filesystem (it has no parent file system).
-extern ErrorCode FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem);
+extern errno_t FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem);
 
 // Returns true if the given node is a mountpoint and false otherwise.
-extern Bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode);
+extern bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode);
 
 // Checks whether the given node is a mount point and returns the filesystem
 // mounted at that node, if it is. Otherwise returns NULL.
@@ -46,9 +46,9 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Fil
 
 // Mounts the given filesystem at the given node. The node must be a directory
 // node. A filesystem instance may be mounted at at most one directory.
-extern ErrorCode FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ByteCount paramsSize, InodeRef _Nonnull _Locked pDirNode);
+extern errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const Byte* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nonnull _Locked pDirNode);
 
 // Unmounts the given filesystem from the given directory.
-extern ErrorCode FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode);
+extern errno_t FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode);
  
 #endif /* FilesystemManager_h */

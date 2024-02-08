@@ -11,7 +11,7 @@
 
 
 // Creates a new condition variable.
-ErrorCode ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar)
+errno_t ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar)
 {
     ConditionVariable* pCondVar;
     decl_try_err();
@@ -48,7 +48,7 @@ void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar)
         if (!List_IsEmpty(&pCondVar->wait_queue)) {
         // Wake up all the guys that are still waiting on us and tell them that the
         // wait has been interrupted.
-        const Int sps = VirtualProcessorScheduler_DisablePreemption();
+        const int sps = VirtualProcessorScheduler_DisablePreemption();
         VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                              &pCondVar->wait_queue,
                                              INT_MAX,
@@ -65,8 +65,8 @@ void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar)
 // the machine.
 void ConditionVariable_SignalAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock)
 {
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Int scs = VirtualProcessorScheduler_DisableCooperation();
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int scs = VirtualProcessorScheduler_DisableCooperation();
     
     if (pLock) {
         Lock_Unlock(pLock);
@@ -84,8 +84,8 @@ void ConditionVariable_SignalAndUnlock(ConditionVariable* _Nonnull pCondVar, Loc
 // unlocks 'pLock' if it is not null.
 void ConditionVariable_BroadcastAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock)
 {
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Int scs = VirtualProcessorScheduler_DisableCooperation();
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int scs = VirtualProcessorScheduler_DisableCooperation();
 
     if (pLock) {
         Lock_Unlock(pLock);
@@ -99,14 +99,14 @@ void ConditionVariable_BroadcastAndUnlock(ConditionVariable* _Nonnull pCondVar, 
 
 // Unlocks 'pLock' and blocks the caller until the condition variable is signaled.
 // It then locks 'pLock' before it returns to the caller.
-ErrorCode ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, TimeInterval deadline)
+errno_t ConditionVariable_Wait(ConditionVariable* _Nonnull pCondVar, Lock* _Nonnull pLock, TimeInterval deadline)
 {
-    const Int sps = VirtualProcessorScheduler_DisablePreemption();
-    const Int scs = VirtualProcessorScheduler_DisableCooperation();
+    const int sps = VirtualProcessorScheduler_DisablePreemption();
+    const int scs = VirtualProcessorScheduler_DisableCooperation();
     
     Lock_Unlock(pLock);
     VirtualProcessorScheduler_RestoreCooperation(scs);
-    const Int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
+    const int err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                                      &pCondVar->wait_queue,
                                                      deadline,
                                                      true);

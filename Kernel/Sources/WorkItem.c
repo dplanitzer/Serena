@@ -13,7 +13,7 @@
 // MARK: Work Items
 
 
-void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, Bool isOwnedByQueue)
+void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, bool isOwnedByQueue)
 {
     SListNode_Init(&pItem->queue_entry);
     pItem->closure = closure;
@@ -25,7 +25,7 @@ void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueue
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
-ErrorCode WorkItem_Create_Internal(DispatchQueueClosure closure, Bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem)
+errno_t WorkItem_Create_Internal(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem)
 {
     decl_try_err();
     WorkItemRef pItem;
@@ -44,7 +44,7 @@ catch:
 // are one-shot: they execute their closure and then the work item is destroyed.
 // This is the creation method for parties that are external to the dispatch
 // queue implementation.
-ErrorCode WorkItem_Create(DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem)
+errno_t WorkItem_Create(DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem)
 {
     return WorkItem_Create_Internal(closure, false, pOutItem);
 }
@@ -76,13 +76,13 @@ void WorkItem_Destroy(WorkItemRef _Nullable pItem)
 // closure to check the cancelled state and to act appropriately on it.
 // Clearing the cancelled state of a work item should normally not be necessary.
 // The functionality exists to enable work item caching and reuse.
-void WorkItem_SetCancelled(WorkItemRef _Nonnull pItem, Bool flag)
+void WorkItem_SetCancelled(WorkItemRef _Nonnull pItem, bool flag)
 {
     pItem->cancelled = flag;
 }
 
 // Returns true if the given work item is in cancelled state.
-Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem)
+bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem)
 {
     return pItem->cancelled;
 }
@@ -90,7 +90,7 @@ Bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem)
 // Signals the completion of a work item. State is protected by the dispatch
 // queue lock. The 'isInterrupted' parameter indicates whether the item should
 // be considered interrupted or finished.
-void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, Bool isInterrupted)
+void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, bool isInterrupted)
 {
     if (pItem->completion != NULL) {
         pItem->completion->isInterrupted = isInterrupted;
@@ -104,7 +104,7 @@ void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, Bool isInterrupted)
 // MARK: Timers
 
 
-void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue)
+void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue)
 {
     enum ItemType type = TimeInterval_Greater(interval, kTimeInterval_Zero) ? kItemType_RepeatingTimer : kItemType_OneShotTimer;
 
@@ -115,7 +115,7 @@ void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeI
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until cancelled.
-ErrorCode Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, Bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer)
+errno_t Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer)
 {
     decl_try_err();
     TimerRef pTimer;
@@ -134,7 +134,7 @@ catch:
 // is greater than 0 then the timer will repeat until cancelled.
 // This is the creation method for parties that are external to the dispatch
 // queue implementation.
-ErrorCode Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer)
+errno_t Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer)
 {
     return Timer_Create_Internal(deadline, interval, closure, false, pOutTimer);
 }
@@ -160,7 +160,7 @@ void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem)
 }
 
 // Creates a completion signaler.
-ErrorCode CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp)
+errno_t CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp)
 {
     decl_try_err();
     CompletionSignaler* pItem;

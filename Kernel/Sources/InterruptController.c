@@ -13,12 +13,12 @@ InterruptController     gInterruptControllerStorage;
 InterruptControllerRef  gInterruptController = &gInterruptControllerStorage;
 
 
-ErrorCode InterruptController_CreateForLocalCPU(void)
+errno_t InterruptController_CreateForLocalCPU(void)
 {    
     decl_try_err();
     InterruptController* pController = &gInterruptControllerStorage;
 
-    for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
         try(kalloc(0, (void**) &pController->handlers[i].start));
         pController->handlers[i].count = 0;
     }
@@ -34,11 +34,11 @@ catch:
     return err;
 }
 
-static void insertion_sort(InterruptHandler* _Nonnull pHandlers, Int n)
+static void insertion_sort(InterruptHandler* _Nonnull pHandlers, int n)
 {
-    for (Int i = 1; i < n; i++) {
+    for (int i = 1; i < n; i++) {
         const InterruptHandler handler = pHandlers[i];
-        Int j = i - 1;
+        int j = i - 1;
         
         while (j >= 0 && pHandlers[j].priority < handler.priority) {
             pHandlers[j + 1] = pHandlers[j];
@@ -50,11 +50,11 @@ static void insertion_sort(InterruptHandler* _Nonnull pHandlers, Int n)
 
 // Adds the given interrupt handler to the controller. Returns the ID of the handler.
 // 0 is returned if allocation failed.
-static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, InterruptHandler* _Nonnull pHandler, InterruptHandlerID* _Nonnull pOutId)
+static errno_t InterruptController_AddInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, InterruptHandler* _Nonnull pHandler, InterruptHandlerID* _Nonnull pOutId)
 {
     decl_try_err();
     InterruptHandlerID handlerId = 0;
-    Bool needsUnlock = false;
+    bool needsUnlock = false;
     
     assert(pHandler->identity == 0);
 
@@ -62,8 +62,8 @@ static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef 
     needsUnlock = true;
 
     // Allocate a new handler array
-    const Int oldCount = pController->handlers[interruptId].count;
-    const Int newCount = oldCount + 1;
+    const int oldCount = pController->handlers[interruptId].count;
+    const int newCount = oldCount + 1;
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].start;
     InterruptHandler* pNewHandlers = NULL;
     
@@ -76,7 +76,7 @@ static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef 
     
     
     // Copy the old handlers over to the new array
-    for (Int i = 0; i < oldCount; i++) {
+    for (int i = 0; i < oldCount; i++) {
         pNewHandlers[i] = pOldHandlers[i];
     }
     pNewHandlers[oldCount] = *pHandler;
@@ -88,7 +88,7 @@ static ErrorCode InterruptController_AddInterruptHandler(InterruptControllerRef 
     
     
     // Atomically (with respect to the IRQ handler for this CPU) install the new handlers
-    const Int sis = cpu_disable_irqs();
+    const int sis = cpu_disable_irqs();
     pController->handlers[interruptId].start = pNewHandlers;
     pController->handlers[interruptId].count = newCount;
     cpu_restore_irqs(sis);
@@ -119,7 +119,7 @@ catch:
 // given closure with the given context every time an interrupt with ID 'interruptId'
 // is triggered.
 // NOTE: The closure is invoked in the interrupt context.
-ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId)
+errno_t InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId)
 {
     InterruptHandler handler;
     
@@ -137,7 +137,7 @@ ErrorCode InterruptController_AddDirectInterruptHandler(InterruptControllerRef _
 
 // Registers a counting semaphore which will receive a release call for every
 // occurrence of an interrupt with ID 'interruptId'.
-ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, Int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId)
+errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, Semaphore* _Nonnull pSemaphore, InterruptHandlerID* _Nonnull pOutId)
 {
     InterruptHandler handler;
     
@@ -155,10 +155,10 @@ ErrorCode InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRe
 
 // Removes the interrupt handler for the given handler ID. Does nothing if no
 // such handler is registered.
-ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
+errno_t InterruptController_RemoveInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
     decl_try_err();
-    Bool needsUnlock = false;
+    bool needsUnlock = false;
 
     if (handlerId == 0) {
         return EOK;
@@ -168,9 +168,9 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
     needsUnlock = true;
     
     // Find out which interrupt ID this handler handles
-    Int interruptId = -1;
-    for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
-        for (Int j = 0; j < pController->handlers[i].count; j++) {
+    int interruptId = -1;
+    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+        for (int j = 0; j < pController->handlers[i].count; j++) {
             if (pController->handlers[i].start[j].identity == handlerId) {
                 interruptId = i;
                 break;
@@ -185,8 +185,8 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
     
     
     // Allocate a new handler array
-    const Int oldCount = pController->handlers[interruptId].count;
-    const Int newCount = oldCount - 1;
+    const int oldCount = pController->handlers[interruptId].count;
+    const int newCount = oldCount - 1;
     InterruptHandler* pOldHandlers = pController->handlers[interruptId].start;
     InterruptHandler* pNewHandlers;
     
@@ -194,7 +194,7 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
     
     
     // Copy over the handlers that we want to retain
-    for (Int oldIdx = 0, newIdx = 0; oldIdx < oldCount; oldIdx++) {
+    for (int oldIdx = 0, newIdx = 0; oldIdx < oldCount; oldIdx++) {
         if (pOldHandlers[oldIdx].identity != handlerId) {
             pNewHandlers[newIdx++] = pOldHandlers[oldIdx];
         }
@@ -208,7 +208,7 @@ ErrorCode InterruptController_RemoveInterruptHandler(InterruptControllerRef _Non
 
     
     // Atomically (with respect to the IRQ handler for this CPU) install the new handlers
-    const Int sis = cpu_disable_irqs();
+    const int sis = cpu_disable_irqs();
     pController->handlers[interruptId].start = pNewHandlers;
     pController->handlers[interruptId].count = newCount;
     cpu_restore_irqs(sis);
@@ -231,11 +231,11 @@ catch:
 // Must be called while holding the lock.
 static InterruptHandler* _Nullable InterruptController_GetInterruptHandlerForID_Locked(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
-    for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
         register InterruptHandler* pHandlers = pController->handlers[i].start;
-        register const Int count = pController->handlers[i].count;
+        register const int count = pController->handlers[i].count;
 
-        for (Int j = 0; j < count; j++) {
+        for (int j = 0; j < count; j++) {
             if (pHandlers[j].identity == handlerId) {
                 return &pHandlers[j];
             }
@@ -249,7 +249,7 @@ static InterruptHandler* _Nullable InterruptController_GetInterruptHandlerForID_
 // Note that interrupt handlers are by default disabled (when you add them). You
 // need to enable an interrupt handler before it is able to respond to interrupt
 // requests. A disabled interrupt handler ignores interrupt requests.
-void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, Bool enabled)
+void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId, bool enabled)
 {
     Lock_Lock(&pController->lock);
     
@@ -265,13 +265,13 @@ void InterruptController_SetInterruptHandlerEnabled(InterruptControllerRef _Nonn
 }
 
 // Returns true if the given interrupt handler is enabled; false otherwise.
-Bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
+bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef _Nonnull pController, InterruptHandlerID handlerId)
 {
     Lock_Lock(&pController->lock);
     
     InterruptHandler* pHandler = InterruptController_GetInterruptHandlerForID_Locked(pController, handlerId);
     assert(pHandler != NULL);
-    const Bool enabled = (pHandler->flags & INTERRUPT_HANDLER_FLAG_ENABLED) != 0 ? true : false;
+    const bool enabled = (pHandler->flags & INTERRUPT_HANDLER_FLAG_ENABLED) != 0 ? true : false;
     
     Lock_Unlock(&pController->lock);
     return enabled;
@@ -282,12 +282,12 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
     Lock_Lock(&pController->lock);
     
     print("InterruptController = {\n");
-    for (Int i = 0; i < INTERRUPT_ID_COUNT; i++) {
+    for (int i = 0; i < INTERRUPT_ID_COUNT; i++) {
         register const InterruptHandler* pHandlers = pController->handlers[i].start;
-        register const Int count = pController->handlers[i].count;
+        register const int count = pController->handlers[i].count;
 
         print("  IRQ %d = {\n", i);
-        for (Int h = 0; h < count; h++) {
+        for (int h = 0; h < count; h++) {
             switch (pHandlers[h].type) {
                 case INTERRUPT_HANDLER_TYPE_DIRECT:
                     print("    direct[%d, %d] = {0x%p, 0x%p},\n", pHandlers[h].identity, pHandlers[h].priority, pHandlers[h].closure, pHandlers[h].context);
@@ -310,7 +310,7 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 // Returns the number of uninitialized interrupts that have happened since boot.
 // An uninitialized interrupt is an interrupt request from a peripheral that does
 // not have a IRQ vector number set up for the interrupt.
-Int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController)
+int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController)
 {
     return pController->uninitializedInterruptCount;
 }
@@ -318,13 +318,13 @@ Int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _
 // Returns the number of spurious interrupts that have happened since boot. A
 // spurious interrupt is an interrupt request that was not acknowledged by the
 // hardware.
-Int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController)
+int InterruptController_GetSpuriousInterruptCount(InterruptControllerRef _Nonnull pController)
 {
     return pController->spuriousInterruptCount;
 }
 
 // Returns the number of non=maskable interrupts that have happened since boot.
-Int InterruptController_GetNonMaskableInterruptCount(InterruptControllerRef _Nonnull pController)
+int InterruptController_GetNonMaskableInterruptCount(InterruptControllerRef _Nonnull pController)
 {
     return pController->nonMaskableInterruptCount;
 }

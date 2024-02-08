@@ -11,17 +11,17 @@
 
 // Creates a tab stops object with 'nStops' (initial) tab stops assuming a tab with
 // of 'tabWidth' characters.
-ErrorCode TabStops_Init(TabStops* _Nonnull pStops, Int nStops, Int tabWidth)
+errno_t TabStops_Init(TabStops* _Nonnull pStops, int nStops, int tabWidth)
 {
     decl_try_err();
 
     assert(tabWidth >= 0 && tabWidth <= INT8_MAX);
 
-    try(kalloc(sizeof(Int8) * nStops, (void**) &pStops->stops));
+    try(kalloc(sizeof(int8_t) * nStops, (void**) &pStops->stops));
     pStops->capacity = nStops;
     pStops->count = nStops;
 
-    for (Int i = 0; i < nStops; i++) {
+    for (int i = 0; i < nStops; i++) {
         pStops->stops[i] = i * tabWidth;
     }
     return EOK;
@@ -38,14 +38,14 @@ void TabStops_Deinit(TabStops* _Nonnull pStops)
 
 // Inserts a new tab stop at the absolute X location 'xLoc'. Does nothing if a
 // tab stop already exists at this location.
-ErrorCode TabStops_InsertStop(TabStops* _Nonnull pStops, Int xLoc)
+errno_t TabStops_InsertStop(TabStops* _Nonnull pStops, int xLoc)
 {
     decl_try_err();
     assert(xLoc >= 0 && xLoc <= INT8_MAX);
 
     // Find the insertion position
-    Int idx = 0;
-    for (Int i = 0; i < pStops->count; i++) {
+    int idx = 0;
+    for (int i = 0; i < pStops->count; i++) {
         if (pStops->stops[i] >= xLoc) {
             idx = i;
             break;
@@ -59,18 +59,18 @@ ErrorCode TabStops_InsertStop(TabStops* _Nonnull pStops, Int xLoc)
 
     // Insert the new tab stop
     if (pStops->count == pStops->capacity) {
-        const Int newCapacity = (pStops->capacity > 0) ? pStops->capacity * 2 : 8;
-        Int8* pNewStops;
+        const int newCapacity = (pStops->capacity > 0) ? pStops->capacity * 2 : 8;
+        int8_t* pNewStops;
 
-        try(kalloc(sizeof(Int8) * newCapacity, (void**) &pNewStops));
-        Bytes_CopyRange(pNewStops, pStops->stops, sizeof(Int8) * pStops->count);
+        try(kalloc(sizeof(int8_t) * newCapacity, (void**) &pNewStops));
+        Bytes_CopyRange(pNewStops, pStops->stops, sizeof(int8_t) * pStops->count);
         kfree(pStops->stops);
         pStops->stops = pNewStops;
         pStops->capacity = newCapacity;
     }
 
     if (idx < pStops->count) {
-        Bytes_CopyRange(&pStops->stops[idx + 1], &pStops->stops[idx], (pStops->count - idx) * sizeof(Int8));
+        Bytes_CopyRange(&pStops->stops[idx + 1], &pStops->stops[idx], (pStops->count - idx) * sizeof(int8_t));
     }
     pStops->stops[idx] = xLoc;
     pStops->count++;
@@ -81,11 +81,11 @@ catch:
 
 // Removes the tab stop at the given position. Does nothing if the position is
 // not associated with a tab stop.
-void TabStops_RemoveStop(TabStops* _Nonnull pStops, Int xLoc)
+void TabStops_RemoveStop(TabStops* _Nonnull pStops, int xLoc)
 {
-    Int idx = -1;
+    int idx = -1;
 
-    for (Int i = 0; i < pStops->count; i++) {
+    for (int i = 0; i < pStops->count; i++) {
         if (pStops->stops[i] == xLoc) {
             idx = i;
             break;
@@ -93,7 +93,7 @@ void TabStops_RemoveStop(TabStops* _Nonnull pStops, Int xLoc)
     }
 
     if (idx >= 0) {
-        Bytes_CopyRange(&pStops->stops[idx], &pStops->stops[idx + 1], (pStops->count - 1 - idx) * sizeof(Int8));
+        Bytes_CopyRange(&pStops->stops[idx], &pStops->stops[idx + 1], (pStops->count - 1 - idx) * sizeof(int8_t));
         pStops->count--;
     }
 }
@@ -106,9 +106,9 @@ void TabStops_RemoveAllStops(TabStops* _Nonnull pStops)
 
 // Returns the tab stop following the position 'xLoc'. 'nWidth' - 1 is returned
 // if no more tab stop is available.
-Int TabStops_GetNextStop(TabStops* pStops, Int xLoc, Int xWidth)
+int TabStops_GetNextStop(TabStops* pStops, int xLoc, int xWidth)
 {
-    for (Int i = 0; i < pStops->count; i++) {
+    for (int i = 0; i < pStops->count; i++) {
         if (pStops->stops[i] > xLoc) {
             return pStops->stops[i];
         }
@@ -119,11 +119,11 @@ Int TabStops_GetNextStop(TabStops* pStops, Int xLoc, Int xWidth)
 
 // Returns the nth tab stop following the position 'xLoc'. 'nWidth' - 1 is
 // returned if no more tab stop is available.
-Int TabStops_GetNextNthStop(TabStops* pStops, Int xLoc, Int nth, Int xWidth)
+int TabStops_GetNextNthStop(TabStops* pStops, int xLoc, int nth, int xWidth)
 {
-    for (Int i = 0; i < pStops->count; i++) {
+    for (int i = 0; i < pStops->count; i++) {
         if (pStops->stops[i] > xLoc) {
-            const Int idx = i + (nth - 1);
+            const int idx = i + (nth - 1);
 
             return (idx < pStops->count) ? pStops->stops[idx] : __max(xWidth - 1, 0);
         }
@@ -134,11 +134,11 @@ Int TabStops_GetNextNthStop(TabStops* pStops, Int xLoc, Int nth, Int xWidth)
 
 // Returns the 'nth' previous tab stop. 0 is returned if no more tab stops are
 // available.
-Int TabStops_GetPreviousNthStop(TabStops* pStops, Int xLoc, Int nth)
+int TabStops_GetPreviousNthStop(TabStops* pStops, int xLoc, int nth)
 {
-    for (Int i = pStops->count - 1; i >= 0; i--) {
+    for (int i = pStops->count - 1; i >= 0; i--) {
         if (pStops->stops[i] < xLoc) {
-            const Int idx = i - (__max(nth, 1) - 1);
+            const int idx = i - (__max(nth, 1) - 1);
 
             return (idx >= 0) ? pStops->stops[idx] : 0;
         }

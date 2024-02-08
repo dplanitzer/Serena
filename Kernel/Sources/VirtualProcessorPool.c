@@ -16,16 +16,16 @@ typedef struct _VirtualProcessorPool {
     Lock    lock;
     List    inuse_queue;        // VPs in use
     List    reuse_queue;        // VPs available for reuse
-    Int     inuse_count;        // count of VPs that are in use
-    Int     reuse_count;        // count of how many VPs are in the reuse queue
-    Int     reuse_capacity;     // reuse cache will not store more than this. If a VP exits while the cache is at max capacity -> VP will exit for good and get finalized
+    int     inuse_count;        // count of VPs that are in use
+    int     reuse_count;        // count of how many VPs are in the reuse queue
+    int     reuse_capacity;     // reuse cache will not store more than this. If a VP exits while the cache is at max capacity -> VP will exit for good and get finalized
 } VirtualProcessorPool;
 
 
 VirtualProcessorPoolRef gVirtualProcessorPool;
 
 
-ErrorCode VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool)
+errno_t VirtualProcessorPool_Create(VirtualProcessorPoolRef _Nullable * _Nonnull pOutPool)
 {
     decl_try_err();
     VirtualProcessorPool* pPool;
@@ -56,11 +56,11 @@ void VirtualProcessorPool_Destroy(VirtualProcessorPoolRef _Nullable pPool)
     }
 }
 
-ErrorCode VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
+errno_t VirtualProcessorPool_AcquireVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessorParameters params, VirtualProcessor* _Nonnull * _Nonnull pOutVP)
 {
     decl_try_err();
     VirtualProcessor* pVP = NULL;
-    Bool needsUnlock = false;
+    bool needsUnlock = false;
 
     Lock_Lock(&pool->lock);
     needsUnlock = true;
@@ -120,7 +120,7 @@ catch:
 // instead. Note that the VP is suspended in any case.
 _Noreturn VirtualProcessorPool_RelinquishVirtualProcessor(VirtualProcessorPoolRef _Nonnull pool, VirtualProcessor* _Nonnull pVP)
 {
-    Bool didReuse = false;
+    bool didReuse = false;
 
     // Null out the dispatch queue reference in any case since the VP should no
     // longer be associated with a queue.

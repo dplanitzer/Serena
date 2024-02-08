@@ -16,7 +16,7 @@
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-ErrorCode IOChannel_AbstractCreate(ClassRef _Nonnull pClass, IOResourceRef _Nonnull pResource, UInt mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_AbstractCreate(ClassRef _Nonnull pClass, IOResourceRef _Nonnull pResource, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -32,7 +32,7 @@ catch:
 
 // Creates a copy of the given I/O channel. Subclassers should call this in their
 // own copying implementation and then copy the subclass specific properties.
-ErrorCode IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -46,23 +46,23 @@ catch:
     return err;
 }
 
-ByteCount IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
+ssize_t IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return IOResource_Dup(self->resource, self, pOutChannel);
 }
 
-ErrorCode IOChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetMode:
-            *((Int*) va_arg(ap, Int*)) = self->mode;
+            *((int*) va_arg(ap, int*)) = self->mode;
             return EOK;
 
         default:
             return ENOTIOCTLCMD;
     }}
 
-ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+errno_t IOChannel_vIOControl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     if (IsIOChannelCommand(cmd)) {
         return Object_InvokeN(ioctl, IOChannel, self, cmd, ap);
@@ -72,7 +72,7 @@ ErrorCode IOChannel_vIOControl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
     }
 }
 
-ErrorCode IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+errno_t IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     if ((self->mode & O_RDONLY) == 0) {
         *nOutBytesRead = 0;
@@ -82,7 +82,7 @@ ErrorCode IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, Byt
     return IOResource_Read(self->resource, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-ErrorCode IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
+errno_t IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     if ((self->mode & O_WRONLY) == 0) {
         *nOutBytesWritten = 0;
@@ -92,13 +92,13 @@ ErrorCode IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuff
     return IOResource_Write(self->resource, self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
-ErrorCode IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, Int whence)
+errno_t IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, int whence)
 {
     *pOutPosition = 0;
     return ESPIPE;
 }
 
-ErrorCode IOChannel_close(IOChannelRef _Nonnull self)
+errno_t IOChannel_close(IOChannelRef _Nonnull self)
 {
     return IOResource_Close(self->resource, self);
 }
@@ -130,7 +130,7 @@ OVERRIDE_METHOD_IMPL(deinit, IOChannel, Object)
 // maintains state that is specific to this connection. This state will be
 // protected by the resource's internal locking mechanism. 'pNode' represents
 // the named resource instance that should be represented by the I/O channel.
-ErrorCode IOResource_open(IOResourceRef _Nonnull self, InodeRef _Nonnull _Locked pNode, UInt mode, User user, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOResource_open(IOResourceRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     *pOutChannel = NULL;
     return EBADF;
@@ -139,32 +139,32 @@ ErrorCode IOResource_open(IOResourceRef _Nonnull self, InodeRef _Nonnull _Locked
 // Creates an independent copy of the passed in I/O channel. Note that this function
 // is allowed to return a strong reference to the channel that was passed in if
 // the channel state is immutable. 
-ErrorCode IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     *pOutChannel = NULL;
     return EBADF;
 }
 
-ErrorCode IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+errno_t IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     *nOutBytesRead = 0;
     return EBADF;
 }
 
-ErrorCode IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
+errno_t IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     *nOutBytesWritten = 0;
     return EBADF;
 }
 
 // See UObject.close()
-ErrorCode IOResource_close(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel)
+errno_t IOResource_close(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
     return EOK;
 }
 
 // Executes the resource specific command 'cmd'.
-ErrorCode IOResource_ioctl(IOResourceRef _Nonnull self, Int cmd, va_list ap)
+errno_t IOResource_ioctl(IOResourceRef _Nonnull self, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;
 }

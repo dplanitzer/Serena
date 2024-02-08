@@ -22,7 +22,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; Int VirtualProcessorScheduler_DisablePreemption(void)
+; int VirtualProcessorScheduler_DisablePreemption(void)
 ; Disables preemption and returns the previous preemption state.
 _VirtualProcessorScheduler_DisablePreemption:
     DISABLE_PREEMPTION d0
@@ -30,7 +30,7 @@ _VirtualProcessorScheduler_DisablePreemption:
 
 
 ;-------------------------------------------------------------------------------
-; void VirtualProcessorScheduler_RestorePreemption(Int sps)
+; void VirtualProcessorScheduler_RestorePreemption(int sps)
 ; Restores the preemption state to 'sps'. Note that this function call wipes out
 ; the condition codes and tracing enabled state.
 _VirtualProcessorScheduler_RestorePreemption:
@@ -41,7 +41,7 @@ _VirtualProcessorScheduler_RestorePreemption:
 
 
 ;-------------------------------------------------------------------------------
-; Int VirtualProcessorScheduler_DisableCooperation(void)
+; int VirtualProcessorScheduler_DisableCooperation(void)
 ; Disable voluntary context switches. These are context switches which are triggered
 ; by a call to wakeup()
 _VirtualProcessorScheduler_DisableCooperation:
@@ -50,7 +50,7 @@ _VirtualProcessorScheduler_DisableCooperation:
 
 
 ;-------------------------------------------------------------------------------
-; void VirtualProcessorScheduler_RestoreCooperation(Int sps)
+; void VirtualProcessorScheduler_RestoreCooperation(int sps)
 ; Restores the given cooperation state. Voluntary context switches are reenabled if
 ; they were enabled before and disabled otherwise
 _VirtualProcessorScheduler_RestoreCooperation:
@@ -61,7 +61,7 @@ _VirtualProcessorScheduler_RestoreCooperation:
 
 
 ;-------------------------------------------------------------------------------
-; Int VirtualProcessorScheduler_IsCooperationEnabled(void)
+; int VirtualProcessorScheduler_IsCooperationEnabled(void)
 ; Returns true if voluntary context switches are currently enabled.
 _VirtualProcessorScheduler_IsCooperationEnabled:
     btst    #SCHED_FLAG_VOLUNTARY_CSW_ENABLED, _gVirtualProcessorSchedulerStorage + vps_flags

@@ -39,7 +39,7 @@
 #define FLOPPY_FLAG_PREV_STEP_INWARD    0x02
 
 
-typedef UInt8   FdcControlByte;       // shadow copy of the CIABRPB register
+typedef uint8_t   FdcControlByte;       // shadow copy of the CIABRPB register
 
 
 // The floppy DMA singleton. The Amiga has just one single floppy DMA channel
@@ -54,20 +54,20 @@ typedef struct _FloppyDMA {
 extern FloppyDMA* _Nonnull  gFloppyDma;
 
 // Creates the floppy DMA singleton
-extern ErrorCode FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
+extern errno_t FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
 
 
 
 // Stores the state of a single floppy drive.
 // !!! Keep in sync with memory.i !!!
 OPEN_CLASS_WITH_REF(FloppyDisk, IOResource,
-    UInt16* _Nonnull    track_buffer;                               // cached track data (MFM encoded)
-    Int16               track_size;                                 // cache size in words
-    Int16               track_sectors[FLOPPY_SECTORS_CAPACITY];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist
-    Int8                head;                                       // currently selected drive head; -1 means unknown -> need to call FloppyDisk_Reset()
-    Int8                cylinder;                                   // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_Reset()
-    Int8                drive;                                      // drive number that this fd object represents
-    UInt8               flags;
+    uint16_t* _Nonnull  track_buffer;                               // cached track data (MFM encoded)
+    int16_t             track_size;                                 // cache size in words
+    int16_t             track_sectors[FLOPPY_SECTORS_CAPACITY];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist
+    int8_t              head;                                       // currently selected drive head; -1 means unknown -> need to call FloppyDisk_Reset()
+    int8_t              cylinder;                                   // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_Reset()
+    int8_t              drive;                                      // drive number that this fd object represents
+    uint8_t             flags;
     FdcControlByte      ciabprb;                                    // shadow copy of the CIA BPRB register for this floppy drive
 );
 typedef struct _FloppyDiskMethodTable {
@@ -77,18 +77,18 @@ typedef struct _FloppyDiskMethodTable {
 
 
 
-extern ErrorCode FloppyDisk_Create(Int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
+extern errno_t FloppyDisk_Create(int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
 
-extern ErrorCode FloppyDisk_Reset(FloppyDiskRef _Nonnull pDisk);
+extern errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull pDisk);
 
-extern ErrorCode FloppyDisk_GetStatus(FloppyDiskRef _Nonnull pDisk);
+extern errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull pDisk);
 
 extern void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull pDisk);
 extern void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull pDisk);
 
 extern void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull pDisk);
 
-extern ErrorCode FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder, Int sector, Byte* _Nonnull pBuffer);
-extern ErrorCode FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, Int head, Int cylinder, Int sector, const Byte* _Nonnull pBuffer);
+extern errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, Byte* _Nonnull pBuffer);
+extern errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, const Byte* _Nonnull pBuffer);
 
 #endif /* FloppyDisk_h */

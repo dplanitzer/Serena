@@ -42,7 +42,7 @@ typedef struct _InodeIterator {
 static void InodeIterator_Deinit(InodeIterator* _Nonnull pIterator);
 
 
-static ErrorCode InodeIterator_Init(InodeIterator* _Nonnull pIterator, InodeRef _Nonnull pFirstNode)
+static errno_t InodeIterator_Init(InodeIterator* _Nonnull pIterator, InodeRef _Nonnull pFirstNode)
 {
     pIterator->filesystem = NULL;
     pIterator->inode = NULL;
@@ -94,10 +94,10 @@ static void InodeIterator_Update(InodeIterator* pIterator, InodeRef _Nonnull pNe
 // MARK: PathResolver
 ////////////////////////////////////////////////////////////////////////////////
 
-static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter);
+static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter);
 
 
-ErrorCode PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory)
+errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory)
 {
     decl_try_err();
     pResolver->rootDirectory = Inode_ReacquireUnlocked(pRootDirectory);
@@ -123,7 +123,7 @@ void PathResolver_Deinit(PathResolverRef _Nonnull pResolver)
     }
 }
 
-static ErrorCode PathResolver_SetDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath, InodeRef _Nullable * _Nonnull pDirToAssign)
+static errno_t PathResolver_SetDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath, InodeRef _Nullable * _Nonnull pDirToAssign)
 {
     decl_try_err();
     PathResolverResult r;
@@ -156,19 +156,19 @@ catch:
     return err;
 }
 
-ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath)
+errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* pPath)
 {
     return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->rootDirectory);
 }
 
 // Returns true if the given node represents the resolver's root directory.
-Bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode)
+bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode)
 {
     return Inode_GetFilesystemId(pResolver->rootDirectory) == Inode_GetFilesystemId(pNode)
         && Inode_GetId(pResolver->rootDirectory) == Inode_GetId(pNode);
 }
 
-ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize)
+errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* pBuffer, ssize_t bufferSize)
 {
     InodeIterator iter;
     decl_try_err();
@@ -183,7 +183,7 @@ ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
     // and we build the path right aligned in the user provided buffer. We'll move
     // the path such that it'll start at 'pBuffer' once we're done.
     MutablePathComponent pathComponent;
-    Character* p = &pBuffer[bufferSize - 1];
+    char* p = &pBuffer[bufferSize - 1];
     *p = '\0';
 
     while (iter.inode != pResolver->rootDirectory) {
@@ -223,7 +223,7 @@ catch:
     return err;
 }
 
-ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath)
+errno_t PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath)
 {
     return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->currentWorkingDirectory);
 }
@@ -232,7 +232,7 @@ ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull p
 // iterator points. Returns the iterator's inode itself if that inode is the path
 // resolver's root directory. Returns a suitable error code and leaves the iterator
 // unchanged if an error (eg access denied) occurs.
-static ErrorCode PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
+static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
 {
     InodeRef _Locked pParentNode = NULL;
     InodeRef _Locked pMountingDir = NULL;
@@ -285,7 +285,7 @@ catch:
 // component and returns EOK if that works out. Otherwise returns a suitable
 // error and leaves the passed in iterator unchanged. This function handles the
 // case that we want to walk down the filesystem tree or sideways (".").
-static ErrorCode PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
+static errno_t PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
     InodeRef _Locked pChildNode = NULL;
     decl_try_err();
@@ -327,7 +327,7 @@ catch:
 // Updates the inode iterator with the inode that represents the given path
 // component and returns EOK if that works out. Otherwise returns a suitable
 // error and leaves the passed in iterator unchanged.
-static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
+static errno_t PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
     // The current directory better be an actual directory
     if (!Inode_IsDirectory(pIter->inode)) {
@@ -355,11 +355,11 @@ static ErrorCode PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver,
 // Note that the caller of this function has to eventually call
 // PathResolverResult_Deinit() on the returned result no matter whether this
 // function has returned with EOK or some error.
-ErrorCode PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const Character* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult)
+errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult)
 {
     decl_try_err();
     InodeIterator iter;
-    Int pi = 0;
+    int pi = 0;
 
     PathResolverResult_Init(pResult);
 
@@ -396,7 +396,7 @@ ErrorCode PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, Pa
         
 
         // Pick up the next path component
-        Int ni = 0;
+        int ni = 0;
         while (pPath[pi] != '\0' && pPath[pi] != '/') {
             if (pi >= kMaxPathLength || ni >= kMaxPathComponentLength) {
                 throw(ENAMETOOLONG);
@@ -414,7 +414,7 @@ ErrorCode PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, Pa
 
         // Check whether we're done if the resolution mode is ParentOnly
         if (mode == kPathResolutionMode_ParentOnly) {
-            Int si = pi;
+            int si = pi;
             while(pPath[si] == '/') si++;
 
             if (pPath[si] == '\0') {

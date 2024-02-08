@@ -128,7 +128,7 @@ syscall_table:
 ; ordered from left to right:
 ;
 ; struct _Args {
-;    Int  systemCallNumber;
+;    int  systemCallNumber;
 ;    // system call specific arguments from left to right
 ; }
 ;

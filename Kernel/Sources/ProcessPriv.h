@@ -32,8 +32,8 @@ typedef struct __process_arguments_t ProcessArguments;
 // the data structure is protected by the parent's lock.
 typedef struct _ProcessTombstone {
     ListNode    node;
-    Int         pid;        // PID of process that exited
-    Int         status;     // Exit status
+    int         pid;        // PID of process that exited
+    int         status;     // Exit status
 } ProcessTombstone;
 
 
@@ -65,7 +65,7 @@ CLASS_IVARS(Process, Object,
 
     // Process termination
     AtomicBool                  isTerminating;  // true if the process is going through the termination process
-    Int                         exitCode;       // Exit code of the first exit() call that initiated the termination of this process
+    int                         exitCode;       // Exit code of the first exit() call that initiated the termination of this process
 
     // Child process related properties
     IntArray                    childPids;      // PIDs of all my child processes
@@ -74,7 +74,7 @@ CLASS_IVARS(Process, Object,
 );
 
 
-extern ErrorCode Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
+extern errno_t Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull pProc);
 
 // Closes all registered I/O channels. Ignores any errors that may be returned
@@ -88,14 +88,14 @@ extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc);
 #define Process_IsRoot(__pProc) (pProc->pid == 1)
 
 // Creates a new tombstone for the given child process with the given exit status
-extern ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPid, Int childExitCode);
+extern errno_t Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPid, int childExitCode);
 
 // Runs on the kernel main dispatch queue and terminates the given process.
 extern void _Process_DoTerminate(ProcessRef _Nonnull pProc);
 
 // Adopts the process wth the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-extern ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid);
+extern errno_t Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid);
 
 // Abandons the process with the given PID as a child of the receiver.
 extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid);
@@ -109,6 +109,6 @@ extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, ProcessId chi
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'
-extern ErrorCode Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv);
+extern errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv);
 
 #endif /* ProcessPriv_h */

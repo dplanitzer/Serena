@@ -21,13 +21,13 @@ static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter
 
 // Initializes a new mouse painter. The mouse cursor is by default hidden. Set
 // a surface in the painter and then set the cursor visible.
-ErrorCode MousePainter_Init(MousePainter* _Nonnull pPainter)
+errno_t MousePainter_Init(MousePainter* _Nonnull pPainter)
 {
     decl_try_err();
 
-    try(kalloc(sizeof(UInt16) * MOUSE_CURSOR_HEIGHT * 2, (void**) &pPainter->bitmapMaskBuffer));
-    pPainter->bitmap = (UInt16*) pPainter->bitmapMaskBuffer;
-    pPainter->mask = (UInt16*) &pPainter->bitmapMaskBuffer[sizeof(UInt16) * MOUSE_CURSOR_HEIGHT];
+    try(kalloc(sizeof(uint16_t) * MOUSE_CURSOR_HEIGHT * 2, (void**) &pPainter->bitmapMaskBuffer));
+    pPainter->bitmap = (uint16_t*) pPainter->bitmapMaskBuffer;
+    pPainter->mask = (uint16_t*) &pPainter->bitmapMaskBuffer[sizeof(uint16_t) * MOUSE_CURSOR_HEIGHT];
     pPainter->background = NULL;
     pPainter->rLeft = 0;
     pPainter->rTop = 0;
@@ -45,7 +45,7 @@ ErrorCode MousePainter_Init(MousePainter* _Nonnull pPainter)
     pPainter->curFlags.hasSavedImage = false;
     pPainter->curX = 0;
     pPainter->curY = 0;
-    try(kalloc(sizeof(UInt32) * MOUSE_CURSOR_HEIGHT * 5, (void**) &pPainter->savedImage));
+    try(kalloc(sizeof(uint32_t) * MOUSE_CURSOR_HEIGHT * 5, (void**) &pPainter->savedImage));
 
     return EOK;
 
@@ -79,7 +79,7 @@ void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _Nullable
 {
     const Size sSize = (pSurface) ? Surface_GetPixelSize(pSurface) : Size_Zero;
 
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     pPainter->background = pSurface;
     if (pSurface) {
         assert(sSize.width >= 32 && sSize.height >= 16);
@@ -122,13 +122,13 @@ void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _Nullable
 // mask are 2.
 void MousePainter_SetCursor(MousePainter* _Nonnull pPainter, const Byte* pBitmap, const Byte* pMask)
 {
-    const UInt16* sbp = (const UInt16*)pBitmap;
-    const UInt16* smp = (const UInt16*)pMask;
-    UInt16* dbp = pPainter->bitmap;
-    UInt16* dmp = pPainter->mask;
-    Int rows = 0;
+    const uint16_t* sbp = (const uint16_t*)pBitmap;
+    const uint16_t* smp = (const uint16_t*)pMask;
+    uint16_t* dbp = pPainter->bitmap;
+    uint16_t* dmp = pPainter->mask;
+    int rows = 0;
 
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     while (rows++ < MOUSE_CURSOR_HEIGHT) {
         *dbp++ =   *sbp++;
         *dmp++ = ~(*smp++);
@@ -138,7 +138,7 @@ void MousePainter_SetCursor(MousePainter* _Nonnull pPainter, const Byte* pBitmap
 
 void MousePainter_SetPosition(MousePainter* _Nonnull pPainter, Point pt)
 {
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     pPainter->x = __min(__max(pt.x, pPainter->rLeft), pPainter->rRight);
     pPainter->y = __min(__max(pt.y, pPainter->rTop), pPainter->rBottom);
     cpu_restore_irqs(irs);
@@ -146,24 +146,24 @@ void MousePainter_SetPosition(MousePainter* _Nonnull pPainter, Point pt)
 
 Point MousePainter_GetPosition(MousePainter* _Nonnull pPainter)
 {
-    const Int irs = cpu_disable_irqs();
-    const Int x = pPainter->x;
-    const Int y = pPainter->y;
+    const int irs = cpu_disable_irqs();
+    const int x = pPainter->x;
+    const int y = pPainter->y;
     cpu_restore_irqs(irs);
 
     return Point_Make(x, y);
 }
 
-void MousePainter_SetVisible(MousePainter* _Nonnull pPainter, Bool isVisible)
+void MousePainter_SetVisible(MousePainter* _Nonnull pPainter, bool isVisible)
 {
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     pPainter->flags.isVisible = isVisible;
     cpu_restore_irqs(irs);
 }
 
-void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull pPainter, Bool flag)
+void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull pPainter, bool flag)
 {
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     // Cursor will be hidden while this flag is true. The vertical blank paint()
     // function will reset it back to false once it detects a move
     pPainter->flags.isHiddenUntilMouseMoves = flag;
@@ -180,7 +180,7 @@ void MousePainter_ShieldCursor(MousePainter* _Nonnull pPainter, const Rect r)
 {
     // XXX analyze to find out whether we can avoid turning IRQs off here for the
     // XXX common case that the mouse cursor doesn't intersect 'r'
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
 
     if (!pPainter->curFlags.isShielded) {
         pPainter->curFlags.isShielded = true;
@@ -201,7 +201,7 @@ void MousePainter_ShieldCursor(MousePainter* _Nonnull pPainter, const Rect r)
 void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter)
 {
     // XXX analyze whether we can do things here without always turning the IRQs off
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
 
     if (pPainter->curFlags.isShielded) {
         if (pPainter->curFlags.isVisible && pPainter->flags.hasBackground) {
@@ -220,7 +220,7 @@ void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter)
 // MARK: Vertical Blank Interrupt Context
 ////////////////////////////////////////////////////////////////////////////////
 
-void MousePainter_SetPosition_VerticalBlank(MousePainter* _Nonnull pPainter, Int16 x, Int16 y)
+void MousePainter_SetPosition_VerticalBlank(MousePainter* _Nonnull pPainter, int16_t x, int16_t y)
 {
     pPainter->x = __min(__max(x, pPainter->rLeft), pPainter->rRight);
     pPainter->y = __min(__max(y, pPainter->rTop), pPainter->rBottom);
@@ -230,19 +230,19 @@ void MousePainter_SetPosition_VerticalBlank(MousePainter* _Nonnull pPainter, Int
 static void MousePainter_RestoreSavedImage(MousePainter* _Nonnull pPainter)
 {
     Surface* pBackground = pPainter->background;
-    register Int8 planeIdx = (Int8) pBackground->planeCount;
-    register UInt32 bgBytesPerRow = pBackground->bytesPerRow;
-    register const UInt32* sip = pPainter->savedImage;
+    register int8_t planeIdx = (int8_t) pBackground->planeCount;
+    register uint32_t bgBytesPerRow = pBackground->bytesPerRow;
+    register const uint32_t* sip = pPainter->savedImage;
 
     while (--planeIdx >= 0) {
-        register UInt32* bp = (UInt32*) (pBackground->planes[planeIdx] + pPainter->curSavedByteOffset);
-        register Int8 nIters = MOUSE_CURSOR_HEIGHT/4;
+        register uint32_t* bp = (uint32_t*) (pBackground->planes[planeIdx] + pPainter->curSavedByteOffset);
+        register int8_t nIters = MOUSE_CURSOR_HEIGHT/4;
 
         while (nIters-- > 0) {
-            *bp = *sip++; bp = (UInt32*) ((Byte*)bp + bgBytesPerRow);
-            *bp = *sip++; bp = (UInt32*) ((Byte*)bp + bgBytesPerRow);
-            *bp = *sip++; bp = (UInt32*) ((Byte*)bp + bgBytesPerRow);
-            *bp = *sip++; bp = (UInt32*) ((Byte*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
         }
     }
     pPainter->curFlags.hasSavedImage = false;
@@ -255,46 +255,46 @@ static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter
 
     // Save the image to our buffer
     Surface* pBackground = pPainter->background;
-    Int8 planeIdx = (Int8) pBackground->planeCount;
-    register UInt32 bgBytesPerRow = pBackground->bytesPerRow;
-    ByteCount byteOffsetToFirstWord = (pPainter->curY * bgBytesPerRow + (pPainter->curX >> 3)) & ~1;
-    register UInt32* sip = pPainter->savedImage;
-    UInt8 bitLeft = pPainter->curX - (pPainter->curX >> 4 << 4);    // X coordinate of first bit in the 16bit word we aligned to
-    register UInt8 shift = (16 - bitLeft);
+    int8_t planeIdx = (int8_t) pBackground->planeCount;
+    register uint32_t bgBytesPerRow = pBackground->bytesPerRow;
+    ssize_t byteOffsetToFirstWord = (pPainter->curY * bgBytesPerRow + (pPainter->curX >> 3)) & ~1;
+    register uint32_t* sip = pPainter->savedImage;
+    uint8_t bitLeft = pPainter->curX - (pPainter->curX >> 4 << 4);    // X coordinate of first bit in the 16bit word we aligned to
+    register uint8_t shift = (16 - bitLeft);
     #define rot32_left(bits, shift) ((bits) << (shift)) | ((bits) >> (32ul - (shift)))
 
     // Plane > 0 -> mouse cursor bits are all 0
     while (--planeIdx > 0) {
-        register const UInt16* mp = pPainter->mask;
-        register UInt32* bp = (UInt32*) (pBackground->planes[planeIdx] + byteOffsetToFirstWord);
-        register Int8 nIters = MOUSE_CURSOR_HEIGHT;
+        register const uint16_t* mp = pPainter->mask;
+        register uint32_t* bp = (uint32_t*) (pBackground->planes[planeIdx] + byteOffsetToFirstWord);
+        register int8_t nIters = MOUSE_CURSOR_HEIGHT;
 
         while (nIters-- > 0) {
-            register UInt32 bg = *bp;
-            register UInt32 mask = (*mp++ | 0xffff0000ul);
+            register uint32_t bg = *bp;
+            register uint32_t mask = (*mp++ | 0xffff0000ul);
 
             mask = rot32_left(mask, shift);
             *sip++ = bg;
             *bp = bg & mask;
-            bp = (UInt32*) ((Byte*)bp + bgBytesPerRow);
+            bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
         }
     }
 
     // Plane #0 -> mouse cursor bits are 0 or 1
-    register const UInt16* mp = pPainter->mask;
-    register const UInt16* mcp = pPainter->bitmap;
-    register UInt32* bp = (UInt32*) (pBackground->planes[0] + byteOffsetToFirstWord);
-    register Int8 nIters = MOUSE_CURSOR_HEIGHT;
+    register const uint16_t* mp = pPainter->mask;
+    register const uint16_t* mcp = pPainter->bitmap;
+    register uint32_t* bp = (uint32_t*) (pBackground->planes[0] + byteOffsetToFirstWord);
+    register int8_t nIters = MOUSE_CURSOR_HEIGHT;
 
     while (nIters-- > 0) {
-        register UInt32 bg = *bp;
-        register UInt32 mask = (*mp++ | 0xffff0000ul);
-        register UInt32 mouse = (*mcp++) << shift;
+        register uint32_t bg = *bp;
+        register uint32_t mask = (*mp++ | 0xffff0000ul);
+        register uint32_t mouse = (*mcp++) << shift;
 
         mask = rot32_left(mask, shift);
         *sip++ = bg;
         *bp = (bg & mask) | mouse;
-        bp = (UInt32*) ((Byte*)bp + bgBytesPerRow);
+        bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
     }
 
     pPainter->curSavedByteOffset = byteOffsetToFirstWord;
@@ -303,16 +303,16 @@ static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter
 
 void MousePainter_Paint_VerticalBlank(MousePainter* _Nonnull pPainter)
 {
-    const Bool didMove = (pPainter->curX != pPainter->x) || (pPainter->curY != pPainter->y);
+    const bool didMove = (pPainter->curX != pPainter->x) || (pPainter->curY != pPainter->y);
 
     if (didMove) {
         // A mouse move cancels the hidden-until-mouse-move state
         pPainter->flags.isHiddenUntilMouseMoves = false;
     }
 
-    const Bool isVisibilityRequested = pPainter->flags.isVisible && !pPainter->flags.isHiddenUntilMouseMoves;
-    const Bool didVisibilityChange = pPainter->curFlags.isVisible != isVisibilityRequested;
-    const Bool hasBackground = pPainter->flags.hasBackground;
+    const bool isVisibilityRequested = pPainter->flags.isVisible && !pPainter->flags.isHiddenUntilMouseMoves;
+    const bool didVisibilityChange = pPainter->curFlags.isVisible != isVisibilityRequested;
+    const bool hasBackground = pPainter->flags.hasBackground;
 
     if (pPainter->curFlags.hasSavedImage && (didMove || (didVisibilityChange && !isVisibilityRequested)) && hasBackground && !pPainter->curFlags.isShielded) {
         // Restore the saved image because we are currently visible and:

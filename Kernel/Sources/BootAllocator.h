@@ -16,7 +16,7 @@
 typedef struct _BootAllocator {
     MemoryDescriptor* _Nonnull  mem_descs;
     Byte* _Nonnull              current_top;
-    Int                         current_desc_index;
+    int                         current_desc_index;
 } BootAllocator;
 
 
@@ -28,7 +28,7 @@ extern void BootAllocator_Deinit(BootAllocator* _Nonnull pAlloc);
 // 'nbytes'. This allocator only allocates from unified memory if it can not be
 // avoided. Note that the base address of the allocated block is page aligned.
 // Never returns NULL. Memory is allocated top-down.
-extern Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, ByteCount nbytes);
+extern Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, ssize_t nbytes);
 
 // Returns the lowest address used by the boot allocator. This address is always
 // page aligned.

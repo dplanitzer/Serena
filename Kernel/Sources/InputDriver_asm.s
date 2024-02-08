@@ -23,7 +23,7 @@ _ksb_init:
     rts
 
 ;-------------------------------------------------------------------------------
-; Int ksb_receive_key(void)
+; int ksb_receive_key(void)
 ; Returns the key that was pressed / released and starts the acknowledge cycle.
 ; Uses CIA A timer A for the acknowledgement countdown
 _ksb_receive_key:

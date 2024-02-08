@@ -15,7 +15,7 @@ SystemDescription* _Nonnull gSystemDescription;
 
 // Checks the physical CPU page that contains 'addr'. Returns true if the page
 // exists and false if not.
-static Bool mem_probe_cpu_page(Byte* pAddr)
+static bool mem_probe_cpu_page(Byte* pAddr)
 {
     Byte* pBaseAddr = __Floor_Ptr_PowerOf2(pAddr, CPU_PAGE_SIZE);
     Byte* pTopAddr = pBaseAddr + CPU_PAGE_SIZE - 8;
@@ -34,13 +34,13 @@ static Bool mem_probe_cpu_page(Byte* pAddr)
     return true;
 }
 
-Bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, Int8 type)
+bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, int8_t type)
 {
     Byte* p = __Ceil_Ptr_PowerOf2(lower, CPU_PAGE_SIZE);
     Byte* pLimit = __Floor_Ptr_PowerOf2(upper, CPU_PAGE_SIZE);
-    UInt nbytes = 0;
-    Bool hasMemory = false;
-    Bool hadMemory = false;
+    unsigned int nbytes = 0;
+    bool hasMemory = false;
+    bool hadMemory = false;
     
     if (pMemLayout->descriptor_count >= MEMORY_DESCRIPTORS_CAPACITY) {
         return false;
@@ -111,7 +111,7 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServic
     }
 }
 
-extern Int8 fpu_get_model(void);
+extern int8_t fpu_get_model(void);
 
 // Initializes the system description which contains basic information about the
 // platform. The system description is stored in low memory.
@@ -119,13 +119,13 @@ extern Int8 fpu_get_model(void);
 // \param pBootServicesMemoryTop the end address of the memory used by the boot
 //                               services. Range is [0...pBootServicesMemoryTop]
 // \param cpu_model the detected CPU model 
-void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootServicesMemoryTop, Int cpu_model)
+void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootServicesMemoryTop, int cpu_model)
 {
     pSysDesc->cpu_model = cpu_model;
     pSysDesc->fpu_model = fpu_get_model();
 
-    pSysDesc->chipset_version = (Int8)chipset_get_version();
-    pSysDesc->chipset_ramsey_version = (Int8)chipset_get_ramsey_version();
+    pSysDesc->chipset_version = (int8_t)chipset_get_version();
+    pSysDesc->chipset_ramsey_version = (int8_t)chipset_get_ramsey_version();
     pSysDesc->chipset_upper_dma_limit = chipset_get_upper_dma_limit(pSysDesc->chipset_version);
 
     // Compute the quantum timer parameters:
@@ -150,7 +150,7 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootSer
     // ns_per_quantum_timer_cycle * quantum_duration_cycles <= quantum_duration_ns
     // to ensure that we do not end up in a situation where the result of this product would return a quantum duration in
     // nanoseconds that's longer than what chipset_get_quantum_timer_duration_ns() returns.
-    const Bool is_ntsc = chipset_is_ntsc();
+    const bool is_ntsc = chipset_is_ntsc();
     
     pSysDesc->ns_per_quantum_timer_cycle = (is_ntsc) ? 1396 : 1409;
     pSysDesc->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;

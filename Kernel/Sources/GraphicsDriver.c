@@ -72,22 +72,22 @@ const ScreenConfiguration kScreenConfig_PAL_640_512_25 = {7, 640, 512, 25,
         kPixelFormat_RGB_Indexed4}};
 
 
-Int ScreenConfiguration_GetPixelWidth(const ScreenConfiguration* pConfig)
+int ScreenConfiguration_GetPixelWidth(const ScreenConfiguration* pConfig)
 {
     return pConfig->width;
 }
 
-Int ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* pConfig)
+int ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* pConfig)
 {
     return pConfig->height;
 }
 
-Int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig)
+int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig)
 {
     return pConfig->fps;
 }
 
-Bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
+bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
 {
     return (pConfig->bplcon0 & BPLCON0F_LACE) != 0;
 }
@@ -109,7 +109,7 @@ static void Sprite_Destroy(Sprite* _Nullable pSprite)
 }
 
 // Creates a sprite object.
-static ErrorCode Sprite_Create(const UInt16* _Nonnull pPlanes[2], Int height, Sprite* _Nonnull * _Nonnull pOutSprite)
+static errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, Sprite* _Nonnull * _Nonnull pOutSprite)
 {
     decl_try_err();
     Sprite* pSprite;
@@ -117,20 +117,20 @@ static ErrorCode Sprite_Create(const UInt16* _Nonnull pPlanes[2], Int height, Sp
     try(kalloc_cleared(sizeof(Sprite), (void**) &pSprite));
     pSprite->x = 0;
     pSprite->y = 0;
-    pSprite->height = (UInt16)height;
+    pSprite->height = (uint16_t)height;
     pSprite->isVisible = true;
 
 
     // Construct the sprite DMA data
-    const Int nWords = 2 + 2*height + 2;
-    try(kalloc_options(sizeof(UInt16) * nWords, KALLOC_OPTION_UNIFIED, (void**) &pSprite->data));
-    const UInt16* sp0 = pPlanes[0];
-    const UInt16* sp1 = pPlanes[1];
-    UInt16* dp = pSprite->data;
+    const int nWords = 2 + 2*height + 2;
+    try(kalloc_options(sizeof(uint16_t) * nWords, KALLOC_OPTION_UNIFIED, (void**) &pSprite->data));
+    const uint16_t* sp0 = pPlanes[0];
+    const uint16_t* sp1 = pPlanes[1];
+    uint16_t* dp = pSprite->data;
 
     *dp++ = 0;  // sprxpos (will be filled out by the caller)
     *dp++ = 0;  // sprxctl (will be filled out by the caller)
-    for (Int i = 0; i < height; i++) {
+    for (int i = 0; i < height; i++) {
         *dp++ = *sp0++;
         *dp++ = *sp1++;
     }
@@ -152,20 +152,20 @@ catch:
 static void Sprite_StateDidChange(Sprite* _Nonnull pSprite, const ScreenConfiguration* pConfig)
 {
     // Hiding a sprite means to move it all the way to X max.
-    const UInt16 hshift = (pConfig->spr_shift & 0xf0) >> 4;
-    const UInt16 vshift = pConfig->spr_shift & 0x0f;
-    const UInt16 hstart = (pSprite->isVisible) ? pConfig->diw_start_h - 1 + (pSprite->x >> hshift) : 511;
-    const UInt16 vstart = pConfig->diw_start_v + (pSprite->y >> vshift);
-    const UInt16 vstop = vstart + pSprite->height;
-    const UInt16 sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
-    const UInt16 sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
+    const uint16_t hshift = (pConfig->spr_shift & 0xf0) >> 4;
+    const uint16_t vshift = pConfig->spr_shift & 0x0f;
+    const uint16_t hstart = (pSprite->isVisible) ? pConfig->diw_start_h - 1 + (pSprite->x >> hshift) : 511;
+    const uint16_t vstart = pConfig->diw_start_v + (pSprite->y >> vshift);
+    const uint16_t vstop = vstart + pSprite->height;
+    const uint16_t sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
+    const uint16_t sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
 
     pSprite->data[0] = sprxpos;
     pSprite->data[1] = sprxctl;
 }
 
 // Updates the position of a hardware sprite.
-static inline void Sprite_SetPosition(Sprite* _Nonnull pSprite, Int x, Int y, const ScreenConfiguration* pConfig)
+static inline void Sprite_SetPosition(Sprite* _Nonnull pSprite, int x, int y, const ScreenConfiguration* pConfig)
 {
     pSprite->x = x;
     pSprite->y = y;
@@ -173,7 +173,7 @@ static inline void Sprite_SetPosition(Sprite* _Nonnull pSprite, Int x, Int y, co
 }
 
 // Updates the visibility state of a hardware sprite.
-static inline void Sprite_SetVisible(Sprite* _Nonnull pSprite, Bool isVisible, const ScreenConfiguration* pConfig)
+static inline void Sprite_SetVisible(Sprite* _Nonnull pSprite, bool isVisible, const ScreenConfiguration* pConfig)
 {
     pSprite->isVisible = isVisible;
     Sprite_StateDidChange(pSprite, pConfig);
@@ -200,7 +200,7 @@ static void Screen_Destroy(Screen* _Nullable pScreen)
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
 // \return the screen or null
-static ErrorCode Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutScreen)
+static errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutScreen)
 {
     decl_try_err();
     Screen* pScreen;
@@ -229,7 +229,7 @@ catch:
     return err;
 }
 
-static ErrorCode Screen_AcquireSprite(Screen* _Nonnull pScreen, const UInt16* _Nonnull pPlanes[2], Int x, Int y, Int width, Int height, Int priority, SpriteID* _Nonnull pOutSpriteId)
+static errno_t Screen_AcquireSprite(Screen* _Nonnull pScreen, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
 {
     decl_try_err();
     const ScreenConfiguration* pConfig = pScreen->screenConfig;
@@ -263,7 +263,7 @@ catch:
 }
 
 // Relinquishes a hardware sprite
-static ErrorCode Screen_RelinquishSprite(Screen* _Nonnull pScreen, SpriteID spriteId)
+static errno_t Screen_RelinquishSprite(Screen* _Nonnull pScreen, SpriteID spriteId)
 {
     decl_try_err();
 
@@ -286,7 +286,7 @@ catch:
 }
 
 // Updates the position of a hardware sprite.
-static ErrorCode Screen_SetSpritePosition(Screen* _Nonnull pScreen, SpriteID spriteId, Int x, Int y)
+static errno_t Screen_SetSpritePosition(Screen* _Nonnull pScreen, SpriteID spriteId, int x, int y)
 {
     decl_try_err();
 
@@ -302,7 +302,7 @@ catch:
 }
 
 // Updates the visibility of a hardware sprite.
-static ErrorCode Screen_SetSpriteVisible(Screen* _Nonnull pScreen, SpriteID spriteId, Bool isVisible)
+static errno_t Screen_SetSpriteVisible(Screen* _Nonnull pScreen, SpriteID spriteId, bool isVisible)
 {
     decl_try_err();
 
@@ -361,7 +361,7 @@ static const ColorTable gDefaultColorTable = {
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
-ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver)
+errno_t GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
     GraphicsDriver* pDriver;
@@ -381,7 +381,7 @@ ErrorCode GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pix
 
 
     // Allocate the null sprite
-    const UInt16* nullSpritePlanes[2];
+    const uint16_t* nullSpritePlanes[2];
     nullSpritePlanes[0] = NULL;
     nullSpritePlanes[1] = NULL;
     try(Sprite_Create(nullSpritePlanes, 0, &pDriver->nullSprite));
@@ -502,7 +502,7 @@ void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver)
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
 // that it will wait for some vblank to happen after this function has been invoked.
 // No vblank that occured before this function was called will make it return.
-static ErrorCode GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull pDriver)
+static errno_t GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull pDriver)
 {
     decl_try_err();
 
@@ -520,7 +520,7 @@ catch:
 // Compiles the Copper program(s) for the currently active screen and schedules
 // their execution by the Copper. Note that this function typically returns
 // before the Copper program has started running.
-static ErrorCode GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(GraphicsDriverRef _Nonnull pDriver)
+static errno_t GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(GraphicsDriverRef _Nonnull pDriver)
 {
     decl_try_err();
     Screen* pScreen = pDriver->screen;
@@ -546,12 +546,12 @@ catch:
 // command apply to this new screen once this function has returned.
 // \param pNewScreen the new screen
 // \return the error code
-ErrorCode GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDriver, Screen* _Nonnull pNewScreen)
+errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDriver, Screen* _Nonnull pNewScreen)
 {
     decl_try_err();
     Screen* pOldScreen = pDriver->screen;
-    Bool wasMouseCursorVisible = pDriver->mousePainter.flags.isVisible;
-    Bool hasSwitchedScreens = false;
+    bool wasMouseCursorVisible = pDriver->mousePainter.flags.isVisible;
+    bool hasSwitchedScreens = false;
 
     
     // Disassociate the mouse painter from the old screen (hides the mouse cursor)
@@ -592,7 +592,7 @@ catch:
 }
 
 // Enables / disables the h/v raster position latching triggered by a light pen.
-ErrorCode GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, Bool enabled)
+errno_t GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, bool enabled)
 {
     decl_try_err();
 
@@ -611,22 +611,22 @@ catch:
 }
 
 // Returns the current position of the light pen if the light pen triggered.
-Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int16* _Nonnull pPosX, Int16* _Nonnull pPosY)
+bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
 {
     CHIPSET_BASE_DECL(cp);
     
     // Read VHPOSR first time
-    const UInt32 posr0 = *CHIPSET_REG_32(cp, VPOSR);
+    const uint32_t posr0 = *CHIPSET_REG_32(cp, VPOSR);
 
 
     // Wait for scanline microseconds
-    const UInt32 hsync0 = chipset_get_hsync_counter();
-    const UInt16 bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
+    const uint32_t hsync0 = chipset_get_hsync_counter();
+    const uint16_t bplcon0 = *CHIPSET_REG_16(cp, BPLCON0);
     while (chipset_get_hsync_counter() == hsync0);
     
 
     // Read VHPOSR a second time
-    const UInt32 posr1 = *CHIPSET_REG_32(cp, VPOSR);
+    const uint32_t posr1 = *CHIPSET_REG_32(cp, VPOSR);
     
 
     
@@ -655,7 +655,7 @@ Bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, Int1
 ////////////////////////////////////////////////////////////////////////////////
 
 // Acquires a hardware sprite
-ErrorCode GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull pDriver, const UInt16* _Nonnull pPlanes[2], Int x, Int y, Int width, Int height, Int priority, SpriteID* _Nonnull pOutSpriteId)
+errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull pDriver, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
 {
     decl_try_err();
 
@@ -673,7 +673,7 @@ catch:
 }
 
 // Relinquishes a hardware sprite
-ErrorCode GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId)
+errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId)
 {
     decl_try_err();
 
@@ -690,7 +690,7 @@ catch:
 }
 
 // Updates the position of a hardware sprite.
-ErrorCode GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, Int x, Int y)
+errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, int x, int y)
 {
     decl_try_err();
 
@@ -707,7 +707,7 @@ catch:
 }
 
 // Updates the visibility of a hardware sprite.
-ErrorCode GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, Bool isVisible)
+errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, bool isVisible)
 {
     decl_try_err();
 
@@ -736,14 +736,14 @@ void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull pDriver, const Byt
     Lock_Unlock(&pDriver->lock);
 }
 
-void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull pDriver, Bool isVisible)
+void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull pDriver, bool isVisible)
 {
     Lock_Lock(&pDriver->lock);
     MousePainter_SetVisible(&pDriver->mousePainter, isVisible);
     Lock_Unlock(&pDriver->lock);
 }
 
-void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull pDriver, Bool flag)
+void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull pDriver, bool flag)
 {
     Lock_Lock(&pDriver->lock);
     MousePainter_SetHiddenUntilMouseMoves(&pDriver->mousePainter, flag);
@@ -757,7 +757,7 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, P
     Lock_Unlock(&pDriver->lock);
 }
 
-void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull pDriver, Int16 x, Int16 y)
+void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull pDriver, int16_t x, int16_t y)
 {
     MousePainter_SetPosition_VerticalBlank(&pDriver->mousePainter, x, y);
 }
@@ -790,10 +790,10 @@ static void GraphicsDriver_EndDrawing(GraphicsDriverRef _Nonnull pDriver)
 }
 
 // Writes the given RGB color to the color register at index idx
-void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, Int idx, const RGBColor* _Nonnull pColor)
+void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, const RGBColor* _Nonnull pColor)
 {
     assert(idx >= 0 && idx < CLUT_ENTRY_COUNT);
-    const UInt16 rgb = (pColor->r >> 4 & 0x0f) << 8 | (pColor->g >> 4 & 0x0f) << 4 | (pColor->b >> 4 & 0x0f);
+    const uint16_t rgb = (pColor->r >> 4 & 0x0f) << 8 | (pColor->g >> 4 & 0x0f) << 4 | (pColor->b >> 4 & 0x0f);
     CHIPSET_BASE_DECL(cp);
 
     *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = rgb;
@@ -804,7 +804,7 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
 {
     CHIPSET_BASE_DECL(cp);
 
-    for (Int i = 0; i < CLUT_ENTRY_COUNT; i++) {
+    for (int i = 0; i < CLUT_ENTRY_COUNT; i++) {
         *CHIPSET_REG_16(cp, COLOR_BASE + (i << 1)) = pCLUT->entry[i];
     }
 }
@@ -814,8 +814,8 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
 void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 {
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Infinite);
-    const Int nbytes = pSurface->bytesPerRow * pSurface->height;
-    for (Int i = 0; i < pSurface->planeCount; i++) {
+    const int nbytes = pSurface->bytesPerRow * pSurface->height;
+    for (int i = 0; i < pSurface->planeCount; i++) {
         Bytes_ClearRange(pSurface->planes[i], nbytes);
     }
     GraphicsDriver_EndDrawing(pDriver);
@@ -831,10 +831,10 @@ void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Colo
     if (!Rect_IsEmpty(r)) {
         assert(color.tag == kColorType_Index);
     
-        for (Int i = 0; i < pSurface->planeCount; i++) {
-            const Bool bit = (color.u.index & (1 << i)) ? true : false;
+        for (int i = 0; i < pSurface->planeCount; i++) {
+            const bool bit = (color.u.index & (1 << i)) ? true : false;
         
-            for (Int y = r.top; y < r.bottom; y++) {
+            for (int y = r.top; y < r.bottom; y++) {
                 const BitPointer pBits = BitPointer_Make(pSurface->planes[i] + y * pSurface->bytesPerRow, r.left);
             
                 if (bit) {
@@ -861,24 +861,24 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Infinite);  // XXX calc tighter rect
     const Rect src_r = srcRect;
     const Rect dst_r = Rect_Make(dstLoc.x, dstLoc.y, dstLoc.x + Rect_GetWidth(src_r), dstLoc.y + Rect_GetHeight(src_r));
-    const Int fb_width = pSurface->width;
-    const Int fb_height = pSurface->height;
-    const Int bytesPerRow = pSurface->bytesPerRow;
-    const Int src_end_y = src_r.bottom - 1;
-    const Int dst_clipped_left_span = (dst_r.left < 0) ? -dst_r.left : 0;
-    const Int dst_clipped_right_span = __max(dst_r.right - fb_width, 0);
-    const Int dst_x = __max(dst_r.left, 0);
-    const Int src_x = src_r.left + dst_clipped_left_span;
-    const Int dst_width = __max(Rect_GetWidth(dst_r) - dst_clipped_left_span - dst_clipped_right_span, 0);
+    const int fb_width = pSurface->width;
+    const int fb_height = pSurface->height;
+    const int bytesPerRow = pSurface->bytesPerRow;
+    const int src_end_y = src_r.bottom - 1;
+    const int dst_clipped_left_span = (dst_r.left < 0) ? -dst_r.left : 0;
+    const int dst_clipped_right_span = __max(dst_r.right - fb_width, 0);
+    const int dst_x = __max(dst_r.left, 0);
+    const int src_x = src_r.left + dst_clipped_left_span;
+    const int dst_width = __max(Rect_GetWidth(dst_r) - dst_clipped_left_span - dst_clipped_right_span, 0);
 
-    for (Int i = 0; i < pSurface->planeCount; i++) {
+    for (int i = 0; i < pSurface->planeCount; i++) {
         Byte* pPlane = pSurface->planes[i];
 
         if (dst_r.top >= src_r.top && dst_r.top <= src_end_y) {
-            const Int dst_clipped_y_span = __max(dst_r.bottom - fb_height, 0);
-            const Int dst_y_min = __max(dst_r.top, 0);
-            Int src_y = src_r.bottom - 1;
-            Int dst_y = dst_r.bottom - dst_clipped_y_span - 1;
+            const int dst_clipped_y_span = __max(dst_r.bottom - fb_height, 0);
+            const int dst_y_min = __max(dst_r.top, 0);
+            int src_y = src_r.bottom - 1;
+            int dst_y = dst_r.bottom - dst_clipped_y_span - 1;
             
             while (dst_y >= dst_y_min) {
                 Bits_CopyRange(BitPointer_Make(pPlane + dst_y * bytesPerRow, dst_x),
@@ -888,10 +888,10 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
             }
         }
         else {
-            const Int dst_clipped_y_span = (dst_r.top < 0) ? -dst_r.top : 0;
-            Int dst_y = __max(dst_r.top, 0);
-            const Int dst_y_max = __min(dst_r.bottom, fb_height);
-            Int src_y = src_r.top + dst_clipped_y_span;
+            const int dst_clipped_y_span = (dst_r.top < 0) ? -dst_r.top : 0;
+            int dst_y = __max(dst_r.top, 0);
+            const int dst_y_max = __min(dst_r.bottom, fb_height);
+            int src_y = src_r.top + dst_clipped_y_span;
             
             while (dst_y < dst_y_max) {
                 Bits_CopyRange(BitPointer_Make(pPlane + dst_y * bytesPerRow, dst_x),
@@ -905,12 +905,12 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
 }
 
 // Blits a monochromatic 8x8 pixel glyph to the given position in the framebuffer.
-void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, Int x, Int y)
+void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, int x, int y)
 {
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, x + 8, y + 8));
-    const Int bytesPerRow = pSurface->bytesPerRow;
-    const Int maxX = pSurface->width >> 3;
-    const Int maxY = pSurface->height >> 3;
+    const int bytesPerRow = pSurface->bytesPerRow;
+    const int maxX = pSurface->width >> 3;
+    const int maxY = pSurface->height >> 3;
     
     if (x < 0 || y < 0 || x >= maxX || y >= maxY) {
         Lock_Unlock(&pDriver->lock);

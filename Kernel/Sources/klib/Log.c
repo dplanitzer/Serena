@@ -18,12 +18,12 @@ static Lock         gLock;
 static ConsoleRef   gConsole;
 static IOChannelRef gConsoleChannel;
 static Formatter    gFormatter;
-static Character    gPrintBuffer[PRINT_BUFFER_CAPACITY];
+static char    gPrintBuffer[PRINT_BUFFER_CAPACITY];
 
 
-static ErrorCode printv_console_sink_locked(FormatterRef _Nonnull self, const Character* _Nonnull pBuffer, ByteCount nBytes)
+static errno_t printv_console_sink_locked(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, ssize_t nBytes)
 {
-    ByteCount nBytesWritten;
+    ssize_t nBytesWritten;
     return IOChannel_Write(gConsoleChannel, pBuffer, nBytes, &nBytesWritten);
 }
 
@@ -39,7 +39,7 @@ void print_init(void)
 }
 
 // Print formatted
-void print(const Character* _Nonnull format, ...)
+void print(const char* _Nonnull format, ...)
 {
     va_list ap;
     
@@ -48,7 +48,7 @@ void print(const Character* _Nonnull format, ...)
     va_end(ap);
 }
 
-void printv(const Character* _Nonnull format, va_list ap)
+void printv(const char* _Nonnull format, va_list ap)
 {
     Lock_Lock(&gLock);
     Formatter_vFormat(&gFormatter, format, ap);

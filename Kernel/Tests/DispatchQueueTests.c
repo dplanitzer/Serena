@@ -25,7 +25,7 @@
 #if 0
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
-    Int val = (Int)pValue;
+    int val = (int)pValue;
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
@@ -48,7 +48,7 @@ void DispatchQueue_RunTests(void)
 #if 0
 static void OnPrintClosure(Byte* _Nonnull pValue)
 {
-    Int val = (Int)pValue;
+    int val = (int)pValue;
     
     VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(500));
     print("%d  (Queue: %p, VP: %p)\n", val, DispatchQueue_GetCurrent(), VirtualProcessor_GetCurrent());
@@ -60,7 +60,7 @@ void DispatchQueue_RunTests(void)
 {
     DispatchQueueRef pQueue;
     DispatchQueue_Create(0, 4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pQueue);
-    Int i = 0;
+    int i = 0;
 
     while (true) {
         DispatchQueue_DispatchSync(pQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*) i));
@@ -80,7 +80,7 @@ void DispatchQueue_RunTests(void)
 #if 0
 struct State {
     TimerRef    timer;
-    Int         value;
+    int         value;
 };
 
 static void OnPrintClosure(Byte* _Nonnull pValue)
@@ -124,7 +124,7 @@ void DispatchQueue_RunTests(void)
 
     print("CPU: %s\n", cpu_get_model_name(pSysDesc->cpu_model));
     print("FPU: %s\n", fpu_get_model_name(pSysDesc->fpu_model));
-    print("Chipset version: $%x\n", (UInt32) pSysDesc->chipset_version);
+    print("Chipset version: $%x\n", (uint32_t) pSysDesc->chipset_version);
     print("RAMSEY version: $%x\n", pSysDesc->chipset_ramsey_version);
     print("\n");
  
@@ -135,7 +135,7 @@ void DispatchQueue_RunTests(void)
     RealtimeClockRef pRealtimeClock = (RealtimeClockRef) DriverManager_GetDriverForName(gDriverManager, kRealtimeClockName);
     if (pRealtimeClock) {
         GregorianDate date;
-        Int i = 0;
+        int i = 0;
 
         while (true) {
             RealtimeClock_GetDate(pRealtimeClock, &date);
@@ -152,7 +152,7 @@ void DispatchQueue_RunTests(void)
     print("---------\n");
     */
 
-    for(Int i = 0; i < pSysDesc->memory.descriptor_count; i++) {
+    for(int i = 0; i < pSysDesc->memory.descriptor_count; i++) {
         print("start: 0x%p, size: %u,  type: %s\n",
               pSysDesc->memory.descriptor[i].lower,
               pSysDesc->memory.descriptor[i].upper - pSysDesc->memory.descriptor[i].lower,
@@ -160,9 +160,9 @@ void DispatchQueue_RunTests(void)
     }
     print("--------\n");
     
-    const Int boardCount = DriverManager_GetExpansionBoardCount(gDriverManager);
+    const int boardCount = DriverManager_GetExpansionBoardCount(gDriverManager);
     if (boardCount > 0) {
-        for(Int i = 0; i < boardCount; i++) {
+        for(int i = 0; i < boardCount; i++) {
             const ExpansionBoard board = DriverManager_GetExpansionBoardAtIndex(gDriverManager, i);
 
             print("start: 0x%p, psize: %u, lsize: %u\n", board.start, board.physical_size, board.logical_size);
@@ -209,8 +209,8 @@ static void OnMainClosure(Byte* _Nonnull pValue)
 
     print("Event loop\n");
     while (true) {
-        ByteCount nBytesRead;
-        const ErrorCode err = IOChannel_Read(pChannel, (Byte*)&evt, sizeof(evt), &nBytesRead);
+        ssize_t nBytesRead;
+        const errno_t err = IOChannel_Read(pChannel, (Byte*)&evt, sizeof(evt), &nBytesRead);
         if (err != EOK) {
             abort();
         }
@@ -220,8 +220,8 @@ static void OnMainClosure(Byte* _Nonnull pValue)
             case kHIDEventType_KeyUp:
                 print("%s: $%hhx   flags: $%hhx  isRepeat: %s\n",
                       (evt.type == kHIDEventType_KeyUp) ? "KeyUp" : "KeyDown",
-                      (Int)evt.data.key.keyCode,
-                      (Int)evt.data.key.flags, evt.data.key.isRepeat ? "true" : "false");
+                      (int)evt.data.key.keyCode,
+                      (int)evt.data.key.flags, evt.data.key.isRepeat ? "true" : "false");
                 break;
                 
             case kHIDEventType_FlagsChanged:
@@ -235,7 +235,7 @@ static void OnMainClosure(Byte* _Nonnull pValue)
                       evt.data.mouse.buttonNumber,
                       evt.data.mouse.location.x,
                       evt.data.mouse.location.y,
-                      (Int)evt.data.mouse.flags);
+                      (int)evt.data.mouse.flags);
                 break;
 
             case kHIDEventType_MouseMoved:
@@ -270,16 +270,16 @@ static void OnReadFromPipe(Byte* _Nonnull pValue)
     PipeRef pipe = (PipeRef) pValue;
     Byte buf[16];
     
-    const Int nbytes = Pipe_GetNonBlockingReadableCount(pipe);
+    const int nbytes = Pipe_GetNonBlockingReadableCount(pipe);
     print("reader: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     while (true) {
         //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
         buf[0] = '\0';
-        const Int nRead = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity);
+        const int nRead = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity);
         //nbytes = Pipe_GetNonBlockingReadableCount(pipe);
         //print("\nmain: %d, read: %d", nbytes, nRead);
         buf[nRead] = '\0';
-        print((const Character*)buf);
+        print((const char*)buf);
     }
 }
 
@@ -287,12 +287,12 @@ static void OnWriteToPipe(Byte* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
     
-    const Int nbytes = Pipe_GetNonBlockingWritableCount(pipe);
+    const int nbytes = Pipe_GetNonBlockingWritableCount(pipe);
     print("writer: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
     
     while (true) {
         VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(20));
-        const Int nWritten = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity);
+        const int nWritten = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity);
         //nbytes = Pipe_GetNonBlockingWritableCount(pipe);
         //print("\nbackground: %d, written: %d", nbytes, nWritten);
     }

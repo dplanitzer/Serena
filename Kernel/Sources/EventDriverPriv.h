@@ -27,9 +27,9 @@
 
 // State of a joystick device
 typedef struct _LogicalJoystick {
-    Int16   xAbs;           // Int16.min -> 100% left, 0 -> resting, Int16.max -> 100% right
-    Int16   yAbs;           // Int16.min -> 100% up, 0 -> resting, Int16.max -> 100% down
-    UInt32  buttonsDown;    // Button #0 -> 0, Button #1 -> 1, ...
+    int16_t   xAbs;           // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
+    int16_t   yAbs;           // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
+    uint32_t  buttonsDown;    // Button #0 -> 0, Button #1 -> 1, ...
 } LogicalJoystick;
 
 
@@ -57,16 +57,16 @@ CLASS_IVARS(EventDriver, IOResource,
     InputControllerState        port[MAX_INPUT_CONTROLLER_PORTS];
 
     // Keyboard Configuration
-    const UInt8*                keyFlags;
+    const uint8_t*                keyFlags;
 
 
     // Mouse Configuration
-    Int16                       screenLeft;
-    Int16                       screenTop;
-    Int16                       screenRight;
-    Int16                       screenBottom;
-    Int                         mouseCursorHiddenCounter;
-    Bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
+    int16_t                       screenLeft;
+    int16_t                       screenTop;
+    int16_t                       screenRight;
+    int16_t                       screenBottom;
+    int                         mouseCursorHiddenCounter;
+    bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
 
 
     // Logical Keyboard Device
@@ -76,15 +76,15 @@ CLASS_IVARS(EventDriver, IOResource,
     // will be in a sharable page. Apps will then be able to map that page read-only
     // via an iocall. The app will then be able to copy/scan the map as needed while
     // the input keyboard driver updates it.
-    UInt32                      keyMap[KEY_MAP_INTS_COUNT];    // keycode is the bit index. 1 -> key down; 0 -> key up
-    UInt32                      modifierFlags;
+    uint32_t                      keyMap[KEY_MAP_INTS_COUNT];    // keycode is the bit index. 1 -> key down; 0 -> key up
+    uint32_t                      modifierFlags;
 
 
     // Logical Mouse Device
     //
-    Int16                       mouseX;
-    Int16                       mouseY;
-    UInt32                      mouseButtons;
+    int16_t                       mouseX;
+    int16_t                       mouseY;
+    uint32_t                      mouseButtons;
 
 
     // Logical Joystick Devices
@@ -101,7 +101,7 @@ typedef struct _EventDriverChannelMethodTable {
 } EventDriverChannelMethodTable;
 
 
-extern ErrorCode EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
-extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, Int portId);
+extern errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, int portId);
+extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, int portId);
 
 #endif /* EventDriverPriv_h */

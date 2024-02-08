@@ -74,7 +74,7 @@ _chipset_reset:
 
 
 ;-------------------------------------------------------------------------------
-; void chipset_enable_interrupt(Int interruptId)
+; void chipset_enable_interrupt(int interruptId)
 ; Enables generation of the given interrupt type. This implicitly turns on the
 ; master IRQ switch.
 ; Note that we always turn on the master IRQ switch, external IRQs and the ports
@@ -126,7 +126,7 @@ cei_done:
 
 
 ;-------------------------------------------------------------------------------
-; void chipset_disable_interrupt(Int interruptId)
+; void chipset_disable_interrupt(int interruptId)
 ; Disables the generation of the given interrupt type. This function leaves the
 ; master IRQ switch enabled. It doesn't matter 'cause we turn the IRQ source off
 ; anyway.
@@ -220,7 +220,7 @@ _chipset_stop_quantum_timer:
 
 
 ;-------------------------------------------------------------------------------
-; Int32 chipset_get_quantum_timer_duration_ns(void)
+; int32_t chipset_get_quantum_timer_duration_ns(void)
 ; Returns the length of a quantum in terms of nanoseconds.
 _chipset_get_quantum_timer_duration_ns:
     move.l  SYS_DESC_BASE + sd_quantum_duration_ns, d0
@@ -228,7 +228,7 @@ _chipset_get_quantum_timer_duration_ns:
 
 
 ;-------------------------------------------------------------------------------
-; Int32 chipset_get_quantum_timer_elapsed_ns(void)
+; int32_t chipset_get_quantum_timer_elapsed_ns(void)
 ; Returns the amount of nanoseconds that have elapsed in the current quantum.
 _chipset_get_quantum_timer_elapsed_ns:
     ; read the current timer value

@@ -26,7 +26,7 @@ extern void Lock_Deinit(Lock* _Nonnull pLock);
 
 // Attempts to acquire the given lock. True is return if the lock has been
 // successfully acquired and false otherwise.
-static inline Bool Lock_TryLock(Lock* _Nonnull pLock) {
+static inline bool Lock_TryLock(Lock* _Nonnull pLock) {
     return ULock_TryLock(pLock) == EOK;
 }
 
@@ -40,7 +40,7 @@ extern void Lock_Unlock(Lock* _Nonnull pLock);
 
 // Returns the ID of the virtual processor that is currently holding the lock.
 // Zero is returned if none is holding the lock.
-static inline Int Lock_GetOwnerVpid(Lock* _Nonnull pLock) {
+static inline int Lock_GetOwnerVpid(Lock* _Nonnull pLock) {
     return ULock_GetOwnerVpid(pLock);
 }
 

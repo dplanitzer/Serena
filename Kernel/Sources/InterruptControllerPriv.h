@@ -20,11 +20,11 @@
 
 // Keep this at a size that's a power-of-2
 typedef struct _InterruptHandler {
-    Int                                 identity;
-    Int8                                type;
-    Int8                                priority;
-    UInt8                               flags;
-    Int8                                reserved;
+    int                                 identity;
+    int8_t                                type;
+    int8_t                                priority;
+    uint8_t                               flags;
+    int8_t                                reserved;
     InterruptHandler_Closure _Nonnull   closure;
     Byte* _Nullable                     context;
 } InterruptHandler;
@@ -33,17 +33,17 @@ typedef struct _InterruptHandler {
 // Keep in sync with lowmem.i
 typedef struct _InterruptHandlerArray {
     InterruptHandler* _Nonnull  start;  // points to the first handler
-    Int                         count;
+    int                         count;
 } InterruptHandlerArray;
 
 
 // Keep in sync with lowmem.i
 typedef struct _InterruptController {
     InterruptHandlerArray   handlers[INTERRUPT_ID_COUNT];
-    Int                     nextAvailableId;    // Next available interrupt handler ID
-    Int                     spuriousInterruptCount;
-    Int                     uninitializedInterruptCount;
-    Int                     nonMaskableInterruptCount;
+    int                     nextAvailableId;    // Next available interrupt handler ID
+    int                     spuriousInterruptCount;
+    int                     uninitializedInterruptCount;
+    int                     nonMaskableInterruptCount;
     Lock                    lock;
 } InterruptController;
 

@@ -10,7 +10,7 @@
 #include "FilesystemManager.h"
 #include "MonotonicClock.h"
 
-ErrorCode Inode_Create(FilesystemId fsid, InodeId id, FileType type, Int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Inode_Create(FilesystemId fsid, InodeId id, FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef self;
@@ -60,7 +60,7 @@ FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self)
 // access and/or manipulate the node; a suitable error code otherwise. The
 // 'permission' parameter represents a set of the permissions of a single
 // permission scope.
-ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission)
+errno_t Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission)
 {
     // XXX revisit this once we put a proper user permission model in place
     // XXX forcing superuser off for now since it's the only user we got at this
@@ -132,9 +132,9 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 
 // Modifies the node's file info if the operation is permissible based on the
 // given user and inode permissions status.
-ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
+errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    UInt32  modify = pInfo->modify;
+    uint32_t  modify = pInfo->modify;
 
     // We first validate that the request operation is permissible.
     if ((modify & (kModifyFileInfo_UserId|kModifyFileInfo_GroupId)) != 0) {
@@ -176,7 +176,7 @@ ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* 
 }
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
-Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
+bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
 {
     return self->fsid == pOther->fsid && self->inid == pOther->inid;
 }

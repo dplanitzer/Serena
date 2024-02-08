@@ -15,15 +15,15 @@
 #include "RealtimeClock.h"
 
 
-const Character* const kGraphicsDriverName = "graphics";
-const Character* const kConsoleName = "con";
-const Character* const kEventsDriverName = "events";
-const Character* const kRealtimeClockName = "rtc";
+const char* const kGraphicsDriverName = "graphics";
+const char* const kConsoleName = "con";
+const char* const kEventsDriverName = "events";
+const char* const kRealtimeClockName = "rtc";
 
 
 typedef struct _DriverEntry {
     SListNode           node;
-    const Character*    name;
+    const char*    name;
     DriverRef           instance;
 } DriverEntry;
 
@@ -32,7 +32,7 @@ typedef struct _DriverManager {
     Lock            lock;
     SList           drivers;
     ExpansionBus    zorroBus;
-    Bool            isZorroBusConfigured;
+    bool            isZorroBusConfigured;
 } DriverManager;
 
 
@@ -56,7 +56,7 @@ static void DriverEntry_Destroy(DriverEntry* _Nullable pEntry)
 // Adopts the given driver. Meaning that this initializer does not take out an
 // extra strong reference to the driver. It assumes that it should take ownership
 // of the provided strong reference.
-static ErrorCode DriverEntry_Create(const Character* _Nonnull pName, DriverRef _Nonnull pDriverInstance, DriverEntry* _Nullable * _Nonnull pOutEntry)
+static errno_t DriverEntry_Create(const char* _Nonnull pName, DriverRef _Nonnull pDriverInstance, DriverEntry* _Nullable * _Nonnull pOutEntry)
 {
     decl_try_err();
     DriverEntry* pEntry = NULL;
@@ -83,7 +83,7 @@ catch:
 DriverManagerRef _Nonnull  gDriverManager;
 
 
-ErrorCode DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutManager)
+errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutManager)
 {
     decl_try_err();
     DriverManager* pManager;
@@ -121,7 +121,7 @@ void DriverManager_Destroy(DriverManagerRef _Nullable pManager)
     }
 }
 
-static ErrorCode DriverManager_AddDriver_Locked(DriverManagerRef _Nonnull pManager, const Character* _Nonnull pName, DriverRef _Nonnull pDriverInstance)
+static errno_t DriverManager_AddDriver_Locked(DriverManagerRef _Nonnull pManager, const char* _Nonnull pName, DriverRef _Nonnull pDriverInstance)
 {
     decl_try_err();
     DriverEntry* pEntry = NULL;
@@ -134,7 +134,7 @@ catch:
     return err;
 }
 
-static DriverRef DriverManager_GetDriverForName_Locked(DriverManagerRef _Nonnull pManager, const Character* pName)
+static DriverRef DriverManager_GetDriverForName_Locked(DriverManagerRef _Nonnull pManager, const char* pName)
 {
     SList_ForEach(&pManager->drivers, DriverEntry, {
         if (String_Equals(pCurNode->name, pName)) {
@@ -146,10 +146,10 @@ static DriverRef DriverManager_GetDriverForName_Locked(DriverManagerRef _Nonnull
 }
 
 
-ErrorCode DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManager)
+errno_t DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManager)
 {
     decl_try_err();
-    Bool needsUnlock = false;
+    bool needsUnlock = false;
 
     Lock_Lock(&pManager->lock);
     needsUnlock = true;
@@ -192,7 +192,7 @@ catch:
 }
 
 // Auto configures the expansion board bus.
-static ErrorCode DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManagerRef _Nonnull pManager)
+static errno_t DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManagerRef _Nonnull pManager)
 {
     if (pManager->isZorroBusConfigured) {
         return EOK;
@@ -207,7 +207,7 @@ static ErrorCode DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManag
     MemoryLayout mem_layout;
     mem_layout.descriptor_count = 0;
 
-    for (Int i = 0; i < pManager->zorroBus.board_count; i++) {
+    for (int i = 0; i < pManager->zorroBus.board_count; i++) {
         const ExpansionBoard* board = &pManager->zorroBus.board[i];
        
         if (board->type != EXPANSION_TYPE_RAM) {
@@ -221,7 +221,7 @@ static ErrorCode DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManag
 
 
     // Add the RAM we found to the kernel allocator
-    for (Int i = 0; i < mem_layout.descriptor_count; i++) {
+    for (int i = 0; i < mem_layout.descriptor_count; i++) {
         (void) kalloc_add_memory_region(&mem_layout.descriptor[i]);
     }
 
@@ -230,10 +230,10 @@ static ErrorCode DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManag
     pManager->isZorroBusConfigured = true;
 }
 
-ErrorCode DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
+errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 {
     decl_try_err();
-    Bool needsUnlock = false;
+    bool needsUnlock = false;
 
     Lock_Lock(&pManager->lock);
     needsUnlock = true;
@@ -265,7 +265,7 @@ catch:
     return err;
 }
 
-DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, const Character* pName)
+DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, const char* pName)
 {
     Lock_Lock(&pManager->lock);
     DriverRef pDriver = DriverManager_GetDriverForName_Locked(pManager, pName);
@@ -273,15 +273,15 @@ DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull pManager, con
     return pDriver;
 }
 
-Int DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull pManager)
+int DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull pManager)
 {
     Lock_Lock(&pManager->lock);
-    const Int count = pManager->zorroBus.board_count;
+    const int count = pManager->zorroBus.board_count;
     Lock_Unlock(&pManager->lock);
     return count;
 }
 
-ExpansionBoard DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull pManager, Int index)
+ExpansionBoard DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull pManager, int index)
 {
     assert(index >= 0 && index < pManager->zorroBus.board_count);
 

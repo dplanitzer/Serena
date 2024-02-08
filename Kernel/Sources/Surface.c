@@ -10,7 +10,7 @@
 
 
 // Returns how many planes we need to allocate for the given pixel format.
-static Int PixelFormat_GetPlaneCount(PixelFormat format)
+static int PixelFormat_GetPlaneCount(PixelFormat format)
 {
     switch (format) {
         case kPixelFormat_RGB_Indexed1:     return 1;
@@ -30,7 +30,7 @@ static Int PixelFormat_GetPlaneCount(PixelFormat format)
 // \param height the height in pixels
 // \param pixelFormat the pixel format
 // \return the surface; NULL on failure
-ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
+errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
 {
     decl_try_err();
     Surface* pSurface;
@@ -46,9 +46,9 @@ ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface
     
     
     // Allocate the planes
-    const Int bytesPerPlane = pSurface->bytesPerRow * pSurface->height;
+    const int bytesPerPlane = pSurface->bytesPerRow * pSurface->height;
     
-    for (Int i = 0; i < pSurface->planeCount; i++) {
+    for (int i = 0; i < pSurface->planeCount; i++) {
         try(kalloc_options(bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &pSurface->planes[i]));
     }
     
@@ -66,7 +66,7 @@ catch:
 void Surface_Destroy(Surface* _Nullable pSurface)
 {
     if (pSurface) {
-        for (Int i = 0; i < pSurface->planeCount; i++) {
+        for (int i = 0; i < pSurface->planeCount; i++) {
             kfree(pSurface->planes[i]);
             pSurface->planes[i] = NULL;
         }
@@ -85,7 +85,7 @@ Size Surface_GetPixelSize(Surface* _Nonnull pSurface)
 // \param pSurface the surface
 // \param access the access mode
 // \return EOK if the surface pixels could be locked; EBUSY otherwise
-ErrorCode Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access)
+errno_t Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access)
 {
     if ((pSurface->flags & SURFACE_FLAG_LOCKED) != 0) {
         return EBUSY;

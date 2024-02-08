@@ -76,11 +76,11 @@ typedef struct _Inode {
     Lock                lock;
     FilesystemId        fsid;       // Globally unique ID of the filesystem that owns this node
     InodeId             inid;       // Filesystem specific ID of the inode
-    Int                 useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
-    Int                 linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
+    int                 useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
+    int                 linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
     void*               refcon;     // Filesystem specific information
     FileType            type;
-    UInt8               flags;
+    uint8_t               flags;
     FilePermissions     permissions;
     UserId              uid;
     GroupId             gid;
@@ -94,9 +94,9 @@ typedef struct _Inode* InodeRef;
 
 // Creates an instance of the abstract Inode class. Should only ever be called
 // by the implement of a creation function for a concrete Inode subclass.
-extern ErrorCode Inode_Create(FilesystemId fsid, InodeId id,
+extern errno_t Inode_Create(FilesystemId fsid, InodeId id,
                     FileType type,
-                    Int linkCount,
+                    int linkCount,
                     UserId uid, GroupId gid, FilePermissions permissions,
                     FileOffset size,
                     TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
@@ -192,7 +192,7 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
 // access and/or manipulate the node; a suitable error code otherwise. The
 // 'permission' parameter represents a set of the permissions of a single
 // permission scope.
-extern ErrorCode Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
+extern errno_t Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
 
 
 // Inode file size
@@ -215,7 +215,7 @@ extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInf
 
 // Modifies the node's file info if the operation is permissible based on the
 // given user and inode permissions status.
-extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
+extern errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
 
 
 //
@@ -261,7 +261,7 @@ extern ErrorCode Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFil
 extern FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self);
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
-extern Bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
+extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
 
 // Reacquires the given node and returns a new reference to the node. The node
 // is returned in locked state.

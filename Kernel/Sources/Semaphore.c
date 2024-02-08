@@ -12,7 +12,7 @@
 
 
 // Creates a new semaphore with the given starting value.
-Semaphore* _Nullable Semaphore_Create(Int value)
+Semaphore* _Nullable Semaphore_Create(int value)
 {
     Semaphore* pSemaphore;
     
@@ -31,7 +31,7 @@ void Semaphore_Destroy(Semaphore* _Nullable pSemaphore)
 }
 
 // Initializes a new semaphore with 'value' permits
-void Semaphore_Init(Semaphore* _Nonnull pSemaphore, Int value)
+void Semaphore_Init(Semaphore* _Nonnull pSemaphore, int value)
 {
     pSemaphore->value = value;
     List_Init(&pSemaphore->wait_queue);
@@ -44,7 +44,7 @@ void Semaphore_Deinit(Semaphore* _Nonnull pSemaphore)
     if (!List_IsEmpty(&pSemaphore->wait_queue)) {
         // Wake up all the guys that are still waiting on us and tell them that the
         // wait has been interrupted.
-        const Int sps = VirtualProcessorScheduler_DisablePreemption();
+        const int sps = VirtualProcessorScheduler_DisablePreemption();
         VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                              &pSemaphore->wait_queue,
                                              INT_MAX,
@@ -61,12 +61,12 @@ void Semaphore_Release(Semaphore* _Nonnull pSemaphore)
     Semaphore_ReleaseMultiple(pSemaphore, 1);
 }
 
-ErrorCode Semaphore_Acquire(Semaphore* _Nonnull pSemaphore, TimeInterval deadline)
+errno_t Semaphore_Acquire(Semaphore* _Nonnull pSemaphore, TimeInterval deadline)
 {
     return Semaphore_AcquireMultiple(pSemaphore, 1, deadline);
 }
 
-Bool Semaphore_TryAcquire(Semaphore* _Nonnull pSemaphore)
+bool Semaphore_TryAcquire(Semaphore* _Nonnull pSemaphore)
 {
     return Semaphore_TryAcquireMultiple(pSemaphore, 1);
 }
@@ -74,7 +74,7 @@ Bool Semaphore_TryAcquire(Semaphore* _Nonnull pSemaphore)
 // Invoked by Semaphore_Acquire() if the semaphore doesn't have the expected number
 // of permits.
 // Expects to be called with preemption disabled.
-ErrorCode Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, TimeInterval deadline)
+errno_t Semaphore_OnWaitForPermits(Semaphore* _Nonnull pSemaphore, TimeInterval deadline)
 {
     return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &pSemaphore->wait_queue,

@@ -13,7 +13,7 @@
 
 // The realtime clock
 CLASS_IVARS(RealtimeClock, IOResource,
-    Int     type;
+    int     type;
     Lock    lock;
     // XXX not fully implemented yet
 );
@@ -26,7 +26,7 @@ CLASS_IVARS(RealtimeClock, IOResource,
 // 00:00:00 Thursday, 1 January 1970 UTC
 const GregorianDate GREGORIAN_DATE_EPOCH = { 0, 0, 0, 5, 1, 1, 1970 };
 
-Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b)
+bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b)
 {
     return a->second == b->second
         && a->minute == b->minute
@@ -44,7 +44,7 @@ Bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* 
 
 // Checks whether the system has a RTC installed and returns a realtime clock
 // object ifg that's the case; otherwise NULL is returned
-ErrorCode RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver)
+errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
     RealtimeClockRef pClock;
@@ -67,7 +67,7 @@ static void RealtimeClock_deinit(RealtimeClockRef _Nonnull pClock)
 }
 
 // Returns the current Gregorian date & time.
-ErrorCode RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate* _Nonnull pDate)
+errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate* _Nonnull pDate)
 {
     decl_try_err();
 
@@ -89,7 +89,7 @@ catch:
 
 // Sets the current Gregorian date & time and makes sure that the clock is
 // running.
-ErrorCode RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const GregorianDate* _Nonnull pDate)
+errno_t RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const GregorianDate* _Nonnull pDate)
 {
     decl_try_err();
 
@@ -103,10 +103,10 @@ catch:
 }
 
 // Reads up to 'nBytes' from NVRAM. Returns the actual amount of bytes read.
-ErrorCode RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesRead)
+errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, Byte* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead)
 {
     decl_try_err();
-    Int nBytesRead;
+    int nBytesRead;
     
     Lock_Lock(&pClock->lock);
     // XXX not yet
@@ -122,10 +122,10 @@ catch:
 }
 
 // Writes up to 'nBytes' to NVRAM. Returns the actual amount of data written.
-ErrorCode RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const Byte* _Nonnull pBuffer, Int nBytes, Int* _Nonnull pOutNumBytesWritten)
+errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const Byte* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten)
 {
     decl_try_err();
-    Int nBytesWritten;
+    int nBytesWritten;
     
     Lock_Lock(&pClock->lock);
     // XXX not yet

@@ -110,19 +110,19 @@ typedef enum _ClearScreenMode {
 
 // Stores up to 255 tab stop positions.
 typedef struct _TabStops {
-    Int8*   stops;
-    Int     count;
-    Int     capacity;
+    int8_t* stops;
+    int     count;
+    int     capacity;
 } TabStops;
 
-ErrorCode TabStops_Init(TabStops* _Nonnull pStops, Int nStops, Int tabWidth);
+errno_t TabStops_Init(TabStops* _Nonnull pStops, int nStops, int tabWidth);
 void TabStops_Deinit(TabStops* _Nonnull pStops);
-ErrorCode TabStops_InsertStop(TabStops* _Nonnull pStops, Int xLoc);
-void TabStops_RemoveStop(TabStops* _Nonnull pStops, Int xLoc);
+errno_t TabStops_InsertStop(TabStops* _Nonnull pStops, int xLoc);
+void TabStops_RemoveStop(TabStops* _Nonnull pStops, int xLoc);
 void TabStops_RemoveAllStops(TabStops* _Nonnull pStops);
-Int TabStops_GetNextStop(TabStops* pStops, Int xLoc, Int xWidth);
-Int TabStops_GetNextNthStop(TabStops* pStops, Int xLoc, Int nth, Int xWidth);
-Int TabStops_GetPreviousNthStop(TabStops* pStops, Int xLoc, Int nth);
+int TabStops_GetNextStop(TabStops* pStops, int xLoc, int xWidth);
+int TabStops_GetNextNthStop(TabStops* pStops, int xLoc, int nth, int xWidth);
+int TabStops_GetPreviousNthStop(TabStops* pStops, int xLoc, int nth);
 
 
 // Saved cursor state:
@@ -131,8 +131,8 @@ Int TabStops_GetPreviousNthStop(TabStops* pStops, Int xLoc, Int nth);
 // - character set
 // - origin mode
 typedef struct _SavedState {
-    Int     x;
-    Int     y;
+    int x;
+    int y;
 } SavedState;
 
 
@@ -147,42 +147,42 @@ CLASS_IVARS(Console, IOResource,
     RingBuffer                  reportsQueue;
     RGBColor                    backgroundColor;
     RGBColor                    textColor;
-    Int                         lineHeight;     // In pixels
-    Int                         characterWidth; // In pixels
+    int                         lineHeight;     // In pixels
+    int                         characterWidth; // In pixels
     TabStops                    hTabStops;
     Rect                        bounds;
-    Int                         x;
-    Int                         y;
+    int                         x;
+    int                         y;
     SavedState                  savedCursorState;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
     CompatibilityMode           compatibilityMode;
     struct {
-        UInt    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past teh right margin
-        UInt    isInsertionMode: 1;     // true if insertion mode is active; false if replace mode is active
+        unsigned int    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past teh right margin
+        unsigned int    isInsertionMode: 1;     // true if insertion mode is active; false if replace mode is active
 
-        UInt    isTextCursorBlinkerEnabled:1;   // true if the text cursor should blink. Visibility is a separate state
-        UInt    isTextCursorOn:1;               // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
-        UInt    isTextCursorSingleCycleOn:1;    // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
-        UInt    isTextCursorVisible:1;          // global text cursor visibility switch
+        unsigned int    isTextCursorBlinkerEnabled:1;   // true if the text cursor should blink. Visibility is a separate state
+        unsigned int    isTextCursorOn:1;               // true if the text cursor blinking state is on; false if off. IsTextCursorVisible has to be true to make the cursor actually visible
+        unsigned int    isTextCursorSingleCycleOn:1;    // true if the text cursor should be shown for a single blink cycle even if the cycle is actually supposed to be off. This is set when we print a character to ensure the cursor is visible
+        unsigned int    isTextCursorVisible:1;          // global text cursor visibility switch
     }                           flags;
 );
 
-extern ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
+extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
-extern void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearLineMode mode);
+extern void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, int y, ClearLineMode mode);
 extern void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled);
-extern void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible);
+extern void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool isEnabled);
+extern void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible);
 static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
-extern void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y);
-extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy);
+extern void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, int x, int y);
+extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, int dx, int dy);
 extern void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
 extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_action_t action, unsigned char b);
 extern void Console_VT100_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
 
-extern void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const Character* msg);
+extern void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const char* msg);
 
 extern void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch);
 extern void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole);
@@ -190,9 +190,9 @@ extern void Console_Execute_HT_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, Int nChars);
-extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines);
-extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines);
+extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, int nChars);
+extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, int nLines);
+extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, int nLines);
 
 
 // Big enough to hold the result of a key mapping and the longest possible
@@ -207,8 +207,8 @@ extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines);
 // remaining buffered bytes before it receives bytes from new events.
 OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
     Byte    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
-    Int8    rdCount;                        // Number of bytes stored in the buffer
-    Int8    rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
+    int8_t  rdCount;                        // Number of bytes stored in the buffer
+    int8_t  rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
 );
 typedef struct _ConsoleChannelMethodTable {
     IOChannelMethodTable    super;
@@ -233,14 +233,14 @@ extern const Byte font8x8_dingbat[160][8];
 //
 // Text Cursors
 //
-extern const UInt16 gBlock4x8_Plane0[];
-extern const UInt16 gBlock4x8_Plane1[];
-extern const Int gBlock4x8_Width;
-extern const Int gBlock4x8_Height;
+extern const uint16_t gBlock4x8_Plane0[];
+extern const uint16_t gBlock4x8_Plane1[];
+extern const int gBlock4x8_Width;
+extern const int gBlock4x8_Height;
 
-extern const UInt16 gBlock4x4_Plane0[];
-extern const UInt16 gBlock4x4_Plane1[];
-extern const Int gBlock4x4_Width;
-extern const Int gBlock4x4_Height;
+extern const uint16_t gBlock4x4_Plane0[];
+extern const uint16_t gBlock4x4_Plane1[];
+extern const int gBlock4x4_Width;
+extern const int gBlock4x4_Height;
 
 #endif /* ConsolePriv_h */

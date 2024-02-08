@@ -44,7 +44,7 @@
 
 // A positive byte offset to the desired data. The offset is relative to the
 // first byte of the KeyMap data structure.
-typedef UInt16  KeyMapOffset;
+typedef uint16_t  KeyMapOffset;
 
 
 // 'traps' points to an array of 4 bytes per key:
@@ -69,7 +69,7 @@ typedef UInt16  KeyMapOffset;
 // XXX Consider adding TYPE_3 variant that stores a string up to 4 bytes in 32bits inline
 
 typedef struct _KeyMapRange {
-    UInt16          type;
+    uint16_t          type;
     HIDKeyCode      lower;
     HIDKeyCode      upper;
     KeyMapOffset    traps;
@@ -80,9 +80,9 @@ typedef struct _KeyMapRange {
 #define KEY_MAP_TYPE_0  0
 
 typedef struct _KeyMap {
-    UInt16          type;
-    UInt16          size;   // Overall size of key map in bytes
-    UInt16          rangeCount;
+    uint16_t          type;
+    uint16_t          size;   // Overall size of key map in bytes
+    uint16_t          rangeCount;
     KeyMapOffset    rangeOffset[1];
 } KeyMap;
 
@@ -96,7 +96,7 @@ typedef struct _KeyMap {
 
 // Returns true if the given key map is valid and false otherwise.
 // XXX Should check that all offsets are inside the pMap->size range.
-extern Bool KeyMap_IsValid(const KeyMap* _Nonnull pMap);
+extern bool KeyMap_IsValid(const KeyMap* _Nonnull pMap);
 
 // Maps the given up/down key event to a sequence of bytes. Usually that
 // sequence is only a single byte long. However it may be multiple bytes
@@ -104,6 +104,6 @@ extern Bool KeyMap_IsValid(const KeyMap* _Nonnull pMap);
 // returned. If that length is zero then the key press or release should be
 // ignored. Note that this function returns a sequence of bytes and not a
 // C string. Consequently the sequence is not nul-terminated.
-extern ByteCount KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ByteCount maxOutBytes);
+extern ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ssize_t maxOutBytes);
 
 #endif /* KeyMap_h */

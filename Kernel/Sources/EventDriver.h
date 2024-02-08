@@ -39,21 +39,21 @@ typedef enum _HIDKeyState {
 } HIDKeyState;
 
 
-extern ErrorCode EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver);
 
 
 // APIs for use by input drivers
 extern GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull pDriver);
 
-extern void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HIDKeyState keyState, UInt16 keyCode);
-extern void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xDelta, Int16 yDelta, UInt32 buttonsDown);
-extern void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, Int port, Int16 xAbs, Int16 yAbs, UInt32 buttonsDown);
-extern void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, Int16 xAbs, Int16 yAbs, Bool hasPosition, UInt32 buttonsDown);
+extern void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull pDriver, HIDKeyState keyState, uint16_t keyCode);
+extern void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull pDriver, int16_t xDelta, int16_t yDelta, uint32_t buttonsDown);
+extern void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull pDriver, int port, int16_t xAbs, int16_t yAbs, uint32_t buttonsDown);
+extern void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull pDriver, int16_t xAbs, int16_t yAbs, bool hasPosition, uint32_t buttonsDown);
 
 
 // Configuring the HID assignment of HID ports to HID drivers
-extern InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, Int portId);
-extern ErrorCode EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, Int portId);
+extern InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, int portId);
+extern errno_t EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, int portId);
 
 
 // Configuring the keyboard
@@ -62,17 +62,17 @@ extern void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull pDriver, Time
 
 
 // Returns the keyboard hardware state
-extern void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, Int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, Int* _Nonnull nKeysDown);
+extern void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown);
 
 
 // The mouse cursor state
 extern void EventDriver_SetMouseCursor(EventDriverRef _Nonnull pDriver, const Byte* pBitmap, const Byte* pMask);
 extern void EventDriver_ShowMouseCursor(EventDriverRef _Nonnull pDriver);
 extern void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver);
-extern void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonnull pDriver, Bool flag);
+extern void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonnull pDriver, bool flag);
 
 // Returns the mouse hardware state
 extern Point EventDriver_GetMouseDevicePosition(EventDriverRef _Nonnull pDriver);
-extern UInt32 EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver);
+extern uint32_t EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver);
 
 #endif /* EventDriver_h */

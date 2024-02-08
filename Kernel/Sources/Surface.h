@@ -34,21 +34,21 @@ typedef enum _SurfaceAccess {
 
 typedef struct _Surface {
     Byte* _Nullable planes[MAX_PLANE_COUNT];
-    Int16           width;
-    Int16           height;
-    Int16           bytesPerRow;
-    Int16           planeCount;
-    Int16           pixelFormat;
-    UInt16          flags;
+    int16_t           width;
+    int16_t           height;
+    int16_t           bytesPerRow;
+    int16_t           planeCount;
+    int16_t           pixelFormat;
+    uint16_t          flags;
 } Surface;
 
 
-extern ErrorCode Surface_Create(Int width, Int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
+extern errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
 extern void Surface_Destroy(Surface* _Nullable pSurface);
 
 extern Size Surface_GetPixelSize(Surface* _Nonnull pSurface);
 
-extern ErrorCode Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access);
+extern errno_t Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access);
 extern void Surface_UnlockPixels(Surface* _Nonnull pSurface);
 
 #endif /* Surface_h */

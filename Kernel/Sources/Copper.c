@@ -15,7 +15,7 @@
 
 // Computes the size of a Copper program. The size is given in terms of the
 // number of Copper instruction words.
-Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen)
+int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen)
 {
     Surface* pFramebuffer = pScreen->framebuffer;
 
@@ -31,16 +31,16 @@ Int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScr
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
 // \return a pointer to where the next instruction after the program would go 
-CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField)
+CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField)
 {
     const ScreenConfiguration* pConfig = pScreen->screenConfig;
-    const UInt32 firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
-    const UInt16 lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
+    const uint32_t firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
+    const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
     Surface* pFramebuffer = pScreen->framebuffer;
     register CopperInstruction* ip = pCode;
     
     // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_bit | ((UInt16)pFramebuffer->planeCount & 0x07) << 12);
+    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_bit | ((uint16_t)pFramebuffer->planeCount & 0x07) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
     
@@ -57,23 +57,23 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
     *ip++ = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
     
     // BPLxPT
-    for (Int i = 0, r = BPL_BASE; i < pFramebuffer->planeCount; i++, r += 4) {
-        const UInt32 bplpt = (UInt32)(pFramebuffer->planes[i]) + firstLineByteOffset;
+    for (int i = 0, r = BPL_BASE; i < pFramebuffer->planeCount; i++, r += 4) {
+        const uint32_t bplpt = (uint32_t)(pFramebuffer->planes[i]) + firstLineByteOffset;
         
         *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
     }
 
     // SPRxPT
-    for (Int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
-        const UInt32 sprpt = (UInt32)pScreen->sprite[i]->data;
+    for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
+        const uint32_t sprpt = (uint32_t)pScreen->sprite[i]->data;
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
 
     // DMACON
-    const UInt16 dmaf_sprite = (pScreen->spritesInUseCount > 0) ? DMACONF_SPREN : 0;
+    const uint16_t dmaf_sprite = (pScreen->spritesInUseCount > 0) ? DMACONF_SPREN : 0;
     *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | dmaf_sprite | DMACONF_DMAEN);
 
     return ip;
@@ -81,11 +81,11 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
 
 // Compiles a Copper program to display a non-interlaced screen or a single
 // field of an interlaced screen.
-ErrorCode CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, Bool isLightPenEnabled, Bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
+errno_t CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
 {
     decl_try_err();
-    const Int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
-    const Int nInstructions = nFrameInstructions + 1;
+    const int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
+    const int nInstructions = nFrameInstructions + 1;
     CopperProgram* pProg;
     
     try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (void**) &pProg));
@@ -136,7 +136,7 @@ void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler)
 // display is turned off if the odd field program is NULL.
 void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg)
 {
-    const Int irs = cpu_disable_irqs();
+    const int irs = cpu_disable_irqs();
     pScheduler->readyEvenFieldProg = pEvenFieldProg;
     pScheduler->readyOddFieldProg = pOddFieldProg;
     pScheduler->flags |= COPF_CONTEXT_SWITCH_REQ;
@@ -179,17 +179,17 @@ static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler)
     if ((pScheduler->flags & COPF_INTERLACED) != 0) {
         // Handle interlaced (dual field) programs. Which program to activate depends
         // on whether the current field is the even or the odd one
-        const UInt16 isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
+        const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
         if (isLongFrame) {
             // Odd field
-            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningOddFieldProg->entry;
         } else {
             // Even field
-            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningEvenFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningEvenFieldProg->entry;
         }
     } else {
-        *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg->entry;
+        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningOddFieldProg->entry;
     }
 
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
@@ -214,14 +214,14 @@ void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler)
     // Jump to the field dependent Copper program if we are in interlace mode.
     // Nothing to do if we are in non-interlaced mode
     if ((pScheduler->flags & COPF_INTERLACED) != 0) {
-        const UInt16 isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
+        const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
         if (isLongFrame) {
             // Odd field
-            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningOddFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningOddFieldProg->entry;
         } else {
             // Even field
-            *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pScheduler->runningEvenFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningEvenFieldProg->entry;
         }
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }

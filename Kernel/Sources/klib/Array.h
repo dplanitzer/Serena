@@ -22,15 +22,15 @@
 // then you should use the functions/macros here to build your specialization.
 struct _GenericArray {
     Byte*   data;
-    Int     count;
-    Int     capacity;
+    int     count;
+    int     capacity;
 };
 
 
-extern ErrorCode GenericArray_Init(struct _GenericArray* _Nonnull pArray, Int elementSize, Int initialCapacity);
+extern errno_t GenericArray_Init(struct _GenericArray* _Nonnull pArray, int elementSize, int initialCapacity);
 extern void GenericArray_Deinit(struct _GenericArray* _Nonnull pArray);
 
-extern ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, Int elementSize);
+extern errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, int elementSize);
 
 #define GenericArray_GetCount(pArray) (pArray)->count
 #define GenericArray_IsEmpty(pArray) ((pArray)->count == 0)
@@ -45,7 +45,7 @@ extern ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray
     } \
     if (ec == EOK) { \
         elementType* __p = (elementType*)(pArray)->data; \
-        for (Int i = (pArray)->count - 1; i >= idx; i--) { \
+        for (int i = (pArray)->count - 1; i >= idx; i--) { \
             __p[i + 1] = __p[i]; \
         } \
         __p[idx] = element; \
@@ -59,8 +59,8 @@ extern ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray
 #define GenericArray_RemoveIdenticalTo(didRemove, pArray, element, elementType) \
     { \
         elementType* __p = (elementType*)(pArray)->data; \
-        const Int __count = (pArray)->count; \
-        for (Int i = 0; i < __count; i++) { \
+        const int __count = (pArray)->count; \
+        for (int i = 0; i < __count; i++) { \
             if (__p[i] == element) { \
                 i++; \
                 for (; i < __count; i++) { \
@@ -79,18 +79,18 @@ extern ErrorCode GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray
         assert(idx >= 0 && idx < (pArray)->count); \
         elementType* __p = (elementType*)(pArray)->data; \
         oldElement = __p[idx]; \
-        for (Int i = idx + 1; i < (pArray)->count; i++) { \
+        for (int i = idx + 1; i < (pArray)->count; i++) { \
             __p[i - 1] = __p[i]; \
         } \
         (pArray)->count--; \
     }
 
-extern void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, Bool keepCapacity);
+extern void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, bool keepCapacity);
 
 #define GenericArray_FirstIndexOf(idx, pArray, element, elementType) \
     { \
         const elementType* __p = (const elementType*)(pArray)->data; \
-        for (Int i = 0; i < pArray->count; i++) { \
+        for (int i = 0; i < pArray->count; i++) { \
             if (__p[i] == element) { \
                 idx = i; \
                 break; \
@@ -103,32 +103,32 @@ extern void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, Bool k
     (r) = ((pArray)->count > 0) ? ((const elementType*) (pArray)->data)[0] : (defaultValue)
 
 
-// An array that stores Int values
+// An array that stores int values
 typedef struct _GenericArray IntArray;
 typedef IntArray* IntArrayRef;
 
-#define IntArray_Init(pArray, initialCapacity)  GenericArray_Init((IntArrayRef)(pArray), sizeof(Int), initialCapacity)
+#define IntArray_Init(pArray, initialCapacity)  GenericArray_Init((IntArrayRef)(pArray), sizeof(int), initialCapacity)
 #define IntArray_Deinit(pArray) GenericArray_Deinit((IntArrayRef)(pArray))
 
 #define IntArray_GetCount(pArray) ((IntArrayRef)(pArray))->count
 #define IntArray_IsEmpty(pArray) (((IntArrayRef)(pArray))->count == 0)
 
-#define IntArray_GetAt(pArray, idx) GenericArray_GetAt((IntArrayRef)(pArray), Int, idx)
+#define IntArray_GetAt(pArray, idx) GenericArray_GetAt((IntArrayRef)(pArray), int, idx)
 
-extern ErrorCode IntArray_InsertAt(IntArrayRef _Nonnull pArray, Int element, Int idx);
+extern errno_t IntArray_InsertAt(IntArrayRef _Nonnull pArray, int element, int idx);
 #define IntArray_Add(pArray, element) IntArray_InsertAt((IntArrayRef)(pArray), element, (pArray)->count)
 
-#define IntArray_ReplaceAt(pArray, element, idx) GenericArray_ReplaceAt((IntArrayRef)(pArray), element, Int, idx)
+#define IntArray_ReplaceAt(pArray, element, idx) GenericArray_ReplaceAt((IntArrayRef)(pArray), element, int, idx)
 
-extern void IntArray_Remove(IntArrayRef _Nonnull pArray, Int element);
-extern void IntArray_RemoveAt(IntArrayRef _Nonnull pArray, Int idx);
+extern void IntArray_Remove(IntArrayRef _Nonnull pArray, int element);
+extern void IntArray_RemoveAt(IntArrayRef _Nonnull pArray, int idx);
 #define IntArray_RemoveAll(pArray, keepCapacity) GenericArray_RemoveAll((IntArrayRef)(pArray), keepCapacity)
 
-extern Bool IntArray_Contains(IntArrayRef _Nonnull pArray, Int element);
+extern bool IntArray_Contains(IntArrayRef _Nonnull pArray, int element);
 
-static inline Int IntArray_GetFirst(IntArrayRef _Nonnull pArray, Int defaultValue) {
-    Int r;
-    GenericArray_GetFirst(r, pArray, Int, defaultValue);
+static inline int IntArray_GetFirst(IntArrayRef _Nonnull pArray, int defaultValue) {
+    int r;
+    GenericArray_GetFirst(r, pArray, int, defaultValue);
     return r;
 }
 
@@ -146,13 +146,13 @@ typedef PointerArray* PointerArrayRef;
 #define PointerArray_GetAt(pArray, idx) GenericArray_GetAt((PointerArrayRef)(pArray), void*, idx)
 #define PointerArray_GetAtAs(pArray, idx, ty) (ty)(GenericArray_GetAt((PointerArrayRef)(pArray), void*, idx))
 
-extern ErrorCode PointerArray_InsertAt(PointerArrayRef _Nonnull pArray, void* _Nullable element, Int idx);
+extern errno_t PointerArray_InsertAt(PointerArrayRef _Nonnull pArray, void* _Nullable element, int idx);
 #define PointerArray_Add(pArray, element) PointerArray_InsertAt((PointerArrayRef)(pArray), element, (pArray)->count)
 
 #define PointerArray_ReplaceAt(pArray, element, idx) GenericArray_ReplaceAt((PointerArrayRef)(pArray), element, void*, idx)
 
 extern void PointerArray_Remove(PointerArrayRef _Nonnull pArray, void* _Nullable element);
-extern void PointerArray_RemoveAt(PointerArrayRef _Nonnull pArray, Int idx);
+extern void PointerArray_RemoveAt(PointerArrayRef _Nonnull pArray, int idx);
 #define PointerArray_RemoveAll(pArray, keepCapacity) GenericArray_RemoveAll((PointerArrayRef)(pArray), keepCapacity)
 
 
@@ -167,20 +167,20 @@ extern void ObjectArray_Deinit(ObjectArrayRef _Nonnull pArray);
 #define ObjectArray_IsEmpty(pArray) (((ObjectArrayRef)(pArray))->count == 0)
 
 #define ObjectArray_GetAt(pArray, idx) GenericArray_GetAt((ObjectArrayRef)(pArray), ObjectRef, idx)
-extern ObjectRef _Nullable ObjectArray_CopyAt(ObjectArrayRef _Nonnull pArray, Int idx);
+extern ObjectRef _Nullable ObjectArray_CopyAt(ObjectArrayRef _Nonnull pArray, int idx);
 
-extern ErrorCode ObjectArray_InsertAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, Int idx);
+extern errno_t ObjectArray_InsertAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, int idx);
 #define ObjectArray_Add(pArray, element) ObjectArray_InsertAt((ObjectArrayRef)(pArray), element, (pArray)->count)
 
-extern void ObjectArray_ReplaceAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, Int idx);
+extern void ObjectArray_ReplaceAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, int idx);
 
 extern void ObjectArray_RemoveIdenticalTo(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element);
-extern void ObjectArray_RemoveAt(ObjectArrayRef _Nonnull pArray, Int idx);
-extern void ObjectArray_RemoveAll(ObjectArrayRef _Nonnull pArray, Bool keepCapacity);
+extern void ObjectArray_RemoveAt(ObjectArrayRef _Nonnull pArray, int idx);
+extern void ObjectArray_RemoveAll(ObjectArrayRef _Nonnull pArray, bool keepCapacity);
 
 // Returns the original object and sets the entry it occupied to NULL. Note that
 // the caller is responsible for releasing the object. This function does not
 // release it. It transfers ownership to the caller.
-extern ObjectRef _Nullable ObjectArray_ExtractOwnershipAt(ObjectArrayRef _Nonnull pArray, Int idx);
+extern ObjectRef _Nullable ObjectArray_ExtractOwnershipAt(ObjectArrayRef _Nonnull pArray, int idx);
 
 #endif /* Array_h */

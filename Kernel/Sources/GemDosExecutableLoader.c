@@ -19,23 +19,23 @@ void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader)
     pLoader->addressSpace = NULL;
 }
 
-static ErrorCode GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pRelocBase, Byte* pTextBase)
+static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pRelocBase, Byte* pTextBase)
 {
-    const Int32 firstRelocOffset = *((UInt32*)pRelocBase);
+    const int32_t firstRelocOffset = *((uint32_t*)pRelocBase);
 
     if (firstRelocOffset == 0) {
         return EOK;
     }
 
-    const UInt32 offset = (UInt32)pTextBase;
+    const uint32_t offset = (uint32_t)pTextBase;
     Byte* pLoc = (Byte*) (offset + firstRelocOffset);
-    UInt8* p = (UInt8*) (pRelocBase + sizeof(UInt32));
-    Bool done = false;
+    uint8_t* p = (uint8_t*) (pRelocBase + sizeof(uint32_t));
+    bool done = false;
 
-    *((UInt32*) pLoc) += offset;
+    *((uint32_t*) pLoc) += offset;
 
     while (!done) {
-        const UInt8 b = *p++;
+        const uint8_t b = *p++;
 
         switch (b) {
             case 0:
@@ -48,7 +48,7 @@ static ErrorCode GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* 
 
             default:
                 pLoc += b;
-                *((UInt32*) pLoc) += offset;
+                *((uint32_t*) pLoc) += offset;
                 break;
         }
     }
@@ -56,7 +56,7 @@ static ErrorCode GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* 
     return EOK;
 }
 
-ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nullable * _Nonnull pOutImageBase, Byte* _Nullable * _Nonnull pOutEntryPoint)
+errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nullable * _Nonnull pOutImageBase, Byte* _Nullable * _Nonnull pOutEntryPoint)
 {
     decl_try_err();
     GemDosExecutableHeader* pExecHeader = (GemDosExecutableHeader*)pExecAddr;
@@ -85,8 +85,8 @@ ErrorCode GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, 
 
 
     // Allocate the text, data and BSS segments 
-    const Int nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
-    const Int nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
+    const int nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
+    const int nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
     Byte* pImageBase = NULL;
     try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pImageBase));
 

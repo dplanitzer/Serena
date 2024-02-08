@@ -38,8 +38,8 @@ static void OnMain(void);
 // function is expected to never return.
 _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 {
-    const Int data_size = &_edata - &_data;
-    const Int bss_size = &_ebss - &_bss;
+    const int data_size = &_edata - &_data;
+    const int bss_size = &_ebss - &_bss;
 
     // Copy the kernel data segment from ROM to RAM
     Bytes_CopyRange(&_data, &_etext, data_size);

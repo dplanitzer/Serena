@@ -9,7 +9,7 @@
 #include "Formatter.h"
 
 
-void Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext, Character* _Nonnull pBuffer, Int bufferCapacity)
+void Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSinkFunc, void * _Nullable pContext, char* _Nonnull pBuffer, int bufferCapacity)
 {
     self->sink = pSinkFunc;
     self->context = pContext;
@@ -19,7 +19,7 @@ void Formatter_Init(FormatterRef _Nonnull self, Formatter_SinkFunc _Nonnull pSin
     self->bufferCount = 0;
 }
 
-static ErrorCode Formatter_Flush(FormatterRef _Nonnull self)
+static errno_t Formatter_Flush(FormatterRef _Nonnull self)
 {
     decl_try_err();
 
@@ -32,7 +32,7 @@ catch:
     return err;
 }
 
-static ErrorCode Formatter_WriteChar(FormatterRef _Nonnull self, Character ch)
+static errno_t Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
 {
     decl_try_err();
 
@@ -46,12 +46,12 @@ catch:
     return err;
 }
 
-static ErrorCode Formatter_WriteString(FormatterRef _Nonnull self, const Character * _Nonnull str, ByteCount maxChars)
+static errno_t Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str, ssize_t maxChars)
 {
     decl_try_err();
 
     while (maxChars-- > 0) {
-        const Character ch = *str++;
+        const char ch = *str++;
 
         if (ch != '\0') {
             try(Formatter_WriteChar(self, ch));
@@ -64,7 +64,7 @@ catch:
     return err;
 }
 
-static ErrorCode Formatter_WriteRepChar(FormatterRef _Nonnull self, Character ch, Int count)
+static errno_t Formatter_WriteRepChar(FormatterRef _Nonnull self, char ch, int count)
 {
     decl_try_err();
 
@@ -76,9 +76,9 @@ catch:
     return err;
 }
 
-static const Character* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull self, const Character* _Nonnull format, ConversionSpec* _Nonnull spec)
+static const char* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Nonnull self, const char* _Nonnull format, ConversionSpec* _Nonnull spec)
 {
-    Character ch = *format;
+    char ch = *format;
     
     if (ch == 'l') {
         format++;
@@ -100,7 +100,7 @@ static const Character* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Non
     }
     else if (ch == 'z') {
         format++;
-        // ByteCount
+        // ssize_t
         spec->lengthModifier = LENGTH_MODIFIER_z;
     }
     
@@ -108,9 +108,9 @@ static const Character* _Nonnull Formatter_ParseLengthModifier(FormatterRef _Non
 }
 
 // Expects that 'format' points to the first character after the '%'.
-static const Character* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull self, const Character* _Nonnull format, va_list* _Nonnull ap, ConversionSpec* _Nonnull spec)
+static const char* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull self, const char* _Nonnull format, va_list* _Nonnull ap, ConversionSpec* _Nonnull spec)
 {
-    Character ch;
+    char ch;
 
     spec->minimumFieldWidth = 0;
     spec->precision = 0;
@@ -120,7 +120,7 @@ static const Character* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Non
     spec->flags.hasPrecision = false;
 
     // Flags
-    Bool done = false;
+    bool done = false;
     while (!done) {
         ch = *format++;
         
@@ -139,7 +139,7 @@ static const Character* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Non
         format++;
     }
     else if (ch >= '1' && ch <= '9') {
-        spec->minimumFieldWidth = (ByteCount)atoi(format, &format, 10);
+        spec->minimumFieldWidth = (ssize_t)atoi(format, &format, 10);
     }
 
     // Precision
@@ -152,7 +152,7 @@ static const Character* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Non
             format++;
         }
         else if (ch >= '0' && ch <= '9') {
-            spec->precision = (ByteCount)atoi(format, &format, 10);
+            spec->precision = (ssize_t)atoi(format, &format, 10);
         }
         spec->flags.hasPrecision = true;
     }
@@ -161,10 +161,10 @@ static const Character* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Non
     return Formatter_ParseLengthModifier(self, format, spec);
 }
 
-static ErrorCode Formatter_FormatStringField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const Character* _Nonnull str, ByteCount slen)
+static errno_t Formatter_FormatStringField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull str, ssize_t slen)
 {
     decl_try_err();
-    const ByteCount nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
+    const ssize_t nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
 
     if (nspaces > 0) {
         try(Formatter_WriteRepChar(self, ' ', nspaces));
@@ -176,14 +176,14 @@ catch:
     return err;
 }
 
-static ErrorCode Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const Character* _Nonnull pCanonDigits)
+static errno_t Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
 {
     decl_try_err();
     int nSign = 1;
     int nDigits = pCanonDigits[0] - 1;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
-    const Character* pSign = &pCanonDigits[1];
-    const Character* pDigits = &pCanonDigits[2];
+    const char* pSign = &pCanonDigits[1];
+    const char* pDigits = &pCanonDigits[2];
 
     if (*pSign == '+') {
         pSign = "";
@@ -216,14 +216,14 @@ catch:
     return err;
 }
 
-static ErrorCode Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, Int radix, Bool isUppercase, const ConversionSpec* _Nonnull spec, const Character* _Nonnull pCanonDigits)
+static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
 {
     decl_try_err();
-    Int nRadixChars = 0;
-    Int nDigits = pCanonDigits[0] - 1;
-    Int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
-    const Character* pRadixChars = "";
-    const Character* pDigits = &pCanonDigits[2];
+    int nRadixChars = 0;
+    int nDigits = pCanonDigits[0] - 1;
+    int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
+    const char* pRadixChars = "";
+    const char* pDigits = &pCanonDigits[2];
 
     if (spec->flags.isAlternativeForm) {
         switch (radix) {
@@ -259,38 +259,38 @@ catch:
     return err;
 }
 
-static ErrorCode Formatter_FormatChar(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static errno_t Formatter_FormatChar(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    const Character ch = (Character) va_arg(*ap, int);
+    const char ch = (char) va_arg(*ap, int);
     return Formatter_FormatStringField(self, spec, &ch, 1);
 }
 
-static ErrorCode Formatter_FormatString(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static errno_t Formatter_FormatString(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    return Formatter_FormatStringField(self, spec, va_arg(*ap, const Character*), (spec->flags.hasPrecision) ? spec->precision : BYTE_COUNT_MAX);
+    return Formatter_FormatStringField(self, spec, va_arg(*ap, const char*), (spec->flags.hasPrecision) ? spec->precision : SSIZE_MAX);
 }
 
-static ErrorCode Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    Int64 v64;
-    Int32 v32;
-    Int nbits;
-    Character * pCanonDigits;
+    int64_t v64;
+    int32_t v32;
+    int nbits;
+    char * pCanonDigits;
 
     switch (spec->lengthModifier) {
-        case LENGTH_MODIFIER_hh:    v32 = (Int32)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
-        case LENGTH_MODIFIER_h:     v32 = (Int32)(short)va_arg(*ap, int); nbits = INT32_WIDTH;         break;
-        case LENGTH_MODIFIER_none:  v32 = (Int32)va_arg(*ap, int); nbits = INT32_WIDTH;                break;
+        case LENGTH_MODIFIER_hh:    v32 = (int32_t)(signed char)va_arg(*ap, int); nbits = INT32_WIDTH;   break;
+        case LENGTH_MODIFIER_h:     v32 = (int32_t)(short)va_arg(*ap, int); nbits = INT32_WIDTH;         break;
+        case LENGTH_MODIFIER_none:  v32 = (int32_t)va_arg(*ap, int); nbits = INT32_WIDTH;                break;
 #if __LONG_WIDTH == 64
-        case LENGTH_MODIFIER_l:     v64 = (Int64)va_arg(*ap, long); nbits = INT64_WIDTH;               break;
+        case LENGTH_MODIFIER_l:     v64 = (int64_t)va_arg(*ap, long); nbits = INT64_WIDTH;               break;
 #else
-        case LENGTH_MODIFIER_l:     v32 = (Int32)va_arg(*ap, long); nbits = INT32_WIDTH;               break;
+        case LENGTH_MODIFIER_l:     v32 = (int32_t)va_arg(*ap, long); nbits = INT32_WIDTH;               break;
 #endif
-        case LENGTH_MODIFIER_ll:    v64 = (Int64)va_arg(*ap, long long); nbits = INT64_WIDTH;          break;
+        case LENGTH_MODIFIER_ll:    v64 = (int64_t)va_arg(*ap, long long); nbits = INT64_WIDTH;          break;
 #if __SIZE_WIDTH == 64
-        case LENGTH_MODIFIER_z:     v64 = (Int64)va_arg(*ap, ByteCount); nbits = BYTE_COUNT_WIDTH; break;
+        case LENGTH_MODIFIER_z:     v64 = (int64_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
 #else
-        case LENGTH_MODIFIER_z:     v32 = (Int32)va_arg(*ap, ByteCount); nbits = BYTE_COUNT_WIDTH; break;
+        case LENGTH_MODIFIER_z:     v32 = (int32_t)va_arg(*ap, ssize_t); nbits = SSIZE_WIDTH; break;
 #endif
     }
 
@@ -303,23 +303,23 @@ static ErrorCode Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const
     return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
 }
 
-static ErrorCode Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, Int radix, Bool isUppercase, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    UInt64 v64;
-    UInt32 v32;
-    Int nbits;
-    Character * pCanonDigits;
+    uint64_t v64;
+    uint32_t v32;
+    int nbits;
+    char * pCanonDigits;
 
     switch (spec->lengthModifier) {
-        case LENGTH_MODIFIER_hh:    v32 = (UInt32)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
-        case LENGTH_MODIFIER_h:     v32 = (UInt32)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
-        case LENGTH_MODIFIER_none:  v32 = (UInt32)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
+        case LENGTH_MODIFIER_hh:    v32 = (uint32_t)(unsigned char)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;     break;
+        case LENGTH_MODIFIER_h:     v32 = (uint32_t)(unsigned short)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;    break;
+        case LENGTH_MODIFIER_none:  v32 = (uint32_t)va_arg(*ap, unsigned int); nbits = UINT32_WIDTH;                    break;
 #if __ULONG_WIDTH == 64
-        case LENGTH_MODIFIER_l:     v64 = (UInt64)va_arg(*ap, unsigned long); nbits = UINT64_WIDTH;                   break;
+        case LENGTH_MODIFIER_l:     v64 = (uint64_t)va_arg(*ap, unsigned long); nbits = UINT64_WIDTH;                   break;
 #else
-        case LENGTH_MODIFIER_l:     v32 = (UInt32)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
+        case LENGTH_MODIFIER_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
 #endif
-        case LENGTH_MODIFIER_ll:    v64 = (UInt64)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;              break;
+        case LENGTH_MODIFIER_ll:    v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;              break;
     }
 
     if (nbits == 64) {
@@ -331,24 +331,24 @@ static ErrorCode Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, Int
     return Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits);
 }
 
-static ErrorCode Formatter_FormatPointer(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     ConversionSpec spec2 = *spec;
     spec2.flags.isAlternativeForm = true;
     spec2.flags.padWithZeros = true;
 
 #if __VOID_PTR_WIDTH == 64
-    char* pCanonDigits = __ui64toa((UInt64)va_arg(*ap, void*), 16, false, self->digits);
+    char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, self->digits);
     spec2.precision = 16;
 #else
-    char* pCanonDigits = __ui32toa((UInt32)va_arg(*ap, void*), 16, false, self->digits);
+    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, self->digits);
     spec2.precision = 8;
 #endif
 
     return Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits);
 }
 
-static ErrorCode Formatter_FormatArgument(FormatterRef _Nonnull self, Character conversion, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
+static errno_t Formatter_FormatArgument(FormatterRef _Nonnull self, char conversion, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
     switch (conversion) {
         case '%':   return Formatter_WriteChar(self, '%');
@@ -364,11 +364,11 @@ static ErrorCode Formatter_FormatArgument(FormatterRef _Nonnull self, Character 
     }
 }
 
-ErrorCode Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap)
+errno_t Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap)
 {
     decl_try_err();
     ConversionSpec spec;
-    Character ch;
+    char ch;
 
     while ((ch = *format) != '\0') {
         if (ch == '%') {

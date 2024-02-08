@@ -11,7 +11,7 @@
 #include "Formatter.h"
 #include "Log.h"
 
-static ErrorCode fprintv_micro_console_sink(FormatterRef _Nonnull self, const Character* _Nonnull pBuffer, ByteCount nBytes);
+static errno_t fprintv_micro_console_sink(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, ssize_t nBytes);
 
 
 // This implements a micro console that directly controls the graphics hardware.
@@ -35,16 +35,16 @@ extern const Byte font8x8_latin1[128][8];
 
 
 typedef struct _VideoConfig {
-    Int16       width;
-    Int16       height;
-    UInt8       diw_start_h;        // display window start
-    UInt8       diw_start_v;
-    UInt8       diw_stop_h;         // display window stop
-    UInt8       diw_stop_v;
-    UInt8       ddf_start;          // data fetch start
-    UInt8       ddf_stop;           // data fetch stop
-    UInt8       ddf_mod;            // number of padding bytes stored in memory between scan lines
-    UInt16      bplcon0;            // BPLCON0 template value
+    int16_t       width;
+    int16_t       height;
+    uint8_t       diw_start_h;        // display window start
+    uint8_t       diw_start_v;
+    uint8_t       diw_stop_h;         // display window stop
+    uint8_t       diw_stop_v;
+    uint8_t       ddf_start;          // data fetch start
+    uint8_t       ddf_stop;           // data fetch stop
+    uint8_t       ddf_mod;            // number of padding bytes stored in memory between scan lines
+    uint16_t      bplcon0;            // BPLCON0 template value
 } VideoConfig;
 
 // DDIWSTART = specific to mode. See hardware reference manual
@@ -62,11 +62,11 @@ static const VideoConfig kVidConfig_PAL_640_256_50 = {
 typedef struct _MicroConsole {
     const VideoConfig* _Nonnull config;
     Byte* _Nonnull              framebuffer;
-    Int                         bytesPerRow;
-    Int                         cols;
-    Int                         rows;
-    Int                         x;
-    Int                         y;
+    int                         bytesPerRow;
+    int                         cols;
+    int                         rows;
+    int                         x;
+    int                         y;
     Formatter                   fmt;
 } MicroConsole;
 
@@ -76,10 +76,10 @@ static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, Byte* _N
 {
     CopperInstruction* pCode = (CopperInstruction*)COPPER_PROG_ADDR;
     CopperInstruction* ip = pCode;
-    const UInt32 bplpt = (UInt32)pFramebuffer;
+    const uint32_t bplpt = (uint32_t)pFramebuffer;
     
     // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | ((UInt16)1) << 12);
+    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | ((uint16_t)1) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
     
@@ -102,7 +102,7 @@ static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, Byte* _N
     // COLOR
     *ip++ = COP_MOVE(COLOR00, 0x036a);  // #306ab0
     *ip++ = COP_MOVE(COLOR01, 0x0fff);  // #ffffff
-    for (Int i = 2, r = COLOR_BASE + i*2; i < COLOR_COUNT; i++, r += 2) {
+    for (int i = 2, r = COLOR_BASE + i*2; i < COLOR_COUNT; i++, r += 2) {
         *ip++ = COP_MOVE(r, 0);
     }
 
@@ -117,7 +117,7 @@ static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, Byte* _N
     CHIPSET_BASE_DECL(cp);
 
     *CHIPSET_REG_16(cp, DMACON) = DMACONF_COPEN;
-    *CHIPSET_REG_32(cp, COP1LC) = (UInt32) pCode;
+    *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pCode;
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
     *CHIPSET_REG_16(cp, DMACON) = (DMACONF_SETCLR | DMACONF_COPEN | DMACONF_DMAEN);
 }
@@ -136,7 +136,7 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
     pCon->rows = pCon->config->height / GLYPH_HEIGHT;
     pCon->x = 0;
     pCon->y = 0;
-    Formatter_Init(&pCon->fmt, fprintv_micro_console_sink, pCon, (Character*)PRINT_BUFFER_ADDR, PRINT_BUFFER_CAPACITY);
+    Formatter_Init(&pCon->fmt, fprintv_micro_console_sink, pCon, (char*)PRINT_BUFFER_ADDR, PRINT_BUFFER_CAPACITY);
 
     // Clear the screen
     micro_console_cls(pCon);
@@ -145,12 +145,12 @@ static void micro_console_init(MicroConsole* _Nonnull pCon)
     micro_console_init_gfx(pCon->config, pCon->framebuffer);
 }
 
-static void micro_console_move_cursor(MicroConsole* _Nonnull pCon, Int dX, Int dY)
+static void micro_console_move_cursor(MicroConsole* _Nonnull pCon, int dX, int dY)
 {
-    const Int eX = pCon->cols - 1;
-    const Int eY = pCon->rows - 1;
-    Int x = pCon->x + dX;
-    Int y = pCon->y + dY;
+    const int eX = pCon->cols - 1;
+    const int eY = pCon->rows - 1;
+    int x = pCon->x + dX;
+    int y = pCon->y + dY;
 
     if (x < 0) {
         x = eX;
@@ -172,11 +172,11 @@ static void micro_console_move_cursor(MicroConsole* _Nonnull pCon, Int dX, Int d
     pCon->y = y;
 }
 
-static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, Character ch, Int x, Int y)
+static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, char ch, int x, int y)
 {
-    const Int bytesPerRow = pCon->bytesPerRow;
-    const Int maxX = pCon->config->width >> 3;
-    const Int maxY = pCon->config->height >> 3;
+    const int bytesPerRow = pCon->bytesPerRow;
+    const int maxX = pCon->config->width >> 3;
+    const int maxY = pCon->config->height >> 3;
 
     Byte* dst = pCon->framebuffer + (y << 3) * bytesPerRow + x;
     const Byte* src = &font8x8_latin1[ch][0];
@@ -194,7 +194,7 @@ static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, Character ch, 
 // Prints the given character to the console.
 // \param pConsole the console
 // \param ch the character
-static void micro_console_draw_char(MicroConsole* _Nonnull pCon, Character ch)
+static void micro_console_draw_char(MicroConsole* _Nonnull pCon, char ch)
 {
     switch (ch) {
         case '\t':
@@ -222,10 +222,10 @@ static void micro_console_draw_char(MicroConsole* _Nonnull pCon, Character ch)
     }
 }
 
-static void micro_console_write(MicroConsole* _Nonnull pCon, const Character* _Nonnull pBuffer, ByteCount nBytes)
+static void micro_console_write(MicroConsole* _Nonnull pCon, const char* _Nonnull pBuffer, ssize_t nBytes)
 {
-    const Character* pCurByte = pBuffer;
-    const Character* pEndByte = pCurByte + nBytes;
+    const char* pCurByte = pBuffer;
+    const char* pEndByte = pCurByte + nBytes;
     
     while (pCurByte < pEndByte) {
         micro_console_draw_char(pCon, *pCurByte++);
@@ -235,18 +235,18 @@ static void micro_console_write(MicroConsole* _Nonnull pCon, const Character* _N
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static ErrorCode fprintv_micro_console_sink(FormatterRef _Nonnull self, const Character* _Nonnull pBuffer, ByteCount nBytes)
+static errno_t fprintv_micro_console_sink(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, ssize_t nBytes)
 {
     micro_console_write((MicroConsole*)self->context, pBuffer, nBytes);
     return EOK;
 }
 
-void fprintv(MicroConsole* _Nonnull pCon, const Character* _Nonnull format, va_list ap)
+void fprintv(MicroConsole* _Nonnull pCon, const char* _Nonnull format, va_list ap)
 {
     Formatter_vFormat(&pCon->fmt, format, ap);
 }
 
-static void fprint(MicroConsole* _Nonnull pCon, const Character* _Nonnull format, ...)
+static void fprint(MicroConsole* _Nonnull pCon, const char* _Nonnull format, ...)
 {
     va_list ap;
     
@@ -264,7 +264,7 @@ static void stop_machine()
     chipset_reset();
 }
 
-_Noreturn fatal(const Character* _Nonnull format, ...)
+_Noreturn fatal(const char* _Nonnull format, ...)
 {
     va_list ap;
     va_start(ap, format);
@@ -280,19 +280,19 @@ _Noreturn fatal(const Character* _Nonnull format, ...)
     while (true);
 }
 
-_Noreturn fatalError(const Character* _Nonnull filename, Int line, Int err)
+_Noreturn fatalError(const char* _Nonnull filename, int line, int err)
 {
     stop_machine();
     fatal("Fatal Error: %d at %s:%d", err, filename, line);
 }
 
-_Noreturn fatalAbort(const Character* _Nonnull filename, Int line)
+_Noreturn fatalAbort(const char* _Nonnull filename, int line)
 {
     stop_machine();
     fatal("Abort: %s:%d", filename, line);
 }
 
-_Noreturn fatalAssert(const Character* _Nonnull filename, Int line)
+_Noreturn fatalAssert(const char* _Nonnull filename, int line)
 {
     stop_machine();
     fatal("Assert: %s:%d", filename, line);

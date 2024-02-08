@@ -36,7 +36,7 @@ ProcessRef _Nullable Process_GetCurrent(void)
 }
 
 
-ErrorCode RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
 {
     User user = {kRootUserId, kRootGroupId};
     FilesystemRef pRootFileSys = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
@@ -62,17 +62,17 @@ catch:
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'
-ErrorCode RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
+errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = Process_Exec_Locked(pProc, pExecAddr, NULL, NULL);
+    const errno_t err = Process_Exec_Locked(pProc, pExecAddr, NULL, NULL);
     Lock_Unlock(&pProc->lock);
     return err;
 }
 
 
 
-ErrorCode Process_Create(Int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
     ProcessRef pProc;
@@ -145,7 +145,7 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
 }
 
 // Creates a new tombstone for the given child process with the given exit status
-ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPid, Int childExitCode)
+errno_t Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPid, int childExitCode)
 {
     ProcessTombstone* pTombstone;
 
@@ -177,7 +177,7 @@ ErrorCode Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId child
 // child processes available or the PID is not the PID of a child process of
 // the receiver. Otherwise blocks the caller until the requested process or any
 // child process (pid == -1) has exited.
-ErrorCode Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, ProcessId pid, ProcessTerminationStatus* _Nullable pStatus)
+errno_t Process_WaitForTerminationOfChild(ProcessRef _Nonnull pProc, ProcessId pid, ProcessTerminationStatus* _Nullable pStatus)
 {
     decl_try_err();
 
@@ -245,10 +245,10 @@ catch:
 // termination concurrently with our termination. The process is inherently
 // racy and thus we need to be defensive about things. Returns 0 if there are
 // no more children.
-static Int Process_GetAnyChildPid(ProcessRef _Nonnull pProc)
+static int Process_GetAnyChildPid(ProcessRef _Nonnull pProc)
 {
     Lock_Lock(&pProc->lock);
-    const Int pid = IntArray_GetFirst(&pProc->childPids, -1);
+    const int pid = IntArray_GetFirst(&pProc->childPids, -1);
     Lock_Unlock(&pProc->lock);
     return pid;
 }
@@ -369,7 +369,7 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
 // be made available to the parent process. Note that the only exit code that
 // is passed to the parent is the one from the first Process_Terminate() call.
 // All others are discarded.
-void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode)
+void Process_Terminate(ProcessRef _Nonnull pProc, int exitCode)
 {
     // We do not allow exiting the root process
     if (Process_IsRoot(pProc)) {
@@ -402,7 +402,7 @@ void Process_Terminate(ProcessRef _Nonnull pProc, Int exitCode)
     try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) _Process_DoTerminate, (Byte*) pProc)));
 }
 
-Bool Process_IsTerminating(ProcessRef _Nonnull pProc)
+bool Process_IsTerminating(ProcessRef _Nonnull pProc)
 {
     return pProc->isTerminating;
 }
@@ -441,11 +441,11 @@ void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
-ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessId * _Nullable pOutChildPid)
+errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessId * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
-    Bool needsUnlock = false;
+    bool needsUnlock = false;
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
@@ -459,9 +459,9 @@ ErrorCode Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgume
     // here can see the child process yet and thus call functions on it.
 
     if ((pArgs->options & SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE) == 0) {
-        const Int nStdIoChannelsToInherit = __min(3, ObjectArray_GetCount(&pProc->ioChannels));
+        const int nStdIoChannelsToInherit = __min(3, ObjectArray_GetCount(&pProc->ioChannels));
 
-        for (Int i = 0; i < nStdIoChannelsToInherit; i++) {
+        for (int i = 0; i < nStdIoChannelsToInherit; i++) {
             IOChannelRef pCurChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
 
             if (pCurChannel) {
@@ -511,16 +511,16 @@ catch:
     return err;
 }
 
-static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Nullable pTable, ByteCount maxByteCount, Int* _Nonnull pOutTableEntryCount)
+static ssize_t calc_size_of_arg_table(const char* const _Nullable * _Nullable pTable, ssize_t maxByteCount, int* _Nonnull pOutTableEntryCount)
 {
-    ByteCount nbytes = 0;
-    Int count = 0;
+    ssize_t nbytes = 0;
+    int count = 0;
 
     if (pTable != NULL) {
         while (*pTable != NULL) {
-            const Character* pStr = *pTable;
+            const char* pStr = *pTable;
 
-            nbytes += sizeof(Character*);
+            nbytes += sizeof(char*);
             while (*pStr != '\0' && nbytes <= maxByteCount) {
                 pStr++;
             }
@@ -539,32 +539,32 @@ static ByteCount calc_size_of_arg_table(const Character* const _Nullable * _Null
     return nbytes;
 }
 
-static ErrorCode Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
+static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
 {
     decl_try_err();
-    Int nArgvCount = 0;
-    Int nEnvCount = 0;
-    const ByteCount nbytes_argv = calc_size_of_arg_table(pArgv, __ARG_MAX, &nArgvCount);
-    const ByteCount nbytes_envp = calc_size_of_arg_table(pEnv, __ARG_MAX, &nEnvCount);
-    const ByteCount nbytes_argv_envp = nbytes_argv + nbytes_envp;
+    int nArgvCount = 0;
+    int nEnvCount = 0;
+    const ssize_t nbytes_argv = calc_size_of_arg_table(pArgv, __ARG_MAX, &nArgvCount);
+    const ssize_t nbytes_envp = calc_size_of_arg_table(pEnv, __ARG_MAX, &nEnvCount);
+    const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
     if (nbytes_argv_envp > __ARG_MAX) {
         return E2BIG;
     }
 
-    const ByteCount nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv_envp, CPU_PAGE_SIZE);
+    const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv_envp, CPU_PAGE_SIZE);
     try(AddressSpace_Allocate(pProc->addressSpace, nbytes_procargs, &pProc->argumentsBase));
 
     ProcessArguments* pProcArgs = (ProcessArguments*) pProc->argumentsBase;
-    Character** pProcArgv = (Character**)(pProc->argumentsBase + sizeof(ProcessArguments));
-    Character** pProcEnv = (Character**)&pProcArgv[nArgvCount + 1];
-    Character*  pDst = (Character*)&pProcEnv[nEnvCount + 1];
-    const Character** pSrcArgv = (const Character**) pArgv;
-    const Character** pSrcEnv = (const Character**) pEnv;
+    char** pProcArgv = (char**)(pProc->argumentsBase + sizeof(ProcessArguments));
+    char** pProcEnv = (char**)&pProcArgv[nArgvCount + 1];
+    char*  pDst = (char*)&pProcEnv[nEnvCount + 1];
+    const char** pSrcArgv = (const char**) pArgv;
+    const char** pSrcEnv = (const char**) pEnv;
 
 
     // Argv
-    for (Int i = 0; i < nArgvCount; i++) {
-        const Character* pSrc = (const Character*)pSrcArgv[i];
+    for (int i = 0; i < nArgvCount; i++) {
+        const char* pSrc = (const char*)pSrcArgv[i];
 
         pProcArgv[i] = pDst;
         pDst = String_Copy(pDst, pSrc);
@@ -573,8 +573,8 @@ static ErrorCode Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc
 
 
     // Envp
-    for (Int i = 0; i < nEnvCount; i++) {
-        const Character* pSrc = (const Character*)pSrcEnv[i];
+    for (int i = 0; i < nEnvCount; i++) {
+        const char* pSrc = (const char*)pSrcEnv[i];
 
         pProcEnv[i] = pDst;
         pDst = String_Copy(pDst, pSrc);
@@ -603,7 +603,7 @@ catch:
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'
-ErrorCode Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const Character* const _Nullable * _Nullable pArgv, const Character* const _Nullable * _Nullable pEnv)
+errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
 {
     GemDosExecutableLoader loader;
     Byte* pEntryPoint = NULL;
@@ -632,7 +632,7 @@ catch:
 
 // Adopts the process with the given PID as a child. The ppid of 'pOtherProc' must
 // be the PID of the receiver.
-ErrorCode Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid)
+errno_t Process_AdoptChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid)
 {
     return IntArray_Add(&pProc->childPids, childPid);
 }
@@ -643,13 +643,13 @@ void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, ProcessId childPid)
     IntArray_Remove(&pProc->childPids, childPid);
 }
 
-ErrorCode Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
+errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
 {
     return DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
 }
 
 // Allocates more (user) address space to the given process.
-ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount count, Byte* _Nullable * _Nonnull pOutMem)
+errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, Byte* _Nullable * _Nonnull pOutMem)
 {
     return AddressSpace_Allocate(pProc->addressSpace, count, pOutMem);
 }
@@ -666,14 +666,14 @@ ErrorCode Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ByteCount coun
 // channel and thus you have to release it once the call returns. The call
 // returns a descriptor which can be used to refer to the channel from user
 // and/or kernel space.
-static ErrorCode Process_RegisterIOChannel_Locked(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, Int* _Nonnull pOutDescriptor)
+static errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
 
     // Find the lowest descriptor id that is available
-    Int fd = ObjectArray_GetCount(&pProc->ioChannels);
-    Bool hasFoundSlot = false;
-    for (Int i = 0; i < fd; i++) {
+    int fd = ObjectArray_GetCount(&pProc->ioChannels);
+    bool hasFoundSlot = false;
+    for (int i = 0; i < fd; i++) {
         if (ObjectArray_GetAt(&pProc->ioChannels, i) == NULL) {
             fd = i;
             hasFoundSlot = true;
@@ -703,10 +703,10 @@ catch:
 // channel and thus you have to release it once the call returns. The call
 // returns a descriptor which can be used to refer to the channel from user
 // and/or kernel space.
-ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, Int* _Nonnull pOutDescriptor)
+errno_t Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, int* _Nonnull pOutDescriptor)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = Process_RegisterIOChannel_Locked(pProc, pChannel, pOutDescriptor);
+    const errno_t err = Process_RegisterIOChannel_Locked(pProc, pChannel, pOutDescriptor);
     Lock_Unlock(&pProc->lock);
     return err;
 }
@@ -717,7 +717,7 @@ ErrorCode Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Non
 // it and then release() to release the strong reference to the channel. Closing
 // the channel will mark itself as done and the channel will be deallocated once
 // the last strong reference to it has been released.
-ErrorCode Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
@@ -742,7 +742,7 @@ catch:
 // from the close() call of a channel.
 void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull pProc)
 {
-    for (Int i = 0; i < ObjectArray_GetCount(&pProc->ioChannels); i++) {
+    for (int i = 0; i < ObjectArray_GetCount(&pProc->ioChannels); i++) {
         IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
 
         if (pChannel) {
@@ -754,7 +754,7 @@ void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull pProc)
 // Looks up the I/O channel identified by the given descriptor and returns a
 // strong reference to it if found. The caller should call release() on the
 // channel once it is no longer needed.
-ErrorCode Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, Int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
@@ -789,20 +789,20 @@ catch:
 // Sets the receiver's root directory to the given path. Note that the path must
 // point to a directory that is a child or the current root directory of the
 // process.
-ErrorCode Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const Character* pPath)
+errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPath)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = PathResolver_SetRootDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
+    const errno_t err = PathResolver_SetRootDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
     Lock_Unlock(&pProc->lock);
 
     return err;
 }
 
 // Sets the receiver's current working directory to the given path.
-ErrorCode Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath)
+errno_t Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = PathResolver_SetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
+    const errno_t err = PathResolver_SetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -811,10 +811,10 @@ ErrorCode Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, cons
 // Returns the current working directory in the form of a path. The path is
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
-ErrorCode Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, Character* _Nonnull pBuffer, ByteCount bufferSize)
+errno_t Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, ssize_t bufferSize)
 {
     Lock_Lock(&pProc->lock);
-    const ErrorCode err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
+    const errno_t err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -840,7 +840,7 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask
 }
 
 // Creates a file in the given filesystem location.
-ErrorCode Process_CreateFile(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, UInt options, FilePermissions permissions, Int* _Nonnull pOutDescriptor)
+errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, FilePermissions permissions, int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
     PathResolverResult r;
@@ -865,7 +865,7 @@ catch:
 
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
-ErrorCode Process_Open(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, UInt options, Int* _Nonnull pOutDescriptor)
+errno_t Process_Open(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
     PathResolverResult r;
@@ -889,7 +889,7 @@ catch:
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
-ErrorCode Process_CreateDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FilePermissions permissions)
+errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FilePermissions permissions)
 {
     decl_try_err();
     PathResolverResult r;
@@ -907,7 +907,7 @@ catch:
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
-ErrorCode Process_OpenDirectory(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int* _Nonnull pOutDescriptor)
+errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
     PathResolverResult r;
@@ -930,7 +930,7 @@ catch:
 }
 
 // Returns information about the file at the given path.
-ErrorCode Process_GetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileInfo* _Nonnull pOutInfo)
+errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FileInfo* _Nonnull pOutInfo)
 {
     decl_try_err();
     PathResolverResult r;
@@ -946,7 +946,7 @@ catch:
 }
 
 // Same as above but with respect to the given I/O channel.
-ErrorCode Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, FileInfo* _Nonnull pOutInfo)
+errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, FileInfo* _Nonnull pOutInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -968,7 +968,7 @@ catch:
 }
 
 // Modifies information about the file at the given path.
-ErrorCode Process_SetFileInfo(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo)
+errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo)
 {
     decl_try_err();
     PathResolverResult r;
@@ -984,7 +984,7 @@ catch:
 }
 
 // Same as above but with respect to the given I/O channel.
-ErrorCode Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, Int fd, MutableFileInfo* _Nonnull pInfo)
+errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, MutableFileInfo* _Nonnull pInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -1007,7 +1007,7 @@ catch:
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
-ErrorCode Process_TruncateFile(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, FileOffset length)
+errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FileOffset length)
 {
     decl_try_err();
     PathResolverResult r;
@@ -1023,7 +1023,7 @@ catch:
 }
 
 // Same as above but the file is identified by the given I/O channel.
-ErrorCode Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, Int fd, FileOffset length)
+errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, FileOffset length)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -1046,7 +1046,7 @@ catch:
 
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
-ErrorCode Process_vIOControl(ProcessRef _Nonnull pProc, Int fd, Int cmd, va_list ap)
+errno_t Process_vIOControl(ProcessRef _Nonnull pProc, int fd, int cmd, va_list ap)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -1062,7 +1062,7 @@ catch:
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-ErrorCode Process_CheckFileAccess(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath, Int mode)
+errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int mode)
 {
     decl_try_err();
     PathResolverResult r;
@@ -1080,7 +1080,7 @@ catch:
 }
 
 // Unlinks the inode at the path 'pPath'.
-ErrorCode Process_Unlink(ProcessRef _Nonnull pProc, const Character* _Nonnull pPath)
+errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 {
     decl_try_err();
     PathResolverResult r;
@@ -1136,7 +1136,7 @@ catch:
 }
 
 // Renames the file or directory at 'pOldPath' to the new location 'pNewPath'.
-ErrorCode Process_Rename(ProcessRef _Nonnull pProc, const Character* pOldPath, const Character* pNewPath)
+errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const char* pNewPath)
 {
     decl_try_err();
     PathResolverResult or, nr;

@@ -13,7 +13,7 @@
 #define MEM_BLOCKS_CAPACITY 8
 typedef struct _MemBlocks {
     SListNode       node;
-    Int             count;  // Number of entries in use
+    int             count;  // Number of entries in use
     Byte* _Nullable blocks[MEM_BLOCKS_CAPACITY];
 } MemBlocks;
 
@@ -24,7 +24,7 @@ typedef struct _AddressSpace {
 } AddressSpace;
 
 
-ErrorCode AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSpace)
+errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSpace)
 {
     decl_try_err();
     AddressSpaceRef pSpace;
@@ -50,7 +50,7 @@ void AddressSpace_Destroy(AddressSpaceRef _Nullable pSpace)
         while (pCurMemBlocks) {
             MemBlocks* pNextMemBlocks = (MemBlocks*)pCurMemBlocks->node.next;
 
-            for (Int i = 0; i < pCurMemBlocks->count; i++) {
+            for (int i = 0; i < pCurMemBlocks->count; i++) {
                 kfree(pCurMemBlocks->blocks[i]);
                 pCurMemBlocks->blocks[i] = NULL;
             }
@@ -63,10 +63,10 @@ void AddressSpace_Destroy(AddressSpaceRef _Nullable pSpace)
     }
 }
 
-Bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
+bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
 {
     Lock_Lock(&pSpace->lock);
-    const Bool isEmpty = SList_IsEmpty(&pSpace->mblocks) || ((MemBlocks*) pSpace->mblocks.first)->count == 0;
+    const bool isEmpty = SList_IsEmpty(&pSpace->mblocks) || ((MemBlocks*) pSpace->mblocks.first)->count == 0;
     Lock_Unlock(&pSpace->lock);
 
     return isEmpty;
@@ -77,7 +77,7 @@ Bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
 // address space portion is return in 'pOutMem'. 'pOutMem' is set to NULL and a
 // suitable error is returned if the allocation failed. 'count' must be greater
 // than 0 and a multiple of the CPU page size.
-ErrorCode AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ByteCount count, Byte* _Nullable * _Nonnull pOutMem)
+errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ssize_t count, Byte* _Nullable * _Nonnull pOutMem)
 {
     decl_try_err();
     MemBlocks* pMemBlocks = NULL;

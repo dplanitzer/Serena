@@ -12,7 +12,7 @@
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
 
-static ErrorCode __atoi64(const Character * _Nonnull str, Character **str_end, Int base, Int64 min_val, Int64 max_val, Int max_digits, Int64 * _Nonnull result)
+static errno_t __atoi64(const char * _Nonnull str, char **str_end, int base, int64_t min_val, int64_t max_val, int max_digits, int64_t * _Nonnull result)
 {
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0ll;
@@ -27,7 +27,7 @@ static ErrorCode __atoi64(const Character * _Nonnull str, Character **str_end, I
 
 
     // Detect the sign
-    const Character sig_ch = *str;
+    const char sig_ch = *str;
     if (sig_ch == '-' || sig_ch == '+') {
         str++;
     }
@@ -49,18 +49,18 @@ static ErrorCode __atoi64(const Character * _Nonnull str, Character **str_end, I
 
 
     // Convert digits
-    const Bool is_neg = (sig_ch == '-');
-    UInt64 val = 0;
-    const UInt64 llbase = (UInt64) base;
-    const UInt64 upper_bound = (is_neg) ? -min_val : max_val;
-    const Character upper_num = (base < 10) ? '0' + base : '9';
-    const Character upper_lletter = (base > 9) ? 'a' + base - 11 : 'a';
-    const Character upper_uletter = (base > 9) ? 'A' + base - 11 : 'A';
-    Int i = 0;
+    const bool is_neg = (sig_ch == '-');
+    uint64_t val = 0;
+    const uint64_t llbase = (uint64_t) base;
+    const uint64_t upper_bound = (is_neg) ? -min_val : max_val;
+    const char upper_num = (base < 10) ? '0' + base : '9';
+    const char upper_lletter = (base > 9) ? 'a' + base - 11 : 'a';
+    const char upper_uletter = (base > 9) ? 'A' + base - 11 : 'A';
+    int i = 0;
 
     for (;;) {
-        const Character ch = str[i];
-        UInt64 digit;
+        const char ch = str[i];
+        uint64_t digit;
 
         if (ch >= '0' && ch <= upper_num) {
             digit = ch - '0';
@@ -70,9 +70,9 @@ static ErrorCode __atoi64(const Character * _Nonnull str, Character **str_end, I
             break;
         }
 
-        const UInt64 new_val = (val * llbase) + digit;
+        const uint64_t new_val = (val * llbase) + digit;
         if (new_val < val || new_val > upper_bound || i > max_digits) {
-            if (str_end) *str_end = (Character*)&str[i + 1];
+            if (str_end) *str_end = (char*)&str[i + 1];
             *result = (is_neg) ? min_val : max_val;
             return ERANGE;
         }
@@ -81,23 +81,23 @@ static ErrorCode __atoi64(const Character * _Nonnull str, Character **str_end, I
         i++;
     }
 
-    if (str_end) *str_end = (Character*)&str[i];
-    *result = (is_neg) ? -((Int64)val) : (Int64)val;
+    if (str_end) *str_end = (char*)&str[i];
+    *result = (is_neg) ? -((int64_t)val) : (int64_t)val;
     return 0;
 }
 
-Int atoi(const Character *str, Character **str_end, Int base)
+int atoi(const char *str, char **str_end, int base)
 {
-    Int64 r;
+    int64_t r;
 
     __atoi64(str, str_end, base, INT_MIN, INT_MAX, __LONG_MAX_BASE_10_DIGITS, &r);
-    return (Int) r;
+    return (int) r;
 }
 
-static Character* _Nonnull copy_constant(Character* _Nonnull digits, const Character* cst)
+static char* _Nonnull copy_constant(char* _Nonnull digits, const char* cst)
 {
-    Character* p = &digits[1];
-    Int i = 0;
+    char* p = &digits[1];
+    int i = 0;
 
     while (*cst != '\0') {
         *p++ = *cst++;
@@ -107,16 +107,16 @@ static Character* _Nonnull copy_constant(Character* _Nonnull digits, const Chara
     return digits;
 }
 
-static const Character* gLowerDigits = "0123456789abcdef";
-static const Character* gUpperDigits = "0123456789ABCDEF";
+static const char* gLowerDigits = "0123456789abcdef";
+static const char* gUpperDigits = "0123456789ABCDEF";
 
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-Character* _Nonnull __i32toa(Int32 val, Int radix, Bool isUppercase, Character* _Nonnull digits)
+char* _Nonnull __i32toa(int32_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
-    const Character* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    Character *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
-    Character sign;
-    Int i = 1;
+    const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
+    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char sign;
+    int i = 1;
 
     if (val < 0) {
         // Check for the smallest possible negative value and handle it specially.
@@ -149,13 +149,13 @@ Character* _Nonnull __i32toa(Int32 val, Int radix, Bool isUppercase, Character* 
 }
 
 // 'digits' must be at least DIGIT_BUFFER_CAPACITY bytes big
-Character* _Nonnull __i64toa(Int64 val, Int radix, Bool isUppercase, Character* _Nonnull digits)
+char* _Nonnull __i64toa(int64_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
-    const Character* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    Character *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
-    Character sign;
-    Int64 q, r;
-    Int i = 1;
+    const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
+    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char sign;
+    int64_t q, r;
+    int i = 1;
 
     if (val < 0) {
         if (val == INT64_MIN) {
@@ -183,11 +183,11 @@ Character* _Nonnull __i64toa(Int64 val, Int radix, Bool isUppercase, Character* 
 
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
 // 'radix' must be 8, 10 or 16
-Character* _Nonnull __ui32toa(UInt32 val, Int radix, Bool isUppercase, Character* _Nonnull digits)
+char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
-    const Character* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    Character *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
-    Int i = 1;
+    const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
+    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    int i = 1;
 
     *p-- = '\0';
     do {
@@ -204,12 +204,12 @@ Character* _Nonnull __ui32toa(UInt32 val, Int radix, Bool isUppercase, Character
 
 // 'digits' must be at least DIGIT_BUFFER_CAPACITY bytes big
 // 'radix' must be 8, 10 or 16
-Character* _Nonnull __ui64toa(UInt64 val, Int radix, Bool isUppercase, Character* _Nonnull digits)
+char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
-    const Character* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    Character *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
-    Int64 q, r;
-    Int i = 1;
+    const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
+    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    int64_t q, r;
+    int i = 1;
 
     *p-- = '\0';
     do {
@@ -225,9 +225,9 @@ Character* _Nonnull __ui64toa(UInt64 val, Int radix, Bool isUppercase, Character
     return p;
 }
 
-static Character* _Nonnull copy_out(Character* _Nonnull buf, const Character* _Nonnull pCanonDigits)
+static char* _Nonnull copy_out(char* _Nonnull buf, const char* _Nonnull pCanonDigits)
 {
-    const Character* p = (pCanonDigits[1] == '+') ? &pCanonDigits[2] : &pCanonDigits[1];
+    const char* p = (pCanonDigits[1] == '+') ? &pCanonDigits[2] : &pCanonDigits[1];
 
     while (*p != '\0') { *buf++ = *p++; }
     *buf = '\0';
@@ -235,7 +235,7 @@ static Character* _Nonnull copy_out(Character* _Nonnull buf, const Character* _N
 }
 
 // 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-const Character* _Nonnull Int32_ToString(Int32 val, Int radix, Bool isUppercase, Character* _Nonnull pBuffer)
+const char* _Nonnull Int32_ToString(int32_t val, int radix, bool isUppercase, char* _Nonnull pBuffer)
 {
     if (radix != 8 && radix != 10 && radix != 16 || pBuffer == NULL) {
         return NULL;
@@ -246,7 +246,7 @@ const Character* _Nonnull Int32_ToString(Int32 val, Int radix, Bool isUppercase,
 }
 
 // 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-const Character* _Nonnull Int64_ToString(Int64 val, Int radix, Bool isUppercase, Character* _Nonnull pBuffer)
+const char* _Nonnull Int64_ToString(int64_t val, int radix, bool isUppercase, char* _Nonnull pBuffer)
 {
     if (radix != 8 && radix != 10 && radix != 16 || pBuffer == NULL) {
         return NULL;
@@ -257,7 +257,7 @@ const Character* _Nonnull Int64_ToString(Int64 val, Int radix, Bool isUppercase,
 }
 
 // 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-const Character* _Nonnull UInt32_ToString(UInt32 val, Int radix, Bool isUppercase, Character* _Nonnull pBuffer)
+const char* _Nonnull UInt32_ToString(uint32_t val, int radix, bool isUppercase, char* _Nonnull pBuffer)
 {
     if (radix != 8 && radix != 10 && radix != 16 || pBuffer == NULL) {
         return NULL;
@@ -268,7 +268,7 @@ const Character* _Nonnull UInt32_ToString(UInt32 val, Int radix, Bool isUppercas
 }
 
 // 'pBuffer' must be at least DIGIT_BUFFER_CAPACITY characters long
-const Character* _Nonnull UInt64_ToString(UInt64 val, Int radix, Bool isUppercase, Character* _Nonnull pBuffer)
+const char* _Nonnull UInt64_ToString(uint64_t val, int radix, bool isUppercase, char* _Nonnull pBuffer)
 {
     if (radix != 8 && radix != 10 && radix != 16 || pBuffer == NULL) {
         return NULL;
@@ -278,12 +278,12 @@ const Character* _Nonnull UInt64_ToString(UInt64 val, Int radix, Bool isUppercas
     return copy_out(pBuffer, __ui64toa(val, radix, isUppercase, t));
 }
 
-Int Int_NextPowerOf2(Int n)
+int Int_NextPowerOf2(int n)
 {
     if (n && !(n & (n - 1))) {
         return n;
     } else {
-        Int p = 1;
+        int p = 1;
 
         while (p < n) {
             p <<= 1;

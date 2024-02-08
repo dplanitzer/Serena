@@ -20,12 +20,12 @@ void ULock_Init(ULock*_Nonnull pLock)
 
 // Deinitializes a lock. The lock is automatically unlocked if the calling code
 // is holding the lock.
-ErrorCode ULock_Deinit(ULock* _Nonnull pLock)
+errno_t ULock_Deinit(ULock* _Nonnull pLock)
 {
     // Unlock the lock if it is currently held by the virtual processor on which
     // we are executing. Abort if a virtual processor which isn't holding the
     // lock tries to destroy it.
-    const Int ownerId = ULock_GetOwnerVpid(pLock);
+    const int ownerId = ULock_GetOwnerVpid(pLock);
     if (ownerId == VirtualProcessor_GetCurrentVpid()) {
         ULock_Unlock(pLock);
     } else if (ownerId > 0) {
@@ -40,7 +40,7 @@ ErrorCode ULock_Deinit(ULock* _Nonnull pLock)
 }
 
 // Allocates a new lock.
-ErrorCode _Nullable ULock_Create(ULock* _Nullable * _Nonnull pOutLock)
+errno_t _Nullable ULock_Create(ULock* _Nullable * _Nonnull pOutLock)
 {
     decl_try_err();
     ULock* pLock = NULL;
@@ -58,7 +58,7 @@ catch:
 
 // Deallocates a lock. The lock is automatically unlocked if the calling code
 // is holding the lock.
-ErrorCode ULock_Destroy(ULock* _Nullable pLock)
+errno_t ULock_Destroy(ULock* _Nullable pLock)
 {
     decl_try_err();
 
@@ -72,9 +72,9 @@ catch:
 }
 
 // Invoked by ULock_Lock() if the lock is currently being held by some other VP.
-ErrorCode ULock_OnWait(ULock* _Nonnull pLock, UInt options)
+errno_t ULock_OnWait(ULock* _Nonnull pLock, unsigned int options)
 {
-    const Bool isInterruptable = (options & ULOCK_OPTION_INTERRUPTABLE) != 0;
+    const bool isInterruptable = (options & ULOCK_OPTION_INTERRUPTABLE) != 0;
 
     return VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
                                             &pLock->wait_queue,

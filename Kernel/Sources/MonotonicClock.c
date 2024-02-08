@@ -24,7 +24,7 @@ MonotonicClock* gMonotonicClock = &gMonotonicClockStorage;
 
 // Initializes the monotonic clock. The monotonic clock uses the quantum timer
 // as its time base.
-ErrorCode MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc)
+errno_t MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc)
 {
     MonotonicClock* pClock = &gMonotonicClockStorage;
     decl_try_err();
@@ -53,8 +53,8 @@ catch:
 TimeInterval MonotonicClock_GetCurrentTime(void)
 {
     register const MonotonicClock* pClock = gMonotonicClock;
-    register Int32 cur_secs, cur_nanos;
-    register Int32 chk_quantum;
+    register int32_t cur_secs, cur_nanos;
+    register int32_t chk_quantum;
     
     do {
         cur_secs = pClock->current_time.seconds;
@@ -93,7 +93,7 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
 // achieve the desired delay. Eg context switch to another virtual processor.
 // Note that this function is only willing to block the caller for at most a
 // millisecond. Longer delays should be done via a scheduler wait().
-Bool MonotonicClock_DelayUntil(TimeInterval deadline)
+bool MonotonicClock_DelayUntil(TimeInterval deadline)
 {
     const TimeInterval t_start = MonotonicClock_GetCurrentTime();
     const TimeInterval t_delta = TimeInterval_Subtract(deadline, t_start);
@@ -117,20 +117,20 @@ Bool MonotonicClock_DelayUntil(TimeInterval deadline)
 
 // Converts a time interval to a quantum value. The quantum value is rounded
 // based on the 'rounding' parameter.
-Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, Int rounding)
+Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, int rounding)
 {
     register MonotonicClock* pClock = gMonotonicClock;
-    const Int64 nanos = (Int64)ti.seconds * (Int64)ONE_SECOND_IN_NANOS + (Int64)ti.nanoseconds;
-    const Int64 quants = nanos / (Int64)pClock->ns_per_quantum;
+    const int64_t nanos = (int64_t)ti.seconds * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ti.nanoseconds;
+    const int64_t quants = nanos / (int64_t)pClock->ns_per_quantum;
     
     switch (rounding) {
         case QUANTUM_ROUNDING_TOWARDS_ZERO:
             return quants;
             
         case QUANTUM_ROUNDING_AWAY_FROM_ZERO: {
-            const Int64 nanos_prime = quants * (Int64)pClock->ns_per_quantum;
+            const int64_t nanos_prime = quants * (int64_t)pClock->ns_per_quantum;
             
-            return (nanos_prime < nanos) ? (Int32)quants + 1 : (Int32)quants;
+            return (nanos_prime < nanos) ? (int32_t)quants + 1 : (int32_t)quants;
         }
             
         default:
@@ -143,9 +143,9 @@ Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, Int rounding)
 TimeInterval TimeInterval_MakeFromQuantums(Quantums quants)
 {
     register MonotonicClock* pClock = gMonotonicClock;
-    const Int64 ns = (Int64)quants * (Int64)pClock->ns_per_quantum;
-    const Int32 secs = ns / (Int64)ONE_SECOND_IN_NANOS;
-    const Int32 nanos = ns - ((Int64)secs * (Int64)ONE_SECOND_IN_NANOS);
+    const int64_t ns = (int64_t)quants * (int64_t)pClock->ns_per_quantum;
+    const int32_t secs = ns / (int64_t)ONE_SECOND_IN_NANOS;
+    const int32_t nanos = ns - ((int64_t)secs * (int64_t)ONE_SECOND_IN_NANOS);
     
     return TimeInterval_Make(secs, nanos);
 }

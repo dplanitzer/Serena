@@ -25,7 +25,7 @@
 // size includes the header size.
 typedef struct _MemBlock {
     struct _MemBlock* _Nullable next;
-    ByteCount                   size;   // The size includes sizeof(MemBlock). Max size of a free block is 4GB; max size of an allocated block is 2GB
+    ssize_t                   size;   // The size includes sizeof(MemBlock). Max size of a free block is 4GB; max size of an allocated block is 2GB
 } MemBlock;
 
 
@@ -97,14 +97,14 @@ static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, const Memory
 
 // Returns true if the given memory address is managed by this memory region
 // and false otherwise.
-static Bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, Byte* _Nullable pAddress)
+static bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, Byte* _Nullable pAddress)
 {
     return (pAddress >= pMemRegion->lower && pAddress < pMemRegion->upper) ? true : false;
 }
 
 // Allocates 'nBytesToAlloc' from the given memory region. Note that
 // 'nBytesToAlloc' has to include the heap block header and the correct alignment.
-static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, ByteCount nBytesToAlloc)
+static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, ssize_t nBytesToAlloc)
 {
     // first fit search
     MemBlock* pCurBlock = pMemRegion->first_free_block;
@@ -180,8 +180,8 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
     
         // Find the free memory blocks just below and above 'pBlockToFree'. These
     // will be the predecessor and successor of 'pBlockToFree' on the free list
-    Bool isUpperFreeBlockAdjacent = false;
-    Bool isLowerFreeBlockAdjacent = false;
+    bool isUpperFreeBlockAdjacent = false;
+    bool isLowerFreeBlockAdjacent = false;
     MemBlock* pLowerFreeBlock = NULL;
     MemBlock* pUpperFreeBlock = NULL;
     MemBlock* pCurBlock = pMemRegion->first_free_block;
@@ -268,7 +268,7 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 // \param pMemDesc the initial memory region to manage
 // \param pOutAllocator receives the allocator reference
 // \return an error or EOK
-ErrorCode Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+errno_t Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
     decl_try_err();
 
@@ -293,7 +293,7 @@ catch:
 }
 
 // Adds the given memory region to the allocator's available memory pool.
-ErrorCode Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
+errno_t Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
 {
     MemRegion* pMemRegion;
     decl_try_err();
@@ -319,7 +319,7 @@ static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _
     return NULL;
 }
 
-Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ptr == BYTE_PTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
@@ -327,11 +327,11 @@ Bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
         return true;
     }
 
-    const Bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, (Byte*)ptr) != NULL;
+    const bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, (Byte*)ptr) != NULL;
     return r;
 }
 
-ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ByteCount nbytes, void* _Nullable * _Nonnull pOutPtr)
+errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ssize_t nbytes, void* _Nullable * _Nonnull pOutPtr)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
@@ -341,7 +341,7 @@ ErrorCode Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ByteCount nb
     
     
     // Compute how many bytes we have to take from free memory
-    const Int nBytesToAlloc = __Ceil_PowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
+    const int nBytesToAlloc = __Ceil_PowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
     
     
     // Note that the code here assumes desc 0 is chip RAM and all the others are
@@ -381,7 +381,7 @@ catch:
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-ErrorCode Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ptr == BYTE_PTR_MAX) {
         return EOK;

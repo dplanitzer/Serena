@@ -19,17 +19,17 @@ typedef struct _HIDEventQueue* HIDEventQueueRef;
 // Allocates an empty event queue. 'capacity' is the queue capacity in terms of
 // the maximum number of events it can store at the same time. This value is
 // rounded up to the next power of 2.
-extern ErrorCode HIDEventQueue_Create(Int capacity, HIDEventQueueRef _Nullable * _Nonnull pOutQueue);
+extern errno_t HIDEventQueue_Create(int capacity, HIDEventQueueRef _Nullable * _Nonnull pOutQueue);
 
 // Frees the event queue.
 extern void HIDEventQueue_Destroy(HIDEventQueueRef _Nonnull pQueue);
 
 // Returns true if the queue is empty.
-Bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull pQueue);
+bool HIDEventQueue_IsEmpty(HIDEventQueueRef _Nonnull pQueue);
 
 // Returns the number of times the queue overflowed. Note that the queue drops
 // the oldest event every time it overflows.
-extern Int HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull pQueue);
+extern int HIDEventQueue_GetOverflowCount(HIDEventQueueRef _Nonnull pQueue);
 
 // Removes all events from the queue.
 extern void HIDEventQueue_RemoveAll(HIDEventQueueRef _Nonnull pQueue);
@@ -44,6 +44,6 @@ extern void HIDEventQueue_Put(HIDEventQueueRef _Nonnull pQueue, HIDEventType typ
 // has arrived or 'timeout' has elapsed. Returns EOK if an event has been
 // successfully dequeued or ETIMEDOUT if no event has arrived and the wait has
 // timed out.
-extern ErrorCode HIDEventQueue_Get(HIDEventQueueRef _Nonnull pQueue, HIDEvent* _Nonnull pOutEvent, TimeInterval timeout);
+extern errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull pQueue, HIDEvent* _Nonnull pOutEvent, TimeInterval timeout);
 
 #endif /* HIDEventQueue_h */

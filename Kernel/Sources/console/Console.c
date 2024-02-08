@@ -14,11 +14,11 @@
 // MARK: ConsoleChannel
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode ConsoleChannel_ioctl(IOChannelRef _Nonnull self, Int cmd, va_list ap)
+errno_t ConsoleChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetType:
-            *((Int*) va_arg(ap, Int*)) = kIOChannelType_Terminal;
+            *((int*) va_arg(ap, int*)) = kIOChannelType_Terminal;
             return EOK;
 
         default:
@@ -41,7 +41,7 @@ OVERRIDE_METHOD_IMPL(ioctl, ConsoleChannel, IOChannel)
 // \param pEventDriver the event driver to provide keyboard input
 // \param pGDevice the graphics device
 // \return the console; NULL on failure
-ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole)
+errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole)
 {
     decl_try_err();
     Console* pConsole;
@@ -70,12 +70,12 @@ ErrorCode Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef
 
 
     // Allocate the text cursor (sprite)
-    const Bool isInterlaced = ScreenConfiguration_IsInterlaced(GraphicsDriver_GetCurrentScreenConfiguration(pGDevice));
-    const UInt16* textCursorPlanes[2];
+    const bool isInterlaced = ScreenConfiguration_IsInterlaced(GraphicsDriver_GetCurrentScreenConfiguration(pGDevice));
+    const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isInterlaced) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isInterlaced) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
-    const Int textCursorWidth = (isInterlaced) ? gBlock4x4_Width : gBlock4x8_Width;
-    const Int textCursorHeight = (isInterlaced) ? gBlock4x4_Height : gBlock4x8_Height;
+    const int textCursorWidth = (isInterlaced) ? gBlock4x4_Width : gBlock4x8_Width;
+    const int textCursorHeight = (isInterlaced) ? gBlock4x4_Height : gBlock4x8_Height;
     try(GraphicsDriver_AcquireSprite(pGDevice, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &pConsole->textCursor));
     pConsole->flags.isTextCursorVisible = false;
 
@@ -131,7 +131,7 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
     pConsole->eventDriver = NULL;
 }
 
-ErrorCode Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
+errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 {
     decl_try_err();
     const Surface* pFramebuffer;
@@ -204,7 +204,7 @@ static void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, 
 
 // Fills the content of 'rect' with the character 'ch'. Does not change the
 // cursor position.
-static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Character ch)
+static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, char ch)
 {
     const Rect r = Rect_Intersection(rect, pConsole->bounds);
 
@@ -217,8 +217,8 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Cha
         // Control characters -> do nothing
     }
     else {
-        for (Int y = r.top; y < r.bottom; y++) {
-            for (Int x = r.left; x < r.right; x++) {
+        for (int y = r.top; y < r.bottom; y++) {
+            for (int x = r.left; x < r.right; x++) {
                 GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], x, y);
             }
         }
@@ -230,10 +230,10 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, Cha
 // 'dX' / 'dY' character cells. Positive values move the viewport down/right
 // (and scroll the virtual document up/left) and negative values move the
 // viewport up/left (and scroll the virtual document down/right).
-static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, Int dX, Int dY)
+static void Console_ScrollBy_Locked(ConsoleRef _Nonnull pConsole, int dX, int dY)
 {
     const Rect clipRect = pConsole->bounds;
-    const Int absDx = __abs(dX), absDy = __abs(dY);
+    const int absDx = __abs(dX), absDy = __abs(dY);
 
     if (absDx < Rect_GetWidth(clipRect) && absDy < Rect_GetHeight(clipRect)) {
         if (absDx > 0 || absDy > 0) {
@@ -307,10 +307,10 @@ void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreenMode mo
 }
 
 // Clears the specified line. Does not change the cursor position.
-void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, Int y, ClearLineMode mode)
+void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, int y, ClearLineMode mode)
 {
     if (Rect_Contains(pConsole->bounds, 0, y)) {
-        Int left, right;
+        int left, right;
 
         switch (mode) {
             case kClearLineMode_ToEnd:
@@ -383,7 +383,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _No
     }
 }
 
-void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool isEnabled)
+void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool isEnabled)
 {
     if (pConsole->flags.isTextCursorBlinkerEnabled != isEnabled) {
         pConsole->flags.isTextCursorBlinkerEnabled = isEnabled;
@@ -391,7 +391,7 @@ void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, Bool is
     }
 }
 
-void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, Bool isVisible)
+void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible)
 {
     if (pConsole->flags.isTextCursorVisible != isVisible) {
         pConsole->flags.isTextCursorVisible = isVisible;
@@ -417,18 +417,18 @@ static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
 // \param mode how the cursor movement should be handled if it tries to go past the margins
 // \param dx the X delta
 // \param dy the Y delta
-void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, Int dx, Int dy)
+void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, int dx, int dy)
 {
     if (dx == 0 && dy == 0) {
         return;
     }
     
-    const Int aX = 0;
-    const Int aY = 0;
-    const Int eX = pConsole->bounds.right - 1;
-    const Int eY = pConsole->bounds.bottom - 1;
-    Int x = pConsole->x + dx;
-    Int y = pConsole->y + dy;
+    const int aX = 0;
+    const int aY = 0;
+    const int eX = pConsole->bounds.right - 1;
+    const int eY = pConsole->bounds.bottom - 1;
+    int x = pConsole->x + dx;
+    int y = pConsole->y + dy;
 
     switch (mode) {
         case kCursorMovement_Clamp:
@@ -484,7 +484,7 @@ void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode
 // \param pConsole the console
 // \param x the X position
 // \param y the Y position
-void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
+void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, int x, int y)
 {
     Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, x - pConsole->x, y - pConsole->y);
 }
@@ -496,9 +496,9 @@ void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, Int x, Int y)
 
 // Posts a terminal report to the reports queue. The message length may not
 // exceed MAX_MESSAGE_LENGTH.
-void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const Character* msg)
+void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const char* msg)
 {
-    const ByteCount nBytesToWrite = String_Length(msg) + 1;
+    const ssize_t nBytesToWrite = String_Length(msg) + 1;
     assert(nBytesToWrite < (MAX_MESSAGE_LENGTH + 1));
 
     // Make space for the new message by removing the oldest (full) message(s)
@@ -574,13 +574,13 @@ void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole)
     }
 }
 
-void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, Int nChars)
+void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, int nChars)
 {
     Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x + nChars, pConsole->y, pConsole->bounds.right - nChars, pConsole->y + 1), Point_Make(pConsole->x, pConsole->y));
     Console_FillRect_Locked(pConsole, Rect_Make(pConsole->bounds.right - nChars, pConsole->y, pConsole->bounds.right, pConsole->y + 1), ' ');
 }
 
-void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
+void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, int nLines)
 {
     if (pConsole->y < pConsole->bounds.bottom) {
         Console_CopyRect_Locked(pConsole, Rect_Make(0, pConsole->y + 1, pConsole->bounds.right, pConsole->bounds.bottom - nLines), Point_Make(pConsole->x, pConsole->y + 2));
@@ -588,7 +588,7 @@ void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
     }
 }
 
-void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
+void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, int nLines)
 {
     Console_CopyRect_Locked(pConsole, Rect_Make(0, pConsole->y + 1, pConsole->bounds.right, pConsole->bounds.bottom - nLines), Point_Make(pConsole->x, pConsole->y));
     Console_FillRect_Locked(pConsole, Rect_Make(0, pConsole->bounds.bottom - nLines, pConsole->bounds.right, pConsole->bounds.bottom), ' ');
@@ -599,7 +599,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, Int nLines)
 // Read/Write
 ////////////////////////////////////////////////////////////////////////////////
 
-ErrorCode Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked pNode, UInt mode, User user, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ConsoleChannelRef pChannel;
@@ -614,7 +614,7 @@ catch:
     return err;
 }
 
-ErrorCode Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pInChannel, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pInChannel, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ConsoleChannelRef pNewChannel;
@@ -630,12 +630,12 @@ catch:
 
 }
 
-static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    ByteCount nBytesRead = 0;
+    ssize_t nBytesRead = 0;
 
     while (nBytesRead < nBytesToRead) {
-        Bool done = false;
+        bool done = false;
 
         while (true) {
             Byte b;
@@ -654,7 +654,7 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole,
             break;
         }
 
-        Int i = 0;
+        int i = 0;
         while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
             pBuffer[nBytesRead++] = pChannel->rdBuffer[i++];
             pChannel->rdCount--;
@@ -671,12 +671,12 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole,
     *nOutBytesRead = nBytesRead;
 }
 
-static ErrorCode Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent evt;
-    ByteCount nBytesRead = 0;
-    ByteCount nEvtBytesRead;
+    ssize_t nBytesRead = 0;
+    ssize_t nEvtBytesRead;
 
     while (nBytesRead < nBytesToRead) {
         // Drop the console lock while getting an event since the get events call
@@ -686,7 +686,7 @@ static ErrorCode Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, Console
         Lock_Unlock(&pConsole->lock);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        const ErrorCode e1 = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt), &nEvtBytesRead);
+        const errno_t e1 = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt), &nEvtBytesRead);
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
@@ -702,7 +702,7 @@ static ErrorCode Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, Console
 
         pChannel->rdCount = KeyMap_Map(pConsole->keyMap, &evt.data.key, pChannel->rdBuffer, MAX_MESSAGE_LENGTH);
 
-        Int i = 0;
+        int i = 0;
         while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
             pBuffer[nBytesRead++] = pChannel->rdBuffer[i++];
             pChannel->rdCount--;
@@ -724,13 +724,13 @@ static ErrorCode Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, Console
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-ErrorCode Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ByteCount nBytesToRead, ByteCount* _Nonnull nOutBytesRead)
+errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent evt;
-    Int evtCount;
-    ByteCount nBytesRead = 0;
-    ByteCount nTmpBytesRead;
+    int evtCount;
+    ssize_t nBytesRead = 0;
+    ssize_t nTmpBytesRead;
 
     Lock_Lock(&pConsole->lock);
 
@@ -753,7 +753,7 @@ ErrorCode Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
     if (nBytesRead == 0 && err == EOK) {
         // We haven't read any data so far. Read input events and block if none
         // are available either.
-        const ErrorCode e1 = Console_ReadEvents_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        const errno_t e1 = Console_ReadEvents_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         if (e1 == EOK) {
             nBytesRead += nTmpBytesRead;
         } else {
@@ -772,7 +772,7 @@ ErrorCode Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull 
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-ErrorCode Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const Byte* _Nonnull pBytes, ByteCount nBytesToWrite, ByteCount* _Nonnull nOutBytesWritten)
+errno_t Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const Byte* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     const unsigned char* pChars = (const unsigned char*) pBytes;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;

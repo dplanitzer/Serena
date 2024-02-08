@@ -19,7 +19,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; UInt fdc_get_drive_status(FdcControlByte* fdc)
+; unsigned int fdc_get_drive_status(FdcControlByte* fdc)
 ; Returns the status word of the floppy disk controller.
 _fdc_get_drive_status:
     inline
@@ -39,7 +39,7 @@ _fdc_get_drive_status:
 
 
 ;-------------------------------------------------------------------------------
-; void fdc_set_drive_motor(FdcControlByte* fdc Int onoff)
+; void fdc_set_drive_motor(FdcControlByte* fdc int onoff)
 ; Turns the drive motor on or off.
 _fdc_set_drive_motor:
     inline
@@ -69,7 +69,7 @@ _fdc_set_drive_motor:
 
 
 ;-------------------------------------------------------------------------------
-; void fdc_step_head(FdcControlByte* fdc, Int inout)
+; void fdc_step_head(FdcControlByte* fdc, int inout)
 ; Steps the drive head one cylinder towards the inside (+1) or the outside (-1)
 ; of the drive.
 _fdc_step_head:
@@ -106,7 +106,7 @@ _fdc_step_head:
 
 
 ;-------------------------------------------------------------------------------
-; void fdc_select_head(FdcControlByte* fdc, Int side)
+; void fdc_select_head(FdcControlByte* fdc, int side)
 ; Selects the disk head. 0 (lower head) or 1 (upper head).
 _fdc_select_head:
     inline
@@ -132,7 +132,7 @@ _fdc_select_head:
 
 
 ;-------------------------------------------------------------------------------
-; void fdc_io_begin(FdcControlByte* fdc, UInt16* data, Int nwords, Int readwrite)
+; void fdc_io_begin(FdcControlByte* fdc, uint16_t* data, int nwords, int readwrite)
 ; Starts an fdc i/o operation to read or write the contents of the track buffer.
 _fdc_io_begin:
     inline
@@ -164,7 +164,7 @@ _fdc_io_begin:
 
 
 ;-------------------------------------------------------------------------------
-; UInt fdc_get_io_status(FdcControlByte* fdc)
+; unsigned int fdc_get_io_status(FdcControlByte* fdc)
 ; Returns true if the currently active fdc_io_begin() call is done.
 _fdc_get_io_status:
     inline

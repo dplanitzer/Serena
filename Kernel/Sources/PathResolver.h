@@ -19,7 +19,7 @@ typedef struct _PathResolver {
     InodeRef        rootDirectory;
     InodeRef        currentWorkingDirectory;
     PathComponent   pathComponent;
-    Character       nameBuffer[kMaxPathComponentLength + 1];
+    char       nameBuffer[kMaxPathComponentLength + 1];
 } PathResolver;
 typedef struct _PathResolver* PathResolverRef;
 
@@ -50,14 +50,14 @@ typedef struct _PathResolverResult {
 extern void PathResolverResult_Deinit(PathResolverResult* pResult);
 
 
-extern ErrorCode PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory);
+extern errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory);
 extern void PathResolver_Deinit(PathResolverRef _Nonnull pResolver);
 
-extern ErrorCode PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* pPath);
-extern Bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode);
+extern errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* pPath);
+extern bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode);
 
-extern ErrorCode PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, Character* pBuffer, ByteCount bufferSize);
-extern ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const Character* _Nonnull pPath);
+extern errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* pBuffer, ssize_t bufferSize);
+extern errno_t PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath);
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
 // If it is relative then the resolution starts with the current working directory.
@@ -69,6 +69,6 @@ extern ErrorCode PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _No
 // Note that the caller of this function has to eventually call
 // PathResolverResult_Deinit() on the returned result no matter whether this
 // function has returned with EOK or some error.
-extern ErrorCode PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const Character* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
+extern errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
 
 #endif /* PathResolver_h */

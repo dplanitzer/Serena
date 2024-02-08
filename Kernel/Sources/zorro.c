@@ -45,23 +45,23 @@
 
 // Zorro II config info
 typedef struct _Zorro_BoardConfiguration {
-    UInt    physical_size;  // physical board size
-    UInt    logical_size;   // logical board size which may be smaller than the physical size; 0 means the kernel should auto-size the board
-    UInt8   bus;
-    UInt8   type;
-    UInt8   flags;
-    UInt8   reserved;
-    UInt16  manufacturer;
-    UInt16  product;
-    UInt32  serial_number;
+    unsigned int    physical_size;  // physical board size
+    unsigned int    logical_size;   // logical board size which may be smaller than the physical size; 0 means the kernel should auto-size the board
+    uint8_t   bus;
+    uint8_t   type;
+    uint8_t   flags;
+    uint8_t   reserved;
+    uint16_t  manufacturer;
+    uint16_t  product;
+    uint32_t  serial_number;
 } Zorro_BoardConfiguration;
 
 
 
 // Reads a byte value from the given Zorro auto configuration address
-static Byte zorro_read(volatile Byte* _Nonnull addr, Bool invert, Bool isZorro3Machine)
+static Byte zorro_read(volatile Byte* _Nonnull addr, bool invert, bool isZorro3Machine)
 {
-    const UInt offset = (isZorro3Machine) ? 0x100 : 0x002;
+    const unsigned int offset = (isZorro3Machine) ? 0x100 : 0x002;
     volatile Byte* pHigh8 = addr;
     volatile Byte* pLow8 = addr + offset;
     Byte byte = (pHigh8[0] & 0xf0) | ((pLow8[0] >> 4) & 0x0f);
@@ -76,9 +76,9 @@ static Byte zorro_read(volatile Byte* _Nonnull addr, Bool invert, Bool isZorro3M
 // NOTE: We do not check whether cards actually return 0 for auto config locations
 // for which they are supposed to retur 0 according to the spec because at least
 // some cards do in fact return non-zero values. Eg Commodore A2091 SCSI card.
-static Bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, UInt8 busToScan)
+static bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, uint8_t busToScan)
 {
-    const Bool isZorro3Machine = busToScan == EXPANSION_BUS_ZORRO_3;
+    const bool isZorro3Machine = busToScan == EXPANSION_BUS_ZORRO_3;
     register Byte* pAutoConfigBase = (isZorro3Machine) ? ZORRO_3_CONFIG_BASE : ZORRO_2_CONFIG_BASE;
     
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C7.html
@@ -87,7 +87,7 @@ static Bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, U
     
     
     // Type
-    const UInt8 type = (UInt8)zorro_read(pAutoConfigBase + 0x00, false, isZorro3Machine);
+    const uint8_t type = (uint8_t)zorro_read(pAutoConfigBase + 0x00, false, isZorro3Machine);
     switch((type >> 6) & 0x03) {
         case 0:     return false;
         case 1:     return false;
@@ -107,22 +107,22 @@ static Bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, U
     
     
     // Product
-    config->product = (UInt16)zorro_read(pAutoConfigBase + 0x04, true, isZorro3Machine);
+    config->product = (uint16_t)zorro_read(pAutoConfigBase + 0x04, true, isZorro3Machine);
     
     
     // Flags
-    const UInt8 flags = (UInt8)zorro_read(pAutoConfigBase + 0x08, true, isZorro3Machine);
+    const uint8_t flags = (uint8_t)zorro_read(pAutoConfigBase + 0x08, true, isZorro3Machine);
     if (flags & (1 << 6)) {
         config->flags |= ZORRO_FLAG_CANT_SHUTUP;
     }
     
-    const Bool isExtendedSize = (config->bus == EXPANSION_BUS_ZORRO_3) && (flags & (1 <<5)) != 0;
-    const UInt8 physsiz = type & 0x07;
-    static const UInt gBoardSizes[8] = {
+    const bool isExtendedSize = (config->bus == EXPANSION_BUS_ZORRO_3) && (flags & (1 <<5)) != 0;
+    const uint8_t physsiz = type & 0x07;
+    static const unsigned int gBoardSizes[8] = {
         SIZE_MB(8),   SIZE_KB(64), SIZE_KB(128), SIZE_KB(256),
         SIZE_KB(512), SIZE_MB(1),  SIZE_MB(2),   SIZE_MB(4)
     };
-    static const UInt gExtendedBoardSizes[8] = {
+    static const unsigned int gExtendedBoardSizes[8] = {
         SIZE_MB(16),  SIZE_MB(32),  SIZE_MB(64), SIZE_MB(128),
         SIZE_MB(256), SIZE_MB(512), SIZE_GB(1),  0
     };
@@ -132,13 +132,13 @@ static Bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, U
         return false;
     }
 
-    static const UInt gLogicalSize[12] = {
+    static const unsigned int gLogicalSize[12] = {
         SIZE_KB(64), SIZE_KB(128), SIZE_KB(256), SIZE_KB(512),
         SIZE_MB(1),  SIZE_MB(2),   SIZE_MB(4),   SIZE_MB(6),
         SIZE_MB(8),  SIZE_MB(10),  SIZE_MB(12),  SIZE_MB(14)
     };
     
-    const UInt8 logsiz = (config->bus == EXPANSION_BUS_ZORRO_3) ? flags & 0x0f : 0;
+    const uint8_t logsiz = (config->bus == EXPANSION_BUS_ZORRO_3) ? flags & 0x0f : 0;
     switch (logsiz) {
         case 0x00: config->logical_size = config->physical_size; // logical size is same as physical size
             break;
@@ -155,8 +155,8 @@ static Bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, U
 
     
     // Manufacturer
-    const UInt8 manuHigh = (UInt8)zorro_read(pAutoConfigBase + 0x10, true, isZorro3Machine);
-    const UInt8 manuLow = (UInt8)zorro_read(pAutoConfigBase + 0x14, true, isZorro3Machine);
+    const uint8_t manuHigh = (uint8_t)zorro_read(pAutoConfigBase + 0x10, true, isZorro3Machine);
+    const uint8_t manuLow = (uint8_t)zorro_read(pAutoConfigBase + 0x14, true, isZorro3Machine);
     
     config->manufacturer = (manuHigh << 8) | manuLow;
     if (config->manufacturer == 0) {
@@ -165,10 +165,10 @@ static Bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, U
     
     
     // Serial number
-    const UInt8 sernum3 = (UInt8)zorro_read(pAutoConfigBase + 0x18, true, isZorro3Machine);
-    const UInt8 sernum2 = (UInt8)zorro_read(pAutoConfigBase + 0x1c, true, isZorro3Machine);
-    const UInt8 sernum1 = (UInt8)zorro_read(pAutoConfigBase + 0x20, true, isZorro3Machine);
-    const UInt8 sernum0 = (UInt8)zorro_read(pAutoConfigBase + 0x24, true, isZorro3Machine);
+    const uint8_t sernum3 = (uint8_t)zorro_read(pAutoConfigBase + 0x18, true, isZorro3Machine);
+    const uint8_t sernum2 = (uint8_t)zorro_read(pAutoConfigBase + 0x1c, true, isZorro3Machine);
+    const uint8_t sernum1 = (uint8_t)zorro_read(pAutoConfigBase + 0x20, true, isZorro3Machine);
+    const uint8_t sernum0 = (uint8_t)zorro_read(pAutoConfigBase + 0x24, true, isZorro3Machine);
     
     config->serial_number = (sernum3 << 24) | (sernum2 << 16) | (sernum1 << 8) | sernum0;
     
@@ -198,7 +198,7 @@ static void zorro3_auto_config_shutup(void)
 // shut up. This causes the bus to make the next board in the chain available
 // for configuration. The shut up board will enter idle state until the next
 // system reset.
-static void zorro_auto_config_shutup(UInt8 bus)
+static void zorro_auto_config_shutup(uint8_t bus)
 {
     if (bus == EXPANSION_BUS_ZORRO_3) {
         zorro3_auto_config_shutup();
@@ -209,7 +209,7 @@ static void zorro_auto_config_shutup(UInt8 bus)
 
 static void zorro2_auto_config_assign_base_address(Byte* _Nullable addr)
 {
-    UInt16 top16 = ((UInt) addr) >> 16;
+    uint16_t top16 = ((unsigned int) addr) >> 16;
     
     volatile Byte* pNybble3 = ((Byte*)(ZORRO_2_CONFIG_BASE + 0x44));
     volatile Byte* pNybble2 = ((Byte*)(ZORRO_2_CONFIG_BASE + 0x46));
@@ -232,7 +232,7 @@ static void zorro2_auto_config_assign_base_address(Byte* _Nullable addr)
 
 static void zorro3_auto_config_assign_base_address(Byte* _Nullable addr)
 {
-    UInt16 top16 = ((UInt) addr) >> 16;
+    uint16_t top16 = ((unsigned int) addr) >> 16;
     
     volatile Byte* pByte1 = ((Byte*)(ZORRO_3_CONFIG_BASE + 0x44));
     volatile Byte* pByte0  = ((Byte*)(ZORRO_3_CONFIG_BASE + 0x48));
@@ -246,7 +246,7 @@ static void zorro3_auto_config_assign_base_address(Byte* _Nullable addr)
 // Assigns the given address as the base address to the board currently visible
 // in the auto config space. This moves the board to the new address and the next
 // board becomes visible in auto config space.
-static void zorro_auto_config_assign_base_address(Byte* _Nullable addr, UInt8 bus)
+static void zorro_auto_config_assign_base_address(Byte* _Nullable addr, uint8_t bus)
 {
     if (bus == EXPANSION_BUS_ZORRO_3) {
         zorro3_auto_config_assign_base_address(addr);
@@ -255,7 +255,7 @@ static void zorro_auto_config_assign_base_address(Byte* _Nullable addr, UInt8 bu
     }
 }
 
-static Byte* _Nonnull zorro2_align_board_address(Byte* _Nonnull base_ptr, UInt board_size, Bool isMemory)
+static Byte* _Nonnull zorro2_align_board_address(Byte* _Nonnull base_ptr, unsigned int board_size, bool isMemory)
 {
     if (isMemory && board_size == SIZE_MB(8)) {
         // Can fit one board
@@ -278,13 +278,13 @@ static Byte* _Nonnull zorro2_align_board_address(Byte* _Nonnull base_ptr, UInt b
 
 static Byte* _Nullable zorro_calculate_base_address_for_board_in_range(const Zorro_BoardConfiguration* _Nonnull pConfig, const ExpansionBus* _Nonnull pExpansionBus, Byte* board_space_base_addr, Byte* board_space_top_addr)
 {
-    const Bool isMemoryBoard = pConfig->type == EXPANSION_TYPE_RAM;
-    const Bool isZorro3Board = pConfig->bus == EXPANSION_BUS_ZORRO_3;
+    const bool isMemoryBoard = pConfig->type == EXPANSION_TYPE_RAM;
+    const bool isZorro3Board = pConfig->bus == EXPANSION_BUS_ZORRO_3;
     Byte* highest_occupied_board_addr = board_space_base_addr;
     const ExpansionBoard* pHighestAllocatedBoard = NULL;
 
     // Find the board with a matching Zorro bus, board type and expansion space adress range that has the highest assigned address
-    for (Int i = 0; i < pExpansionBus->board_count; i++) {
+    for (int i = 0; i < pExpansionBus->board_count; i++) {
         const ExpansionBoard* pCurBoard = &pExpansionBus->board[i];
 
         if (pCurBoard->bus == pConfig->bus
@@ -339,11 +339,11 @@ static Byte* _Nullable zorro_calculate_base_address_for_board(const Zorro_BoardC
 }
 
 // Dynamically determines the size of the given memory expansion board.
-static UInt zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
+static unsigned int zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
 {
     Byte* pLower = board->start;
     Byte* pUpper = board->start + board->physical_size;
-    UInt size = 0;
+    unsigned int size = 0;
     
     while (pLower < pUpper) {
         if (cpu_verify_ram_4b(pLower)) {
@@ -361,9 +361,9 @@ static UInt zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
 
 void zorro_auto_config(ExpansionBus* pExpansionBus)
 {
-    const Bool isZorro3Machine = chipset_get_ramsey_version() > 0;
-    UInt8 prev_config_flags = ZORRO_FLAG_NEXT_IS_RELATED;
-    Int slot = 0;
+    const bool isZorro3Machine = chipset_get_ramsey_version() > 0;
+    uint8_t prev_config_flags = ZORRO_FLAG_NEXT_IS_RELATED;
+    int slot = 0;
     
     pExpansionBus->board_count = 0;
     while (pExpansionBus->board_count < EXPANSION_BOARDS_CAPACITY) {

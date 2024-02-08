@@ -13,7 +13,7 @@
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the first byte that is equal to 'mark'. -1 if 'mark' does
 // not appear in the given range.
-Int Bytes_FindFirst(const void* _Nonnull pBytes, Int nbytes, Byte mark)
+int Bytes_FindFirst(const void* _Nonnull pBytes, int nbytes, Byte mark)
 {
     const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p;
@@ -32,7 +32,7 @@ Int Bytes_FindFirst(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the first byte that is not equal to 'mark'. -1 if 'mark'
 // appears in the given range.
-Int Bytes_FindFirstNotEquals(const void* _Nonnull pBytes, Int nbytes, Byte mark)
+int Bytes_FindFirstNotEquals(const void* _Nonnull pBytes, int nbytes, Byte mark)
 {
     const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p;
@@ -51,7 +51,7 @@ Int Bytes_FindFirstNotEquals(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the last byte that is equal to 'mark'. -1 if 'mark' does not
 // appear in the given range.
-Int Bytes_FindLast(const void* _Nonnull pBytes, Int nbytes, Byte mark)
+int Bytes_FindLast(const void* _Nonnull pBytes, int nbytes, Byte mark)
 {
     const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p + nbytes - 1;
@@ -69,7 +69,7 @@ Int Bytes_FindLast(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 // Scans the 'nbytes' contiguous bytes in memory starting at 'p' and returns
 // the offset to the last byte that is not equal to 'mark'. -1 if 'mark'
 // appears in the given range.
-Int Bytes_FindLastNotEquals(const void* _Nonnull pBytes, Int nbytes, Byte mark)
+int Bytes_FindLastNotEquals(const void* _Nonnull pBytes, int nbytes, Byte mark)
 {
     const Byte* p = (const Byte*)pBytes;
     const Byte* cur_p = p;
@@ -87,7 +87,7 @@ Int Bytes_FindLastNotEquals(const void* _Nonnull pBytes, Int nbytes, Byte mark)
 // Compares the bytes at 'p1' with the bytes at 'p2' and returns the offset to
 // the first byte that do not compare equal. -1 is returned if all bytes are
 // equal.
-Int Bytes_FindFirstDifference(const void* _Nonnull p1, const void* _Nonnull p2, Int len)
+int Bytes_FindFirstDifference(const void* _Nonnull p1, const void* _Nonnull p2, int len)
 {
     const Byte* s1 = (const Byte*)p1;
     const Byte* s2 = (const Byte*)p2;
@@ -107,7 +107,7 @@ Int Bytes_FindFirstDifference(const void* _Nonnull p1, const void* _Nonnull p2, 
 }
 
 // Copies 'n' contiguous bytes in memory from 'pSrc' to 'pDst'.
-void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, Int n)
+void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, int n)
 {
     assert(n >= 0);
     if (pSrc == pDst || n == 0) {
@@ -134,17 +134,17 @@ void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, Int n)
         // - source and destination memory ranges do not intersect
         // - destination and source memory ranges intersect and the destination
         // range contains the source lower bound
-        UInt leadingByteCountSrc = ((UInt)src) & 0x03;
-        UInt leadingByteCountDst = ((UInt)dst) & 0x03;
+        unsigned int leadingByteCountSrc = ((unsigned int)src) & 0x03;
+        unsigned int leadingByteCountDst = ((unsigned int)dst) & 0x03;
         
         if (leadingByteCountSrc == leadingByteCountDst) {
             if (leadingByteCountSrc > 0) { *dst++ = *src++; leadingByteCountSrc--; }
             if (leadingByteCountSrc > 0) { *dst++ = *src++; leadingByteCountSrc--; }
             if (leadingByteCountSrc > 0) { *dst++ = *src++; leadingByteCountSrc--; }
             
-            const Byte* src_upper4 = (const Byte*) (((UInt)src_upper) & ~0x03);
+            const Byte* src_upper4 = (const Byte*) (((unsigned int)src_upper) & ~0x03);
             while (src < src_upper4) {
-                *((UInt32*)dst) = *((UInt32*)src);
+                *((uint32_t*)dst) = *((uint32_t*)src);
                 dst += 4; src += 4;
             }
             
@@ -163,20 +163,20 @@ void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, Int n)
 }
 
 // Zeros out 'len' contiguous bytes in memory starting at 'pBytes'
-void Bytes_ClearRange(void* _Nonnull pBytes, Int len)
+void Bytes_ClearRange(void* _Nonnull pBytes, int len)
 {
     assert(len >= 0);
     Byte* p = (Byte*)pBytes;
     const Byte* end = p + len;
-    UInt leadingByteCount = ((UInt)p) & 0x03;
+    unsigned int leadingByteCount = ((unsigned int)p) & 0x03;
     
     if (leadingByteCount > 0) { *p++ = 0; leadingByteCount--; }
     if (leadingByteCount > 0) { *p++ = 0; leadingByteCount--; }
     if (leadingByteCount > 0) { *p++ = 0; leadingByteCount--; }
     
-    const Byte* end4 = (const Byte*) (((UInt)end) & ~0x03);
+    const Byte* end4 = (const Byte*) (((unsigned int)end) & ~0x03);
     while (p < end4) {
-        *((UInt32*)p) = 0;
+        *((uint32_t*)p) = 0;
         p += 4;
     }
     
@@ -188,7 +188,7 @@ void Bytes_ClearRange(void* _Nonnull pBytes, Int len)
 }
 
 // Sets all bytes in the given range to 'byte'
-void Bytes_SetRange(void* _Nonnull pBytes, Int len, Byte byte)
+void Bytes_SetRange(void* _Nonnull pBytes, int len, Byte byte)
 {
     Byte* p = (Byte*)pBytes;
     Byte* end = p + len;

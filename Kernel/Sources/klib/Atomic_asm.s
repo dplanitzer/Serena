@@ -19,7 +19,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; AtomicBool AtomicBool_Set(volatile AtomicBool* _Nonnull pValue, Bool newValue)
+; AtomicBool AtomicBool_Set(volatile AtomicBool* _Nonnull pValue, bool newValue)
 ; Atomically assign 'newValue' to the atomic bool stored in the given memory
 ; location and returns the previous value.
 ; IRQ safe
@@ -44,7 +44,7 @@ _AtomicBool_Set:
 
 
 ;-------------------------------------------------------------------------------
-; AtomicInt AtomicInt_Add(volatile AtomicInt* _Nonnull pValue, Int increment)
+; AtomicInt AtomicInt_Add(volatile AtomicInt* _Nonnull pValue, int increment)
 ; Atomically adds the 'increment' value to the integer stored in the given
 ; memory location and returns the new value.
 ; IRQ safe
@@ -62,7 +62,7 @@ _AtomicInt_Add:
 
 
 ;-------------------------------------------------------------------------------
-; AtomicInt AtomicInt_Subtract(volatile AtomicInt* _Nonnull pValue, Int decrement)
+; AtomicInt AtomicInt_Subtract(volatile AtomicInt* _Nonnull pValue, int decrement)
 ; Atomically subtracts the 'decrement' value from the integer stored in the given
 ; memory location and returns the new value.
 ; IRQ safe

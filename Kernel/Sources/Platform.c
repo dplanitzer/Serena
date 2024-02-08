@@ -13,7 +13,7 @@
 //
 
 // Returns the model name of the CPU
-const Character* _Nonnull cpu_get_model_name(Int8 cpu_model)
+const char* _Nonnull cpu_get_model_name(int8_t cpu_model)
 {
     switch (cpu_model) {
         case CPU_MODEL_68000:
@@ -45,7 +45,7 @@ const Character* _Nonnull cpu_get_model_name(Int8 cpu_model)
 //
 
 // Returns the model name of the FPU
-const Character* _Nonnull fpu_get_model_name(Int8 fpu_model)
+const char* _Nonnull fpu_get_model_name(int8_t fpu_model)
 {
     switch (fpu_model) {
         case FPU_MODEL_NONE:
@@ -74,23 +74,23 @@ const Character* _Nonnull fpu_get_model_name(Int8 fpu_model)
 //
 
 // Returns true if the machine is a NTSC machine; false if it is a PAL machine
-Bool chipset_is_ntsc(void)
+bool chipset_is_ntsc(void)
 {
     return (chipset_get_version() & (1 << 4)) != 0;
 }
 
 // See: <https://eab.abime.net/showthread.php?t=34838>
-UInt8 chipset_get_version(void)
+uint8_t chipset_get_version(void)
 {
     CHIPSET_BASE_DECL(cp);
 
     return (*CHIPSET_REG_16(cp, VPOSR) >> 8) & 0x7f;
 }
 
-UInt8 chipset_get_ramsey_version(void)
+uint8_t chipset_get_ramsey_version(void)
 {
-    volatile UInt8* pRAMSEY = (volatile UInt8*)RAMSEY_CHIP_BASE;
-    UInt8 v = *pRAMSEY;
+    volatile uint8_t* pRAMSEY = (volatile uint8_t*)RAMSEY_CHIP_BASE;
+    uint8_t v = *pRAMSEY;
 
     switch (v) {
         case CHIPSET_RAMSEY_rev04:
@@ -102,7 +102,7 @@ UInt8 chipset_get_ramsey_version(void)
     }
 }
 
-Byte* chipset_get_upper_dma_limit(Int chipset_version)
+Byte* chipset_get_upper_dma_limit(int chipset_version)
 {
     Byte* p;
 
@@ -122,12 +122,12 @@ Byte* chipset_get_upper_dma_limit(Int chipset_version)
     return p;
 }
 
-UInt32 chipset_get_hsync_counter(void)
+uint32_t chipset_get_hsync_counter(void)
 {
     CIAB_BASE_DECL(cp);
-    const UInt32 h = *CIA_REG_8(cp, CIA_TODHI);
-    const UInt32 m = *CIA_REG_8(cp, CIA_TODMID);
-    const UInt32 l = *CIA_REG_8(cp, CIA_TODLO);
+    const uint32_t h = *CIA_REG_8(cp, CIA_TODHI);
+    const uint32_t m = *CIA_REG_8(cp, CIA_TODMID);
+    const uint32_t l = *CIA_REG_8(cp, CIA_TODLO);
 
     return (h << 16) | (m << 8) | l; 
 }

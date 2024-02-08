@@ -15,7 +15,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; Int64 __rshsint64(Int64 x, Int32 s)
+; int64_t __rshsint64(int64_t x, int32_t s)
 ; 64bit arithmetic shift right
 __rshsint64:
     inline
@@ -37,7 +37,7 @@ __rshsint64:
     einline
 
 ;-------------------------------------------------------------------------------
-; UInt64 __rshuint64(UInt64 x, Int32 s)
+; uint64_t __rshuint64(uint64_t x, int32_t s)
 ; 64bit logical shift right
 __rshuint64:
     inline
@@ -60,8 +60,8 @@ __rshuint64:
 
 
 ;-------------------------------------------------------------------------------
-; Int64 __lshint64(Int64 x, Int32 s)
-; UInt64 __lshuint64(UInt64 x, Int32 s)
+; int64_t __lshint64(int64_t x, int32_t s)
+; uint64_t __lshuint64(uint64_t x, int32_t s)
 ; 64bit logical shift left
 __lshint64:
 __lshuint64:
