@@ -15,35 +15,6 @@
 #include <abi/_math.h>
 
 
-static void _chdir(const char* path)
-{
-    const errno_t err = setcwd(path);
-
-    if (err != 0) {
-        printf("Error: %s.\n", strerror(err));
-    }
-}
-
-static void _remove(const char* path)
-{
-    const errno_t err = unlink(path);
-
-    if (err != 0) {
-        printf("Error: %s.\n", strerror(err));
-    }
-}
-
-void _mkdir(const char* path)
-{
-    const errno_t err = mkdir(path, 0777);
-    if (err != 0) {
-        printf("Error: %s.\n", strerror(err));
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
 errno_t Interpreter_Create(InterpreterRef _Nullable * _Nonnull pOutInterpreter)
 {
     InterpreterRef self = (InterpreterRef)calloc(1, sizeof(Interpreter));
@@ -83,6 +54,10 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Expands the given word to a string. Expansion means that:
+// XXX
+// Returns the string on success (note that it may be empty) and NULL if there's
+// not enough memory to do the expansion.
 static char* _Nullable Interpreter_ExpandWord(InterpreterRef _Nonnull self, WordRef _Nonnull pWord)
 {
     size_t wordSize = 0;
@@ -116,13 +91,12 @@ static char* _Nullable Interpreter_ExpandWord(InterpreterRef _Nonnull self, Word
 
     char* str = (char*)StackAllocator_Alloc(self->allocator, wordSize);
     if (str == NULL) {
-        printf("OOM\n");
         return NULL;
     }
 
 
     // Do the actual expansion
-    *str = '\0';
+    str[0] = '\0';
     pCurMorpheme = pWord->morphemes;
     while (pCurMorpheme) {
         switch (pCurMorpheme->type) {
@@ -150,40 +124,25 @@ static char* _Nullable Interpreter_ExpandWord(InterpreterRef _Nonnull self, Word
     return str;
 }
 
-static char* _Nullable Interpreter_GetArgumentAt(InterpreterRef _Nonnull self, WordRef _Nullable pArgs, int idx, char* _Nullable pDefault)
-{
-    WordRef pCurWord = pArgs;
-    int i = 0;
-
-    while (i < idx) {
-        if (pCurWord == NULL) {
-            return pDefault;
-        }
-
-        pCurWord = pCurWord->next;
-        i++;
-    }
-
-    char* str = Interpreter_ExpandWord(self, pCurWord);
-    if (str == NULL || *str == '\0') {
-        return pDefault;
-    }
-    return str;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void sh_cd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+static int sh_cd(InterpreterRef _Nonnull self, int argc, char** argv)
 {
-    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, NULL);
+    const char* path = (argc > 1) ? argv[1] : "";
     
-    if (path == NULL) {
-        printf("Error: expected a path.\n");
-        return;
+    if (*path == '\0') {
+        printf("%s: expected a path.\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
-    _chdir(path);
+    const errno_t err = setcwd(path);
+    if (err != 0) {
+        printf("%s: %s.\n", argv[0], strerror(err));
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 static void file_permissions_to_text(_file_permissions_t perms, char* _Nonnull buf)
@@ -293,9 +252,9 @@ static errno_t iterate_dir(InterpreterRef _Nonnull self, const char* _Nonnull pa
     return err;
 }
 
-static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+static int sh_ls(InterpreterRef _Nonnull self, int argc, char** argv)
 {
-    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, ".");
+    const char* path = (argc > 1) ? argv[1] : ".";
     struct DirectoryEntryFormat fmt = {0};
     errno_t err;
 
@@ -305,47 +264,64 @@ static void sh_ls(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
     }
 
     if (err != 0) {
-        printf("Error: %s.\n", strerror(err));
+        printf("%s: %s.\n", argv[0], strerror(err));
+        return EXIT_FAILURE;
     }
+
+    return EXIT_SUCCESS;
 }
 
-static void sh_pwd(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+static int sh_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
 {
-    if (pArgs) {
-        printf("Warning: ignored unexpected arguments\n");
+    if (argc > 1) {
+        printf("%s: unexpected extra arguments\n", argv[0]);
     }
 
     const errno_t err = getcwd(self->pathBuffer, PATH_MAX);
-
     if (err == 0) {
         printf("%s\n", self->pathBuffer);
     } else {
-        printf("Error: %s.\n", strerror(err));
+        printf("%s: %s.\n", argv[0], strerror(err));
+        return EXIT_FAILURE;
     }
+
+    return EXIT_SUCCESS;
 }
 
-static void sh_mkdir(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+static int sh_mkdir(InterpreterRef _Nonnull self, int argc, char** argv)
 {
-    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, NULL);
+    const char* path = (argc > 1) ? argv[1] : "";
 
-    if (path == NULL) {
-        printf("Error: expected a path\n");
-        return;
+    if (*path == '\0') {
+        printf("%s: expected a path.\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
-    _mkdir(path);
+    const errno_t err = mkdir(path, 0755);
+    if (err != 0) {
+        printf("%s: %s.\n", argv[0], strerror(err));
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
-static void sh_rm(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
+static int sh_rm(InterpreterRef _Nonnull self, int argc, char** argv)
 {
-    char* path = Interpreter_GetArgumentAt(self, pArgs, 0, NULL);
+    const char* path = (argc > 1) ? argv[1] : "";
 
-    if (path == NULL) {
-        printf("Error: expected a path");
-        return;
+    if (*path == '\0') {
+        printf("%s: expected a path.\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
-    _remove(path);
+    const errno_t err = remove(path);
+    if (err != 0) {
+        printf("%s: %s.\n", argv[0], strerror(err));
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 
@@ -353,30 +329,54 @@ static void sh_rm(InterpreterRef _Nonnull self, WordRef _Nullable pArgs)
 
 static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonnull pSentence)
 {
-    if (pSentence->words == NULL) {
+    const int nWords = Sentence_GetWordCount(pSentence);
+
+    // Create the command argument vector by expanding all words in the sentence
+    // to strings.
+    char** argv = (char**)StackAllocator_Alloc(self->allocator, sizeof(char*) * (nWords + 1));
+    if (argv == NULL) {
+        printf(strerror(ENOMEM));
         return;
     }
 
-    const char* cmd = Interpreter_ExpandWord(self, pSentence->words);
-    WordRef pArgs = pSentence->words->next;
+    int argc = 0;
+    WordRef curWord = pSentence->words;
+    while (curWord) {
+        char* arg = Interpreter_ExpandWord(self, curWord);
 
-    if (!strcmp(cmd, "cd")) {
-        sh_cd(self, pArgs);
+        if (arg == NULL) {
+            printf(strerror(ENOMEM));
+            return;
+        }
+
+        argv[argc++] = arg;
+        curWord = curWord->next;
     }
-    else if (!strcmp(cmd, "list")) {
-        sh_ls(self, pArgs);
+    argv[argc] = NULL;
+
+    if (argc == 0) {
+        return;
     }
-    else if (!strcmp(cmd, "pwd")) {
-        sh_pwd(self, pArgs);
+
+
+    // Execute the command
+    if (!strcmp(argv[0], "cd")) {
+        sh_cd(self, argc, argv);
     }
-    else if (!strcmp(cmd, "makedir")) {
-        sh_mkdir(self, pArgs);
+    else if (!strcmp(argv[0], "list")) {
+        sh_ls(self, argc, argv);
     }
-    else if (!strcmp(cmd, "delete")) {
-        sh_rm(self, pArgs);
+    else if (!strcmp(argv[0], "pwd")) {
+        sh_pwd(self, argc, argv);
+    }
+    else if (!strcmp(argv[0], "makedir")) {
+        sh_mkdir(self, argc, argv);
+    }
+    else if (!strcmp(argv[0], "delete")) {
+        sh_rm(self, argc, argv);
     }
     else {
-        printf("Error: unknown command.\n");
+        printf("%s: unknown command.\n", argv[0]);
     }
 }
 

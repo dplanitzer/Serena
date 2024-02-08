@@ -14,8 +14,6 @@
 #include "LineReader.h"
 #include "Parser.h"
 
-extern void _mkdir(const char*);
-
 
 void main_closure(int argc, char *argv[])
 {
@@ -24,9 +22,9 @@ void main_closure(int argc, char *argv[])
     //printf("\033[4h");  // Switch the console to insert mode
     printf("Apollo v0.1.\nCopyright 2023, Dietmar Planitzer.\n\n");
 
-    _mkdir("/Users");
-    _mkdir("/Users/Admin");
-    _mkdir("/Users/Tester");
+    mkdir("/Users", 0755);
+    mkdir("/Users/Admin", 0755);
+    mkdir("/Users/Tester", 0755);
 
 
     LineReaderRef pLineReader = NULL;

@@ -81,6 +81,7 @@ typedef struct Sentence {
 
 extern errno_t Sentence_Create(StackAllocatorRef _Nonnull pAllocator, SentenceRef _Nullable * _Nonnull pOutSentence);
 extern void Sentence_Print(SentenceRef _Nonnull self);
+extern int Sentence_GetWordCount(SentenceRef _Nonnull self);
 extern void Sentence_AddWord(SentenceRef _Nonnull self, WordRef _Nonnull pWord);
 
 

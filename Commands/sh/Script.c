@@ -162,6 +162,18 @@ void Sentence_Print(SentenceRef _Nonnull self)
     }
 }
 
+int Sentence_GetWordCount(SentenceRef _Nonnull self)
+{
+    WordRef curWord = self->words;
+    int count = 0;
+
+    while (curWord) {
+        curWord = curWord->next;
+        count++;
+    }
+    return count;
+}
+
 void Sentence_AddWord(SentenceRef _Nonnull self, WordRef _Nonnull pWord)
 {
     if (self->lastWord) {
