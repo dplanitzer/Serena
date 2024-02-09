@@ -399,7 +399,7 @@ void Process_Terminate(ProcessRef _Nonnull pProc, int exitCode)
 
     // Schedule the actual process termination and destruction on the kernel
     // main dispatch queue.
-    try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) _Process_DoTerminate, (Byte*) pProc)));
+    try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) _Process_DoTerminate, pProc)));
 }
 
 bool Process_IsTerminating(ProcessRef _Nonnull pProc)
@@ -552,7 +552,7 @@ static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, 
     }
 
     const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv_envp, CPU_PAGE_SIZE);
-    try(AddressSpace_Allocate(pProc->addressSpace, nbytes_procargs, &pProc->argumentsBase));
+    try(AddressSpace_Allocate(pProc->addressSpace, nbytes_procargs, (void**)&pProc->argumentsBase));
 
     ProcessArguments* pProcArgs = (ProcessArguments*) pProc->argumentsBase;
     char** pProcArgv = (char**)(pProc->argumentsBase + sizeof(ProcessArguments));
@@ -649,7 +649,7 @@ errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pU
 }
 
 // Allocates more (user) address space to the given process.
-errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, Byte* _Nullable * _Nonnull pOutMem)
+errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem)
 {
     return AddressSpace_Allocate(pProc->addressSpace, count, pOutMem);
 }

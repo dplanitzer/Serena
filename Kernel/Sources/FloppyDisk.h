@@ -88,7 +88,7 @@ extern void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull pDisk);
 
 extern void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull pDisk);
 
-extern errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, Byte* _Nonnull pBuffer);
-extern errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, const Byte* _Nonnull pBuffer);
+extern errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, void* _Nonnull pBuffer);
+extern errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, const void* _Nonnull pBuffer);
 
 #endif /* FloppyDisk_h */

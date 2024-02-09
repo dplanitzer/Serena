@@ -98,7 +98,7 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
 
 
     // XXX
-    //GraphicsDriver_SetMouseCursor(gdevice, (Byte*)gArrow_Bits, (Byte*)gArrow_Mask);
+    //GraphicsDriver_SetMouseCursor(gdevice, gArrow_Bits, gArrow_Mask);
     //EventDriver_ShowMouseCursor(pDriver);
     // XXX
 
@@ -488,7 +488,7 @@ void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const HIDKey
     *nKeysDown = oi;
 }
 
-void EventDriver_SetMouseCursor(EventDriverRef _Nonnull pDriver, const Byte* pBitmap, const Byte* pMask)
+void EventDriver_SetMouseCursor(EventDriverRef _Nonnull pDriver, const void* pBitmap, const void* pMask)
 {
     GraphicsDriver_SetMouseCursor(pDriver->gdevice, pBitmap, pMask);
 }

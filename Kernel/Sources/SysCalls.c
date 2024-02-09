@@ -444,8 +444,8 @@ catch:
 // than 0 and a multiple of the CPU page size.
 struct SYS_alloc_address_space_args {
     int                         scno;
-    size_t                  nbytes;
-    Byte * _Nullable * _Nonnull pOutMem;
+    size_t                      nbytes;
+    void * _Nullable * _Nonnull pOutMem;
 };
 
 int _SYSCALL_alloc_address_space(struct SYS_alloc_address_space_args* _Nonnull pArgs)
@@ -463,7 +463,7 @@ int _SYSCALL_alloc_address_space(struct SYS_alloc_address_space_args* _Nonnull p
     return EOK;
 
 catch:
-    return -err;
+    return err;
 }
 
 

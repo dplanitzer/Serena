@@ -84,7 +84,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     pConsole->flags.isTextCursorBlinkerEnabled = false;
     pConsole->flags.isTextCursorOn = false;
     pConsole->flags.isTextCursorSingleCycleOn = false;
-    try(Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(500), DispatchQueueClosure_Make((Closure1Arg_Func)Console_OnTextCursorBlink, (Byte*)pConsole), &pConsole->textCursorBlinker));
+    try(Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(500), DispatchQueueClosure_Make((Closure1Arg_Func)Console_OnTextCursorBlink, pConsole), &pConsole->textCursorBlinker));
 
 
     // Reset the console to the default configuration

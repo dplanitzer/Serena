@@ -53,7 +53,7 @@ typedef struct _WorkItem {
     bool                                    is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
     AtomicBool                              is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
     AtomicBool                              cancelled;              // shared between dispatch queue and queue user
-    int8_t                                    type;
+    int8_t                                  type;
 } WorkItem;
 
 extern errno_t WorkItem_Create_Internal(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem);
@@ -114,15 +114,15 @@ typedef struct _DispatchQueue {
     ProcessRef _Nullable _Weak          owning_process;             // The process that owns this queue
     VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
     int                                 items_queued_count;         // Number of work items queued up (item_queue)
-    int8_t                                state;                      // The current dispatch queue state
-    int8_t                                minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
-    int8_t                                maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
-    int8_t                                availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
-    int8_t                                qos;
-    int8_t                                priority;
-    int8_t                                item_cache_count;
-    int8_t                                timer_cache_count;
-    int8_t                                completion_signaler_count;
+    int8_t                              state;                      // The current dispatch queue state
+    int8_t                              minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
+    int8_t                              maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
+    int8_t                              availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
+    int8_t                              qos;
+    int8_t                              priority;
+    int8_t                              item_cache_count;
+    int8_t                              timer_cache_count;
+    int8_t                              completion_signaler_count;
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 } DispatchQueue;
 

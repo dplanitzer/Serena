@@ -102,21 +102,21 @@ uint8_t chipset_get_ramsey_version(void)
     }
 }
 
-Byte* chipset_get_upper_dma_limit(int chipset_version)
+char* chipset_get_upper_dma_limit(int chipset_version)
 {
-    Byte* p;
+    char* p;
 
     switch (chipset_version) {
-        case CHIPSET_8370_NTSC:             p = (Byte*) (512 * 1024); break;
-        case CHIPSET_8371_PAL:              p = (Byte*) (512 * 1024); break;
-        case CHIPSET_8372_rev4_PAL:         p = (Byte*) (1 * 1024 * 1024); break;
-        case CHIPSET_8372_rev4_NTSC:        p = (Byte*) (1 * 1024 * 1024); break;
-        case CHIPSET_8372_rev5_NTSC:        p = (Byte*) (1 * 1024 * 1024); break;
-        case CHIPSET_8374_rev2_PAL:         p = (Byte*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev2_NTSC:        p = (Byte*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev3_PAL:         p = (Byte*) (2 * 1024 * 1024); break;
-        case CHIPSET_8374_rev3_NTSC:        p = (Byte*) (2 * 1024 * 1024); break;
-        default:                            p = (Byte*) (2 * 1024 * 1024); break;
+        case CHIPSET_8370_NTSC:             p = (char*) (512 * 1024); break;
+        case CHIPSET_8371_PAL:              p = (char*) (512 * 1024); break;
+        case CHIPSET_8372_rev4_PAL:         p = (char*) (1 * 1024 * 1024); break;
+        case CHIPSET_8372_rev4_NTSC:        p = (char*) (1 * 1024 * 1024); break;
+        case CHIPSET_8372_rev5_NTSC:        p = (char*) (1 * 1024 * 1024); break;
+        case CHIPSET_8374_rev2_PAL:         p = (char*) (2 * 1024 * 1024); break;
+        case CHIPSET_8374_rev2_NTSC:        p = (char*) (2 * 1024 * 1024); break;
+        case CHIPSET_8374_rev3_PAL:         p = (char*) (2 * 1024 * 1024); break;
+        case CHIPSET_8374_rev3_NTSC:        p = (char*) (2 * 1024 * 1024); break;
+        default:                            p = (char*) (2 * 1024 * 1024); break;
     }
 
     return p;

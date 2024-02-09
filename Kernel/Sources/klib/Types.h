@@ -91,7 +91,7 @@ typedef struct _User {
 
 
 // A callback function that takes a single (context) pointer argument
-typedef void (* _Nonnull Closure1Arg_Func)(Byte* _Nullable pContext);
+typedef void (* _Nonnull Closure1Arg_Func)(void* _Nullable pContext);
 
 
 // Minimum size for types

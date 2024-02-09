@@ -17,14 +17,14 @@
 #define MOUSE_CURSOR_HEIGHT 16
 
 typedef struct _MousePainter {
-    uint16_t* _Nonnull _Weak      bitmap;
-    uint16_t* _Nonnull _Weak      mask;               // Mask is inverted: 0 where the mouse image should appear; 1 where the background should appear
-    Byte* _Nonnull              bitmapMaskBuffer;   // Common storage for the bitmap and mask. Stored in non-unified RAM
+    uint16_t* _Nonnull _Weak    bitmap;
+    uint16_t* _Nonnull _Weak    mask;               // Mask is inverted: 0 where the mouse image should appear; 1 where the background should appear
+    uint8_t* _Nonnull           bitmapMaskBuffer;   // Common storage for the bitmap and mask. Stored in non-unified RAM
     Surface* _Nullable _Weak    background;         // The background image over which the cursor should hover
-    int16_t                       rLeft;              // Screen bounds in top-left, bottom-right notation. Note that the bottom-right coordinate is exclusive
-    int16_t                       rTop;
-    int16_t                       rRight;
-    int16_t                       rBottom;
+    int16_t                     rLeft;              // Screen bounds in top-left, bottom-right notation. Note that the bottom-right coordinate is exclusive
+    int16_t                     rTop;
+    int16_t                     rRight;
+    int16_t                     rBottom;
 
     // Requested mouse cursor position and visibility. The paint function is
     // responsible for figuring out the difference between what the requested
@@ -36,24 +36,24 @@ typedef struct _MousePainter {
     // is the requested state when the next vertical blank happens. This one will
     // be compared to the current state of the mouse cursor as it appears on the
     // screen. 
-    int16_t                       x;
-    int16_t                       y;
+    int16_t                     x;
+    int16_t                     y;
     struct _Flags {
-        uint8_t                   isVisible:1;
-        uint8_t                   isHiddenUntilMouseMoves:1;
-        uint8_t                   hasBackground:1;
+        uint8_t                 isVisible:1;
+        uint8_t                 isHiddenUntilMouseMoves:1;
+        uint8_t                 hasBackground:1;
     }                           flags;
 
     // Current mouse cursor state corresponding to what is visible on the screen right now
     struct _CurrentFlags {
-        uint8_t                   isVisible:1;
-        uint8_t                   isShielded:1;
-        uint8_t                   hasSavedImage:1;
+        uint8_t                 isVisible:1;
+        uint8_t                 isShielded:1;
+        uint8_t                 hasSavedImage:1;
     }                           curFlags;
-    int16_t                       curX;
-    int16_t                       curY;
-    ssize_t                   curSavedByteOffset; // Offset from the top-left corner of the framebuffer to the top-left corner of the saved image. This is in terms of bytes
-    uint32_t*                     savedImage;         // Buffer is big enough to hold a 32x16 image with 5 bitplanes. This is 32bit because the 16bit (pixel) wide mouse cursor may straddle two adjacend 16bit words
+    int16_t                     curX;
+    int16_t                     curY;
+    ssize_t                     curSavedByteOffset; // Offset from the top-left corner of the framebuffer to the top-left corner of the saved image. This is in terms of bytes
+    uint32_t*                   savedImage;         // Buffer is big enough to hold a 32x16 image with 5 bitplanes. This is 32bit because the 16bit (pixel) wide mouse cursor may straddle two adjacend 16bit words
                                                     // Planes are stored one after the other without any padding bytes in between. The order is plane n-1, n-2, ..., 0
 } MousePainter;
 
@@ -82,7 +82,7 @@ extern void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _N
 // mask stores a 1 bit. The framebuffer image will appear in places where the
 // mask stores a 0 bit. Assumes that the bytes-per-row value of the bitmap and
 // mask are 2.
-extern void MousePainter_SetCursor(MousePainter* _Nonnull pPainter, const Byte* pBitmap, const Byte* pMask);
+extern void MousePainter_SetCursor(MousePainter* _Nonnull pPainter, const void* pBitmap, const void* pMask);
 extern void MousePainter_SetPosition(MousePainter* _Nonnull pPainter, Point pt);
 extern void MousePainter_SetVisible(MousePainter* _Nonnull pPainter, bool isVisible);
 extern void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull pPainter, bool flag);

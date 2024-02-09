@@ -620,7 +620,7 @@ catch:
     return err;
 }
 
-errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, Byte* _Nonnull pBuffer)
+errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, void* _Nonnull pBuffer)
 {
     decl_try_err();
     
@@ -683,7 +683,7 @@ catch:
     return err;
 }
 
-errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, const Byte* pBuffer)
+errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, const void* pBuffer)
 {
     decl_try_err();
     

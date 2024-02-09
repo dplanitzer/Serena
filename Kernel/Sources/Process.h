@@ -81,7 +81,7 @@ extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnA
 extern errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
 
 // Allocates more (user) address space to the given process.
-extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, Byte* _Nullable * _Nonnull pOutMem);
+extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem);
 
 
 // Registers the given I/O channel with the process. This action allows the

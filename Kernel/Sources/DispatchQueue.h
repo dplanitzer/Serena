@@ -52,12 +52,12 @@ typedef struct _DispatchQueue* DispatchQueueRef;
 
 typedef struct _DispatchQueueClosure {
     Closure1Arg_Func _Nonnull   func;
-    Byte* _Nullable _Weak       context;
+    void* _Nullable _Weak       context;
     bool                        isUser;
-    int8_t                        reserved[3];
+    int8_t                      reserved[3];
 } DispatchQueueClosure;
 
-static inline DispatchQueueClosure DispatchQueueClosure_Make(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
+static inline DispatchQueueClosure DispatchQueueClosure_Make(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext) {
     DispatchQueueClosure c;
     c.func = pFunc;
     c.context = pContext;
@@ -65,7 +65,7 @@ static inline DispatchQueueClosure DispatchQueueClosure_Make(Closure1Arg_Func _N
     return c;
 }
 
-static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext) {
+static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext) {
     DispatchQueueClosure c;
     c.func = pFunc;
     c.context = pContext;

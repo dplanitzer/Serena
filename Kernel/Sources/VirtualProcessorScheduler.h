@@ -68,7 +68,7 @@ extern VirtualProcessorScheduler* _Nonnull gVirtualProcessorScheduler;
 // 'pContext' argument. The first context switch from the machine reset context
 // to the boot virtual processor context is triggered by calling the
 // VirtualProcessorScheduler_IncipientContextSwitch() function. 
-extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext);
+extern void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext);
 
 extern errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull pScheduler);
 extern _Noreturn VirtualProcessorScheduler_SwitchToBootVirtualProcessor(void);

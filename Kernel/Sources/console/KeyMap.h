@@ -69,7 +69,7 @@ typedef uint16_t  KeyMapOffset;
 // XXX Consider adding TYPE_3 variant that stores a string up to 4 bytes in 32bits inline
 
 typedef struct _KeyMapRange {
-    uint16_t          type;
+    uint16_t        type;
     HIDKeyCode      lower;
     HIDKeyCode      upper;
     KeyMapOffset    traps;
@@ -80,9 +80,9 @@ typedef struct _KeyMapRange {
 #define KEY_MAP_TYPE_0  0
 
 typedef struct _KeyMap {
-    uint16_t          type;
-    uint16_t          size;   // Overall size of key map in bytes
-    uint16_t          rangeCount;
+    uint16_t        type;
+    uint16_t        size;   // Overall size of key map in bytes
+    uint16_t        rangeCount;
     KeyMapOffset    rangeOffset[1];
 } KeyMap;
 
@@ -104,6 +104,6 @@ extern bool KeyMap_IsValid(const KeyMap* _Nonnull pMap);
 // returned. If that length is zero then the key press or release should be
 // ignored. Note that this function returns a sequence of bytes and not a
 // C string. Consequently the sequence is not nul-terminated.
-extern ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ssize_t maxOutBytes);
+extern ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, void* _Nonnull pBuffer, ssize_t maxOutBytes);
 
 #endif /* KeyMap_h */

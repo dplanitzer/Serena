@@ -17,17 +17,17 @@
 
 // A kernel or user execution stack
 typedef struct _ExecutionStack {
-    Byte* _Nullable base;
-    int             size;
+    char* _Nullable base;
+    size_t          size;
 } ExecutionStack;
 
 
 extern void ExecutionStack_Init(ExecutionStack* _Nonnull pStack);
 extern void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack);
 
-extern errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, int size);
+extern errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, size_t size);
 
-static inline Byte* _Nonnull ExecutionStack_GetInitialTop(ExecutionStack* _Nonnull pStack) {
+static inline char* _Nonnull ExecutionStack_GetInitialTop(ExecutionStack* _Nonnull pStack) {
     return pStack->base + pStack->size;
 }
 
@@ -37,13 +37,13 @@ static inline Byte* _Nonnull ExecutionStack_GetInitialTop(ExecutionStack* _Nonnu
 // kernel plus user stack size.
 typedef struct _VirtualProcessorClosure {
     Closure1Arg_Func _Nonnull   func;
-    Byte* _Nullable _Weak       context;
-    Byte* _Nullable             kernelStackBase;    // Optional base address of a pre-allocated kernel stack
-    int                         kernelStackSize;
-    int                         userStackSize;
+    void* _Nullable _Weak       context;
+    char* _Nullable             kernelStackBase;    // Optional base address of a pre-allocated kernel stack
+    size_t                      kernelStackSize;
+    size_t                      userStackSize;
 } VirtualProcessorClosure;
 
-static inline VirtualProcessorClosure VirtualProcessorClosure_Make(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext, int kernelStackSize, int userStackSize) {
+static inline VirtualProcessorClosure VirtualProcessorClosure_Make(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext, size_t kernelStackSize, size_t userStackSize) {
     VirtualProcessorClosure c;
     c.func = pFunc;
     c.context = pContext;
@@ -56,7 +56,7 @@ static inline VirtualProcessorClosure VirtualProcessorClosure_Make(Closure1Arg_F
 // Creates a virtua processor closure with the given function and context parameter.
 // The closure will run on a pre-allocated kernel stack. Note that the kernel stack
 // must stay allocated until the virtual processor is terminated.
-static inline VirtualProcessorClosure VirtualProcessorClosure_MakeWithPreallocatedKernelStack(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext, Byte* _Nonnull pKernelStackBase, int kernelStackSize) {
+static inline VirtualProcessorClosure VirtualProcessorClosure_MakeWithPreallocatedKernelStack(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext, char* _Nonnull pKernelStackBase, size_t kernelStackSize) {
     VirtualProcessorClosure c;
     c.func = pFunc;
     c.context = pContext;

@@ -33,13 +33,13 @@ typedef enum _SurfaceAccess {
 #define SURFACE_FLAG_LOCKED 0x01
 
 typedef struct _Surface {
-    Byte* _Nullable planes[MAX_PLANE_COUNT];
-    int16_t           width;
-    int16_t           height;
-    int16_t           bytesPerRow;
-    int16_t           planeCount;
-    int16_t           pixelFormat;
-    uint16_t          flags;
+    uint8_t* _Nullable  planes[MAX_PLANE_COUNT];
+    int16_t             width;
+    int16_t             height;
+    int16_t             bytesPerRow;
+    int16_t             planeCount;
+    int16_t             pixelFormat;
+    uint16_t            flags;
 } Surface;
 
 

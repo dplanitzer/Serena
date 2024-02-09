@@ -66,7 +66,7 @@ extern void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull pDriver, const
 
 
 // The mouse cursor state
-extern void EventDriver_SetMouseCursor(EventDriverRef _Nonnull pDriver, const Byte* pBitmap, const Byte* pMask);
+extern void EventDriver_SetMouseCursor(EventDriverRef _Nonnull pDriver, const void* pBitmap, const void* pMask);
 extern void EventDriver_ShowMouseCursor(EventDriverRef _Nonnull pDriver);
 extern void EventDriver_HideMouseCursor(EventDriverRef _Nonnull pDriver);
 extern void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonnull pDriver, bool flag);

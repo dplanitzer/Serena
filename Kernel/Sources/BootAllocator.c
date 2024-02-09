@@ -26,10 +26,10 @@ void BootAllocator_Deinit(BootAllocator* _Nonnull pAlloc)
 // Allocates a memory block from CPU-only RAM that is able to hold at least 'nbytes'.
 // Note that the base address of the allocated block is page aligned. Never returns
 // NULL.
-Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, ssize_t nbytes)
+void* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, ssize_t nbytes)
 {
     assert(nbytes > 0);
-    Byte* ptr = NULL;
+    char* ptr = NULL;
 
     while(true) {
         ptr = __Floor_Ptr_PowerOf2(pAlloc->current_top - nbytes, CPU_PAGE_SIZE);
@@ -46,7 +46,7 @@ Byte* _Nonnull BootAllocator_Allocate(BootAllocator* _Nonnull pAlloc, ssize_t nb
 
 // Returns the lowest address used by the boot allocator. This address is always
 // page aligned.
-Byte* _Nonnull BootAllocator_GetLowestAllocatedAddress(BootAllocator* _Nonnull pAlloc)
+void* _Nonnull BootAllocator_GetLowestAllocatedAddress(BootAllocator* _Nonnull pAlloc)
 {
     // current_top is always page aligned in the existing implementation
     return pAlloc->current_top;

@@ -120,7 +120,7 @@ void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _Nullable
 // mask stores a 1 bit. The framebuffer image will appear in places where the
 // mask stores a 0 bit. Assumes that the bytes-per-row value of the bitmap and
 // mask are 2.
-void MousePainter_SetCursor(MousePainter* _Nonnull pPainter, const Byte* pBitmap, const Byte* pMask)
+void MousePainter_SetCursor(MousePainter* _Nonnull pPainter, const void* pBitmap, const void* pMask)
 {
     const uint16_t* sbp = (const uint16_t*)pBitmap;
     const uint16_t* smp = (const uint16_t*)pMask;
@@ -239,10 +239,10 @@ static void MousePainter_RestoreSavedImage(MousePainter* _Nonnull pPainter)
         register int8_t nIters = MOUSE_CURSOR_HEIGHT/4;
 
         while (nIters-- > 0) {
-            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
-            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
-            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
-            *bp = *sip++; bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((uint8_t*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((uint8_t*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((uint8_t*)bp + bgBytesPerRow);
+            *bp = *sip++; bp = (uint32_t*) ((uint8_t*)bp + bgBytesPerRow);
         }
     }
     pPainter->curFlags.hasSavedImage = false;
@@ -276,7 +276,7 @@ static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter
             mask = rot32_left(mask, shift);
             *sip++ = bg;
             *bp = bg & mask;
-            bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
+            bp = (uint32_t*) ((uint8_t*)bp + bgBytesPerRow);
         }
     }
 
@@ -294,7 +294,7 @@ static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter
         mask = rot32_left(mask, shift);
         *sip++ = bg;
         *bp = (bg & mask) | mouse;
-        bp = (uint32_t*) ((Byte*)bp + bgBytesPerRow);
+        bp = (uint32_t*) ((uint8_t*)bp + bgBytesPerRow);
     }
 
     pPainter->curSavedByteOffset = byteOffsetToFirstWord;

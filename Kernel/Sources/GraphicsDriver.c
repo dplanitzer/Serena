@@ -729,7 +729,7 @@ catch:
 // MARK: Mouse Cursor
 ////////////////////////////////////////////////////////////////////////////////
 
-void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull pDriver, const Byte* pBitmap, const Byte* pMask)
+void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull pDriver, const void* pBitmap, const void* pMask)
 {
     Lock_Lock(&pDriver->lock);
     MousePainter_SetCursor(&pDriver->mousePainter, pBitmap, pMask);
@@ -872,7 +872,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
     const int dst_width = __max(Rect_GetWidth(dst_r) - dst_clipped_left_span - dst_clipped_right_span, 0);
 
     for (int i = 0; i < pSurface->planeCount; i++) {
-        Byte* pPlane = pSurface->planes[i];
+        uint8_t* pPlane = pSurface->planes[i];
 
         if (dst_r.top >= src_r.top && dst_r.top <= src_end_y) {
             const int dst_clipped_y_span = __max(dst_r.bottom - fb_height, 0);
@@ -905,7 +905,7 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
 }
 
 // Blits a monochromatic 8x8 pixel glyph to the given position in the framebuffer.
-void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const Byte* _Nonnull pGlyphBitmap, int x, int y)
+void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const void* _Nonnull pGlyphBitmap, int x, int y)
 {
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, x + 8, y + 8));
     const int bytesPerRow = pSurface->bytesPerRow;
@@ -917,8 +917,8 @@ void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const By
         return;
     }
     
-    Byte* dst = pSurface->planes[0] + (y << 3) * bytesPerRow + x;
-    const Byte* src = pGlyphBitmap;
+    uint8_t* dst = pSurface->planes[0] + (y << 3) * bytesPerRow + x;
+    const uint8_t* src = pGlyphBitmap;
     
     *dst = *src++; dst += bytesPerRow;      // 0
     *dst = *src++; dst += bytesPerRow;      // 1

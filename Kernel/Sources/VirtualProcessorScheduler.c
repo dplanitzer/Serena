@@ -16,7 +16,7 @@ extern void VirtualProcessorScheduler_SwitchContext(void);
 
 static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull pScheduler);
 
-static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext);
+static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext);
 static VirtualProcessor* _Nonnull IdleVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc);
 
 
@@ -30,7 +30,7 @@ VirtualProcessorScheduler*  gVirtualProcessorScheduler = &gVirtualProcessorSched
 // 'pContext' argument. The first context switch from the machine reset context
 // to the boot virtual processor context is triggered by calling the
 // VirtualProcessorScheduler_IncipientContextSwitch() function. 
-void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext)
+void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext)
 {
     // Stored in the BSS. Thus starts out zeroed.
     VirtualProcessorScheduler* pScheduler = &gVirtualProcessorSchedulerStorage;
@@ -606,7 +606,7 @@ int VirtualProcessor_GetCurrentVpid(void)
 // duties for the scheduler.
 // \param pVP the boot virtual processor record
 // \param closure the closure that should be invoked by the virtual processor
-static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext)
+static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext)
 {
     // Stored in the BSS. Thus starts out zeroed.
     static VirtualProcessor gBootVirtualProcessorStorage;
@@ -615,12 +615,12 @@ static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _No
 
     // Allocate the boot virtual processor kernel stack
     const int kernelStackSize = CPU_PAGE_SIZE;
-    Byte* pKernelStackBase = BootAllocator_Allocate(pBootAlloc, kernelStackSize);
+    char* pKernelStackBase = BootAllocator_Allocate(pBootAlloc, kernelStackSize);
 
 
     // Create the VP
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_HIGHEST);
-    try_bang(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)pFunc, (Byte*)pContext, pKernelStackBase, kernelStackSize)));
+    try_bang(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)pFunc, pContext, pKernelStackBase, kernelStackSize)));
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->suspension_count = 0;
     
@@ -633,7 +633,7 @@ static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _No
 // MARK: Idle Virtual Processor
 ////////////////////////////////////////////////////////////////////////////////
 
-static void IdleVirtualProcessor_Run(Byte* _Nullable pContext);
+static void IdleVirtualProcessor_Run(void* _Nullable pContext);
 
 // Creates an idle virtual processor. The scheduler schedules this VP if no other
 // one is in state ready.
@@ -646,7 +646,7 @@ static VirtualProcessor* _Nonnull IdleVirtualProcessor_Create(BootAllocator* _No
 
     // Allocate the boot virtual processor kernel stack
     const int kernelStackSize = CPU_PAGE_SIZE;
-    Byte* pKernelStackBase = BootAllocator_Allocate(pBootAlloc, kernelStackSize);
+    char* pKernelStackBase = BootAllocator_Allocate(pBootAlloc, kernelStackSize);
 
 
     // Create the VP
@@ -658,7 +658,7 @@ static VirtualProcessor* _Nonnull IdleVirtualProcessor_Create(BootAllocator* _No
 
 // Puts the CPU to sleep until an interrupt occurs. The interrupt will give the
 // scheduler a chance to run some other virtual processor if one is ready.
-static void IdleVirtualProcessor_Run(Byte* _Nullable pContext)
+static void IdleVirtualProcessor_Run(void* _Nullable pContext)
 {
     while (true) {
         cpu_sleep(gSystemDescription->cpu_model);

@@ -13,7 +13,7 @@
 // XXX Should check that all offsets are inside the pMap->size range.
 bool KeyMap_IsValid(const KeyMap* _Nonnull pMap)
 {
-    const Byte* pMapBase = (const Byte*) pMap;
+    const uint8_t* pMapBase = (const uint8_t*) pMap;
 
     for (uint16_t r = 0; r < pMap->rangeCount; r++) {
         const KeyMapRange* pCurRange = (const KeyMapRange*)(pMapBase + pMap->rangeOffset[r]);
@@ -40,7 +40,7 @@ bool KeyMap_IsValid(const KeyMap* _Nonnull pMap)
 
 
 
-static ssize_t KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, char* _Nonnull pOutChars)
+static ssize_t KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const uint8_t* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, char* _Nonnull pOutChars)
 {
     uint32_t evtFlags = pEvent->flags;
 
@@ -71,7 +71,7 @@ static ssize_t KeyMapRange_Type0_Map(const KeyMapRange* _Nonnull pRange, const B
 }
 
 // Maps a USB key code to a nul-terminated UTF8 string. Ignores modifier keys.
-static ssize_t KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const Byte* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, char* _Nonnull pOutChars, ssize_t maxOutChars)
+static ssize_t KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const uint8_t* _Nonnull pMapBase, const HIDEventData_KeyUpDown* _Nonnull pEvent, char* _Nonnull pOutChars, ssize_t maxOutChars)
 {
     const uint16_t* pTrapOffsets = (const uint16_t*)(pMapBase + pRange->traps);
     const int adjustedUsbKeyCode = pEvent->keyCode - pRange->lower;
@@ -94,10 +94,10 @@ static ssize_t KeyMapRange_Type3_Map(const KeyMapRange* _Nonnull pRange, const B
 // returned. If that length is zero then the key press or release should be
 // ignored. Note that this function returns a sequence of bytes and not a
 // C string. Consequently the sequence is not nul-terminated.
-ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, Byte* _Nonnull pBuffer, ssize_t maxOutBytes)
+ssize_t KeyMap_Map(const KeyMap* _Nonnull pMap, const HIDEventData_KeyUpDown* _Nonnull pEvent, void* _Nonnull pBuffer, ssize_t maxOutBytes)
 {
     if (maxOutBytes > 0) {
-        const Byte* pMapBase = (const Byte*)pMap;
+        const uint8_t* pMapBase = (const uint8_t*)pMap;
         const HIDKeyCode usbKeyCode = pEvent->keyCode;
 
         for (int i = 0; i < pMap->rangeCount; i++) {

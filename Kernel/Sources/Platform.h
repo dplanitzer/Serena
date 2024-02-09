@@ -219,10 +219,10 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 
 // Reading / Writing CIA A/B registers
 #define CIAA_BASE_DECL(cp) \
-    volatile Byte* cp = (volatile Byte*) CIAA_BASE
+    volatile uint8_t* cp = (volatile uint8_t*) CIAA_BASE
 
 #define CIAB_BASE_DECL(cp) \
-    volatile Byte* cp = (volatile Byte*) CIAB_BASE
+    volatile uint8_t* cp = (volatile uint8_t*) CIAB_BASE
 
 #define CIA_REG_8(cp, r) \
     ((volatile uint8_t*)(cp + r))
@@ -278,7 +278,7 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 
 // Reading / Writing chipset registers
 #define CHIPSET_BASE_DECL(cp) \
-    volatile Byte* cp = (volatile Byte*) CUSTOM_BASE
+    volatile uint8_t* cp = (volatile uint8_t*) CUSTOM_BASE
 
 #define CHIPSET_REG_16(cp, r) \
     ((volatile uint16_t*)(cp + r))
@@ -812,7 +812,7 @@ extern void chipset_reset(void);
 extern uint8_t chipset_get_version(void);
 extern uint8_t chipset_get_ramsey_version(void);
 extern bool chipset_is_ntsc(void);
-extern Byte* chipset_get_upper_dma_limit(int chipset_version);
+extern char* chipset_get_upper_dma_limit(int chipset_version);
 
 extern void chipset_enable_interrupt(int interruptId);
 extern void chipset_disable_interrupt(int interruptId);
@@ -845,16 +845,16 @@ extern uint32_t chipset_get_hsync_counter(void);
 
 // An expansion board
 typedef struct _ExpansionBoard {
-    Byte* _Nonnull  start;          // base address
-    unsigned int            physical_size;  // size of memory space reserved for this board
-    unsigned int            logical_size;   // size of memory space actually occupied by the board
-    int8_t            type;
-    int8_t            bus;
-    int8_t            slot;
-    int8_t            reserved;
-    uint16_t          manufacturer;
-    uint16_t          product;
-    uint32_t          serial_number;
+    uint8_t* _Nonnull   start;          // base address
+    size_t              physical_size;  // size of memory space reserved for this board
+    size_t              logical_size;   // size of memory space actually occupied by the board
+    int8_t              type;
+    int8_t              bus;
+    int8_t              slot;
+    int8_t              reserved;
+    uint16_t            manufacturer;
+    uint16_t            product;
+    uint32_t            serial_number;
     // Update lowmem.i if you add a new property here
 } ExpansionBoard;
 

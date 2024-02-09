@@ -51,6 +51,6 @@ extern errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDes
 extern void kalloc_dump(void);
 
 // Initializes the kalloc heap.
-extern errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop);
+extern errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop);
 
 #endif /* kalloc_h */

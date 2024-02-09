@@ -22,8 +22,8 @@
 #include "VirtualProcessorPool.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
-static Byte* gInitialHeapBottom;
-static Byte* gInitialHeapTop;
+static char* gInitialHeapBottom;
+static char* gInitialHeapTop;
 
 
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
@@ -68,7 +68,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
 
     // Initialize the scheduler
-    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, &boot_alloc, (Closure1Arg_Func)OnStartup, (Byte*)pSysDesc);
+    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, &boot_alloc, (Closure1Arg_Func)OnStartup, pSysDesc);
 
 
     // Don't need the boot allocator anymore

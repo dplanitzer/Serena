@@ -13,8 +13,8 @@
 #define MEM_BLOCKS_CAPACITY 8
 typedef struct _MemBlocks {
     SListNode       node;
-    int             count;  // Number of entries in use
-    Byte* _Nullable blocks[MEM_BLOCKS_CAPACITY];
+    size_t          count;  // Number of entries in use
+    char* _Nullable blocks[MEM_BLOCKS_CAPACITY];
 } MemBlocks;
 
 
@@ -77,11 +77,11 @@ bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace)
 // address space portion is return in 'pOutMem'. 'pOutMem' is set to NULL and a
 // suitable error is returned if the allocation failed. 'count' must be greater
 // than 0 and a multiple of the CPU page size.
-errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ssize_t count, Byte* _Nullable * _Nonnull pOutMem)
+errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ssize_t count, void* _Nullable * _Nonnull pOutMem)
 {
     decl_try_err();
     MemBlocks* pMemBlocks = NULL;
-    Byte* pMem = NULL;
+    char* pMem = NULL;
 
     if (count == 0) {
         return EINVAL;

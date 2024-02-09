@@ -88,7 +88,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, By
     const int nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
     const int nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
     Byte* pImageBase = NULL;
-    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, &pImageBase));
+    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, (void**)&pImageBase));
 
 
     // Copy the executable header, text and data segments

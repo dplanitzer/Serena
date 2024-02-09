@@ -24,10 +24,10 @@ void ExecutionStack_Init(ExecutionStack* _Nonnull pStack)
 
 // Sets the size of the execution stack to the given size. Does not attempt to preserve
 // the content of the existing stack.
-errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, int size)
+errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, size_t size)
 {
     decl_try_err();
-    const int newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
+    const size_t newSize = (size > 0) ? __Ceil_PowerOf2(size, STACK_ALIGNMENT) : 0;
     
     if (pStack->size != newSize) {
         kfree(pStack->base);

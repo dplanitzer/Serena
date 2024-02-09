@@ -17,7 +17,7 @@ static AllocatorRef gUnifiedMemory;       // CPU + Chipset access (memory range 
 static AllocatorRef gCpuOnlyMemory;       // CPU only access      (memory range [chipset_upper_dma_limit...])
 
 
-static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop)
+static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemDesc, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop)
 {
     MemoryDescriptor md;
 
@@ -28,7 +28,7 @@ static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemD
     return md;
 }
 
-static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop, int8_t memoryType, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
     int i = 0;
     AllocatorRef pAllocator = NULL;
@@ -71,7 +71,7 @@ catch:
 }
 
 // Initializes the kalloc heap.
-errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, Byte* _Nonnull pInitialHeapBottom, Byte* _Nonnull pInitialHeapTop)
+errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop)
 {
     decl_try_err();
 

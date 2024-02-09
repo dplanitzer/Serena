@@ -15,13 +15,13 @@
 
 typedef struct _VirtualProcessorParameters {
     Closure1Arg_Func _Nonnull   func;
-    Byte* _Nullable _Weak       context;
-    int                         kernelStackSize;
-    int                         userStackSize;
+    void* _Nullable _Weak       context;
+    size_t                      kernelStackSize;
+    size_t                      userStackSize;
     int                         priority;
 } VirtualProcessorParameters;
 
-static inline VirtualProcessorParameters VirtualProcessorParameters_Make(Closure1Arg_Func _Nonnull pFunc, Byte* _Nullable _Weak pContext, int kernelStackSize, int userStackSize, int priority) {
+static inline VirtualProcessorParameters VirtualProcessorParameters_Make(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext, int kernelStackSize, int userStackSize, int priority) {
     VirtualProcessorParameters p;
     p.func = pFunc;
     p.context = pContext;

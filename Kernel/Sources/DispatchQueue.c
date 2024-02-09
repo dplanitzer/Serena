@@ -222,7 +222,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         VirtualProcessor* pVP = NULL;
         try(VirtualProcessorPool_AcquireVirtualProcessor(
                                             pQueue->virtual_processor_pool,
-                                            VirtualProcessorParameters_Make((Closure1Arg_Func)DispatchQueue_Run, (Byte*)pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
+                                            VirtualProcessorParameters_Make((Closure1Arg_Func)DispatchQueue_Run, pQueue, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
                                             &pVP));
 
         VirtualProcessor_SetDispatchQueue(pVP, pQueue, conLaneIdx);

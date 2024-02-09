@@ -21,6 +21,6 @@ extern void AddressSpace_Destroy(AddressSpaceRef _Nullable pSpace);
 
 extern bool AddressSpace_IsEmpty(AddressSpaceRef _Nonnull pSpace);
 
-extern errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ssize_t count, Byte* _Nullable * _Nonnull pOutMem);
+extern errno_t AddressSpace_Allocate(AddressSpaceRef _Nonnull pSpace, ssize_t count, void* _Nullable * _Nonnull pOutMem);
 
 #endif /* AddressSpace_h */
