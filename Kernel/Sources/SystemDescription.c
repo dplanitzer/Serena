@@ -15,11 +15,11 @@ SystemDescription* _Nonnull gSystemDescription;
 
 // Checks the physical CPU page that contains 'addr'. Returns true if the page
 // exists and false if not.
-static bool mem_probe_cpu_page(Byte* pAddr)
+static bool mem_probe_cpu_page(char* pAddr)
 {
-    Byte* pBaseAddr = __Floor_Ptr_PowerOf2(pAddr, CPU_PAGE_SIZE);
-    Byte* pTopAddr = pBaseAddr + CPU_PAGE_SIZE - 8;
-    Byte* pMiddleAddr = pBaseAddr + CPU_PAGE_SIZE / 2;
+    char* pBaseAddr = __Floor_Ptr_PowerOf2(pAddr, CPU_PAGE_SIZE);
+    char* pTopAddr = pBaseAddr + CPU_PAGE_SIZE - 8;
+    char* pMiddleAddr = pBaseAddr + CPU_PAGE_SIZE / 2;
 
     if (cpu_verify_ram_4b(pBaseAddr)) {
         return false;
@@ -34,11 +34,11 @@ static bool mem_probe_cpu_page(Byte* pAddr)
     return true;
 }
 
-bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, int8_t type)
+bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nullable upper, int8_t type)
 {
-    Byte* p = __Ceil_Ptr_PowerOf2(lower, CPU_PAGE_SIZE);
-    Byte* pLimit = __Floor_Ptr_PowerOf2(upper, CPU_PAGE_SIZE);
-    unsigned int nbytes = 0;
+    char* p = __Ceil_Ptr_PowerOf2(((char*)lower), CPU_PAGE_SIZE);
+    char* pLimit = __Floor_Ptr_PowerOf2(((char*)upper), CPU_PAGE_SIZE);
+    size_t nbytes = 0;
     bool hasMemory = false;
     bool hadMemory = false;
     
@@ -82,10 +82,10 @@ bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, int8_t
 // Invoked by the OnReset() function after the chipset has been reset. This
 // function tests the motherboard RAM and figures out how much RAM is installed
 // on the motherboard and which address ranges contain operating RAM chips.
-static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServicesMemoryTop)
+static void mem_check_motherboard(SystemDescription* pSysDesc, char* _Nullable pBootServicesMemoryTop)
 {
-    Byte* chip_ram_lower_p = pBootServicesMemoryTop;
-    Byte* chip_ram_upper_p = pSysDesc->chipset_upper_dma_limit;
+    char* chip_ram_lower_p = pBootServicesMemoryTop;
+    char* chip_ram_upper_p = pSysDesc->chipset_upper_dma_limit;
 
     // Forget the memory map set up in cpu_vectors_asm.s 'cause we'll build our own map here
     pSysDesc->memory.descriptor_count = 0;
@@ -98,16 +98,16 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, Byte* pBootServic
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, __min((Byte*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
+    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, __min((char*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(&pSysDesc->memory, (Byte*)0x00c00000, (Byte*)0x00d80000, MEM_TYPE_MEMORY);
+    mem_check_region(&pSysDesc->memory, (char*)0x00c00000, (char*)0x00d80000, MEM_TYPE_MEMORY);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
     if (pSysDesc->chipset_ramsey_version > 0) {
-        mem_check_region(&pSysDesc->memory, (Byte*)0x04000000, (Byte*)0x08000000, MEM_TYPE_MEMORY);
+        mem_check_region(&pSysDesc->memory, (char*)0x04000000, (char*)0x08000000, MEM_TYPE_MEMORY);
     }
 }
 
@@ -119,7 +119,7 @@ extern int8_t fpu_get_model(void);
 // \param pBootServicesMemoryTop the end address of the memory used by the boot
 //                               services. Range is [0...pBootServicesMemoryTop]
 // \param cpu_model the detected CPU model 
-void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, Byte* pBootServicesMemoryTop, int cpu_model)
+void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullable pBootServicesMemoryTop, int cpu_model)
 {
     pSysDesc->cpu_model = cpu_model;
     pSysDesc->fpu_model = fpu_get_model();

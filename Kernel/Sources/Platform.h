@@ -185,10 +185,10 @@ extern const char* _Nonnull fpu_get_model_name(int8_t fpu_model);
 
 // A memory descriptor describes a contiguous range of RAM
 typedef struct _MemoryDescriptor {
-    Byte* _Nonnull  lower;
-    Byte* _Nonnull  upper;
-    int8_t            type;       // MEM_TYPE_XXX
-    uint8_t           reserved[3];
+    char* _Nonnull  lower;
+    char* _Nonnull  upper;
+    int8_t          type;       // MEM_TYPE_XXX
+    uint8_t         reserved[3];
 } MemoryDescriptor;
 
 typedef struct _MemoryLayout {
@@ -197,7 +197,7 @@ typedef struct _MemoryLayout {
 } MemoryLayout;
 
 
-extern bool mem_check_region(MemoryLayout* pMemLayout, Byte* lower, Byte* upper, int8_t type);
+extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nullable upper, int8_t type);
 
 
 #define CIAA_BASE           0xbfe001
