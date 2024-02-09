@@ -8,7 +8,7 @@
 
 
     include "lowmem.i"
-    include <abi/errdef.i>
+    include <abi/errno.i>
     include <abi/syscall.i>
 
     xref __SYSCALL_read

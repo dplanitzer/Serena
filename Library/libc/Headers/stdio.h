@@ -10,7 +10,7 @@
 #define _STDIO_H 1
 
 #include <abi/_cmndef.h>
-#include <abi/_errdef.h>
+#include <abi/_errno.h>
 #include <abi/_nulldef.h>
 #include <apollo/_sizedef.h>
 #include <abi/_syslimits.h>

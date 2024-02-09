@@ -1,6 +1,6 @@
 //
 //  errno.h
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -10,7 +10,7 @@
 #define _ERRNO_H 1
 
 #include <abi/_cmndef.h>
-#include <abi/_errdef.h>
+#include <abi/_errno.h>
 
 __CPP_BEGIN
 

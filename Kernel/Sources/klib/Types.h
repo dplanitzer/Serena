@@ -151,9 +151,9 @@ extern bool String_Equals(const char* _Nonnull pLhs, const char* _Nonnull pRhs);
 extern bool String_EqualsUpTo(const char* _Nonnull pLhs, const char* _Nonnull pRhs, ssize_t count);
 
 
-// Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 22 (octal 64bit) + 1 + 1 = 25 bytes
+// Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 64 (binary 64bit) + 1 + 1 = 25 bytes
 // A digit string is generated in a canonical representation: string length, sign, digits ..., NUL
-#define DIGIT_BUFFER_CAPACITY 24
+#define DIGIT_BUFFER_CAPACITY 67
 
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
 extern char* _Nonnull __i32toa(int32_t val, int radix, bool isUppercase, char* _Nonnull digits);

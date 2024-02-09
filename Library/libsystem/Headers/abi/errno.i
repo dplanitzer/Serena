@@ -1,13 +1,13 @@
 ;
-;  errdef.i
+;  errno.i
 ;  libsystem
 ;
 ;  Created by Dietmar Planitzer on 9/6/23.
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-        ifnd __ABI_ERRDEF_I
-__ABI_ERRDEF_I  set 1
+        ifnd __ABI_ERRNO_I
+__ABI_ERRNO_I  set 1
 
 EOK             equ 0
 ENOMEM          equ 1
@@ -49,4 +49,4 @@ ENOTIOCTLCMD    equ 35
 __EFIRST    equ 1
 __ELAST     equ 35
 
-        endif   ; __ABI_ERRDEF_I
+        endif   ; __ABI_ERRNO_I

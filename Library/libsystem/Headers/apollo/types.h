@@ -10,7 +10,7 @@
 #define _SYS_TYPES_H 1
 
 #include <abi/_dmdef.h>
-#include <abi/_errdef.h>
+#include <abi/_errno.h>
 #include <abi/_cmndef.h>
 #include <apollo/_sizedef.h>
 
