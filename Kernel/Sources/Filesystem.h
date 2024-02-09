@@ -139,7 +139,7 @@ typedef struct _FilesystemMethodTable {
     // Invoked when an instance of this file system is mounted. Note that the
     // kernel guarantees that no operations will be issued to the filesystem
     // before onMount() has returned with EOK.
-    errno_t (*onMount)(void* _Nonnull self, const Byte* _Nonnull pParams, ssize_t paramsSize);
+    errno_t (*onMount)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
 
     // Invoked when a mounted instance of this file system is unmounted. A file
     // system may return an error. Note however that this error is purely advisory

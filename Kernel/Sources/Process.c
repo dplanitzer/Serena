@@ -606,7 +606,7 @@ catch:
 errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
 {
     GemDosExecutableLoader loader;
-    Byte* pEntryPoint = NULL;
+    void* pEntryPoint = NULL;
     decl_try_err();
 
     // XXX for now to keep loading simpler
@@ -617,7 +617,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr,
 
     // Load the executable
     GemDosExecutableLoader_Init(&loader, pProc->addressSpace);
-    try(GemDosExecutableLoader_Load(&loader, pExecAddr, &pProc->imageBase, &pEntryPoint));
+    try(GemDosExecutableLoader_Load(&loader, pExecAddr, (void**)&pProc->imageBase, &pEntryPoint));
     GemDosExecutableLoader_Deinit(&loader);
 
     ((ProcessArguments*) pProc->argumentsBase)->image_base = pProc->imageBase;

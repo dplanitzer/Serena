@@ -9,7 +9,7 @@
 #include "Array.h"
 #include "Bytes.h"
 
-errno_t GenericArray_Init(struct _GenericArray* _Nonnull pArray, int elementSize, int initialCapacity)
+errno_t GenericArray_Init(struct _GenericArray* _Nonnull pArray, size_t elementSize, ssize_t initialCapacity)
 {
     const errno_t err = kalloc(elementSize * initialCapacity, (void**)&pArray->data);
     
@@ -30,9 +30,9 @@ void GenericArray_Deinit(struct _GenericArray* pArray)
     pArray->data = NULL;
 }
 
-errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, int elementSize)
+errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, size_t elementSize)
 {
-    const int newCapacity = (pArray->capacity > 0) ? pArray->capacity * 2 : 8;
+    const ssize_t newCapacity = (pArray->capacity > 0) ? pArray->capacity * 2 : 8;
     Byte* pNewData;
     const errno_t err = kalloc(elementSize * newCapacity, (void**)&pNewData);
 
@@ -63,7 +63,7 @@ void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, bool keepCapa
 // MARK: Array<int>
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t IntArray_InsertAt(IntArrayRef _Nonnull pArray, int element, int idx)
+errno_t IntArray_InsertAt(IntArrayRef _Nonnull pArray, int element, ssize_t idx)
 {
     decl_try_err();
 
@@ -77,7 +77,7 @@ void IntArray_Remove(IntArrayRef _Nonnull pArray, int element)
     GenericArray_RemoveIdenticalTo(dummy, pArray, element, int);
 }
 
-void IntArray_RemoveAt(IntArrayRef _Nonnull pArray, int idx)
+void IntArray_RemoveAt(IntArrayRef _Nonnull pArray, ssize_t idx)
 {
     int dummy;
     GenericArray_RemoveAt(dummy, pArray, int, idx);
@@ -85,7 +85,7 @@ void IntArray_RemoveAt(IntArrayRef _Nonnull pArray, int idx)
 
 bool IntArray_Contains(IntArrayRef _Nonnull pArray, int element)
 {
-    int idx;
+    ssize_t idx;
 
     GenericArray_FirstIndexOf(idx, pArray, element, int);
     return idx != -1;
@@ -97,7 +97,7 @@ bool IntArray_Contains(IntArrayRef _Nonnull pArray, int element)
 // MARK: Array<Pointer?>
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t PointerArray_InsertAt(PointerArrayRef _Nonnull pArray, void* _Nullable element, int idx)
+errno_t PointerArray_InsertAt(PointerArrayRef _Nonnull pArray, void* _Nullable element, ssize_t idx)
 {
     decl_try_err();
 
@@ -111,7 +111,7 @@ void PointerArray_Remove(PointerArrayRef _Nonnull pArray, void* _Nullable elemen
     GenericArray_RemoveIdenticalTo(dummy, pArray, element, void*);
 }
 
-void PointerArray_RemoveAt(PointerArrayRef _Nonnull pArray, int idx)
+void PointerArray_RemoveAt(PointerArrayRef _Nonnull pArray, ssize_t idx)
 {
     void* dummy;
     GenericArray_RemoveAt(dummy, pArray, void*, idx);
@@ -129,7 +129,7 @@ void ObjectArray_Deinit(ObjectArrayRef _Nonnull pArray)
     GenericArray_Deinit(pArray);
 }
 
-ObjectRef _Nullable ObjectArray_CopyAt(ObjectArrayRef _Nonnull pArray, int idx)
+ObjectRef _Nullable ObjectArray_CopyAt(ObjectArrayRef _Nonnull pArray, ssize_t idx)
 {
     ObjectRef element = GenericArray_GetAt((ObjectArrayRef)pArray, ObjectRef, idx);
     
@@ -139,7 +139,7 @@ ObjectRef _Nullable ObjectArray_CopyAt(ObjectArrayRef _Nonnull pArray, int idx)
     return element;
 }
 
-errno_t ObjectArray_InsertAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, int idx)
+errno_t ObjectArray_InsertAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, ssize_t idx)
 {
     decl_try_err();
 
@@ -150,7 +150,7 @@ errno_t ObjectArray_InsertAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable
     return err;
 }
 
-void ObjectArray_ReplaceAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, int idx)
+void ObjectArray_ReplaceAt(ObjectArrayRef _Nonnull pArray, ObjectRef _Nullable element, ssize_t idx)
 {
     assert(idx >= 0 && idx < pArray->count);
 
@@ -171,7 +171,7 @@ void ObjectArray_RemoveIdenticalTo(ObjectArrayRef _Nonnull pArray, ObjectRef _Nu
     }
 }
 
-void ObjectArray_RemoveAt(ObjectArrayRef _Nonnull pArray, int idx)
+void ObjectArray_RemoveAt(ObjectArrayRef _Nonnull pArray, ssize_t idx)
 {
     ObjectRef oldElement;
 
@@ -181,13 +181,13 @@ void ObjectArray_RemoveAt(ObjectArrayRef _Nonnull pArray, int idx)
 
 void ObjectArray_RemoveAll(ObjectArrayRef _Nonnull pArray, bool keepCapacity)
 {
-    for (int i = 0; i < pArray->count; i++) {
+    for (ssize_t i = 0; i < pArray->count; i++) {
         Object_Release(((ObjectRef*)pArray->data)[i]);
     }
     GenericArray_RemoveAll(pArray, keepCapacity);
 }
 
-ObjectRef _Nullable ObjectArray_ExtractOwnershipAt(ObjectArrayRef _Nonnull pArray, int idx)
+ObjectRef _Nullable ObjectArray_ExtractOwnershipAt(ObjectArrayRef _Nonnull pArray, ssize_t idx)
 {
     assert(idx >= 0 && idx < pArray->count);
 

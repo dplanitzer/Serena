@@ -60,8 +60,8 @@ CLASS_IVARS(Process, Object,
     User                        realUser;       // User identity inherited from the parent process / set at spawn time
     
     // Process image
-    Byte* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
-    Byte* _Nullable _Weak       argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
+    char* _Nullable _Weak       imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
+    char* _Nullable _Weak       argumentsBase;  // Base address to the contiguous memory region holding the pargs structure, command line arguments and environment
 
     // Process termination
     AtomicBool                  isTerminating;  // true if the process is going through the termination process

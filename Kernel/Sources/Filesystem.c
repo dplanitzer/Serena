@@ -437,7 +437,7 @@ void Filesystem_onRemoveNodeFromDisk(FilesystemRef _Nonnull self, InodeId id)
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
 // before onMount() has returned with EOK.
-errno_t Filesystem_onMount(FilesystemRef _Nonnull self, const Byte* _Nonnull pParams, ssize_t paramsSize)
+errno_t Filesystem_onMount(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     return EIO;
 }

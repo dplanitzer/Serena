@@ -33,8 +33,8 @@ typedef struct _MemBlock {
 // heap. Each such region has its own private list of free memory blocks.
 typedef struct _MemRegion {
     SListNode           node;
-    Byte* _Nonnull      lower;
-    Byte* _Nonnull      upper;
+    char* _Nonnull      lower;
+    char* _Nonnull      upper;
     MemBlock* _Nullable first_free_block;   // Every memory region has its own private free list. Note that the blocks on this list are ordered by increasing base address
 } MemRegion;
 
@@ -62,11 +62,11 @@ typedef struct _Allocator {
 //                         which stores the allocator structure in front of it
 // \param pMemDesc the memory descriptor describing the memory region to manage
 // \return an error or EOK
-static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, const MemoryDescriptor* _Nonnull pMemDesc)
+static MemRegion* MemRegion_Create(char* _Nonnull pMemRegionHeader, const MemoryDescriptor* _Nonnull pMemDesc)
 {
-    Byte* pMemRegionBase = __Ceil_Ptr_PowerOf2(pMemRegionHeader, HEAP_ALIGNMENT);
-    Byte* pFreeLower = __Ceil_Ptr_PowerOf2(pMemRegionBase + sizeof(MemRegion), HEAP_ALIGNMENT);
-    Byte* pFreeUpper = __Floor_Ptr_PowerOf2(pMemDesc->upper, HEAP_ALIGNMENT);
+    char* pMemRegionBase = __Ceil_Ptr_PowerOf2(pMemRegionHeader, HEAP_ALIGNMENT);
+    char* pFreeLower = __Ceil_Ptr_PowerOf2(pMemRegionBase + sizeof(MemRegion), HEAP_ALIGNMENT);
+    char* pFreeUpper = __Floor_Ptr_PowerOf2(pMemDesc->upper, HEAP_ALIGNMENT);
 
     // Make sure that the MemRegion and the first free MemBlock fit in the memory
     // area
@@ -97,7 +97,7 @@ static MemRegion* MemRegion_Create(Byte* _Nonnull pMemRegionHeader, const Memory
 
 // Returns true if the given memory address is managed by this memory region
 // and false otherwise.
-static bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, Byte* _Nullable pAddress)
+static bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, char* _Nullable pAddress)
 {
     return (pAddress >= pMemRegion->lower && pAddress < pMemRegion->upper) ? true : false;
 }
@@ -174,8 +174,8 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
     
     
     // Compute the lower and the upper bound of the block that we want to free.
-    Byte* pLowerToFree = (Byte*)pBlockToFree;
-    Byte* pUpperToFree = pLowerToFree + pBlockToFree->size;
+    char* pLowerToFree = (char*)pBlockToFree;
+    char* pUpperToFree = pLowerToFree + pBlockToFree->size;
     
     
         // Find the free memory blocks just below and above 'pBlockToFree'. These
@@ -273,8 +273,8 @@ errno_t Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef
     decl_try_err();
 
     // Reserve space for the allocator structure in the first memory region.
-    Byte* pAllocatorBase = __Ceil_Ptr_PowerOf2(pMemDesc->lower, HEAP_ALIGNMENT);
-    Byte* pFirstMemRegionBase = pAllocatorBase + sizeof(Allocator);
+    char* pAllocatorBase = __Ceil_Ptr_PowerOf2(pMemDesc->lower, HEAP_ALIGNMENT);
+    char* pFirstMemRegionBase = pAllocatorBase + sizeof(Allocator);
 
     AllocatorRef pAllocator = (AllocatorRef)pAllocatorBase;
     pAllocator->first_allocated_block = NULL;
@@ -308,7 +308,7 @@ catch:
 
 // Returns the MemRegion managing the given address. NULL is returned if this
 // allocator does not manage the given address.
-static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _Nonnull pAllocator, Byte* _Nullable pAddress)
+static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _Nonnull pAllocator, char* _Nullable pAddress)
 {
     SList_ForEach(&pAllocator->regions, MemRegion, {
         if (MemRegion_IsManaging(pCurNode, pAddress)) {
@@ -327,7 +327,7 @@ bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
         return true;
     }
 
-    const bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, (Byte*)ptr) != NULL;
+    const bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) != NULL;
     return r;
 }
 
@@ -371,7 +371,7 @@ errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ssize_t nbytes
     pAllocator->first_allocated_block = pMemBlock;
 
     // Calculate and return the user memory block pointer
-    *pOutPtr = (Byte*)pMemBlock + sizeof(MemBlock);
+    *pOutPtr = ((char*)pMemBlock) + sizeof(MemBlock);
     return EOK;
 
 catch:
@@ -394,7 +394,7 @@ errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nulla
         return ENOTBLK;
     }
     
-    MemBlock* pBlockToFree = (MemBlock*)((Byte*)ptr - sizeof(MemBlock));
+    MemBlock* pBlockToFree = (MemBlock*)(((char*)ptr) - sizeof(MemBlock));
     
     
     // Remove the block 'ptr' from the list of allocated blocks
@@ -438,7 +438,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 
         print(" Region: 0x%p - 0x%p, s: 0x%p\n", pCurRegion->lower, pCurRegion->upper, pCurRegion->first_free_block);
         while (pCurBlock) {
-            print("  %d:  0x%p: {a: 0x%p, n: 0x%p, s: %lu}\n", i, ((Byte*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
+            print("  %d:  0x%p: {a: 0x%p, n: 0x%p, s: %lu}\n", i, ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
             pCurBlock = pCurBlock->next;
             i++;
         }
@@ -451,7 +451,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
     int i = 1;
     print("Allocated (s: 0x%p):\n", pCurBlock);
     while (pCurBlock) {
-        Byte* pCurBlockBase = (Byte*)pCurBlock;
+        char* pCurBlockBase = (char*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
         
         print(" %d:  0x%p, {a: 0x%p, n: 0x%p s: %lu}\n", i, pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);

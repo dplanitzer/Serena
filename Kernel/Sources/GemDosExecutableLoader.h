@@ -35,6 +35,6 @@ typedef struct _GemDosExecutableLoader {
 extern void GemDosExecutableLoader_Init(GemDosExecutableLoader* _Nonnull pLoader, AddressSpaceRef _Nonnull pTargetAddressSpace);
 extern void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader);
 
-extern errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nullable * _Nonnull pOutImageBase, Byte* _Nullable * _Nonnull pOutEntryPoint);
+extern errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, void* _Nonnull pExecAddr, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint);
 
 #endif /* GemDosExecutableLoader_h */

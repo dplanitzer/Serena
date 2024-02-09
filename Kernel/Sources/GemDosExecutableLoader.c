@@ -19,7 +19,7 @@ void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader)
     pLoader->addressSpace = NULL;
 }
 
-static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pRelocBase, Byte* pTextBase)
+static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)
 {
     const int32_t firstRelocOffset = *((uint32_t*)pRelocBase);
 
@@ -28,7 +28,7 @@ static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _N
     }
 
     const uint32_t offset = (uint32_t)pTextBase;
-    Byte* pLoc = (Byte*) (offset + firstRelocOffset);
+    uint8_t* pLoc = (uint8_t*) (offset + firstRelocOffset);
     uint8_t* p = (uint8_t*) (pRelocBase + sizeof(uint32_t));
     bool done = false;
 
@@ -56,7 +56,7 @@ static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _N
     return EOK;
 }
 
-errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, Byte* _Nonnull pExecAddr, Byte* _Nullable * _Nonnull pOutImageBase, Byte* _Nullable * _Nonnull pOutEntryPoint)
+errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, void* _Nonnull pExecAddr, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
 {
     decl_try_err();
     GemDosExecutableHeader* pExecHeader = (GemDosExecutableHeader*)pExecAddr;
@@ -87,7 +87,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, By
     // Allocate the text, data and BSS segments 
     const int nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
     const int nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
-    Byte* pImageBase = NULL;
+    uint8_t* pImageBase = NULL;
     try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, (void**)&pImageBase));
 
 
@@ -99,12 +99,12 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, By
     Bytes_ClearRange(pImageBase + nbytes_to_copy, pExecHeader->bss_size);
 
     // Relocate the executable
-    Byte* pRelocBase = pExecAddr
+    uint8_t* pRelocBase = ((uint8_t*)pExecAddr)
         + sizeof(GemDosExecutableHeader)
         + pExecHeader->text_size
         + pExecHeader->data_size
         + pExecHeader->symbol_table_size;
-    Byte* pTextBase = pImageBase
+    uint8_t* pTextBase = pImageBase
         + sizeof(GemDosExecutableHeader);
 
     try(GemDosExecutableLoader_RelocExecutable(pLoader, pRelocBase, pTextBase));
