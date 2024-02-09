@@ -138,14 +138,14 @@ static void RegisterClass(ClassRef _Nonnull pClass)
 
     // Copy the super class vtable
     if (pSuperClass) {
-        Bytes_CopyRange((Byte*)pClass->vtable, (const Byte*)pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
+        Bytes_CopyRange(pClass->vtable, pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
     }
 
 
     // Override methods in the VTable with methods from our method list
     const struct MethodDecl* pCurMethod = pClass->methodList;
     while (pCurMethod->method) {
-        Method* pSlot = (Method*)((Byte*)pClass->vtable + pCurMethod->offset);
+        Method* pSlot = (Method*)((char*)pClass->vtable + pCurMethod->offset);
 
         *pSlot = pCurMethod->method;
         pCurMethod++;

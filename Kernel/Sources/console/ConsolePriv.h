@@ -206,7 +206,7 @@ extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, int nLines);
 // read all bytes of a sequence. The next Console_Read() will first receive the
 // remaining buffered bytes before it receives bytes from new events.
 OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
-    Byte    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
+    char    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
     int8_t  rdCount;                        // Number of bytes stored in the buffer
     int8_t  rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
 );
@@ -224,8 +224,8 @@ extern const unsigned char gKeyMap_usa[];
 //
 // Fonts
 //
-extern const Byte font8x8_latin1[128][8];
-extern const Byte font8x8_dingbat[160][8];
+extern const char font8x8_latin1[128][8];
+extern const char font8x8_dingbat[160][8];
 #define GLYPH_WIDTH     8
 #define GLYPH_HEIGHT    8
 

@@ -29,7 +29,7 @@ static errno_t fprintv_micro_console_sink(FormatterRef _Nonnull self, const char
 
 #define TAB_WIDTH 8
 
-extern const Byte font8x8_latin1[128][8];
+extern const char font8x8_latin1[128][8];
 #define GLYPH_WIDTH     8
 #define GLYPH_HEIGHT    8
 
@@ -61,7 +61,7 @@ static const VideoConfig kVidConfig_PAL_640_256_50 = {
 
 typedef struct _MicroConsole {
     const VideoConfig* _Nonnull config;
-    Byte* _Nonnull              framebuffer;
+    char* _Nonnull              framebuffer;
     int                         bytesPerRow;
     int                         cols;
     int                         rows;
@@ -72,7 +72,7 @@ typedef struct _MicroConsole {
 
 
 // Initializes the graphics device enough to run our micro console on it
-static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, Byte* _Nonnull pFramebuffer)
+static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, char* _Nonnull pFramebuffer)
 {
     CopperInstruction* pCode = (CopperInstruction*)COPPER_PROG_ADDR;
     CopperInstruction* ip = pCode;
@@ -130,7 +130,7 @@ static void micro_console_cls(MicroConsole* _Nonnull pCon)
 static void micro_console_init(MicroConsole* _Nonnull pCon)
 {
     pCon->config = chipset_is_ntsc() ? &kVidConfig_NTSC_640_200_60 : &kVidConfig_PAL_640_256_50;
-    pCon->framebuffer = (Byte*)FRAMEBUFFER_BASE_ADDR;
+    pCon->framebuffer = (char*)FRAMEBUFFER_BASE_ADDR;
     pCon->bytesPerRow = pCon->config->width >> 3;
     pCon->cols = pCon->config->width / GLYPH_WIDTH;
     pCon->rows = pCon->config->height / GLYPH_HEIGHT;
@@ -178,8 +178,8 @@ static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, char ch, int x
     const int maxX = pCon->config->width >> 3;
     const int maxY = pCon->config->height >> 3;
 
-    Byte* dst = pCon->framebuffer + (y << 3) * bytesPerRow + x;
-    const Byte* src = &font8x8_latin1[ch][0];
+    char* dst = pCon->framebuffer + (y << 3) * bytesPerRow + x;
+    const char* src = &font8x8_latin1[ch][0];
     
     *dst = *src++; dst += bytesPerRow;      // 0
     *dst = *src++; dst += bytesPerRow;      // 1

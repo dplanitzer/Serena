@@ -93,7 +93,7 @@ errno_t VirtualProcessorScheduler_FinishBoot(VirtualProcessorScheduler* _Nonnull
                                                   INTERRUPT_ID_QUANTUM_TIMER,
                                                   INTERRUPT_HANDLER_PRIORITY_HIGHEST - 1,
                                                   (InterruptHandler_Closure)VirtualProcessorScheduler_OnEndOfQuantum,
-                                                  (Byte*)pScheduler,
+                                                  pScheduler,
                                                   &irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
 

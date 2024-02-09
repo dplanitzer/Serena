@@ -503,7 +503,7 @@ void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const char* msg)
 
     // Make space for the new message by removing the oldest (full) message(s)
     while (RingBuffer_WritableCount(&pConsole->reportsQueue) < nBytesToWrite) {
-        Byte b;
+        char b;
 
         // Remove a full message
         do {
@@ -512,7 +512,7 @@ void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const char* msg)
     }
 
     // Queue the new terminal report (including the trailing \0)
-    RingBuffer_PutBytes(&pConsole->reportsQueue, (const Byte*)msg, nBytesToWrite);
+    RingBuffer_PutBytes(&pConsole->reportsQueue, msg, nBytesToWrite);
 }
 
 
@@ -630,7 +630,7 @@ catch:
 
 }
 
-static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     ssize_t nBytesRead = 0;
 
@@ -638,7 +638,7 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole,
         bool done = false;
 
         while (true) {
-            Byte b;
+            char b;
 
             if (RingBuffer_GetByte(&pConsole->reportsQueue, &b) == 0) {
                 done = true;
@@ -671,7 +671,7 @@ static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole,
     *nOutBytesRead = nBytesRead;
 }
 
-static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent evt;

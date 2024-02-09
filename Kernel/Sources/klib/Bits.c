@@ -11,7 +11,7 @@
 #include "Log.h"
 
 
-static inline int index_of_first_1_in_byte(Byte byte, int low_idx_incl, int high_idx_incl)
+static inline int index_of_first_1_in_byte(char byte, int low_idx_incl, int high_idx_incl)
 {
     for (int i = low_idx_incl; i <= high_idx_incl; i++) {
         if ((byte & (1 << (7 - i))) != 0) {
@@ -22,7 +22,7 @@ static inline int index_of_first_1_in_byte(Byte byte, int low_idx_incl, int high
     return -1;
 }
 
-static inline int index_of_last_1_in_byte(Byte byte, int high_idx_incl, int low_idx_incl)
+static inline int index_of_last_1_in_byte(char byte, int high_idx_incl, int low_idx_incl)
 {
     for (int i = high_idx_incl; i >= low_idx_incl; i--) {
         if ((byte & (1 << (7 - i))) != 0) {
@@ -33,7 +33,7 @@ static inline int index_of_last_1_in_byte(Byte byte, int high_idx_incl, int low_
     return -1;
 }
 
-static inline int index_of_first_0_in_byte(Byte byte, int low_idx_incl, int high_idx_incl)
+static inline int index_of_first_0_in_byte(char byte, int low_idx_incl, int high_idx_incl)
 {
     for (int i = low_idx_incl; i <= high_idx_incl; i++) {
         if ((byte & (1 << (7 - i))) == 0) {
@@ -44,7 +44,7 @@ static inline int index_of_first_0_in_byte(Byte byte, int low_idx_incl, int high
     return -1;
 }
 
-static inline int index_of_last_0_in_byte(Byte byte, int high_idx_incl, int low_idx_incl)
+static inline int index_of_last_0_in_byte(char byte, int high_idx_incl, int low_idx_incl)
 {
     for (int i = high_idx_incl; i >= low_idx_incl; i--) {
         if ((byte & (1 << (7 - i))) == 0) {
@@ -59,7 +59,7 @@ static inline int index_of_last_0_in_byte(Byte byte, int high_idx_incl, int low_
 // Scans the given bit array and returns the index to the first bit set. The
 // bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
 // -1 is returned if no set bit is found.
-int Bits_FindFirstSet(const BitPointer pBits, int nbits)
+int Bits_FindFirstSet(const BitPointer pBits, size_t nbits)
 {
     if (nbits == 0) {
         return -1;
@@ -71,7 +71,7 @@ int Bits_FindFirstSet(const BitPointer pBits, int nbits)
         return index_of_first_1_in_byte(*pBits.bytePointer, pBits.bitIndex, pLastBit.bitIndex);
     }
     else {
-        Byte* middle_byte_p = pBits.bytePointer + 1;
+        char* middle_byte_p = pBits.bytePointer + 1;
         const int middle_byte_count = pLastBit.bytePointer - middle_byte_p;
         int idx;
         
@@ -98,7 +98,7 @@ int Bits_FindFirstSet(const BitPointer pBits, int nbits)
 }
 
 // Similar to Bits_FindFIrstSet() but scans from right to left.
-int Bits_FindLastSet(const BitPointer pBits, int nbits)
+int Bits_FindLastSet(const BitPointer pBits, size_t nbits)
 {
     if (nbits == 0) {
         return -1;
@@ -110,7 +110,7 @@ int Bits_FindLastSet(const BitPointer pBits, int nbits)
         return index_of_last_1_in_byte(*pBits.bytePointer, pLastBit.bitIndex, pBits.bitIndex);
     }
     else {
-        Byte* middle_byte_p = pBits.bytePointer + 1;
+        char* middle_byte_p = pBits.bytePointer + 1;
         const int middle_byte_count = pLastBit.bytePointer - middle_byte_p;
         int idx;
         
@@ -139,7 +139,7 @@ int Bits_FindLastSet(const BitPointer pBits, int nbits)
 // Scans the given bit array and returns the index to the first bit cleared. The
 // bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
 // -1 is returned if no set bit is found.
-int Bits_FindFirstCleared(const BitPointer pBits, int nbits)
+int Bits_FindFirstCleared(const BitPointer pBits, size_t nbits)
 {
     if (nbits == 0) {
         return -1;
@@ -151,7 +151,7 @@ int Bits_FindFirstCleared(const BitPointer pBits, int nbits)
         return index_of_first_0_in_byte(*pBits.bytePointer, pBits.bitIndex, pLastBit.bitIndex);
     }
     else {
-        Byte* middle_byte_p = pBits.bytePointer + 1;
+        char* middle_byte_p = pBits.bytePointer + 1;
         const int middle_byte_count = pLastBit.bytePointer - middle_byte_p;
         int idx;
         
@@ -178,7 +178,7 @@ int Bits_FindFirstCleared(const BitPointer pBits, int nbits)
 }
 
 // Similar to Bits_FindFirstCleared() but scans from right to left.
-int Bits_FindLastCleared(const BitPointer pBits, int nbits)
+int Bits_FindLastCleared(const BitPointer pBits, size_t nbits)
 {
     if (nbits == 0) {
         return -1;
@@ -190,7 +190,7 @@ int Bits_FindLastCleared(const BitPointer pBits, int nbits)
         return index_of_last_0_in_byte(*pBits.bytePointer, pLastBit.bitIndex, pBits.bitIndex);
     }
     else {
-        Byte* middle_byte_p = pBits.bytePointer + 1;
+        char* middle_byte_p = pBits.bytePointer + 1;
         const int middle_byte_count = pLastBit.bytePointer - middle_byte_p;
         int idx;
         
@@ -217,7 +217,7 @@ int Bits_FindLastCleared(const BitPointer pBits, int nbits)
 }
 
 // Sets 'nbits' bits starting at 'pBits'.
-void Bits_SetRange(const BitPointer pBits, int nbits)
+void Bits_SetRange(const BitPointer pBits, size_t nbits)
 {
     if (nbits == 0) {
         return;
@@ -230,8 +230,8 @@ void Bits_SetRange(const BitPointer pBits, int nbits)
             *pBits.bytePointer |= (1 << (7 - i));
         }
     } else {
-        Byte* middle_start_p = pBits.bytePointer;
-        Byte* middle_end_p = pLastBit.bytePointer;
+        char* middle_start_p = pBits.bytePointer;
+        char* middle_end_p = pLastBit.bytePointer;
         
         // first byte
         if (pBits.bitIndex > 0) {
@@ -252,7 +252,7 @@ void Bits_SetRange(const BitPointer pBits, int nbits)
 }
 
 // Sets 'nbits' bits starting at 'pBits'.
-void Bits_ClearRange(const BitPointer pBits, int nbits)
+void Bits_ClearRange(const BitPointer pBits, size_t nbits)
 {
     if (nbits == 0) {
         return;
@@ -265,8 +265,8 @@ void Bits_ClearRange(const BitPointer pBits, int nbits)
             *pBits.bytePointer &= ~(1 << (7 - i));
         }
     } else {
-        Byte* middle_start_p = pBits.bytePointer;
-        Byte* middle_end_p = pLastBit.bytePointer;
+        char* middle_start_p = pBits.bytePointer;
+        char* middle_end_p = pLastBit.bytePointer;
         
         // first byte
         if (pBits.bitIndex > 0) {
@@ -287,7 +287,7 @@ void Bits_ClearRange(const BitPointer pBits, int nbits)
 }
 
 // Copies the bit range with length 'nbits' from 'pSrcBits' to 'pDstBits'.
-void Bits_CopyRange(BitPointer pDstBits, const BitPointer pSrcBits, int nbits)
+void Bits_CopyRange(BitPointer pDstBits, const BitPointer pSrcBits, size_t nbits)
 {
     if (nbits == 0 || BitPointer_Equals(pDstBits, pSrcBits)) {
         return;
@@ -299,17 +299,17 @@ void Bits_CopyRange(BitPointer pDstBits, const BitPointer pSrcBits, int nbits)
     if (pSrcBits.bitIndex == pDstBits.bitIndex && nbits >= 8) {
         // The destination covers >= 1 byte and the start bit index for source and destination are the same.
         // This means that we can copy bytes 1:1 and we don't have to shift bits while copying.
-        Byte src_first_byte = *pSrcBits.bytePointer;
-        Byte src_last_byte = *pSrcLastBit.bytePointer;
-        Byte dst_first_byte = *pDstBits.bytePointer;
-        Byte dst_last_byte = *pDstLastBit.bytePointer;
-        Byte* src_middle_start_p = pSrcBits.bytePointer;
-        Byte* dst_middle_start_p = pDstBits.bytePointer;
-        Byte* src_middle_end_p = pSrcLastBit.bytePointer;
+        char src_first_byte = *pSrcBits.bytePointer;
+        char src_last_byte = *pSrcLastBit.bytePointer;
+        char dst_first_byte = *pDstBits.bytePointer;
+        char dst_last_byte = *pDstLastBit.bytePointer;
+        char* src_middle_start_p = pSrcBits.bytePointer;
+        char* dst_middle_start_p = pDstBits.bytePointer;
+        char* src_middle_end_p = pSrcLastBit.bytePointer;
         
         // first byte
         if (pSrcBits.bitIndex > 0) {
-            Byte first_byte_mask = 0xffu >> pSrcBits.bitIndex;
+            char first_byte_mask = 0xffu >> pSrcBits.bitIndex;
             dst_first_byte &= ~first_byte_mask;
             dst_first_byte |= (src_first_byte & first_byte_mask);
             src_middle_start_p++; dst_middle_start_p++;
@@ -317,7 +317,7 @@ void Bits_CopyRange(BitPointer pDstBits, const BitPointer pSrcBits, int nbits)
         
         // last byte
         if (pSrcLastBit.bitIndex < 7) {
-            Byte last_byte_mask = 0xffu << (7 - pSrcLastBit.bitIndex);
+            char last_byte_mask = 0xffu << (7 - pSrcLastBit.bitIndex);
             dst_last_byte &= ~last_byte_mask;
             dst_last_byte |= (src_last_byte & last_byte_mask);
         } else {
@@ -366,13 +366,13 @@ void Bits_CopyRange(BitPointer pDstBits, const BitPointer pSrcBits, int nbits)
 
 // Prints the given bit array
 #define test_bit_in_byte(bnum, byte)   ((byte) & (1 << (7 - (bnum))))
-void Bits_Print(const BitPointer pBits, int nbits)
+void Bits_Print(const BitPointer pBits, size_t nbits)
 {
     for (int i = 0; i < nbits >> 3; i++) {
-        register Byte byte = pBits.bytePointer[i];
+        char byte = pBits.bytePointer[i];
         
         for (int j = 0; j < 8; j++) {
-            register int bit = test_bit_in_byte(j, byte);
+            int bit = test_bit_in_byte(j, byte);
             
             print((bit) ? "1" : "0");
         }

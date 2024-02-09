@@ -141,7 +141,7 @@ typedef struct _ExceptionStackFrame {
 } ExceptionStackFrame;
 
 
-typedef void (* _Nonnull Cpu_UserClosure)(Byte* _Nullable pContext);
+typedef void (* _Nonnull Cpu_UserClosure)(void* _Nullable pContext);
 
 
 extern void cpu_enable_irqs(void);
@@ -150,14 +150,14 @@ extern void cpu_restore_irqs(int state);
 
 extern const char* _Nonnull cpu_get_model_name(int8_t cpu_model);
 
-extern int cpu_verify_ram_4b(Byte* pSrc);
+extern int cpu_verify_ram_4b(void* pSrc);
 
-extern int cpu_guarded_read(Byte* _Nonnull src, Byte* _Nonnull buffer, int buffer_size);
-extern int cpu_guarded_write(Byte* _Nonnull dst, const Byte* _Nonnull buffer, int buffer_size);
+extern int cpu_guarded_read(void* _Nonnull src, void* _Nonnull buffer, int buffer_size);
+extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, int buffer_size);
 
 extern void cpu_sleep(int cpu_type);
 
-extern void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext);
+extern void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, void* _Nullable pContext);
 extern void cpu_abort_call_as_user(void);
 
 extern _Noreturn cpu_non_recoverable_error(void);

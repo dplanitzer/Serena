@@ -21,12 +21,12 @@
 // Keep this at a size that's a power-of-2
 typedef struct _InterruptHandler {
     int                                 identity;
-    int8_t                                type;
-    int8_t                                priority;
-    uint8_t                               flags;
-    int8_t                                reserved;
+    int8_t                              type;
+    int8_t                              priority;
+    uint8_t                             flags;
+    int8_t                              reserved;
     InterruptHandler_Closure _Nonnull   closure;
-    Byte* _Nullable                     context;
+    void* _Nullable                     context;
 } InterruptHandler;
 
 

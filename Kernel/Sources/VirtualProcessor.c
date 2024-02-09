@@ -210,9 +210,9 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProces
     //
     // See __rtecall_VirtualProcessorScheduler_SwitchContext for an explanation
     // of why we need the dummy exception stack frame.
-    Byte* sp = (Byte*) pVP->save_area.a[7];
-    sp -= 4; *((Byte**)sp) = closure.context;
-    sp -= 4; *((Byte**)sp) = (Byte*)VirtualProcesssor_Relinquish;
+    char* sp = (char*) pVP->save_area.a[7];
+    sp -= 4; *((char**)sp) = closure.context;
+    sp -= 4; *((char**)sp) = (char*)VirtualProcesssor_Relinquish;
     sp -= 4; *((uint32_t*)sp) = 0;
     sp -= 4; *((uint32_t*)sp) = 0;
     pVP->save_area.a[7] = (uint32_t)sp;
@@ -226,7 +226,7 @@ catch:
 // Invokes the given closure in user space. Preserves the kernel integer register
 // state. Note however that this function does not preserve the floating point 
 // register state. Call-as-user invocations can not be nested.
-void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, Closure1Arg_Func _Nonnull pClosure, Byte* _Nullable pContext)
+void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, Closure1Arg_Func _Nonnull pClosure, void* _Nullable pContext)
 {
     assert((pVP->flags & VP_FLAG_CAU_IN_PROGRESS) == 0);
 

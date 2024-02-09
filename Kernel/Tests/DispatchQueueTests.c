@@ -23,19 +23,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #if 0
-static void OnPrintClosure(Byte* _Nonnull pValue)
+static void OnPrintClosure(void* _Nonnull pValue)
 {
     int val = (int)pValue;
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
-    //DispatchQueue_DispatchAsyncAfter(gMainDispatchQueue, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)(val + 1)));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (void*)(val + 1)));
+    //DispatchQueue_DispatchAsyncAfter(gMainDispatchQueue, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (void*)(val + 1)));
 }
 
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*)0));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnPrintClosure, (void*)0));
 }
 #endif
 
@@ -46,7 +46,7 @@ void DispatchQueue_RunTests(void)
 ////////////////////////////////////////////////////////////////////////////////
 
 #if 0
-static void OnPrintClosure(Byte* _Nonnull pValue)
+static void OnPrintClosure(void* _Nonnull pValue)
 {
     int val = (int)pValue;
     
@@ -63,7 +63,7 @@ void DispatchQueue_RunTests(void)
     int i = 0;
 
     while (true) {
-        DispatchQueue_DispatchSync(pQueue, DispatchQueueClosure_Make(OnPrintClosure, (Byte*) i));
+        DispatchQueue_DispatchSync(pQueue, DispatchQueueClosure_Make(OnPrintClosure, (void*) i));
         print("--------\n");
         i++;
     }
@@ -83,7 +83,7 @@ struct State {
     int         value;
 };
 
-static void OnPrintClosure(Byte* _Nonnull pValue)
+static void OnPrintClosure(void* _Nonnull pValue)
 {
     struct State* pState = (struct State*)pValue;
 
@@ -103,7 +103,7 @@ void DispatchQueue_RunTests(void)
     
     try_bang(kalloc(sizeof(struct State), &pState));
     
-    Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, (Byte*)pState), &pState->timer);
+    Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, pState), &pState->timer);
     pState->value = 0;
 
     print("Repeating timer\n");
@@ -196,7 +196,7 @@ void DispatchQueue_RunTests(void)
 
 
 #if 0
-static void OnMainClosure(Byte* _Nonnull pValue)
+static void OnMainClosure(void* _Nonnull pValue)
 {
     EventDriverRef pEventDriver;
     IOChannelRef pChannel;
@@ -210,7 +210,7 @@ static void OnMainClosure(Byte* _Nonnull pValue)
     print("Event loop\n");
     while (true) {
         ssize_t nBytesRead;
-        const errno_t err = IOChannel_Read(pChannel, (Byte*)&evt, sizeof(evt), &nBytesRead);
+        const errno_t err = IOChannel_Read(pChannel, &evt, sizeof(evt), &nBytesRead);
         if (err != EOK) {
             abort();
         }
@@ -265,10 +265,10 @@ void DispatchQueue_RunTests(void)
 
 
 #if 0
-static void OnReadFromPipe(Byte* _Nonnull pValue)
+static void OnReadFromPipe(void* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
-    Byte buf[16];
+    char buf[16];
     
     const int nbytes = Pipe_GetNonBlockingReadableCount(pipe);
     print("reader: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
@@ -283,7 +283,7 @@ static void OnReadFromPipe(Byte* _Nonnull pValue)
     }
 }
 
-static void OnWriteToPipe(Byte* _Nonnull pValue)
+static void OnWriteToPipe(void* _Nonnull pValue)
 {
     PipeRef pipe = (PipeRef) pValue;
     
@@ -308,8 +308,8 @@ void DispatchQueue_RunTests(void)
     DispatchQueueRef pUtilityQueue;
     DispatchQueue_Create(0, 4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
 
-    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnWriteToPipe, (Byte*)pipe));
-    DispatchQueue_DispatchAsync(pUtilityQueue, DispatchQueueClosure_Make(OnReadFromPipe, (Byte*)pipe));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make(OnWriteToPipe, pipe));
+    DispatchQueue_DispatchAsync(pUtilityQueue, DispatchQueueClosure_Make(OnReadFromPipe, pipe));
 
 }
 #endif

@@ -11,20 +11,12 @@
 
 // Initializes the ring buffer to empty. 'capacity' is the buffer capacity in bytes.
 // This value is rounded up to the next power of 2.
-errno_t RingBuffer_Init(RingBuffer* _Nonnull pBuffer, int capacity)
+errno_t RingBuffer_Init(RingBuffer* _Nonnull pBuffer, size_t capacity)
 {
-    decl_try_err();
-
-    assert(capacity >= 0);
-    
     pBuffer->capacity = Int_NextPowerOf2(capacity);
     pBuffer->readIdx = 0;
     pBuffer->writeIdx = 0;
-    try(kalloc(pBuffer->capacity, (void**) &pBuffer->data));
-    return EOK;
-
-catch:
-    return err;
+    return kalloc(pBuffer->capacity * sizeof(char), (void**) &pBuffer->data);
 }
 
 // Frees the ring buffer. This frees the ring buffer storage but not the elements
@@ -40,7 +32,7 @@ void RingBuffer_Deinit(RingBuffer* _Nonnull pBuffer)
 
 // Puts a single byte into the ring buffer.  Returns 0 if the buffer is empty and
 // no byte has been copied out.
-int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte)
+size_t RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, char byte)
 {
     if (RingBuffer_ReadableCount(pBuffer) < pBuffer->capacity) {
         pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx++)] = byte;
@@ -52,7 +44,7 @@ int RingBuffer_PutByte(RingBuffer* _Nonnull pBuffer, Byte byte)
 
 // Puts a sequence of bytes into the ring buffer by copying them. Returns the
 // number of bytes that have been successfully copied into the buffer.
-int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pBytes, int count)
+size_t RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const void* _Nonnull pBytes, size_t count)
 {
     const int avail = RingBuffer_WritableCount(pBuffer);
     
@@ -62,7 +54,7 @@ int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pByte
     
     const int nBytesToCopy = __min(avail, count);
     for (int i = 0; i < nBytesToCopy; i++) {
-        pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx + i)] = pBytes[i];
+        pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->writeIdx + i)] = ((const char*)pBytes)[i];
     }
     pBuffer->writeIdx += nBytesToCopy;
     
@@ -71,7 +63,7 @@ int RingBuffer_PutBytes(RingBuffer* _Nonnull pBuffer, const Byte* _Nonnull pByte
 
 // Gets a single byte from the ring buffer. Returns 0 if the buffer is empty and
 // no byte has been copied out.
-int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte)
+size_t RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, char* _Nonnull pByte)
 {
     if (!RingBuffer_IsEmpty(pBuffer)) {
         *pByte = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx++)];
@@ -85,7 +77,7 @@ int RingBuffer_GetByte(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pByte)
 // 0 if the buffer is empty. Returns the number of bytes that have been copied
 // to 'pBytes'. 0 is returned if nothing has been copied because 'count' is 0
 // or the ring buffer is empty.
-int RingBuffer_GetBytes(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pBytes, int count)
+size_t RingBuffer_GetBytes(RingBuffer* _Nonnull pBuffer, void* _Nonnull pBytes, size_t count)
 {
     const int avail = RingBuffer_ReadableCount(pBuffer);
     
@@ -95,7 +87,7 @@ int RingBuffer_GetBytes(RingBuffer* _Nonnull pBuffer, Byte* _Nonnull pBytes, int
     
     const int nBytesToCopy = __min(avail, count);
     for (int i = 0; i < nBytesToCopy; i++) {
-        pBytes[i] = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx + i)];
+        ((char*)pBytes)[i] = pBuffer->data[RingBuffer_MaskIndex(pBuffer, pBuffer->readIdx + i)];
     }
     pBuffer->readIdx += nBytesToCopy;
     

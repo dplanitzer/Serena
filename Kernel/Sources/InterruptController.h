@@ -26,7 +26,7 @@ typedef int InterruptID;
 typedef int InterruptHandlerID;
 
 // Closure which is invoked when an interrupt happens
-typedef void (*InterruptHandler_Closure)(Byte* _Nullable pContext);
+typedef void (*InterruptHandler_Closure)(void* _Nullable pContext);
 
 
 struct _InterruptHandlerArray;
@@ -44,7 +44,7 @@ extern errno_t InterruptController_CreateForLocalCPU(void);
 // given closure with the given context every time an interrupt with ID 'interruptId'
 // is triggered.
 // NOTE: The closure is invoked in the interrupt context.
-extern errno_t InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId);
+extern errno_t InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, InterruptHandler_Closure _Nonnull pClosure, void* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId);
 
 // Registers a counting semaphore which will receive a release call for every
 // occurrence of an interrupt with ID 'interruptId'.

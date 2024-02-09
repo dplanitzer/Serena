@@ -400,7 +400,7 @@ errno_t GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pixel
         INTERRUPT_ID_VERTICAL_BLANK,
         INTERRUPT_HANDLER_PRIORITY_NORMAL,
         (InterruptHandler_Closure)GraphicsDriver_VerticalBlankInterruptHandler,
-        (Byte*)pDriver, &pDriver->vb_irq_handler)
+        pDriver, &pDriver->vb_irq_handler)
     );
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, 
         pDriver->vb_irq_handler,

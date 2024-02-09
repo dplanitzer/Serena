@@ -243,7 +243,7 @@ _pop_exception_stack_frame:
 
 
 ;-------------------------------------------------------------------------------
-; int cpu_verify_ram_4b(Byte* pSrc)
+; int cpu_verify_ram_4b(void* pSrc)
 ; Verifies that the 4 bytes starting at the RAM location 'pSrc' can be
 ; successfully read and written without bit corruption. Catches bus errors and
 ; returns -1 if a bus error or corrupted data is detected and 0 on success.
@@ -299,7 +299,7 @@ _cpu_verify_ram_4b:
 
 
 ;-------------------------------------------------------------------------------
-; int cpu_guarded_read(Byte* src, Byte* buffer, int buffer_size)
+; int cpu_guarded_read(void* src, void* buffer, int buffer_size)
 ; Reads the bytes starting at 'src' and writes them to 'buffer'. 'buffer_size'
 ; bytes are read and copied. Catches bus errors and returns -1 in such an event.
 ; Returns 0 if all bytes have been successfully read. Must be called from
@@ -345,7 +345,7 @@ _cpu_guarded_read:
 
 
 ;-------------------------------------------------------------------------------
-; int cpu_guarded_write(Byte* dst, Byte* buffer, int buffer_size)
+; int cpu_guarded_write(void* dst, void* buffer, int buffer_size)
 ; Writes the bytes starting at 'buffer' to 'dst'. 'buffer_size' bytes are written.
 ; Catches bus errors and returns -1 in such an event. Returns 0 if all bytes have
 ; been successfully written. Must be called from supervisor mode.
@@ -407,7 +407,7 @@ _cpu_sleep:
 
 
 ;-----------------------------------------------------------------------
-; void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, Byte* _Nullable pContext)
+; void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, void* _Nullable pContext)
 ; Invokes the given closure in user space. Preserves the kernel integer register
 ; state. Note however that this function does not preserve the floating point 
 ; register state.

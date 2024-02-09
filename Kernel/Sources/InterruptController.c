@@ -119,7 +119,7 @@ catch:
 // given closure with the given context every time an interrupt with ID 'interruptId'
 // is triggered.
 // NOTE: The closure is invoked in the interrupt context.
-errno_t InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, InterruptHandler_Closure _Nonnull pClosure, Byte* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId)
+errno_t InterruptController_AddDirectInterruptHandler(InterruptControllerRef _Nonnull pController, InterruptID interruptId, int priority, InterruptHandler_Closure _Nonnull pClosure, void* _Nullable pContext, InterruptHandlerID* _Nonnull pOutId)
 {
     InterruptHandler handler;
     
@@ -148,7 +148,7 @@ errno_t InterruptController_AddSemaphoreInterruptHandler(InterruptControllerRef 
     handler.flags = 0;
     handler.type = INTERRUPT_HANDLER_TYPE_COUNTING_SEMAPHORE;
     handler.closure = (InterruptHandler_Closure) Semaphore_ReleaseFromInterruptContext;
-    handler.context = (Byte*) pSemaphore;
+    handler.context = pSemaphore;
     
     return InterruptController_AddInterruptHandler(pController, interruptId, &handler, pOutId);
 }

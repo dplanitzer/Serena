@@ -38,7 +38,7 @@ errno_t MonotonicClock_CreateForLocalCPU(const SystemDescription* pSysDesc)
                                                       INTERRUPT_ID_QUANTUM_TIMER,
                                                       INTERRUPT_HANDLER_PRIORITY_HIGHEST,
                                                       (InterruptHandler_Closure)MonotonicClock_OnInterrupt,
-                                                      (Byte*)pClock,
+                                                      pClock,
                                                       &irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, irqHandler, true);
 

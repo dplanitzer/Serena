@@ -64,7 +64,7 @@ errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriv
                                                       INTERRUPT_ID_CIA_A_SP,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL,
                                                       (InterruptHandler_Closure)KeyboardDriver_OnKeyboardInterrupt,
-                                                      (Byte*)pDriver,
+                                                      pDriver,
                                                       &pDriver->keyboardIrqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->keyboardIrqHandler, true);
 
@@ -72,7 +72,7 @@ errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriv
                                                       INTERRUPT_ID_VERTICAL_BLANK,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
                                                       (InterruptHandler_Closure)KeyboardDriver_OnVblInterrupt,
-                                                      (Byte*)pDriver,
+                                                      pDriver,
                                                       &pDriver->vblIrqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->vblIrqHandler, true);
 
@@ -195,7 +195,7 @@ errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Mouse
                                                       INTERRUPT_ID_VERTICAL_BLANK,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL - 2,
                                                       (InterruptHandler_Closure)MouseDriver_OnInterrupt,
-                                                      (Byte*)pDriver,
+                                                      pDriver,
                                                       &pDriver->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
 
@@ -330,7 +330,7 @@ errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int p
                                                       INTERRUPT_ID_VERTICAL_BLANK,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
                                                       (InterruptHandler_Closure)DigitalJoystickDriver_OnInterrupt,
-                                                      (Byte*)pDriver,
+                                                      pDriver,
                                                       &pDriver->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
 
@@ -449,7 +449,7 @@ errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int po
                                                       INTERRUPT_ID_VERTICAL_BLANK,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
                                                       (InterruptHandler_Closure)AnalogJoystickDriver_OnInterrupt,
-                                                      (Byte*)pDriver,
+                                                      pDriver,
                                                       &pDriver->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
 
@@ -588,7 +588,7 @@ errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Li
                                                       INTERRUPT_ID_VERTICAL_BLANK,
                                                       INTERRUPT_HANDLER_PRIORITY_NORMAL - 1,
                                                       (InterruptHandler_Closure)LightPenDriver_OnInterrupt,
-                                                      (Byte*)pDriver,
+                                                      pDriver,
                                                       &pDriver->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, pDriver->irqHandler, true);
 
