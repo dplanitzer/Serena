@@ -187,4 +187,8 @@ typedef long long __ssize_t;
 
 #endif
 
+#if __SSIZE_WIDTH != __SIZE_WIDTH
+    #error("__ssize_t and __size_t must have the same width")
+#endif
+
 #endif /* __ABI_DMDEF_H */

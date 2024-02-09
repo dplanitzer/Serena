@@ -10,34 +10,22 @@
 #define Types_h
 
 #include <abi/_align.h>
-#include <abi/_booldef.h>
+#include <abi/_bool.h>
 #include <abi/_dmdef.h>
 #include <abi/_kbidef.h>
 #include <abi/_inttypes.h>
 #include <abi/_floattypes.h>
 #include <abi/_limits.h>
 #include <abi/_math.h>
+#include <abi/_noreturn.h>
 #include <abi/_nulldef.h>
+#include <abi/_offsetof.h>
 #include <abi/_syslimits.h>
 #include <abi/_varargs.h>
-
-#ifndef _Weak
-#define _Weak
-#endif
+#include <abi/_weak.h>
 
 #ifndef _Locked
 #define _Locked
-#endif
-
-#ifndef _Noreturn
-#define _Noreturn   void
-#endif
-
-#ifdef __VBCC__
-#define offsetof(type, member) __offsetof(type, member)
-#else
-#define offsetof(type, member) \
-    ((ssize_t)((char *)&((type *)0)->member - (char *)0))
 #endif
 
 // The Byte type represents raw, untyped memory. Raw memory may be reinterpreted
@@ -76,16 +64,6 @@ typedef __size_t size_t;
 
 #define SIZE_MAX __SIZE_MAX
 #define SIZE_WIDTH __SIZE_WIDTH
-
-#if SSIZE_WIDTH != SIZE_WIDTH
-    #error("ssize_t and size_t must have the same width")
-#endif
-
-
-// Boolean type
-typedef __bool  bool;
-#define true    __true
-#define false   __false
 
 
 // Various Kernel API types

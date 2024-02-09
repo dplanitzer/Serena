@@ -1,13 +1,13 @@
 //
-//  _booldef.h
+//  _bool.h
 //  libsystem
 //
 //  Created by Dietmar Planitzer on 9/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_BOOLDEF_H
-#define __ABI_BOOLDEF_H 1
+#ifndef __ABI_BOOL_H
+#define __ABI_BOOL_H 1
 
 // Note that a boolean value of true must have bit #0 set. All other bits may or
 // may not be set in addition to bit #0. The reason for this design choice is
@@ -20,8 +20,12 @@
 // Functions which return a boolean value should return the canonical values
 // defined below.
 //typedef unsigned char _Bool;
-#define __bool unsigned char //_Bool
-#define __true    1
-#define __false   0
+#ifndef __bool_true_false_are_defined
 
-#endif /* __ABI_BOOLDEF_H */
+#define bool unsigned char //_Bool
+#define true    1
+#define false   0
+#define __bool_true_false_are_defined 1
+#endif
+
+#endif /* __ABI_BOOL_H */
