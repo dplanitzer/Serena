@@ -79,8 +79,8 @@ export SH_BUILD_DIR := $(BUILD_DIR)/Commands/sh
 
 ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
 export KERNEL_BIN_FILE := $(KERNEL_BUILD_DIR)/Kernel.bin
-export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/KernelTests.bin
-export SH_BIN_FILE := $(SH_BUILD_DIR)/sh.bin
+export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_BUILD_DIR)/KernelTests
+export SH_BIN_FILE := $(SH_BUILD_DIR)/sh
 
 LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem
 export LIBSYSTEM_HEADERS_DIR := $(LIBSYSTEM_PROJECT_DIR)/Headers
