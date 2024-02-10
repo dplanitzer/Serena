@@ -142,21 +142,38 @@ static errno_t iterate_dir(InterpreterRef _Nonnull self, const char* _Nonnull pa
 
 static int cmd_list(InterpreterRef _Nonnull self, int argc, char** argv)
 {
-    const char* path = (argc > 1) ? argv[1] : ".";
+    char* dummy_argv[3] = { argv[0], ".", NULL };
     struct DirectoryEntryFormat fmt = {0};
-    errno_t err;
+    bool anyError = false;
 
-    err = iterate_dir(self, path, calc_dir_entry_format, &fmt);
-    if (err == 0) {
-        err = iterate_dir(self, path, print_dir_entry, &fmt);
+    if (argc < 2) {
+        argv = dummy_argv;
+        argc = 2;
     }
 
-    if (err != 0) {
-        printf("%s: %s.\n", argv[0], strerror(err));
-        return EXIT_FAILURE;
+    for (int i = 1; i < argc; i++) {
+        const char* path = argv[i];
+
+        if (argc > 2) {
+            printf("%s:\n", path);
+        }
+
+        errno_t err = iterate_dir(self, path, calc_dir_entry_format, &fmt);
+        if (err == 0) {
+            err = iterate_dir(self, path, print_dir_entry, &fmt);
+        }
+
+        if (err != 0) {
+            printf("%s: %s.\n", argv[0], strerror(err));
+            anyError = true;
+        }
+
+        if (i < (argc - 1)) {
+            putchar('\n');
+        }
     }
 
-    return EXIT_SUCCESS;
+    return (anyError) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 static int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
