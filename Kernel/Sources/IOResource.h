@@ -29,8 +29,8 @@ typedef struct _IOChannelMethodTable {
     ObjectMethodTable   super;
     errno_t   (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
     errno_t   (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
-    errno_t   (*read)(void* _Nonnull self, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-    errno_t   (*write)(void* _Nonnull self, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t   (*read)(void* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t   (*write)(void* _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
     errno_t   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
     errno_t   (*close)(void* _Nonnull self);
 } IOChannelMethodTable;
@@ -102,8 +102,8 @@ typedef struct _IOResourceMethodTable {
     // the channel state is immutable. 
     errno_t   (*dup)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-    errno_t   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
-    errno_t   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t   (*read)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
+    errno_t   (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Executes the resource specific command 'cmd'.
     errno_t   (*ioctl)(void* _Nonnull self, int cmd, va_list ap);

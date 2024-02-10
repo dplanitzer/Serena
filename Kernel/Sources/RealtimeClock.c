@@ -103,7 +103,7 @@ catch:
 }
 
 // Reads up to 'nBytes' from NVRAM. Returns the actual amount of bytes read.
-errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, Byte* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead)
+errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead)
 {
     decl_try_err();
     int nBytesRead;
@@ -122,7 +122,7 @@ catch:
 }
 
 // Writes up to 'nBytes' to NVRAM. Returns the actual amount of data written.
-errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const Byte* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten)
+errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten)
 {
     decl_try_err();
     int nBytesWritten;

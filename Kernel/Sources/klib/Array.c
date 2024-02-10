@@ -33,7 +33,7 @@ void GenericArray_Deinit(struct _GenericArray* pArray)
 errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, size_t elementSize)
 {
     const ssize_t newCapacity = (pArray->capacity > 0) ? pArray->capacity * 2 : 8;
-    Byte* pNewData;
+    char* pNewData;
     const errno_t err = kalloc(elementSize * newCapacity, (void**)&pNewData);
 
     if (err == EOK) {

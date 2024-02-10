@@ -16,13 +16,13 @@
 
 // A specific date in the Gregorian calendar
 typedef struct _GregorianDate {
-    int8_t    second;         // 0 - 59
-    int8_t    minute;         // 0 - 59
-    int8_t    hour;           // 0 - 23
-    int8_t    dayOfWeek;      // 1 - 7 with Sunday == 1
-    int8_t    day;            // 1 - 31
-    int8_t    month;          // 1 - 12
-    int16_t   year;           // absolute Gregorian year
+    int8_t  second;         // 0 - 59
+    int8_t  minute;         // 0 - 59
+    int8_t  hour;           // 0 - 23
+    int8_t  dayOfWeek;      // 1 - 7 with Sunday == 1
+    int8_t  day;            // 1 - 31
+    int8_t  month;          // 1 - 12
+    int16_t year;           // absolute Gregorian year
 } GregorianDate;
 
 
@@ -43,7 +43,7 @@ extern errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, 
 extern errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate* _Nonnull pDate);
 extern errno_t RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const GregorianDate* _Nonnull pDate);
 
-extern errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, Byte* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead);
-extern errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const Byte* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten);
+extern errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead);
+extern errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten);
 
 #endif /* RealtimeClock_h */

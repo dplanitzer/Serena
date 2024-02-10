@@ -72,7 +72,7 @@ errno_t IOChannel_vIOControl(IOChannelRef _Nonnull self, int cmd, va_list ap)
     }
 }
 
-errno_t IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     if ((self->mode & O_RDONLY) == 0) {
         *nOutBytesRead = 0;
@@ -82,7 +82,7 @@ errno_t IOChannel_read(IOChannelRef _Nonnull self, Byte* _Nonnull pBuffer, ssize
     return IOResource_Read(self->resource, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-errno_t IOChannel_write(IOChannelRef _Nonnull self, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t IOChannel_write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     if ((self->mode & O_WRONLY) == 0) {
         *nOutBytesWritten = 0;
@@ -145,13 +145,13 @@ errno_t IOResource_dup(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChann
     return EBADF;
 }
 
-errno_t IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t IOResource_read(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     *nOutBytesRead = 0;
     return EBADF;
 }
 
-errno_t IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     *nOutBytesWritten = 0;
     return EBADF;

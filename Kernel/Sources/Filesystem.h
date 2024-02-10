@@ -223,7 +223,7 @@ typedef struct _FilesystemMethodTable {
     // return a partial entry. Consequently the provided buffer must be big enough
     // to hold at least one directory entry. Note that this function is expected
     // to return "." for the entry at index #0 and ".." for the entry at index #1.
-    errno_t (*readDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*readDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Closes the given directory I/O channel.
     errno_t (*closeDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir);

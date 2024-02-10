@@ -686,7 +686,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleCh
         Lock_Unlock(&pConsole->lock);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        const errno_t e1 = IOChannel_Read(pConsole->eventDriverChannel, (Byte*) &evt, sizeof(evt), &nEvtBytesRead);
+        const errno_t e1 = IOChannel_Read(pConsole->eventDriverChannel, &evt, sizeof(evt), &nEvtBytesRead);
         Lock_Lock(&pConsole->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay
@@ -724,9 +724,10 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleCh
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
+    char* pChars = pBuffer;
     HIDEvent evt;
     int evtCount;
     ssize_t nBytesRead = 0;
@@ -737,7 +738,7 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
     // First check whether we got a partial key byte sequence sitting in our key
     // mapping buffer and copy that one out.
     while (nBytesRead < nBytesToRead && pChannel->rdCount > 0) {
-        pBuffer[nBytesRead++] = pChannel->rdBuffer[pChannel->rdIndex++];
+        pChars[nBytesRead++] = pChannel->rdBuffer[pChannel->rdIndex++];
         pChannel->rdCount--;
     }
 
@@ -745,7 +746,7 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
     if (!RingBuffer_IsEmpty(&pConsole->reportsQueue)) {
         // Now check whether there are terminal reports pending. Those take
         // priority over input device events.
-        Console_ReadReports_NonBlocking_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        Console_ReadReports_NonBlocking_Locked(pConsole, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         nBytesRead += nTmpBytesRead;
     }
 
@@ -753,7 +754,7 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
     if (nBytesRead == 0 && err == EOK) {
         // We haven't read any data so far. Read input events and block if none
         // are available either.
-        const errno_t e1 = Console_ReadEvents_Locked(pConsole, pChannel, &pBuffer[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        const errno_t e1 = Console_ReadEvents_Locked(pConsole, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         if (e1 == EOK) {
             nBytesRead += nTmpBytesRead;
         } else {
@@ -772,9 +773,9 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-errno_t Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const Byte* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const void* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    const unsigned char* pChars = (const unsigned char*) pBytes;
+    const unsigned char* pChars = pBytes;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
 
     Lock_Lock(&pConsole->lock);

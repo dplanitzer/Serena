@@ -58,7 +58,7 @@ typedef struct RamDirectoryQuery {
 //
 
 typedef struct _RamBlockMap {
-    Byte* _Nullable p[kMaxDirectDataBlockPointers];
+    char* _Nullable p[kMaxDirectDataBlockPointers];
 } RamBlockMap;
 
 
@@ -103,7 +103,7 @@ CLASS_IVARS(RamFS, Filesystem,
     int                 nextAvailableInodeId;
     bool                isMounted;
     bool                isReadOnly;     // true if mounted read-only; false if mounted read-write
-    Byte                emptyBlock[kRamBlockSize];  // Block filled with zeros used by the read() function if there's no disk block with data
+    char                emptyBlock[kRamBlockSize];  // Block filled with zeros used by the read() function if there's no disk block with data
 );
 
 typedef ssize_t (*RamReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
@@ -119,7 +119,7 @@ static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);
 static errno_t RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self);
 static errno_t RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);
 static void RamFS_DestroyDiskNode(RamFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode);
-static errno_t RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, Byte* _Nullable * _Nonnull pOutDiskBlock);
+static errno_t RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock);
 static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
 
 #endif /* RamFSPriv_h */

@@ -109,6 +109,6 @@ extern void Process_AbandonChild_Locked(ProcessRef _Nonnull pProc, ProcessId chi
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'
-extern errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv);
+extern errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, void* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv);
 
 #endif /* ProcessPriv_h */

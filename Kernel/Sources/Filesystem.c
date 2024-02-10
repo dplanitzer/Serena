@@ -165,12 +165,12 @@ errno_t Directory_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
     }
 }
 
-errno_t Directory_read(DirectoryRef _Nonnull self, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Directory_read(DirectoryRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-errno_t Directory_write(DirectoryRef _Nonnull self, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Directory_write(DirectoryRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     *nOutBytesWritten = 0;
     return EBADF;
@@ -535,7 +535,7 @@ errno_t Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
 }

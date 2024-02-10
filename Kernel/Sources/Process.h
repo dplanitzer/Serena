@@ -42,7 +42,7 @@ extern errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc);
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'
-extern errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr);
+extern errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, void* _Nonnull pExecAddr);
 
 
 // Triggers the termination of the given process. The termination may be caused

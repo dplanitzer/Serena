@@ -108,9 +108,9 @@ catch:
 struct SYS_read_args {
     int                 scno;
     int                 fd;
-    char* _Nonnull buffer;
-    size_t          nBytesToRead;
-    ssize_t* _Nonnull nBytesRead;
+    void* _Nonnull      buffer;
+    size_t              nBytesToRead;
+    ssize_t* _Nonnull   nBytesRead;
 };
 
 int _SYSCALL_read(const struct SYS_read_args* _Nonnull pArgs)
@@ -132,7 +132,7 @@ catch:
 struct SYS_write_args {
     int                     scno;
     int                     fd;
-    const Byte* _Nonnull    buffer;
+    const void* _Nonnull    buffer;
     size_t                  nBytesToWrite;
     ssize_t* _Nonnull       nBytesWritten;
 };

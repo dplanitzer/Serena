@@ -582,7 +582,7 @@ catch:
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;

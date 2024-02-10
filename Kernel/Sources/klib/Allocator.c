@@ -321,7 +321,7 @@ static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _
 
 bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
-    if (ptr == NULL || ptr == BYTE_PTR_MAX) {
+    if (ptr == NULL || ptr == CHAR_PTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
         // things is a NOP anyway
         return true;
@@ -335,7 +335,7 @@ errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ssize_t nbytes
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
-        *pOutPtr = BYTE_PTR_MAX;
+        *pOutPtr = CHAR_PTR_MAX;
         return EOK;
     }
     
@@ -383,7 +383,7 @@ catch:
 // ENOTBLK if the allocator does not manage the given memory block.
 errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
-    if (ptr == NULL || ptr == BYTE_PTR_MAX) {
+    if (ptr == NULL || ptr == CHAR_PTR_MAX) {
         return EOK;
     }
     

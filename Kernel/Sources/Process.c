@@ -62,7 +62,7 @@ catch:
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'
-errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr)
+errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, void* _Nonnull pExecAddr)
 {
     Lock_Lock(&pProc->lock);
     const errno_t err = Process_Exec_Locked(pProc, pExecAddr, NULL, NULL);
@@ -603,7 +603,7 @@ catch:
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 // XXX the executable file must be located at the address 'pExecAddr'
-errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, Byte* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
+errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, void* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
 {
     GemDosExecutableLoader loader;
     void* pEntryPoint = NULL;

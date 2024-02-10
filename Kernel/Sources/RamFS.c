@@ -283,7 +283,7 @@ static errno_t RamFS_GetDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull
     while (true) {
         const int blockIdx = offset >> (FileOffset)kRamBlockSizeShift;
         const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)kRamBlockSize, fileSize - offset);
-        Byte* pDiskBlock;
+        char* pDiskBlock;
 
         if (nBytesAvailable <= 0) {
             break;
@@ -332,10 +332,10 @@ static errno_t RamFS_GetDirectoryEntryForId(RamFSRef _Nonnull self, InodeRef _No
 // logical block address may be backed by an actual disk block. A missing disk block
 // is substituted at read time by an empty block.
 // NOTE: never marks the inode as modified. The caller has to take care of this.
-static errno_t RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, Byte* _Nullable * _Nonnull pOutDiskBlock)
+static errno_t RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock)
 {
     decl_try_err();
-    Byte* pDiskBlock = NULL;
+    char* pDiskBlock = NULL;
 
     if (blockIdx < 0 || blockIdx >= kMaxDirectDataBlockPointers) {
         throw(EFBIG);
@@ -384,7 +384,7 @@ static errno_t RamFS_xRead(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         const int blockIdx = (int)(offset >> (FileOffset)kRamBlockSizeShift);   //XXX blockIdx should be 64bit
         const ssize_t blockOffset = offset & (FileOffset)kRamBlockSizeMask;
         const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)(kRamBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
-        Byte* pDiskBlock;
+        char* pDiskBlock;
 
         if (nBytesAvailable <= 0) {
             break;
@@ -423,7 +423,7 @@ static errno_t RamFS_xWrite(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pN
         const int blockIdx = (int)(offset >> (FileOffset)kRamBlockSizeShift);   //XXX blockIdx should be 64bit
         const ssize_t blockOffset = offset & (FileOffset)kRamBlockSizeMask;
         const ssize_t nBytesAvailable = __min(kRamBlockSize - blockOffset, nBytesToWrite);
-        Byte* pDiskBlock;
+        char* pDiskBlock;
 
         const errno_t e1 = RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Write, &pDiskBlock);
         if (e1 != EOK) {
@@ -451,7 +451,7 @@ catch:
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
 // before onMount() has returned with EOK.
-errno_t RamFS_onMount(RamFSRef _Nonnull self, const Byte* _Nonnull pParams, ssize_t paramsSize)
+errno_t RamFS_onMount(RamFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
 
@@ -759,7 +759,7 @@ static ssize_t xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const Ram
     return nBytesCopied;
 }
 
-errno_t RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = Directory_GetInode(pDir);
     const ssize_t nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(RamDirectoryEntry);
@@ -883,13 +883,13 @@ errno_t RamFS_close(RamFSRef _Nonnull self, FileRef _Nonnull pFile)
     return EOK;
 }
 
-static ssize_t xCopyOutFileContent(Byte* _Nonnull pOut, const Byte* _Nonnull pIn, ssize_t nBytesToRead)
+static ssize_t xCopyOutFileContent(void* _Nonnull pOut, const void* _Nonnull pIn, ssize_t nBytesToRead)
 {
     Bytes_CopyRange(pOut, pIn, nBytesToRead);
     return nBytesToRead;
 }
 
-errno_t RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, Byte* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
 
@@ -904,7 +904,7 @@ errno_t RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, Byte* _Nonnul
     return err;
 }
 
-errno_t RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const Byte* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
 
@@ -930,7 +930,7 @@ static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locke
     RamBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
 
     for (int i = firstBlockIdx; i < kMaxDirectDataBlockPointers; i++) {
-        Byte* pBlockPtr = pBlockMap->p[i];
+        void* pBlockPtr = pBlockMap->p[i];
 
         if (pBlockPtr) {
             kfree(pBlockPtr);

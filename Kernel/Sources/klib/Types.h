@@ -28,14 +28,7 @@
 #define _Locked
 #endif
 
-// The Byte type represents raw, untyped memory. Raw memory may be reinterpreted
-// or converted to typed memory but this requires the execution of some piece of
-// code that knows how to interpret or rearrange the bits in untyped memory to
-// make them conforming to the semantics of the desired type.
-typedef unsigned char Byte;
-
-#define BYTE_PTR_MIN    ((Byte*)0ul)
-#define BYTE_PTR_MAX    ((Byte*)__UINTPTR_MAX)
+#define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
 
 
 // A ssize_t is a signed integral type that represents a count of bytes. This
