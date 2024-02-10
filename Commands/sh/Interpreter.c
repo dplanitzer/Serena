@@ -229,6 +229,15 @@ static int cmd_delete(InterpreterRef _Nonnull self, int argc, char** argv)
     return EXIT_SUCCESS;
 }
 
+static int cmd_echo(InterpreterRef _Nonnull self, int argc, char** argv)
+{
+    for (int i = 1; i < argc; i++) {
+        puts(argv[i]);
+    }
+
+    return EXIT_SUCCESS;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -236,6 +245,7 @@ static int cmd_delete(InterpreterRef _Nonnull self, int argc, char** argv)
 static const InterpreterCommand gBuiltinCommands[] = {
     {"cd", cmd_cd},
     {"delete", cmd_delete},
+    {"echo", cmd_echo},
     {"list", cmd_list},
     {"makedir", cmd_makedir},
     {"pwd", cmd_pwd},
