@@ -23,7 +23,7 @@ char *strerror(int err_no)
         /*EAGAIN*/          "Try again",
         /*EWOULDBLOCK*/     "Would block",
         /*EPIPE*/           "Broken pipe",
-        /*EBUSY*/           "Busy",
+        /*EBUSY*/           "Resource is busy",
         /*ENOSYS*/          "Not a system call",
         /*EINVAL*/          "Invalid argument",
         /*EIO*/             "I/O error",
