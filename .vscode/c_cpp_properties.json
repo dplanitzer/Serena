@@ -3,11 +3,11 @@
         {
             "name": "Apollo",
             "includePath": [
-                "${workspaceFolder}/Library/abi/**",
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
                 "${workspaceFolder}/Library/libsystem/**",
-                "${workspaceFolder}/Library/libc/**"
+                "${workspaceFolder}/Library/libc/**",
+                "${workspaceFolder}/Commands/sh/**"
             ],
             "defines": [
                 "DEBUG=1",

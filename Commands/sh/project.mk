@@ -7,6 +7,9 @@ SH_C_SOURCES := $(wildcard $(SH_SOURCES_DIR)/*.c)
 SH_C_INCLUDES := -I$(LIBSYSTEM_HEADERS_DIR) -I$(LIBC_HEADERS_DIR) -I$(SH_SOURCES_DIR)
 SH_OBJS := $(patsubst $(SH_SOURCES_DIR)/%.c, $(SH_BUILD_DIR)/%.o, $(SH_C_SOURCES))
 
+BUILTINS_SOURCES_DIR := $(SH_SOURCES_DIR)/builtins
+BUILTINS_BUILD_DIR := $(SH_BUILD_DIR)/builtins
+
 
 # --------------------------------------------------------------------------
 # Build rules
@@ -23,7 +26,9 @@ $(SH_BUILD_DIR):
 	$(call mkdir_if_needed,$(SH_BUILD_DIR))
 
 
-$(SH_BIN_FILE): $(SH_OBJS) $(LIBSYSTEM_LIB_FILE) $(LIBC_LIB_FILE) | $(KERNEL_PRODUCT_DIR)
+-include $(BUILTINS_SOURCES_DIR)/package.mk
+
+$(SH_BIN_FILE): $(SH_OBJS) $(BUILTINS_OBJS) $(LIBSYSTEM_LIB_FILE) $(LIBC_LIB_FILE) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking sh
 	@$(LD) -s -bataritos -T $(SH_SOURCES_DIR)/linker.script -o $@ $(LIBC_ASTART_FILE) $^
 
