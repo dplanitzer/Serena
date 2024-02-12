@@ -27,7 +27,7 @@ typedef struct InterpreterCommand {
 } InterpreterCommand;
 
 
-typedef errno_t (*DirectoryIteratorCallback)(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, struct _directory_entry_t* _Nonnull pEntry, void* _Nullable pContext);
+typedef errno_t (*DirectoryIteratorCallback)(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, DirectoryEntry* _Nonnull pEntry, void* _Nullable pContext);
 
 struct DirectoryEntryFormat {
     int linkCountWidth;

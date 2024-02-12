@@ -7,6 +7,7 @@
 //
 
 #include "Filesystem.h"
+#include <apollo/IOChannel.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,7 +117,7 @@ errno_t Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull p
     decl_try_err();
     DirectoryRef pDir;
 
-    try(IOChannel_AbstractCreate(&kDirectoryClass, (IOResourceRef)pFilesystem, O_RDONLY, (IOChannelRef*)&pDir));
+    try(IOChannel_AbstractCreate(&kDirectoryClass, (IOResourceRef)pFilesystem, kOpen_Read, (IOChannelRef*)&pDir));
     pDir->inode = Inode_ReacquireUnlocked(pNode);
     pDir->offset = 0ll;
 
@@ -548,7 +549,7 @@ errno_t Filesystem_closeDirectory(FilesystemRef _Nonnull self, DirectoryRef _Non
 }
 
 // Verifies that the given node is accessible assuming the given access mode.
-errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, int mode)
+errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
 {
     return EACCESS;
 }

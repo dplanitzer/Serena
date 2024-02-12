@@ -14,7 +14,7 @@
 #include <abi/_math.h>
 
 
-static void file_permissions_to_text(_file_permissions_t perms, char* _Nonnull buf)
+static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
 {
     if ((perms & kFilePermission_Read) == kFilePermission_Read) {
         buf[0] = 'r';
@@ -27,17 +27,17 @@ static void file_permissions_to_text(_file_permissions_t perms, char* _Nonnull b
     }
 }
 
-static errno_t calc_dir_entry_format(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, struct _directory_entry_t* _Nonnull pEntry, void* _Nullable pContext)
+static errno_t calc_dir_entry_format(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, DirectoryEntry* _Nonnull pEntry, void* _Nullable pContext)
 {
     struct DirectoryEntryFormat* fmt = (struct DirectoryEntryFormat*)pContext;
-    struct _file_info_t info;
+    FileInfo info;
     errno_t err = 0;
 
     strcpy(self->pathBuffer, pDirPath);
     strcat(self->pathBuffer, "/");
     strcat(self->pathBuffer, pEntry->name);
 
-    err = getfileinfo(self->pathBuffer, &info);
+    err = File_GetInfo(self->pathBuffer, &info);
     if (err != 0) {
         return err;
     }
@@ -56,17 +56,17 @@ static errno_t calc_dir_entry_format(InterpreterRef _Nonnull self, const char* _
     return 0;
 }
 
-static errno_t print_dir_entry(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, struct _directory_entry_t* _Nonnull pEntry, void* _Nullable pContext)
+static errno_t print_dir_entry(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, DirectoryEntry* _Nonnull pEntry, void* _Nullable pContext)
 {
     struct DirectoryEntryFormat* fmt = (struct DirectoryEntryFormat*)pContext;
-    struct _file_info_t info;
+    FileInfo info;
     errno_t err = 0;
 
     strcpy(self->pathBuffer, pDirPath);
     strcat(self->pathBuffer, "/");
     strcat(self->pathBuffer, pEntry->name);
 
-    err = getfileinfo(self->pathBuffer, &info);
+    err = File_GetInfo(self->pathBuffer, &info);
     if (err != 0) {
         return err;
     }
@@ -100,13 +100,13 @@ static errno_t iterate_dir(InterpreterRef _Nonnull self, const char* _Nonnull pa
     int fd;
     errno_t err = 0;
 
-    err = opendir(path, &fd);
+    err = Directory_Open(path, &fd);
     if (err == 0) {
         while (err == 0) {
-            struct _directory_entry_t dirent;
+            DirectoryEntry dirent;
             ssize_t r;
 
-            err = read(fd, &dirent, sizeof(dirent), &r);        
+            err = Directory_Read(fd, &dirent, 1, &r);
             if (err != 0 || r == 0) {
                 break;
             }
@@ -116,7 +116,7 @@ static errno_t iterate_dir(InterpreterRef _Nonnull self, const char* _Nonnull pa
                 break;
             }
         }
-        close(fd);
+        IOChannel_Close(fd);
     }
     return err;
 }

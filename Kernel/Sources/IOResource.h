@@ -22,7 +22,7 @@ CLASS_FORWARD(IOResource);
 
 OPEN_CLASS_WITH_REF(IOChannel, Object,
     IOResourceRef _Nonnull  resource;
-    unsigned int                    mode;
+    unsigned int            mode;
 );
 
 typedef struct _IOChannelMethodTable {

@@ -7,6 +7,7 @@
 //
 
 #include "IOResource.h"
+#include <apollo/IOChannel.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -23,7 +24,7 @@ errno_t IOChannel_AbstractCreate(ClassRef _Nonnull pClass, IOResourceRef _Nonnul
 
     try(_Object_Create(pClass, 0, (ObjectRef*)&pChannel));
     pChannel->resource = Object_RetainAs(pResource, IOResource);
-    pChannel->mode = mode & (O_RDWR | O_APPEND);
+    pChannel->mode = mode & (kOpen_ReadWrite | kOpen_Append);
 
 catch:
     *pOutChannel = pChannel;
@@ -74,7 +75,7 @@ errno_t IOChannel_vIOControl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 
 errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    if ((self->mode & O_RDONLY) == 0) {
+    if ((self->mode & kOpen_Read) == 0) {
         *nOutBytesRead = 0;
         return EBADF;
     }
@@ -84,7 +85,7 @@ errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize
 
 errno_t IOChannel_write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    if ((self->mode & O_WRONLY) == 0) {
+    if ((self->mode & kOpen_Write) == 0) {
         *nOutBytesWritten = 0;
         return EBADF;
     }

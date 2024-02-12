@@ -12,18 +12,32 @@
 #include <abi/_dmdef.h>
 #include <abi/_errno.h>
 #include <abi/_cmndef.h>
+#include <abi/_inttypes.h>
 #include <apollo/_sizedef.h>
 
 __CPP_BEGIN
 
-typedef long pid_t;
+// Various Kernel API types
+typedef int         ProcessId;
 
-typedef long uid_t;
-typedef long gid_t;
+typedef int32_t     FilesystemId;
+typedef int32_t     InodeId;    // XXX should probably be 64bit
+
+typedef uint16_t    FilePermissions;
+typedef int8_t      FileType;
+typedef int64_t     FileOffset;
+
+typedef uint32_t    UserId;
+typedef uint32_t    GroupId;
 
 typedef __ssize_t ssize_t;
 
-typedef __errno_t errno_t;
+#define SSIZE_MIN  __SSIZE_MIN
+#define SSIZE_MAX  __SSIZE_MAX
+#define SSIZE_WIDTH __SSIZE_WIDTH
+
+#define SIZE_MAX __SIZE_MAX
+#define SIZE_WIDTH __SIZE_WIDTH
 
 typedef long useconds_t;
 
@@ -34,9 +48,10 @@ struct timespec {
     long    tv_nsec;
 };
 
-typedef long long off_t;
-
-typedef unsigned short mode_t;
+struct _time_interval_t {
+    long    seconds;
+    long    nanoseconds;        // 0..<1billion
+};
 
 __CPP_END
 

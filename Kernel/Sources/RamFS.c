@@ -210,9 +210,9 @@ void RamFS_onRemoveNodeFromDisk(RamFSRef _Nonnull self, InodeId id)
 // Checks whether the given user should be granted access to the given node based
 // on the requested permission. Returns EOK if access should be granted and a suitable
 // error code if it should be denied.
-static errno_t RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FilePermissions permission)
+static errno_t RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
 {
-    if (permission == kFilePermission_Write) {
+    if (mode == kFilePermission_Write) {
         if (self->isReadOnly) {
             return EROFS;
         }
@@ -220,7 +220,14 @@ static errno_t RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonnul
         // XXX once we support actual text mapping, we'll need to check whether the text file is in use
     }
 
-    return Inode_CheckAccess(pNode, user, permission);
+    FilePermissions permissions;
+    switch (mode) {
+        case kAccess_Readable:      permissions = FilePermissions_Make(kFilePermission_Read, 0, 0); break;
+        case kAccess_Writable:      permissions = FilePermissions_Make(kFilePermission_Write, 0, 0); break;
+        case kAccess_Executable:    permissions = FilePermissions_Make(kFilePermission_Execute, 0, 0); break;
+        default:                    permissions = 0; break;
+    }
+    return Inode_CheckAccess(pNode, user, permissions);
 }
 
 // Returns true if the array of directory entries starting at 'pEntry' and holding
@@ -763,15 +770,20 @@ errno_t RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, 
 {
     InodeRef _Locked pNode = Directory_GetInode(pDir);
     const ssize_t nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(RamDirectoryEntry);
+    ssize_t nBytesRead;
 
+    // XXX reading multiple entries at once doesn't work right because xRead advances 'pBuffer' by sizeof(RamDirectoryEntry) rather
+    // XXX than DirectoryEntry. Former is 32 bytes and later is 260 bytes.
+    // XXX the Directory_GetOffset() should really return the numer of the entry rather than a byte offset
     const errno_t err = RamFS_xRead(self, 
         pNode, 
         Directory_GetOffset(pDir),
         nBytesToReadFromDirectory,
         (RamReadCallback)xCopyOutDirectoryEntries,
         pBuffer,
-        nOutBytesRead);
-    Directory_IncrementOffset(pDir, *nOutBytesRead);
+        &nBytesRead);
+    Directory_IncrementOffset(pDir, nBytesRead);
+    *nOutBytesRead = (nBytesRead / sizeof(RamDirectoryEntry)) * sizeof(DirectoryEntry);
     return err;
 }
 
@@ -807,7 +819,7 @@ errno_t RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull p
     if (err == ENOENT) {
         err = EOK;
     } else if (err == EOK) {
-        if ((options & O_EXCL) == O_EXCL) {
+        if ((options & kOpen_Exclusive) == kOpen_Exclusive) {
             // Exclusive mode: File already exists -> throw an error
             throw(EEXIST);
         }
@@ -846,20 +858,20 @@ errno_t RamFS_open(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsi
         throw(EISDIR);
     }
 
-    if ((mode & O_RDWR) == 0) {
+    if ((mode & kOpen_ReadWrite) == 0) {
         throw(EACCESS);
     }
-    if ((mode & O_RDONLY) != 0) {
+    if ((mode & kOpen_Read) != 0) {
         permissions |= kFilePermission_Read;
     }
-    if ((mode & O_WRONLY) != 0) {
+    if ((mode & kOpen_Write) != 0) {
         permissions |= kFilePermission_Write;
     }
 
     try(Inode_CheckAccess(pNode, user, permissions));
     try(File_Create((FilesystemRef)self, mode, pNode, pOutFile));
 
-    if ((mode & O_TRUNC) != 0) {
+    if ((mode & kOpen_Truncate) != 0) {
         RamFS_xTruncateFile(self, pNode, 0);
     }
     
@@ -907,10 +919,17 @@ errno_t RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, void* _Nonnul
 errno_t RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
+    FileOffset offset;
+
+    if (File_IsAppendOnWrite(pFile)) {
+        offset = Inode_GetFileSize(pNode);
+    } else {
+        offset = File_GetOffset(pFile);
+    }
 
     const errno_t err = RamFS_xWrite(self, 
         pNode, 
-        File_GetOffset(pFile),
+        offset,
         nBytesToWrite,
         (RamWriteCallback)Bytes_CopyRange,
         pBuffer,

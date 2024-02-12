@@ -35,7 +35,7 @@ void print_init(void)
     Formatter_Init(&gFormatter, printv_console_sink_locked, NULL, gPrintBuffer, PRINT_BUFFER_CAPACITY);
     gConsole = (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
     assert(gConsole != NULL);
-    try_bang(IOResource_Open(gConsole, NULL/*XXX*/, O_WRONLY, user, &gConsoleChannel));
+    try_bang(IOResource_Open(gConsole, NULL/*XXX*/, kOpen_Write, user, &gConsoleChannel));
 }
 
 // Print formatted

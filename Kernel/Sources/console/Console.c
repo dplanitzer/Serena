@@ -7,6 +7,7 @@
 //
 
 #include "ConsolePriv.h"
+#include <apollo/IOChannel.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,7 +53,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     Lock_Init(&pConsole->lock);
 
     pConsole->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(IOResource_Open(pConsole->eventDriver, NULL/*XXX*/, O_RDONLY, user, &pConsole->eventDriverChannel));
+    try(IOResource_Open(pConsole->eventDriver, NULL/*XXX*/, kOpen_Read, user, &pConsole->eventDriverChannel));
     try(RingBuffer_Init(&pConsole->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);

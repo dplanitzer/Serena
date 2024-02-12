@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <apollo/syscall.h>
 #include <apollo/apollo.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +25,7 @@ static void parent_process(void)
     struct timespec delay = {0, 250*1000*1000};
     printf("Hello World, from process #1!  [%d]\n", cpt_count1++);
     nanosleep(&delay);
-    _syscall(SC_dispatch_async, (void*)parent_process);
+    DispatchQueue_Async((Dispatch_Closure)parent_process);
 }
 
 static void child_process(void)
@@ -34,7 +33,7 @@ static void child_process(void)
     struct timespec delay = {1, 0*1000*1000};
     printf("Hello World, from process #2!          [%d]\n", cpt_count2++);
     nanosleep(&delay);
-    _syscall(SC_dispatch_async, (void*)child_process);
+    DispatchQueue_Async((Dispatch_Closure)child_process);
     //exit(0);
     //puts("oops\n");
 }
@@ -42,7 +41,7 @@ static void child_process(void)
 
 void child_process_test(int argc, char *argv[])
 {
-    printf(" pid: %ld\nargc: %d\n", getpid(), argc);
+    printf(" pid: %ld\nargc: %d\n", Process_GetId(), argc);
     
     for (int i = 0; i < argc; i++) {
         if (argv[i]) {
@@ -59,19 +58,19 @@ void child_process_test(int argc, char *argv[])
         child_argv[0] = "--child";
         child_argv[1] = NULL;
 
-        spawn_arguments_t spargs;
+        SpawnArguments spargs;
         memset(&spargs, 0, sizeof(spargs));
         spargs.execbase = (void*)0xfe0000;
         //spargs.execbase = (void*)(0xfe0000 + ((char*)app_main));
         spargs.argv = child_argv;
         spargs.envp = NULL;
-        spawnp(&spargs, NULL);
+        Process_Spawn(&spargs, NULL);
 
         // Do a parent's work
         parent_process();
     } else {
         // Child process
-        printf("ppid: %ld\n\n", getppid());
+        printf("ppid: %ld\n\n", Process_GetParentId());
         child_process();
     }
 }

@@ -9,7 +9,7 @@
 #ifndef krt_h
 #define krt_h
 
-#include <abi/_kbidef.h>
+#include <apollo/Urt.h>
 
 extern UrtFunc gUrtFuncTable[];
 

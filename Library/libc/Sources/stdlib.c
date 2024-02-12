@@ -13,12 +13,12 @@
 #include <__stddef.h>
 #include <apollo/apollo.h>
 
-void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp)
+void __stdlibc_init(ProcessArguments* _Nonnull argsp)
 {
     __gProcessArguments = argsp;
     environ = argsp->envp;
 
-    system_init(argsp);
+    System_Init(argsp);
     __exit_init();
     __malloc_init();
     __stdio_init();

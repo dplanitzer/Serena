@@ -18,5 +18,5 @@ FILE* _Stderr;
 
 // Private globals
 AllocatorRef __gAllocator;
-struct __process_arguments_t* __gProcessArguments;
+ProcessArguments* __gProcessArguments;
 SList __gAtExitQueue;

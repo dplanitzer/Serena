@@ -447,12 +447,12 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s)
 
 #if 0
 //XXX general approach of bulk writing
-static errno_t __write(const char* _Nonnull pBuffer, size_t nBytes)
+static errno_t __IOChannel_Write(const char* _Nonnull pBuffer, size_t nBytes)
 {
     ssize_t nBytesWritten = 0;
 
     while (nBytesWritten < nBytes) {
-        const ssize_t r = write(STDOUT_FILENO, pBuffer, nBytes);
+        const ssize_t r = IOChannel_Write(kIOChannel_Stdout, pBuffer, nBytes);
         
         if (r < 0) {
             return (errno_t) -r;

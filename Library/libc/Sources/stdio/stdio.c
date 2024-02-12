@@ -19,18 +19,18 @@ void __stdio_init(void)
 {
     // XXX temporary until we'll put something like an init process in place
     int fd0, fd1;
-    //    assert(open("/dev/console", O_RDONLY, &fd0) == 0);
-    //    assert(open("/dev/console", O_WRONLY, &fd1) == 0);
-    open("/dev/console", O_RDONLY, &fd0);
-    open("/dev/console", O_WRONLY, &fd1);
+    //    assert(File_Open("/dev/console", kOpen_Read, &fd0) == 0);
+    //    assert(File_Open("/dev/console", kOpen_Write, &fd1) == 0);
+    File_Open("/dev/console", kOpen_Read, &fd0);
+    File_Open("/dev/console", kOpen_Write, &fd1);
     // XXX temporary until we'll put something like an init process in place
 
     _Stdin = (FILE*)&_StdinObj;
     _Stdout = (FILE*)&_StdoutObj;
     _Stderr = (FILE*)&_StderrObj;
 
-    __fdopen_init(&_StdinObj, false, STDIN_FILENO, "r");
-    __fdopen_init(&_StdoutObj, false, STDOUT_FILENO, "w");
+    __fdopen_init(&_StdinObj, false, kIOChannel_Stdin, "r");
+    __fdopen_init(&_StdoutObj, false, kIOChannel_Stdout, "w");
     // XXX add support for stderr
 }
 
@@ -55,7 +55,7 @@ int remove(const char* path)
 {
     decl_try_err();
 
-    err = unlink(path);
+    err = File_Unlink(path);
     if (err != 0) {
         errno = err;
         return -1;
@@ -69,7 +69,7 @@ int rename(const char* oldpath, const char* newpath)
 {
     decl_try_err();
 
-    err = sys_rename(oldpath, newpath);
+    err = File_Rename(oldpath, newpath);
     if (err != 0) {
         errno = err;
         return -1;

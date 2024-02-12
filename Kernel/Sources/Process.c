@@ -450,7 +450,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgument
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    const FilePermissions childUMask = ((pArgs->options & SPAWN_OVERRIDE_UMASK) != 0) ? (pArgs->umask & 0777) : pProc->fileCreationMask;
+    const FilePermissions childUMask = ((pArgs->options & kSpawn_OverrideUserMask) != 0) ? (pArgs->umask & 0777) : pProc->fileCreationMask;
     try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, pProc->fileCreationMask, &pChildProc));
 
 
@@ -458,7 +458,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgument
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
 
-    if ((pArgs->options & SPAWN_NO_DEFAULT_DESCRIPTOR_INHERITANCE) == 0) {
+    if ((pArgs->options & kSpawn_NoDefaultDescriptors) == 0) {
         const int nStdIoChannelsToInherit = __min(3, ObjectArray_GetCount(&pProc->ioChannels));
 
         for (int i = 0; i < nStdIoChannelsToInherit; i++) {
@@ -1062,7 +1062,7 @@ catch:
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int mode)
+errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, AccessMode mode)
 {
     decl_try_err();
     PathResolverResult r;

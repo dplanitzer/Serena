@@ -11,7 +11,6 @@
 
 #include <abi/_cmndef.h>
 #include <abi/_errtrycatch.h>
-#include <abi/_kbidef.h>
 #include <abi/_math.h>
 #include <stdalign.h>
 #include <stddef.h>
@@ -34,7 +33,7 @@ extern _Noreturn _Abort(const char* _Nonnull pFilename, int lineNum, const char*
 
 extern int _divmods64(long long dividend, long long divisor, long long* quotient, long long* remainder);
 
-extern void __stdlibc_init(struct __process_arguments_t* _Nonnull argsp);
+extern void __stdlibc_init(ProcessArguments* _Nonnull argsp);
 extern void __malloc_init(void);
 extern void __exit_init(void);
 extern void __stdio_init(void);

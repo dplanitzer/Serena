@@ -8,16 +8,11 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <apollo/syscall.h>
+#include <apollo/Process.h>
 #include <__globals.h>
 #include <__stddef.h>
 #include "Allocator.h"
 
-
-static inline errno_t __alloc_address_space(size_t nbytes, void **ptr)
-{
-    return _syscall(SC_alloc_address_space, nbytes, ptr);
-}
 
 // Initializes the malloc subsystem and does the initial heap allocation.
 // The initial heap size is INITIAL_HEAP_SIZE
@@ -29,7 +24,7 @@ void __malloc_init(void)
     MemoryDescriptor md;
     void* ptr;
 
-    try_bang(__alloc_address_space(INITIAL_HEAP_SIZE, &ptr));
+    try_bang(Process_AllocateAddressSpace(INITIAL_HEAP_SIZE, &ptr));
     md.lower = ptr;
     md.upper = ((char*)ptr) + INITIAL_HEAP_SIZE;
     try_bang(__Allocator_Create(&md, &__gAllocator));
@@ -38,7 +33,7 @@ void __malloc_init(void)
 static errno_t __malloc_expand_backingstore_by(size_t nbytes)
 {
     void* ptr;
-    errno_t err = __alloc_address_space(nbytes, &ptr);
+    errno_t err = Process_AllocateAddressSpace(nbytes, &ptr);
         
     if (err == 0) {
         MemoryDescriptor md;

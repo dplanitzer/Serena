@@ -15,22 +15,22 @@
 
 static errno_t __ioc_read(__IOChannel_FILE_Vars* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
-    return read(self->ioc, pBuffer, nBytesToRead, pOutBytesRead);
+    return IOChannel_Read(self->ioc, pBuffer, nBytesToRead, pOutBytesRead);
 }
 
 static errno_t __ioc_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
-    return write(self->ioc, pBytes, nBytesToWrite, pOutBytesWritten);
+    return IOChannel_Write(self->ioc, pBytes, nBytesToWrite, pOutBytesWritten);
 }
 
 static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *outOldOffset, int whence)
 {
-    return seek(self->ioc, offset, outOldOffset, whence);
+    return File_Seek(self->ioc, offset, outOldOffset, whence);
 }
 
 static errno_t __ioc_close(__IOChannel_FILE_Vars* _Nonnull self)
 {
-    return close(self->ioc);
+    return IOChannel_Close(self->ioc);
 }
 
 static const FILE_Callbacks __FILE_ioc_callbacks = {
@@ -45,17 +45,17 @@ static const FILE_Callbacks __FILE_ioc_callbacks = {
 errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, const char *mode)
 {
     const int sm = __fopen_parse_mode(mode);
-    const int iocmode = fgetmode(ioc);
+    const int iocmode = IOChannel_GetMode(ioc);
 
     // Make sure that 'mode' lines up with what the I/O channel can actually
     // do
-    if ((sm & __kStreamMode_Read) != 0 && (iocmode & O_RDONLY) == 0) {
+    if ((sm & __kStreamMode_Read) != 0 && (iocmode & kOpen_Read) == 0) {
         return EINVAL;
     }
-    if ((sm & __kStreamMode_Write) != 0 && (iocmode & O_WRONLY) == 0) {
+    if ((sm & __kStreamMode_Write) != 0 && (iocmode & kOpen_Write) == 0) {
         return EINVAL;
     }
-    if ((sm & __kStreamMode_Append) != 0 && (iocmode & O_APPEND) == 0) {
+    if ((sm & __kStreamMode_Append) != 0 && (iocmode & kOpen_Append) == 0) {
         return EINVAL;
     }
 
@@ -86,21 +86,21 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
     const int sm = __fopen_parse_mode(mode);
 
     if ((sm & __kStreamMode_Read) != 0) {
-        options |= O_RDONLY;
+        options |= kOpen_Read;
     }
     if ((sm & __kStreamMode_Write) != 0) {
-        options |= O_WRONLY;
+        options |= kOpen_Write;
         if ((sm & __kStreamMode_Append) != 0) {
-            options |= O_APPEND;
+            options |= kOpen_Append;
         } else {
-            options |= O_TRUNC;
+            options |= kOpen_Truncate;
         }
         if ((sm & __kStreamMode_Exclusive) != 0) {
-            options |= O_EXCL;
+            options |= kOpen_Exclusive;
         }
     }
 
-    if ((options & O_RDWR) == 0) {
+    if ((options & kOpen_ReadWrite) == 0) {
         throw(EINVAL);
     }
 
@@ -108,11 +108,11 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
     // Open/create the file
     if ((sm & __kStreamMode_Write) == 0) {
         // Read only
-        try(open(filename, options, &ioc));
+        try(File_Open(filename, options, &ioc));
     }
     else {
         // Write only or read/write/append
-        try(creat(filename, options, 0666, &ioc));
+        try(File_Create(filename, options, 0666, &ioc));
     }
     
     self->v.ioc = ioc;
@@ -129,7 +129,7 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
 
 catch:
     if (ioc != -1) {
-        close(ioc);
+        IOChannel_Close(ioc);
     }
     return err;
 }

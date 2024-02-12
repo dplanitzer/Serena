@@ -17,7 +17,7 @@
 static void pwd(void)
 {
     char buf[128];
-    const errno_t err = getcwd(buf, sizeof(buf));
+    const errno_t err = Process_GetCurrentWorkingDirectoryPath(buf, sizeof(buf));
 
     if (err == 0) {
         printf("cwd: \"%s\"\n", buf);
@@ -28,7 +28,7 @@ static void pwd(void)
 
 static void chdir(const char* path)
 {
-    const errno_t err = setcwd(path);
+    const errno_t err = Process_SetCurrentWorkingDirectoryPath(path);
 
     if (err != 0) {
         printf("chdir error: %s\n", strerror(err));
@@ -37,7 +37,7 @@ static void chdir(const char* path)
 
 static void _mkdir(const char* path)
 {
-    const errno_t err = mkdir(path, 0777);
+    const errno_t err = Directory_Create(path, 0777);
     if (err != 0) {
         printf("mkdir error: %s\n", strerror(err));
     }
@@ -46,7 +46,7 @@ static void _mkdir(const char* path)
 static int _opendir(const char* path)
 {
     int fd;
-    const errno_t err = opendir(path, &fd);
+    const errno_t err = Directory_Open(path, &fd);
     if (err != 0) {
         printf("opendir error: %s\n", strerror(err));
     }
@@ -55,7 +55,7 @@ static int _opendir(const char* path)
 
 static void _read(int fd, void* buffer, size_t nbytes, ssize_t* nOutBytesRead)
 {
-    const errno_t err = read(fd, buffer, nbytes, nOutBytesRead);
+    const errno_t err = IOChannel_Read(fd, buffer, nbytes, nOutBytesRead);
 
     if (err != 0) {
         printf("read error: %s\n", strerror(err));
@@ -64,7 +64,7 @@ static void _read(int fd, void* buffer, size_t nbytes, ssize_t* nOutBytesRead)
 
 static void _write(int fd, const void* buffer, size_t nbytes, ssize_t* nOutBytesWritten)
 {
-    const errno_t err = write(fd, buffer, nbytes, nOutBytesWritten);
+    const errno_t err = IOChannel_Write(fd, buffer, nbytes, nOutBytesWritten);
 
     if (err != 0) {
         printf("write error: %s\n", strerror(err));
@@ -73,7 +73,7 @@ static void _write(int fd, const void* buffer, size_t nbytes, ssize_t* nOutBytes
 
 static void _close(int fd)
 {
-    const errno_t err = close(fd);
+    const errno_t err = IOChannel_Close(fd);
 
     if (err != 0) {
         printf("close error: %s\n", strerror(err));
@@ -83,10 +83,10 @@ static void _close(int fd)
 
 static void print_fileinfo(const char* path)
 {
-    struct _file_info_t info;
-    const errno_t err = getfileinfo(path, &info);
+    FileInfo info;
+    const errno_t err = File_GetInfo(path, &info);
     if (err != 0) {
-        printf("getfileinfo error: %s\n", strerror(err));
+        printf("File_GetInfo error: %s\n", strerror(err));
         return;
     }
 
@@ -108,8 +108,8 @@ static void print_fileinfo(const char* path)
 
 void chdir_pwd_test(int argc, char *argv[])
 {
-    printf("uid: %ld\n", getuid());
-    printf("umask: 0%o\n\n", getumask());
+    printf("uid: %ld\n", Process_GetUserId());
+    printf("umask: 0%o\n\n", Process_GetUserMask());
 
     _mkdir("/Users");
     _mkdir("/Users/Admin");
@@ -149,7 +149,7 @@ void unlink_test(int argc, char *argv[])
     _mkdir("/Users/Admin");
     _mkdir("/Users/Tester");
 
-    unlink("/Users/Tester");
+    File_Unlink("/Users/Tester");
 }
 
 void readdir_test(int argc, char *argv[])
@@ -160,7 +160,7 @@ void readdir_test(int argc, char *argv[])
 
     const int fd = _opendir("/Users");
     //const int fd = _opendir("/");
-    struct _directory_entry_t dirent;
+    DirectoryEntry dirent;
 
     while (true) {
         ssize_t r;

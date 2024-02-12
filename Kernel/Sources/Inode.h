@@ -10,50 +10,10 @@
 #define Inode_h
 
 #include <klib/klib.h>
+#include <apollo/File.h>
 #include "Lock.h"
 
 CLASS_FORWARD(Filesystem);
-
-typedef struct _file_info_t FileInfo;
-typedef struct _mutable_file_info_t MutableFileInfo;
-#if 0
-enum {
-    kFilePermission_Read = 0x04,
-    kFilePermission_Write = 0x02,
-    kFilePermission_Execute = 0x01
-};
-
-enum {
-    kFilePermissionScope_BitWidth = 3,
-
-    kFilePermissionScope_User = 2*kFilePermissionScope_BitWidth,
-    kFilePermissionScope_Group = kFilePermissionScope_BitWidth,
-    kFilePermissionScope_Other = 0,
-
-    kFilePermissionScope_Mask = 0x07,
-};
-
-#define FilePermissions_Make(__user, __group, __other) \
-  (((__user) & kFilePermissionScope_Mask) << kFilePermissionScope_User) \
-| (((__group) & kFilePermissionScope_Mask) << kFilePermissionScope_Group) \
-| (((__other) & kFilePermissionScope_Mask) << kFilePermissionScope_Other)
-
-#define FilePermissions_MakeFromOctal(__3_x_3_octal) \
-    (__3_x_3_octal)
-    
-#define FilePermissions_Get(__permissions, __scope) \
-(((__permissions) >> (__scope)) & kFilePermissionScope_Mask)
-
-#define FilePermissions_Set(__permissions, __scope, __bits) \
-((__permissions) & ~(kFilePermissionsScope_Mask << (__scope))) | (((__bits) & kFilePermissionsScope_Mask) << (__scope))
-
-
-// The Inode type.
-enum {
-    kFileType_RegularFile = 0,  // A regular file that stores data
-    kFileType_Directory,        // A directory which stores information about child nodes
-};
-#endif
 
 // Inode flags
 enum {

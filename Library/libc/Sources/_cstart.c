@@ -13,7 +13,7 @@
 extern int main(int argc, char *argv[]);
 
 // start() that implements the standard C semantics.
-void start(struct __process_arguments_t* _Nonnull argsp)
+void start(ProcessArguments* _Nonnull argsp)
 {
     __stdlibc_init(argsp);
 

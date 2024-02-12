@@ -12,7 +12,6 @@
 #include <abi/_align.h>
 #include <abi/_bool.h>
 #include <abi/_dmdef.h>
-#include <abi/_kbidef.h>
 #include <abi/_inttypes.h>
 #include <abi/_floattypes.h>
 #include <abi/_limits.h>
@@ -23,6 +22,7 @@
 #include <abi/_syslimits.h>
 #include <abi/_varargs.h>
 #include <abi/_weak.h>
+#include <apollo/types.h>
 
 #ifndef _Locked
 #define _Locked
@@ -31,46 +31,9 @@
 #define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
 
 
-// A ssize_t is a signed integral type that represents a count of bytes. This
-// type corresponds in width and semantics to the POSIX ssize_t. A byte count is
-// guaranteed that it is as wide as size_t and at least as wide as int/unsigned int.
-// Kernel code should exclusively use this type to represent counts of bytes
-// because it is safer to use than size_t. Eg since it is signed, subtraction
-// is actually commutative (whereas it is not with size_t since small - large
-// may cause a wrap around while large - small with the same values won't).
-typedef __ssize_t ssize_t;
-
-#define SSIZE_MIN  __SSIZE_MIN
-#define SSIZE_MAX  __SSIZE_MAX
-#define SSIZE_WIDTH __SSIZE_WIDTH
 
 // Convert a size_t to a ssize_t with clamping
 #define __SSizeByClampingSize(ub) (ssize_t)__min(ub, SSIZE_MAX)
-
-
-// A size_t is an unsigned integral type that represents a count of bytes.
-// This type should be exclusively used in the interface between the kernel and
-// user space to represent the kernel side of a C99 size_t type. However this
-// type should be immediately converted to a ssize_t with proper clamping or
-// overflow check and the kernel code should then use ssize_t internally.
-typedef __size_t size_t;
-
-#define SIZE_MAX __SIZE_MAX
-#define SIZE_WIDTH __SIZE_WIDTH
-
-
-// Various Kernel API types
-typedef int         ProcessId;
-
-typedef int32_t     FilesystemId;
-typedef int32_t     InodeId;    // XXX should probably be 64bit
-
-typedef uint16_t    FilePermissions;
-typedef int8_t      FileType;
-typedef int64_t     FileOffset;
-
-typedef uint32_t    UserId;
-typedef uint32_t    GroupId;
 
 enum {
     kRootUserId = 0,

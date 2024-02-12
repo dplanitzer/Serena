@@ -10,13 +10,7 @@
 #define Error_h
 
 #include <klib/Assert.h>
-#include <abi/_errno.h>
-#include <abi/_errtrycatch.h>
-
-
-// Error code definitions
-typedef __errno_t errno_t;
-#define EOK __EOK
+#include <apollo/Error.h>
 
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
 // 'try' if you are calling a failable function but based on the design of the

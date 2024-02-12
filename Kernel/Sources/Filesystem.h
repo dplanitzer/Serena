@@ -13,8 +13,6 @@
 #include "Inode.h"
 #include "PathComponent.h"
 
-typedef struct _directory_entry_t   DirectoryEntry;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -53,6 +51,10 @@ extern errno_t File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _No
 #define File_IncrementOffset(__self, __delta) \
     ((FileRef)__self)->offset += (FileOffset)(__delta)
 
+// Returns true if the file should always append on write()
+#define File_IsAppendOnWrite(__self) \
+    ((IOChannel_GetMode((IOChannelRef)__self) & kOpen_Append) == kOpen_Append)
+    
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -234,7 +236,7 @@ typedef struct _FilesystemMethodTable {
     //
 
     // Verifies that the given node is accessible assuming the given access mode.
-    errno_t (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, int mode);
+    errno_t (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode);
 
     // Change the size of the file 'pNode' to 'length'. EINVAL is returned if
     // the new length is negative. No longer needed blocks are deallocated if

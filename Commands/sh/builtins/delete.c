@@ -22,7 +22,7 @@ int cmd_delete(InterpreterRef _Nonnull self, int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    const errno_t err = unlink(path);
+    const errno_t err = File_Unlink(path);
     if (err != 0) {
         printf("%s: %s.\n", argv[0], strerror(err));
         return EXIT_FAILURE;

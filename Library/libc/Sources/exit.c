@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <apollo/syscall.h>
+#include <apollo/Process.h>
 #include <__globals.h>
 #include <__stddef.h>
 
@@ -58,5 +58,5 @@ _Noreturn exit(int exit_code)
 
 _Noreturn _Exit(int exit_code)
 {
-    _syscall(SC_exit, exit_code);
+    Process_Exit(exit_code);
 }

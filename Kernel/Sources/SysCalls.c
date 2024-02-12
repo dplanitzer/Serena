@@ -13,11 +13,11 @@
 
 
 struct SYS_mkfile_args {
-    int                         scno;
-    const char* _Nullable  path;
-    unsigned int                        options;
-    unsigned int                        permissions;
-    int* _Nullable              outFd;
+    int                     scno;
+    const char* _Nullable   path;
+    unsigned int            options;
+    uint32_t                permissions;
+    int* _Nullable          outFd;
 };
 
 int _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
@@ -32,10 +32,10 @@ int _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
 }
 
 struct SYS_open_args {
-    int                         scno;
-    const char* _Nullable  path;
-    unsigned int                        options;
-    int* _Nullable              outFd;
+    int                     scno;
+    const char* _Nullable   path;
+    unsigned int            options;
+    int* _Nullable          outFd;
 };
 
 int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
@@ -68,9 +68,9 @@ catch:
 
 
 struct SYS_opendir_args {
-    int                         scno;
-    const char* _Nullable  path;
-    int* _Nullable              outFd;
+    int                     scno;
+    const char* _Nullable   path;
+    int* _Nullable          outFd;
 };
 
 int _SYSCALL_opendir(const struct SYS_opendir_args* _Nonnull pArgs)
@@ -178,9 +178,9 @@ catch:
 
 
 struct SYS_mkdir_args {
-    int                         scno;
-    const char* _Nullable  path;
-    uint32_t                      mode;   // XXX User space passes uint16_t, we need uint32_t because the C compiler for m68k does this kind of promotion
+    int                     scno;
+    const char* _Nullable   path;
+    uint32_t                mode;   // XXX User space passes uint16_t, we need uint32_t because the C compiler for m68k does this kind of promotion
 };
 
 int _SYSCALL_mkdir(const struct SYS_mkdir_args* _Nonnull pArgs)
@@ -196,9 +196,9 @@ int _SYSCALL_mkdir(const struct SYS_mkdir_args* _Nonnull pArgs)
 
 
 struct SYS_getcwd_args {
-    int                     scno;
-    char* _Nullable    buffer;
-    ssize_t               bufferSize;
+    int             scno;
+    char* _Nullable buffer;
+    ssize_t         bufferSize;
 };
 
 int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
@@ -212,8 +212,8 @@ int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
 
 
 struct SYS_setcwd_args {
-    int                         scno;
-    const char* _Nullable  path;
+    int                     scno;
+    const char* _Nullable   path;
 };
 
 int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
@@ -227,9 +227,9 @@ int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
 
 
 struct SYS_getfileinfo_args {
-    int                         scno;
-    const char* _Nullable  path;
-    FileInfo* _Nullable         outInfo;
+    int                     scno;
+    const char* _Nullable   path;
+    FileInfo* _Nullable     outInfo;
 };
 
 int _SYSCALL_getfileinfo(const struct SYS_getfileinfo_args* _Nonnull pArgs)
@@ -244,7 +244,7 @@ int _SYSCALL_getfileinfo(const struct SYS_getfileinfo_args* _Nonnull pArgs)
 
 struct SYS_setfileinfo_args {
     int                         scno;
-    const char* _Nullable  path;
+    const char* _Nullable       path;
     MutableFileInfo* _Nullable  info;
 };
 
@@ -291,9 +291,9 @@ int _SYSCALL_fsetfileinfo(const struct SYS_fsetfileinfo_args* _Nonnull pArgs)
 
 
 struct SYS_truncate_args {
-    int                         scno;
-    const char* _Nullable  path;
-    FileOffset                  length;
+    int                     scno;
+    const char* _Nullable   path;
+    FileOffset              length;
 };
 
 int _SYSCALL_truncate(const struct SYS_truncate_args* _Nonnull pArgs)
@@ -332,9 +332,9 @@ int _SYSCALL_ioctl(const struct SYS_ioctl_args* _Nonnull pArgs)
 
 
 struct SYS_access_args {
-    int                         scno;
-    const char* _Nullable  path;
-    int                         mode;
+    int                     scno;
+    const char* _Nullable   path;
+    uint32_t                mode;
 };
 
 int _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
@@ -348,8 +348,8 @@ int _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
 
 
 struct SYS_unlink_args {
-    int                         scno;
-    const char* _Nullable  path;
+    int                     scno;
+    const char* _Nullable   path;
 };
 
 int _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
@@ -363,9 +363,9 @@ int _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
 
 
 struct SYS_rename_args {
-    int                         scno;
-    const char* _Nullable  oldPath;
-    const char* _Nullable  newPath;
+    int                     scno;
+    const char* _Nullable   oldPath;
+    const char* _Nullable   newPath;
 };
 
 int _SYSCALL_rename(const struct SYS_rename_args* _Nonnull pArgs)
@@ -433,7 +433,7 @@ int _SYSCALL_dispatch_async(const struct SYS_dispatch_async_args* pArgs)
     return EOK;
 
 catch:
-    return -err;
+    return err;
 }
 
 
@@ -509,7 +509,7 @@ int _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
     return EOK;
 
 catch:
-    return -err;
+    return err;
 }
 
 

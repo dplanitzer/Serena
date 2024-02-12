@@ -11,17 +11,13 @@
 
 #include <klib/klib.h>
 #include "Filesystem.h"
+#include <apollo/Process.h>
 
 OPAQUE_CLASS(Process, Object);
 typedef struct _ProcessMethodTable {
     ObjectMethodTable   super;
 } ProcessMethodTable;
 
-// The process spawn arguments specify how a child process should be created.
-typedef struct __spawn_arguments_t SpawnArguments;
-
-// The process termination status generated when a child process terminates.
-typedef struct __waitpid_result_t ProcessTerminationStatus;
 
 extern ProcessRef _Nonnull  gRootProcess;
 
@@ -168,7 +164,7 @@ extern errno_t Process_vIOControl(ProcessRef _Nonnull pProc, int fd, int cmd, va
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-extern errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int mode);
+extern errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, AccessMode mode);
 
 // Unlinks the inode at the path 'pPath'.
 extern errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath);

@@ -22,7 +22,7 @@ int cmd_makedir(InterpreterRef _Nonnull self, int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    const errno_t err = mkdir(path, 0755);
+    const errno_t err = Directory_Create(path, 0755);
     if (err != 0) {
         printf("%s: %s.\n", argv[0], strerror(err));
         return EXIT_FAILURE;

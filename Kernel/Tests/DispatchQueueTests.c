@@ -205,7 +205,7 @@ static void OnMainClosure(void* _Nonnull pValue)
 
     pEventDriver = DriverManager_GetDriverForName(gDriverManager, kEventsDriverName);
     assert(pEventDriver != NULL);
-    assert(IOResource_Open(pEventDriver, NULL/*XXX*/, O_RDONLY, user, &pChannel) == EOK);
+    assert(IOResource_Open(pEventDriver, NULL/*XXX*/, kOpen_Read, user, &pChannel) == EOK);
 
     print("Event loop\n");
     while (true) {

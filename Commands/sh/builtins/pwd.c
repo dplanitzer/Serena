@@ -19,7 +19,7 @@ int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
         printf("%s: unexpected extra arguments\n", argv[0]);
     }
 
-    const errno_t err = getcwd(self->pathBuffer, PATH_MAX);
+    const errno_t err = Process_GetCurrentWorkingDirectoryPath(self->pathBuffer, PATH_MAX);
     if (err == 0) {
         printf("%s\n", self->pathBuffer);
     } else {

@@ -10,14 +10,14 @@
 #define ___GLOBALS_H 1
 
 #include <stdlib.h>
-#include <abi/_kbidef.h>
 #include "Allocator.h"
 #include "List.h"
+#include <apollo/Process.h>
 
 
 // Private globals
 extern AllocatorRef __gAllocator;
-extern struct __process_arguments_t* __gProcessArguments;
+extern ProcessArguments* __gProcessArguments;
 extern SList __gAtExitQueue;
 
 #endif /* ___GLOBALS_H */
