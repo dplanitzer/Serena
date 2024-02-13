@@ -15,7 +15,7 @@ __CPP_BEGIN
 
 #define SC_read                 0   // errno_t IOChannel_Read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
 #define SC_write                1   // errno_t IOChannel_Write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
-#define SC_sleep                2   // errno_t sleep(const struct timespec * _Nonnull delay)
+#define SC_delay                2   // errno_t Delay(TimeInterval ti)
 #define SC_dispatch_async       3   // errno_t DispatchQueue_Async(Dispatch_Closure _Nonnull pUserClosure)
 #define SC_alloc_address_space  4   // errno_t Process_AllocateAddressSpace(int nbytes, void **pOutMem)
 #define SC_exit                 5   // _Noreturn Process_Exit(int status)

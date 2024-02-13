@@ -108,10 +108,7 @@ extern ProcessArguments *Process_GetArguments(void);
 
 extern errno_t Process_AllocateAddressSpace(size_t nbytes, void **ptr);
 
-
-extern errno_t nanosleep(const struct timespec *delay);
-extern errno_t usleep(useconds_t delay);
-extern errno_t sleep(time_t delay);
+extern errno_t Delay(TimeInterval ti);
 
 #endif /* __KERNEL__ */
 

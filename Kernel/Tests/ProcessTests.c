@@ -22,17 +22,15 @@ int cpt_count2;
 
 static void parent_process(void)
 {
-    struct timespec delay = {0, 250*1000*1000};
     printf("Hello World, from process #1!  [%d]\n", cpt_count1++);
-    nanosleep(&delay);
+    Delay(TimeInterval_MakeMilliseconds(250));
     DispatchQueue_Async((Dispatch_Closure)parent_process);
 }
 
 static void child_process(void)
 {
-    struct timespec delay = {1, 0*1000*1000};
     printf("Hello World, from process #2!          [%d]\n", cpt_count2++);
-    nanosleep(&delay);
+    Delay(TimeInterval_MakeSeconds(1));
     DispatchQueue_Async((Dispatch_Closure)child_process);
     //exit(0);
     //puts("oops\n");

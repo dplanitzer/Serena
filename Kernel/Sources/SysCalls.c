@@ -396,12 +396,12 @@ int _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)
 }
 
 
-struct SYS_sleep_args {
+struct SYS_delay_args {
     int                             scno;
     const TimeInterval* _Nonnull    delay;
 };
 
-int _SYSCALL_sleep(const struct SYS_sleep_args* _Nonnull pArgs)
+int _SYSCALL_delay(const struct SYS_delay_args* _Nonnull pArgs)
 {
     decl_try_err();
 

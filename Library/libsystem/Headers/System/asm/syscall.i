@@ -11,7 +11,7 @@ __ABI_SYSCALL_I  set 1
 
 SC_read                 equ 0   ; errno_t IOChannel_Read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
 SC_write                equ 1   ; errno_t IOChannel_Write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
-SC_sleep                equ 2   ; errno_t sleep(const struct timespec * _Nonnull delay)
+SC_delay                equ 2   ; errno_t Delay(TimeInterval ti)
 SC_dispatch_async       equ 3   ; errno_t DispatchQueue_Async(Dispatch_Closure _Nonnull pUserClosure)
 SC_alloc_address_space  equ 4   ; errno_t Process_AllocateAddressSpace(int nbytes, void **pOutMem)
 SC_exit                 equ 5   ; _Noreturn Process_Exit(int status)

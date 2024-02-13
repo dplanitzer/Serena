@@ -34,12 +34,12 @@ extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
 void main_closure(int argc, char *argv[])
 {
-    //RUN_TEST(child_process_test);
+    RUN_TEST(child_process_test);
     //RUN_TEST(interactive_console_test);
     //RUN_TEST(chdir_pwd_test);
     //RUN_TEST(fileinfo_test);
     //RUN_TEST(unlink_test);
     //RUN_TEST(readdir_test);
     //RUN_TEST(fopen_memory_fixed_size_test);
-    RUN_TEST(fopen_memory_variable_size_test);
+    //RUN_TEST(fopen_memory_variable_size_test);
 }
