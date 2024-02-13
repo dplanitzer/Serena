@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_MATH_H
-#define __ABI_MATH_H 1
+#ifndef __SYS_MATH_H
+#define __SYS_MATH_H 1
 
 #include <System/abi/_dmdef.h>
 
@@ -22,4 +22,4 @@
 #define __Ceil_Ptr_PowerOf2(x, mask)     (void*)(__Ceil_PowerOf2((__uintptr_t)(x), (__uintptr_t)(mask)))
 #define __Floor_Ptr_PowerOf2(x, mask)     (void*)(__Floor_PowerOf2((__uintptr_t)(x), (__uintptr_t)(mask)))
 
-#endif /* __ABI_MATH_H */
+#endif /* __SYS_MATH_H */

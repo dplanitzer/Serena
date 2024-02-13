@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_OFFSETOF_H
-#define __ABI_OFFSETOF_H 1
+#ifndef __SYS_OFFSETOF_H
+#define __SYS_OFFSETOF_H 1
 
 #include <System/abi/_dmdef.h>
 
@@ -18,4 +18,4 @@
     ((__size_t)((char *)&((type *)0)->member - (char *)0))
 #endif
 
-#endif /* __ABI_OFFSETOF_H */
+#endif /* __SYS_OFFSETOF_H */

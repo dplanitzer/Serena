@@ -6,11 +6,11 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_WEAK_H
-#define __ABI_WEAK_H 1
+#ifndef __SYS_WEAK_H
+#define __SYS_WEAK_H 1
 
 #ifndef _Weak
 #define _Weak
 #endif
 
-#endif /* __ABI_WEAK_H */
+#endif /* __SYS_WEAK_H */

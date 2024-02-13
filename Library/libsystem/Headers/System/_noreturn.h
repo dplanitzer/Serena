@@ -6,11 +6,11 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_NORETURN_H
-#define __ABI_NORETURN_H 1
+#ifndef __SYS_NORETURN_H
+#define __SYS_NORETURN_H 1
 
 #ifndef _Noreturn
 #define _Noreturn void
 #endif
 
-#endif /* __ABI_NORETURN_H */
+#endif /* __SYS_NORETURN_H */

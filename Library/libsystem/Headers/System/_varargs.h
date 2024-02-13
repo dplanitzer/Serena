@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_VARARGS_H
-#define __ABI_VARARGS_H 1
+#ifndef __SYS_VARARGS_H
+#define __SYS_VARARGS_H 1
 
 typedef unsigned char *va_list;
 
@@ -20,4 +20,4 @@ typedef unsigned char *va_list;
 #define va_copy(new,old) ((new)=(old))
 #define va_end(vl) ((vl)=0)
 
-#endif /* __ABI_VARARGS_H */
+#endif /* __SYS_VARARGS_H */

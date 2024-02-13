@@ -6,8 +6,8 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_NULLDEF_H
-#define __ABI_NULLDEF_H 1
+#ifndef __SYS_NULLDEF_H
+#define __SYS_NULLDEF_H 1
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -31,4 +31,4 @@
 #endif
 #endif
 
-#endif /* __ABI_NULLDEF_H */
+#endif /* __SYS_NULLDEF_H */
