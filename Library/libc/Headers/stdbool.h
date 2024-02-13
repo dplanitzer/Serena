@@ -9,6 +9,6 @@
 #ifndef _STDBOOL_H
 #define _STDBOOL_H 1
 
-#include <apollo/_bool.h>
+#include <System/_bool.h>
 
 #endif /* _STDBOOL_H */

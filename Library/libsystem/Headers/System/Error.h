@@ -9,8 +9,8 @@
 #ifndef _SYS_ERROR_H
 #define _SYS_ERROR_H
 
-#include <apollo/_cmndef.h>
-#include <apollo/_errno.h>
+#include <System/_cmndef.h>
+#include <System/_errno.h>
 
 __CPP_BEGIN
 

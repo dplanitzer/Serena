@@ -10,7 +10,7 @@
 #define Error_h
 
 #include <klib/Assert.h>
-#include <apollo/Error.h>
+#include <System/Error.h>
 
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
 // 'try' if you are calling a failable function but based on the design of the

@@ -8,8 +8,8 @@
 
 
     include "lowmem.i"
-    include <apollo/errno.i>
-    include <apollo/_syscall.i>
+    include <System/errno.i>
+    include <System/_syscall.i>
 
     xref __SYSCALL_read
     xref __SYSCALL_write

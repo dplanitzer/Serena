@@ -10,7 +10,7 @@
 #define StackAllocator_h
 
 #include <stdbool.h>
-#include <apollo/apollo.h>
+#include <System/System.h>
 
 struct StackPage;
 

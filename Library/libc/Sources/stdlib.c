@@ -11,7 +11,7 @@
 #include <string.h>
 #include <__globals.h>
 #include <__stddef.h>
-#include <apollo/apollo.h>
+#include <System/System.h>
 
 void __stdlibc_init(ProcessArguments* _Nonnull argsp)
 {

@@ -9,7 +9,7 @@
 #ifndef _SYS_SYSCALL_H
 #define _SYS_SYSCALL_H 1
 
-#include <apollo/_cmndef.h>
+#include <System/_cmndef.h>
 
 __CPP_BEGIN
 

@@ -11,7 +11,7 @@
 
 #include <klib/klib.h>
 #include "Filesystem.h"
-#include <apollo/Process.h>
+#include <System/Process.h>
 
 OPAQUE_CLASS(Process, Object);
 typedef struct _ProcessMethodTable {

@@ -9,10 +9,10 @@
 #ifndef _SYS_DISPATCH_QUEUE_H
 #define _SYS_DISPATCH_QUEUE_H 1
 
-#include <apollo/_cmndef.h>
-#include <apollo/_nulldef.h>
-#include <apollo/Error.h>
-#include <apollo/types.h>
+#include <System/_cmndef.h>
+#include <System/_nulldef.h>
+#include <System/Error.h>
+#include <System/types.h>
 
 __CPP_BEGIN
 

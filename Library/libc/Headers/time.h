@@ -9,10 +9,10 @@
 #ifndef _TIME_H
 #define _TIME_H 1
 
-#include <apollo/_nulldef.h>
-#include <apollo/_cmndef.h>
-#include <apollo/_sizedef.h>
-#include <apollo/_time.h>
+#include <System/_nulldef.h>
+#include <System/_cmndef.h>
+#include <System/_sizedef.h>
+#include <System/_time.h>
 
 __CPP_BEGIN
 

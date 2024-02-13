@@ -9,7 +9,7 @@
 #include "Stream.h"
 #include <stdlib.h>
 #include <string.h>
-#include <apollo/apollo.h>
+#include <System/System.h>
 
 // This a non-seekable stream that discards anything that is written to it and
 // returns EOF on read.

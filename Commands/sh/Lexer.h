@@ -9,7 +9,7 @@
 #ifndef Lexer_h
 #define Lexer_h
 
-#include <apollo/apollo.h>
+#include <System/System.h>
 #include <stdbool.h>
 
 

@@ -10,7 +10,7 @@
 #define LineReader_h
 
 #include <stdbool.h>
-#include <apollo/apollo.h>
+#include <System/System.h>
 
 
 typedef struct _LineReader {

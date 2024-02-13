@@ -6,10 +6,10 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <apollo/Urt.h>
-#include <apollo/_nulldef.h>
-#include <apollo/types.h>
-#include <apollo/Process.h>
+#include <System/Urt.h>
+#include <System/_nulldef.h>
+#include <System/types.h>
+#include <System/Process.h>
 
 
 static UrtFunc* __gUrtFuncTable;

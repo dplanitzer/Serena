@@ -9,8 +9,8 @@
 #ifndef _ASSERT_H
 #define _ASSERT_H 1
 
-#include <apollo/_cmndef.h>
-#include <apollo/_nulldef.h>
+#include <System/_cmndef.h>
+#include <System/_nulldef.h>
 #include <stdnoreturn.h>
 
 __CPP_BEGIN

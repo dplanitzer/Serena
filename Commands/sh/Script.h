@@ -9,7 +9,7 @@
 #ifndef Script_h
 #define Script_h
 
-#include <apollo/apollo.h>
+#include <System/System.h>
 #include "Lexer.h"
 #include "StackAllocator.h"
 

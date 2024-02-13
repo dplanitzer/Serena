@@ -8,7 +8,7 @@
 
 #include "Stream.h"
 #include <string.h>
-#include <apollo/apollo.h>
+#include <System/System.h>
 
 static __IOChannel_FILE _StdinObj;
 static __IOChannel_FILE _StdoutObj;

@@ -10,7 +10,7 @@
 #define Inode_h
 
 #include <klib/klib.h>
-#include <apollo/File.h>
+#include <System/File.h>
 #include "Lock.h"
 
 CLASS_FORWARD(Filesystem);

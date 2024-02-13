@@ -6,9 +6,9 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <apollo/IOChannel.h>
-#include <apollo/_syscall.h>
-#include <apollo/_varargs.h>
+#include <System/IOChannel.h>
+#include <System/_syscall.h>
+#include <System/_varargs.h>
 
 
 errno_t IOChannel_Read(int fd, void *buffer, size_t nBytesToRead, ssize_t* nOutBytesRead)

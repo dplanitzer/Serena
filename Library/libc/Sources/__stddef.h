@@ -9,7 +9,7 @@
 #ifndef ___STDDEF_H
 #define ___STDDEF_H 1
 
-#include <apollo/_math.h>
+#include <System/_math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>
@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdnoreturn.h>
-#include <apollo/apollo.h>
+#include <System/System.h>
 
 #define CPU_PAGE_SIZE   4096
 

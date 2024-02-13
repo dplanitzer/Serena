@@ -9,7 +9,7 @@
 #ifndef _CTYPE_H
 #define _CTYPE_H 1
 
-#include <apollo/_cmndef.h>
+#include <System/_cmndef.h>
 
 __CPP_BEGIN
 

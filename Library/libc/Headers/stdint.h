@@ -9,8 +9,8 @@
 #ifndef _STDINT_H
 #define _STDINT_H 1
 
-#include <apollo/_cmndef.h>
-#include <apollo/_dmdef.h>
-#include <apollo/_inttypes.h>
+#include <System/_cmndef.h>
+#include <System/_dmdef.h>
+#include <System/_inttypes.h>
 
 #endif /* _STDINT_H */

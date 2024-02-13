@@ -6,8 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <apollo/Process.h>
-#include <apollo/_syscall.h>
+#include <System/Process.h>
+#include <System/_syscall.h>
 
 
 _Noreturn Process_Exit(int exit_code)

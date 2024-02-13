@@ -7,7 +7,7 @@
 ;
 
     include "lowmem.i"
-    include <apollo/errno.i>
+    include <System/errno.i>
 
     xref _ULock_OnWait
     xref _ULock_WakeUp

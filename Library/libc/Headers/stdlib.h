@@ -9,9 +9,9 @@
 #ifndef _STDLIB_H
 #define _STDLIB_H 1
 
-#include <apollo/_cmndef.h>
-#include <apollo/_nulldef.h>
-#include <apollo/_sizedef.h>
+#include <System/_cmndef.h>
+#include <System/_nulldef.h>
+#include <System/_sizedef.h>
 #include <malloc.h>
 #include <stdnoreturn.h>
 

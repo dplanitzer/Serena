@@ -9,7 +9,7 @@
 #ifndef __ABI_LIMITS_H
 #define __ABI_LIMITS_H 1
 
-#include <apollo/_dmdef.h>
+#include <System/_dmdef.h>
 
 #define CHAR_BIT 8
 #define CHAR_MIN 0x80

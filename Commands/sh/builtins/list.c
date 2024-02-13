@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <apollo/_math.h>
+#include <System/_math.h>
 
 
 static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)

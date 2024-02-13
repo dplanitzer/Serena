@@ -9,7 +9,7 @@
 #include "Stream.h"
 #include <stdlib.h>
 #include <string.h>
-#include <apollo/apollo.h>
+#include <System/System.h>
 
 // We implement POSIX zero-fill gap semantic in the sense that we maintain at
 // most one zero-fill gap at the very end of the memory file. This gap is zero-

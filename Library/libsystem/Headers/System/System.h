@@ -9,14 +9,14 @@
 #ifndef _SYS_APOLLO_H
 #define _SYS_APOLLO_H 1
 
-#include <apollo/_cmndef.h>
-#include <apollo/types.h>
-#include <apollo/DispatchQueue.h>
-#include <apollo/Error.h>
-#include <apollo/File.h>
-#include <apollo/IOChannel.h>
-#include <apollo/Process.h>
-#include <apollo/Urt.h>
+#include <System/_cmndef.h>
+#include <System/types.h>
+#include <System/DispatchQueue.h>
+#include <System/Error.h>
+#include <System/File.h>
+#include <System/IOChannel.h>
+#include <System/Process.h>
+#include <System/Urt.h>
 
 __CPP_BEGIN
 
