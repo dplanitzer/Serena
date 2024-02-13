@@ -9,11 +9,11 @@
 #ifndef _SYS_TYPES_H
 #define _SYS_TYPES_H 1
 
-#include <System/_dmdef.h>
+#include <System/abi/_dmdef.h>
+#include <System/abi/_inttypes.h>
+#include <System/abi/_sizedef.h>
 #include <System/_errno.h>
 #include <System/_cmndef.h>
-#include <System/_inttypes.h>
-#include <System/_sizedef.h>
 
 __CPP_BEGIN
 

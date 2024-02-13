@@ -8,8 +8,8 @@
 
 
     include "lowmem.i"
-    include <System/errno.i>
-    include <System/_syscall.i>
+    include <System/asm/errno.i>
+    include <System/asm/syscall.i>
 
     xref __SYSCALL_read
     xref __SYSCALL_write

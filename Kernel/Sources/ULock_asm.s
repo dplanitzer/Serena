@@ -7,7 +7,7 @@
 ;
 
     include "lowmem.i"
-    include <System/errno.i>
+    include <System/asm/errno.i>
 
     xref _ULock_OnWait
     xref _ULock_WakeUp

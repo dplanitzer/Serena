@@ -9,7 +9,7 @@
 #ifndef __ABI_OFFSETOF_H
 #define __ABI_OFFSETOF_H 1
 
-#include <System/_dmdef.h>
+#include <System/abi/_dmdef.h>
 
 #ifdef __VBCC__
 #define offsetof(type, member) __offsetof(type, member)

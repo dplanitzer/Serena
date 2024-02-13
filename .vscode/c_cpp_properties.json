@@ -5,8 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
-                "${workspaceFolder}/Library/libsystem/**",
-                "${workspaceFolder}/Library/libc/**",
+                "${workspaceFolder}/Library/libsystem/Headers/**",
+                "${workspaceFolder}/Library/libc/Headers/**",
                 "${workspaceFolder}/Commands/sh/**"
             ],
             "defines": [

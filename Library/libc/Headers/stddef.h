@@ -9,11 +9,11 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H 1
 
+#include <System/abi/_dmdef.h>
+#include <System/abi/_sizedef.h>
 #include <System/_cmndef.h>
-#include <System/_dmdef.h>
 #include <System/_nulldef.h>
 #include <System/_offsetof.h>
-#include <System/_sizedef.h>
 
 __CPP_BEGIN
 

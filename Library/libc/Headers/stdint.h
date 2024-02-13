@@ -10,7 +10,7 @@
 #define _STDINT_H 1
 
 #include <System/_cmndef.h>
-#include <System/_dmdef.h>
-#include <System/_inttypes.h>
+#include <System/abi/_dmdef.h>
+#include <System/abi/_inttypes.h>
 
 #endif /* _STDINT_H */
