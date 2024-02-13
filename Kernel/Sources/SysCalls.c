@@ -207,7 +207,7 @@ int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
         return EINVAL;
     }
 
-    return Process_GetCurrentWorkingDirectoryPath(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
+    return Process_GetWorkingDirectory(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
 }
 
 
@@ -222,7 +222,7 @@ int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
         return EINVAL;
     }
 
-    return Process_SetCurrentWorkingDirectoryPath(Process_GetCurrent(), pArgs->path);
+    return Process_SetWorkingDirectory(Process_GetCurrent(), pArgs->path);
 }
 
 
@@ -385,8 +385,8 @@ int _SYSCALL_getumask(void)
 
 
 struct SYS_setumask_args {
-    int     scno;
-    uint16_t  mask;
+    int         scno;
+    uint16_t    mask;
 };
 
 int _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)

@@ -11,12 +11,12 @@
 #include <System/_varargs.h>
 
 
-errno_t IOChannel_Read(int fd, void *buffer, size_t nBytesToRead, ssize_t* nOutBytesRead)
+errno_t IOChannel_Read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return (errno_t)_syscall(SC_read, fd, buffer, nBytesToRead, nOutBytesRead);
 }
 
-errno_t IOChannel_Write(int fd, const void *buffer, size_t nBytesToWrite, ssize_t* nOutBytesWritten)
+errno_t IOChannel_Write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return (errno_t)_syscall(SC_write, fd, buffer, nBytesToWrite, nOutBytesWritten);
 }

@@ -433,7 +433,7 @@ UserId Process_GetRealUserId(ProcessRef _Nonnull pProc)
 
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
-void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
+void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
 {
     Lock_Lock(&pProc->lock);
     void* ptr = pProc->argumentsBase;
@@ -478,7 +478,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgument
         try(Process_SetRootDirectoryPath(pChildProc, pArgs->root_dir));
     }
     if (pArgs->cw_dir && pArgs->cw_dir[0] != '\0') {
-        try(Process_SetCurrentWorkingDirectoryPath(pChildProc, pArgs->cw_dir));
+        try(Process_SetWorkingDirectory(pChildProc, pArgs->cw_dir));
     }
 
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
@@ -799,7 +799,7 @@ errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPat
 }
 
 // Sets the receiver's current working directory to the given path.
-errno_t Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
+errno_t Process_SetWorkingDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 {
     Lock_Lock(&pProc->lock);
     const errno_t err = PathResolver_SetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
@@ -811,7 +811,7 @@ errno_t Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const 
 // Returns the current working directory in the form of a path. The path is
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
-errno_t Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, ssize_t bufferSize)
+errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, ssize_t bufferSize)
 {
     Lock_Lock(&pProc->lock);
     const errno_t err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);

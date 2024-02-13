@@ -17,7 +17,7 @@
 static void pwd(void)
 {
     char buf[128];
-    const errno_t err = Process_GetCurrentWorkingDirectoryPath(buf, sizeof(buf));
+    const errno_t err = Process_GetWorkingDirectory(buf, sizeof(buf));
 
     if (err == 0) {
         printf("cwd: \"%s\"\n", buf);
@@ -28,7 +28,7 @@ static void pwd(void)
 
 static void chdir(const char* path)
 {
-    const errno_t err = Process_SetCurrentWorkingDirectoryPath(path);
+    const errno_t err = Process_SetWorkingDirectory(path);
 
     if (err != 0) {
         printf("chdir error: %s\n", strerror(err));

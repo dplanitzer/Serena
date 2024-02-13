@@ -154,32 +154,32 @@ enum {
 
 #if !defined(__KERNEL__)
 
-extern errno_t File_Create(const char* path, unsigned int options, FilePermissions permissions, int* fd);
+extern errno_t File_Create(const char* _Nonnull path, unsigned int options, FilePermissions permissions, int* _Nonnull fd);
 
-extern errno_t File_Open(const char *path, unsigned int options, int* fd);
+extern errno_t File_Open(const char* _Nonnull path, unsigned int options, int* _Nonnull fd);
 
-extern errno_t File_GetPosition(int fd, FileOffset* pos);
-extern errno_t File_Seek(int fd, FileOffset offset, FileOffset *oldpos, int whence);
+extern errno_t File_GetPosition(int fd, FileOffset* _Nonnull pos);
+extern errno_t File_Seek(int fd, FileOffset offset, FileOffset* _Nullable oldpos, int whence);
 
-extern errno_t File_Truncate(const char *path, FileOffset length);
+extern errno_t File_Truncate(const char* _Nonnull path, FileOffset length);
 
-extern errno_t File_GetInfo(const char* path, FileInfo* info);
-extern errno_t File_SetInfo(const char* path, MutableFileInfo* info);
+extern errno_t File_GetInfo(const char* _Nonnull path, FileInfo* _Nonnull info);
+extern errno_t File_SetInfo(const char* _Nonnull path, MutableFileInfo* _Nonnull info);
 
-extern errno_t File_CheckAccess(const char* path, AccessMode mode);
-extern errno_t File_Unlink(const char* path);    // deletes files and (empty) directories
-extern errno_t File_Rename(const char* oldpath, const char* newpath);
+extern errno_t File_CheckAccess(const char* _Nonnull path, AccessMode mode);
+extern errno_t File_Unlink(const char* _Nonnull path);    // deletes files and (empty) directories
+extern errno_t File_Rename(const char* _Nonnull oldpath, const char* _Nonnull newpath);
 
 
 extern errno_t FileChannel_Truncate(int fd, FileOffset length);
 
-extern errno_t FileChannel_GetInfo(int fd, FileInfo* info);
-extern errno_t FileChannel_SetInfo(int fd, MutableFileInfo* info);
+extern errno_t FileChannel_GetInfo(int fd, FileInfo* _Nonnull info);
+extern errno_t FileChannel_SetInfo(int fd, MutableFileInfo* _Nonnull info);
 
 
-extern errno_t Directory_Create(const char* path, FilePermissions mode);
-extern errno_t Directory_Open(const char* path, int* fd);
-extern errno_t Directory_Read(int fd, DirectoryEntry* entries, size_t nEntriesToRead, ssize_t* nReadEntries);
+extern errno_t Directory_Create(const char* _Nonnull path, FilePermissions mode);
+extern errno_t Directory_Open(const char* _Nonnull path, int* fd);
+extern errno_t Directory_Read(int fd, DirectoryEntry* _Nonnull entries, size_t nEntriesToRead, ssize_t* _Nonnull nReadEntries);
 
 #endif /* __KERNEL__ */
 

@@ -10,6 +10,7 @@
 #define _SYS_IOCHANNEL_H 1
 
 #include <System/_cmndef.h>
+#include <System/_nulldef.h>
 #include <System/Error.h>
 #include <System/Types.h>
 
@@ -33,8 +34,8 @@ typedef enum {
 
 #if !defined(__KERNEL__)
 
-extern errno_t IOChannel_Read(int fd, void *buffer, size_t nBytesToRead, ssize_t* nOutBytesRead);
-extern errno_t IOChannel_Write(int fd, const void *buffer, size_t nBytesToWrite, ssize_t* nOutBytesWritten);
+extern errno_t IOChannel_Read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+extern errno_t IOChannel_Write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
 extern errno_t IOChannel_Close(int fd);
 

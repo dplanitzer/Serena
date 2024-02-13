@@ -67,7 +67,7 @@ extern UserId Process_GetRealUserId(ProcessRef _Nonnull pProc);
 
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
-extern void* Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc);
+extern void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc);
 
 // Spawns a new process that will be a child of the given process. The spawn
 // arguments specify how the child process should be created, which arguments
@@ -108,12 +108,12 @@ extern errno_t Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, int
 extern errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPath);
 
 // Sets the receiver's current working directory to the given path.
-extern errno_t Process_SetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _Nonnull pPath);
+extern errno_t Process_SetWorkingDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath);
 
 // Returns the current working directory in the form of a path. The path is
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
-extern errno_t Process_GetCurrentWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, ssize_t bufferSize);
+extern errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, ssize_t bufferSize);
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask
 // should be removed from the file permissions that user space sent to create a

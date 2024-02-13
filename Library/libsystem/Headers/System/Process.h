@@ -85,8 +85,8 @@ typedef struct ProcessTerminationStatus {
 extern _Noreturn Process_Exit(int exit_code);
 
 
-extern errno_t Process_GetCurrentWorkingDirectoryPath(char* buffer, size_t bufferSize);
-extern errno_t Process_SetCurrentWorkingDirectoryPath(const char* path);
+extern errno_t Process_GetWorkingDirectory(char* _Nonnull buffer, size_t bufferSize);
+extern errno_t Process_SetWorkingDirectory(const char* _Nonnull path);
 
 
 extern FilePermissions Process_GetUserMask(void);
@@ -100,13 +100,13 @@ extern ProcessId Process_GetParentId(void);
 extern UserId Process_GetUserId(void);
 
 
-extern errno_t Process_Spawn(const SpawnArguments *args, ProcessId *rpid);
-extern errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus *result);
+extern errno_t Process_Spawn(const SpawnArguments* _Nonnull args, ProcessId* _Nullable rpid);
+extern errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result);
 
-extern ProcessArguments *Process_GetArguments(void);
+extern ProcessArguments* _Nonnull Process_GetArguments(void);
 
 
-extern errno_t Process_AllocateAddressSpace(size_t nbytes, void **ptr);
+extern errno_t Process_AllocateAddressSpace(size_t nbytes, void* _Nullable * _Nonnull ptr);
 
 extern errno_t Delay(TimeInterval ti);
 

@@ -15,12 +15,12 @@ _Noreturn Process_Exit(int exit_code)
     _syscall(SC_exit, exit_code);
 }
 
-errno_t Process_GetCurrentWorkingDirectoryPath(char* buffer, size_t bufferSize)
+errno_t Process_GetWorkingDirectory(char* _Nonnull buffer, size_t bufferSize)
 {
     return (errno_t)_syscall(SC_getcwd, buffer, bufferSize);
 }
 
-errno_t Process_SetCurrentWorkingDirectoryPath(const char* path)
+errno_t Process_SetWorkingDirectory(const char* _Nonnull path)
 {
     return (errno_t)_syscall(SC_setcwd, path);
 }
@@ -51,25 +51,25 @@ UserId Process_GetUserId(void)
     return _syscall(SC_getuid);
 }
 
-errno_t Process_Spawn(const SpawnArguments *args, ProcessId *rpid)
+errno_t Process_Spawn(const SpawnArguments* _Nonnull args, ProcessId* _Nullable rpid)
 {
     SpawnArguments kargs = *args;
 
     return (errno_t)_syscall(SC_spawn_process, &kargs, rpid);
 }
 
-errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus *result)
+errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result)
 {
     return (errno_t)_syscall(SC_waitpid, pid, result);
 }
 
-ProcessArguments *Process_GetArguments(void)
+ProcessArguments* _Nonnull Process_GetArguments(void)
 {
     return (ProcessArguments*) _syscall(SC_getpargs);
 }
 
 
-errno_t Process_AllocateAddressSpace(size_t nbytes, void **ptr)
+errno_t Process_AllocateAddressSpace(size_t nbytes, void* _Nullable * _Nonnull ptr)
 {
     return _syscall(SC_alloc_address_space, nbytes, ptr);
 }
