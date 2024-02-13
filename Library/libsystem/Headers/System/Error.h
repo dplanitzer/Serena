@@ -14,15 +14,15 @@
 
 __CPP_BEGIN
 
-typedef __errno_t errno_t;
-#define EOK __EOK
+typedef _Errno_t errno_t;
+#define EOK _EOK
 
 
 // Macros to detect errors and to jump to the 'failed:' label if an error is detected.
 
 // Declares an error variable 'err' which is assigned to by the try_xxx macros
 // and available at the 'catch' label
-#define decl_try_err()      __errno_t err = __EOK
+#define _Decl_try_err()      errno_t err = _EOK
 
 // Go to the 'catch' label if 'f' does not return EOK. The error returned by 'f'
 // is assigned to 'err'. Call this instead of 'try_bang' if you are calling a
@@ -31,11 +31,11 @@ typedef __errno_t errno_t;
 // time 'recovering' from a failure will simply mean to abort the system call
 // and to return to user space. The application will then need to figure out
 // how to proceed.
-#define try(f)              if ((err = (f)) != __EOK) goto catch
+#define _Try(f)              if ((err = (f)) != _EOK) goto catch
 
 // Go to the 'catch' label if 'f' returns a NULL pointer. The pointer is stored
 // in the variable 'p'. 'e' is the error that should be assigned to 'err'
-#define try_null(p, f, e)   if ((p = (f)) == NULL) { err = e; goto catch; }
+#define _Try_null(p, f, e)   if ((p = (f)) == NULL) { err = e; goto catch; }
 
 // Halt the machine if the function 'f' does not return EOK. Use this instead of
 // 'try' if you are calling a failable function but based on the design of the
@@ -46,10 +46,25 @@ typedef __errno_t errno_t;
 
 // Set 'err' to the given error and go to the 'catch' label if the given pointer
 // is null. Otherwise fall through to the next statement.
-#define throw_ifnull(p, e)  if ((p) == NULL) { err = e; goto catch; }
+#define _Throw_ifnull(p, e)  if ((p) == NULL) { err = e; goto catch; }
 
 // Set 'err' to the given error and go to the 'catch' label.
-#define throw(e)            {err = e; goto catch;}
+#define _Throw(e)            {err = e; goto catch;}
+
+
+#ifndef __cplusplus
+
+// Make the official names available in C. We don't in C++ because some of these
+// names would clash with the C++ exception handling related keywords. C++ code
+// should use the underscored names defined above.
+
+#define decl_try_err        _Decl_try_err
+#define try(f)              _Try(f)
+#define try_null(p, f, e)   _Try_null(p, f, e)
+#define throw_ifnull(p, e)  _Throw_ifnull(p, e)
+#define throw(e)            _Throw(e)
+
+#endif  /* __cplusplus */
 
 __CPP_END
 

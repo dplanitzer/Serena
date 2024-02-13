@@ -9,7 +9,7 @@
 #ifndef __SYS_ERRNO_H
 #define __SYS_ERRNO_H 1
 
-#define __EOK           0
+#define _EOK            0
 #define ENOMEM          1
 #define ENOMEDIUM       2
 #define EDISKCHANGE     3
@@ -49,6 +49,6 @@
 #define __EFIRST    1
 #define __ELAST     35
 
-typedef int __errno_t;
+typedef int _Errno_t;
 
 #endif /* __SYS_ERRNO_H */

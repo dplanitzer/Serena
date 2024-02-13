@@ -38,10 +38,10 @@ typedef struct fpos_t {
 
 
 // A stream defined by a set of callbacks
-typedef __errno_t (*FILE_Read)(void* self, void* pBuffer, __ssize_t nBytesToRead, __ssize_t* pOutBytesRead);
-typedef __errno_t (*FILE_Write)(void* self, const void* pBytes, __ssize_t nBytesToWrite, __ssize_t* pOutBytesWritten);
-typedef __errno_t (*FILE_Seek)(void* self, long long offset, long long *outOldOffset, int whence);
-typedef __errno_t (*FILE_Close)(void* self);
+typedef _Errno_t (*FILE_Read)(void* self, void* pBuffer, __ssize_t nBytesToRead, __ssize_t* pOutBytesRead);
+typedef _Errno_t (*FILE_Write)(void* self, const void* pBytes, __ssize_t nBytesToWrite, __ssize_t* pOutBytesWritten);
+typedef _Errno_t (*FILE_Seek)(void* self, long long offset, long long *outOldOffset, int whence);
+typedef _Errno_t (*FILE_Close)(void* self);
 
 typedef struct _FILE_Callbacks {
     FILE_Read _Nullable     read;
