@@ -9,8 +9,8 @@
 #ifndef __ABI_INTTYPES_H
 #define __ABI_INTTYPES_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_dmdef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_dmdef.h>
 
 
 #define INT8_WIDTH 8

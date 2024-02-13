@@ -9,8 +9,8 @@
 #ifndef _LIMITS_H
 #define _LIMITS_H 1
 
-#include <abi/_dmdef.h>
-#include <abi/_limits.h>
+#include <apollo/_dmdef.h>
+#include <apollo/_limits.h>
 #include <stddef.h>
 
 #define SIG_ATOMIC_MIN __INT_MIN

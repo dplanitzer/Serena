@@ -9,10 +9,10 @@
 #ifndef _SYS_TYPES_H
 #define _SYS_TYPES_H 1
 
-#include <abi/_dmdef.h>
-#include <abi/_errno.h>
-#include <abi/_cmndef.h>
-#include <abi/_inttypes.h>
+#include <apollo/_dmdef.h>
+#include <apollo/_errno.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_inttypes.h>
 #include <apollo/_sizedef.h>
 
 __CPP_BEGIN

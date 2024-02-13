@@ -9,8 +9,8 @@
 #ifndef _SYS_FILE_H
 #define _SYS_FILE_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_syslimits.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_syslimits.h>
 #include <apollo/Error.h>
 #include <apollo/types.h>
 

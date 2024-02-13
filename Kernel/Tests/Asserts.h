@@ -9,8 +9,8 @@
 #ifndef Asserts_h
 #define Asserts_h 1
 
-#include <abi/_cmndef.h>
-#include <abi/_nulldef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_nulldef.h>
 #include <stdio.h>
 
 __CPP_BEGIN

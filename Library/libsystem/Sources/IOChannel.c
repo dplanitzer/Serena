@@ -7,8 +7,8 @@
 //
 
 #include <apollo/IOChannel.h>
-#include <apollo/syscall.h>
-#include <abi/_varargs.h>
+#include <apollo/_syscall.h>
+#include <apollo/_varargs.h>
 
 
 errno_t IOChannel_Read(int fd, void *buffer, size_t nBytesToRead, ssize_t* nOutBytesRead)

@@ -9,11 +9,11 @@
 #ifndef _STDIO_H
 #define _STDIO_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_errno.h>
-#include <abi/_nulldef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_errno.h>
+#include <apollo/_nulldef.h>
 #include <apollo/_sizedef.h>
-#include <abi/_syslimits.h>
+#include <apollo/_syslimits.h>
 #include <stdarg.h>
 
 __CPP_BEGIN

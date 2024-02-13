@@ -9,7 +9,7 @@
 #ifndef _SYS_APOLLO_H
 #define _SYS_APOLLO_H 1
 
-#include <abi/_cmndef.h>
+#include <apollo/_cmndef.h>
 #include <apollo/types.h>
 #include <apollo/DispatchQueue.h>
 #include <apollo/Error.h>

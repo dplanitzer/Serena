@@ -9,8 +9,8 @@
 #ifndef _SYS_DISPATCH_QUEUE_H
 #define _SYS_DISPATCH_QUEUE_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_nulldef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_nulldef.h>
 #include <apollo/Error.h>
 #include <apollo/types.h>
 

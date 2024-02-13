@@ -9,8 +9,8 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_errno.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_errno.h>
 
 __CPP_BEGIN
 

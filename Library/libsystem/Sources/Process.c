@@ -7,8 +7,7 @@
 //
 
 #include <apollo/Process.h>
-#include <apollo/syscall.h>
-#include <abi/_varargs.h>
+#include <apollo/_syscall.h>
 
 
 _Noreturn Process_Exit(int exit_code)

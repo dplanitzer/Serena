@@ -9,6 +9,6 @@
 #ifndef _STDNORETURN_H
 #define _STDNORETURN_H 1
 
-#include <abi/_noreturn.h>
+#include <apollo/_noreturn.h>
 
 #endif /* _STDNORETURN_H */

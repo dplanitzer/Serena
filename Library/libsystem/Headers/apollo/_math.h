@@ -9,7 +9,7 @@
 #ifndef __ABI_MATH_H
 #define __ABI_MATH_H 1
 
-#include <abi/_dmdef.h>
+#include <apollo/_dmdef.h>
 
 #define __abs(x) (((x) < 0) ? -(x) : (x))
 #define __min(x, y) (((x) < (y) ? (x) : (y)))

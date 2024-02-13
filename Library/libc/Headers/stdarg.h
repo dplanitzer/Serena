@@ -9,7 +9,7 @@
 #ifndef _STDARG_H
 #define _STDARG_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_varargs.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_varargs.h>
 
 #endif /* _STDARG_H */

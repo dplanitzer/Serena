@@ -9,9 +9,7 @@
 #ifndef ___STDDEF_H
 #define ___STDDEF_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_errtrycatch.h>
-#include <abi/_math.h>
+#include <apollo/_math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <assert.h>

@@ -9,8 +9,8 @@
 #ifndef __ABI_FLOATTYPES_H
 #define __ABI_FLOATTYPES_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_dmdef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_dmdef.h>
 
 
 typedef unsigned short  float16_t;

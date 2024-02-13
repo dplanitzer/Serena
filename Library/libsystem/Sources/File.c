@@ -7,8 +7,8 @@
 //
 
 #include <apollo/File.h>
-#include <apollo/syscall.h>
-#include <abi/_varargs.h>
+#include <apollo/_syscall.h>
+#include <apollo/_varargs.h>
 
 
 errno_t File_Create(const char* path, unsigned int options, FilePermissions permissions, int* fd)

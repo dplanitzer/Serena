@@ -9,10 +9,10 @@
 #ifndef _STDDEF_H
 #define _STDDEF_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_dmdef.h>
-#include <abi/_nulldef.h>
-#include <abi/_offsetof.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_dmdef.h>
+#include <apollo/_nulldef.h>
+#include <apollo/_offsetof.h>
 #include <apollo/_sizedef.h>
 
 __CPP_BEGIN

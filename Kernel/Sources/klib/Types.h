@@ -9,19 +9,19 @@
 #ifndef Types_h
 #define Types_h
 
-#include <abi/_align.h>
-#include <abi/_bool.h>
-#include <abi/_dmdef.h>
-#include <abi/_inttypes.h>
-#include <abi/_floattypes.h>
-#include <abi/_limits.h>
-#include <abi/_math.h>
-#include <abi/_noreturn.h>
-#include <abi/_nulldef.h>
-#include <abi/_offsetof.h>
-#include <abi/_syslimits.h>
-#include <abi/_varargs.h>
-#include <abi/_weak.h>
+#include <apollo/_align.h>
+#include <apollo/_bool.h>
+#include <apollo/_dmdef.h>
+#include <apollo/_inttypes.h>
+#include <apollo/_floattypes.h>
+#include <apollo/_limits.h>
+#include <apollo/_math.h>
+#include <apollo/_noreturn.h>
+#include <apollo/_nulldef.h>
+#include <apollo/_offsetof.h>
+#include <apollo/_syslimits.h>
+#include <apollo/_varargs.h>
+#include <apollo/_weak.h>
 #include <apollo/types.h>
 
 #ifndef _Locked

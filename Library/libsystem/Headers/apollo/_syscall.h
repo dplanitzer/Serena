@@ -1,13 +1,17 @@
 //
-//  _syscall.h
+//  syscall.h
 //  libsystem
 //
 //  Created by Dietmar Planitzer on 9/2/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef __ABI_SYSCALLS_H
-#define __ABI_SYSCALLS_H 1
+#ifndef _SYS_SYSCALL_H
+#define _SYS_SYSCALL_H 1
+
+#include <apollo/_cmndef.h>
+
+__CPP_BEGIN
 
 #define SC_read                 0   // errno_t IOChannel_Read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
 #define SC_write                1   // errno_t IOChannel_Write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
@@ -42,4 +46,9 @@
 #define SC_ftruncate            30  // errno_t FileChannel_Truncate(int fd, FileOffset length)
 #define SC_mkfile               31  // errno_t File_Create(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
 
-#endif /* __ABI_SYSCALLS_H */
+
+extern int _syscall(int scno, ...);
+
+__CPP_END
+
+#endif /* _SYS_SYSCALL_H */

@@ -6,7 +6,7 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "abi/syscall.i"
+    include "apollo/_syscall.i"
 
     xdef __syscall
 

@@ -9,8 +9,8 @@
 #ifndef __SYS_URT_H
 #define __SYS_URT_H 1
 
-#include <abi/_cmndef.h>
-#include <abi/_dmdef.h>
+#include <apollo/_cmndef.h>
+#include <apollo/_dmdef.h>
 
 __CPP_BEGIN
 
