@@ -77,5 +77,5 @@ errno_t Process_AllocateAddressSpace(size_t nbytes, void **ptr)
 
 errno_t Delay(TimeInterval ti)
 {
-    return (errno_t)_syscall(SC_delay, &ti);
+    return (errno_t)_syscall(SC_delay, ti);
 }

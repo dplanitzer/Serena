@@ -397,25 +397,17 @@ int _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)
 
 
 struct SYS_delay_args {
-    int                             scno;
-    const TimeInterval* _Nonnull    delay;
+    int             scno;
+    TimeInterval    delay;
 };
 
 int _SYSCALL_delay(const struct SYS_delay_args* _Nonnull pArgs)
 {
-    decl_try_err();
-
-    if (pArgs->delay == NULL) {
-        throw(EINVAL);
-    }
-    if (pArgs->delay->tv_nsec < 0 || pArgs->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
-        throw(EINVAL);
+    if (pArgs->delay.tv_nsec < 0 || pArgs->delay.tv_nsec >= ONE_SECOND_IN_NANOS) {
+        return EINVAL;
     }
 
-    return VirtualProcessor_Sleep(*(pArgs->delay));
-
-catch:
-    return err;
+    return VirtualProcessor_Sleep(pArgs->delay);
 }
 
 
