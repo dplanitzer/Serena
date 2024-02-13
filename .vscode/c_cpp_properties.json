@@ -6,7 +6,7 @@
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",
                 "${workspaceFolder}/Library/libsystem/Headers/**",
-                "${workspaceFolder}/Library/libc/Headers/**",
+                "${workspaceFolder}/Library/libc/**",
                 "${workspaceFolder}/Commands/sh/**"
             ],
             "defines": [
