@@ -39,20 +39,6 @@ typedef __ssize_t ssize_t;
 #define SIZE_MAX __SIZE_MAX
 #define SIZE_WIDTH __SIZE_WIDTH
 
-typedef long useconds_t;
-
-typedef long time_t;
-
-struct timespec {
-    time_t  tv_sec;
-    long    tv_nsec;
-};
-
-struct _time_interval_t {
-    long    seconds;
-    long    nanoseconds;        // 0..<1billion
-};
-
 __CPP_END
 
 #endif /* _SYS_TYPES_H */

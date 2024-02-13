@@ -13,7 +13,8 @@
 #include <System/_noreturn.h>
 #include <System/_nulldef.h>
 #include <System/Error.h>
-#include <System/types.h>
+#include <System/TimeInterval.h>
+#include <System/Types.h>
 #include <System/Urt.h>
 
 __CPP_BEGIN

@@ -10,8 +10,6 @@
 #include "Platform.h"
 #include "InterruptController.h"
 
-#define ONE_SECOND_IN_NANOS (1000 * 1000 * 1000)
-
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);
 
 MonotonicClock  gMonotonicClockStorage;
@@ -53,12 +51,13 @@ catch:
 TimeInterval MonotonicClock_GetCurrentTime(void)
 {
     register const MonotonicClock* pClock = gMonotonicClock;
-    register int32_t cur_secs, cur_nanos;
-    register int32_t chk_quantum;
+    register time_t cur_secs;
+    register long cur_nanos;
+    register long chk_quantum;
     
     do {
-        cur_secs = pClock->current_time.seconds;
-        cur_nanos = pClock->current_time.nanoseconds;
+        cur_secs = pClock->current_time.tv_sec;
+        cur_nanos = pClock->current_time.tv_nsec;
         chk_quantum = pClock->current_quantum;
         
         cur_nanos += chipset_get_quantum_timer_elapsed_ns();
@@ -81,10 +80,10 @@ static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock)
     
     
     // update the metric time
-    pClock->current_time.nanoseconds += pClock->ns_per_quantum;
-    if (pClock->current_time.nanoseconds >= ONE_SECOND_IN_NANOS) {
-        pClock->current_time.seconds++;
-        pClock->current_time.nanoseconds -= ONE_SECOND_IN_NANOS;
+    pClock->current_time.tv_nsec += pClock->ns_per_quantum;
+    if (pClock->current_time.tv_nsec >= ONE_SECOND_IN_NANOS) {
+        pClock->current_time.tv_sec++;
+        pClock->current_time.tv_nsec -= ONE_SECOND_IN_NANOS;
     }
 }
 
@@ -98,7 +97,7 @@ bool MonotonicClock_DelayUntil(TimeInterval deadline)
     const TimeInterval t_start = MonotonicClock_GetCurrentTime();
     const TimeInterval t_delta = TimeInterval_Subtract(deadline, t_start);
     
-    if (t_delta.seconds > 0 || (t_delta.seconds == 0 && t_delta.nanoseconds > 1000*1000)) {
+    if (t_delta.tv_sec > 0 || (t_delta.tv_sec == 0 && t_delta.tv_nsec > 1000*1000)) {
         return false;
     }
     
@@ -120,7 +119,7 @@ bool MonotonicClock_DelayUntil(TimeInterval deadline)
 Quantums Quantums_MakeFromTimeInterval(TimeInterval ti, int rounding)
 {
     register MonotonicClock* pClock = gMonotonicClock;
-    const int64_t nanos = (int64_t)ti.seconds * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ti.nanoseconds;
+    const int64_t nanos = (int64_t)ti.tv_sec * (int64_t)ONE_SECOND_IN_NANOS + (int64_t)ti.tv_nsec;
     const int64_t quants = nanos / (int64_t)pClock->ns_per_quantum;
     
     switch (rounding) {

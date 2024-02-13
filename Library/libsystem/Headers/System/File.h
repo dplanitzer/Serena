@@ -12,7 +12,8 @@
 #include <System/_cmndef.h>
 #include <System/_syslimits.h>
 #include <System/Error.h>
-#include <System/types.h>
+#include <System/TimeInterval.h>
+#include <System/Types.h>
 
 __CPP_BEGIN
 
@@ -81,18 +82,18 @@ enum {
 
 
 typedef struct FileInfo {
-    struct _time_interval_t accessTime;
-    struct _time_interval_t modificationTime;
-    struct _time_interval_t statusChangeTime;
-    FileOffset              size;
-    UserId                  uid;
-    GroupId                 gid;
-    FilePermissions         permissions;
-    FileType                type;
-    char                    reserved;
-    long                    linkCount;
-    FilesystemId            filesystemId;
-    InodeId                 inodeId;
+    TimeInterval        accessTime;
+    TimeInterval        modificationTime;
+    TimeInterval        statusChangeTime;
+    FileOffset          size;
+    UserId              uid;
+    GroupId             gid;
+    FilePermissions     permissions;
+    FileType            type;
+    char                reserved;
+    long                linkCount;
+    FilesystemId        filesystemId;
+    InodeId             inodeId;
 } FileInfo;
 
 enum {
@@ -104,13 +105,13 @@ enum {
 };
 
 typedef struct MutableFileInfo {
-    unsigned long           modify;
-    struct _time_interval_t accessTime;
-    struct _time_interval_t modificationTime;
-    UserId                  uid;
-    GroupId                 gid;
-    FilePermissions         permissions;
-    unsigned short          permissionsModifyMask;  // Only modify permissions whose bit is set here
+    unsigned long       modify;
+    TimeInterval        accessTime;
+    TimeInterval        modificationTime;
+    UserId              uid;
+    GroupId             gid;
+    FilePermissions     permissions;
+    unsigned short      permissionsModifyMask;  // Only modify permissions whose bit is set here
 } MutableFileInfo;
 
 

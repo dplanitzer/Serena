@@ -408,7 +408,7 @@ int _SYSCALL_sleep(const struct SYS_sleep_args* _Nonnull pArgs)
     if (pArgs->delay == NULL) {
         throw(EINVAL);
     }
-    if (pArgs->delay->nanoseconds < 0 || pArgs->delay->nanoseconds >= ONE_SECOND_IN_NANOS) {
+    if (pArgs->delay->tv_nsec < 0 || pArgs->delay->tv_nsec >= ONE_SECOND_IN_NANOS) {
         throw(EINVAL);
     }
 

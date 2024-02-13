@@ -18,9 +18,15 @@ __CPP_BEGIN
 // Seconds since 00:00, Jan 1st 1970 UTC
 typedef long time_t;
 
+// Milliseconds
+typedef long mseconds_t;
+
+// Microseconds
+typedef long useconds_t;
+
 struct timespec {
     time_t  tv_sec;
-    long    tv_nsec;
+    long    tv_nsec;    // 0..<1billion
 };
 
 __CPP_END

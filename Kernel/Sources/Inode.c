@@ -98,25 +98,19 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
     }
 
     if (Inode_IsAccessed(self)) {
-        pOutInfo->accessTime.seconds = curTime.seconds;
-        pOutInfo->accessTime.nanoseconds = curTime.nanoseconds;
+        pOutInfo->accessTime = curTime;
     } else {
-        pOutInfo->accessTime.seconds = self->accessTime.seconds;
-        pOutInfo->accessTime.nanoseconds = self->accessTime.nanoseconds;
+        pOutInfo->accessTime = self->accessTime;
     }
     if (Inode_IsUpdated(self)) {
-        pOutInfo->modificationTime.seconds = curTime.seconds;
-        pOutInfo->modificationTime.nanoseconds = curTime.nanoseconds;
+        pOutInfo->modificationTime = curTime;
     } else {
-        pOutInfo->modificationTime.seconds = self->modificationTime.seconds;
-        pOutInfo->modificationTime.nanoseconds = self->modificationTime.nanoseconds;
+        pOutInfo->modificationTime = self->modificationTime;
     }
     if (Inode_IsStatusChanged(self)) {
-        pOutInfo->statusChangeTime.seconds = curTime.seconds;
-        pOutInfo->statusChangeTime.nanoseconds = curTime.nanoseconds;
+        pOutInfo->statusChangeTime = curTime;
     } else {
-        pOutInfo->statusChangeTime.seconds = self->statusChangeTime.seconds;
-        pOutInfo->statusChangeTime.nanoseconds = self->statusChangeTime.nanoseconds;
+        pOutInfo->statusChangeTime = self->statusChangeTime;
     }
     
     pOutInfo->size = self->size;
@@ -160,13 +154,11 @@ errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _N
 
     // Update timestamps
     if ((modify & kModifyFileInfo_AccessTime) == kModifyFileInfo_AccessTime) {
-        self->accessTime.seconds = pInfo->accessTime.seconds;
-        self->accessTime.nanoseconds = pInfo->accessTime.nanoseconds;
+        self->accessTime = pInfo->accessTime;
         Inode_SetModified(self, kInodeFlag_Accessed);
     }
     if ((modify & kModifyFileInfo_ModificationTime) == kModifyFileInfo_ModificationTime) {
-        self->modificationTime.seconds = pInfo->modificationTime.seconds;
-        self->modificationTime.nanoseconds = pInfo->modificationTime.nanoseconds;
+        self->modificationTime = pInfo->modificationTime;
         Inode_SetModified(self, kInodeFlag_Updated);
     }
 

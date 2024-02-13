@@ -22,7 +22,7 @@
 #include <System/_syslimits.h>
 #include <System/_varargs.h>
 #include <System/_weak.h>
-#include <System/types.h>
+#include <System/Types.h>
 
 #ifndef _Locked
 #define _Locked

@@ -10,12 +10,13 @@
 #define _SYS_APOLLO_H 1
 
 #include <System/_cmndef.h>
-#include <System/types.h>
+#include <System/Types.h>
 #include <System/DispatchQueue.h>
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/IOChannel.h>
 #include <System/Process.h>
+#include <System/TimeInterval.h>
 #include <System/Urt.h>
 
 __CPP_BEGIN
