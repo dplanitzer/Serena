@@ -10,4 +10,4 @@
 
 
 // XXX make this per VP
-int errno = 0;
+int _Errno;

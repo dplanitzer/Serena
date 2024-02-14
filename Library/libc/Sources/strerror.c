@@ -47,7 +47,8 @@ char *strerror(int err_no)
         /*EOVERFLOW*/       "Value overflow",
         /*EFBIG*/           "File too big",
         /*EISDIR*/          "Is a directory",
-        /*ENOTIOCTLCMD*/    "Not an IOCTL command"
+        /*ENOTIOCTLCMD*/    "Not an IOCTL command",
+        /*EILSEQ*/          "Invalid multibyte sequence",
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

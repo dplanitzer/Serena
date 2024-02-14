@@ -15,7 +15,9 @@
 __CPP_BEGIN
 
 // XXX make this per VP
-extern int errno;
+extern int _Errno;
+
+#define errno _Errno
 
 __CPP_END
 

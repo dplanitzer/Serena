@@ -6,23 +6,26 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _ASSERT_H
-#define _ASSERT_H 1
-
 #include <System/_cmndef.h>
 #include <System/_nulldef.h>
+#ifndef NDEBUG
 #include <stdnoreturn.h>
+#endif /* NDEBUG */
 
 __CPP_BEGIN
 
 #if NDEBUG
-#define assert(cond)    ((void)0)
+
+#define assert(ignored)    ((void)0)
+
 #else
+
 extern _Noreturn _Assert(const char* _Nonnull pFilename, int lineNum, const char* _Nonnull pFuncName, const char* _Nonnull expr);
 
+#ifndef assert
 #define assert(cond)   if ((cond) == 0) { _Assert(__FILE__, __LINE__, __func__, #cond); }
 #endif
 
-__CPP_END
+#endif /* NDEBUG */
 
-#endif /* _ASSERT_H */
+__CPP_END

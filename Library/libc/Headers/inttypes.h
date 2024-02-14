@@ -1,6 +1,6 @@
 //
 //  inttypes.h
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/29/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -216,8 +216,12 @@ __CPP_BEGIN
 #define SCNxPTR lx
 #define SCNXPTR lX
 
+typedef struct imaxdiv_t { intmax_t quot; intmax_t rem; } imaxdiv_t;
+
 
 extern intmax_t imaxabs(intmax_t n);
+extern imaxdiv_t imaxdiv(intmax_t x, intmax_t y);
+
 extern intmax_t strtoimax(const char *str, char **str_end, int base);
 extern uintmax_t strtoumax(const char *str, char **str_end, int base);
 

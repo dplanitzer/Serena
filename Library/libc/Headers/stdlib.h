@@ -1,6 +1,6 @@
 //
 //  stdlib.h
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -46,6 +46,15 @@ extern char *lltoa(long long val, char *buf, int radix);
 extern int abs(int n);
 extern long labs(long n);
 extern long long llabs(long long n);
+
+
+typedef struct div_t { int quot; int rem; } div_t;
+typedef struct ldiv_t { long quot; long rem; } ldiv_t;
+typedef struct lldiv_t { long long quot; long long rem; } lldiv_t;
+
+extern div_t div(int x, int y);
+extern ldiv_t ldiv(long x, long y);
+extern lldiv_t lldiv(long long x, long long y);
 
 
 extern void* bsearch(const void *key, const void *ptr, size_t count, size_t size,

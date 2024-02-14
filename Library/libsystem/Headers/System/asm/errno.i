@@ -45,8 +45,9 @@ EOVERFLOW       equ 32
 EFBIG           equ 33
 EISDIR          equ 34
 ENOTIOCTLCMD    equ 35
+EILSEQ          equ 36
 
 __EFIRST    equ 1
-__ELAST     equ 35
+__ELAST     equ 36
 
         endif   ; __ABI_ERRNO_I

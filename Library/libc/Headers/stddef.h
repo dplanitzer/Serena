@@ -1,6 +1,6 @@
 //
 //  stddef.h
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -18,6 +18,7 @@
 __CPP_BEGIN
 
 typedef __ptrdiff_t ptrdiff_t;
+typedef unsigned short wchar_t;
 
 __CPP_END
 

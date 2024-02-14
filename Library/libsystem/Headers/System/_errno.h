@@ -45,9 +45,10 @@
 #define EFBIG           33
 #define EISDIR          34
 #define ENOTIOCTLCMD    35
+#define EILSEQ          36
 
 #define __EFIRST    1
-#define __ELAST     35
+#define __ELAST     36
 
 typedef int _Errno_t;
 

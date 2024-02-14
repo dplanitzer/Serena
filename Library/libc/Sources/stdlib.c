@@ -21,6 +21,7 @@ void __stdlibc_init(ProcessArguments* _Nonnull argsp)
     System_Init(argsp);
     __exit_init();
     __malloc_init();
+    __locale_init();
     __stdio_init();
 }
 
@@ -37,19 +38,4 @@ bool __is_pointer_NOT_freeable(void* ptr)
     // XXX check read-only data segment
 
     return false;
-}
-
-int abs(int n)
-{
-    return __abs(n);
-}
-
-long labs(long n)
-{
-    return __abs(n);
-}
-
-long long llabs(long long n)
-{
-    return __abs(n);
 }

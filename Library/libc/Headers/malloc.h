@@ -1,6 +1,6 @@
 //
 //  malloc.h
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 1/3/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
