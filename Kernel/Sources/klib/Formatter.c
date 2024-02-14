@@ -337,7 +337,7 @@ static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const Convers
     spec2.flags.isAlternativeForm = true;
     spec2.flags.padWithZeros = true;
 
-#if __VOID_PTR_WIDTH == 64
+#if __INTPTR_WIDTH == 64
     char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, self->digits);
     spec2.precision = 16;
 #else

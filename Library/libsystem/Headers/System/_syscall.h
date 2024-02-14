@@ -10,6 +10,7 @@
 #define _SYS_SYSCALL_H 1
 
 #include <System/_cmndef.h>
+#include <System/abi/_inttypes.h>
 
 __CPP_BEGIN
 
@@ -47,7 +48,7 @@ __CPP_BEGIN
 #define SC_mkfile               31  // errno_t File_Create(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
 
 
-extern int _syscall(int scno, ...);
+extern intptr_t _syscall(int scno, ...);
 
 __CPP_END
 

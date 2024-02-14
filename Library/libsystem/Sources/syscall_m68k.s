@@ -12,7 +12,7 @@
 
 
 ;-------------------------------------------------------------------------------
-; errno_t _syscall(int scno, ...)
+; intptr_t _syscall(int scno, ...)
 __syscall:
     lea.l  4(sp), a0
     SYSCALL

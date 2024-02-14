@@ -20,7 +20,7 @@ struct SYS_mkfile_args {
     int* _Nullable          outFd;
 };
 
-int _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
+intptr_t _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
 {
     decl_try_err();
 
@@ -38,7 +38,7 @@ struct SYS_open_args {
     int* _Nullable          outFd;
 };
 
-int _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
+intptr_t _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
 {
     decl_try_err();
     IOResourceRef pConsole = NULL;
@@ -73,7 +73,7 @@ struct SYS_opendir_args {
     int* _Nullable          outFd;
 };
 
-int _SYSCALL_opendir(const struct SYS_opendir_args* _Nonnull pArgs)
+intptr_t _SYSCALL_opendir(const struct SYS_opendir_args* _Nonnull pArgs)
 {
     if (pArgs->path == NULL || pArgs->outFd == NULL) {
         return EINVAL;
@@ -88,7 +88,7 @@ struct SYS_close_args {
     int fd;
 };
 
-int _SYSCALL_close(const struct SYS_close_args* _Nonnull pArgs)
+intptr_t _SYSCALL_close(const struct SYS_close_args* _Nonnull pArgs)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -113,7 +113,7 @@ struct SYS_read_args {
     ssize_t* _Nonnull   nBytesRead;
 };
 
-int _SYSCALL_read(const struct SYS_read_args* _Nonnull pArgs)
+intptr_t _SYSCALL_read(const struct SYS_read_args* _Nonnull pArgs)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -137,7 +137,7 @@ struct SYS_write_args {
     ssize_t* _Nonnull       nBytesWritten;
 };
 
-int _SYSCALL_write(const struct SYS_write_args* _Nonnull pArgs)
+intptr_t _SYSCALL_write(const struct SYS_write_args* _Nonnull pArgs)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -161,7 +161,7 @@ struct SYS_seek_args {
     int                     whence;
 };
 
-int _SYSCALL_seek(const struct SYS_seek_args* _Nonnull pArgs)
+intptr_t _SYSCALL_seek(const struct SYS_seek_args* _Nonnull pArgs)
 {
     decl_try_err();
     IOChannelRef pChannel;
@@ -183,7 +183,7 @@ struct SYS_mkdir_args {
     uint32_t                mode;   // XXX User space passes uint16_t, we need uint32_t because the C compiler for m68k does this kind of promotion
 };
 
-int _SYSCALL_mkdir(const struct SYS_mkdir_args* _Nonnull pArgs)
+intptr_t _SYSCALL_mkdir(const struct SYS_mkdir_args* _Nonnull pArgs)
 {
     decl_try_err();
 
@@ -201,7 +201,7 @@ struct SYS_getcwd_args {
     ssize_t         bufferSize;
 };
 
-int _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
+intptr_t _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
 {
     if (pArgs->buffer == NULL || pArgs->bufferSize < 0) {
         return EINVAL;
@@ -216,7 +216,7 @@ struct SYS_setcwd_args {
     const char* _Nullable   path;
 };
 
-int _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
+intptr_t _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -232,7 +232,7 @@ struct SYS_getfileinfo_args {
     FileInfo* _Nullable     outInfo;
 };
 
-int _SYSCALL_getfileinfo(const struct SYS_getfileinfo_args* _Nonnull pArgs)
+intptr_t _SYSCALL_getfileinfo(const struct SYS_getfileinfo_args* _Nonnull pArgs)
 {
     if (pArgs->path == NULL || pArgs->outInfo == NULL) {
         return EINVAL;
@@ -248,7 +248,7 @@ struct SYS_setfileinfo_args {
     MutableFileInfo* _Nullable  info;
 };
 
-int _SYSCALL_setfileinfo(const struct SYS_setfileinfo_args* _Nonnull pArgs)
+intptr_t _SYSCALL_setfileinfo(const struct SYS_setfileinfo_args* _Nonnull pArgs)
 {
     if (pArgs->path == NULL || pArgs->info == NULL) {
         return EINVAL;
@@ -264,7 +264,7 @@ struct SYS_fgetfileinfo_args {
     FileInfo* _Nullable outInfo;
 };
 
-int _SYSCALL_fgetfileinfo(const struct SYS_fgetfileinfo_args* _Nonnull pArgs)
+intptr_t _SYSCALL_fgetfileinfo(const struct SYS_fgetfileinfo_args* _Nonnull pArgs)
 {
     if (pArgs->outInfo == NULL) {
         return EINVAL;
@@ -280,7 +280,7 @@ struct SYS_fsetfileinfo_args {
     MutableFileInfo* _Nullable  info;
 };
 
-int _SYSCALL_fsetfileinfo(const struct SYS_fsetfileinfo_args* _Nonnull pArgs)
+intptr_t _SYSCALL_fsetfileinfo(const struct SYS_fsetfileinfo_args* _Nonnull pArgs)
 {
     if (pArgs->info == NULL) {
         return EINVAL;
@@ -296,7 +296,7 @@ struct SYS_truncate_args {
     FileOffset              length;
 };
 
-int _SYSCALL_truncate(const struct SYS_truncate_args* _Nonnull pArgs)
+intptr_t _SYSCALL_truncate(const struct SYS_truncate_args* _Nonnull pArgs)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -312,7 +312,7 @@ struct SYS_ftruncate_args {
     FileOffset  length;
 };
 
-int _SYSCALL_ftruncate(const struct SYS_ftruncate_args* _Nonnull pArgs)
+intptr_t _SYSCALL_ftruncate(const struct SYS_ftruncate_args* _Nonnull pArgs)
 {
     return Process_TruncateFileFromIOChannel(Process_GetCurrent(), pArgs->fd, pArgs->length);
 }
@@ -325,7 +325,7 @@ struct SYS_ioctl_args {
     va_list _Nullable   ap;
 };
 
-int _SYSCALL_ioctl(const struct SYS_ioctl_args* _Nonnull pArgs)
+intptr_t _SYSCALL_ioctl(const struct SYS_ioctl_args* _Nonnull pArgs)
 {
     return Process_vIOControl(Process_GetCurrent(), pArgs->fd, pArgs->cmd, pArgs->ap);
 }
@@ -337,7 +337,7 @@ struct SYS_access_args {
     uint32_t                mode;
 };
 
-int _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
+intptr_t _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -352,7 +352,7 @@ struct SYS_unlink_args {
     const char* _Nullable   path;
 };
 
-int _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
+intptr_t _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -368,7 +368,7 @@ struct SYS_rename_args {
     const char* _Nullable   newPath;
 };
 
-int _SYSCALL_rename(const struct SYS_rename_args* _Nonnull pArgs)
+intptr_t _SYSCALL_rename(const struct SYS_rename_args* _Nonnull pArgs)
 {
     if (pArgs->oldPath == NULL || pArgs->newPath == NULL) {
         return EINVAL;
@@ -378,7 +378,7 @@ int _SYSCALL_rename(const struct SYS_rename_args* _Nonnull pArgs)
 }
 
 
-int _SYSCALL_getumask(void)
+intptr_t _SYSCALL_getumask(void)
 {
     return (int) Process_GetFileCreationMask(Process_GetCurrent());
 }
@@ -389,7 +389,7 @@ struct SYS_setumask_args {
     uint16_t    mask;
 };
 
-int _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)
+intptr_t _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)
 {
     Process_SetFileCreationMask(Process_GetCurrent(), pArgs->mask);
     return EOK;
@@ -401,7 +401,7 @@ struct SYS_delay_args {
     TimeInterval    delay;
 };
 
-int _SYSCALL_delay(const struct SYS_delay_args* _Nonnull pArgs)
+intptr_t _SYSCALL_delay(const struct SYS_delay_args* _Nonnull pArgs)
 {
     if (pArgs->delay.tv_nsec < 0 || pArgs->delay.tv_nsec >= ONE_SECOND_IN_NANOS) {
         return EINVAL;
@@ -416,7 +416,7 @@ struct SYS_dispatch_async_args {
     const Closure1Arg_Func _Nonnull userClosure;
 };
 
-int _SYSCALL_dispatch_async(const struct SYS_dispatch_async_args* pArgs)
+intptr_t _SYSCALL_dispatch_async(const struct SYS_dispatch_async_args* pArgs)
 {
     decl_try_err();
 
@@ -440,7 +440,7 @@ struct SYS_alloc_address_space_args {
     void * _Nullable * _Nonnull pOutMem;
 };
 
-int _SYSCALL_alloc_address_space(struct SYS_alloc_address_space_args* _Nonnull pArgs)
+intptr_t _SYSCALL_alloc_address_space(struct SYS_alloc_address_space_args* _Nonnull pArgs)
 {
     decl_try_err();
 
@@ -464,7 +464,7 @@ struct SYS_exit_args {
     int status;
 };
 
-int _SYSCALL_exit(const struct SYS_exit_args* _Nonnull pArgs)
+intptr_t _SYSCALL_exit(const struct SYS_exit_args* _Nonnull pArgs)
 {
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to
@@ -492,7 +492,7 @@ struct SYS_spawn_process_args {
     ProcessId* _Nullable            pOutPid;
 };
 
-int _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
+intptr_t _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
 {
     decl_try_err();
 
@@ -505,25 +505,25 @@ catch:
 }
 
 
-int _SYSCALL_getpid(void)
+intptr_t _SYSCALL_getpid(void)
 {
     return Process_GetId(Process_GetCurrent());
 }
 
 
-int _SYSCALL_getppid(void)
+intptr_t _SYSCALL_getppid(void)
 {
     return Process_GetParentId(Process_GetCurrent());
 }
 
 
-int _SYSCALL_getuid(void)
+intptr_t _SYSCALL_getuid(void)
 {
     return Process_GetRealUserId(Process_GetCurrent());
 }
 
 
-int _SYSCALL_getpargs(void)
+intptr_t _SYSCALL_getpargs(void)
 {
     return (int) Process_GetArgumentsBaseAddress(Process_GetCurrent());
 }
@@ -535,7 +535,7 @@ struct SYS_waitpid_args {
     ProcessTerminationStatus* _Nullable status;
 };
 
-int _SYSCALL_waitpid(struct SYS_waitpid_args* pArgs)
+intptr_t _SYSCALL_waitpid(struct SYS_waitpid_args* pArgs)
 {
     return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->status);
 }
