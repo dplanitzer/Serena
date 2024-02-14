@@ -23,8 +23,8 @@
 //
 // Select the data model for which the C library should be compiled by passing
 // one of the following declarations as a pre-processor define to the compiler:
-// __ILP32__
-// __LP64__
+// __ILP32__    (32bit address space)
+// __LP64__     (64bit address space)
 #ifdef __ILP32__
 //
 // ILP32
@@ -39,10 +39,20 @@
 #define __UINT_MAX 4294967295u
 
 #define __LONG_WIDTH 32
+#define __LONG_MIN 0x80000000l
+#define __LONG_MAX 0x7fffffffl
 #define __LONG_MAX_BASE_10_DIGITS 10
 
+#define __ULONG_WIDTH 32
+#define __ULONG_MAX 4294967295ul
+
 #define __LLONG_WIDTH 64
+#define __LLONG_MIN 0x8000000000000000ll
+#define __LLONG_MAX 0x7fffffffffffffffll
 #define __LLONG_MAX_BASE_10_DIGITS 19
+
+#define __ULLONG_WIDTH 64
+#define __ULLONG_MAX 18446744073709551615ul
 
 
 // intmax_t
@@ -113,18 +123,28 @@ typedef long __ssize_t;
 #define __UINT_MAX 4294967295u
 
 #define __LONG_WIDTH 64
+#define __LONG_MIN 0x8000000000000000l
+#define __LONG_MAX 0x7fffffffffffffffl
 #define __LONG_MAX_BASE_10_DIGITS 10
 
+#define __ULONG_WIDTH 64
+#define __ULONG_MAX 18446744073709551615ul
+
 #define __LLONG_WIDTH 64
+#define __LONG_MIN 0x8000000000000000l
+#define __LONG_MAX 0x7fffffffffffffffl
 #define __LLONG_MAX_BASE_10_DIGITS 19
+
+#define __ULLONG_WIDTH 64
+#define __ULLONG_MAX 18446744073709551615ul
 
 
 // intmax_t
 typedef long __intmax_t;
 
 #define __INTMAX_WIDTH 64
-#define __INTMAX_MIN 0x8000000000000000ll
-#define __INTMAX_MAX 0x7fffffffffffffffll
+#define __INTMAX_MIN 0x8000000000000000l
+#define __INTMAX_MAX 0x7fffffffffffffffl
 #define __INTMAX_MAX_BASE_10_DIGITS 19
 
 
@@ -132,7 +152,7 @@ typedef long __intmax_t;
 typedef unsigned long __uintmax_t;
 
 #define __UINTMAX_WIDTH 64
-#define __UINTMAX_MAX 18446744073709551615ull
+#define __UINTMAX_MAX 18446744073709551615ul
 #define __UINTMAX_MAX_BASE_10_DIGITS 19
 
 
@@ -140,38 +160,38 @@ typedef unsigned long __uintmax_t;
 typedef long __intptr_t;
 
 #define __INTPTR_WIDTH 64
-#define __INTPTR_MIN 0x8000000000000000ll
-#define __INTPTR_MAX 0x7fffffffffffffffll
+#define __INTPTR_MIN 0x8000000000000000l
+#define __INTPTR_MAX 0x7fffffffffffffffl
 
 
 // uintptr_t
 typedef unsigned long __uintptr_t;
 
 #define __UINTPTR_WIDTH 64
-#define __UINTPTR_MAX 18446744073709551615ull
+#define __UINTPTR_MAX 18446744073709551615ul
 
 
 // ptrdiff_t
-typedef long long __ptrdiff_t;
+typedef long __ptrdiff_t;
 
 #define __PTRDIFF_WIDTH 64
-#define __PTRDIFF_MIN 0x8000000000000000ll
-#define __PTRDIFF_MAX 0x7fffffffffffffffll
+#define __PTRDIFF_MIN 0x8000000000000000l
+#define __PTRDIFF_MAX 0x7fffffffffffffffl
 
 
 // size_t
 typedef unsigned long __size_t;
 
 #define __SIZE_WIDTH 64
-#define __SIZE_MAX 18446744073709551615ull
+#define __SIZE_MAX 18446744073709551615ul
 
 
 // ssize_t
 typedef long __ssize_t;
 
 #define __SSIZE_WIDTH 64
-#define __SSIZE_MIN 0x8000000000000000ll
-#define __SSIZE_MAX 0x7fffffffffffffffll
+#define __SSIZE_MIN 0x8000000000000000l
+#define __SSIZE_MAX 0x7fffffffffffffffl
 
 #else
 
