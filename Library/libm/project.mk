@@ -3,6 +3,7 @@
 #
 
 LIBM_SOURCES_DIR := $(LIBM_PROJECT_DIR)/Sources
+LIBM_OBJS_DIR := $(OBJS_DIR)/Library/libm
 
 LIBM_C_SOURCES := $(wildcard $(LIBM_SOURCES_DIR)/*.c)
 LIBM_ASM_SOURCES := $(wildcard $(LIBM_SOURCES_DIR)/*.s)
