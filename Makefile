@@ -44,9 +44,9 @@ export PRODUCT_DIR := $(WORKSPACE_DIR)/product
 #
 
 ifeq ($(OS),Windows_NT)
-VC_CONFIG := $(WORKSPACE_DIR)/vc_windows_host.config
+VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_windows_host.config
 else
-VC_CONFIG := $(WORKSPACE_DIR)/vc_posix_host.config
+VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_posix_host.config
 endif
 export VC_CONFIG
 
@@ -133,13 +133,13 @@ include $(SH_PROJECT_DIR)/project.mk
 
 build-kernel-rom: $(ROM_FILE)
 
-#$(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) finalizerom.py
+#$(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) ./Tools/finalizerom.py
 #	@echo Making ROM
-#	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
+#	$(PY) ./Tools/finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
 
-$(ROM_FILE): $(KERNEL_BIN_FILE) $(SH_BIN_FILE) finalizerom.py
+$(ROM_FILE): $(KERNEL_BIN_FILE) $(SH_BIN_FILE) ./Tools/finalizerom.py
 	@echo Making ROM
-	$(PY) ./finalizerom.py $(KERNEL_BIN_FILE) $(SH_BIN_FILE) $(ROM_FILE)
+	$(PY) ./Tools/finalizerom.py $(KERNEL_BIN_FILE) $(SH_BIN_FILE) $(ROM_FILE)
 
 
 clean-kernel-rom:
