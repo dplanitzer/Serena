@@ -96,6 +96,12 @@ export LIBC_LIB_FILE := $(LIBC_PRODUCT_DIR)/libc.a
 export LIBC_ASTART_FILE := $(LIBC_PRODUCT_DIR)/_astart.o
 export LIBC_CSTART_FILE := $(LIBC_PRODUCT_DIR)/_cstart.o
 
+LIBM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libm
+export LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/Headers
+export LIBM_BUILD_DIR := $(BUILD_DIR)/Library/libm
+export LIBM_PRODUCT_DIR := $(PRODUCT_DIR)/Library/libm
+export LIBM_LIB_FILE := $(LIBM_PRODUCT_DIR)/libm.a
+
 
 # --------------------------------------------------------------------------
 # Build rules
@@ -109,6 +115,7 @@ all:
 	@echo Building all [$(BUILD_CONFIGURATION)]
 	$(MAKE) build-libsystem
 	$(MAKE) build-libc
+	$(MAKE) build-libm
 	$(MAKE) build-kernel
 	$(MAKE) build-kernel-tests
 	$(MAKE) build-sh
@@ -117,6 +124,7 @@ all:
 
 include $(LIBSYSTEM_PROJECT_DIR)/project.mk
 include $(LIBC_PROJECT_DIR)/project.mk
+include $(LIBM_PROJECT_DIR)/project.mk
 
 include $(KERNEL_PROJECT_DIR)/project.mk
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk

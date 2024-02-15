@@ -49,14 +49,6 @@ $(LIBC_LIB_FILE): $(LIBC_OBJS) $(STDIO_OBJS) | $(LIBC_PRODUCT_DIR)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 
-#$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
-#	@echo Making libc.a
-#	$(AR) rsc $@ $^
-
-#$(LIBC_LIB_FILE): $(LIBC_OBJS) | $(LIBC_PRODUCT_DIR)
-#	@echo Linking libc.a
-#	@$(LD) -baoutnull -r -o $@ $^
-
 
 -include $(LIBC_DEPS)
 

@@ -1,6 +1,6 @@
 //
 //  math.h
-//  libc
+//  libm
 //
 //  Created by Dietmar Planitzer on 2/13/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
