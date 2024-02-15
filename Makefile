@@ -36,6 +36,7 @@ export CC_PREPROCESSOR_DEFINITIONS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__ILP32__=1
 
 export WORKSPACE_DIR := $(CURDIR)
 export BUILD_DIR := $(WORKSPACE_DIR)/build
+export TOOLS_DIR := $(BUILD_DIR)/tools
 export OBJS_DIR := $(BUILD_DIR)/objs
 export PRODUCT_DIR := $(BUILD_DIR)/product
 
@@ -51,7 +52,7 @@ VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_posix_host.config
 endif
 export VC_CONFIG
 
-export LIBTOOL = $(VBCC)/bin/libtool
+export LIBTOOL = $(TOOLS_DIR)/libtool
 export AS = $(VBCC)/bin/vasmm68k_mot -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
 export CC = $(VBCC)/bin/vc +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
 export LD = $(VBCC)/bin/vlink

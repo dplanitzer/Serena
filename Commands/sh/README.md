@@ -83,6 +83,10 @@ Set the current working directory to the directory indicated by the provided pat
 
 Deletes the directory or file indicated by the provided path. A directory has to be empty to be deletable.
 
+#### ECHO str1 str2 ...
+
+Prints the given strings followed by a newline to standard out.
+
 #### LIST [path]
 
 List the contents of the directory indicated by the provided path. Lists the contents of the current working directory if no path is provided.

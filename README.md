@@ -48,8 +48,9 @@ The following kernel services are implemented at this time:
 
 The following user space services are available at this time:
 
-* Beginnings of a C99 compatible standard C library
-* Beginnings of a system call interface with support for processes, time and file I/O
+* A system library with support for processes, dispatch queues, time and file I/O
+* A fairly complete implementation of a C99 compatible standard C library
+* The beginnings of a C99 compatible floating-point math library
 
 The following user space programs are available at this time:
 
@@ -86,11 +87,15 @@ Next make sure that you have Python 3 installed and that it can be invoked from 
 
 Finally install make for Windows and make sure that it is in the `PATH` environment variable. A straight-forward way to do this is by executing the following winget command in a shell window: `winget install GnuWin32.Make`.
 
-### Building Apollo
+### Building the Build Tools
 
-Open the Apollo project folder in Visual Studio Code and select `Build All` from the `Run Build Task...` menu. This will build the kernel, libc and shell and generate a `Apollo.rom` file inside the `Apollo/product/Kernel/` folder. This ROM file contains both the kernel and the shell.
+This steps needs to be executed only once and before you try to build the OS. The purpose of this step is to build a couple of tools that are needed to build the kernel and user space libraries. First open a Developer Command Prompt in Windows Terminal and then cd into the `Apollo/Tools` folder. Type `make` and hit return. This will build all required tools and place them inside a `Apollo/build/tools` folder. The tools will be retained in this location even if you do a full clean of the OS project.
 
-### Running Apollo
+### Building the Operating System
+
+Open the Apollo project folder in Visual Studio Code and select `Build All` from the `Run Build Task...` menu. This will build the kernel, libsystem, libc, libm and shell and generate a single `Apollo.rom` file inside the `Apollo/product/Kernel/` folder. This ROM file contains the kernel, user space libraries and the shell.
+
+### Running the Demo
 
 You first need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file text field to point to the `Apollo.rom` file inside the `Apollo/build/product/Kernel/` folder. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
