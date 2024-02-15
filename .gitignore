@@ -1,9 +1,2 @@
 .DS_Store
-keymap.exe
-keymap.obj
-keymap
-libtool.exe
-libtool.obj
-libtool
 build/**
-product/**
