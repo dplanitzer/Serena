@@ -79,26 +79,26 @@ SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/sh
 export SH_OBJS_DIR := $(OBJS_DIR)/Commands/sh
 
 ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
-export KERNEL_BIN_FILE := $(KERNEL_OBJS_DIR)/Kernel.bin
-export KERNEL_TESTS_BIN_FILE := $(KERNEL_TESTS_OBJS_DIR)/KernelTests
-export SH_BIN_FILE := $(SH_OBJS_DIR)/sh
+export KERNEL_FILE := $(KERNEL_OBJS_DIR)/Kernel.bin
+export KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/KernelTests
+export SH_FILE := $(SH_OBJS_DIR)/sh
 
 LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem
 export LIBSYSTEM_HEADERS_DIR := $(LIBSYSTEM_PROJECT_DIR)/Headers
 export LIBSYSTEM_PRODUCT_DIR := $(PRODUCT_DIR)/Library/libsystem
-export LIBSYSTEM_LIB_FILE := $(LIBSYSTEM_PRODUCT_DIR)/libsystem.a
+export LIBSYSTEM_FILE := $(LIBSYSTEM_PRODUCT_DIR)/libsystem.a
 
 LIBC_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libc
 export LIBC_HEADERS_DIR := $(LIBC_PROJECT_DIR)/Headers
 export LIBC_PRODUCT_DIR := $(PRODUCT_DIR)/Library/libc
-export LIBC_LIB_FILE := $(LIBC_PRODUCT_DIR)/libc.a
-export LIBC_ASTART_FILE := $(LIBC_PRODUCT_DIR)/_astart.o
-export LIBC_CSTART_FILE := $(LIBC_PRODUCT_DIR)/_cstart.o
+export LIBC_FILE := $(LIBC_PRODUCT_DIR)/libc.a
+export ASTART_FILE := $(LIBC_PRODUCT_DIR)/_astart.o
+export CSTART_FILE := $(LIBC_PRODUCT_DIR)/_cstart.o
 
 LIBM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libm
 export LIBM_HEADERS_DIR := $(LIBM_PROJECT_DIR)/Headers
 export LIBM_PRODUCT_DIR := $(PRODUCT_DIR)/Library/libm
-export LIBM_LIB_FILE := $(LIBM_PRODUCT_DIR)/libm.a
+export LIBM_FILE := $(LIBM_PRODUCT_DIR)/libm.a
 
 
 # --------------------------------------------------------------------------
@@ -131,16 +131,17 @@ include $(SH_PROJECT_DIR)/project.mk
 
 build-kernel-rom: $(ROM_FILE)
 
-#$(ROM_FILE): $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) ./Tools/finalizerom.py
+#$(ROM_FILE): $(KERNEL_FILE) $(KERNEL_TESTS_FILE) ./Tools/finalizerom.py
 #	@echo Making ROM
-#	$(PY) ./Tools/finalizerom.py $(KERNEL_BIN_FILE) $(KERNEL_TESTS_BIN_FILE) $(ROM_FILE)
+#	$(PY) ./Tools/finalizerom.py $(KERNEL_FILE) $(KERNEL_TESTS_FILE) $(ROM_FILE)
 
-$(ROM_FILE): $(KERNEL_BIN_FILE) $(SH_BIN_FILE) ./Tools/finalizerom.py
+$(ROM_FILE): $(KERNEL_FILE) $(SH_FILE) ./Tools/finalizerom.py
 	@echo Making ROM
-	$(PY) ./Tools/finalizerom.py $(KERNEL_BIN_FILE) $(SH_BIN_FILE) $(ROM_FILE)
+	$(PY) ./Tools/finalizerom.py $(KERNEL_FILE) $(SH_FILE) $(ROM_FILE)
 
 
 clean-kernel-rom:
+	@echo Cleaning Kernel...
 	$(MAKE) clean-kernel
 	$(MAKE) clean-kernel-tests
 	$(MAKE) clean-sh

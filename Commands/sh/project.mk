@@ -18,7 +18,7 @@ BUILTINS_OBJS_DIR := $(SH_OBJS_DIR)/builtins
 .PHONY: clean-sh $(SH_OBJS_DIR)
 
 
-build-sh: $(SH_BIN_FILE)
+build-sh: $(SH_FILE)
 
 $(SH_OBJS): | $(SH_OBJS_DIR)
 
@@ -28,9 +28,9 @@ $(SH_OBJS_DIR):
 
 -include $(BUILTINS_SOURCES_DIR)/package.mk
 
-$(SH_BIN_FILE): $(SH_OBJS) $(BUILTINS_OBJS) $(LIBSYSTEM_LIB_FILE) $(LIBC_LIB_FILE) | $(KERNEL_PRODUCT_DIR)
+$(SH_FILE): $(SH_OBJS) $(BUILTINS_OBJS) $(LIBSYSTEM_FILE) $(LIBC_FILE) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking sh
-	@$(LD) -s -bataritos -T $(SH_SOURCES_DIR)/linker.script -o $@ $(LIBC_ASTART_FILE) $^
+	@$(LD) -s -bataritos -T $(SH_SOURCES_DIR)/linker.script -o $@ $(ASTART_FILE) $^
 
 
 $(SH_OBJS_DIR)/%.o : $(SH_SOURCES_DIR)/%.c

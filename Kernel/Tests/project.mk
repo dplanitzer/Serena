@@ -23,7 +23,7 @@ KERNEL_TESTS_CC_DONTWARN := -dontwarn=208 -dontwarn=214
 .PHONY: clean-kernel-tests $(KERNEL_TESTS_OBJS_DIR)
 
 
-build-kernel-tests: $(KERNEL_TESTS_BIN_FILE)
+build-kernel-tests: $(KERNEL_TESTS_FILE)
 
 $(KERNEL_TESTS_OBJS): | $(KERNEL_TESTS_OBJS_DIR)
 
@@ -31,9 +31,9 @@ $(KERNEL_TESTS_OBJS_DIR):
 	$(call mkdir_if_needed,$(KERNEL_TESTS_OBJS_DIR))
 
 
-$(KERNEL_TESTS_BIN_FILE): $(KERNEL_TESTS_OBJS) $(LIBSYSTEM_LIB_FILE) $(LIBC_LIB_FILE) | $(KERNEL_PRODUCT_DIR)
+$(KERNEL_TESTS_FILE): $(KERNEL_TESTS_OBJS) $(LIBSYSTEM_FILE) $(LIBC_FILE) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking Kernel Tests
-	@$(LD) -s -bataritos -T $(KERNEL_TESTS_SOURCES_DIR)/linker.script -o $@ $(LIBC_ASTART_FILE) $^
+	@$(LD) -s -bataritos -T $(KERNEL_TESTS_SOURCES_DIR)/linker.script -o $@ $(ASTART_FILE) $^
 
 
 $(KERNEL_TESTS_OBJS_DIR)/%.o : $(KERNEL_TESTS_SOURCES_DIR)/%.c

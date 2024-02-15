@@ -27,7 +27,7 @@ LIBM_CC_DONTWARN :=
 .PHONY: clean-libm $(LIBM_OBJS_DIR) $(LIBM_PRODUCT_DIR)
 
 
-build-libm: $(LIBM_LIB_FILE)
+build-libm: $(LIBM_FILE)
 
 $(LIBM_OBJS): | $(LIBM_OBJS_DIR)
 
@@ -38,7 +38,7 @@ $(LIBM_PRODUCT_DIR):
 	$(call mkdir_if_needed,$(LIBM_PRODUCT_DIR))
 
 
-$(LIBM_LIB_FILE): $(LIBM_OBJS) | $(LIBM_PRODUCT_DIR)
+$(LIBM_FILE): $(LIBM_OBJS) | $(LIBM_PRODUCT_DIR)
 	@echo Making libm.a
 	$(LIBTOOL) create $@ $^
 
