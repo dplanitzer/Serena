@@ -9,6 +9,7 @@
                 "make",
                 "all",
                 "-s",
+                "-R",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {
@@ -29,6 +30,7 @@
                 "make",
                 "clean",
                 "-s",
+                "-R",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {
@@ -49,6 +51,7 @@
                 "make",
                 "build-kernel-rom",
                 "-s",
+                "-R",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {
@@ -69,6 +72,7 @@
                 "make",
                 "clean-kernel-rom",
                 "-s",
+                "-R",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {
@@ -82,13 +86,14 @@
         },
 
         {
-            "label": "Build LibC",
+            "label": "Build Libc",
             "type": "shell",
             "command": "",
             "args": [
                 "make",
                 "build-libc",
                 "-s",
+                "-R",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {
@@ -102,13 +107,14 @@
         },
 
         {
-            "label": "Clean LibC",
+            "label": "Clean Libc",
             "type": "shell",
             "command": "",
             "args": [
                 "make",
                 "clean-libc",
                 "-s",
+                "-R",
                 "--directory=${workspaceFolder}"
             ],
             "group":  {
