@@ -83,10 +83,19 @@ static size_t getFileSize(FILE* s)
     return r;
 }
 
+#define BLOCK_SIZE  8192
+static char gBlock[BLOCK_SIZE];
+
 static void appendByFilling(int ch, size_t size, FILE* s)
 {
-    for (size_t i = 0; i < size; i++) {
-        fputc_require(ch, s);
+    memset(gBlock, ch, (size < BLOCK_SIZE) ? size : BLOCK_SIZE);
+
+    while (size >= BLOCK_SIZE) {
+        fwrite_require(gBlock, BLOCK_SIZE, s);
+        size -= BLOCK_SIZE;
+    }
+    if (size > 0) {
+        fwrite_require(gBlock, size, s);
     }
 }
 
@@ -98,19 +107,16 @@ static void appendBytes(const char* bytes, size_t size, FILE* s)
 static void appendContentsOfFile(FILE* src_s, FILE* s)
 {
     while (!feof(src_s)) {
-        const int b = fgetc(src_s);
+        const size_t nBytesRead = fread(gBlock, 1, BLOCK_SIZE, src_s);
 
-        if (b == EOF) {
-            if (feof(src_s)) {
-                break;
-            }
-            else {
-                failed("I/O error");
-                // NOT REACHED
-            }
+        if (nBytesRead < BLOCK_SIZE && ferror(src_s)) {
+            failed("I/O error");
+            // NOT REACHED
         }
 
-        fputc_require(b, s);
+        if (nBytesRead > 0) {
+            fwrite_require(gBlock, nBytesRead, s);
+        }
     }
 }
 
@@ -138,7 +144,6 @@ int main(int argc, char* argv[])
     // 128k of Kernel space
     // 128k of init app space
     // couple bytes of IRQ autovec generation data
-    const char autovec[] = {0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31};
     const char* kernelPath = argv[1];
     const char* initAppPath = (argc == 4) ? argv[2] : "";
     const char* romPath = (argc == 4) ? argv[3] : argv[2];
@@ -147,9 +152,9 @@ int main(int argc, char* argv[])
     FILE* initAppFile = (*initAppPath != '\0') ? open_require(initAppPath, "rb") : NULL;
 
     setvbuf(romFile, NULL, _IOFBF, 8192);
-    setvbuf(kernelFile, NULL, _IOFBF, 8192);
+    setvbuf(kernelFile, NULL, _IONBF, 0);
     if (initAppFile) {
-        setvbuf(initAppFile, NULL, _IOFBF, 8192);
+        setvbuf(initAppFile, NULL, _IONBF, 0);
     }
 
     // Kernel file
@@ -169,6 +174,7 @@ int main(int argc, char* argv[])
     }
 
     // IRQ autovector generation hardware support
+    const char autovec[] = {0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31};
     const size_t maxRomSize = 256l * 1024l - sizeof(autovec);
     const size_t romSize = getFileSize(romFile);
     if (romSize > maxRomSize) {
