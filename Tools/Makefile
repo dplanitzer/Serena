@@ -34,7 +34,6 @@ default: all
 all: $(TOOLS_DIR) $(TOOLS_DIR)/libtool $(TOOLS_DIR)/keymap $(TOOLS_DIR)/makerom
 
 $(TOOLS_DIR):
-	@echo $(TOOLS_DIR)
 	$(call mkdir_if_needed,$(TOOLS_DIR))
 
 $(TOOLS_DIR)/libtool: libtool.c
