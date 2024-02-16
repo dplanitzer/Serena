@@ -83,9 +83,9 @@ Next download and install the VBCC compiler and assembler needed to build the op
 
 The version that I'm using for my development and that I know works correctly on Windows 11 is 0.9h. Be sure to add an environment variable with the name `VBCC` which points to the VBCC folder on your disk and add the `vbcc\bin` folder to the `PATH` environment variable.
 
-Next make sure that you have Python 3 installed and that it can be invoked from the command line with the "python" command.
+Note that you need to have Microsoft Visual Studio and command line tools installed because the Microsoft C compiler is needed to build the build tools on Windows.
 
-Finally install make for Windows and make sure that it is in the `PATH` environment variable. A straight-forward way to do this is by executing the following winget command in a shell window: `winget install GnuWin32.Make`.
+Finally install GNU make for Windows and make sure that it is in the `PATH` environment variable. A straight-forward way to do this is by executing the following winget command in a shell window: `winget install GnuWin32.Make`.
 
 ### Building the Build Tools
 
