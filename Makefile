@@ -53,10 +53,10 @@ endif
 export VC_CONFIG
 
 export LIBTOOL = $(TOOLS_DIR)/libtool
+export MAKEROM = $(TOOLS_DIR)/makerom
 export AS = $(VBCC)/bin/vasmm68k_mot -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
 export CC = $(VBCC)/bin/vc +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
 export LD = $(VBCC)/bin/vlink
-export PY = python
 
 
 # --------------------------------------------------------------------------
@@ -132,13 +132,13 @@ include $(SH_PROJECT_DIR)/project.mk
 
 build-kernel-rom: $(ROM_FILE)
 
-#$(ROM_FILE): $(KERNEL_FILE) $(KERNEL_TESTS_FILE) ./Tools/finalizerom.py
+#$(ROM_FILE): $(KERNEL_FILE) $(KERNEL_TESTS_FILE)
 #	@echo Making ROM
-#	$(PY) ./Tools/finalizerom.py $(KERNEL_FILE) $(KERNEL_TESTS_FILE) $(ROM_FILE)
+#	$(MAKEROM) $(KERNEL_FILE) $(KERNEL_TESTS_FILE) $(ROM_FILE)
 
-$(ROM_FILE): $(KERNEL_FILE) $(SH_FILE) ./Tools/finalizerom.py
+$(ROM_FILE): $(KERNEL_FILE) $(SH_FILE)
 	@echo Making ROM
-	$(PY) ./Tools/finalizerom.py $(KERNEL_FILE) $(SH_FILE) $(ROM_FILE)
+	$(MAKEROM) $(KERNEL_FILE) $(SH_FILE) $(ROM_FILE)
 
 
 clean-kernel-rom:

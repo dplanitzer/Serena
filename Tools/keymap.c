@@ -18,12 +18,10 @@
 
 // To compile on Windows:
 // - open a Visual Studio Command Line environment
-// - cd to the Apollo folder
 // - cl keymap.c
 //
 // To compile on POSIX:
 // - open a terminal window
-// - cd to the Apollo folder
 // - gcc keymap.c -o keymap
 //
 

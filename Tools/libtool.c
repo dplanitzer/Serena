@@ -18,12 +18,10 @@
 
 // To compile on Windows:
 // - open a Visual Studio Command Line environment
-// - cd to the Apollo folder
 // - cl /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS libtool.c
 //
 // To compile on POSIX:
 // - open a terminal window
-// - cd to the Apollo folder
 // - gcc libtool.c -o libtool
 //
 
