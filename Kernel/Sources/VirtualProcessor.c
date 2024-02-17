@@ -219,7 +219,7 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProces
     sp -= 4; *((uint8_t**)sp) = (uint8_t*)VirtualProcesssor_Relinquish;
     sp -= 4; *((uint32_t*)sp) = 0;
     sp -= 4; *((uint32_t*)sp) = 0;
-    pVP->save_area.a[7] = (uint32_t)sp;
+    pVP->save_area.a[7] = (uintptr_t)sp;
 
     return EOK;
 
