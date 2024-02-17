@@ -44,101 +44,115 @@
 #define FPU_MODEL_68060     4
 
 
+// FPU state frame sizes (fsave/frestore, see M68000PRM p. 6-12)
+#define FPU_NULL_STATE_SIZE         4
+#define FPU_68040_IDLE_STATE_SIZE   4
+#define FPU_68881_IDLE_STATE_SIZE   28
+#define FPU_68882_IDLE_STATE_SIZE   60
+#define FPU_68040_UNIMP_STATE_SIZE  48
+#define FPU_68040_BUSY_STATE_SIZE   96
+#define FPU_68881_BUSY_STATE_SIZE   184
+#define FPU_68882_BUSY_STATE_SIZE   216
+#define FPU_MAX_STATE_SIZE          216
+
+
 // CPU register state
 typedef struct _CpuContext {
-    // 68000 or better
-    uint32_t      d[8];
-    uint32_t      a[8];
-    uint32_t      usp;
-    uint32_t      pc;
-    uint16_t      sr;
-    uint16_t      padding;
-    // 68881, 68882, 68040 or better
-    uint32_t      fsave[54];  // fsave / frestore data (see M68000PRM p. 6-12)
-    float96_t     fp[8];
-    uint32_t      fpcr;
-    uint32_t      fpsr;
-    uint32_t      fpiar;
+    // Integer state. 68000 or better
+    uint32_t    d[8];
+    uintptr_t   a[8];
+    uintptr_t   usp;
+    uintptr_t   pc;
+    uint16_t    sr;
+    uint16_t    padding;
+    // Floating-point state. 68881, 68882, 68040 or better
+    uint8_t     fsave[FPU_MAX_STATE_SIZE];  // fsave / frestore data
+    float96_t   fp[8];
+    uint32_t    fpcr;
+    uint32_t    fpsr;
+    uint32_t    fpiar;
 } CpuContext;
 
 
 // Exception stack frame
+#pragma pack(1)
 typedef struct _ExceptionStackFrame {
-    uint16_t  sr;
-    uint32_t  pc;
+    uint16_t    sr;
+    uintptr_t   pc;
     struct {
         uint16_t  format: 4;
         uint16_t  vector: 12;
     }       fv;
     union {
         struct _Format2 {
-            uint32_t  addr;
+            uintptr_t   addr;
         }   f2;
         struct _Format3 {
-            uint32_t  ea;
+            uintptr_t   ea;
         }   f3;
         struct _Format4 {
-            uint32_t  ea;
-            uint32_t  pcFaultedInstr;
+            uintptr_t   ea;
+            uintptr_t   pcFaultedInstr;
         }   f4;
         struct _Format7 {
-            uint32_t  ea;
-            uint16_t  ssw;
-            uint16_t  wb3s;
-            uint16_t  wb2s;
-            uint16_t  wb1s;
-            uint32_t  fa;
-            uint32_t  wb3a;
-            uint32_t  wb3d;
-            uint32_t  wb2a;
-            uint32_t  wb2d;
-            uint32_t  wb1a;
-            uint32_t  wb1d;
-            uint32_t  pd1;
-            uint32_t  pd2;
-            uint32_t  pd3;
+            uintptr_t   ea;
+            uint16_t    ssw;
+            uint16_t    wb3s;
+            uint16_t    wb2s;
+            uint16_t    wb1s;
+            uint32_t    fa;
+            uint32_t    wb3a;
+            uint32_t    wb3d;
+            uint32_t    wb2a;
+            uint32_t    wb2d;
+            uint32_t    wb1a;
+            uint32_t    wb1d;
+            uint32_t    pd1;
+            uint32_t    pd2;
+            uint32_t    pd3;
         }   f7;
         struct _Format9 {
-            uint32_t  ia;
-            uint16_t  ir[4];
+            uintptr_t   ia;
+            uint16_t    ir[4];
         }   f9;
         struct _FormatA {
-            uint16_t  ir0;
-            uint16_t  ssw;
-            uint16_t  ipsc;
-            uint16_t  ipsb;
-            uint32_t  dataCycleFaultAddress;
-            uint16_t  ir1;
-            uint16_t  ir2;
-            uint32_t  dataOutputBuffer;
-            uint16_t  ir3;
-            uint16_t  ir4;
+            uint16_t    ir0;
+            uint16_t    ssw;
+            uint16_t    ipsc;
+            uint16_t    ipsb;
+            uintptr_t   dataCycleFaultAddress;
+            uint16_t    ir1;
+            uint16_t    ir2;
+            uint32_t    dataOutputBuffer;
+            uint16_t    ir3;
+            uint16_t    ir4;
         }   fa;
         struct _FormatB {
-            uint16_t  ir0;
-            uint16_t  ssw;
-            uint16_t  ipsc;
-            uint16_t  ipsb;
-            uint32_t  dataCycleFaultAddress;
-            uint16_t  ir1;
-            uint16_t  ir2;
-            uint32_t  dataOutputBuffer;
-            uint16_t  ir3;
-            uint16_t  ir4;
-            uint16_t  ir5;
-            uint16_t  ir6;
-            uint32_t  stageBAddress;
-            uint16_t  ir7;
-            uint16_t  ir8;
-            uint32_t  dataInputBuffer;
-            uint16_t  ir9;
-            uint16_t  ir10;
-            uint16_t  ir11;
-            uint16_t  version;
-            uint16_t  ir[18];
+            uint16_t    ir0;
+            uint16_t    ssw;
+            uint16_t    ipsc;
+            uint16_t    ipsb;
+            uintptr_t   dataCycleFaultAddress;
+            uint16_t    ir1;
+            uint16_t    ir2;
+            uint32_t    dataOutputBuffer;
+            uint16_t    ir3;
+            uint16_t    ir4;
+            uint16_t    ir5;
+            uint16_t    ir6;
+            uintptr_t   stageBAddress;
+            uint16_t    ir7;
+            uint16_t    ir8;
+            uint32_t    dataInputBuffer;
+            uint16_t    ir9;
+            uint16_t    ir10;
+            uint16_t    ir11;
+            uint16_t    version;
+            uint16_t    ir[18];
         }   fb;
     }       u;
 } ExceptionStackFrame;
+#pragma pack()
 
 
 typedef void (* _Nonnull Cpu_UserClosure)(void* _Nullable pContext);

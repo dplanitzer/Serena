@@ -186,10 +186,14 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProces
     }
     try(ExecutionStack_SetMaxSize(&pVP->user_stack, closure.userStackSize));
     
+
+    // Initialize the CPU context:
+    // Integer state: zeroed out
+    // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
     Bytes_ClearRange(&pVP->save_area, sizeof(CpuContext));
-    pVP->save_area.a[7] = (uint32_t) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
-    pVP->save_area.usp = (uint32_t) ExecutionStack_GetInitialTop(&pVP->user_stack);
-    pVP->save_area.pc = (uint32_t) closure.func;
+    pVP->save_area.a[7] = (uintptr_t) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
+    pVP->save_area.usp = (uintptr_t) ExecutionStack_GetInitialTop(&pVP->user_stack);
+    pVP->save_area.pc = (uintptr_t) closure.func;
     pVP->save_area.sr = 0x2000;     // We start out in supervisor mode
 
 
@@ -210,9 +214,9 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProces
     //
     // See __rtecall_VirtualProcessorScheduler_SwitchContext for an explanation
     // of why we need the dummy exception stack frame.
-    char* sp = (char*) pVP->save_area.a[7];
-    sp -= 4; *((char**)sp) = closure.context;
-    sp -= 4; *((char**)sp) = (char*)VirtualProcesssor_Relinquish;
+    uint8_t* sp = (uint8_t*) pVP->save_area.a[7];
+    sp -= 4; *((uint8_t**)sp) = closure.context;
+    sp -= 4; *((uint8_t**)sp) = (uint8_t*)VirtualProcesssor_Relinquish;
     sp -= 4; *((uint32_t*)sp) = 0;
     sp -= 4; *((uint32_t*)sp) = 0;
     pVP->save_area.a[7] = (uint32_t)sp;
