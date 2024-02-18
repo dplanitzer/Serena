@@ -56,7 +56,7 @@ $(KERNEL_PRODUCT_DIR):
 
 $(KERNEL_FILE): $(KRT_OBJS) $(KLIB_OBJS) $(CONSOLE_OBJS) $(KERNEL_OBJS) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking Kernel
-	@$(LD) -s -brawbin1 -T $(KERNEL_SOURCES_DIR)/linker.script $(KERNEL_LD_DONTWARN) -o $@ $^
+	@$(LD) $(KERNEL_LD_CONFIG) $(KERNEL_LD_DONTWARN) -s -o $@ $^
 
 
 -include $(KERNEL_DEPS)

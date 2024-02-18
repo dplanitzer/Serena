@@ -6,50 +6,11 @@
 
 
 # --------------------------------------------------------------------------
-# Build Configuration
-#
-
-# Supported build configs:
-# 'release'  compile with optimizations turned on and do not generate debug info
-# 'debug'    compile without optimizations and generate debug info
-ifndef BUILD_CONFIGURATION
-	BUILD_CONFIGURATION := release
-endif
-export BUILD_CONFIGURATION
-
-ifeq ($(BUILD_CONFIGURATION), release)
-	CC_OPT_SETTING := -O=17407
-	CC_GEN_DEBUG_INFO :=
-else
-	CC_OPT_SETTING := -O0
-	CC_GEN_DEBUG_INFO := -g
-endif
-export CC_OPT_SETTING
-export CC_GEN_DEBUG_INFO
-
-
-export CC_PREPROC_DEFS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__ILP32__=1 -DTARGET_CPU_68030=1
-
-
-ifeq ($(OS),Windows_NT)
-	VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_windows_host.config
-else
-	VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_posix_host.config
-endif
-
-
-export KERNEL_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
-export KERNEL_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
-
-export USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
-export USER_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
-
-
-# --------------------------------------------------------------------------
 # Common Directories
 #
 
 export WORKSPACE_DIR := $(CURDIR)
+export SCRIPTS_DIR := $(WORKSPACE_DIR)/Tools
 export BUILD_DIR := $(WORKSPACE_DIR)/build
 export TOOLS_DIR := $(BUILD_DIR)/tools
 export OBJS_DIR := $(BUILD_DIR)/objs
@@ -65,6 +26,49 @@ export MAKEROM = $(TOOLS_DIR)/makerom
 export AS = $(VBCC)/bin/vasmm68k_mot
 export CC = $(VBCC)/bin/vc
 export LD = $(VBCC)/bin/vlink
+
+
+# --------------------------------------------------------------------------
+# Build Configuration
+#
+
+# Supported build configs:
+# 'release'  compile with optimizations turned on and do not generate debug info
+# 'debug'    compile without optimizations and generate debug info
+ifndef BUILD_CONFIGURATION
+	BUILD_CONFIGURATION := release
+endif
+
+ifeq ($(BUILD_CONFIGURATION), release)
+	CC_OPT_SETTING := -O=17407
+	CC_GEN_DEBUG_INFO :=
+else
+	CC_OPT_SETTING := -O0
+	CC_GEN_DEBUG_INFO := -g
+endif
+
+
+export CC_OPT_SETTING
+export CC_GEN_DEBUG_INFO
+
+export CC_PREPROC_DEFS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__ILP32__=1 -DTARGET_CPU_68030=1
+
+
+ifeq ($(OS),Windows_NT)
+	VC_CONFIG := $(SCRIPTS_DIR)/vc_windows_host.config
+else
+	VC_CONFIG := $(SCRIPTS_DIR)/vc_posix_host.config
+endif
+
+
+export KERNEL_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
+export KERNEL_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
+
+export USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
+export USER_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
+
+export KERNEL_LD_CONFIG := -brawbin1 -T $(SCRIPTS_DIR)/kernel_linker.script
+export USER_LD_CONFIG := -bataritos -T $(SCRIPTS_DIR)/user_linker.script
 
 
 # --------------------------------------------------------------------------

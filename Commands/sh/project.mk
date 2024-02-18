@@ -30,7 +30,7 @@ $(SH_OBJS_DIR):
 
 $(SH_FILE): $(ASTART_FILE) $(SH_OBJS) $(BUILTINS_OBJS) $(LIBSYSTEM_FILE) $(LIBC_FILE) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking sh
-	@$(LD) -s -bataritos -T $(SH_SOURCES_DIR)/linker.script -o $@ $^
+	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
 $(SH_OBJS_DIR)/%.o : $(SH_SOURCES_DIR)/%.c

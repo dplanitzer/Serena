@@ -33,7 +33,7 @@ $(KERNEL_TESTS_OBJS_DIR):
 
 $(KERNEL_TESTS_FILE): $(ASTART_FILE) $(KERNEL_TESTS_OBJS) $(LIBSYSTEM_FILE) $(LIBC_FILE) | $(KERNEL_PRODUCT_DIR)
 	@echo Linking Kernel Tests
-	@$(LD) -s -bataritos -T $(KERNEL_TESTS_SOURCES_DIR)/linker.script -o $@ $^
+	@$(LD) $(USER_LD_CONFIG) -s -o $@ $^
 
 
 $(KERNEL_TESTS_OBJS_DIR)/%.o : $(KERNEL_TESTS_SOURCES_DIR)/%.c
