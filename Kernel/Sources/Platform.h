@@ -58,6 +58,7 @@
 
 // CPU register state
 typedef struct _CpuContext {
+    
     // Integer state. 68000 or better
     uint32_t    d[8];
     uintptr_t   a[8];
@@ -65,6 +66,7 @@ typedef struct _CpuContext {
     uintptr_t   pc;
     uint16_t    sr;
     uint16_t    padding;
+
     // Floating-point state. 68881, 68882, 68040 or better
     uint8_t     fsave[FPU_MAX_STATE_SIZE];  // fsave / frestore data
     float96_t   fp[8];
@@ -79,10 +81,12 @@ typedef struct _CpuContext {
 typedef struct _ExceptionStackFrame {
     uint16_t    sr;
     uintptr_t   pc;
+
     struct {
         uint16_t  format: 4;
         uint16_t  vector: 12;
     }       fv;
+    
     union {
         struct _Format2 {
             uintptr_t   addr;

@@ -19,15 +19,30 @@ export BUILD_CONFIGURATION
 
 ifeq ($(BUILD_CONFIGURATION), release)
 	CC_OPT_SETTING := -O=17407
-	CC_GENERATE_DEBUG_INFO :=
+	CC_GEN_DEBUG_INFO :=
 else
 	CC_OPT_SETTING := -O0
-	CC_GENERATE_DEBUG_INFO := -g
+	CC_GEN_DEBUG_INFO := -g
 endif
 export CC_OPT_SETTING
-export CC_GENERATE_DEBUG_INFO
+export CC_GEN_DEBUG_INFO
 
-export CC_PREPROCESSOR_DEFINITIONS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__ILP32__=1 -DTARGET_CPU_68030=1
+
+export CC_PREPROC_DEFS := -DDEBUG=1 -D__BIG_ENDIAN__=1 -D__ILP32__=1 -DTARGET_CPU_68030=1
+
+
+ifeq ($(OS),Windows_NT)
+	VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_windows_host.config
+else
+	VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_posix_host.config
+endif
+
+
+export KERNEL_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
+export KERNEL_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
+
+export USER_ASM_CONFIG := -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
+export USER_CC_CONFIG := +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
 
 
 # --------------------------------------------------------------------------
@@ -45,17 +60,10 @@ export PRODUCT_DIR := $(BUILD_DIR)/product
 # Build tools
 #
 
-ifeq ($(OS),Windows_NT)
-VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_windows_host.config
-else
-VC_CONFIG := $(WORKSPACE_DIR)/Tools/vc_posix_host.config
-endif
-export VC_CONFIG
-
 export LIBTOOL = $(TOOLS_DIR)/libtool
 export MAKEROM = $(TOOLS_DIR)/makerom
-export AS = $(VBCC)/bin/vasmm68k_mot -Felf -quiet -nosym -spaces -m68060 -DTARGET_CPU_68030
-export CC = $(VBCC)/bin/vc +$(VC_CONFIG) -c -c99 -cpp-comments -cpu=68030
+export AS = $(VBCC)/bin/vasmm68k_mot
+export CC = $(VBCC)/bin/vc
 export LD = $(VBCC)/bin/vlink
 
 
