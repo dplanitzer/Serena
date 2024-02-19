@@ -908,26 +908,23 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
 void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const void* _Nonnull pGlyphBitmap, int x, int y)
 {
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, x + 8, y + 8));
-    const int bytesPerRow = pSurface->bytesPerRow;
     const int maxX = pSurface->width >> 3;
     const int maxY = pSurface->height >> 3;
     
-    if (x < 0 || y < 0 || x >= maxX || y >= maxY) {
-        Lock_Unlock(&pDriver->lock);
-        return;
+    if (x >= 0 && y >= 0 && x < maxX && y < maxY) {
+        const size_t bytesPerRow = pSurface->bytesPerRow;
+        uint8_t* dst = pSurface->planes[0] + (y << 3) * bytesPerRow + x;
+        const uint8_t* src = pGlyphBitmap;
+    
+        *dst = src[0]; dst += bytesPerRow;      // 0
+        *dst = src[1]; dst += bytesPerRow;      // 1
+        *dst = src[2]; dst += bytesPerRow;      // 2
+        *dst = src[3]; dst += bytesPerRow;      // 3
+        *dst = src[4]; dst += bytesPerRow;      // 4
+        *dst = src[5]; dst += bytesPerRow;      // 5
+        *dst = src[6]; dst += bytesPerRow;      // 6
+        *dst = src[7];                          // 7
     }
-    
-    uint8_t* dst = pSurface->planes[0] + (y << 3) * bytesPerRow + x;
-    const uint8_t* src = pGlyphBitmap;
-    
-    *dst = *src++; dst += bytesPerRow;      // 0
-    *dst = *src++; dst += bytesPerRow;      // 1
-    *dst = *src++; dst += bytesPerRow;      // 2
-    *dst = *src++; dst += bytesPerRow;      // 3
-    *dst = *src++; dst += bytesPerRow;      // 4
-    *dst = *src++; dst += bytesPerRow;      // 5
-    *dst = *src++; dst += bytesPerRow;      // 6
-    *dst = *src;                            // 7
 
     GraphicsDriver_EndDrawing(pDriver);
 }
