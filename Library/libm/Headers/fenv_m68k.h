@@ -20,7 +20,6 @@ __CPP_BEGIN
 #endif
 
 
-// XXX This is all just a rough draft. Fix this once we properly initialize the FPU
 typedef unsigned int femode_t;
 typedef unsigned int fexcept_t;
 
