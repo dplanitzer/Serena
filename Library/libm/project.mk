@@ -5,6 +5,9 @@
 LIBM_SOURCES_DIR := $(LIBM_PROJECT_DIR)/Sources
 LIBM_OBJS_DIR := $(OBJS_DIR)/Library/libm
 
+M68K_SOURCES_DIR := $(LIBM_SOURCES_DIR)/m68k
+M68K_OBJS_DIR := $(LIBM_OBJS_DIR)/m68k
+
 LIBM_C_SOURCES := $(wildcard $(LIBM_SOURCES_DIR)/*.c)
 LIBM_ASM_SOURCES := $(wildcard $(LIBM_SOURCES_DIR)/*.s)
 
@@ -38,7 +41,9 @@ $(LIBM_PRODUCT_DIR):
 	$(call mkdir_if_needed,$(LIBM_PRODUCT_DIR))
 
 
-$(LIBM_FILE): $(LIBM_OBJS) | $(LIBM_PRODUCT_DIR)
+-include $(M68K_SOURCES_DIR)/package.mk
+
+$(LIBM_FILE): $(M68K_OBJS) $(LIBM_OBJS) | $(LIBM_PRODUCT_DIR)
 	@echo Making libm.a
 	$(LIBTOOL) create $@ $^
 
