@@ -19,15 +19,11 @@ typedef struct _Point {
 
 extern const Point Point_Zero;
 
-static inline Point Point_Make(int x, int y) {
-    Point pt;
-    pt.x = x; pt.y = y;
-    return pt;
-}
+#define Point_Make(__x, __y) \
+    ((Point) {__x, __y})
 
-static inline bool Point_Equals(Point a, Point b) {
-    return a.x == b.x && a.y == b.y;
-}
+#define Point_Equals(__a, __b) \
+    ((__a.x == __b.x && __a.y == __b.y) ? true : false)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -40,15 +36,11 @@ typedef struct _Vector {
 
 extern const Vector Vector_Zero;
 
-static inline Vector Vector_Make(int dx, int dy) {
-    Vector vec;
-    vec.dx = dx; vec.dy = dy;
-    return vec;
-}
+#define Vector_Make(__dx, __dy) \
+    ((Vector) {__dx, __dy})
 
-static inline bool Vector_Equals(Vector a, Vector b) {
-    return a.dx == b.dx && a.dy == b.dy;
-}
+#define Vector_Equals(__a, __b) \
+    ((__a.dx == __b.dx && __a.dy == __b.dy) ? true : false)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,15 +53,11 @@ typedef struct _Size {
 
 extern const Size Size_Zero;
 
-static inline Size Size_Make(int width, int height) {
-    Size sz;
-    sz.width = width; sz.height = height;
-    return sz;
-}
+#define Size_Make(__width, __height) \
+    ((Size) {__width, __height})
 
-static inline bool Size_Equals(Size a, Size b) {
-    return a.width == b.width && a.height == b.height;
-}
+#define Size_Equals(__a, __b) \
+    ((__a.width == __b.width && __a.height == __b.height) ? true : false)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -84,55 +72,46 @@ typedef struct _Rect {
 extern const Rect Rect_Empty;
 extern const Rect Rect_Infinite;
 
-static inline Rect Rect_Make(int left, int top, int right, int bottom) {
-    Rect r;
-    r.left = left; r.top = top; r.right = right; r.bottom = bottom;
-    return r;
-}
+#define Rect_Decl(__rect, __left, __top, __right, __bottom) \
+    Rect __rect = (Rect){__left, __top, __right, __bottom};
 
-static inline bool Rect_IsEmpty(Rect r) {
-    return (r.right <= r.left) || (r.bottom <= r.top);
-}
+#define Rect_Make(__left, __top, __right, __bottom) \
+    ((Rect) {__left, __top, __right, __bottom})
 
-static inline bool Rect_IsInfinite(Rect r) {
-    return (r.right - r.left == INT_MAX) && (r.bottom - r.top == INT_MAX);
-}
+#define Rect_IsEmpty(__r) \
+    (((__r.right <= __r.left) || (__r.bottom <= __r.top)) ? true : false)
 
-static inline bool Rect_Equals(Rect a, Rect b) {
-    return a.left == b.left && a.top == b.top && a.right == b.right && a.bottom == b.bottom;
-}
+#define Rect_IsInfinite(__r) \
+    (((__r.right - __r.left == INT_MAX) && (__r.bottom - __r.top == INT_MAX)) ? true : false)
 
-static inline Point Rect_GetOrigin(Rect r) {
-    return Point_Make(r.left, r.top);
-}
+#define Rect_Equals(__a, __b) \
+    ((__a.left == __b.left && __a.top == __b.top && __a.right == __b.right && __a.bottom == __b.bottom) ? true : false)
+
+
+#define Rect_GetOrigin(__r) \
+    Point_Make(__r.left, __r.top)
 
 // Note that the returned size is limited to (INT_MAX, INT_MAX)
-static inline Size Rect_GetSize(Rect r) {
-    return Size_Make(r.right - r.left, r.bottom - r.top);
-}
+#define Rect_GetSize(__r) \
+    Size_Make(__r.right - __r.left, __r.bottom - __r.top)
 
 // Note that the returned width is limited to INT_MAX
-static inline int Rect_GetWidth(Rect r) {
-    return r.right - r.left;
-}
+#define Rect_GetWidth(__r) \
+    (__r.right - __r.left)
 
 // Note that the returned height is limited to INT_MAX
-static inline int Rect_GetHeight(Rect r) {
-    return r.bottom - r.top;
-}
+#define Rect_GetHeight(__r) \
+    (__r.bottom - __r.top)
 
 extern Rect Rect_Union(Rect a, Rect b);
 extern Rect Rect_Intersection(Rect a, Rect b);
 extern bool Rect_IntersectsRect(Rect a, Rect b);
 
-static inline bool Rect_Contains(Rect r, int x, int y)
-{
-    return x >= r.left && x < r.right && y >= r.top && y < r.bottom;
-}
+#define Rect_Contains(__r, __x, __y) \
+    ((__x >= __r.left && __x < __r.right && __y >= __r.top && __y < __r.bottom) ? true : false)
 
-static inline bool Rect_ContainsPoint(Rect r, Point p) {
-    return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
-}
+#define Rect_ContainsPoint(__r, __p) \
+    ((__p.x >= __r.left && __p.x < __r.right && __p.y >= __r.top && __p.y < __r.bottom) ? true : false)
 
 extern Point Point_ClampedToRect(Point p, Rect r);
 
