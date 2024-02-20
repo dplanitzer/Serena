@@ -175,7 +175,7 @@ static void Console_VT100_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
         else {
             switch (p) {
                 case 2: // VT52ANM
-                    Console_SetCompatibilityMode(pConsole, kCompatibilityMode_VT52);
+                    Console_SetCompatibilityMode_Locked(pConsole, kCompatibilityMode_VT52);
                     break;
 
                 case 7: // DECAWM
@@ -203,49 +203,64 @@ static void Console_VT100_CSI_m_Locked(ConsoleRef _Nonnull pConsole)
                 Console_ResetCharacterAttributes_Locked(pConsole);
                 break;
 
-            case 1:     // Bold or increased intensity XXX
+            case 1:     // Bold or increased intensity
+                pConsole->characterAttributes.isBold = 1;
                 break;
 
-            case 2:     // Dimmed XXX
+            case 2:     // Dimmed
+                pConsole->characterAttributes.isDimmed = 1;
                 break;
 
-            case 3:     // Italic XXX
+            case 3:     // Italic
+                pConsole->characterAttributes.isItalic = 1;
                 break;
 
-            case 4:     // Underlined XXX
+            case 4:     // Underlined
+                pConsole->characterAttributes.isUnderlined = 1;
                 break;
 
-            case 5:     // Blink XXX
+            case 5:     // Blink
+                pConsole->characterAttributes.isBlink = 1;
                 break;
 
-            case 7:     // Reverse XXX
+            case 7:     // Reverse
+                pConsole->characterAttributes.isReverse = 1;
                 break;
 
-            case 8:     // Hidden XXX
+            case 8:     // Hidden
+                pConsole->characterAttributes.isHidden = 1;
                 break;
 
-            case 9:     // Strikethrough XXX
+            case 9:     // Strikethrough
+                pConsole->characterAttributes.isStrikethrough = 1;
                 break;
 
-            case 22:    // Reset Bold/Dimmed XXX
+            case 22:    // Reset Bold/Dimmed
+                pConsole->characterAttributes.isBold = 0;
                 break;
 
-            case 23:    // Reset italic XXX
+            case 23:    // Reset italic
+                pConsole->characterAttributes.isItalic = 0;
                 break;
 
-            case 24:    // Reset Underlined XXX
+            case 24:    // Reset Underlined
+                pConsole->characterAttributes.isUnderlined = 0;
                 break;
 
-            case 25:    // Reset Blink XXX
+            case 25:    // Reset Blink
+                pConsole->characterAttributes.isBlink = 0;
                 break;
 
-            case 27:    // Reset Reverse XXX
+            case 27:    // Reset Reverse
+                pConsole->characterAttributes.isReverse = 0;
                 break;
 
-            case 28:    // Reset Hidden XXX
+            case 28:    // Reset Hidden
+                pConsole->characterAttributes.isHidden = 0;
                 break;
 
-            case 29:    // Reset Strikethrough XXX
+            case 29:    // Reset Strikethrough
+                pConsole->characterAttributes.isStrikethrough = 0;
                 break;
 
             case 30:    // Foreground color

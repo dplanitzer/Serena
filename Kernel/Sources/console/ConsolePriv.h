@@ -147,6 +147,16 @@ CLASS_IVARS(Console, IOResource,
     RingBuffer                  reportsQueue;
     Color                       backgroundColor;
     Color                       foregroundColor;
+    struct {
+        unsigned int    isBold:1;
+        unsigned int    isDimmed:1;
+        unsigned int    isItalic:1;
+        unsigned int    isUnderlined:1;
+        unsigned int    isBlink:1;
+        unsigned int    isReverse:1;
+        unsigned int    isHidden:1;
+        unsigned int    isStrikethrough:1;
+    }                           characterAttributes;
     int                         lineHeight;     // In pixels
     int                         characterWidth; // In pixels
     TabStops                    hTabStops;
@@ -190,7 +200,7 @@ extern void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isV
 static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
 extern void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, int x, int y);
 extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, int dx, int dy);
-extern void Console_SetCompatibilityMode(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
+extern void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
 extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_action_t action, unsigned char b);
 extern void Console_VT100_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
 

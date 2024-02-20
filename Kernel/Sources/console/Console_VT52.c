@@ -35,8 +35,7 @@ static void Console_VT52_Execute_C0_Locked(ConsoleRef _Nonnull pConsole, unsigne
             Console_MoveCursorTo_Locked(pConsole, 0, pConsole->y);
             break;
             
-        default:
-            // Ignore it
+        default:    // Ignore
             break;
     }
 }
@@ -44,58 +43,65 @@ static void Console_VT52_Execute_C0_Locked(ConsoleRef _Nonnull pConsole, unsigne
 static void Console_VT52_ESC_Atari_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
 {
     switch (ch) {
-    case 'E': // VT52+Atari: Clear screen
+    case 'E':   // VT52+Atari: Clear screen
         Console_MoveCursorTo_Locked(pConsole, 0, 0);
         Console_ClearScreen_Locked(pConsole, kClearScreenMode_Whole);
         break;
 
-    case 'b': // VT52+Atari: Set foreground color. Parameter byte is a character of which the lowest 4 bits are used to specify the color index
+    case 'b':   // VT52+Atari: Set foreground color. Parameter byte is a character of which the lowest 4 bits are used to specify the color index
         Console_SetForegroundColor_Locked(pConsole, Color_MakeIndex(pConsole->vtparser.vt52.params[0] & 0x07)); // XXX limited to 3 bits for now since we oly support 8 colors
         break;
 
-    case 'c': // VT52+Atari: Set background color. Parameter byte is a character of which the lowest 4 bits are used to specify the color index
+    case 'c':   // VT52+Atari: Set background color. Parameter byte is a character of which the lowest 4 bits are used to specify the color index
         Console_SetBackgroundColor_Locked(pConsole, Color_MakeIndex(pConsole->vtparser.vt52.params[0] & 0x07)); // XXX limited to 3 bits for now since we oly support 8 colors
         break;
 
-    case 'd': // VT52+Atari: Clear to start of screen
+    case 'd':   // VT52+Atari: Clear to start of screen
         Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToBeginning);
         break;
 
-    case 'e': // VT52+Atari: Show cursor
+    case 'e':   // VT52+Atari: Show cursor
         Console_SetCursorVisible_Locked(pConsole, true);
         break;
 
-    case 'f': // VT52+Atari: Hide cursor
+    case 'f':   // VT52+Atari: Hide cursor
         Console_SetCursorVisible_Locked(pConsole, false);
         break;
 
-    case 'j': // VT52+Atari: Save cursor
+    case 'j':   // VT52+Atari: Save cursor
         Console_SaveCursorState_Locked(pConsole);
         break;
 
-    case 'k': // VT52+Atari: Restore cursor
+    case 'k':   // VT52+Atari: Restore cursor
         Console_RestoreCursorState_Locked(pConsole);
         break;
 
-    case 'l': // VT52+Atari: Clear line and move cursor to the left margin
+    case 'l':   // VT52+Atari: Clear line and move cursor to the left margin
         Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_Whole);
         Console_MoveCursorTo_Locked(pConsole, 0, pConsole->y);
         break;
 
-    case 'o': // VT52+Atari: Clear to start of line
+    case 'o':   // VT52+Atari: Clear to start of line
         Console_ClearLine_Locked(pConsole, pConsole->y, kClearLineMode_ToBeginning);
         break;
 
-    case 'v': // VT52+Atari: Auto-wrap on
+    case 'p':   // VT52+Atari: Reverse On
+        pConsole->characterAttributes.isReverse = 1;
+        break;
+
+    case 'q':   // VT52+Atari: Reverse Off
+        pConsole->characterAttributes.isReverse = 0;
+        break;
+
+    case 'v':   // VT52+Atari: Auto-wrap on
         pConsole->flags.isAutoWrapEnabled = true;
         break;
 
-    case 'w': // VT52+Atari: Auto-wrap off
+    case 'w':   // VT52+Atari: Auto-wrap off
         pConsole->flags.isAutoWrapEnabled = false;
         break;
 
-    default:
-        // Ignore
+    default:    // Ignore
         break;
     }
 }
@@ -151,7 +157,7 @@ static void Console_VT52_ESC_Locked(ConsoleRef _Nonnull pConsole, unsigned char 
             break;
 
         case '<':   // DECANM
-            Console_SetCompatibilityMode(pConsole, kCompatibilityMode_ANSI);
+            Console_SetCompatibilityMode_Locked(pConsole, kCompatibilityMode_ANSI);
             break;
             
         case '?':   // Alternate keypad mode echo back
@@ -181,8 +187,7 @@ void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_actio
             Console_PrintByte_Locked(pConsole, b);
             break;
 
-        default:
-            // Ignore
+        default:    // Ignore
             break;
     }
 }
