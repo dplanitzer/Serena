@@ -107,6 +107,20 @@ static void Console_VT100_CSI_TBC_Locked(ConsoleRef _Nonnull pConsole, int op)
     }
 }
 
+static void Console_VT100_CSI_c_Locked(ConsoleRef _Nonnull pConsole)
+{
+    const int p = get_nth_csi_parameter(pConsole, 0, 0);
+
+    switch (p) {
+        case 0:
+            Console_PostReport_Locked(pConsole, "\033[?6c");   // VT100
+            break;
+
+        default:
+            break;
+    }
+}
+
 static void Console_VT100_CSI_h_Locked(ConsoleRef _Nonnull pConsole)
 {
     const bool isPrivateMode = has_private_use_char(pConsole, '?');
@@ -179,6 +193,97 @@ static void Console_VT100_CSI_l_Locked(ConsoleRef _Nonnull pConsole)
     }
 }
 
+static void Console_VT100_CSI_m_Locked(ConsoleRef _Nonnull pConsole)
+{
+    for (int i = 0; i < pConsole->vtparser.vt500.num_params; i++) {
+        const int p = get_nth_csi_parameter(pConsole, i, 0);
+
+        switch (p) {
+            case 0:     // Reset Character Attributes
+                Console_ResetCharacterAttributes_Locked(pConsole);
+                break;
+
+            case 1:     // Bold or increased intensity XXX
+                break;
+
+            case 2:     // Dimmed XXX
+                break;
+
+            case 3:     // Italic XXX
+                break;
+
+            case 4:     // Underlined XXX
+                break;
+
+            case 5:     // Blink XXX
+                break;
+
+            case 7:     // Reverse XXX
+                break;
+
+            case 8:     // Hidden XXX
+                break;
+
+            case 9:     // Strikethrough XXX
+                break;
+
+            case 22:    // Reset Bold/Dimmed XXX
+                break;
+
+            case 23:    // Reset italic XXX
+                break;
+
+            case 24:    // Reset Underlined XXX
+                break;
+
+            case 25:    // Reset Blink XXX
+                break;
+
+            case 27:    // Reset Reverse XXX
+                break;
+
+            case 28:    // Reset Hidden XXX
+                break;
+
+            case 29:    // Reset Strikethrough XXX
+                break;
+
+            case 30:    // Foreground color
+            case 31:
+            case 32:
+            case 33:
+            case 34:
+            case 35:
+            case 36:
+            case 37:
+                Console_SetForegroundColor_Locked(pConsole, Color_MakeIndex(p - 30));
+                break;
+
+            case 39:    // Default Foreground color
+                Console_SetDefaultForegroundColor_Locked(pConsole);
+                break;
+
+            case 40:    // Background color
+            case 41:
+            case 42:
+            case 43:
+            case 44:
+            case 45:
+            case 46:
+            case 47:
+                Console_SetBackgroundColor_Locked(pConsole, Color_MakeIndex(p - 40));
+                break;
+
+            case 49:    // Default Background color
+                Console_SetDefaultBackgroundColor_Locked(pConsole);
+                break;
+
+            default:
+                break;
+        }
+    }
+}
+
 static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
 {
     const bool isPrivateMode = has_private_use_char(pConsole, '?');
@@ -232,20 +337,6 @@ static void Console_VT100_CSI_n_Locked(ConsoleRef _Nonnull pConsole)
     }
 }
 
-static void Console_VT100_CSI_c_Locked(ConsoleRef _Nonnull pConsole)
-{
-    const int p = get_nth_csi_parameter(pConsole, 0, 0);
-
-    switch (p) {
-        case 0:
-            Console_PostReport_Locked(pConsole, "\033[?6c");   // VT100
-            break;
-
-        default:
-            break;
-    }
-}
-
 static void Console_VT100_CSI_y_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (get_nth_csi_parameter(pConsole, 0, 0) != 2) {
@@ -276,12 +367,24 @@ static void Console_VT100_CSI_Locked(ConsoleRef _Nonnull pConsole, unsigned char
             Console_VT100_CSI_c_Locked(pConsole);
             break;
 
+        case 'f':   // HVP
+            Console_MoveCursorTo_Locked(pConsole, get_nth_csi_parameter(pConsole, 1, 1) - 1, get_nth_csi_parameter(pConsole, 0, 1) - 1);
+            break;
+
+        case 'g':   // TBC
+            Console_VT100_CSI_TBC_Locked(pConsole, get_csi_parameter(pConsole, 0));
+            break;
+
         case 'h':
             Console_VT100_CSI_h_Locked(pConsole);
             break;
 
         case 'l':
             Console_VT100_CSI_l_Locked(pConsole);
+            break;
+
+        case 'm':   // SGR
+            Console_VT100_CSI_m_Locked(pConsole);
             break;
 
         case 'n':   // DSR
@@ -310,14 +413,6 @@ static void Console_VT100_CSI_Locked(ConsoleRef _Nonnull pConsole, unsigned char
 
         case 'H':   // CUP
             Console_MoveCursorTo_Locked(pConsole, 0, 0);
-            break;
-
-        case 'f':   // HVP
-            Console_MoveCursorTo_Locked(pConsole, get_nth_csi_parameter(pConsole, 1, 1) - 1, get_nth_csi_parameter(pConsole, 0, 1) - 1);
-            break;
-
-        case 'g':   // TBC
-            Console_VT100_CSI_TBC_Locked(pConsole, get_csi_parameter(pConsole, 0));
             break;
 
         case 'K':   // EL

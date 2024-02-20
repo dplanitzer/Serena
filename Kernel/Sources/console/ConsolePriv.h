@@ -145,8 +145,8 @@ CLASS_IVARS(Console, IOResource,
     const KeyMap* _Nonnull      keyMap;
     vtparser_t                  vtparser;
     RingBuffer                  reportsQueue;
-    RGBColor                    backgroundColor;
-    RGBColor                    textColor;
+    Color                       backgroundColor;
+    Color                       foregroundColor;
     int                         lineHeight;     // In pixels
     int                         characterWidth; // In pixels
     TabStops                    hTabStops;
@@ -168,7 +168,19 @@ CLASS_IVARS(Console, IOResource,
     }                           flags;
 );
 
+
 extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole);
+
+extern void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color);
+extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color);
+
+#define Console_SetDefaultForegroundColor_Locked(__self) \
+    Console_SetForegroundColor_Locked(__self, Color_MakeIndex(2)); /* Green */
+
+#define Console_SetDefaultBackgroundColor_Locked(__self) \
+    Console_SetBackgroundColor_Locked(__self, Color_MakeIndex(0)); /* Black */
+
 extern void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
 extern void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, int y, ClearLineMode mode);
 extern void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole);

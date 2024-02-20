@@ -37,6 +37,23 @@ OVERRIDE_METHOD_IMPL(ioctl, ConsoleChannel, IOChannel)
 // MARK: Console
 ////////////////////////////////////////////////////////////////////////////////
 
+static const RGBColor gANSIColors[8] = {
+    {0x00, 0x00, 0x00},     // Black
+    {0xff, 0x00, 0x00},     // Red
+    {0x00, 0xff, 0x00},     // Green
+    {0xff, 0xff, 0x00},     // Yellow
+    {0x00, 0x00, 0xff},     // Blue
+    {0xff, 0x00, 0xff},     // Magenta
+    {0x00, 0xff, 0xff},     // Cyan
+    {0xff, 0xff, 0xff},     // White
+};
+
+static const ColorTable gANSIColorTable = {
+    8,
+    gANSIColors
+};
+
+
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
 // \param pEventDriver the event driver to provide keyboard input
@@ -61,13 +78,15 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
 
     pConsole->lineHeight = GLYPH_HEIGHT;
     pConsole->characterWidth = GLYPH_WIDTH;
-    pConsole->backgroundColor = RGBColor_Make(0, 0, 0);
-    pConsole->textColor = RGBColor_Make(0, 255, 0);
     pConsole->compatibilityMode = kCompatibilityMode_ANSI;
 
 
     // Initialize the ANSI escape sequence parser
     vtparser_init(&pConsole->vtparser, (vt52parse_callback_t)Console_VT52_ParseByte_Locked, (vt500parse_callback_t)Console_VT100_ParseByte_Locked, pConsole);
+
+
+    // Install an ANSI color table
+    GraphicsDriver_SetCLUT(pGDevice, &gANSIColorTable);
 
 
     // Allocate the text cursor (sprite)
@@ -142,11 +161,7 @@ errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
     pConsole->savedCursorState.x = 0;
     pConsole->savedCursorState.y = 0;
 
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 0, &pConsole->backgroundColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 1, &pConsole->textColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 17, &pConsole->textColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 18, &pConsole->textColor);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 19, &pConsole->textColor);
+    Console_ResetCharacterAttributes_Locked(pConsole);
 
     TabStops_Deinit(&pConsole->hTabStops);
     try(TabStops_Init(&pConsole->hTabStops, __max(Rect_GetWidth(pConsole->bounds) / 8, 0), 8));
@@ -161,6 +176,31 @@ errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 
 catch:
     return err;
+}
+
+void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole)
+{
+    Console_SetDefaultForegroundColor_Locked(pConsole);
+    Console_SetDefaultBackgroundColor_Locked(pConsole);
+}
+
+// Sets the console's foreground color to the given color
+void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color)
+{
+    assert(color.tag == kColorType_Index);
+    pConsole->foregroundColor = color;
+
+    // Sync up the sprite color registers with the selected foreground color
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 17, &gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 18, &gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 19, &gANSIColors[color.u.index]);
+}
+
+// Sets the console's background color to the given color
+void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color)
+{
+    assert(color.tag == kColorType_Index);
+    pConsole->backgroundColor = color;
 }
 
 // Switches the console to the given compatibility mode
@@ -220,7 +260,7 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, cha
     else {
         for (int y = r.top; y < r.bottom; y++) {
             for (int x = r.left; x < r.right; x++) {
-                GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], x, y);
+                GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], x, y, pConsole->foregroundColor, pConsole->backgroundColor);
             }
         }
     }
@@ -531,7 +571,7 @@ void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch)
         Console_CopyRect_Locked(pConsole, Rect_Make(pConsole->x, pConsole->y, pConsole->bounds.right - 1, pConsole->y + 1), Point_Make(pConsole->x + 1, pConsole->y));
     }
 
-    GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y);
+    GraphicsDriver_BlitGlyph_8x8bw(pConsole->gdevice, &font8x8_latin1[ch][0], pConsole->x, pConsole->y, pConsole->foregroundColor, pConsole->backgroundColor);
     Console_MoveCursor_Locked(pConsole, (pConsole->flags.isAutoWrapEnabled) ? kCursorMovement_AutoWrap : kCursorMovement_Clamp, 1, 0);
 }
 

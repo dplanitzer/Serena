@@ -9,18 +9,41 @@
 #include "Surface.h"
 
 
-// Returns how many planes we need to allocate for the given pixel format.
-static int PixelFormat_GetPlaneCount(PixelFormat format)
+// Returns how many planes are needed to store a pixel in the given pixel format.
+// Returns 1 if the pixel format is a direct pixel format.
+size_t PixelFormat_GetPlaneCount(PixelFormat format)
 {
     switch (format) {
-        case kPixelFormat_RGB_Indexed1:     return 1;
-        case kPixelFormat_RGB_Indexed2:     return 2;
-        case kPixelFormat_RGB_Indexed3:     return 3;
-        case kPixelFormat_RGB_Indexed4:     return 4;
-        case kPixelFormat_RGB_Indexed5:     return 5;
-        default:    abort();
+        case kPixelFormat_RGB_Indexed1:
+        case kPixelFormat_RGB_Indexed2:
+        case kPixelFormat_RGB_Indexed3:
+        case kPixelFormat_RGB_Indexed4:
+        case kPixelFormat_RGB_Indexed5:
+            return format + 1;
+
+        default:
+            return 1;
     }
 }
+
+// Returns the number of entries the hardware CLUT supports if the screen is
+// configured for the given pixel format. Returns 0 if the pixel format is not
+// a CLUT-based format. 
+size_t PixelFormat_GetCLUTCapacity(PixelFormat format)
+{
+    switch (format) {
+        case kPixelFormat_RGB_Indexed1:
+        case kPixelFormat_RGB_Indexed2:
+        case kPixelFormat_RGB_Indexed3:
+        case kPixelFormat_RGB_Indexed4:
+        case kPixelFormat_RGB_Indexed5:
+            return 2 << (format << 1);
+
+        default:
+            return 0;
+    }
+}
+
 
 
 

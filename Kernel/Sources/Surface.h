@@ -22,6 +22,16 @@ typedef enum _PixelFormat {
 } PixelFormat;
 
 
+// Returns how many planes are needed to store a pixel in the given pixel format.
+// Returns 1 if the pixel format is a direct pixel format.
+extern size_t PixelFormat_GetPlaneCount(PixelFormat format);
+
+// Returns the number of entries the hardware CLUT supports if the screen is
+// configured for the given pixel format. Returns -1 if the pixel format is not
+// a CLUT-based format. 
+extern size_t PixelFormat_GetCLUTCapacity(PixelFormat format);
+
+
 // Specifies what you want to do with the pixels when you call LockPixels()
 typedef enum _SurfaceAccess {
     kSurfaceAccess_Read,

@@ -49,6 +49,14 @@ static void Console_VT52_ESC_Atari_Locked(ConsoleRef _Nonnull pConsole, unsigned
         Console_ClearScreen_Locked(pConsole, kClearScreenMode_Whole);
         break;
 
+    case 'b': // VT52+Atari: Set foreground color. Parameter byte is a character of which the lowest 4 bits are used to specify the color index
+        Console_SetForegroundColor_Locked(pConsole, Color_MakeIndex(pConsole->vtparser.vt52.params[0] & 0x07)); // XXX limited to 3 bits for now since we oly support 8 colors
+        break;
+
+    case 'c': // VT52+Atari: Set background color. Parameter byte is a character of which the lowest 4 bits are used to specify the color index
+        Console_SetBackgroundColor_Locked(pConsole, Color_MakeIndex(pConsole->vtparser.vt52.params[0] & 0x07)); // XXX limited to 3 bits for now since we oly support 8 colors
+        break;
+
     case 'd': // VT52+Atari: Clear to start of screen
         Console_ClearScreen_Locked(pConsole, kClearScreenMode_ToBeginning);
         break;

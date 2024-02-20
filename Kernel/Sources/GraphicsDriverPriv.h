@@ -37,12 +37,6 @@ struct _ScreenConfiguration {
 };
 
 
-#define CLUT_ENTRY_COUNT 32
-typedef struct _ColorTable {
-    uint16_t  entry[CLUT_ENTRY_COUNT];
-} ColorTable;
-
-
 //
 // Copper Program
 //
@@ -96,14 +90,17 @@ typedef struct _Sprite {
 //
 
 typedef struct _Screen {
-    Surface* _Nullable                  framebuffer;            // the screen framebuffer
+    Surface* _Nullable                  framebuffer;        // the screen framebuffer
     const ScreenConfiguration* _Nonnull screenConfig;
     PixelFormat                         pixelFormat;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
-    int8_t                                spritesInUseCount;
+    int8_t                              spritesInUseCount;
     bool                                isInterlaced;
+    int16_t                             clutCapacity;       // how many entries the physical CLUT supports for this screen configuration
 } Screen;
+
+#define MAX_CLUT_ENTRIES    32
 
 
 //
@@ -138,7 +135,5 @@ extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonn
 extern void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver);
 
 extern errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDriver, Screen* _Nonnull pScreen);
-
-extern void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT);
 
 #endif /* GraphicsDriverPriv_h */

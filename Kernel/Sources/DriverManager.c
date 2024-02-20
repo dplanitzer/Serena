@@ -166,7 +166,7 @@ errno_t DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull pManager
     }
     
     GraphicsDriverRef pMainGDevice = NULL;
-    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed1, &pMainGDevice));
+    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &pMainGDevice));
     try(DriverManager_AddDriver_Locked(pManager, kGraphicsDriverName, pMainGDevice));
 
 

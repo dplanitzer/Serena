@@ -36,35 +36,26 @@ typedef struct _Color {
 } Color;
 
 
-static inline RGBColor RGBColor_Make(int r, int g, int b)
-{
-    RGBColor clr;
-    
-    clr.r = (uint8_t)r;
-    clr.g = (uint8_t)g;
-    clr.b = (uint8_t)b;
-    return clr;
-}
+#define RGBColor_Make(__r, __g, __b) \
+    ((RGBColor) {(uint8_t)__r, (uint8_t)__g, (uint8_t)__b})
 
-static inline Color Color_MakeRGB(int r, int g, int b)
-{
-    Color clr;
-    
-    clr.tag = kColorType_RGB;
-    clr.u.rgb.r = (uint8_t)r;
-    clr.u.rgb.g = (uint8_t)g;
-    clr.u.rgb.b = (uint8_t)b;
-    return clr;
-}
+// Returns a RGB color with 4 bits per channel
+#define RGBColor_GetRGB4(__clr) \
+    (uint16_t)((__clr).r >> 4 & 0x0f) << 8 | ((__clr).g >> 4 & 0x0f) << 4 | ((__clr).b >> 4 & 0x0f)
 
-static inline Color Color_MakeIndex(int idx)
-{
-    Color clr;
-    
-    clr.tag = kColorType_Index;
-    clr.u.index = idx;
-    return clr;
-}
+
+#define Color_MakeRGB(__r, __g, __b) \
+    ((Color) {kColorType_RGB, .rgb = RGBColor_Make(__r, __g, __b)})
+
+
+#define Color_MakeIndex(__idx) \
+    ((Color) {kColorType_Index, { .index = __idx}})
+
+
+typedef struct _ColorTable {
+    size_t                      entryCount;
+    const RGBColor* _Nonnull    entry;
+} ColorTable;
 
 
 struct _ScreenConfiguration;
@@ -123,12 +114,15 @@ extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDr
 extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull pDriver, int16_t x, int16_t y);
 
 
-// Drawing
-extern void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, const RGBColor* _Nonnull pColor);
+// CLUT
+extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, const RGBColor* _Nonnull pColor);
+extern void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT);
 
+
+// Drawing
 extern void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver);
 extern void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color);
 extern void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, Point dstLoc);
-extern void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const void* _Nonnull pGlyphBitmap, int x, int y);
+extern void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const void* _Nonnull pGlyphBitmap, int x, int y, Color fgColor, Color bgColor);
 
 #endif /* GraphicsDriver_h */

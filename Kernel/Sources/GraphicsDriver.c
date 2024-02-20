@@ -211,6 +211,7 @@ static errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelF
     pScreen->pixelFormat = pixelFormat;
     pScreen->nullSprite = pNullSprite;
     pScreen->isInterlaced = ScreenConfiguration_IsInterlaced(pConfig);
+    pScreen->clutCapacity = PixelFormat_GetCLUTCapacity(pixelFormat);
 
     
     // Allocate an appropriate framebuffer
@@ -323,39 +324,44 @@ catch:
 // MARK: GraphicsDriver
 ////////////////////////////////////////////////////////////////////////////////
 
+static const RGBColor gDefaultColors[32] = {
+    {0x00, 0x00, 0x00},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0xff, 0xff, 0xff},
+    {0x00, 0x00, 0x00},     // XXX Mouse cursor
+    {0x00, 0x00, 0x00}      // XXX Mouse cursor
+};
+
 static const ColorTable gDefaultColorTable = {
-    0x0000,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0fff,
-    0x0000,     // XXX Mouse cursor
-    0x0000      // XXX Mouse cursor
+    32,
+    gDefaultColors
 };
 
 
@@ -790,23 +796,42 @@ static void GraphicsDriver_EndDrawing(GraphicsDriverRef _Nonnull pDriver)
 }
 
 // Writes the given RGB color to the color register at index idx
-void GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, const RGBColor* _Nonnull pColor)
+errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, const RGBColor* _Nonnull pColor)
 {
-    assert(idx >= 0 && idx < CLUT_ENTRY_COUNT);
-    const uint16_t rgb = (pColor->r >> 4 & 0x0f) << 8 | (pColor->g >> 4 & 0x0f) << 4 | (pColor->b >> 4 & 0x0f);
-    CHIPSET_BASE_DECL(cp);
+    decl_try_err();
 
-    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = rgb;
+    Lock_Lock(&pDriver->lock);
+
+    // Need to be able to access all CLUT entries in a screen even if the screen
+    // supports < MAX_CLUT_ENTRIES (because of sprites).
+    if (idx < 0 || idx >= MAX_CLUT_ENTRIES) {
+        throw(EINVAL);
+    }
+
+    CHIPSET_BASE_DECL(cp);
+    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = RGBColor_GetRGB4(*pColor);
+
+catch:
+    Lock_Unlock(&pDriver->lock);
+    return err;
 }
 
 // Sets the CLUT
 void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT)
 {
+    Lock_Lock(&pDriver->lock);
+
     CHIPSET_BASE_DECL(cp);
 
-    for (int i = 0; i < CLUT_ENTRY_COUNT; i++) {
-        *CHIPSET_REG_16(cp, COLOR_BASE + (i << 1)) = pCLUT->entry[i];
+    int count = __min(pCLUT->entryCount, pDriver->screen->clutCapacity);
+    for (int i = 0; i < count; i++) {
+        const RGBColor color = pCLUT->entry[i];
+        const uint16_t rgb12 = RGBColor_GetRGB4(color);
+
+        *CHIPSET_REG_16(cp, COLOR_BASE + (i << 1)) = rgb12;
     }
+
+    Lock_Unlock(&pDriver->lock);
 }
 
 // Fills the framebuffer with the background color. This is black for RGB direct
@@ -905,25 +930,38 @@ void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, P
 }
 
 // Blits a monochromatic 8x8 pixel glyph to the given position in the framebuffer.
-void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const void* _Nonnull pGlyphBitmap, int x, int y)
+void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const void* _Nonnull pGlyphBitmap, int x, int y, Color fgColor, Color bgColor)
 {
+    assert(fgColor.tag == kColorType_Index);
+    assert(bgColor.tag == kColorType_Index);
+
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, x + 8, y + 8));
     const int maxX = pSurface->width >> 3;
     const int maxY = pSurface->height >> 3;
     
     if (x >= 0 && y >= 0 && x < maxX && y < maxY) {
-        const size_t bytesPerRow = pSurface->bytesPerRow;
-        uint8_t* dst = pSurface->planes[0] + (y << 3) * bytesPerRow + x;
-        const uint8_t* src = pGlyphBitmap;
-    
-        *dst = src[0]; dst += bytesPerRow;      // 0
-        *dst = src[1]; dst += bytesPerRow;      // 1
-        *dst = src[2]; dst += bytesPerRow;      // 2
-        *dst = src[3]; dst += bytesPerRow;      // 3
-        *dst = src[4]; dst += bytesPerRow;      // 4
-        *dst = src[5]; dst += bytesPerRow;      // 5
-        *dst = src[6]; dst += bytesPerRow;      // 6
-        *dst = src[7];                          // 7
+        register const size_t bytesPerRow = pSurface->bytesPerRow;
+        const uint8_t* pSrc = pGlyphBitmap;
+
+        for (int_fast8_t p = 0; p < pSurface->planeCount; p++) {
+            register uint8_t* pDst = pSurface->planes[p] + (y << 3) * bytesPerRow + x;
+            register const int_fast8_t fgOne = fgColor.u.index & (1 << p);
+            register const int_fast8_t bgOne = bgColor.u.index & (1 << p);
+
+            for (int_fast8_t i = 0; i < 8; i++) {
+                register uint8_t bits = 0;
+
+                if (fgOne) {
+                    bits |= pSrc[i];
+                }
+                if (bgOne) {
+                    bits |= ~pSrc[i];
+                }
+
+                *pDst = bits;
+                pDst += bytesPerRow;
+            }
+        }
     }
 
     GraphicsDriver_EndDrawing(pDriver);
