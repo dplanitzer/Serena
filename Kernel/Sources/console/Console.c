@@ -182,14 +182,14 @@ void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole)
 {
     Console_SetDefaultForegroundColor_Locked(pConsole);
     Console_SetDefaultBackgroundColor_Locked(pConsole);
-    pConsole->characterAttributes.isBold = 0;
-    pConsole->characterAttributes.isDimmed = 0;
-    pConsole->characterAttributes.isItalic = 0;
-    pConsole->characterAttributes.isUnderlined = 0;
-    pConsole->characterAttributes.isBlink = 0;
-    pConsole->characterAttributes.isReverse = 0;
-    pConsole->characterAttributes.isHidden = 0;
-    pConsole->characterAttributes.isStrikethrough = 0;
+    pConsole->characterRendition.isBold = 0;
+    pConsole->characterRendition.isDimmed = 0;
+    pConsole->characterRendition.isItalic = 0;
+    pConsole->characterRendition.isUnderlined = 0;
+    pConsole->characterRendition.isBlink = 0;
+    pConsole->characterRendition.isReverse = 0;
+    pConsole->characterRendition.isHidden = 0;
+    pConsole->characterRendition.isStrikethrough = 0;
 }
 
 // Sets the console's foreground color to the given color
@@ -244,16 +244,16 @@ void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull pConsole, Compatibi
 
 static void Console_DrawGlyph_Locked(ConsoleRef _Nonnull pConsole, char glyph, int x, int y)
 {
-    if (pConsole->characterAttributes.isHidden) {
+    if (pConsole->characterRendition.isHidden) {
         glyph = ' ';
     }
-    
+
     GraphicsDriver_BlitGlyph_8x8bw(
         pConsole->gdevice,
         &font8x8_latin1[glyph][0],
         x, y,
-        (pConsole->characterAttributes.isReverse) ? pConsole->backgroundColor : pConsole->foregroundColor,
-        (pConsole->characterAttributes.isReverse) ? pConsole->foregroundColor : pConsole->backgroundColor);
+        (pConsole->characterRendition.isReverse) ? pConsole->backgroundColor : pConsole->foregroundColor,
+        (pConsole->characterRendition.isReverse) ? pConsole->foregroundColor : pConsole->backgroundColor);
 }
 
 // Copies the content of 'srcRect' to 'dstLoc'. Does not change the cursor
@@ -274,7 +274,7 @@ static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, cha
     if (ch == ' ') {
         GraphicsDriver_FillRect(pConsole->gdevice,
                                 Rect_Make(r.left * pConsole->characterWidth, r.top * pConsole->lineHeight, r.right * pConsole->characterWidth, r.bottom * pConsole->lineHeight),
-                                (pConsole->characterAttributes.isReverse) ? pConsole->foregroundColor : pConsole->backgroundColor);
+                                (pConsole->characterRendition.isReverse) ? pConsole->foregroundColor : pConsole->backgroundColor);
     }
     else if (ch < 32 || ch == 127) {
         // Control characters -> do nothing
@@ -404,10 +404,16 @@ void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole)
 {
     pConsole->savedCursorState.x = pConsole->x;
     pConsole->savedCursorState.y = pConsole->y;
+    pConsole->savedCursorState.foregroundColor = pConsole->foregroundColor;
+    pConsole->savedCursorState.backgroundColor = pConsole->backgroundColor;
+    pConsole->savedCursorState.characterRendition = pConsole->characterRendition;
 }
 
 void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole)
 {
+    pConsole->characterRendition = pConsole->savedCursorState.characterRendition;
+    Console_SetForegroundColor_Locked(pConsole, pConsole->savedCursorState.foregroundColor);
+    Console_SetBackgroundColor_Locked(pConsole, pConsole->savedCursorState.backgroundColor);
     Console_MoveCursorTo_Locked(pConsole, pConsole->savedCursorState.x, pConsole->savedCursorState.y);
 }
 

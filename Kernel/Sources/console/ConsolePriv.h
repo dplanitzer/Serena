@@ -125,14 +125,30 @@ int TabStops_GetNextNthStop(TabStops* pStops, int xLoc, int nth, int xWidth);
 int TabStops_GetPreviousNthStop(TabStops* pStops, int xLoc, int nth);
 
 
+// Character attributes/rendition state
+typedef struct _CharacterRendition {
+    unsigned int    isBold:1;
+    unsigned int    isDimmed:1;
+    unsigned int    isItalic:1;
+    unsigned int    isUnderlined:1;
+    unsigned int    isBlink:1;
+    unsigned int    isReverse:1;
+    unsigned int    isHidden:1;
+    unsigned int    isStrikethrough:1;
+} CharacterRendition;
+
+
 // Saved cursor state:
 // - cursor position
 // - cursor attributes
 // - character set
 // - origin mode
 typedef struct _SavedState {
-    int x;
-    int y;
+    int                 x;
+    int                 y;
+    Color               backgroundColor;
+    Color               foregroundColor;
+    CharacterRendition  characterRendition;
 } SavedState;
 
 
@@ -147,16 +163,7 @@ CLASS_IVARS(Console, IOResource,
     RingBuffer                  reportsQueue;
     Color                       backgroundColor;
     Color                       foregroundColor;
-    struct {
-        unsigned int    isBold:1;
-        unsigned int    isDimmed:1;
-        unsigned int    isItalic:1;
-        unsigned int    isUnderlined:1;
-        unsigned int    isBlink:1;
-        unsigned int    isReverse:1;
-        unsigned int    isHidden:1;
-        unsigned int    isStrikethrough:1;
-    }                           characterAttributes;
+    CharacterRendition          characterRendition;
     int                         lineHeight;     // In pixels
     int                         characterWidth; // In pixels
     TabStops                    hTabStops;

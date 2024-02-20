@@ -86,11 +86,11 @@ static void Console_VT52_ESC_Atari_Locked(ConsoleRef _Nonnull pConsole, unsigned
         break;
 
     case 'p':   // VT52+Atari: Reverse On
-        pConsole->characterAttributes.isReverse = 1;
+        pConsole->characterRendition.isReverse = 1;
         break;
 
     case 'q':   // VT52+Atari: Reverse Off
-        pConsole->characterAttributes.isReverse = 0;
+        pConsole->characterRendition.isReverse = 0;
         break;
 
     case 'v':   // VT52+Atari: Auto-wrap on

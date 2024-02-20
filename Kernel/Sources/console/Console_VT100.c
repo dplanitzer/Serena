@@ -204,63 +204,63 @@ static void Console_VT100_CSI_m_Locked(ConsoleRef _Nonnull pConsole)
                 break;
 
             case 1:     // Bold or increased intensity
-                pConsole->characterAttributes.isBold = 1;
+                pConsole->characterRendition.isBold = 1;
                 break;
 
             case 2:     // Dimmed
-                pConsole->characterAttributes.isDimmed = 1;
+                pConsole->characterRendition.isDimmed = 1;
                 break;
 
             case 3:     // Italic
-                pConsole->characterAttributes.isItalic = 1;
+                pConsole->characterRendition.isItalic = 1;
                 break;
 
             case 4:     // Underlined
-                pConsole->characterAttributes.isUnderlined = 1;
+                pConsole->characterRendition.isUnderlined = 1;
                 break;
 
             case 5:     // Blink
-                pConsole->characterAttributes.isBlink = 1;
+                pConsole->characterRendition.isBlink = 1;
                 break;
 
             case 7:     // Reverse
-                pConsole->characterAttributes.isReverse = 1;
+                pConsole->characterRendition.isReverse = 1;
                 break;
 
             case 8:     // Hidden
-                pConsole->characterAttributes.isHidden = 1;
+                pConsole->characterRendition.isHidden = 1;
                 break;
 
             case 9:     // Strikethrough
-                pConsole->characterAttributes.isStrikethrough = 1;
+                pConsole->characterRendition.isStrikethrough = 1;
                 break;
 
             case 22:    // Reset Bold/Dimmed
-                pConsole->characterAttributes.isBold = 0;
+                pConsole->characterRendition.isBold = 0;
                 break;
 
             case 23:    // Reset italic
-                pConsole->characterAttributes.isItalic = 0;
+                pConsole->characterRendition.isItalic = 0;
                 break;
 
             case 24:    // Reset Underlined
-                pConsole->characterAttributes.isUnderlined = 0;
+                pConsole->characterRendition.isUnderlined = 0;
                 break;
 
             case 25:    // Reset Blink
-                pConsole->characterAttributes.isBlink = 0;
+                pConsole->characterRendition.isBlink = 0;
                 break;
 
             case 27:    // Reset Reverse
-                pConsole->characterAttributes.isReverse = 0;
+                pConsole->characterRendition.isReverse = 0;
                 break;
 
             case 28:    // Reset Hidden
-                pConsole->characterAttributes.isHidden = 0;
+                pConsole->characterRendition.isHidden = 0;
                 break;
 
             case 29:    // Reset Strikethrough
-                pConsole->characterAttributes.isStrikethrough = 0;
+                pConsole->characterRendition.isStrikethrough = 0;
                 break;
 
             case 30:    // Foreground color
