@@ -19,15 +19,15 @@ enum {
 
 typedef struct _HIDKeyRepeater {
     EventDriverRef  eventDriver;
-    int8_t            repeatersInUseCount;    // number of repeaters currently in use
-    int8_t            reserved[3];
+    int8_t          repeatersInUseCount;    // number of repeaters currently in use
+    int8_t          reserved[3];
     TimeInterval    initialKeyRepeatDelay;        // [200ms...3s]
     TimeInterval    keyRepeatDelay;               // [20ms...2s]
 
     // At most one key may be in key repeat state
     TimeInterval    nextEventTime;
     HIDKeyCode      keyCode;
-    uint16_t          state;
+    uint16_t        state;
 } HIDKeyRepeater;
 
 

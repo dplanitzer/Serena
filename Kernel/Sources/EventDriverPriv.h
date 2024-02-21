@@ -57,14 +57,14 @@ CLASS_IVARS(EventDriver, IOResource,
     InputControllerState        port[MAX_INPUT_CONTROLLER_PORTS];
 
     // Keyboard Configuration
-    const uint8_t*                keyFlags;
+    const uint8_t*              keyFlags;
 
 
     // Mouse Configuration
-    int16_t                       screenLeft;
-    int16_t                       screenTop;
-    int16_t                       screenRight;
-    int16_t                       screenBottom;
+    int16_t                     screenLeft;
+    int16_t                     screenTop;
+    int16_t                     screenRight;
+    int16_t                     screenBottom;
     int                         mouseCursorHiddenCounter;
     bool                        isMouseMoveReportingEnabled;    // true if position-change-only mouse reports should be queued; false if we only care about mouse button changes
 
@@ -76,15 +76,15 @@ CLASS_IVARS(EventDriver, IOResource,
     // will be in a sharable page. Apps will then be able to map that page read-only
     // via an iocall. The app will then be able to copy/scan the map as needed while
     // the input keyboard driver updates it.
-    uint32_t                      keyMap[KEY_MAP_INTS_COUNT];    // keycode is the bit index. 1 -> key down; 0 -> key up
-    uint32_t                      modifierFlags;
+    uint32_t                    keyMap[KEY_MAP_INTS_COUNT];    // keycode is the bit index. 1 -> key down; 0 -> key up
+    uint32_t                    modifierFlags;
 
 
     // Logical Mouse Device
     //
-    int16_t                       mouseX;
-    int16_t                       mouseY;
-    uint32_t                      mouseButtons;
+    int16_t                     mouseX;
+    int16_t                     mouseY;
+    uint32_t                    mouseButtons;
 
 
     // Logical Joystick Devices

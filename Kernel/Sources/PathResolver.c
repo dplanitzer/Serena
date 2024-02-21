@@ -346,15 +346,6 @@ static errno_t PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, U
 }
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
-// If it is relative then the resolution starts with the current working directory.
-// If it is absolute then the resolution starts with the root directory. The path
-// may contain the well-known name '.' which stands for 'this directory' and '..'
-// which stands for 'the parent directory'. Note that this function does not allow
-// you to leave the subtree rotted by the root directory. Any attempt to go to a
-// parent of the root directory will send you back to the root directory.
-// Note that the caller of this function has to eventually call
-// PathResolverResult_Deinit() on the returned result no matter whether this
-// function has returned with EOK or some error.
 errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult)
 {
     decl_try_err();

@@ -22,9 +22,9 @@ const char* const kRealtimeClockName = "rtc";
 
 
 typedef struct _DriverEntry {
-    SListNode           node;
-    const char*    name;
-    DriverRef           instance;
+    SListNode   node;
+    const char* name;
+    DriverRef   instance;
 } DriverEntry;
 
 

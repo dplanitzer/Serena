@@ -44,11 +44,11 @@ typedef struct ConversionSpec {
 typedef struct Formatter {
     Formatter_SinkFunc _Nonnull sink;
     void* _Nullable             context;
-    ssize_t                   charactersWritten;
-    ssize_t                   bufferCount;
-    ssize_t                   bufferCapacity;
-    char* _Nonnull         buffer;
-    char                   digits[DIGIT_BUFFER_CAPACITY];
+    ssize_t                     charactersWritten;
+    ssize_t                     bufferCount;
+    ssize_t                     bufferCapacity;
+    char* _Nonnull              buffer;
+    char                        digits[DIGIT_BUFFER_CAPACITY];
 } Formatter;
 
 

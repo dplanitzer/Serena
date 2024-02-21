@@ -26,27 +26,27 @@ typedef struct _PathResolver* PathResolverRef;
 
 // The path resolution mode
 typedef enum _PathResolutionMode {
-    // Return just the inode named by the path. This is the target node of the
-    // path. An error and NULL is returned if no such node exists or if the node
-    // is not accessible.
+    // Return the inode named by the path. This is the target node of the path.
+    // An error and NULL is returned if no such node exists or if the node is
+    // not accessible.
     kPathResolutionMode_TargetOnly,
 
-    // Returns just the inode that is the parent of the inode named by the path.
-    // An error and NULL is returned if no such node exists or is accessible.
+    // Returns the inode that is the parent of the inode named by the path. An
+    // error and NULL is returned if no such node exists or is accessible.
     kPathResolutionMode_ParentOnly
 
 } PathResolutionMode;
 
 // The result of a path resolution operation.
 typedef struct _PathResolverResult {
-    InodeRef _Nullable _Locked  inode;          // The inode named by the path if it exists and the parent inode otherwise, if requested
-    FilesystemRef _Nullable     filesystem;     // The filesystem that owns the returned inode
+    InodeRef _Nullable _Locked  inode;              // The inode named by the path if it exists and the parent inode otherwise, if requested
+    FilesystemRef _Nullable     filesystem;         // The filesystem that owns the returned inode
 
     PathComponent               lastPathComponent;  // Last path component if the resolution mode is ParentOnly. Note that this stores a reference into the path that was passed to the resolution function
 } PathResolverResult;
 
 
-// Must be called when you no longer need the path resolver result
+// Must be called once you no longer need the path resolver result.
 extern void PathResolverResult_Deinit(PathResolverResult* pResult);
 
 
@@ -64,11 +64,11 @@ extern errno_t PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonn
 // If it is absolute then the resolution starts with the root directory. The path
 // may contain the well-known name '.' which stands for 'this directory' and '..'
 // which stands for 'the parent directory'. Note that this function does not allow
-// you to leave the subtree rotted by the root directory. Any attempt to go to a
+// you to leave the subtree rooted by the root directory. Any attempt to go to a
 // parent of the root directory will send you back to the root directory.
-// Note that the caller of this function has to eventually call
-// PathResolverResult_Deinit() on the returned result no matter whether this
-// function has returned with EOK or some error.
+// The caller of this function has to call PathResolverResult_Deinit() on the
+// returned result when no longer needed, no matter whether this function has
+// returned with EOK or some error.
 extern errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
 
 #endif /* PathResolver_h */

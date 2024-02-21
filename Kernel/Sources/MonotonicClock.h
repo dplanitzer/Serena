@@ -19,7 +19,7 @@ typedef int32_t Quantums;             // Time unit of the scheduler clock which 
 typedef struct _MonotonicClock {
     volatile TimeInterval   current_time;
     volatile Quantums       current_quantum;    // Current scheduler time in terms of elapsed quantums since boot
-    int32_t                   ns_per_quantum;     // duration of a quantum in terms of nanoseconds
+    int32_t                 ns_per_quantum;     // duration of a quantum in terms of nanoseconds
 } MonotonicClock;
 
 

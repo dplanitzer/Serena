@@ -129,7 +129,7 @@ typedef struct _Timeout {
     Quantums                            deadline;               // Absolute timeout in quantums
     struct VirtualProcessor* _Nullable  owner;
     bool                                is_valid;               // True if we are waiting with a timeout; false otherwise
-    int8_t                                reserved[3];
+    int8_t                              reserved[3];
 } Timeout;
 
 
@@ -158,27 +158,27 @@ typedef struct _VirtualProcessor {
     VirtualProcessorOwner                   owner;
 
     // System call support
-    uint32_t                                  syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
+    uint32_t                                syscall_entry_ksp;      // saved Kernel stack pointer at the entry of a system call
     
     // Waiting related state
     Timeout                                 timeout;                // The timeout state
     List* _Nullable                         waiting_on_wait_queue;  // The wait queue this VP is waiting on; NULL if not waiting. Used by the scheduler to wake up on timeout
     Quantums                                wait_start_time;        // Time when we entered waiting state
-    int8_t                                    wakeup_reason;
+    int8_t                                  wakeup_reason;
     
     // Scheduling related state
-    int8_t                                    priority;               // base priority
-    int8_t                                    effectivePriority;      // computed priority used for scheduling
-    uint8_t                                   state;
-    uint8_t                                   flags;
-    int8_t                                    quantum_allowance;      // How many continuous quantums this VP may run for before the scheduler will consider scheduling some other VP
-    int8_t                                    suspension_count;       // > 0 -> VP is suspended
-    int8_t                                    reserved[1];
+    int8_t                                  priority;               // base priority
+    int8_t                                  effectivePriority;      // computed priority used for scheduling
+    uint8_t                                 state;
+    uint8_t                                 flags;
+    int8_t                                  quantum_allowance;      // How many continuous quantums this VP may run for before the scheduler will consider scheduling some other VP
+    int8_t                                  suspension_count;       // > 0 -> VP is suspended
+    int8_t                                  reserved[1];
 
     // Dispatch queue state
     void* _Nullable _Weak                   dispatchQueue;                      // Dispatch queue this VP is currently assigned to
-    int8_t                                    dispatchQueueConcurrencyLaneIndex;  // Index of the concurrency lane in the dispatch queue this VP is assigned to
-    int8_t                                    reserved2[3];
+    int8_t                                  dispatchQueueConcurrencyLaneIndex;  // Index of the concurrency lane in the dispatch queue this VP is assigned to
+    int8_t                                  reserved2[3];
 } VirtualProcessor;
 
 
