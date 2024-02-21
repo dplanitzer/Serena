@@ -55,7 +55,6 @@ typedef enum _CompatibilityMode {
 //      - (DECKPAM) application key mode
 //      - (DECKPNM) numeric keypad mode
 //      - (SCS) select character set
-//      - (SGR) select graphic rendition
 //      - (DECDHL) double-height line
 //      - (DECSWL) single-width line
 //      - (DECDWL) double-width line
@@ -76,12 +75,6 @@ typedef enum _CompatibilityMode {
 //      - (ESC X) print controller off
 //      - (ESC V) print cursor line
 //      - (ESC ]) print screen
-//
-// VT52 Atari Extensions:
-//      - (ESC b) foreground color
-//      - (ESC c) background color
-//      - (ESC p) reverse video
-//      - (ESC q) normal video
 
 
 typedef enum _CursorMovement {
