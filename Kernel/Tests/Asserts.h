@@ -11,6 +11,7 @@
 
 #include <System/_cmndef.h>
 #include <System/_nulldef.h>
+#include <System/Error.h>
 #include <stdio.h>
 
 __CPP_BEGIN
@@ -21,6 +22,9 @@ extern void Assert(const char* _Nonnull pFuncname, int lineNum, const char* _Non
 #define assertNotEOF(cond)  if ((cond) == EOF) { Assert(__func__, __LINE__, #cond); }
 
 #define assertNotNULL(cond) if ((cond) == NULL) { Assert(__func__, __LINE__, #cond); }
+
+#define assertOK(cond) if ((cond) != EOK) { Assert(__func__, __LINE__, #cond); }
+#define assertEquals(expected, actual) if ((expected) != (actual)) { Assert(__func__, __LINE__, #expected); }
 
 __CPP_END
 

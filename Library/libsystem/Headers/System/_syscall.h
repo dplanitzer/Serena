@@ -46,6 +46,7 @@ __CPP_BEGIN
 #define SC_truncate             29  // errno_t File_Truncate(const char* _Nonnull path, FileOffset length)
 #define SC_ftruncate            30  // errno_t FileChannel_Truncate(int fd, FileOffset length)
 #define SC_mkfile               31  // errno_t File_Create(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
+#define SC_mkpipe               32  // errno_t Pipe_Create(int* _Nonnull rioc, int* _Nonnull wioc)
 
 
 extern intptr_t _syscall(int scno, ...);

@@ -138,6 +138,9 @@ extern errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _N
 // the open directory.
 extern errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int* _Nonnull pOutDescriptor);
 
+// Creates an anonymous pipe.
+extern errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel);
+
 // Returns information about the file at the given path.
 extern errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
 

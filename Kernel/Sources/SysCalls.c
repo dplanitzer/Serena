@@ -83,6 +83,24 @@ intptr_t _SYSCALL_opendir(const struct SYS_opendir_args* _Nonnull pArgs)
 }
 
 
+struct SYS_mkpipe_args {
+    int             scno;
+    int* _Nullable  pOutReadChannel;
+    int* _Nullable  pOutWriteChannel;
+};
+
+intptr_t _SYSCALL_mkpipe(const struct SYS_mkpipe_args* _Nonnull pArgs)
+{
+    decl_try_err();
+
+    if (pArgs->pOutReadChannel == NULL || pArgs->pOutWriteChannel == NULL) {
+        return EINVAL;
+    }
+
+    return Process_CreatePipe(Process_GetCurrent(), pArgs->pOutReadChannel, pArgs->pOutWriteChannel);
+}
+
+
 struct SYS_close_args {
     int scno;
     int fd;
@@ -98,10 +116,9 @@ intptr_t _SYSCALL_close(const struct SYS_close_args* _Nonnull pArgs)
     // with releasing the resource in any case.
     err = IOChannel_Close(pChannel);
     Object_Release(pChannel);
-    return -err;
 
 catch:
-    return -err;
+    return err;
 }
 
 

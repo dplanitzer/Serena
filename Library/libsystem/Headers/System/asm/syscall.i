@@ -41,8 +41,9 @@ SC_ioctl                equ 28  ; errno_t IOChannel_Control(int fd, int cmd, ...
 SC_truncate             equ 29  ; errno_t File_Truncate(const char* path, FileOffset length)
 SC_ftruncate            equ 30  ; errno_t FileChannel_Truncate(int fd, FileOffset length)
 SC_mkfile               equ 31  ; errno_t File_Create(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
+SC_mkpipe               equ 32  ; errno_t Pipe_Create(int* _Nonnull rioc, int* _Nonnull wioc)
 
-SC_numberOfCalls        equ 32   ; number of system calls
+SC_numberOfCalls        equ 33   ; number of system calls
 
 
 ; System call macro.

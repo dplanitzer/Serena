@@ -16,11 +16,14 @@ extern void child_process_test(int argc, char *argv[]);
 // Console
 extern void interactive_console_test(int argc, char *argv[]);
 
-// File I/O
+// File
 extern void chdir_pwd_test(int argc, char *argv[]);
 extern void fileinfo_test(int argc, char *argv[]);
 extern void unlink_test(int argc, char *argv[]);
 extern void readdir_test(int argc, char *argv[]);
+
+// Pipe
+extern void pipe_test(int argc, char *argv[]);
 
 // Stdio
 extern void fopen_memory_fixed_size_test(int argc, char *argv[]);
@@ -34,7 +37,7 @@ extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
 void main_closure(int argc, char *argv[])
 {
-    RUN_TEST(child_process_test);
+    //RUN_TEST(child_process_test);
     //RUN_TEST(interactive_console_test);
     //RUN_TEST(chdir_pwd_test);
     //RUN_TEST(fileinfo_test);
@@ -42,4 +45,5 @@ void main_closure(int argc, char *argv[])
     //RUN_TEST(readdir_test);
     //RUN_TEST(fopen_memory_fixed_size_test);
     //RUN_TEST(fopen_memory_variable_size_test);
+    RUN_TEST(pipe_test);
 }

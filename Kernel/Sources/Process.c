@@ -9,6 +9,7 @@
 #include "ProcessPriv.h"
 #include "FilesystemManager.h"
 #include "GemDosExecutableLoader.h"
+#include "Pipe.h"
 #include "ProcessManager.h"
 #include <krt/krt.h>
 
@@ -926,6 +927,41 @@ catch:
     Lock_Unlock(&pProc->lock);
     Object_Release(pDir);
     *pOutDescriptor = -1;
+    return err;
+}
+
+// Creates an anonymous pipe.
+errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
+{
+    decl_try_err();
+    PipeRef pPipe = NULL;
+    IOChannelRef rdChannel = NULL, wrChannel = NULL;
+    bool needsUnlock = false;
+    bool isReadChannelRegistered = false;
+
+    try(Pipe_Create(kPipe_DefaultBufferSize, &pPipe));
+    try(IOResource_Open(pPipe, NULL, kOpen_Read, pProc->realUser, &rdChannel));
+    try(IOResource_Open(pPipe, NULL, kOpen_Write, pProc->realUser, &wrChannel));
+
+    Lock_Lock(&pProc->lock);
+    needsUnlock = true;
+    try(Process_RegisterIOChannel_Locked(pProc, rdChannel, pOutReadChannel));
+    isReadChannelRegistered = true;
+    try(Process_RegisterIOChannel_Locked(pProc, wrChannel, pOutWriteChannel));
+    Lock_Unlock(&pProc->lock);
+    return EOK;
+
+catch:
+    if (isReadChannelRegistered) {
+        Process_UnregisterIOChannel(pProc, *pOutReadChannel, &rdChannel);
+        Object_Release(rdChannel);
+    }
+    if (needsUnlock) {
+        Lock_Unlock(&pProc->lock);
+    }
+    Object_Release(rdChannel);
+    Object_Release(wrChannel);
+    Object_Release(pPipe);
     return err;
 }
 

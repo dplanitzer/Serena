@@ -75,22 +75,22 @@ errno_t IOChannel_vIOControl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 
 errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    if ((self->mode & kOpen_Read) == 0) {
+    if ((self->mode & kOpen_Read) == kOpen_Read) {
+        return IOResource_Read(self->resource, self, pBuffer, nBytesToRead, nOutBytesRead);
+    } else {
         *nOutBytesRead = 0;
         return EBADF;
     }
-
-    return IOResource_Read(self->resource, self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 errno_t IOChannel_write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    if ((self->mode & kOpen_Write) == 0) {
+    if ((self->mode & kOpen_Write) == kOpen_Write) {
+        return IOResource_Write(self->resource, self, pBuffer, nBytesToWrite, nOutBytesWritten);
+    } else {
         *nOutBytesWritten = 0;
         return EBADF;
     }
-
-    return IOResource_Write(self->resource, self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
 errno_t IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, int whence)
@@ -158,7 +158,7 @@ errno_t IOResource_write(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pCha
     return EBADF;
 }
 
-// See UObject.close()
+// See IOChannel.close()
 errno_t IOResource_close(IOResourceRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
     return EOK;

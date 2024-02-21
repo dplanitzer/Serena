@@ -1,13 +1,13 @@
 //
-//  apollo.h
+//  System.h
 //  libsystem
 //
-//  Created by Dietmar Planitzer on 10/12/23.
-//  Copyright © 2023 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 2/20/24.
+//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_APOLLO_H
-#define _SYS_APOLLO_H 1
+#ifndef _SYS_SYSTEM_H
+#define _SYS_SYSTEM_H 1
 
 #include <System/_cmndef.h>
 #include <System/Types.h>
@@ -15,6 +15,7 @@
 #include <System/Error.h>
 #include <System/File.h>
 #include <System/IOChannel.h>
+#include <System/Pipe.h>
 #include <System/Process.h>
 #include <System/TimeInterval.h>
 #include <System/Urt.h>
@@ -29,4 +30,4 @@ extern void System_Init(ProcessArguments* _Nonnull argsp);
 
 __CPP_END
 
-#endif /* _SYS_APOLLO_H */
+#endif /* _SYS_SYSTEM_H */

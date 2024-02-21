@@ -34,17 +34,17 @@ typedef enum {
 
 #if !defined(__KERNEL__)
 
-extern errno_t IOChannel_Read(int fd, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-extern errno_t IOChannel_Write(int fd, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+extern errno_t IOChannel_Read(int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+extern errno_t IOChannel_Write(int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
-extern errno_t IOChannel_Close(int fd);
-
-
-extern IOChannelType IOChannel_GetType(int fd);
-extern int IOChannel_GetMode(int fd);
+extern errno_t IOChannel_Close(int ioc);
 
 
-extern errno_t IOChannel_Control(int fd, int cmd, ...);
+extern IOChannelType IOChannel_GetType(int ioc);
+extern int IOChannel_GetMode(int ioc);
+
+
+extern errno_t IOChannel_Control(int ioc, int cmd, ...);
 
 #endif /* __KERNEL__ */
 
