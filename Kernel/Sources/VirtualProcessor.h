@@ -27,9 +27,9 @@ extern void ExecutionStack_Destroy(ExecutionStack* _Nullable pStack);
 
 extern errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, size_t size);
 
-static inline char* _Nonnull ExecutionStack_GetInitialTop(ExecutionStack* _Nonnull pStack) {
-    return pStack->base + pStack->size;
-}
+#define ExecutionStack_GetInitialTop(__pStack) \
+    ((size_t)((__pStack)->base + (__pStack)->size))
+
 
 
 // This structure describes a virtual processor closure which is a function entry
