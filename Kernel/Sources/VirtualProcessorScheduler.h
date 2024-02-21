@@ -57,7 +57,8 @@ typedef struct _VirtualProcessorScheduler {
 } VirtualProcessorScheduler;
 
 
-#define QuantumAllowanceForPriority(pri)    ((VP_PRIORITY_HIGHEST - (pri)) >> 3) + 1
+#define QuantumAllowanceForPriority(pri) \
+    ((VP_PRIORITY_HIGHEST - (pri)) >> 3) + 1
 
 
 extern VirtualProcessorScheduler* _Nonnull gVirtualProcessorScheduler;
@@ -99,9 +100,8 @@ extern void VirtualProcessorScheduler_WakeUpSome(VirtualProcessorScheduler* _Non
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue.
-static inline void VirtualProcessorScheduler_WakeUpAll(VirtualProcessorScheduler* _Nonnull pScheduler, List* _Nonnull pWaitQueue, bool allowContextSwitch) {
-    VirtualProcessorScheduler_WakeUpSome(pScheduler, pWaitQueue, INT_MAX, WAKEUP_REASON_FINISHED, allowContextSwitch);
-}
+#define VirtualProcessorScheduler_WakeUpAll(__pScheduler, __pWaitQueue, __allowContextSwitch) \
+    VirtualProcessorScheduler_WakeUpSome(__pScheduler, __pWaitQueue, INT_MAX, WAKEUP_REASON_FINISHED, __allowContextSwitch);
 
 // Adds all VPs on the given list to the ready queue. The VPs are removed from
 // the wait queue. Expects to be called from an interrupt context and thus defers

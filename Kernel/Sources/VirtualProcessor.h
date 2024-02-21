@@ -43,28 +43,14 @@ typedef struct _VirtualProcessorClosure {
     size_t                      userStackSize;
 } VirtualProcessorClosure;
 
-static inline VirtualProcessorClosure VirtualProcessorClosure_Make(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext, size_t kernelStackSize, size_t userStackSize) {
-    VirtualProcessorClosure c;
-    c.func = pFunc;
-    c.context = pContext;
-    c.kernelStackBase = NULL;
-    c.kernelStackSize = kernelStackSize;
-    c.userStackSize = userStackSize;
-    return c;
-}
+#define VirtualProcessorClosure_Make(__pFunc, __pContext, __kernelStackSize, __userStackSize) \
+    ((VirtualProcessorClosure) {__pFunc, __pContext, NULL, __kernelStackSize, __userStackSize})
 
-// Creates a virtua processor closure with the given function and context parameter.
+// Creates a virtual processor closure with the given function and context parameter.
 // The closure will run on a pre-allocated kernel stack. Note that the kernel stack
 // must stay allocated until the virtual processor is terminated.
-static inline VirtualProcessorClosure VirtualProcessorClosure_MakeWithPreallocatedKernelStack(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext, char* _Nonnull pKernelStackBase, size_t kernelStackSize) {
-    VirtualProcessorClosure c;
-    c.func = pFunc;
-    c.context = pContext;
-    c.kernelStackBase = pKernelStackBase;
-    c.kernelStackSize = kernelStackSize;
-    c.userStackSize = 0;
-    return c;
-}
+#define VirtualProcessorClosure_MakeWithPreallocatedKernelStack(__pFunc, __pContext, __pKernelStackBase, __kernelStackSize) \
+    ((VirtualProcessorClosure) {__pFunc, __pContext, __pKernelStackBase, __kernelStackSize, 0})
 
 
 // The current state of a virtual processor

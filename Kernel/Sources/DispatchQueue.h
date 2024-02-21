@@ -57,21 +57,11 @@ typedef struct _DispatchQueueClosure {
     int8_t                      reserved[3];
 } DispatchQueueClosure;
 
-static inline DispatchQueueClosure DispatchQueueClosure_Make(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext) {
-    DispatchQueueClosure c;
-    c.func = pFunc;
-    c.context = pContext;
-    c.isUser = false;
-    return c;
-}
+#define DispatchQueueClosure_Make(__pFunc, __pContext) \
+    ((DispatchQueueClosure) {__pFunc, __pContext, false, {0, 0, 0}})
 
-static inline DispatchQueueClosure DispatchQueueClosure_MakeUser(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext) {
-    DispatchQueueClosure c;
-    c.func = pFunc;
-    c.context = pContext;
-    c.isUser = true;
-    return c;
-}
+#define DispatchQueueClosure_MakeUser(__pFunc, __pContext) \
+    ((DispatchQueueClosure) {__pFunc, __pContext, true, {0, 0, 0}})
 
 
 //
@@ -97,9 +87,8 @@ extern void WorkItem_SetCancelled(WorkItemRef _Nonnull pItem, bool flag);
 // Cancels the given work item. The work item is marked as cancelled but it is
 // the responsibility of the work item closure to check the cancelled state and
 // to act appropriately on it.
-static inline void WorkItem_Cancel(WorkItemRef _Nonnull pItem) {
-    WorkItem_SetCancelled(pItem, true);
-}
+#define WorkItem_Cancel(__pItem) \
+    WorkItem_SetCancelled(__pItem, true)
 
 // Returns true if the given work item is in cancelled state.
 extern bool WorkItem_IsCancelled(WorkItemRef _Nonnull pItem);
@@ -116,22 +105,19 @@ extern errno_t Timer_Create(TimeInterval deadline, TimeInterval interval, Dispat
 extern void Timer_Destroy(TimerRef _Nullable pTimer);
 
 // See WorkItem_SetCancelled() for an explanation.
-static inline void Timer_SetCancelled(TimerRef _Nonnull pTimer, bool flag) {
-    WorkItem_SetCancelled((WorkItemRef)pTimer, flag);
-}
+#define Timer_SetCancelled(__pTimer, __flag) \
+    WorkItem_SetCancelled((WorkItemRef)__pTimer, __flag)
 
 // Cancels the given timer. The timer is marked as cancelled but it is the
 // responsibility of the timer closure to check the cancelled state and to act
 // appropriately on it. If the timer is a repeating timer then cancelling it
 // stops it from being rescheduled.
-static inline void Timer_Cancel(TimerRef _Nonnull pTimer) {
-    WorkItem_SetCancelled((WorkItemRef)pTimer, true);
-}
+#define Timer_Cancel(__pTimer) \
+    WorkItem_SetCancelled((WorkItemRef)__pTimer, true)
 
 // Returns true if the given timer is in cancelled state.
-static inline bool Timer_IsCancelled(TimerRef _Nonnull pTimer) {
-    return WorkItem_IsCancelled((WorkItemRef)pTimer);
-}
+#define Timer_IsCancelled(__pTimer) \
+    WorkItem_IsCancelled((WorkItemRef)__pTimer)
 
 
 //

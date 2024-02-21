@@ -21,15 +21,8 @@ typedef struct _VirtualProcessorParameters {
     int                         priority;
 } VirtualProcessorParameters;
 
-static inline VirtualProcessorParameters VirtualProcessorParameters_Make(Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext, int kernelStackSize, int userStackSize, int priority) {
-    VirtualProcessorParameters p;
-    p.func = pFunc;
-    p.context = pContext;
-    p.kernelStackSize = kernelStackSize;
-    p.userStackSize = userStackSize;
-    p.priority = priority;
-    return p;
-}
+#define VirtualProcessorParameters_Make(__pFunc, __pContext, __kernelStackSize, __userStackSize, __priority) \
+    ((VirtualProcessorParameters) {__pFunc, __pContext, __kernelStackSize, __userStackSize, __priority})
 
 
 struct _VirtualProcessorPool;
