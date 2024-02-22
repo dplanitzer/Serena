@@ -8,6 +8,11 @@
 
 #include "DispatchQueuePriv.h"
 
+CLASS_METHODS(DispatchQueue, Object,
+OVERRIDE_METHOD_IMPL(deinit, DispatchQueue, Object)
+);
+
+
 DispatchQueueRef    gMainDispatchQueue;
 
 
@@ -23,7 +28,7 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
         throw(EINVAL);
     }
     
-    try(kalloc_cleared(sizeof(DispatchQueue) + sizeof(ConcurrencyLane) * (maxConcurrency - 1), (void**) &pQueue));
+    try(Object_CreateWithExtraBytes(DispatchQueue, sizeof(ConcurrencyLane) * (maxConcurrency - 1), &pQueue));
     SList_Init(&pQueue->item_queue);
     SList_Init(&pQueue->timer_queue);
     SList_Init(&pQueue->item_cache_queue);
@@ -34,21 +39,12 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     ConditionVariable_Init(&pQueue->vp_shutdown_signaler);
     pQueue->owning_process = pProc;
     pQueue->virtual_processor_pool = vpPoolRef;
-    pQueue->items_queued_count = 0;
     pQueue->state = kQueueState_Running;
     pQueue->minConcurrency = (int8_t)minConcurrency;
     pQueue->maxConcurrency = (int8_t)maxConcurrency;
-    pQueue->availableConcurrency = 0;
     pQueue->qos = qos;
     pQueue->priority = priority;
-    pQueue->item_cache_count = 0;
-    pQueue->timer_cache_count = 0;
-    pQueue->completion_signaler_count = 0;
 
-    for (int i = 0; i < maxConcurrency; i++) {
-        pQueue->concurrency_lanes[i].vp = NULL;
-    }
-    
     for (int i = 0; i < minConcurrency; i++) {
         try(DispatchQueue_AcquireVirtualProcessor_Locked(pQueue));
     }
@@ -57,7 +53,7 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     return EOK;
 
 catch:
-    DispatchQueue_Destroy(pQueue);
+    Object_Release(pQueue);
     *pOutQueue = NULL;
     return err;
 }
@@ -174,21 +170,17 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull pQueue)
     ConditionVariable_Deinit(&pQueue->vp_shutdown_signaler);
     pQueue->owning_process = NULL;
     pQueue->virtual_processor_pool = NULL;
-
-    kfree(pQueue);
 }
 
 // Destroys the dispatch queue. The queue is first terminated if it isn't already
 // in terminated state. All work items and timers which are still queued up are
 // flushed and will not execute anymore. Blocks the caller until the queue has
 // been drained, terminated and deallocated.
-void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue)
+void DispatchQueue_deinit(DispatchQueueRef _Nonnull pQueue)
 {
-    if (pQueue) {
-        DispatchQueue_Terminate(pQueue);
-        DispatchQueue_WaitForTerminationCompleted(pQueue);
-        _DispatchQueue_Destroy(pQueue);
-    }
+    DispatchQueue_Terminate(pQueue);
+    DispatchQueue_WaitForTerminationCompleted(pQueue);
+    _DispatchQueue_Destroy(pQueue);
 }
 
 // Makes sure that we have enough virtual processors attached to the dispatch queue

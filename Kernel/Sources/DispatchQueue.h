@@ -41,8 +41,11 @@ typedef struct _WorkItem* WorkItemRef;
 struct _Timer;
 typedef struct _Timer* TimerRef;
 
-struct _DispatchQueue;
-typedef struct _DispatchQueue* DispatchQueueRef;
+
+OPAQUE_CLASS(DispatchQueue, Object);
+typedef struct _DispatchQueueMethodTable {
+    ObjectMethodTable   super;
+} DispatchQueueMethodTable;
 
 
 
@@ -171,7 +174,7 @@ extern void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull 
 // in terminated state. All work items and timers which are still queued up are
 // flushed and will not execute anymore. Blocks the caller until the queue has
 // been drained, terminated and deallocated.
-extern void DispatchQueue_Destroy(DispatchQueueRef _Nullable pQueue);
+// Object_Release()
 
 
 // Returns the process that owns the dispatch queue. Returns NULL if the dispatch

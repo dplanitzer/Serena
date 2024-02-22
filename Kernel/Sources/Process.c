@@ -120,7 +120,7 @@ void Process_deinit(ProcessRef _Nonnull pProc)
     pProc->imageBase = NULL;
     pProc->argumentsBase = NULL;
 
-    DispatchQueue_Destroy(pProc->mainDispatchQueue);
+    Object_Release(pProc->mainDispatchQueue);
     pProc->mainDispatchQueue = NULL;
 
     pProc->pid = 0;

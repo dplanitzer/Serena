@@ -74,9 +74,8 @@ typedef struct _Timer {
 
 extern errno_t Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer);
 extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue);
-static inline void Timer_Deinit(TimerRef pTimer) {
-    WorkItem_Deinit((WorkItemRef) pTimer);
-}
+#define Timer_Deinit(__pTimer) \
+    WorkItem_Deinit((WorkItemRef) __pTimer)
 
 
 //
@@ -102,7 +101,7 @@ enum QueueState {
 #define MAX_ITEM_CACHE_COUNT    8
 #define MAX_TIMER_CACHE_COUNT   8
 #define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
-typedef struct _DispatchQueue {
+CLASS_IVARS(DispatchQueue, Object,
     SList                               item_queue;         // Queue of work items that should be executed as soon as possible
     SList                               timer_queue;        // Queue of items that should be executed on or after their deadline
     SList                               item_cache_queue;   // Cache of reusable work items
@@ -124,7 +123,9 @@ typedef struct _DispatchQueue {
     int8_t                              timer_cache_count;
     int8_t                              completion_signaler_count;
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
-} DispatchQueue;
+);
+
+extern void DispatchQueue_deinit(DispatchQueueRef _Nonnull pQueue);
 
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 
