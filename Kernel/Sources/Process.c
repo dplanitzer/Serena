@@ -290,12 +290,13 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
 
     Lock_Lock(&pProc->lock);
 
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_CreateDirectory(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777)));
-
-catch:
+    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r)) == EOK) {
+        err = Filesystem_CreateDirectory(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
+    }
     PathResolverResult_Deinit(&r);
+
     Lock_Unlock(&pProc->lock);
+
     return err;
 }
 
@@ -365,12 +366,13 @@ errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_GetFileInfo(r.filesystem, r.inode, pOutInfo));
-
-catch:
+    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+        err = Filesystem_GetFileInfo(r.filesystem, r.inode, pOutInfo);
+    }
     PathResolverResult_Deinit(&r);
+    
     Lock_Unlock(&pProc->lock);
+    
     return err;
 }
 
@@ -380,19 +382,19 @@ errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, File
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
-    if (Object_InstanceOf(pChannel, File)) {
-        try(Filesystem_GetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pOutInfo));
-    }
-    else if (Object_InstanceOf(pChannel, Directory)) {
-        try(Filesystem_GetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pOutInfo));
-    }
-    else {
-        throw(EBADF);
-    }
+    if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
+        if (Object_InstanceOf(pChannel, File)) {
+            err = Filesystem_GetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pOutInfo);
+        }
+        else if (Object_InstanceOf(pChannel, Directory)) {
+            err = Filesystem_GetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pOutInfo);
+        }
+        else {
+            err = EBADF;
+        }
 
-catch:
-    Object_Release(pChannel);
+        Object_Release(pChannel);
+    }
     return err;
 }
 
@@ -403,12 +405,13 @@ errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_SetFileInfo(r.filesystem, r.inode, pProc->realUser, pInfo));
-
-catch:
+    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+        err = Filesystem_SetFileInfo(r.filesystem, r.inode, pProc->realUser, pInfo);
+    }
     PathResolverResult_Deinit(&r);
+    
     Lock_Unlock(&pProc->lock);
+    
     return err;
 }
 
@@ -418,19 +421,20 @@ errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, Muta
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
-    if (Object_InstanceOf(pChannel, File)) {
-        try(Filesystem_SetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, pInfo));
-    }
-    else if (Object_InstanceOf(pChannel, Directory)) {
-        try(Filesystem_SetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pProc->realUser, pInfo));
-    }
-    else {
-        throw(EBADF);
+    if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
+        if (Object_InstanceOf(pChannel, File)) {
+            err = Filesystem_SetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, pInfo);
+        }
+        else if (Object_InstanceOf(pChannel, Directory)) {
+            err = Filesystem_SetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pProc->realUser, pInfo);
+        }
+        else {
+            err = EBADF;
+        }
+
+        Object_Release(pChannel);
     }
 
-catch:
-    Object_Release(pChannel);
     return err;
 }
 
@@ -442,12 +446,13 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPa
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_Truncate(r.filesystem, r.inode, pProc->realUser, length));
-
-catch:
+    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+        err = Filesystem_Truncate(r.filesystem, r.inode, pProc->realUser, length);
+    }
     PathResolverResult_Deinit(&r);
+
     Lock_Unlock(&pProc->lock);
+
     return err;
 }
 
@@ -457,19 +462,19 @@ errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, Fil
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel));
-    if (Object_InstanceOf(pChannel, File)) {
-        try(Filesystem_Truncate(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, length));
-    }
-    else if (Object_InstanceOf(pChannel, Directory)) {
-        throw(EISDIR);
-    }
-    else {
-        throw(ENOTDIR);
-    }
+    if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
+        if (Object_InstanceOf(pChannel, File)) {
+            err = Filesystem_Truncate(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, length);
+        }
+        else if (Object_InstanceOf(pChannel, Directory)) {
+            err = EISDIR;
+        }
+        else {
+            err = ENOTDIR;
+        }
 
-catch:
-    Object_Release(pChannel);
+        Object_Release(pChannel);
+    }
     return err;
 }
 
@@ -496,13 +501,13 @@ errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull 
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    if (mode != 0) {
-        try(Filesystem_CheckAccess(r.filesystem, r.inode, pProc->realUser, mode));
+    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+        if (mode != 0) {
+            err = Filesystem_CheckAccess(r.filesystem, r.inode, pProc->realUser, mode);
+        }
     }
-
-catch:
     PathResolverResult_Deinit(&r);
+    
     Lock_Unlock(&pProc->lock);
     return err;
 }

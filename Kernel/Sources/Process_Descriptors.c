@@ -20,11 +20,11 @@ errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull pProc, IOChannelRef
     decl_try_err();
 
     // Find the lowest descriptor id that is available
-    int fd = ObjectArray_GetCount(&pProc->ioChannels);
+    ssize_t ioc = ObjectArray_GetCount(&pProc->ioChannels);
     bool hasFoundSlot = false;
-    for (int i = 0; i < fd; i++) {
+    for (ssize_t i = 0; i < ioc; i++) {
         if (ObjectArray_GetAt(&pProc->ioChannels, i) == NULL) {
-            fd = i;
+            ioc = i;
             hasFoundSlot = true;
             break;
         }
@@ -33,16 +33,12 @@ errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull pProc, IOChannelRef
 
     // Expand the descriptor table if we didn't find an empty slot
     if (hasFoundSlot) {
-        ObjectArray_ReplaceAt(&pProc->ioChannels, (ObjectRef) pChannel, fd);
+        ObjectArray_ReplaceAt(&pProc->ioChannels, (ObjectRef) pChannel, ioc);
     } else {
-        try(ObjectArray_Add(&pProc->ioChannels, (ObjectRef) pChannel));
+        err = ObjectArray_Add(&pProc->ioChannels, (ObjectRef) pChannel);
     }
 
-    *pOutDescriptor = fd;
-    return EOK;
-
-catch:
-    *pOutDescriptor = -1;
+    *pOutDescriptor = (err == EOK) ? (int)ioc : -1;
     return err;
 }
 
@@ -57,6 +53,7 @@ errno_t Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnu
     Lock_Lock(&pProc->lock);
     const errno_t err = Process_RegisterIOChannel_Locked(pProc, pChannel, pOutDescriptor);
     Lock_Unlock(&pProc->lock);
+
     return err;
 }
 
@@ -66,33 +63,29 @@ errno_t Process_RegisterIOChannel(ProcessRef _Nonnull pProc, IOChannelRef _Nonnu
 // it and then release() to release the strong reference to the channel. Closing
 // the channel will mark itself as done and the channel will be deallocated once
 // the last strong reference to it has been released.
-errno_t Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, int ioc, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
+    IOChannelRef pChannel = NULL;
 
     Lock_Lock(&pProc->lock);
 
-    if (fd < 0 || fd >= ObjectArray_GetCount(&pProc->ioChannels) || ObjectArray_GetAt(&pProc->ioChannels, fd) == NULL) {
-        throw(EBADF);
+    if (ioc >= 0 && ioc < ObjectArray_GetCount(&pProc->ioChannels)) {
+        pChannel = (IOChannelRef) ObjectArray_ExtractOwnershipAt(&pProc->ioChannels, ioc);
     }
-
-    *pOutChannel = (IOChannelRef) ObjectArray_ExtractOwnershipAt(&pProc->ioChannels, fd);
+    
     Lock_Unlock(&pProc->lock);
 
-    return EOK;
-
-catch:
-    Lock_Unlock(&pProc->lock);
-    *pOutChannel = NULL;
-    return err;
+    *pOutChannel = pChannel;
+    return (pChannel) ? EOK : EBADF;
 }
 
 // Closes all registered I/O channels. Ignores any errors that may be returned
 // from the close() call of a channel.
 void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull pProc)
 {
-    for (int i = 0; i < ObjectArray_GetCount(&pProc->ioChannels); i++) {
-        IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
+    for (ssize_t ioc = 0; ioc < ObjectArray_GetCount(&pProc->ioChannels); ioc++) {
+        IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, ioc);
 
         if (pChannel) {
             IOChannel_Close(pChannel);
@@ -103,28 +96,22 @@ void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull pProc)
 // Looks up the I/O channel identified by the given descriptor and returns a
 // strong reference to it if found. The caller should call release() on the
 // channel once it is no longer needed.
-errno_t Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, int ioc, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
+    IOChannelRef pChannel = NULL;
 
     Lock_Lock(&pProc->lock);
-    
-    if (fd < 0 || fd >= ObjectArray_GetCount(&pProc->ioChannels)) {
-        throw(EBADF);
+
+    if (ioc >= 0 && ioc < ObjectArray_GetCount(&pProc->ioChannels)
+        && (pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, ioc)) != NULL) {
+        Object_Retain(pChannel);
+    } else {
+        err = EBADF;
     }
 
-    IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, fd);
-    if (pChannel == NULL) {
-        throw(EBADF);
-    }
-
-    *pOutChannel = Object_RetainAs(pChannel, IOChannel);
     Lock_Unlock(&pProc->lock);
 
-    return EOK;
-
-catch:
-    Lock_Unlock(&pProc->lock);
-    *pOutChannel = NULL;
+    *pOutChannel = pChannel;
     return err;
 }
