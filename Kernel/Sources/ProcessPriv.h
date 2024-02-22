@@ -70,6 +70,8 @@ CLASS_IVARS(Process, Object,
 extern errno_t Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull pProc);
 
+extern errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull pProc, IOChannelRef _Nonnull pChannel, int* _Nonnull pOutDescriptor);
+
 // Closes all registered I/O channels. Ignores any errors that may be returned
 // from the close() call of a channel.
 extern void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull pProc);
