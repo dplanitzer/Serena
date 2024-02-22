@@ -1,6 +1,6 @@
 //
-//  Syscalls.c
-//  Apollo
+//  SysCalls.c
+//  kernel
 //
 //  Created by Dietmar Planitzer on 7/19/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
@@ -11,16 +11,55 @@
 #include "IOResource.h"
 #include "VirtualProcessor.h"
 
+typedef intptr_t (*SystemCall)(void* _Nonnull);
 
-struct SYS_mkfile_args {
-    int                     scno;
-    const char* _Nullable   path;
-    unsigned int            options;
-    uint32_t                permissions;
-    int* _Nullable          outFd;
-};
+#define REF_SYSCALL(__name) \
+    (SystemCall)_SYSCALL_##__name
 
-intptr_t _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
+#define SYSCALL_0(__name) \
+    struct args##__name { \
+        int scno; \
+    }; \
+    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+
+#define SYSCALL_1(__name, __p1) \
+    struct args##__name { \
+        int scno; \
+        __p1; \
+    }; \
+    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+
+#define SYSCALL_2(__name, __p1, __p2) \
+    struct args##__name { \
+        int scno; \
+        __p1; \
+        __p2; \
+    }; \
+    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+
+#define SYSCALL_3(__name, __p1, __p2, __p3) \
+    struct args##__name { \
+        int scno; \
+        __p1; \
+        __p2; \
+        __p3; \
+    }; \
+    intptr_t _SYSCALL_##__name(const struct args##__name* _Nonnull pArgs)
+
+#define SYSCALL_4(__name, __p1, __p2, __p3, __p4) \
+    struct args_##__name { \
+        int scno; \
+        __p1; \
+        __p2; \
+        __p3; \
+        __p4; \
+    }; \
+    intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+SYSCALL_4(mkfile, const char* _Nullable path, unsigned options, uint32_t permissions, int* _Nullable outFd)
 {
     decl_try_err();
 
@@ -31,14 +70,7 @@ intptr_t _SYSCALL_mkfile(const struct SYS_mkfile_args* _Nonnull pArgs)
     return Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->options, (FilePermissions)pArgs->permissions, pArgs->outFd);
 }
 
-struct SYS_open_args {
-    int                     scno;
-    const char* _Nullable   path;
-    unsigned int            options;
-    int* _Nullable          outFd;
-};
-
-intptr_t _SYSCALL_open(const struct SYS_open_args* _Nonnull pArgs)
+SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable outFd)
 {
     decl_try_err();
     IOResourceRef pConsole = NULL;
@@ -66,14 +98,7 @@ catch:
     return err;
 }
 
-
-struct SYS_opendir_args {
-    int                     scno;
-    const char* _Nullable   path;
-    int* _Nullable          outFd;
-};
-
-intptr_t _SYSCALL_opendir(const struct SYS_opendir_args* _Nonnull pArgs)
+SYSCALL_2(opendir, const char* _Nullable path, int* _Nullable outFd)
 {
     if (pArgs->path == NULL || pArgs->outFd == NULL) {
         return EINVAL;
@@ -82,14 +107,7 @@ intptr_t _SYSCALL_opendir(const struct SYS_opendir_args* _Nonnull pArgs)
     return Process_OpenDirectory(Process_GetCurrent(), pArgs->path, pArgs->outFd);
 }
 
-
-struct SYS_mkpipe_args {
-    int             scno;
-    int* _Nullable  pOutReadChannel;
-    int* _Nullable  pOutWriteChannel;
-};
-
-intptr_t _SYSCALL_mkpipe(const struct SYS_mkpipe_args* _Nonnull pArgs)
+SYSCALL_2(mkpipe, int* _Nullable  pOutReadChannel, int* _Nullable  pOutWriteChannel)
 {
     decl_try_err();
 
@@ -100,18 +118,12 @@ intptr_t _SYSCALL_mkpipe(const struct SYS_mkpipe_args* _Nonnull pArgs)
     return Process_CreatePipe(Process_GetCurrent(), pArgs->pOutReadChannel, pArgs->pOutWriteChannel);
 }
 
-
-struct SYS_close_args {
-    int scno;
-    int fd;
-};
-
-intptr_t _SYSCALL_close(const struct SYS_close_args* _Nonnull pArgs)
+SYSCALL_1(close, int ioc)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_UnregisterIOChannel(Process_GetCurrent(), pArgs->fd, &pChannel));
+    try(Process_UnregisterIOChannel(Process_GetCurrent(), pArgs->ioc, &pChannel));
     // The error that close() returns is purely advisory and thus we'll proceed
     // with releasing the resource in any case.
     err = IOChannel_Close(pChannel);
@@ -121,21 +133,12 @@ catch:
     return err;
 }
 
-
-struct SYS_read_args {
-    int                 scno;
-    int                 fd;
-    void* _Nonnull      buffer;
-    size_t              nBytesToRead;
-    ssize_t* _Nonnull   nBytesRead;
-};
-
-intptr_t _SYSCALL_read(const struct SYS_read_args* _Nonnull pArgs)
+SYSCALL_4(read, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
+    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel));
     try(IOChannel_Read(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToRead), pArgs->nBytesRead));
     Object_Release(pChannel);
     return EOK;
@@ -145,21 +148,12 @@ catch:
     return err;
 }
 
-
-struct SYS_write_args {
-    int                     scno;
-    int                     fd;
-    const void* _Nonnull    buffer;
-    size_t                  nBytesToWrite;
-    ssize_t* _Nonnull       nBytesWritten;
-};
-
-intptr_t _SYSCALL_write(const struct SYS_write_args* _Nonnull pArgs)
+SYSCALL_4(write, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
+    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel));
     try(IOChannel_Write(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToWrite), pArgs->nBytesWritten));
     Object_Release(pChannel);
     return EOK;
@@ -169,22 +163,13 @@ catch:
     return err;
 }
 
-
-struct SYS_seek_args {
-    int                     scno;
-    int                     fd;
-    FileOffset              offset;
-    FileOffset* _Nullable   outOldPosition;
-    int                     whence;
-};
-
-intptr_t _SYSCALL_seek(const struct SYS_seek_args* _Nonnull pArgs)
+SYSCALL_4(seek, int ioc, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->fd, &pChannel));
-    try(IOChannel_Seek(pChannel, pArgs->offset, pArgs->outOldPosition, pArgs->whence));
+    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel));
+    try(IOChannel_Seek(pChannel, pArgs->offset, pArgs->pOutOldPosition, pArgs->whence));
     Object_Release(pChannel);
     return EOK;
 
@@ -193,14 +178,7 @@ catch:
     return err;
 }
 
-
-struct SYS_mkdir_args {
-    int                     scno;
-    const char* _Nullable   path;
-    uint32_t                mode;   // XXX User space passes uint16_t, we need uint32_t because the C compiler for m68k does this kind of promotion
-};
-
-intptr_t _SYSCALL_mkdir(const struct SYS_mkdir_args* _Nonnull pArgs)
+SYSCALL_2(mkdir, const char* _Nullable path, uint32_t mode)
 {
     decl_try_err();
 
@@ -211,14 +189,7 @@ intptr_t _SYSCALL_mkdir(const struct SYS_mkdir_args* _Nonnull pArgs)
     return Process_CreateDirectory(Process_GetCurrent(), pArgs->path, (FilePermissions) pArgs->mode);
 }
 
-
-struct SYS_getcwd_args {
-    int             scno;
-    char* _Nullable buffer;
-    ssize_t         bufferSize;
-};
-
-intptr_t _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
+SYSCALL_2(getcwd, char* _Nullable buffer, ssize_t bufferSize)
 {
     if (pArgs->buffer == NULL || pArgs->bufferSize < 0) {
         return EINVAL;
@@ -227,13 +198,7 @@ intptr_t _SYSCALL_getcwd(const struct SYS_getcwd_args* _Nonnull pArgs)
     return Process_GetWorkingDirectory(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
 }
 
-
-struct SYS_setcwd_args {
-    int                     scno;
-    const char* _Nullable   path;
-};
-
-intptr_t _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
+SYSCALL_1(setcwd, const char* _Nullable path)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -242,78 +207,43 @@ intptr_t _SYSCALL_setcwd(const struct SYS_setcwd_args* _Nonnull pArgs)
     return Process_SetWorkingDirectory(Process_GetCurrent(), pArgs->path);
 }
 
-
-struct SYS_getfileinfo_args {
-    int                     scno;
-    const char* _Nullable   path;
-    FileInfo* _Nullable     outInfo;
-};
-
-intptr_t _SYSCALL_getfileinfo(const struct SYS_getfileinfo_args* _Nonnull pArgs)
+SYSCALL_2(getfileinfo, const char* _Nullable path, FileInfo* _Nullable pOutInfo)
 {
-    if (pArgs->path == NULL || pArgs->outInfo == NULL) {
+    if (pArgs->path == NULL || pArgs->pOutInfo == NULL) {
         return EINVAL;
     }
 
-    return Process_GetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->outInfo);
+    return Process_GetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pOutInfo);
 }
 
-
-struct SYS_setfileinfo_args {
-    int                         scno;
-    const char* _Nullable       path;
-    MutableFileInfo* _Nullable  info;
-};
-
-intptr_t _SYSCALL_setfileinfo(const struct SYS_setfileinfo_args* _Nonnull pArgs)
+SYSCALL_2(setfileinfo, const char* _Nullable path, MutableFileInfo* _Nullable pInfo)
 {
-    if (pArgs->path == NULL || pArgs->info == NULL) {
+    if (pArgs->path == NULL || pArgs->pInfo == NULL) {
         return EINVAL;
     }
 
-    return Process_SetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->info);
+    return Process_SetFileInfo(Process_GetCurrent(), pArgs->path, pArgs->pInfo);
 }
 
-
-struct SYS_fgetfileinfo_args {
-    int                 scno;
-    int                 fd;
-    FileInfo* _Nullable outInfo;
-};
-
-intptr_t _SYSCALL_fgetfileinfo(const struct SYS_fgetfileinfo_args* _Nonnull pArgs)
+SYSCALL_2(fgetfileinfo, int ioc, FileInfo* _Nullable pOutInfo)
 {
-    if (pArgs->outInfo == NULL) {
+    if (pArgs->pOutInfo == NULL) {
         return EINVAL;
     }
 
-    return Process_GetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->fd, pArgs->outInfo);
+    return Process_GetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->ioc, pArgs->pOutInfo);
 }
 
-
-struct SYS_fsetfileinfo_args {
-    int                         scno;
-    int                         fd;
-    MutableFileInfo* _Nullable  info;
-};
-
-intptr_t _SYSCALL_fsetfileinfo(const struct SYS_fsetfileinfo_args* _Nonnull pArgs)
+SYSCALL_2(fsetfileinfo, int ioc, MutableFileInfo* _Nullable pInfo)
 {
-    if (pArgs->info == NULL) {
+    if (pArgs->pInfo == NULL) {
         return EINVAL;
     }
 
-    return Process_SetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->fd, pArgs->info);
+    return Process_SetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->ioc, pArgs->pInfo);
 }
 
-
-struct SYS_truncate_args {
-    int                     scno;
-    const char* _Nullable   path;
-    FileOffset              length;
-};
-
-intptr_t _SYSCALL_truncate(const struct SYS_truncate_args* _Nonnull pArgs)
+SYSCALL_2(truncate, const char* _Nullable path, FileOffset length)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -322,39 +252,17 @@ intptr_t _SYSCALL_truncate(const struct SYS_truncate_args* _Nonnull pArgs)
     return Process_TruncateFile(Process_GetCurrent(), pArgs->path, pArgs->length);
 }
 
-
-struct SYS_ftruncate_args {
-    int         scno;
-    int         fd;
-    FileOffset  length;
-};
-
-intptr_t _SYSCALL_ftruncate(const struct SYS_ftruncate_args* _Nonnull pArgs)
+SYSCALL_2(ftruncate, int ioc, FileOffset length)
 {
-    return Process_TruncateFileFromIOChannel(Process_GetCurrent(), pArgs->fd, pArgs->length);
+    return Process_TruncateFileFromIOChannel(Process_GetCurrent(), pArgs->ioc, pArgs->length);
 }
 
-
-struct SYS_ioctl_args {
-    int                 scno;
-    int                 fd;
-    int                 cmd;
-    va_list _Nullable   ap;
-};
-
-intptr_t _SYSCALL_ioctl(const struct SYS_ioctl_args* _Nonnull pArgs)
+SYSCALL_3(ioctl, int ioc, int cmd, va_list _Nullable ap)
 {
-    return Process_vIOControl(Process_GetCurrent(), pArgs->fd, pArgs->cmd, pArgs->ap);
+    return Process_vIOControl(Process_GetCurrent(), pArgs->ioc, pArgs->cmd, pArgs->ap);
 }
 
-
-struct SYS_access_args {
-    int                     scno;
-    const char* _Nullable   path;
-    uint32_t                mode;
-};
-
-intptr_t _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
+SYSCALL_2(access, const char* _Nullable path, uint32_t mode)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -363,13 +271,7 @@ intptr_t _SYSCALL_access(const struct SYS_access_args* _Nonnull pArgs)
     return Process_CheckFileAccess(Process_GetCurrent(), pArgs->path, pArgs->mode);
 }
 
-
-struct SYS_unlink_args {
-    int                     scno;
-    const char* _Nullable   path;
-};
-
-intptr_t _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
+SYSCALL_1(unlink, const char* _Nullable path)
 {
     if (pArgs->path == NULL) {
         return EINVAL;
@@ -378,14 +280,7 @@ intptr_t _SYSCALL_unlink(const struct SYS_unlink_args* _Nonnull pArgs)
     return Process_Unlink(Process_GetCurrent(), pArgs->path);
 }
 
-
-struct SYS_rename_args {
-    int                     scno;
-    const char* _Nullable   oldPath;
-    const char* _Nullable   newPath;
-};
-
-intptr_t _SYSCALL_rename(const struct SYS_rename_args* _Nonnull pArgs)
+SYSCALL_2(rename, const char* _Nullable oldPath, const char* _Nullable newPath)
 {
     if (pArgs->oldPath == NULL || pArgs->newPath == NULL) {
         return EINVAL;
@@ -395,30 +290,18 @@ intptr_t _SYSCALL_rename(const struct SYS_rename_args* _Nonnull pArgs)
 }
 
 
-intptr_t _SYSCALL_getumask(void)
+SYSCALL_0(getumask)
 {
-    return (int) Process_GetFileCreationMask(Process_GetCurrent());
+    return Process_GetFileCreationMask(Process_GetCurrent());
 }
 
-
-struct SYS_setumask_args {
-    int         scno;
-    uint16_t    mask;
-};
-
-intptr_t _SYSCALL_setumask(const struct SYS_setumask_args* _Nonnull pArgs)
+SYSCALL_1(setumask, FilePermissions mask)
 {
     Process_SetFileCreationMask(Process_GetCurrent(), pArgs->mask);
     return EOK;
 }
 
-
-struct SYS_delay_args {
-    int             scno;
-    TimeInterval    delay;
-};
-
-intptr_t _SYSCALL_delay(const struct SYS_delay_args* _Nonnull pArgs)
+SYSCALL_1(delay, TimeInterval delay)
 {
     if (pArgs->delay.tv_nsec < 0 || pArgs->delay.tv_nsec >= ONE_SECOND_IN_NANOS) {
         return EINVAL;
@@ -427,61 +310,35 @@ intptr_t _SYSCALL_delay(const struct SYS_delay_args* _Nonnull pArgs)
     return VirtualProcessor_Sleep(pArgs->delay);
 }
 
-
-struct SYS_dispatch_async_args {
-    int                             scno;
-    const Closure1Arg_Func _Nonnull userClosure;
-};
-
-intptr_t _SYSCALL_dispatch_async(const struct SYS_dispatch_async_args* pArgs)
+SYSCALL_1(dispatch_async, const Closure1Arg_Func _Nonnull pUserClosure)
 {
-    decl_try_err();
+    if (pArgs->pUserClosure == NULL) {
+        return EINVAL;
+    }
 
-    throw_ifnull(pArgs->userClosure, EINVAL);
-    try(Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->userClosure));
-    return EOK;
-
-catch:
-    return err;
+    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->pUserClosure);
 }
-
 
 // Allocates more address space to the calling process. The address space is
 // expanded by 'count' bytes. A pointer to the first byte in the newly allocated
 // address space portion is return in 'pOutMem'. 'pOutMem' is set to NULL and a
 // suitable error is returned if the allocation failed. 'count' must be greater
 // than 0 and a multiple of the CPU page size.
-struct SYS_alloc_address_space_args {
-    int                         scno;
-    size_t                      nbytes;
-    void * _Nullable * _Nonnull pOutMem;
-};
-
-intptr_t _SYSCALL_alloc_address_space(struct SYS_alloc_address_space_args* _Nonnull pArgs)
+SYSCALL_2(alloc_address_space, size_t nbytes, void * _Nullable * _Nonnull pOutMem)
 {
-    decl_try_err();
-
     if (pArgs->nbytes > SSIZE_MAX) {
-        throw(E2BIG);
+        return E2BIG;
     }
-    throw_ifnull(pArgs->pOutMem, EINVAL);
+    if (pArgs->pOutMem == NULL) {
+        return EINVAL;
+    }
 
-    try(Process_AllocateAddressSpace(Process_GetCurrent(),
+    return Process_AllocateAddressSpace(Process_GetCurrent(),
         __SSizeByClampingSize(pArgs->nbytes),
-        pArgs->pOutMem));
-    return EOK;
-
-catch:
-    return err;
+        pArgs->pOutMem);
 }
 
-
-struct SYS_exit_args {
-    int scno;
-    int status;
-};
-
-intptr_t _SYSCALL_exit(const struct SYS_exit_args* _Nonnull pArgs)
+SYSCALL_1(exit, int status)
 {
     // Trigger the termination of the process. Note that the actual termination
     // is done asynchronously. That's why we sleep below since we don't want to
@@ -497,62 +354,78 @@ intptr_t _SYSCALL_exit(const struct SYS_exit_args* _Nonnull pArgs)
     return EOK;
 }
 
-
 // Spawns a new process which is made the child of the process that is invoking
 // this system call. The 'argv' pointer points to a table that holds pointers to
 // nul-terminated strings. The last entry in the table has to be NULL. All these
 // strings are the command line arguments that should be passed to the new
 // process.
-struct SYS_spawn_process_args {
-    int                             scno;
-    const SpawnArguments* _Nullable spawnArgs;
-    ProcessId* _Nullable            pOutPid;
-};
-
-intptr_t _SYSCALL_spawn_process(const struct SYS_spawn_process_args* pArgs)
+SYSCALL_2(spawn_process, const SpawnArguments* _Nullable spawnArgs, ProcessId* _Nullable pOutPid)
 {
-    decl_try_err();
+    if (pArgs->spawnArgs == NULL) {
+        return EINVAL;
+    }
 
-    throw_ifnull(pArgs->spawnArgs, EINVAL);
-    try(Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, pArgs->pOutPid));
-    return EOK;
-
-catch:
-    return err;
+    return Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, pArgs->pOutPid);
 }
 
-
-intptr_t _SYSCALL_getpid(void)
+SYSCALL_0(getpid)
 {
     return Process_GetId(Process_GetCurrent());
 }
 
-
-intptr_t _SYSCALL_getppid(void)
+SYSCALL_0(getppid)
 {
     return Process_GetParentId(Process_GetCurrent());
 }
 
-
-intptr_t _SYSCALL_getuid(void)
+SYSCALL_0(getuid)
 {
     return Process_GetRealUserId(Process_GetCurrent());
 }
 
-
-intptr_t _SYSCALL_getpargs(void)
+SYSCALL_0(getpargs)
 {
-    return (int) Process_GetArgumentsBaseAddress(Process_GetCurrent());
+    return (intptr_t) Process_GetArgumentsBaseAddress(Process_GetCurrent());
+}
+
+SYSCALL_2(waitpid, ProcessId pid, ProcessTerminationStatus* _Nullable pOutStatus)
+{
+    return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
 }
 
 
-struct SYS_waitpid_args {
-    int                                 scno;
-    ProcessId                           pid;
-    ProcessTerminationStatus* _Nullable status;
+SystemCall gSystemCallTable[] = {
+    REF_SYSCALL(read),
+    REF_SYSCALL(write),
+    REF_SYSCALL(delay),
+    REF_SYSCALL(dispatch_async),
+    REF_SYSCALL(alloc_address_space),
+    REF_SYSCALL(exit),
+    REF_SYSCALL(spawn_process),
+    REF_SYSCALL(getpid),
+    REF_SYSCALL(getppid),
+    REF_SYSCALL(getpargs),
+    REF_SYSCALL(open),
+    REF_SYSCALL(close),
+    REF_SYSCALL(waitpid),
+    REF_SYSCALL(seek),
+    REF_SYSCALL(getcwd),
+    REF_SYSCALL(setcwd),
+    REF_SYSCALL(getuid),
+    REF_SYSCALL(getumask),
+    REF_SYSCALL(setumask),
+    REF_SYSCALL(mkdir),
+    REF_SYSCALL(getfileinfo),
+    REF_SYSCALL(opendir),
+    REF_SYSCALL(setfileinfo),
+    REF_SYSCALL(access),
+    REF_SYSCALL(fgetfileinfo),
+    REF_SYSCALL(fsetfileinfo),
+    REF_SYSCALL(unlink),
+    REF_SYSCALL(rename),
+    REF_SYSCALL(ioctl),
+    REF_SYSCALL(truncate),
+    REF_SYSCALL(ftruncate),
+    REF_SYSCALL(mkfile),
+    REF_SYSCALL(mkpipe),
 };
-
-intptr_t _SYSCALL_waitpid(struct SYS_waitpid_args* pArgs)
-{
-    return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->status);
-}

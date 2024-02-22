@@ -1,6 +1,6 @@
 ;
-;  syscalls_asm.s
-;  Apollo
+;  syscalls_m68k.s
+;  kernel
 ;
 ;  Created by Dietmar Planitzer on 4/4/21.
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
@@ -11,78 +11,10 @@
     include <System/asm/errno.i>
     include <System/asm/syscall.i>
 
-    xref __SYSCALL_read
-    xref __SYSCALL_write
-    xref __SYSCALL_delay
-    xref __SYSCALL_dispatch_async
-    xref __SYSCALL_alloc_address_space
-    xref __SYSCALL_exit
-    xref __SYSCALL_spawn_process
-    xref __SYSCALL_getpid
-    xref __SYSCALL_getppid
-    xref __SYSCALL_getpargs
-    xref __SYSCALL_open
-    xref __SYSCALL_close
-    xref __SYSCALL_waitpid
-    xref __SYSCALL_seek
-    xref __SYSCALL_getcwd
-    xref __SYSCALL_setcwd
-    xref __SYSCALL_getuid
-    xref __SYSCALL_getumask
-    xref __SYSCALL_setumask
-    xref __SYSCALL_mkdir
-    xref __SYSCALL_getfileinfo
-    xref __SYSCALL_opendir
-    xref __SYSCALL_setfileinfo
-    xref __SYSCALL_access
-    xref __SYSCALL_fgetfileinfo
-    xref __SYSCALL_fsetfileinfo
-    xref __SYSCALL_unlink
-    xref __SYSCALL_rename
-    xref __SYSCALL_ioctl
-    xref __SYSCALL_truncate
-    xref __SYSCALL_ftruncate
-    xref __SYSCALL_mkfile
-    xref __SYSCALL_mkpipe
+    xref _gSystemCallTable
     xref _gVirtualProcessorSchedulerStorage
 
     xdef _SystemCallHandler
-
-
-syscall_table:
-    dc.l __SYSCALL_read
-    dc.l __SYSCALL_write
-    dc.l __SYSCALL_delay
-    dc.l __SYSCALL_dispatch_async
-    dc.l __SYSCALL_alloc_address_space
-    dc.l __SYSCALL_exit
-    dc.l __SYSCALL_spawn_process
-    dc.l __SYSCALL_getpid
-    dc.l __SYSCALL_getppid
-    dc.l __SYSCALL_getpargs
-    dc.l __SYSCALL_open
-    dc.l __SYSCALL_close
-    dc.l __SYSCALL_waitpid
-    dc.l __SYSCALL_seek
-    dc.l __SYSCALL_getcwd
-    dc.l __SYSCALL_setcwd
-    dc.l __SYSCALL_getuid
-    dc.l __SYSCALL_getumask
-    dc.l __SYSCALL_setumask
-    dc.l __SYSCALL_mkdir
-    dc.l __SYSCALL_getfileinfo
-    dc.l __SYSCALL_opendir
-    dc.l __SYSCALL_setfileinfo
-    dc.l __SYSCALL_access
-    dc.l __SYSCALL_fgetfileinfo
-    dc.l __SYSCALL_fsetfileinfo
-    dc.l __SYSCALL_unlink
-    dc.l __SYSCALL_rename
-    dc.l __SYSCALL_ioctl
-    dc.l __SYSCALL_truncate
-    dc.l __SYSCALL_ftruncate
-    dc.l __SYSCALL_mkfile
-    dc.l __SYSCALL_mkpipe
 
 
 ;-------------------------------------------------------------------------------
@@ -152,7 +84,7 @@ _SystemCallHandler:
         bhs.s   .Linvalid_syscall
 
         ; Get the system call entry structure
-        lea     syscall_table(pc), a1
+        lea     _gSystemCallTable, a1
         move.l  (a1, d0.l*4), a1
 
         ; Invoke the system call handler. Returns a result in d0

@@ -160,7 +160,6 @@ errno_t Pipe_read(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _
     return err;
 }
 
-//ssize_t Pipe_Write(PipeRef _Nonnull pPipe, const void* _Nonnull pBuffer, ssize_t nBytes, bool allowBlocking, TimeInterval deadline)
 errno_t Pipe_write(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
