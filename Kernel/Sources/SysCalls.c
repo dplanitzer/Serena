@@ -59,24 +59,22 @@ typedef intptr_t (*SystemCall)(void* _Nonnull);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-SYSCALL_4(mkfile, const char* _Nullable path, unsigned options, uint32_t permissions, int* _Nullable outFd)
+SYSCALL_4(mkfile, const char* _Nullable path, unsigned options, uint32_t permissions, int* _Nullable pOutIoc)
 {
-    decl_try_err();
-
-    if (pArgs->path == NULL || pArgs->outFd == NULL) {
+    if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
         return EINVAL;
     }
 
-    return Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->options, (FilePermissions)pArgs->permissions, pArgs->outFd);
+    return Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->options, (FilePermissions)pArgs->permissions, pArgs->pOutIoc);
 }
 
-SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable outFd)
+SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable pOutIoc)
 {
     decl_try_err();
     IOResourceRef pConsole = NULL;
     IOChannelRef pChannel = NULL;
 
-    if (pArgs->path == NULL || pArgs->outFd == NULL) {
+    if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
         throw(EINVAL);
     }
 
@@ -84,11 +82,11 @@ SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable
         User user = {kRootUserId, kRootGroupId}; //XXX
         try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
         try(IOResource_Open(pConsole, NULL/*XXX*/, pArgs->options, user, &pChannel));
-        try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, pArgs->outFd));
+        try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, pArgs->pOutIoc));
         Object_Release(pChannel);
     }
     else {
-        try(Process_Open(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->outFd));
+        try(Process_Open(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->pOutIoc));
     }
 
     return EOK;
@@ -98,19 +96,17 @@ catch:
     return err;
 }
 
-SYSCALL_2(opendir, const char* _Nullable path, int* _Nullable outFd)
+SYSCALL_2(opendir, const char* _Nullable path, int* _Nullable pOutIoc)
 {
-    if (pArgs->path == NULL || pArgs->outFd == NULL) {
+    if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
         return EINVAL;
     }
 
-    return Process_OpenDirectory(Process_GetCurrent(), pArgs->path, pArgs->outFd);
+    return Process_OpenDirectory(Process_GetCurrent(), pArgs->path, pArgs->pOutIoc);
 }
 
 SYSCALL_2(mkpipe, int* _Nullable  pOutReadChannel, int* _Nullable  pOutWriteChannel)
 {
-    decl_try_err();
-
     if (pArgs->pOutReadChannel == NULL || pArgs->pOutWriteChannel == NULL) {
         return EINVAL;
     }
@@ -180,8 +176,6 @@ catch:
 
 SYSCALL_2(mkdir, const char* _Nullable path, uint32_t mode)
 {
-    decl_try_err();
-
     if (pArgs->path == NULL) {
         return ENOTDIR;
     }
@@ -273,11 +267,7 @@ SYSCALL_2(access, const char* _Nullable path, uint32_t mode)
 
 SYSCALL_1(unlink, const char* _Nullable path)
 {
-    if (pArgs->path == NULL) {
-        return EINVAL;
-    }
-
-    return Process_Unlink(Process_GetCurrent(), pArgs->path);
+    return (pArgs->path) ? Process_Unlink(Process_GetCurrent(), pArgs->path) : EINVAL;
 }
 
 SYSCALL_2(rename, const char* _Nullable oldPath, const char* _Nullable newPath)
@@ -295,7 +285,7 @@ SYSCALL_0(getumask)
     return Process_GetFileCreationMask(Process_GetCurrent());
 }
 
-SYSCALL_1(setumask, FilePermissions mask)
+SYSCALL_1(setumask, uint32_t mask)
 {
     Process_SetFileCreationMask(Process_GetCurrent(), pArgs->mask);
     return EOK;
@@ -312,11 +302,7 @@ SYSCALL_1(delay, TimeInterval delay)
 
 SYSCALL_1(dispatch_async, const Closure1Arg_Func _Nonnull pUserClosure)
 {
-    if (pArgs->pUserClosure == NULL) {
-        return EINVAL;
-    }
-
-    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->pUserClosure);
+    return (pArgs->pUserClosure) ? Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->pUserClosure) : EINVAL;
 }
 
 // Allocates more address space to the calling process. The address space is
@@ -361,11 +347,7 @@ SYSCALL_1(exit, int status)
 // process.
 SYSCALL_2(spawn_process, const SpawnArguments* _Nullable spawnArgs, ProcessId* _Nullable pOutPid)
 {
-    if (pArgs->spawnArgs == NULL) {
-        return EINVAL;
-    }
-
-    return Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, pArgs->pOutPid);
+    return (pArgs->spawnArgs) ? Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, pArgs->pOutPid) : EINVAL;
 }
 
 SYSCALL_0(getpid)
