@@ -53,10 +53,10 @@ extern void PathResolverResult_Deinit(PathResolverResult* pResult);
 extern errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory);
 extern void PathResolver_Deinit(PathResolverRef _Nonnull pResolver);
 
-extern errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* pPath);
+extern errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath);
 extern bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode);
 
-extern errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* pBuffer, ssize_t bufferSize);
+extern errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* _Nonnull pBuffer, size_t bufferSize);
 extern errno_t PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath);
 
 // Looks up the inode named by the given path. The path may be relative or absolute.

@@ -156,7 +156,7 @@ catch:
     return err;
 }
 
-errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* pPath)
+errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath)
 {
     return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->rootDirectory);
 }
@@ -168,14 +168,14 @@ bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _
         && Inode_GetId(pResolver->rootDirectory) == Inode_GetId(pNode);
 }
 
-errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* pBuffer, ssize_t bufferSize)
+errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* _Nonnull  pBuffer, size_t bufferSize)
 {
     InodeIterator iter;
     decl_try_err();
 
     try(InodeIterator_Init(&iter, pResolver->currentWorkingDirectory));
 
-    if (bufferSize <= 0) {
+    if (bufferSize < 1) {
         throw(EINVAL);
     }
 

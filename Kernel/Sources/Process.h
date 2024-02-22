@@ -113,7 +113,7 @@ extern errno_t Process_SetWorkingDirectory(ProcessRef _Nonnull pProc, const char
 // Returns the current working directory in the form of a path. The path is
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
-extern errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, ssize_t bufferSize);
+extern errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize);
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask
 // should be removed from the file permissions that user space sent to create a

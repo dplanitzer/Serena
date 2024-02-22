@@ -183,9 +183,9 @@ SYSCALL_2(mkdir, const char* _Nullable path, uint32_t mode)
     return Process_CreateDirectory(Process_GetCurrent(), pArgs->path, (FilePermissions) pArgs->mode);
 }
 
-SYSCALL_2(getcwd, char* _Nullable buffer, ssize_t bufferSize)
+SYSCALL_2(getcwd, char* _Nullable buffer, size_t bufferSize)
 {
-    if (pArgs->buffer == NULL || pArgs->bufferSize < 0) {
+    if (pArgs->buffer == NULL) {
         return EINVAL;
     }
 

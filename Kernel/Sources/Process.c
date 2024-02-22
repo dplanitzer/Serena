@@ -812,7 +812,7 @@ errno_t Process_SetWorkingDirectory(ProcessRef _Nonnull pProc, const char* _Nonn
 // Returns the current working directory in the form of a path. The path is
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
-errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, ssize_t bufferSize)
+errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize)
 {
     Lock_Lock(&pProc->lock);
     const errno_t err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
