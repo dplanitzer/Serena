@@ -119,13 +119,12 @@ SYSCALL_1(close, int ioc)
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_UnregisterIOChannel(Process_GetCurrent(), pArgs->ioc, &pChannel));
-    // The error that close() returns is purely advisory and thus we'll proceed
-    // with releasing the resource in any case.
-    err = IOChannel_Close(pChannel);
-    Object_Release(pChannel);
-
-catch:
+    if ((err = Process_UnregisterIOChannel(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
+        // The error that close() returns is purely advisory and thus we'll proceed
+        // with releasing the resource in any case.
+        err = IOChannel_Close(pChannel);
+        Object_Release(pChannel);
+    }
     return err;
 }
 
@@ -134,13 +133,10 @@ SYSCALL_4(read, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _N
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel));
-    try(IOChannel_Read(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToRead), pArgs->nBytesRead));
-    Object_Release(pChannel);
-    return EOK;
-
-catch:
-    Object_Release(pChannel);
+    if ((err = Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
+        err = IOChannel_Read(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToRead), pArgs->nBytesRead);
+        Object_Release(pChannel);
+    }
     return err;
 }
 
@@ -149,13 +145,10 @@ SYSCALL_4(write, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssi
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel));
-    try(IOChannel_Write(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToWrite), pArgs->nBytesWritten));
-    Object_Release(pChannel);
-    return EOK;
-
-catch:
-    Object_Release(pChannel);
+    if ((err = Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
+        err = IOChannel_Write(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToWrite), pArgs->nBytesWritten);
+        Object_Release(pChannel);
+    }
     return err;
 }
 
@@ -164,13 +157,10 @@ SYSCALL_4(seek, int ioc, FileOffset offset, FileOffset* _Nullable pOutOldPositio
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel));
-    try(IOChannel_Seek(pChannel, pArgs->offset, pArgs->pOutOldPosition, pArgs->whence));
-    Object_Release(pChannel);
-    return EOK;
-
-catch:
-    Object_Release(pChannel);
+    if ((err = Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
+        err = IOChannel_Seek(pChannel, pArgs->offset, pArgs->pOutOldPosition, pArgs->whence);
+        Object_Release(pChannel);
+    }
     return err;
 }
 

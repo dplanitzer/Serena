@@ -940,8 +940,8 @@ errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChan
     bool isReadChannelRegistered = false;
 
     try(Pipe_Create(kPipe_DefaultBufferSize, &pPipe));
-    try(IOResource_Open(pPipe, NULL, kOpen_Read, pProc->realUser, &rdChannel));
-    try(IOResource_Open(pPipe, NULL, kOpen_Write, pProc->realUser, &wrChannel));
+    try(IOResource_Open(pPipe, NULL /*XXX*/, kOpen_Read, pProc->realUser, &rdChannel));
+    try(IOResource_Open(pPipe, NULL /*XXX*/, kOpen_Write, pProc->realUser, &wrChannel));
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
