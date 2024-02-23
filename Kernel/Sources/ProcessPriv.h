@@ -31,7 +31,7 @@ typedef struct _ProcessTombstone {
 
 
 // Must be >= 3
-#define INITIAL_DESC_TABLE_SIZE 64
+#define INITIAL_IOCHANNELS_SIZE 64
 
 CLASS_IVARS(Process, Object,
     Lock                        lock;
@@ -42,7 +42,7 @@ CLASS_IVARS(Process, Object,
     DispatchQueueRef _Nonnull   mainDispatchQueue;
     AddressSpaceRef _Nonnull    addressSpace;
 
-    // IOChannels
+    // Resources
     ObjectArray                 ioChannels;
 
     // Filesystems/Namespace

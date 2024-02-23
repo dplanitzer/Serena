@@ -85,7 +85,7 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRe
     try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
     try(AddressSpace_Create(&pProc->addressSpace));
 
-    try(ObjectArray_Init(&pProc->ioChannels, INITIAL_DESC_TABLE_SIZE));
+    try(ObjectArray_Init(&pProc->ioChannels, INITIAL_IOCHANNELS_SIZE));
     try(IntArray_Init(&pProc->childPids, 0));
 
     try(PathResolver_Init(&pProc->pathResolver, pRootDir, pCurDir));
@@ -249,6 +249,7 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pFile, pOutDescriptor));
 
 catch:
+    Object_Release(pFile);
     if (pFileNode) {
         Filesystem_RelinquishNode(r.filesystem, pFileNode);
     }
@@ -269,6 +270,7 @@ errno_t Process_Open(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsi
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(IOResource_Open(r.filesystem, r.inode, options, pProc->realUser, (IOChannelRef*)&pFile));
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pFile, pOutDescriptor));
+    Object_Release(pFile);
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return EOK;
@@ -312,6 +314,7 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenDirectory(r.filesystem, r.inode, pProc->realUser, &pDir));
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
+    Object_Release(pDir);
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return EOK;
@@ -342,6 +345,8 @@ errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChan
     try(Process_RegisterIOChannel_Locked(pProc, rdChannel, pOutReadChannel));
     isReadChannelRegistered = true;
     try(Process_RegisterIOChannel_Locked(pProc, wrChannel, pOutWriteChannel));
+    Object_Release(rdChannel);
+    Object_Release(wrChannel);
     Lock_Unlock(&pProc->lock);
     return EOK;
 
