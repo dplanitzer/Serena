@@ -87,6 +87,23 @@ static errno_t Process_CopyResourceForDescriptor(ProcessRef _Nonnull self, int d
     return err;
 }
 
+// Looks up the given resource and returns EOK and the associated descriptor if
+// it exists; returns a EBADF and -1 otherwise.
+static errno_t Process_GetDescriptorForResource_Locked(ProcessRef _Nonnull self, ObjectRef _Nonnull pResource, ObjectArrayRef _Nonnull pArray, int* _Nonnull pOutDescriptor)
+{
+    const ssize_t count = ObjectArray_GetCount(pArray);
+
+    for (ssize_t i = 0; i < count; i++) {
+        if (ObjectArray_GetAt(pArray, i) == pResource) {
+            *pOutDescriptor = i;
+            return EOK;
+        }
+    }
+
+    *pOutDescriptor = -1;
+    return EBADF;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -162,6 +179,14 @@ errno_t Process_RegisterPrivateResource_Locked(ProcessRef _Nonnull self, ObjectR
     return Process_RegisterResource_Locked(self, pResource, &self->privateResources, pOutDescriptor);
 }
 
+// Unregisters the private resource identified by the given descriptor. The private
+// resource is removed from the process' table and a strong reference to the
+// resource is returned. The caller should call Object_Release() on the resource.
+errno_t Process_UnregisterPrivateResource(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource)
+{
+    return Process_UnregisterResource(self, od, &self->privateResources, pOutResource);
+}
+
 // Disposes off all registered private resources.
 void Process_DisposeAllPrivateResources_Locked(ProcessRef _Nonnull self)
 {
@@ -176,4 +201,11 @@ void Process_DisposeAllPrivateResources_Locked(ProcessRef _Nonnull self)
 errno_t Process_CopyPrivateResourceForDescriptor(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource)
 {
     return Process_CopyResourceForDescriptor(self, od, &self->privateResources, (ObjectRef*) pOutResource);
+}
+
+// Looks up the given resource and returns EOK and the associated descriptor if
+// it exists; returns a EBADF and -1 otherwise.
+errno_t Process_GetDescriptorForPrivateResource_Locked(ProcessRef _Nonnull self, ObjectRef _Nonnull pResource, int* _Nonnull pOutDescriptor)
+{
+    return Process_GetDescriptorForResource_Locked(self, pResource, &self->privateResources, pOutDescriptor);
 }

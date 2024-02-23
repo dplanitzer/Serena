@@ -57,6 +57,17 @@ typedef intptr_t (*SystemCall)(void* _Nonnull);
     }; \
     intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
 
+#define SYSCALL_5(__name, __p1, __p2, __p3, __p4, __p5) \
+    struct args_##__name { \
+        int scno; \
+        __p1; \
+        __p2; \
+        __p3; \
+        __p4; \
+        __p5; \
+    }; \
+    intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -291,13 +302,41 @@ SYSCALL_1(delay, TimeInterval delay)
     return VirtualProcessor_Sleep(pArgs->delay);
 }
 
-SYSCALL_3(dispatch_async, int od, const Closure1Arg_Func _Nullable pUserClosure, void* _Nullable pContext)
+SYSCALL_4(dispatch, int od, unsigned long options, const Closure1Arg_Func _Nullable pUserClosure, void* _Nullable pContext)
 {
     if (pArgs->pUserClosure == NULL) {
         return EINVAL;
     }
 
-    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->od, pArgs->pUserClosure, pArgs->pContext);
+    return Process_DispatchUserClosure(Process_GetCurrent(), pArgs->od, pArgs->options, pArgs->pUserClosure, pArgs->pContext);
+}
+
+SYSCALL_4(dispatch_after, int od, TimeInterval deadline, const Closure1Arg_Func _Nullable pUserClosure, void* _Nullable pContext)
+{
+    if (pArgs->pUserClosure == NULL) {
+        return EINVAL;
+    }
+
+    return Process_DispatchUserClosureAsyncAfter(Process_GetCurrent(), pArgs->od, pArgs->deadline, pArgs->pUserClosure, pArgs->pContext);
+}
+
+SYSCALL_5(dispatch_queue_create, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutQueue)
+{
+    if (pArgs->pOutQueue == NULL) {
+        return EINVAL;
+    }
+
+    return Process_CreateDispatchQueue(Process_GetCurrent(), pArgs->minConcurrency, pArgs->maxConcurrency, pArgs->qos, pArgs->priority, pArgs->pOutQueue);
+}
+
+SYSCALL_0(dispatch_queue_current)
+{
+    return Process_GetCurrentDispatchQueue(Process_GetCurrent());
+}
+
+SYSCALL_1(dispose, int od)
+{
+    return Process_DisposePrivateResource(Process_GetCurrent(), pArgs->od);
 }
 
 // Allocates more address space to the calling process. The address space is
@@ -375,7 +414,7 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(read),
     REF_SYSCALL(write),
     REF_SYSCALL(delay),
-    REF_SYSCALL(dispatch_async),
+    REF_SYSCALL(dispatch),
     REF_SYSCALL(alloc_address_space),
     REF_SYSCALL(exit),
     REF_SYSCALL(spawn_process),
@@ -405,4 +444,8 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(ftruncate),
     REF_SYSCALL(mkfile),
     REF_SYSCALL(mkpipe),
+    REF_SYSCALL(dispatch_after),
+    REF_SYSCALL(dispatch_queue_create),
+    REF_SYSCALL(dispatch_queue_current),
+    REF_SYSCALL(dispose),
 };

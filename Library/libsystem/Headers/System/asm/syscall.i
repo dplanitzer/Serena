@@ -9,41 +9,45 @@
         ifnd __ABI_SYSCALL_I
 __ABI_SYSCALL_I  set 1
 
-SC_read                 equ 0   ; errno_t IOChannel_Read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
-SC_write                equ 1   ; errno_t IOChannel_Write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
-SC_delay                equ 2   ; errno_t Delay(TimeInterval ti)
-SC_dispatch_async       equ 3   ; errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pUserClosure, void* _Nullable pContext)
-SC_alloc_address_space  equ 4   ; errno_t Process_AllocateAddressSpace(int nbytes, void **pOutMem)
-SC_exit                 equ 5   ; _Noreturn Process_Exit(int status)
-SC_spawn_process        equ 6   ; errno_t Process_Spawn(SpawnArguments * _Nonnull args, ProcessId * _Nullable rpid)
-SC_getpid               equ 7   ; ProcessId Process_GetId(void)
-SC_getppid              equ 8   ; ProcessId Process_GetParentId(void)
-SC_getpargs             equ 9   ; ProcessArguments* _Nonnull Process_GetArguments(void)
-SC_open                 equ 10  ; errno_t File_Open(const char * _Nonnull name, int options, int* _Nonnull fd)
-SC_close                equ 11  ; errno_t IOChannel_Close(int fd)
-SC_waitpid              equ 12  ; errno_t Process_WaitForChildTermination(ProcessId pid, ProcessTerminationStatus * _Nullable result)
-SC_seek                 equ 13  ; errno_t File_Seek(int fd, FileOffset offset, FileOffset *newpos, int whence)
-SC_getcwd               equ 14  ; errno_t Process_GetWorkingDirectory(char* buffer, size_t bufferSize)
-SC_setcwd               equ 15  ; errno_t Process_SetWorkingDirectory(const char* path)
-SC_getuid               equ 16  ; UserId Process_GetUserId(void)
-SC_getumask             equ 17  ; FilePermissions Process_GetUserMask(void)
-SC_setumask             equ 18  ; void Process_SetUserMask(FilePermissions mask)
-SC_mkdir                equ 19  ; errno_t Directory_Create(const char* path, FilePermissions mode)
-SC_getfileinfo          equ 20  ; errno_t File_GetInfo(const char* path, FileInfo* info)
-SC_opendir              equ 21  ; errno_t Directory_Open(const char* path, int* fd)
-SC_setfileinfo          equ 22  ; errno_t File_SetInfo(const char* path, MutableFileInfo* info)
-SC_access               equ 23  ; errno_t File_CheckAccess(const char* path, int mode)
-SC_fgetfileinfo         equ 24  ; errno_t FileChannel_GetInfo(int fd, FileInfo* info)
-SC_fsetfileinfo         equ 25  ; errno_t FileChannel_SetInfo(int fd, MutableFileInfo* info)
-SC_unlink               equ 26  ; errno_t File_Unlink(const char* path)
-SC_rename               equ 27  ; errno_t rename(const char* oldpath, const char* newpath)
-SC_ioctl                equ 28  ; errno_t IOChannel_Control(int fd, int cmd, ...)
-SC_truncate             equ 29  ; errno_t File_Truncate(const char* path, FileOffset length)
-SC_ftruncate            equ 30  ; errno_t FileChannel_Truncate(int fd, FileOffset length)
-SC_mkfile               equ 31  ; errno_t File_Create(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
-SC_mkpipe               equ 32  ; errno_t Pipe_Create(int* _Nonnull rioc, int* _Nonnull wioc)
+SC_read                     equ 0
+SC_write                    equ 1
+SC_delay                    equ 2
+SC_dispatch                 equ 3
+SC_alloc_address_space      equ 4
+SC_exit                     equ 5
+SC_spawn_process            equ 6
+SC_getpid                   equ 7
+SC_getppid                  equ 8
+SC_getpargs                 equ 9
+SC_open                     equ 10
+SC_close                    equ 11
+SC_waitpid                  equ 12
+SC_seek                     equ 13
+SC_getcwd                   equ 14
+SC_setcwd                   equ 15
+SC_getuid                   equ 16
+SC_getumask                 equ 17
+SC_setumask                 equ 18
+SC_mkdir                    equ 19
+SC_getfileinfo              equ 20
+SC_opendir                  equ 21
+SC_setfileinfo              equ 22
+SC_access                   equ 23
+SC_fgetfileinfo             equ 24
+SC_fsetfileinfo             equ 25
+SC_unlink                   equ 26
+SC_rename                   equ 27
+SC_ioctl                    equ 28
+SC_truncate                 equ 29
+SC_ftruncate                equ 30
+SC_mkfile                   equ 31
+SC_mkpipe                   equ 32
+SC_dispatch_after           equ 33
+SC_dispatch_queue_create    equ 34
+SC_dispatch_queue_current   equ 35
+SC_dispose                  equ 36
 
-SC_numberOfCalls        equ 33   ; number of system calls
+SC_numberOfCalls            equ 37
 
 
 ; System call macro.

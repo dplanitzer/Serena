@@ -74,9 +74,28 @@ extern void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
 // and environment it will receive and which descriptors it will inherit.
 extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessId * _Nullable pOutChildPid);
 
-// Asynchronously executes the given user closure on the dispatch queue identified
-// by 'od'. 
-extern errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext);
+
+// Dispatches the execution of the given user closure on the given dispatch queue
+// with the given options. 
+extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned long options, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext);
+
+// Dispatches the execution of the given user closure on the given dispatch queue
+// after the given deadline.
+extern errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext);
+
+// Returns the dispatch queue associated with the virtual processor on which the
+// calling code is running. Note this function assumes that it will ALWAYS be
+// called from a system call context and thus the caller will necessarily run in
+// the context of a (process owned) dispatch queue.
+extern int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc);
+
+// Creates a new dispatch queue and binds it to the process.
+extern errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull pProc, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutDescriptor);
+
+
+// Destroys the private resource identified by the given descriptor. The resource
+// is deallocated and removed from the resource table.
+extern errno_t Process_DisposePrivateResource(ProcessRef _Nonnull pProc, int od);
 
 // Allocates more (user) address space to the given process.
 extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem);

@@ -13,26 +13,7 @@
 #include "Process.h"
 #include "SystemDescription.h"
 #include "VirtualProcessorPool.h"
-
-
-// Quality of Service level. From highest to lowest.
-// DISPATCH_QOS_REALTIME: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
-// DISPATCH_QOS_IDLE: no guarantee with regards to schedule latency. Only scheduled if there is nothing to schedule for a DISPATCH_QOS_XXX > DISPATCH_QOS_IDLE
-#define DISPATCH_QOS_REALTIME       4
-#define DISPATCH_QOS_INTERACTIVE    3
-#define DISPATCH_QOS_UTILITY        2
-#define DISPATCH_QOS_BACKGROUND     1
-#define DISPATCH_QOS_IDLE           0
-
-#define DISPATCH_QOS_COUNT          5
-
-
-// Priorities per QoS level
-#define DISPATCH_PRIORITY_HIGHEST   5
-#define DISPATCH_PRIORITY_NORMAL    0
-#define DISPATCH_PRIORITY_LOWEST   -6
-
-#define DISPATCH_PRIORITY_COUNT     12
+#include <System/DispatchQueue.h>
 
 
 struct _WorkItem;
@@ -133,13 +114,13 @@ extern DispatchQueueRef _Nonnull    gMainDispatchQueue;
 // Creates a new dispatch queue. A dispatch queue maintains a list of work items
 // and timers and it dispatches those things for execution to a pool of virtual
 // processors. Virtual processors are automatically acquired and relinquished
-// from the given virtual processor pool as needed.
+// from the given virtual processor pool, as needed.
 // A dispatch queue has a minimum, maximum and current concurrency. The minimum
 // concurrency is currently always 0, while the maximum concurrency is the
 // maximum number of virtual processors that the queue is allowed to acquire and
 // maintain at any given time. The current concurrency is the number of virtual
 // processors the queue is currently actively maintaining.
-// A dispatch queue with a maximum concurrency number of 1 is also knows as a
+// A dispatch queue with a maximum concurrency number of 1 is also known as a
 // serial dispatch queue because all work items and timers are dispatched one
 // after the other. No two of them will ever execute in parallel on such a queue.
 // A dispatch queue with a maximum concurrency of > 1 is also known as a concurrent

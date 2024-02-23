@@ -1,6 +1,6 @@
 //
 //  Process.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 7/12/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -95,7 +95,7 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRe
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
 
-    try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pMainDispatchQueue));
+    try(DispatchQueue_Create(0, 1, kDispatchQos_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, pProc, &pMainDispatchQueue));
     try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pMainDispatchQueue, &mainDispatchQueueDesc));
     Object_Release(pMainDispatchQueue);
     pProc->mainDispatchQueue = pMainDispatchQueue;
@@ -174,21 +174,15 @@ void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
-errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext)
+// Destroys the private resource identified by the given descriptor. The resource
+// is deallocated and removed from the resource table.
+errno_t Process_DisposePrivateResource(ProcessRef _Nonnull pProc, int od)
 {
     decl_try_err();
-    DispatchQueueRef pQueue;
+    ObjectRef pResource;
 
-    // XXX optimize this: we can actually hold the process lock while dispatching the closure
-    // because it will be executed asynchronously anyway. Thus we won't have to retain and
-    // release the queue (which is safe to do if we hold the lock until we're done with dispatching)
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pQueue)) == EOK) {
-        if (Object_InstanceOf(pQueue, DispatchQueue)) {
-            err = DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
-        } else {
-            err = EBADF;
-        }
-        Object_Release(pQueue);
+    if ((err = Process_UnregisterPrivateResource(pProc, od, &pResource)) == EOK) {
+        Object_Release(pResource);
     }
     return err;
 }

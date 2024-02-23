@@ -76,7 +76,9 @@ extern errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull self, IOChan
 extern void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull self);
 
 extern errno_t Process_RegisterPrivateResource_Locked(ProcessRef _Nonnull self, ObjectRef _Nonnull pResource, int* _Nonnull pOutDescriptor);
+extern errno_t Process_UnregisterPrivateResource(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource);
 extern void Process_DisposeAllPrivateResources_Locked(ProcessRef _Nonnull self);
+extern errno_t Process_GetDescriptorForPrivateResource_Locked(ProcessRef _Nonnull self, ObjectRef _Nonnull pResource, int* _Nonnull pOutDescriptor);
 
 // Frees all tombstones
 extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self);

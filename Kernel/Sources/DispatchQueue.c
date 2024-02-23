@@ -210,7 +210,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         }
         assert(conLaneIdx != -1);
 
-        const int priority = pQueue->qos * DISPATCH_PRIORITY_COUNT + (pQueue->priority + DISPATCH_PRIORITY_COUNT / 2) + VP_PRIORITIES_RESERVED_LOW;
+        const int priority = pQueue->qos * kDispatchPriority_Count + (pQueue->priority + kDispatchPriority_Count / 2) + VP_PRIORITIES_RESERVED_LOW;
         VirtualProcessor* pVP = NULL;
         try(VirtualProcessorPool_AcquireVirtualProcessor(
                                             pQueue->virtual_processor_pool,
