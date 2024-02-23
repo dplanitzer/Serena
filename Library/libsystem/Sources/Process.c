@@ -73,9 +73,3 @@ errno_t Process_AllocateAddressSpace(size_t nbytes, void* _Nullable * _Nonnull p
 {
     return _syscall(SC_alloc_address_space, nbytes, ptr);
 }
-
-
-errno_t Delay(TimeInterval ti)
-{
-    return (errno_t)_syscall(SC_delay, ti);
-}

@@ -13,7 +13,6 @@
 #include <System/_noreturn.h>
 #include <System/_nulldef.h>
 #include <System/Error.h>
-#include <System/TimeInterval.h>
 #include <System/Types.h>
 #include <System/Urt.h>
 
@@ -107,8 +106,6 @@ extern ProcessArguments* _Nonnull Process_GetArguments(void);
 
 
 extern errno_t Process_AllocateAddressSpace(size_t nbytes, void* _Nullable * _Nonnull ptr);
-
-extern errno_t Delay(TimeInterval ti);
 
 #endif /* __KERNEL__ */
 

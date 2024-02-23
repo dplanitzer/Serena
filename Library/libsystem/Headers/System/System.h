@@ -11,6 +11,7 @@
 
 #include <System/_cmndef.h>
 #include <System/Types.h>
+#include <System/Clock.h>
 #include <System/DispatchQueue.h>
 #include <System/Error.h>
 #include <System/File.h>

@@ -302,6 +302,16 @@ SYSCALL_1(delay, TimeInterval delay)
     return VirtualProcessor_Sleep(pArgs->delay);
 }
 
+SYSCALL_1(get_monotonic_time, TimeInterval* _Nullable time)
+{
+    if (pArgs->time == NULL) {
+        return EINVAL;
+    }
+
+    *(pArgs->time) = MonotonicClock_GetCurrentTime();
+    return EOK;
+}
+
 SYSCALL_4(dispatch, int od, unsigned long options, const Closure1Arg_Func _Nullable pUserClosure, void* _Nullable pContext)
 {
     if (pArgs->pUserClosure == NULL) {
@@ -448,4 +458,5 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(dispatch_queue_create),
     REF_SYSCALL(dispatch_queue_current),
     REF_SYSCALL(dispose),
+    REF_SYSCALL(get_monotonic_time),
 };

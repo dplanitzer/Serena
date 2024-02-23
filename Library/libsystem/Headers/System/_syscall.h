@@ -52,6 +52,7 @@ enum {
     SC_dispatch_queue_create,   // errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)
     SC_dispatch_queue_current,  // int DispatchQueue_GetCurrent(void)
     SC_dispose,             // _Object_Dispose(int od)
+    SC_get_monotonic_time,  // TimeInterval MonotonicClock_GetTime(void)
 };
 
 
