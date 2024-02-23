@@ -74,6 +74,8 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRe
 {
     decl_try_err();
     ProcessRef pProc;
+    DispatchQueueRef pMainDispatchQueue = NULL;
+    int mainDispatchQueueDesc = -1;
     
     try(Object_Create(Process, &pProc));
 
@@ -82,10 +84,8 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRe
     pProc->ppid = ppid;
     pProc->pid = Process_GetNextAvailablePID();
 
-    try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pProc->mainDispatchQueue));
-    try(AddressSpace_Create(&pProc->addressSpace));
-
-    try(ObjectArray_Init(&pProc->ioChannels, INITIAL_IOCHANNELS_SIZE));
+    try(ObjectArray_Init(&pProc->ioChannels, INITIAL_IOCHANNELS_CAPACITY));
+    try(ObjectArray_Init(&pProc->privateResources, INITIAL_PRIVATE_RESOURCES_CAPACITY));
     try(IntArray_Init(&pProc->childPids, 0));
 
     try(PathResolver_Init(&pProc->pathResolver, pRootDir, pCurDir));
@@ -95,10 +95,20 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRe
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
 
+    try(DispatchQueue_Create(0, 1, DISPATCH_QOS_INTERACTIVE, DISPATCH_PRIORITY_NORMAL, gVirtualProcessorPool, pProc, &pMainDispatchQueue));
+    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pMainDispatchQueue, &mainDispatchQueueDesc));
+    Object_Release(pMainDispatchQueue);
+    pProc->mainDispatchQueue = pMainDispatchQueue;
+    pMainDispatchQueue = NULL;
+    assert(mainDispatchQueueDesc == 0);
+
+    try(AddressSpace_Create(&pProc->addressSpace));
+
     *pOutProc = pProc;
     return EOK;
 
 catch:
+    Object_Release(pMainDispatchQueue);
     Object_Release(pProc);
     *pOutProc = NULL;
     return err;
@@ -108,6 +118,9 @@ void Process_deinit(ProcessRef _Nonnull pProc)
 {
     Process_CloseAllIOChannels_Locked(pProc);
     ObjectArray_Deinit(&pProc->ioChannels);
+
+    Process_DisposeAllPrivateResources_Locked(pProc);
+    ObjectArray_Deinit(&pProc->privateResources);
 
     PathResolver_Deinit(&pProc->pathResolver);
 
@@ -119,8 +132,6 @@ void Process_deinit(ProcessRef _Nonnull pProc)
     pProc->addressSpace = NULL;
     pProc->imageBase = NULL;
     pProc->argumentsBase = NULL;
-
-    Object_Release(pProc->mainDispatchQueue);
     pProc->mainDispatchQueue = NULL;
 
     pProc->pid = 0;
@@ -163,9 +174,19 @@ void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
-errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure)
+errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure)
 {
-    return DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
+    decl_try_err();
+    DispatchQueueRef pQueue;
+
+    // XXX optimize this: we can actually hold the process lock while dispatching the closure
+    // because it will be executed asynchronously anyway. Thus we won't have to retain and
+    // release the queue (which is safe to do if we hold the lock until we're done with dispatching)
+    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pQueue)) == EOK) {
+        err = DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
+        Object_Release(pQueue);
+    }
+    return err;
 }
 
 // Allocates more (user) address space to the given process.

@@ -74,7 +74,9 @@ extern void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
 // and environment it will receive and which descriptors it will inherit.
 extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessId * _Nullable pOutChildPid);
 
-extern errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, Closure1Arg_Func pUserClosure);
+// Asynchronously executes the given user closure on the dispatch queue identified
+// by 'od'. 
+extern errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure);
 
 // Allocates more (user) address space to the given process.
 extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem);
@@ -100,6 +102,12 @@ extern errno_t Process_UnregisterIOChannel(ProcessRef _Nonnull pProc, int fd, IO
 // strong reference to it if found. The caller should call release() on the
 // channel once it is no longer needed.
 extern errno_t Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, int fd, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+
+// Looks up the private resource identified by the given descriptor and returns
+// a strong reference to it if found. The caller should call release() on the
+// private resource once it is no longer needed.
+extern errno_t Process_CopyPrivateResourceForDescriptor(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource);
 
 
 // Sets the receiver's root directory to the given path. Note that the path must

@@ -18,10 +18,12 @@ __CPP_BEGIN
 
 typedef void (*Dispatch_Closure)(void* _Nullable arg);
 
-
 #if !defined(__KERNEL__)
 
-extern errno_t DispatchQueue_Async(Dispatch_Closure _Nonnull pClosure);
+#define kDispatchQueue_Main 0
+
+
+extern errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure);
 
 #endif /* __KERNEL__ */
 

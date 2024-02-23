@@ -6,6 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include "DispatchQueue.h"
 #include "DriverManager.h"
 #include "Process.h"
 #include "IOResource.h"
@@ -290,9 +291,13 @@ SYSCALL_1(delay, TimeInterval delay)
     return VirtualProcessor_Sleep(pArgs->delay);
 }
 
-SYSCALL_1(dispatch_async, const Closure1Arg_Func _Nonnull pUserClosure)
+SYSCALL_2(dispatch_async, int od, const Closure1Arg_Func _Nullable pUserClosure)
 {
-    return (pArgs->pUserClosure) ? Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->pUserClosure) : EINVAL;
+    if (pArgs->pUserClosure == NULL) {
+        return EINVAL;
+    }
+
+    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->od, pArgs->pUserClosure);
 }
 
 // Allocates more address space to the calling process. The address space is

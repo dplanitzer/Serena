@@ -11,7 +11,7 @@
 
 
 
-errno_t DispatchQueue_Async(Dispatch_Closure _Nonnull pClosure)
+errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure)
 {
-    return _syscall(SC_dispatch_async, pClosure);
+    return _syscall(SC_dispatch_async, od, pClosure);
 }
