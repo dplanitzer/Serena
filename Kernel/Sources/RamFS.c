@@ -826,6 +826,12 @@ errno_t RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull p
         else {
             // Non-exclusive mode: File already exists -> acquire it and let the caller open it
             try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pExistingEntry->id, NULL, pOutNode));
+
+            // Truncate the file to length 0, if requested
+            if ((options & kOpen_Truncate) == kOpen_Truncate) {
+                RamFS_xTruncateFile(self, *pOutNode, 0);
+            }
+
             return EOK;
         }
     } else {

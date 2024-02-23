@@ -15,6 +15,7 @@
 #include <System/DispatchQueue.h>
 #include <System/Error.h>
 #include <System/File.h>
+#include <System/FilePermission.h>
 #include <System/IOChannel.h>
 #include <System/Pipe.h>
 #include <System/Process.h>
@@ -25,6 +26,10 @@ __CPP_BEGIN
 
 #if !defined(__KERNEL__)
 
+// Initializes the libSystem services. This function must be called by the high-level
+// language specific initialization code. Ie the C library invokes this function.
+// Application developers do not need to call this function.
+// @Concurrency: Not Safe
 extern void System_Init(ProcessArguments* _Nonnull argsp);
 
 #endif /* __KERNEL__ */

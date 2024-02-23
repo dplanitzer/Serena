@@ -16,6 +16,10 @@ static UrtFunc* __gUrtFuncTable;
 
 void System_Init(ProcessArguments* _Nonnull argsp)
 {
+    if (__gUrtFuncTable) {
+        return;
+    }
+    
     __gUrtFuncTable = argsp->urt_funcs;
 }
 

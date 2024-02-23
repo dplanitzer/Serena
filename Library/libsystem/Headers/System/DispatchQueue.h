@@ -48,6 +48,7 @@ typedef void (*Dispatch_Closure)(void* _Nullable arg);
 // possible and the caller remains blocked until the closure has finished
 // execution. This function returns with an EINTR if the queue is flushed or
 // terminated by calling DispatchQueue_Terminate().
+// @Concurrency: Safe
 extern errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext);
 
 // Schedules the given closure for asynchronous execution on the given dispatch
@@ -55,16 +56,19 @@ extern errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull pClo
 // is a serial queue then the callback will be executed some time after the
 // currently executing closure has finished executing. If the queue is a
 // concurrent queue then the callback might start executing even while the
-// the currently executing closure is still running. 
+// the currently executing closure is still running.
+// @Concurrency: Safe 
 extern errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
+// @Concurrency: Safe
 extern errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext);
 
 
 // Returns the dispatch queue that is associated with the virtual processor that
 // is running the calling code.
+// @Concurrency: Safe
 extern int DispatchQueue_GetCurrent(void);
 
 
@@ -90,6 +94,7 @@ extern int DispatchQueue_GetCurrent(void);
 // latency from when a work item is scheduled to when it executes.
 // XXX probably want to gate this somewhat behind a capability to prevent a random
 // XXX process from hugging all virtual processors.
+// @Concurrency: Safe
 extern errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue);
 
 // Destroys the dispatch queue. The queue is first terminated if it isn't already
@@ -98,6 +103,7 @@ extern errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int 
 // been drained, terminated and deallocated. Errors returned from this function
 // are purely advisory in nature - they will not stop the queue from being
 // destroyed.
+// @Concurrency: Safe
 extern errno_t DispatchQueue_Destroy(int od);
 
 #endif /* __KERNEL__ */

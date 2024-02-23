@@ -13,6 +13,7 @@
 #include <System/_nulldef.h>
 #include <System/_syslimits.h>
 #include <System/Error.h>
+#include <System/FilePermission.h>
 #include <System/TimeInterval.h>
 #include <System/Types.h>
 
@@ -23,63 +24,6 @@ enum {
     kFileType_RegularFile = 0,  // A regular file that stores data
     kFileType_Directory,        // A directory which stores information about child nodes
 };
-
-// File permissions. Every file and directory has 3 sets of permissions associated
-// with it (also knows as "permission scopes"):
-// Owner (of the file)
-// Group (the file is associated with)
-// Anyone else
-//
-// The meaning of the permission bits for files are:
-// R    Allow reading of the file contents
-// W    Allow writing/updating the file contents
-// X    Allow executing the file. The file must contain data in the executable format
-//
-// The meaning of the permission bits for directories are:
-// R    Allow reading the directory listing
-// W    Allow adding/removing directory entries
-// X    Allow searching the directory listing
-//
-// Note that a FilePermission value holds permission bits for all three permission
-// scopes.
-enum {
-    kFilePermission_Read = 0x04,
-    kFilePermission_Write = 0x02,
-    kFilePermission_Execute = 0x01
-};
-
-enum {
-    kFilePermissionScope_BitWidth = 3,
-
-    kFilePermissionScope_User = 2*kFilePermissionScope_BitWidth,
-    kFilePermissionScope_Group = kFilePermissionScope_BitWidth,
-    kFilePermissionScope_Other = 0,
-
-    kFilePermissionScope_Mask = 0x07,
-};
-
-// Creates a FilePermission value with permissions for a user, group and other
-// permission scope.
-#define FilePermissions_Make(__user, __group, __other) \
-  (((__user) & kFilePermissionScope_Mask) << kFilePermissionScope_User) \
-| (((__group) & kFilePermissionScope_Mask) << kFilePermissionScope_Group) \
-| (((__other) & kFilePermissionScope_Mask) << kFilePermissionScope_Other)
-
-// Creates a FilePermission value from a POSIX style octal number. This number
-// is expected to be a 3 digit number where each digit represents one of the
-// permission scopes.
-#define FilePermissions_MakeFromOctal(__3_x_3_octal) \
-    (__3_x_3_octal)
-    
-// Returns the permission bits of '__permission' that correspond to the
-// permissions scope '__scope'.
-#define FilePermissions_Get(__permissions, __scope) \
-(((__permissions) >> (__scope)) & kFilePermissionScope_Mask)
-
-// Replaces the permission bits of the scope '__scope' in '__permission' with the
-// permission bits '__bits'. 
-#define FilePermissions_Set(__permissions, __scope, __bits) \
-((__permissions) & ~(kFilePermissionsScope_Mask << (__scope))) | (((__bits) & kFilePermissionsScope_Mask) << (__scope))
 
 
 typedef struct FileInfo {
@@ -96,6 +40,7 @@ typedef struct FileInfo {
     FilesystemId        filesystemId;
     InodeId             inodeId;
 } FileInfo;
+
 
 enum {
     kModifyFileInfo_AccessTime = 1,
@@ -155,32 +100,114 @@ enum {
 
 #if !defined(__KERNEL__)
 
-extern errno_t File_Create(const char* _Nonnull path, unsigned int options, FilePermissions permissions, int* _Nonnull fd);
+// Creates an empty file at the filesystem location and with the name specified
+// by 'path'. Creating a file is non-exclusive by default which means that the
+// file is created if it does not exist and simply opened in it current state if
+// it does exist. You may request non-exclusive behavior by passing the
+// kOpen_Exclusive options. If the file already exists and you requested exclusive
+// behavior, then this function will fail and return an EEXIST error. You may
+// request that the newly opened file (relevant in non-exclusive mode) is
+// automatically and atomically truncated to length 0 if it contained some data
+// by passing the kOpen_Truncate option. 'permissions' are the file permissions
+// that are assigned to a newly created file if it is actually created.
+// @Concurrency: Safe
+extern errno_t File_Create(const char* _Nonnull path, unsigned int options, FilePermissions permissions, int* _Nonnull ioc);
 
-extern errno_t File_Open(const char* _Nonnull path, unsigned int options, int* _Nonnull fd);
+// Opens an already existing file located at the filesystem location 'path'.
+// Returns an error if the file does not exist or the caller lacks the necessary
+// permissions to successfully open the file. 'options' specifies whether the file
+// should be opened for reading and/or writing. 'kOpen_Append' may be passed in
+// addition to 'kOpen_Write' to force the system to always append any newly written
+// data to the file. The file position is disregarded by the write function(s) in
+// this case.
+// @Concurrency: Safe
+extern errno_t File_Open(const char* _Nonnull path, unsigned int options, int* _Nonnull ioc);
 
-extern errno_t File_GetPosition(int fd, FileOffset* _Nonnull pos);
-extern errno_t File_Seek(int fd, FileOffset offset, FileOffset* _Nullable oldpos, int whence);
 
+// Returns the current file position. This is the position at which the next
+// read or write operation will start.
+// @Concurrency: Safe
+extern errno_t File_GetPosition(int ioc, FileOffset* _Nonnull pos);
+
+// Sets the current file position. Note that the file position may be set to a
+// value past the current file size. Doing this implicitly expands the size of
+// the file to encompass the new file position. The byte range between the old
+// end of file and the new end of file is automatically filled with zero bytes.
+// @Concurrency: Safe
+extern errno_t File_Seek(int ioc, FileOffset offset, FileOffset* _Nullable oldpos, int whence);
+
+
+// Truncates the file at the filesystem location 'path'. If the new length is
+// greater than the size of the existing file, then the file is expanded and the
+// newly added data range is zero-filled. If the new length is less than the
+// size of the existing file, then the excess data is removed and the size of
+// the file is set to the new length.
+// @Concurrency: Safe
 extern errno_t File_Truncate(const char* _Nonnull path, FileOffset length);
 
+
+// Returns meta-information about the file located at the filesystem location 'path'.
+// @Concurrency: Safe
 extern errno_t File_GetInfo(const char* _Nonnull path, FileInfo* _Nonnull info);
+
+// Updates the meta-information about the file located at the filesystem location
+// 'path'. Note that only those pieces of the meta-information are modified for
+// which the corresponding flag in 'info.modify' is set.
+// @Concurrency: Safe
 extern errno_t File_SetInfo(const char* _Nonnull path, MutableFileInfo* _Nonnull info);
 
+
+// Checks whether the file at the filesystem location 'path' exists and whether
+// it is accessible according to 'mode'. A suitable error is returned otherwise.
+// @Concurrency: Safe
 extern errno_t File_CheckAccess(const char* _Nonnull path, AccessMode mode);
-extern errno_t File_Unlink(const char* _Nonnull path);    // deletes files and (empty) directories
+
+// Deletes the file or (empty) directory located at the filesystem location 'path'.
+// Note that this function deletes empty directories only.
+// @Concurrency: Safe
+extern errno_t File_Unlink(const char* _Nonnull path);
+
+// Renames a file or directory located at the filesystem location 'oldpath' to
+// the new name and filesystem location at 'newpath'. Both the old and the new
+// filesystem location must reside in the same filesystem instance.
+// @Concurrency: Safe
 extern errno_t File_Rename(const char* _Nonnull oldpath, const char* _Nonnull newpath);
 
 
-extern errno_t FileChannel_Truncate(int fd, FileOffset length);
+// Similar to File_Truncate() but operates on the open file identified by 'ioc'.
+// @Concurrency: Safe
+extern errno_t FileChannel_Truncate(int ioc, FileOffset length);
 
-extern errno_t FileChannel_GetInfo(int fd, FileInfo* _Nonnull info);
-extern errno_t FileChannel_SetInfo(int fd, MutableFileInfo* _Nonnull info);
+
+// Similar to File_GetInfo() but operates on the open file identified by 'ioc'.
+// @Concurrency: Safe
+extern errno_t FileChannel_GetInfo(int ioc, FileInfo* _Nonnull info);
+
+// Similar to File_SetInfo() but operates on the open file identified by 'ioc'.
+// @Concurrency: Safe
+extern errno_t FileChannel_SetInfo(int ioc, MutableFileInfo* _Nonnull info);
 
 
+// Creates an empty directory with the name and at the filesystem location specified
+// by 'path'. 'mode' specifies the permissions that should be assigned to the
+// directory.
+// @Concurrency: Safe
 extern errno_t Directory_Create(const char* _Nonnull path, FilePermissions mode);
-extern errno_t Directory_Open(const char* _Nonnull path, int* fd);
-extern errno_t Directory_Read(int fd, DirectoryEntry* _Nonnull entries, size_t nEntriesToRead, ssize_t* _Nonnull nReadEntries);
+
+// Opens the directory at the filesystem location 'path' for reading. Call this
+// function to obtain an I/O channel suitable for reading the content of the
+// directory. Call IOChannel_Close() once you are done with the directory.
+// @Concurrency: Safe
+extern errno_t Directory_Open(const char* _Nonnull path, int* _Nonnull ioc);
+
+// Reads one or more directory entries from the directory identified by 'ioc'.
+// Returns the number of directory entries actually read and returns 0 once all
+// directory entries have been read.
+// You can get the current directory entry position by calling File_GetPosition()
+// and you can reestablish a previously saved directory entry position by calling
+// File_Seek() with the result of a previous File_GetPosition() call.
+// @Concurrency: Safe
+extern errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nEntriesToRead, ssize_t* _Nonnull nReadEntries);
 
 #endif /* __KERNEL__ */
 
