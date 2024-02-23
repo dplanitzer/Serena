@@ -76,7 +76,7 @@ extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnA
 
 // Asynchronously executes the given user closure on the dispatch queue identified
 // by 'od'. 
-extern errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure);
+extern errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext);
 
 // Allocates more (user) address space to the given process.
 extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem);

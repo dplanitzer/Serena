@@ -174,7 +174,7 @@ void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     return ptr;
 }
 
-errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure)
+errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext)
 {
     decl_try_err();
     DispatchQueueRef pQueue;
@@ -183,7 +183,11 @@ errno_t Process_DispatchAsyncUser(ProcessRef _Nonnull pProc, int od, Closure1Arg
     // because it will be executed asynchronously anyway. Thus we won't have to retain and
     // release the queue (which is safe to do if we hold the lock until we're done with dispatching)
     if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pQueue)) == EOK) {
-        err = DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_MakeUser(pUserClosure, NULL));
+        if (Object_InstanceOf(pQueue, DispatchQueue)) {
+            err = DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+        } else {
+            err = EBADF;
+        }
         Object_Release(pQueue);
     }
     return err;

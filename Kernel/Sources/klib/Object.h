@@ -81,6 +81,7 @@ typedef struct _##__name* __name##Ref
 // Overriding methods is supported but adding ivars is not. This macro should
 // be placed in the publicly accessible header file of the class.
 #define OPAQUE_CLASS(__name, __superName) \
+extern Class k##__name##Class; \
 struct _##__name; \
 typedef struct _##__name* __name##Ref
 

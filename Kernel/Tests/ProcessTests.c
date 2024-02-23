@@ -24,14 +24,14 @@ static void parent_process(void)
 {
     printf("Hello World, from process #1!  [%d]\n", cpt_count1++);
     Delay(TimeInterval_MakeMilliseconds(250));
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, (Dispatch_Closure)parent_process);
+    DispatchQueue_DispatchAsync(kDispatchQueue_Main, (Dispatch_Closure)parent_process, NULL);
 }
 
 static void child_process(void)
 {
     printf("Hello World, from process #2!          [%d]\n", cpt_count2++);
     Delay(TimeInterval_MakeSeconds(1));
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, (Dispatch_Closure)child_process);
+    DispatchQueue_DispatchAsync(kDispatchQueue_Main, (Dispatch_Closure)child_process, NULL);
     //exit(0);
     //puts("oops\n");
 }

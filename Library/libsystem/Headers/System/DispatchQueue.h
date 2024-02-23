@@ -18,12 +18,14 @@ __CPP_BEGIN
 
 typedef void (*Dispatch_Closure)(void* _Nullable arg);
 
-#if !defined(__KERNEL__)
-
 #define kDispatchQueue_Main 0
 
 
-extern errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure);
+#if !defined(__KERNEL__)
+
+// Schedules the given closure for asynchronous execution on the given dispatch
+// queue. The 'pContext' argument will be passed to the callback.
+extern errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext);
 
 #endif /* __KERNEL__ */
 

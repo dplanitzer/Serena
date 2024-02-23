@@ -29,13 +29,13 @@ static void OnPrintClosure(void* _Nonnull pValue)
     
     print("%d\n", val);
     //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, DispatchQueueClosure_Make(OnPrintClosure, (void*)(val + 1)));
-    //DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), DispatchQueueClosure_Make(OnPrintClosure, (void*)(val + 1)));
+    DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnPrintClosure, (void*)(val + 1));
+    //DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), OnPrintClosure, (void*)(val + 1));
 }
 
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, DispatchQueueClosure_Make(OnPrintClosure, (void*)0));
+    DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnPrintClosure, (void*)0);
 }
 #endif
 
@@ -253,7 +253,7 @@ static void OnMainClosure(void* _Nonnull pValue)
 
 void DispatchQueue_RunTests(void)
 {
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, DispatchQueueClosure_Make(OnMainClosure, NULL));
+    DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnMainClosure, NULL);
 }
 #endif
 
@@ -308,8 +308,8 @@ void DispatchQueue_RunTests(void)
     DispatchQueueRef pUtilityQueue;
     DispatchQueue_Create(0, 4, DISPATCH_QOS_UTILITY, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
 
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, DispatchQueueClosure_Make(OnWriteToPipe, pipe));
-    DispatchQueue_DispatchAsync(pUtilityQueue, DispatchQueueClosure_Make(OnReadFromPipe, pipe));
+    DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnWriteToPipe, pipe);
+    DispatchQueue_DispatchAsync(pUtilityQueue, OnReadFromPipe, pipe);
 
 }
 #endif

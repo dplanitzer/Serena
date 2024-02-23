@@ -291,13 +291,13 @@ SYSCALL_1(delay, TimeInterval delay)
     return VirtualProcessor_Sleep(pArgs->delay);
 }
 
-SYSCALL_2(dispatch_async, int od, const Closure1Arg_Func _Nullable pUserClosure)
+SYSCALL_3(dispatch_async, int od, const Closure1Arg_Func _Nullable pUserClosure, void* _Nullable pContext)
 {
     if (pArgs->pUserClosure == NULL) {
         return EINVAL;
     }
 
-    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->od, pArgs->pUserClosure);
+    return Process_DispatchAsyncUser(Process_GetCurrent(), pArgs->od, pArgs->pUserClosure, pArgs->pContext);
 }
 
 // Allocates more address space to the calling process. The address space is
