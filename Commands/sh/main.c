@@ -20,7 +20,7 @@ void main_closure(int argc, char *argv[])
     // XXX disabled insertion mode for now because the line reader doesn't support
     // XXX it properly yet
     //printf("\033[4h");  // Switch the console to insert mode
-    printf("\033[36mApollo v0.1.\nCopyright 2023, Dietmar Planitzer.\033[0m\n\n");
+    printf("\033[36mSerena DR1\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
 
     Directory_Create("/Users", 0755);
     Directory_Create("/Users/Admin", 0755);

@@ -1,6 +1,6 @@
 //
 //  Allocator.h
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/4/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.

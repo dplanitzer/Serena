@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Apollo",
+            "name": "Serena",
             "includePath": [
                 "${workspaceFolder}/Kernel/Sources/**",
                 "${workspaceFolder}/Kernel/Tests/**",

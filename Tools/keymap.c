@@ -1,6 +1,6 @@
 //
 //  keymap.c
-//  Apollo
+//  keymap
 //
 //  Created by Dietmar Planitzer on 9/9/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

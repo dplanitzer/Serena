@@ -1,6 +1,6 @@
 //
 //  Assert.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 8/16/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

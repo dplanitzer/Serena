@@ -1,6 +1,6 @@
 //
 //  InterruptControllerPriv.h
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 7/28/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

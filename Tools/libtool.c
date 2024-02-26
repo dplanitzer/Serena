@@ -1,6 +1,6 @@
 //
 //  libtool.c
-//  Apollo
+//  libtool
 //
 //  Created by Dietmar Planitzer on 9/19/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

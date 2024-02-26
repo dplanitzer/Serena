@@ -1,6 +1,6 @@
 //
 //  Stream_Null.c
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 1/31/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

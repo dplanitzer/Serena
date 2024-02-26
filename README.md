@@ -1,6 +1,6 @@
 # About The Project
 
-Apollo is an experimental operating system with an object-oriented kernel for Amiga 3000/4000 computers with support for pervasive preemptive concurrency and multiple users.
+Serena is an experimental operating system with an object-oriented kernel for Amiga 3000/4000 computers with support for pervasive preemptive concurrency and multiple users.
 
 One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues similar to Apple's Grand Central Dispatch. There is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept and it dynamically manages a pool of virtual processors. The size of the pool is automatically adjusted based on the needs of the dispatch queues. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to dispatch queues. Work items are simply closures (a function with associated state) from the viewpoint of the user.
 
@@ -8,9 +8,9 @@ Another interesting aspect is interrupt handling. Code which wants to react to a
 
 The kernel is generally reentrant. This means that virtual processors continue to be scheduled and context switched preemptively even while the CPU is executing inside the kernel. Additionally a full compliment of counting semaphores, condition variables and lock APIs are available inside the kernel. The API of those objects closely resembles what you would find in a user space implementation of a traditional OS.
 
-Apollo implements a hierarchical process system similar to POSIX. A process may spawn a number of child processes and it can pass a command line and environment variables to its children. A process accesses I/O resources via file descriptors (again similar to POSIX).
+Serena implements a hierarchical process system similar to POSIX. A process may spawn a number of child processes and it can pass a command line and environment variables to its children. A process accesses I/O resources via file descriptors (again similar to POSIX).
 
-There are two notable differences between the POSIX style process model and the Apollo model though: first instead of using fork() followed by exec() to spawn a new process, you use a single function in Apollo called spawn(). This makes spawning a process much faster and significantly less error prone. Secondly a child process does not inherit the file descriptors of its parent by default. The only exception are the file descriptors 0, 1 and 2 which represent the terminal input and output streams. This model is much less error prone compared to the POSIX model where a process has to be careful to close file descriptors that it doesn't want to pass on to a child process before it execs the child. Doing this was easy in the early days of Unix when applications were pretty much self contained and when there was no support for dynamic libraries. It's the opposite today because applications are far more complex and depend on many 3rd party libraries.
+There are two notable differences between the POSIX style process model and the Serena model though: first instead of using fork() followed by exec() to spawn a new process, you use a single function in Serena called spawn(). This makes spawning a process much faster and significantly less error prone. Secondly a child process does not inherit the file descriptors of its parent by default. The only exception are the file descriptors 0, 1 and 2 which represent the terminal input and output streams. This model is much less error prone compared to the POSIX model where a process has to be careful to close file descriptors that it doesn't want to pass on to a child process before it execs the child. Doing this was easy in the early days of Unix when applications were pretty much self contained and when there was no support for dynamic libraries. It's the opposite today because applications are far more complex and depend on many 3rd party libraries.
 
 The executable file format at this time is the Atari ST GemDos file format which is a close derivative of the aout executable format. This file format will eventually get replaced with a file format that will be able to support dynamic libraries. However for now it is good enough to get the job done.
 
@@ -89,15 +89,15 @@ Finally install GNU make for Windows and make sure that it is in the `PATH` envi
 
 ### Building the Build Tools
 
-This steps needs to be executed only once and before you try to build the OS. The purpose of this step is to build a couple of tools that are needed to build the kernel and user space libraries. First open a Developer Command Prompt in Windows Terminal and then cd into the `Apollo/Tools` folder. Type `make` and hit return. This will build all required tools and place them inside a `Apollo/build/tools` folder. The tools will be retained in this location even if you do a full clean of the OS project.
+This steps needs to be executed only once and before you try to build the OS. The purpose of this step is to build a couple of tools that are needed to build the kernel and user space libraries. First open a Developer Command Prompt in Windows Terminal and then cd into the `Serena/Tools` folder. Type `make` and hit return. This will build all required tools and place them inside a `Serena/build/tools` folder. The tools will be retained in this location even if you do a full clean of the OS project.
 
 ### Building the Operating System
 
-Open the Apollo project folder in Visual Studio Code and select `Build All` from the `Run Build Task...` menu. This will build the kernel, libsystem, libc, libm and shell and generate a single `Apollo.rom` file inside the `Apollo/product/Kernel/` folder. This ROM file contains the kernel, user space libraries and the shell.
+Open the Serena project folder in Visual Studio Code and select `Build All` from the `Run Build Task...` menu. This will build the kernel, libsystem, libc, libm and shell and generate a single `Serena.rom` file inside the `Serena/product/Kernel/` folder. This ROM file contains the kernel, user space libraries and the shell.
 
 ### Running the Demo
 
-You first need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file text field to point to the `Apollo.rom` file inside the `Apollo/build/product/Kernel/` folder. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
+You first need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file text field to point to the `Serena.rom` file inside the `Serena/build/product/Kernel/` folder. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
 Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS.
 
@@ -109,4 +109,4 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 Dietmar Planitzer - [@linkedin](https://www.linkedin.com/in/dplanitzer)
 
-Project link: [https://github.com/dplanitzer/Apollo](https://github.com/dplanitzer/Apollo)
+Project link: [https://github.com/dplanitzer/Serena](https://github.com/dplanitzer/Serena)

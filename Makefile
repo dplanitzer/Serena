@@ -95,7 +95,7 @@ export KERNEL_TESTS_OBJS_DIR := $(OBJS_DIR)/Kernel/Tests
 SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/sh
 export SH_OBJS_DIR := $(OBJS_DIR)/Commands/sh
 
-ROM_FILE := $(KERNEL_PRODUCT_DIR)/Apollo.rom
+ROM_FILE := $(KERNEL_PRODUCT_DIR)/Serena.rom
 export KERNEL_FILE := $(KERNEL_OBJS_DIR)/Kernel.bin
 export KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/KernelTests
 export SH_FILE := $(SH_OBJS_DIR)/sh

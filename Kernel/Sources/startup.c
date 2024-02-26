@@ -1,6 +1,6 @@
 //
 //  startup.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
@@ -17,7 +17,7 @@
 #include "Platform.h"
 #include "Process.h"
 #include "ProcessManager.h"
-#include "RamFS.h"
+#include "SerenaFS.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
 
@@ -131,13 +131,13 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 static void _Nonnull init_boot_filesystem(void)
 {
     decl_try_err();
-    FilesystemRef pRamFS;
+    FilesystemRef pSerenaFS;
 
     // XXX for now always a RAM disk
     User rootDirUser = {kRootUserId, kRootGroupId};
-    try(RamFS_Create(rootDirUser, (RamFSRef*)&pRamFS));
-    try(FilesystemManager_Create(pRamFS, &gFilesystemManager));
-    Object_Release(pRamFS);
+    try(SerenaFS_Create(rootDirUser, (SerenaFSRef*)&pSerenaFS));
+    try(FilesystemManager_Create(pSerenaFS, &gFilesystemManager));
+    Object_Release(pSerenaFS);
     return;
 
 catch:

@@ -1,6 +1,6 @@
 //
 //  TabStops.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 9/21/23.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.

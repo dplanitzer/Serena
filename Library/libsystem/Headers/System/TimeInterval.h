@@ -1,6 +1,6 @@
 //
 //  TimeInterval.h
-//  Apollo
+//  libsystem
 //
 //  Created by Dietmar Planitzer on 2/12/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

@@ -1,7 +1,7 @@
 
 ;
 ;  InputDriver_asm.i
-;  Apollo
+;  kernel
 ;
 ;  Created by Dietmar Planitzer on 5/26/21.
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.

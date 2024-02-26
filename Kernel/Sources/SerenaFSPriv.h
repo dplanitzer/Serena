@@ -1,15 +1,15 @@
 //
-//  RamFSPriv.h
-//  Apollo
+//  SerenaFSPriv.h
+//  kernel
 //
 //  Created by Dietmar Planitzer on 12/7/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef RamFSPriv_h
-#define RamFSPriv_h
+#ifndef SerenaFSPriv_h
+#define SerenaFSPriv_h
 
-#include "RamFS.h"
+#include "SerenaFS.h"
 #include "ConditionVariable.h"
 #include "Lock.h"
 
@@ -23,7 +23,7 @@
 
 
 //
-// RamFS Directories
+// SerenaFS Directories
 //
 
 // Directory content organisation:
@@ -54,7 +54,7 @@ typedef struct RamDirectoryQuery {
 
 
 //
-// RamFS Disk Nodes
+// SerenaFS Disk Nodes
 //
 
 typedef struct _RamBlockMap {
@@ -83,7 +83,7 @@ typedef RamDiskNode* RamDiskNodeRef;
 
 
 //
-// RamFS Inode Block Map
+// SerenaFS Inode Block Map
 //
 
 #define Inode_GetBlockMap(__self) \
@@ -91,10 +91,10 @@ typedef RamDiskNode* RamDiskNodeRef;
 
 
 //
-// RamFS
+// SerenaFS
 //
 
-CLASS_IVARS(RamFS, Filesystem,
+CLASS_IVARS(SerenaFS, Filesystem,
     Lock                lock;           // Shared between filesystem proper and inodes
     User                rootDirUser;    // User we should use for the root directory
     ConditionVariable   notifier;
@@ -115,11 +115,11 @@ typedef enum _BlockAccessMode {
 } BlockAccessMode;
 
 
-static InodeId RamFS_GetNextAvailableInodeId_Locked(RamFSRef _Nonnull self);
-static errno_t RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self);
-static errno_t RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);
-static void RamFS_DestroyDiskNode(RamFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode);
-static errno_t RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock);
-static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
+static InodeId SerenaFS_GetNextAvailableInodeId_Locked(SerenaFSRef _Nonnull self);
+static errno_t SerenaFS_FormatWithEmptyFilesystem(SerenaFSRef _Nonnull self);
+static errno_t SerenaFS_CreateDirectoryDiskNode(SerenaFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);
+static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode);
+static errno_t SerenaFS_GetDiskBlockForBlockIndex(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock);
+static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
 
-#endif /* RamFSPriv_h */
+#endif /* SerenaFSPriv_h */

@@ -1,6 +1,6 @@
 //
 //  FloppyDisk.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.

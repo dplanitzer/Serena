@@ -1,6 +1,6 @@
 //
 //  krt.h
-//  Apollo
+//  crt
 //
 //  Created by Dietmar Planitzer on 2/4/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

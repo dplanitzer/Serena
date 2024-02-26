@@ -1,6 +1,6 @@
 //
 //  scanf.c
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 1/26/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

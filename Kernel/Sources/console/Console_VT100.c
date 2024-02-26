@@ -1,6 +1,6 @@
 //
 //  Console_VT100.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 1/7/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

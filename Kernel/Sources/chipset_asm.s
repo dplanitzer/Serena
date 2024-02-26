@@ -1,6 +1,6 @@
 ;
 ;  chipset_asm.s
-;  Apollo
+;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/2/21.
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.

@@ -1,6 +1,6 @@
 //
 //  Stream_Memory.c
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 1/29/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

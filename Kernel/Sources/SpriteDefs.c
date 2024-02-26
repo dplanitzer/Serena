@@ -1,6 +1,6 @@
 //
 //  SpriteDefs.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 9/25/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

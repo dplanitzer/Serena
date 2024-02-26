@@ -1,6 +1,6 @@
 //
 //  DispatchQueue.h
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 4/21/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.

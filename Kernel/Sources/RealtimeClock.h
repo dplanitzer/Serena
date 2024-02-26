@@ -1,6 +1,6 @@
 //
 //  RealtimeClock.h
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 2/11/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.

@@ -1,6 +1,6 @@
 ;
 ;  ULock_asm.s
-;  Apollo
+;  kernel
 ;
 ;  Created by Dietmar Planitzer on 8/12/23.
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.

@@ -1,6 +1,6 @@
 //
 //  PathComponent.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 1/14/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

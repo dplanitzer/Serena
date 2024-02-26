@@ -1,6 +1,6 @@
 //
 //  zorro.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 4/27/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

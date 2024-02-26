@@ -1,12 +1,12 @@
 //
-//  RamFS.c
-//  Apollo
+//  SerenaFS.c
+//  kernel
 //
 //  Created by Dietmar Planitzer on 11/11/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "RamFSPriv.h"
+#include "SerenaFSPriv.h"
 #include "MonotonicClock.h"
 
 
@@ -27,18 +27,18 @@ static bool DirectoryNode_IsEmpty(InodeRef _Nonnull _Locked self)
 // MARK: Filesystem
 ////////////////////////////////////////////////////////////////////////////////
 
-// Creates an instance of RamFS. RamFS is a volatile file system that does not
+// Creates an instance of SerenaFS. SerenaFS is a volatile file system that does not
 // survive system restarts. The 'rootDirUser' parameter specifies the user and
 // group ID of the root directory.
-errno_t RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileSys)
+errno_t SerenaFS_Create(User rootDirUser, SerenaFSRef _Nullable * _Nonnull pOutFileSys)
 {
     decl_try_err();
-    RamFSRef self;
+    SerenaFSRef self;
 
     assert(sizeof(RamDiskNode) <= kRamBlockSize);
     assert(sizeof(RamDirectoryEntry) * kRamDirectoryEntriesPerBlock == kRamBlockSize);
     
-    try(Filesystem_Create(&kRamFSClass, (FilesystemRef*)&self));
+    try(Filesystem_Create(&kSerenaFSClass, (FilesystemRef*)&self));
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->notifier);
     PointerArray_Init(&self->dnodes, 16);
@@ -47,7 +47,7 @@ errno_t RamFS_Create(User rootDirUser, RamFSRef _Nullable * _Nonnull pOutFileSys
     self->isMounted = false;
     self->isReadOnly = false;
 
-    try(RamFS_FormatWithEmptyFilesystem(self));
+    try(SerenaFS_FormatWithEmptyFilesystem(self));
 
     *pOutFileSys = self;
     return EOK;
@@ -57,31 +57,31 @@ catch:
     return err;
 }
 
-void RamFS_deinit(RamFSRef _Nonnull self)
+void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
     for(int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
-        RamFS_DestroyDiskNode(self, PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef));
+        SerenaFS_DestroyDiskNode(self, PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef));
     }
     PointerArray_Deinit(&self->dnodes);
     ConditionVariable_Deinit(&self->notifier);
     Lock_Deinit(&self->lock);
 }
 
-static errno_t RamFS_FormatWithEmptyFilesystem(RamFSRef _Nonnull self)
+static errno_t SerenaFS_FormatWithEmptyFilesystem(SerenaFSRef _Nonnull self)
 {
     decl_try_err();
     const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
     const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
-    try(RamFS_CreateDirectoryDiskNode(self, 0, self->rootDirUser.uid, self->rootDirUser.gid, dirPerms, &self->rootDirId));
+    try(SerenaFS_CreateDirectoryDiskNode(self, 0, self->rootDirUser.uid, self->rootDirUser.gid, dirPerms, &self->rootDirId));
     return EOK;
 
 catch:
     return err;
 }
 
-static int RamFS_GetIndexOfDiskNodeForId(RamFSRef _Nonnull self, InodeId id)
+static int SerenaFS_GetIndexOfDiskNodeForId(SerenaFSRef _Nonnull self, InodeId id)
 {
     for (int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
         RamDiskNodeRef pCurDiskNode = PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef);
@@ -96,7 +96,7 @@ static int RamFS_GetIndexOfDiskNodeForId(RamFSRef _Nonnull self, InodeId id)
 // Invoked when Filesystem_AllocateNode() is called. Subclassers should
 // override this method to allocate the on-disk representation of an inode
 // of the given type.
-errno_t RamFS_onAllocateNodeOnDisk(RamFSRef _Nonnull self, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
+errno_t SerenaFS_onAllocateNodeOnDisk(SerenaFSRef _Nonnull self, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
 {
     decl_try_err();
     const InodeId id = (InodeId) self->nextAvailableInodeId++;
@@ -113,12 +113,12 @@ errno_t RamFS_onAllocateNodeOnDisk(RamFSRef _Nonnull self, FileType type, void* 
     return EOK;
 
 catch:
-    RamFS_DestroyDiskNode(self, pDiskNode);
+    SerenaFS_DestroyDiskNode(self, pDiskNode);
     *pOutId = 0;
     return err;
 }
 
-static void RamFS_DestroyDiskNode(RamFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode)
+static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode)
 {
     if (pDiskNode) {
         for (int i = 0; i < kMaxDirectDataBlockPointers; i++) {
@@ -134,10 +134,10 @@ static void RamFS_DestroyDiskNode(RamFSRef _Nonnull self, RamDiskNodeRef _Nullab
 // create and inode instance and fill it in with the data from the disk and
 // then return it. It should return a suitable error and NULL if the inode
 // data can not be read off the disk.
-errno_t RamFS_onReadNodeFromDisk(RamFSRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-    const int dIdx = RamFS_GetIndexOfDiskNodeForId(self, id);
+    const int dIdx = SerenaFS_GetIndexOfDiskNodeForId(self, id);
     if (dIdx < 0) throw(ENOENT);
     const RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
 
@@ -163,10 +163,10 @@ catch:
 // Invoked when the inode is relinquished and it is marked as modified. The
 // filesystem override should write the inode meta-data back to the 
 // corresponding disk node.
-errno_t RamFS_onWriteNodeToDisk(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
+errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     decl_try_err();
-    const int dIdx = RamFS_GetIndexOfDiskNodeForId(self, Inode_GetId(pNode));
+    const int dIdx = SerenaFS_GetIndexOfDiskNodeForId(self, Inode_GetId(pNode));
     if (dIdx < 0) throw(ENOENT);
     RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
@@ -195,14 +195,14 @@ catch:
 // no longer being referenced by any directory and that the on-disk
 // representation should be deleted from the disk and deallocated. This
 // operation is assumed to never fail.
-void RamFS_onRemoveNodeFromDisk(RamFSRef _Nonnull self, InodeId id)
+void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id)
 {
-    const int dIdx = RamFS_GetIndexOfDiskNodeForId(self, id);
+    const int dIdx = SerenaFS_GetIndexOfDiskNodeForId(self, id);
 
     if (dIdx >= 0) {
         RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
 
-        RamFS_DestroyDiskNode(self, pDiskNode);
+        SerenaFS_DestroyDiskNode(self, pDiskNode);
         PointerArray_RemoveAt(&self->dnodes, dIdx);
     }
 }
@@ -210,7 +210,7 @@ void RamFS_onRemoveNodeFromDisk(RamFSRef _Nonnull self, InodeId id)
 // Checks whether the given user should be granted access to the given node based
 // on the requested permission. Returns EOK if access should be granted and a suitable
 // error code if it should be denied.
-static errno_t RamFS_CheckAccess_Locked(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
+static errno_t SerenaFS_CheckAccess_Locked(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
 {
     if (mode == kFilePermission_Write) {
         if (self->isReadOnly) {
@@ -267,7 +267,7 @@ static bool xHasMatchingDirectoryEntry(const RamDirectoryQuery* _Nonnull pQuery,
 // Returns a reference to the directory entry that holds 'pName'. NULL and a
 // suitable error is returned if no such entry exists or 'pName' is empty or
 // too long.
-static errno_t RamFS_GetDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const RamDirectoryQuery* _Nonnull pQuery, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+static errno_t SerenaFS_GetDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const RamDirectoryQuery* _Nonnull pQuery, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
 {
     decl_try_err();
     const FileOffset fileSize = Inode_GetFileSize(pNode);
@@ -296,7 +296,7 @@ static errno_t RamFS_GetDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull
             break;
         }
 
-        try(RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock));
+        try(SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock));
         const RamDirectoryEntry* pCurEntry = (const RamDirectoryEntry*)pDiskBlock;
         const int nDirEntries = nBytesAvailable / sizeof(RamDirectoryEntry);
         if (xHasMatchingDirectoryEntry(pQuery, pCurEntry, nDirEntries, pOutEmptyPtr, pOutEntryPtr)) {
@@ -313,24 +313,24 @@ catch:
 // Returns a reference to the directory entry that holds 'pName'. NULL and a
 // suitable error is returned if no such entry exists or 'pName' is empty or
 // too long.
-static inline errno_t RamFS_GetDirectoryEntryForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const PathComponent* _Nonnull pName, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+static inline errno_t SerenaFS_GetDirectoryEntryForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const PathComponent* _Nonnull pName, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
 {
     RamDirectoryQuery q;
 
     q.kind = kDirectoryQuery_PathComponent;
     q.u.pc = pName;
-    return RamFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
+    return SerenaFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
 }
 
 // Returns a reference to the directory entry that holds 'id'. NULL and a
 // suitable error is returned if no such entry exists.
-static errno_t RamFS_GetDirectoryEntryForId(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeId id, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+static errno_t SerenaFS_GetDirectoryEntryForId(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeId id, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
 {
     RamDirectoryQuery q;
 
     q.kind = kDirectoryQuery_InodeId;
     q.u.id = id;
-    return RamFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
+    return SerenaFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
 }
 
 // Looks up the disk block that corresponds to the logical block address 'blockIdx'.
@@ -339,7 +339,7 @@ static errno_t RamFS_GetDirectoryEntryForId(RamFSRef _Nonnull self, InodeRef _No
 // logical block address may be backed by an actual disk block. A missing disk block
 // is substituted at read time by an empty block.
 // NOTE: never marks the inode as modified. The caller has to take care of this.
-static errno_t RamFS_GetDiskBlockForBlockIndex(RamFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock)
+static errno_t SerenaFS_GetDiskBlockForBlockIndex(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock)
 {
     decl_try_err();
     char* pDiskBlock = NULL;
@@ -377,7 +377,7 @@ catch:
 // 'nBytesToRead'. However the offset is always advanced by a full block size.
 // This process continues until 'nBytesToRead' has decreased to 0, EOF or an
 // error is encountered. Whatever comes first. 
-static errno_t RamFS_xRead(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToRead, RamReadCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesRead)
+static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToRead, RamReadCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     const FileOffset fileSize = Inode_GetFileSize(pNode);
@@ -397,7 +397,7 @@ static errno_t RamFS_xRead(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
             break;
         }
 
-        const errno_t e1 = RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock);
+        const errno_t e1 = SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock);
         if (e1 != EOK) {
             err = (nBytesToRead == nOriginalBytesToRead) ? e1 : EOK;
             break;
@@ -417,7 +417,7 @@ catch:
 
 // Writes 'nBytesToWrite' bytes to the file 'pNode' starting at offset 'offset'.
 // 'cb' is used to copy the data from teh source to the disk block(s).
-static errno_t RamFS_xWrite(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToWrite, RamWriteCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesWritten)
+static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToWrite, RamWriteCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
     ssize_t nBytesWritten = 0;
@@ -432,7 +432,7 @@ static errno_t RamFS_xWrite(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pN
         const ssize_t nBytesAvailable = __min(kRamBlockSize - blockOffset, nBytesToWrite);
         char* pDiskBlock;
 
-        const errno_t e1 = RamFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Write, &pDiskBlock);
+        const errno_t e1 = SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Write, &pDiskBlock);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
             break;
@@ -458,7 +458,7 @@ catch:
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
 // before onMount() has returned with EOK.
-errno_t RamFS_onMount(RamFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
+errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
 
@@ -478,7 +478,7 @@ catch:
 // and the file system implementation is required to do everything it can to
 // successfully unmount. Unmount errors are ignored and the file system manager
 // will complete the unmount in any case.
-errno_t RamFS_onUnmount(RamFSRef _Nonnull self)
+errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
 {
     decl_try_err();
 /*
@@ -513,7 +513,7 @@ catch:
 
 // Returns the root node of the filesystem if the filesystem is currently in
 // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
-errno_t RamFS_acquireRootNode(RamFSRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t SerenaFS_acquireRootNode(SerenaFSRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     return Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirId, NULL, pOutNode);
 }
@@ -525,13 +525,13 @@ errno_t RamFS_acquireRootNode(RamFSRef _Nonnull self, InodeRef _Nullable _Locked
 // the root node of the filesystem and 'pComponent' is ".." then 'pParentNode'
 // should be returned. If the path component name is longer than what is
 // supported by the file system, ENAMETOOLONG should be returned.
-errno_t RamFS_acquireNodeForName(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pName, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pName, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
     RamDirectoryEntry* pEntry;
 
-    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
-    try(RamFS_GetDirectoryEntryForName(self, pParentNode, pName, &pEntry));
+    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
+    try(SerenaFS_GetDirectoryEntryForName(self, pParentNode, pName, &pEntry));
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, pEntry->id, NULL, pOutNode));
     return EOK;
 
@@ -548,13 +548,13 @@ catch:
 // contains 'id' and ENOENT otherwise. If the name of 'id' as stored in the
 // file system is > the capacity of the path component, then ERANGE should
 // be returned.
-errno_t RamFS_getNameOfNode(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
+errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
 {
     decl_try_err();
     RamDirectoryEntry* pEntry;
 
-    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
-    try(RamFS_GetDirectoryEntryForId(self, pParentNode, id, &pEntry));
+    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
+    try(SerenaFS_GetDirectoryEntryForId(self, pParentNode, id, &pEntry));
 
     const ssize_t len = String_LengthUpTo(pEntry->filename, kMaxFilenameLength);
     if (len > pComponent->capacity) {
@@ -572,7 +572,7 @@ catch:
 
 // Returns a file info record for the given Inode. The Inode may be of any
 // file type.
-errno_t RamFS_getFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
+errno_t SerenaFS_getFileInfo(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
 {
     Inode_GetFileInfo(pNode, pOutInfo);
     return EOK;
@@ -580,7 +580,7 @@ errno_t RamFS_getFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
 
 // Modifies one or more attributes stored in the file info record of the given
 // Inode. The Inode may be of any type.
-errno_t RamFS_setFileInfo(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
+errno_t SerenaFS_setFileInfo(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
 {
     decl_try_err();
 
@@ -593,12 +593,12 @@ catch:
     return err;
 }
 
-static errno_t RamFS_RemoveDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove)
+static errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove)
 {
     decl_try_err();
     RamDirectoryEntry* pEntry;
 
-    try(RamFS_GetDirectoryEntryForId(self, pDirNode, idToRemove, &pEntry));
+    try(SerenaFS_GetDirectoryEntryForId(self, pDirNode, idToRemove, &pEntry));
     pEntry->id = 0;
     pEntry->filename[0] = '\0';
 
@@ -614,7 +614,7 @@ catch:
 // entry; otherwise a completely new entry will be added to the directory.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-static errno_t RamFS_InsertDirectoryEntry(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, RamDirectoryEntry* _Nullable pEmptyEntry)
+static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, RamDirectoryEntry* _Nullable pEmptyEntry)
 {
     decl_try_err();
 
@@ -660,7 +660,7 @@ catch:
     return err;
 }
 
-static errno_t RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId)
+static errno_t SerenaFS_CreateDirectoryDiskNode(SerenaFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId)
 {
     decl_try_err();
     InodeRef _Locked pDirNode = NULL;
@@ -668,8 +668,8 @@ static errno_t RamFS_CreateDirectoryDiskNode(RamFSRef _Nonnull self, InodeId par
     try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_Directory, uid, gid, permissions, NULL, &pDirNode));
     const InodeId id = Inode_GetId(pDirNode);
 
-    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Self, id, NULL));
-    try(RamFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id, NULL));
+    try(SerenaFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Self, id, NULL));
+    try(SerenaFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id, NULL));
 
     Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
     *pOutId = id;
@@ -684,7 +684,7 @@ catch:
 // Creates an empty directory as a child of the given directory node and with
 // the given name, user and file permissions. Returns EEXIST if a node with
 // the given name already exists.
-errno_t RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions)
+errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions)
 {
     decl_try_err();
 
@@ -695,7 +695,7 @@ errno_t RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _Nonn
 
 
     // We must have write permissions for 'pParentNode'
-    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
 
 
     // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
@@ -706,7 +706,7 @@ errno_t RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _Nonn
 
     q.kind = kDirectoryQuery_PathComponent;
     q.u.pc = pName;
-    err = RamFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
+    err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
     if (err == ENOENT) {
         err = EOK;
     } else if (err == EOK) {
@@ -718,8 +718,8 @@ errno_t RamFS_createDirectory(RamFSRef _Nonnull self, const PathComponent* _Nonn
 
     // Create the new directory and add it to its parent directory
     InodeId newDirId = 0;
-    try(RamFS_CreateDirectoryDiskNode(self, Inode_GetId(pParentNode), user.uid, user.gid, permissions, &newDirId));
-    try(RamFS_InsertDirectoryEntry(self, pParentNode, pName, newDirId, pEmptyEntry));
+    try(SerenaFS_CreateDirectoryDiskNode(self, Inode_GetId(pParentNode), user.uid, user.gid, permissions, &newDirId));
+    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, newDirId, pEmptyEntry));
 
     return EOK;
 
@@ -731,7 +731,7 @@ catch:
 // Opens the directory represented by the given node. Returns a directory
 // descriptor object which is the I/O channel that allows you to read the
 // directory content.
-errno_t RamFS_openDirectory(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
+errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
 
@@ -766,7 +766,7 @@ static ssize_t xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const Ram
     return nBytesCopied;
 }
 
-errno_t RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = Directory_GetInode(pDir);
     const ssize_t nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(RamDirectoryEntry);
@@ -775,7 +775,7 @@ errno_t RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, 
     // XXX reading multiple entries at once doesn't work right because xRead advances 'pBuffer' by sizeof(RamDirectoryEntry) rather
     // XXX than DirectoryEntry. Former is 32 bytes and later is 260 bytes.
     // XXX the Directory_GetOffset() should really return the numer of the entry rather than a byte offset
-    const errno_t err = RamFS_xRead(self, 
+    const errno_t err = SerenaFS_xRead(self, 
         pNode, 
         Directory_GetOffset(pDir),
         nBytesToReadFromDirectory,
@@ -793,7 +793,7 @@ errno_t RamFS_readDirectory(RamFSRef _Nonnull self, DirectoryRef _Nonnull pDir, 
 // the mode is exclusive then the file is created if it doesn't exist and
 // an error is thrown if the file exists. Note that the file is not opened.
 // This must be done by calling the open() method.
-errno_t RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
 
@@ -804,7 +804,7 @@ errno_t RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull p
 
 
     // We must have write permissions for 'pParentNode'
-    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
 
 
     // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
@@ -815,7 +815,7 @@ errno_t RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull p
 
     q.kind = kDirectoryQuery_PathComponent;
     q.u.pc = pName;
-    err = RamFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
+    err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
     if (err == ENOENT) {
         err = EOK;
     } else if (err == EOK) {
@@ -829,7 +829,7 @@ errno_t RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull p
 
             // Truncate the file to length 0, if requested
             if ((options & kOpen_Truncate) == kOpen_Truncate) {
-                RamFS_xTruncateFile(self, *pOutNode, 0);
+                SerenaFS_xTruncateFile(self, *pOutNode, 0);
             }
 
             return EOK;
@@ -841,7 +841,7 @@ errno_t RamFS_createFile(RamFSRef _Nonnull self, const PathComponent* _Nonnull p
 
     // Create the new file and add it to its parent directory
     try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_RegularFile, user.uid, user.gid, permissions, NULL, pOutNode));
-    try(RamFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(*pOutNode), pEmptyEntry));
+    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(*pOutNode), pEmptyEntry));
 
     return EOK;
 
@@ -855,7 +855,7 @@ catch:
 // maintains state that is specific to this connection. This state will be
 // protected by the resource's internal locking mechanism. 'pNode' represents
 // the named resource instance that should be represented by the I/O channel.
-errno_t RamFS_open(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, FileRef _Nullable * _Nonnull pOutFile)
+errno_t SerenaFS_open(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, FileRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     FilePermissions permissions = 0;
@@ -878,7 +878,7 @@ errno_t RamFS_open(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsi
     try(File_Create((FilesystemRef)self, mode, pNode, pOutFile));
 
     if ((mode & kOpen_Truncate) != 0) {
-        RamFS_xTruncateFile(self, pNode, 0);
+        SerenaFS_xTruncateFile(self, pNode, 0);
     }
     
 catch:
@@ -895,7 +895,7 @@ catch:
 // The close operation may return an error. Returning an error will not stop the kernel from completing the close and eventually
 // deallocating the resource. The error is passed on to the caller but is purely advisory in nature. The close operation is
 // required to mark the resource as closed whether the close internally succeeded or failed. 
-errno_t RamFS_close(RamFSRef _Nonnull self, FileRef _Nonnull pFile)
+errno_t SerenaFS_close(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile)
 {
     // Nothing to do for now
     return EOK;
@@ -907,11 +907,11 @@ static ssize_t xCopyOutFileContent(void* _Nonnull pOut, const void* _Nonnull pIn
     return nBytesToRead;
 }
 
-errno_t RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t SerenaFS_read(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
 
-    const errno_t err = RamFS_xRead(self, 
+    const errno_t err = SerenaFS_xRead(self, 
         pNode, 
         File_GetOffset(pFile),
         nBytesToRead,
@@ -922,7 +922,7 @@ errno_t RamFS_read(RamFSRef _Nonnull self, FileRef _Nonnull pFile, void* _Nonnul
     return err;
 }
 
-errno_t RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t SerenaFS_write(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
     FileOffset offset;
@@ -933,7 +933,7 @@ errno_t RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const void* 
         offset = File_GetOffset(pFile);
     }
 
-    const errno_t err = RamFS_xWrite(self, 
+    const errno_t err = SerenaFS_xWrite(self, 
         pNode, 
         offset,
         nBytesToWrite,
@@ -947,7 +947,7 @@ errno_t RamFS_write(RamFSRef _Nonnull self, FileRef _Nonnull pFile, const void* 
 // Internal file truncation function. Shortens the file 'pNode' to the new and
 // smaller size 'length'. Does not support increasing the size of a file. Expects
 // that 'pNode' is a regular file.
-static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length)
+static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length)
 {
     const FileOffset oldLength = Inode_GetFileSize(pNode);
     const FileOffset oldLengthRoundedUpToBlockBoundary = __Ceil_PowerOf2(oldLength, kRamBlockSize);
@@ -974,7 +974,7 @@ static void RamFS_xTruncateFile(RamFSRef _Nonnull self, InodeRef _Nonnull _Locke
 // old length. Note that a filesystem implementation is free to defer the
 // actual allocation of the new blocks until an attempt is made to read or
 // write them.
-errno_t RamFS_truncate(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length)
+errno_t SerenaFS_truncate(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length)
 {
     decl_try_err();
 
@@ -999,7 +999,7 @@ errno_t RamFS_truncate(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, 
     }
     else if (oldLength > length) {
         // Reduction in size
-        RamFS_xTruncateFile(self, pNode, length);
+        SerenaFS_xTruncateFile(self, pNode, length);
     }
 
 catch:
@@ -1007,7 +1007,7 @@ catch:
 }
 
 // Verifies that the given node is accessible assuming the given access mode.
-errno_t RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, int mode)
+errno_t SerenaFS_checkAccess(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, int mode)
 {
     decl_try_err();
 
@@ -1030,12 +1030,12 @@ errno_t RamFS_checkAccess(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-errno_t RamFS_unlink(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pParentNode, User user)
+errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pParentNode, User user)
 {
     decl_try_err();
 
     // We must have write permissions for 'pParentNode'
-    try(RamFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
 
 
     // A directory must be empty in order to be allowed to unlink it
@@ -1045,7 +1045,7 @@ errno_t RamFS_unlink(RamFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUn
 
 
     // Remove the directory entry in the parent directory
-    try(RamFS_RemoveDirectoryEntry(self, pParentNode, Inode_GetId(pNodeToUnlink)));
+    try(SerenaFS_RemoveDirectoryEntry(self, pParentNode, Inode_GetId(pNodeToUnlink)));
 
 
     // Unlink the node itself
@@ -1059,36 +1059,36 @@ catch:
 // Renames the node with name 'pName' and which is an immediate child of the
 // node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
 // the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
-errno_t RamFS_rename(RamFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pNewParentNode, User user)
+errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pNewParentNode, User user)
 {
     // XXX implement me
     return EACCESS;
 }
 
 
-CLASS_METHODS(RamFS, Filesystem,
-OVERRIDE_METHOD_IMPL(deinit, RamFS, Object)
-OVERRIDE_METHOD_IMPL(onAllocateNodeOnDisk, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(onReadNodeFromDisk, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(onWriteNodeToDisk, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(onRemoveNodeFromDisk, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(onMount, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(onUnmount, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(acquireRootNode, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(acquireNodeForName, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(getNameOfNode, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(getFileInfo, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(setFileInfo, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(createFile, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(createDirectory, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(openDirectory, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(readDirectory, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(open, RamFS, IOResource)
-OVERRIDE_METHOD_IMPL(close, RamFS, IOResource)
-OVERRIDE_METHOD_IMPL(read, RamFS, IOResource)
-OVERRIDE_METHOD_IMPL(write, RamFS, IOResource)
-OVERRIDE_METHOD_IMPL(truncate, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(checkAccess, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(unlink, RamFS, Filesystem)
-OVERRIDE_METHOD_IMPL(rename, RamFS, Filesystem)
+CLASS_METHODS(SerenaFS, Filesystem,
+OVERRIDE_METHOD_IMPL(deinit, SerenaFS, Object)
+OVERRIDE_METHOD_IMPL(onAllocateNodeOnDisk, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(onReadNodeFromDisk, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(onWriteNodeToDisk, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(onRemoveNodeFromDisk, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(onMount, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(onUnmount, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(acquireRootNode, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(acquireNodeForName, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(getNameOfNode, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(getFileInfo, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(setFileInfo, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(createFile, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(createDirectory, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(openDirectory, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(readDirectory, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(open, SerenaFS, IOResource)
+OVERRIDE_METHOD_IMPL(close, SerenaFS, IOResource)
+OVERRIDE_METHOD_IMPL(read, SerenaFS, IOResource)
+OVERRIDE_METHOD_IMPL(write, SerenaFS, IOResource)
+OVERRIDE_METHOD_IMPL(truncate, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(checkAccess, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(unlink, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(rename, SerenaFS, Filesystem)
 );

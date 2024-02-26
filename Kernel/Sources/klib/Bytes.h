@@ -1,6 +1,6 @@
 //
 //  Bytes.h
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 3/14/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.

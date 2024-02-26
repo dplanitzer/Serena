@@ -1,6 +1,6 @@
 //
 //  _astart.c
-//  Apollo
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/31/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -12,11 +12,11 @@
 
 extern void main_closure(int argc, char *argv[]);
 
-// Apollo style process start function. Differences to the standard C start are:
+// Serena style process start function. Differences to the standard C start are:
 // - invokes main_closure() instead of main().
 // - it does not invoke exit() when main_closure() returns.
 //
-// A process in Apollo is a collection of dispatch queues rather than threads.
+// A process in Serena is a collection of dispatch queues rather than threads.
 // Every process starts out with one dispatch queue which is known as the main
 // dispatch queue. This is a serial dispatch queue which means that it executes
 // one closure after the closures. Closures are dispatched to dispatch queues

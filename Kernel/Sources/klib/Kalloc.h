@@ -1,6 +1,6 @@
 //
 //  Kalloc.h
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 8/6/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.

@@ -1,6 +1,6 @@
 //
 //  vt52parse.c
-//  Apollo
+//  kernel
 //
 //  Created by Dietmar Planitzer on 1/6/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.

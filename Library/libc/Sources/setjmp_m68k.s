@@ -1,6 +1,6 @@
 ;
 ;  setjmp_m68k.s
-;  Apollo
+;  libc
 ;
 ;  Created by Dietmar Planitzer on 8/26/23.
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
