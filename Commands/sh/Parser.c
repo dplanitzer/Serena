@@ -17,24 +17,21 @@
 static void Parser_Block(ParserRef _Nonnull self, bool isNested, BlockRef _Nullable * _Nonnull pOutBlock);
 
 
-errno_t Parser_Create(ParserRef _Nullable * _Nonnull pOutParser)
+errno_t Parser_Create(ParserRef _Nullable * _Nonnull pOutSelf)
 {
-    ParserRef self = (ParserRef)calloc(1, sizeof(Parser));
+    decl_try_err();
+    ParserRef self;
+    
+    try_null(self, calloc(1, sizeof(Parser)), ENOMEM);
+    try(Lexer_Init(&self->lexer));
 
-    if (self == NULL) {
-        *pOutParser = NULL;
-        return ENOMEM;
-    }
-
-    const errno_t err = Lexer_Init(&self->lexer);
-    if (err != 0) {
-        Parser_Destroy(self);
-        *pOutParser = NULL;
-        return err;
-    }
-
-    *pOutParser = self;
+    *pOutSelf = self;
     return 0;
+
+catch:
+    Parser_Destroy(self);
+    *pOutSelf = NULL;
+    return err;
 }
 
 void Parser_Destroy(ParserRef _Nullable self)

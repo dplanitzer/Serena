@@ -13,6 +13,16 @@
 #include <string.h>
 #include <System/_math.h>
 
+typedef errno_t (*DirectoryIteratorCallback)(InterpreterRef _Nonnull self, const char* _Nonnull pDirPath, DirectoryEntry* _Nonnull pEntry, void* _Nullable pContext);
+
+struct DirectoryEntryFormat {
+    int linkCountWidth;
+    int uidWidth;
+    int gidWidth;
+    int sizeWidth;
+    int inodeIdWidth;
+};
+
 
 static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
 {

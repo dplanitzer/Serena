@@ -10,6 +10,8 @@
 #define _SYS_SYSTEM_H 1
 
 #include <System/_cmndef.h>
+#include <System/_nulldef.h>
+#include <System/_weak.h>
 #include <System/Types.h>
 #include <System/Clock.h>
 #include <System/DispatchQueue.h>

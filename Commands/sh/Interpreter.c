@@ -12,7 +12,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <System/_math.h>
+#include <System/System.h>
+
+typedef int (*InterpreterCommandCallback)(InterpreterRef _Nonnull, int argc, char** argv);
+
+typedef struct InterpreterCommand {
+    const char* _Nonnull                name;
+    InterpreterCommandCallback _Nonnull cb;
+} InterpreterCommand;
 
 
 extern int cmd_cd(InterpreterRef _Nonnull self, int argc, char** argv);
@@ -37,35 +44,29 @@ static const InterpreterCommand gBuiltinCommands[] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-errno_t Interpreter_Create(InterpreterRef _Nullable * _Nonnull pOutInterpreter)
+errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nullable * _Nonnull pOutSelf)
 {
-    InterpreterRef self = (InterpreterRef)calloc(1, sizeof(Interpreter));
+    decl_try_err();
+    InterpreterRef self;
+    
+    try_null(self, calloc(1, sizeof(Interpreter)), ENOMEM);
+    try(StackAllocator_Create(1024, 8192, &self->allocator));
+    try_null(self->pathBuffer, malloc(PATH_MAX), ENOMEM);
+    self->context = pContext;
 
-    if (self == NULL) {
-        *pOutInterpreter = NULL;
-        return ENOMEM;
-    }
-
-    if (StackAllocator_Create(1024, 8192, &self->allocator) != 0) {
-        Interpreter_Destroy(self);
-        *pOutInterpreter = NULL;
-        return ENOMEM;
-    }
-
-    self->pathBuffer = (char*)malloc(PATH_MAX);
-    if (self->pathBuffer == NULL) {
-        Interpreter_Destroy(self);
-        *pOutInterpreter = NULL;
-        return ENOMEM;
-    }
-
-    *pOutInterpreter = self;
+    *pOutSelf = self;
     return 0;
+
+catch:
+    Interpreter_Destroy(self);
+    *pOutSelf = NULL;
+    return err;
 }
 
 void Interpreter_Destroy(InterpreterRef _Nullable self)
 {
     if (self) {
+        self->context = NULL;
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
         free(self->pathBuffer);

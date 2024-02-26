@@ -13,48 +13,39 @@
 #include <string.h>
 
 
-errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt, LineReaderRef _Nullable * _Nonnull pOutReader)
+errno_t LineReader_Create(int maxLineLength, int historyCapacity, const char* _Nonnull pPrompt, LineReaderRef _Nullable * _Nonnull pOutSelf)
 {
-    LineReaderRef self = (LineReaderRef)calloc(1, sizeof(LineReader) + maxLineLength + 1);
+    decl_try_err();
+    LineReaderRef self;
+    
+    try_null(self, calloc(1, sizeof(LineReader) + maxLineLength + 1), ENOMEM);
+    self->lineCapacity = maxLineLength + 1;
+    self->lineCount = 0;
+    self->x = 0;
+    self->maxX = maxLineLength - 1;
+    self->savedLine = NULL;
+    self->isDirty = false;
+    self->line[0] = '\0';
 
-    if (self) {
-        self->lineCapacity = maxLineLength + 1;
-        self->lineCount = 0;
-        self->x = 0;
-        self->maxX = maxLineLength - 1;
-        self->savedLine = NULL;
-        self->isDirty = false;
-        self->line[0] = '\0';
+    try_null(self->history, calloc(historyCapacity, sizeof(char*)), ENOMEM);
+    self->historyCapacity = historyCapacity;
+    self->historyCount = 0;
+    self->historyIndex = 0;
 
-        self->history = (char**)calloc(historyCapacity, sizeof(char*));
-        self->historyCapacity = historyCapacity;
-        self->historyCount = 0;
-        self->historyIndex = 0;
+    try_null(self->prompt, strdup(pPrompt), ENOMEM);
 
-        if (historyCapacity > 0 && self->history == NULL) {
-            LineReader_Destroy(self);
-            *pOutReader = NULL;
-            return ENOMEM;
-        }
-
-        self->prompt = strdup(pPrompt);
-        if (self == NULL) {
-            LineReader_Destroy(self);
-            *pOutReader = NULL;
-            return ENOMEM;
-        }
-
-        // XXX not the best way or place to do it
-        setvbuf(stdin, NULL, _IONBF, 0);
-        setvbuf(stdout, NULL, _IONBF, 0);
-        // XXX
+    // XXX not the best way or place to do it
+    setvbuf(stdin, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    // XXX
         
-        *pOutReader = self;
-        return 0;
-    }
+    *pOutSelf = self;
+    return 0;
 
-    *pOutReader = NULL;
-    return ENOMEM;
+catch:
+    LineReader_Destroy(self);
+    *pOutSelf = NULL;
+    return err;
 }
 
 void LineReader_Destroy(LineReaderRef _Nullable self)

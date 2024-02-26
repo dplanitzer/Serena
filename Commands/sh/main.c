@@ -10,9 +10,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "Interpreter.h"
-#include "LineReader.h"
-#include "Parser.h"
+#include "Shell.h"
 
 
 void main_closure(int argc, char *argv[])
@@ -27,22 +25,13 @@ void main_closure(int argc, char *argv[])
     Directory_Create("/Users/Tester", 0755);
 
 
-    LineReaderRef pLineReader = NULL;
-    ScriptRef pScript = NULL;
-    ParserRef pParser = NULL;
-    InterpreterRef pInterpreter = NULL;
+    decl_try_err();
+    ShellRef pShell = NULL;
 
-    LineReader_Create(79, 10, ">", &pLineReader);
-    Script_Create(&pScript);
-    Parser_Create(&pParser);
-    Interpreter_Create(&pInterpreter);
+    try(Shell_CreateInteractive(&pShell));
+    try(Shell_Run(pShell));
 
-    while (true) {
-        char* line = LineReader_ReadLine(pLineReader);
-
-        putchar('\n');
-        
-        Parser_Parse(pParser, line, pScript);
-        Interpreter_Execute(pInterpreter, pScript);
-    }
+catch:
+    Shell_Destroy(pShell);
+    exit((err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE);
 }
