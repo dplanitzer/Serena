@@ -117,6 +117,19 @@ static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull
     printf("%s", self->line);
 }
 
+// Returns the number of entries that currently exist in the history.
+int LineReader_GetHistoryCount(LineReaderRef _Nonnull self)
+{
+    return self->historyCount;
+}
+
+// Returns a reference to the history entry at the given index. Entries are
+// ordered ascending from oldest to newest.
+const char* _Nonnull LineReader_GetHistoryAt(LineReaderRef _Nonnull self, int idx)
+{
+    return self->history[idx];
+}
+
 static void LineReader_PrintHistory(LineReaderRef _Nonnull self, const char* _Nonnull info)
 {
     printf("\nafter %s:\n", info);

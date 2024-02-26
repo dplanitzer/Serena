@@ -38,4 +38,7 @@ extern void LineReader_Destroy(LineReaderRef _Nullable self);
 
 extern char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self);
 
+extern int LineReader_GetHistoryCount(LineReaderRef _Nonnull self);
+extern const char* _Nonnull LineReader_GetHistoryAt(LineReaderRef _Nonnull self, int idx);
+
 #endif  /* LineReader_h */

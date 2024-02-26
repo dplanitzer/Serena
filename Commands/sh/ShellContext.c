@@ -37,3 +37,16 @@ void ShellContext_Destroy(ShellContextRef _Nullable self)
         free(self);
     }
 }
+
+// Returns the number of entries that currently exist in the history.
+int ShellContext_GetHistoryCount(ShellContextRef _Nonnull self)
+{
+    return (self->lineReader) ? LineReader_GetHistoryCount(self->lineReader) : 0;
+}
+
+// Returns a reference to the history entry at the given index. Entries are
+// ordered ascending from oldest to newest.
+const char* _Nonnull ShellContext_GetHistoryAt(ShellContextRef _Nonnull self, int idx)
+{
+    return (self->lineReader) ? LineReader_GetHistoryAt(self->lineReader, idx) : "";
+}

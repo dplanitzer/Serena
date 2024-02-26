@@ -23,6 +23,7 @@ typedef struct InterpreterCommand {
 
 
 extern int cmd_cd(InterpreterRef _Nonnull self, int argc, char** argv);
+extern int cmd_history(InterpreterRef _Nonnull self, int argc, char** argv);
 extern int cmd_list(InterpreterRef _Nonnull self, int argc, char** argv);
 extern int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv);
 extern int cmd_makedir(InterpreterRef _Nonnull self, int argc, char** argv);
@@ -35,6 +36,7 @@ static const InterpreterCommand gBuiltinCommands[] = {
     {"cd", cmd_cd},
     {"delete", cmd_delete},
     {"echo", cmd_echo},
+    {"history", cmd_history},
     {"list", cmd_list},
     {"makedir", cmd_makedir},
     {"pwd", cmd_pwd},
