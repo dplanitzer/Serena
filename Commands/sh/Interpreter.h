@@ -15,7 +15,6 @@
 
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
-    char* _Nonnull              pathBuffer; // Buffer big enough to hold one absolute path of max length
     ShellContextRef _Weak       context;
 } Interpreter;
 typedef Interpreter* InterpreterRef;

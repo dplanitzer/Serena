@@ -13,7 +13,7 @@
 
 
 
-int cmd_makedir(InterpreterRef _Nonnull self, int argc, char** argv)
+int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     const char* path = (argc > 1) ? argv[1] : "";
 

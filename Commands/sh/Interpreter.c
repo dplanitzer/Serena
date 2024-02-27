@@ -14,7 +14,7 @@
 #include <string.h>
 #include <System/System.h>
 
-typedef int (*InterpreterCommandCallback)(InterpreterRef _Nonnull, int argc, char** argv);
+typedef int (*InterpreterCommandCallback)(ShellContextRef _Nonnull, int argc, char** argv);
 
 typedef struct InterpreterCommand {
     const char* _Nonnull                name;
@@ -22,13 +22,13 @@ typedef struct InterpreterCommand {
 } InterpreterCommand;
 
 
-extern int cmd_cd(InterpreterRef _Nonnull self, int argc, char** argv);
-extern int cmd_history(InterpreterRef _Nonnull self, int argc, char** argv);
-extern int cmd_list(InterpreterRef _Nonnull self, int argc, char** argv);
-extern int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv);
-extern int cmd_makedir(InterpreterRef _Nonnull self, int argc, char** argv);
-extern int cmd_delete(InterpreterRef _Nonnull self, int argc, char** argv);
-extern int cmd_echo(InterpreterRef _Nonnull self, int argc, char** argv);
+extern int cmd_cd(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_pwd(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv);
 
 
 // Keep this table sorted by names, in ascending order
@@ -53,7 +53,6 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     
     try_null(self, calloc(1, sizeof(Interpreter)), ENOMEM);
     try(StackAllocator_Create(1024, 8192, &self->allocator));
-    try_null(self->pathBuffer, malloc(PATH_MAX), ENOMEM);
     self->context = pContext;
 
     *pOutSelf = self;
@@ -71,8 +70,6 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
         self->context = NULL;
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
-        free(self->pathBuffer);
-        self->pathBuffer = NULL;
         free(self);
     }
 }
@@ -188,7 +185,7 @@ static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonn
     const int nCmds = sizeof(gBuiltinCommands) / sizeof(InterpreterCommand);
     const InterpreterCommand* cmd = bsearch(argv[0], &gBuiltinCommands[0], nCmds, sizeof(InterpreterCommand), (int (*)(const void*, const void*))xCompareCommandEntry);
     if (cmd) {
-        cmd->cb(self, argc, argv);
+        cmd->cb(self->context, argc, argv);
         return;
     }
 

@@ -13,7 +13,7 @@
 
 
 
-int cmd_echo(InterpreterRef _Nonnull self, int argc, char** argv)
+int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     for (int i = 1; i < argc; i++) {
         puts(argv[i]);

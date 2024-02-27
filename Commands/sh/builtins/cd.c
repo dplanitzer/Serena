@@ -12,7 +12,7 @@
 #include <string.h>
 
 
-int cmd_cd(InterpreterRef _Nonnull self, int argc, char** argv)
+int cmd_cd(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     const char* path = (argc > 1) ? argv[1] : "";
     

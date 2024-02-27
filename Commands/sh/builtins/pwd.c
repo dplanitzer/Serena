@@ -15,17 +15,19 @@
 
 int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
 {
+    decl_try_err();
+    char* buf = NULL;
+
     if (argc > 1) {
         printf("%s: unexpected extra arguments\n", argv[0]);
     }
 
-    const errno_t err = Process_GetWorkingDirectory(self->pathBuffer, PATH_MAX);
-    if (err == 0) {
-        printf("%s\n", self->pathBuffer);
-    } else {
-        printf("%s: %s.\n", argv[0], strerror(err));
-        return EXIT_FAILURE;
-    }
+    try_null(buf, malloc(PATH_MAX), ENOMEM);
+    try(Process_GetWorkingDirectory(buf, PATH_MAX));
+    printf("%s\n", buf);
 
-    return EXIT_SUCCESS;
+catch:
+    free(buf);
+    if (err != EOK) { printf("%s: %s.\n", argv[0], strerror(err)); }    
+    return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
