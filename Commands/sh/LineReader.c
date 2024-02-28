@@ -144,6 +144,33 @@ static void LineReader_PrintHistory(LineReaderRef _Nonnull self, const char* _No
     printf("sel idx: %d\n", self->historyIndex);
 }
 
+// Removes all entries in the history that exactly match 'pLine'. Returns true
+// if at least one entry was removed from the stack and false otherwise.
+static bool LineReader_RemoveFromHistory(LineReaderRef _Nonnull self, char* _Nonnull pLine)
+{
+    int nRemoved = 0;
+
+    for (int i = 0; i < self->historyCount; i++) {
+        if (!strcmp(pLine, self->history[i])) {
+            free(self->history[i]);
+            // 0 1 2 3 4 5 6 7
+            for (int j = i + 1; j < self->historyCount; j++) {
+                self->history[j - 1] = self->history[j];
+            }
+            self->history[self->historyCount - 1] = NULL;
+            self->historyCount--;
+
+            if (i <= self->historyIndex) {
+                self->historyIndex--;
+            }
+
+            nRemoved++;
+        }
+    }
+
+    return (nRemoved > 0) ? true : false;
+}
+
 static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull pLine)
 {
     if (self->historyCapacity == 0) {
@@ -164,13 +191,11 @@ static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull p
     }
 
     
-    // Only add 'pLine' to the history if it is different from what's currently
-    // on top of the history stack
-    if (self->historyCount > 0) {
-        if (!strcmp(self->history[self->historyCount - 1], pLine)) {
-            return;
-        }
-    }
+    // Remove all existing occurrences 'pLine' from the history. Note that we'll
+    // reset the historyIndex to the top of the stack if it turns out that we
+    // effectively pulled the entry to which historyIndex pointed, to the top
+    // of the history stack.
+    const bool didPullUp = LineReader_RemoveFromHistory(self, pLine);
 
 
     // Add 'pLine' to the history. It replaces the oldest entry if the history
@@ -188,6 +213,10 @@ static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull p
     self->history[self->historyCount] = strdup(pLine);
     if (self->history[self->historyCount]) {
         self->historyCount++;
+    }
+
+    if (didPullUp) {
+        self->historyIndex = self->historyCount - 1;
     }
 }
 
