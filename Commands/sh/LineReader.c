@@ -8,6 +8,7 @@
 
 #include "LineReader.h"
 #include <assert.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -150,6 +151,19 @@ static void LineReader_PushHistory(LineReaderRef _Nonnull self, char* _Nonnull p
     }
 
 
+    // Only add 'pLine' if it isn't empty or purely whitespace
+    bool isUseful = false;
+    for (int i = 0; pLine[i] != '\0'; i++) {
+        if (!isspace(pLine[i])) {
+            isUseful = true;
+            break;
+        }
+    }
+    if (!isUseful) {
+        return;
+    }
+
+    
     // Only add 'pLine' to the history if it is different from what's currently
     // on top of the history stack
     if (self->historyCount > 0) {
