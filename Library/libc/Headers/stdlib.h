@@ -57,6 +57,12 @@ extern ldiv_t ldiv(long x, long y);
 extern lldiv_t lldiv(long long x, long long y);
 
 
+#define RAND_MAX 0x7fffffff
+
+extern void srand(unsigned int seed);
+extern int rand(void);
+
+
 extern void* bsearch(const void *key, const void *ptr, size_t count, size_t size,
                int (*comp)(const void*, const void*));
 
