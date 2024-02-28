@@ -8,11 +8,11 @@
 
 #include <stdlib.h>
 
-static int gSeed = 1;
+static int __gSeed = 1;
 
 void srand(unsigned int seed)
 {
-    gSeed = seed;
+    __gSeed = seed;
 }
 
 // Based on:
@@ -25,10 +25,10 @@ int rand(void)
     const int m = 2147483647;
     const int q = 127773;
     const int r = 2836;
-    const int hi = gSeed / q;
-    const int lo = gSeed % q;
+    const int hi = __gSeed / q;
+    const int lo = __gSeed % q;
     const int test = a * lo - r * hi;
 
-    gSeed = (test > 0) ? test : test + m;
-    return gSeed;   // [0, RAND_MAX]
+    __gSeed = (test > 0) ? test : test + m;
+    return __gSeed;   // [0, RAND_MAX]
 }

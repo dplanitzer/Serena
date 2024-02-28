@@ -77,6 +77,8 @@ extern int unsetenv(const char *name);
 extern char **environ;
 extern int putenv(char *str);
 
+extern int system(const char *string);
+
 __CPP_END
 
 #endif /* _STDLIB_H */
