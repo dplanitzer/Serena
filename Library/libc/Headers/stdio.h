@@ -11,8 +11,8 @@
 
 #include <System/_cmndef.h>
 #include <System/_errno.h>
-#include <System/_nulldef.h>
-#include <System/abi/_sizedef.h>
+#include <System/_null.h>
+#include <System/abi/_size.h>
 #include <System/_syslimits.h>
 #include <stdarg.h>
 

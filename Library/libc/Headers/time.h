@@ -9,9 +9,9 @@
 #ifndef _TIME_H
 #define _TIME_H 1
 
-#include <System/_nulldef.h>
 #include <System/_cmndef.h>
-#include <System/abi/_sizedef.h>
+#include <System/_null.h>
+#include <System/abi/_size.h>
 #include <System/_time.h>
 
 __CPP_BEGIN

@@ -10,9 +10,9 @@
 #define _STDDEF_H 1
 
 #include <System/abi/_dmdef.h>
-#include <System/abi/_sizedef.h>
+#include <System/abi/_size.h>
 #include <System/_cmndef.h>
-#include <System/_nulldef.h>
+#include <System/_null.h>
 #include <System/_offsetof.h>
 
 __CPP_BEGIN

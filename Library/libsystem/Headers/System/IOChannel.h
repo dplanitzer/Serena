@@ -10,7 +10,6 @@
 #define _SYS_IOCHANNEL_H 1
 
 #include <System/_cmndef.h>
-#include <System/_nulldef.h>
 #include <System/Error.h>
 #include <System/Types.h>
 

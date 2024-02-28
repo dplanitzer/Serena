@@ -15,13 +15,12 @@
 #include <System/abi/_floattypes.h>
 #include <System/abi/_limits.h>
 #include <System/_align.h>
+#include <System/_cmndef.h>
 #include <System/_math.h>
 #include <System/_noreturn.h>
-#include <System/_nulldef.h>
 #include <System/_offsetof.h>
 #include <System/_syslimits.h>
 #include <System/_varargs.h>
-#include <System/_weak.h>
 #include <System/Types.h>
 
 #ifndef _Locked

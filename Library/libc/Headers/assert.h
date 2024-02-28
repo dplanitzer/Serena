@@ -7,7 +7,6 @@
 //
 
 #include <System/_cmndef.h>
-#include <System/_nulldef.h>
 #ifndef NDEBUG
 #include <stdnoreturn.h>
 #endif /* NDEBUG */

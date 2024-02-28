@@ -9,6 +9,25 @@
 #ifndef __SYS_CMNDEF_H
 #define __SYS_CMNDEF_H 1
 
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
+
+#if !__has_feature(nullability)
+#ifndef _Nullable
+#define _Nullable
+#endif
+#ifndef _Nonnull
+#define _Nonnull
+#endif
+#endif
+
+
+#ifndef _Weak
+#define _Weak
+#endif
+
 
 #ifdef __cplusplus
 #define __CPP_BEGIN extern "C" {
