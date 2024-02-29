@@ -157,9 +157,10 @@ static void Lexer_ScanHexByteEscapeSequence(LexerRef _Nonnull self)
     Lexer_AddCharToTextBuffer(self, val & 0xff);
 }
 
-// Scans an escape sequence. Expects that the current input position is at the
-// first character following the initial '\' character.
-static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self, bool allowLineContinuationEscape)
+// Scans an escape sequence that appears inside of a double quoted string. Expects
+// that the current input position is at the first character following the
+// initial '\' character.
+static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self)
 {
     char ch = self->source[self->sourceIndex];
 
@@ -171,6 +172,7 @@ static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self, bool allowLineConti
         case 'r':   ch = 0x0d;  break;
         case 'v':   ch = 0x0b;  break;
 
+        case '$':   break;
         case '"':   break;
         case '\'':  break;
         case '\\':  break;
@@ -200,28 +202,19 @@ static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self, bool allowLineConti
             return;
 
         case '\r':
-            if (allowLineContinuationEscape) {
-                self->sourceIndex++;
-                self->column = 1;
-                if (self->source[self->sourceIndex + 1] != '\n') {
-                    ch = '\n';
-                    break;
-                }
-                // Fall through
-            } else {
-                // Fall through
+            if (self->source[self->sourceIndex + 1] != '\n') {
+                // not CRLF
+                break;
             }
+            // CRLF
+            self->sourceIndex++;
+            // Fall through
             
         case '\n':
-            if (allowLineContinuationEscape) {
-                self->sourceIndex++;
-                self->column = 1;
-                self->line++;
-                ch = '\n';
-                break;
-            } else {
-                // Fall through
-            }
+            self->column = 1;
+            self->line++;
+            ch = '\n';
+            break;
 
         default:
             printf("Error: unexpected escape sequence (ignored)\n");
@@ -259,7 +252,7 @@ static void Lexer_ScanDoubleQuotedString(LexerRef _Nonnull self)
                 break;
 
             case '\\':
-                Lexer_ScanEscapeSequence(self, false);
+                Lexer_ScanEscapeSequence(self);
                 break;
 
             default:
@@ -270,6 +263,40 @@ static void Lexer_ScanDoubleQuotedString(LexerRef _Nonnull self)
 
     Lexer_AddCharToTextBuffer(self, '\0');
     self->textBufferCount--;
+}
+
+// Scans a quoted character. Expects that the current input position is at the
+// first character following the initial '\' character.
+static void Lexer_ScanQuotedCharacter(LexerRef _Nonnull self)
+{
+    char ch = self->source[self->sourceIndex];
+
+    switch (ch) {
+        case '\0':
+            printf("Error: incomplete escape sequence\n");
+            return;
+
+        case '\r':
+            if (self->source[self->sourceIndex + 1] != '\n') {
+                // not CRLF
+                break;
+            }
+            // CRLF
+            self->sourceIndex++;
+            // Fall through
+            
+        case '\n':
+            self->column = 1;
+            self->line++;
+            // Our caller expects a single \n character
+            break;
+
+        default:
+            break;
+    }
+
+    self->sourceIndex++;
+    Lexer_AddCharToTextBuffer(self, ch);
 }
 
 // Returns true if the given character is a valid morpheme character; false otherwise.
@@ -451,7 +478,7 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                 self->sourceIndex++;
                 self->column++;
                 self->textBufferCount = 0;
-                Lexer_ScanEscapeSequence(self, true);
+                Lexer_ScanQuotedCharacter(self);
                 Lexer_AddCharToTextBuffer(self, '\0');
                 self->textBufferCount--;
 
