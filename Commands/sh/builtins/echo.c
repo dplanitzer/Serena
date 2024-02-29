@@ -16,8 +16,12 @@
 int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     for (int i = 1; i < argc; i++) {
-        puts(argv[i]);
+        fputs(argv[i], stdout);
+        if (i < (argc - 1)) {
+            fputc(' ', stdout);
+        }
     }
+    fputc('\n', stdout);
 
     return EXIT_SUCCESS;
 }

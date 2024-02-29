@@ -85,7 +85,11 @@ Deletes the directory or file indicated by the provided path. A directory has to
 
 #### ECHO str1 str2 ...
 
-Prints the given strings followed by a newline to standard out.
+Prints the given list of strings separated by single space characters to standard out. The list of strings is followed by a single newline character.
+
+#### HISTORY
+
+Prints the contents of the shell history to standard out. Each history entry is printed as a separate line. The entries are printed in the order of newest to oldest.
 
 #### LIST [path]
 
