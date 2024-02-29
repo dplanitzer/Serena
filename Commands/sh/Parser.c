@@ -106,8 +106,8 @@ static int GetMorphemeFromToken(TokenId id)
         case kToken_UnquotedString:     return kMorpheme_UnquotedString;
         case kToken_SingleQuotedString: return kMorpheme_SingleQuotedString;
         case kToken_DoubleQuotedString: return kMorpheme_DoubleQuotedString;
+        case kToken_QuotedCharacter:    return kMorpheme_QuotedCharacter;
         case kToken_VariableName:       return kMorpheme_VariableReference;
-        case kToken_EscapeSequence:     return kMorpheme_EscapeSequence;
         default: return -1;
     }
 }

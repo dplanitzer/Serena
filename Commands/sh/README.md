@@ -12,7 +12,7 @@ Some simple editing functions are supported. Backspace moves the cursor one colu
 
 ## The Shell Language
 
-The shell language is primarily inspired by the Fish shell and AmigaDOS, plus some
+The shell language is primarily inspired by the AmigaDOS, Fish shell and the Windows PowerShell, plus some
 (light) influence from zsh, bash and finally a healthy dose of new
 design elements.
 
@@ -28,7 +28,7 @@ design elements.
   * An unquoted sequence of non-whitespace characters
   * Single quoted strings
   * Double quoted strings
-  * Backslash followed by a character (escape sequence)
+  * Backslash followed by a character (quoted character)
   * $ followed by an identifier (variable reference)
   * Nested sentences (block) enclosed in ( and )
 * Sentence terminators are:

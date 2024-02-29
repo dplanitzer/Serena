@@ -90,7 +90,7 @@ static char* _Nullable Interpreter_ExpandWord(InterpreterRef _Nonnull self, Word
             case kMorpheme_UnquotedString:
             case kMorpheme_SingleQuotedString:
             case kMorpheme_DoubleQuotedString:
-            case kMorpheme_EscapeSequence: {
+            case kMorpheme_QuotedCharacter: {
                 const StringMorpheme* mp = (StringMorpheme*)pCurMorpheme;
                 wordSize += strlen(mp->string);
                 break;
@@ -123,7 +123,7 @@ static char* _Nullable Interpreter_ExpandWord(InterpreterRef _Nonnull self, Word
             case kMorpheme_UnquotedString:
             case kMorpheme_SingleQuotedString:
             case kMorpheme_DoubleQuotedString:
-            case kMorpheme_EscapeSequence: {
+            case kMorpheme_QuotedCharacter: {
                 const StringMorpheme* mp = (StringMorpheme*)pCurMorpheme;
                 strcat(str, mp->string);
                 break;

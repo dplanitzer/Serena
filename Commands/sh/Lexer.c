@@ -487,7 +487,7 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                     break;
                 }
                 else {
-                    self->t.id = kToken_EscapeSequence;
+                    self->t.id = kToken_QuotedCharacter;
                     self->t.u.string = self->textBuffer;
                     self->t.length = self->textBufferCount;
                     self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);

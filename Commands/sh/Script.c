@@ -68,7 +68,7 @@ void Morpheme_Print(MorphemeRef _Nonnull self)
             printf("\"%s\"", ((StringMorpheme*)self)->string);
             break;
 
-        case kMorpheme_EscapeSequence:
+        case kMorpheme_QuotedCharacter:
             printf("\\%s", ((StringMorpheme*)self)->string);
             break;
 

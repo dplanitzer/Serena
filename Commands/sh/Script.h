@@ -34,7 +34,7 @@ typedef enum MorphemeType {
     kMorpheme_UnquotedString,           // StringMorpheme
     kMorpheme_SingleQuotedString,       // StringMorpheme
     kMorpheme_DoubleQuotedString,       // StringMorpheme
-    kMorpheme_EscapeSequence,           // StringMorpheme
+    kMorpheme_QuotedCharacter,          // StringMorpheme
     kMorpheme_VariableReference,        // StringMorpheme
     kMorpheme_NestedBlock,              // BlockMorpheme
 } MorphemeType;

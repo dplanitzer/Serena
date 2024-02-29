@@ -19,8 +19,8 @@ typedef enum TokenId {
     kToken_UnquotedString,              // string
     kToken_SingleQuotedString,          // string
     kToken_DoubleQuotedString,          // string
+    kToken_QuotedCharacter,             // string
     kToken_VariableName,                // string
-    kToken_EscapeSequence,              // string
     kToken_Semicolon = ';',             // -
     kToken_Newline = '\n',              // -
     kToken_OpeningParenthesis = '(',    // -
