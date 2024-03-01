@@ -31,8 +31,8 @@
 //
 
 #define __INT_WIDTH 32
-#define __INT_MIN 0x80000000l
-#define __INT_MAX 0x7fffffffl
+#define __INT_MIN 0x80000000
+#define __INT_MAX 0x7fffffff
 #define __INT_MAX_BASE_10_DIGITS 10
 
 #define __UINT_WIDTH 32
@@ -76,8 +76,8 @@ typedef unsigned long long __uintmax_t;
 typedef long __intptr_t;
 
 #define __INTPTR_WIDTH 32
-#define __INTPTR_MIN 0x80000000l
-#define __INTPTR_MAX 0x7fffffffl
+#define __INTPTR_MIN 0x80000000
+#define __INTPTR_MAX 0x7fffffff
 
 
 // uintptr_t

@@ -34,7 +34,7 @@
 
 #define INT8_MIN  0x80
 #define INT16_MIN 0x8000
-#define INT32_MIN 0x80000000l
+#define INT32_MIN 0x80000000
 #define INT64_MIN 0x8000000000000000ll
 
 #define INT_FAST8_MIN INT16_MIN
@@ -53,7 +53,7 @@
 
 #define INT8_MAX 0x7f
 #define INT16_MAX 0x7fff
-#define INT32_MAX 0x7fffffffl
+#define INT32_MAX 0x7fffffff
 #define INT64_MAX 0x7fffffffffffffffll
 
 #define INT_FAST8_MAX INT16_MAX
@@ -110,14 +110,14 @@
 
 #define INT8_C(val) ((int_least8_t)(val))
 #define INT16_C(val) ((int_least16_t)(val))
-#define INT32_C(val) ((int_least32_t)(val)l)
+#define INT32_C(val) ((int_least32_t)(val))
 #define INT64_C(val) ((int_least64_t)(val)ll)
 
 #define INTMAX_C(val) ((intmax_t)(val)ll)
 
 #define UINT8_C(val) ((uint_least8_t)(val)u)
 #define UINT16_C(val) ((uint_least16_t)(val)u)
-#define UINT32_C(val) ((uint_least32_t)(val)ul)
+#define UINT32_C(val) ((uint_least32_t)(val)u)
 #define UINT64_C(val) ((uint_least64_t)(val)ull)
 
 #define UINTMAX_C(val) ((uintmax_t)(val)ull)
