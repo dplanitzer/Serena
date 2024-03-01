@@ -14,8 +14,9 @@
 #include <System/Clock.h>
 #include <System/DispatchQueue.h>
 #include <System/Error.h>
+#include <System/Directory.h>
 #include <System/File.h>
-#include <System/FilePermission.h>
+#include <System/FilePermissions.h>
 #include <System/IOChannel.h>
 #include <System/Pipe.h>
 #include <System/Process.h>

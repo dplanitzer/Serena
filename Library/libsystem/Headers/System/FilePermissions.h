@@ -1,13 +1,13 @@
 //
-//  FilePermission.h
+//  FilePermissions.h
 //  libsystem
 //
 //  Created by Dietmar Planitzer on 2/11/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef _SYS_FILEPERMISSION_H
-#define _SYS_FILEPERMISSION_H 1
+#ifndef _SYS_FILEPERMISSIONS_H
+#define _SYS_FILEPERMISSIONS_H 1
 
 #include <System/_cmndef.h>
 #include <System/Types.h>
@@ -73,4 +73,4 @@ enum {
 
 __CPP_END
 
-#endif /* _SYS_FILEPERMISSION_H */
+#endif /* _SYS_FILEPERMISSIONS_H */

@@ -15,13 +15,13 @@
 
 
 typedef struct ListContext {
-    char*                   pathBuffer;
+    char*   pathBuffer;
 
-    int linkCountWidth;
-    int uidWidth;
-    int gidWidth;
-    int sizeWidth;
-    int inodeIdWidth;
+    int     linkCountWidth;
+    int     uidWidth;
+    int     gidWidth;
+    int     sizeWidth;
+    int     inodeIdWidth;
 } ListContext;
 typedef ListContext* ListContextRef;
 
@@ -91,7 +91,7 @@ static errno_t print_dir_entry(ListContextRef _Nonnull self, const char* _Nonnul
     file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_Other), &tp[7]);
     tp[10] = '\0';
 
-    printf("%s %*ld  %*lu %*lu  %*lld %*ld %s\n",
+    printf("%s %*d  %*u %*u  %*lld %*d %s\n",
         tp,
         self->linkCountWidth, info.linkCount,
         self->uidWidth, info.uid,

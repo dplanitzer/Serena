@@ -13,8 +13,8 @@
 
 // This a non-seekable stream that discards anything that is written to it and
 // returns EOF on read.
-// Its used ie by the printf() implementation it the case where the user just
-// wants to know how long the formatter string would be but they don't want the
+// It's used ie by the printf() implementation in the case where the user just
+// wants to know how long the formatted string would be but they don't want the
 // actual data.
 
 

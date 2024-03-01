@@ -19,14 +19,14 @@ extern void main_closure(int argc, char *argv[]);
 // A process in Serena is a collection of dispatch queues rather than threads.
 // Every process starts out with one dispatch queue which is known as the main
 // dispatch queue. This is a serial dispatch queue which means that it executes
-// one closure after the closures. Closures are dispatched to dispatch queues
-// and the queue executes them as soon as possible. The main_closure() function
-// is the first closure that is executed on the main dispatch queue of the
-// process. This closure typically takes care of initializing the application
-// and it then dispatches one or more other closures for execution on the main
-// dispatch queue. Consequently this start function here does not terminate the
-// process when main_closure() returns. Once the process is ready to terminate,
-// one of its closures should invoke exit() with a suitable exit code.
+// one closure after another. Closures are dispatched to dispatch queues and the
+// queue executes them as soon as possible. The main_closure() function is the
+// first closure that is executed on the main dispatch queue of the process.
+// This closure typically takes care of initializing the application
+// and it then dispatches one or more additional closures for execution on the
+// main dispatch queue. Consequently the start function here does not terminate
+// the process when main_closure() returns. Once the process is ready to
+// terminate, one of its closures should invoke exit() with a suitable exit code.
 void start(ProcessArguments* _Nonnull argsp)
 {
     __stdlibc_init(argsp);

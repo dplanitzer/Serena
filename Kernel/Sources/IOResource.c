@@ -56,7 +56,7 @@ errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetMode:
-            *((int*) va_arg(ap, int*)) = self->mode;
+            *((unsigned int*) va_arg(ap, unsigned int*)) = self->mode;
             return EOK;
 
         default:

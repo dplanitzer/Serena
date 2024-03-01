@@ -35,9 +35,9 @@ IOChannelType IOChannel_GetType(int fd)
     return type;
 }
 
-int IOChannel_GetMode(int fd)
+unsigned int IOChannel_GetMode(int fd)
 {
-    long mode;
+    unsigned int mode;
 
     const errno_t err = IOChannel_Control(fd, kIOChannelCommand_GetMode, &mode);
     return (err == 0) ? mode : 0;
