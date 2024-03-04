@@ -75,6 +75,13 @@ static inline bool SList_IsEmpty(SList* _Nonnull pList) {
 }
 
 #define SList_ForEach(pList, NodeType, closure) \
-for(NodeType* pCurNode = (NodeType*)(pList)->first; pCurNode != NULL; pCurNode = (NodeType*)((SListNode*)pCurNode)->next) { closure }
+{\
+    NodeType* pCurNode = (NodeType*)(pList)->first; \
+    while (pCurNode) { \
+        NodeType* pNextNode = (NodeType*)((SListNode*)pCurNode)->next; \
+        { closure } \
+        pCurNode = pNextNode; \
+    } \
+}
 
 #endif /* _LIST_H */

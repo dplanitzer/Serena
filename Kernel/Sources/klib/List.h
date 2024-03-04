@@ -60,11 +60,32 @@ static inline bool List_IsEmpty(List* _Nonnull pList) {
     return pList->first == NULL;
 }
 
+// Iterates all elements of the given list. Guarantees that the closure may call
+// free on 'pCurNode' without ill effect. The iteration will continue until the
+// end of the list is reached or 'closure' executes a break statement. 
 #define List_ForEach(pList, NodeType, closure) \
-for(NodeType* pCurNode = (NodeType*)(pList)->first; pCurNode != NULL; pCurNode = (NodeType*)((ListNode*)pCurNode)->next) { closure }
+{ \
+    NodeType* pCurNode = (NodeType*)(pList)->first; \
+    while (pCurNode) { \
+        NodeType* pNextNode = (NodeType*)((ListNode*)pCurNode)->next; \
+        { closure } \
+        pCurNode = pNextNode; \
+    } \
+}
 
+// Iterates all elements of the given list in reverse order. Guarantees that the
+// closure may call free on 'pCurNode' without ill effect. The iteration will
+// continue until the end of the list is reached or 'closure' executes a break
+// statement. 
 #define List_ForEachReversed(pList, NodeType, closure) \
-for(NodeType* pCurNode = (NodeType*)(pList)->last; pCurNode != NULL; pCurNode = (NodeType*)((ListNode*)pCurNode)->prev) { closure }
+{ \
+    NodeType* pCurNode = (NodeType*)(pList)->last; \
+    while (pCurNode) { \
+        NodeType* pPrevNode = (NodeType*)((ListNode*)pCurNode)->prev; \
+        { closure } \
+        pCurNode = pPrevNode; \
+    } \
+}
 
 
 //
@@ -135,7 +156,17 @@ static inline bool SList_IsEmpty(SList* _Nonnull pList) {
     return pList->first == NULL;
 }
 
+// Iterates all elements of the given list. Guarantees that the closure may call
+// free on 'pCurNode' without ill effect. The iteration will continue until the
+// end of the list is reached or 'closure' executes a break statement. 
 #define SList_ForEach(pList, NodeType, closure) \
-for(NodeType* pCurNode = (NodeType*)(pList)->first; pCurNode != NULL; pCurNode = (NodeType*)((SListNode*)pCurNode)->next) { closure }
+{\
+    NodeType* pCurNode = (NodeType*)(pList)->first; \
+    while (pCurNode) { \
+        NodeType* pNextNode = (NodeType*)((SListNode*)pCurNode)->next; \
+        { closure } \
+        pCurNode = pNextNode; \
+    } \
+}
 
 #endif /* List_h */

@@ -11,24 +11,24 @@
 
 #include <klib/klib.h>
 #include "InterruptController.h"
-#include "IOResource.h"
+#include "DiskDriver.h"
 #include "Semaphore.h"
 
 
 // See http://lclevy.free.fr/adflib/adf_info.html
 #define ADF_SECTOR_SIZE         512
 
-#define ADF_DD_SECS_PER_CYL     11
+#define ADF_DD_SECS_PER_TRACK   11
+#define ADF_DD_HEADS_PER_CYL    2
 #define ADF_DD_CYLS_PER_DISK    80
-#define ADF_DD_HEADS_PER_DISK   2
 
-#define ADF_HD_SECS_PER_CYL     22
+#define ADF_HD_SECS_PER_TRACK   22
+#define ADF_HD_HEADS_PER_CYL    2
 #define ADF_HD_CYLS_PER_DISK    80
-#define ADF_HD_HEADS_PER_DISK   2
 
 
 // Sector table capacity
-#define FLOPPY_SECTORS_CAPACITY         ADF_HD_SECS_PER_CYL
+#define FLOPPY_SECTORS_CAPACITY         ADF_HD_SECS_PER_TRACK
 #define FLOPPY_TRACK_BUFFER_CAPACITY    6400
 
 
@@ -60,7 +60,7 @@ extern errno_t FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
 
 // Stores the state of a single floppy drive.
 // !!! Keep in sync with memory.i !!!
-OPEN_CLASS_WITH_REF(FloppyDisk, IOResource,
+OPEN_CLASS_WITH_REF(FloppyDisk, DiskDriver,
     uint16_t* _Nonnull  track_buffer;                               // cached track data (MFM encoded)
     int16_t             track_size;                                 // cache size in words
     int16_t             track_sectors[FLOPPY_SECTORS_CAPACITY];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist
@@ -71,7 +71,7 @@ OPEN_CLASS_WITH_REF(FloppyDisk, IOResource,
     FdcControlByte      ciabprb;                                    // shadow copy of the CIA BPRB register for this floppy drive
 );
 typedef struct _FloppyDiskMethodTable {
-    IOResourceMethodTable   super;
+    DiskDriverMethodTable   super;
 } FloppyDiskMethodTable;
 
 
@@ -88,7 +88,7 @@ extern void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull pDisk);
 
 extern void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull pDisk);
 
-extern errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, void* _Nonnull pBuffer);
-extern errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, int head, int cylinder, int sector, const void* _Nonnull pBuffer);
+extern errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, size_t head, size_t cylinder, size_t sector, void* _Nonnull pBuffer);
+extern errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull pDisk, size_t head, size_t cylinder, size_t sector, const void* _Nonnull pBuffer);
 
 #endif /* FloppyDisk_h */
