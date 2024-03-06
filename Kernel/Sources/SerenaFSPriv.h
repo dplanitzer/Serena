@@ -13,60 +13,50 @@
 #include "ConditionVariable.h"
 #include "Lock.h"
 
-#define kMaxFilenameLength      28
-#define kRamBlockSizeShift      9
-#define kRamBlockSize           (1 << 9)
-#define kRamBlockSizeMask       (kRamBlockSize - 1)
-#define kRamDirectoryEntriesPerBlock        (kRamBlockSize / sizeof(RamDirectoryEntry))
-#define kRamDirectoryEntriesPerBlockMask    (kRamDirectoryEntriesPerBlock - 1)
-#define kMaxDirectDataBlockPointers 114
+#define kSFSMaxFilenameLength               28
+#define kSFSBlockSizeShift                  9
+#define kSFSBlockSize                       (1 << kSFSBlockSizeShift)
+#define kSFSBlockSizeMask                   (kSFSBlockSize - 1)
+#define kSFSDirectoryEntriesPerBlock        (kSFSBlockSize / sizeof(SFSDirectoryEntry))
+#define kSFSDirectoryEntriesPerBlockMask    (kSFSDirectoryEntriesPerBlock - 1)
+#define kSFSMaxDirectDataBlockPointers      114
 
 
 //
-// SerenaFS Directories
+// Serena FS On-Disk Format
 //
 
-// Directory content organisation:
+//
+// Directory Entries
+//
+
+// Directory file organisation:
 // [0] "."
 // [1] ".."
 // [2] userEntry0
 // .
 // [n] userEntryN-1
-// This should be mod(RamDiskBlockSize, RamDirectoryEntrySize) == 0
-typedef struct _RamDirectoryEntry {
+// This should be mod(SFSDiskBlockSize, SFSDirectoryEntrySize) == 0
+typedef struct SFSDirectoryEntry {
     InodeId     id;
-    char   filename[kMaxFilenameLength];
-} RamDirectoryEntry;
-
-
-enum RamDirectoryQueryKind {
-    kDirectoryQuery_PathComponent,
-    kDirectoryQuery_InodeId
-};
-
-typedef struct RamDirectoryQuery {
-    int     kind;
-    union _u {
-        const PathComponent* _Nonnull   pc;
-        InodeId                         id;
-    }       u;
-} RamDirectoryQuery;
+    char        filename[kSFSMaxFilenameLength];    // if strlen(filename) < kSFSMaxFilenameLength -> 0 terminated
+} SFSDirectoryEntry;
 
 
 //
-// SerenaFS Disk Nodes
+// Inodes
 //
 
-typedef struct _RamBlockMap {
-    char* _Nullable p[kMaxDirectDataBlockPointers];
-} RamBlockMap;
+typedef struct SFSBlockMap {
+    char* _Nullable p[kSFSMaxDirectDataBlockPointers];
+} SFSBlockMap;
 
 
 // NOTE: disk nodes own the data blocks of a file/directory. Inodes are set up
 // with a pointer to the disk node block map. So inodes manipulate the block map
 // directly instead of copying it back and forth. That's okay because the inode
 // lock effectively protects the disk node sitting behind the inode. 
-typedef struct _RamDiskNode {
+typedef struct SFSInode {
     TimeInterval        accessTime;
     TimeInterval        modificationTime;
     TimeInterval        statusChangeTime;
@@ -77,17 +67,36 @@ typedef struct _RamDiskNode {
     FilePermissions     permissions;
     int                 linkCount;
     FileType            type;
-    RamBlockMap         blockMap;
-} RamDiskNode;
-typedef RamDiskNode* RamDiskNodeRef;
+    SFSBlockMap         blockMap;
+} SFSInode;
+typedef SFSInode* SFSInodeRef;
+
 
 
 //
-// SerenaFS Inode Block Map
+// Directories
+//
+
+enum SFSDirectoryQueryKind {
+    kSFSDirectoryQuery_PathComponent,
+    kSFSDirectoryQuery_InodeId
+};
+
+typedef struct SFSDirectoryQuery {
+    int     kind;
+    union _u {
+        const PathComponent* _Nonnull   pc;
+        InodeId                         id;
+    }       u;
+} SFSDirectoryQuery;
+
+
+//
+// Inode Extensions
 //
 
 #define Inode_GetBlockMap(__self) \
-    Inode_GetRefConAs(__self, RamBlockMap*)
+    Inode_GetRefConAs(__self, SFSBlockMap*)
 
 
 //
@@ -103,23 +112,23 @@ CLASS_IVARS(SerenaFS, Filesystem,
     int                 nextAvailableInodeId;
     bool                isMounted;
     bool                isReadOnly;     // true if mounted read-only; false if mounted read-write
-    char                emptyBlock[kRamBlockSize];  // Block filled with zeros used by the read() function if there's no disk block with data
+    char                emptyBlock[kSFSBlockSize];  // Block filled with zeros used by the read() function if there's no disk block with data
 );
 
-typedef ssize_t (*RamReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
-typedef void (*RamWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
+typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
+typedef void (*SFSWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
 
-typedef enum _BlockAccessMode {
-    kBlock_Read = 0,
-    kBlock_Write
-} BlockAccessMode;
+typedef enum SFSBlockMode {
+    kSFSBlockMode_Read = 0,
+    kSFSBlockMode_Write
+} SFSBlockMode;
 
 
 static InodeId SerenaFS_GetNextAvailableInodeId_Locked(SerenaFSRef _Nonnull self);
 static errno_t SerenaFS_FormatWithEmptyFilesystem(SerenaFSRef _Nonnull self);
 static errno_t SerenaFS_CreateDirectoryDiskNode(SerenaFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);
-static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode);
-static errno_t SerenaFS_GetDiskBlockForBlockIndex(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock);
+static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, SFSInodeRef _Nullable pDiskNode);
+static errno_t SerenaFS_GetDiskBlockForBlockIndex(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, SFSBlockMode mode, char* _Nullable * _Nonnull pOutDiskBlock);
 static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
 
 #endif /* SerenaFSPriv_h */

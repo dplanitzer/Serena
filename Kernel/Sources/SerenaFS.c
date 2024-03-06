@@ -18,7 +18,7 @@
 // Returns true if the given directory node is empty (contains just "." and "..").
 static bool DirectoryNode_IsEmpty(InodeRef _Nonnull _Locked self)
 {
-    return Inode_GetFileSize(self) <= sizeof(RamDirectoryEntry) * 2;
+    return Inode_GetFileSize(self) <= sizeof(SFSDirectoryEntry) * 2;
 }
 
 
@@ -35,8 +35,8 @@ errno_t SerenaFS_Create(User rootDirUser, SerenaFSRef _Nullable * _Nonnull pOutF
     decl_try_err();
     SerenaFSRef self;
 
-    assert(sizeof(RamDiskNode) <= kRamBlockSize);
-    assert(sizeof(RamDirectoryEntry) * kRamDirectoryEntriesPerBlock == kRamBlockSize);
+    assert(sizeof(SFSInode) <= kSFSBlockSize);
+    assert(sizeof(SFSDirectoryEntry) * kSFSDirectoryEntriesPerBlock == kSFSBlockSize);
     
     try(Filesystem_Create(&kSerenaFSClass, (FilesystemRef*)&self));
     Lock_Init(&self->lock);
@@ -60,7 +60,7 @@ catch:
 void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
     for(int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
-        SerenaFS_DestroyDiskNode(self, PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef));
+        SerenaFS_DestroyDiskNode(self, PointerArray_GetAtAs(&self->dnodes, i, SFSInodeRef));
     }
     PointerArray_Deinit(&self->dnodes);
     ConditionVariable_Deinit(&self->notifier);
@@ -84,7 +84,7 @@ catch:
 static int SerenaFS_GetIndexOfDiskNodeForId(SerenaFSRef _Nonnull self, InodeId id)
 {
     for (int i = 0; i < PointerArray_GetCount(&self->dnodes); i++) {
-        RamDiskNodeRef pCurDiskNode = PointerArray_GetAtAs(&self->dnodes, i, RamDiskNodeRef);
+        SFSInodeRef pCurDiskNode = PointerArray_GetAtAs(&self->dnodes, i, SFSInodeRef);
 
         if (pCurDiskNode->id == id) {
             return i;
@@ -100,9 +100,9 @@ errno_t SerenaFS_onAllocateNodeOnDisk(SerenaFSRef _Nonnull self, FileType type, 
 {
     decl_try_err();
     const InodeId id = (InodeId) self->nextAvailableInodeId++;
-    RamDiskNodeRef pDiskNode = NULL;
+    SFSInodeRef pDiskNode = NULL;
 
-    try(kalloc_cleared(sizeof(RamDiskNode), (void**)&pDiskNode));
+    try(kalloc_cleared(sizeof(SFSInode), (void**)&pDiskNode));
     pDiskNode->id = id;
     pDiskNode->linkCount = 1;
     pDiskNode->type = type;
@@ -118,10 +118,10 @@ catch:
     return err;
 }
 
-static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, RamDiskNodeRef _Nullable pDiskNode)
+static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, SFSInodeRef _Nullable pDiskNode)
 {
     if (pDiskNode) {
-        for (int i = 0; i < kMaxDirectDataBlockPointers; i++) {
+        for (int i = 0; i < kSFSMaxDirectDataBlockPointers; i++) {
             kfree(pDiskNode->blockMap.p[i]);
             pDiskNode->blockMap.p[i] = NULL;
         }
@@ -139,7 +139,7 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, void*
     decl_try_err();
     const int dIdx = SerenaFS_GetIndexOfDiskNodeForId(self, id);
     if (dIdx < 0) throw(ENOENT);
-    const RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
+    const SFSInodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, SFSInodeRef);
 
     return Inode_Create(
         Filesystem_GetId(self),
@@ -168,7 +168,7 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     decl_try_err();
     const int dIdx = SerenaFS_GetIndexOfDiskNodeForId(self, Inode_GetId(pNode));
     if (dIdx < 0) throw(ENOENT);
-    RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
+    SFSInodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, SFSInodeRef);
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
 
     if (Inode_IsAccessed(pNode)) {
@@ -200,7 +200,7 @@ void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id)
     const int dIdx = SerenaFS_GetIndexOfDiskNodeForId(self, id);
 
     if (dIdx >= 0) {
-        RamDiskNodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, RamDiskNodeRef);
+        SFSInodeRef pDiskNode = PointerArray_GetAtAs(&self->dnodes, dIdx, SFSInodeRef);
 
         SerenaFS_DestroyDiskNode(self, pDiskNode);
         PointerArray_RemoveAt(&self->dnodes, dIdx);
@@ -232,21 +232,21 @@ static errno_t SerenaFS_CheckAccess_Locked(SerenaFSRef _Nonnull self, InodeRef _
 
 // Returns true if the array of directory entries starting at 'pEntry' and holding
 // 'nEntries' entries contains a directory entry that matches 'pQuery'.
-static bool xHasMatchingDirectoryEntry(const RamDirectoryQuery* _Nonnull pQuery, const RamDirectoryEntry* _Nonnull pEntry, int nEntries, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+static bool xHasMatchingDirectoryEntry(const SFSDirectoryQuery* _Nonnull pQuery, const SFSDirectoryEntry* _Nonnull pEntry, int nEntries, SFSDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, SFSDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
 {
     while (nEntries-- > 0) {
         if (pEntry->id > 0) {
             switch (pQuery->kind) {
-                case kDirectoryQuery_PathComponent:
+                case kSFSDirectoryQuery_PathComponent:
                     if (PathComponent_EqualsString(pQuery->u.pc, pEntry->filename)) {
-                        *pOutEntryPtr = (RamDirectoryEntry*)pEntry;
+                        *pOutEntryPtr = (SFSDirectoryEntry*)pEntry;
                         return true;
                     }
                     break;
 
-                case kDirectoryQuery_InodeId:
+                case kSFSDirectoryQuery_InodeId:
                     if (pEntry->id == pQuery->u.id) {
-                       *pOutEntryPtr = (RamDirectoryEntry*)pEntry;
+                       *pOutEntryPtr = (SFSDirectoryEntry*)pEntry;
                         return true;
                     }
                     break;
@@ -256,7 +256,7 @@ static bool xHasMatchingDirectoryEntry(const RamDirectoryQuery* _Nonnull pQuery,
             }
         }
         else if (pOutEmptyPtr) {
-            *pOutEmptyPtr = (RamDirectoryEntry*)pEntry;
+            *pOutEmptyPtr = (SFSDirectoryEntry*)pEntry;
         }
         pEntry++;
     }
@@ -267,7 +267,7 @@ static bool xHasMatchingDirectoryEntry(const RamDirectoryQuery* _Nonnull pQuery,
 // Returns a reference to the directory entry that holds 'pName'. NULL and a
 // suitable error is returned if no such entry exists or 'pName' is empty or
 // too long.
-static errno_t SerenaFS_GetDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const RamDirectoryQuery* _Nonnull pQuery, RamDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+static errno_t SerenaFS_GetDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const SFSDirectoryQuery* _Nonnull pQuery, SFSDirectoryEntry* _Nullable * _Nullable pOutEmptyPtr, SFSDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
 {
     decl_try_err();
     const FileOffset fileSize = Inode_GetFileSize(pNode);
@@ -278,27 +278,27 @@ static errno_t SerenaFS_GetDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _N
     }
     *pOutEntryPtr = NULL;
 
-    if (pQuery->kind == kDirectoryQuery_PathComponent) {
+    if (pQuery->kind == kSFSDirectoryQuery_PathComponent) {
         if (pQuery->u.pc->count == 0) {
             return ENOENT;
         }
-        if (pQuery->u.pc->count > kMaxFilenameLength) {
+        if (pQuery->u.pc->count > kSFSMaxFilenameLength) {
             return ENAMETOOLONG;
         }
     }
 
     while (true) {
-        const int blockIdx = offset >> (FileOffset)kRamBlockSizeShift;
-        const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)kRamBlockSize, fileSize - offset);
+        const int blockIdx = offset >> (FileOffset)kSFSBlockSizeShift;
+        const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)kSFSBlockSize, fileSize - offset);
         char* pDiskBlock;
 
         if (nBytesAvailable <= 0) {
             break;
         }
 
-        try(SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock));
-        const RamDirectoryEntry* pCurEntry = (const RamDirectoryEntry*)pDiskBlock;
-        const int nDirEntries = nBytesAvailable / sizeof(RamDirectoryEntry);
+        try(SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kSFSBlockMode_Read, &pDiskBlock));
+        const SFSDirectoryEntry* pCurEntry = (const SFSDirectoryEntry*)pDiskBlock;
+        const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
         if (xHasMatchingDirectoryEntry(pQuery, pCurEntry, nDirEntries, pOutEmptyPtr, pOutEntryPtr)) {
             return EOK;
         }
@@ -313,22 +313,22 @@ catch:
 // Returns a reference to the directory entry that holds 'pName'. NULL and a
 // suitable error is returned if no such entry exists or 'pName' is empty or
 // too long.
-static inline errno_t SerenaFS_GetDirectoryEntryForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const PathComponent* _Nonnull pName, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+static inline errno_t SerenaFS_GetDirectoryEntryForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, const PathComponent* _Nonnull pName, SFSDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
 {
-    RamDirectoryQuery q;
+    SFSDirectoryQuery q;
 
-    q.kind = kDirectoryQuery_PathComponent;
+    q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
     return SerenaFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
 }
 
 // Returns a reference to the directory entry that holds 'id'. NULL and a
 // suitable error is returned if no such entry exists.
-static errno_t SerenaFS_GetDirectoryEntryForId(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeId id, RamDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
+static errno_t SerenaFS_GetDirectoryEntryForId(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeId id, SFSDirectoryEntry* _Nullable * _Nonnull pOutEntryPtr)
 {
-    RamDirectoryQuery q;
+    SFSDirectoryQuery q;
 
-    q.kind = kDirectoryQuery_InodeId;
+    q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = id;
     return SerenaFS_GetDirectoryEntry(self, pNode, &q, NULL, pOutEntryPtr);
 }
@@ -339,27 +339,27 @@ static errno_t SerenaFS_GetDirectoryEntryForId(SerenaFSRef _Nonnull self, InodeR
 // logical block address may be backed by an actual disk block. A missing disk block
 // is substituted at read time by an empty block.
 // NOTE: never marks the inode as modified. The caller has to take care of this.
-static errno_t SerenaFS_GetDiskBlockForBlockIndex(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, BlockAccessMode mode, char* _Nullable * _Nonnull pOutDiskBlock)
+static errno_t SerenaFS_GetDiskBlockForBlockIndex(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int blockIdx, SFSBlockMode mode, char* _Nullable * _Nonnull pOutDiskBlock)
 {
     decl_try_err();
     char* pDiskBlock = NULL;
 
-    if (blockIdx < 0 || blockIdx >= kMaxDirectDataBlockPointers) {
+    if (blockIdx < 0 || blockIdx >= kSFSMaxDirectDataBlockPointers) {
         throw(EFBIG);
     }
 
-    RamBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
+    SFSBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
     pDiskBlock = pBlockMap->p[blockIdx];
 
     if (pDiskBlock) {
         *pOutDiskBlock = pDiskBlock;
     }
     else {
-        if (mode == kBlock_Read) {
+        if (mode == kSFSBlockMode_Read) {
             *pOutDiskBlock = self->emptyBlock;
         }
         else {
-            try(kalloc_cleared(kRamBlockSize, (void**)&pDiskBlock));
+            try(kalloc_cleared(kSFSBlockSize, (void**)&pDiskBlock));
             pBlockMap->p[blockIdx] = pDiskBlock;
         }
     }
@@ -377,7 +377,7 @@ catch:
 // 'nBytesToRead'. However the offset is always advanced by a full block size.
 // This process continues until 'nBytesToRead' has decreased to 0, EOF or an
 // error is encountered. Whatever comes first. 
-static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToRead, RamReadCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesRead)
+static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToRead, SFSReadCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     const FileOffset fileSize = Inode_GetFileSize(pNode);
@@ -388,16 +388,16 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
     }
 
     while (nBytesToRead > 0) {
-        const int blockIdx = (int)(offset >> (FileOffset)kRamBlockSizeShift);   //XXX blockIdx should be 64bit
-        const ssize_t blockOffset = offset & (FileOffset)kRamBlockSizeMask;
-        const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)(kRamBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
+        const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
+        const ssize_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
+        const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
         char* pDiskBlock;
 
         if (nBytesAvailable <= 0) {
             break;
         }
 
-        const errno_t e1 = SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Read, &pDiskBlock);
+        const errno_t e1 = SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kSFSBlockMode_Read, &pDiskBlock);
         if (e1 != EOK) {
             err = (nBytesToRead == nOriginalBytesToRead) ? e1 : EOK;
             break;
@@ -417,7 +417,7 @@ catch:
 
 // Writes 'nBytesToWrite' bytes to the file 'pNode' starting at offset 'offset'.
 // 'cb' is used to copy the data from teh source to the disk block(s).
-static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToWrite, RamWriteCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesWritten)
+static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToWrite, SFSWriteCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
     ssize_t nBytesWritten = 0;
@@ -427,12 +427,12 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
     }
 
     while (nBytesToWrite > 0) {
-        const int blockIdx = (int)(offset >> (FileOffset)kRamBlockSizeShift);   //XXX blockIdx should be 64bit
-        const ssize_t blockOffset = offset & (FileOffset)kRamBlockSizeMask;
-        const ssize_t nBytesAvailable = __min(kRamBlockSize - blockOffset, nBytesToWrite);
+        const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
+        const ssize_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
+        const ssize_t nBytesAvailable = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
         char* pDiskBlock;
 
-        const errno_t e1 = SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kBlock_Write, &pDiskBlock);
+        const errno_t e1 = SerenaFS_GetDiskBlockForBlockIndex(self, pNode, blockIdx, kSFSBlockMode_Write, &pDiskBlock);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
             break;
@@ -528,7 +528,7 @@ errno_t SerenaFS_acquireRootNode(SerenaFSRef _Nonnull self, InodeRef _Nullable _
 errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pName, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
-    RamDirectoryEntry* pEntry;
+    SFSDirectoryEntry* pEntry;
 
     try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
     try(SerenaFS_GetDirectoryEntryForName(self, pParentNode, pName, &pEntry));
@@ -551,12 +551,12 @@ catch:
 errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
 {
     decl_try_err();
-    RamDirectoryEntry* pEntry;
+    SFSDirectoryEntry* pEntry;
 
     try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
     try(SerenaFS_GetDirectoryEntryForId(self, pParentNode, id, &pEntry));
 
-    const ssize_t len = String_LengthUpTo(pEntry->filename, kMaxFilenameLength);
+    const ssize_t len = String_LengthUpTo(pEntry->filename, kSFSMaxFilenameLength);
     if (len > pComponent->capacity) {
         throw(ERANGE);
     }
@@ -596,7 +596,7 @@ catch:
 static errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove)
 {
     decl_try_err();
-    RamDirectoryEntry* pEntry;
+    SFSDirectoryEntry* pEntry;
 
     try(SerenaFS_GetDirectoryEntryForId(self, pDirNode, idToRemove, &pEntry));
     pEntry->id = 0;
@@ -614,40 +614,40 @@ catch:
 // entry; otherwise a completely new entry will be added to the directory.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, RamDirectoryEntry* _Nullable pEmptyEntry)
+static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, SFSDirectoryEntry* _Nullable pEmptyEntry)
 {
     decl_try_err();
 
-    if (pName->count > kMaxFilenameLength) {
+    if (pName->count > kSFSMaxFilenameLength) {
         return ENAMETOOLONG;
     }
 
     if (pEmptyEntry == NULL) {
         // Append a new entry
-        RamBlockMap* pContent = Inode_GetBlockMap(pDirNode);
+        SFSBlockMap* pContent = Inode_GetBlockMap(pDirNode);
         const FileOffset size = Inode_GetFileSize(pDirNode);
-        const int blockIdx = size / kRamBlockSize;
-        const int remainder = size & kRamBlockSizeMask;
+        const int blockIdx = size / kSFSBlockSize;
+        const int remainder = size & kSFSBlockSizeMask;
 
         if (size == 0) {
-            try(kalloc(kRamBlockSize, (void**)&pContent->p[0]));
-            pEmptyEntry = (RamDirectoryEntry*)pContent->p[0];
+            try(kalloc(kSFSBlockSize, (void**)&pContent->p[0]));
+            pEmptyEntry = (SFSDirectoryEntry*)pContent->p[0];
         }
-        else if (remainder < kRamBlockSize) {
-            pEmptyEntry = (RamDirectoryEntry*)(pContent->p[blockIdx] + remainder);
+        else if (remainder < kSFSBlockSize) {
+            pEmptyEntry = (SFSDirectoryEntry*)(pContent->p[blockIdx] + remainder);
         }
         else {
-            try(kalloc(kRamBlockSize, (void**)&pContent->p[blockIdx + 1]));
-            pEmptyEntry = (RamDirectoryEntry*)pContent->p[blockIdx + 1];
+            try(kalloc(kSFSBlockSize, (void**)&pContent->p[blockIdx + 1]));
+            pEmptyEntry = (SFSDirectoryEntry*)pContent->p[blockIdx + 1];
         }
 
-        Inode_IncrementFileSize(pDirNode, sizeof(RamDirectoryEntry));
+        Inode_IncrementFileSize(pDirNode, sizeof(SFSDirectoryEntry));
     }
 
 
     // Update the entry
     char* p = String_CopyUpTo(pEmptyEntry->filename, pName->name, pName->count);
-    while (p < &pEmptyEntry->filename[kMaxFilenameLength]) *p++ = '\0';
+    while (p < &pEmptyEntry->filename[kSFSMaxFilenameLength]) *p++ = '\0';
     pEmptyEntry->id = id;
 
 
@@ -700,11 +700,11 @@ errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent*
 
     // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
     // Also figure out whether there's an empty entry that we can reuse.
-    RamDirectoryEntry* pEmptyEntry;
-    RamDirectoryEntry* pExistingEntry;
-    RamDirectoryQuery q;
+    SFSDirectoryEntry* pEmptyEntry;
+    SFSDirectoryEntry* pExistingEntry;
+    SFSDirectoryQuery q;
 
-    q.kind = kDirectoryQuery_PathComponent;
+    q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
     err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
     if (err == ENOENT) {
@@ -748,19 +748,19 @@ catch:
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-static ssize_t xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const RamDirectoryEntry* _Nonnull pIn, ssize_t nBytesToRead)
+static ssize_t xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const SFSDirectoryEntry* _Nonnull pIn, ssize_t nBytesToRead)
 {
     ssize_t nBytesCopied = 0;
 
     while (nBytesToRead > 0) {
         if (pIn->id > 0) {
             pOut->inodeId = pIn->id;
-            String_CopyUpTo(pOut->name, pIn->filename, kMaxFilenameLength);
-            nBytesCopied += sizeof(RamDirectoryEntry);
+            String_CopyUpTo(pOut->name, pIn->filename, kSFSMaxFilenameLength);
+            nBytesCopied += sizeof(SFSDirectoryEntry);
             pOut++;
         }
         pIn++;
-        nBytesToRead -= sizeof(RamDirectoryEntry);
+        nBytesToRead -= sizeof(SFSDirectoryEntry);
     }
 
     return nBytesCopied;
@@ -769,7 +769,7 @@ static ssize_t xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const Ram
 errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = Directory_GetInode(pDir);
-    const ssize_t nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(RamDirectoryEntry);
+    const ssize_t nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(SFSDirectoryEntry);
     ssize_t nBytesRead;
 
     // XXX reading multiple entries at once doesn't work right because xRead advances 'pBuffer' by sizeof(RamDirectoryEntry) rather
@@ -779,11 +779,11 @@ errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryRef _Nonnull 
         pNode, 
         Directory_GetOffset(pDir),
         nBytesToReadFromDirectory,
-        (RamReadCallback)xCopyOutDirectoryEntries,
+        (SFSReadCallback)xCopyOutDirectoryEntries,
         pBuffer,
         &nBytesRead);
     Directory_IncrementOffset(pDir, nBytesRead);
-    *nOutBytesRead = (nBytesRead / sizeof(RamDirectoryEntry)) * sizeof(DirectoryEntry);
+    *nOutBytesRead = (nBytesRead / sizeof(SFSDirectoryEntry)) * sizeof(DirectoryEntry);
     return err;
 }
 
@@ -809,11 +809,11 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
 
     // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
     // Also figure out whether there's an empty entry that we can reuse.
-    RamDirectoryEntry* pEmptyEntry;
-    RamDirectoryEntry* pExistingEntry;
-    RamDirectoryQuery q;
+    SFSDirectoryEntry* pEmptyEntry;
+    SFSDirectoryEntry* pExistingEntry;
+    SFSDirectoryQuery q;
 
-    q.kind = kDirectoryQuery_PathComponent;
+    q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
     err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &pEmptyEntry, &pExistingEntry);
     if (err == ENOENT) {
@@ -915,7 +915,7 @@ errno_t SerenaFS_read(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, void* _
         pNode, 
         File_GetOffset(pFile),
         nBytesToRead,
-        (RamReadCallback)xCopyOutFileContent,
+        (SFSReadCallback)xCopyOutFileContent,
         pBuffer,
         nOutBytesRead);
     File_IncrementOffset(pFile, *nOutBytesRead);
@@ -937,7 +937,7 @@ errno_t SerenaFS_write(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, const 
         pNode, 
         offset,
         nBytesToWrite,
-        (RamWriteCallback)Bytes_CopyRange,
+        (SFSWriteCallback)Bytes_CopyRange,
         pBuffer,
         nOutBytesWritten);
     File_IncrementOffset(pFile, *nOutBytesWritten);
@@ -950,11 +950,11 @@ errno_t SerenaFS_write(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, const 
 static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length)
 {
     const FileOffset oldLength = Inode_GetFileSize(pNode);
-    const FileOffset oldLengthRoundedUpToBlockBoundary = __Ceil_PowerOf2(oldLength, kRamBlockSize);
-    const int firstBlockIdx = (int)(oldLengthRoundedUpToBlockBoundary >> (FileOffset)kRamBlockSizeShift);    //XXX blockIdx should be 64bit
-    RamBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
+    const FileOffset oldLengthRoundedUpToBlockBoundary = __Ceil_PowerOf2(oldLength, kSFSBlockSize);
+    const int firstBlockIdx = (int)(oldLengthRoundedUpToBlockBoundary >> (FileOffset)kSFSBlockSizeShift);    //XXX blockIdx should be 64bit
+    SFSBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
 
-    for (int i = firstBlockIdx; i < kMaxDirectDataBlockPointers; i++) {
+    for (int i = firstBlockIdx; i < kSFSMaxDirectDataBlockPointers; i++) {
         void* pBlockPtr = pBlockMap->p[i];
 
         if (pBlockPtr) {
