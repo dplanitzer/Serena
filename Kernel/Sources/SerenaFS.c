@@ -1268,8 +1268,7 @@ errno_t SerenaFS_write(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, const 
 }
 
 // Internal file truncation function. Shortens the file 'pNode' to the new and
-// smaller size 'length'. Does not support increasing the size of a file. Expects
-// that 'pNode' is a regular file.
+// smaller size 'length'. Does not support increasing the size of a file.
 static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length)
 {
     const FileOffset oldLength = Inode_GetFileSize(pNode);
@@ -1368,6 +1367,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
 
     // Remove the directory entry in the parent directory
     try(SerenaFS_RemoveDirectoryEntry(self, pParentNode, Inode_GetId(pNodeToUnlink)));
+    SerenaFS_xTruncateFile(self, pParentNode, Inode_GetFileSize(pParentNode));
 
 
     // Unlink the node itself
