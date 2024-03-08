@@ -12,13 +12,13 @@
 
 CLASS_IVARS(RomDisk, DiskDriver,
     const char* _Nonnull    diskImage;
-    size_t                  blockCount;
+    LogicalBlockCount       blockCount;
     size_t                  blockSize;
     bool                    freeDiskImageOnClose;
 );
 
 
-errno_t RomDisk_Create(const void* _Nonnull pDiskImage, size_t nBlockCount, size_t nBlockSize, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(const void* _Nonnull pDiskImage, size_t nBlockSize, LogicalBlockCount nBlockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RomDiskRef self;
@@ -53,20 +53,20 @@ size_t RomDisk_getBlockSize(RomDiskRef _Nonnull self)
 }
 
 // Returns the number of blocks that the disk is able to store.
-size_t RomDisk_getBlockCount(RomDiskRef _Nonnull self)
+LogicalBlockCount RomDisk_getBlockCount(RomDiskRef _Nonnull self)
 {
     return self->blockCount;
 }
 
-// Reads the contents of the block at index 'idx'. 'buffer' must be big
+// Reads the contents of the block at index 'lba'. 'buffer' must be big
 // enough to hold the data of a block. Blocks the caller until the read
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, size_t idx)
+errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
-    if (idx < self->blockCount) {
-        Bytes_CopyRange(pBuffer, self->diskImage + idx * self->blockSize, self->blockSize);
+    if (lba < self->blockCount) {
+        Bytes_CopyRange(pBuffer, self->diskImage + lba * self->blockSize, self->blockSize);
         return EOK;
     }
     else {

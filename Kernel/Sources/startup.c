@@ -17,6 +17,7 @@
 #include "Platform.h"
 #include "Process.h"
 #include "ProcessManager.h"
+#include "RamDisk.h"
 #include "SerenaFS.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
@@ -131,12 +132,23 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 static void _Nonnull init_boot_filesystem(void)
 {
     decl_try_err();
+    RamDiskRef pRamDisk;
     FilesystemRef pSerenaFS;
 
-    // XXX for now always a RAM disk
-    User rootDirUser = {kRootUserId, kRootGroupId};
-    try(SerenaFS_Create(rootDirUser, (SerenaFSRef*)&pSerenaFS));
-    try(FilesystemManager_Create(pSerenaFS, &gFilesystemManager));
+    // Create a RAM disk and format it with SerenaFS
+    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
+    const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
+    User dirUser = {kRootUserId, kRootGroupId};
+
+    try(RamDisk_Create(512, 128, 128, &pRamDisk));
+    try(SerenaFS_FormatDrive((DiskDriverRef)pRamDisk, dirUser, dirPerms));
+
+
+    // Create a SerenaFS instance and mount it as the root filesystem on the RAM
+    // disk
+    try(SerenaFS_Create(dirUser, (SerenaFSRef*)&pSerenaFS));
+    try(FilesystemManager_Create(pSerenaFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
     Object_Release(pSerenaFS);
     return;
 

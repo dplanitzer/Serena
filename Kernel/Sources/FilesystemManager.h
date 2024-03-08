@@ -20,8 +20,8 @@ extern FilesystemManagerRef _Nonnull  gFilesystemManager;
 
 
 // Creates the filesystem manager. The provided filesystem is automatically
-// mounted as the root filesystem.
-extern errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager);
+// mounted as the root filesystem on the disk partition 'pDriver'.
+extern errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, DiskDriverRef _Nonnull pDriver, FilesystemManagerRef _Nullable * _Nonnull pOutManager);
 
 // Returns a strong reference to the root of the global filesystem.
 extern FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef _Nonnull pManager);
@@ -44,9 +44,10 @@ extern bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pMa
 // mounted at that node, if it is. Otherwise returns NULL.
 extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode);
 
-// Mounts the given filesystem at the given node. The node must be a directory
-// node. A filesystem instance may be mounted at at most one directory.
-extern errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nonnull _Locked pDirNode);
+// Mounts the given filesystem physically located at the given disk partition
+// and attaches it at the given node. The node must be a directory node. A
+// filesystem instance may be mounted at at most one directory.
+extern errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nonnull _Locked pDirNode);
 
 // Unmounts the given filesystem from the given directory.
 extern errno_t FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode);

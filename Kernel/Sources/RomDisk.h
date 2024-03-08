@@ -34,6 +34,6 @@ typedef struct _RomDiskMethodTable {
 // deallocated.
 // Note that the provided disk image is expected to be initialized with a valid
 // file system since there is no way to write to this disk.
-extern errno_t RomDisk_Create(const void* _Nonnull pDiskImage, size_t nBlockCount, size_t nBlockSize, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RomDisk_Create(const void* _Nonnull pDiskImage, size_t nBlockSize, LogicalBlockCount nBlockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* RomDisk_h */

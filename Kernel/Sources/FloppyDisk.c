@@ -723,7 +723,7 @@ size_t FloppyDisk_getBlockSize(FloppyDiskRef _Nonnull self)
 }
 
 // Returns the number of blocks that the disk is able to store.
-size_t FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
+LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
 {
     // XXX detect DD vs HD disk types
     return ADF_HD_SECS_PER_TRACK * ADF_HD_CYLS_PER_DISK * ADF_HD_HEADS_PER_CYL;
@@ -735,32 +735,32 @@ bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
     return false;
 }
 
-// Reads the contents of the block at index 'idx'. 'buffer' must be big
+// Reads the contents of the block at index 'lba'. 'buffer' must be big
 // enough to hold the data of a block. Blocks the caller until the read
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, size_t idx)
+errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     // XXX hardcoded to HD for now
-    const size_t c = idx / (ADF_HD_HEADS_PER_CYL * ADF_HD_SECS_PER_TRACK);
-    const size_t h = (idx / ADF_HD_SECS_PER_TRACK) % ADF_HD_HEADS_PER_CYL;
-    const size_t s = idx % ADF_HD_SECS_PER_TRACK;
+    const size_t c = lba / (ADF_HD_HEADS_PER_CYL * ADF_HD_SECS_PER_TRACK);
+    const size_t h = (lba / ADF_HD_SECS_PER_TRACK) % ADF_HD_HEADS_PER_CYL;
+    const size_t s = lba % ADF_HD_SECS_PER_TRACK;
 
     return FloppyDisk_ReadSector(self, h, c, s, pBuffer);
 }
 
-// Writes the contents of 'pBuffer' to the block at index 'idx'. 'pBuffer'
+// Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
 // must be big enough to hold a full block. Blocks the caller until the
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, size_t idx)
+errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     // XXX hardcoded to HD for now
-    const size_t c = idx / (ADF_HD_HEADS_PER_CYL * ADF_HD_SECS_PER_TRACK);
-    const size_t h = (idx / ADF_HD_SECS_PER_TRACK) % ADF_HD_HEADS_PER_CYL;
-    const size_t s = idx % ADF_HD_SECS_PER_TRACK;
+    const size_t c = lba / (ADF_HD_HEADS_PER_CYL * ADF_HD_SECS_PER_TRACK);
+    const size_t h = (lba / ADF_HD_SECS_PER_TRACK) % ADF_HD_HEADS_PER_CYL;
+    const size_t s = lba % ADF_HD_SECS_PER_TRACK;
     
     return FloppyDisk_WriteSector(self, h, c, s, pBuffer);
 }

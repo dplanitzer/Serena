@@ -28,15 +28,15 @@ typedef struct _FilesystemManager {
     Mountpoint*             rootMountpoint;
 } FilesystemManager;
 
-static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable pDirNodeToMountAt);
+static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable pDirNodeToMountAt);
 
 
 FilesystemManagerRef    gFilesystemManager;
 
 
 // Creates the filesystem manager. The provided filesystem is automatically
-// mounted as the root filesystem.
-errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, FilesystemManagerRef _Nullable * _Nonnull pOutManager)
+// mounted as the root filesystem on the disk partition 'pDriver'.
+errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, DiskDriverRef _Nonnull pDriver, FilesystemManagerRef _Nullable * _Nonnull pOutManager)
 {
     decl_try_err();
     FilesystemManagerRef self;
@@ -48,7 +48,7 @@ errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, Filesystem
     self->rootMountpoint = NULL;
 
     char dummy;
-    try(FilesystemManager_Mount_Locked(self, pRootFileSys, &dummy, 0, NULL));
+    try(FilesystemManager_Mount_Locked(self, pRootFileSys, pDriver, &dummy, 0, NULL));
 
     *pOutManager = self;
     return EOK;
@@ -120,7 +120,7 @@ static Mountpoint* _Nullable FilesystemManager_GetMountpointForInode_Locked(File
 // Internal mount function. Mounts the given filesystem at the given place. If
 // 'pDirNodeToMountAt' is NULL then 'pFileSysToMount' is mounted as the root
 // filesystem.
-static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNodeToMountAt)
+static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNodeToMountAt)
 {
     const Mountpoint* pDirNodeMount = NULL;
     decl_try_err();
@@ -153,7 +153,7 @@ static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self
 
 
     // Notify the filesystem that we are mounting it
-    try(Filesystem_OnMount(pFileSysToMount, pParams, paramsSize));
+    try(Filesystem_OnMount(pFileSysToMount, pDriver, pParams, paramsSize));
 
 
     // Update our mount table
@@ -296,12 +296,13 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Filesystem
     return pFileSys;
 }
 
-// Mounts the given filesystem at the given node. The node must be a directory
-// node. A filesystem instance may be mounted at at most one directory.
-errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nonnull _Locked pDirNode)
+// Mounts the given filesystem physically located at the given disk partition
+// and attaches it at the given node. The node must be a directory node. A
+// filesystem instance may be mounted at at most one directory.
+errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nonnull _Locked pDirNode)
 {
     Lock_Lock(&self->lock);
-    const errno_t err = FilesystemManager_Mount_Locked(self, pFileSys, pParams, paramsSize, pDirNode);
+    const errno_t err = FilesystemManager_Mount_Locked(self, pFileSys, pDriver, pParams, paramsSize, pDirNode);
     Lock_Unlock(&self->lock);
     return err;
 }

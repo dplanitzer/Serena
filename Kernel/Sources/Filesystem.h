@@ -11,6 +11,7 @@
 
 #include "IOResource.h"
 #include "Inode.h"
+#include "DiskDriver.h"
 #include "PathComponent.h"
 
 
@@ -141,7 +142,7 @@ typedef struct _FilesystemMethodTable {
     // Invoked when an instance of this file system is mounted. Note that the
     // kernel guarantees that no operations will be issued to the filesystem
     // before onMount() has returned with EOK.
-    errno_t (*onMount)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
+    errno_t (*onMount)(void* _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize);
 
     // Invoked when a mounted instance of this file system is unmounted. A file
     // system may return an error. Note however that this error is purely advisory
@@ -266,9 +267,9 @@ typedef struct _FilesystemMethodTable {
     //
 
     // Invoked when Filesystem_AllocateNode() is called. Subclassers should
-    // override this method to allocate the on-disk representation of an inode
-    // of the given type.
-    errno_t (*onAllocateNodeOnDisk)(void* _Nonnull, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId);
+    // override this method to allocate and initialize an inode of the given
+    // type.
+    errno_t (*onAllocateNodeOnDisk)(void* _Nonnull, FileType type, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested
     // inode off the disk. The override should read the inode data from the disk,
@@ -292,7 +293,7 @@ typedef struct _FilesystemMethodTable {
     // no longer being referenced by any directory and that the on-disk
     // representation should be deleted from the disk and deallocated. This
     // operation is assumed to never fail.
-    void (*onRemoveNodeFromDisk)(void* _Nonnull self, InodeId id);
+    void (*onRemoveNodeFromDisk)(void* _Nonnull self, InodeRef _Nonnull pNode);
 
 } FilesystemMethodTable;
 
@@ -311,8 +312,8 @@ extern errno_t Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _Non
 #define Filesystem_GetId(__fs) \
     ((FilesystemRef)(__fs))->fsid
 
-#define Filesystem_OnMount(__self, __pParams, __paramsSize) \
-Object_InvokeN(onMount, Filesystem, __self, __pParams, __paramsSize)
+#define Filesystem_OnMount(__self, __pDriver, __pParams, __paramsSize) \
+Object_InvokeN(onMount, Filesystem, __self, __pDriver, __pParams, __paramsSize)
 
 #define Filesystem_OnUnmount(__self) \
 Object_Invoke0(onUnmount, Filesystem, __self)
@@ -405,8 +406,8 @@ extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId
 // inodes owned by the filesystem is currently in memory.
 extern bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
 
-#define Filesystem_OnAllocateNodeOnDisk(__self, __type, __pContext, __pOutId) \
-Object_InvokeN(onAllocateNodeOnDisk, Filesystem, __self, __type, __pContext, __pOutId)
+#define Filesystem_OnAllocateNodeOnDisk(__self, __type, __pContext, __pOutNode) \
+Object_InvokeN(onAllocateNodeOnDisk, Filesystem, __self, __type, __pContext, __pOutNode)
 
 #define Filesystem_OnReadNodeFromDisk(__self, __id, __pContext, __pOutNode) \
 Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pContext, __pOutNode)
@@ -414,7 +415,7 @@ Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pContext, __pOutN
 #define Filesystem_OnWriteNodeToDisk(__self, __pNode) \
 Object_InvokeN(onWriteNodeToDisk, Filesystem, __self, __pNode)
 
-#define Filesystem_OnRemoveNodeFromDisk(__self, __id) \
-Object_InvokeN(onRemoveNodeFromDisk, Filesystem, __self, __id)
+#define Filesystem_OnRemoveNodeFromDisk(__self, __pNode) \
+Object_InvokeN(onRemoveNodeFromDisk, Filesystem, __self, __pNode)
 
 #endif /* Filesystem_h */

@@ -32,6 +32,6 @@ typedef struct _RamDiskMethodTable {
 // deallocated.
 // Note that the provided disk image is expected to be initialized with a valid
 // file system since there is no way to write to this disk.
-extern errno_t RamDisk_Create(size_t nBlockCount, size_t nBlockSize, size_t nExtentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RamDisk_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, LogicalBlockCount nExtentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* RamDisk_h */

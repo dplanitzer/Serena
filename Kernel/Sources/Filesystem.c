@@ -265,8 +265,7 @@ errno_t Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, User
 
     Lock_Lock(&self->inodeManagementLock);
 
-    try(Filesystem_OnAllocateNodeOnDisk(self, type, pContext, &id));
-    try(Filesystem_OnReadNodeFromDisk(self, id, pContext, &pNode));
+    try(Filesystem_OnAllocateNodeOnDisk(self, type, pContext, &pNode));
     try(PointerArray_Add(&self->inodesInUse, pNode));
     pNode->useCount++;
     
@@ -280,9 +279,6 @@ errno_t Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, User
     return EOK;
 
 catch:
-    if (pNode == NULL && id > 0) {
-        Filesystem_OnRemoveNodeFromDisk(self, id);
-    }
     Lock_Unlock(&self->inodeManagementLock);
     
     if (pNode) {
@@ -371,7 +367,7 @@ void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _
     // XXX take FS readonly status into account here
     assert(pNode->linkCount >= 0);
     if (pNode->linkCount == 0) {
-        Filesystem_OnRemoveNodeFromDisk(self, Inode_GetId(pNode));
+        Filesystem_OnRemoveNodeFromDisk(self, pNode);
     }
     else if (Inode_IsModified(pNode)) {
         Filesystem_OnWriteNodeToDisk(self, pNode);
@@ -401,9 +397,8 @@ bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
 }
 
 // Invoked when Filesystem_AllocateNode() is called. Subclassers should
-// override this method to allocate the on-disk representation of an inode
-// of the given type.
-errno_t Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, FileType type, void* _Nullable pContext, InodeId* _Nonnull pOutId)
+// override this method to allocate and initialize an inode of the given type.
+errno_t Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, FileType type, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
@@ -430,7 +425,7 @@ errno_t Filesystem_onWriteNodeToDisk(FilesystemRef _Nonnull self, InodeRef _Nonn
 // no longer being referenced by any directory and that the on-disk
 // representation should be deleted from the disk and deallocated. This
 // operation is assumed to never fail.
-void Filesystem_onRemoveNodeFromDisk(FilesystemRef _Nonnull self, InodeId id)
+void Filesystem_onRemoveNodeFromDisk(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
 }
 
@@ -438,7 +433,7 @@ void Filesystem_onRemoveNodeFromDisk(FilesystemRef _Nonnull self, InodeId id)
 // Invoked when an instance of this file system is mounted. Note that the
 // kernel guarantees that no operations will be issued to the filesystem
 // before onMount() has returned with EOK.
-errno_t Filesystem_onMount(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
+errno_t Filesystem_onMount(FilesystemRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     return EIO;
 }

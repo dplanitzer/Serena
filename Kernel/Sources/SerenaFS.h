@@ -17,6 +17,12 @@ typedef struct _SerenaFSMethodTable {
 } SerenaFSMethodTable;
 
 
+// Formats the given disk drive and installs a SerenaFS with an empty root
+// directory on it. 'user' and 'permissions' are the user and permissions that
+// should be assigned to the root directory.
+extern errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePermissions permissions);
+
+
 // Creates an instance of SerenaFS. SerenaFS is a volatile file system that does not
 // survive system restarts. The 'rootDirUser' parameter specifies the user and
 // group ID of the root directory.
