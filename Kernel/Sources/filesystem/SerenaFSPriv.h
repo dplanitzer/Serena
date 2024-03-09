@@ -10,8 +10,8 @@
 #define SerenaFSPriv_h
 
 #include "SerenaFS.h"
-#include "ConditionVariable.h"
-#include "Lock.h"
+#include <dispatcher/ConditionVariable.h>
+#include <dispatcher/Lock.h>
 
 #define kSFSMaxFilenameLength               28
 #define kSFSBlockSizeShift                  9

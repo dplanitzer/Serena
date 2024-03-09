@@ -10,7 +10,7 @@
 #define InterruptControllerPriv_h
 
 #include "InterruptController.h"
-#include "Lock.h"
+#include <dispatcher/Lock.h>
 
 
 #define INTERRUPT_HANDLER_TYPE_DIRECT               0

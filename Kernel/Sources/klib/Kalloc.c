@@ -8,7 +8,7 @@
 
 #include "kalloc.h"
 #include "Allocator.h"
-#include "Lock.h"
+#include <dispatcher/Lock.h>
 #include "Bytes.h"
 
 

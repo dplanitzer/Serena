@@ -7,7 +7,7 @@
 //
 
 #include "AddressSpace.h"
-#include "Lock.h"
+#include <dispatcher/Lock.h>
 
 
 #define MEM_BLOCKS_CAPACITY 8

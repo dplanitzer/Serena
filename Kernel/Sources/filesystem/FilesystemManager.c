@@ -7,7 +7,7 @@
 //
 
 #include "FilesystemManager.h"
-#include "Lock.h"
+#include <dispatcher/Lock.h>
 
 
 typedef struct _Mountpoint {

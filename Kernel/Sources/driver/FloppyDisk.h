@@ -10,9 +10,9 @@
 #define FloppyDisk_h
 
 #include <klib/klib.h>
+#include <dispatcher/Semaphore.h>
 #include "InterruptController.h"
 #include "DiskDriver.h"
-#include "Semaphore.h"
 
 
 // See http://lclevy.free.fr/adflib/adf_info.html

@@ -8,10 +8,10 @@
 
 #include "DriverManager.h"
 #include <console/Console.h>
+#include <dispatcher/Lock.h>
 #include "EventDriver.h"
 #include "FloppyDisk.h"
 #include "GraphicsDriver.h"
-#include "Lock.h"
 #include "RealtimeClock.h"
 
 

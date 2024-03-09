@@ -7,7 +7,7 @@
 //
 
 #include "ProcessManager.h"
-#include "Lock.h"
+#include <dispatcher/Lock.h>
 #include "ProcessPriv.h"
 
 typedef struct _ProcessManager {

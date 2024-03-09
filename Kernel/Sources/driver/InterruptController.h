@@ -10,8 +10,8 @@
 #define InterruptController_h
 
 #include <klib/klib.h>
+#include <dispatcher/Semaphore.h>
 #include "Platform.h"
-#include "Semaphore.h"
 
 
 #define INTERRUPT_HANDLER_PRIORITY_LOWEST   -128

@@ -10,9 +10,9 @@
 #define EventDriverPriv_h
 
 #include "EventDriver.h"
+#include <dispatcher/Lock.h>
 #include "HIDEventQueue.h"
 #include "InputDriver.h"
-#include "Lock.h"
 #include "MonotonicClock.h"
 #include "USBHIDKeys.h"
 

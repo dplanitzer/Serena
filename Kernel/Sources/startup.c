@@ -8,6 +8,9 @@
 
 #include <krt/krt.h>
 #include <klib/klib.h>
+#include <dispatcher/DispatchQueue.h>
+#include <dispatcher/VirtualProcessorScheduler.h>
+#include <dispatcher/VirtualProcessorPool.h>
 #include <driver/DriverManager.h>
 #include <driver/InterruptController.h>
 #include <driver/MonotonicClock.h>
@@ -17,10 +20,7 @@
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include "BootAllocator.h"
-#include "DispatchQueue.h"
 #include "Platform.h"
-#include "VirtualProcessorScheduler.h"
-#include "VirtualProcessorPool.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
 static char* gInitialHeapBottom;

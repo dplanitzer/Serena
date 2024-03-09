@@ -7,8 +7,8 @@
 //
 
 #include "Pipe.h"
-#include "ConditionVariable.h"
-#include "Lock.h"
+#include <dispatcher/ConditionVariable.h>
+#include <dispatcher/Lock.h>
 
 
 enum {

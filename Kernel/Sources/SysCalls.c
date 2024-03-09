@@ -6,11 +6,11 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <dispatcher/DispatchQueue.h>
+#include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverManager.h>
 #include <process/Process.h>
-#include "DispatchQueue.h"
 #include "IOResource.h"
-#include "VirtualProcessor.h"
 
 typedef intptr_t (*SystemCall)(void* _Nonnull);
 

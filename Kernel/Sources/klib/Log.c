@@ -8,9 +8,9 @@
 
 #include <klib/klib.h>
 #include <console/Console.h>
+#include <dispatcher/Lock.h>
 #include <driver/DriverManager.h>
 #include "Formatter.h"
-#include "Lock.h"
 
 #define PRINT_BUFFER_CAPACITY   80
 

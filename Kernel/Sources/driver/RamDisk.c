@@ -7,7 +7,7 @@
 //
 
 #include "RamDisk.h"
-#include "Lock.h"
+#include <dispatcher/Lock.h>
 #include <System/IOChannel.h>
 
 

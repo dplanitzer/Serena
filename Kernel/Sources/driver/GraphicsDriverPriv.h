@@ -10,11 +10,11 @@
 #define GraphicsDriverPriv_h
 
 #include "GraphicsDriver.h"
+#include <dispatcher/Lock.h>
+#include <dispatcher/Semaphore.h>
 #include "InterruptController.h"
-#include "Lock.h"
 #include "MousePainter.h"
 #include "Platform.h"
-#include "Semaphore.h"
 
 
 #define MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION   5

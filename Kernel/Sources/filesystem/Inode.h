@@ -10,9 +10,9 @@
 #define Inode_h
 
 #include <klib/klib.h>
+#include <dispatcher/Lock.h>
 #include <System/Directory.h>
 #include <System/File.h>
-#include "Lock.h"
 
 CLASS_FORWARD(Filesystem);
 

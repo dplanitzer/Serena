@@ -7,7 +7,7 @@
 //
 
 #include "RealtimeClock.h"
-#include "Lock.h"
+#include <dispatcher/Lock.h>
 #include "Platform.h"
 
 
