@@ -10,7 +10,7 @@
 #define DispatchQueue_h
 
 #include <klib/klib.h>
-#include "Process.h"
+#include <process/Process.h>
 #include "SystemDescription.h"
 #include "VirtualProcessorPool.h"
 #include <System/DispatchQueue.h>

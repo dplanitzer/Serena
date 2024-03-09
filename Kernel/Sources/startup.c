@@ -12,13 +12,13 @@
 #include <driver/RamDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/SerenaFS.h>
+#include <process/Process.h>
+#include <process/ProcessManager.h>
 #include "BootAllocator.h"
 #include "DispatchQueue.h"
 #include "InterruptController.h"
 #include "MonotonicClock.h"
 #include "Platform.h"
-#include "Process.h"
-#include "ProcessManager.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"
 
