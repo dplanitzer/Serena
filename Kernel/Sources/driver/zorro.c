@@ -7,8 +7,8 @@
 //
 
 #include <klib/klib.h>
-#include "Platform.h"
-#include "SystemDescription.h"
+#include <hal/Platform.h>
+#include <hal/SystemDescription.h>
 
 
 // Space for Zorro II auto configuration

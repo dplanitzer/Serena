@@ -10,7 +10,7 @@
 #define BootAllocator_h
 
 #include <klib/klib.h>
-#include "SystemDescription.h"
+#include <hal/SystemDescription.h>
 
 
 typedef struct _BootAllocator {

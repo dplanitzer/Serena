@@ -9,7 +9,7 @@
 #include "VirtualProcessor.h"
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
-#include "Platform.h"
+#include <hal/Platform.h>
 
 
 // Initializes an execution stack struct. The execution stack is empty by default

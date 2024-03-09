@@ -6,7 +6,7 @@
 ;  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "../hal/lowmem.i"
     include <System/asm/errno.i>
 
     xref _ULock_OnWait

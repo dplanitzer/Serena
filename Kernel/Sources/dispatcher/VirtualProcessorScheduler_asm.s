@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "../hal/lowmem.i"
 
     xref _gVirtualProcessorSchedulerStorage
     xref _cpu_non_recoverable_error

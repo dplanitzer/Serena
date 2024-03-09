@@ -11,7 +11,7 @@
 
 #include <klib/klib.h>
 #include <dispatcher/Semaphore.h>
-#include "Platform.h"
+#include <hal/Platform.h>
 
 
 #define INTERRUPT_HANDLER_PRIORITY_LOWEST   -128

@@ -10,7 +10,7 @@
 #define MonotonicClock_h
 
 #include <klib/klib.h>
-#include "SystemDescription.h"
+#include <hal/SystemDescription.h>
 
 
 typedef int32_t Quantums;             // Time unit of the scheduler clock which increments monotonically and once per quantum interrupt

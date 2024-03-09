@@ -7,7 +7,7 @@
 //
 
 #include "MonotonicClock.h"
-#include "Platform.h"
+#include <hal/Platform.h>
 #include "InterruptController.h"
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);

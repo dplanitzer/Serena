@@ -10,7 +10,7 @@
 #define DriverManager_h
 
 #include <klib/klib.h>
-#include "Platform.h"
+#include <hal/Platform.h>
 
 struct _DriverManager;
 typedef struct _DriverManager* DriverManagerRef;

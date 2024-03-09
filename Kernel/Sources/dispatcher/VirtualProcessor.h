@@ -11,8 +11,8 @@
 
 #include <klib/klib.h>
 #include <driver/MonotonicClock.h>
-#include "Platform.h"
-#include "SystemDescription.h"
+#include <hal/Platform.h>
+#include <hal/SystemDescription.h>
 
 
 // A kernel or user execution stack

@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "../hal/lowmem.i"
 
 
     xdef _AtomicBool_Set

@@ -17,10 +17,10 @@
 #include <driver/RamDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/SerenaFS.h>
+#include <hal/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
 #include "BootAllocator.h"
-#include "Platform.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
 static char* gInitialHeapBottom;

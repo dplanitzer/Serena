@@ -6,7 +6,7 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "lowmem.i"
+    include "../hal/lowmem.i"
 
     xref _Semaphore_OnWaitForPermits
     xref _Semaphore_WakeUp

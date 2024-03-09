@@ -8,7 +8,7 @@
 
 #include "RealtimeClock.h"
 #include <dispatcher/Lock.h>
-#include "Platform.h"
+#include <hal/Platform.h>
 
 
 // The realtime clock

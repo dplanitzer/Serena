@@ -6,8 +6,8 @@
 ;  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 ;
 
-    include "chipset.i"
-    include "lowmem.i"
+    include "../hal/chipset.i"
+    include "../hal/lowmem.i"
 
     xref _gMonotonicClockStorage
 

@@ -10,7 +10,7 @@
 #define Assert_h
 
 #include <klib/Types.h>
-#include <Platform.h>
+#include <hal/Platform.h>
 
 
 extern _Noreturn fatal(const char* _Nonnull format, ...);

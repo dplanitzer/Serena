@@ -10,7 +10,7 @@
 #define Allocator_h
 
 #include <klib/Error.h>
-#include "Platform.h"
+#include <hal/Platform.h>
 
 
 struct _Allocator;

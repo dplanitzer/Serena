@@ -10,8 +10,8 @@
 #define RealtimeClock_h
 
 #include <klib/klib.h>
+#include <hal/SystemDescription.h>
 #include "IOResource.h"
-#include "SystemDescription.h"
 
 
 // A specific date in the Gregorian calendar

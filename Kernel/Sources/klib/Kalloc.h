@@ -11,7 +11,7 @@
 
 #include <klib/Types.h>
 #include <klib/Error.h>
-#include <SystemDescription.h>
+#include <hal/SystemDescription.h>
 
 
 // kalloc_options options

@@ -7,8 +7,8 @@
 //
 
 #include "FloppyDisk.h"
-#include "Platform.h"
 #include <dispatcher/VirtualProcessor.h>
+#include <hal/Platform.h>
 
 
 // CIABPRA bits (FDC status byte)
