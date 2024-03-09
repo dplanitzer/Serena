@@ -16,7 +16,7 @@
 #include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
 #include <filesystem/FilesystemManager.h>
-#include <filesystem/SerenaFS.h>
+#include <filesystem/serenafs/SerenaFS.h>
 #include <hal/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>

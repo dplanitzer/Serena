@@ -9,7 +9,7 @@
 #ifndef SerenaFS_h
 #define SerenaFS_h
 
-#include "Filesystem.h"
+#include <filesystem/Filesystem.h>
 
 OPAQUE_CLASS(SerenaFS, Filesystem);
 typedef struct _SerenaFSMethodTable {
