@@ -8,7 +8,7 @@
 
 #include <klib/klib.h>
 #include <console/Console.h>
-#include "DriverManager.h"
+#include <driver/DriverManager.h>
 #include "Formatter.h"
 #include "Lock.h"
 

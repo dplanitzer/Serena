@@ -10,8 +10,8 @@
 #define Console_h
 
 #include <klib/klib.h>
-#include "EventDriver.h"
-#include "GraphicsDriver.h"
+#include <driver/EventDriver.h>
+#include <driver/GraphicsDriver.h>
 
 //
 // The console implements support for the following standards:
