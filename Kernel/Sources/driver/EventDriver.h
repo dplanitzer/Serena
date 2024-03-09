@@ -10,7 +10,7 @@
 #define EventDriver_h
 
 #include <klib/klib.h>
-#include "GraphicsDriver.h"
+#include <driver/amiga/GraphicsDriver.h>
 #include "HIDEvent.h"
 #include "IOResource.h"
 

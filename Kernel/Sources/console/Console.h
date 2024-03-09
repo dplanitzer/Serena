@@ -11,7 +11,7 @@
 
 #include <klib/klib.h>
 #include <driver/EventDriver.h>
-#include <driver/GraphicsDriver.h>
+#include <driver/amiga/GraphicsDriver.h>
 
 //
 // The console implements support for the following standards:

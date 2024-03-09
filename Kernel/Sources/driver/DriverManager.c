@@ -10,9 +10,9 @@
 #include <console/Console.h>
 #include <dispatcher/Lock.h>
 #include "EventDriver.h"
-#include "FloppyDisk.h"
-#include "GraphicsDriver.h"
-#include "RealtimeClock.h"
+#include <driver/amiga/FloppyDisk.h>
+#include <driver/amiga/GraphicsDriver.h>
+#include <driver/amiga/RealtimeClock.h>
 
 
 const char* const kGraphicsDriverName = "graphics";
