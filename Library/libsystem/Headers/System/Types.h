@@ -1,5 +1,5 @@
 //
-//  types.h
+//  Types.h
 //  libsystem
 //
 //  Created by Dietmar Planitzer on 10/12/23.
