@@ -12,8 +12,8 @@
 #include "Process.h"
 #include "AddressSpace.h"
 #include <dispatcher/ConditionVariable.h>
-#include <dispatcher/DispatchQueue.h>
 #include <dispatcher/Lock.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include <filesystem/PathResolver.h>
 
 

@@ -10,11 +10,11 @@
 #define DispatchQueuePriv_h
 
 #include "DispatchQueue.h"
-#include "ConditionVariable.h"
-#include "Lock.h"
+#include <dispatcher/ConditionVariable.h>
+#include <dispatcher/Lock.h>
+#include <dispatcher/Semaphore.h>
+#include <dispatcher/VirtualProcessorScheduler.h>
 #include <driver/MonotonicClock.h>
-#include "Semaphore.h"
-#include "VirtualProcessorScheduler.h"
 
 
 enum ItemType {

@@ -6,8 +6,8 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <dispatcher/DispatchQueue.h>
 #include <dispatcher/VirtualProcessor.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverManager.h>
 #include <process/Process.h>
 #include "IOResource.h"

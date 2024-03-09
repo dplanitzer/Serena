@@ -7,7 +7,6 @@
 //
 
 #include "ProcessPriv.h"
-#include <dispatcher/DispatchQueue.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <System/DispatchQueue.h>
 

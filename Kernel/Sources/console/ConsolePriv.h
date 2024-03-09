@@ -10,8 +10,8 @@
 #define ConsolePriv_h
 
 #include "Console.h"
-#include <dispatcher/DispatchQueue.h>
 #include <dispatcher/Lock.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include "KeyMap.h"
 #include "vtparser.h"
 

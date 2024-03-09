@@ -8,9 +8,9 @@
 
 #include <krt/krt.h>
 #include <klib/klib.h>
-#include <dispatcher/DispatchQueue.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverManager.h>
 #include <driver/InterruptController.h>
 #include <driver/MonotonicClock.h>
