@@ -10,7 +10,7 @@
 #define VirtualProcessor_h
 
 #include <klib/klib.h>
-#include "MonotonicClock.h"
+#include <driver/MonotonicClock.h>
 #include "Platform.h"
 #include "SystemDescription.h"
 

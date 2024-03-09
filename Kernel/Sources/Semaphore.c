@@ -7,7 +7,7 @@
 //
 
 #include "Semaphore.h"
-#include "InterruptController.h"
+#include <driver/InterruptController.h>
 #include "VirtualProcessorScheduler.h"
 
 

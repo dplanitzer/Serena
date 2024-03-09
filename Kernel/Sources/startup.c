@@ -9,6 +9,8 @@
 #include <krt/krt.h>
 #include <klib/klib.h>
 #include <driver/DriverManager.h>
+#include <driver/InterruptController.h>
+#include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/SerenaFS.h>
@@ -16,8 +18,6 @@
 #include <process/ProcessManager.h>
 #include "BootAllocator.h"
 #include "DispatchQueue.h"
-#include "InterruptController.h"
-#include "MonotonicClock.h"
 #include "Platform.h"
 #include "VirtualProcessorScheduler.h"
 #include "VirtualProcessorPool.h"

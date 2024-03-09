@@ -7,9 +7,9 @@
 //
 
 #include "VirtualProcessorScheduler.h"
-#include "MonotonicClock.h"
+#include <driver/InterruptController.h>
+#include <driver/MonotonicClock.h>
 #include "Platform.h"
-#include "InterruptController.h"
 
 
 extern void VirtualProcessorScheduler_SwitchContext(void);
