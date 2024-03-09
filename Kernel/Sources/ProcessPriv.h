@@ -14,7 +14,7 @@
 #include "ConditionVariable.h"
 #include "DispatchQueue.h"
 #include "Lock.h"
-#include "PathResolver.h"
+#include <filesystem/PathResolver.h>
 
 
 // A process tombstone is created by a process that voluntarily or involuntarily

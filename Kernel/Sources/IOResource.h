@@ -10,7 +10,7 @@
 #define IOResource_h
 
 #include <klib/klib.h>
-#include "Inode.h"
+#include <filesystem/Inode.h>
 
 CLASS_FORWARD(IOResource);
 
