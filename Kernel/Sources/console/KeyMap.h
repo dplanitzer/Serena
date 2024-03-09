@@ -10,8 +10,8 @@
 #define KeyMap_h
 
 #include <klib/klib.h>
-#include <driver/HIDEvent.h>
-#include <driver/USBHIDKeys.h>
+#include <driver/hid/HIDEvent.h>
+#include <driver/hid/USBHIDKeys.h>
 
 // A key map maps a USB key code to a single character or a string. The mapping
 // can take the current state of the modifier flags into account.

@@ -9,10 +9,10 @@
 #include "DriverManager.h"
 #include <console/Console.h>
 #include <dispatcher/Lock.h>
-#include "EventDriver.h"
 #include <driver/amiga/FloppyDisk.h>
 #include <driver/amiga/GraphicsDriver.h>
 #include <driver/amiga/RealtimeClock.h>
+#include <driver/hid/EventDriver.h>
 
 
 const char* const kGraphicsDriverName = "graphics";

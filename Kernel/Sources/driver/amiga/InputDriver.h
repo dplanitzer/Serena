@@ -10,7 +10,7 @@
 #define InputDriver_h
 
 #include <klib/klib.h>
-#include "EventDriver.h"
+#include <driver/hid/EventDriver.h>
 
 
 //
