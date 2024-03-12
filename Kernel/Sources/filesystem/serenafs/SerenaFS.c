@@ -7,9 +7,10 @@
 //
 
 #include "SerenaFSPriv.h"
-#include <driver/MonotonicClock.h>
+#include <System/ByteOrder.h>
 
 
+#ifdef __KERNEL__
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Inode extensions
@@ -20,6 +21,7 @@ static bool DirectoryNode_IsEmpty(InodeRef _Nonnull _Locked self)
 {
     return Inode_GetFileSize(self) <= sizeof(SFSDirectoryEntry) * 2;
 }
+#endif /* __KERNEL__ */
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -95,16 +97,18 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     // Write the volume header
     Bytes_ClearRange(p, diskBlockSize);
     SFSVolumeHeader* vhp = (SFSVolumeHeader*)p;
-    vhp->signature = kSFSSignature_SerenaFS;
-    vhp->version = kSFSVersion_Current;
-    vhp->attributes = 0;
-    vhp->creationTime = curTime;
-    vhp->modificationTime = curTime;
-    vhp->blockSize = diskBlockSize;
-    vhp->volumeBlockCount = diskBlockCount;
-    vhp->allocationBitmapByteSize = allocationBitmapByteSize;
-    vhp->rootDirectory = rootDirInodeLba;
-    vhp->allocationBitmap = 1;
+    vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
+    vhp->version = UInt32_HostToBig(kSFSVersion_Current);
+    vhp->attributes = UInt32_HostToBig(0);
+    vhp->creationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
+    vhp->creationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    vhp->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
+    vhp->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    vhp->blockSize = UInt32_HostToBig(diskBlockSize);
+    vhp->volumeBlockCount = UInt32_HostToBig(diskBlockCount);
+    vhp->allocationBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
+    vhp->rootDirectoryLba = UInt32_HostToBig(rootDirInodeLba);
+    vhp->allocationBitmapLba = UInt32_HostToBig(1);
     try(DiskDriver_PutBlock(pDriver, vhp, 0));
 
 
@@ -131,16 +135,19 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     // Write the root directory inode
     Bytes_ClearRange(p, diskBlockSize);
     SFSInode* ip = (SFSInode*)p;
-    ip->accessTime = curTime;
-    ip->modificationTime = curTime;
-    ip->statusChangeTime = curTime;
-    ip->size = 2 * sizeof(SFSDirectoryEntry);
-    ip->uid = user.uid;
-    ip->gid = user.gid;
-    ip->permissions = permissions;
-    ip->linkCount = 1;
+    ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
+    ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    ip->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
+    ip->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    ip->statusChangeTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
+    ip->statusChangeTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
+    ip->size = Int64_HostToBig(2 * sizeof(SFSDirectoryEntry));
+    ip->uid = UInt32_HostToBig(user.uid);
+    ip->gid = UInt32_HostToBig(user.gid);
+    ip->linkCount = Int32_HostToBig(1);
+    ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;
-    ip->blockMap.p[0] = rootDirContentLba;
+    ip->blockMap.p[0] = UInt32_HostToBig(rootDirContentLba);
     try(DiskDriver_PutBlock(pDriver, ip, rootDirInodeLba));
 
 
@@ -148,9 +155,9 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     // which both point back to the root directory.
     Bytes_ClearRange(p, diskBlockSize);
     SFSDirectoryEntry* dep = (SFSDirectoryEntry*)p;
-    dep[0].id = rootDirInodeLba;
+    dep[0].id = UInt32_HostToBig(rootDirInodeLba);
     dep[0].filename[0] = '.';
-    dep[1].id = rootDirInodeLba;
+    dep[1].id = UInt32_HostToBig(rootDirInodeLba);
     dep[1].filename[0] = '.';
     dep[1].filename[1] = '.';
     try(DiskDriver_PutBlock(pDriver, dep, rootDirContentLba));
@@ -160,6 +167,7 @@ catch:
     return err;
 }
 
+#ifdef __KERNEL__
 // Creates an instance of SerenaFS. SerenaFS is a volatile file system that does not
 // survive system restarts. The 'rootDirUser' parameter specifies the user and
 // group ID of the root directory.
@@ -287,25 +295,28 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, void*
 {
     decl_try_err();
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
-    void* pBlockMap = NULL;
+    SFSBlockMap* pBlockMap = NULL;
 
-    try(kalloc(sizeof(SFSBlockMap), &pBlockMap));
+    try(kalloc(sizeof(SFSBlockMap), (void**)&pBlockMap));
     try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba));
-
     const SFSInode* ip = (const SFSInode*)self->tmpBlock;
-    Bytes_CopyRange(pBlockMap, &ip->blockMap, sizeof(SFSBlockMap));
+
+    for (int i = 0; i < kSFSMaxDirectDataBlockPointers; i++) {
+        pBlockMap->p[i] = UInt32_BigToHost(ip->blockMap.p[i]);
+    }
+
     return Inode_Create(
         Filesystem_GetId(self),
         id,
         ip->type,
-        ip->linkCount,
-        ip->uid,
-        ip->gid,
-        ip->permissions,
-        ip->size,
-        ip->accessTime,
-        ip->modificationTime,
-        ip->statusChangeTime,
+        Int32_BigToHost(ip->linkCount),
+        UInt32_BigToHost(ip->uid),
+        UInt32_BigToHost(ip->gid),
+        UInt16_BigToHost(ip->permissions),
+        Int64_BigToHost(ip->size),
+        TimeInterval_Make(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
+        TimeInterval_Make(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
+        TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
         pBlockMap,
         pOutNode);
 
@@ -327,16 +338,26 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
 
     Bytes_ClearRange(ip, kSFSBlockSize);
 
-    ip->accessTime = (Inode_IsAccessed(pNode)) ? curTime : Inode_GetAccessTime(pNode);
-    ip->modificationTime = (Inode_IsUpdated(pNode)) ? curTime : Inode_GetModificationTime(pNode);
-    ip->statusChangeTime = (Inode_IsStatusChanged(pNode)) ? curTime : Inode_GetStatusChangeTime(pNode);
-    ip->size = Inode_GetFileSize(pNode);
-    ip->uid = Inode_GetUserId(pNode);
-    ip->gid = Inode_GetGroupId(pNode);
-    ip->permissions = Inode_GetFilePermissions(pNode);
-    ip->linkCount = Inode_GetLinkCount(pNode);
+    const TimeInterval accTime = (Inode_IsAccessed(pNode)) ? curTime : Inode_GetAccessTime(pNode);
+    const TimeInterval modTime = (Inode_IsUpdated(pNode)) ? curTime : Inode_GetModificationTime(pNode);
+    const TimeInterval chgTime = (Inode_IsStatusChanged(pNode)) ? curTime : Inode_GetStatusChangeTime(pNode);
+
+    ip->accessTime.tv_sec = UInt32_HostToBig(accTime.tv_sec);
+    ip->accessTime.tv_nsec = UInt32_HostToBig(accTime.tv_nsec);
+    ip->modificationTime.tv_sec = UInt32_HostToBig(modTime.tv_sec);
+    ip->modificationTime.tv_nsec = UInt32_HostToBig(modTime.tv_nsec);
+    ip->statusChangeTime.tv_sec = UInt32_HostToBig(chgTime.tv_sec);
+    ip->statusChangeTime.tv_nsec = UInt32_HostToBig(chgTime.tv_nsec);
+    ip->size = Int64_HostToBig(Inode_GetFileSize(pNode));
+    ip->uid = UInt32_HostToBig(Inode_GetUserId(pNode));
+    ip->gid = UInt32_HostToBig(Inode_GetGroupId(pNode));
+    ip->linkCount = Int32_HostToBig(Inode_GetLinkCount(pNode));
+    ip->permissions = UInt16_HostToBig(Inode_GetFilePermissions(pNode));
     ip->type = Inode_GetFileType(pNode);
-    Bytes_CopyRange(&ip->blockMap, pBlockMap, sizeof(SFSBlockMap));
+
+    for (int i = 0; i < kSFSMaxDirectDataBlockPointers; i++) {
+        ip->blockMap.p[i] = UInt32_HostToBig(pBlockMap->p[i]);
+    }
 
     return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
 }
@@ -454,6 +475,7 @@ static errno_t SerenaFS_GetDirectoryEntry(
     LogicalBlockAddress lba = 0;
     SFSDirectoryEntry* pEmptyEntry = NULL;
     SFSDirectoryEntry* pMatchingEntry = NULL;
+    SFSDirectoryQuery swappedQuery;
     bool hasMatch = false;
 
     if (pOutEmptyPtr) {
@@ -482,6 +504,11 @@ static errno_t SerenaFS_GetDirectoryEntry(
         }
     }
 
+    swappedQuery = *pQuery;
+    if (swappedQuery.kind == kSFSDirectoryQuery_InodeId) {
+        swappedQuery.u.id = UInt32_HostToBig(swappedQuery.u.id);
+    }
+
     while (true) {
         const int blockIdx = offset >> (FileOffset)kSFSBlockSizeShift;
         const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)kSFSBlockSize, fileSize - offset);
@@ -499,7 +526,7 @@ static errno_t SerenaFS_GetDirectoryEntry(
         }
 
         const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
-        hasMatch = xHasMatchingDirectoryEntry(pQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
+        hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
         if (pEmptyEntry) {
             pOutEmptyPtr->lba = lba;
             pOutEmptyPtr->offset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
@@ -519,7 +546,7 @@ static errno_t SerenaFS_GetDirectoryEntry(
             pOutEntryPtr->fileOffset = offset + pOutEntryPtr->offset;
         }
         if (pOutId) {
-            *pOutId = pMatchingEntry->id;
+            *pOutId = UInt32_BigToHost(pMatchingEntry->id);
         }
         if (pOutFilename) {
             const ssize_t len = String_LengthUpTo(pMatchingEntry->filename, kSFSMaxFilenameLength);
@@ -704,26 +731,32 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
     try(DiskDriver_GetBlock(pDriver, self->tmpBlock, 0));
     const SFSVolumeHeader* vhp = (const SFSVolumeHeader*)self->tmpBlock;
-    if (vhp->signature != kSFSSignature_SerenaFS || vhp->version != kSFSVersion_v1) {
+    const uint32_t signature = UInt32_BigToHost(vhp->signature);
+    const uint32_t version = UInt32_BigToHost(vhp->version);
+    const uint32_t blockSize = UInt32_BigToHost(vhp->blockSize);
+    const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volumeBlockCount);
+    const uint32_t allocationBitmapByteSize = UInt32_BigToHost(vhp->allocationBitmapByteSize);
+
+    if (signature != kSFSSignature_SerenaFS || version != kSFSVersion_v0_1) {
         throw(EIO);
     }
-    if (vhp->blockSize != kSFSBlockSize || vhp->volumeBlockCount < kSFSVolume_MinBlockCount || vhp->allocationBitmapByteSize < 1) {
+    if (blockSize != kSFSBlockSize || volumeBlockCount < kSFSVolume_MinBlockCount || allocationBitmapByteSize < 1) {
         throw(EIO);
     }
 
-    const size_t diskBlockSize = vhp->blockSize;
-    size_t allocBitmapByteSize = vhp->allocationBitmapByteSize;
+    const size_t diskBlockSize = blockSize;
+    size_t allocBitmapByteSize = allocationBitmapByteSize;
 
 
     // Cache the root directory info
-    self->rootDirLba = vhp->rootDirectory;
+    self->rootDirLba = UInt32_BigToHost(vhp->rootDirectoryLba);
 
 
     // Cache the allocation bitmap in RAM
-    self->allocationBitmapLba = vhp->allocationBitmap;
+    self->allocationBitmapLba = UInt32_BigToHost(vhp->allocationBitmapLba);
     self->allocationBitmapBlockCount = (allocBitmapByteSize + (diskBlockSize - 1)) / diskBlockSize;
     self->allocationBitmapByteSize = allocBitmapByteSize;
-    self->volumeBlockCount = vhp->volumeBlockCount;
+    self->volumeBlockCount = volumeBlockCount;
 
     try(kalloc(allocBitmapByteSize, (void**)&self->allocationBitmap));
     uint8_t* pAllocBitmap = self->allocationBitmap;
@@ -931,7 +964,7 @@ static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef
 
         char* p = String_CopyUpTo(dep->filename, pName->name, pName->count);
         while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
-        dep->id = id;
+        dep->id = UInt32_HostToBig(id);
 
         try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, pEmptyPtr->lba));
     }
@@ -968,7 +1001,7 @@ static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef
         }
 
         String_CopyUpTo(dep->filename, pName->name, pName->count);
-        dep->id = id;
+        dep->id = UInt32_HostToBig(id);
         try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba));
         pBlockMap->p[idx] = lba;
 
@@ -1077,7 +1110,7 @@ static ssize_t xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const SFS
 
     while (nBytesToRead > 0) {
         if (pIn->id > 0) {
-            pOut->inodeId = pIn->id;
+            pOut->inodeId = UInt32_BigToHost(pIn->id);
             String_CopyUpTo(pOut->name, pIn->filename, kSFSMaxFilenameLength);
             nBytesCopied += sizeof(SFSDirectoryEntry);
             pOut++;
@@ -1414,3 +1447,4 @@ OVERRIDE_METHOD_IMPL(checkAccess, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(unlink, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(rename, SerenaFS, Filesystem)
 );
+#endif /* __KERNEL__ */

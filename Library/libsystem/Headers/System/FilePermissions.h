@@ -10,7 +10,6 @@
 #define _SYS_FILEPERMISSIONS_H 1
 
 #include <System/_cmndef.h>
-#include <System/Types.h>
 
 __CPP_BEGIN
 

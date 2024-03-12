@@ -13,7 +13,6 @@
             "defines": [
                 "DEBUG=1",
                 "__ILP32__=1",
-                "__BIG_ENDIAN__=1",
                 "__M68K__",
                 "__M68882",
                 "TARGET_CPU_68030=1",

@@ -160,7 +160,7 @@ int _divmods64(long long dividend, long long divisor, long long* quotient, long 
     x.i = dividend;
     y.i = divisor;
 
-#if __BIG_ENDIAN__
+#if __M68K__
     for (int i = 0; i < 4; i++) {
         if (x.s[i]) break;
         m--;
@@ -206,7 +206,7 @@ int _divmods64(long long dividend, long long divisor, long long* quotient, long 
     if (quotient) {
         qx.i = 0LL;
         for (int i = 0; i < m - n + 1; i++) {
-#if __BIG_ENDIAN__
+#if __M68K__
             qx.s[3 - i] = q[i];
 #else
             qx.s[i] = q[i];
@@ -219,7 +219,7 @@ int _divmods64(long long dividend, long long divisor, long long* quotient, long 
     if (remainder) {
         rx.i = 0LL;
         for (int i = 0; i < n; i++) {
-#if __BIG_ENDIAN__
+#if __M68K__
             rx.s[3 - i] = r[i];
 #else
             rx.s[i] = r[i];

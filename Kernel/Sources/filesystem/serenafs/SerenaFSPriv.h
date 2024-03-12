@@ -10,8 +10,11 @@
 #define SerenaFSPriv_h
 
 #include "SerenaFS.h"
+#ifdef __KERNEL__
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
+#include <driver/MonotonicClock.h>
+#endif
 
 #define kSFSMaxFilenameLength               28
 #define kSFSBlockSizeShift                  9
@@ -54,8 +57,9 @@ enum {
 // version field occupies exactly one byte and each sub-version field is treated
 // as a unsigned binary encoded number.
 enum {
-    kSFSVersion_v1 = 0x00010000,                // v1.0.0
-    kSFSVersion_Current = kSFSVersion_v1,       // Version to use for formatting a new disk
+    kSFSVersion_v0_1 = 0x00000100,              // v0.1.0
+    kSFSVersion_v1_0 = 0x00010000,              // v1.0.0
+    kSFSVersion_Current = kSFSVersion_v0_1,     // Version to use for formatting a new disk
 };
 
 enum {
@@ -63,20 +67,26 @@ enum {
     kSFSVolumeAttributeBit_IsConsistent = 1,    // OnMount() must clear this bit on the disk and onUnmount must set it on disk as the last write operation. If this bit is cleared on mount then the FS state on disk should be considered inconsistent
 };
 
+typedef struct SFSDateTime {
+    uint32_t    tv_sec;     // Seconds since 00:00:00 UTC Jan 1st, 1970
+    uint32_t    tv_nsec;    // 0..<1billion
+} SFSDateTime;
+
+
 typedef struct SFSVolumeHeader {
-    uint32_t            signature;
-    uint32_t            version;
-    uint32_t            attributes;
+    uint32_t    signature;
+    uint32_t    version;
+    uint32_t    attributes;
 
-    TimeInterval        creationTime;               // Date/time when the disk was formatted to create the FS
-    TimeInterval        modificationTime;           // Date/time when the most recent modification to the FS happened
+    SFSDateTime creationTime;               // Date/time when the disk was formatted to create the FS
+    SFSDateTime modificationTime;           // Date/time when the most recent modification to the FS happened
     
-    uint32_t            blockSize;                  // Allocation block size (currently always == disk block size)
-    LogicalBlockCount   volumeBlockCount;           // Size of the volume in terms of allocation blocks
-    uint32_t            allocationBitmapByteSize;   // Size of allocation bitmap in bytes (XXX tmp until we'll turn the allocation bitmap into a real file)
+    uint32_t    blockSize;                  // Allocation block size (currently always == disk block size)
+    uint32_t    volumeBlockCount;           // Size of the volume in terms of allocation blocks
+    uint32_t    allocationBitmapByteSize;   // Size of allocation bitmap in bytes (XXX tmp until we'll turn the allocation bitmap into a real file)
 
-    LogicalBlockAddress rootDirectory;              // LBA of the root directory Inode
-    LogicalBlockAddress allocationBitmap;           // LBA of the first block of the allocation bitmap area
+    uint32_t    rootDirectoryLba;           // LBA of the root directory Inode
+    uint32_t    allocationBitmapLba;        // LBA of the first block of the allocation bitmap area
     // All bytes from here to the end of the block are reserved
 } SFSVolumeHeader;
 
@@ -108,20 +118,21 @@ typedef struct SFSVolumeHeader {
 // lock effectively protects the disk node sitting behind the inode. 
 
 typedef struct SFSBlockMap {
-    LogicalBlockAddress p[kSFSMaxDirectDataBlockPointers];
+    uint32_t    p[kSFSMaxDirectDataBlockPointers];
 } SFSBlockMap;
 
 typedef struct SFSInode {
-    TimeInterval        accessTime;
-    TimeInterval        modificationTime;
-    TimeInterval        statusChangeTime;
-    FileOffset          size;
-    UserId              uid;
-    GroupId             gid;
-    FilePermissions     permissions;
-    int                 linkCount;
-    FileType            type;
-    SFSBlockMap         blockMap;
+    SFSDateTime     accessTime;
+    SFSDateTime     modificationTime;
+    SFSDateTime     statusChangeTime;
+    int64_t         size;
+    uint32_t        uid;
+    uint32_t        gid;
+    int32_t         linkCount;
+    uint16_t        permissions;
+    uint8_t         type;
+    uint8_t         reserved;
+    SFSBlockMap     blockMap;
 } SFSInode;
 typedef SFSInode* SFSInodeRef;
 
@@ -153,12 +164,13 @@ typedef SFSInode* SFSInodeRef;
 // The '.' and '..' entries of the root directory map to the root directory
 // inode id.
 typedef struct SFSDirectoryEntry {
-    LogicalBlockAddress id;
-    char                filename[kSFSMaxFilenameLength];    // if strlen(filename) < kSFSMaxFilenameLength -> 0 terminated
+    uint32_t    id;
+    char        filename[kSFSMaxFilenameLength];    // if strlen(filename) < kSFSMaxFilenameLength -> 0 terminated
 } SFSDirectoryEntry;
 
 
 
+#ifdef __KERNEL__
 //
 // Directories
 //
@@ -224,4 +236,5 @@ static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, SFSInodeRef _Nul
 static errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba);
 static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
 
+#endif /* __KERNEL__ */
 #endif /* SerenaFSPriv_h */
