@@ -136,9 +136,9 @@ typedef struct _Class {
     Method* _Nonnull                    vtable;
     struct _Class* _Nonnull             super;
     const char* _Nonnull                name;
-    ssize_t                           instanceSize;
-    int16_t                               methodCount;
-    uint16_t                              flags;
+    size_t                              instanceSize;
+    int16_t                             methodCount;
+    uint16_t                            flags;
     const struct MethodDecl* _Nonnull   methodList;
 } Class;
 typedef struct _Class* ClassRef;

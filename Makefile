@@ -51,7 +51,7 @@ endif
 export CC_OPT_SETTING
 export CC_GEN_DEBUG_INFO
 
-export CC_PREPROC_DEFS := -DDEBUG=1 -D__ILP32__=1 -DTARGET_CPU_68030=1
+export CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68030=1
 
 #XXX vbcc always defines -D__STDC_HOSTED__=1 and we can't override it for the kernel (which should define -D__STDC_HOSTED__=0)
 KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1

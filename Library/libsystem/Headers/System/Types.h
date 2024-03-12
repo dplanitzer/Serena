@@ -13,6 +13,7 @@
 #include <System/abi/_inttypes.h>
 #include <System/_null.h>
 #include <System/abi/_size.h>
+#include <System/abi/_ssize.h>
 #include <System/_errno.h>
 #include <System/_cmndef.h>
 
@@ -30,8 +31,6 @@ typedef int64_t     FileOffset;
 
 typedef uint32_t    UserId;
 typedef uint32_t    GroupId;
-
-typedef __ssize_t ssize_t;
 
 #define SSIZE_MIN  __SSIZE_MIN
 #define SSIZE_MAX  __SSIZE_MAX

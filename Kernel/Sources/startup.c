@@ -147,7 +147,7 @@ static void _Nonnull init_boot_filesystem(void)
 
     // Create a SerenaFS instance and mount it as the root filesystem on the RAM
     // disk
-    try(SerenaFS_Create(dirUser, (SerenaFSRef*)&pSerenaFS));
+    try(SerenaFS_Create((SerenaFSRef*)&pSerenaFS));
     try(FilesystemManager_Create(pSerenaFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
     Object_Release(pSerenaFS);
     return;

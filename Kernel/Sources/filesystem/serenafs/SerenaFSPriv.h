@@ -170,7 +170,6 @@ typedef struct SFSDirectoryEntry {
 
 
 
-#ifdef __KERNEL__
 //
 // Directories
 //
@@ -179,7 +178,7 @@ enum SFSDirectoryQueryKind {
     kSFSDirectoryQuery_PathComponent,
     kSFSDirectoryQuery_InodeId
 };
-
+#ifdef __KERNEL__
 typedef struct SFSDirectoryQuery {
     int     kind;
     union _u {
@@ -187,16 +186,16 @@ typedef struct SFSDirectoryQuery {
         InodeId                         id;
     }       u;
 } SFSDirectoryQuery;
-
+#endif
 
 
 //
 // Inode Extensions
 //
-
+#ifdef __KERNEL__
 #define Inode_GetBlockMap(__self) \
     Inode_GetRefConAs(__self, SFSBlockMap*)
-
+#endif
 
 //
 // SerenaFS
@@ -228,7 +227,7 @@ typedef enum SFSBlockMode {
     kSFSBlockMode_Write
 } SFSBlockMode;
 
-
+#ifdef __KERNEL__
 static InodeId SerenaFS_GetNextAvailableInodeId_Locked(SerenaFSRef _Nonnull self);
 static errno_t SerenaFS_FormatWithEmptyFilesystem(SerenaFSRef _Nonnull self);
 static errno_t SerenaFS_CreateDirectoryDiskNode(SerenaFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId);

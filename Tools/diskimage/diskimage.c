@@ -10,20 +10,45 @@
 #include <SerenaFS.h>
 
 
-void createDiskImage(const char* pRootPath, const char* pDstPath)
+static void failed(errno_t err)
 {
-    DiskDriverRef pDisk = NULL;
+    printf("Error: %d\n", err);
+    exit(EXIT_FAILURE);
+}
+
+static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
+{
     User user = {0, 0};
     const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
     const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
+    return SerenaFS_FormatDrive(pDisk, user, dirPerms);
+}
+
+static void createDiskImage(const char* pRootPath, const char* pDstPath)
+{
+    decl_try_err();
+    DiskDriverRef pDisk = NULL;
+    SerenaFSRef pFS = NULL;
+
     DiskDriver_Create(512, 128, &pDisk);
     
-    SerenaFS_FormatDrive(pDisk, user, dirPerms);
-    DiskDriver_WriteToPath(pDisk, pDstPath);
+    try(formatDiskImage(pDisk));
 
+    try(SerenaFS_Create(&pFS));
+    // XXX iterate the host directory 'pRootPath' and create the file and directories
+    // XXX which we encounter in our SeFS disk
+
+    try(DiskDriver_WriteToPath(pDisk, pDstPath));
+    
+    SerenaFS_Destroy(pFS);
     DiskDriver_Destroy(pDisk);
+    printf("Done\n");
+    return;
+
+catch:
+    failed(err);
 }
 
 

@@ -167,11 +167,9 @@ catch:
     return err;
 }
 
-#ifdef __KERNEL__
 // Creates an instance of SerenaFS. SerenaFS is a volatile file system that does not
-// survive system restarts. The 'rootDirUser' parameter specifies the user and
-// group ID of the root directory.
-errno_t SerenaFS_Create(User rootDirUser, SerenaFSRef _Nullable * _Nonnull pOutFileSys)
+// survive system restarts.
+errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     SerenaFSRef self;
@@ -185,11 +183,11 @@ errno_t SerenaFS_Create(User rootDirUser, SerenaFSRef _Nullable * _Nonnull pOutF
     ConditionVariable_Init(&self->notifier);
     self->isReadOnly = false;
 
-    *pOutFileSys = self;
+    *pOutSelf = self;
     return EOK;
 
 catch:
-    *pOutFileSys = NULL;
+    *pOutSelf = NULL;
     return err;
 }
 
@@ -201,6 +199,17 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
+#ifndef __KERNEL__
+void SerenaFS_Destroy(SerenaFSRef _Nullable self)
+{
+    if (self) {
+        SerenaFS_deinit(self);
+        kfree(self);
+    }
+}
+#endif /* __KERNEL__ */
+
+#ifdef __KERNEL__
 static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
 {
     const LogicalBlockAddress idxOfAllocBitmapBlockModified = (lba >> 3) / kSFSBlockSize;
@@ -1419,7 +1428,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull
     // XXX implement me
     return EACCESS;
 }
-
+#endif /* __KERNEL__ */
 
 CLASS_METHODS(SerenaFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, SerenaFS, Object)
@@ -1447,4 +1456,3 @@ OVERRIDE_METHOD_IMPL(checkAccess, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(unlink, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(rename, SerenaFS, Filesystem)
 );
-#endif /* __KERNEL__ */
