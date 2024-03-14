@@ -10,7 +10,6 @@
 #include <System/ByteOrder.h>
 
 
-#ifdef __KERNEL__
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Inode extensions
@@ -21,7 +20,6 @@ static bool DirectoryNode_IsEmpty(InodeRef _Nonnull _Locked self)
 {
     return Inode_GetFileSize(self) <= sizeof(SFSDirectoryEntry) * 2;
 }
-#endif /* __KERNEL__ */
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -193,23 +191,16 @@ catch:
 
 void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
+#ifndef __DISKIMAGE__
     // Can not be that we are getting deallocated while being mounted
+    // diskimage note: the diskimage tool isn't currently properly unmounting
+    // the FS which would trigger this assert. Disabled it for now
     assert(self->diskDriver == NULL);
+#endif
     ConditionVariable_Deinit(&self->notifier);
     Lock_Deinit(&self->lock);
 }
 
-#ifndef __KERNEL__
-void SerenaFS_Destroy(SerenaFSRef _Nullable self)
-{
-    if (self) {
-        SerenaFS_deinit(self);
-        kfree(self);
-    }
-}
-#endif /* __KERNEL__ */
-
-#ifdef __KERNEL__
 static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
 {
     const LogicalBlockAddress idxOfAllocBitmapBlockModified = (lba >> 3) / kSFSBlockSize;
@@ -782,7 +773,7 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
     // Store the disk driver reference
     self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
-
+    
 catch:
     Lock_Unlock(&self->lock);
     return err;
@@ -1303,7 +1294,7 @@ errno_t SerenaFS_write(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, const 
         offset,
         nBytesToWrite,
         (SFSWriteCallback)Bytes_CopyRange,
-        pBuffer,
+        (void*)pBuffer,
         nOutBytesWritten);
     File_IncrementOffset(pFile, *nOutBytesWritten);
     return err;
@@ -1428,7 +1419,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull
     // XXX implement me
     return EACCESS;
 }
-#endif /* __KERNEL__ */
+
 
 CLASS_METHODS(SerenaFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, SerenaFS, Object)

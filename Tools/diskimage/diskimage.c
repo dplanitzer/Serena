@@ -6,8 +6,10 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "diskimage.h"
-#include <SerenaFS.h>
+#include <stdlib.h>
+#include <klib/klib.h>
+#include <filesystem/FilesystemManager.h>
+#include <filesystem/serenafs/SerenaFS.h>
 
 
 static void failed(errno_t err)
@@ -37,13 +39,14 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     try(formatDiskImage(pDisk));
 
     try(SerenaFS_Create(&pFS));
+    try(FilesystemManager_Create((FilesystemRef)pFS, pDisk, &gFilesystemManager));
     // XXX iterate the host directory 'pRootPath' and create the file and directories
     // XXX which we encounter in our SeFS disk
 
     try(DiskDriver_WriteToPath(pDisk, pDstPath));
     
-    SerenaFS_Destroy(pFS);
-    DiskDriver_Destroy(pDisk);
+    Object_Release(pFS);
+    Object_Release(pDisk);
     printf("Done\n");
     return;
 
@@ -56,6 +59,15 @@ catch:
 
 int main(int argc, char* argv[])
 {
+    _RegisterClass(&kObjectClass);
+    _RegisterClass(&kIOChannelClass);
+    _RegisterClass(&kIOResourceClass);
+    _RegisterClass(&kDiskDriverClass);
+    _RegisterClass(&kFileClass);
+    _RegisterClass(&kDirectoryClass);
+    _RegisterClass(&kFilesystemClass);
+    _RegisterClass(&kSerenaFSClass);
+
     if (argc > 1) {
         if (!strcmp(argv[1], "create")) {
             if (argc > 3) {

@@ -10,8 +10,19 @@
 #define __SYS_ERRNO_H 1
 
 #define _EOK            0
-#ifndef __posix_errors_are_defined
-#define __posix_errors_are_defined 1
+
+#ifdef __SYSTEM_SHIM__
+
+#include <errno.h>
+#ifndef EACCESS
+#define EACCESS EACCES
+#endif
+#ifndef ENOTIOCTLCMD
+#define ENOTIOCTLCMD EINVAL
+#endif
+
+#else
+
 #define ENOMEM          1
 #define ENOMEDIUM       2
 #define EDISKCHANGE     3
@@ -51,7 +62,8 @@
 
 #define __EFIRST    1
 #define __ELAST     36
-#endif  /* __posix_errors_are_defined */
+
+#endif  /* __SYSTEM_SHIM__ */
 
 typedef int _Errno_t;
 

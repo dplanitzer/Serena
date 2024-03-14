@@ -9,6 +9,10 @@
 #ifndef __SYS_VARARGS_H
 #define __SYS_VARARGS_H 1
 
+#ifdef __SYSTEM_SHIM__
+#include <stdarg.h>
+#else
+
 typedef unsigned char *va_list;
 
 #define __va_align(type) (__alignof(type)>=4?__alignof(type):4)
@@ -20,4 +24,5 @@ typedef unsigned char *va_list;
 #define va_copy(new,old) ((new)=(old))
 #define va_end(vl) ((vl)=0)
 
+#endif /* __SYSTEM_SHIM__ */
 #endif /* __SYS_VARARGS_H */

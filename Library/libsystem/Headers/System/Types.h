@@ -10,6 +10,7 @@
 #define _SYS_TYPES_H 1
 
 #include <System/abi/_dmdef.h>
+#include <System/abi/_bool.h>
 #include <System/abi/_inttypes.h>
 #include <System/_null.h>
 #include <System/abi/_size.h>
@@ -32,12 +33,22 @@ typedef int64_t     FileOffset;
 typedef uint32_t    UserId;
 typedef uint32_t    GroupId;
 
+#ifndef SSIZE_MIN
 #define SSIZE_MIN  __SSIZE_MIN
+#endif
+#ifndef SSIZE_MAX
 #define SSIZE_MAX  __SSIZE_MAX
+#endif
+#ifndef SSIZE_WIDTH
 #define SSIZE_WIDTH __SSIZE_WIDTH
+#endif
 
+#ifndef SIZE_MAX
 #define SIZE_MAX __SIZE_MAX
+#endif
+#ifndef SIZE_WIDTH
 #define SIZE_WIDTH __SIZE_WIDTH
+#endif
 
 __CPP_END
 

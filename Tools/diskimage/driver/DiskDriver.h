@@ -1,15 +1,17 @@
 //
-//  FauxDisk.h
+//  DiskDriver.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 3/10/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef FauxDisk_h
-#define FauxDisk_h
+#ifndef di_DiskDriver_h
+#define di_DiskDriver_h
 
-#include "diskimage_types.h"
+#include <klib/Error.h>
+#include <klib/Types.h>
+#include <klib/Object.h>
 
 
 // Represents a logical block address in the range 0..<DiskDriver.blockCount
@@ -19,12 +21,15 @@ typedef uint32_t    LogicalBlockAddress;
 typedef LogicalBlockAddress LogicalBlockCount;
 
 
-typedef struct DiskDriver {
+OPEN_CLASS_WITH_REF(DiskDriver, Object,
     uint8_t*            disk;
     size_t              blockSize;
     LogicalBlockCount   blockCount;
-} DiskDriver;
-typedef DiskDriver* DiskDriverRef;
+);
+typedef struct _DiskDriverMethodTable {
+    ObjectMethodTable   super;
+} DiskDriverMethodTable;
+
 
 
 
@@ -62,4 +67,4 @@ extern errno_t DiskDriver_PutBlock(DiskDriverRef _Nonnull self, const void* _Non
 // Writes the contents of the disk to the given path as a regular file.
 extern errno_t DiskDriver_WriteToPath(DiskDriverRef _Nonnull self, const char* pPath);
 
-#endif /* FauxDisk_h */
+#endif /* di_DiskDriver_h */

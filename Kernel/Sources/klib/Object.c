@@ -7,12 +7,14 @@
 //
 
 #include "Object.h"
-#include "Bytes.h"
-#include "Kalloc.h"
-#include "Log.h"
+#include <klib/Bytes.h>
+#include <klib/Kalloc.h>
+#ifndef __DISKIMAGE__
+#include <klib/Log.h>
 
 extern char _class;
 extern char _eclass;
+#endif
 
 
 void Object_deinit(ObjectRef _Nonnull self)
@@ -123,7 +125,7 @@ bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass)
     return false;
 }
 
-static void RegisterClass(ClassRef _Nonnull pClass)
+void _RegisterClass(ClassRef _Nonnull pClass)
 {
     if ((pClass->flags & CLASSF_INITIALIZED) != 0) {
         return;
@@ -132,7 +134,7 @@ static void RegisterClass(ClassRef _Nonnull pClass)
     // Make sure that the super class is registered
     ClassRef pSuperClass = pClass->super;
     if (pSuperClass) {
-        RegisterClass(pSuperClass);
+        _RegisterClass(pSuperClass);
     }
 
 
@@ -164,6 +166,7 @@ static void RegisterClass(ClassRef _Nonnull pClass)
     pClass->flags |= CLASSF_INITIALIZED;
 }
 
+#ifndef __DISKIMAGE__
 // Scans the "__class" data section bounded by the '_class' and '_eclass' linker
 // symbols for class records and:
 // - builds the vtable for each class
@@ -177,7 +180,7 @@ void RegisterClasses(void)
     ClassRef pEndClass = (ClassRef)&_eclass;
 
     while (pClass < pEndClass) {
-        RegisterClass(pClass);
+        _RegisterClass(pClass);
         pClass++;
     }
 }
@@ -207,3 +210,4 @@ void PrintClasses(void)
         pClass++;
     }
 }
+#endif /* __DISKIMAGE__ */

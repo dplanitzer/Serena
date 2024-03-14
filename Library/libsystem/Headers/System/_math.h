@@ -12,8 +12,10 @@
 #include <System/abi/_dmdef.h>
 
 #define __abs(x) (((x) < 0) ? -(x) : (x))
+#ifndef __DISKIMAGE__
 #define __min(x, y) (((x) < (y) ? (x) : (y)))
 #define __max(x, y) (((x) > (y) ? (x) : (y)))
+#endif
 #define __clamped(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
 
 #define __Ceil_PowerOf2(x, mask)   (((x) + (mask-1)) & ~(mask-1))

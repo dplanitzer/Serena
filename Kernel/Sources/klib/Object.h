@@ -256,6 +256,7 @@ extern bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTarge
     ((struct _##__methodClassName##MethodTable *)(Object_GetSuperclass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
 
 
+#ifndef __DISKIMAGE__
 // Scans the "__class" data section bounded by the '_class' and '_eclass' linker
 // symbols for class records and:
 // - builds the vtable for each class
@@ -268,5 +269,8 @@ extern void RegisterClasses(void);
 // Prints all registered classes
 // Note that this function is not concurrency safe.
 extern void PrintClasses(void);
+#else
+extern void _RegisterClass(ClassRef _Nonnull pClass);
+#endif /* __DISKIMAGE__ */
 
 #endif /* Object_h */

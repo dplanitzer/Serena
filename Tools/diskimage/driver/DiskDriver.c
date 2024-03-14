@@ -1,19 +1,22 @@
 //
-//  FauxDisk.c
+//  DiskDriver.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 3/10/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FauxDisk.h"
-
+#include "DiskDriver.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 errno_t DiskDriver_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, DiskDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DiskDriverRef self = calloc(1, sizeof(DiskDriver));
+    DiskDriverRef self;
 
+    try(Object_Create(DiskDriver, &self));
     self->disk = calloc(nBlockCount, nBlockSize);
     self->blockSize = nBlockSize;
     self->blockCount = nBlockCount;
@@ -22,18 +25,15 @@ errno_t DiskDriver_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, Disk
     return EOK;
 
 catch:
-    DiskDriver_Destroy(self);
+    Object_Release(self);
     *pOutSelf = NULL;
     return err;
 }
 
-void DiskDriver_Destroy(DiskDriverRef _Nullable self)
+void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 {
-    if (self) {
-        free(self->disk);
-        self->disk = NULL;
-        free(self);
-    }
+    free(self->disk);
+    self->disk = NULL;
 }
 
 // Returns the size of a block.
@@ -100,3 +100,8 @@ catch:
     fclose(fp);
     return err;
 }
+
+
+CLASS_METHODS(DiskDriver, Object,
+OVERRIDE_METHOD_IMPL(deinit, DiskDriver, Object)
+);

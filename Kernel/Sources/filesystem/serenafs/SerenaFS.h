@@ -9,11 +9,7 @@
 #ifndef SerenaFS_h
 #define SerenaFS_h
 
-#ifdef __KERNEL__
 #include <filesystem/Filesystem.h>
-#else
-#include <diskimage.h>
-#endif /* __KERNEL__ */
 
 
 OPAQUE_CLASS(SerenaFS, Filesystem);
@@ -31,8 +27,5 @@ extern errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, F
 // Creates an instance of SerenaFS. SerenaFS is a volatile file system that does not
 // survive system restarts.
 errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf);
-#ifndef __KERNEL__
-void SerenaFS_Destroy(SerenaFSRef _Nullable self);
-#endif /* __KERNEL__ */
 
 #endif /* SerenaFS_h */

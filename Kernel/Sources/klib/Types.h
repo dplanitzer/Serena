@@ -10,8 +10,6 @@
 #define Types_h
 
 #include <System/abi/_dmdef.h>
-#include <System/abi/_bool.h>
-#include <System/abi/_inttypes.h>
 #include <System/abi/_floattypes.h>
 #include <System/abi/_limits.h>
 #include <System/_align.h>
