@@ -59,7 +59,7 @@ DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/FilesystemManager.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Inode.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/PathComponent.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS.c
-DISKIMAGE_SRCS += diskimage/diskimage.c
+DISKIMAGE_SRCS += diskimage/diskimage.c diskimage/diskimage_win32.c
 
 $(TOOLS_DIR)/diskimage: $(DISKIMAGE_SRCS)
 	cl /I diskimage\ /I ..\Library\libsystem\Headers\ /I ..\Kernel\Sources\ /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 /Fe"$@" /Fo"$(TOOLS_DIR)/" $^

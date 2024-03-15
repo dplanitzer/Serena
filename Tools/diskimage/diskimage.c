@@ -6,10 +6,15 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+#include "diskimage.h"
 #include <stdlib.h>
 #include <klib/klib.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
+
+FilePermissions gDefaultDirPermissions;
+FilePermissions gDefaultFilePermissions;
+User gDefaultUser;
 
 
 static void failed(errno_t err)
@@ -20,28 +25,56 @@ static void failed(errno_t err)
 
 static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
 {
-    User user = {0, 0};
-    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
-    const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
+    return SerenaFS_FormatDrive(pDisk, gDefaultUser, gDefaultDirPermissions);
+}
 
-    return SerenaFS_FormatDrive(pDisk, user, dirPerms);
+static errno_t beginDirectory(FilesystemRef _Nonnull pFS, const di_direntry* _Nonnull pEntry, InodeRef _Nonnull pParentNode, InodeRef* pOutDirInode)
+{
+    PathComponent pc;
+
+    pc.name = pEntry->name;
+    pc.count = strlen(pc.name);
+
+    printf("  %s   <DIR>\n", pEntry->name);
+    return Filesystem_CreateDirectory(pFS, &pc, pParentNode, gDefaultUser, gDefaultDirPermissions);
+}
+
+static errno_t endDirectory(FilesystemRef _Nonnull pFS, InodeRef pDirInode)
+{
+    Filesystem_RelinquishNode(pFS, pDirInode);
+    return EOK;
+}
+
+static errno_t copyFile(FilesystemRef _Nonnull pFS, const di_direntry* _Nonnull pEntry, InodeRef pDirInode)
+{
+    // XXX implement me
+    //printf("  %s   %llu bytes\n", pEntry->name, pEntry->fileSize);
+    return EOK;
 }
 
 static void createDiskImage(const char* pRootPath, const char* pDstPath)
 {
     decl_try_err();
     DiskDriverRef pDisk = NULL;
-    SerenaFSRef pFS = NULL;
+    FilesystemRef pFS = NULL;
+    InodeRef rootInode = NULL;
 
     DiskDriver_Create(512, 128, &pDisk);
     
     try(formatDiskImage(pDisk));
 
-    try(SerenaFS_Create(&pFS));
-    try(FilesystemManager_Create((FilesystemRef)pFS, pDisk, &gFilesystemManager));
-    // XXX iterate the host directory 'pRootPath' and create the file and directories
-    // XXX which we encounter in our SeFS disk
+    try(SerenaFS_Create((SerenaFSRef*)&pFS));
+    try(FilesystemManager_Create(pFS, pDisk, &gFilesystemManager));
+
+    di_iterate_directory_callbacks cb;
+    cb.context = pFS;
+    cb.beginDirectory = (di_begin_directory_callback)beginDirectory;
+    cb.endDirectory = (di_end_directory_callback)endDirectory;
+    cb.file = (di_file_callback)copyFile;
+
+    try(Filesystem_AcquireRootNode(pFS, &rootInode));
+    try(di_iterate_directory(pRootPath, &cb, rootInode));
+    Filesystem_RelinquishNode(pFS, rootInode);
 
     try(DiskDriver_WriteToPath(pDisk, pDstPath));
     
@@ -57,7 +90,7 @@ catch:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int main(int argc, char* argv[])
+static void init(void)
 {
     _RegisterClass(&kObjectClass);
     _RegisterClass(&kIOChannelClass);
@@ -67,6 +100,22 @@ int main(int argc, char* argv[])
     _RegisterClass(&kDirectoryClass);
     _RegisterClass(&kFilesystemClass);
     _RegisterClass(&kSerenaFSClass);
+
+
+    const FilePermissions dirOwnerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    const FilePermissions dirOtherPerms = kFilePermission_Read | kFilePermission_Execute;
+    gDefaultDirPermissions = FilePermissions_Make(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
+
+    const FilePermissions fileOwnerPerms = kFilePermission_Read | kFilePermission_Write;
+    const FilePermissions fileOtherPerms = kFilePermission_Read;
+    gDefaultFilePermissions = FilePermissions_Make(fileOwnerPerms, fileOtherPerms, fileOtherPerms);
+
+    gDefaultUser = (User){0, 0};
+}
+
+int main(int argc, char* argv[])
+{
+    init();
 
     if (argc > 1) {
         if (!strcmp(argv[1], "create")) {

@@ -207,7 +207,9 @@ static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull sel
     const uint8_t* pBlock = &self->allocationBitmap[idxOfAllocBitmapBlockModified * kSFSBlockSize];
     const LogicalBlockAddress allocationBitmapBlockLba = self->allocationBitmapLba + idxOfAllocBitmapBlockModified;
 
-    return DiskDriver_PutBlock(self->diskDriver, pBlock, allocationBitmapBlockLba);
+    Bytes_ClearRange(self->tmpBlock, kSFSBlockSize);
+    Bytes_CopyRange(self->tmpBlock, pBlock, &self->allocationBitmap[self->allocationBitmapByteSize] - pBlock);
+    return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, allocationBitmapBlockLba);
 }
 
 static errno_t SerenaFS_AllocateBlock_Locked(SerenaFSRef _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
