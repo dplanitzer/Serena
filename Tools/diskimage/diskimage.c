@@ -30,13 +30,19 @@ static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
 
 static errno_t beginDirectory(FilesystemRef _Nonnull pFS, const di_direntry* _Nonnull pEntry, InodeRef _Nonnull pParentNode, InodeRef* pOutDirInode)
 {
+    decl_try_err();
     PathComponent pc;
 
     pc.name = pEntry->name;
     pc.count = strlen(pc.name);
 
-    printf("  %s   <DIR>\n", pEntry->name);
-    return Filesystem_CreateDirectory(pFS, &pc, pParentNode, gDefaultUser, gDefaultDirPermissions);
+    //printf("  %s   <DIR>\n", pEntry->name);
+    try(Filesystem_CreateDirectory(pFS, &pc, pParentNode, gDefaultUser, gDefaultDirPermissions));
+    try(Filesystem_AcquireNodeForName(pFS, pParentNode, &pc, gDefaultUser, pOutDirInode));
+    return EOK;
+
+catch:
+    return err;
 }
 
 static errno_t endDirectory(FilesystemRef _Nonnull pFS, InodeRef pDirInode)

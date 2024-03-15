@@ -15,6 +15,14 @@ TOOLS_DIR := ../build/tools
 
 
 # --------------------------------------------------------------------------
+# Common Settings
+#
+
+#DEBUG_FLAGS := /Od /Zi
+DEBUG_FLAGS :=
+
+
+# --------------------------------------------------------------------------
 # Includes
 #
 
@@ -62,7 +70,7 @@ DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS.c
 DISKIMAGE_SRCS += diskimage/diskimage.c diskimage/diskimage_win32.c
 
 $(TOOLS_DIR)/diskimage: $(DISKIMAGE_SRCS)
-	cl /I diskimage\ /I ..\Library\libsystem\Headers\ /I ..\Kernel\Sources\ /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 /Fe"$@" /Fo"$(TOOLS_DIR)/" $^
+	cl /I diskimage\ /I ..\Library\libsystem\Headers\ /I ..\Kernel\Sources\ /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /Fe"$@" /Fo"$(TOOLS_DIR)/" $^
 
 
 clean:
