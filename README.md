@@ -89,7 +89,9 @@ Finally install GNU make for Windows and make sure that it is in the `PATH` envi
 
 ### Building the Build Tools
 
-This steps needs to be executed only once and before you try to build the OS. The purpose of this step is to build a couple of tools that are needed to build the kernel and user space libraries. First open a Developer Command Prompt in Windows Terminal and then cd into the `Serena/Tools` folder. Type `make` and hit return. This will build all required tools and place them inside a `Serena/build/tools` folder. The tools will be retained in this location even if you do a full clean of the OS project.
+You only need to execute this step once and before you try to build the OS. The purpose of this step is to build a couple of tools that are needed to build the kernel and user space libraries. You can find dcoumentation for these tools [here](Tools/README.md).
+
+ First open a Developer Command Prompt in Windows Terminal and then cd into the `Serena/Tools` folder. Type `make` and hit return. This will build all required tools and place them inside a `Serena/build/tools` folder. The tools will be retained in this location even if you do a full clean of the OS project.
 
 ### Building the Operating System
 
