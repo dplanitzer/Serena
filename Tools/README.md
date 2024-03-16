@@ -53,10 +53,10 @@ The disk image tool expects a path to a directory on the host system as input. T
 You create a disk image by executing the following command:
 
 ```
-diskimage path/to/host_directory path/to/dmg
+diskimage create path/to/host_directory path/to/dmg
 ```
 
-Where the first argument is the path to the directory in the host file system that represents the SerenaFS root directory and the second argument is the path to where the disk image file should be written.
+Where the first argument tells diskimage that it should create a new disk image file. The second argument is the path to the directory in the host file system that represents the SerenaFS root directory and the third argument is the path to where the disk image file should be written.
 
 Note that diskimage always creates a ROM-style disk image at this time. This means that the output file is a raw dump of the SerenaFS volume without any form of disk specific encoding. It is not a ADF style image.
 
