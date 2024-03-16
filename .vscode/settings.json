@@ -1,14 +1,7 @@
 {
     "cmake.configureOnOpen": false,
     "files.exclude": {
-        "keymap": true,
-        "keymap.exe": true,
-        "keymap.obj": true,
-        "libtool": true,
-        "libtool.exe": true,
-        "libtool.obj": true,
         "**/build": true,
-        "**/product": true
     },
     "files.associations": {
     },
