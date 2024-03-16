@@ -128,53 +128,19 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
-// Creates the root filesystem and mounds it on a RAM disk. The root filesystem
-// structure looks like this:
-// /System/
-static FilesystemRef _Nonnull create_root_fs(void)
+// Locates the root filesystem and mounts it.
+static void init_root_filesystem(void)
 {
     decl_try_err();
     RamDiskRef pRamDisk;
     FilesystemRef pFS;
 
-    // Create a RAM disk and format it with SerenaFS
-    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
-    const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
+    // XXX This is temporary:
+    // XXX We're creating a RAM disk and then we'll look for a disk image in the
+    // XXX ROM. We then copy this disk image into the RAM disk and use this as
+    // XXX our root filesystem.
 
-    try(RamDisk_Create(512, 128, 128, &pRamDisk));
-    try(SerenaFS_FormatDrive((DiskDriverRef)pRamDisk, kUser_Root, dirPerms));
-
-
-    // Create a SerenaFS instance and mount it as the root filesystem on the RAM
-    // disk
-    try(SerenaFS_Create((SerenaFSRef*)&pFS));
-    try(FilesystemManager_Create(pFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
-
-
-    // Create the /System directory
-    PathComponent pc = PathComponent_MakeFromCString("System");
-    InodeRef pRootNode;
-    try(Filesystem_AcquireRootNode(pFS, &pRootNode));
-    try(Filesystem_CreateDirectory(pFS, &pc, pRootNode, kUser_Root, dirPerms));
-    Filesystem_RelinquishNode(pFS, pRootNode);
-
-    return pFS;
-
-catch:
-    print("Root filesystem mount failure: %d.\nHalting.\n", err);
-    while(true);
-    /* NOT REACHED */
-}
-
-// Looks for a suitable system filesystem and mounts it on /System in the root
-// filesystem. This folder contains all the operating system files that are
-// needed to finalize the booting process and to make the machine useful to the
-// user.
-static void mount_system_fs(FilesystemRef _Nonnull pRootFS)
-{
-    // XXX We're looking at a fixed locations in the ROM for now. This will change
-    // once the transition to an all FS-based booting process is completed
+    // XXX We're looking at a fixed locations in the ROM for now.
     const char* p0 = (char*)(BOOT_ROM_BASE + SIZE_KB(128));
     const char* p1 = (char*)(BOOT_ROM_BASE + SIZE_KB(128) + SIZE_KB(48));
     const char* dmg = NULL;
@@ -185,33 +151,36 @@ static void mount_system_fs(FilesystemRef _Nonnull pRootFS)
     else if (String_EqualsUpTo(p1, "SeFS", 4)) {
         dmg = p1;
     }
-    if (dmg == NULL) {
-        return;
-    }
     // XXX
 
 
-    // Create a ROM disk, SerenaFS instance and mount it on /System
-    decl_try_err();
-    PathComponent pc = PathComponent_MakeFromCString("System");
-    RomDiskRef pRomDisk;
-    FilesystemRef pSysFS;
-    InodeRef pRootNode;
-    InodeRef pSysNode;
-    char param;
+    // Create a RAM disk and copy the ROM disk image into it. We assume for now
+    // that the disk image is exactly 64k in size. Just format the RAM disk with
+    // a SerenaFS instance if there's no ROM disk image.
+    try(RamDisk_Create(512, 128, 128, &pRamDisk));
 
-    try(RomDisk_Create(dmg, 512, 128, false, &pRomDisk));
-    try(SerenaFS_Create((SerenaFSRef*)&pSysFS));
-    try(Filesystem_AcquireRootNode(pRootFS, &pRootNode));
-    try(Filesystem_AcquireNodeForName(pRootFS, pRootNode, &pc, kUser_Root, &pSysNode));
-    try(FilesystemManager_Mount(gFilesystemManager, pSysFS, (DiskDriverRef)pRomDisk, &param, 0, pSysNode));
-    Filesystem_RelinquishNode(pRootFS, pSysNode);
-    Filesystem_RelinquishNode(pRootFS, pRootNode);
+    if (dmg) {
+        for (LogicalBlockAddress lba = 0; lba < 128; lba++) {
+            try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * 512], lba));
+        }
+    }
+    else {
+        const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+        const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
+        const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
+        try(SerenaFS_FormatDrive((DiskDriverRef)pRamDisk, kUser_Root, dirPerms));
+    }
+
+
+    // Create a SerenaFS instance and mount it as the root filesystem on the RAM
+    // disk
+    try(SerenaFS_Create((SerenaFSRef*)&pFS));
+    try(FilesystemManager_Create(pFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
     return;
 
 catch:
-    print("Unable to mount a System filesystem: %d.\nHalting.\n", err);
+    print("Root filesystem mount failure: %d.\nHalting.\n", err);
     while(true);
     /* NOT REACHED */
 }
@@ -249,9 +218,8 @@ static void OnMain(void)
     krt_init();
     
 
-    // Set up the root and system filesystems.
-    FilesystemRef pRootFS = create_root_fs();
-    mount_system_fs(pRootFS);
+    // Find and mount a root filesystem.
+    init_root_filesystem();
 
 
     // Create the root process
