@@ -11,6 +11,7 @@
 
 #include <klib/klib.h>
 #include <filesystem/Inode.h>
+#include <User.h>
 
 CLASS_FORWARD(IOResource);
 

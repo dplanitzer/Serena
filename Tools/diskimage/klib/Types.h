@@ -17,21 +17,6 @@
 #include <System/_syslimits.h>
 #include <System/Types.h>
 
-#ifndef _Locked
-#define _Locked
-#endif
-
-enum {
-    kRootUserId = 0,
-    kRootGroupId = 0
-};
-
-typedef struct _User {
-    UserId  uid;
-    GroupId gid;
-} User;
-
-
 extern ssize_t String_Length(const char* _Nonnull pStr);
 extern ssize_t String_LengthUpTo(const char* _Nonnull pStr, ssize_t strsz);
 extern char* _Nonnull String_CopyUpTo(char* _Nonnull pDst, const char* _Nonnull pSrc, ssize_t count);

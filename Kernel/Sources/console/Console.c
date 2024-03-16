@@ -7,6 +7,7 @@
 //
 
 #include "ConsolePriv.h"
+#include <User.h>
 #include <System/IOChannel.h>
 
 
@@ -63,14 +64,13 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
 {
     decl_try_err();
     Console* pConsole;
-    User user = {kRootUserId, kRootGroupId};//XXX
 
     try(Object_Create(Console, &pConsole));
     
     Lock_Init(&pConsole->lock);
 
     pConsole->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(IOResource_Open(pConsole->eventDriver, NULL/*XXX*/, kOpen_Read, user, &pConsole->eventDriverChannel));
+    try(IOResource_Open(pConsole->eventDriver, NULL/*XXX*/, kOpen_Read, kUser_Root, &pConsole->eventDriverChannel));
     try(RingBuffer_Init(&pConsole->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);

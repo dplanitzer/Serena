@@ -11,6 +11,7 @@
 #include <driver/DriverManager.h>
 #include <process/Process.h>
 #include "IOResource.h"
+#include "User.h"
 
 typedef intptr_t (*SystemCall)(void* _Nonnull);
 
@@ -91,9 +92,8 @@ SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable
     }
 
     if (String_Equals(pArgs->path, "/dev/console")) {
-        User user = {kRootUserId, kRootGroupId}; //XXX
         try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-        try(IOResource_Open(pConsole, NULL/*XXX*/, pArgs->options, user, &pChannel));
+        try(IOResource_Open(pConsole, NULL/*XXX*/, pArgs->options, kUser_Root, &pChannel));
         try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, pArgs->pOutIoc));
         Object_Release(pChannel);
     }

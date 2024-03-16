@@ -10,6 +10,7 @@
 #include <console/Console.h>
 #include <dispatcher/Lock.h>
 #include <driver/DriverManager.h>
+#include <User.h>
 #include "Formatter.h"
 
 #define PRINT_BUFFER_CAPACITY   80
@@ -30,12 +31,11 @@ static errno_t printv_console_sink_locked(FormatterRef _Nonnull self, const char
 // Initializes the print subsystem.
 void print_init(void)
 {
-    User user = {kRootUserId, kRootGroupId}; //XXX
     Lock_Init(&gLock);
     Formatter_Init(&gFormatter, printv_console_sink_locked, NULL, gPrintBuffer, PRINT_BUFFER_CAPACITY);
     gConsole = (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
     assert(gConsole != NULL);
-    try_bang(IOResource_Open(gConsole, NULL/*XXX*/, kOpen_Write, user, &gConsoleChannel));
+    try_bang(IOResource_Open(gConsole, NULL/*XXX*/, kOpen_Write, kUser_Root, &gConsoleChannel));
 }
 
 // Print formatted

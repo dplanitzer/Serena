@@ -65,7 +65,7 @@ $(TOOLS_DIR)/makerom: makerom.c
 DISKIMAGE_SRCS := diskimage/klib/klib.c diskimage/dispatcher/dispatcher.c
 DISKIMAGE_SRCS += diskimage/driver/driver.c diskimage/driver/DiskDriver.c
 DISKIMAGE_SRCS += ../Kernel/Sources/klib/Array.c ../Kernel/Sources/klib/List.c ../Kernel/Sources/klib/Object.c
-DISKIMAGE_SRCS += ../Kernel/Sources/IOResource.c
+DISKIMAGE_SRCS += ../Kernel/Sources/IOResource.c ../Kernel/Sources/User.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Filesystem.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/FilesystemManager.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Inode.c

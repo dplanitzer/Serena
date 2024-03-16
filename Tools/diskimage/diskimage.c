@@ -174,7 +174,7 @@ static void init(void)
     const FilePermissions fileOtherPerms = kFilePermission_Read;
     gDefaultFilePermissions = FilePermissions_Make(fileOwnerPerms, fileOtherPerms, fileOtherPerms);
 
-    gDefaultUser = (User){0, 0};
+    gDefaultUser = kUser_Root;
 }
 
 int main(int argc, char* argv[])

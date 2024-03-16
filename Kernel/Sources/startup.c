@@ -15,6 +15,7 @@
 #include <driver/InterruptController.h>
 #include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
+#include <driver/RomDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <hal/Platform.h>
@@ -127,45 +128,92 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
-// Creates the boot filesystem and mounds it on a RAM disk. The initial filesystem
+// Creates the root filesystem and mounds it on a RAM disk. The root filesystem
 // structure looks like this:
-// .
-// ..
 // /System/
-static void _Nonnull init_boot_filesystem(void)
+static FilesystemRef _Nonnull create_root_fs(void)
 {
     decl_try_err();
     RamDiskRef pRamDisk;
-    FilesystemRef pBootFS;
+    FilesystemRef pFS;
 
     // Create a RAM disk and format it with SerenaFS
     const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
     const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
     const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
-    User dirUser = {kRootUserId, kRootGroupId};
 
     try(RamDisk_Create(512, 128, 128, &pRamDisk));
-    try(SerenaFS_FormatDrive((DiskDriverRef)pRamDisk, dirUser, dirPerms));
+    try(SerenaFS_FormatDrive((DiskDriverRef)pRamDisk, kUser_Root, dirPerms));
 
 
     // Create a SerenaFS instance and mount it as the root filesystem on the RAM
     // disk
-    try(SerenaFS_Create((SerenaFSRef*)&pBootFS));
-    try(FilesystemManager_Create(pBootFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
+    try(SerenaFS_Create((SerenaFSRef*)&pFS));
+    try(FilesystemManager_Create(pFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
 
 
     // Create the /System directory
     PathComponent pc = PathComponent_MakeFromCString("System");
     InodeRef pRootNode;
-    try(Filesystem_AcquireRootNode(pBootFS, &pRootNode));
-    try(Filesystem_CreateDirectory(pBootFS, &pc, pRootNode, dirUser, dirPerms));
-    Filesystem_RelinquishNode(pBootFS, pRootNode);
-    Object_Release(pBootFS);
-    return;
+    try(Filesystem_AcquireRootNode(pFS, &pRootNode));
+    try(Filesystem_CreateDirectory(pFS, &pc, pRootNode, kUser_Root, dirPerms));
+    Filesystem_RelinquishNode(pFS, pRootNode);
+
+    return pFS;
 
 catch:
     print("Root filesystem mount failure: %d.\nHalting.\n", err);
     while(true);
+    /* NOT REACHED */
+}
+
+// Looks for a suitable system filesystem and mounts it on /System in the root
+// filesystem. This folder contains all the operating system files that are
+// needed to finalize the booting process and to make the machine useful to the
+// user.
+static void mount_system_fs(FilesystemRef _Nonnull pRootFS)
+{
+    // XXX We're looking at a fixed locations in the ROM for now. This will change
+    // once the transition to an all FS-based booting process is completed
+    const char* p0 = (char*)(BOOT_ROM_BASE + SIZE_KB(128));
+    const char* p1 = (char*)(BOOT_ROM_BASE + SIZE_KB(128) + SIZE_KB(48));
+    const char* dmg = NULL;
+
+    if (String_EqualsUpTo(p0, "SeFS", 4)) {
+        dmg = p0;
+    }
+    else if (String_EqualsUpTo(p1, "SeFS", 4)) {
+        dmg = p1;
+    }
+    if (dmg == NULL) {
+        return;
+    }
+    // XXX
+
+
+    // Create a ROM disk, SerenaFS instance and mount it on /System
+    decl_try_err();
+    PathComponent pc = PathComponent_MakeFromCString("System");
+    RomDiskRef pRomDisk;
+    FilesystemRef pSysFS;
+    InodeRef pRootNode;
+    InodeRef pSysNode;
+    char param;
+
+    try(RomDisk_Create(dmg, 512, 128, false, &pRomDisk));
+    try(SerenaFS_Create((SerenaFSRef*)&pSysFS));
+    try(Filesystem_AcquireRootNode(pRootFS, &pRootNode));
+    try(Filesystem_AcquireNodeForName(pRootFS, pRootNode, &pc, kUser_Root, &pSysNode));
+    try(FilesystemManager_Mount(gFilesystemManager, pSysFS, (DiskDriverRef)pRomDisk, &param, 0, pSysNode));
+    Filesystem_RelinquishNode(pRootFS, pSysNode);
+    Filesystem_RelinquishNode(pRootFS, pRootNode);
+
+    return;
+
+catch:
+    print("Unable to mount a System filesystem: %d.\nHalting.\n", err);
+    while(true);
+    /* NOT REACHED */
 }
 
 // Called by the boot virtual processor after it has finished initializing all
@@ -201,9 +249,9 @@ static void OnMain(void)
     krt_init();
     
 
-    // Figure out what boot filesystem to use and initialize the filesystem
-    // manager with it.
-    init_boot_filesystem();
+    // Set up the root and system filesystems.
+    FilesystemRef pRootFS = create_root_fs();
+    mount_system_fs(pRootFS);
 
 
     // Create the root process

@@ -29,6 +29,11 @@
 #endif
 
 
+#ifndef _Locked
+#define _Locked
+#endif
+
+
 #ifdef __cplusplus
 #define __CPP_BEGIN extern "C" {
 #else

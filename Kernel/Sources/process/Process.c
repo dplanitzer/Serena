@@ -36,13 +36,12 @@ ProcessRef _Nullable Process_GetCurrent(void)
 
 errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
 {
-    User user = {kRootUserId, kRootGroupId};
     FilesystemRef pRootFileSys = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
     InodeRef pRootDir = NULL;
     decl_try_err();
 
     try(Filesystem_AcquireRootNode(pRootFileSys, &pRootDir));
-    try(Process_Create(1, user, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc));
+    try(Process_Create(1, kUser_Root, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc));
     Filesystem_RelinquishNode(pRootFileSys, pRootDir);
 
     return EOK;

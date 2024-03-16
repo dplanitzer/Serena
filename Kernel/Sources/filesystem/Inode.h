@@ -11,6 +11,7 @@
 
 #include <klib/klib.h>
 #include <dispatcher/Lock.h>
+#include <User.h>
 #include <System/Directory.h>
 #include <System/File.h>
 

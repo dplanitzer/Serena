@@ -21,26 +21,11 @@
 #include <System/_varargs.h>
 #include <System/Types.h>
 
-#ifndef _Locked
-#define _Locked
-#endif
-
 #define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
-
 
 
 // Convert a size_t to a ssize_t with clamping
 #define __SSizeByClampingSize(ub) (ssize_t)__min(ub, SSIZE_MAX)
-
-enum {
-    kRootUserId = 0,
-    kRootGroupId = 0
-};
-
-typedef struct _User {
-    UserId  uid;
-    GroupId gid;
-} User;
 
 
 // A callback function that takes a single (context) pointer argument
