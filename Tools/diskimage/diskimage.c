@@ -87,6 +87,7 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
 
     try(di_concat_path(pBasePath, pEntry->name, gBuffer, sizeof(gBuffer)));
     try_null(pSrcFile, fopen(gBuffer, "rb"), EIO);
+    setvbuf(pSrcFile, NULL, _IONBF, 0);
 
     while (!feof(pSrcFile)) {
         const size_t r = fread(gBuffer, sizeof(char), sizeof(gBuffer), pSrcFile);

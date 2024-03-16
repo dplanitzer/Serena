@@ -127,13 +127,16 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
-// Figures out from which filesystem to boot and sets up the initial global
-// filesystem structure.
+// Creates the boot filesystem and mounds it on a RAM disk. The initial filesystem
+// structure looks like this:
+// .
+// ..
+// /System/
 static void _Nonnull init_boot_filesystem(void)
 {
     decl_try_err();
     RamDiskRef pRamDisk;
-    FilesystemRef pSerenaFS;
+    FilesystemRef pBootFS;
 
     // Create a RAM disk and format it with SerenaFS
     const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
@@ -147,9 +150,17 @@ static void _Nonnull init_boot_filesystem(void)
 
     // Create a SerenaFS instance and mount it as the root filesystem on the RAM
     // disk
-    try(SerenaFS_Create((SerenaFSRef*)&pSerenaFS));
-    try(FilesystemManager_Create(pSerenaFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
-    Object_Release(pSerenaFS);
+    try(SerenaFS_Create((SerenaFSRef*)&pBootFS));
+    try(FilesystemManager_Create(pBootFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
+
+
+    // Create the /System directory
+    PathComponent pc = PathComponent_MakeFromCString("System");
+    InodeRef pRootNode;
+    try(Filesystem_AcquireRootNode(pBootFS, &pRootNode));
+    try(Filesystem_CreateDirectory(pBootFS, &pc, pRootNode, dirUser, dirPerms));
+    Filesystem_RelinquishNode(pBootFS, pRootNode);
+    Object_Release(pBootFS);
     return;
 
 catch:

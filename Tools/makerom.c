@@ -28,6 +28,8 @@
 // Utilities
 ////////////////////////////////////////////////////////////////////////////////
 
+#define SIZE_KB(x) (((size_t)x) * 1024l)
+
 static void failed(const char* msg)
 {
     puts(msg);
@@ -127,7 +129,7 @@ static void appendContentsOfFile(FILE* src_s, FILE* s)
 
 static void help(void)
 {
-    printf("makerom <inKernelFile> [inInitAppFile] <outRomFile>\n");
+    printf("makerom <kernelFile> [initAppFile] [dmgFile] <romFile>\n");
 
     exit(EXIT_SUCCESS);
 }
@@ -142,40 +144,61 @@ int main(int argc, char* argv[])
 
     // Write a split-style Amiga ROM:
     // 128k of Kernel space
-    // 128k of init app space
-    // couple bytes of IRQ autovec generation data
+    // 48k of init user process space
+    // 64k of disk image space
+    // 16 bytes of IRQ autovec generation data
     const char* kernelPath = argv[1];
-    const char* initAppPath = (argc == 4) ? argv[2] : "";
-    const char* romPath = (argc == 4) ? argv[3] : argv[2];
+    const char* initAppPath = (argc >= 4) ? argv[2] : "";
+    const char* dmgPath = (argc >= 5) ? argv[3] : "";
+    const char* romPath = argv[argc - 1];
     FILE* romFile = open_require(romPath, "wb");
     FILE* kernelFile = open_require(kernelPath, "rb");
     FILE* initAppFile = (*initAppPath != '\0') ? open_require(initAppPath, "rb") : NULL;
+    FILE* dmgFile = (*dmgPath != '\0') ? open_require(dmgPath, "rb") : NULL;
+    const char autovec[] = {0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31};
+    const size_t maxRomSize = SIZE_KB(256) - sizeof(autovec);
 
     setvbuf(romFile, NULL, _IOFBF, 8192);
     setvbuf(kernelFile, NULL, _IONBF, 0);
     if (initAppFile) {
         setvbuf(initAppFile, NULL, _IONBF, 0);
     }
+    if (dmgFile) {
+        setvbuf(dmgFile, NULL, _IONBF, 0);
+    }
+
 
     // Kernel file
     appendContentsOfFile(kernelFile, romFile);
+    const size_t maxKernelSize = SIZE_KB(128);
+    const size_t kernelSize = getFileSize(romFile);
+    if (kernelSize > maxKernelSize) {
+        failed("Kernel too big");
+        // NOT REACHED
+    }
+    appendByFilling(0, maxKernelSize - kernelSize, romFile);
+
 
     // (Optional) Init App File
     if (initAppFile) {
-        const size_t maxKernelSize = 128l * 1024l;
-        const size_t kernelSize = getFileSize(romFile);
-        if (kernelSize > maxKernelSize) {
-            failed("Kernel too big");
+        appendContentsOfFile(initAppFile, romFile);
+        const size_t maxAppSize = SIZE_KB(48);
+        const size_t appSize = getFileSize(romFile) - maxKernelSize;
+        if (appSize > maxAppSize) {
+            failed("App too big");
             // NOT REACHED
         }
 
-        appendByFilling(0, maxKernelSize - kernelSize, romFile);
-        appendContentsOfFile(initAppFile, romFile);
+
+        // (Optional) Disk Image File
+        if (dmgFile) {
+            appendByFilling(0, maxAppSize - appSize, romFile);
+            appendContentsOfFile(dmgFile, romFile);
+        }
     }
 
-    // IRQ autovector generation hardware support
-    const char autovec[] = {0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31};
-    const size_t maxRomSize = 256l * 1024l - sizeof(autovec);
+
+    // 68k IRQ auto-vector generation support
     const size_t romSize = getFileSize(romFile);
     if (romSize > maxRomSize) {
         failed("ROM too big");
@@ -186,6 +209,9 @@ int main(int argc, char* argv[])
     appendBytes(autovec, sizeof(autovec), romFile);
 
 
+    if (dmgFile) {
+        fclose(dmgFile);
+    }
     if (initAppFile) {
         fclose(initAppFile);
     }
