@@ -9,9 +9,7 @@
 #ifndef VolumeFormat_h
 #define VolumeFormat_h
 
-#ifdef __KERNEL__
 #include <klib/Types.h>
-#endif
 
 #define kSFSMaxFilenameLength               28
 #define kSFSBlockSizeShift                  9
@@ -114,6 +112,9 @@ typedef struct SFSVolumeHeader {
 // directly instead of copying it back and forth. That's okay because the inode
 // lock effectively protects the disk node sitting behind the inode. 
 
+// XXX currently limited to file sizes of 58k. That's fine for now since we'll
+// XXX move to B-Trees for block mapping, directory content and extended
+// XXX attributes anyway.
 typedef struct SFSBlockMap {
     uint32_t    p[kSFSMaxDirectDataBlockPointers];
 } SFSBlockMap;

@@ -40,7 +40,11 @@ include ../common.mk
 default: all
 
 all: $(TOOLS_DIR) $(TOOLS_DIR)/libtool $(TOOLS_DIR)/keymap $(TOOLS_DIR)/makerom $(TOOLS_DIR)/diskimage
-#all: $(TOOLS_DIR) $(TOOLS_DIR)/diskimage
+diskimage: $(TOOLS_DIR) $(TOOLS_DIR)/diskimage
+keymap: $(TOOLS_DIR) $(TOOLS_DIR)/keymap
+libtool: $(TOOLS_DIR) $(TOOLS_DIR)/libtool
+makerom: $(TOOLS_DIR) $(TOOLS_DIR)/makerom
+
 
 $(TOOLS_DIR):
 	$(call mkdir_if_needed,$(TOOLS_DIR))
