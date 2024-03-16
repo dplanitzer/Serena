@@ -107,3 +107,19 @@ key(0x0050, "\e[D")
 This mapping binds the USB key code that represents a left cursor key to the escape sequence that a VT100 terminal is expected to send for a left cursor key.
 
 Note that key mappings which map a key to a string do not support modifier keys at this time. The same string is generated whether a modifier key is pressed at the same time or not. Also pressing the Control key while pressing a key that is bound to a string will not change the string that is generated for the key press.
+
+You use the keymap tool to compile a key map text file to a keymap file like this:
+
+```
+keymap compile path/to/key.keys
+```
+
+Where the first argument is a path to a key map text file with the extension "keys". This file is compiled to a keymap file at the same location but with the extension "keymap".
+
+An existing key map file can be decompiled and its content listed with the following command:
+
+```
+keymap decompile path/to/keymaps_file
+```
+
+Note however that the keymap tools currently always compiles key maps to C source code and thus keymap doesn't generate files that could actually be decompiled. Support for binary key map files does exist in the keymap sources, however this code is currently disabled.
