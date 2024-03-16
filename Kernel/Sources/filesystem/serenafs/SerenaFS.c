@@ -694,6 +694,7 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
             break;
         }
 
+        nBytesToWrite -= nBytesAvailable;
         nBytesWritten += nBytesAvailable;
         offset += (FileOffset)nBytesAvailable;
     }

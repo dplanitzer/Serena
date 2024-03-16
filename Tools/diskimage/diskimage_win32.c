@@ -14,21 +14,33 @@
 
 #define VALID_FILE_ATTRIBS (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_DEVICE)
 
-static errno_t _di_recursive_iterate_directory(const char* _Nonnull pBasePath, const char* _Nonnull pDirName, const di_iterate_directory_callbacks* _Nonnull cb, void* _Nullable parentToken)
+
+errno_t di_concat_path(const char* _Nonnull basePath, const char* _Nonnull fileName, char* _Nonnull buffer, size_t nBufferSize)
 {
-    di_direntry entry;
-    size_t nDirName = strlen(pDirName);
-    errno_t err = EOK;
-    char buf[MAX_PATH];
-   
-    if (strlen(pBasePath) + 1 + nDirName > (MAX_PATH - 3)) {
+    const size_t basePathLen = strlen(basePath);
+    const size_t fileNameLen = strlen(fileName);
+
+    if (basePathLen + 1 + fileNameLen > (nBufferSize - 1)) {
         return EINVAL;
     }
 
-    strcpy(buf, pBasePath);
-    if (nDirName > 0) {
-        strcat(buf, "\\");
-        strcat(buf, pDirName);
+    strcpy(buffer, basePath);
+    if (fileNameLen > 0) {
+        strcat(buffer, "\\");
+        strcat(buffer, fileName);
+    }
+
+    return EOK;
+}
+
+static errno_t _di_recursive_iterate_directory(const char* _Nonnull pBasePath, const char* _Nonnull pDirName, const di_iterate_directory_callbacks* _Nonnull cb, void* _Nullable parentToken)
+{
+    di_direntry entry;
+    errno_t err = EOK;
+    char buf[MAX_PATH];
+
+    if (di_concat_path(pBasePath, pDirName, buf, MAX_PATH - 2) != EOK) {
+        return EINVAL;
     }
     strcat(buf, "\\*");
 
@@ -47,8 +59,9 @@ static errno_t _di_recursive_iterate_directory(const char* _Nonnull pBasePath, c
 
                     entry.name = ffd.cFileName;
                     entry.fileSize = 0;
+                    entry.permissions = FilePermissions_Make(kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute, kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute, kFilePermission_Read | kFilePermission_Execute);
 
-                    err = cb->beginDirectory(cb->context, &entry, parentToken, &token);
+                    err = cb->beginDirectory(cb->context, buf, &entry, parentToken, &token);
                     if (err == EOK) {
                         err = _di_recursive_iterate_directory(buf, ffd.cFileName, cb, token);
                     }
@@ -65,8 +78,15 @@ static errno_t _di_recursive_iterate_directory(const char* _Nonnull pBasePath, c
                 filesize.HighPart = ffd.nFileSizeHigh;
                 entry.name = ffd.cFileName;
                 entry.fileSize = filesize.QuadPart;
+                entry.permissions = FilePermissions_Make(kFilePermission_Read | kFilePermission_Write, kFilePermission_Read | kFilePermission_Write, kFilePermission_Read | kFilePermission_Write);
+                
+                const char* extPtr = strrchr(entry.name, '.');
+                if (extPtr && !strcmp(extPtr, ".exe")) {
+                    FilePermissions_Set(entry.permissions, kFilePermissionsScope_User, kFilePermission_Execute);
+                    FilePermissions_Set(entry.permissions, kFilePermissionsScope_Group, kFilePermission_Execute);
+                }
 
-                err = cb->file(cb->context, &entry, parentToken);
+                err = cb->file(cb->context, buf, &entry, parentToken);
             }
         }
     } while (err == EOK && FindNextFile(hFind, &ffd) != 0);

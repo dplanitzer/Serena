@@ -86,9 +86,9 @@ static errno_t print_dir_entry(ListContextRef _Nonnull self, const char* _Nonnul
     if (info.type == kFileType_Directory) {
         tp[0] = 'd';
     }
-    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_User), &tp[1]);
-    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_Group), &tp[4]);
-    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionScope_Other), &tp[7]);
+    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsScope_User), &tp[1]);
+    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsScope_Group), &tp[4]);
+    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsScope_Other), &tp[7]);
     tp[10] = '\0';
 
     printf("%s %*d  %*u %*u  %*lld %*d %s\n",

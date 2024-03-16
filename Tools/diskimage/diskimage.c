@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <klib/klib.h>
 #include <filesystem/FilesystemManager.h>
@@ -15,6 +16,8 @@
 FilePermissions gDefaultDirPermissions;
 FilePermissions gDefaultFilePermissions;
 User gDefaultUser;
+
+char gBuffer[4096];
 
 
 static void failed(errno_t err)
@@ -28,7 +31,7 @@ static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
     return SerenaFS_FormatDrive(pDisk, gDefaultUser, gDefaultDirPermissions);
 }
 
-static errno_t beginDirectory(FilesystemRef _Nonnull pFS, const di_direntry* _Nonnull pEntry, InodeRef _Nonnull pParentNode, InodeRef* pOutDirInode)
+static errno_t beginDirectory(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePath, const di_direntry* _Nonnull pEntry, InodeRef _Nonnull pParentNode, InodeRef* pOutDirInode)
 {
     decl_try_err();
     PathComponent pc;
@@ -51,11 +54,65 @@ static errno_t endDirectory(FilesystemRef _Nonnull pFS, InodeRef pDirInode)
     return EOK;
 }
 
-static errno_t copyFile(FilesystemRef _Nonnull pFS, const di_direntry* _Nonnull pEntry, InodeRef pDirInode)
+static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePath, const di_direntry* _Nonnull pEntry, InodeRef pDirInode)
 {
-    // XXX implement me
+    decl_try_err();
+    const unsigned int mode = kOpen_Write | kOpen_Exclusive;
+    InodeRef pFileNode = NULL;
+    IOChannelRef pDstFile = NULL;
+    FILE* pSrcFile = NULL;
+
+    PathComponent pc;
+    pc.name = pEntry->name;
+    pc.count = strlen(pc.name);
+
+
+    FilePermissions permissions = gDefaultFilePermissions;
+    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_User, kFilePermission_Execute)) {
+        FilePermissions_Set(permissions, kFilePermissionsScope_User, kFilePermission_Execute);
+    }
+    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_Group, kFilePermission_Execute)) {
+        FilePermissions_Set(permissions, kFilePermissionsScope_Group, kFilePermission_Execute);
+    }
+    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_Other, kFilePermission_Execute)) {
+        FilePermissions_Set(permissions, kFilePermissionsScope_Other, kFilePermission_Execute);
+    }
+
+
     //printf("  %s   %llu bytes\n", pEntry->name, pEntry->fileSize);
-    return EOK;
+    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, gDefaultFilePermissions, &pFileNode));
+    try(IOResource_Open(pFS, pFileNode, mode, gDefaultUser, &pDstFile));
+    Filesystem_RelinquishNode(pFS, pFileNode);
+    pFileNode = NULL;
+
+    try(di_concat_path(pBasePath, pEntry->name, gBuffer, sizeof(gBuffer)));
+    try_null(pSrcFile, fopen(gBuffer, "rb"), EIO);
+
+    while (!feof(pSrcFile)) {
+        const size_t r = fread(gBuffer, sizeof(char), sizeof(gBuffer), pSrcFile);
+        ssize_t nBytesWritten = 0;
+
+        if (r < sizeof(gBuffer) && ferror(pSrcFile) != 0) {
+            throw(EIO);
+        }
+
+        if (r > 0) {
+            try(IOChannel_Write(pDstFile, gBuffer, r, &nBytesWritten));
+        }
+    }
+
+catch:
+    if (pDstFile) {
+        IOChannel_Close(pDstFile);
+        Object_Release(pDstFile);
+    }
+    if (pFileNode) {
+        Filesystem_RelinquishNode(pFS, pFileNode);
+    }
+    if (pSrcFile) {
+        fclose(pSrcFile);
+    }
+    return err;
 }
 
 static void createDiskImage(const char* pRootPath, const char* pDstPath)

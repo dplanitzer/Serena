@@ -38,21 +38,21 @@ enum {
 };
 
 enum {
-    kFilePermissionScope_BitWidth = 3,
+    kFilePermissionsScope_BitWidth = 3,
 
-    kFilePermissionScope_User = 2*kFilePermissionScope_BitWidth,
-    kFilePermissionScope_Group = kFilePermissionScope_BitWidth,
-    kFilePermissionScope_Other = 0,
+    kFilePermissionsScope_User = 2*kFilePermissionsScope_BitWidth,
+    kFilePermissionsScope_Group = kFilePermissionsScope_BitWidth,
+    kFilePermissionsScope_Other = 0,
 
-    kFilePermissionScope_Mask = 0x07,
+    kFilePermissionsScope_Mask = 0x07,
 };
 
 // Creates a FilePermission value with permissions for a user, group and other
 // permission scope.
 #define FilePermissions_Make(__user, __group, __other) \
-  (((__user) & kFilePermissionScope_Mask) << kFilePermissionScope_User) \
-| (((__group) & kFilePermissionScope_Mask) << kFilePermissionScope_Group) \
-| (((__other) & kFilePermissionScope_Mask) << kFilePermissionScope_Other)
+  (((__user) & kFilePermissionsScope_Mask) << kFilePermissionsScope_User) \
+| (((__group) & kFilePermissionsScope_Mask) << kFilePermissionsScope_Group) \
+| (((__other) & kFilePermissionsScope_Mask) << kFilePermissionsScope_Other)
 
 // Creates a FilePermission value from a POSIX style octal number. This number
 // is expected to be a 3 digit number where each digit represents one of the
@@ -63,12 +63,17 @@ enum {
 // Returns the permission bits of '__permission' that correspond to the
 // permissions scope '__scope'.
 #define FilePermissions_Get(__permissions, __scope) \
-(((__permissions) >> (__scope)) & kFilePermissionScope_Mask)
+(((__permissions) >> (__scope)) & kFilePermissionsScope_Mask)
+
+// Returns true if the permission '__permission' is set in the scope '__scope'
+// of the permissions '__permission'.
+#define FilePermissions_Has(__permissions, __scope, __permission) \
+((FilePermissions_Get(__permissions, __scope) & (__permission)) == (__permission))
 
 // Replaces the permission bits of the scope '__scope' in '__permission' with the
 // permission bits '__bits'. 
 #define FilePermissions_Set(__permissions, __scope, __bits) \
-((__permissions) & ~(kFilePermissionsScope_Mask << (__scope))) | (((__bits) & kFilePermissionsScope_Mask) << (__scope))
+ (__permissions) = ((__permissions) & ~(kFilePermissionsScope_Mask << (__scope))) | (((__bits) & kFilePermissionsScope_Mask) << (__scope))
 
 __CPP_END
 
