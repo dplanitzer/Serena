@@ -20,6 +20,7 @@ LIBM_ASM_INCLUDES := -I$(LIBSYSTEM_HEADERS_DIR) -I$(LIBM_HEADERS_DIR) -I$(LIBM_S
 #LIBM_GENERATE_DEPS = -deps -depfile=$(patsubst $(LIBM_OBJS_DIR)/%.o,$(LIBM_OBJS_DIR)/%.d,$@)
 LIBM_GENERATE_DEPS := 
 LIBM_CC_DONTWARN :=
+LIBM_AS_DONTWARN :=
 
 
 # --------------------------------------------------------------------------

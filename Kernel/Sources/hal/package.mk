@@ -14,8 +14,6 @@ HAL_ASM_INCLUDES := -I$(LIBSYSTEM_HEADERS_DIR) -I$(KERNEL_SOURCES_DIR) -I$(HAL_S
 
 #HAL_GENERATE_DEPS = -deps -depfile=$(patsubst $(HAL_OBJS_DIR)/%.o,$(HAL_OBJS_DIR)/%.d,$@)
 HAL_GENERATE_DEPS := 
-HAL_AS_DONTWARN := -nowarn=62
-HAL_CC_DONTWARN := -dontwarn=51 -dontwarn=148 -dontwarn=208
 
 
 # --------------------------------------------------------------------------
@@ -31,8 +29,8 @@ $(HAL_OBJS_DIR):
 
 $(HAL_OBJS_DIR)/%.o : $(HAL_SOURCES_DIR)/%.c
 	@echo $<
-	@$(CC) $(KERNEL_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(KERNEL_CC_PREPROC_DEFS) $(HAL_C_INCLUDES) $(HAL_CC_DONTWARN) $(HAL_GENERATE_DEPS) -o $@ $<
+	@$(CC) $(KERNEL_CC_CONFIG) $(CC_OPT_SETTING) $(CC_GEN_DEBUG_INFO) $(KERNEL_CC_PREPROC_DEFS) $(HAL_C_INCLUDES) $(KERNEL_CC_DONTWARN) $(HAL_GENERATE_DEPS) -o $@ $<
 
 $(HAL_OBJS_DIR)/%.o : $(HAL_SOURCES_DIR)/%.s
 	@echo $<
-	@$(AS) $(KERNEL_ASM_CONFIG) $(HAL_ASM_INCLUDES) $(HAL_AS_DONTWARN) -o $@ $<
+	@$(AS) $(KERNEL_ASM_CONFIG) $(HAL_ASM_INCLUDES) $(KERNEL_AS_DONTWARN) -o $@ $<
