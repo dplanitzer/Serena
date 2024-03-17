@@ -3,7 +3,6 @@
 #
 
 LIBSYSTEM_SOURCES_DIR := $(LIBSYSTEM_PROJECT_DIR)/Sources
-LIBSYSTEM_OBJS_DIR := $(OBJS_DIR)/Library/libsystem
 
 LIBSYSTEM_C_SOURCES := $(wildcard $(LIBSYSTEM_SOURCES_DIR)/*.c)
 LIBSYSTEM_ASM_SOURCES := $(wildcard $(LIBSYSTEM_SOURCES_DIR)/*.s)
@@ -24,7 +23,7 @@ LIBSYSTEM_CC_DONTWARN :=
 # Build rules
 #
 
-.PHONY: clean-libsystemc $(LIBSYSTEM_OBJS_DIR) $(LIBSYSTEM_PRODUCT_DIR)
+.PHONY: clean-libsystemc $(LIBSYSTEM_OBJS_DIR)
 
 
 build-libsystem: $(LIBSYSTEM_FILE)
@@ -34,11 +33,8 @@ $(LIBSYSTEM_OBJS): | $(LIBSYSTEM_OBJS_DIR)
 $(LIBSYSTEM_OBJS_DIR):
 	$(call mkdir_if_needed,$(LIBSYSTEM_OBJS_DIR))
 
-$(LIBSYSTEM_PRODUCT_DIR):
-	$(call mkdir_if_needed,$(LIBSYSTEM_PRODUCT_DIR))
 
-
-$(LIBSYSTEM_FILE): $(LIBSYSTEM_OBJS) | $(LIBSYSTEM_PRODUCT_DIR)
+$(LIBSYSTEM_FILE): $(LIBSYSTEM_OBJS)
 	@echo Making libsystem.a
 	$(LIBTOOL) create $@ $^
 

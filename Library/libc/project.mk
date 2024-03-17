@@ -3,7 +3,6 @@
 #
 
 LIBC_SOURCES_DIR := $(LIBC_PROJECT_DIR)/Sources
-LIBC_OBJS_DIR := $(OBJS_DIR)/Library/libc
 
 STDIO_SOURCES_DIR := $(LIBC_SOURCES_DIR)/stdio
 STDIO_OBJS_DIR := $(LIBC_OBJS_DIR)/stdio
@@ -30,7 +29,7 @@ LIBC_CC_DONTWARN := -dontwarn=214
 # Build rules
 #
 
-.PHONY: clean-libc $(LIBC_OBJS_DIR) $(LIBC_PRODUCT_DIR)
+.PHONY: clean-libc $(LIBC_OBJS_DIR)
 
 
 build-libc: $(LIBC_FILE) $(ASTART_FILE) $(CSTART_FILE)
@@ -40,13 +39,10 @@ $(LIBC_OBJS): | $(LIBC_OBJS_DIR)
 $(LIBC_OBJS_DIR):
 	$(call mkdir_if_needed,$(LIBC_OBJS_DIR))
 
-$(LIBC_PRODUCT_DIR):
-	$(call mkdir_if_needed,$(LIBC_PRODUCT_DIR))
-
 
 -include $(STDIO_SOURCES_DIR)/package.mk
 
-$(LIBC_FILE): $(LIBC_OBJS) $(STDIO_OBJS) | $(LIBC_PRODUCT_DIR)
+$(LIBC_FILE): $(LIBC_OBJS) $(STDIO_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 
@@ -63,11 +59,11 @@ $(LIBC_OBJS_DIR)/%.o : $(LIBC_SOURCES_DIR)/%.s
 
 
 # start() function(s)
-$(ASTART_FILE) : $(LIBC_ASTART_C_SOURCE) | $(LIBC_PRODUCT_DIR)
+$(ASTART_FILE) : $(LIBC_ASTART_C_SOURCE) | $(LIBC_OBJS_DIR)
 	@echo $<
 	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_PREPROC_DEFS) $(LIBC_C_INCLUDES) -o $@ $<
 
-$(CSTART_FILE) : $(LIBC_CSTART_C_SOURCE) | $(LIBC_PRODUCT_DIR)
+$(CSTART_FILE) : $(LIBC_CSTART_C_SOURCE) | $(LIBC_OBJS_DIR)
 	@echo $<
 	@$(CC) $(USER_CC_CONFIG) $(CC_OPT_SETTING) $(CC_PREPROC_DEFS) $(LIBC_C_INCLUDES) -o $@ $<
 

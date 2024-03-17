@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build All",
+            "label": "Build",
             "type": "shell",
             "command": "",
             "args": [
@@ -44,75 +44,12 @@
         },
 
         {
-            "label": "Build Kernel",
+            "label": "Clean ROM",
             "type": "shell",
             "command": "",
             "args": [
                 "make",
-                "build-kernel-rom",
-                "-s",
-                "-R",
-                "--directory=${workspaceFolder}"
-            ],
-            "group":  {
-                "kind": "build",
-                "isDefault": false
-            },
-            "presentation": {
-                "reveal":"always"
-            },
-            "problemMatcher": []
-        },
-
-        {
-            "label": "Clean Kernel",
-            "type": "shell",
-            "command": "",
-            "args": [
-                "make",
-                "clean-kernel-rom",
-                "-s",
-                "-R",
-                "--directory=${workspaceFolder}"
-            ],
-            "group":  {
-                "kind": "build",
-                "isDefault": false
-            },
-            "presentation": {
-                "reveal":"always"
-            },
-            "problemMatcher": []
-        },
-
-        {
-            "label": "Build Libc",
-            "type": "shell",
-            "command": "",
-            "args": [
-                "make",
-                "build-libc",
-                "-s",
-                "-R",
-                "--directory=${workspaceFolder}"
-            ],
-            "group":  {
-                "kind": "build",
-                "isDefault": false
-            },
-            "presentation": {
-                "reveal":"always"
-            },
-            "problemMatcher": []
-        },
-
-        {
-            "label": "Clean Libc",
-            "type": "shell",
-            "command": "",
-            "args": [
-                "make",
-                "clean-libc",
+                "clean-rom",
                 "-s",
                 "-R",
                 "--directory=${workspaceFolder}"

@@ -99,7 +99,7 @@ Open the Serena project folder in Visual Studio Code and select `Build All` from
 
 ### Running the Demo
 
-You first need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file text field to point to the `Serena.rom` file inside the `Serena/build/product/Kernel/` folder. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
+You first need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file text field to point to the `Serena.rom` file inside the `Serena/build/product/` folder. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
 Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS.
 
