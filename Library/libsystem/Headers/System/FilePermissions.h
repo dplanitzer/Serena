@@ -70,8 +70,18 @@ enum {
 #define FilePermissions_Has(__permissions, __scope, __permission) \
 ((FilePermissions_Get(__permissions, __scope) & (__permission)) == (__permission))
 
-// Replaces the permission bits of the scope '__scope' in '__permission' with the
-// permission bits '__bits'. 
+// Adds the permission bits '__bits' to the scope '__scope' in the file permission
+// set '__permissions' 
+#define FilePermissions_Add(__permissions, __scope, __bits) \
+ (__permissions) |= (((__bits) & kFilePermissionsScope_Mask) << (__scope))
+
+// Removes the permission bits '__bits' from the scope '__scope' in the file
+// permission set '__permissions' 
+#define FilePermissions_Remove(__permissions, __scope, __bits) \
+ (__permissions) &= ~(((__bits) & kFilePermissionsScope_Mask) << (__scope))
+
+// Replaces all permission bits in the scope '__scope' of the file permission
+// set '__permissions' with the new permission bits '__bits' 
 #define FilePermissions_Set(__permissions, __scope, __bits) \
  (__permissions) = ((__permissions) & ~(kFilePermissionsScope_Mask << (__scope))) | (((__bits) & kFilePermissionsScope_Mask) << (__scope))
 

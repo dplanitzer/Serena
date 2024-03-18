@@ -178,6 +178,7 @@ clean:
 	@echo Cleaning...
 	$(call rm_if_exists,$(OBJS_DIR))
 	$(call rm_if_exists,$(PRODUCT_DIR))
+	$(call rm_if_exists,$(BOOT_DISK_DIR))
 	@echo Done
 
 clean-rom: clean-kernel clean-kernel-tests clean-sh clean-libc clean-libsystem

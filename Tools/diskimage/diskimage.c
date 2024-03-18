@@ -69,18 +69,18 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
 
     FilePermissions permissions = gDefaultFilePermissions;
     if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_User, kFilePermission_Execute)) {
-        FilePermissions_Set(permissions, kFilePermissionsScope_User, kFilePermission_Execute);
+        FilePermissions_Add(permissions, kFilePermissionsScope_User, kFilePermission_Execute);
     }
     if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_Group, kFilePermission_Execute)) {
-        FilePermissions_Set(permissions, kFilePermissionsScope_Group, kFilePermission_Execute);
+        FilePermissions_Add(permissions, kFilePermissionsScope_Group, kFilePermission_Execute);
     }
     if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_Other, kFilePermission_Execute)) {
-        FilePermissions_Set(permissions, kFilePermissionsScope_Other, kFilePermission_Execute);
+        FilePermissions_Add(permissions, kFilePermissionsScope_Other, kFilePermission_Execute);
     }
 
 
     //printf("  %s   %llu bytes\n", pEntry->name, pEntry->fileSize);
-    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, gDefaultFilePermissions, &pFileNode));
+    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, permissions, &pFileNode));
     try(IOResource_Open(pFS, pFileNode, mode, gDefaultUser, &pDstFile));
     Filesystem_RelinquishNode(pFS, pFileNode);
     pFileNode = NULL;

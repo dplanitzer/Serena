@@ -622,8 +622,8 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
 
     while (nBytesToRead > 0) {
         const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
-        const ssize_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
-        const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
+        const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
+        const size_t nBytesAvailable = (size_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
         LogicalBlockAddress lba;
 
         if (nBytesAvailable <= 0) {
@@ -669,8 +669,8 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
 
     while (nBytesToWrite > 0) {
         const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
-        const ssize_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
-        const ssize_t nBytesAvailable = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
+        const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
+        const size_t nBytesToWriteInCurrentBlock = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
         LogicalBlockAddress lba;
 
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Write, &lba);
@@ -687,16 +687,16 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
             break;
         }
         
-        cb(self->tmpBlock + blockOffset, pContext, nBytesAvailable);
+        cb(self->tmpBlock + blockOffset, pContext, nBytesToWriteInCurrentBlock);
         e1 = DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
             break;
         }
 
-        nBytesToWrite -= nBytesAvailable;
-        nBytesWritten += nBytesAvailable;
-        offset += (FileOffset)nBytesAvailable;
+        nBytesToWrite -= nBytesToWriteInCurrentBlock;
+        nBytesWritten += nBytesToWriteInCurrentBlock;
+        offset += (FileOffset)nBytesToWriteInCurrentBlock;
     }
 
     if (nBytesWritten > 0) {
