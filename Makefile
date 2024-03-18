@@ -21,6 +21,7 @@ PRODUCT_DIR := $(BUILD_DIR)/product
 # Build tools
 #
 
+DISKIMAGE = $(TOOLS_DIR)/diskimage
 LIBTOOL = $(TOOLS_DIR)/libtool
 MAKEROM = $(TOOLS_DIR)/makerom
 AS = $(VBCC)/bin/vasmm68k_mot
@@ -90,7 +91,11 @@ KERNEL_TESTS_OBJS_DIR := $(OBJS_DIR)/Kernel/Tests
 KERNEL_FILE := $(KERNEL_OBJS_DIR)/Kernel.bin
 KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/Kernel_Tests
 
+
 ROM_FILE := $(PRODUCT_DIR)/Serena.rom
+
+BOOT_DISK_DIR := $(BUILD_DIR)/bootdisk
+BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.dmg
 
 
 SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/sh
@@ -140,18 +145,28 @@ include $(SH_PROJECT_DIR)/project.mk
 .PHONY: clean
 
 
-all: build-rom
+all: build-rom build-boot-dmg
 	@echo Done (Configuration: [$(BUILD_CONFIGURATION)])
 
 build-rom: $(ROM_FILE)
 
-#$(ROM_FILE): $(KERNEL_FILE) $(KERNEL_TESTS_FILE)
-#	@echo Making ROM
-#	$(MAKEROM) $(KERNEL_FILE) $(KERNEL_TESTS_FILE) $(ROM_FILE)
+build-boot-dmg: build-boot-disk
+	@echo Making boot_disk.dmg
+	$(DISKIMAGE) create $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
 
-$(ROM_FILE): $(KERNEL_FILE) $(SH_FILE) | $(PRODUCT_DIR)
+build-boot-disk: $(SH_FILE)
+	$(call mkdir_if_needed,$(BOOT_DISK_DIR))
+	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/System/Commands)
+	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/Users/Administrator)
+	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
+
+#$(ROM_FILE): $(KERNEL_FILE) $(KERNEL_TESTS_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)
+#	@echo Making ROM
+#	$(MAKEROM) $(KERNEL_FILE) $(KERNEL_TESTS_FILE) $(BOOT_DMG_FILE) $(ROM_FILE)
+
+$(ROM_FILE): $(KERNEL_FILE) $(SH_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)
 	@echo Making ROM
-	$(MAKEROM) $(KERNEL_FILE) $(SH_FILE) $(ROM_FILE)
+	$(MAKEROM) $(KERNEL_FILE) $(SH_FILE) $(BOOT_DMG_FILE) $(ROM_FILE)
 
 $(PRODUCT_DIR):
 	$(call mkdir_if_needed,$(PRODUCT_DIR))
@@ -164,4 +179,9 @@ clean:
 	@echo Done
 
 clean-rom: clean-kernel clean-kernel-tests clean-sh clean-libc clean-libsystem
+	@echo Done
+
+clean-boot-disk:
+	$(call rm_if_exists,$(BOOT_DISK_DIR))
+	$(call rm_if_exists,$(BOOT_DMG_FILE))
 	@echo Done

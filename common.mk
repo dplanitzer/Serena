@@ -24,3 +24,15 @@ define rm_if_exists
 	rm -rf '$(1)'
 endef
 endif
+
+
+# Copy a file or directory (recursively)
+ifeq ($(OS),Windows_NT)
+define copy
+	powershell Copy-Item -Path '$(1)' -Destination '$(2)' -Recurse
+endef
+else
+define copy
+	cp -Rp '$(1)' '$(2)'
+endef
+endif

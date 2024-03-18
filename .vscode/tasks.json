@@ -62,6 +62,27 @@
                 "reveal":"always"
             },
             "problemMatcher": []
+        },
+
+        {
+            "label": "Clean Boot Disk",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "clean-boot-disk",
+                "-s",
+                "-R",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
         }
     ]
 }

@@ -144,7 +144,6 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     
     Object_Release(pFS);
     Object_Release(pDisk);
-    printf("Done\n");
     return;
 
 catch:
