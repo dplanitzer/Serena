@@ -29,6 +29,7 @@ extern int cmd_pwd(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv);
 
 
 // Keep this table sorted by names, in ascending order
@@ -40,6 +41,7 @@ static const InterpreterCommand gBuiltinCommands[] = {
     {"list", cmd_list},
     {"makedir", cmd_makedir},
     {"pwd", cmd_pwd},
+    {"type", cmd_type},
 };
 
 

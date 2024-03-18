@@ -139,4 +139,8 @@ Creates an empty directory at the file system location indicated by the provided
 
 #### PWD
 
-Print the absolute path of the current working directory.
+Prints the absolute path of the current working directory.
+
+#### TYPE \<path>
+
+Prints a hexdump of the file at 'path' to the console.

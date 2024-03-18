@@ -150,15 +150,17 @@ all: build-rom build-boot-dmg
 
 build-rom: $(ROM_FILE)
 
-build-boot-dmg: build-boot-disk
-	@echo Making boot_disk.dmg
-	$(DISKIMAGE) create $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
+build-boot-dmg: $(BOOT_DMG_FILE)
 
 build-boot-disk: $(SH_FILE)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR))
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/System/Commands)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/Users/Administrator)
 	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
+
+$(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
+	@echo Making boot_disk.dmg
+	$(DISKIMAGE) create $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
 
 #$(ROM_FILE): $(KERNEL_FILE) $(KERNEL_TESTS_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)
 #	@echo Making ROM
