@@ -23,7 +23,7 @@
 
 static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes)
 {
-    printf(ADDR_FMT"  ", addr);
+    printf(ADDR_FMT":  ", addr);
 
     for (size_t i = 0; i < nbytes; i++) {
         printf("%.2hhx ", buf[i]);
@@ -36,6 +36,7 @@ static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes)
 
         fputc(ch, stdout);
     }
+    fputc('|', stdout);
 }
 
 static bool should_quit(void)
