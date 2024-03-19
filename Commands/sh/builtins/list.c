@@ -104,16 +104,14 @@ catch:
     return err;
 }
 
-static errno_t iterate_dir(ListContextRef _Nonnull self, const char* _Nonnull path, DirectoryIteratorCallback _Nonnull cb)
+static errno_t iterate_dir(ListContextRef _Nonnull self, int dp, const char* _Nonnull path, DirectoryIteratorCallback _Nonnull cb)
 {
     decl_try_err();
     DirectoryEntry dirent;
     ssize_t r;
-    int ios;
 
-    try(Directory_Open(path, &ios));
     while (true) {
-        try(Directory_Read(ios, &dirent, 1, &r));
+        try(Directory_Read(dp, &dirent, 1, &r));
         if (r == 0) {
             break;
         }
@@ -122,7 +120,21 @@ static errno_t iterate_dir(ListContextRef _Nonnull self, const char* _Nonnull pa
     }
 
 catch:
-    IOChannel_Close(ios);
+    return err;
+}
+
+static errno_t list_dir(ListContextRef _Nonnull self, const char* _Nonnull path)
+{
+    decl_try_err();
+    int dp;
+
+    try(Directory_Open(path, &dp));
+    try(iterate_dir(self, dp, path, calc_dir_entry_format));
+    try(Directory_Rewind(dp));
+    try(iterate_dir(self, dp, path, print_dir_entry));
+
+catch:
+    IOChannel_Close(dp);
     return err;
 }
 
@@ -150,12 +162,8 @@ int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv)
             printf("%s:\n", path);
         }
 
-        errno_t err = iterate_dir(&ctx, path, calc_dir_entry_format);
-        if (err == 0) {
-            err = iterate_dir(&ctx, path, print_dir_entry);
-        }
-
-        if (err != 0) {
+        err = list_dir(&ctx, path);
+        if (err != EOK) {
             printf("%s: %s.\n", argv[0], strerror(err));
             anyError = true;
         }

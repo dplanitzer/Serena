@@ -7,6 +7,7 @@
 //
 
 #include <System/Directory.h>
+#include <System/File.h>
 #include <System/_syscall.h>
 
 
@@ -26,4 +27,9 @@ errno_t Directory_Read(int ioc, DirectoryEntry* _Nonnull entries, size_t nEntrie
     const errno_t  err = _syscall(SC_read, ioc, entries, nEntriesToRead * sizeof(DirectoryEntry), &nBytesRead);
     *nReadEntries = nBytesRead / sizeof(DirectoryEntry);
     return err;
+}
+
+errno_t Directory_Rewind(int ioc)
+{
+    return (errno_t)_syscall(SC_seek, ioc, (FileOffset)0, NULL, kSeek_Set);
 }
