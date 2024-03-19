@@ -184,11 +184,12 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
     assert(pProc->imageBase == NULL);
 
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pExecPath, pProc->realUser, &r));
+    try(Inode_CheckAccess(r.inode, pProc->realUser, kFilePermission_Execute | kFilePermission_Read));
 
-    // XXX check X permission
 
     // Copy the process arguments into the process address space
     try(Process_CopyInProcessArguments_Locked(pProc, pArgv, pEnv));
+
 
     // Load the executable
     GemDosExecutableLoader_Init(&loader, pProc->addressSpace, pProc->realUser);
@@ -197,7 +198,8 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
 
     ((ProcessArguments*) pProc->argumentsBase)->image_base = pProc->imageBase;
 
-    try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, pProc->argumentsBase)));
+    try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue,
+        DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, pProc->argumentsBase)));
 
 catch:
     //XXX free the executable image if an error occurred
