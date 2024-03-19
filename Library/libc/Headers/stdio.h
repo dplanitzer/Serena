@@ -55,7 +55,7 @@ typedef struct _FILE_Callbacks {
 typedef struct _FILE_Memory {
     void* _Nullable     base;               // the (initial) memory block. The block will be reallocated if necessary and the current capacity is < maximumCapacity
     size_t              initialEof;         // initial file size. A fread() issued to the stream right after opening will return this data
-    size_t              initialCapacity;    // initial capacity of the memory block. This is the size to which a file can grow before an empty is made to allocate a bigger block
+    size_t              initialCapacity;    // Capacity of the initial memory block. This is the size to which a file will grow before an attempt is made to allocate a bigger block
     size_t              maximumCapacity;    // max size to which the memory block is allowed to grow. If initialCapacity == maximumCapacity then the stream will not grow the memory block
     unsigned int        options;            // See _IOM_xxx definitions
 } FILE_Memory;
