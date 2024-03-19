@@ -56,7 +56,7 @@ typedef struct ProcessArguments {
 // a NULL pointer is equivalent to { 'path', NULL } and for envp a NULL pointer
 // should be substituted with the contents of the 'environ' variable.
 typedef struct SpawnArguments {
-    void* _Nonnull                      execbase;
+    const char* _Nonnull                path;
     const char* _Nullable * _Nullable   argv;
     const char* _Nullable * _Nullable   envp;
     const char* _Nullable               root_dir;       // Process root directory, if not NULL; otherwise inherited from the parent

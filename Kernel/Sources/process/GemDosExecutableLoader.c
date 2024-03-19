@@ -9,17 +9,7 @@
 #include "GemDosExecutableLoader.h"
 
 
-void GemDosExecutableLoader_Init(GemDosExecutableLoader* _Nonnull pLoader, AddressSpaceRef _Nonnull pTargetAddressSpace)
-{
-    pLoader->addressSpace = pTargetAddressSpace;
-}
-
-void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader)
-{
-    pLoader->addressSpace = NULL;
-}
-
-static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull pLoader, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)
+static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull self, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)
 {
     const int32_t firstRelocOffset = *((uint32_t*)pRelocBase);
 
@@ -56,68 +46,106 @@ static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _N
     return EOK;
 }
 
-errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, void* _Nonnull pExecAddr, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
+errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FilesystemRef _Nonnull pFS, InodeRef _Nonnull pNode, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
 {
     decl_try_err();
-    GemDosExecutableHeader* pExecHeader = (GemDosExecutableHeader*)pExecAddr;
+    FileOffset fileSize = Inode_GetFileSize(pNode);
+    IOChannelRef pExecFile = NULL;
+    GemDosExecutableHeader hdr;
+    ssize_t nBytesRead;
 
-    //print("text: %d\n", pExecHeader->text_size);
-    //print("data: %d\n", pExecHeader->data_size);
-    //print("bss: %d\n", pExecHeader->bss_size);
-    //while(true);
+    *pOutImageBase = NULL;
+    *pOutEntryPoint = NULL;
+
+
+    // Do some basic file size validation
+    if (fileSize < sizeof(GemDosExecutableHeader)) {
+        throw(ENOEXEC);
+    }
+    else if (fileSize > SIZE_MAX) {
+        throw(ENOMEM);
+    }
+
+
+    // Read the executable header
+    try(IOResource_Open(pFS, pNode, kOpen_Read, self->user, &pExecFile));
+    try(IOResource_Read(pFS, pExecFile, &hdr, sizeof(hdr), &nBytesRead));
+
+//    print("magic: %hx\n", hdr.magic);
+//    print("text: %d\n", hdr.text_size);
+//    print("data: %d\n", hdr.data_size);
+//    print("bss: %d\n", hdr.bss_size);
+//    print("symbols: %d\n", hdr.symbol_table_size);
+//    print("file-size: %lld\n", fileSize);
+//    while(true);
 
 
     // Validate the header (somewhat anyway)
-    if (pExecHeader->magic != GEMDOS_EXEC_MAGIC) {
-        return ENOEXEC;
+    if (nBytesRead < sizeof(GemDosExecutableHeader)) {
+        throw(ENOEXEC);
     }
-    if (pExecHeader->text_size <= 0) {
-        return EINVAL;
+
+    if (hdr.magic != GEMDOS_EXEC_MAGIC) {
+        throw(ENOEXEC);
     }
-    if (pExecHeader->data_size < 0
-        || pExecHeader->bss_size < 0
-        || pExecHeader->symbol_table_size < 0) {
-        return EINVAL;   // these fields are really unsigned
+    if (hdr.text_size <= 0) {
+        throw(EINVAL);
     }
-    if (pExecHeader->is_absolute != 0) {
-        return EINVAL;
+    if (hdr.data_size < 0
+        || hdr.bss_size < 0
+        || hdr.symbol_table_size < 0) {
+        throw(EINVAL);   // these fields are really unsigned
+    }
+    if (hdr.is_absolute != 0) {
+        throw(EINVAL);
     }
 
 
     // Allocate the text, data and BSS segments 
-    const int nbytes_to_copy = sizeof(GemDosExecutableHeader) + pExecHeader->text_size + pExecHeader->data_size;
-    const int nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_copy + pExecHeader->bss_size, CPU_PAGE_SIZE);
+    const size_t nbytes_to_read = sizeof(GemDosExecutableHeader) + hdr.text_size + hdr.data_size;
+    const size_t fileOffset_to_reloc = nbytes_to_read + hdr.symbol_table_size;
+    const size_t reloc_size = (size_t)(fileSize - fileOffset_to_reloc);
+    const size_t nbytes_to_alloc = __Ceil_PowerOf2(nbytes_to_read + __max(hdr.bss_size, reloc_size), CPU_PAGE_SIZE);
     uint8_t* pImageBase = NULL;
-    try(AddressSpace_Allocate(pLoader->addressSpace, nbytes_to_alloc, (void**)&pImageBase));
+    try(AddressSpace_Allocate(self->addressSpace, nbytes_to_alloc, (void**)&pImageBase));
 
 
-    // Copy the executable header, text and data segments
-    Bytes_CopyRange(pImageBase, pExecAddr, nbytes_to_copy);
+    // Read the executable header, text and data segments into memory
+    File_SetOffset(pExecFile, 0ll);
+    try(IOResource_Read(pFS, pExecFile, pImageBase, nbytes_to_read, &nBytesRead));
+    if (nBytesRead != nbytes_to_read) {
+        throw(EIO);
+    }
+
+
+    // Read the relocation information into memory
+    uint8_t* pRelocBase = pImageBase + nbytes_to_read;
+    File_SetOffset(pExecFile, fileOffset_to_reloc);
+    try(IOResource_Read(pFS, pExecFile, pRelocBase, reloc_size, &nBytesRead));
+    if (nBytesRead != reloc_size) {
+        throw(EIO);
+    }
+
+
+    // Relocate the executable
+    uint8_t* pTextBase = pImageBase + sizeof(GemDosExecutableHeader);
+    try(GemDosExecutableLoader_RelocExecutable(self, pRelocBase, pTextBase));
 
 
     // Initialize the BSS segment
-    Bytes_ClearRange(pImageBase + nbytes_to_copy, pExecHeader->bss_size);
+    Bytes_ClearRange(pImageBase + nbytes_to_read, hdr.bss_size);
 
-    // Relocate the executable
-    uint8_t* pRelocBase = ((uint8_t*)pExecAddr)
-        + sizeof(GemDosExecutableHeader)
-        + pExecHeader->text_size
-        + pExecHeader->data_size
-        + pExecHeader->symbol_table_size;
-    uint8_t* pTextBase = pImageBase
-        + sizeof(GemDosExecutableHeader);
-
-    try(GemDosExecutableLoader_RelocExecutable(pLoader, pRelocBase, pTextBase));
 
     // Return the result pointers
     *pOutImageBase = pImageBase; 
     *pOutEntryPoint = pTextBase;
 
-    return EOK;
-
 catch:
     // XXX should free pImageBase if it exists
-    *pOutImageBase = NULL;
-    *pOutEntryPoint = NULL;
+    if (pExecFile) {
+        IOResource_Close(pFS, pExecFile);
+        Object_Release(pExecFile);
+    }
+
     return err;
 }

@@ -49,6 +49,10 @@ extern errno_t File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _No
 #define File_GetOffset(__self) \
     ((FileRef)__self)->offset
 
+// Sets the offset at which the next read/write should start
+#define File_SetOffset(__self, __offset) \
+    ((FileRef)__self)->offset = (__offset)
+
 // Increments the offset at which the next read/write should start
 #define File_IncrementOffset(__self, __delta) \
     ((FileRef)__self)->offset += (FileOffset)(__delta)

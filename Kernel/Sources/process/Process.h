@@ -35,11 +35,10 @@ extern errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc);
 // Loads an executable from the given executable file into the process address
 // space. This is only meant to get the root process going.
 // \param pProc the process into which the executable image should be loaded
-// \param pExecAddr pointer to a GemDOS formatted executable file in memory
+// \param pExecPath path to a GemDOS executable file
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-// XXX the executable file must be located at the address 'pExecAddr'
-extern errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, void* _Nonnull pExecAddr);
+extern errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPath);
 
 
 // Triggers the termination of the given process. The termination may be caused

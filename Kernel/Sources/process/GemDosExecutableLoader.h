@@ -10,6 +10,7 @@
 #define GemDosExecutableLoader_h
 
 #include <klib/klib.h>
+#include <filesystem/Filesystem.h>
 #include "AddressSpace.h"
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
@@ -29,12 +30,22 @@ typedef struct _GemDosExecutableHeader {
 
 typedef struct _GemDosExecutableLoader {
     AddressSpaceRef _Nonnull    addressSpace;
+    User                        user;
 } GemDosExecutableLoader;
 
 
-extern void GemDosExecutableLoader_Init(GemDosExecutableLoader* _Nonnull pLoader, AddressSpaceRef _Nonnull pTargetAddressSpace);
-extern void GemDosExecutableLoader_Deinit(GemDosExecutableLoader* _Nonnull pLoader);
+#define GemDosExecutableLoader_Init(__self, __pTargetAddressSpace, __user) \
+(__self)->addressSpace = __pTargetAddressSpace; \
+(__self)->user = __user
 
-extern errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, void* _Nonnull pExecAddr, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint);
+#define GemDosExecutableLoader_Deinit(__self) \
+(__self)->addressSpace = NULL
+
+
+// Loads a GemDOS executable from the file 'pNode' stored in the filesystem 'pFS'
+// into a newly allocated memory area in the address space for which this loader
+// was created. Returns the base address of the in-core executable image and the
+// entry address of the executable.
+extern errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, FilesystemRef _Nonnull pFS, InodeRef _Nonnull pNode, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint);
 
 #endif /* GemDosExecutableLoader_h */

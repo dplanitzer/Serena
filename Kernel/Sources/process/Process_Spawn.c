@@ -53,7 +53,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgument
     }
 
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
-    try(Process_Exec_Locked(pChildProc, pArgs->execbase, pArgs->argv, pArgs->envp));
+    try(Process_Exec_Locked(pChildProc, pArgs->path, pArgs->argv, pArgs->envp));
 
     try(ProcessManager_Register(gProcessManager, pChildProc));
     Object_Release(pChildProc);
@@ -173,31 +173,35 @@ catch:
 // space.
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-// XXX the executable file must be located at the address 'pExecAddr'
-errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, void* _Nonnull pExecAddr, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
+errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPath, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
 {
+    decl_try_err();
+    PathResolverResult r;
     GemDosExecutableLoader loader;
     void* pEntryPoint = NULL;
-    decl_try_err();
 
     // XXX for now to keep loading simpler
     assert(pProc->imageBase == NULL);
+
+    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pExecPath, pProc->realUser, &r));
+
+    // XXX check X permission
 
     // Copy the process arguments into the process address space
     try(Process_CopyInProcessArguments_Locked(pProc, pArgv, pEnv));
 
     // Load the executable
-    GemDosExecutableLoader_Init(&loader, pProc->addressSpace);
-    try(GemDosExecutableLoader_Load(&loader, pExecAddr, (void**)&pProc->imageBase, &pEntryPoint));
+    GemDosExecutableLoader_Init(&loader, pProc->addressSpace, pProc->realUser);
+    try(GemDosExecutableLoader_Load(&loader, r.filesystem, r.inode, (void**)&pProc->imageBase, &pEntryPoint));
     GemDosExecutableLoader_Deinit(&loader);
 
     ((ProcessArguments*) pProc->argumentsBase)->image_base = pProc->imageBase;
 
     try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue, DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, pProc->argumentsBase)));
 
-    return EOK;
-
 catch:
+    //XXX free the executable image if an error occurred
+    PathResolverResult_Deinit(&r);
     return err;
 }
 
