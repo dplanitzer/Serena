@@ -40,8 +40,8 @@ static void OnMain(void);
 // function is expected to never return.
 _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 {
-    const int data_size = &_edata - &_data;
-    const int bss_size = &_ebss - &_bss;
+    const size_t data_size = &_edata - &_data;
+    const size_t bss_size = &_ebss - &_bss;
 
     // Copy the kernel data segment from ROM to RAM
     Bytes_CopyRange(&_data, &_etext, data_size);
@@ -139,37 +139,31 @@ static void init_root_filesystem(void)
     // XXX We're creating a RAM disk and then we'll look for a disk image in the
     // XXX ROM. We then copy this disk image into the RAM disk and use this as
     // XXX our root filesystem.
-
-    // XXX We're looking at a fixed locations in the ROM for now.
-    const char* p0 = (char*)(BOOT_ROM_BASE + SIZE_KB(128));
-    const char* p1 = (char*)(BOOT_ROM_BASE + SIZE_KB(128) + SIZE_KB(48));
+    const size_t txt_size = &_etext - &_text;
+    const size_t dat_size = &_edata - &_data;
+    const char* ps = (const char*)(BOOT_ROM_BASE + txt_size + dat_size);
+    const char* pe = (const char*)(BOOT_ROM_BASE + BOOT_ROM_SIZE);
+    const char* p = __Ceil_Ptr_PowerOf2(ps, 4);
     const char* dmg = NULL;
 
-    if (String_EqualsUpTo(p0, "SeFS", 4)) {
-        dmg = p0;
+    while (p < pe) {
+        if (String_EqualsUpTo(p, "SeFS", 4)) {
+            dmg = p;
+            break;
+        }
+
+        p += 4;
     }
-    else if (String_EqualsUpTo(p1, "SeFS", 4)) {
-        dmg = p1;
+    if (dmg == NULL) {
+        throw(ENOENT);
     }
-    // XXX
 
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
-    // that the disk image is exactly 64k in size. Just format the RAM disk with
-    // a SerenaFS instance if there's no ROM disk image.
+    // that the disk image is exactly 64k in size.
     try(RamDisk_Create(512, 128, 128, &pRamDisk));
-
-    if (dmg) {
-        for (LogicalBlockAddress lba = 0; lba < 128; lba++) {
-            try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * 512], lba));
-        }
-    }
-    else {
-        const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-        const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Execute;
-        const FilePermissions dirPerms = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
-
-        try(SerenaFS_FormatDrive((DiskDriverRef)pRamDisk, kUser_Root, dirPerms));
+    for (LogicalBlockAddress lba = 0; lba < 128; lba++) {
+        try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * 512], lba));
     }
 
 
@@ -180,7 +174,7 @@ static void init_root_filesystem(void)
     return;
 
 catch:
-    print("Root filesystem mount failure: %d.\nHalting.\n", err);
+    print("Unable to mount the root filesystem.\nError: %d\nHalting\n", err);
     while(true);
     /* NOT REACHED */
 }

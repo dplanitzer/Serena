@@ -6,6 +6,12 @@ Invoke the make file in this directory to build all tools. You will then be able
 
 The following sections explain the purpose of each tool.
 
+## Building the Tools
+
+Use the Makefile in the Tools folder to build all of the tools in a single step. Note that the makefile is currently for Windows only and that it assumes that you have the Microsoft Visual Studio C/C++ development tools installed.
+
+The makefile must be invoked from a Developer Command Prompt. You can build individual tools by passing the name of the tool (as it appears in the sections below) to the make utility.
+
 ## Libtool
 
 Libtool is used to create static libraries. It is similar to the "ar" POSIX tool, but strictly focused on creating and managing static libraries.
@@ -28,21 +34,19 @@ This will show the name and size of each object code file in the static library.
 
 ## Makerom
 
-The makerom tool is used to assemble files into an Amiga ROM image. This image can then be used in the next step to burn an EPROM or loaded into an Amiga emulator like WinUAE.
+The makerom tool is used to assemble files into an Amiga ROM image. This image can then be used in the next step to burn an EPROM or it can be loaded into an Amiga emulator like WinUAE.
 
-Makerom allows you to bundle up to three files into a ROM image. The first file is the kernel, the second file is the first user space application that the kernel should invoke at boot time and the third file is a 64KB SerenaFS disk image. The disk image file is optional.
+Makerom accepts a list of files as input. At least one file must be specified and this (first) file will be placed at the very beginning of the ROM. This first file should be a raw binary that contains the kernel code. All other files are placed on 4 byte boundaries in the order in which they appear on the command line.
 
 Invoke makerom like this to create a ROM image:
 
 ```
-makerom path/to/kernel path/to/app path/to/dmg path/to/rom_image
+makerom path/to/rom_image path/to/kernel [path/to/file2 ...]
 ```
 
-Where the first argument is the path to the kernel executable, the second argument is the path to the first user space application that should be executed at boot time, the third argument is the path to a 64KB SerenaFS formatted disk image (created with the diskimage tool) and the last argument is the path to where the final ROM image should be stored.
+Where the first argument is the path and name of the ROM file that should be created and the remaining arguments are paths to the files that should be packaged into the ROM file.
 
-Note that the kernel executable format is expected to be a raw binary and the application executable format is expected to be a GemDOS executable.
-
-The generated ROM image is 256KB in size and it includes the IRQ auto-vector generation data that the Amiga interrupt hardware logic expects.
+The generated ROM image is 256KB in size and it includes the necessary IRQ auto-vector generation data that the Amiga interrupt hardware logic expects.
 
 ## Diskimage
 

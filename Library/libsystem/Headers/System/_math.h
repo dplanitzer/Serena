@@ -18,10 +18,10 @@
 #endif
 #define __clamped(v, lw, up) ((v) < (lw) ? (lw) : ((v) > (up) ? (up) : (v)))
 
-#define __Ceil_PowerOf2(x, mask)   (((x) + (mask-1)) & ~(mask-1))
-#define __Floor_PowerOf2(x, mask) ((x) & ~(mask-1))
+#define __Ceil_PowerOf2(x, __align)   (((x) + ((__align)-1)) & ~((__align)-1))
+#define __Floor_PowerOf2(x, __align) ((x) & ~((__align)-1))
 
-#define __Ceil_Ptr_PowerOf2(x, mask)     (void*)(__Ceil_PowerOf2((__uintptr_t)(x), (__uintptr_t)(mask)))
-#define __Floor_Ptr_PowerOf2(x, mask)     (void*)(__Floor_PowerOf2((__uintptr_t)(x), (__uintptr_t)(mask)))
+#define __Ceil_Ptr_PowerOf2(x, __align)     (void*)(__Ceil_PowerOf2((__uintptr_t)(x), (__uintptr_t)(__align)))
+#define __Floor_Ptr_PowerOf2(x, __align)     (void*)(__Floor_PowerOf2((__uintptr_t)(x), (__uintptr_t)(__align)))
 
 #endif /* __SYS_MATH_H */

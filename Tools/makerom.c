@@ -75,13 +75,16 @@ static void fputc_require(int ch, FILE* s)
 
 static size_t getFileSize(FILE* s)
 {
+    const long origpos = ftell(s);
+    const int r0 = fseek(s, 0, SEEK_END);
     const long r = ftell(s);
 
-    if (r == -1) {
+    if (r == -1 || r0 != 0 || origpos == -1) {
         failed("I/O error");
         // NOT REACHED
     }
 
+    fseek(s, origpos, SEEK_SET);
     return r;
 }
 
@@ -129,7 +132,7 @@ static void appendContentsOfFile(FILE* src_s, FILE* s)
 
 static void help(void)
 {
-    printf("makerom <kernelFile> [initAppFile] [dmgFile] <romFile>\n");
+    printf("makerom <romFile> <kernelFile> ... \n");
 
     exit(EXIT_SUCCESS);
 }
@@ -142,80 +145,44 @@ int main(int argc, char* argv[])
     }
 
 
-    // Write a split-style Amiga ROM:
-    // 128k of Kernel space
-    // 48k of init user process space
-    // 64k of disk image space
-    // 16 bytes of IRQ autovec generation data
-    const char* kernelPath = argv[1];
-    const char* initAppPath = (argc >= 4) ? argv[2] : "";
-    const char* dmgPath = (argc >= 5) ? argv[3] : "";
-    const char* romPath = argv[argc - 1];
-    FILE* romFile = open_require(romPath, "wb");
-    FILE* kernelFile = open_require(kernelPath, "rb");
-    FILE* initAppFile = (*initAppPath != '\0') ? open_require(initAppPath, "rb") : NULL;
-    FILE* dmgFile = (*dmgPath != '\0') ? open_require(dmgPath, "rb") : NULL;
-    const char autovec[] = {0, 24, 0, 25, 0, 26, 0, 27, 0, 28, 0, 29, 0, 30, 0, 31};
-    const size_t maxRomSize = SIZE_KB(256) - sizeof(autovec);
+    // Write one file after the other
+    // Align each file at a 4 byte boundary
+    // Write 16 bytes of IRQ autovec generation data at the very end of the ROM
+    const char autovec[] = {0x00, 0x18, 0x00, 0x19, 0x00, 0x1a, 0x00, 0x1b, 0x00, 0x1c, 0x00, 0x1d, 0x00, 0x1e, 0x00, 0x1f};
+    const size_t romCapacity = SIZE_KB(256) - sizeof(autovec);
+    size_t romSize = 0;
 
+    FILE* romFile = open_require(argv[1], "wb");
     setvbuf(romFile, NULL, _IOFBF, 8192);
-    setvbuf(kernelFile, NULL, _IONBF, 0);
-    if (initAppFile) {
-        setvbuf(initAppFile, NULL, _IONBF, 0);
-    }
-    if (dmgFile) {
-        setvbuf(dmgFile, NULL, _IONBF, 0);
-    }
 
 
-    // Kernel file
-    appendContentsOfFile(kernelFile, romFile);
-    const size_t maxKernelSize = SIZE_KB(128);
-    const size_t kernelSize = getFileSize(romFile);
-    if (kernelSize > maxKernelSize) {
-        failed("Kernel too big");
-        // NOT REACHED
-    }
-    appendByFilling(0, maxKernelSize - kernelSize, romFile);
+    // Add the input files to the ROM
+    for (int i = 2; i < argc; i++) {
+        FILE* fp = open_require(argv[i], "rb");
+        const size_t fileSize = getFileSize(fp);
+        const size_t nb = 4 - (fileSize & 0x03);
 
-
-    // (Optional) Init App File
-    if (initAppFile) {
-        appendContentsOfFile(initAppFile, romFile);
-        const size_t maxAppSize = SIZE_KB(48);
-        const size_t appSize = getFileSize(romFile) - maxKernelSize;
-        if (appSize > maxAppSize) {
-            failed("App too big");
+        if (romSize + fileSize + nb > romCapacity) {
+            failed("ROM too big");
             // NOT REACHED
         }
 
-
-        // (Optional) Disk Image File
-        if (dmgFile) {
-            appendByFilling(0, maxAppSize - appSize, romFile);
-            appendContentsOfFile(dmgFile, romFile);
+        setvbuf(fp, NULL, _IONBF, 0);
+        appendContentsOfFile(fp, romFile);
+        if (nb > 0) {
+            appendByFilling(0, nb, romFile);
         }
+        fclose(fp);
+
+        romSize += fileSize;
+        romSize += nb;
     }
 
 
     // 68k IRQ auto-vector generation support
-    const size_t romSize = getFileSize(romFile);
-    if (romSize > maxRomSize) {
-        failed("ROM too big");
-        // NOT REACHED
-    }
-
-    appendByFilling(0, maxRomSize - romSize, romFile);
+    appendByFilling(0, romCapacity - romSize, romFile);
     appendBytes(autovec, sizeof(autovec), romFile);
 
-
-    if (dmgFile) {
-        fclose(dmgFile);
-    }
-    if (initAppFile) {
-        fclose(initAppFile);
-    }
-    fclose(kernelFile);
     fclose(romFile);
 
     return EXIT_SUCCESS;
