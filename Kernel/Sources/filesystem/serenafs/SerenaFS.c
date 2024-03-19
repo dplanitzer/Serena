@@ -602,33 +602,22 @@ catch:
 }
 
 // Reads 'nBytesToRead' bytes from the file 'pNode' starting at offset 'offset'.
-// This functions reads a block full of data from teh backing store and then
-// invokes 'cb' with this block of data. 'cb' is expected to process the data.
-// Note that 'cb' may process just a subset of the data and it returns how much
-// of the data it has processed. This amount of bytes is then subtracted from
-// 'nBytesToRead'. However the offset is always advanced by a full block size.
-// This process continues until 'nBytesToRead' has decreased to 0, EOF or an
-// error is encountered. Whatever comes first. 
-static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToRead, SFSReadCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesRead)
+static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
     const FileOffset fileSize = Inode_GetFileSize(pNode);
-    ssize_t nOriginalBytesToRead = nBytesToRead;
+    ssize_t nBytesRead = 0;
 
     if (offset < 0ll) {
         *pOutBytesRead = 0;
         return EINVAL;
     }
 
-    while (nBytesToRead > 0) {
+    while (nBytesToRead > 0 && offset < fileSize) {
         const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
         const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
-        const size_t nBytesAvailable = (size_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
+        const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
         LogicalBlockAddress lba;
-
-        if (nBytesAvailable <= 0) {
-            break;
-        }
 
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba);
         if (e1 == EOK) {
@@ -640,15 +629,17 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
             }
         }
         if (e1 != EOK) {
-            err = (nBytesToRead == nOriginalBytesToRead) ? e1 : EOK;
+            err = (nBytesRead == 0) ? e1 : EOK;
             break;
         }
 
-        nBytesToRead -= cb(pContext, self->tmpBlock + blockOffset, nBytesAvailable);
-        offset += (FileOffset)nBytesAvailable;
+        Bytes_CopyRange(((uint8_t*)pBuffer) + nBytesRead, self->tmpBlock + blockOffset, nBytesToReadInCurrentBlock);
+        nBytesToRead -= nBytesToReadInCurrentBlock;
+        nBytesRead += nBytesToReadInCurrentBlock;
+        offset += (FileOffset)nBytesToReadInCurrentBlock;
     }
 
-    *pOutBytesRead = nOriginalBytesToRead - nBytesToRead;
+    *pOutBytesRead = nBytesRead;
     if (*pOutBytesRead > 0) {
         Inode_SetModified(pNode, kInodeFlag_Accessed);
     }
@@ -656,8 +647,7 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
 }
 
 // Writes 'nBytesToWrite' bytes to the file 'pNode' starting at offset 'offset'.
-// 'cb' is used to copy the data from teh source to the disk block(s).
-static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, ssize_t nBytesToWrite, SFSWriteCallback _Nonnull cb, void* _Nullable pContext, ssize_t* _Nonnull pOutBytesWritten)
+static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
     ssize_t nBytesWritten = 0;
@@ -687,7 +677,7 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
             break;
         }
         
-        cb(self->tmpBlock + blockOffset, pContext, nBytesToWriteInCurrentBlock);
+        Bytes_CopyRange(self->tmpBlock + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
         e1 = DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
@@ -1101,48 +1091,49 @@ catch:
     return err;
 }
 
-// Reads the next set of directory entries. The first entry read is the one
-// at the current directory index stored in 'pDir'. This function guarantees
-// that it will only ever return complete directories entries. It will never
-// return a partial entry. Consequently the provided buffer must be big enough
-// to hold at least one directory entry. Note that this function is expected
-// to return "." for the entry at index #0 and ".." for the entry at index #1.
-static ssize_t xCopyOutDirectoryEntries(DirectoryEntry* _Nonnull pOut, const SFSDirectoryEntry* _Nonnull pIn, ssize_t nBytesToRead)
-{
-    ssize_t nBytesCopied = 0;
-
-    while (nBytesToRead > 0) {
-        if (pIn->id > 0) {
-            pOut->inodeId = UInt32_BigToHost(pIn->id);
-            String_CopyUpTo(pOut->name, pIn->filename, kSFSMaxFilenameLength);
-            nBytesCopied += sizeof(SFSDirectoryEntry);
-            pOut++;
-        }
-        pIn++;
-        nBytesToRead -= sizeof(SFSDirectoryEntry);
-    }
-
-    return nBytesCopied;
-}
-
 errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
+    decl_try_err();
     InodeRef _Locked pNode = Directory_GetInode(pDir);
-    const ssize_t nBytesToReadFromDirectory = (nBytesToRead / sizeof(DirectoryEntry)) * sizeof(SFSDirectoryEntry);
-    ssize_t nBytesRead;
+    FileOffset offset = Directory_GetOffset(pDir);
+    SFSDirectoryEntry dirent;
+    ssize_t nAllDirBytesRead = 0;
+    ssize_t nBytesRead = 0;
 
-    // XXX reading multiple entries at once doesn't work right because xRead advances 'pBuffer' by sizeof(RamDirectoryEntry) rather
-    // XXX than DirectoryEntry. Former is 32 bytes and later is 260 bytes.
-    // XXX the Directory_GetOffset() should really return the number of the entry rather than a byte offset
-    const errno_t err = SerenaFS_xRead(self, 
-        pNode, 
-        Directory_GetOffset(pDir),
-        nBytesToReadFromDirectory,
-        (SFSReadCallback)xCopyOutDirectoryEntries,
-        pBuffer,
-        &nBytesRead);
-    Directory_IncrementOffset(pDir, nBytesRead);
-    *nOutBytesRead = (nBytesRead / sizeof(SFSDirectoryEntry)) * sizeof(DirectoryEntry);
+    while (nBytesToRead > 0) {
+        ssize_t nDirBytesRead;
+        const errno_t e1 = SerenaFS_xRead(self, pNode, offset, &dirent, sizeof(SFSDirectoryEntry), &nDirBytesRead);
+
+        if (e1 != EOK) {
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+        else if (nDirBytesRead == 0) {
+            break;
+        }
+
+        if (dirent.id > 0) {
+            DirectoryEntry* pEntry = (DirectoryEntry*)((uint8_t*)pBuffer + nBytesRead);
+
+            if (nBytesToRead < sizeof(DirectoryEntry)) {
+                break;
+            }
+
+            pEntry->inodeId = UInt32_BigToHost(dirent.id);
+            String_CopyUpTo(pEntry->name, dirent.filename, kSFSMaxFilenameLength);
+            nBytesRead += sizeof(DirectoryEntry);
+            nBytesToRead -= sizeof(DirectoryEntry);
+        }
+
+        offset += nDirBytesRead;
+        nAllDirBytesRead += nDirBytesRead;
+    }
+
+    if (nBytesRead > 0) {
+        Directory_IncrementOffset(pDir, nAllDirBytesRead);
+    }
+    *nOutBytesRead = nBytesRead;
+
     return err;
 }
 
@@ -1260,12 +1251,6 @@ errno_t SerenaFS_close(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile)
     return EOK;
 }
 
-static ssize_t xCopyOutFileContent(void* _Nonnull pOut, const void* _Nonnull pIn, ssize_t nBytesToRead)
-{
-    Bytes_CopyRange(pOut, pIn, nBytesToRead);
-    return nBytesToRead;
-}
-
 errno_t SerenaFS_read(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     InodeRef _Locked pNode = File_GetInode(pFile);
@@ -1273,9 +1258,8 @@ errno_t SerenaFS_read(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, void* _
     const errno_t err = SerenaFS_xRead(self, 
         pNode, 
         File_GetOffset(pFile),
-        nBytesToRead,
-        (SFSReadCallback)xCopyOutFileContent,
         pBuffer,
+        nBytesToRead,
         nOutBytesRead);
     File_IncrementOffset(pFile, *nOutBytesRead);
     return err;
@@ -1295,9 +1279,8 @@ errno_t SerenaFS_write(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, const 
     const errno_t err = SerenaFS_xWrite(self, 
         pNode, 
         offset,
+        pBuffer,
         nBytesToWrite,
-        (SFSWriteCallback)Bytes_CopyRange,
-        (void*)pBuffer,
         nOutBytesWritten);
     File_IncrementOffset(pFile, *nOutBytesWritten);
     return err;

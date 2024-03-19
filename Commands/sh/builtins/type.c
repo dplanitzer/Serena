@@ -21,20 +21,25 @@
 
 
 
-static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes)
+static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_t ncolumns)
 {
     printf(ADDR_FMT":  ", addr);
 
     for (size_t i = 0; i < nbytes; i++) {
         printf("%.2hhx ", buf[i]);
     }
+    for (size_t i = nbytes; i < ncolumns; i++) {
+        fputs("   ", stdout);
+    }
     
     fputs(" |", stdout);
-
     for (size_t i = 0; i < nbytes; i++) {
         const int ch = (isprint(buf[i])) ? buf[i] : '.';
 
         fputc(ch, stdout);
+    }
+    for (size_t i = nbytes; i < ncolumns; i++) {
+        fputc(' ', stdout);
     }
     fputc('|', stdout);
 }
@@ -67,7 +72,7 @@ static errno_t type_hex(const char* _Nonnull path)
     try_null(fp, fopen(path, "rb"), ENOENT);
 
     while (!feof(fp)) {
-        const size_t r = fread(buf, sizeof(buf), 1, fp);
+        const size_t r = fread(buf, 1, sizeof(buf), fp);
 
         if (r == 0) {
             if (ferror(fp)) {
@@ -75,7 +80,7 @@ static errno_t type_hex(const char* _Nonnull path)
             }
         }
 
-        print_hex_line(addr, buf, sizeof(buf));
+        print_hex_line(addr, buf, r, sizeof(buf));
         addr += sizeof(buf);
 #if 0
     //XXX disabled for now because the Console I/O channel doesn't have a way yet
