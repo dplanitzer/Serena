@@ -8,19 +8,21 @@ Another interesting aspect is interrupt handling. Code which wants to react to a
 
 The kernel is generally reentrant. This means that virtual processors continue to be scheduled and context switched preemptively even while the CPU is executing inside the kernel. Additionally a full compliment of counting semaphores, condition variables and lock APIs are available inside the kernel. The API of those objects closely resembles what you would find in a user space implementation of a traditional OS.
 
-Serena implements a hierarchical process system similar to POSIX. A process may spawn a number of child processes and it can pass a command line and environment variables to its children. A process accesses I/O resources via file descriptors (again similar to POSIX).
+Serena implements a hierarchical process system similar to POSIX. A process may spawn a number of child processes and it can pass a command line and environment variables to its children. A process accesses I/O resources via descriptors (similar to POSIX).
 
-There are two notable differences between the POSIX style process model and the Serena model though: first instead of using fork() followed by exec() to spawn a new process, you use a single function in Serena called spawn(). This makes spawning a process much faster and significantly less error prone. Secondly a child process does not inherit the file descriptors of its parent by default. The only exception are the file descriptors 0, 1 and 2 which represent the terminal input and output streams. This model is much less error prone compared to the POSIX model where a process has to be careful to close file descriptors that it doesn't want to pass on to a child process before it execs the child. Doing this was easy in the early days of Unix when applications were pretty much self contained and when there was no support for dynamic libraries. It's the opposite today because applications are far more complex and depend on many 3rd party libraries.
+There are two notable differences between the POSIX style process model and the Serena model though: first instead of using fork() followed by exec() to spawn a new process, you use a single function in Serena called Process_Spawn(). This makes spawning a process much faster and significantly less error prone.
 
-The executable file format at this time is the Atari ST GemDos file format which is a close derivative of the aout executable format. This file format will eventually get replaced with a file format that will be able to support dynamic libraries. However for now it is good enough to get the job done.
+Secondly a child process does not inherit the file descriptors of its parent by default. The only exception are the file descriptors 0, 1 and 2 which represent the terminal input and output streams. This model is much less error prone compared to the POSIX model where a process has to be careful to close file descriptors that it doesn't want to pass on to a child process before it forks and execs the child. Doing this was easy in the early days of Unix when applications were pretty much self contained and when there was no support for dynamic libraries. It's the opposite today because applications are far more complex and depend on many 3rd party libraries.
 
-The kernel supports a hierarchical file system layout. A file system may be mounted on top of a directory of another file system to expand the file name tree. All this works similar to how it works in POSIX systems. A process which wants to spawn a child process can specify that the child process should be confined to a sub-tree of the file system namespace.
+The executable file format at this time is the Atari ST GemDos file format which is a close relative to the aout executable format. This file format will be eventually replaced with a file format that will be able to support dynamic libraries. However for now it is good enough to get the job done.
 
-The boot file system is always RAM-based. This allows the kernel to complete its boot sequence even if there is no physical disk available or the physical medium if defective.
+The kernel supports a hierarchical file systems with permissions and user and group information. A file system may be mounted on top of a directory located in another file system to expand the file namespace. All this works similar to how it works in POSIX systems. A process which wants to spawn a child process can specify that the child process should be confined to a sub-tree of the global file system namespace.
 
-At this point a very simple shell exists which allows you to navigate the RAM-based boot file system and to list the content of directories. There is also a kernel unit test rig to test various kernel APIs and kernel functionality.
+The boot file system is currently RAM-based. The ROM contains a disk image which is created with the diskimage tool and which serves as a template for the RAM disk. This ROM disk image is copied to RAM at boot time.
 
-Finally there is the beginning of a standard C library for user space programs available. The library implements C99 level functionality.
+A simple shell exists at this point, which allows you to navigate and list the content of directories in the file system. There is also a kernel unit test rig to test various kernel APIs and kernel functionality.
+
+Finally, the beginnings of a system call library (libsystem) and a mostly complete implementation of a C99 standard C library exists plus the very beginnings of a standard C math library.
 
 ## Features
 
