@@ -2,7 +2,7 @@
 # Build variables
 #
 
-SH_SOURCES_DIR := $(WORKSPACE_DIR)/Commands/sh
+SH_SOURCES_DIR := $(SH_PROJECT_DIR)
 SH_C_SOURCES := $(wildcard $(SH_SOURCES_DIR)/*.c)
 SH_C_INCLUDES := -I$(LIBSYSTEM_HEADERS_DIR) -I$(LIBC_HEADERS_DIR) -I$(SH_SOURCES_DIR)
 SH_OBJS := $(patsubst $(SH_SOURCES_DIR)/%.c, $(SH_OBJS_DIR)/%.o, $(SH_C_SOURCES))

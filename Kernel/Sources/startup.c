@@ -226,5 +226,5 @@ static void OnMain(void)
 
 
     // Get the root process going
-    try_bang(RootProcess_Exec(pRootProc, "/System/Commands/sh"));
+    try_bang(RootProcess_Exec(pRootProc, "/System/Commands/shell"));
 }

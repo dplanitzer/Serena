@@ -98,9 +98,9 @@ BOOT_DISK_DIR := $(BUILD_DIR)/bootdisk
 BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.dmg
 
 
-SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/sh
-SH_OBJS_DIR := $(OBJS_DIR)/Commands/sh
-SH_FILE := $(SH_OBJS_DIR)/sh
+SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/shell
+SH_OBJS_DIR := $(OBJS_DIR)/Commands/shell
+SH_FILE := $(SH_OBJS_DIR)/shell
 
 
 LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem

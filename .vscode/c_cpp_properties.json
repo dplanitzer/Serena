@@ -8,7 +8,7 @@
                 "${workspaceFolder}/Library/libsystem/Headers/**",
                 "${workspaceFolder}/Library/libc/**",
                 "${workspaceFolder}/Library/libm/**",
-                "${workspaceFolder}/Commands/sh/**"
+                "${workspaceFolder}/Commands/shell/**"
             ],
             "defines": [
                 "DEBUG=1",
