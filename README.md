@@ -91,7 +91,7 @@ Finally install GNU make for Windows and make sure that it is in the `PATH` envi
 
 ### Building the Build Tools
 
-You only need to execute this step once and before you try to build the OS. The purpose of this step is to build a couple of tools that are needed to build the kernel and user space libraries. You can find dcoumentation for these tools [here](Tools/README.md).
+You only need to execute this step once and before you try to build the OS. The purpose of this step is to build a couple of tools that are needed to build the kernel and user space libraries. You can find documentation for these tools [here](Tools/README.md).
 
  First open a Developer Command Prompt in Windows Terminal and then cd into the `Serena/Tools` folder. Type `make` and hit return. This will build all required tools and place them inside a `Serena/build/tools` folder. The tools will be retained in this location even if you do a full clean of the OS project.
 
@@ -101,9 +101,9 @@ Open the Serena project folder in Visual Studio Code and select `Build All` from
 
 ### Running the Demo
 
-You first need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and change the Main ROM file text field to point to the `Serena.rom` file inside the `Serena/build/product/` folder. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the Slow entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
+First you'll need to create an Amiga configuration with at least a 68030 CPU (i.e. Amiga 3000 or 4000) in WinUAE if you haven't already. The easiest way to do this is by going to Quickstart and selecting A4000 as the model. Then go to the Hardware/ROM page and update the "Main ROM file" text field such that it points to the `Serena.rom` file inside the `Serena/build/product/` folder on your disk. Finally give your virtual Amiga at least 1MB of Fast RAM by going to the Hardware/RAM page and setting the "Slow" entry to 1MB. Save this configuration so that you don't have to recreate it next time you want to run the OS.
 
-Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS.
+Load the configuration and then hit the Start button or simply double-click the configuration in the Configurations page to run the OS. The emulator should open a screen that shows a boot message and then a shell prompt. See the [shell](Commands/shell/README.md) page for a list of commands that are supported by the shell.
 
 ## License
 
