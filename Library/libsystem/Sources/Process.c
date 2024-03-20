@@ -17,12 +17,12 @@ _Noreturn Process_Exit(int exit_code)
 
 errno_t Process_GetWorkingDirectory(char* _Nonnull buffer, size_t bufferSize)
 {
-    return (errno_t)_syscall(SC_getcwd, buffer, bufferSize);
+    return _syscall(SC_getcwd, buffer, bufferSize);
 }
 
 errno_t Process_SetWorkingDirectory(const char* _Nonnull path)
 {
-    return (errno_t)_syscall(SC_setcwd, path);
+    return _syscall(SC_setcwd, path);
 }
 
 
@@ -51,16 +51,14 @@ UserId Process_GetUserId(void)
     return _syscall(SC_getuid);
 }
 
-errno_t Process_Spawn(const SpawnArguments* _Nonnull args, ProcessId* _Nullable rpid)
+errno_t Process_Spawn(const char* _Nonnull path, const SpawnOptions* _Nonnull options, ProcessId* _Nullable rpid)
 {
-    SpawnArguments kargs = *args;
-
-    return (errno_t)_syscall(SC_spawn_process, &kargs, rpid);
+    return _syscall(SC_spawn_process, path, options, rpid);
 }
 
 errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result)
 {
-    return (errno_t)_syscall(SC_waitpid, pid, result);
+    return _syscall(SC_waitpid, pid, result);
 }
 
 ProcessArguments* _Nonnull Process_GetArguments(void)

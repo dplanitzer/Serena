@@ -31,6 +31,13 @@ typedef enum {
 #define kIOChannelCommand_GetMode   IOChannelCommand(2)
 
 
+// Standard I/O channels that are open when a process starts. These channels
+// connect to the terminal input and output streams.
+#define kIOChannel_Stdin    0
+#define kIOChannel_Stdout   1
+#define kIOChannel_Stderr   2
+
+
 #if !defined(__KERNEL__)
 
 // Reads up to 'nBytesToRead' bytes from the I/O channel 'ioc' and writes them

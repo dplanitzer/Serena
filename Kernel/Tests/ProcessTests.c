@@ -56,9 +56,9 @@ void child_process_test(int argc, char *argv[])
         child_argv[0] = "--child";
         child_argv[1] = NULL;
 
-        SpawnArguments spargs;
+        SpawnOptions spargs;
         memset(&spargs, 0, sizeof(spargs));
-        spargs.execbase = (void*)0xfe0000;
+        //spargs.execbase = (void*)0xfe0000;
         //spargs.execbase = (void*)(0xfe0000 + ((char*)app_main));
         spargs.argv = child_argv;
         spargs.envp = NULL;

@@ -389,9 +389,13 @@ SYSCALL_1(exit, int status)
 // nul-terminated strings. The last entry in the table has to be NULL. All these
 // strings are the command line arguments that should be passed to the new
 // process.
-SYSCALL_2(spawn_process, const SpawnArguments* _Nullable spawnArgs, ProcessId* _Nullable pOutPid)
+SYSCALL_3(spawn_process, const char* _Nullable path, const SpawnOptions* _Nullable options, ProcessId* _Nullable pOutPid)
 {
-    return (pArgs->spawnArgs) ? Process_SpawnChildProcess(Process_GetCurrent(), pArgs->spawnArgs, pArgs->pOutPid) : EINVAL;
+    if (pArgs->path == NULL || pArgs->path[0] == '\0' || pArgs->options == NULL) {
+        return EINVAL;
+    }
+
+    return Process_SpawnChildProcess(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->pOutPid);
 }
 
 SYSCALL_0(getpid)

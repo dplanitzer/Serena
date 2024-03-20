@@ -12,7 +12,7 @@
 #include <krt/krt.h>
 
 
-errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArguments* _Nonnull pArgs, ProcessId * _Nullable pOutChildPid)
+errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, const SpawnOptions* _Nonnull pOptions, ProcessId * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
@@ -21,7 +21,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgument
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    const FilePermissions childUMask = ((pArgs->options & kSpawn_OverrideUserMask) != 0) ? (pArgs->umask & 0777) : pProc->fileCreationMask;
+    const FilePermissions childUMask = ((pOptions->options & kSpawn_OverrideUserMask) != 0) ? (pOptions->umask & 0777) : pProc->fileCreationMask;
     try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, pProc->fileCreationMask, &pChildProc));
 
 
@@ -29,7 +29,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgument
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
 
-    if ((pArgs->options & kSpawn_NoDefaultDescriptors) == 0) {
+    if ((pOptions->options & kSpawn_NoDefaultDescriptors) == 0) {
         const int nStdIoChannelsToInherit = __min(3, ObjectArray_GetCount(&pProc->ioChannels));
 
         for (int i = 0; i < nStdIoChannelsToInherit; i++) {
@@ -45,15 +45,15 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const SpawnArgument
         }
     }
 
-    if (pArgs->root_dir && pArgs->root_dir[0] != '\0') {
-        try(Process_SetRootDirectoryPath(pChildProc, pArgs->root_dir));
+    if (pOptions->root_dir && pOptions->root_dir[0] != '\0') {
+        try(Process_SetRootDirectoryPath(pChildProc, pOptions->root_dir));
     }
-    if (pArgs->cw_dir && pArgs->cw_dir[0] != '\0') {
-        try(Process_SetWorkingDirectory(pChildProc, pArgs->cw_dir));
+    if (pOptions->cw_dir && pOptions->cw_dir[0] != '\0') {
+        try(Process_SetWorkingDirectory(pChildProc, pOptions->cw_dir));
     }
 
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
-    try(Process_Exec_Locked(pChildProc, pArgs->path, pArgs->argv, pArgs->envp));
+    try(Process_Exec_Locked(pChildProc, pPath, pOptions->argv, pOptions->envp));
 
     try(ProcessManager_Register(gProcessManager, pChildProc));
     Object_Release(pChildProc);

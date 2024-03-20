@@ -21,7 +21,7 @@ enum {
     SC_dispatch,            // errno_t _DispatchQueue_Dispatch(int od, unsigned long options, Dispatch_Closure _Nonnull pUserClosure, void* _Nullable pContext)
     SC_alloc_address_space, // errno_t Process_AllocateAddressSpace(int nbytes, void **pOutMem)
     SC_exit,                // _Noreturn Process_Exit(int status)
-    SC_spawn_process,       // errno_t Process_Spawn(SpawnArguments * _Nonnull args, ProcessId * _Nullable rpid)
+    SC_spawn_process,       // errno_t Process_Spawn(cost char* _Nonnull path, SpawnOptions * _Nonnull options, ProcessId * _Nullable rpid)
     SC_getpid,              // ProcessId Process_GetId(void)
     SC_getppid,             // ProcessId Process_GetParentId(void)
     SC_getpargs,            // ProcessArguments * _Nonnull Process_GetArguments(void)
