@@ -73,7 +73,7 @@ _SystemCallHandler:
 
         ; save the ksp as it was at syscall entry (needed to be able to abort call-as-user invocations)
         move.l  _gVirtualProcessorSchedulerStorage + vps_running, a1
-        lea     (14*4, sp), a2                      ; ksp at trap handler entry time was 14 long words higher up in memory
+        lea     ((7 + 6)*4, sp), a2             ; ksp at trap handler entry time was 7 dR and 6 aR (saved register) long words higher up in memory
         move.l  a2, vp_syscall_entry_ksp(a1)
 
         ; Get the system call number

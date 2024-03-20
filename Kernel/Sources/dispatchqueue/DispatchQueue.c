@@ -812,8 +812,8 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue)
 
 
             // We're done with this loop if we got an item to execute, we're
-            // supposed to terminate or we got no item and it's okay to relinqish
-            // this VP
+            // supposed to terminate or we got no item and it's okay to
+            // relinquish this VP
             if (pItem != NULL || pQueue->state >= kQueueState_Terminating || (pItem == NULL && mayRelinquish)) {
                 break;
             }

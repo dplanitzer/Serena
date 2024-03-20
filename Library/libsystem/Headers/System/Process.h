@@ -88,7 +88,7 @@ extern ProcessId Process_GetParentId(void);
 extern UserId Process_GetUserId(void);
 
 
-extern errno_t Process_Spawn(const char* _Nonnull path, const SpawnOptions* _Nonnull args, ProcessId* _Nullable rpid);
+extern errno_t Process_Spawn(const char* _Nonnull path, const SpawnOptions* _Nonnull options, ProcessId* _Nullable rpid);
 extern errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result);
 
 extern ProcessArguments* _Nonnull Process_GetArguments(void);

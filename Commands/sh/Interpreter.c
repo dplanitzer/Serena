@@ -23,12 +23,13 @@ typedef struct InterpreterCommand {
 
 
 extern int cmd_cd(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_pwd(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_exit(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_pwd(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv);
 
 
@@ -37,6 +38,7 @@ static const InterpreterCommand gBuiltinCommands[] = {
     {"cd", cmd_cd},
     {"delete", cmd_delete},
     {"echo", cmd_echo},
+    {"exit", cmd_exit},
     {"history", cmd_history},
     {"list", cmd_list},
     {"makedir", cmd_makedir},
@@ -151,6 +153,41 @@ static int xCompareCommandEntry(const char* _Nonnull lhs, const InterpreterComma
     return strcmp(lhs, rhs->name);
 }
 
+static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv)
+{
+    const int nCmds = sizeof(gBuiltinCommands) / sizeof(InterpreterCommand);
+    const InterpreterCommand* cmd = bsearch(argv[0], &gBuiltinCommands[0], nCmds, sizeof(InterpreterCommand), (int (*)(const void*, const void*))xCompareCommandEntry);
+
+    if (cmd) {
+        cmd->cb(self->context, argc, argv);
+        return true;
+    }
+
+    return false;
+}
+
+static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int argc, char** argv)
+{
+    decl_try_err();
+    ProcessId childPid;
+    SpawnOptions opts = {0};
+    opts.options |= kSpawn_NoDefaultDescriptors;
+    
+    err = Process_Spawn(argv[0], &opts, &childPid);
+    if (err == ENOENT) {
+        return false;
+    }
+    else if (err != EOK) {
+        printf("%s: %s.\n", argv[0], strerror(err));
+        return true;
+    }
+
+    ProcessTerminationStatus pts;
+    Process_WaitForTerminationOfChild(childPid, &pts);
+    
+    return true;
+}
+
 static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonnull pSentence)
 {
     const int nWords = Sentence_GetWordCount(pSentence);
@@ -184,16 +221,15 @@ static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonn
 
 
     // Check whether this is a builtin command and execute it, if so
-    const int nCmds = sizeof(gBuiltinCommands) / sizeof(InterpreterCommand);
-    const InterpreterCommand* cmd = bsearch(argv[0], &gBuiltinCommands[0], nCmds, sizeof(InterpreterCommand), (int (*)(const void*, const void*))xCompareCommandEntry);
-    if (cmd) {
-        cmd->cb(self->context, argc, argv);
+    if (Interpreter_ExecuteInternalCommand(self, argc, argv)) {
         return;
     }
 
 
     // Not a builtin command. Look for an external command
-    // XXX
+    if (Interpreter_ExecuteExternalCommand(self, argc, argv)) {
+        return;
+    }
 
 
     // Not a command at all

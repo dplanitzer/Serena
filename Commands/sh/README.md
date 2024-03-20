@@ -125,6 +125,10 @@ Deletes the directory or file indicated by the provided path. A directory has to
 
 Prints the given list of strings separated by single space characters to standard out. The list of strings is followed by a single newline character.
 
+#### EXIT [exit_code]
+
+Exits the current shell with the exit code 'exit_code'. The exit code is passed to the program that invoked the shell. An exit code of 0 is assumed if no exit code is provided.
+
 #### HISTORY
 
 Prints the contents of the shell history to standard out. Each history entry is printed as a separate line. The entries are printed in the order of newest to oldest.

@@ -146,7 +146,7 @@ include $(SH_PROJECT_DIR)/project.mk
 
 
 all: build-rom build-boot-dmg
-	@echo Done (Configuration: [$(BUILD_CONFIGURATION)])
+	@echo Done (Configuration: $(BUILD_CONFIGURATION))
 
 build-rom: $(ROM_FILE)
 

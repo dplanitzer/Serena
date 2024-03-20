@@ -60,6 +60,7 @@ extern errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, 
     { \
         elementType* __p = (elementType*)(pArray)->data; \
         const ssize_t __count = (pArray)->count; \
+        didRemove = false; \
         for (ssize_t i = 0; i < __count; i++) { \
             if (__p[i] == element) { \
                 i++; \
@@ -71,7 +72,6 @@ extern errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, 
                 break; \
             } \
         } \
-        didRemove = false; \
     }
 
 #define GenericArray_RemoveAt(oldElement, pArray, elementType, idx) \
@@ -90,13 +90,13 @@ extern void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, bool k
 #define GenericArray_FirstIndexOf(idx, pArray, element, elementType) \
     { \
         const elementType* __p = (const elementType*)(pArray)->data; \
+        idx = -1; \
         for (ssize_t i = 0; i < pArray->count; i++) { \
             if (__p[i] == element) { \
                 idx = i; \
                 break; \
             } \
         } \
-        idx = -1; \
     }
 
 #define GenericArray_GetFirst(r, pArray, elementType, defaultValue) \
