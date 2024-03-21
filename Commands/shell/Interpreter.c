@@ -168,12 +168,28 @@ static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int
 
 static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int argc, char** argv)
 {
+    static const char* gSearchPath = "/System/Commands/";
     decl_try_err();
     ProcessId childPid;
     SpawnOptions opts = {0};
     opts.options |= kSpawn_NoDefaultDescriptors;
     
-    err = Process_Spawn(argv[0], &opts, &childPid);
+    const size_t cmdPathLen = strlen(gSearchPath) + strlen(argv[0]);
+    if (cmdPathLen > PATH_MAX) {
+        printf("Command line too long.\n");
+        return true;
+    }
+
+    char* cmdPath = StackAllocator_Alloc(self->allocator, sizeof(char*) * (cmdPathLen + 1));
+    if (cmdPath == NULL) {
+        printf(strerror(ENOMEM));
+        return true;
+    }
+
+    strcpy(cmdPath, gSearchPath);
+    strcat(cmdPath, argv[0]);
+
+    err = Process_Spawn(cmdPath, &opts, &childPid);
     if (err == ENOENT) {
         return false;
     }
@@ -194,7 +210,7 @@ static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonn
 
     // Create the command argument vector by expanding all words in the sentence
     // to strings.
-    char** argv = (char**)StackAllocator_Alloc(self->allocator, sizeof(char*) * (nWords + 1));
+    char** argv = StackAllocator_Alloc(self->allocator, sizeof(char*) * (nWords + 1));
     if (argv == NULL) {
         printf(strerror(ENOMEM));
         return;
