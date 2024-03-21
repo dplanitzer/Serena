@@ -1,6 +1,6 @@
 # The Shell
 
-The shell allows you to enter simple commands to list the contents of directories and to work with files.
+The shell enables you to launch executables, navigate the file system, list the contents of directories, work with files and other things. A number of commands are built into the shell. You can find a description of each command in the list below.
 
 ## Line Editor
 

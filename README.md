@@ -20,7 +20,7 @@ The kernel supports a hierarchical file systems with permissions and user and gr
 
 The boot file system is currently RAM-based. The ROM contains a disk image which is created with the diskimage tool and which serves as a template for the RAM disk. This ROM disk image is copied to RAM at boot time.
 
-A simple shell exists at this point, which allows you to navigate and list the content of directories in the file system. There is also a kernel unit test rig to test various kernel APIs and kernel functionality.
+A simple shell exists at this point, which allows you to launch executables, navigate and list the content of directories in the file system. There is also a kernel unit test rig to test various kernel APIs and kernel functionality.
 
 Finally, the beginnings of a system call library (libsystem) and a mostly complete implementation of a C99 standard C library exists plus the very beginnings of a standard C math library.
 
