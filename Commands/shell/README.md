@@ -133,9 +133,9 @@ Exits the current shell with the exit code 'exit_code'. The exit code is passed 
 
 Prints the contents of the shell history to standard out. Each history entry is printed as a separate line. The entries are printed in the order of newest to oldest.
 
-#### LIST [path]
+#### LIST [path1 path2 ...]
 
-List the contents of the directory indicated by the provided path. Lists the contents of the current working directory if no path is provided.
+Lists the contents of one or more directories indicated by the provided paths. Lists the contents of the current working directory if no path is provided.
 
 #### MAKEDIR \<path>
 
@@ -144,6 +144,10 @@ Creates an empty directory at the file system location indicated by the provided
 #### PWD
 
 Prints the absolute path of the current working directory.
+
+#### SHELL
+
+Starts a new shell as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command.s
 
 #### TYPE \<path>
 
