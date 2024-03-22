@@ -44,7 +44,9 @@ void ConditionVariable_Deinit(ConditionVariable* pCondVar)
 void ConditionVariable_BroadcastAndUnlock(ConditionVariable* pCondVar, Lock* pLock)
 {
     WakeAllConditionVariable(pCondVar);
-    ReleaseSRWLockExclusive(pLock);
+    if (pLock) {
+        ReleaseSRWLockExclusive(pLock);
+    }
 }
 
 errno_t ConditionVariable_Wait(ConditionVariable* pCondVar, Lock* pLock, TimeInterval deadline)
