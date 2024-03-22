@@ -46,9 +46,14 @@ SC_dispatch_after           equ 33
 SC_dispatch_queue_create    equ 34
 SC_dispatch_queue_current   equ 35
 SC_dispose                  equ 36
-SC_SC_get_monotonic_time    equ 37
+SC_get_monotonic_time       equ 37
+SC_lock_create              equ 38
+SC_lock_trylock             equ 39
+SC_lock_lock                equ 40
+SC_lock_unlock              equ 41
 
-SC_numberOfCalls            equ 38
+
+SC_numberOfCalls            equ 42
 
 
 ; System call macro.

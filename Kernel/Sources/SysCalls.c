@@ -344,6 +344,32 @@ SYSCALL_0(dispatch_queue_current)
     return Process_GetCurrentDispatchQueue(Process_GetCurrent());
 }
 
+
+SYSCALL_1(lock_create, int* _Nullable pOutOd)
+{
+    if (pArgs->pOutOd == NULL) {
+        return EINVAL;
+    }
+
+    return Process_CreateULock(Process_GetCurrent(), pArgs->pOutOd);
+}
+
+SYSCALL_1(lock_trylock, int od)
+{
+    return Process_TryULock(Process_GetCurrent(), pArgs->od);
+}
+
+SYSCALL_1(lock_lock, int od)
+{
+    return Process_LockULock(Process_GetCurrent(), pArgs->od);
+}
+
+SYSCALL_1(lock_unlock, int od)
+{
+    return Process_UnlockULock(Process_GetCurrent(), pArgs->od);
+}
+
+
 SYSCALL_1(dispose, int od)
 {
     return Process_DisposePrivateResource(Process_GetCurrent(), pArgs->od);
@@ -463,4 +489,8 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(dispatch_queue_current),
     REF_SYSCALL(dispose),
     REF_SYSCALL(get_monotonic_time),
+    REF_SYSCALL(lock_create),
+    REF_SYSCALL(lock_trylock),
+    REF_SYSCALL(lock_lock),
+    REF_SYSCALL(lock_unlock),
 };

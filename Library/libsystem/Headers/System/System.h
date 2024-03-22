@@ -19,6 +19,7 @@
 #include <System/File.h>
 #include <System/FilePermissions.h>
 #include <System/IOChannel.h>
+#include <System/Lock.h>
 #include <System/Pipe.h>
 #include <System/Process.h>
 #include <System/TimeInterval.h>

@@ -1,5 +1,5 @@
 ;
-;  ULock_asm.s
+;  Lock_asm.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 8/12/23.
@@ -9,29 +9,30 @@
     include "../hal/lowmem.i"
     include <System/asm/errno.i>
 
-    xref _ULock_OnWait
-    xref _ULock_WakeUp
+    xref _Lock_OnWait
+    xref _Lock_WakeUp
     xref _VirtualProcessor_GetCurrentVpid
 
-    xdef _ULock_TryLock
-    xdef _ULock_Lock
-    xdef _ULock_Unlock
-    xdef _ULock_GetOwnerVpid
+    xdef _Lock_TryLock
+    xdef _Lock_Lock
+    xdef __Lock_Unlock
+    xdef _Lock_GetOwnerVpid
 
 
     clrso
-ulock_value             so.l    1    ; bit #7 == 1 -> lock is in acquired state; bset#7 == 0 -> lock is available for aquisition
-ulock_wait_queue_first  so.l    1
-ulock_wait_queue_last   so.l    1
-ulock_owner_vpid        so.l    1
-ulock_SIZEOF            so
+lock_value              so.l    1    ; bit #7 == 1 -> lock is in acquired state; bset#7 == 0 -> lock is available for acquisition
+lock_wait_queue_first   so.l    1
+lock_wait_queue_last    so.l    1
+lock_owner_vpid         so.l    1
+lock_options            so.l    1
+lock_SIZEOF             so
 
 
 ;-------------------------------------------------------------------------------
-; errno_t ULock_TryLock(ULock* _Nonnull pLock)
-; Attempts to acquire the lock. Returns EOK if successful and EBUSY if the lock
+; bool Lock_TryLock(Lock* _Nonnull self)
+; Attempts to acquire the lock. Returns true if successful and false if the lock
 ; is being held by another virtual processor.
-_ULock_TryLock:
+_Lock_TryLock:
     inline
     cargs lta_saved_d7.l, lta_lock_ptr.l
 
@@ -39,41 +40,41 @@ _ULock_TryLock:
     ; try a to acquire the lock. This will give us the lock if it isn't currently
     ; held by someone else
     move.l  lta_lock_ptr(sp), a0
-    bset    #7, ulock_value(a0)
+    bset    #7, lock_value(a0)
     bne.s   .lta_lock_is_busy
 
     ; acquired the lock
     jsr     _VirtualProcessor_GetCurrentVpid
     move.l  lta_lock_ptr(sp), a0
-    move.l  d0, ulock_owner_vpid(a0)
+    move.l  d0, lock_owner_vpid(a0)
 
     ; return EOK
-    moveq.l #EOK, d0
+    moveq.l #1, d0
 
 .lta_done:
     move.l  (sp)+, d7
     rts
 
 .lta_lock_is_busy:
-    moveq.l #EBUSY, d0
+    moveq.l #0, d0
     bra.s   .lta_done
 
     einline
 
 
 ;-------------------------------------------------------------------------------
-; errno_t ULock_Lock(ULock* _Nonnull pLock, unsigned int options)
+; errno_t Lock_Lock(Lock* _Nonnull self)
 ; Acquires the lock. Blocks the caller if the lock is not available.
-_ULock_Lock:
+_Lock_Lock:
     inline
-    cargs la_saved_d7.l, la_lock_ptr.l, la_lock_options.l
+    cargs la_saved_d7.l, la_lock_ptr.l
 
     move.l  d7, -(sp)
     ; try a fast acquire. This means that we take advantage of the fact that
     ; the bset instruction is atomic with respect to IRQs. This will give us
     ; the lock if it isn't currently held by someone else
     move.l  la_lock_ptr(sp), a0
-    bset    #7, ulock_value(a0)
+    bset    #7, lock_value(a0)
     beq.s   .la_acquired_lock
 
     ; The lock is held by someone else - wait and then retry.
@@ -85,13 +86,12 @@ _ULock_Lock:
 
 .la_retry:
     move.l  la_lock_ptr(sp), a0
-    bset    #7, ulock_value(a0)
+    bset    #7, lock_value(a0)
     beq.s   .la_acquired_slow
 
-    move.l  la_lock_options(sp), -(sp)
     move.l  a0, -(sp)
-    jsr     _ULock_OnWait
-    addq.l  #8, sp
+    jsr     _Lock_OnWait
+    addq.l  #4, sp
 
     ; give up if the OnWait came back with an error
     tst.l   d0
@@ -105,7 +105,7 @@ _ULock_Lock:
 .la_acquired_lock:
     jsr     _VirtualProcessor_GetCurrentVpid
     move.l  la_lock_ptr(sp), a0
-    move.l  d0, ulock_owner_vpid(a0)
+    move.l  d0, lock_owner_vpid(a0)
 
     ; return EOK
     moveq.l #EOK, d0
@@ -123,9 +123,9 @@ _ULock_Lock:
 
 
 ;-------------------------------------------------------------------------------
-; errno_t ULock_Unlock(ULock* _Nonnull pLock)
+; errno_t _Lock_Unlock(Lock* _Nonnull self)
 ; Unlocks the lock.
-_ULock_Unlock:
+__Lock_Unlock:
     inline
     cargs lr_saved_d7.l, lr_lock_ptr.l
 
@@ -134,20 +134,20 @@ _ULock_Unlock:
     ; make sure that we actually own the lock before we attempt to unlock it
     jsr     _VirtualProcessor_GetCurrentVpid
     move.l  lr_lock_ptr(sp), a0
-    move.l  ulock_owner_vpid(a0), d1
+    move.l  lock_owner_vpid(a0), d1
     cmp.l   d0, d1
     bne.s   .lr_does_not_own_error
 
     ; unlock the lock 
-    clr.l   ulock_owner_vpid(a0)
+    clr.l   lock_owner_vpid(a0)
     DISABLE_PREEMPTION d7
 
     ; release the lock
-    bclr    #7, ulock_value(a0)
+    bclr    #7, lock_value(a0)
 
     ; move all the waiters back to the ready queue
     move.l  a0, -(sp)
-    jsr     _ULock_WakeUp
+    jsr     _Lock_WakeUp
     addq.l  #4, sp
 
     RESTORE_PREEMPTION d7
@@ -165,10 +165,10 @@ _ULock_Unlock:
 
 
 ;-------------------------------------------------------------------------------
-; int Lock_GetOwnerVpid(Lock* _Nonnull pLock)
+; int Lock_GetOwnerVpid(Lock* _Nonnull self)
 ; Returns the ID of the virtual processor that is currently holding the lock.
 ; Zero is returned if none is holding the lock.
-_ULock_GetOwnerVpid:
+_Lock_GetOwnerVpid:
     inline
     cargs lgovpid_saved_d7.l, lgovpid_lock_ptr.l
 
@@ -178,13 +178,13 @@ _ULock_GetOwnerVpid:
     move.l  lgovpid_lock_ptr(sp), a0
 
     ; check whether the lock is currently held by someone
-    btst    #7, ulock_value(a0)
+    btst    #7, lock_value(a0)
     bne.s   .lgovpid_is_locked
     moveq.l #0, d0
     bra.s   .lgovpid_done
 
 .lgovpid_is_locked:
-    move.l  ulock_owner_vpid(a0), d0
+    move.l  lock_owner_vpid(a0), d0
 
 .lgovpid_done:
     RESTORE_PREEMPTION d7

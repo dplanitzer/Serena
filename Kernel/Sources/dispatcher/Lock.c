@@ -7,24 +7,83 @@
 //
 
 #include "Lock.h"
+#include "VirtualProcessorScheduler.h"
 
 
-// Deinitializes a lock. The lock is automatically unlocked if the calling code
-// is holding the lock.
-void Lock_Deinit(Lock* _Nonnull pLock)
+void Lock_Init(Lock* _Nonnull self)
 {
-    try_bang(ULock_Deinit(pLock));
+    Lock_InitWithOptions(self, kLockOption_FatalOwnershipViolations);
 }
 
-// Blocks the caller until the lock can be taken successfully.
-void Lock_Lock(Lock* _Nonnull pLock)
+void Lock_InitWithOptions(Lock*_Nonnull self, uint32_t options)
 {
-    // The wait is uninterruptible
-    try_bang(ULock_Lock(pLock, 0));
+    self->value = 0;
+    List_Init(&self->wait_queue);
+    self->owner_vpid = 0;
+    self->options = options;
+}
+
+errno_t Lock_Deinit(Lock* _Nonnull self)
+{
+    // Unlock the lock if it is currently held by the virtual processor on which
+    // we are executing.
+    const int ownerId = Lock_GetOwnerVpid(self);
+
+    if (ownerId == VirtualProcessor_GetCurrentVpid()) {
+        Lock_Unlock(self);
+    }
+    else if (ownerId > 0) {
+        if ((self->options & kLockOption_FatalOwnershipViolations) != 0) {
+            fatalError(__func__, __LINE__, EPERM);
+        }
+        else {
+            return EPERM;
+        }
+    }
+
+    self->value = 0;
+    List_Deinit(&self->wait_queue);
+    self->owner_vpid = 0;
+
+    return EOK;
 }
 
 // Unlocks the lock.
-void Lock_Unlock(Lock* _Nonnull pLock)
+errno_t Lock_Unlock(Lock* _Nonnull self)
 {
-    try_bang(ULock_Unlock(pLock));
+    extern errno_t _Lock_Unlock(Lock* _Nonnull self);
+
+    const errno_t err = _Lock_Unlock(self);
+
+    if (err == EOK || (self->options & kLockOption_FatalOwnershipViolations) == 0) {
+        return err;
+    }
+    else {
+        fatalError(__func__, __LINE__, err);
+    }
+}
+
+// Invoked by Lock_Lock() if the lock is currently being held by some other VP.
+errno_t Lock_OnWait(Lock* _Nonnull self)
+{
+    const bool isInterruptable = (self->options & kLockOption_InterruptibleLock) != 0 ? true : false;
+    const errno_t err = VirtualProcessorScheduler_WaitOn(gVirtualProcessorScheduler,
+                                            &self->wait_queue,
+                                            kTimeInterval_Infinity,
+                                            isInterruptable);
+
+    if (err == EOK || isInterruptable) {
+        return err;
+    }
+    else {
+        fatalError(__func__, __LINE__, err);
+    }
+}
+
+// Invoked by Lock_Unlock(). Expects to be called with preemption disabled.
+void Lock_WakeUp(Lock* _Nullable self)
+{
+    VirtualProcessorScheduler_WakeUpAll(gVirtualProcessorScheduler,
+                                        &self->wait_queue,
+                                        true);
 }

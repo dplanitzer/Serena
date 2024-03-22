@@ -93,6 +93,22 @@ extern int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc);
 extern errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull pProc, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutDescriptor);
 
 
+// Creates a new ULock and binds it to the process.
+extern errno_t Process_CreateULock(ProcessRef _Nonnull pProc, int* _Nullable pOutLock);
+
+// Tries taking the given lock. Returns EOK on success and EBUSY if someone else
+// is already holding the lock.
+extern errno_t Process_TryULock(ProcessRef _Nonnull pProc, int od);
+
+// Locks the given user lock. The caller will remain blocked until the lock can
+// be successfully acquired or the wait is interrupted for some reason.
+extern errno_t Process_LockULock(ProcessRef _Nonnull pProc, int od);
+
+// Unlocks the given user lock. Returns EOK on success and EPERM if the lock is
+// currently being held by some other virtual processor.
+extern errno_t Process_UnlockULock(ProcessRef _Nonnull pProc, int od);
+
+
 // Destroys the private resource identified by the given descriptor. The resource
 // is deallocated and removed from the resource table.
 extern errno_t Process_DisposePrivateResource(ProcessRef _Nonnull pProc, int od);

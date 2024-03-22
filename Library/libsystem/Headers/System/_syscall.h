@@ -53,6 +53,10 @@ enum {
     SC_dispatch_queue_current,  // int DispatchQueue_GetCurrent(void)
     SC_dispose,             // _Object_Dispose(int od)
     SC_get_monotonic_time,  // TimeInterval MonotonicClock_GetTime(void)
+    SC_lock_create,         // errno_t lock_create(int* _Nonnull pOutOd)
+    SC_lock_trylock,        // errno_t lock_trylock(int od)
+    SC_lock_lock,           // errno_t lock_lock(int od)
+    SC_lock_unlock,         // errno_t lock_unlock(int od)
 };
 
 
