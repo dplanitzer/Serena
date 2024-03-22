@@ -92,7 +92,7 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRe
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
 
-    try(DispatchQueue_Create(0, 1, kDispatchQos_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, pProc, &pMainDispatchQueue));
+    try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, pProc, &pMainDispatchQueue));
     try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pMainDispatchQueue, &mainDispatchQueueDesc));
     Object_Release(pMainDispatchQueue);
     pProc->mainDispatchQueue = pMainDispatchQueue;

@@ -22,15 +22,15 @@ typedef void (*Dispatch_Closure)(void* _Nullable arg);
 
 
 // Quality of Service level. From highest to lowest.
-// kDispatchQos_Realtime: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
-// kDispatchQos_Idle: no guarantee with regards to schedule latency. Only scheduled if there is nothing to schedule for a DISPATCH_QOS_XXX > kDispatchQos_Idle
-#define kDispatchQos_Realtime       4
-#define kDispatchQos_Interactive    3
-#define kDispatchQos_Utility        2
-#define kDispatchQos_Background     1
-#define kDispatchQos_Idle           0
+// kDispatchQoS_Realtime: kernel will minimize the scheduling latency. Realtime is always scheduled before anything else
+// kDispatchQoS_Idle: no guarantee with regards to schedule latency. Only scheduled if there is nothing to schedule for a DISPATCH_QOS_XXX > kDispatchQoS_Idle
+#define kDispatchQoS_Realtime       4
+#define kDispatchQoS_Interactive    3
+#define kDispatchQoS_Utility        2
+#define kDispatchQoS_Background     1
+#define kDispatchQoS_Idle           0
 
-#define kDispatchQos_Count          5
+#define kDispatchQoS_Count          5
 
 
 // Priorities per QoS level

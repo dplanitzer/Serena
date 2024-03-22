@@ -112,7 +112,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     
     
     // Initialize the dispatch queue services
-    try_bang(DispatchQueue_Create(0, 1, kDispatchQos_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&gMainDispatchQueue));
+    try_bang(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&gMainDispatchQueue));
     
     
     // Enable interrupts

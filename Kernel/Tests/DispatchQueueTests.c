@@ -59,7 +59,7 @@ static void OnPrintClosure(void* _Nonnull pValue)
 void DispatchQueue_RunTests(void)
 {
     DispatchQueueRef pQueue;
-    DispatchQueue_Create(0, 4, kDispatchQos_Utility, 0, gVirtualProcessorPool, NULL, &pQueue);
+    DispatchQueue_Create(0, 4, kDispatchQoS_Utility, 0, gVirtualProcessorPool, NULL, &pQueue);
     int i = 0;
 
     while (true) {
@@ -306,7 +306,7 @@ void DispatchQueue_RunTests(void)
 //  try_bang(Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE, &pipe));
     try_bang(Pipe_Create(4, &pipe));
     DispatchQueueRef pUtilityQueue;
-    DispatchQueue_Create(0, 4, kDispatchQos_Utility, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
+    DispatchQueue_Create(0, 4, kDispatchQoS_Utility, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
 
     DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnWriteToPipe, pipe);
     DispatchQueue_DispatchAsync(pUtilityQueue, OnReadFromPipe, pipe);
