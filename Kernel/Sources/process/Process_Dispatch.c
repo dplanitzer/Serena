@@ -8,19 +8,20 @@
 
 #include "ProcessPriv.h"
 #include "ULock.h"
+#include "USemaphore.h"
 
 
 // Creates a new ULock and binds it to the process.
-errno_t Process_CreateULock(ProcessRef _Nonnull pProc, int* _Nullable pOutLock)
+errno_t Process_CreateULock(ProcessRef _Nonnull pProc, int* _Nullable pOutOd)
 {
     decl_try_err();
     ULockRef pLock = NULL;
 
     Lock_Lock(&pProc->lock);
 
-    *pOutLock = -1;
+    *pOutOd = -1;
     try(ULock_Create(&pLock));
-    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pLock, pOutLock));
+    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pLock, pOutOd));
 
 catch:
     Object_Release(pLock);
@@ -66,6 +67,67 @@ errno_t Process_UnlockULock(ProcessRef _Nonnull pProc, int od)
     if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pLock)) == EOK) {
         err = ULock_Unlock(pLock);
         Object_Release(pLock);
+    }
+    return err;
+}
+
+
+// Creates a new USemaphore and binds it to the process.
+errno_t Process_CreateUSemaphore(ProcessRef _Nonnull pProc, int npermits, int* _Nullable pOutOd)
+{
+    decl_try_err();
+    USemaphoreRef pSema = NULL;
+
+    Lock_Lock(&pProc->lock);
+
+    *pOutOd = -1;
+    try(USemaphore_Create(npermits, &pSema));
+    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pSema, pOutOd));
+
+catch:
+    Object_Release(pSema);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
+// Releases 'npermits' permits to the semaphore.
+errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull pProc, int od, int npermits)
+{
+    decl_try_err();
+    USemaphoreRef pSema;
+
+    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pSema)) == EOK) {
+        USemaphore_Relinquish(pSema, npermits);
+        Object_Release(pSema);
+    }
+    return err;
+}
+
+// Blocks the caller until 'npermits' can be successfully acquired from the given
+// semaphore. Returns EOK on success and ETIMEOUT if the permits could not be
+// acquired before 'deadline'.
+errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull pProc, int od, int npermits, TimeInterval deadline)
+{
+    decl_try_err();
+    USemaphoreRef pSema;
+
+    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pSema)) == EOK) {
+        err = USemaphore_Acquire(pSema, npermits, deadline);
+        Object_Release(pSema);
+    }
+    return err;
+}
+
+// Tries to acquire 'npermits' from the given semaphore. Returns true on success
+// and false otherwise. This function does not block the caller.
+errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull pProc, int npermits, int od)
+{
+    decl_try_err();
+    USemaphoreRef pSema;
+
+    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pSema)) == EOK) {
+        err = USemaphore_TryAcquire(pSema, npermits) ? EOK : EBUSY;
+        Object_Release(pSema);
     }
     return err;
 }

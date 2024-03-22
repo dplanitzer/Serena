@@ -370,6 +370,31 @@ SYSCALL_1(lock_unlock, int od)
 }
 
 
+SYSCALL_2(sema_create, int npermits, int* _Nullable pOutOd)
+{
+    if (pArgs->pOutOd == NULL) {
+        return EINVAL;
+    }
+
+    return Process_CreateUSemaphore(Process_GetCurrent(), pArgs->npermits, pArgs->pOutOd);
+}
+
+SYSCALL_2(sema_relinquish, int od, int npermits)
+{
+    return Process_RelinquishUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits);
+}
+
+SYSCALL_3(sema_acquire, int od, int npermits, TimeInterval deadline)
+{
+    return Process_AcquireUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits, pArgs->deadline);
+}
+
+SYSCALL_2(sema_tryacquire, int od, int npermits)
+{
+    return Process_TryAcquireUSemaphore(Process_GetCurrent(), pArgs->od, pArgs->npermits);
+}
+
+
 SYSCALL_1(dispose, int od)
 {
     return Process_DisposePrivateResource(Process_GetCurrent(), pArgs->od);
@@ -493,4 +518,8 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(lock_trylock),
     REF_SYSCALL(lock_lock),
     REF_SYSCALL(lock_unlock),
+    REF_SYSCALL(sema_create),
+    REF_SYSCALL(sema_relinquish),
+    REF_SYSCALL(sema_acquire),
+    REF_SYSCALL(sema_tryacquire),
 };

@@ -38,12 +38,13 @@ extern errno_t Lock_Deinit(LockRef _Nonnull lock);
 // @Concurrency: Safe
 extern errno_t Lock_TryLock(LockRef _Nonnull lock);
 
-// Blocks the caller until the lock can be successfully taken.
+// Blocks the caller until the lock can be successfully taken. Returns EOK on
+// success and EINVAL if the lock is not properly initialized.
 // @Concurrency: Safe
 extern errno_t Lock_Lock(LockRef _Nonnull lock);
 
-// Unlocks the lock. Returns EPERM if the caller does not hold the lock and the
-// lock. Otherwise returns EOK.
+// Unlocks the lock. Returns EPERM if the caller does not hold the lock. Returns
+// EOK on success.
 // @Concurrency: Safe
 extern errno_t Lock_Unlock(LockRef _Nonnull lock);
 

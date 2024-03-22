@@ -57,6 +57,10 @@ enum {
     SC_lock_trylock,        // errno_t lock_trylock(int od)
     SC_lock_lock,           // errno_t lock_lock(int od)
     SC_lock_unlock,         // errno_t lock_unlock(int od)
+    SC_sema_create,         // errno_t sema_create(int npermits, int* _Nonnull pOutOd)
+    SC_sema_relinquish,     // errno_t sema_relinquish(int od, int npermits)
+    SC_sema_acquire,        // errno_t sema_acquire(int od, int npermits, TimeInterval deadline)
+    SC_sema_tryacquire,     // errno_t sema_tryacquire(int od, int npermits)
 };
 
 

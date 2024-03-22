@@ -51,9 +51,14 @@ SC_lock_create              equ 38
 SC_lock_trylock             equ 39
 SC_lock_lock                equ 40
 SC_lock_unlock              equ 41
+SC_sema_create              equ 42
+SC_sema_relinquish          equ 43
+SC_sema_acquire             equ 44
+SC_sema_tryacquire          equ 45
 
 
-SC_numberOfCalls            equ 42
+
+SC_numberOfCalls            equ 46
 
 
 ; System call macro.

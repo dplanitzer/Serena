@@ -22,6 +22,7 @@
 #include <System/Lock.h>
 #include <System/Pipe.h>
 #include <System/Process.h>
+#include <System/Semaphore.h>
 #include <System/TimeInterval.h>
 #include <System/Urt.h>
 

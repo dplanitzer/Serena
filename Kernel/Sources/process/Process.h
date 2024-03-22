@@ -109,6 +109,22 @@ extern errno_t Process_LockULock(ProcessRef _Nonnull pProc, int od);
 extern errno_t Process_UnlockULock(ProcessRef _Nonnull pProc, int od);
 
 
+// Creates a new USemaphore and binds it to the process.
+extern errno_t Process_CreateUSemaphore(ProcessRef _Nonnull pProc, int npermits, int* _Nullable pOutOd);
+
+// Releases 'npermits' permits to the semaphore.
+extern errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull pProc, int od, int npermits);
+
+// Blocks the caller until 'npermits' can be successfully acquired from the given
+// semaphore. Returns EOK on success and ETIMEOUT if the permits could not be
+// acquired before 'deadline'.
+extern errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull pProc, int od, int npermits, TimeInterval deadline);
+
+// Tries to acquire 'npermits' from the given semaphore. Returns true on success
+// and false otherwise. This function does not block the caller.
+extern errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull pProc, int npermits, int od);
+
+
 // Destroys the private resource identified by the given descriptor. The resource
 // is deallocated and removed from the resource table.
 extern errno_t Process_DisposePrivateResource(ProcessRef _Nonnull pProc, int od);
