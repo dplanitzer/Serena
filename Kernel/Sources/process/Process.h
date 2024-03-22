@@ -93,6 +93,20 @@ extern int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc);
 extern errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull pProc, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutDescriptor);
 
 
+// Creates a new UConditionVariable and binds it to the process.
+extern errno_t Process_CreateUConditionVariable(ProcessRef _Nonnull pProc, int* _Nullable pOutOd);
+
+// Wakes the given condition variable and unlock the associated lock if
+// 'dLock' is not -1. This does a signal or broadcast.
+extern errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int od, int dLock, bool bBroadcast);
+
+// Blocks the caller until the condition variable has received a signal or the
+// wait has timed out. Automatically and atomically acquires the associated
+// lock on wakeup. An ETIMEOUT error is returned if teh condition variable is
+// not signaled before 'deadline'.
+extern errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull pProc, int od, int dLock, TimeInterval deadline);
+
+
 // Creates a new ULock and binds it to the process.
 extern errno_t Process_CreateULock(ProcessRef _Nonnull pProc, int* _Nullable pOutLock);
 

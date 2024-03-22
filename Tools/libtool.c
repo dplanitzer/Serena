@@ -71,7 +71,6 @@ typedef struct _ArchiveMember {
     
     char*   data;               // Without padding \n
     size_t  size;
-    size_t  paddedSize;
 } ArchiveMember;
 
 typedef struct _Archive {
@@ -207,7 +206,6 @@ static ArchiveMember* ArchiveMember_CreateFromPath(const char* objPath)
     fseek(s, 0, SEEK_END);
     pMember->size = ftell(s);
     rewind(s);
-    pMember->paddedSize = AR_PADDED_SIZE(pMember->size);
     pMember->data = malloc_require(pMember->size, false);
     fread_require(pMember->data, pMember->size, s);
 
@@ -320,9 +318,8 @@ static ArchiveMember* ArchiveMember_CreateFromArchive(Archive* pArchive, FILE* s
 
 
     // Get the data
-    pMember->paddedSize = AR_PADDED_SIZE(pMember->size);
-    pMember->data = malloc_require(pMember->paddedSize, false);
-    fread_require(pMember->data, pMember->paddedSize, s);
+    pMember->data = malloc_require(pMember->size, false);
+    fread_require(pMember->data, pMember->size, s);
 
     return pMember;
 }
@@ -474,7 +471,6 @@ static void Archive_GenerateLongStrings(Archive* pArchive)
         pMember->longStringOffset = 0;
         pMember->data = pLongStrings;
         pMember->size = count;
-        pMember->paddedSize = AR_PADDED_SIZE(count);
         pArchive->longStrings = pMember;
     }
 }
@@ -538,7 +534,7 @@ static void ArchiveMember_Write(ArchiveMember* pMember, FILE* s, LongNameFormat 
     }
 
     fwrite_require(pMember->data, pMember->size, s);
-    if (pMember->paddedSize > pMember->size) {
+    if (AR_PADDED_SIZE(memberSize) > memberSize) {
         fwrite_require("\012", 1, s);
     }
 }

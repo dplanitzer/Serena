@@ -55,10 +55,12 @@ SC_sema_create              equ 42
 SC_sema_relinquish          equ 43
 SC_sema_acquire             equ 44
 SC_sema_tryacquire          equ 45
+SC_cv_create                equ 46
+SC_cv_wake                  equ 47
+SC_cv_wait                  equ 48
 
 
-
-SC_numberOfCalls            equ 46
+SC_numberOfCalls            equ 49
 
 
 ; System call macro.

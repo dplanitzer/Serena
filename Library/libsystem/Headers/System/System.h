@@ -13,6 +13,7 @@
 #include <System/ByteOrder.h>
 #include <System/Types.h>
 #include <System/Clock.h>
+#include <System/ConditionVariable.h>
 #include <System/DispatchQueue.h>
 #include <System/Error.h>
 #include <System/Directory.h>

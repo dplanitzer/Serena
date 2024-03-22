@@ -7,8 +7,77 @@
 //
 
 #include "ProcessPriv.h"
+#include "UConditionVariable.h"
 #include "ULock.h"
 #include "USemaphore.h"
+
+
+// Creates a new UConditionVariable and binds it to the process.
+errno_t Process_CreateUConditionVariable(ProcessRef _Nonnull pProc, int* _Nullable pOutOd)
+{
+    decl_try_err();
+    UConditionVariableRef pCV = NULL;
+
+    Lock_Lock(&pProc->lock);
+
+    *pOutOd = -1;
+    try(UConditionVariable_Create(&pCV));
+    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pCV, pOutOd));
+
+catch:
+    Object_Release(pCV);
+    Lock_Unlock(&pProc->lock);
+    return err;
+}
+
+// Wakes the given condition variable and unlock the associated lock if
+// 'dLock' is not -1. This does a signal or broadcast.
+errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int od, int dLock, bool bBroadcast)
+{
+    decl_try_err();
+    UConditionVariableRef pCV = NULL;
+    ULockRef pLock = NULL;
+
+    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*)&pCV)) == EOK) {
+        if (dLock != -1) {
+            err = Process_CopyPrivateResourceForDescriptor(pProc, dLock, (ObjectRef*)&pLock);
+        }
+        if (err == EOK) {
+            if (bBroadcast) {
+                UConditionVariable_BroadcastAndUnlock(pCV, pLock);
+            }
+            else {
+                UConditionVariable_SignalAndUnlock(pCV, pLock);
+            }
+        }
+        Object_Release(pCV);
+        Object_Release(pLock);
+    }
+    return err;
+}
+
+// Blocks the caller until the condition variable has received a signal or the
+// wait has timed out. Automatically and atomically acquires the associated
+// lock on wakeup. An ETIMEOUT error is returned if teh condition variable is
+// not signaled before 'deadline'.
+errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull pProc, int od, int dLock, TimeInterval deadline)
+{
+    decl_try_err();
+    UConditionVariableRef pCV = NULL;
+    ULockRef pLock = NULL;
+
+    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*)&pCV)) == EOK) {
+        if (dLock != -1) {
+            err = Process_CopyPrivateResourceForDescriptor(pProc, dLock, (ObjectRef*)&pLock);
+        }
+        if (err == EOK) {
+            err = UConditionVariable_Wait(pCV, pLock, deadline);
+        }
+        Object_Release(pCV);
+        Object_Release(pLock);
+    }
+    return err;
+}
 
 
 // Creates a new ULock and binds it to the process.

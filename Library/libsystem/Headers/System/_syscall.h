@@ -61,6 +61,9 @@ enum {
     SC_sema_relinquish,     // errno_t sema_relinquish(int od, int npermits)
     SC_sema_acquire,        // errno_t sema_acquire(int od, int npermits, TimeInterval deadline)
     SC_sema_tryacquire,     // errno_t sema_tryacquire(int od, int npermits)
+    SC_cv_create,           // errno_t cv_create(int* _Nonnull pOutOd)
+    SC_cv_wake,             // errno_t cv_wake(int od, int dlock, unsigned int options)
+    sc_cv_wait,             // errno_t cv_wait(int od, int dlock, TimeInterval deadline)
 };
 
 

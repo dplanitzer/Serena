@@ -6,18 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include <System/Lock.h>
+#include "LockPriv.h"
 #include <System/_syscall.h>
-
-#define LOCK_SIGNATURE 0x4c4f434b
-
-// Must be sizeof(ULock) <= 16 
-typedef struct ULock {
-    int             od;
-    unsigned int    signature;
-    int             r2;
-    int             r3;
-} ULock;
 
 
 errno_t Lock_Init(LockRef _Nonnull lock)

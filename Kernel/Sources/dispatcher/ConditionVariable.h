@@ -15,8 +15,8 @@
 
 // A condition variable
 typedef struct _ConditionVariable {
-    List        wait_queue;
-    char   name[8];
+    List    wait_queue;
+    char    name[8];
 } ConditionVariable;
 
 

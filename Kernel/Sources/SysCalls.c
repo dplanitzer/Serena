@@ -345,6 +345,26 @@ SYSCALL_0(dispatch_queue_current)
 }
 
 
+SYSCALL_1(cv_create, int* _Nullable pOutOd)
+{
+    if (pArgs->pOutOd == NULL) {
+        return EINVAL;
+    }
+
+    return Process_CreateUConditionVariable(Process_GetCurrent(), pArgs->pOutOd);
+}
+
+SYSCALL_3(cv_wake, int od, int dlock, unsigned int options)
+{
+    return Process_WakeUConditionVariable(Process_GetCurrent(), pArgs->od, pArgs->dlock, pArgs->options);
+}
+
+SYSCALL_3(cv_wait, int od, int dlock, TimeInterval deadline)
+{
+    return Process_WaitUConditionVariable(Process_GetCurrent(), pArgs->od, pArgs->dlock, pArgs->deadline);
+}
+
+
 SYSCALL_1(lock_create, int* _Nullable pOutOd)
 {
     if (pArgs->pOutOd == NULL) {
@@ -522,4 +542,7 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(sema_relinquish),
     REF_SYSCALL(sema_acquire),
     REF_SYSCALL(sema_tryacquire),
+    REF_SYSCALL(cv_create),
+    REF_SYSCALL(cv_wake),
+    REF_SYSCALL(cv_wait),
 };
