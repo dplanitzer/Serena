@@ -181,12 +181,12 @@ extern errno_t Process_CopyPrivateResourceForDescriptor(ProcessRef _Nonnull self
 extern errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPath);
 
 // Sets the receiver's current working directory to the given path.
-extern errno_t Process_SetWorkingDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath);
+extern errno_t Process_SetWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _Nonnull pPath);
 
 // Returns the current working directory in the form of a path. The path is
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
-extern errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize);
+extern errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize);
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask
 // should be removed from the file permissions that user space sent to create a

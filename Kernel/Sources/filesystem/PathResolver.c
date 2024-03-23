@@ -9,7 +9,7 @@
 #include "PathResolver.h"
 #include "FilesystemManager.h"
 
-static void PathResolverResult_Init(PathResolverResult* pResult)
+static void PathResolverResult_Init(PathResolverResult* _Nonnull pResult)
 {
     pResult->inode = NULL;
     pResult->filesystem = NULL;
@@ -17,7 +17,7 @@ static void PathResolverResult_Init(PathResolverResult* pResult)
     pResult->lastPathComponent.count = 0;
 }
 
-void PathResolverResult_Deinit(PathResolverResult* pResult)
+void PathResolverResult_Deinit(PathResolverResult* _Nonnull pResult)
 {
     if (pResult->inode) {
         Filesystem_RelinquishNode(pResult->filesystem, pResult->inode);
@@ -34,7 +34,7 @@ void PathResolverResult_Deinit(PathResolverResult* pResult)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Tracks our current position in the global filesystem
-typedef struct _InodeIterator {
+typedef struct InodeIterator {
     InodeRef _Nonnull _Locked   inode;
     FilesystemRef _Nonnull      filesystem;
 } InodeIterator;
@@ -97,11 +97,11 @@ static void InodeIterator_Update(InodeIterator* pIterator, InodeRef _Nonnull pNe
 static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter);
 
 
-errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory)
+errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pWorkingDirectory)
 {
     decl_try_err();
     pResolver->rootDirectory = Inode_ReacquireUnlocked(pRootDirectory);
-    pResolver->currentWorkingDirectory = Inode_ReacquireUnlocked(pCurrentWorkingDirectory);
+    pResolver->workingDirectory = Inode_ReacquireUnlocked(pWorkingDirectory);
     pResolver->pathComponent.name = pResolver->nameBuffer;
     pResolver->pathComponent.count = 0;
     
@@ -117,9 +117,9 @@ void PathResolver_Deinit(PathResolverRef _Nonnull pResolver)
         Inode_Relinquish(pResolver->rootDirectory);
         pResolver->rootDirectory = NULL;
     }
-    if (pResolver->currentWorkingDirectory) {
-        Inode_Relinquish(pResolver->currentWorkingDirectory);
-        pResolver->currentWorkingDirectory = NULL;
+    if (pResolver->workingDirectory) {
+        Inode_Relinquish(pResolver->workingDirectory);
+        pResolver->workingDirectory = NULL;
     }
 }
 
@@ -168,12 +168,12 @@ bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _
         && Inode_GetId(pResolver->rootDirectory) == Inode_GetId(pNode);
 }
 
-errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* _Nonnull  pBuffer, size_t bufferSize)
+errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* _Nonnull  pBuffer, size_t bufferSize)
 {
     InodeIterator iter;
     decl_try_err();
 
-    try(InodeIterator_Init(&iter, pResolver->currentWorkingDirectory));
+    try(InodeIterator_Init(&iter, pResolver->workingDirectory));
 
     if (bufferSize < 1) {
         throw(EINVAL);
@@ -223,9 +223,9 @@ catch:
     return err;
 }
 
-errno_t PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath)
+errno_t PathResolver_SetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath)
 {
-    return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->currentWorkingDirectory);
+    return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->workingDirectory);
 }
 
 // Updates the given inode iterator with the parent node of the node to which the
@@ -365,7 +365,7 @@ errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, Path
     if (pPath[0] == '/') {
         pStartingDir = pResolver->rootDirectory;
     } else {
-        pStartingDir = pResolver->currentWorkingDirectory;
+        pStartingDir = pResolver->workingDirectory;
     }
 
 

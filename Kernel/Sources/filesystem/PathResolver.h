@@ -15,17 +15,17 @@
 #define kMaxPathComponentLength __PATH_COMPONENT_MAX
 
 
-typedef struct _PathResolver {
+typedef struct PathResolver {
     InodeRef        rootDirectory;
-    InodeRef        currentWorkingDirectory;
+    InodeRef        workingDirectory;
     PathComponent   pathComponent;
-    char       nameBuffer[kMaxPathComponentLength + 1];
+    char            nameBuffer[kMaxPathComponentLength + 1];
 } PathResolver;
-typedef struct _PathResolver* PathResolverRef;
+typedef PathResolver* PathResolverRef;
 
 
 // The path resolution mode
-typedef enum _PathResolutionMode {
+typedef enum PathResolutionMode {
     // Return the inode named by the path. This is the target node of the path.
     // An error and NULL is returned if no such node exists or if the node is
     // not accessible.
@@ -38,7 +38,7 @@ typedef enum _PathResolutionMode {
 } PathResolutionMode;
 
 // The result of a path resolution operation.
-typedef struct _PathResolverResult {
+typedef struct PathResolverResult {
     InodeRef _Nullable _Locked  inode;              // The inode named by the path if it exists and the parent inode otherwise, if requested
     FilesystemRef _Nullable     filesystem;         // The filesystem that owns the returned inode
 
@@ -50,14 +50,14 @@ typedef struct _PathResolverResult {
 extern void PathResolverResult_Deinit(PathResolverResult* pResult);
 
 
-extern errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pCurrentWorkingDirectory);
+extern errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pWorkingDirectory);
 extern void PathResolver_Deinit(PathResolverRef _Nonnull pResolver);
 
 extern errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath);
 extern bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode);
 
-extern errno_t PathResolver_GetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* _Nonnull pBuffer, size_t bufferSize);
-extern errno_t PathResolver_SetCurrentWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath);
+extern errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* _Nonnull pBuffer, size_t bufferSize);
+extern errno_t PathResolver_SetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath);
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
 // If it is relative then the resolution starts with the current working directory.

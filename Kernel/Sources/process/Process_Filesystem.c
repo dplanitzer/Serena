@@ -24,10 +24,10 @@ errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPat
 }
 
 // Sets the receiver's current working directory to the given path.
-errno_t Process_SetWorkingDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
+errno_t Process_SetWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 {
     Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_SetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
+    const errno_t err = PathResolver_SetWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -36,10 +36,10 @@ errno_t Process_SetWorkingDirectory(ProcessRef _Nonnull pProc, const char* _Nonn
 // Returns the current working directory in the form of a path. The path is
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
-errno_t Process_GetWorkingDirectory(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize)
+errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize)
 {
     Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_GetCurrentWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
+    const errno_t err = PathResolver_GetWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
     Lock_Unlock(&pProc->lock);
 
     return err;

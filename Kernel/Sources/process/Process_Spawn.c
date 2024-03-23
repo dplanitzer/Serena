@@ -22,7 +22,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     needsUnlock = true;
 
     const FilePermissions childUMask = ((pOptions->options & kSpawn_OverrideUserMask) != 0) ? (pOptions->umask & 0777) : pProc->fileCreationMask;
-    try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.currentWorkingDirectory, pProc->fileCreationMask, &pChildProc));
+    try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.workingDirectory, pProc->fileCreationMask, &pChildProc));
 
 
     // Note that we do not lock the child process although we're reaching directly
@@ -49,7 +49,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
         try(Process_SetRootDirectoryPath(pChildProc, pOptions->root_dir));
     }
     if (pOptions->cw_dir && pOptions->cw_dir[0] != '\0') {
-        try(Process_SetWorkingDirectory(pChildProc, pOptions->cw_dir));
+        try(Process_SetWorkingDirectoryPath(pChildProc, pOptions->cw_dir));
     }
 
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));

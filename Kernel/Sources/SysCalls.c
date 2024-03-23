@@ -191,7 +191,7 @@ SYSCALL_2(getcwd, char* _Nullable buffer, size_t bufferSize)
         return EINVAL;
     }
 
-    return Process_GetWorkingDirectory(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
+    return Process_GetWorkingDirectoryPath(Process_GetCurrent(), pArgs->buffer, pArgs->bufferSize);
 }
 
 SYSCALL_1(setcwd, const char* _Nullable path)
@@ -200,7 +200,7 @@ SYSCALL_1(setcwd, const char* _Nullable path)
         return EINVAL;
     }
 
-    return Process_SetWorkingDirectory(Process_GetCurrent(), pArgs->path);
+    return Process_SetWorkingDirectoryPath(Process_GetCurrent(), pArgs->path);
 }
 
 SYSCALL_2(getfileinfo, const char* _Nullable path, FileInfo* _Nullable pOutInfo)
