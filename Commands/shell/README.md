@@ -147,7 +147,7 @@ Prints the absolute path of the current working directory.
 
 #### SHELL
 
-Starts a new shell as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command.s
+Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command.
 
 #### TYPE \<path>
 
