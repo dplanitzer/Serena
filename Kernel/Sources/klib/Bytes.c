@@ -116,17 +116,14 @@ void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
     uword_t* p4 = (uword_t*)p;
     const uword_t b4 = WORD_FROM_BYTE(b);
     const uword_t* const pe4 = p4 + (count >> 2);
-    #if 0
-    const uword_t* const pe16 = (const uword_t* const)((uintptr_t)pe4 &  ~15);
-    if (((uintptr_t)pe16 - (uintptr_t)p4) >> 4) {
-        while (p4 < pe16) {
-            *p4++ = b;
-            *p4++ = b;
-            *p4++ = b;
-            *p4++ = b;
-        }
+    size_t n_16s = ((uintptr_t)pe4 - (uintptr_t)p4) >> 4;
+    while (n_16s > 0) {
+        *p4++ = b;
+        *p4++ = b;
+        *p4++ = b;
+        *p4++ = b;
+        n_16s--;
     }
-    #endif
     while (p4 < pe4) {
         *p4++ = b4;
     }
