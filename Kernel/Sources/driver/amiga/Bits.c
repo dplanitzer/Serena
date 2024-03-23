@@ -41,7 +41,7 @@ void Bits_SetRange(const BitPointer pBits, size_t nbits)
         }
         
         // middle range
-        Bytes_SetRange(middle_start_p, middle_end_p - middle_start_p, 0xff);
+        memset(middle_start_p, 0xff, middle_end_p - middle_start_p);
     }
 }
 
@@ -76,7 +76,7 @@ void Bits_ClearRange(const BitPointer pBits, size_t nbits)
         }
         
         // middle range
-        Bytes_ClearRange(middle_start_p, middle_end_p - middle_start_p);
+        memset(middle_start_p, 0, middle_end_p - middle_start_p);
     }
 }
 
@@ -119,7 +119,7 @@ void Bits_CopyRange(BitPointer pDstBits, const BitPointer pSrcBits, size_t nbits
         }
         
         // middle range
-        Bytes_CopyRange(dst_middle_start_p, src_middle_start_p, src_middle_end_p - src_middle_start_p);
+        memmove(dst_middle_start_p, src_middle_start_p, src_middle_end_p - src_middle_start_p);
         
         // write the partial first & last bytes
         if (pSrcBits.bitIndex > 0) {

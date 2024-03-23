@@ -140,7 +140,7 @@ void _RegisterClass(ClassRef _Nonnull pClass)
 
     // Copy the super class vtable
     if (pSuperClass) {
-        Bytes_CopyRange(pClass->vtable, pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
+        memmove(pClass->vtable, pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
     }
 
 

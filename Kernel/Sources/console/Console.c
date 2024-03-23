@@ -674,7 +674,7 @@ errno_t Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked pNo
     ConsoleChannelRef pChannel;
 
     try(IOChannel_AbstractCreate(&kConsoleChannelClass, (IOResourceRef) pConsole, mode, (IOChannelRef*)&pChannel));
-    Bytes_ClearRange(pChannel->rdBuffer, MAX_MESSAGE_LENGTH);
+    memset(pChannel->rdBuffer, 0, MAX_MESSAGE_LENGTH);
     pChannel->rdCount = 0;
     pChannel->rdIndex = 0;
 
@@ -689,7 +689,7 @@ errno_t Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pIn
     ConsoleChannelRef pNewChannel;
 
     try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
-    Bytes_ClearRange(pNewChannel->rdBuffer, MAX_MESSAGE_LENGTH);
+    memset(pNewChannel->rdBuffer, 0, MAX_MESSAGE_LENGTH);
     pNewChannel->rdCount = 0;
     pNewChannel->rdIndex = 0;
 

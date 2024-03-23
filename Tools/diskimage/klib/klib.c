@@ -56,31 +56,6 @@ AtomicInt AtomicInt_Subtract(volatile AtomicInt* _Nonnull pValue, int decrement)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Bytes.h"
-#include <string.h>
-
-
-// Copies 'n' contiguous bytes in memory from 'pSrc' to 'pDst'.
-void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, size_t n)
-{
-    memmove(pDst, pSrc, n);
-}
-
-// Zeros out 'len' contiguous bytes in memory starting at 'pBytes'
-void Bytes_ClearRange(void* _Nonnull pBytes, size_t len)
-{
-    memset(pBytes, 0, len);
-}
-
-// Sets all bytes in the given range to 'byte'
-void Bytes_SetRange(void* _Nonnull pBytes, size_t len, int byte)
-{
-    memset(pBytes, byte, len);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
 #include "Kalloc.h"
 #include "Error.h"
 #include <stdlib.h>

@@ -104,7 +104,7 @@ errno_t kalloc_options(ssize_t nbytes, unsigned int options, void* _Nullable * _
 
     // Zero the memory if requested
     if ((options & KALLOC_OPTION_CLEAR) != 0) {
-        Bytes_ClearRange(*pOutPtr, nbytes);
+        memset(*pOutPtr, 0, nbytes);
     }
 
     return EOK;

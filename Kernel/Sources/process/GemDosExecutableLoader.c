@@ -133,7 +133,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 
 
     // Initialize the BSS segment
-    Bytes_ClearRange(pImageBase + nbytes_to_read, hdr.bss_size);
+    memset(pImageBase + nbytes_to_read, 0, hdr.bss_size);
 
 
     // Return the result pointers

@@ -197,7 +197,7 @@ errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver,
         try(Filesystem_GetNameOfNode(iter.filesystem, iter.inode, childInodeIdToLookup, user, &pathComponent));
 
         p -= pathComponent.count;
-        Bytes_CopyRange(p, pathComponent.name, pathComponent.count);
+        memmove(p, pathComponent.name, pathComponent.count);
 
         if (p <= pBuffer) {
             throw(ERANGE);
@@ -213,7 +213,7 @@ errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver,
         *(--p) = '/';
     }
     
-    Bytes_CopyRange(pBuffer, p, &pBuffer[bufferSize] - p);
+    memmove(pBuffer, p, &pBuffer[bufferSize] - p);
     InodeIterator_Deinit(&iter);
     return EOK;
 

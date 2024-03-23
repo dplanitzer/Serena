@@ -124,7 +124,7 @@ static void micro_console_init_gfx(const VideoConfig* _Nonnull pConfig, char* _N
 
 static void micro_console_cls(MicroConsole* _Nonnull pCon)
 {
-    Bytes_ClearRange(pCon->framebuffer, pCon->bytesPerRow * pCon->config->height);
+    memset(pCon->framebuffer, 0, pCon->bytesPerRow * pCon->config->height);
 }
 
 static void micro_console_init(MicroConsole* _Nonnull pCon)

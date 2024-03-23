@@ -63,14 +63,14 @@ errno_t TabStops_InsertStop(TabStops* _Nonnull pStops, int xLoc)
         int8_t* pNewStops;
 
         try(kalloc(sizeof(int8_t) * newCapacity, (void**) &pNewStops));
-        Bytes_CopyRange(pNewStops, pStops->stops, sizeof(int8_t) * pStops->count);
+        memmove(pNewStops, pStops->stops, sizeof(int8_t) * pStops->count);
         kfree(pStops->stops);
         pStops->stops = pNewStops;
         pStops->capacity = newCapacity;
     }
 
     if (idx < pStops->count) {
-        Bytes_CopyRange(&pStops->stops[idx + 1], &pStops->stops[idx], (pStops->count - idx) * sizeof(int8_t));
+        memmove(&pStops->stops[idx + 1], &pStops->stops[idx], (pStops->count - idx) * sizeof(int8_t));
     }
     pStops->stops[idx] = xLoc;
     pStops->count++;
@@ -93,7 +93,7 @@ void TabStops_RemoveStop(TabStops* _Nonnull pStops, int xLoc)
     }
 
     if (idx >= 0) {
-        Bytes_CopyRange(&pStops->stops[idx], &pStops->stops[idx + 1], (pStops->count - 1 - idx) * sizeof(int8_t));
+        memmove(&pStops->stops[idx], &pStops->stops[idx + 1], (pStops->count - 1 - idx) * sizeof(int8_t));
         pStops->count--;
     }
 }

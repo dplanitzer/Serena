@@ -10,10 +10,10 @@
 
 
 // Copies 'n' contiguous bytes in memory from 'pSrc' to 'pDst'.
-void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, size_t n)
+void* _Nonnull memmove(void* _Nonnull pDst, const void* _Nonnull pSrc, size_t n)
 {
     if (pSrc == pDst || n == 0) {
-        return;
+        return pDst;
     }
     
     const char* src = (const char*)pSrc;
@@ -62,39 +62,54 @@ void Bytes_CopyRange(void* _Nonnull pDst, const void* _Nonnull pSrc, size_t n)
             }
         }
     }
+
+    return pDst;
 }
 
-// Zeros out 'len' contiguous bytes in memory starting at 'pBytes'
-void Bytes_ClearRange(void* _Nonnull pBytes, size_t len)
+void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
 {
-    char* p = (char*)pBytes;
-    const char* end = p + len;
-    unsigned int leadingByteCount = ((unsigned long)p) & 0x03;
-    
-    if (leadingByteCount > 0) { *p++ = 0; leadingByteCount--; }
-    if (leadingByteCount > 0) { *p++ = 0; leadingByteCount--; }
-    if (leadingByteCount > 0) { *p++ = 0; leadingByteCount--; }
-    
-    const char* end4 = (const char*) (((unsigned long)end) & ~0x03);
-    while (p < end4) {
-        *((uint32_t*)p) = 0;
-        p += 4;
-    }
-    
-    if (end > end4) {
-        if (p < end) { *p++ = 0; }
-        if (p < end) { *p++ = 0; }
-        if (p < end) { *p++ = 0; }
-    }
-}
+    uint8_t* p = (uint8_t*)dst;
+    const uint8_t b = (uint8_t)c;
 
-// Sets all bytes in the given range to 'byte'
-void Bytes_SetRange(void* _Nonnull pBytes, size_t len, int byte)
-{
-    char* p = (char*)pBytes;
-    char* end = p + len;
-    
-    while (p < end) {
-        *p++ = byte;
+    // 'dst' may not be aligned on a 32bit boundary. We can't do 32bit ops if
+    // count < num_misaligned_bytes + 4
+    const uint8_t n_mod_bytes = ((uintptr_t)dst & 3);
+    const uint8_t n_misaligned_bytes = (n_mod_bytes > 0) ? 4 - n_mod_bytes : 0;
+
+    if (count < n_misaligned_bytes + 4) {
+        const uint8_t* pe = p + count;
+
+        while (p < pe) {
+            *p++ = b;
+        }
+        return dst;
     }
+
+
+    // Align to the next 32bit boundary
+    if ((uintptr_t)p & 3) { *p++ = b; }
+    if ((uintptr_t)p & 3) { *p++ = b; }
+    if ((uintptr_t)p & 3) { *p++ = b; }
+    count -= n_misaligned_bytes;
+
+
+    // We know that we can do at least one 32bit op at this point
+    uint32_t* p4 = (uint32_t*)p;
+    const uint8_t* pe = p + count;
+    const uint32_t* pe4 = p4 + (count >> 2);
+    const uint32_t b4 = (b << 24) | (b << 16) | (b << 8) | b;
+    while (p4 < pe4) {
+        *p4++ = b4;
+    }
+
+
+    // Write the remaining bytes
+    if (pe > (const uint8_t*)pe4) {
+        p = (uint8_t*)p4;
+        if (p < pe) { *p++ = b; }
+        if (p < pe) { *p++ = b; }
+        if (p < pe) { *p++ = b; }
+    }
+
+    return dst;
 }

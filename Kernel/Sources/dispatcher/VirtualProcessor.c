@@ -190,7 +190,7 @@ errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, VirtualProces
     // Initialize the CPU context:
     // Integer state: zeroed out
     // Floating-point state: establishes IEEE 754 standard defaults (non-signaling exceptions, round to nearest, extended precision)
-    Bytes_ClearRange(&pVP->save_area, sizeof(CpuContext));
+    memset(&pVP->save_area, 0, sizeof(CpuContext));
     pVP->save_area.a[7] = (uintptr_t) ExecutionStack_GetInitialTop(&pVP->kernel_stack);
     pVP->save_area.usp = (uintptr_t) ExecutionStack_GetInitialTop(&pVP->user_stack);
     pVP->save_area.pc = (uintptr_t) closure.func;

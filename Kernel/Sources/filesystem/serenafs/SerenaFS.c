@@ -93,7 +93,7 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
 
 
     // Write the volume header
-    Bytes_ClearRange(p, diskBlockSize);
+    memset(p, 0, diskBlockSize);
     SFSVolumeHeader* vhp = (SFSVolumeHeader*)p;
     vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
     vhp->version = UInt32_HostToBig(kSFSVersion_Current);
@@ -117,7 +117,7 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     LogicalBlockAddress nBlocksAllocated = 0;
 
     for (LogicalBlockAddress i = 0; i < allocBitmapBlockCount; i++) {
-        Bytes_ClearRange(p, diskBlockSize);
+        memset(p, 0, diskBlockSize);
 
         LogicalBlockAddress bitNo = 0;
         while (nBlocksAllocated < __min(nBlocksToAllocate, nAllocationBitsPerBlock)) {
@@ -131,7 +131,7 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
 
 
     // Write the root directory inode
-    Bytes_ClearRange(p, diskBlockSize);
+    memset(p, 0, diskBlockSize);
     SFSInode* ip = (SFSInode*)p;
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
@@ -151,7 +151,7 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
 
     // Write the root directory content. This is just the entries '.' and '..'
     // which both point back to the root directory.
-    Bytes_ClearRange(p, diskBlockSize);
+    memset(p, 0, diskBlockSize);
     SFSDirectoryEntry* dep = (SFSDirectoryEntry*)p;
     dep[0].id = UInt32_HostToBig(rootDirInodeLba);
     dep[0].filename[0] = '.';
@@ -207,8 +207,8 @@ static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull sel
     const uint8_t* pBlock = &self->allocationBitmap[idxOfAllocBitmapBlockModified * kSFSBlockSize];
     const LogicalBlockAddress allocationBitmapBlockLba = self->allocationBitmapLba + idxOfAllocBitmapBlockModified;
 
-    Bytes_ClearRange(self->tmpBlock, kSFSBlockSize);
-    Bytes_CopyRange(self->tmpBlock, pBlock, &self->allocationBitmap[self->allocationBitmapByteSize] - pBlock);
+    memset(self->tmpBlock, 0, kSFSBlockSize);
+    memmove(self->tmpBlock, pBlock, &self->allocationBitmap[self->allocationBitmapByteSize] - pBlock);
     return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, allocationBitmapBlockLba);
 }
 
@@ -338,7 +338,7 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     SFSInode* ip = (SFSInode*)self->tmpBlock;
 
-    Bytes_ClearRange(ip, kSFSBlockSize);
+    memset(ip, 0, kSFSBlockSize);
 
     const TimeInterval accTime = (Inode_IsAccessed(pNode)) ? curTime : Inode_GetAccessTime(pNode);
     const TimeInterval modTime = (Inode_IsUpdated(pNode)) ? curTime : Inode_GetModificationTime(pNode);
@@ -521,7 +521,7 @@ static errno_t SerenaFS_GetDirectoryEntry(
 
         try(SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba));
         if (lba == 0) {
-            Bytes_ClearRange(self->tmpBlock, kSFSBlockSize);
+            memset(self->tmpBlock, 0, kSFSBlockSize);
         }
         else {
             try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba));
@@ -622,7 +622,7 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba);
         if (e1 == EOK) {
             if (lba == 0) {
-                Bytes_ClearRange(self->tmpBlock, kSFSBlockSize);
+                memset(self->tmpBlock, 0, kSFSBlockSize);
             }
             else {
                 e1 = DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba);
@@ -633,7 +633,7 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
             break;
         }
 
-        Bytes_CopyRange(((uint8_t*)pBuffer) + nBytesRead, self->tmpBlock + blockOffset, nBytesToReadInCurrentBlock);
+        memmove(((uint8_t*)pBuffer) + nBytesRead, self->tmpBlock + blockOffset, nBytesToReadInCurrentBlock);
         nBytesToRead -= nBytesToReadInCurrentBlock;
         nBytesRead += nBytesToReadInCurrentBlock;
         offset += (FileOffset)nBytesToReadInCurrentBlock;
@@ -666,7 +666,7 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Write, &lba);
         if (e1 == EOK) {
             if (lba == 0) {
-                Bytes_ClearRange(self->tmpBlock, kSFSBlockSize);
+                memset(self->tmpBlock, 0, kSFSBlockSize);
             }
             else {
                 e1 = DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba);
@@ -677,7 +677,7 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
             break;
         }
         
-        Bytes_CopyRange(self->tmpBlock + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
+        memmove(self->tmpBlock + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
         e1 = DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
@@ -758,7 +758,7 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
         const size_t nBytesToCopy = __min(kSFSBlockSize, allocBitmapByteSize);
 
         try(DiskDriver_GetBlock(pDriver, self->tmpBlock, self->allocationBitmapLba + lba));
-        Bytes_CopyRange(pAllocBitmap, self->tmpBlock, nBytesToCopy);
+        memmove(pAllocBitmap, self->tmpBlock, nBytesToCopy);
         allocBitmapByteSize -= nBytesToCopy;
         pAllocBitmap += diskBlockSize;
     }
@@ -923,7 +923,7 @@ static errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef
 
     try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, mp.lba));
     SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.offset);
-    Bytes_ClearRange(dep, sizeof(SFSDirectoryEntry));
+    memset(dep, 0, sizeof(SFSDirectoryEntry));
     try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, mp.lba));
 
     if (Inode_GetFileSize(pDirNode) - (FileOffset)sizeof(SFSDirectoryEntry) == mp.fileOffset) {
@@ -989,7 +989,7 @@ static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef
             }
 
             try(SerenaFS_AllocateBlock_Locked(self, &lba));
-            Bytes_ClearRange(self->tmpBlock, kSFSBlockSize);
+            memset(self->tmpBlock, 0, kSFSBlockSize);
             dep = (SFSDirectoryEntry*)self->tmpBlock;
         }
 

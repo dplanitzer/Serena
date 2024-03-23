@@ -83,7 +83,7 @@ static bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, u
     
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C7.html
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C8.html
-    Bytes_ClearRange(config, sizeof(Zorro_BoardConfiguration));
+    memset(config, 0, sizeof(Zorro_BoardConfiguration));
     
     
     // Type

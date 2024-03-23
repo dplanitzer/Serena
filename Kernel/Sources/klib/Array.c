@@ -38,7 +38,7 @@ errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, size_t 
 
     if (err == EOK) {
         if (pArray->count > 0) {
-            Bytes_CopyRange(pNewData, pArray->data, pArray->count * elementSize);
+            memmove(pNewData, pArray->data, pArray->count * elementSize);
         }
         kfree(pArray->data);
         pArray->data = pNewData;
