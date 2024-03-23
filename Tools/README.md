@@ -81,14 +81,14 @@ You can specify a character literally by enclosing it in single quotes or you ca
 
 Character and string literals support escape sequences to allow you to specify certain characters that would otherwise be awkward to express in a literal. An escape sequence starts with a backlash and is followed by a specific character or a number sequence. The following escape sequences are supported at this time:
 
-* \n generate a newline character
-* \r generate a carriage return character
-* \b generate a backspace character
-* \t generate a tab character
-* \e generate an escape character
-* \' generate a single quote character
-* \" generate a double-quote character
-* \\ generate a backslash character
+* \\n generate a newline character
+* \\r generate a carriage return character
+* \\b generate a backspace character
+* \\t generate a tab character
+* \\e generate an escape character
+* \\' generate a single quote character
+* \\" generate a double-quote character
+* \\\\ generate a backslash character
 
 Here is an example of how to define a mapping of the single quote character:
 
