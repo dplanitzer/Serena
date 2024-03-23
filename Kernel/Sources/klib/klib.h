@@ -14,7 +14,6 @@
 #include <klib/Array.h>
 #include <klib/Assert.h>
 #include <klib/Atomic.h>
-#include <klib/Bits.h>
 #include <klib/Bytes.h>
 #include <klib/Error.h>
 #include <klib/Geometry.h>
