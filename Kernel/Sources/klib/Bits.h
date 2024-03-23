@@ -115,22 +115,6 @@ static inline bool Bits_IsSet(const BitPointer pBits)
     return *pBits.bytePointer & (1 << (7 - pBits.bitIndex)) ? true : false;
 }
 
-// Scans the given bit array and returns the index to the first bit set. The
-// bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
-// -1 is returned if no set bit is found.
-extern int Bits_FindFirstSet(const BitPointer pBits, size_t nbits);
-
-// Similar to Bits_FindFIrstSet() but scans from right to left.
-extern int Bits_FindLastSet(const BitPointer pBits, size_t nbits);
-
-// Scans the given bit array and returns the index to the first bit cleared. The
-// bits in the array are numbered from 0 to nbits-1, with 0 being the first bit at 'pBits'.
-// -1 is returned if no set bit is found.
-extern int Bits_FindFirstCleared(const BitPointer pBits, size_t nbits);
-
-// Similar to Bits_FindFirstCleared() but scans from right to left.
-extern int Bits_FindLastCleared(const BitPointer pBits, size_t nbits);
-
 // Sets 'nbits' bits starting at 'pBits'.
 extern void Bits_SetRange(const BitPointer pBits, size_t nbits);
 
@@ -152,8 +136,5 @@ static inline void Bits_Copy(BitPointer pDstBit, const BitPointer pSrcBit)
 
 // Copies the bit range with length 'nbits' from 'pSrcBits' to 'pDstBits'.
 extern void Bits_CopyRange(BitPointer pDstBits, const BitPointer pSrcBits, size_t nbits);
-
-// Prints the given bit array
-extern void Bits_Print(const BitPointer pBits, size_t nbits);
 
 #endif /* Bits_h */
