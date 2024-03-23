@@ -18,7 +18,7 @@ __CPP_BEGIN
 #if !defined(__KERNEL__)
 
 typedef struct Lock {
-    char    d[16];
+    int d[4];
 } Lock;
 typedef Lock* LockRef;
 

@@ -19,7 +19,7 @@ __CPP_BEGIN
 #if !defined(__KERNEL__)
 
 typedef struct Semaphore {
-    char    d[16];
+    int d[4];
 } Semaphore;
 typedef Semaphore* SemaphoreRef;
 

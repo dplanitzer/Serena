@@ -20,7 +20,7 @@ __CPP_BEGIN
 #if !defined(__KERNEL__)
 
 typedef struct ConditionVariable {
-    char    d[16];
+    int d[4];
 } ConditionVariable;
 typedef ConditionVariable* ConditionVariableRef;
 
