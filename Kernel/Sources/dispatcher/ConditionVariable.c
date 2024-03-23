@@ -38,7 +38,7 @@ void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar)
 // Signals the given condition variable. Atomically and simultaneously unlocks
 // 'pLock' if it is not null. As many VPs are woken up as there are cores in
 // the machine.
-void ConditionVariable_SignalAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock)
+void ConditionVariable_WakeAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock, bool broadcast)
 {
     const int sps = VirtualProcessorScheduler_DisablePreemption();
     const int scs = VirtualProcessorScheduler_DisableCooperation();
@@ -46,29 +46,13 @@ void ConditionVariable_SignalAndUnlock(ConditionVariable* _Nonnull pCondVar, Loc
     if (pLock) {
         Lock_Unlock(pLock);
     }
+    
     VirtualProcessorScheduler_RestoreCooperation(scs);
     VirtualProcessorScheduler_WakeUpSome(gVirtualProcessorScheduler,
                                          &pCondVar->wait_queue,
-                                         1,
+                                         (broadcast) ? INT_MAX : 1,
                                          WAKEUP_REASON_FINISHED,
                                          true);
-    VirtualProcessorScheduler_RestorePreemption(sps);
-}
-
-// Wakes up all VPs that are waiting on 'pCondVar'. Atomically and simultaneously
-// unlocks 'pLock' if it is not null.
-void ConditionVariable_BroadcastAndUnlock(ConditionVariable* _Nonnull pCondVar, Lock* _Nullable pLock)
-{
-    const int sps = VirtualProcessorScheduler_DisablePreemption();
-    const int scs = VirtualProcessorScheduler_DisableCooperation();
-
-    if (pLock) {
-        Lock_Unlock(pLock);
-    }
-    VirtualProcessorScheduler_RestoreCooperation(scs);
-    VirtualProcessorScheduler_WakeUpAll(gVirtualProcessorScheduler,
-                                        &pCondVar->wait_queue,
-                                        true);
     VirtualProcessorScheduler_RestorePreemption(sps);
 }
 

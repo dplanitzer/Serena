@@ -25,16 +25,10 @@ typedef struct _UConditionVariableMethodTable {
 // Creates a condition variable suitable for use by userspace code.
 extern errno_t UConditionVariable_Create(UConditionVariableRef _Nullable * _Nonnull pOutSelf);
 
-// Signals the given condition variable and unlock the associated lock if
-// '__pLock' is not NULL. This wakes up one waiter.
-#define UConditionVariable_SignalAndUnlock(__self, __pLock) \
-ConditionVariable_SignalAndUnlock(&(__self)->cv, &(__pLock)->lock)
-
-// Broadcasts the given condition variable and unlock the associated lock if
-// '__pLock' is not NULL. This will wake up all execution contexts that are
-// waiting on the condition variable and given the a chance to acquire it.
-#define UConditionVariable_BroadcastAndUnlock(__self, __pLock) \
-ConditionVariable_BroadcastAndUnlock(&(__self)->cv, &(__pLock)->lock)
+// Wakes the given condition variable and unlock the associated lock if
+// '__pLock' is not NULL. This wakes up one or all waiters.
+#define UConditionVariable_WakeAndUnlock(__self, __pLock, __broadcast) \
+ConditionVariable_WakeAndUnlock(&(__self)->cv, &(__pLock)->lock, __broadcast)
 
 // Blocks the caller until the condition variable has received a signal or the
 // wait has timed out. Automatically and atomically acquires the associated

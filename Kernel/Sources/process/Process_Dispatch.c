@@ -43,12 +43,7 @@ errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int od, int dL
             err = Process_CopyPrivateResourceForDescriptor(pProc, dLock, (ObjectRef*)&pLock);
         }
         if (err == EOK) {
-            if (bBroadcast) {
-                UConditionVariable_BroadcastAndUnlock(pCV, pLock);
-            }
-            else {
-                UConditionVariable_SignalAndUnlock(pCV, pLock);
-            }
+            UConditionVariable_WakeAndUnlock(pCV, pLock, bBroadcast);
         }
         Object_Release(pCV);
         Object_Release(pLock);
