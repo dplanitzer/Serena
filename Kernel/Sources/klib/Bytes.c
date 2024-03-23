@@ -71,15 +71,11 @@ void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
     uint8_t* p = (uint8_t*)dst;
     const uint8_t b = (uint8_t)c;
 
-    // 'dst' may not be aligned on a 32bit boundary. We can't do 32bit ops if
-    // count < num_misaligned_bytes + 4
-    const uint8_t n_mod_bytes = ((uintptr_t)dst & 3);
-    const uint8_t n_misaligned_bytes = (n_mod_bytes > 0) ? 4 - n_mod_bytes : 0;
-
-    if (count < n_misaligned_bytes + 4) {
-        const uint8_t* pe = p + count;
-
-        while (p < pe) {
+    // Don't bother optimizing too small requests. It would take more time to
+    // handle misalignments, unrolling and trailing bytes than it takes to
+    // bite the bullet and process individual bytes
+    if (count < 16) {
+        while (count-- > 0) {
             *p++ = b;
         }
         return dst;
@@ -87,28 +83,39 @@ void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
 
 
     // Align to the next 32bit boundary
-    if ((uintptr_t)p & 3) { *p++ = b; }
-    if ((uintptr_t)p & 3) { *p++ = b; }
-    if ((uintptr_t)p & 3) { *p++ = b; }
-    count -= n_misaligned_bytes;
+    const size_t n_mod_bytes = ((uintptr_t)p & 3);
+    if (n_mod_bytes > 0) {
+        do {
+            *p++ = b;
+        } while ((uintptr_t)p & 3);
+
+        count -= (4 - n_mod_bytes);
+    }
+    const uint8_t* const pe = p + count;
 
 
     // We know that we can do at least one 32bit op at this point
     uint32_t* p4 = (uint32_t*)p;
-    const uint8_t* pe = p + count;
-    const uint32_t* pe4 = p4 + (count >> 2);
     const uint32_t b4 = (b << 24) | (b << 16) | (b << 8) | b;
+    const uint32_t* const pe4 = p4 + (count >> 2);
+    const uint32_t* const pe16 = (const uint32_t* const)((uintptr_t)pe4 &  ~15);
+    if (((uintptr_t)pe16 - (uintptr_t)p4) >> 4) {
+        while (p4 < pe16) {
+            *p4++ = b;
+            *p4++ = b;
+            *p4++ = b;
+            *p4++ = b;
+        }
+    }
     while (p4 < pe4) {
         *p4++ = b4;
     }
 
 
     // Write the remaining bytes
-    if (pe > (const uint8_t*)pe4) {
-        p = (uint8_t*)p4;
-        if (p < pe) { *p++ = b; }
-        if (p < pe) { *p++ = b; }
-        if (p < pe) { *p++ = b; }
+    p = (uint8_t*)p4;
+    while (p < pe) {
+        *p++ = b;
     }
 
     return dst;
