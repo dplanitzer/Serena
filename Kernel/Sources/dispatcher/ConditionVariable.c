@@ -10,31 +10,6 @@
 #include "VirtualProcessorScheduler.h"
 
 
-// Creates a new condition variable.
-errno_t ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar)
-{
-    ConditionVariable* pCondVar;
-    decl_try_err();
-
-    try(kalloc(sizeof(ConditionVariable), (void**) &pCondVar));
-    ConditionVariable_Init(pCondVar);
-    pCondVar->name[0] = '\0';
-    *pOutCondVar = pCondVar;
-    return EOK;
-
-catch:
-    *pOutCondVar = NULL;
-    return err;
-}
-
-void ConditionVariable_Destroy(ConditionVariable* _Nullable pCondVar)
-{
-    if (pCondVar) {
-        ConditionVariable_Deinit(pCondVar);
-        kfree(pCondVar);
-    }
-}
-
 // Initializes a new condition variable.
 void ConditionVariable_Init(ConditionVariable* _Nonnull pCondVar)
 {

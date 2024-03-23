@@ -16,12 +16,8 @@
 // A condition variable
 typedef struct _ConditionVariable {
     List    wait_queue;
-    char    name[8];
 } ConditionVariable;
 
-
-extern errno_t ConditionVariable_Create(ConditionVariable* _Nullable * _Nonnull pOutCondVar);
-extern void ConditionVariable_Destroy(ConditionVariable* _Nullable pCondVar);
 
 // Initializes a new condition variable.
 extern void ConditionVariable_Init(ConditionVariable* _Nonnull pCondVar);

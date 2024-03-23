@@ -15,8 +15,8 @@
 
     xdef _Semaphore_AcquireMultiple
     xdef _Semaphore_AcquireAll
-    xdef _Semaphore_ReleaseMultiple
-    xdef _Semaphore_ReleaseFromInterruptContext
+    xdef _Semaphore_RelinquishMultiple
+    xdef _Semaphore_RelinquishFromInterruptContext
     xdef _Semaphore_TryAcquireMultiple
     xdef _Semaphore_TryAcquireAll
 
@@ -29,9 +29,9 @@ sema_SIZEOF             so
 
 
 ;-------------------------------------------------------------------------------
-; void Semaphore_ReleaseMultiple(Semaphore* _Nonnull sema, int npermits)
+; void Semaphore_RelinquishMultiple(Semaphore* _Nonnull sema, int npermits)
 ; Releases 'npermits' permits to the semaphore.
-_Semaphore_ReleaseMultiple:
+_Semaphore_RelinquishMultiple:
     inline
     cargs sr_sema_ptr.l, sr_npermits.l
         move.l  sr_sema_ptr(sp), a0
@@ -58,11 +58,11 @@ _Semaphore_ReleaseMultiple:
 
 
 ;-------------------------------------------------------------------------------
-; void Semaphore_ReleaseFromInterruptContext(Semaphore* _Nonnull sema)
+; void Semaphore_RelinquishFromInterruptContext(Semaphore* _Nonnull sema)
 ; Releases one permit to the semaphore. This function expects to be called from
 ; the interrupt context and thus it does not trigger an immediate context switch
 ; since context switches are deferred until we return from the interrupt.
-_Semaphore_ReleaseFromInterruptContext:
+_Semaphore_RelinquishFromInterruptContext:
     inline
     cargs srfic_sema_ptr.l
         move.l  srfic_sema_ptr(sp), a0

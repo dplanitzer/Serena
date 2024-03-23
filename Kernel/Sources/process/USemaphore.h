@@ -28,7 +28,7 @@ extern errno_t USemaphore_Create(int npermits, USemaphoreRef _Nullable * _Nonnul
 
 // Releases 'npermits' permits to the semaphore.
 #define USemaphore_Relinquish(__self, __npermits) \
-Semaphore_ReleaseMultiple(&(__self)->sema, __npermits)
+Semaphore_RelinquishMultiple(&(__self)->sema, __npermits)
 
 // Blocks the caller until 'npermits' can be successfully acquired from the given
 // semaphore. Returns EOK on success and ETIMEOUT if the permits could not be

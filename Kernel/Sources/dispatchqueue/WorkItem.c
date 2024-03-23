@@ -94,7 +94,7 @@ void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, bool isInterrupted)
 {
     if (pItem->completion != NULL) {
         pItem->completion->isInterrupted = isInterrupted;
-        Semaphore_Release(&pItem->completion->semaphore);
+        Semaphore_Relinquish(&pItem->completion->semaphore);
         pItem->completion = NULL;
     }
 }

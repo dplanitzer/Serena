@@ -455,7 +455,7 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDr
 {
     CopperScheduler_Run(&pDriver->copperScheduler);
     MousePainter_Paint_VerticalBlank(&pDriver->mousePainter);
-    Semaphore_ReleaseFromInterruptContext(&pDriver->vblank_sema);
+    Semaphore_RelinquishFromInterruptContext(&pDriver->vblank_sema);
 }
 
 

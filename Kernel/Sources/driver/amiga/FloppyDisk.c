@@ -118,7 +118,7 @@ static errno_t FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull
     }
     fdc_io_end(pFdc);
     
-    Semaphore_Release(&pDma->inuse);
+    Semaphore_Relinquish(&pDma->inuse);
     
     return (err == ETIMEDOUT) ? ENOMEDIUM : err;
 
