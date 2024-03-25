@@ -24,6 +24,16 @@
 #endif
 
 
+#ifndef _Restrict
+#if _MSC_VER && !__INTEL_COMPILER
+// MSVC doesn't support C99
+#define _Restrict
+#else
+#define _Restrict restrict
+#endif
+#endif
+
+
 #ifndef _Weak
 #define _Weak
 #endif

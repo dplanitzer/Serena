@@ -29,7 +29,7 @@ typedef uint64_t uword_t;
 // are aligned the same way. Meaning that
 // (src & WORD_SIZMASK) == (dst & WORD_SIZMASK)
 // holds true.
-static void memcpy_opt(void* _Nonnull restrict dst, const void* _Nonnull restrict src, size_t count)
+static void memcpy_opt(void* _Nonnull _Restrict dst, const void* _Nonnull _Restrict src, size_t count)
 {
     uint8_t* p = dst;
     const uint8_t* ps = src;
@@ -72,7 +72,7 @@ static void memcpy_opt(void* _Nonnull restrict dst, const void* _Nonnull restric
     }
 }
 
-void* _Nonnull memcpy(void* _Nonnull restrict dst, const void* _Nonnull restrict src, size_t count)
+void* _Nonnull memcpy(void* _Nonnull _Restrict dst, const void* _Nonnull _Restrict src, size_t count)
 {
     if (src == dst || count == 0) {
         return dst;
@@ -111,7 +111,7 @@ void* _Nonnull memcpy(void* _Nonnull restrict dst, const void* _Nonnull restrict
 // are aligned the same way. Meaning that
 // (src & WORD_SIZMASK) == (dst & WORD_SIZMASK)
 // holds true.
-static void memcpy_opt_rev(void* _Nonnull restrict dst, const void* _Nonnull restrict src, size_t count)
+static void memcpy_opt_rev(void* _Nonnull _Restrict dst, const void* _Nonnull _Restrict src, size_t count)
 {
     uint8_t* p = (uint8_t*)dst + count;
     const uint8_t* ps = (const uint8_t*)src + count;
@@ -154,7 +154,7 @@ static void memcpy_opt_rev(void* _Nonnull restrict dst, const void* _Nonnull res
     }
 }
 
-static void* _Nonnull memcpy_rev(void* _Nonnull restrict dst, const void* _Nonnull restrict src, size_t count)
+static void* _Nonnull memcpy_rev(void* _Nonnull _Restrict dst, const void* _Nonnull _Restrict src, size_t count)
 {
     if (src == dst || count == 0) {
         return dst;
@@ -191,7 +191,7 @@ static void* _Nonnull memcpy_rev(void* _Nonnull restrict dst, const void* _Nonnu
 
 // Copies 'count' contiguous bytes in memory from 'src' to 'dst'. The source and
 // destination regions may overlap.
-void* _Nonnull memmove(void* _Nonnull restrict dst, const void* _Nonnull restrict src, size_t count)
+void* _Nonnull memmove(void* _Nonnull _Restrict dst, const void* _Nonnull _Restrict src, size_t count)
 {
     if (dst < src) {
         memcpy(dst, src, count);
