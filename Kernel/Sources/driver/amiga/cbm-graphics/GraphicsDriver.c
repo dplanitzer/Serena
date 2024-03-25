@@ -325,39 +325,39 @@ catch:
 // MARK: GraphicsDriver
 ////////////////////////////////////////////////////////////////////////////////
 
-static const RGBColor gDefaultColors[32] = {
-    {0x00, 0x00, 0x00},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0xff, 0xff, 0xff},
-    {0x00, 0x00, 0x00},     // XXX Mouse cursor
-    {0x00, 0x00, 0x00}      // XXX Mouse cursor
+static const RGBColor32 gDefaultColors[32] = {
+    0xff000000,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xff000000,     // XXX Mouse cursor
+    0xff000000,     // XXX Mouse cursor
 };
 
 static const ColorTable gDefaultColorTable = {
@@ -495,7 +495,12 @@ Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull pDriver)
     Surface* pFramebuffer = GraphicsDriver_GetFramebuffer_Locked(pDriver);
     Lock_Unlock(&pDriver->lock);
 
-    return (pFramebuffer) ? Surface_GetPixelSize(pFramebuffer) : Size_Zero;
+    if (pFramebuffer) {
+        return Size_Make(Surface_GetWidth(pFramebuffer), Surface_GetHeight(pFramebuffer));
+    }
+    else {
+        return Size_Zero;
+    }
 }
 
 // Stops the video refresh circuitry
@@ -796,8 +801,17 @@ static void GraphicsDriver_EndDrawing(GraphicsDriverRef _Nonnull pDriver)
     Lock_Unlock(&pDriver->lock);
 }
 
+static uint16_t RGBColor12_Make(RGBColor32 clr)
+{
+    const uint8_t r = RGBColor32_GetRed(clr);
+    const uint8_t g = RGBColor32_GetGreen(clr);
+    const uint8_t b = RGBColor32_GetBlue(clr);
+
+    return (uint16_t)(r >> 4 & 0x0f) << 8 | (g >> 4 & 0x0f) << 4 | (b >> 4 & 0x0f);
+}
+
 // Writes the given RGB color to the color register at index idx
-errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, const RGBColor* _Nonnull pColor)
+errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, RGBColor32 color)
 {
     decl_try_err();
 
@@ -810,7 +824,7 @@ errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx,
     }
 
     CHIPSET_BASE_DECL(cp);
-    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = RGBColor_GetRGB4(*pColor);
+    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = RGBColor12_Make(color);
 
 catch:
     Lock_Unlock(&pDriver->lock);
@@ -826,8 +840,8 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
 
     int count = __min(pCLUT->entryCount, pDriver->screen->clutCapacity);
     for (int i = 0; i < count; i++) {
-        const RGBColor color = pCLUT->entry[i];
-        const uint16_t rgb12 = RGBColor_GetRGB4(color);
+        const RGBColor32 color = pCLUT->entry[i];
+        const uint16_t rgb12 = RGBColor12_Make(color);
 
         *CHIPSET_REG_16(cp, COLOR_BASE + (i << 1)) = rgb12;
     }

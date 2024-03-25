@@ -77,16 +77,17 @@ void MousePainter_Deinit(MousePainter* _Nonnull pPainter)
 // explicitly turn the mouse cursor back on if so desired.
 void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _Nullable pSurface)
 {
-    const Size sSize = (pSurface) ? Surface_GetPixelSize(pSurface) : Size_Zero;
+    const int sWidth = (pSurface) ? Surface_GetWidth(pSurface) : 0;
+    const int sHeight = (pSurface) ? Surface_GetHeight(pSurface) : 0;
 
     const int irs = cpu_disable_irqs();
     pPainter->background = pSurface;
     if (pSurface) {
-        assert(sSize.width >= 32 && sSize.height >= 16);
+        assert(sWidth >= 32 && sHeight >= 16);
         pPainter->rLeft = 0;
         pPainter->rTop = 0;
-        pPainter->rRight = pPainter->rLeft + sSize.width;
-        pPainter->rBottom = pPainter->rTop + sSize.height;
+        pPainter->rRight = pPainter->rLeft + sWidth;
+        pPainter->rBottom = pPainter->rTop + sHeight;
         pPainter->flags.hasBackground = true;
     } else {
         pPainter->rLeft = 0;

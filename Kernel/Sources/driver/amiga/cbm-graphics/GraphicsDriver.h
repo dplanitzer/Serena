@@ -11,50 +11,13 @@
 
 #include <klib/klib.h>
 #include "IOResource.h"
+#include "Color.h"
 #include "Surface.h"
 
 
-typedef enum _ColorType {
-    kColorType_RGB,
-    kColorType_Index
-} ColorType;
-
-
-// A RGB color
-typedef struct _RGBColor {
-    uint8_t   r, g, b;
-} RGBColor;
-
-
-// A color type
-typedef struct _Color {
-    ColorType   tag;
-    union {
-        RGBColor    rgb;
-        int         index;
-    }           u;
-} Color;
-
-
-#define RGBColor_Make(__r, __g, __b) \
-    ((RGBColor) {(uint8_t)__r, (uint8_t)__g, (uint8_t)__b})
-
-// Returns a RGB color with 4 bits per channel
-#define RGBColor_GetRGB4(__clr) \
-    (uint16_t)((__clr).r >> 4 & 0x0f) << 8 | ((__clr).g >> 4 & 0x0f) << 4 | ((__clr).b >> 4 & 0x0f)
-
-
-#define Color_MakeRGB(__r, __g, __b) \
-    ((Color) {kColorType_RGB, .rgb = RGBColor_Make(__r, __g, __b)})
-
-
-#define Color_MakeIndex(__idx) \
-    ((Color) {kColorType_Index, { .index = __idx}})
-
-
-typedef struct _ColorTable {
+typedef struct ColorTable {
     size_t                      entryCount;
-    const RGBColor* _Nonnull    entry;
+    const RGBColor32* _Nonnull  entry;
 } ColorTable;
 
 
@@ -115,7 +78,7 @@ extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDr
 
 
 // CLUT
-extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, const RGBColor* _Nonnull pColor);
+extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, RGBColor32 color);
 extern void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT);
 
 

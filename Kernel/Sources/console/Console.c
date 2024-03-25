@@ -38,15 +38,15 @@ OVERRIDE_METHOD_IMPL(ioctl, ConsoleChannel, IOChannel)
 // MARK: Console
 ////////////////////////////////////////////////////////////////////////////////
 
-static const RGBColor gANSIColors[8] = {
-    {0x00, 0x00, 0x00},     // Black
-    {0xff, 0x00, 0x00},     // Red
-    {0x00, 0xff, 0x00},     // Green
-    {0xff, 0xff, 0x00},     // Yellow
-    {0x00, 0x00, 0xff},     // Blue
-    {0xff, 0x00, 0xff},     // Magenta
-    {0x00, 0xff, 0xff},     // Cyan
-    {0xff, 0xff, 0xff},     // White
+static const RGBColor32 gANSIColors[8] = {
+    0xff000000,     // Black
+    0xffff0000,     // Red
+    0xff00ff00,     // Green
+    0xffffff00,     // Yellow
+    0xff0000ff,     // Blue
+    0xffff00ff,     // Magenta
+    0xff00ffff,     // Cyan
+    0xffffffff,     // White
 };
 
 static const ColorTable gANSIColorTable = {
@@ -199,9 +199,9 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color
     pConsole->foregroundColor = color;
 
     // Sync up the sprite color registers with the selected foreground color
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 17, &gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 18, &gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 19, &gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 17, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 18, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 19, gANSIColors[color.u.index]);
 }
 
 // Sets the console's background color to the given color
