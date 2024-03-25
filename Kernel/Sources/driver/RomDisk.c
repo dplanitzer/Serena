@@ -66,7 +66,7 @@ LogicalBlockCount RomDisk_getBlockCount(RomDiskRef _Nonnull self)
 errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba < self->blockCount) {
-        memmove(pBuffer, self->diskImage + lba * self->blockSize, self->blockSize);
+        memcpy(pBuffer, self->diskImage + lba * self->blockSize, self->blockSize);
         return EOK;
     }
     else {

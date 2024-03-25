@@ -208,7 +208,7 @@ static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull sel
     const LogicalBlockAddress allocationBitmapBlockLba = self->allocationBitmapLba + idxOfAllocBitmapBlockModified;
 
     memset(self->tmpBlock, 0, kSFSBlockSize);
-    memmove(self->tmpBlock, pBlock, &self->allocationBitmap[self->allocationBitmapByteSize] - pBlock);
+    memcpy(self->tmpBlock, pBlock, &self->allocationBitmap[self->allocationBitmapByteSize] - pBlock);
     return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, allocationBitmapBlockLba);
 }
 
@@ -633,7 +633,7 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
             break;
         }
 
-        memmove(((uint8_t*)pBuffer) + nBytesRead, self->tmpBlock + blockOffset, nBytesToReadInCurrentBlock);
+        memcpy(((uint8_t*)pBuffer) + nBytesRead, self->tmpBlock + blockOffset, nBytesToReadInCurrentBlock);
         nBytesToRead -= nBytesToReadInCurrentBlock;
         nBytesRead += nBytesToReadInCurrentBlock;
         offset += (FileOffset)nBytesToReadInCurrentBlock;
@@ -677,7 +677,7 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
             break;
         }
         
-        memmove(self->tmpBlock + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
+        memcpy(self->tmpBlock + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
         e1 = DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
@@ -758,7 +758,7 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
         const size_t nBytesToCopy = __min(kSFSBlockSize, allocBitmapByteSize);
 
         try(DiskDriver_GetBlock(pDriver, self->tmpBlock, self->allocationBitmapLba + lba));
-        memmove(pAllocBitmap, self->tmpBlock, nBytesToCopy);
+        memcpy(pAllocBitmap, self->tmpBlock, nBytesToCopy);
         allocBitmapByteSize -= nBytesToCopy;
         pAllocBitmap += diskBlockSize;
     }

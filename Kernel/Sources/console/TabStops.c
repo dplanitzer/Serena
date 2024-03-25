@@ -63,7 +63,7 @@ errno_t TabStops_InsertStop(TabStops* _Nonnull pStops, int xLoc)
         int8_t* pNewStops;
 
         try(kalloc(sizeof(int8_t) * newCapacity, (void**) &pNewStops));
-        memmove(pNewStops, pStops->stops, sizeof(int8_t) * pStops->count);
+        memcpy(pNewStops, pStops->stops, sizeof(int8_t) * pStops->count);
         kfree(pStops->stops);
         pStops->stops = pNewStops;
         pStops->capacity = newCapacity;

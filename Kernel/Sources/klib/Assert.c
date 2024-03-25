@@ -7,9 +7,9 @@
 //
 
 #include "Assert.h"
-#include "Bytes.h"
 #include "Formatter.h"
 #include "Log.h"
+#include "Memory.h"
 
 static errno_t fprintv_micro_console_sink(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, ssize_t nBytes);
 

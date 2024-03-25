@@ -9,7 +9,7 @@
 #include "kalloc.h"
 #include "Allocator.h"
 #include <dispatcher/Lock.h>
-#include "Bytes.h"
+#include "Memory.h"
 
 
 static Lock         gLock;

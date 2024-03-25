@@ -7,7 +7,7 @@
 //
 
 #include "Object.h"
-#include <klib/Bytes.h>
+#include <klib/Memory.h>
 #include <klib/Kalloc.h>
 #ifndef __DISKIMAGE__
 #include <klib/Log.h>
@@ -140,7 +140,7 @@ void _RegisterClass(ClassRef _Nonnull pClass)
 
     // Copy the super class vtable
     if (pSuperClass) {
-        memmove(pClass->vtable, pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
+        memcpy(pClass->vtable, pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
     }
 
 

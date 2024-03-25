@@ -7,7 +7,7 @@
 //
 
 #include "Array.h"
-#include "Bytes.h"
+#include "Memory.h"
 
 errno_t GenericArray_Init(struct _GenericArray* _Nonnull pArray, size_t elementSize, ssize_t initialCapacity)
 {
@@ -38,7 +38,7 @@ errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, size_t 
 
     if (err == EOK) {
         if (pArray->count > 0) {
-            memmove(pNewData, pArray->data, pArray->count * elementSize);
+            memcpy(pNewData, pArray->data, pArray->count * elementSize);
         }
         kfree(pArray->data);
         pArray->data = pNewData;

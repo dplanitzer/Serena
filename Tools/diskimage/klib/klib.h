@@ -12,7 +12,7 @@
 #include <klib/Types.h>
 #include <klib/Array.h>
 #include <klib/Atomic.h>
-#include <klib/Bytes.h>
+#include <klib/Memory.h>
 #include <klib/Error.h>
 #include <klib/Kalloc.h>
 #include <klib/List.h>

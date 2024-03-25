@@ -7,7 +7,7 @@
 //
 
 #include "Bits.h"
-#include <klib/Bytes.h>
+#include <klib/Memory.h>
 
 
 // Sets 'nbits' bits starting at 'pBits'.

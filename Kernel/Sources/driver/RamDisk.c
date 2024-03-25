@@ -121,7 +121,7 @@ errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, void* _Nonnull pBuffer, Logic
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, NULL);
     if (pExtent) {
         // Request for a block that was previously written to -> return the block
-        memmove(pBuffer, &pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], self->blockSize);
+        memcpy(pBuffer, &pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], self->blockSize);
     }
     else {
         // Request for a block that hasn't been written to yet -> return zeros
@@ -175,7 +175,7 @@ errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, const void* _Nonnull pBuffer,
         try(RamDisk_AddExtentAfter_Locked(self, (lba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
     }
     if (pExtent) {
-        memmove(&pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], pBuffer, self->blockSize);
+        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], pBuffer, self->blockSize);
     }
 
 catch:

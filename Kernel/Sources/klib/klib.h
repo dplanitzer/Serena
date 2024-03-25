@@ -14,12 +14,12 @@
 #include <klib/Array.h>
 #include <klib/Assert.h>
 #include <klib/Atomic.h>
-#include <klib/Bytes.h>
 #include <klib/Error.h>
 #include <klib/Geometry.h>
 #include <klib/Kalloc.h>
 #include <klib/List.h>
 #include <klib/Log.h>
+#include <klib/Memory.h>
 #include <klib/RingBuffer.h>
 #include <klib/Object.h>
 #include <klib/TimeInterval.h>
