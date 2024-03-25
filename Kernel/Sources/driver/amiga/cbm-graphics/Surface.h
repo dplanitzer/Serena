@@ -21,7 +21,11 @@ typedef enum SurfaceAccess {
 
 
 #define MAX_PLANE_COUNT  6
-#define SURFACE_FLAG_LOCKED 0x01
+
+enum {
+    kSurfaceFlag_Locked = 0x01,
+    kSurfaceFlag_ClusteredPlanes = 0x02,    // Surface is planar and all planes share a single kalloc() memory block. Ptr of this memory block is in planes[0]
+};
 
 typedef struct Surface {
     uint8_t* _Nullable  planes[MAX_PLANE_COUNT];
