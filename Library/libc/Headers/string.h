@@ -44,11 +44,11 @@ extern char *strndup(const char *src, size_t size);
 extern char *strerror(int err_no);
 
 
-extern void *memchr(const void *ptr, int ch, size_t count);
+extern void *memchr(const void *ptr, int c, size_t count);
 extern int memcmp(const void *lhs, const void *rhs, size_t count);
-extern void *memset(void *dst, int ch, size_t count);
-extern void *memcpy(void *dst, const void *src, size_t count);
-extern void *memmove(void *dst, const void *src, size_t count);
+extern void *memset(void *dst, int c, size_t count);
+extern void *memcpy(void * _Restrict dst, const void * _Restrict src, size_t count);
+extern void *memmove(void * _Restrict dst, const void * _Restrict src, size_t count);
 
 __CPP_END
 

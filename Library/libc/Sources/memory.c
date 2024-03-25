@@ -7,6 +7,7 @@
 //
 
 #include <string.h>
+#include <__globals.h>
 
 
 void *memchr(const void *ptr, int ch, size_t count)
@@ -37,39 +38,17 @@ int memcmp(const void *lhs, const void *rhs, size_t count)
     return 0;
 }
 
-void *memset(void *dst, int ch, size_t count)
+void *memset(void *dst, int c, size_t count)
 {
-    unsigned char *p = (unsigned char *)dst;
-    unsigned char c = (unsigned char)ch;
-
-    while(count-- > 0) {
-        *p++ = c;
-    }
-
-    return dst;
+    return ((void* (*)(void*, int, size_t))__gProcessArguments->urt_funcs[kUrtFunc_memset])(dst, c, count);
 }
 
-void *memcpy(void *dst, const void *src, size_t count)
+void *memcpy(void * _Restrict dst, const void * _Restrict src, size_t count)
 {
-    unsigned char *pdst = (unsigned char *)dst;
-    const unsigned char *psrc = (const unsigned char *)src;
-
-    while(count-- > 0) {
-        *pdst++ = *psrc++;
-    }
-
-    return dst;
+    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[kUrtFunc_memcpy])(dst, src, count);
 }
 
-void *memmove(void *dst, const void *src, size_t count)
+void *memmove(void * _Restrict dst, const void * _Restrict src, size_t count)
 {
-    // XXX handle overlaps
-    unsigned char *pdst = (unsigned char *)dst;
-    const unsigned char *psrc = (const unsigned char *)src;
-
-    while(count-- > 0) {
-        *pdst++ = *psrc++;
-    }
-
-    return dst;
+    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gProcessArguments->urt_funcs[kUrtFunc_memmove])(dst, src, count);
 }

@@ -22,6 +22,10 @@ enum {
     kUrtFunc_muls64_64,     // long long _mulint64(long long x, long long y)
     kUrtFunc_muls32_64,     // long long _ui32_64_mul(int x, int y)
 
+    kUrtFunc_memcpy,        // void* memcpy(void* dst, const void* src, size_t count)
+    kUrtFunc_memmove,       // void* memmove(void* dst, const void* src, size_t count)
+    kUrtFunc_memset,        // void* memset(void* dst, int byte, size_t count)
+    
     kUrtFunc_Count
 };
 

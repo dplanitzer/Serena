@@ -7,6 +7,7 @@
 //
 
 #include "krt.h"
+#include <klib/Memory.h>
 
 extern long long _rshsint64(long long x, int s);
 extern unsigned long long _rshuint64(unsigned long long x, int s);
@@ -28,4 +29,8 @@ void krt_init(void)
     gUrtFuncTable[kUrtFunc_divmods64_64] = (UrtFunc)_divmods64;
     gUrtFuncTable[kUrtFunc_muls64_64] = (UrtFunc)_mulint64_020;
     gUrtFuncTable[kUrtFunc_muls32_64] = (UrtFunc)_ui32_64_mul;
+
+    gUrtFuncTable[kUrtFunc_memcpy] = (UrtFunc)memcpy;
+    gUrtFuncTable[kUrtFunc_memmove] = (UrtFunc)memmove;
+    gUrtFuncTable[kUrtFunc_memset] = (UrtFunc)memset;
 }
