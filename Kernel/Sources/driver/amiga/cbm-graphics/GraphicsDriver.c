@@ -854,10 +854,7 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
 void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 {
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Infinite);
-    const int nbytes = pSurface->bytesPerRow * pSurface->height;
-    for (int i = 0; i < pSurface->planeCount; i++) {
-        memset(pSurface->planes[i], 0, nbytes);
-    }
+    Surface_Clear(pSurface);
     GraphicsDriver_EndDrawing(pDriver);
 }
 

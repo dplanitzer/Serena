@@ -32,14 +32,15 @@ typedef struct Surface {
     int                 width;
     int                 height;
     size_t              bytesPerRow;
+    size_t              bytesPerPlane;
     int8_t              planeCount;
     int8_t              pixelFormat;
     uint8_t             flags;
 } Surface;
 
 
-extern errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
-extern void Surface_Destroy(Surface* _Nullable pSurface);
+extern errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+extern void Surface_Destroy(Surface* _Nullable self);
 
 // Returns the pixel width of the surface.
 #define Surface_GetWidth(__self) \
@@ -52,9 +53,14 @@ extern void Surface_Destroy(Surface* _Nullable pSurface);
 // Locks the surface for read or read and write access. You must lock a surface
 // for read and write access before you can call any of the drawing related
 // functions. You must unlock the surface once you are done drawing. 
-extern errno_t Surface_LockPixels(Surface* _Nonnull pSurface, SurfaceAccess access);
+extern errno_t Surface_LockPixels(Surface* _Nonnull self, SurfaceAccess access);
 
 // Unlocks the surface.
-extern void Surface_UnlockPixels(Surface* _Nonnull pSurface);
+extern void Surface_UnlockPixels(Surface* _Nonnull self);
+
+
+// Clears all pixels in the surface. Clearing means that all pixels are set to
+// color black/index 0.
+extern void Surface_Clear(Surface* _Nonnull self);
 
 #endif /* Surface_h */

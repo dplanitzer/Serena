@@ -29,6 +29,7 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
     self->width = width;
     self->height = height;
     self->bytesPerRow = ((size_t)width + 7) >> 3;
+    self->bytesPerPlane = self->bytesPerRow * (size_t)height;
     self->planeCount = (int8_t)PixelFormat_GetPlaneCount(pixelFormat);
     self->pixelFormat = pixelFormat;
     self->flags = 0;
@@ -41,18 +42,19 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
         // allocate a big enough contiguous memory region because DMA memory has become
         // too fragmented to pull this off. Individual planes in a clustered planes
         // configuration are aligned on an 8 byte boundary.
-        const size_t bytesPerPlane = self->bytesPerRow * (size_t)self->height;
-        const size_t clusteredSize = bytesPerPlane + (self->planeCount - 1) * __Ceil_PowerOf2(bytesPerPlane, 8);
+        const size_t bytesPerClusteredPlane = __Ceil_PowerOf2(self->bytesPerPlane, 8);
+        const size_t clusteredSize = self->planeCount * bytesPerClusteredPlane;
 
-        if (kalloc_options(bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &self->planes[0])) {
+        if (kalloc_options(clusteredSize, KALLOC_OPTION_UNIFIED, (void**) &self->planes[0])) {
             for (int i = 1; i < self->planeCount; i++) {
-                self->planes[i] = self->planes[i - 1] + __Ceil_PowerOf2(bytesPerPlane, 8);
+                self->planes[i] = self->planes[i - 1] + bytesPerClusteredPlane;
             }
+            self->bytesPerPlane = bytesPerClusteredPlane;
             self->flags |= kSurfaceFlag_ClusteredPlanes;
         }
         else {
             for (int i = 0; i < self->planeCount; i++) {
-                try(kalloc_options(bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &self->planes[i]));
+                try(kalloc_options(self->bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &self->planes[i]));
             }
         }
     }
@@ -106,4 +108,20 @@ void Surface_UnlockPixels(Surface* _Nonnull self)
 {
     assert((self->flags & kSurfaceFlag_Locked) != 0);
     self->flags &= ~kSurfaceFlag_Locked;
+}
+
+// Clears all pixels in the surface. Clearing means that all pixels are set to
+// color black/index 0.
+void Surface_Clear(Surface* _Nonnull self)
+{
+    // Take advantage of clustered planar configurations by issuing a single
+    // memset() across all planes.
+    if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
+        memset(self->planes[0], 0, self->planeCount * self->bytesPerPlane);
+    }
+    else {
+        for (int i = 0; i < self->planeCount; i++) {
+            memset(self->planes[i], 0, self->bytesPerPlane);
+        }
+    }
 }
