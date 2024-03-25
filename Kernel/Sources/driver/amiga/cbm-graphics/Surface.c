@@ -26,16 +26,15 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
-    self->width = width;
-    self->height = height;
-    self->bytesPerRow = ((size_t)width + 7) >> 3;
-    self->bytesPerPlane = self->bytesPerRow * (size_t)height;
-    self->planeCount = (int8_t)PixelFormat_GetPlaneCount(pixelFormat);
     self->pixelFormat = pixelFormat;
-    self->flags = 0;
-    
-    
-    if (width > 0 || height > 0) {
+
+    if (width > 0 && height > 0) {
+        self->width = width;
+        self->height = height;
+        self->bytesPerRow = ((size_t)width + 7) >> 3;
+        self->bytesPerPlane = self->bytesPerRow * (size_t)height;
+        self->planeCount = (int8_t)PixelFormat_GetPlaneCount(pixelFormat);
+
         // Allocate the planes. Note that we try to cluster the planes whenever possible.
         // This means that we allocate a single contiguous memory range big enough to
         // hold all planes. We only allocate independent planes if we're not able to
