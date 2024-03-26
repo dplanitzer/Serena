@@ -862,26 +862,8 @@ void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
 void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color)
 {
     Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, rect);
-    const Rect bounds = Rect_Make(0, 0, pSurface->width, pSurface->height);
-    const Rect r = Rect_Intersection(rect, bounds);
     
-    if (!Rect_IsEmpty(r)) {
-        assert(color.tag == kColorType_Index);
-    
-        for (int i = 0; i < pSurface->planeCount; i++) {
-            const bool bit = (color.u.index & (1 << i)) ? true : false;
-        
-            for (int y = r.top; y < r.bottom; y++) {
-                const BitPointer pBits = BitPointer_Make(pSurface->planes[i] + y * pSurface->bytesPerRow, r.left);
-            
-                if (bit) {
-                    Bits_SetRange(pBits, Rect_GetWidth(r));
-                } else {
-                    Bits_ClearRange(pBits, Rect_GetWidth(r));
-                }
-            }
-        }
-    }
+    Surface_FillRect(pSurface, rect.left, rect.top, rect.right, rect.bottom, color);
     GraphicsDriver_EndDrawing(pDriver);
 }
 

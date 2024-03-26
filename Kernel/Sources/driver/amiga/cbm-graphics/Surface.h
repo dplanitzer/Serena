@@ -10,6 +10,7 @@
 #define Surface_h
 
 #include <klib/klib.h>
+#include <driver/amiga/cbm-graphics/Color.h>
 #include <driver/amiga/cbm-graphics/PixelFormat.h>
 
 
@@ -62,5 +63,7 @@ extern void Surface_UnlockPixels(Surface* _Nonnull self);
 // Clears all pixels in the surface. Clearing means that all pixels are set to
 // color black/index 0.
 extern void Surface_Clear(Surface* _Nonnull self);
+
+extern void Surface_FillRect(Surface* _Nonnull self, int left, int top, int right, int bottom, Color clr);
 
 #endif /* Surface_h */
