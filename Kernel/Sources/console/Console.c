@@ -38,23 +38,6 @@ OVERRIDE_METHOD_IMPL(ioctl, ConsoleChannel, IOChannel)
 // MARK: Console
 ////////////////////////////////////////////////////////////////////////////////
 
-static const RGBColor32 gANSIColors[8] = {
-    0xff000000,     // Black
-    0xffff0000,     // Red
-    0xff00ff00,     // Green
-    0xffffff00,     // Yellow
-    0xff0000ff,     // Blue
-    0xffff00ff,     // Magenta
-    0xff00ffff,     // Cyan
-    0xffffffff,     // White
-};
-
-static const ColorTable gANSIColorTable = {
-    8,
-    gANSIColors
-};
-
-
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
 // \param pEventDriver the event driver to provide keyboard input
@@ -85,26 +68,8 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     vtparser_init(&pConsole->vtparser, (vt52parse_callback_t)Console_VT52_ParseByte_Locked, (vt500parse_callback_t)Console_VT100_ParseByte_Locked, pConsole);
 
 
-    // Install an ANSI color table
-    GraphicsDriver_SetCLUT(pGDevice, &gANSIColorTable);
-
-
-    // Allocate the text cursor (sprite)
-    const bool isInterlaced = ScreenConfiguration_IsInterlaced(GraphicsDriver_GetCurrentScreenConfiguration(pGDevice));
-    const uint16_t* textCursorPlanes[2];
-    textCursorPlanes[0] = (isInterlaced) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
-    textCursorPlanes[1] = (isInterlaced) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
-    const int textCursorWidth = (isInterlaced) ? gBlock4x4_Width : gBlock4x8_Width;
-    const int textCursorHeight = (isInterlaced) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(GraphicsDriver_AcquireSprite(pGDevice, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &pConsole->textCursor));
-    pConsole->flags.isTextCursorVisible = false;
-
-
-    // Allocate the text cursor blinking timer
-    pConsole->flags.isTextCursorBlinkerEnabled = false;
-    pConsole->flags.isTextCursorOn = false;
-    pConsole->flags.isTextCursorSingleCycleOn = false;
-    try(Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(500), DispatchQueueClosure_Make((Closure1Arg_Func)Console_OnTextCursorBlink, pConsole), &pConsole->textCursorBlinker));
+    // Initialize the video subsystem
+    Console_InitVideoOutput(pConsole);
 
 
     // Reset the console to the default configuration
@@ -112,8 +77,10 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
 
 
     // Clear the console screen
+    Console_BeginDrawing_Locked(pConsole);
     Console_ClearScreen_Locked(pConsole, kClearScreenMode_WhileAndScrollback);
-    
+    Console_EndDrawing_Locked(pConsole);
+
     *pOutConsole = pConsole;
     return err;
     
@@ -128,13 +95,10 @@ catch:
 void Console_deinit(ConsoleRef _Nonnull pConsole)
 {
     Console_SetCursorBlinkingEnabled_Locked(pConsole, false);
-    GraphicsDriver_RelinquishSprite(pConsole->gdevice, pConsole->textCursor);
+    Console_DeinitVideoOutput(pConsole);
     RingBuffer_Deinit(&pConsole->reportsQueue);
 
-    Timer_Destroy(pConsole->textCursorBlinker);
-    pConsole->textCursorBlinker = NULL;
     pConsole->keyMap = NULL;
-
     TabStops_Deinit(&pConsole->hTabStops);
         
     Lock_Deinit(&pConsole->lock);
@@ -154,10 +118,8 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole)
 {
     decl_try_err();
-    const Surface* pFramebuffer;
     
-    try_null(pFramebuffer, GraphicsDriver_GetFramebuffer(pConsole->gdevice), ENODEV);
-    pConsole->bounds = Rect_Make(0, 0, pFramebuffer->width / pConsole->characterWidth, pFramebuffer->height / pConsole->lineHeight);
+    pConsole->bounds = Rect_Make(0, 0, pConsole->gc.pixelsWidth / pConsole->characterWidth, pConsole->gc.pixelsHeight / pConsole->lineHeight);
     pConsole->savedCursorState.x = 0;
     pConsole->savedCursorState.y = 0;
 
@@ -192,25 +154,6 @@ void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole)
     pConsole->characterRendition.isStrikethrough = 0;
 }
 
-// Sets the console's foreground color to the given color
-void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color)
-{
-    assert(color.tag == kColorType_Index);
-    pConsole->foregroundColor = color;
-
-    // Sync up the sprite color registers with the selected foreground color
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 17, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 18, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 19, gANSIColors[color.u.index]);
-}
-
-// Sets the console's background color to the given color
-void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color)
-{
-    assert(color.tag == kColorType_Index);
-    pConsole->backgroundColor = color;
-}
-
 // Switches the console to the given compatibility mode
 void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull pConsole, CompatibilityMode mode)
 {
@@ -240,52 +183,6 @@ void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull pConsole, Compatibi
 
     vtparser_set_mode(&pConsole->vtparser, vtmode);
     pConsole->compatibilityMode = mode;
-}
-
-static void Console_DrawGlyph_Locked(ConsoleRef _Nonnull pConsole, char glyph, int x, int y)
-{
-    if (pConsole->characterRendition.isHidden) {
-        glyph = ' ';
-    }
-
-    GraphicsDriver_BlitGlyph_8x8bw(
-        pConsole->gdevice,
-        &font8x8_latin1[glyph][0],
-        x, y,
-        (pConsole->characterRendition.isReverse) ? pConsole->backgroundColor : pConsole->foregroundColor,
-        (pConsole->characterRendition.isReverse) ? pConsole->foregroundColor : pConsole->backgroundColor);
-}
-
-// Copies the content of 'srcRect' to 'dstLoc'. Does not change the cursor
-// position.
-static void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, Point dstLoc)
-{
-    GraphicsDriver_CopyRect(pConsole->gdevice,
-                            Rect_Make(srcRect.left * pConsole->characterWidth, srcRect.top * pConsole->lineHeight, srcRect.right * pConsole->characterWidth, srcRect.bottom * pConsole->lineHeight),
-                            Point_Make(dstLoc.x * pConsole->characterWidth, dstLoc.y * pConsole->lineHeight));
-}
-
-// Fills the content of 'rect' with the character 'ch'. Does not change the
-// cursor position.
-static void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, char ch)
-{
-    const Rect r = Rect_Intersection(rect, pConsole->bounds);
-
-    if (ch == ' ') {
-        GraphicsDriver_FillRect(pConsole->gdevice,
-                                Rect_Make(r.left * pConsole->characterWidth, r.top * pConsole->lineHeight, r.right * pConsole->characterWidth, r.bottom * pConsole->lineHeight),
-                                (pConsole->characterRendition.isReverse) ? pConsole->foregroundColor : pConsole->backgroundColor);
-    }
-    else if (ch < 32 || ch == 127) {
-        // Control characters -> do nothing
-    }
-    else {
-        for (int y = r.top; y < r.bottom; y++) {
-            for (int x = r.left; x < r.right; x++) {
-                Console_DrawGlyph_Locked(pConsole, ch, x, y);
-            }
-        }
-    }
 }
 
 // Scrolls the content of the console screen. 'clipRect' defines a viewport
@@ -360,7 +257,7 @@ void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreenMode mo
 
         case kClearScreenMode_Whole:
         case kClearScreenMode_WhileAndScrollback:
-            GraphicsDriver_Clear(pConsole->gdevice);
+            Console_FillRect_Locked(pConsole, pConsole->bounds, ' ');
             break;
 
         default:
@@ -415,70 +312,6 @@ void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole)
     Console_SetForegroundColor_Locked(pConsole, pConsole->savedCursorState.foregroundColor);
     Console_SetBackgroundColor_Locked(pConsole, pConsole->savedCursorState.backgroundColor);
     Console_MoveCursorTo_Locked(pConsole, pConsole->savedCursorState.x, pConsole->savedCursorState.y);
-}
-
-static void Console_OnTextCursorBlink(ConsoleRef _Nonnull pConsole)
-{
-    Lock_Lock(&pConsole->lock);
-    
-    pConsole->flags.isTextCursorOn = !pConsole->flags.isTextCursorOn;
-    if (pConsole->flags.isTextCursorVisible) {
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, pConsole->flags.isTextCursorOn || pConsole->flags.isTextCursorSingleCycleOn);
-    }
-    pConsole->flags.isTextCursorSingleCycleOn = false;
-
-    Lock_Unlock(&pConsole->lock);
-}
-
-static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _Nonnull pConsole)
-{
-    if (pConsole->flags.isTextCursorVisible) {
-        // Changing the visibility to on should restart the blinking timer if
-        // blinking is on too so that we always start out with a cursor-on phase
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, true);
-        pConsole->flags.isTextCursorOn = false;
-        pConsole->flags.isTextCursorSingleCycleOn = false;
-
-        if (pConsole->flags.isTextCursorBlinkerEnabled) {
-            try_bang(DispatchQueue_DispatchTimer(gMainDispatchQueue, pConsole->textCursorBlinker));
-        }
-    } else {
-        // Make sure that the text cursor and blinker are off
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, false);
-        pConsole->flags.isTextCursorOn = false;
-        pConsole->flags.isTextCursorSingleCycleOn = false;
-    }
-}
-
-void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool isEnabled)
-{
-    if (pConsole->flags.isTextCursorBlinkerEnabled != isEnabled) {
-        pConsole->flags.isTextCursorBlinkerEnabled = isEnabled;
-        Console_UpdateCursorVisibilityAndRestartBlinking_Locked(pConsole);
-    }
-}
-
-void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible)
-{
-    if (pConsole->flags.isTextCursorVisible != isVisible) {
-        pConsole->flags.isTextCursorVisible = isVisible;
-        Console_UpdateCursorVisibilityAndRestartBlinking_Locked(pConsole);
-    }
-}
-
-static void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
-{
-    GraphicsDriver_SetSpritePosition(pConsole->gdevice, pConsole->textCursor, pConsole->x * pConsole->characterWidth, pConsole->y * pConsole->lineHeight);
-    // Temporarily force the cursor to be visible, but without changing the text
-    // cursor visibility state officially. We just want to make sure that the
-    // cursor is on when the user types a character. This however should not
-    // change anything about the blinking phase and frequency.
-    if (!pConsole->flags.isTextCursorSingleCycleOn && !pConsole->flags.isTextCursorOn && pConsole->flags.isTextCursorBlinkerEnabled && pConsole->flags.isTextCursorVisible) {
-        pConsole->flags.isTextCursorSingleCycleOn = true;
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, true);
-    }
 }
 
 // Moves the console position by the given delta values.
@@ -844,19 +677,25 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
 // \return the number of bytes written; a negative error code if an error was encountered
 errno_t Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const void* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
+    decl_try_err();
     const unsigned char* pChars = pBytes;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
 
     Lock_Lock(&pConsole->lock);
-    while (pChars < pCharsEnd) {
-        const unsigned char by = *pChars++;
+    err = Console_BeginDrawing_Locked(pConsole);
+    if (err == EOK) {
+        while (pChars < pCharsEnd) {
+            const unsigned char by = *pChars++;
 
-        vtparser_byte(&pConsole->vtparser, by);
+            vtparser_byte(&pConsole->vtparser, by);
+        }
+
+        Console_EndDrawing_Locked(pConsole);
     }
     Lock_Unlock(&pConsole->lock);
 
-    *nOutBytesWritten = nBytesToWrite;
-    return EOK;
+    *nOutBytesWritten = (err == EOK) ? nBytesToWrite : 0;
+    return err;
 }
 
 

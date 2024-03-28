@@ -236,7 +236,7 @@ static void MousePainter_RestoreSavedImage(MousePainter* _Nonnull pPainter)
     register const uint32_t* sip = pPainter->savedImage;
 
     while (--planeIdx >= 0) {
-        register uint32_t* bp = (uint32_t*) (pBackground->planes[planeIdx] + pPainter->curSavedByteOffset);
+        register uint32_t* bp = (uint32_t*) (pBackground->plane[planeIdx] + pPainter->curSavedByteOffset);
         register int8_t nIters = MOUSE_CURSOR_HEIGHT/4;
 
         while (nIters-- > 0) {
@@ -267,7 +267,7 @@ static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter
     // Plane > 0 -> mouse cursor bits are all 0
     while (--planeIdx > 0) {
         register const uint16_t* mp = pPainter->mask;
-        register uint32_t* bp = (uint32_t*) (pBackground->planes[planeIdx] + byteOffsetToFirstWord);
+        register uint32_t* bp = (uint32_t*) (pBackground->plane[planeIdx] + byteOffsetToFirstWord);
         register int8_t nIters = MOUSE_CURSOR_HEIGHT;
 
         while (nIters-- > 0) {
@@ -284,7 +284,7 @@ static void MousePainter_SaveImageAndPaintCursor(MousePainter* _Nonnull pPainter
     // Plane #0 -> mouse cursor bits are 0 or 1
     register const uint16_t* mp = pPainter->mask;
     register const uint16_t* mcp = pPainter->bitmap;
-    register uint32_t* bp = (uint32_t*) (pBackground->planes[0] + byteOffsetToFirstWord);
+    register uint32_t* bp = (uint32_t*) (pBackground->plane[0] + byteOffsetToFirstWord);
     register int8_t nIters = MOUSE_CURSOR_HEIGHT;
 
     while (nIters-- > 0) {

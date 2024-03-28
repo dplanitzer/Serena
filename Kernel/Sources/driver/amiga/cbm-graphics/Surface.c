@@ -44,16 +44,16 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
         const size_t bytesPerClusteredPlane = __Ceil_PowerOf2(self->bytesPerPlane, 8);
         const size_t clusteredSize = self->planeCount * bytesPerClusteredPlane;
 
-        if (kalloc_options(clusteredSize, KALLOC_OPTION_UNIFIED, (void**) &self->planes[0])) {
+        if (kalloc_options(clusteredSize, KALLOC_OPTION_UNIFIED, (void**) &self->plane[0])) {
             for (int i = 1; i < self->planeCount; i++) {
-                self->planes[i] = self->planes[i - 1] + bytesPerClusteredPlane;
+                self->plane[i] = self->plane[i - 1] + bytesPerClusteredPlane;
             }
             self->bytesPerPlane = bytesPerClusteredPlane;
             self->flags |= kSurfaceFlag_ClusteredPlanes;
         }
         else {
             for (int i = 0; i < self->planeCount; i++) {
-                try(kalloc_options(self->bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &self->planes[i]));
+                try(kalloc_options(self->bytesPerPlane, KALLOC_OPTION_UNIFIED, (void**) &self->plane[i]));
             }
         }
     }
@@ -73,15 +73,15 @@ void Surface_Destroy(Surface* _Nullable self)
 {
     if (self) {
         if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
-            kfree(self->planes[0]);
+            kfree(self->plane[0]);
         }
         else {
             for (int i = 0; i < self->planeCount; i++) {
-                kfree(self->planes[i]);
+                kfree(self->plane[i]);
             }
         }
         for (int i = 0; i < self->planeCount; i++) {
-            self->planes[i] = NULL;
+            self->plane[i] = NULL;
         }
         
         kfree(self);
@@ -116,11 +116,11 @@ void Surface_Clear(Surface* _Nonnull self)
     // Take advantage of clustered planar configurations by issuing a single
     // memset() across all planes.
     if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
-        memset(self->planes[0], 0, self->planeCount * self->bytesPerPlane);
+        memset(self->plane[0], 0, self->planeCount * self->bytesPerPlane);
     }
     else {
         for (int i = 0; i < self->planeCount; i++) {
-            memset(self->planes[i], 0, self->bytesPerPlane);
+            memset(self->plane[i], 0, self->bytesPerPlane);
         }
     }
 }
@@ -244,7 +244,7 @@ void Surface_FillRect(Surface* _Nonnull self, int left, int top, int right, int 
         case kPixelFormat_RGB_Indexed4:
         case kPixelFormat_RGB_Indexed5:
             for (int i = 0; i < self->planeCount; i++) {
-                bitmap_fill_rect(self->planes[i], l, t, r, b, self->bytesPerRow, clr.u.index & (1 << i));
+                bitmap_fill_rect(self->plane[i], l, t, r, b, self->bytesPerRow, clr.u.index & (1 << i));
             }
             break;
 

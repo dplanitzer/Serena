@@ -145,6 +145,16 @@ typedef struct _SavedState {
 } SavedState;
 
 
+// Drawing state set up by BeginDrawing() and valid until EndDrawing()
+typedef struct GraphicsContext {
+    uint8_t* _Nullable  plane[8];
+    size_t              bytesPerRow[8];
+    size_t              planeCount;
+    int                 pixelsWidth;
+    int                 pixelsHeight;
+} GraphicsContext;
+
+
 // The console object.
 CLASS_IVARS(Console, IOResource,
     Lock                        lock;
@@ -164,6 +174,7 @@ CLASS_IVARS(Console, IOResource,
     int                         x;
     int                         y;
     SavedState                  savedCursorState;
+    GraphicsContext             gc;
     SpriteID                    textCursor;
     TimerRef _Nonnull           textCursorBlinker;
     CompatibilityMode           compatibilityMode;
@@ -179,8 +190,8 @@ CLASS_IVARS(Console, IOResource,
 );
 
 
-extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole);
+extern errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self);
+extern void Console_DeinitVideoOutput(ConsoleRef _Nonnull self);
 
 extern void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color);
 extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color);
@@ -191,13 +202,26 @@ extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Colo
 #define Console_SetDefaultBackgroundColor_Locked(__self) \
     Console_SetBackgroundColor_Locked(__self, Color_MakeIndex(0)); /* Black */
 
+extern void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool isEnabled);
+extern void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible);
+extern void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
+extern void Console_CursorDidMove_Locked(Console* _Nonnull pConsole);
+
+extern errno_t Console_BeginDrawing_Locked(ConsoleRef _Nonnull self);
+extern void Console_EndDrawing_Locked(ConsoleRef _Nonnull self);
+
+extern void Console_DrawGlyph_Locked(ConsoleRef _Nonnull pConsole, char glyph, int x, int y);
+extern void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, Point dstLoc);
+extern void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, char ch);
+
+
+extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole);
+
 extern void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
 extern void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, int y, ClearLineMode mode);
 extern void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool isEnabled);
-extern void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible);
-static void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
 extern void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, int x, int y);
 extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, int dx, int dy);
 extern void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);

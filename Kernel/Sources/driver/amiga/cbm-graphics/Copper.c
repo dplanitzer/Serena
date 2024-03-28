@@ -58,7 +58,7 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
     
     // BPLxPT
     for (int i = 0, r = BPL_BASE; i < pFramebuffer->planeCount; i++, r += 4) {
-        const uint32_t bplpt = (uint32_t)(pFramebuffer->planes[i]) + firstLineByteOffset;
+        const uint32_t bplpt = (uint32_t)(pFramebuffer->plane[i]) + firstLineByteOffset;
         
         *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);

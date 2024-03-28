@@ -7,7 +7,7 @@
 //
 
 #include "GraphicsDriverPriv.h"
-#include "Bits.h"
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -220,7 +220,7 @@ static errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelF
     
     
     // Lock the new surface
-    try(Surface_LockPixels(pScreen->framebuffer, kSurfaceAccess_Read|kSurfaceAccess_Write));
+    try(Surface_LockPixels(pScreen->framebuffer, kSurfaceAccess_Read|kSurfaceAccess_ReadWrite));
     
     *pOutScreen = pScreen;
     return EOK;
@@ -471,36 +471,6 @@ const ScreenConfiguration* _Nonnull GraphicsDriver_GetCurrentScreenConfiguration
     const ScreenConfiguration* pConfig = pDriver->screen->screenConfig;
     Lock_Unlock(&pDriver->lock);
     return pConfig;
-}
-
-// Returns a reference to the currently active framebuffer. NULL is returned if
-// no framebuffer is active which implies that the video signal generator is
-// turned off.
-// \return the framebuffer or NULL
-#define GraphicsDriver_GetFramebuffer_Locked(pDriver) \
-    pDriver->screen->framebuffer
-
-Surface* _Nullable GraphicsDriver_GetFramebuffer(GraphicsDriverRef _Nonnull pDriver)
-{
-    Lock_Lock(&pDriver->lock);
-    Surface* pFramebuffer = GraphicsDriver_GetFramebuffer_Locked(pDriver);
-    Lock_Unlock(&pDriver->lock);
-
-    return pFramebuffer;
-}
-
-Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull pDriver)
-{
-    Lock_Lock(&pDriver->lock);
-    Surface* pFramebuffer = GraphicsDriver_GetFramebuffer_Locked(pDriver);
-    Lock_Unlock(&pDriver->lock);
-
-    if (pFramebuffer) {
-        return Size_Make(Surface_GetWidth(pFramebuffer), Surface_GetHeight(pFramebuffer));
-    }
-    else {
-        return Size_Zero;
-    }
 }
 
 // Stops the video refresh circuitry
@@ -777,28 +747,56 @@ void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Drawing
+// MARK: Framebuffer
 ////////////////////////////////////////////////////////////////////////////////
 
-// Locks the graphics driver, retrieves a framebuffer reference and shields the
-// mouse cursor. 'drawingArea' is the bounding box of the area into which the
-// caller wants to draw.
-static Surface* _Nonnull GraphicsDriver_BeginDrawing(GraphicsDriverRef _Nonnull pDriver, const Rect drawingArea)
+Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull self)
 {
-    Lock_Lock(&pDriver->lock);
+    Size fbSize;
 
-    Surface* pSurface = GraphicsDriver_GetFramebuffer_Locked(pDriver);
-    assert(pSurface);
+    Lock_Lock(&self->lock);
+    Surface* pFramebuffer = self->screen->framebuffer;
+    if (pFramebuffer) {
+        fbSize = Size_Make(Surface_GetWidth(pFramebuffer), Surface_GetHeight(pFramebuffer));
+    }
+    else {
+        fbSize = Size_Zero;
+    }
+    Lock_Unlock(&self->lock);
 
-    MousePainter_ShieldCursor(&pDriver->mousePainter, drawingArea);
-    return pSurface;
+    return fbSize;
 }
 
-// Unlocks the graphics driver and restores the mouse cursor
-static void GraphicsDriver_EndDrawing(GraphicsDriverRef _Nonnull pDriver)
+errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, SurfaceAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount)
 {
-    MousePainter_UnshieldCursor(&pDriver->mousePainter);
-    Lock_Unlock(&pDriver->lock);
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+
+    Surface* pSurface = self->screen->framebuffer;
+
+    if (pSurface == NULL) {
+        throw(ENODEV);
+    }
+
+    for (int8_t i = 0; i < pSurface->planeCount; i++) {
+        plane[i] = pSurface->plane[i];
+        bytesPerRow[i] = pSurface->bytesPerRow;
+    }
+    *planeCount = pSurface->planeCount;
+
+    MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(0, 0, pSurface->width, pSurface->height));
+
+catch:
+    Lock_Unlock(&self->lock);
+    return EOK;
+}
+
+void GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self)
+{
+    Lock_Lock(&self->lock);
+    MousePainter_UnshieldCursor(&self->mousePainter);
+    Lock_Unlock(&self->lock);
 }
 
 static uint16_t RGBColor12_Make(RGBColor32 clr)
@@ -847,118 +845,6 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
     }
 
     Lock_Unlock(&pDriver->lock);
-}
-
-// Fills the framebuffer with the background color. This is black for RGB direct
-// pixel formats and index 0 for RGB indexed pixel formats.
-void GraphicsDriver_Clear(GraphicsDriverRef _Nonnull pDriver)
-{
-    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Infinite);
-    Surface_Clear(pSurface);
-    GraphicsDriver_EndDrawing(pDriver);
-}
-
-// Fills the pixels in the given rectangular framebuffer area with the given color.
-void GraphicsDriver_FillRect(GraphicsDriverRef _Nonnull pDriver, Rect rect, Color color)
-{
-    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, rect);
-    
-    Surface_FillRect(pSurface, rect.left, rect.top, rect.right, rect.bottom, color);
-    GraphicsDriver_EndDrawing(pDriver);
-}
-
-// Copies the given rectangular framebuffer area to a different location in the framebuffer.
-// Parts of the source rectangle which are outside the bounds of the framebuffer are treated as
-// transparent. This means that the corresponding destination pixels will be left alone and not
-// overwritten.
-void GraphicsDriver_CopyRect(GraphicsDriverRef _Nonnull pDriver, Rect srcRect, Point dstLoc)
-{
-    if (Rect_IsEmpty(srcRect) || (srcRect.left == dstLoc.x && srcRect.top == dstLoc.y)) {
-        return;
-    }
-    
-    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Infinite);  // XXX calc tighter rect
-    const Rect src_r = srcRect;
-    const Rect dst_r = Rect_Make(dstLoc.x, dstLoc.y, dstLoc.x + Rect_GetWidth(src_r), dstLoc.y + Rect_GetHeight(src_r));
-    const int fb_width = pSurface->width;
-    const int fb_height = pSurface->height;
-    const int bytesPerRow = pSurface->bytesPerRow;
-    const int src_end_y = src_r.bottom - 1;
-    const int dst_clipped_left_span = (dst_r.left < 0) ? -dst_r.left : 0;
-    const int dst_clipped_right_span = __max(dst_r.right - fb_width, 0);
-    const int dst_x = __max(dst_r.left, 0);
-    const int src_x = src_r.left + dst_clipped_left_span;
-    const int dst_width = __max(Rect_GetWidth(dst_r) - dst_clipped_left_span - dst_clipped_right_span, 0);
-
-    for (int i = 0; i < pSurface->planeCount; i++) {
-        uint8_t* pPlane = pSurface->planes[i];
-
-        if (dst_r.top >= src_r.top && dst_r.top <= src_end_y) {
-            const int dst_clipped_y_span = __max(dst_r.bottom - fb_height, 0);
-            const int dst_y_min = __max(dst_r.top, 0);
-            int src_y = src_r.bottom - 1;
-            int dst_y = dst_r.bottom - dst_clipped_y_span - 1;
-            
-            while (dst_y >= dst_y_min) {
-                Bits_CopyRange(BitPointer_Make(pPlane + dst_y * bytesPerRow, dst_x),
-                               BitPointer_Make(pPlane + src_y * bytesPerRow, src_x),
-                               dst_width);
-                src_y--; dst_y--;
-            }
-        }
-        else {
-            const int dst_clipped_y_span = (dst_r.top < 0) ? -dst_r.top : 0;
-            int dst_y = __max(dst_r.top, 0);
-            const int dst_y_max = __min(dst_r.bottom, fb_height);
-            int src_y = src_r.top + dst_clipped_y_span;
-            
-            while (dst_y < dst_y_max) {
-                Bits_CopyRange(BitPointer_Make(pPlane + dst_y * bytesPerRow, dst_x),
-                               BitPointer_Make(pPlane + src_y * bytesPerRow, src_x),
-                               dst_width);
-                src_y++; dst_y++;
-            }
-        }
-    }
-    GraphicsDriver_EndDrawing(pDriver);
-}
-
-// Blits a monochromatic 8x8 pixel glyph to the given position in the framebuffer.
-void GraphicsDriver_BlitGlyph_8x8bw(GraphicsDriverRef _Nonnull pDriver, const void* _Nonnull pGlyphBitmap, int x, int y, Color fgColor, Color bgColor)
-{
-    assert(fgColor.tag == kColorType_Index);
-    assert(bgColor.tag == kColorType_Index);
-
-    Surface* pSurface = GraphicsDriver_BeginDrawing(pDriver, Rect_Make(x, y, x + 8, y + 8));
-    const int maxX = pSurface->width >> 3;
-    const int maxY = pSurface->height >> 3;
-    
-    if (x >= 0 && y >= 0 && x < maxX && y < maxY) {
-        register const size_t bytesPerRow = pSurface->bytesPerRow;
-        const uint8_t* pSrc = pGlyphBitmap;
-
-        for (int_fast8_t p = 0; p < pSurface->planeCount; p++) {
-            register uint8_t* pDst = pSurface->planes[p] + (y << 3) * bytesPerRow + x;
-            register const int_fast8_t fgOne = fgColor.u.index & (1 << p);
-            register const int_fast8_t bgOne = bgColor.u.index & (1 << p);
-
-            for (int_fast8_t i = 0; i < 8; i++) {
-                register uint8_t bits = 0;
-
-                if (fgOne) {
-                    bits |= pSrc[i];
-                }
-                if (bgOne) {
-                    bits |= ~pSrc[i];
-                }
-
-                *pDst = bits;
-                pDst += bytesPerRow;
-            }
-        }
-    }
-
-    GraphicsDriver_EndDrawing(pDriver);
 }
 
 

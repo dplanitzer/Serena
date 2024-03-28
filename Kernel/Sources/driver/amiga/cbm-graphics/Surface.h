@@ -17,7 +17,7 @@
 // Specifies what you want to do with the pixels when you call LockPixels()
 typedef enum SurfaceAccess {
     kSurfaceAccess_Read,
-    kSurfaceAccess_Write
+    kSurfaceAccess_ReadWrite
 } SurfaceAccess;
 
 
@@ -29,7 +29,7 @@ enum {
 };
 
 typedef struct Surface {
-    uint8_t* _Nullable  planes[MAX_PLANE_COUNT];
+    uint8_t* _Nullable  plane[MAX_PLANE_COUNT];
     int                 width;
     int                 height;
     size_t              bytesPerRow;

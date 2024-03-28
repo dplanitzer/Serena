@@ -51,7 +51,7 @@ static void memcpy_opt(void* _Nonnull _Restrict dst, const void* _Nonnull _Restr
     uword_t* pw = (uword_t*)p;
     const uword_t* psw = (const uword_t*)ps;
     const uword_t* const pew = pw + (count >> WORD_SHIFT);
-    size_t n_4s = (uintptr_t)(pew - pw) >> 4;
+    size_t n_4s = (uintptr_t)(pew - pw) >> 2;
     while (n_4s > 0) {
         *pw++ = *psw++;
         *pw++ = *psw++;
@@ -133,7 +133,7 @@ static void memcpy_opt_rev(void* _Nonnull _Restrict dst, const void* _Nonnull _R
     uword_t* pw = (uword_t*)p;
     const uword_t* psw = (const uword_t*)ps;
     const uword_t* const pew = pw - (count >> WORD_SHIFT);
-    size_t n_4s = (uintptr_t)(pw - pew) >> 4;
+    size_t n_4s = (uintptr_t)(pw - pew) >> 2;
     while (n_4s > 0) {
         *(--pw) = *(--psw);
         *(--pw) = *(--psw);
@@ -238,12 +238,12 @@ void* _Nonnull memset(void* _Nonnull dst, int c, size_t count)
     uword_t* pw = (uword_t*)p;
     const uword_t bw = WORD_FROM_BYTE(b);
     const uword_t* const pew = pw + (count >> WORD_SHIFT);
-    size_t n_4s = (uintptr_t)(pew - pw) >> 4;
+    size_t n_4s = (uintptr_t)(pew - pw) >> 2;
     while (n_4s > 0) {
-        *pw++ = b;
-        *pw++ = b;
-        *pw++ = b;
-        *pw++ = b;
+        *pw++ = bw;
+        *pw++ = bw;
+        *pw++ = bw;
+        *pw++ = bw;
         n_4s--;
     }
     while (pw < pew) {
