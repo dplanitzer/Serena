@@ -169,23 +169,51 @@ void Console_EndDrawing_Locked(ConsoleRef _Nonnull self)
 static void Console_DrawGlyphBitmap_Locked(ConsoleRef _Nonnull self, const uint8_t* _Nonnull pSrc, int xc, int yc, const Color* _Nonnull fgColor, const Color* _Nonnull bgColor)
 {
     for (size_t p = 0; p < self->gc.planeCount; p++) {
-        const size_t bytesPerRow = self->gc.bytesPerRow[p];
-        register uint8_t* pDst = self->gc.plane[p] + (yc << 3) * bytesPerRow + xc;
-        register const int_fast8_t fgOne = fgColor->u.index & (1 << p);
-        register const int_fast8_t bgOne = bgColor->u.index & (1 << p);
+        const int_fast8_t fgOne = fgColor->u.index & (1 << p);
+        const int_fast8_t bgOne = bgColor->u.index & (1 << p);
+        register const size_t bytesPerRow = self->gc.bytesPerRow[p];
+        register const uint8_t* sp = pSrc;
+        register uint8_t* dp = self->gc.plane[p] + (yc << 3) * bytesPerRow + xc;
 
-        for (register size_t i = 0; i < 8; i++) {
-            register uint8_t bits = 0;
-
-            if (fgOne) {
-                bits |= pSrc[i];
-            }
-            if (bgOne) {
-                bits |= ~pSrc[i];
-            }
-
-            *pDst = bits;
-            pDst += bytesPerRow;
+        if (fgOne && !bgOne) {
+            *dp = *sp++;    dp += bytesPerRow;
+            *dp = *sp++;    dp += bytesPerRow;
+            *dp = *sp++;    dp += bytesPerRow;
+            *dp = *sp++;    dp += bytesPerRow;
+            *dp = *sp++;    dp += bytesPerRow;
+            *dp = *sp++;    dp += bytesPerRow;
+            *dp = *sp++;    dp += bytesPerRow;
+            *dp = *sp++;    dp += bytesPerRow;
+        }
+        else if (!fgOne && bgOne) {
+            *dp = ~(*sp++); dp += bytesPerRow;
+            *dp = ~(*sp++); dp += bytesPerRow;
+            *dp = ~(*sp++); dp += bytesPerRow;
+            *dp = ~(*sp++); dp += bytesPerRow;
+            *dp = ~(*sp++); dp += bytesPerRow;
+            *dp = ~(*sp++); dp += bytesPerRow;
+            *dp = ~(*sp++); dp += bytesPerRow;
+            *dp = ~(*sp++); dp += bytesPerRow;
+        }
+        else if(fgOne && bgOne) {
+            *dp = 0xff;     dp += bytesPerRow;
+            *dp = 0xff;     dp += bytesPerRow;
+            *dp = 0xff;     dp += bytesPerRow;
+            *dp = 0xff;     dp += bytesPerRow;
+            *dp = 0xff;     dp += bytesPerRow;
+            *dp = 0xff;     dp += bytesPerRow;
+            *dp = 0xff;     dp += bytesPerRow;
+            *dp = 0xff;     dp += bytesPerRow;
+        }
+        else {
+            *dp = 0x00;     dp += bytesPerRow;
+            *dp = 0x00;     dp += bytesPerRow;
+            *dp = 0x00;     dp += bytesPerRow;
+            *dp = 0x00;     dp += bytesPerRow;
+            *dp = 0x00;     dp += bytesPerRow;
+            *dp = 0x00;     dp += bytesPerRow;
+            *dp = 0x00;     dp += bytesPerRow;
+            *dp = 0x00;     dp += bytesPerRow;
         }
     }
 }
