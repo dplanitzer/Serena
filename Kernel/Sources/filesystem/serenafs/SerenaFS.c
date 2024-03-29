@@ -1246,6 +1246,10 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
 
 catch:
     // XXX Unlink new file disk node if necessary
+    if (pInode) {
+        Filesystem_RelinquishNode((FilesystemRef)self, pInode);
+    }
+    
     return err;
 }
 
