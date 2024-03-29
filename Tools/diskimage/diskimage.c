@@ -58,7 +58,6 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
 {
     decl_try_err();
     const unsigned int mode = kOpen_Write | kOpen_Exclusive;
-    InodeRef pFileNode = NULL;
     IOChannelRef pDstFile = NULL;
     FILE* pSrcFile = NULL;
 
@@ -80,10 +79,7 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
 
 
     //printf("  %s   %llu bytes\n", pEntry->name, pEntry->fileSize);
-    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, permissions, &pFileNode));
-    try(IOResource_Open(pFS, pFileNode, mode, gDefaultUser, &pDstFile));
-    Filesystem_RelinquishNode(pFS, pFileNode);
-    pFileNode = NULL;
+    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, permissions, (FileRef*)&pDstFile));
 
     try(di_concat_path(pBasePath, pEntry->name, gBuffer, sizeof(gBuffer)));
     try_null(pSrcFile, fopen(gBuffer, "rb"), EIO);
@@ -106,9 +102,6 @@ catch:
     if (pDstFile) {
         IOChannel_Close(pDstFile);
         Object_Release(pDstFile);
-    }
-    if (pFileNode) {
-        Filesystem_RelinquishNode(pFS, pFileNode);
     }
     if (pSrcFile) {
         fclose(pSrcFile);

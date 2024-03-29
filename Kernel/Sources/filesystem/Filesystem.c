@@ -498,13 +498,13 @@ errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     return EIO;
 }
 
-// Creates an empty file and returns the inode of that file. The behavior is
+// Creates and opens a file and returns the inode of that file. The behavior is
 // non-exclusive by default. Meaning the file is created if it does not 
 // exist and the file's inode is merrily acquired if it already exists. If
 // the mode is exclusive then the file is created if it doesn't exist and
-// an error is thrown if the file exists. Note that the file is not opened.
-// This must be done by calling the open() method.
-errno_t Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+// an error is thrown if the file exists. Returns a file object, representing
+// the created and opened file.
+errno_t Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, FileRef _Nullable * _Nonnull pOutFile)
 {
     return EIO;
 }

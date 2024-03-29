@@ -202,13 +202,13 @@ typedef struct _FilesystemMethodTable {
     // File Specific Operations
     //
 
-    // Creates an empty file and returns the inode of that file. The behavior is
+    // Creates and opens a file and returns the inode of that file. The behavior is
     // non-exclusive by default. Meaning the file is created if it does not 
     // exist and the file's inode is merrily acquired if it already exists. If
     // the mode is exclusive then the file is created if it doesn't exist and
-    // an error is thrown if the file exists. Note that the file is not opened.
-    // This must be done by calling the open() method.
-    errno_t (*createFile)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+    // an error is thrown if the file exists. Returns a file object, representing
+    // the created and opened file.
+    errno_t (*createFile)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, FileRef _Nullable * _Nonnull pOutFile);
 
 
     //
@@ -341,8 +341,8 @@ Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
-#define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode) \
-Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode)
+#define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __options, __permissions, __pOutFile) \
+Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __options, __permissions, __pOutFile)
 
 
 #define Filesystem_CreateDirectory(__self, __pName, __pParentNode, __user, __permissions) \

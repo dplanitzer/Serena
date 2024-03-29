@@ -1137,69 +1137,6 @@ errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryRef _Nonnull 
     return err;
 }
 
-// Creates an empty file and returns the inode of that file. The behavior is
-// non-exclusive by default. Meaning the file is created if it does not 
-// exist and the file's inode is merrily acquired if it already exists. If
-// the mode is exclusive then the file is created if it doesn't exist and
-// an error is thrown if the file exists. Note that the file is not opened.
-// This must be done by calling the open() method.
-errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable _Locked * _Nonnull pOutNode)
-{
-    decl_try_err();
-
-    // 'pParentNode' must be a directory
-    if (!Inode_IsDirectory(pParentNode)) {
-        throw(ENOTDIR);
-    }
-
-
-    // We must have write permissions for 'pParentNode'
-    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
-
-
-    // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
-    // Also figure out whether there's an empty entry that we can reuse.
-    InodeId existingFileId;
-    SFSDirectoryEntryPointer ep;
-    SFSDirectoryQuery q;
-
-    q.kind = kSFSDirectoryQuery_PathComponent;
-    q.u.pc = pName;
-    err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &ep, NULL, &existingFileId, NULL);
-    if (err == ENOENT) {
-        err = EOK;
-    } else if (err == EOK) {
-        if ((options & kOpen_Exclusive) == kOpen_Exclusive) {
-            // Exclusive mode: File already exists -> throw an error
-            throw(EEXIST);
-        }
-        else {
-            // Non-exclusive mode: File already exists -> acquire it and let the caller open it
-            try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, NULL, pOutNode));
-
-            // Truncate the file to length 0, if requested
-            if ((options & kOpen_Truncate) == kOpen_Truncate) {
-                SerenaFS_xTruncateFile(self, *pOutNode, 0);
-            }
-
-            return EOK;
-        }
-    } else {
-        throw(err);
-    }
-
-
-    // Create the new file and add it to its parent directory
-    try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_RegularFile, user.uid, user.gid, permissions, NULL, pOutNode));
-    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(*pOutNode), &ep));
-
-    return EOK;
-
-catch:
-    // XXX Unlink new file disk node if necessary
-    return err;
-}
-
 // Opens a resource context/channel to the resource. This new resource context
 // will be represented by a (file) descriptor in user space. The resource context
 // maintains state that is specific to this connection. This state will be
@@ -1217,21 +1154,98 @@ errno_t SerenaFS_open(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
     if ((mode & kOpen_ReadWrite) == 0) {
         throw(EACCESS);
     }
-    if ((mode & kOpen_Read) != 0) {
+    if ((mode & kOpen_Read) == kOpen_Read) {
         permissions |= kFilePermission_Read;
     }
-    if ((mode & kOpen_Write) != 0) {
+    if ((mode & kOpen_Write) == kOpen_Write || (mode & kOpen_Truncate) == kOpen_Truncate) {
         permissions |= kFilePermission_Write;
     }
 
     try(Inode_CheckAccess(pNode, user, permissions));
     try(File_Create((FilesystemRef)self, mode, pNode, pOutFile));
 
-    if ((mode & kOpen_Truncate) != 0) {
+    if ((mode & kOpen_Truncate) == kOpen_Truncate) {
         SerenaFS_xTruncateFile(self, pNode, 0);
     }
     
 catch:
+    return err;
+}
+
+// Creates and opens a file and returns the inode of that file. The behavior is
+// non-exclusive by default. Meaning the file is created if it does not 
+// exist and the file's inode is merrily acquired if it already exists. If
+// the mode is exclusive then the file is created if it doesn't exist and
+// an error is thrown if the file exists. Returns a file object, representing
+// the created and opened file.
+errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int mode, FilePermissions permissions, FileRef _Nullable * _Nonnull pOutFile)
+{
+    decl_try_err();
+    InodeRef pInode = NULL;
+
+    // 'pParentNode' must be a directory
+    if (!Inode_IsDirectory(pParentNode)) {
+        throw(ENOTDIR);
+    }
+
+
+    // Check whether a file with name 'pName' already exists
+    InodeId existingFileId;
+    SFSDirectoryEntryPointer ep;
+    SFSDirectoryQuery q;
+
+    q.kind = kSFSDirectoryQuery_PathComponent;
+    q.u.pc = pName;
+    err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &ep, NULL, &existingFileId, NULL);
+    if (err == ENOENT) {
+        // File does not exist - create it
+        err = EOK;
+
+
+        // We must have write permissions for 'pParentNode'
+        try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+
+
+        // The user provided read/write mode must match up with the provided (user) permissions
+        if ((mode & kOpen_ReadWrite) == 0) {
+            throw(EACCESS);
+        }
+        if ((mode & kOpen_Read) == kOpen_Read && !FilePermissions_Has(permissions, kFilePermissionsScope_User, kFilePermission_Read)) {
+            throw(EACCESS);
+        }
+        if ((mode & kOpen_Write) == kOpen_Write && !FilePermissions_Has(permissions, kFilePermissionsScope_User, kFilePermission_Write)) {
+            throw(EACCESS);
+        }
+
+
+        // Create the new file and add it to its parent directory
+        try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_RegularFile, user.uid, user.gid, permissions, NULL, &pInode));
+        try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pInode), &ep));
+        try(File_Create((FilesystemRef)self, mode, pInode, pOutFile));
+        Filesystem_RelinquishNode((FilesystemRef)self, pInode);
+    }
+    else if (err == EOK) {
+        // File exists - reject the operation in exclusive mode and open the file
+        // in non-exclusive mode
+        if ((mode & kOpen_Exclusive) == kOpen_Exclusive) {
+            // Exclusive mode: File already exists -> throw an error
+            throw(EEXIST);
+        }
+
+
+        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, NULL, &pInode));
+        try(SerenaFS_open(self, pInode, mode, user, pOutFile));
+        Filesystem_RelinquishNode((FilesystemRef)self, pInode);
+    }
+    else {
+        // Some lookup error
+        throw(err);
+    }
+
+    return EOK;
+
+catch:
+    // XXX Unlink new file disk node if necessary
     return err;
 }
 
