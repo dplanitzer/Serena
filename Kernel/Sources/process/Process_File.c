@@ -8,42 +8,9 @@
 
 #include "ProcessPriv.h"
 #include <filesystem/FilesystemManager.h>
-#include "Pipe.h"
+#include <filesystem/DirectoryChannel.h>
+#include <filesystem/FileChannel.h>
 
-
-// Sets the receiver's root directory to the given path. Note that the path must
-// point to a directory that is a child or the current root directory of the
-// process.
-errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPath)
-{
-    Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_SetRootDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
-    Lock_Unlock(&pProc->lock);
-
-    return err;
-}
-
-// Sets the receiver's current working directory to the given path.
-errno_t Process_SetWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
-{
-    Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_SetWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
-    Lock_Unlock(&pProc->lock);
-
-    return err;
-}
-
-// Returns the current working directory in the form of a path. The path is
-// written to the provided buffer 'pBuffer'. The buffer size must be at least as
-// large as length(path) + 1.
-errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize)
-{
-    Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_GetWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
-    Lock_Unlock(&pProc->lock);
-
-    return err;
-}
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask
 // should be removed from the file permissions that user space sent to create a
@@ -69,15 +36,20 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
 {
     decl_try_err();
     PathResolverResult r;
-    FileRef pFile = NULL;
+    InodeRef pInode = NULL;
+    IOChannelRef pFile = NULL;
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pFile));
-    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pFile, pOutDescriptor));
+    try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pInode));
+    try(FileChannel_Create((ObjectRef)r.filesystem, options, pInode, &pFile));
+    try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
 
 catch:
     Object_Release(pFile);
+    if (pInode) {
+        Filesystem_RelinquishNode(r.filesystem, pInode);
+    }
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return err;
@@ -89,12 +61,13 @@ errno_t Process_Open(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsi
 {
     decl_try_err();
     PathResolverResult r;
-    FileRef pFile;
+    IOChannelRef pFile = NULL;
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(IOResource_Open(r.filesystem, r.inode, options, pProc->realUser, (IOChannelRef*)&pFile));
-    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pFile, pOutDescriptor));
+    try(Filesystem_OpenFile(r.filesystem, r.inode, options, pProc->realUser));
+    try(FileChannel_Create((ObjectRef)r.filesystem, options, r.inode, &pFile));
+    try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
     Object_Release(pFile);
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
@@ -105,87 +78,6 @@ catch:
     Lock_Unlock(&pProc->lock);
     Object_Release(pFile);
     *pOutDescriptor = -1;
-    return err;
-}
-
-// Creates a new directory. 'permissions' are the file permissions that should be
-// assigned to the new directory (modulo the file creation mask).
-errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FilePermissions permissions)
-{
-    decl_try_err();
-    PathResolverResult r;
-
-    Lock_Lock(&pProc->lock);
-
-    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_CreateDirectory(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
-    }
-    PathResolverResult_Deinit(&r);
-
-    Lock_Unlock(&pProc->lock);
-
-    return err;
-}
-
-// Opens the directory at the given path and returns an I/O channel that represents
-// the open directory.
-errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int* _Nonnull pOutDescriptor)
-{
-    decl_try_err();
-    PathResolverResult r;
-    DirectoryRef pDir = NULL;
-
-    Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_OpenDirectory(r.filesystem, r.inode, pProc->realUser, &pDir));
-    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
-    Object_Release(pDir);
-    PathResolverResult_Deinit(&r);
-    Lock_Unlock(&pProc->lock);
-    return EOK;
-
-catch:
-    PathResolverResult_Deinit(&r);
-    Lock_Unlock(&pProc->lock);
-    Object_Release(pDir);
-    *pOutDescriptor = -1;
-    return err;
-}
-
-// Creates an anonymous pipe.
-errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChannel, int* _Nonnull pOutWriteChannel)
-{
-    decl_try_err();
-    PipeRef pPipe = NULL;
-    IOChannelRef rdChannel = NULL, wrChannel = NULL;
-    bool needsUnlock = false;
-    bool isReadChannelRegistered = false;
-
-    try(Pipe_Create(kPipe_DefaultBufferSize, &pPipe));
-    try(IOResource_Open(pPipe, NULL /*XXX*/, kOpen_Read, pProc->realUser, &rdChannel));
-    try(IOResource_Open(pPipe, NULL /*XXX*/, kOpen_Write, pProc->realUser, &wrChannel));
-
-    Lock_Lock(&pProc->lock);
-    needsUnlock = true;
-    try(Process_RegisterIOChannel_Locked(pProc, rdChannel, pOutReadChannel));
-    isReadChannelRegistered = true;
-    try(Process_RegisterIOChannel_Locked(pProc, wrChannel, pOutWriteChannel));
-    Object_Release(rdChannel);
-    Object_Release(wrChannel);
-    Lock_Unlock(&pProc->lock);
-    return EOK;
-
-catch:
-    if (isReadChannelRegistered) {
-        Process_UnregisterIOChannel(pProc, *pOutReadChannel, &rdChannel);
-        Object_Release(rdChannel);
-    }
-    if (needsUnlock) {
-        Lock_Unlock(&pProc->lock);
-    }
-    Object_Release(rdChannel);
-    Object_Release(wrChannel);
-    Object_Release(pPipe);
     return err;
 }
 
@@ -213,11 +105,11 @@ errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, File
     IOChannelRef pChannel;
 
     if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
-        if (Object_InstanceOf(pChannel, File)) {
-            err = Filesystem_GetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pOutInfo);
+        if (Object_InstanceOf(pChannel, FileChannel)) {
+            err = FileChannel_GetInfo((FileChannelRef)pChannel, pOutInfo);
         }
-        else if (Object_InstanceOf(pChannel, Directory)) {
-            err = Filesystem_GetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pOutInfo);
+        else if (Object_InstanceOf(pChannel, DirectoryChannel)) {
+            err = DirectoryChannel_GetInfo((DirectoryChannelRef)pChannel, pOutInfo);
         }
         else {
             err = EBADF;
@@ -252,11 +144,11 @@ errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, Muta
     IOChannelRef pChannel;
 
     if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
-        if (Object_InstanceOf(pChannel, File)) {
-            err = Filesystem_SetFileInfo(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, pInfo);
+        if (Object_InstanceOf(pChannel, FileChannel)) {
+            err = FileChannel_SetInfo((FileChannelRef)pChannel, pProc->realUser, pInfo);
         }
-        else if (Object_InstanceOf(pChannel, Directory)) {
-            err = Filesystem_SetFileInfo(Directory_GetFilesystem(pChannel), Directory_GetInode(pChannel), pProc->realUser, pInfo);
+        else if (Object_InstanceOf(pChannel, DirectoryChannel)) {
+            err = DirectoryChannel_SetInfo((DirectoryChannelRef)pChannel, pProc->realUser, pInfo);
         }
         else {
             err = EBADF;
@@ -293,10 +185,10 @@ errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, Fil
     IOChannelRef pChannel;
 
     if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
-        if (Object_InstanceOf(pChannel, File)) {
-            err = Filesystem_Truncate(File_GetFilesystem(pChannel), File_GetInode(pChannel), pProc->realUser, length);
+        if (Object_InstanceOf(pChannel, FileChannel)) {
+            err = FileChannel_Truncate((FileChannelRef)pChannel, pProc->realUser, length);
         }
-        else if (Object_InstanceOf(pChannel, Directory)) {
+        else if (Object_InstanceOf(pChannel, DirectoryChannel)) {
             err = EISDIR;
         }
         else {

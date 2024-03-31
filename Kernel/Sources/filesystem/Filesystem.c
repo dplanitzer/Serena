@@ -10,211 +10,6 @@
 #include <System/IOChannel.h>
 
 
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: File
-////////////////////////////////////////////////////////////////////////////////
-
-// Creates a file object.
-errno_t File_Create(FilesystemRef _Nonnull pFilesystem, unsigned int mode, InodeRef _Nonnull pNode, FileRef _Nullable * _Nonnull pOutFile)
-{
-    decl_try_err();
-    FileRef pFile;
-
-    try(IOChannel_AbstractCreate(&kFileClass, (IOResourceRef)pFilesystem, mode, (IOChannelRef*)&pFile));
-    pFile->inode = Inode_ReacquireUnlocked(pNode);
-    pFile->offset = 0ll;
-
-catch:
-    *pOutFile = pFile;
-    return err;
-}
-
-// Creates a copy of the given file.
-errno_t File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _Nonnull pOutFile)
-{
-    decl_try_err();
-    FileRef pNewFile;
-
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)pInFile, (IOChannelRef*)&pNewFile));
-    pNewFile->inode = Inode_ReacquireUnlocked(pInFile->inode);
-    pNewFile->offset = pInFile->offset;
-
-catch:
-    *pOutFile = pNewFile;
-    return err;
-}
-
-void File_deinit(FileRef _Nonnull self)
-{
-    if (self->inode) {
-        Inode_Relinquish(self->inode);
-        self->inode = NULL;
-    }
-}
-
-errno_t File_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_File;
-            return EOK;
-
-        default:
-            return Object_SuperN(ioctl, IOChannel, self, cmd, ap);
-    }
-}
-
-errno_t File_seek(FileRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
-{
-    if(pOutOldPosition) {
-        *pOutOldPosition = self->offset;
-    }
-
-    FileOffset newOffset;
-
-    switch (whence) {
-        case SEEK_SET:
-            newOffset = offset;
-            break;
-
-        case SEEK_CUR:
-            newOffset = self->offset + offset;
-            break;
-
-        case SEEK_END:
-            newOffset = Inode_GetFileSize(self->inode) + offset;
-            break;
-
-        default:
-            return EINVAL;
-    }
-
-    if (newOffset < 0) {
-        return EINVAL;
-    }
-    // XXX do overflow check
-
-    self->offset = newOffset;
-    return EOK;
-}
-
-CLASS_METHODS(File, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, File, Object)
-OVERRIDE_METHOD_IMPL(ioctl, File, IOChannel)
-OVERRIDE_METHOD_IMPL(seek, File, IOChannel)
-);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Directory
-////////////////////////////////////////////////////////////////////////////////
-
-// Creates a directory object.
-errno_t Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, DirectoryRef _Nullable * _Nonnull pOutDir)
-{
-    decl_try_err();
-    DirectoryRef pDir;
-
-    try(IOChannel_AbstractCreate(&kDirectoryClass, (IOResourceRef)pFilesystem, kOpen_Read, (IOChannelRef*)&pDir));
-    pDir->inode = Inode_ReacquireUnlocked(pNode);
-    pDir->offset = 0ll;
-
-catch:
-    *pOutDir = pDir;
-    return err;
-}
-
-// Creates a copy of the given directory descriptor.
-errno_t Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef _Nullable * _Nonnull pOutDir)
-{
-    decl_try_err();
-    DirectoryRef pNewDir;
-
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)pInDir, (IOChannelRef*)&pNewDir));
-    pNewDir->inode = Inode_ReacquireUnlocked(pInDir->inode);
-    pNewDir->offset = pInDir->offset;
-
-catch:
-    *pOutDir = pNewDir;
-    return err;
-}
-
-void Directory_deinit(DirectoryRef _Nonnull self)
-{
-    if (self->inode) {
-        Inode_Relinquish(self->inode);
-        self->inode = NULL;
-    }
-}
-
-ssize_t Directory_dup(DirectoryRef _Nonnull self, DirectoryRef _Nullable * _Nonnull pOutDir)
-{
-    return EBADF;
-}
-
-errno_t Directory_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_Directory;
-            return EOK;
-
-        default:
-            return Object_SuperN(ioctl, IOChannel, self, cmd, ap);
-    }
-}
-
-errno_t Directory_read(DirectoryRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return Filesystem_ReadDirectory(IOChannel_GetResource(self), self, pBuffer, nBytesToRead, nOutBytesRead);
-}
-
-errno_t Directory_write(DirectoryRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    *nOutBytesWritten = 0;
-    return EBADF;
-}
-
-errno_t Directory_seek(DirectoryRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
-{
-    
-    if(pOutOldPosition) {
-        *pOutOldPosition = self->offset;
-    }
-    if (whence != SEEK_SET || offset < 0) {
-        return EINVAL;
-    }
-    if (offset > (FileOffset)INT_MAX) {
-        return EOVERFLOW;
-    }
-
-    self->offset = offset;
-    return EOK;
-}
-
-errno_t Directory_close(DirectoryRef _Nonnull self)
-{
-    return Filesystem_CloseDirectory(IOChannel_GetResource(self), self);
-}
-
-CLASS_METHODS(Directory, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, Directory, Object)
-OVERRIDE_METHOD_IMPL(dup, Directory, IOChannel)
-OVERRIDE_METHOD_IMPL(ioctl, Directory, IOChannel)
-OVERRIDE_METHOD_IMPL(read, Directory, IOChannel)
-OVERRIDE_METHOD_IMPL(write, Directory, IOChannel)
-OVERRIDE_METHOD_IMPL(seek, Directory, IOChannel)
-OVERRIDE_METHOD_IMPL(close, Directory, IOChannel)
-);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Filesystem
-////////////////////////////////////////////////////////////////////////////////
-
 // Returns the next available FSID.
 static FilesystemId Filesystem_GetNextAvailableId(void)
 {
@@ -504,7 +299,28 @@ errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
 // the mode is exclusive then the file is created if it doesn't exist and
 // an error is thrown if the file exists. Returns a file object, representing
 // the created and opened file.
-errno_t Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, FileRef _Nullable * _Nonnull pOutFile)
+errno_t Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    return EIO;
+}
+
+// Opens the file identified by the given inode. The file is opened for reading
+// and or writing, depending on the 'mode' bits.
+errno_t Filesystem_openFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user)
+{
+    return EIO;
+}
+
+// Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
+// from the file 'pNode'.
+errno_t Filesystem_readFile(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
+{
+    return EIO;
+}
+
+// Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
+// to the file 'pNode'.
+errno_t Filesystem_writeFile(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EIO;
 }
@@ -517,10 +333,9 @@ errno_t Filesystem_createDirectory(FilesystemRef _Nonnull self, const PathCompon
     return EACCESS;
 }
 
-// Opens the directory represented by the given node. Returns a directory
-// descriptor object which is teh I/O channel that allows you to read the
-// directory content.
-errno_t Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
+// Opens the directory represented by the given node. The filesystem is
+// expected to validate whether the user has access to the directory content.
+errno_t Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user)
 {
     return EACCESS;
 }
@@ -531,16 +346,9 @@ errno_t Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 // return a partial entry. Consequently the provided buffer must be big enough
 // to hold at least one directory entry. Note that this function is expected
 // to return "." for the entry at index #0 and ".." for the entry at index #1.
-errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull pDirNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
-}
-
-// Closes the given directory I/O channel.
-errno_t Filesystem_closeDirectory(FilesystemRef _Nonnull self, DirectoryRef _Nonnull pDir)
-{
-    Object_Release(pDir);
-    return EOK;
 }
 
 // Verifies that the given node is accessible assuming the given access mode.
@@ -581,7 +389,7 @@ errno_t Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _Non
 }
 
 
-CLASS_METHODS(Filesystem, IOResource,
+CLASS_METHODS(Filesystem, Object,
 OVERRIDE_METHOD_IMPL(deinit, Filesystem, Object)
 METHOD_IMPL(onAllocateNodeOnDisk, Filesystem)
 METHOD_IMPL(onReadNodeFromDisk, Filesystem)
@@ -595,10 +403,12 @@ METHOD_IMPL(getNameOfNode, Filesystem)
 METHOD_IMPL(getFileInfo, Filesystem)
 METHOD_IMPL(setFileInfo, Filesystem)
 METHOD_IMPL(createFile, Filesystem)
+METHOD_IMPL(openFile, Filesystem)
+METHOD_IMPL(readFile, Filesystem)
+METHOD_IMPL(writeFile, Filesystem)
 METHOD_IMPL(createDirectory, Filesystem)
 METHOD_IMPL(openDirectory, Filesystem)
 METHOD_IMPL(readDirectory, Filesystem)
-METHOD_IMPL(closeDirectory, Filesystem)
 METHOD_IMPL(checkAccess, Filesystem)
 METHOD_IMPL(truncate, Filesystem)
 METHOD_IMPL(unlink, Filesystem)

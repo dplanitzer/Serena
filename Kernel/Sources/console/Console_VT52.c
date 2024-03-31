@@ -7,6 +7,7 @@
 //
 
 #include "ConsolePriv.h"
+#include "ConsoleChannel.h"
 
 
 // Interprets the given byte as a C0 control character and either executes it or ignores it.

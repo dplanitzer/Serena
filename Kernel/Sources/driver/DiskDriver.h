@@ -9,7 +9,7 @@
 #ifndef DiskDriver_h
 #define DiskDriver_h
 
-#include "IOResource.h"
+#include <klib/klib.h>
 
 
 // Represents a logical block address in the range 0..<DiskDriver.blockCount
@@ -23,10 +23,10 @@ typedef LogicalBlockAddress LogicalBlockCount;
 // access to the disk data. Data on a disk is organized in blocks. All blocks
 // are of the same size. Blocks are addresses with an index in the range
 // [0, BlockCount].
-OPEN_CLASS_WITH_REF(DiskDriver, IOResource,
+OPEN_CLASS_WITH_REF(DiskDriver, Object,
 );
 typedef struct _DiskDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 
     // Returns the size of a block.
     // The abstract implementation returns 0.

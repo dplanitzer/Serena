@@ -10,7 +10,6 @@
 #define GraphicsDriver_h
 
 #include <klib/klib.h>
-#include "IOResource.h"
 #include "Color.h"
 #include "Surface.h"
 
@@ -41,9 +40,9 @@ extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig
 extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
 
 
-OPAQUE_CLASS(GraphicsDriver, IOResource);
+OPAQUE_CLASS(GraphicsDriver, Object);
 typedef struct _GraphicsDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } GraphicsDriverMethodTable;
 
 

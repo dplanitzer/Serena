@@ -156,7 +156,7 @@ typedef struct GraphicsContext {
 
 
 // The console object.
-CLASS_IVARS(Console, IOResource,
+CLASS_IVARS(Console, Object,
     Lock                        lock;
     EventDriverRef _Nonnull     eventDriver;
     IOChannelRef _Nonnull       eventDriverChannel;
@@ -188,6 +188,7 @@ CLASS_IVARS(Console, IOResource,
         unsigned int    isTextCursorVisible:1;          // global text cursor visibility switch
     }                           flags;
 );
+
 
 
 extern errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self);
@@ -239,26 +240,6 @@ extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, int nChars);
 extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, int nLines);
 extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, int nLines);
-
-
-// Big enough to hold the result of a key mapping and the longest possible
-// terminal report message.
-#define MAX_MESSAGE_LENGTH kKeyMap_MaxByteSequenceLength
-
-// The console I/O channel
-//
-// Takes care of mapping a USB key scan code to a character or character sequence.
-// We may leave partial character sequences in the buffer if a Console_Read() didn't
-// read all bytes of a sequence. The next Console_Read() will first receive the
-// remaining buffered bytes before it receives bytes from new events.
-OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
-    char    rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
-    int8_t  rdCount;                        // Number of bytes stored in the buffer
-    int8_t  rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
-);
-typedef struct _ConsoleChannelMethodTable {
-    IOChannelMethodTable    super;
-} ConsoleChannelMethodTable;
 
 
 //

@@ -58,7 +58,8 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
 {
     decl_try_err();
     const unsigned int mode = kOpen_Write | kOpen_Exclusive;
-    IOChannelRef pDstFile = NULL;
+    FileOffset dstFileOffset = 0ll;
+    InodeRef pDstFile = NULL;
     FILE* pSrcFile = NULL;
 
     PathComponent pc;
@@ -79,7 +80,7 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
 
 
     //printf("  %s   %llu bytes\n", pEntry->name, pEntry->fileSize);
-    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, permissions, (FileRef*)&pDstFile));
+    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, permissions, &pDstFile));
 
     try(di_concat_path(pBasePath, pEntry->name, gBuffer, sizeof(gBuffer)));
     try_null(pSrcFile, fopen(gBuffer, "rb"), EIO);
@@ -94,14 +95,13 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
         }
 
         if (r > 0) {
-            try(IOChannel_Write(pDstFile, gBuffer, r, &nBytesWritten));
+            try(Filesystem_WriteFile(pFS, pDstFile, gBuffer, r, &dstFileOffset, &nBytesWritten));
         }
     }
 
 catch:
     if (pDstFile) {
-        IOChannel_Close(pDstFile);
-        Object_Release(pDstFile);
+        Filesystem_RelinquishNode(pFS, pDstFile);
     }
     if (pSrcFile) {
         fclose(pSrcFile);
@@ -149,11 +149,7 @@ catch:
 static void init(void)
 {
     _RegisterClass(&kObjectClass);
-    _RegisterClass(&kIOChannelClass);
-    _RegisterClass(&kIOResourceClass);
     _RegisterClass(&kDiskDriverClass);
-    _RegisterClass(&kFileClass);
-    _RegisterClass(&kDirectoryClass);
     _RegisterClass(&kFilesystemClass);
     _RegisterClass(&kSerenaFSClass);
 

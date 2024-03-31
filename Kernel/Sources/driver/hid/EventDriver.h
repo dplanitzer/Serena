@@ -12,12 +12,11 @@
 #include <klib/klib.h>
 #include <driver/amiga/cbm-graphics/GraphicsDriver.h>
 #include "HIDEvent.h"
-#include "IOResource.h"
 
 
-OPAQUE_CLASS(EventDriver, IOResource);
+OPAQUE_CLASS(EventDriver, Object);
 typedef struct _EventDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } EventDriverMethodTable;
 
 
@@ -74,5 +73,11 @@ extern void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonn
 // Returns the mouse hardware state
 extern Point EventDriver_GetMouseDevicePosition(EventDriverRef _Nonnull pDriver);
 extern uint32_t EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver);
+
+
+// Getting events
+// Returns events in the order oldest to newest. As many events are returned as
+// fit in the provided buffer. Only blocks the caller if no events are queued.
+extern errno_t EventDriver_Read(EventDriverRef _Nonnull pDriver, void* _Nonnull pBuffer, ssize_t nBytesToRead, TimeInterval timeout, ssize_t* _Nonnull nOutBytesRead);
 
 #endif /* EventDriver_h */

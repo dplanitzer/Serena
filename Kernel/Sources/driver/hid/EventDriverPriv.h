@@ -36,7 +36,7 @@ typedef struct _LogicalJoystick {
 // Per port input controller state
 typedef struct _InputControllerState {
     InputControllerType     type;
-    IOResourceRef _Nullable driver;
+    ObjectRef _Nullable     driver;
 } InputControllerState;
 
 
@@ -49,7 +49,7 @@ typedef struct _InputControllerState {
 // may contribute to their state. Eg multiple keyboards may contribute to the
 // logical keyboard and multiple mice and other devices such as a joystick or
 // light pen may contribute to the state of the logical mouse. 
-CLASS_IVARS(EventDriver, IOResource,
+CLASS_IVARS(EventDriver, Object,
     Lock                        lock;
     GraphicsDriverRef _Nonnull  gdevice;
     HIDEventQueueRef _Nonnull   eventQueue;
@@ -90,15 +90,6 @@ CLASS_IVARS(EventDriver, IOResource,
     // Logical Joystick Devices
     LogicalJoystick             joystick[MAX_INPUT_CONTROLLER_PORTS];
 );
-
-
-// Event Driver I/O Channel
-OPEN_CLASS_WITH_REF(EventDriverChannel, IOChannel,
-    TimeInterval    timeout;
-);
-typedef struct _EventDriverChannelMethodTable {
-    IOChannelMethodTable    super;
-} EventDriverChannelMethodTable;
 
 
 extern errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, int portId);

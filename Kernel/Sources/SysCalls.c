@@ -8,9 +8,11 @@
 
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <console/Console.h>
+#include <console/ConsoleChannel.h>
 #include <driver/DriverManager.h>
 #include <process/Process.h>
-#include "IOResource.h"
+#include "IOChannel.h"
 #include "User.h"
 
 typedef intptr_t (*SystemCall)(void* _Nonnull);
@@ -84,7 +86,6 @@ SYSCALL_4(mkfile, const char* _Nullable path, unsigned options, uint32_t permiss
 SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable pOutIoc)
 {
     decl_try_err();
-    IOResourceRef pConsole = NULL;
     IOChannelRef pChannel = NULL;
 
     if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
@@ -92,8 +93,10 @@ SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable
     }
 
     if (String_Equals(pArgs->path, "/dev/console")) {
-        try_null(pConsole, (IOResourceRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-        try(IOResource_Open(pConsole, NULL/*XXX*/, pArgs->options, kUser_Root, &pChannel));
+        ConsoleRef pConsole;
+
+        try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+        try(ConsoleChannel_Create((ObjectRef)pConsole, pArgs->options, &pChannel));
         try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, pArgs->pOutIoc));
         Object_Release(pChannel);
     }

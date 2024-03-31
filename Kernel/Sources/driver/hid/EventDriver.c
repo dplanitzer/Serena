@@ -8,20 +8,6 @@
 
 #include "EventDriverPriv.h"
 
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: EventDriverChannel
-////////////////////////////////////////////////////////////////////////////////
-
-CLASS_METHODS(EventDriverChannel, IOChannel,
-);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: EventDriver
-////////////////////////////////////////////////////////////////////////////////
-
 //extern const uint16_t gArrow_Bits[];
 //extern const uint16_t gArrow_Mask[];
 
@@ -554,35 +540,9 @@ uint32_t EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull pDriver)
 // MARK: Getting Events
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t EventDriver_open(EventDriverRef _Nonnull pDriver, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    EventDriverChannelRef pChannel;
-
-    try(IOChannel_AbstractCreate(&kEventDriverChannelClass, (IOResourceRef) pDriver, mode, (IOChannelRef*)&pChannel));
-    pChannel->timeout = kTimeInterval_Infinity;
-
-catch:
-    *pOutChannel = pChannel;
-    return err;
-}
-
-errno_t EventDriver_dup(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pInChannel, EventDriverChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    EventDriverChannelRef pNewChannel;
-
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
-    pNewChannel->timeout = pInChannel->timeout;
-
-catch:
-    *pOutChannel = pNewChannel;
-    return err;
-}
-
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t EventDriver_Read(EventDriverRef _Nonnull pDriver, void* _Nonnull pBuffer, ssize_t nBytesToRead, TimeInterval timeout, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
@@ -590,7 +550,7 @@ errno_t EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef 
     int i;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        const errno_t e1 = HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? pChannel->timeout : kTimeInterval_Zero);
+        const errno_t e1 = HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? timeout : kTimeInterval_Zero);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at
@@ -610,9 +570,6 @@ errno_t EventDriver_read(EventDriverRef _Nonnull pDriver, EventDriverChannelRef 
 }
 
 
-CLASS_METHODS(EventDriver, IOResource,
-OVERRIDE_METHOD_IMPL(open, EventDriver, IOResource)
-OVERRIDE_METHOD_IMPL(dup, EventDriver, IOResource)
-OVERRIDE_METHOD_IMPL(read, EventDriver, IOResource)
+CLASS_METHODS(EventDriver, Object,
 OVERRIDE_METHOD_IMPL(deinit, EventDriver, Object)
 );

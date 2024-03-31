@@ -49,7 +49,7 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pB
 }
 
 
-CLASS_METHODS(DiskDriver, IOResource,
+CLASS_METHODS(DiskDriver, Object,
 METHOD_IMPL(getBlockSize, DiskDriver)
 METHOD_IMPL(getBlockCount, DiskDriver)
 METHOD_IMPL(isReadOnly, DiskDriver)

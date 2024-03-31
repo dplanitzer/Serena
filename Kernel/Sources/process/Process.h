@@ -12,6 +12,7 @@
 #include <klib/klib.h>
 #include <filesystem/Filesystem.h>
 #include <System/Process.h>
+#include <IOChannel.h>
 #include <User.h>
 
 OPAQUE_CLASS(Process, Object);

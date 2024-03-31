@@ -10,112 +10,10 @@
 #define Filesystem_h
 
 #include <driver/DiskDriver.h>
-#include "IOResource.h"
 #include "Inode.h"
 #include "PathComponent.h"
 #include "User.h"
 
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: File
-////////////////////////////////////////////////////////////////////////////////
-
-OPEN_CLASS_WITH_REF(File, IOChannel,
-    InodeRef _Nonnull   inode;
-    FileOffset          offset;
-);
-
-typedef struct _FileMethodTable {
-    IOChannelMethodTable    super;
-} FileMethodTable;
-
-
-// Creates a file object.
-extern errno_t File_Create(FilesystemRef _Nonnull pFilesystem, unsigned int mode, InodeRef _Nonnull pNode, FileRef _Nullable * _Nonnull pOutFile);
-
-// Creates a copy of the given file.
-extern errno_t File_CreateCopy(FileRef _Nonnull pInFile, FileRef _Nullable * _Nonnull pOutFile);
-
-// Returns the filesystem to which this file (I/O channel) connects
-#define File_GetFilesystem(__self) \
-    (FilesystemRef)IOChannel_GetResource((FileRef)__self)
-
-// Returns the node that represents the physical file
-#define File_GetInode(__self) \
-    ((FileRef)__self)->inode
-
-// Returns the offset at which the next read/write should start
-#define File_GetOffset(__self) \
-    ((FileRef)__self)->offset
-
-// Sets the offset at which the next read/write should start
-#define File_SetOffset(__self, __offset) \
-    ((FileRef)__self)->offset = (__offset)
-
-// Increments the offset at which the next read/write should start
-#define File_IncrementOffset(__self, __delta) \
-    ((FileRef)__self)->offset += (FileOffset)(__delta)
-
-// Returns true if the file should always append on write()
-#define File_IsAppendOnWrite(__self) \
-    ((IOChannel_GetMode((IOChannelRef)__self) & kOpen_Append) == kOpen_Append)
-    
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Directory
-////////////////////////////////////////////////////////////////////////////////
-
-// File positions/seeking and directories:
-// The only allowed seeks are of the form seek(SEEK_SET) with an absolute position
-// that was previously obtained from another seek or a value of 0 to rewind to the
-// beginning of the directory listing. The seek position represents the index of
-// the first directory entry that should be returned by the next read() operation.
-// It is not a byte offset. This way it doesn't matter to the user of the read()
-// and seek() call how exactly the contents of a directory is stored in the file
-// system.  
-OPEN_CLASS_WITH_REF(Directory, IOChannel,
-    InodeRef _Nonnull   inode;
-    FileOffset          offset;
-);
-
-typedef struct _DirectoryMethodTable {
-    IOChannelMethodTable    super;
-} DirectoryMethodTable;
-
-
-// Creates a directory object.
-extern errno_t Directory_Create(FilesystemRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, DirectoryRef _Nullable * _Nonnull pOutDir);
-
-// Creates a copy of the given directory descriptor.
-extern errno_t Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef _Nullable * _Nonnull pOutDir);
-
-// Returns the filesystem to which this directory (I/O channel) connects
-#define Directory_GetFilesystem(__self) \
-    (FilesystemRef)IOChannel_GetResource((FileRef)__self)
-
-// Returns the node that represents the physical directory
-#define Directory_GetInode(__self) \
-    ((DirectoryRef)__self)->inode
-
-// Returns the index of the directory entry at which the next read should start
-#define Directory_GetOffset(__self) \
-    ((DirectoryRef)__self)->offset
-
-// Sets the index of the directory entry that should be considered first on the next read
-#define Directory_SetOffset(__self, __newOffset) \
-    ((DirectoryRef)__self)->offset = (__newOffset)
-    
-// Increments the index of the directory entry at which the next read should start
-#define Directory_IncrementOffset(__self, __delta) \
-    ((DirectoryRef)__self)->offset += (__delta)
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Filesystem
-////////////////////////////////////////////////////////////////////////////////
 
 // A file system stores Inodes. The Inodes may form a tree. This is an abstract
 // base  class that must be subclassed and fully implemented by a file system.
@@ -132,13 +30,13 @@ extern errno_t Directory_CreateCopy(DirectoryRef _Nonnull pInDir, DirectoryRef _
 // Every inode has a lock associated with it. The filesystem (XXX currently)
 // must lock the inode before it accesses or modifies any of its properties. 
 //
-OPEN_CLASS(Filesystem, IOResource,
+OPEN_CLASS(Filesystem, Object,
     FilesystemId        fsid;
     Lock                inodeManagementLock;
     PointerArray        inodesInUse;
 );
 typedef struct _FilesystemMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 
     //
     // Mounting/Unmounting
@@ -208,7 +106,19 @@ typedef struct _FilesystemMethodTable {
     // the mode is exclusive then the file is created if it doesn't exist and
     // an error is thrown if the file exists. Returns a file object, representing
     // the created and opened file.
-    errno_t (*createFile)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, FileRef _Nullable * _Nonnull pOutFile);
+    errno_t (*createFile)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
+
+    // Opens the file identified by the given inode. The file is opened for
+    // reading and or writing, depending on the 'mode' bits.
+    errno_t (*openFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user);
+
+    // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
+    // from the file 'pNode'.
+    errno_t (*readFile)(void* _Nonnull self, InodeRef _Nonnull pNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
+
+    // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
+    // to the file 'pNode'.
+    errno_t (*writeFile)(void* _Nonnull self, InodeRef _Nonnull pNode, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten);
 
 
     //
@@ -220,10 +130,9 @@ typedef struct _FilesystemMethodTable {
     // the given name already exists.
     errno_t (*createDirectory)(void* _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions);
 
-    // Opens the directory represented by the given node. Returns a directory
-    // descriptor object which is teh I/O channel that allows you to read the
-    // directory content.
-    errno_t (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir);
+    // Opens the directory represented by the given node. The filesystem is
+    // expected to validate whether the user has access to the directory content.
+    errno_t (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user);
 
     // Reads the next set of directory entries. The first entry read is the one
     // at the current directory index stored in 'pDir'. This function guarantees
@@ -231,10 +140,7 @@ typedef struct _FilesystemMethodTable {
     // return a partial entry. Consequently the provided buffer must be big enough
     // to hold at least one directory entry. Note that this function is expected
     // to return "." for the entry at index #0 and ".." for the entry at index #1.
-    errno_t (*readDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-
-    // Closes the given directory I/O channel.
-    errno_t (*closeDirectory)(void* _Nonnull self, DirectoryRef _Nonnull pDir);
+    errno_t (*readDirectory)(void* _Nonnull self, InodeRef _Nonnull pDirNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
 
 
     //
@@ -341,21 +247,27 @@ Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
-#define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __options, __permissions, __pOutFile) \
-Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __options, __permissions, __pOutFile)
+#define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode) \
+Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode)
+
+#define Filesystem_OpenFile(__self, __pNode, __mode, __user) \
+Object_InvokeN(openFile, Filesystem, __self, __pNode, __mode, __user)
+
+#define Filesystem_ReadFile(__self, __pNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
+Object_InvokeN(readFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
+
+#define Filesystem_WriteFile(__self, __pNode, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten) \
+Object_InvokeN(writeFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten)
 
 
 #define Filesystem_CreateDirectory(__self, __pName, __pParentNode, __user, __permissions) \
 Object_InvokeN(createDirectory, Filesystem, __self, __pName, __pParentNode, __user, __permissions)
 
-#define Filesystem_OpenDirectory(__self, __pDirNode, __user, __pOutDir) \
-Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __user, __pOutDir)
+#define Filesystem_OpenDirectory(__self, __pDirNode, __user) \
+Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __user)
 
-#define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead, __nOutBytesRead) \
-Object_InvokeN(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead, __nOutBytesRead)
-
-#define Filesystem_CloseDirectory(__self, __pDir) \
-Object_InvokeN(closeDirectory, Filesystem, __self, __pDir)
+#define Filesystem_ReadDirectory(__self, __pDirNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
+Object_InvokeN(readDirectory, Filesystem, __self, __pDirNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
 
 
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \

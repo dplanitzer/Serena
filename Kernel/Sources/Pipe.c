@@ -9,6 +9,7 @@
 #include "Pipe.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
+#include <System/File.h>
 
 
 enum {
@@ -16,7 +17,7 @@ enum {
     kPipeState_Closed
 };
 
-CLASS_IVARS(Pipe, IOResource,
+CLASS_IVARS(Pipe, Object,
     Lock                lock;
     ConditionVariable   reader;
     ConditionVariable   writer;
@@ -86,20 +87,8 @@ size_t Pipe_GetCapacity(PipeRef _Nonnull self)
     return nbytes;
 }
 
-errno_t Pipe_open(PipeRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Pipe_Close(PipeRef _Nonnull self, unsigned int mode)
 {
-    return IOChannel_AbstractCreate(&kIOChannelClass, (IOResourceRef) self, mode, pOutChannel);
-}
-
-errno_t Pipe_dup(PipeRef _Nonnull self, IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    return IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, pOutChannel);
-}
-
-errno_t Pipe_close(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel)
-{
-    const unsigned int mode = IOChannel_GetMode(pChannel);
-
     Lock_Lock(&self->lock);
     if ((mode & kOpen_ReadWrite) == kOpen_Read) {
         self->readSideState = kPipeState_Closed;
@@ -118,7 +107,7 @@ errno_t Pipe_close(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 // Which ever comes first. Blocks the caller if it is asking for more data than
 // is available in the pipe. Otherwise all available data is read from the pipe
 // and the amount of data read is returned.
-errno_t Pipe_read(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     ssize_t nBytesRead = 0;
@@ -160,7 +149,7 @@ errno_t Pipe_read(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _
     return err;
 }
 
-errno_t Pipe_write(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
     ssize_t nBytesWritten = 0;
@@ -203,11 +192,6 @@ errno_t Pipe_write(PipeRef _Nonnull self, IOChannelRef _Nonnull pChannel, const 
 }
 
 
-CLASS_METHODS(Pipe, IOResource,
-OVERRIDE_METHOD_IMPL(open, Pipe, IOResource)
-OVERRIDE_METHOD_IMPL(dup, Pipe, IOResource)
-OVERRIDE_METHOD_IMPL(close, Pipe, IOResource)
-OVERRIDE_METHOD_IMPL(read, Pipe, IOResource)
-OVERRIDE_METHOD_IMPL(write, Pipe, IOResource)
+CLASS_METHODS(Pipe, Object,
 OVERRIDE_METHOD_IMPL(deinit, Pipe, Object)
 );

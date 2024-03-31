@@ -31,7 +31,7 @@ static const uint8_t gUSBHIDKeycodes[128] = {
 };
 
 
-CLASS_IVARS(KeyboardDriver, IOResource,
+CLASS_IVARS(KeyboardDriver, Object,
     const uint8_t* _Nonnull       keyCodeMap;
     EventDriverRef _Nonnull     eventDriver;
     HIDKeyRepeaterRef _Nonnull  keyRepeater;
@@ -136,7 +136,7 @@ void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull pDriver)
 }
 
 
-CLASS_METHODS(KeyboardDriver, IOResource,
+CLASS_METHODS(KeyboardDriver, Object,
 OVERRIDE_METHOD_IMPL(deinit, KeyboardDriver, Object)
 );
 
@@ -146,7 +146,7 @@ OVERRIDE_METHOD_IMPL(deinit, KeyboardDriver, Object)
 // MARK: Mouse Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-CLASS_IVARS(MouseDriver, IOResource,
+CLASS_IVARS(MouseDriver, Object,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -275,7 +275,7 @@ void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver)
 }
 
 
-CLASS_METHODS(MouseDriver, IOResource,
+CLASS_METHODS(MouseDriver, Object,
 OVERRIDE_METHOD_IMPL(deinit, MouseDriver, Object)
 );
 
@@ -285,7 +285,7 @@ OVERRIDE_METHOD_IMPL(deinit, MouseDriver, Object)
 // MARK: Digital Joystick Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-CLASS_IVARS(DigitalJoystickDriver, IOResource,
+CLASS_IVARS(DigitalJoystickDriver, Object,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -393,7 +393,7 @@ void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull pDriver
 }
 
 
-CLASS_METHODS(DigitalJoystickDriver, IOResource,
+CLASS_METHODS(DigitalJoystickDriver, Object,
 OVERRIDE_METHOD_IMPL(deinit, DigitalJoystickDriver, Object)
 );
 
@@ -403,7 +403,7 @@ OVERRIDE_METHOD_IMPL(deinit, DigitalJoystickDriver, Object)
 // MARK: Analog Joystick (Paddles) Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-CLASS_IVARS(AnalogJoystickDriver, IOResource,
+CLASS_IVARS(AnalogJoystickDriver, Object,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -523,7 +523,7 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull pDriver)
 }
 
 
-CLASS_METHODS(AnalogJoystickDriver, IOResource,
+CLASS_METHODS(AnalogJoystickDriver, Object,
 OVERRIDE_METHOD_IMPL(deinit, AnalogJoystickDriver, Object)
 );
 
@@ -533,7 +533,7 @@ OVERRIDE_METHOD_IMPL(deinit, AnalogJoystickDriver, Object)
 // MARK: Light Pen Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-CLASS_IVARS(LightPenDriver, IOResource,
+CLASS_IVARS(LightPenDriver, Object,
     EventDriverRef _Nonnull     eventDriver;
     GraphicsDriverRef _Nonnull  gdevice;
     InterruptHandlerID          irqHandler;
@@ -662,6 +662,6 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull pDriver)
 }
 
 
-CLASS_METHODS(LightPenDriver, IOResource,
+CLASS_METHODS(LightPenDriver, Object,
 OVERRIDE_METHOD_IMPL(deinit, LightPenDriver, Object)
 );

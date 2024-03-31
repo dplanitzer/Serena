@@ -7,36 +7,9 @@
 //
 
 #include "ConsolePriv.h"
-#include <User.h>
-#include <System/IOChannel.h>
+#include "ConsoleChannel.h"
+#include <driver/hid/EventChannel.h>
 
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: ConsoleChannel
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t ConsoleChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_Terminal;
-            return EOK;
-
-        default:
-            return Object_SuperN(ioctl, IOChannel, self, cmd, ap);
-    }
-}
-
-CLASS_METHODS(ConsoleChannel, IOChannel,
-OVERRIDE_METHOD_IMPL(ioctl, ConsoleChannel, IOChannel)
-);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Console
-////////////////////////////////////////////////////////////////////////////////
 
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
@@ -53,7 +26,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     Lock_Init(&pConsole->lock);
 
     pConsole->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(IOResource_Open(pConsole->eventDriver, NULL/*XXX*/, kOpen_Read, kUser_Root, &pConsole->eventDriverChannel));
+    try(EventChannel_Create((ObjectRef)pConsole->eventDriver, kOpen_Read, &pConsole->eventDriverChannel));
     try(RingBuffer_Init(&pConsole->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     pConsole->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
@@ -107,7 +80,7 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
     pConsole->gdevice = NULL;
 
     if (pConsole->eventDriverChannel) {
-        IOResource_Close(pConsole->eventDriver, pConsole->eventDriverChannel);
+        IOChannel_Close(pConsole->eventDriverChannel);
         Object_Release(pConsole->eventDriverChannel);
         pConsole->eventDriverChannel = NULL;
     }
@@ -496,42 +469,6 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, int nLines)
     Console_FillRect_Locked(pConsole, Rect_Make(0, pConsole->bounds.bottom - nLines, pConsole->bounds.right, pConsole->bounds.bottom), ' ');
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Read/Write
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t Console_open(ConsoleRef _Nonnull pConsole, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    ConsoleChannelRef pChannel;
-
-    try(IOChannel_AbstractCreate(&kConsoleChannelClass, (IOResourceRef) pConsole, mode, (IOChannelRef*)&pChannel));
-    memset(pChannel->rdBuffer, 0, MAX_MESSAGE_LENGTH);
-    pChannel->rdCount = 0;
-    pChannel->rdIndex = 0;
-
-catch:
-    *pOutChannel = pChannel;
-    return err;
-}
-
-errno_t Console_dup(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pInChannel, ConsoleChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    ConsoleChannelRef pNewChannel;
-
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)pInChannel, (IOChannelRef*)&pNewChannel));
-    memset(pNewChannel->rdBuffer, 0, MAX_MESSAGE_LENGTH);
-    pNewChannel->rdCount = 0;
-    pNewChannel->rdIndex = 0;
-
-catch:
-    *pOutChannel = pNewChannel;
-    return err;
-
-}
-
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     ssize_t nBytesRead = 0;
@@ -626,7 +563,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull pConsole, ConsoleCh
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Console_Read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     char* pChars = pBuffer;
@@ -635,7 +572,7 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
     ssize_t nBytesRead = 0;
     ssize_t nTmpBytesRead;
 
-    Lock_Lock(&pConsole->lock);
+    Lock_Lock(&self->lock);
 
     // First check whether we got a partial key byte sequence sitting in our key
     // mapping buffer and copy that one out.
@@ -645,10 +582,10 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
     }
 
 
-    if (!RingBuffer_IsEmpty(&pConsole->reportsQueue)) {
+    if (!RingBuffer_IsEmpty(&self->reportsQueue)) {
         // Now check whether there are terminal reports pending. Those take
         // priority over input device events.
-        Console_ReadReports_NonBlocking_Locked(pConsole, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        Console_ReadReports_NonBlocking_Locked(self, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         nBytesRead += nTmpBytesRead;
     }
 
@@ -656,7 +593,7 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
     if (nBytesRead == 0 && err == EOK) {
         // We haven't read any data so far. Read input events and block if none
         // are available either.
-        const errno_t e1 = Console_ReadEvents_Locked(pConsole, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
+        const errno_t e1 = Console_ReadEvents_Locked(self, pChannel, &pChars[nBytesRead], nBytesToRead - nBytesRead, &nTmpBytesRead);
         if (e1 == EOK) {
             nBytesRead += nTmpBytesRead;
         } else {
@@ -664,7 +601,7 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
         }
     }
 
-    Lock_Unlock(&pConsole->lock);
+    Lock_Unlock(&self->lock);
 
     *nOutBytesRead = nBytesRead;
     return err;
@@ -675,34 +612,28 @@ errno_t Console_read(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pC
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-errno_t Console_write(ConsoleRef _Nonnull pConsole, ConsoleChannelRef _Nonnull pChannel, const void* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssize_t nBytesToWrite)
 {
     decl_try_err();
     const unsigned char* pChars = pBytes;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
 
-    Lock_Lock(&pConsole->lock);
-    err = Console_BeginDrawing_Locked(pConsole);
+    Lock_Lock(&self->lock);
+    err = Console_BeginDrawing_Locked(self);
     if (err == EOK) {
         while (pChars < pCharsEnd) {
             const unsigned char by = *pChars++;
 
-            vtparser_byte(&pConsole->vtparser, by);
+            vtparser_byte(&self->vtparser, by);
         }
 
-        Console_EndDrawing_Locked(pConsole);
+        Console_EndDrawing_Locked(self);
     }
-    Lock_Unlock(&pConsole->lock);
-
-    *nOutBytesWritten = (err == EOK) ? nBytesToWrite : 0;
+    Lock_Unlock(&self->lock);
     return err;
 }
 
 
-CLASS_METHODS(Console, IOResource,
-OVERRIDE_METHOD_IMPL(open, Console, IOResource)
-OVERRIDE_METHOD_IMPL(dup, Console, IOResource)
-OVERRIDE_METHOD_IMPL(read, Console, IOResource)
-OVERRIDE_METHOD_IMPL(write, Console, IOResource)
+CLASS_METHODS(Console, Object,
 OVERRIDE_METHOD_IMPL(deinit, Console, Object)
 );

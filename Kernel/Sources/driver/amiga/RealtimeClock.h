@@ -11,7 +11,6 @@
 
 #include <klib/klib.h>
 #include <hal/SystemDescription.h>
-#include "IOResource.h"
 
 
 // A specific date in the Gregorian calendar
@@ -32,9 +31,9 @@ extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 extern bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
 
-OPAQUE_CLASS(RealtimeClock, IOResource);
+OPAQUE_CLASS(RealtimeClock, Object);
 typedef struct _RealtimeClockMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } RealtimeClockMethodTable;
 
 

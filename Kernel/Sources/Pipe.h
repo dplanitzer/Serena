@@ -9,20 +9,22 @@
 #ifndef Pipe_h
 #define Pipe_h
 
-#include <IOResource.h>
+#include <klib/klib.h>
 
 
 // Recommended pipe buffer size
 #define kPipe_DefaultBufferSize 256
 
 
-OPAQUE_CLASS(Pipe, IOResource);
+OPAQUE_CLASS(Pipe, Object);
 typedef struct _PipeMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } PipeMethodTable;
 
 
 extern errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe);
+
+extern errno_t Pipe_Close(PipeRef _Nonnull self, unsigned int mode);
 
 // Returns the number of bytes that can be read from the pipe without blocking.
 extern size_t Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe);
@@ -32,5 +34,13 @@ extern size_t Pipe_GetNonBlockingWritableCount(PipeRef _Nonnull pPipe);
 
 // Returns the maximum number of bytes that the pipe is capable at storing.
 extern size_t Pipe_GetCapacity(PipeRef _Nonnull pPipe);
+
+// Reads up to 'nBytes' from the pipe or until all readable data has been returned.
+// Which ever comes first. Blocks the caller if it is asking for more data than
+// is available in the pipe. Otherwise all available data is read from the pipe
+// and the amount of data read is returned.
+extern errno_t Pipe_Read(PipeRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+
+extern errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
 #endif /* Pipe_h */

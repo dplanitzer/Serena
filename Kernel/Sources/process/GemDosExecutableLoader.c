@@ -50,7 +50,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 {
     decl_try_err();
     FileOffset fileSize = Inode_GetFileSize(pNode);
-    IOChannelRef pExecFile = NULL;
+    FileOffset fileOffset;
     GemDosExecutableHeader hdr;
     ssize_t nBytesRead;
 
@@ -68,8 +68,9 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 
 
     // Read the executable header
-    try(IOResource_Open(pFS, pNode, kOpen_Read, self->user, &pExecFile));
-    try(IOResource_Read(pFS, pExecFile, &hdr, sizeof(hdr), &nBytesRead));
+    try(Filesystem_OpenFile(pFS, pNode, kOpen_Read, self->user));
+    fileOffset = 0ll;
+    try(Filesystem_ReadFile(pFS, pNode, &hdr, sizeof(hdr), &fileOffset, &nBytesRead));
 
 //    print("magic: %hx\n", hdr.magic);
 //    print("text: %d\n", hdr.text_size);
@@ -111,8 +112,8 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 
 
     // Read the executable header, text and data segments into memory
-    File_SetOffset(pExecFile, 0ll);
-    try(IOResource_Read(pFS, pExecFile, pImageBase, nbytes_to_read, &nBytesRead));
+    fileOffset = 0ll;
+    try(Filesystem_ReadFile(pFS, pNode, pImageBase, nbytes_to_read, &fileOffset, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
     }
@@ -120,8 +121,8 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 
     // Read the relocation information into memory
     uint8_t* pRelocBase = pImageBase + nbytes_to_read;
-    File_SetOffset(pExecFile, fileOffset_to_reloc);
-    try(IOResource_Read(pFS, pExecFile, pRelocBase, reloc_size, &nBytesRead));
+    fileOffset = fileOffset_to_reloc;
+    try(Filesystem_ReadFile(pFS, pNode, pRelocBase, reloc_size, &fileOffset, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);
     }
@@ -142,10 +143,6 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 
 catch:
     // XXX should free pImageBase if it exists
-    if (pExecFile) {
-        IOResource_Close(pFS, pExecFile);
-        Object_Release(pExecFile);
-    }
 
     return err;
 }

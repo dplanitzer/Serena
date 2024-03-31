@@ -1077,32 +1077,24 @@ catch:
     return err;
 }
 
-// Opens the directory represented by the given node. Returns a directory
-// descriptor object which is the I/O channel that allows you to read the
-// directory content.
-errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user, DirectoryRef _Nullable * _Nonnull pOutDir)
+// Opens the directory represented by the given node. The filesystem is
+// expected to validate whether the user has access to the directory content.
+errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user)
 {
-    decl_try_err();
-
-    try(Inode_CheckAccess(pDirNode, user, kFilePermission_Read));
-    try(Directory_Create((FilesystemRef)self, pDirNode, pOutDir));
-
-catch:
-    return err;
+    return Inode_CheckAccess(pDirNode, user, kFilePermission_Read);
 }
 
-errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryRef _Nonnull pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull pDirNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    InodeRef _Locked pNode = Directory_GetInode(pDir);
-    FileOffset offset = Directory_GetOffset(pDir);
+    FileOffset offset = *pInOutOffset;
     SFSDirectoryEntry dirent;
     ssize_t nAllDirBytesRead = 0;
     ssize_t nBytesRead = 0;
 
     while (nBytesToRead > 0) {
         ssize_t nDirBytesRead;
-        const errno_t e1 = SerenaFS_xRead(self, pNode, offset, &dirent, sizeof(SFSDirectoryEntry), &nDirBytesRead);
+        const errno_t e1 = SerenaFS_xRead(self, pDirNode, offset, &dirent, sizeof(SFSDirectoryEntry), &nDirBytesRead);
 
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
@@ -1130,19 +1122,16 @@ errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryRef _Nonnull 
     }
 
     if (nBytesRead > 0) {
-        Directory_IncrementOffset(pDir, nAllDirBytesRead);
+        *pInOutOffset += nAllDirBytesRead;
     }
     *nOutBytesRead = nBytesRead;
 
     return err;
 }
 
-// Opens a resource context/channel to the resource. This new resource context
-// will be represented by a (file) descriptor in user space. The resource context
-// maintains state that is specific to this connection. This state will be
-// protected by the resource's internal locking mechanism. 'pNode' represents
-// the named resource instance that should be represented by the I/O channel.
-errno_t SerenaFS_open(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user, FileRef _Nullable * _Nonnull pOutFile)
+// Opens the file identified by the given inode. The file is opened for reading
+// and or writing, depending on the 'mode' bits.
+errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user)
 {
     decl_try_err();
     FilePermissions permissions = 0;
@@ -1162,7 +1151,6 @@ errno_t SerenaFS_open(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode
     }
 
     try(Inode_CheckAccess(pNode, user, permissions));
-    try(File_Create((FilesystemRef)self, mode, pNode, pOutFile));
 
     if ((mode & kOpen_Truncate) == kOpen_Truncate) {
         SerenaFS_xTruncateFile(self, pNode, 0);
@@ -1178,7 +1166,7 @@ catch:
 // the mode is exclusive then the file is created if it doesn't exist and
 // an error is thrown if the file exists. Returns a file object, representing
 // the created and opened file.
-errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int mode, FilePermissions permissions, FileRef _Nullable * _Nonnull pOutFile)
+errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int mode, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pInode = NULL;
@@ -1221,8 +1209,7 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
         // Create the new file and add it to its parent directory
         try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_RegularFile, user.uid, user.gid, permissions, NULL, &pInode));
         try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pInode), &ep));
-        try(File_Create((FilesystemRef)self, mode, pInode, pOutFile));
-        Filesystem_RelinquishNode((FilesystemRef)self, pInode);
+        *pOutNode = pInode;
     }
     else if (err == EOK) {
         // File exists - reject the operation in exclusive mode and open the file
@@ -1234,8 +1221,8 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
 
 
         try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, NULL, &pInode));
-        try(SerenaFS_open(self, pInode, mode, user, pOutFile));
-        Filesystem_RelinquishNode((FilesystemRef)self, pInode);
+        try(SerenaFS_openFile(self, pInode, mode, user));
+        *pOutNode = pInode;
     }
     else {
         // Some lookup error
@@ -1249,58 +1236,32 @@ catch:
     if (pInode) {
         Filesystem_RelinquishNode((FilesystemRef)self, pInode);
     }
+    *pOutNode = NULL;
     
     return err;
 }
 
-// Close the resource. The purpose of the close operation is:
-// - flush all data that was written and is still buffered/cached to the underlying device
-// - if a write operation is ongoing at the time of the close then let this write operation finish and sync the underlying device
-// - if a read operation is ongoing at the time of the close then interrupt the read with an EINTR error
-// The resource should be internally marked as closed and all future read/write/etc operations on the resource should do nothing
-// and instead return a suitable status. Eg a write should return EIO and a read should return EOF.
-// It is permissible for a close operation to block the caller for some (reasonable) amount of time to complete the flush.
-// The close operation may return an error. Returning an error will not stop the kernel from completing the close and eventually
-// deallocating the resource. The error is passed on to the caller but is purely advisory in nature. The close operation is
-// required to mark the resource as closed whether the close internally succeeded or failed. 
-errno_t SerenaFS_close(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile)
+errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
-    // Nothing to do for now
-    return EOK;
-}
-
-errno_t SerenaFS_read(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    InodeRef _Locked pNode = File_GetInode(pFile);
-
     const errno_t err = SerenaFS_xRead(self, 
         pNode, 
-        File_GetOffset(pFile),
+        *pInOutOffset,
         pBuffer,
         nBytesToRead,
         nOutBytesRead);
-    File_IncrementOffset(pFile, *nOutBytesRead);
+    *pInOutOffset += *nOutBytesRead;
     return err;
 }
 
-errno_t SerenaFS_write(SerenaFSRef _Nonnull self, FileRef _Nonnull pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten)
 {
-    InodeRef _Locked pNode = File_GetInode(pFile);
-    FileOffset offset;
-
-    if (File_IsAppendOnWrite(pFile)) {
-        offset = Inode_GetFileSize(pNode);
-    } else {
-        offset = File_GetOffset(pFile);
-    }
-
     const errno_t err = SerenaFS_xWrite(self, 
         pNode, 
-        offset,
+        *pInOutOffset,
         pBuffer,
         nBytesToWrite,
         nOutBytesWritten);
-    File_IncrementOffset(pFile, *nOutBytesWritten);
+    *pInOutOffset += *nOutBytesWritten;
     return err;
 }
 
@@ -1439,13 +1400,12 @@ OVERRIDE_METHOD_IMPL(getNameOfNode, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(getFileInfo, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(setFileInfo, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createFile, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(openFile, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(readFile, SerenaFS, Filesystem)
+OVERRIDE_METHOD_IMPL(writeFile, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(createDirectory, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(openDirectory, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(readDirectory, SerenaFS, Filesystem)
-OVERRIDE_METHOD_IMPL(open, SerenaFS, IOResource)
-OVERRIDE_METHOD_IMPL(close, SerenaFS, IOResource)
-OVERRIDE_METHOD_IMPL(read, SerenaFS, IOResource)
-OVERRIDE_METHOD_IMPL(write, SerenaFS, IOResource)
 OVERRIDE_METHOD_IMPL(truncate, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(checkAccess, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(unlink, SerenaFS, Filesystem)

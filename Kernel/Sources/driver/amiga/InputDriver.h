@@ -17,9 +17,9 @@
 // Keyboard input driver
 //
 
-OPAQUE_CLASS(KeyboardDriver, IOResource);
+OPAQUE_CLASS(KeyboardDriver, Object);
 typedef struct _KeyboardDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } KeyboardDriverMethodTable;
 
 extern errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
@@ -32,9 +32,9 @@ extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver
 // Mouse input driver
 //
 
-OPAQUE_CLASS(MouseDriver, IOResource);
+OPAQUE_CLASS(MouseDriver, Object);
 typedef struct _MouseDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } MouseDriverMethodTable;
 
 extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
@@ -44,9 +44,9 @@ extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port
 // Digital Joystick input driver
 //
 
-OPAQUE_CLASS(DigitalJoystickDriver, IOResource);
+OPAQUE_CLASS(DigitalJoystickDriver, Object);
 typedef struct _DigitalJoystickDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } DigitalJoystickDriverMethodTable;
 
 extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
@@ -56,9 +56,9 @@ extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver
 // Analog Joystick (Paddles) input driver
 //
 
-OPAQUE_CLASS(AnalogJoystickDriver, IOResource);
+OPAQUE_CLASS(AnalogJoystickDriver, Object);
 typedef struct _AnalogJoystickDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } AnalogJoystickDriverMethodTable;
 
 
@@ -69,9 +69,9 @@ extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver,
 // Light Pen input driver
 //
 
-OPAQUE_CLASS(LightPenDriver, IOResource);
+OPAQUE_CLASS(LightPenDriver, Object);
 typedef struct _LightPenDriverMethodTable {
-    IOResourceMethodTable   super;
+    ObjectMethodTable   super;
 } LightPenDriverMethodTable;
 
 extern errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
