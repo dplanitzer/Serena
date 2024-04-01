@@ -25,7 +25,7 @@ ROOT_CLASS_METHODS(Object,
 METHOD_IMPL(deinit, Object)
 );
 
-errno_t _Object_Create(ClassRef _Nonnull pClass, ssize_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)
+errno_t _Object_Create(ClassRef _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)
 {
     decl_try_err();
     ObjectRef pObject;
@@ -200,7 +200,7 @@ void PrintClasses(void)
         } else {
             print("%s\t\t\t\t", pClass->name);
         }
-        print("mcount: %d\tisize: %d\n", pClass->methodCount, pClass->instanceSize);
+        print("mcount: %d\tisize: %zd\n", pClass->methodCount, pClass->instanceSize);
 
 #if 0
         for (int i = 0; i < pClass->methodCount; i++) {

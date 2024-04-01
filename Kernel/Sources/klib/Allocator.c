@@ -25,7 +25,7 @@
 // size includes the header size.
 typedef struct MemBlock {
     struct MemBlock* _Nullable  next;
-    ssize_t                     size;   // The size includes sizeof(MemBlock). Max size of a free block is 4GB; max size of an allocated block is 2GB
+    size_t                      size;   // The size includes sizeof(MemBlock).
 } MemBlock;
 
 
@@ -82,7 +82,7 @@ static MemRegion* MemRegion_Create(char* _Nonnull pMemRegionHeader, const Memory
     // region (everything minus the MemRegion structure).
     MemBlock* pFreeBlock = (MemBlock*)pFreeLower;
     pFreeBlock->next = NULL;
-    pFreeBlock->size = pFreeUpper - pFreeLower;
+    pFreeBlock->size = (uintptr_t)pFreeUpper - (uintptr_t)pFreeLower;
 
 
     // Create the MemRegion header
@@ -104,7 +104,7 @@ static bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, char* _Nu
 
 // Allocates 'nBytesToAlloc' from the given memory region. Note that
 // 'nBytesToAlloc' has to include the heap block header and the correct alignment.
-static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, ssize_t nBytesToAlloc)
+static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, size_t nBytesToAlloc)
 {
     // first fit search
     MemBlock* pCurBlock = pMemRegion->first_free_block;
@@ -178,7 +178,7 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
     char* pUpperToFree = pLowerToFree + pBlockToFree->size;
     
     
-        // Find the free memory blocks just below and above 'pBlockToFree'. These
+    // Find the free memory blocks just below and above 'pBlockToFree'. These
     // will be the predecessor and successor of 'pBlockToFree' on the free list
     bool isUpperFreeBlockAdjacent = false;
     bool isLowerFreeBlockAdjacent = false;
@@ -331,7 +331,7 @@ bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
     return r;
 }
 
-errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ssize_t nbytes, void* _Nullable * _Nonnull pOutPtr)
+errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes, void* _Nullable * _Nonnull pOutPtr)
 {
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
@@ -341,7 +341,7 @@ errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ssize_t nbytes
     
     
     // Compute how many bytes we have to take from free memory
-    const int nBytesToAlloc = __Ceil_PowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
+    const size_t nBytesToAlloc = __Ceil_PowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
     
     
     // Note that the code here assumes desc 0 is chip RAM and all the others are
@@ -428,6 +428,16 @@ errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nulla
     return EOK;
 }
 
+// Returns the size of the given memory block. This is the size minus the block
+// header and plus whatever additional memory the allocator added based on its
+// internal alignment constraints.
+size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
+{
+    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
+
+    return pMemBlock->size - sizeof(MemBlock);
+}
+
 void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 {
     print("Free:\n");
@@ -438,7 +448,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
 
         print(" Region: 0x%p - 0x%p, s: 0x%p\n", pCurRegion->lower, pCurRegion->upper, pCurRegion->first_free_block);
         while (pCurBlock) {
-            print("  %d:  0x%p: {a: 0x%p, n: 0x%p, s: %lu}\n", i, ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
+            print("  %d:  0x%p: {a: 0x%p, n: 0x%p, s: %zd}\n", i, ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
             pCurBlock = pCurBlock->next;
             i++;
         }
@@ -454,7 +464,7 @@ void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
         char* pCurBlockBase = (char*)pCurBlock;
         MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
         
-        print(" %d:  0x%p, {a: 0x%p, n: 0x%p s: %lu}\n", i, pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
+        print(" %d:  0x%p, {a: 0x%p, n: 0x%p s: %zd}\n", i, pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
         pCurBlock = pCurBlock->next;
         i++;
     }

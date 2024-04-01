@@ -25,7 +25,7 @@
 // size includes the header size.
 typedef struct MemBlock {
     struct MemBlock* _Nullable  next;
-    size_t                      size;   // The size includes sizeof(MemBlock). Max size of a free block is 4GB; max size of an allocated block is 2GB
+    size_t                      size;   // The size includes sizeof(MemBlock).
 } MemBlock;
 
 
@@ -82,7 +82,7 @@ static MemRegion* MemRegion_Create(char* _Nonnull pMemRegionHeader, const Memory
     // region (everything minus the MemRegion structure).
     MemBlock* pFreeBlock = (MemBlock*)pFreeLower;
     pFreeBlock->next = NULL;
-    pFreeBlock->size = pFreeUpper - pFreeLower;
+    pFreeBlock->size = (uintptr_t)pFreeUpper - (uintptr_t)pFreeLower;
 
 
     // Create the MemRegion header

@@ -127,7 +127,7 @@ typedef void (*Method)(void* _Nonnull self, ...);
 
 struct MethodDecl {
     Method _Nonnull method;
-    ssize_t       offset;
+    size_t          offset;
 };
 
 #define CLASSF_INITIALIZED  1
@@ -165,7 +165,7 @@ typedef struct ObjectMethodTable {
 // size recorded in the class. Returns an error if allocation has failed for
 // some reason. The returned object has a reference count of 1. All object
 // instance variables are initially set to 0.
-extern errno_t _Object_Create(ClassRef _Nonnull pClass, ssize_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
+extern errno_t _Object_Create(ClassRef _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
 
 #define Object_Create(__className, __pOutObject) \
     _Object_Create(&k##__className##Class, 0, (ObjectRef*)__pOutObject)

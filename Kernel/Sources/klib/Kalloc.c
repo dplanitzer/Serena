@@ -8,8 +8,8 @@
 
 #include "kalloc.h"
 #include "Allocator.h"
-#include <dispatcher/Lock.h>
 #include "Memory.h"
+#include <dispatcher/Lock.h>
 
 
 static Lock         gLock;
@@ -30,10 +30,10 @@ static MemoryDescriptor adjusted_memory_descriptor(const MemoryDescriptor* pMemD
 
 static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnull pInitialHeapBottom, char* _Nonnull pInitialHeapTop, int8_t memoryType, AllocatorRef _Nullable * _Nonnull pOutAllocator)
 {
+    decl_try_err();
     int i = 0;
     AllocatorRef pAllocator = NULL;
     MemoryDescriptor adjusted_md;
-    decl_try_err();
 
     // Skip over memory regions that are below the kernel heap bottom
     while (i < pMemLayout->descriptor_count && 
@@ -86,11 +86,9 @@ catch:
 
 // Allocates memory from the kernel heap. Returns NULL if the memory could not be
 // allocated. 'options' is a combination of the HEAP_ALLOC_OPTION_XXX flags.
-errno_t kalloc_options(ssize_t nbytes, unsigned int options, void* _Nullable * _Nonnull pOutPtr)
+errno_t kalloc_options(size_t nbytes, unsigned int options, void* _Nullable * _Nonnull pOutPtr)
 {
     decl_try_err();
-    
-    assert(nbytes >= 0);
     
     Lock_Lock(&gLock);
     if ((options & KALLOC_OPTION_UNIFIED) != 0) {
@@ -118,8 +116,10 @@ catch:
 // Frees kernel memory allocated with the kalloc() function.
 void kfree(void* _Nullable ptr)
 {
+    decl_try_err();
+
     Lock_Lock(&gLock);
-    const errno_t err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);
+    err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);
 
     if (err == ENOTBLK) {
         try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));
@@ -133,6 +133,7 @@ void kfree(void* _Nullable ptr)
 // heap.
 errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
 {
+    decl_try_err();
     AllocatorRef pAllocator;
 
     Lock_Lock(&gLock);
@@ -142,7 +143,7 @@ errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
         pAllocator = gCpuOnlyMemory;
     }
 
-    const errno_t err = Allocator_AddMemoryRegion(pAllocator, pMemDesc);
+    err = Allocator_AddMemoryRegion(pAllocator, pMemDesc);
     Lock_Unlock(&gLock);
 
     return err;

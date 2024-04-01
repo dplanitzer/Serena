@@ -22,11 +22,13 @@ extern errno_t Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, Alloc
 extern errno_t Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc);
 extern bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr);
 
-extern errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, ssize_t nbytes, void* _Nullable * _Nonnull pOutPtr);
+extern errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes, void* _Nullable * _Nonnull pOutPtr);
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
 extern errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr);
+
+extern size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr);
 
 extern void Allocator_Dump(AllocatorRef _Nonnull pAllocator);
 extern void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator);
