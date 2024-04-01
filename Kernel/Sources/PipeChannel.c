@@ -44,7 +44,8 @@ catch:
 
 errno_t PipeChannel_close(PipeChannelRef _Nonnull self)
 {
-    return Pipe_Close((PipeRef)self->pipe, IOChannel_GetMode(self));
+    Pipe_Close((PipeRef)self->pipe, IOChannel_GetMode(self));
+    return EOK;
 }
 
 errno_t PipeChannel_ioctl(PipeChannelRef _Nonnull self, int cmd, va_list ap)

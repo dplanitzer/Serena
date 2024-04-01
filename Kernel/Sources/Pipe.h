@@ -24,7 +24,7 @@ typedef struct PipeMethodTable {
 
 extern errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe);
 
-extern errno_t Pipe_Close(PipeRef _Nonnull self, unsigned int mode);
+extern void Pipe_Close(PipeRef _Nonnull self, unsigned int mode);
 
 // Returns the number of bytes that can be read from the pipe without blocking.
 extern size_t Pipe_GetNonBlockingReadableCount(PipeRef _Nonnull pPipe);

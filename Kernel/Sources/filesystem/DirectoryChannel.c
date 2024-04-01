@@ -36,11 +36,6 @@ void DirectoryChannel_deinit(DirectoryChannelRef _Nonnull self)
     self->filesystem = NULL;
 }
 
-errno_t DirectoryChannel_close(DirectoryChannelRef _Nonnull self)
-{
-    return EOK;
-}
-
 ssize_t DirectoryChannel_dup(DirectoryChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
@@ -103,7 +98,6 @@ errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, M
 
 CLASS_METHODS(DirectoryChannel, IOChannel,
 OVERRIDE_METHOD_IMPL(deinit, DirectoryChannel, Object)
-OVERRIDE_METHOD_IMPL(close, DirectoryChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(dup, DirectoryChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(ioctl, DirectoryChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(read, DirectoryChannel, IOChannel)

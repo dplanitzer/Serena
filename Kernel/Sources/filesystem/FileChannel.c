@@ -36,11 +36,6 @@ void FileChannel_deinit(FileChannelRef _Nonnull self)
     self->filesystem = NULL;
 }
 
-errno_t FileChannel_close(FileChannelRef _Nonnull self)
-{
-    return EOK;
-}
-
 errno_t FileChannel_dup(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
@@ -75,6 +70,7 @@ errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, s
 
 errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
+    decl_try_err();
     FileOffset offset;
 
     if ((IOChannel_GetMode(self) & kOpen_Append) == kOpen_Append) {
@@ -83,7 +79,10 @@ errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBu
         offset = self->offset;
     }
 
-    return Filesystem_WriteFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToWrite, &self->offset, nOutBytesWritten);
+    err = Filesystem_WriteFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToWrite, &offset, nOutBytesWritten);
+    self->offset = offset;
+
+    return err;
 }
 
 errno_t FileChannel_seek(FileChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
@@ -138,7 +137,6 @@ errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset
 
 CLASS_METHODS(FileChannel, IOChannel,
 OVERRIDE_METHOD_IMPL(deinit, FileChannel, Object)
-OVERRIDE_METHOD_IMPL(close, FileChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(dup, FileChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(ioctl, FileChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(read, FileChannel, IOChannel)

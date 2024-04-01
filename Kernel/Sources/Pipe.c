@@ -87,7 +87,7 @@ size_t Pipe_GetCapacity(PipeRef _Nonnull self)
     return nbytes;
 }
 
-errno_t Pipe_Close(PipeRef _Nonnull self, unsigned int mode)
+void Pipe_Close(PipeRef _Nonnull self, unsigned int mode)
 {
     Lock_Lock(&self->lock);
     if ((mode & kOpen_ReadWrite) == kOpen_Read) {
@@ -100,7 +100,6 @@ errno_t Pipe_Close(PipeRef _Nonnull self, unsigned int mode)
     // by an unrelated 3rd process.
     ConditionVariable_BroadcastAndUnlock(&self->reader, NULL);
     ConditionVariable_BroadcastAndUnlock(&self->writer, &self->lock);
-    return EOK;
 }
 
 // Reads up to 'nBytes' from the pipe or until all readable data has been returned.
