@@ -8,7 +8,6 @@
 
 #include "FileChannel.h"
 #include "Filesystem.h"
-#include <System/IOChannel.h>
 
 
 // Creates a file channel.

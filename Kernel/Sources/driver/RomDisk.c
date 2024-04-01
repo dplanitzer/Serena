@@ -7,7 +7,6 @@
 //
 
 #include "RomDisk.h"
-#include <System/IOChannel.h>
 
 
 CLASS_IVARS(RomDisk, DiskDriver,

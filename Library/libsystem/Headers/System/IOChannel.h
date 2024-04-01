@@ -22,10 +22,12 @@ __CPP_BEGIN
 // Returns the type of the channel
 // IOChannel_Control(int fd, int cmd, int _Nonnull *pOutType)
 #define kIOChannelCommand_GetType   IOChannelCommand(1)
-typedef enum {
+typedef enum IOChannelType {
     kIOChannelType_Terminal,
     kIOChannelType_File,
-    kIOChannelType_Directory
+    kIOChannelType_Directory,
+    kIOChannelType_Pipe,
+    kIOChannelType_Driver
 } IOChannelType;
 
 #define kIOChannelCommand_GetMode   IOChannelCommand(2)

@@ -8,7 +8,6 @@
 
 #include "PipeChannel.h"
 #include "Pipe.h"
-#include <System/IOChannel.h>
 
 
 errno_t PipeChannel_Create(ObjectRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
@@ -52,7 +51,7 @@ errno_t PipeChannel_ioctl(PipeChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_File;
+            *((int*) va_arg(ap, int*)) = kIOChannelType_Pipe;
             return EOK;
 
         default:

@@ -8,7 +8,7 @@
 
 #include "ConsoleChannel.h"
 #include "ConsolePriv.h"
-#include <System/IOChannel.h>
+
 
 extern errno_t Console_Read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 extern errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssize_t nBytesToWrite);

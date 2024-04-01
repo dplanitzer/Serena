@@ -8,7 +8,6 @@
 
 #include "DirectoryChannel.h"
 #include "Filesystem.h"
-#include <System/IOChannel.h>
 
 
 // Creates a directory channel.

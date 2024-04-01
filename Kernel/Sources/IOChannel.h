@@ -11,6 +11,7 @@
 
 #include <klib/klib.h>
 #include <System/File.h>
+#include <System/IOChannel.h>
 
 
 OPEN_CLASS_WITH_REF(IOChannel, Object,

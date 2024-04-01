@@ -7,7 +7,6 @@
 //
 
 #include "DiskDriver.h"
-#include <System/IOChannel.h>
 
 
 // Returns the size of a block.

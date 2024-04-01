@@ -8,7 +8,6 @@
 
 #include "EventChannel.h"
 #include "EventDriver.h"
-#include <System/IOChannel.h>
 
 
 errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
@@ -49,7 +48,7 @@ errno_t EventChannel_ioctl(EventChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_File;
+            *((int*) va_arg(ap, int*)) = kIOChannelType_Driver;
             return EOK;
 
         default:

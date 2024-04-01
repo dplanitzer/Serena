@@ -7,7 +7,6 @@
 //
 
 #include "IOChannel.h"
-#include <System/IOChannel.h>
 
 
 // Creates an instance of an I/O channel. Subclassers should call this method in

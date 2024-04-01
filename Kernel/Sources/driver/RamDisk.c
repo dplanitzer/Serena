@@ -8,7 +8,6 @@
 
 #include "RamDisk.h"
 #include <dispatcher/Lock.h>
-#include <System/IOChannel.h>
 
 
 typedef struct DiskExtent {
