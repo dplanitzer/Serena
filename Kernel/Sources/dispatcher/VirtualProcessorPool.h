@@ -13,7 +13,7 @@
 #include "VirtualProcessor.h"
 
 
-typedef struct _VirtualProcessorParameters {
+typedef struct VirtualProcessorParameters {
     Closure1Arg_Func _Nonnull   func;
     void* _Nullable _Weak       context;
     size_t                      kernelStackSize;
@@ -25,8 +25,8 @@ typedef struct _VirtualProcessorParameters {
     ((VirtualProcessorParameters) {__pFunc, __pContext, __kernelStackSize, __userStackSize, __priority})
 
 
-struct _VirtualProcessorPool;
-typedef struct _VirtualProcessorPool* VirtualProcessorPoolRef;
+struct VirtualProcessorPool;
+typedef struct VirtualProcessorPool* VirtualProcessorPoolRef;
 
 
 extern VirtualProcessorPoolRef _Nonnull gVirtualProcessorPool;

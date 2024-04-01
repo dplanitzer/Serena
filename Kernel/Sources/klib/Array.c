@@ -9,7 +9,7 @@
 #include "Array.h"
 #include "Memory.h"
 
-errno_t GenericArray_Init(struct _GenericArray* _Nonnull pArray, size_t elementSize, ssize_t initialCapacity)
+errno_t GenericArray_Init(struct GenericArray* _Nonnull pArray, size_t elementSize, ssize_t initialCapacity)
 {
     const errno_t err = kalloc(elementSize * initialCapacity, (void**)&pArray->data);
     
@@ -24,13 +24,13 @@ errno_t GenericArray_Init(struct _GenericArray* _Nonnull pArray, size_t elementS
     return err;
 }
 
-void GenericArray_Deinit(struct _GenericArray* pArray)
+void GenericArray_Deinit(struct GenericArray* pArray)
 {
     kfree(pArray->data);
     pArray->data = NULL;
 }
 
-errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, size_t elementSize)
+errno_t GenericArray_GrowCapacity(struct GenericArray* _Nonnull pArray, size_t elementSize)
 {
     const ssize_t newCapacity = (pArray->capacity > 0) ? pArray->capacity * 2 : 8;
     char* pNewData;
@@ -47,7 +47,7 @@ errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, size_t 
     return err;
 }
 
-void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, bool keepCapacity)
+void GenericArray_RemoveAll(struct GenericArray* _Nonnull pArray, bool keepCapacity)
 {
     pArray->count = 0;
     if (!keepCapacity) {

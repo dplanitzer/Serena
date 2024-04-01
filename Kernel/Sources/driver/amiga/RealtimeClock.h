@@ -14,7 +14,7 @@
 
 
 // A specific date in the Gregorian calendar
-typedef struct _GregorianDate {
+typedef struct GregorianDate {
     int8_t  second;         // 0 - 59
     int8_t  minute;         // 0 - 59
     int8_t  hour;           // 0 - 23
@@ -32,7 +32,7 @@ extern bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const Gregoria
 
 
 OPAQUE_CLASS(RealtimeClock, Object);
-typedef struct _RealtimeClockMethodTable {
+typedef struct RealtimeClockMethodTable {
     ObjectMethodTable   super;
 } RealtimeClockMethodTable;
 

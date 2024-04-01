@@ -23,7 +23,7 @@
 // This data structure is created by the exiting (child) process and is then
 // handed over to the parent process which takes ownership. Once this happens
 // the data structure is protected by the parent's lock.
-typedef struct _ProcessTombstone {
+typedef struct ProcessTombstone {
     ListNode    node;
     int         pid;        // PID of process that exited
     int         status;     // Exit status

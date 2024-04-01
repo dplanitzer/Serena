@@ -57,7 +57,7 @@
 
 
 // CPU register state
-typedef struct _CpuContext {
+typedef struct CpuContext {
     
     // Integer state. 68000 or better
     uint32_t    d[8];
@@ -78,7 +78,7 @@ typedef struct _CpuContext {
 
 // Exception stack frame
 #pragma pack(1)
-typedef struct _ExceptionStackFrame {
+typedef struct ExceptionStackFrame {
     uint16_t    sr;
     uintptr_t   pc;
 
@@ -88,17 +88,17 @@ typedef struct _ExceptionStackFrame {
     }       fv;
     
     union {
-        struct _Format2 {
+        struct Format2 {
             uintptr_t   addr;
         }   f2;
-        struct _Format3 {
+        struct Format3 {
             uintptr_t   ea;
         }   f3;
-        struct _Format4 {
+        struct Format4 {
             uintptr_t   ea;
             uintptr_t   pcFaultedInstr;
         }   f4;
-        struct _Format7 {
+        struct Format7 {
             uintptr_t   ea;
             uint16_t    ssw;
             uint16_t    wb3s;
@@ -115,11 +115,11 @@ typedef struct _ExceptionStackFrame {
             uint32_t    pd2;
             uint32_t    pd3;
         }   f7;
-        struct _Format9 {
+        struct Format9 {
             uintptr_t   ia;
             uint16_t    ir[4];
         }   f9;
-        struct _FormatA {
+        struct FormatA {
             uint16_t    ir0;
             uint16_t    ssw;
             uint16_t    ipsc;
@@ -131,7 +131,7 @@ typedef struct _ExceptionStackFrame {
             uint16_t    ir3;
             uint16_t    ir4;
         }   fa;
-        struct _FormatB {
+        struct FormatB {
             uint16_t    ir0;
             uint16_t    ssw;
             uint16_t    ipsc;
@@ -202,14 +202,14 @@ extern const char* _Nonnull fpu_get_model_name(int8_t fpu_model);
 #define MEM_TYPE_UNIFIED_MEMORY 1
 
 // A memory descriptor describes a contiguous range of RAM
-typedef struct _MemoryDescriptor {
+typedef struct MemoryDescriptor {
     char* _Nonnull  lower;
     char* _Nonnull  upper;
     int8_t          type;       // MEM_TYPE_XXX
     uint8_t         reserved[3];
 } MemoryDescriptor;
 
-typedef struct _MemoryLayout {
+typedef struct MemoryLayout {
     int                 descriptor_count;
     MemoryDescriptor    descriptor[MEMORY_DESCRIPTORS_CAPACITY];
 } MemoryLayout;
@@ -862,7 +862,7 @@ extern uint32_t chipset_get_hsync_counter(void);
 #define EXPANSION_BUS_ZORRO_3   1
 
 // An expansion board
-typedef struct _ExpansionBoard {
+typedef struct ExpansionBoard {
     uint8_t* _Nonnull   start;          // base address
     size_t              physical_size;  // size of memory space reserved for this board
     size_t              logical_size;   // size of memory space actually occupied by the board
@@ -876,7 +876,7 @@ typedef struct _ExpansionBoard {
     // Update lowmem.i if you add a new property here
 } ExpansionBoard;
 
-typedef struct _ExpansionBus {
+typedef struct ExpansionBus {
     int                 board_count;
     ExpansionBoard      board[EXPANSION_BOARDS_CAPACITY];
 } ExpansionBus;

@@ -27,38 +27,38 @@
 // the class named '__className' to this class. Use this macro to declare a
 // method that does not override the equally named superclass method.
 #define METHOD_IMPL(__name, __className) \
-{ (Method) __className##_##__name, offsetof(struct _##__className##MethodTable, __name) },
+{ (Method) __className##_##__name, offsetof(struct __className##MethodTable, __name) },
 
 // Same as METHOD_IMPL except that it declares the method '__name' to be an override
 // of the method with the same name and type signature which was originally defined
 // in the class '__superClassName'.
 #define OVERRIDE_METHOD_IMPL(__name, __className, __superClassName) \
-{ (Method) __className##_##__name, offsetof(struct _##__superClassName##MethodTable, __name) },
+{ (Method) __className##_##__name, offsetof(struct __superClassName##MethodTable, __name) },
 
 
 #define __CLASS_METHODS(__name, __super, ...) \
-static struct _##__name##MethodTable g##__name##VTable; \
+static struct __name##MethodTable g##__name##VTable; \
 static const struct MethodDecl gMethodImpls_##__name[] = { __VA_ARGS__ {(Method)0, 0} }; \
-Class _ClassSection k##__name##Class = {(Method*)&g##__name##VTable, __super, #__name, sizeof(__name), (int16_t) sizeof(struct _##__name##MethodTable)/sizeof(Method), 0, gMethodImpls_##__name}
+Class _ClassSection k##__name##Class = {(Method*)&g##__name##VTable, __super, #__name, sizeof(__name), (int16_t) sizeof(struct __name##MethodTable)/sizeof(Method), 0, gMethodImpls_##__name}
 
 #define __CLASS_IVARS(__name, __super, __ivars_decls) \
 extern Class k##__name##Class; \
-typedef struct _##__name { __super __ivars_decls } __name
+typedef struct __name { __super __ivars_decls } __name
 
 
 // Generates a forward declaration for the class named '__name'. Additionally
 // declares a reference type of the form '__nameRef'. This type can be used to
 // represent a pointer to an instance of the class.
 #define CLASS_FORWARD(__name) \
-struct _##__name; \
-typedef struct _##__name* __name##Ref
+struct __name; \
+typedef struct __name* __name##Ref
 
 
 // Declares an open root class. An open class can be subclassed. Defines a
 // struct that declares all class ivars plus a reference type for the class.
 #define OPEN_ROOT_CLASS_WITH_REF(__name, __ivar_decls) \
 __CLASS_IVARS(__name, , __ivar_decls); \
-typedef struct _##__name* __name##Ref
+typedef struct __name* __name##Ref
 
 // Defines the method table of a root class. Expects the class name and a list
 // of METHOD_IMPL macros with one macro per dynamically dispatched method.
@@ -74,7 +74,7 @@ __CLASS_IVARS(__name, __super super;, __ivar_decls)
 // Same as OPEN_CLASS but also defines a __nameRef type.
 #define OPEN_CLASS_WITH_REF(__name, __super, __ivar_decls)\
 __CLASS_IVARS(__name, __super super;, __ivar_decls); \
-typedef struct _##__name* __name##Ref
+typedef struct __name* __name##Ref
 
 
 // Defines an opaque class. An opaque class supports limited subclassing only.
@@ -82,8 +82,8 @@ typedef struct _##__name* __name##Ref
 // be placed in the publicly accessible header file of the class.
 #define OPAQUE_CLASS(__name, __superName) \
 extern Class k##__name##Class; \
-struct _##__name; \
-typedef struct _##__name* __name##Ref
+struct __name; \
+typedef struct __name* __name##Ref
 
 // Defines the ivars of an opaque class. This macro should be placed either in
 // the class implementation file or a private class header file.
@@ -132,16 +132,16 @@ struct MethodDecl {
 
 #define CLASSF_INITIALIZED  1
 
-typedef struct _Class {
+typedef struct Class {
     Method* _Nonnull                    vtable;
-    struct _Class* _Nonnull             super;
+    struct Class* _Nonnull              super;
     const char* _Nonnull                name;
     size_t                              instanceSize;
     int16_t                             methodCount;
     uint16_t                            flags;
     const struct MethodDecl* _Nonnull   methodList;
 } Class;
-typedef struct _Class* ClassRef;
+typedef struct Class* ClassRef;
 
 
 // The Object class. This is the root class aka top type of the object system.
@@ -155,8 +155,7 @@ OPEN_ROOT_CLASS_WITH_REF(Object,
     ClassRef _Nonnull   clazz;
     AtomicInt           retainCount;
 );
-
-typedef struct _ObjectMethodTable {
+typedef struct ObjectMethodTable {
     void    (*deinit)(void* _Nonnull self);
 } ObjectMethodTable;
 
@@ -242,18 +241,18 @@ extern bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTarge
 
 // Invokes a dynamically dispatched method with the given arguments.
 #define Object_Invoke0(__methodName, __methodClassName, __self) \
-    ((struct _##__methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self)
+    ((struct __methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self)
 
 #define Object_InvokeN(__methodName, __methodClassName, __self, ...) \
-    ((struct _##__methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
+    ((struct __methodClassName##MethodTable *)(Object_GetClass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
 
 
 // Invokes a dynamically dispatched method with the given arguments on the superclass of the receiver.
 #define Object_Super0(__methodName, __methodClassName, __self) \
-    ((struct _##__methodClassName##MethodTable *)(Object_GetSuperclass(__self)->vtable))->__methodName(__self)
+    ((struct __methodClassName##MethodTable *)(Object_GetSuperclass(__self)->vtable))->__methodName(__self)
 
 #define Object_SuperN(__methodName, __methodClassName, __self, ...) \
-    ((struct _##__methodClassName##MethodTable *)(Object_GetSuperclass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
+    ((struct __methodClassName##MethodTable *)(Object_GetSuperclass(__self)->vtable))->__methodName(__self, __VA_ARGS__)
 
 
 #ifndef __DISKIMAGE__

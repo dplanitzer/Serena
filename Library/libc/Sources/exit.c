@@ -16,7 +16,7 @@
 
 typedef void (*AtExitFunc)(void);
 
-typedef struct _AtExitEntry {
+typedef struct AtExitEntry {
     SListNode           node;
     AtExitFunc _Nonnull func;
 } AtExitEntry;

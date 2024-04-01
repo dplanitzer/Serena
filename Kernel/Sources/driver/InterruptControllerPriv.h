@@ -19,7 +19,7 @@
 #define INTERRUPT_HANDLER_FLAG_ENABLED  0x01
 
 // Keep this at a size that's a power-of-2
-typedef struct _InterruptHandler {
+typedef struct InterruptHandler {
     int                                 identity;
     int8_t                              type;
     int8_t                              priority;
@@ -31,14 +31,14 @@ typedef struct _InterruptHandler {
 
 
 // Keep in sync with lowmem.i
-typedef struct _InterruptHandlerArray {
+typedef struct InterruptHandlerArray {
     InterruptHandler* _Nonnull  start;  // points to the first handler
     int                         count;
 } InterruptHandlerArray;
 
 
 // Keep in sync with lowmem.i
-typedef struct _InterruptController {
+typedef struct InterruptController {
     InterruptHandlerArray   handlers[INTERRUPT_ID_COUNT];
     int                     nextAvailableId;    // Next available interrupt handler ID
     int                     spuriousInterruptCount;

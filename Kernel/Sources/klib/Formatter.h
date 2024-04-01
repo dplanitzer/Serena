@@ -32,7 +32,7 @@ typedef errno_t (*Formatter_SinkFunc)(FormatterRef _Nonnull self, const char * _
 typedef struct ConversionSpec {
     int     minimumFieldWidth;
     int     precision;
-    struct _Flags {
+    struct Flags {
         unsigned int isAlternativeForm:1;
         unsigned int padWithZeros:1;
         unsigned int hasPrecision:1;

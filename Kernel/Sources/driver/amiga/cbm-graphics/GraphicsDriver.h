@@ -20,8 +20,8 @@ typedef struct ColorTable {
 } ColorTable;
 
 
-struct _ScreenConfiguration;
-typedef struct _ScreenConfiguration ScreenConfiguration;
+struct ScreenConfiguration;
+typedef struct ScreenConfiguration ScreenConfiguration;
 
 // The supported screen configurations
 extern const ScreenConfiguration kScreenConfig_NTSC_320_200_60;
@@ -41,7 +41,7 @@ extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
 
 
 OPAQUE_CLASS(GraphicsDriver, Object);
-typedef struct _GraphicsDriverMethodTable {
+typedef struct GraphicsDriverMethodTable {
     ObjectMethodTable   super;
 } GraphicsDriverMethodTable;
 

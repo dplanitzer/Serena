@@ -12,8 +12,8 @@
 #include <klib/klib.h>
 #include <hal/Platform.h>
 
-struct _DriverManager;
-typedef struct _DriverManager* DriverManagerRef;
+struct DriverManager;
+typedef struct DriverManager* DriverManagerRef;
 
 typedef void* DriverRef;
 

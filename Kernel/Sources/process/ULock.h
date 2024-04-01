@@ -16,7 +16,7 @@
 OPEN_CLASS_WITH_REF(ULock, Object,
     Lock    lock;
 );
-typedef struct _ULockMethodTable {
+typedef struct ULockMethodTable {
     ObjectMethodTable   super;
 } ULockMethodTable;
 

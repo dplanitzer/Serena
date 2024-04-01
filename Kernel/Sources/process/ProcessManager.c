@@ -10,7 +10,7 @@
 #include <dispatcher/Lock.h>
 #include "ProcessPriv.h"
 
-typedef struct _ProcessManager {
+typedef struct ProcessManager {
     Lock                    lock;
     ObjectArray             procs;      // XXX list vs hashtable (what we really want)
     ProcessRef _Nonnull     rootProc;

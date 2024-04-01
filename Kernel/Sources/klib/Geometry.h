@@ -12,7 +12,7 @@
 #include <klib/klib.h>
 
 
-typedef struct _Point {
+typedef struct Point {
     int x, y;
 } Point;
 
@@ -29,7 +29,7 @@ extern const Point Point_Zero;
 ////////////////////////////////////////////////////////////////////////////////
 
 
-typedef struct _Vector {
+typedef struct Vector {
     int dx, dy;
 } Vector;
 
@@ -46,7 +46,7 @@ extern const Vector Vector_Zero;
 ////////////////////////////////////////////////////////////////////////////////
 
 
-typedef struct _Size {
+typedef struct Size {
     int width, height;
 } Size;
 
@@ -63,7 +63,7 @@ extern const Size Size_Zero;
 ////////////////////////////////////////////////////////////////////////////////
 
 
-typedef struct _Rect {
+typedef struct Rect {
     int left, top;
     int right, bottom;
 } Rect;

@@ -16,7 +16,7 @@
 #define MOUSE_CURSOR_WIDTH  16
 #define MOUSE_CURSOR_HEIGHT 16
 
-typedef struct _MousePainter {
+typedef struct MousePainter {
     uint16_t* _Nonnull _Weak    bitmap;
     uint16_t* _Nonnull _Weak    mask;               // Mask is inverted: 0 where the mouse image should appear; 1 where the background should appear
     uint8_t* _Nonnull           bitmapMaskBuffer;   // Common storage for the bitmap and mask. Stored in non-unified RAM
@@ -38,14 +38,14 @@ typedef struct _MousePainter {
     // screen. 
     int16_t                     x;
     int16_t                     y;
-    struct _Flags {
+    struct Flags {
         uint8_t                 isVisible:1;
         uint8_t                 isHiddenUntilMouseMoves:1;
         uint8_t                 hasBackground:1;
     }                           flags;
 
     // Current mouse cursor state corresponding to what is visible on the screen right now
-    struct _CurrentFlags {
+    struct CurrentFlags {
         uint8_t                 isVisible:1;
         uint8_t                 isShielded:1;
         uint8_t                 hasSavedImage:1;

@@ -30,7 +30,7 @@ enum ItemType {
 
 // Completion signalers are semaphores that are used to signal the completion of
 // a work item to DispatchQueue_DispatchSync()
-typedef struct _CompletionSignaler {
+typedef struct CompletionSignaler {
     SListNode   queue_entry;
     Semaphore   semaphore;
     bool        isInterrupted;
@@ -46,7 +46,7 @@ extern void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem);
 // Work Items
 //
 
-typedef struct _WorkItem {
+typedef struct WorkItem {
     SListNode                               queue_entry;
     DispatchQueueClosure                    closure;
     CompletionSignaler * _Nullable _Weak    completion;
@@ -66,7 +66,7 @@ extern void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, bool isInterru
 // Timers
 //
 
-typedef struct _Timer {
+typedef struct Timer {
     WorkItem        item;
     TimeInterval    deadline;           // Time when the timer closure should be executed
     TimeInterval    interval;
@@ -86,7 +86,7 @@ extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline
 // resources are specific to this virtual processor and shall only be used in
 // connection with this virtual processor. There's one concurrency lane per
 // dispatch queue concurrency level.
-typedef struct _ConcurrencyLane {
+typedef struct ConcurrencyLane {
     VirtualProcessor* _Nullable  vp;     // The virtual processor assigned to this concurrency lane
 } ConcurrencyLane;
 

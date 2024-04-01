@@ -12,8 +12,8 @@
 #include <klib/klib.h>
 
 
-struct _AddressSpace;
-typedef struct _AddressSpace* AddressSpaceRef;
+struct AddressSpace;
+typedef struct AddressSpace* AddressSpaceRef;
 
 
 extern errno_t AddressSpace_Create(AddressSpaceRef _Nullable * _Nonnull pOutSpace);

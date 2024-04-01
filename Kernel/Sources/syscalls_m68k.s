@@ -61,7 +61,7 @@
 ; system call arguments including the system call number. The arguments are
 ; ordered from left to right:
 ;
-; struct _Args {
+; struct Args {
 ;    int  systemCallNumber;
 ;    // system call specific arguments from left to right
 ; }

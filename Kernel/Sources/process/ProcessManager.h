@@ -12,8 +12,8 @@
 #include <klib/klib.h>
 #include "Process.h"
 
-struct _ProcessManager;
-typedef struct _ProcessManager* ProcessManagerRef;
+struct ProcessManager;
+typedef struct ProcessManager* ProcessManagerRef;
 
 
 // The process manager manages the set of processes that are alive and globally

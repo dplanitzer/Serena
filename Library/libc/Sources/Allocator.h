@@ -16,14 +16,14 @@
 
 
 // A memory descriptor describes a contiguous range of RAM
-typedef struct _MemoryDescriptor {
+typedef struct MemoryDescriptor {
     char* _Nonnull  lower;
     char* _Nonnull  upper;
 } MemoryDescriptor;
 
 
-struct _Allocator;
-typedef struct _Allocator* AllocatorRef;
+struct Allocator;
+typedef struct Allocator* AllocatorRef;
 
 
 extern errno_t __Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator);

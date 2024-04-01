@@ -17,7 +17,7 @@ enum {
     kState_Repeating
 };
 
-typedef struct _HIDKeyRepeater {
+typedef struct HIDKeyRepeater {
     EventDriverRef  eventDriver;
     int8_t          repeatersInUseCount;    // number of repeaters currently in use
     int8_t          reserved[3];

@@ -17,7 +17,7 @@
 OPEN_CLASS_WITH_REF(UConditionVariable, Object,
     ConditionVariable   cv;
 );
-typedef struct _UConditionVariableMethodTable {
+typedef struct UConditionVariableMethodTable {
     ObjectMethodTable   super;
 } UConditionVariableMethodTable;
 

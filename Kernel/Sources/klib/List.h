@@ -16,12 +16,12 @@
 // A doubly linked list.
 //
 
-typedef struct _ListNode {
-    struct _ListNode* _Nullable next;
-    struct _ListNode* _Nullable prev;
+typedef struct ListNode {
+    struct ListNode* _Nullable  next;
+    struct ListNode* _Nullable  prev;
 } ListNode;
 
-typedef struct _List {
+typedef struct List {
     ListNode* _Nullable first;
     ListNode* _Nullable last;
 } List;
@@ -92,11 +92,11 @@ static inline bool List_IsEmpty(List* _Nonnull pList) {
 // A singly linked list.
 //
 
-typedef struct _SListNode {
-    struct _SListNode* _Nullable    next;
+typedef struct SListNode {
+    struct SListNode* _Nullable next;
 } SListNode;
 
-typedef struct _SList {
+typedef struct SList {
     SListNode* _Nullable    first;
     SListNode* _Nullable    last;
 } SList;

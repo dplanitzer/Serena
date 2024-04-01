@@ -11,14 +11,14 @@
 
 
 #define MEM_BLOCKS_CAPACITY 8
-typedef struct _MemBlocks {
+typedef struct MemBlocks {
     SListNode       node;
     size_t          count;  // Number of entries in use
     char* _Nullable blocks[MEM_BLOCKS_CAPACITY];
 } MemBlocks;
 
 
-typedef struct _AddressSpace {
+typedef struct AddressSpace {
     SList   mblocks;
     Lock    lock;
 } AddressSpace;

@@ -12,8 +12,8 @@
 #include <klib/klib.h>
 #include "Filesystem.h"
 
-struct _FilesystemManager;
-typedef struct _FilesystemManager* FilesystemManagerRef;
+struct FilesystemManager;
+typedef struct FilesystemManager* FilesystemManagerRef;
 
 
 extern FilesystemManagerRef _Nonnull  gFilesystemManager;

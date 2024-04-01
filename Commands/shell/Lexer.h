@@ -31,7 +31,7 @@ typedef enum TokenId {
     kToken_Ampersand = '&'              // -
 } TokenId;
 
-typedef struct _Token {
+typedef struct Token {
     TokenId         id;
     union {
         const char* string;
@@ -44,7 +44,7 @@ typedef struct _Token {
 } Token;
 
 
-typedef struct _Lexer {
+typedef struct Lexer {
     const char* _Nonnull    source;
     int                     sourceIndex;
 

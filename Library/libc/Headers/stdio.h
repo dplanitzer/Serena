@@ -43,7 +43,7 @@ typedef _Errno_t (*FILE_Write)(void* self, const void* pBytes, __ssize_t nBytesT
 typedef _Errno_t (*FILE_Seek)(void* self, long long offset, long long *outOldOffset, int whence);
 typedef _Errno_t (*FILE_Close)(void* self);
 
-typedef struct _FILE_Callbacks {
+typedef struct FILE_Callbacks {
     FILE_Read _Nullable     read;
     FILE_Write _Nullable    write;
     FILE_Seek _Nullable     seek;
@@ -52,7 +52,7 @@ typedef struct _FILE_Callbacks {
 
 
 // A memory-backed stream
-typedef struct _FILE_Memory {
+typedef struct FILE_Memory {
     void* _Nullable     base;               // the (initial) memory block. The block will be reallocated if necessary and the current capacity is < maximumCapacity
     size_t              initialEof;         // initial file size. A fread() issued to the stream right after opening will return this data
     size_t              initialCapacity;    // Capacity of the initial memory block. This is the size to which a file will grow before an attempt is made to allocate a bigger block
@@ -63,22 +63,22 @@ typedef struct _FILE_Memory {
 // Free the file memory block when fclose() is called
 #define _IOM_FREE_ON_CLOSE  1
 
-typedef struct _FILE_MemoryQuery {
+typedef struct FILE_MemoryQuery {
     void* _Nullable     base;           // current memory block base pointer
     size_t              eof;            // offset to where the EOF is in the memory block (aka how much data was written)
     size_t              capacity;       // how big the memory block really is. Difference between capacity and EOF is storage not used by the file
 } FILE_MemoryQuery;
 
 
-typedef struct _FILE {
-    struct _FILE*               prev;
-    struct _FILE*               next;
+typedef struct FILE {
+    struct FILE*                prev;
+    struct FILE*                next;
     FILE_Callbacks              cb;
     void*                       context;
     char*                       buffer;
     size_t                      bufferCapacity;
     size_t                      bufferCount;
-    struct _FILE_Flags {
+    struct FILE_Flags {
         unsigned int mode:3;
         unsigned int mostRecentDirection:2;
         unsigned int hasError:1;

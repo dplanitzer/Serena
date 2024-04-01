@@ -16,8 +16,7 @@
 OPEN_CLASS_WITH_REF(IOChannel, Object,
     unsigned int    mode;
 );
-
-typedef struct _IOChannelMethodTable {
+typedef struct IOChannelMethodTable {
     ObjectMethodTable   super;
     errno_t   (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
     errno_t   (*ioctl)(void* _Nonnull self, int cmd, va_list ap);

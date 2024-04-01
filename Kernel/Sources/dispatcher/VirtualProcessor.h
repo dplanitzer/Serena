@@ -16,7 +16,7 @@
 
 
 // A kernel or user execution stack
-typedef struct _ExecutionStack {
+typedef struct ExecutionStack {
     char* _Nullable base;
     size_t          size;
 } ExecutionStack;
@@ -35,7 +35,7 @@ extern errno_t ExecutionStack_SetMaxSize(ExecutionStack* _Nullable pStack, size_
 // This structure describes a virtual processor closure which is a function entry
 // point, a context parameter that will be passed to the closure function and the
 // kernel plus user stack size.
-typedef struct _VirtualProcessorClosure {
+typedef struct VirtualProcessorClosure {
     Closure1Arg_Func _Nonnull   func;
     void* _Nullable _Weak       context;
     char* _Nullable             kernelStackBase;    // Optional base address of a pre-allocated kernel stack
@@ -54,7 +54,7 @@ typedef struct _VirtualProcessorClosure {
 
 
 // The current state of a virtual processor
-typedef enum _VirtualProcessorState {
+typedef enum VirtualProcessorState {
     kVirtualProcessorState_Ready = 0,       // VP is able to run and is currently sitting on the ready queue
     kVirtualProcessorState_Running,         // VP is running
     kVirtualProcessorState_Waiting          // VP is blocked waiting for a resource (eg sleep, mutex, semaphore, etc)
@@ -106,11 +106,11 @@ typedef enum _VirtualProcessorState {
 #define WAKEUP_REASON_TIMEOUT       3
 
 
-struct _VirtualProcessor;
+struct VirtualProcessor;
 
 
 // A timeout
-typedef struct _Timeout {
+typedef struct Timeout {
     ListNode                            queue_entry;            // Timeout queue if the VP is waiting with a timeout
     Quantums                            deadline;               // Absolute timeout in quantums
     struct VirtualProcessor* _Nullable  owner;
@@ -119,20 +119,20 @@ typedef struct _Timeout {
 } Timeout;
 
 
-typedef struct _VirtualProcessorOwner {
+typedef struct VirtualProcessorOwner {
     ListNode                            queue_entry;
-    struct _VirtualProcessor* _Nonnull  self;
+    struct VirtualProcessor* _Nonnull   self;
 } VirtualProcessorOwner;
 
 
 // Overridable functions for virtual processors
-typedef struct _VirtualProcessorVTable {
-    void    (* _Nonnull destroy)(struct _VirtualProcessor* _Nonnull pVP);
+typedef struct VirtualProcessorVTable {
+    void    (* _Nonnull destroy)(struct VirtualProcessor* _Nonnull pVP);
 } VirtualProcessorVTable;
 
 
 // Note: Keep in sync with lowmem.i
-typedef struct _VirtualProcessor {
+typedef struct VirtualProcessor {
     ListNode                                rewa_queue_entry;       // A VP is either on the ready (re) queue or a wait (wa) queue
     const VirtualProcessorVTable* _Nonnull  vtable;
     CpuContext                              save_area;

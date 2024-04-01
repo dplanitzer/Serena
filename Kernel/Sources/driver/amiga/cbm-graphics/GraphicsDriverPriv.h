@@ -18,7 +18,7 @@
 
 
 #define MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION   5
-struct _ScreenConfiguration {
+struct ScreenConfiguration {
     int16_t       uniqueId;
     int16_t       width;
     int16_t       height;
@@ -41,7 +41,7 @@ struct _ScreenConfiguration {
 // Copper Program
 //
 
-typedef struct _CopperProgram {
+typedef struct CopperProgram {
     CopperInstruction   entry[1];
 } CopperProgram;
 
@@ -52,7 +52,7 @@ typedef struct _CopperProgram {
 
 #define COPF_CONTEXT_SWITCH_REQ (1 << 7)
 #define COPF_INTERLACED         (1 << 6)
-typedef struct _CopperScheduler {
+typedef struct CopperScheduler {
     const CopperProgram* _Nullable  readyOddFieldProg;
     const CopperProgram* _Nullable  readyEvenFieldProg;
 
@@ -76,7 +76,7 @@ extern void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler);
 #define MAX_SPRITE_WIDTH        16
 #define MAX_SPRITE_HEIGHT       511
 
-typedef struct _Sprite {
+typedef struct Sprite {
     uint16_t*     data;   // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
     int16_t       x;
     int16_t       y;
@@ -89,7 +89,7 @@ typedef struct _Sprite {
 // Screen
 //
 
-typedef struct _Screen {
+typedef struct Screen {
     Surface* _Nullable                  framebuffer;        // the screen framebuffer
     const ScreenConfiguration* _Nonnull screenConfig;
     PixelFormat                         pixelFormat;

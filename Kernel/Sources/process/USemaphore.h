@@ -16,7 +16,7 @@
 OPEN_CLASS_WITH_REF(USemaphore, Object,
     Semaphore    sema;
 );
-typedef struct _USemaphoreMethodTable {
+typedef struct USemaphoreMethodTable {
     ObjectMethodTable   super;
 } USemaphoreMethodTable;
 

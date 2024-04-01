@@ -10,7 +10,7 @@
 #include <dispatcher/Lock.h>
 
 
-typedef struct _Mountpoint {
+typedef struct Mountpoint {
     ListNode                node;
     
     // The FS that we are mounting...
@@ -21,7 +21,7 @@ typedef struct _Mountpoint {
     InodeRef _Nullable      mountingInode;          // Only ever NULL for the root FS
 } Mountpoint;
 
-typedef struct _FilesystemManager {
+typedef struct FilesystemManager {
     Lock                    lock;
     ObjectArray             filesystems;
     List                    mountpoints;

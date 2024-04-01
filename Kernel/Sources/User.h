@@ -16,7 +16,7 @@ enum {
     kRootGroupId = 0
 };
 
-typedef struct _User {
+typedef struct User {
     UserId  uid;
     GroupId gid;
 } User;

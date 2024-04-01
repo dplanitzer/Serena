@@ -29,7 +29,7 @@
 //
 
 
-typedef enum _CompatibilityMode {
+typedef enum CompatibilityMode {
     kCompatibilityMode_VT52 = 0,
     kCompatibilityMode_VT52_AtariExtensions,
     kCompatibilityMode_VT100
@@ -77,7 +77,7 @@ typedef enum _CompatibilityMode {
 //      - (ESC ]) print screen
 
 
-typedef enum _CursorMovement {
+typedef enum CursorMovement {
     kCursorMovement_Clamp = 0,      // Insertion point movement is restricted to the screen area. No scrolling our auto-wrap is done.
     kCursorMovement_AutoWrap,       // Move the insertion point to the beginning of the next line if it moves past the right margin and scroll the screen content up a line if it moves past the bottom margin
     kCursorMovement_AutoScroll      // Horizontal insertion pointer is clamped and vertical movement will scroll the screen up/down if the insertion pointer moves past teh bottom/top edge of the screen
@@ -85,7 +85,7 @@ typedef enum _CursorMovement {
 
 
 // The values are chosen based on the ANSI EL command
-typedef enum _ClearLineMode {
+typedef enum ClearLineMode {
     kClearLineMode_ToEnd = 0,           // Clear from the cursor position to the end of the line
     kClearLineMode_ToBeginning = 1,     // Clear from the cursor position to the beginning of the line
     kClearLineMode_Whole = 2,           // Clear the whole line
@@ -93,7 +93,7 @@ typedef enum _ClearLineMode {
 
 
 // The values are chosen based on the ANSI ED command
-typedef enum _ClearScreenMode {
+typedef enum ClearScreenMode {
     kClearScreenMode_ToEnd = 0,             // Clear from the cursor position to the end of the screen
     kClearScreenMode_ToBeginning = 1,       // Clear from the cursor position to the beginning of the screen
     kClearScreenMode_Whole = 2,             // Clear the whole screen
@@ -102,7 +102,7 @@ typedef enum _ClearScreenMode {
 
 
 // Stores up to 255 tab stop positions.
-typedef struct _TabStops {
+typedef struct TabStops {
     int8_t* stops;
     int     count;
     int     capacity;
@@ -119,7 +119,7 @@ int TabStops_GetPreviousNthStop(TabStops* pStops, int xLoc, int nth);
 
 
 // Character attributes/rendition state
-typedef struct _CharacterRendition {
+typedef struct CharacterRendition {
     unsigned int    isBold:1;
     unsigned int    isDimmed:1;
     unsigned int    isItalic:1;
@@ -136,7 +136,7 @@ typedef struct _CharacterRendition {
 // - cursor attributes
 // - character set
 // - origin mode
-typedef struct _SavedState {
+typedef struct SavedState {
     int                 x;
     int                 y;
     Color               backgroundColor;

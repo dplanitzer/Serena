@@ -20,17 +20,17 @@
 // 'elementType'. Look for the specializations below if you just want to use an
 // array for a specific element type. If you want to create a new specialization
 // then you should use the functions/macros here to build your specialization.
-struct _GenericArray {
+struct GenericArray {
     char*   data;
     ssize_t count;
     ssize_t capacity;
 };
 
 
-extern errno_t GenericArray_Init(struct _GenericArray* _Nonnull pArray, size_t elementSize, ssize_t initialCapacity);
-extern void GenericArray_Deinit(struct _GenericArray* _Nonnull pArray);
+extern errno_t GenericArray_Init(struct GenericArray* _Nonnull pArray, size_t elementSize, ssize_t initialCapacity);
+extern void GenericArray_Deinit(struct GenericArray* _Nonnull pArray);
 
-extern errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, size_t elementSize);
+extern errno_t GenericArray_GrowCapacity(struct GenericArray* _Nonnull pArray, size_t elementSize);
 
 #define GenericArray_GetCount(pArray) (pArray)->count
 #define GenericArray_IsEmpty(pArray) ((pArray)->count == 0)
@@ -85,7 +85,7 @@ extern errno_t GenericArray_GrowCapacity(struct _GenericArray* _Nonnull pArray, 
         (pArray)->count--; \
     }
 
-extern void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, bool keepCapacity);
+extern void GenericArray_RemoveAll(struct GenericArray* _Nonnull pArray, bool keepCapacity);
 
 #define GenericArray_FirstIndexOf(idx, pArray, element, elementType) \
     { \
@@ -104,7 +104,7 @@ extern void GenericArray_RemoveAll(struct _GenericArray* _Nonnull pArray, bool k
 
 
 // An array that stores int values
-typedef struct _GenericArray IntArray;
+typedef struct GenericArray IntArray;
 typedef IntArray* IntArrayRef;
 
 #define IntArray_Init(pArray, initialCapacity)  GenericArray_Init((IntArrayRef)(pArray), sizeof(int), initialCapacity)
@@ -134,7 +134,7 @@ static inline int IntArray_GetFirst(IntArrayRef _Nonnull pArray, int defaultValu
 
 
 // An array that stores pointers
-typedef struct _GenericArray PointerArray;
+typedef struct GenericArray PointerArray;
 typedef PointerArray* PointerArrayRef;
 
 #define PointerArray_Init(pArray, initialCapacity)  GenericArray_Init((PointerArrayRef)(pArray), sizeof(void*), initialCapacity)
@@ -157,7 +157,7 @@ extern void PointerArray_RemoveAt(PointerArrayRef _Nonnull pArray, ssize_t idx);
 
 
 // An array that stores nullable ObjectRef values
-typedef struct _GenericArray ObjectArray;
+typedef struct GenericArray ObjectArray;
 typedef ObjectArray* ObjectArrayRef;
 
 #define ObjectArray_Init(pArray, initialCapacity)  GenericArray_Init((ObjectArrayRef)(pArray), sizeof(ObjectRef), initialCapacity)

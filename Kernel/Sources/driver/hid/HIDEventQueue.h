@@ -12,8 +12,8 @@
 #include <klib/klib.h>
 #include "HIDEvent.h"
 
-struct _HIDEventQueue;
-typedef struct _HIDEventQueue* HIDEventQueueRef;
+struct HIDEventQueue;
+typedef struct HIDEventQueue* HIDEventQueueRef;
 
 
 // Allocates an empty event queue. 'capacity' is the queue capacity in terms of

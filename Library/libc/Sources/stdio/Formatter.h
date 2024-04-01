@@ -32,7 +32,7 @@ typedef struct Formatter* FormatterRef;
 typedef struct ConversionSpec {
     int     minimumFieldWidth;
     int     precision;
-    struct _Flags {
+    struct Flags {
         unsigned int isLeftJustified:1;
         unsigned int alwaysShowSign:1;
         unsigned int showSpaceIfPositive:1;

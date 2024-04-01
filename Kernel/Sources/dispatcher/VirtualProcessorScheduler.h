@@ -31,14 +31,14 @@
 
 // The ready queue holds references to all VPs which are ready to run. The queue
 // is sorted from highest to lowest priority.
-typedef struct _ReadyQueue {
+typedef struct ReadyQueue {
     List    priority[VP_PRIORITY_COUNT];
     uint8_t   populated[VP_PRIORITY_POP_BYTE_COUNT];
 } ReadyQueue;
 
 
 // Note: Keep in sync with lowmem.i
-typedef struct _VirtualProcessorScheduler {
+typedef struct VirtualProcessorScheduler {
     volatile VirtualProcessor* _Nonnull running;                        // Currently running VP
     VirtualProcessor* _Nullable         scheduled;                      // The VP that should be moved to the running state by the context switcher
     VirtualProcessor* _Nonnull          idleVirtualProcessor;           // This VP is scheduled if there is no other VP to schedule

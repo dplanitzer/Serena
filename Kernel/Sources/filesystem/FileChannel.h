@@ -18,8 +18,7 @@ OPEN_CLASS_WITH_REF(FileChannel, IOChannel,
     InodeRef _Nonnull   inode;
     FileOffset          offset;
 );
-
-typedef struct _FileChannelMethodTable {
+typedef struct FileChannelMethodTable {
     IOChannelMethodTable    super;
 } FileChannelMethodTable;
 

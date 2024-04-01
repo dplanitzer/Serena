@@ -13,7 +13,7 @@
 #include <System/System.h>
 
 
-typedef struct _LineReader {
+typedef struct LineReader {
     int     x;
     int     maxX;
 

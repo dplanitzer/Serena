@@ -17,7 +17,7 @@
 // allocated in the form of 'extents'. The RAM disk user can specify the size
 // of a block, an extent and the disk.
 OPAQUE_CLASS(RamDisk, DiskDriver);
-typedef struct _RamDiskMethodTable {
+typedef struct RamDiskMethodTable {
     DiskDriverMethodTable   super;
 } RamDiskMethodTable;
 

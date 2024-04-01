@@ -152,7 +152,7 @@ static errno_t FloppyDMA_Write(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnul
 #define MFM_SYNC_WORD   0x4489
 #define ADF_FORMAT_V1   0xff
 
-typedef struct _ADF_SectorHeader
+typedef struct ADF_SectorHeader
 {
     uint8_t   format;     // Amiga 1.0 format 0xff
     uint8_t   track;

@@ -16,7 +16,7 @@ OPEN_CLASS_WITH_REF(EventChannel, IOChannel,
     ObjectRef       eventDriver;
     TimeInterval    timeout;
 );
-typedef struct _EventChannelMethodTable {
+typedef struct EventChannelMethodTable {
     IOChannelMethodTable    super;
 } EventChannelMethodTable;
 

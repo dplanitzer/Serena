@@ -12,8 +12,8 @@
 #include <klib/klib.h>
 #include "EventDriver.h"
 
-struct _HIDKeyRepeater;
-typedef struct _HIDKeyRepeater* HIDKeyRepeaterRef;
+struct HIDKeyRepeater;
+typedef struct HIDKeyRepeater* HIDKeyRepeaterRef;
 
 
 extern errno_t HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutRepeater);

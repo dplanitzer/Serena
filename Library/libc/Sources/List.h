@@ -15,11 +15,11 @@
 // A singly linked list.
 //
 
-typedef struct _SListNode {
-    struct _SListNode* _Nullable    next;
+typedef struct SListNode {
+    struct SListNode* _Nullable next;
 } SListNode;
 
-typedef struct _SList {
+typedef struct SList {
     SListNode* _Nullable    first;
     SListNode* _Nullable    last;
 } SList;

@@ -15,13 +15,13 @@
 
 
 OPAQUE_CLASS(EventDriver, Object);
-typedef struct _EventDriverMethodTable {
+typedef struct EventDriverMethodTable {
     ObjectMethodTable   super;
 } EventDriverMethodTable;
 
 
 // Input controller types
-typedef enum _InputControllerType {
+typedef enum InputControllerType {
     kInputControllerType_None = 0,      // No input controller configured for the port
     kInputControllerType_Mouse,
     kInputControllerType_DigitalJoystick,
@@ -31,7 +31,7 @@ typedef enum _InputControllerType {
 
 
 // HID key state
-typedef enum _HIDKeyState {
+typedef enum HIDKeyState {
     kHIDKeyState_Down,
     kHIDKeyState_Repeat,
     kHIDKeyState_Up

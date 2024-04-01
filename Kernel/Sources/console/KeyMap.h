@@ -68,7 +68,7 @@ typedef uint16_t  KeyMapOffset;
 
 // XXX Consider adding TYPE_3 variant that stores a string up to 4 bytes in 32bits inline
 
-typedef struct _KeyMapRange {
+typedef struct KeyMapRange {
     uint16_t        type;
     HIDKeyCode      lower;
     HIDKeyCode      upper;
@@ -79,7 +79,7 @@ typedef struct _KeyMapRange {
 // Big endian
 #define KEY_MAP_TYPE_0  0
 
-typedef struct _KeyMap {
+typedef struct KeyMap {
     uint16_t        type;
     uint16_t        size;   // Overall size of key map in bytes
     uint16_t        rangeCount;

@@ -44,7 +44,7 @@
 
 
 // Zorro II config info
-typedef struct _Zorro_BoardConfiguration {
+typedef struct Zorro_BoardConfiguration {
     size_t      physical_size;  // physical board size
     size_t      logical_size;   // logical board size which may be smaller than the physical size; 0 means the kernel should auto-size the board
     uint8_t     bus;

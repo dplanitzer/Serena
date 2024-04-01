@@ -13,8 +13,8 @@
 #include <hal/Platform.h>
 
 
-struct _Allocator;
-typedef struct _Allocator* AllocatorRef;
+struct Allocator;
+typedef struct Allocator* AllocatorRef;
 
 
 extern errno_t Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator);

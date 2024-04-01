@@ -14,7 +14,7 @@
 
 // Ring buffer primitives. The ring buffer size must be a multiple of a power-of-2.
 // See: <https://www.snellman.net/blog/archive/2016-12-13-ring-buffers/>
-typedef struct _RingBuffer {
+typedef struct RingBuffer {
     char* _Nonnull  data;
     size_t          capacity;
     size_t          readIdx;

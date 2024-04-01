@@ -21,14 +21,14 @@ const char* const kEventsDriverName = "events";
 const char* const kRealtimeClockName = "rtc";
 
 
-typedef struct _DriverEntry {
+typedef struct DriverEntry {
     SListNode   node;
     const char* name;
     DriverRef   instance;
 } DriverEntry;
 
 
-typedef struct _DriverManager {
+typedef struct DriverManager {
     Lock            lock;
     SList           drivers;
     ExpansionBus    zorroBus;

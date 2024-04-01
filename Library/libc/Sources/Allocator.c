@@ -23,15 +23,15 @@
 // A memory block structure describes a freed or allocated block of memory. The
 // structure is placed right in front of the memory block. Note that the block
 // size includes the header size.
-typedef struct _MemBlock {
-    struct _MemBlock* _Nullable next;
+typedef struct MemBlock {
+    struct MemBlock* _Nullable  next;
     size_t                      size;   // The size includes sizeof(MemBlock). Max size of a free block is 4GB; max size of an allocated block is 2GB
 } MemBlock;
 
 
 // A heap memory region is a region of contiguous memory which is managed by the
 // heap. Each such region has its own private list of free memory blocks.
-typedef struct _MemRegion {
+typedef struct MemRegion {
     SListNode           node;
     char* _Nonnull      lower;
     char* _Nonnull      upper;
@@ -40,7 +40,7 @@ typedef struct _MemRegion {
 
 
 // An allocator manages memory from a pool of memory contiguous regions.
-typedef struct _Allocator {
+typedef struct Allocator {
     SList               regions;
     MemBlock* _Nullable first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
 } Allocator;

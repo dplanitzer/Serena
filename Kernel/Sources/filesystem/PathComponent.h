@@ -16,7 +16,7 @@
 // components separated by a '/' character. Note that a path component is not a
 // NUL terminated string. The length of the component is given explicitly by the
 // count field.
-typedef struct _PathComponent {
+typedef struct PathComponent {
     const char* _Nonnull    name;
     ssize_t                 count;
 } PathComponent;
@@ -39,7 +39,7 @@ extern bool PathComponent_EqualsString(const PathComponent* pc, const char* rhs)
 // Mutable version of PathComponent. 'count' must be set on return to the actual
 // length of the generated/edited path component. 'capacity' is the maximum length
 // that the path component may take on.
-typedef struct _MutablePathComponent {
+typedef struct MutablePathComponent {
     char* _Nonnull  name;
     ssize_t         count;
     ssize_t         capacity;

@@ -12,7 +12,7 @@
 
 
 #define REUSE_CACHE_CAPACITY    16
-typedef struct _VirtualProcessorPool {
+typedef struct VirtualProcessorPool {
     Lock    lock;
     List    inuse_queue;        // VPs in use
     List    reuse_queue;        // VPs available for reuse

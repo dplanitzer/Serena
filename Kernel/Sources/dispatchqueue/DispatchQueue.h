@@ -16,15 +16,15 @@
 #include <System/DispatchQueue.h>
 
 
-struct _WorkItem;
-typedef struct _WorkItem* WorkItemRef;
+struct WorkItem;
+typedef struct WorkItem* WorkItemRef;
 
-struct _Timer;
-typedef struct _Timer* TimerRef;
+struct Timer;
+typedef struct Timer* TimerRef;
 
 
 OPAQUE_CLASS(DispatchQueue, Object);
-typedef struct _DispatchQueueMethodTable {
+typedef struct DispatchQueueMethodTable {
     ObjectMethodTable   super;
 } DispatchQueueMethodTable;
 
@@ -34,7 +34,7 @@ typedef struct _DispatchQueueMethodTable {
 // Closures
 //
 
-typedef struct _DispatchQueueClosure {
+typedef struct DispatchQueueClosure {
     Closure1Arg_Func _Nonnull   func;
     void* _Nullable _Weak       context;
     bool                        isUser;

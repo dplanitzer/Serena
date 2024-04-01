@@ -25,7 +25,7 @@ typedef LogicalBlockAddress LogicalBlockCount;
 // [0, BlockCount].
 OPEN_CLASS_WITH_REF(DiskDriver, Object,
 );
-typedef struct _DiskDriverMethodTable {
+typedef struct DiskDriverMethodTable {
     ObjectMethodTable   super;
 
     // Returns the size of a block.

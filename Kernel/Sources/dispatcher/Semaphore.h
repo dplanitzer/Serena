@@ -13,7 +13,7 @@
 
 
 // A (counting) semaphore
-typedef struct _Semaphore {
+typedef struct Semaphore {
     volatile int    value;
     List            wait_queue;
 } Semaphore;

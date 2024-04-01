@@ -15,7 +15,7 @@
 OPEN_CLASS_WITH_REF(PipeChannel, IOChannel,
     ObjectRef   pipe;
 );
-typedef struct _PipeChannelMethodTable {
+typedef struct PipeChannelMethodTable {
     IOChannelMethodTable    super;
 } PipeChannelMethodTable;
 

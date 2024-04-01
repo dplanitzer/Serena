@@ -16,7 +16,7 @@
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
 // Why?? 'cause it's easy
 #define GEMDOS_EXEC_MAGIC    ((uint16_t) 0x601a)
-typedef struct _GemDosExecutableHeader {
+typedef struct GemDosExecutableHeader {
     uint16_t    magic;
     int32_t     text_size;
     int32_t     data_size;
@@ -28,7 +28,7 @@ typedef struct _GemDosExecutableHeader {
 } GemDosExecutableHeader;
 
 
-typedef struct _GemDosExecutableLoader {
+typedef struct GemDosExecutableLoader {
     AddressSpaceRef _Nonnull    addressSpace;
     User                        user;
 } GemDosExecutableLoader;

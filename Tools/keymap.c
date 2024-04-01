@@ -42,20 +42,20 @@ typedef char        SmallString[kKeyMap_MaxByteSequenceLength+1];
 
 // Key Map Types:
 // 0    -> big endian
-typedef enum _KeyMapType {
+typedef enum KeyMapType {
     kKeyMapType_0 = 0
 } KeyMapType;
 
 // Key (Range/Trap) Types:
 // 0    -> key(usb_key_code, char, char, char, char)    [unmodified, shift, alt, shift+alt]
 // 1    -> key(usb_key_code, string)
-typedef enum _KeyType {
+typedef enum KeyType {
     kKeyType_4Bytes = 0,
     kKeyType_String = 3
 } KeyType;
 
 
-typedef struct _Key {
+typedef struct Key {
     KeyType     type;
     USBKeyCode  keyCode;
     union {
@@ -64,7 +64,7 @@ typedef struct _Key {
     }       u;
 } Key;
 
-typedef struct _KeysTable {
+typedef struct KeysTable {
     Key*    table;
     size_t  count;
     size_t  capacity;
@@ -74,27 +74,27 @@ typedef struct _KeysTable {
 
 typedef KeyType RangeType;
 
-typedef struct _KeyRange {
+typedef struct KeyRange {
     RangeType   keyType;        // kKeyType_XXX
     size_t      lowerKeyIndex;  // Index into KeysTable
     size_t      upperKeyIndex;  // Index into KeysTable
 } KeyRange;
 
-typedef struct _RangesTable {
+typedef struct RangesTable {
     KeyRange*   table;
     size_t      count;
     size_t      capacity;
 } RangesTable;
 
 
-typedef struct _StringTable {
+typedef struct StringTable {
     SmallString*    table;
     size_t          count;
     size_t          capacity;
 } StringTable;
 
 
-typedef struct _KeyMap {
+typedef struct KeyMap {
     KeysTable   keys;
     RangesTable ranges;
     StringTable strings;
@@ -105,7 +105,7 @@ typedef struct _KeyMap {
 // Errors
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct _SourceLocation {
+typedef struct SourceLocation {
     int line;
     int column;
 } SourceLocation;
@@ -188,7 +188,7 @@ static char* createFilenameFromPath(const char* path)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Token types
-typedef enum _TokenType {
+typedef enum TokenType {
     kTokenType_Eof = 0,
     kTokenType_Key,
     kTokenType_OpeningPara,
@@ -200,7 +200,7 @@ typedef enum _TokenType {
     kTokenType_Other                 // character
 } TokenType;
 
-typedef struct _Token {
+typedef struct Token {
     TokenType       type;
     SourceLocation  loc;
     union {
@@ -443,7 +443,7 @@ static Token xGetNextToken(FILE *s)
     }
 }
 
-typedef struct _TokenBuffer {
+typedef struct TokenBuffer {
     Token   t;
     bool    isValid;
 } TokenBuffer;
@@ -665,29 +665,29 @@ static void calculateKeyRanges(KeyMap* kmap)
 // Compile keymaps
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef enum _Endianness {
+typedef enum Endianness {
     Endian_Big = 0,
     Endian_Little
 } Endianness;
 
-typedef struct _Data {
+typedef struct Data {
     uint8_t*    bytes;
     size_t      count;
     size_t      capacity;
 } Data;
 
-typedef struct _PatchLocation {
+typedef struct PatchLocation {
     size_t      offsetToPatchLocation;
     const void* label;
 } PatchLocation;
 
-typedef struct _PatchLocations {
+typedef struct PatchLocations {
     PatchLocation*  table;
     size_t          count;
     size_t          capacity;
 } PatchLocations;
 
-typedef struct _CompiledKeyMap {
+typedef struct CompiledKeyMap {
     Data            data;
     PatchLocations  patchLocs;
 } CompiledKeyMap;

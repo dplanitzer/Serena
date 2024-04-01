@@ -29,7 +29,7 @@ OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
     int8_t      rdCount;                        // Number of bytes stored in the buffer
     int8_t      rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
 );
-typedef struct _ConsoleChannelMethodTable {
+typedef struct ConsoleChannelMethodTable {
     IOChannelMethodTable    super;
 } ConsoleChannelMethodTable;
 

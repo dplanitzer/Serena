@@ -13,7 +13,7 @@
 #include <hal/SystemDescription.h>
 
 
-typedef struct _BootAllocator {
+typedef struct BootAllocator {
     MemoryDescriptor* _Nonnull  mem_descs;
     char* _Nonnull              current_top;
     int                         current_desc_index;

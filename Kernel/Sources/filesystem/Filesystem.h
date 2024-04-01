@@ -35,7 +35,7 @@ OPEN_CLASS(Filesystem, Object,
     Lock                inodeManagementLock;
     PointerArray        inodesInUse;
 );
-typedef struct _FilesystemMethodTable {
+typedef struct FilesystemMethodTable {
     ObjectMethodTable   super;
 
     //

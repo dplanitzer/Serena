@@ -44,7 +44,7 @@ typedef uint8_t   FdcControlByte;       // shadow copy of the CIABRPB register
 
 // The floppy DMA singleton. The Amiga has just one single floppy DMA channel
 // which is shared by all drives.
-typedef struct _FloppyDMA {
+typedef struct FloppyDMA {
     Semaphore           inuse;  // Semaphore indicating whether the DMA is in use
     Semaphore           done;   // Semaphore indicating whether the DMA is done
     InterruptHandlerID  irqHandler;
@@ -70,7 +70,7 @@ OPEN_CLASS_WITH_REF(FloppyDisk, DiskDriver,
     uint8_t             flags;
     FdcControlByte      ciabprb;                                    // shadow copy of the CIA BPRB register for this floppy drive
 );
-typedef struct _FloppyDiskMethodTable {
+typedef struct FloppyDiskMethodTable {
     DiskDriverMethodTable   super;
 } FloppyDiskMethodTable;
 

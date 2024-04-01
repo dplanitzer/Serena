@@ -26,7 +26,7 @@ OPEN_CLASS_WITH_REF(DiskDriver, Object,
     size_t              blockSize;
     LogicalBlockCount   blockCount;
 );
-typedef struct _DiskDriverMethodTable {
+typedef struct DiskDriverMethodTable {
     ObjectMethodTable   super;
 } DiskDriverMethodTable;
 

@@ -50,11 +50,11 @@ typedef enum LongNameFormat {
     kLongNameFormat_BSD
 } LongNameFormat;
 
-typedef struct _ArFileHeader {
+typedef struct ArFileHeader {
     char    magic[8];
 } ArFileHeader;
 
-typedef struct _ArMemberHeader {
+typedef struct ArMemberHeader {
     char    name[AR_MAX_MEMBER_NAME_LENGTH];
     char    mtime[AR_MTIME_LENGTH];
     char    uid[AR_UID_LENGTH];
@@ -65,7 +65,7 @@ typedef struct _ArMemberHeader {
 } ArMemberHeader;
 
 
-typedef struct _ArchiveMember {
+typedef struct ArchiveMember {
     char*   name;
     size_t  longStringOffset;   // Offset to the member name in the long_strings table if the name is a long string. Only valid if the archive has a long_strings table
     
@@ -73,7 +73,7 @@ typedef struct _ArchiveMember {
     size_t  size;
 } ArchiveMember;
 
-typedef struct _Archive {
+typedef struct Archive {
     ArchiveMember** members;
     size_t          capacity;
     size_t          count;

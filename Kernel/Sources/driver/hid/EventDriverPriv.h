@@ -26,7 +26,7 @@
 
 
 // State of a joystick device
-typedef struct _LogicalJoystick {
+typedef struct LogicalJoystick {
     int16_t   xAbs;           // int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right
     int16_t   yAbs;           // int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down
     uint32_t  buttonsDown;    // Button #0 -> 0, Button #1 -> 1, ...
@@ -34,7 +34,7 @@ typedef struct _LogicalJoystick {
 
 
 // Per port input controller state
-typedef struct _InputControllerState {
+typedef struct InputControllerState {
     InputControllerType     type;
     ObjectRef _Nullable     driver;
 } InputControllerState;

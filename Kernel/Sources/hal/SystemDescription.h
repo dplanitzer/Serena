@@ -13,7 +13,7 @@
 
 // The system description
 // Note: Keep in sync with lowmem.i
-typedef struct _SystemDescription {
+typedef struct SystemDescription {
     int8_t          cpu_model;
     int8_t          fpu_model;
 

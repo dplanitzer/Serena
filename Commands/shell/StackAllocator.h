@@ -25,7 +25,7 @@ struct StackPage {
     size_t                      pageCapacity;   // page capacity without its header
 };
 
-typedef struct _StackAllocator {
+typedef struct StackAllocator {
     struct StackPage* _Nullable bos;    // bottom of stack page (page->next points to the next page which is closer to the tos)
     struct StackPage* _Nullable tos;    // top of stack page
     struct StackPage* _Nullable cache;  // first page in page cache

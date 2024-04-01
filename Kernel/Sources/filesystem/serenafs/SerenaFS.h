@@ -13,7 +13,7 @@
 
 
 OPAQUE_CLASS(SerenaFS, Filesystem);
-typedef struct _SerenaFSMethodTable {
+typedef struct SerenaFSMethodTable {
     FilesystemMethodTable   super;
 } SerenaFSMethodTable;
 

@@ -29,9 +29,9 @@ typedef int InterruptHandlerID;
 typedef void (*InterruptHandler_Closure)(void* _Nullable pContext);
 
 
-struct _InterruptHandlerArray;
-struct _InterruptController;
-typedef struct _InterruptController* InterruptControllerRef;
+struct InterruptHandlerArray;
+struct InterruptController;
+typedef struct InterruptController* InterruptControllerRef;
 
 
 // The shared interrupt controller instance
@@ -65,7 +65,7 @@ extern bool InterruptController_IsInterruptHandlerEnabled(InterruptControllerRef
 
 // Called by the low-level interrupt handler code. Invokes the interrupt handlers
 // for the given interrupt
-extern void InterruptController_OnInterrupt(struct _InterruptHandlerArray* _Nonnull pArray);
+extern void InterruptController_OnInterrupt(struct InterruptHandlerArray* _Nonnull pArray);
 
 // Returns the number of uninitialized interrupts that have happened since boot.
 // An uninitialized interrupt is an interrupt request from a peripheral that does

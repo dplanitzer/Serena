@@ -34,7 +34,7 @@ extern const char font8x8_latin1[128][8];
 #define GLYPH_HEIGHT    8
 
 
-typedef struct _VideoConfig {
+typedef struct VideoConfig {
     int16_t       width;
     int16_t       height;
     uint8_t       diw_start_h;        // display window start
@@ -59,7 +59,7 @@ static const VideoConfig kVidConfig_PAL_640_256_50 = {
     };
 
 
-typedef struct _MicroConsole {
+typedef struct MicroConsole {
     const VideoConfig* _Nonnull config;
     char* _Nonnull              framebuffer;
     int                         bytesPerRow;

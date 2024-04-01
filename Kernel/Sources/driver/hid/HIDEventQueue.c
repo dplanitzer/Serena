@@ -13,7 +13,7 @@
 // The event queue stores events in a ring buffer with a size that is a
 // power-of-2 number.
 // See: <https://www.snellman.net/blog/archive/2016-12-13-ring-buffers/>
-typedef struct _HIDEventQueue {
+typedef struct HIDEventQueue {
     Semaphore   semaphore;
     uint8_t     capacity;
     uint8_t     capacityMask;

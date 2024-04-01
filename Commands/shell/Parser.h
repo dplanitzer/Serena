@@ -12,7 +12,7 @@
 #include "Lexer.h"
 #include "Script.h"
 
-typedef struct _Parser {
+typedef struct Parser {
     Lexer                                   lexer;
     StackAllocatorRef _Nullable /*Weak*/    scriptAllocator;
 } Parser;

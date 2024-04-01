@@ -17,7 +17,7 @@
 
 
 OPAQUE_CLASS(Pipe, Object);
-typedef struct _PipeMethodTable {
+typedef struct PipeMethodTable {
     ObjectMethodTable   super;
 } PipeMethodTable;
 

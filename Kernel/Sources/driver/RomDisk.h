@@ -19,7 +19,7 @@
 // memory region which means that the RomDisk will call free() on the provided
 // memory pointer when the RomDisk is deallocated.
 OPAQUE_CLASS(RomDisk, DiskDriver);
-typedef struct _RomDiskMethodTable {
+typedef struct RomDiskMethodTable {
     DiskDriverMethodTable   super;
 } RomDiskMethodTable;
 

@@ -16,7 +16,7 @@
 #include <User.h>
 
 OPAQUE_CLASS(Process, Object);
-typedef struct _ProcessMethodTable {
+typedef struct ProcessMethodTable {
     ObjectMethodTable   super;
 } ProcessMethodTable;
 

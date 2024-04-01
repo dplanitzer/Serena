@@ -30,7 +30,7 @@ enum {
 // abstract class that must be subclassed and fully implemented by a file system.
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
-typedef struct _Inode {
+typedef struct Inode {
     TimeInterval        accessTime;
     TimeInterval        modificationTime;
     TimeInterval        statusChangeTime;
@@ -47,7 +47,7 @@ typedef struct _Inode {
     UserId              uid;
     GroupId             gid;
 } Inode;
-typedef struct _Inode* InodeRef;
+typedef struct Inode* InodeRef;
 
 
 //
