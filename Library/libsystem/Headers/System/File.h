@@ -23,7 +23,7 @@ __CPP_BEGIN
 
 
 // The Inode type.
-enum {
+enum FileType {
     kFileType_RegularFile = 0,  // A regular file that stores data
     kFileType_Directory,        // A directory which stores information about child nodes
 };
@@ -45,7 +45,7 @@ typedef struct FileInfo {
 } FileInfo;
 
 
-enum {
+enum ModifyFileInfo {
     kModifyFileInfo_AccessTime = 1,
     kModifyFileInfo_ModificationTime = 2,
     kModifyFileInfo_UserId = 4,
@@ -64,7 +64,7 @@ typedef struct MutableFileInfo {
 } MutableFileInfo;
 
 
-enum {
+enum AccessMode {
     kAccess_Readable = 1,
     kAccess_Writable = 2,
     kAccess_Executable = 4,
@@ -84,7 +84,7 @@ typedef uint32_t    AccessMode;
 
 // Specifies how a File_Seek() call should apply 'offset' to the current file
 // position.
-enum {
+enum SeekMode {
     kSeek_Set = 0,      // Set the file position to 'offset'
     kSeek_Current,      // Add 'offset' to the current file position
     kSeek_End           // Add 'offset' to the end of the file

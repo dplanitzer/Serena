@@ -19,8 +19,9 @@ __CPP_BEGIN
 #define IOChannelCommand(__cmd) -(__cmd)
 #define IsIOChannelCommand(__cmd) ((__cmd) < 0)
 
-// Returns the type of the channel
-// IOChannel_Control(int fd, int cmd, int _Nonnull *pOutType)
+// Returns the type of an I/O channel. The type indicates to which kind of
+// I/O resource the channel is connected and thus which kind of operations are
+// supported by the channel.
 #define kIOChannelCommand_GetType   IOChannelCommand(1)
 typedef enum IOChannelType {
     kIOChannelType_Terminal,
@@ -30,6 +31,7 @@ typedef enum IOChannelType {
     kIOChannelType_Driver
 } IOChannelType;
 
+// Returns the mode with which the I/O channel was opened.
 #define kIOChannelCommand_GetMode   IOChannelCommand(2)
 
 
