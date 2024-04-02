@@ -214,7 +214,7 @@ static errno_t DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManager
             continue;
         }
         
-        if (!mem_check_region(&mem_layout, board->start, board->start + board->logical_size, MEM_TYPE_MEMORY)) {
+        if (!mem_check_region(&mem_layout, board->start, board->start + board->logical_size, CPU_PAGE_SIZE, MEM_TYPE_MEMORY)) {
             break;
         }
     }

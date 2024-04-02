@@ -215,7 +215,7 @@ typedef struct MemoryLayout {
 } MemoryLayout;
 
 
-extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nullable upper, int8_t type);
+extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nullable upper, size_t stepSize, int8_t type);
 
 
 #define CIAA_BASE           0xbfe001

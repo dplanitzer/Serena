@@ -400,6 +400,7 @@ static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const Convers
 {
     ConversionSpec spec2 = *spec;
     spec2.flags.isAlternativeForm = true;
+    spec2.flags.hasPrecision = true;
     spec2.flags.padWithZeros = true;
 
 #if __INTPTR_WIDTH == 64

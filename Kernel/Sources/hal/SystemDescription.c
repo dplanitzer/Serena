@@ -13,28 +13,7 @@
 SystemDescription* _Nonnull gSystemDescription;
 
 
-// Checks the physical CPU page that contains 'addr'. Returns true if the page
-// exists and false if not.
-static bool mem_probe_cpu_page(char* pAddr)
-{
-    char* pBaseAddr = __Floor_Ptr_PowerOf2(pAddr, CPU_PAGE_SIZE);
-    char* pTopAddr = pBaseAddr + CPU_PAGE_SIZE - 8;
-    char* pMiddleAddr = pBaseAddr + CPU_PAGE_SIZE / 2;
-
-    if (cpu_verify_ram_4b(pBaseAddr)) {
-        return false;
-    }
-    if (cpu_verify_ram_4b(pMiddleAddr)) {
-        return false;
-    }
-    if (cpu_verify_ram_4b(pTopAddr)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nullable upper, int8_t type)
+bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nullable upper, size_t stepSize, int8_t type)
 {
     char* p = __Ceil_Ptr_PowerOf2(((char*)lower), CPU_PAGE_SIZE);
     char* pLimit = __Floor_Ptr_PowerOf2(((char*)upper), CPU_PAGE_SIZE);
@@ -47,9 +26,9 @@ bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nu
     }
     
     while (p < pLimit) {
-        hasMemory = mem_probe_cpu_page(p) != 0;
+        hasMemory = cpu_verify_ram_4b(p) == 0;
 
-        if (hasMemory) { nbytes += CPU_PAGE_SIZE; }
+        if (hasMemory) { nbytes += stepSize; }
         
         if (!hadMemory && hasMemory) {
             // Transitioning from no memory to memory
@@ -66,7 +45,7 @@ bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nu
         }
         
         hadMemory = hasMemory;
-        p += CPU_PAGE_SIZE;
+        p += stepSize;
     }
     
     if (hasMemory) {
@@ -98,16 +77,16 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, char* _Nullable p
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(&pSysDesc->motherboard_ram, chip_ram_lower_p, __min((char*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
+    mem_check_region(&pSysDesc->motherboard_ram, chip_ram_lower_p, __min((char*)0x00200000, chip_ram_upper_p), SIZE_KB(256), MEM_TYPE_UNIFIED_MEMORY);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(&pSysDesc->motherboard_ram, (char*)0x00c00000, (char*)0x00d80000, MEM_TYPE_MEMORY);
+    mem_check_region(&pSysDesc->motherboard_ram, (char*)0x00c00000, (char*)0x00d80000, SIZE_KB(256), MEM_TYPE_MEMORY);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
     if (pSysDesc->chipset_ramsey_version > 0) {
-        mem_check_region(&pSysDesc->motherboard_ram, (char*)0x07000000, (char*)0x08000000, MEM_TYPE_MEMORY);
+        mem_check_region(&pSysDesc->motherboard_ram, (char*)0x07000000, (char*)0x08000000, SIZE_MB(1), MEM_TYPE_MEMORY);
     }
 }
 
