@@ -89,12 +89,12 @@ uint8_t chipset_get_version(void)
 
 uint8_t chipset_get_ramsey_version(void)
 {
-    volatile uint8_t* pRAMSEY = (volatile uint8_t*)RAMSEY_CHIP_BASE;
-    uint8_t v = *pRAMSEY;
+    RAMSEY_BASE_DECL(cp);
+    const uint8_t v = *RAMSEY_REG_8(cp, RAMSEY_VERSION);
 
     switch (v) {
-        case CHIPSET_RAMSEY_rev04:
-        case CHIPSET_RAMSEY_rev07:
+        case RAMSEY_rev4:
+        case RAMSEY_rev7:
             return v;
             
         default:

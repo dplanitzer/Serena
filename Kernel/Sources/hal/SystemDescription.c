@@ -88,7 +88,7 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, char* _Nullable p
     char* chip_ram_upper_p = pSysDesc->chipset_upper_dma_limit;
 
     // Forget the memory map set up in cpu_vectors_asm.s 'cause we'll build our own map here
-    pSysDesc->memory.descriptor_count = 0;
+    pSysDesc->motherboard_ram.descriptor_count = 0;
     
     
     // Memory map: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node00D4.html
@@ -98,16 +98,16 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, char* _Nullable p
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(&pSysDesc->memory, chip_ram_lower_p, __min((char*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
+    mem_check_region(&pSysDesc->motherboard_ram, chip_ram_lower_p, __min((char*)0x00200000, chip_ram_upper_p), MEM_TYPE_UNIFIED_MEMORY);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(&pSysDesc->memory, (char*)0x00c00000, (char*)0x00d80000, MEM_TYPE_MEMORY);
+    mem_check_region(&pSysDesc->motherboard_ram, (char*)0x00c00000, (char*)0x00d80000, MEM_TYPE_MEMORY);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
     if (pSysDesc->chipset_ramsey_version > 0) {
-        mem_check_region(&pSysDesc->memory, (char*)0x04000000, (char*)0x08000000, MEM_TYPE_MEMORY);
+        mem_check_region(&pSysDesc->motherboard_ram, (char*)0x07000000, (char*)0x08000000, MEM_TYPE_MEMORY);
     }
 }
 

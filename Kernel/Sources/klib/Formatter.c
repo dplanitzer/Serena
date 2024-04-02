@@ -320,6 +320,11 @@ static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int r
         case LENGTH_MODIFIER_l:     v32 = (uint32_t)va_arg(*ap, unsigned long); nbits = UINT32_WIDTH;                   break;
 #endif
         case LENGTH_MODIFIER_ll:    v64 = (uint64_t)va_arg(*ap, unsigned long long); nbits = UINT64_WIDTH;              break;
+#if __SIZE_WIDTH == 64
+        case LENGTH_MODIFIER_z:     v64 = (uint64_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH; break;
+#else
+        case LENGTH_MODIFIER_z:     v32 = (uint32_t)va_arg(*ap, size_t); nbits = SIZE_WIDTH; break;
+#endif
     }
 
     if (nbits == 64) {

@@ -52,8 +52,8 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
     // Carve the kernel data and bss out from memory descriptor #0 to ensure that
     // our kernel heap is not going to try to override the data/bss region.
-    gInitialHeapBottom = pSysDesc->memory.descriptor[0].lower + __Ceil_PowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
-    pSysDesc->memory.descriptor[0].lower = gInitialHeapBottom;
+    gInitialHeapBottom = pSysDesc->motherboard_ram.descriptor[0].lower + __Ceil_PowerOf2(data_size + bss_size, CPU_PAGE_SIZE);
+    pSysDesc->motherboard_ram.descriptor[0].lower = gInitialHeapBottom;
 
 
     // Store a reference to the system description in our globals

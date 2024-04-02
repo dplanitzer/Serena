@@ -221,7 +221,7 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 #define CIAA_BASE           0xbfe001
 #define CIAB_BASE           0xbfd000
 #define RTC_BASE            0xdc0000
-#define RAMSEY_CHIP_BASE    0xde0043
+#define RAMSEY_BASE         0xde0000
 #define CUSTOM_BASE         0xdff000
 #define DIAGNOSTIC_ROM_BASE 0xf00000
 #define DIAGNOSTIC_ROM_SIZE 0x80000
@@ -291,7 +291,38 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 
 
 //
-// Chipset
+// RAMSEY Chip
+//
+
+// Reading / Writing CIA A/B registers
+#define RAMSEY_BASE_DECL(cp) \
+    volatile uint8_t* cp = (volatile uint8_t*) RAMSEY_BASE
+
+#define RAMSEY_REG_8(cp, r) \
+    ((volatile uint8_t*)(cp + r))
+
+
+// RAMSEY chip versions (32bit Amigas only. Like A3000 / A4000)
+#define RAMSEY_rev4 0x0d
+#define RAMSEY_rev7 0x0f
+
+
+// Registers
+#define RAMSEY_CR       0x03
+#define RAMSEY_VERSION  0x43
+
+// Control Register
+#define RAMSEY_CRF_PAGE_MODE    0x01
+#define RAMSEY_CRF_BURST_MODE   0x02
+#define RAMSEY_CRF_WRAP         0x04
+#define RAMSEY_CRF_RAM_SIZE     0x08
+#define RAMSEY_CRF_RAM_WIDTH    0x10
+#define RAMSEY_CRF_SKIP         0x20
+#define RAMSEY_CRF_REFRESH_RATE 0x60    /* mask(5..6) */
+
+
+//
+// Amiga Chipset
 //
 
 // Reading / Writing chipset registers
@@ -323,11 +354,6 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 #define CHIPSET_8374_rev2_NTSC  0x32
 #define CHIPSET_8374_rev3_PAL   0x23
 #define CHIPSET_8374_rev3_NTSC  0x33
-
-
-// RAMSEY chip versions (32bit Amigas only. Like A3000 / A4000)
-#define CHIPSET_RAMSEY_rev04    0x0d
-#define CHIPSET_RAMSEY_rev07    0x0f
 
 
 // Chipset registers
@@ -628,10 +654,10 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 #define ADKCONF_WORDSYNC    0x0200
 #define ADKCONF_UARTBRK     0x0400
 #define ADKCONF_MFMPREC     0x0400
-#define ADKCONF_PRECOMP     0x6000      // mask (13..14)
+#define ADKCONF_PRECOMP     0x6000      /* mask (13..14) */
 #define ADKCONF_SETCLR      0x8000
 
-#define AUDxVOLF_LEVEL      0x003f      // mask (0..5)
+#define AUDxVOLF_LEVEL      0x003f      /* mask (0..5) */
 #define AUDxVOLF_FORCEMAX   0x0040
 
 #define BEAMCON0F_HSYTRUE   0x0001
@@ -650,8 +676,8 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 #define BEAMCON0F_LPENDIS   0x2000
 #define BEAMCON0F_HARDDIS   0x4000
 
-#define BLTSIZE_WIDTH       0x003f      // mask (0..5)
-#define BLTSIZE_HEIGHT      0xffc0      // mask (6..15)
+#define BLTSIZE_WIDTH       0x003f      /* mask (0..5) */
+#define BLTSIZE_HEIGHT      0xffc0      /* mask (6..15) */
 
 #define BPLCON0F_ECSENA     0x0001
 #define BPLCON0F_ERSY       0x0002
@@ -665,21 +691,21 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 #define BPLCON0F_COLOR      0x0200
 #define BPLCON0F_DPF        0x0400
 #define BPLCON0F_HAM        0x0800
-#define BPLCON0F_BPUx       0x7000      // mask (12..14)
+#define BPLCON0F_BPUx       0x7000      /* mask (12..14) */
 #define BPLCON0F_HIRES      0x8000
 
-#define BPLCON1F_PF1H       0x000f      // mask (0..3)
-#define BPLCON1F_PF2H       0x00f0      // mask (4..7)
+#define BPLCON1F_PF1H       0x000f      /* mask (0..3) */
+#define BPLCON1F_PF2H       0x00f0      /* mask (4..7) */
 
-#define BPLCON2F_PF1P       0x0007      // mask (0..2)
-#define BPLCON2F_PF2P       0x0038      // mask (3..5)
+#define BPLCON2F_PF1P       0x0007      /* mask (0..2) */
+#define BPLCON2F_PF2P       0x0038      /* mask (3..5) */
 #define BPLCON2F_PF2PRI     0x0040
 #define BPLCON2F_SOGEN      0x0080
 #define BPLCON2F_RDRAM      0x0100
 #define BPLCON2F_KILLEHB    0x0200
 #define BPLCON2F_ZDCTEN     0x0400
 #define BPLCON2F_ZDBPEN     0x0800
-#define BPLCON2F_ZDBPSEL    0x7000      // mask (12..14)
+#define BPLCON2F_ZDBPSEL    0x7000      /* mask (12..14) */
 
 #define BPLCON3F_BRDNTRAN   0x0010
 #define BPLCON3F_BRDRBLNK   0x0020
@@ -719,7 +745,7 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 
 #define COPCONF_DANG        0x0002
 
-#define DMACONF_AUDIOEN     0x000f       // mask (0..3)
+#define DMACONF_AUDIOEN     0x000f       /* mask (0..3) */
 #define DMACONF_AUD0EN      0x0001
 #define DMACONF_AUD1EN      0x0002
 #define DMACONF_AUD2EN      0x0004
@@ -780,7 +806,7 @@ extern bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, vo
 #define POTGORF_OUTRY       0x8000
 
 #define VPOSRF_LOL          0x0080
-#define VPOSRF_AGNUSID      0x7f00      // mask (8..14)
+#define VPOSRF_AGNUSID      0x7f00      /* mask (8..14) */
 #define VPOSRF_LOF          0x8000
 
 

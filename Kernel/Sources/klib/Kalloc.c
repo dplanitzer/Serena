@@ -76,8 +76,8 @@ errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull p
     decl_try_err();
 
     Lock_Init(&gLock);
-    try(create_allocator(&pSysDesc->memory, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_UNIFIED_MEMORY, &gUnifiedMemory));
-    try(create_allocator(&pSysDesc->memory, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_MEMORY, &gCpuOnlyMemory));
+    try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_UNIFIED_MEMORY, &gUnifiedMemory));
+    try(create_allocator(&pSysDesc->motherboard_ram, pInitialHeapBottom, pInitialHeapTop, MEM_TYPE_MEMORY, &gCpuOnlyMemory));
     return EOK;
 
 catch:
