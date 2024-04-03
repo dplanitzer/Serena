@@ -199,6 +199,13 @@ static void ramsey_configure(const SystemDescription* _Nonnull pSysDesc)
     } while ((r & RAMSEY_CRF_BURST_MODE) == 0);
 }
 
+static void gary_configure(void)
+{
+    GARY_BASE_DECL(cp);
+    *GARY_REG_8(cp, GARY_COLDSTART) = *GARY_REG_8(cp, GARY_COLDSTART) & ~GARY_REGF_BIT;
+    *GARY_REG_8(cp, GARY_TIMEOUT) = *GARY_REG_8(cp, GARY_TIMEOUT) | GARY_REGF_BIT;
+}
+
 // Initializes the system description which contains basic information about the
 // platform. The system description is stored in low memory.
 // \param pSysDesc the system description memory
@@ -242,6 +249,12 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
     pSysDesc->quantum_duration_cycles = (is_ntsc) ? 12000 : 12500;
     pSysDesc->quantum_duration_ns = (is_ntsc) ? 16761906 : 17621045;
     
+
+    // Initialize Gary. We assume that Gary is around if Ramsey is around
+    if (pSysDesc->chipset_ramsey_version > 0) {
+        gary_configure();
+    }
+
 
     // Find the populated motherboard RAM regions
     mem_size_motherboard(pSysDesc, pBootServicesMemoryTop);

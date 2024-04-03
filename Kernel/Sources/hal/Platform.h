@@ -218,6 +218,7 @@ typedef struct MemoryLayout {
 #define CIAA_BASE           0xbfe001
 #define CIAB_BASE           0xbfd000
 #define RTC_BASE            0xdc0000
+#define GARY_BASE           0xde0000
 #define RAMSEY_BASE         0xde0000
 #define CUSTOM_BASE         0xdff000
 #define DIAGNOSTIC_ROM_BASE 0xf00000
@@ -288,10 +289,39 @@ typedef struct MemoryLayout {
 
 
 //
+// GARY Chip
+//
+
+// Reading / Writing registers
+#define GARY_BASE_DECL(cp) \
+    volatile uint8_t* cp = (volatile uint8_t*) GARY_BASE
+
+#define GARY_REG_8(cp, r) \
+    ((volatile uint8_t*)(cp + r))
+
+
+// GARY chip versions (32bit Amigas only. Like A3000 / A4000)
+#define GARY_rev0       0x00
+#define GARY_revPlus    0x90
+
+
+// Registers
+#define GARY_TIMEOUT    0x0000
+#define GARY_TOENB      0x0001
+#define GARY_COLDSTART  0x0002
+#define GARY_DSPRST     0x1000
+#define GARY_KBRSTEN    0x1001
+#define GARY_ID         0x1002
+
+// Register Bit
+#define GARY_REGF_BIT   0x80
+
+
+//
 // RAMSEY Chip
 //
 
-// Reading / Writing CIA A/B registers
+// Reading / Writing registers
 #define RAMSEY_BASE_DECL(cp) \
     volatile uint8_t* cp = (volatile uint8_t*) RAMSEY_BASE
 
