@@ -202,32 +202,25 @@ static errno_t DriverManager_AutoConfigureExpansionBoardBus_Locked(DriverManager
     // Auto config the Zorro bus
     zorro_auto_config(&pManager->zorroBus);
 
-    
-    // Find all RAM expansion boards and do a mem check on them
-    MemoryLayout mem_layout;
-    mem_layout.descriptor_count = 0;
 
+    // Find all RAM expansion boards and add them to the kalloc package
     for (int i = 0; i < pManager->zorroBus.board_count; i++) {
         const ExpansionBoard* board = &pManager->zorroBus.board[i];
        
-        if (board->type != EXPANSION_TYPE_RAM) {
-            continue;
-        }
-        
-        if (!mem_check_region(&mem_layout, board->start, board->start + board->logical_size, CPU_PAGE_SIZE, MEM_TYPE_MEMORY)) {
-            break;
-        }
-    }
+        if (board->type == EXPANSION_TYPE_RAM && board->start != NULL && board->logical_size > 0) {
+            MemoryDescriptor md = {0};
 
-
-    // Add the RAM we found to the kernel allocator
-    for (int i = 0; i < mem_layout.descriptor_count; i++) {
-        (void) kalloc_add_memory_region(&mem_layout.descriptor[i]);
+            md.lower = board->start;
+            md.upper = board->start + board->logical_size;
+            md.type = MEM_TYPE_MEMORY;
+            (void) kalloc_add_memory_region(&md);
+        }
     }
 
 
     // Done
     pManager->isZorroBusConfigured = true;
+    return EOK;
 }
 
 errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)

@@ -295,15 +295,18 @@ catch:
 // Adds the given memory region to the allocator's available memory pool.
 errno_t Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
 {
-    MemRegion* pMemRegion;
     decl_try_err();
 
-    try_null(pMemRegion, MemRegion_Create(pMemDesc->lower, pMemDesc), ENOMEM);
-    SList_InsertAfterLast(&pAllocator->regions, &pMemRegion->node);
-    return EOK;
+    if (pMemDesc->lower == NULL || pMemDesc->upper == pMemDesc->lower) {
+        return EINVAL;
+    }
 
-catch:
-    return err;
+    MemRegion* pMemRegion = MemRegion_Create(pMemDesc->lower, pMemDesc);
+    if (pMemRegion) {
+        SList_InsertAfterLast(&pAllocator->regions, &pMemRegion->node);
+        return EOK;
+    }
+    return ENOMEM;
 }
 
 // Returns the MemRegion managing the given address. NULL is returned if this

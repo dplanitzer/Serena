@@ -345,7 +345,7 @@ static size_t zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
     uint8_t* pUpper = board->start + board->physical_size;
     size_t size = 0;
     
-    while (pLower < pUpper) {
+    while (pLower < pUpper && (pUpper - pLower) >= 4) {
         if (cpu_verify_ram_4b(pLower)) {
             break;
         }

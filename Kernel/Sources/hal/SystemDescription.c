@@ -9,59 +9,72 @@
 #include "SystemDescription.h"
 #include <klib/Memory.h>
 
+extern int8_t fpu_get_model(void);
+
 
 SystemDescription* _Nonnull gSystemDescription;
 
 
-bool mem_check_region(MemoryLayout* pMemLayout, void* _Nullable lower, void* _Nullable upper, size_t stepSize, int8_t type)
+bool mem_size_region(void* _Nullable p0, void* _Nullable p1, size_t stepSize, int8_t type, MemoryLayout* _Nonnull pMemLayout)
 {
-    char* p = __Ceil_Ptr_PowerOf2(((char*)lower), CPU_PAGE_SIZE);
-    char* pLimit = __Floor_Ptr_PowerOf2(((char*)upper), CPU_PAGE_SIZE);
-    size_t nbytes = 0;
-    bool hasMemory = false;
-    bool hadMemory = false;
-    
     if (pMemLayout->descriptor_count >= MEMORY_DESCRIPTORS_CAPACITY) {
         return false;
     }
-    
-    while (p < pLimit) {
-        hasMemory = cpu_verify_ram_4b(p) == 0;
 
-        if (hasMemory) { nbytes += stepSize; }
-        
-        if (!hadMemory && hasMemory) {
-            // Transitioning from no memory to memory
-            pMemLayout->descriptor[pMemLayout->descriptor_count].lower = p;
-            pMemLayout->descriptor[pMemLayout->descriptor_count].upper = p;
-            pMemLayout->descriptor[pMemLayout->descriptor_count].type = type;
+    MemoryDescriptor* pMemDesc = &pMemLayout->descriptor[pMemLayout->descriptor_count];
+    bool okay = false;
+
+    if (p0 < p1) {
+        uint8_t* pLower = __Ceil_Ptr_PowerOf2((uint8_t*)p0, CPU_PAGE_SIZE);
+        uint8_t* pUpper = __Floor_Ptr_PowerOf2((uint8_t*)p1, CPU_PAGE_SIZE);
+        uint8_t* p = pLower;
+
+        while (pUpper - p >= 4) {
+            if (cpu_verify_ram_4b(p) != 0) {
+                break;
+            }
+
+            p += stepSize;
         }
-        
-        if (hadMemory && !hasMemory) {
-            // Transitioning from memory to no memory
-            pMemLayout->descriptor[pMemLayout->descriptor_count].upper += nbytes;
+
+        if (p - pLower > 0) {
+            pMemDesc->lower = pLower;
+            pMemDesc->upper = p;
+            pMemDesc->type = type;
             pMemLayout->descriptor_count++;
-            nbytes = 0;
+            okay = true;
         }
-        
-        hadMemory = hasMemory;
-        p += stepSize;
     }
-    
-    if (hasMemory) {
-        // We were scanning an existing memory region but we hit upperp. Close
-        // the memory region.
-        pMemLayout->descriptor[pMemLayout->descriptor_count].upper += nbytes;
-        pMemLayout->descriptor_count++;
+    else if (p0 > p1) {
+        uint8_t* pLower = __Ceil_Ptr_PowerOf2((uint8_t*)p1, CPU_PAGE_SIZE);
+        uint8_t* pUpper = __Floor_Ptr_PowerOf2((uint8_t*)p0, CPU_PAGE_SIZE);
+        uint8_t* p = pUpper - stepSize;
+
+        while (p >= pLower && (p - pLower) >= 4) {
+            if (cpu_verify_ram_4b(p) != 0) {
+                p += stepSize;
+                break;
+            }
+
+            p -= stepSize;
+        }
+
+        if (pUpper - p > 0) {
+            pMemDesc->lower = p;
+            pMemDesc->upper = pUpper;
+            pMemDesc->type = type;
+            pMemLayout->descriptor_count++;
+            okay = true;
+        }
     }
 
-    return true;
+    return okay;
 }
 
 // Invoked by the OnReset() function after the chipset has been reset. This
 // function tests the motherboard RAM and figures out how much RAM is installed
 // on the motherboard and which address ranges contain operating RAM chips.
-static void mem_check_motherboard(SystemDescription* pSysDesc, char* _Nullable pBootServicesMemoryTop)
+static void mem_size_motherboard(SystemDescription* pSysDesc, char* _Nullable pBootServicesMemoryTop)
 {
     char* chip_ram_lower_p = pBootServicesMemoryTop;
     char* chip_ram_upper_p = pSysDesc->chipset_upper_dma_limit;
@@ -77,20 +90,18 @@ static void mem_check_motherboard(SystemDescription* pSysDesc, char* _Nullable p
     // 256KB chip memory (A500, A2000)
     // 512KB reserved if chipset limit < 1MB; otherwise 512KB chip memory (A2000)
     // 1MB reserved if chipset limit < 2MB; otherwise 1MB chip memory (A3000+)
-    mem_check_region(&pSysDesc->motherboard_ram, chip_ram_lower_p, __min((char*)0x00200000, chip_ram_upper_p), SIZE_KB(256), MEM_TYPE_UNIFIED_MEMORY);
+    mem_size_region(chip_ram_lower_p, __min((char*)0x00200000, chip_ram_upper_p), SIZE_KB(256), MEM_TYPE_UNIFIED_MEMORY, &pSysDesc->motherboard_ram);
     
     
     // Scan expansion RAM (A500 / A2000 motherboard RAM)
-    mem_check_region(&pSysDesc->motherboard_ram, (char*)0x00c00000, (char*)0x00d80000, SIZE_KB(256), MEM_TYPE_MEMORY);
+    mem_size_region((char*)0x00c00000, (char*)0x00d80000, SIZE_KB(256), MEM_TYPE_MEMORY, &pSysDesc->motherboard_ram);
     
     
     // Scan 32bit (A3000 / A4000) motherboard RAM
     if (pSysDesc->chipset_ramsey_version > 0) {
-        mem_check_region(&pSysDesc->motherboard_ram, (char*)0x07000000, (char*)0x08000000, SIZE_MB(1), MEM_TYPE_MEMORY);
+        mem_size_region((char*)0x08000000, (char*)0x07000000, SIZE_MB(1), MEM_TYPE_MEMORY, &pSysDesc->motherboard_ram);
     }
 }
-
-extern int8_t fpu_get_model(void);
 
 // Initializes the system description which contains basic information about the
 // platform. The system description is stored in low memory.
@@ -137,5 +148,5 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
     
 
     // Find the populated motherboard RAM regions
-    mem_check_motherboard(pSysDesc, pBootServicesMemoryTop);
+    mem_size_motherboard(pSysDesc, pBootServicesMemoryTop);
 }
