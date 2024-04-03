@@ -316,6 +316,12 @@ typedef struct MemoryLayout {
 #define RAMSEY_CRF_RAM_WIDTH    0x10
 #define RAMSEY_CRF_SKIP         0x20
 #define RAMSEY_CRF_REFRESH_RATE 0x60    /* mask(5..6) */
+#define RAMSEY_CRF_TEST         0x80
+
+#define RAMSEY_REFRESH_154      0x00    /* 16MHz: 9.24us,  25MHz: 6.16us; Default for 16MHz systems */
+#define RAMSEY_REFRESH_238      0x01    /* 16MHz: 14.28us, 25MHz: 9.52us; Default for 25MHz systems */
+#define RAMSEY_REFRESH_380      0x02    /* 16MHz: 22.8us,  25MHz: 15.2us */
+#define RAMSEY_REFRESH_OFF      0x03
 
 
 //
@@ -337,8 +343,8 @@ typedef struct MemoryLayout {
 // 8367 (Pal) or 8371 (Fat-Pal) (Agnus-PAL) = 00, 512KB
 // 8372 (Fat-hr) (agnushr),thru rev4 = 20 PAL, 30 NTSC, 1MB
 // 8372 (Fat-hr) (agnushr),rev 5 = 22 PAL, 31 NTSC, 1MB
-// 8374 (Alice) thru rev 2 = 22 PAL, 32 NTSC, 2MB
-// 8374 (Alice) rev 3 thru rev 4 = 23 PAL, 33 NTSC, 2MB
+// 8374 (Alice) thru rev 2 = 22 PAL, 32 NTSC, 2MB (AA / Pandora Chipset)
+// 8374 (Alice) rev 3 thru rev 4 = 23 PAL, 33 NTSC, 2MB (AA / Pandora Chipset)
 #define CHIPSET_8361_NTSC       0x10
 #define CHIPSET_8367_PAL        0x00
 #define CHIPSET_8370_NTSC       0x10

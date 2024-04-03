@@ -103,6 +103,102 @@ static void mem_size_motherboard(SystemDescription* pSysDesc, char* _Nullable pB
     }
 }
 
+static void ramsey_set_page_mode_enabled(bool flag)
+{
+    RAMSEY_BASE_DECL(cp);
+    uint8_t r = *RAMSEY_REG_8(cp, RAMSEY_CR);
+    uint8_t ref;
+    if (flag) {
+        r |= RAMSEY_CRF_PAGE_MODE;
+        ref = 0;
+    } else {
+        r &= ~RAMSEY_CRF_PAGE_MODE;
+        ref = RAMSEY_CRF_PAGE_MODE;
+    }
+    *RAMSEY_REG_8(cp, RAMSEY_CR) = r;
+
+
+    // Wait for the change to take effect
+    do {
+        r = *RAMSEY_REG_8(cp, RAMSEY_CR);
+    } while ((r & RAMSEY_CRF_PAGE_MODE) == ref);
+}
+
+static bool mem_check_page_burst_compat(const MemoryDescriptor* _Nonnull pMemDesc, bool isA3000)
+{
+#define PAT0 0x5ac35ac3
+#define PAT1 0xac35ac35
+#define PAT2 0xc35ac35a
+#define PAT3 0x35ac35ac
+    uint32_t* p = (uint32_t*)pMemDesc->lower;
+    const uint32_t* pu = (const uint32_t*)pMemDesc->upper;
+
+    while (p < pu) {
+        ramsey_set_page_mode_enabled(isA3000);
+        p[0] = PAT0;
+        p[1] = PAT1;
+        p[2] = PAT2;
+        p[3] = PAT3;
+        ramsey_set_page_mode_enabled(!isA3000);
+        
+        if (p[0] != PAT0 || p[1] != PAT1 || p[2] != PAT2 || p[3] != PAT3) {
+            return false;
+        }
+
+        p = (uint32_t*)((uint8_t*)p + SIZE_MB(1));
+    }
+
+    return true;
+}
+
+// Configures the RAM controller (RAMSEY). We check whether the motherboard 32bit
+// fast RAM is compatible with page and burst mode and we'll turn those modes on
+// if the RAM can handle it.
+static void ramsey_configure(const SystemDescription* _Nonnull pSysDesc)
+{
+    // Original A3000 and later A3000+ / A4000 designs use different RAM chips on
+    // the motherboard that require different page mode compatibility checking
+    // code.
+    bool isA3000 = true;
+    switch (pSysDesc->chipset_version) {
+        case CHIPSET_8374_rev2_PAL:
+        case CHIPSET_8374_rev2_NTSC:
+        case CHIPSET_8374_rev3_PAL:
+        case CHIPSET_8374_rev3_NTSC:
+            isA3000 = false;
+            break;
+    }
+
+
+    for (int i = 0; i < pSysDesc->motherboard_ram.descriptor_count; i++) {
+        const MemoryDescriptor* pMemDesc = &pSysDesc->motherboard_ram.descriptor[i];
+
+        if (pMemDesc->lower >= (char*)0x07000000 && pMemDesc->upper <= (char*)0x08000000) {
+            if (!mem_check_page_burst_compat(pMemDesc, isA3000)) {
+                return;
+            }
+        }
+    }
+    
+
+    // Note that the refresh delay needs to be < 10us. However RAMSEY automatically
+    // selects the right refresh mode by default. So we just leave the refresh
+    // setting alone.
+    RAMSEY_BASE_DECL(cp);
+    uint8_t r = *RAMSEY_REG_8(cp, RAMSEY_CR);
+    r |= RAMSEY_CRF_PAGE_MODE;
+    r |= RAMSEY_CRF_BURST_MODE;
+    r &= ~RAMSEY_CRF_WRAP;  // Needs to be off for the 68040
+
+    *RAMSEY_REG_8(cp, RAMSEY_CR) = r;
+
+
+    // Wait for the change to take effect
+    do {
+        r = *RAMSEY_REG_8(cp, RAMSEY_CR);
+    } while ((r & RAMSEY_CRF_BURST_MODE) == 0);
+}
+
 // Initializes the system description which contains basic information about the
 // platform. The system description is stored in low memory.
 // \param pSysDesc the system description memory
@@ -149,4 +245,10 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
 
     // Find the populated motherboard RAM regions
     mem_size_motherboard(pSysDesc, pBootServicesMemoryTop);
+
+
+    // Configure the RAM controller
+    if (pSysDesc->chipset_ramsey_version > 0) {
+        ramsey_configure(pSysDesc);
+    }
 }
