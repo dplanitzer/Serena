@@ -11,8 +11,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <System/_math.h>
 
+
+#if defined(__ILP32__)
+#define PINID   PRIu32
+#elif defined(__LP64__) || defined(__LLP64__)
+#define PINID   PRIu64
+#else
+#error "Unknown data model"
+#endif
 
 typedef struct ListContext {
     char*   pathBuffer;
@@ -91,7 +100,7 @@ static errno_t print_dir_entry(ListContextRef _Nonnull self, const char* _Nonnul
     file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsScope_Other), &tp[7]);
     tp[10] = '\0';
 
-    printf("%s %*d  %*u %*u  %*lld %*d %s\n",
+    printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
         tp,
         self->linkCountWidth, info.linkCount,
         self->uidWidth, info.uid,

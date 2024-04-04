@@ -22,9 +22,13 @@ __CPP_BEGIN
 
 // Various Kernel API types
 typedef int         ProcessId;
-
 typedef int32_t     FilesystemId;
-typedef int32_t     InodeId;    // XXX should probably be 64bit
+
+#if defined(__ILP32__)
+typedef uint32_t    InodeId;
+#elif defined(__LP64__) || defined(__LLP64__)
+typedef uint64_t    InodeId;
+#endif
 
 typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
