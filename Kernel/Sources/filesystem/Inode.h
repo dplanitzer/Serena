@@ -54,8 +54,7 @@ typedef struct Inode* InodeRef;
 // Only filesystem implementations should call the following functions.
 //
 
-// Creates an instance of the abstract Inode class. Should only ever be called
-// by the implement of a creation function for a concrete Inode subclass.
+// Creates an instance an Inode.
 extern errno_t Inode_Create(FilesystemId fsid, InodeId id,
                     FileType type,
                     int linkCount,

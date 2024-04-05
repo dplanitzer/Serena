@@ -177,11 +177,6 @@ typedef struct FilesystemMethodTable {
     // Required override points for subclassers
     //
 
-    // Invoked when Filesystem_AllocateNode() is called. Subclassers should
-    // override this method to allocate and initialize an inode of the given
-    // type.
-    errno_t (*onAllocateNodeOnDisk)(void* _Nonnull, FileType type, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode);
-
     // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested
     // inode off the disk. The override should read the inode data from the disk,
     // create and inode instance and fill it in with the data from the disk and
@@ -298,11 +293,14 @@ extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nul
 // Methods for use by filesystem subclassers.
 //
 
-// Allocates a new inode on disk and in-core. The allocation is protected
-// by the same lock that is used to protect the acquisition, relinquishing,
-// write-back and deletion of inodes. The returned inode id is not visible to
-// any other thread of execution until it is explicitly shared with other code.
-extern errno_t Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+// Publishes the given inode. Publishing should be the last step in creating a
+// new inode in order to make it visible and accessible to other part of the
+// kernel. Note that the inode that is passed to this function must not have
+// been acquired via Filesystem_AcquireNode(). The passed in inode must be a
+// freshly allocated inode (via Inode_Create). The inode is considered acquired
+// once this function returns. This means that you have to relinquish it by
+// calling Filesystem_RelinquishNode(). 
+extern errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
 
 // Acquires the inode with the ID 'id'. The node is returned in a locked state.
 // This methods guarantees that there will always only be at most one inode instance
@@ -322,9 +320,6 @@ extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId
 // Returns true if the filesystem can be safely unmounted which means that no
 // inodes owned by the filesystem is currently in memory.
 extern bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
-
-#define Filesystem_OnAllocateNodeOnDisk(__self, __type, __pContext, __pOutNode) \
-Object_InvokeN(onAllocateNodeOnDisk, Filesystem, __self, __type, __pContext, __pOutNode)
 
 #define Filesystem_OnReadNodeFromDisk(__self, __id, __pContext, __pOutNode) \
 Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pContext, __pOutNode)

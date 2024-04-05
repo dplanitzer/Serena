@@ -253,38 +253,74 @@ static void SerenaFS_DeallocateBlock_Locked(SerenaFSRef _Nonnull self, LogicalBl
     SerenaFS_WriteBackAllocationBitmapForLba(self, lba);
 }
 
-// Invoked when Filesystem_AllocateNode() is called. Subclassers should
-// override this method to allocate and initialize an inode of the given type.
-errno_t SerenaFS_onAllocateNodeOnDisk(SerenaFSRef _Nonnull self, FileType type, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
+// Creates a new inode with type 'type', user information 'user' and permissions
+// 'permissions'. 'parentInodeId' is required if the node that should be created
+// is a directory. Otherwise it may be 0. Returns the newly acquired inode on
+// success and NULL otherwise.
+static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeId parentInodeId, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    LogicalBlockAddress lba = 0;
-    void* pBlockMap = NULL;
+    LogicalBlockAddress inodeLba = 0;
+    LogicalBlockAddress dirContLba = 0;
+    FileOffset fileSize = 0ll;
+    SFSBlockMap* pBlockMap = NULL;
+    InodeRef pNode = NULL;
 
-    try(kalloc_cleared(sizeof(SFSBlockMap), &pBlockMap));
-    try(SerenaFS_AllocateBlock_Locked(self, &lba));
+    try(SerenaFS_AllocateBlock_Locked(self, &inodeLba));
+    
+    if (type == kFileType_Directory) {
+        // Write the initial directory content. This are just the '.' and '..'
+        // entries
+        try(SerenaFS_AllocateBlock_Locked(self, &dirContLba));
+        try(kalloc_cleared(sizeof(SFSBlockMap), (void**)&pBlockMap));
+
+        memset(self->tmpBlock, 0, kSFSBlockSize);
+        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)self->tmpBlock;
+        dep[0].id = UInt32_HostToBig(inodeLba);
+        dep[0].filename[0] = '.';
+        dep[1].id = UInt32_HostToBig(parentInodeId);
+        dep[1].filename[0] = '.';
+        dep[1].filename[1] = '.';
+        try(DiskDriver_PutBlock(self->diskDriver, dep, dirContLba));
+
+        pBlockMap->p[0] = dirContLba;
+        fileSize = 2 * sizeof(SFSDirectoryEntry);
+    }
 
     try(Inode_Create(
         Filesystem_GetId(self),
-        (InodeId)lba,
+        (InodeId)inodeLba,
         type,
         1,
-        0,      // XXX clarify whether we want to assign some user, group and permissions here
-        0,
-        0,
-        0,
+        user.uid,
+        user.gid,
+        permissions,
+        fileSize,
         curTime,
         curTime,
         curTime,
         pBlockMap,
-        pOutNode));
+        &pNode));
+    Inode_SetModified(pNode, kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
+
+    try(Filesystem_PublishNode((FilesystemRef)self, pNode));
+    *pOutNode = pNode;
+
     return EOK;
 
 catch:
+    Inode_Destroy(pNode);
     kfree(pBlockMap);
-    SerenaFS_DeallocateBlock_Locked(self, lba);
+
+    if (dirContLba != 0) {
+        SerenaFS_DeallocateBlock_Locked(self, dirContLba);
+    }
+    if (inodeLba != 0) {
+        SerenaFS_DeallocateBlock_Locked(self, inodeLba);
+    }
     *pOutNode = NULL;
+
     return err;
 }
 
@@ -1011,33 +1047,13 @@ catch:
     return err;
 }
 
-static errno_t SerenaFS_CreateDirectoryDiskNode(SerenaFSRef _Nonnull self, InodeId parentId, UserId uid, GroupId gid, FilePermissions permissions, InodeId* _Nonnull pOutId)
-{
-    decl_try_err();
-    InodeRef _Locked pDirNode = NULL;
-
-    try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_Directory, uid, gid, permissions, NULL, &pDirNode));
-    const InodeId id = Inode_GetId(pDirNode);
-
-    try(SerenaFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Self, id, NULL));
-    try(SerenaFS_InsertDirectoryEntry(self, pDirNode, &kPathComponent_Parent, (parentId > 0) ? parentId : id, NULL));
-
-    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
-    *pOutId = id;
-    return EOK;
-
-catch:
-    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
-    *pOutId = 0;
-    return err;
-}
-
 // Creates an empty directory as a child of the given directory node and with
 // the given name, user and file permissions. Returns EEXIST if a node with
 // the given name already exists.
 errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions)
 {
     decl_try_err();
+    InodeRef pDirNode = NULL;
 
     // 'pParentNode' must be a directory
     if (!Inode_IsDirectory(pParentNode)) {
@@ -1067,13 +1083,16 @@ errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent*
 
 
     // Create the new directory and add it to its parent directory
-    InodeId newDirId = 0;
-    try(SerenaFS_CreateDirectoryDiskNode(self, Inode_GetId(pParentNode), user.uid, user.gid, permissions, &newDirId));
-    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, newDirId, &ep));
+    try(SerenaFS_CreateNode(self, kFileType_Directory, user, permissions, Inode_GetId(pParentNode), &pDirNode));
+    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
+    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pDirNode), &ep));
     return EOK;
 
 catch:
-    // XXX Unlink new dir disk node
+    if (pDirNode) {
+        Filesystem_Unlink((FilesystemRef)self, pDirNode, pParentNode, user);
+        Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
+    }
     return err;
 }
 
@@ -1207,7 +1226,7 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
 
 
         // Create the new file and add it to its parent directory
-        try(Filesystem_AllocateNode((FilesystemRef)self, kFileType_RegularFile, user.uid, user.gid, permissions, NULL, &pInode));
+        try(SerenaFS_CreateNode(self, kFileType_RegularFile, user, permissions, 0, &pInode));
         try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pInode), &ep));
         *pOutNode = pInode;
     }
@@ -1388,7 +1407,6 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull
 
 CLASS_METHODS(SerenaFS, Filesystem,
 OVERRIDE_METHOD_IMPL(deinit, SerenaFS, Object)
-OVERRIDE_METHOD_IMPL(onAllocateNodeOnDisk, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onReadNodeFromDisk, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onWriteNodeToDisk, SerenaFS, Filesystem)
 OVERRIDE_METHOD_IMPL(onRemoveNodeFromDisk, SerenaFS, Filesystem)

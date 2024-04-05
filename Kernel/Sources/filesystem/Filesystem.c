@@ -48,39 +48,24 @@ void Filesystem_deinit(FilesystemRef _Nonnull self)
     Lock_Deinit(&self->inodeManagementLock);
 }
 
-// Allocates a new inode on disk and in-core. The allocation is protected
-// by the same lock that is used to protect the acquisition, relinquishing,
-// write-back and deletion of inodes. The returned inode id is not visible to
-// any other thread of execution until it is explicitly shared with other code.
-errno_t Filesystem_AllocateNode(FilesystemRef _Nonnull self, FileType type, UserId uid, GroupId gid, FilePermissions permissions, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+// Publishes the given inode. Publishing should be the last step in creating a
+// new inode in order to make it visible and accessible to other part of the
+// kernel. Note that the inode that is passed to this function must not have
+// been acquired via Filesystem_AcquireNode(). The passed in inode must be a
+// freshly allocated inode (via Inode_Create). The inode is considered acquired
+// once this function returns. This means that you have to relinquish it by
+// calling Filesystem_RelinquishNode(). 
+errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     decl_try_err();
-    InodeId id = 0;
-    InodeRef pNode = NULL;
 
     Lock_Lock(&self->inodeManagementLock);
-
-    try(Filesystem_OnAllocateNodeOnDisk(self, type, pContext, &pNode));
+    assert(pNode->useCount == 0);
     try(PointerArray_Add(&self->inodesInUse, pNode));
     pNode->useCount++;
     
-    Inode_SetUserId(pNode, uid);
-    Inode_SetGroupId(pNode, gid);
-    Inode_SetFilePermissions(pNode, permissions);
-    Inode_SetModified(pNode, kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
-
-    Lock_Unlock(&self->inodeManagementLock);
-    *pOutNode = pNode;
-    return EOK;
-
 catch:
     Lock_Unlock(&self->inodeManagementLock);
-    
-    if (pNode) {
-        Inode_Unlink(pNode);
-        Filesystem_RelinquishNode(self, pNode);
-    }
-    *pOutNode = NULL;
     return err;
 }
 
@@ -189,13 +174,6 @@ bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
     const bool ok = PointerArray_IsEmpty(&self->inodesInUse);
     Lock_Unlock(&self->inodeManagementLock);
     return ok;
-}
-
-// Invoked when Filesystem_AllocateNode() is called. Subclassers should
-// override this method to allocate and initialize an inode of the given type.
-errno_t Filesystem_onAllocateNodeOnDisk(FilesystemRef _Nonnull self, FileType type, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    return EIO;
 }
 
 // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested inode
@@ -391,7 +369,6 @@ errno_t Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _Non
 
 CLASS_METHODS(Filesystem, Object,
 OVERRIDE_METHOD_IMPL(deinit, Filesystem, Object)
-METHOD_IMPL(onAllocateNodeOnDisk, Filesystem)
 METHOD_IMPL(onReadNodeFromDisk, Filesystem)
 METHOD_IMPL(onWriteNodeToDisk, Filesystem)
 METHOD_IMPL(onRemoveNodeFromDisk, Filesystem)

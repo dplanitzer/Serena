@@ -28,6 +28,8 @@ typedef int32_t     FilesystemId;
 typedef uint32_t    InodeId;
 #elif defined(__LP64__) || defined(__LLP64__)
 typedef uint64_t    InodeId;
+#else
+#error "Unknown data model"
 #endif
 
 typedef uint16_t    FilePermissions;
