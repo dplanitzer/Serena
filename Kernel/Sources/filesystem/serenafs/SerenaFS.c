@@ -652,11 +652,11 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
     const FileOffset fileSize = Inode_GetFileSize(pNode);
     ssize_t nBytesRead = 0;
 
-    if (offset < 0ll) {
+    if (nBytesToRead > 0 && (offset < 0ll || offset > kSFSLimit_FileSizeMax)) {
         *pOutBytesRead = 0;
-        return EINVAL;
+        return EOVERFLOW;
     }
-
+    
     while (nBytesToRead > 0 && offset < fileSize) {
         const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
         const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
@@ -696,9 +696,9 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
     decl_try_err();
     ssize_t nBytesWritten = 0;
 
-    if (offset < 0ll) {
+    if (nBytesToWrite > 0 && (offset < 0ll || offset > kSFSLimit_FileSizeMax)) {
         *pOutBytesWritten = 0;
-        return EINVAL;
+        return EOVERFLOW;
     }
 
     while (nBytesToWrite > 0) {
@@ -1184,6 +1184,13 @@ errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked p
 
     try(Inode_CheckAccess(pNode, user, permissions));
 
+
+    // A negative file size is treated as an overflow
+    if (Inode_GetFileSize(pNode) < 0ll || Inode_GetFileSize(pNode) > kSFSLimit_FileSizeMax) {
+        throw(EOVERFLOW);
+    }
+
+
     if ((mode & kOpen_Truncate) == kOpen_Truncate) {
         SerenaFS_xTruncateFile(self, pNode, 0);
     }
@@ -1402,7 +1409,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
     // '..' entry that points to the parent
     Inode_Unlink(pParentNode);
 
-    
+
     // Unlink the node itself
     Inode_Unlink(pNodeToUnlink);
     Inode_SetModified(pNodeToUnlink, kInodeFlag_StatusChanged);

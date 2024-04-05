@@ -135,9 +135,8 @@ typedef struct SFSInode {
 typedef SFSInode* SFSInodeRef;
 
 
-enum SFSInodeLimits {
-    kSFSLimit_LinkMax = INT32_MAX   // Max number of hard links to a directory/file
-};
+#define kSFSLimit_LinkMax INT32_MAX         /* Max number of hard links to a directory/file */
+#define kSFSLimit_FileSizeMax INT64_MAX     /* Permissible max size of a file in terms of bytes */
 
 
 //
