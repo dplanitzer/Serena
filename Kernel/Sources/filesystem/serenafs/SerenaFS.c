@@ -253,19 +253,21 @@ static void SerenaFS_DeallocateBlock_Locked(SerenaFSRef _Nonnull self, LogicalBl
     SerenaFS_WriteBackAllocationBitmapForLba(self, lba);
 }
 
-// Creates a new inode with type 'type', user information 'user' and permissions
-// 'permissions'. 'parentInodeId' is required if the node that should be created
-// is a directory. Otherwise it may be 0. Returns the newly acquired inode on
-// success and NULL otherwise.
-static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeId parentInodeId, InodeRef _Nullable * _Nonnull pOutNode)
+// Creates a new inode with type 'type', user information 'user', permissions
+// 'permissions' and adds it to parent inode (directory) 'pParentNode'. The new
+// node will be added to 'pParentNode' with the name 'pName'. Returns the newly
+// acquired inode on success and NULL otherwise.
+static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    InodeId parentInodeId = Inode_GetId(pParentNode);
     LogicalBlockAddress inodeLba = 0;
     LogicalBlockAddress dirContLba = 0;
     FileOffset fileSize = 0ll;
     SFSBlockMap* pBlockMap = NULL;
     InodeRef pNode = NULL;
+    bool isPublished = false;
 
     try(SerenaFS_AllocateBlock_Locked(self, &inodeLba));
     
@@ -304,13 +306,24 @@ static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, Use
         &pNode));
     Inode_SetModified(pNode, kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
 
+    // Be sure to publish the newly create inode before we add it to the parent
+    // directory. This ensures that a guy who stumbles across the new directory
+    // entry and calls Filesystem_AcquireNode() on it, won't unexpectedly create
+    // a second inode object representing the same inode.  
     try(Filesystem_PublishNode((FilesystemRef)self, pNode));
+    isPublished = true;
+    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pNode), pDirInsertionHint));
     *pOutNode = pNode;
 
     return EOK;
 
 catch:
-    Inode_Destroy(pNode);
+    if (isPublished) {
+        Filesystem_Unlink((FilesystemRef)self, pNode, pParentNode, user);
+        Filesystem_RelinquishNode((FilesystemRef)self, pNode);
+    } else {
+        Inode_Destroy(pNode);
+    }
     kfree(pBlockMap);
 
     if (dirContLba != 0) {
@@ -486,13 +499,6 @@ static bool xHasMatchingDirectoryEntry(const SFSDirectoryQuery* _Nonnull pQuery,
 
     return false;
 }
-
-// Points to a directory entry inside a disk block
-typedef struct SFSDirectoryEntryPointer {
-    LogicalBlockAddress     lba;        // LBA of the disk block that holds the directory entry
-    size_t                  offset;     // Byte offset to the directory entry relative to the dis block start
-    FileOffset              fileOffset; // Byte offset relative to the start of the directory file
-} SFSDirectoryEntryPointer;
 
 // Returns a reference to the directory entry that holds 'pName'. NULL and a
 // suitable error is returned if no such entry exists or 'pName' is empty or
@@ -1083,16 +1089,10 @@ errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent*
 
 
     // Create the new directory and add it to its parent directory
-    try(SerenaFS_CreateNode(self, kFileType_Directory, user, permissions, Inode_GetId(pParentNode), &pDirNode));
+    try(SerenaFS_CreateNode(self, kFileType_Directory, user, permissions, pParentNode, pName, &ep, &pDirNode));
     Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
-    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pDirNode), &ep));
-    return EOK;
 
 catch:
-    if (pDirNode) {
-        Filesystem_Unlink((FilesystemRef)self, pDirNode, pParentNode, user);
-        Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
-    }
     return err;
 }
 
@@ -1226,8 +1226,7 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
 
 
         // Create the new file and add it to its parent directory
-        try(SerenaFS_CreateNode(self, kFileType_RegularFile, user, permissions, 0, &pInode));
-        try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pInode), &ep));
+        try(SerenaFS_CreateNode(self, kFileType_RegularFile, user, permissions, pParentNode, pName, &ep, &pInode));
         *pOutNode = pInode;
     }
     else if (err == EOK) {
@@ -1251,7 +1250,6 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
     return EOK;
 
 catch:
-    // XXX Unlink new file disk node if necessary
     if (pInode) {
         Filesystem_RelinquishNode((FilesystemRef)self, pInode);
     }

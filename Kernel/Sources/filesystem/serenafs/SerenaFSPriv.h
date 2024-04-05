@@ -33,6 +33,13 @@ typedef struct SFSDirectoryQuery {
     }       u;
 } SFSDirectoryQuery;
 
+// Points to a directory entry inside a disk block
+typedef struct SFSDirectoryEntryPointer {
+    LogicalBlockAddress     lba;        // LBA of the disk block that holds the directory entry
+    size_t                  offset;     // Byte offset to the directory entry relative to the dis block start
+    FileOffset              fileOffset; // Byte offset relative to the start of the directory file
+} SFSDirectoryEntryPointer;
+
 
 //
 // Inode Extensions
@@ -78,5 +85,6 @@ static errno_t SerenaFS_CreateDirectoryDiskNode(SerenaFSRef _Nonnull self, Inode
 static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, SFSInodeRef _Nullable pDiskNode);
 static errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba);
 static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
+static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, SFSDirectoryEntryPointer* _Nullable pEmptyPtr);
 
 #endif /* SerenaFSPriv_h */
