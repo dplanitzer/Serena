@@ -269,13 +269,13 @@ static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, Use
     InodeRef pNode = NULL;
     bool isPublished = false;
 
+    try(kalloc_cleared(sizeof(SFSBlockMap), (void**)&pBlockMap));
     try(SerenaFS_AllocateBlock_Locked(self, &inodeLba));
     
     if (type == kFileType_Directory) {
         // Write the initial directory content. This are just the '.' and '..'
         // entries
         try(SerenaFS_AllocateBlock_Locked(self, &dirContLba));
-        try(kalloc_cleared(sizeof(SFSBlockMap), (void**)&pBlockMap));
 
         memset(self->tmpBlock, 0, kSFSBlockSize);
         SFSDirectoryEntry* dep = (SFSDirectoryEntry*)self->tmpBlock;
@@ -305,6 +305,7 @@ static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, Use
         pBlockMap,
         &pNode));
     Inode_SetModified(pNode, kInodeFlag_Accessed | kInodeFlag_Updated | kInodeFlag_StatusChanged);
+
 
     // Be sure to publish the newly create inode before we add it to the parent
     // directory. This ensures that a guy who stumbles across the new directory
