@@ -59,9 +59,10 @@
 #define EISDIR          34
 #define ENOTIOCTLCMD    35
 #define EILSEQ          36
+#define EMLINK          37
 
 #define __EFIRST    1
-#define __ELAST     36
+#define __ELAST     37
 
 #endif  /* __SYSTEM_SHIM__ */
 

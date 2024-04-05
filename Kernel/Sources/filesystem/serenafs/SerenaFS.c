@@ -15,10 +15,11 @@
 // MARK: Inode extensions
 ////////////////////////////////////////////////////////////////////////////////
 
-// Returns true if the given directory node is empty (contains just "." and "..").
-static bool DirectoryNode_IsEmpty(InodeRef _Nonnull _Locked self)
+// Returns true if the given directory node is not empty (contains more than
+// just "." and ".." or has a link count > 1).
+static bool DirectoryNode_IsNotEmpty(InodeRef _Nonnull _Locked self)
 {
-    return Inode_GetFileSize(self) <= sizeof(SFSDirectoryEntry) * 2;
+    return Inode_GetLinkCount(self) > 1 || Inode_GetFileSize(self) > 2 * sizeof(SFSDirectoryEntry);
 }
 
 
@@ -1068,8 +1069,10 @@ errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent*
     }
 
 
-    // We must have write permissions for 'pParentNode'
-    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+    // Make sure that the parent directory is able to accept one more link
+    if (Inode_GetLinkCount(pParentNode) >= kSFSLimit_LinkMax) {
+        throw(EMLINK);
+    }
 
 
     // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
@@ -1089,9 +1092,18 @@ errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent*
     }
 
 
+    // We must have write permissions for 'pParentNode'
+    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+
+
     // Create the new directory and add it to its parent directory
     try(SerenaFS_CreateNode(self, kFileType_Directory, user, permissions, pParentNode, pName, &ep, &pDirNode));
     Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
+
+
+    // Increment the parent directory link count to account for the '..' entry
+    // in the just created subdirectory
+    Inode_Link(pParentNode);
 
 catch:
     return err;
@@ -1376,7 +1388,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
 
 
     // A directory must be empty in order to be allowed to unlink it
-    if (Inode_IsDirectory(pNodeToUnlink) && !DirectoryNode_IsEmpty(pNodeToUnlink)) {
+    if (Inode_IsDirectory(pNodeToUnlink) && DirectoryNode_IsNotEmpty(pNodeToUnlink)) {
         throw(EBUSY);
     }
 
@@ -1386,6 +1398,11 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
     SerenaFS_xTruncateFile(self, pParentNode, Inode_GetFileSize(pParentNode));
 
 
+    // If this is a directory then unlink it from its parent since we remove a
+    // '..' entry that points to the parent
+    Inode_Unlink(pParentNode);
+
+    
     // Unlink the node itself
     Inode_Unlink(pNodeToUnlink);
     Inode_SetModified(pNodeToUnlink, kInodeFlag_StatusChanged);
