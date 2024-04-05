@@ -117,6 +117,10 @@ The shell executes the nested sentence first and it then replaces the nested sen
 
 Set the current working directory to the directory indicated by the provided path.
 
+#### CLS
+
+Clears the screen.
+
 #### DELETE \<path>
 
 Deletes the directory or file indicated by the provided path. A directory has to be empty to be deletable.

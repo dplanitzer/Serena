@@ -23,6 +23,7 @@ typedef struct InterpreterCommand {
 
 
 extern int cmd_cd(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_cls(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_exit(ShellContextRef _Nonnull pContext, int argc, char** argv);
@@ -36,6 +37,7 @@ extern int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv);
 // Keep this table sorted by names, in ascending order
 static const InterpreterCommand gBuiltinCommands[] = {
     {"cd", cmd_cd},
+    {"cls", cmd_cls},
     {"delete", cmd_delete},
     {"echo", cmd_echo},
     {"exit", cmd_exit},
