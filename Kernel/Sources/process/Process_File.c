@@ -40,7 +40,7 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
     IOChannelRef pFile = NULL;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
     try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pInode));
     try(FileChannel_Create((ObjectRef)r.filesystem, options, pInode, &pFile));
     try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
@@ -64,7 +64,7 @@ errno_t Process_Open(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsi
     IOChannelRef pFile = NULL;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenFile(r.filesystem, r.inode, options, pProc->realUser));
     try(FileChannel_Create((ObjectRef)r.filesystem, options, r.inode, &pFile));
     try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
@@ -88,7 +88,7 @@ errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
         err = Filesystem_GetFileInfo(r.filesystem, r.inode, pOutInfo);
     }
     PathResolverResult_Deinit(&r);
@@ -127,7 +127,7 @@ errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
         err = Filesystem_SetFileInfo(r.filesystem, r.inode, pProc->realUser, pInfo);
     }
     PathResolverResult_Deinit(&r);
@@ -168,7 +168,7 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPa
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
         err = Filesystem_Truncate(r.filesystem, r.inode, pProc->realUser, length);
     }
     PathResolverResult_Deinit(&r);
@@ -223,7 +223,7 @@ errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull 
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
         if (mode != 0) {
             err = Filesystem_CheckAccess(r.filesystem, r.inode, pProc->realUser, mode);
         }
@@ -244,7 +244,7 @@ errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
     InodeRef _Weak _Locked pNodeToUnlink = NULL;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
 
 
     // Get the inode of the file/directory to unlink. Note that there are two cases here:
@@ -275,7 +275,7 @@ errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 
 
     // Can not unlink the process' root directory
-    if (PathResolver_IsRootDirectory(&pProc->pathResolver, pNodeToUnlink)) {
+    if (PathResolver_IsRootDirectory(pProc->pathResolver, pNodeToUnlink)) {
         throw(EBUSY);
     }
 
@@ -297,8 +297,8 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
     PathResolverResult or, nr;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pOldPath, pProc->realUser, &or));
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pNewPath, pProc->realUser, &nr));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pOldPath, pProc->realUser, &or));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pNewPath, pProc->realUser, &nr));
 
     // Can not rename a mount point
     // XXX implement this check once we've refined the mount point handling (return EBUSY)

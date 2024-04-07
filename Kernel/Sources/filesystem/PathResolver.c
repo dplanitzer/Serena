@@ -9,22 +9,24 @@
 #include "PathResolver.h"
 #include "FilesystemManager.h"
 
-static void PathResolverResult_Init(PathResolverResult* _Nonnull pResult)
+static void PathResolverResult_Init(PathResolverResult* _Nonnull self)
 {
-    pResult->inode = NULL;
-    pResult->filesystem = NULL;
-    pResult->lastPathComponent.name = NULL;
-    pResult->lastPathComponent.count = 0;
+    self->inode = NULL;
+    self->filesystem = NULL;
+    self->lastPathComponent.name = NULL;
+    self->lastPathComponent.count = 0;
 }
 
-void PathResolverResult_Deinit(PathResolverResult* _Nonnull pResult)
+void PathResolverResult_Deinit(PathResolverResult* _Nonnull self)
 {
-    if (pResult->inode) {
-        Filesystem_RelinquishNode(pResult->filesystem, pResult->inode);
-        pResult->inode = NULL;
+    if (self->inode) {
+        Filesystem_RelinquishNode(self->filesystem, self->inode);
+        self->inode = NULL;
     }
-    Object_Release(pResult->filesystem);
-    pResult->filesystem = NULL;
+    if (self->filesystem) {
+        Object_Release(self->filesystem);
+        self->filesystem = NULL;
+    }
 }
 
 
@@ -39,53 +41,45 @@ typedef struct InodeIterator {
     FilesystemRef _Nonnull      filesystem;
 } InodeIterator;
 
-static void InodeIterator_Deinit(InodeIterator* _Nonnull pIterator);
 
-
-static errno_t InodeIterator_Init(InodeIterator* _Nonnull pIterator, InodeRef _Nonnull pFirstNode)
+static void InodeIterator_Init(InodeIterator* _Nonnull self, FilesystemRef _Nonnull pFirstFs, InodeRef _Nonnull pFirstNode)
 {
-    pIterator->filesystem = NULL;
-    pIterator->inode = NULL;
-
-    pIterator->filesystem = Inode_CopyFilesystem(pFirstNode);
-    if (pIterator->filesystem == NULL) {
-        return ENOENT;  // FS is no longer mounted
-    }
-
-    pIterator->inode = Filesystem_ReacquireNode(pIterator->filesystem, pFirstNode);
-    return EOK;
+    self->filesystem = Object_RetainAs(pFirstFs, Filesystem);
+    self->inode = Filesystem_ReacquireNode(self->filesystem, pFirstNode);
 }
 
-static void InodeIterator_Deinit(InodeIterator* _Nonnull pIterator)
+static void InodeIterator_Deinit(InodeIterator* _Nonnull self)
 {
-    if (pIterator->inode) {
-        Filesystem_RelinquishNode(pIterator->filesystem, pIterator->inode);
-        pIterator->inode = NULL;
+    if (self->inode) {
+        Filesystem_RelinquishNode(self->filesystem, self->inode);
+        self->inode = NULL;
     }
-    Object_Release(pIterator->filesystem);
-    pIterator->filesystem = NULL;
+    if (self->filesystem) {
+        Object_Release(self->filesystem);
+        self->filesystem = NULL;
+    }
 }
 
 // Takes ownership of 'pNewNode' and expects that 'pNewNode' and the current node
 // of the iterator are different. Updates the inode only (assumption is that the
 // new and the old inode are located on the same filesystem).
-static void InodeIterator_UpdateWithNodeOnly(InodeIterator* pIterator, InodeRef _Nonnull pNewNode)
+static void InodeIterator_UpdateWithNodeOnly(InodeIterator* self, InodeRef _Nonnull pNewNode)
 {
-    Filesystem_RelinquishNode(pIterator->filesystem, pIterator->inode);
-    pIterator->inode = pNewNode;
+    Filesystem_RelinquishNode(self->filesystem, self->inode);
+    self->inode = pNewNode;
 }
 
 // Takes ownership of 'pNewNode' and expects that 'pNewNode' and the current node
 // of the iterator are different. Updates both the inode and the filesystem
 // information.
-static void InodeIterator_Update(InodeIterator* pIterator, InodeRef _Nonnull pNewNode)
+static void InodeIterator_Update(InodeIterator* self, InodeRef _Nonnull pNewNode)
 {
-    Filesystem_RelinquishNode(pIterator->filesystem, pIterator->inode);
-    pIterator->inode = pNewNode;
+    Filesystem_RelinquishNode(self->filesystem, self->inode);
+    self->inode = pNewNode;
 
     FilesystemRef pNewFileSys = Inode_CopyFilesystem(pNewNode);
-    Object_Release(pIterator->filesystem);
-    pIterator->filesystem = pNewFileSys;
+    Object_Release(self->filesystem);
+    self->filesystem = pNewFileSys;
 }
 
 
@@ -94,42 +88,89 @@ static void InodeIterator_Update(InodeIterator* pIterator, InodeRef _Nonnull pNe
 // MARK: PathResolver
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter);
+static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull self, User user, InodeIterator* _Nonnull pIter);
 
 
-errno_t PathResolver_Init(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull pRootDirectory, InodeRef _Nonnull pWorkingDirectory)
+// Creates a path resolver that allows you to resolve paths in the given root
+// filesystem. The resolver acquires the root node and uses it as its root
+// and working directory.
+errno_t PathResolver_Create(FilesystemRef _Nonnull pRootFs, PathResolverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    pResolver->rootDirectory = Inode_ReacquireUnlocked(pRootDirectory);
-    pResolver->workingDirectory = Inode_ReacquireUnlocked(pWorkingDirectory);
-    pResolver->pathComponent.name = pResolver->nameBuffer;
-    pResolver->pathComponent.count = 0;
+    PathResolverRef self;
+    InodeRef pRootDir = NULL;
+
+    try(Filesystem_AcquireRootNode(pRootFs, &pRootDir));
+
+    try(kalloc_cleared(sizeof(PathResolver), (void**)&self));
+    self->rooFilesystem = Object_RetainAs(pRootFs, Filesystem);
+    self->rootDirectory = pRootDir;
+    self->workingFilesystem = Object_RetainAs(pRootFs, Filesystem);
+    self->workingDirectory = Filesystem_ReacquireUnlockedNode(pRootFs, pRootDir);
+    self->pathComponent.name = self->nameBuffer;
+    self->pathComponent.count = 0;
+    *pOutSelf = self;
     
     return EOK;
 
 catch:
+    if (pRootDir) {
+        Filesystem_RelinquishNode(pRootFs, pRootDir);
+    }
+    *pOutSelf = NULL;
     return err;
 }
 
-void PathResolver_Deinit(PathResolverRef _Nonnull pResolver)
+// Creates a copy of the given path resolver. The copy will maintain its own
+// separate root and working directory inode references.
+errno_t PathResolver_CreateCopy(PathResolverRef _Nonnull pOther, PathResolverRef _Nullable * _Nonnull pOutSelf)
 {
-    if (pResolver->rootDirectory) {
-        Inode_Relinquish(pResolver->rootDirectory);
-        pResolver->rootDirectory = NULL;
-    }
-    if (pResolver->workingDirectory) {
-        Inode_Relinquish(pResolver->workingDirectory);
-        pResolver->workingDirectory = NULL;
+    decl_try_err();
+    PathResolverRef self;
+
+    try(kalloc_cleared(sizeof(PathResolver), (void**)&self));
+    self->rooFilesystem = Object_RetainAs(pOther->rooFilesystem, Filesystem);
+    self->rootDirectory = Filesystem_ReacquireUnlockedNode(self->rooFilesystem, pOther->rootDirectory);
+    self->workingFilesystem = Object_RetainAs(pOther->workingFilesystem, Filesystem);
+    self->workingDirectory = Filesystem_ReacquireUnlockedNode(self->workingFilesystem, pOther->workingDirectory);
+    self->pathComponent.name = self->nameBuffer;
+    self->pathComponent.count = 0;
+    *pOutSelf = self;
+    
+    return EOK;
+
+catch:
+    *pOutSelf = NULL;
+    return err;
+}
+
+void PathResolver_Destroy(PathResolverRef _Nullable self)
+{
+    if (self) {
+        if (self->rootDirectory) {
+            Filesystem_RelinquishNode(self->rooFilesystem, self->rootDirectory);
+            self->rootDirectory = NULL;
+            Object_Release(self->rooFilesystem);
+            self->rooFilesystem = NULL;
+        }
+        if (self->workingDirectory) {
+            Filesystem_RelinquishNode(self->workingFilesystem, self->workingDirectory);
+            self->workingDirectory = NULL;
+            Object_Release(self->workingFilesystem);
+            self->workingFilesystem = NULL;
+        }
+
+        kfree(self);
     }
 }
 
-static errno_t PathResolver_SetDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath, InodeRef _Nullable * _Nonnull pDirToAssign)
+static errno_t PathResolver_SetDirectoryPath(PathResolverRef _Nonnull self, User user, const char* _Nonnull pPath, FilesystemRef _Nonnull * _Nonnull pFsToAssign, InodeRef _Nonnull * _Nonnull pDirToAssign)
 {
     decl_try_err();
     PathResolverResult r;
 
     // Get the inode that represents the new directory
-    try(PathResolver_AcquireNodeForPath(pResolver, kPathResolutionMode_TargetOnly, pPath, user, &r));
+    try(PathResolver_AcquireNodeForPath(self, kPathResolutionMode_TargetOnly, pPath, user, &r));
 
 
     // Make sure that it is actually a directory
@@ -143,37 +184,40 @@ static errno_t PathResolver_SetDirectoryPath(PathResolverRef _Nonnull pResolver,
 
 
     // Remember the new inode as our new directory
-    if (*pDirToAssign) {
-        Inode_Relinquish(*pDirToAssign);
-        *pDirToAssign = NULL;
+    if (Inode_GetId(*pDirToAssign) != Inode_GetId(r.inode)) {
+        Filesystem_RelinquishNode(*pFsToAssign, *pDirToAssign);
+        *pDirToAssign = r.inode;
+        r.inode = NULL;
     }
-
-    *pDirToAssign = r.inode;
-    r.inode = NULL;
+    if (Inode_GetFilesystemId(*pDirToAssign) != Inode_GetFilesystemId(r.inode)) {
+        Object_Release(*pFsToAssign);
+        *pFsToAssign = r.filesystem;
+        r.filesystem = NULL;
+    }
 
 catch:
     PathResolverResult_Deinit(&r);
     return err;
 }
 
-errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath)
+errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull self, User user, const char* _Nonnull pPath)
 {
-    return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->rootDirectory);
+    return PathResolver_SetDirectoryPath(self, user, pPath, &self->rooFilesystem, &self->rootDirectory);
 }
 
 // Returns true if the given node represents the resolver's root directory.
-bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull pResolver, InodeRef _Nonnull _Locked pNode)
+bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
-    return Inode_GetFilesystemId(pResolver->rootDirectory) == Inode_GetFilesystemId(pNode)
-        && Inode_GetId(pResolver->rootDirectory) == Inode_GetId(pNode);
+    return Inode_GetFilesystemId(self->rootDirectory) == Inode_GetFilesystemId(pNode)
+        && Inode_GetId(self->rootDirectory) == Inode_GetId(pNode);
 }
 
-errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, char* _Nonnull  pBuffer, size_t bufferSize)
+errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull self, User user, char* _Nonnull  pBuffer, size_t bufferSize)
 {
     InodeIterator iter;
     decl_try_err();
 
-    try(InodeIterator_Init(&iter, pResolver->workingDirectory));
+    InodeIterator_Init(&iter, self->workingFilesystem, self->workingDirectory);
 
     if (bufferSize < 1) {
         throw(EINVAL);
@@ -186,10 +230,10 @@ errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver,
     char* p = &pBuffer[bufferSize - 1];
     *p = '\0';
 
-    while (iter.inode != pResolver->rootDirectory) {
+    while (iter.inode != self->rootDirectory) {
         const InodeId childInodeIdToLookup = Inode_GetId(iter.inode);
 
-        try(PathResolver_UpdateIteratorWalkingUp(pResolver, user, &iter));
+        try(PathResolver_UpdateIteratorWalkingUp(self, user, &iter));
 
         pathComponent.name = pBuffer;
         pathComponent.count = 0;
@@ -223,16 +267,16 @@ catch:
     return err;
 }
 
-errno_t PathResolver_SetWorkingDirectoryPath(PathResolverRef _Nonnull pResolver, User user, const char* _Nonnull pPath)
+errno_t PathResolver_SetWorkingDirectoryPath(PathResolverRef _Nonnull self, User user, const char* _Nonnull pPath)
 {
-    return PathResolver_SetDirectoryPath(pResolver, user, pPath, &pResolver->workingDirectory);
+    return PathResolver_SetDirectoryPath(self, user, pPath, &self->workingFilesystem, &self->workingDirectory);
 }
 
 // Updates the given inode iterator with the parent node of the node to which the
 // iterator points. Returns the iterator's inode itself if that inode is the path
 // resolver's root directory. Returns a suitable error code and leaves the iterator
 // unchanged if an error (eg access denied) occurs.
-static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter)
+static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull self, User user, InodeIterator* _Nonnull pIter)
 {
     InodeRef _Locked pParentNode = NULL;
     InodeRef _Locked pMountingDir = NULL;
@@ -241,7 +285,7 @@ static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull pRe
     decl_try_err();
 
     // Nothing to do if the iterator points to our root node
-    if (Inode_Equals(pIter->inode, pResolver->rootDirectory)) {
+    if (Inode_Equals(pIter->inode, self->rootDirectory)) {
         return EOK;
     }
 
@@ -285,7 +329,7 @@ catch:
 // component and returns EOK if that works out. Otherwise returns a suitable
 // error and leaves the passed in iterator unchanged. This function handles the
 // case that we want to walk down the filesystem tree or sideways (".").
-static errno_t PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
+static errno_t PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull self, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
     InodeRef _Locked pChildNode = NULL;
     decl_try_err();
@@ -327,7 +371,7 @@ catch:
 // Updates the inode iterator with the inode that represents the given path
 // component and returns EOK if that works out. Otherwise returns a suitable
 // error and leaves the passed in iterator unchanged.
-static errno_t PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
+static errno_t PathResolver_UpdateIterator(PathResolverRef _Nonnull self, User user, InodeIterator* _Nonnull pIter, const PathComponent* pComponent)
 {
     // The current directory better be an actual directory
     if (!Inode_IsDirectory(pIter->inode)) {
@@ -338,15 +382,15 @@ static errno_t PathResolver_UpdateIterator(PathResolverRef _Nonnull pResolver, U
     // Walk up the filesystem tree if the path component is "..", sideways if
     // the path component is "." and down if it is any other name.
     if (pComponent->count == 2 && pComponent->name[0] == '.' && pComponent->name[1] == '.') {
-        return PathResolver_UpdateIteratorWalkingUp(pResolver, user, pIter);
+        return PathResolver_UpdateIteratorWalkingUp(self, user, pIter);
     }
     else {
-        return PathResolver_UpdateIteratorWalkingDown(pResolver, user, pIter, pComponent);
+        return PathResolver_UpdateIteratorWalkingDown(self, user, pIter, pComponent);
     }
 }
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
-errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, PathResolutionMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult)
+errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolutionMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult)
 {
     decl_try_err();
     InodeIterator iter;
@@ -361,16 +405,19 @@ errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, Path
 
     // Start with the root directory if the path starts with a '/' and the
     // current working directory otherwise
+    FilesystemRef pStartingFs;
     InodeRef pStartingDir;
     if (pPath[0] == '/') {
-        pStartingDir = pResolver->rootDirectory;
+        pStartingFs = self->rooFilesystem;
+        pStartingDir = self->rootDirectory;
     } else {
-        pStartingDir = pResolver->workingDirectory;
+        pStartingFs = self->workingFilesystem;
+        pStartingDir = self->workingDirectory;
     }
 
 
     // Create our inode iterator
-    try(InodeIterator_Init(&iter, pStartingDir));
+    InodeIterator_Init(&iter, pStartingFs, pStartingDir);
 
 
     // Iterate through the path components, looking up the inode that corresponds
@@ -392,15 +439,15 @@ errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, Path
             if (pi >= kMaxPathLength || ni >= kMaxPathComponentLength) {
                 throw(ENAMETOOLONG);
             }
-            pResolver->nameBuffer[ni++] = pPath[pi++];
+            self->nameBuffer[ni++] = pPath[pi++];
         }
 
 
         // Treat a path that ends in a trailing '/' as if it would be "/."
         if (ni == 0) {
-            pResolver->nameBuffer[0] = '.'; ni = 1;
+            self->nameBuffer[0] = '.'; ni = 1;
         }
-        pResolver->pathComponent.count = ni;
+        self->pathComponent.count = ni;
 
 
         // Check whether we're done if the resolution mode is ParentOnly
@@ -423,7 +470,7 @@ errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull pResolver, Path
 
         // Ask the current namespace for the inode that is named by the tuple
         // (parent-inode, path-component)
-        try(PathResolver_UpdateIterator(pResolver, user, &iter, &pResolver->pathComponent));
+        try(PathResolver_UpdateIterator(self, user, &iter, &self->pathComponent));
 
 
         // We're done if we've reached the end of the path. Otherwise continue

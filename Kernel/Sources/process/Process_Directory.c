@@ -17,7 +17,7 @@
 errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPath)
 {
     Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_SetRootDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
+    const errno_t err = PathResolver_SetRootDirectoryPath(pProc->pathResolver, pProc->realUser, pPath);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -27,7 +27,7 @@ errno_t Process_SetRootDirectoryPath(ProcessRef _Nonnull pProc, const char* pPat
 errno_t Process_SetWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 {
     Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_SetWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pPath);
+    const errno_t err = PathResolver_SetWorkingDirectoryPath(pProc->pathResolver, pProc->realUser, pPath);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -39,7 +39,7 @@ errno_t Process_SetWorkingDirectoryPath(ProcessRef _Nonnull pProc, const char* _
 errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize)
 {
     Lock_Lock(&pProc->lock);
-    const errno_t err = PathResolver_GetWorkingDirectoryPath(&pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
+    const errno_t err = PathResolver_GetWorkingDirectoryPath(pProc->pathResolver, pProc->realUser, pBuffer, bufferSize);
     Lock_Unlock(&pProc->lock);
 
     return err;
@@ -54,7 +54,7 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
 
     Lock_Lock(&pProc->lock);
 
-    if ((err = PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r)) == EOK) {
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r)) == EOK) {
         err = Filesystem_CreateDirectory(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
     }
     PathResolverResult_Deinit(&r);
@@ -73,7 +73,7 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
     IOChannelRef pDir = NULL;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenDirectory(r.filesystem, r.inode, pProc->realUser));
     try(DirectoryChannel_Create((ObjectRef)r.filesystem, r.inode, &pDir));
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));

@@ -35,18 +35,18 @@ ProcessRef _Nullable Process_GetCurrent(void)
 
 errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
 {
-    FilesystemRef pRootFileSys = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
-    InodeRef pRootDir = NULL;
     decl_try_err();
+    FilesystemRef pRootFs = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
+    PathResolverRef pResolver = NULL;
 
-    try(Filesystem_AcquireRootNode(pRootFileSys, &pRootDir));
-    try(Process_Create(1, kUser_Root, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc));
-    Filesystem_RelinquishNode(pRootFileSys, pRootDir);
+    try(PathResolver_Create(pRootFs, &pResolver));
+    try(Process_Create(1, kUser_Root, pResolver, FilePermissions_MakeFromOctal(0022), pOutProc));
 
     return EOK;
 
 catch:
-    Object_Release(pRootFileSys);
+    PathResolver_Destroy(pResolver);
+    Object_Release(pRootFs);
     *pOutProc = NULL;
     return err;
 }
@@ -67,7 +67,7 @@ errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPa
 
 
 
-errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
     ProcessRef pProc;
@@ -85,7 +85,7 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull  pRootDir, InodeRe
     try(ObjectArray_Init(&pProc->privateResources, INITIAL_PRIVATE_RESOURCES_CAPACITY));
     try(IntArray_Init(&pProc->childPids, 0));
 
-    try(PathResolver_Init(&pProc->pathResolver, pRootDir, pCurDir));
+    pProc->pathResolver = pResolver;
     pProc->fileCreationMask = fileCreationMask;
     pProc->realUser = user;
 
@@ -119,7 +119,7 @@ void Process_deinit(ProcessRef _Nonnull pProc)
     Process_DisposeAllPrivateResources_Locked(pProc);
     ObjectArray_Deinit(&pProc->privateResources);
 
-    PathResolver_Deinit(&pProc->pathResolver);
+    PathResolver_Destroy(pProc->pathResolver);
 
     Process_DestroyAllTombstones_Locked(pProc);
     ConditionVariable_Deinit(&pProc->tombstoneSignaler);

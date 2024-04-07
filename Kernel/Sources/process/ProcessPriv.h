@@ -48,7 +48,7 @@ CLASS_IVARS(Process, Object,
     ObjectArray                     privateResources;   // Process private resources (aka non-sharable resources)
 
     // Filesystems/Namespace
-    PathResolver                    pathResolver;
+    PathResolverRef _Nonnull        pathResolver;
     FilePermissions                 fileCreationMask;   // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
     
     // User identity
@@ -69,7 +69,7 @@ CLASS_IVARS(Process, Object,
 );
 
 
-extern errno_t Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pCurDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
+extern errno_t Process_Create(ProcessId ppid, User user, PathResolverRef _Nonnull pResolver, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull self);
 
 extern errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int* _Nonnull pOutDescriptor);

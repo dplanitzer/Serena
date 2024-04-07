@@ -16,13 +16,16 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
+    PathResolverRef pChildResolver = NULL;
     bool needsUnlock = false;
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
     const FilePermissions childUMask = ((pOptions->options & kSpawn_OverrideUserMask) != 0) ? (pOptions->umask & 0777) : pProc->fileCreationMask;
-    try(Process_Create(pProc->pid, pProc->realUser, pProc->pathResolver.rootDirectory, pProc->pathResolver.workingDirectory, pProc->fileCreationMask, &pChildProc));
+    try(PathResolver_CreateCopy(pProc->pathResolver, &pChildResolver));
+    try(Process_Create(pProc->pid, pProc->realUser, pChildResolver, pProc->fileCreationMask, &pChildProc));
+    pChildResolver = NULL;
 
 
     // Note that we do not lock the child process although we're reaching directly
@@ -67,6 +70,9 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     return EOK;
 
 catch:
+    if (pChildResolver) {
+        PathResolver_Destroy(pChildResolver);
+    }
     if (pChildProc) {
         Process_AbandonChild_Locked(pProc, pChildProc->pid);
     }
@@ -183,7 +189,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
     // XXX for now to keep loading simpler
     assert(pProc->imageBase == NULL);
 
-    try(PathResolver_AcquireNodeForPath(&pProc->pathResolver, kPathResolutionMode_TargetOnly, pExecPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pExecPath, pProc->realUser, &r));
     try(Inode_CheckAccess(r.inode, pProc->realUser, kFilePermission_Execute | kFilePermission_Read));
 
 
