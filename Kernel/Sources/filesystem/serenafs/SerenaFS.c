@@ -652,11 +652,21 @@ static errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
     const FileOffset fileSize = Inode_GetFileSize(pNode);
     ssize_t nBytesRead = 0;
 
-    if (nBytesToRead > 0 && (offset < 0ll || offset > kSFSLimit_FileSizeMax)) {
-        *pOutBytesRead = 0;
-        return EOVERFLOW;
+    if (nBytesToRead > 0) {
+        if (offset < 0ll || offset >= kSFSLimit_FileSizeMax) {
+            *pOutBytesRead = 0;
+            return EOVERFLOW;
+        }
+
+        const FileOffset targetOffset = offset + (FileOffset)nBytesToRead;
+        if (targetOffset < 0ll || targetOffset > kSFSLimit_FileSizeMax) {
+            nBytesToRead = (ssize_t)(kSFSLimit_FileSizeMax - offset);
+        }
     }
-    
+    else if (nBytesToRead < 0) {
+        return EINVAL;
+    }
+
     while (nBytesToRead > 0 && offset < fileSize) {
         const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
         const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
@@ -696,9 +706,19 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
     decl_try_err();
     ssize_t nBytesWritten = 0;
 
-    if (nBytesToWrite > 0 && (offset < 0ll || offset > kSFSLimit_FileSizeMax)) {
-        *pOutBytesWritten = 0;
-        return EOVERFLOW;
+    if (nBytesToWrite > 0) {
+        if (offset < 0ll || offset >= kSFSLimit_FileSizeMax) {
+            *pOutBytesWritten = 0;
+            return EOVERFLOW;
+        }
+
+        const FileOffset targetOffset = offset + (FileOffset)nBytesToWrite;
+        if (targetOffset < 0ll || targetOffset > kSFSLimit_FileSizeMax) {
+            nBytesToWrite = (ssize_t)(kSFSLimit_FileSizeMax - offset);
+        }
+    }
+    else if (nBytesToWrite < 0) {
+        return EINVAL;
     }
 
     while (nBytesToWrite > 0) {
