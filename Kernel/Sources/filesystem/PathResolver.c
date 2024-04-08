@@ -69,17 +69,20 @@ static void InodeIterator_UpdateWithNodeOnly(InodeIterator* self, InodeRef _Nonn
     self->inode = pNewNode;
 }
 
-// Takes ownership of 'pNewNode' and expects that 'pNewNode' and the current node
-// of the iterator are different. Updates both the inode and the filesystem
-// information.
-static void InodeIterator_Update(InodeIterator* self, InodeRef _Nonnull pNewNode)
+// Takes ownership of 'pNewFs' and 'pNewNode'. 'pNewNode' must be a node of
+// 'pNewFs'. Expects that 'pNewNode' and the current node of the iterator are
+// different. 'pNewFs' and the current file system of the iterator may be the
+// same. Updates both the inode and the filesystem information.
+static void InodeIterator_Update(InodeIterator* self, FilesystemRef _Nonnull pNewFs, InodeRef _Nonnull pNewNode)
 {
     Filesystem_RelinquishNode(self->filesystem, self->inode);
     self->inode = pNewNode;
 
-    FilesystemRef pNewFileSys = Inode_CopyFilesystem(pNewNode);
+    // It's fine here to always release self->filesystem first even if
+    // self->filesystem == pNewFs because pNewFs comes in here with a +1 ref
+    // count.
     Object_Release(self->filesystem);
-    self->filesystem = pNewFileSys;
+    self->filesystem = pNewFs;
 }
 
 
@@ -300,7 +303,7 @@ static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull sel
 
     // The pIter->inode is the root of a file system that is mounted somewhere
     // below the global file system root. We need to find the node in the parent
-    // file system that is mounting pIter->inode and we the need to find the
+    // file system that is mounting pIter->inode and we then need to find the
     // parent of this inode. Note that such a parent always exists and that it
     // is necessarily in the same parent file system in which the mounting node
     // is (because you can not mount a file system on the root node of another
@@ -308,9 +311,8 @@ static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull sel
     try(FilesystemManager_CopyMountpointOfFilesystem(gFilesystemManager, pIter->filesystem, &pMountingDir, &pMountingFilesystem));
     try(Filesystem_AcquireNodeForName(pMountingFilesystem, pMountingDir, &kPathComponent_Parent, user, &pParentOfMountingDir));
 
-    InodeIterator_Update(pIter, pParentOfMountingDir);
+    InodeIterator_Update(pIter, pMountingFilesystem, pParentOfMountingDir);
     Filesystem_RelinquishNode(pMountingFilesystem, pMountingDir);
-    Object_Release(pMountingFilesystem);
 
     return EOK;
 
@@ -361,7 +363,7 @@ static errno_t PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull s
 
         try(Filesystem_AcquireRootNode(pMountedFileSys, &pMountedFileSysRootNode));
         Filesystem_RelinquishNode(pIter->filesystem, pChildNode);
-        InodeIterator_Update(pIter, pMountedFileSysRootNode);
+        InodeIterator_Update(pIter, pMountedFileSys, pMountedFileSysRootNode);
     }
 
 catch:
