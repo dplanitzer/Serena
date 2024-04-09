@@ -78,7 +78,7 @@ catch:
 // This method calls the filesystem method onReadNodeFromDisk() to read the
 // requested inode off the disk if there is no inode instance in memory at the
 // time this method is called.
-errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef pNode = NULL;
@@ -95,7 +95,7 @@ errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, vo
     }
 
     if (pNode == NULL) {
-        try(Filesystem_OnReadNodeFromDisk(self, id, pContext, &pNode));
+        try(Filesystem_OnReadNodeFromDisk(self, id, &pNode));
         try(PointerArray_Add(&self->inodesInUse, pNode));
     }
 
@@ -181,7 +181,7 @@ bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
 // create and inode instance and fill it in with the data from the disk and
 // then return it. It should return a suitable error and NULL if the inode
 // data can not be read off the disk.
-errno_t Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_onReadNodeFromDisk(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }

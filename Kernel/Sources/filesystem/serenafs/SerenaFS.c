@@ -344,7 +344,7 @@ catch:
 // create and inode instance and fill it in with the data from the disk and
 // then return it. It should return a suitable error and NULL if the inode
 // data can not be read off the disk.
-errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
@@ -900,7 +900,7 @@ catch:
 // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
 errno_t SerenaFS_acquireRootNode(SerenaFSRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
-    return Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, NULL, pOutNode);
+    return Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, pOutNode);
 }
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
@@ -920,7 +920,7 @@ errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull
     q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
     try(SerenaFS_GetDirectoryEntry(self, pParentNode, &q, NULL, NULL, &entryId, NULL));
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, entryId, NULL, pOutNode));
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self, entryId, pOutNode));
     return EOK;
 
 catch:
@@ -1278,7 +1278,7 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
         }
 
 
-        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, NULL, &pInode));
+        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, &pInode));
         try(SerenaFS_openFile(self, pInode, mode, user));
         *pOutNode = pInode;
     }

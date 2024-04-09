@@ -182,13 +182,7 @@ typedef struct FilesystemMethodTable {
     // create and inode instance and fill it in with the data from the disk and
     // then return it. It should return a suitable error and NULL if the inode
     // data can not be read off the disk.
-    // The 'pContext' argument is a filesystem implementation defined argument
-    // which may be used to help in finding an inode on disk. Ie if the on-disk
-    // data layout of a filesystem does not store inodes as independent objects
-    // and instead stores them as directory entries inside a directory file then
-    // this argument could be used as a pointer to the disk block(s) that hold
-    // the directory content.
-    errno_t (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable * _Nonnull pOutNode);
+    errno_t (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Invoked when the inode is relinquished and it is marked as modified. The
     // filesystem override should write the inode meta-data back to the 
@@ -313,16 +307,15 @@ extern errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Non
 // time this method is called.
 // \param self the filesystem instance
 // \param id the id of the inode to acquire
-// \param pContext an optional context tp help the acquire method to find the inode
 // \param pOutNode receives the acquired inode
-extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, void* _Nullable pContext, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
 // Returns true if the filesystem can be safely unmounted which means that no
 // inodes owned by the filesystem is currently in memory.
 extern bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
 
-#define Filesystem_OnReadNodeFromDisk(__self, __id, __pContext, __pOutNode) \
-Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pContext, __pOutNode)
+#define Filesystem_OnReadNodeFromDisk(__self, __id, __pOutNode) \
+Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pOutNode)
 
 #define Filesystem_OnWriteNodeToDisk(__self, __pNode) \
 Object_InvokeN(onWriteNodeToDisk, Filesystem, __self, __pNode)
