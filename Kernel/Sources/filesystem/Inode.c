@@ -49,6 +49,13 @@ void Inode_Destroy(InodeRef _Nullable self)
     }
 }
 
+void Inode_Unlink(InodeRef _Nonnull self)
+{
+    if (self->linkCount > 0) {
+        self->linkCount--;
+    }
+}
+
 // Returns EOK if the given user has at least the permissions 'permission' to
 // access and/or manipulate the node; a suitable error code otherwise. The
 // 'permission' parameter represents a set of the permissions of a single

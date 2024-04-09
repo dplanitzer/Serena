@@ -42,7 +42,7 @@ typedef struct Inode {
     int                 linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
     void*               refcon;     // Filesystem specific information
     FileType            type;
-    uint8_t               flags;
+    uint8_t             flags;
     FilePermissions     permissions;
     UserId              uid;
     GroupId             gid;
@@ -115,8 +115,7 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
 #define Inode_Link(__self) \
     (__self)->linkCount++
 
-#define Inode_Unlink(__self) \
-    (__self)->linkCount--
+void Inode_Unlink(InodeRef _Nonnull self);
 
 
 // Associate/disassociate filesystem specific information with the node. The
