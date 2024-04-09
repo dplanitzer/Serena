@@ -75,7 +75,10 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenDirectory(r.filesystem, r.inode, pProc->realUser));
+    // Note that this method takes ownership of the filesystem and inode references
     try(DirectoryChannel_Create((ObjectRef)r.filesystem, r.inode, &pDir));
+    r.filesystem = NULL;
+    r.inode = NULL;
     try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
     Object_Release(pDir);
     PathResolverResult_Deinit(&r);

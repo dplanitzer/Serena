@@ -32,7 +32,7 @@ typedef struct DirectoryChannelMethodTable {
 
 
 // Creates a directory object.
-extern errno_t DirectoryChannel_Create(ObjectRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutDir);
+extern errno_t DirectoryChannel_Create(ObjectRef _Consuming _Nonnull pFilesystem, InodeRef _Consuming _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutDir);
 
 extern errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 extern errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);

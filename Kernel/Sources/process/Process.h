@@ -202,7 +202,7 @@ extern errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnul
 
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
-extern errno_t Process_Open(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutDescriptor);
+extern errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutDescriptor);
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).

@@ -10,15 +10,16 @@
 #include "Filesystem.h"
 
 
-// Creates a file channel.
-errno_t FileChannel_Create(ObjectRef _Nonnull pFilesystem, unsigned int mode, InodeRef _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutFile)
+// Creates a file channel which takes ownership of the provided filesystem and
+// inode references. These references will be released by deinit().
+errno_t FileChannel_Create(ObjectRef _Consuming _Nonnull pFilesystem, InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     FileChannelRef self;
 
     try(IOChannel_AbstractCreate(&kFileChannelClass, mode, (IOChannelRef*)&self));
-    self->filesystem = Object_Retain(pFilesystem);
-    self->inode = Inode_ReacquireUnlocked(pNode);
+    self->filesystem = pFilesystem;
+    self->inode = pNode;
     self->offset = 0ll;
 
 catch:
@@ -29,13 +30,17 @@ catch:
 void FileChannel_deinit(FileChannelRef _Nonnull self)
 {
     if (self->inode) {
-        Inode_Relinquish(self->inode);
+        Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
         self->inode = NULL;
     }
-    Object_Release(self->filesystem);
-    self->filesystem = NULL;
+    if (self->filesystem) {
+        Object_Release(self->filesystem);
+        self->filesystem = NULL;
+    }
 }
 
+// Creates an independent copy of teh receiver. The newly created file channel
+// receives its own independent strong file system and inode references.
 errno_t FileChannel_dup(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
@@ -43,7 +48,7 @@ errno_t FileChannel_dup(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _
 
     try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewFile));
     pNewFile->filesystem = Object_Retain(self->filesystem);
-    pNewFile->inode = Inode_ReacquireUnlocked(self->inode);
+    pNewFile->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
     pNewFile->offset = self->offset;
 
 catch:

@@ -10,15 +10,16 @@
 #include "Filesystem.h"
 
 
-// Creates a directory channel.
-errno_t DirectoryChannel_Create(ObjectRef _Nonnull pFilesystem, InodeRef _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutDir)
+// Creates a directory channel which takes ownership of the provided filesystem
+// and inode references. These references will be released by deinit().
+errno_t DirectoryChannel_Create(ObjectRef _Consuming _Nonnull pFilesystem, InodeRef _Consuming _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     DirectoryChannelRef self;
 
     try(IOChannel_AbstractCreate(&kDirectoryChannelClass, kOpen_Read, (IOChannelRef*)&self));
-    self->filesystem = Object_Retain(pFilesystem);
-    self->inode = Inode_ReacquireUnlocked(pNode);
+    self->filesystem = pFilesystem;
+    self->inode = pNode;
     self->offset = 0ll;
 
 catch:
@@ -29,13 +30,17 @@ catch:
 void DirectoryChannel_deinit(DirectoryChannelRef _Nonnull self)
 {
     if (self->inode) {
-        Inode_Relinquish(self->inode);
+        Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
         self->inode = NULL;
     }
-    Object_Release(self->filesystem);
-    self->filesystem = NULL;
+    if (self->filesystem) {
+        Object_Release(self->filesystem);
+        self->filesystem = NULL;
+    }
 }
 
+// Creates an independent copy of the receiver. The copy receives its own strong
+// filesystem and inode references.
 ssize_t DirectoryChannel_dup(DirectoryChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
@@ -43,7 +48,7 @@ ssize_t DirectoryChannel_dup(DirectoryChannelRef _Nonnull self, IOChannelRef _Nu
 
     try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewDir));
     pNewDir->filesystem = Object_Retain(self->filesystem);
-    pNewDir->inode = Inode_ReacquireUnlocked(self->inode);
+    pNewDir->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
     pNewDir->offset = self->offset;
 
 catch:

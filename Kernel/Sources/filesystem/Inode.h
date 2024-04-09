@@ -217,22 +217,7 @@ extern errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileI
 #define Inode_GetFilesystemId(__self) \
     (__self)->fsid
 
-// Returns a strong reference to the filesystem that owns the given note. Returns
-// NULL if the filesystem isn't mounted.
-extern FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self);
-
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
-
-// Reacquires the given node and returns a new reference to the node. The node
-// is returned in locked state.
-extern InodeRef _Nonnull _Locked Inode_Reacquire(InodeRef _Nonnull self);
-
-// Reacquires the given node and returns a new reference to the node. The node
-// is returned in unlocked state.
-extern InodeRef _Nonnull Inode_ReacquireUnlocked(InodeRef _Nonnull self);
-
-// Relinquishes the node.
-extern void Inode_Relinquish(InodeRef _Nonnull self);
 
 #endif /* Inode_h */

@@ -34,13 +34,24 @@
 #endif
 
 
+// May be applied to a pointer. Marks the pointer as not owning the object it
+// points to.
 #ifndef _Weak
 #define _Weak
 #endif
 
 
+// May be applied to a pointer declaration. The object the pointer points to is
+// expected to be locked by ie calling Lock_Lock() on the object.
 #ifndef _Locked
 #define _Locked
+#endif
+
+
+// May be applied to a pointer function argument. Marks the argument as taking
+// ownership of the provided object reference.
+#ifndef _Consuming
+#define _Consuming
 #endif
 
 

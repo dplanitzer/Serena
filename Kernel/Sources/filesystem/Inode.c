@@ -49,13 +49,6 @@ void Inode_Destroy(InodeRef _Nullable self)
     }
 }
 
-// Returns a strong reference to the filesystem that owns the given note. Returns
-// NULL if the filesystem isn't mounted.
-FilesystemRef Inode_CopyFilesystem(InodeRef _Nonnull self)
-{
-    return FilesystemManager_CopyFilesystemForId(gFilesystemManager, Inode_GetFilesystemId(self));
-}
-
 // Returns EOK if the given user has at least the permissions 'permission' to
 // access and/or manipulate the node; a suitable error code otherwise. The
 // 'permission' parameter represents a set of the permissions of a single
@@ -171,32 +164,4 @@ errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _N
 bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
 {
     return self->fsid == pOther->fsid && self->inid == pOther->inid;
-}
-
-// Reacquires the given node and returns a new reference to the node. The node
-// is returned in locked state.
-InodeRef _Nonnull _Locked Inode_Reacquire(InodeRef _Nonnull self)
-{
-    FilesystemRef pFileSys = Inode_CopyFilesystem(self);
-    InodeRef pNewRef = Filesystem_ReacquireNode(pFileSys, self);
-    Object_Release(pFileSys);
-    return pNewRef;
-}
-
-// Reacquires the given node and returns a new reference to the node. The node
-// is returned in unlocked state.
-InodeRef _Nonnull Inode_ReacquireUnlocked(InodeRef _Nonnull self)
-{
-    FilesystemRef pFileSys = Inode_CopyFilesystem(self);
-    InodeRef pNewRef = Filesystem_ReacquireUnlockedNode(pFileSys, self);
-    Object_Release(pFileSys);
-    return pNewRef;
-}
-
-// Relinquishes the node.
-void Inode_Relinquish(InodeRef _Nonnull self)
-{
-    FilesystemRef pFileSys = Inode_CopyFilesystem(self);
-    Filesystem_RelinquishNode(pFileSys, self);
-    Object_Release(pFileSys);
 }

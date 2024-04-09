@@ -101,7 +101,7 @@ SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable
         Object_Release(pChannel);
     }
     else {
-        try(Process_Open(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->pOutIoc));
+        try(Process_OpenFile(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->pOutIoc));
     }
 
     return EOK;

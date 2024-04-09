@@ -300,6 +300,9 @@ static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull sel
         InodeIterator_UpdateWithNodeOnly(pIter, pParentNode);
         return EOK;
     }
+    Filesystem_RelinquishNode(pIter->filesystem, pParentNode);
+    pParentNode = NULL;
+
 
     // The pIter->inode is the root of a file system that is mounted somewhere
     // below the global file system root. We need to find the node in the parent
@@ -317,9 +320,6 @@ static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull sel
     return EOK;
 
 catch:
-    if (pParentNode) {
-        Inode_Relinquish(pParentNode);
-    }
     if (pMountingDir) {
         Filesystem_RelinquishNode(pMountingFilesystem, pMountingDir);
     }

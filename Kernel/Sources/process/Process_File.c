@@ -42,7 +42,10 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
     try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pInode));
-    try(FileChannel_Create((ObjectRef)r.filesystem, options, pInode, &pFile));
+    // Note that this call takes ownership of the filesystem and inode references
+    try(FileChannel_Create((ObjectRef)r.filesystem, pInode, options, &pFile));
+    r.filesystem = NULL;
+    pInode = NULL;
     try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
 
 catch:
@@ -57,7 +60,7 @@ catch:
 
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
-errno_t Process_Open(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutDescriptor)
+errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutDescriptor)
 {
     decl_try_err();
     PathResolverResult r;
@@ -66,7 +69,10 @@ errno_t Process_Open(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsi
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenFile(r.filesystem, r.inode, options, pProc->realUser));
-    try(FileChannel_Create((ObjectRef)r.filesystem, options, r.inode, &pFile));
+    // Note that this call takes ownership of the filesystem and inode references
+    try(FileChannel_Create((ObjectRef)r.filesystem, r.inode, options, &pFile));
+    r.filesystem = NULL;
+    r.inode = NULL;
     try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
     Object_Release(pFile);
     PathResolverResult_Deinit(&r);
