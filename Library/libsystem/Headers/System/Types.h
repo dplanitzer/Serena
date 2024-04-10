@@ -39,6 +39,9 @@ typedef int64_t     FileOffset;
 typedef uint32_t    UserId;
 typedef uint32_t    GroupId;
 
+#define kFileOffset_Min 0ll
+#define kFileOffset_Max INT64_MAX
+
 #ifndef SSIZE_MIN
 #define SSIZE_MIN  __SSIZE_MIN
 #endif

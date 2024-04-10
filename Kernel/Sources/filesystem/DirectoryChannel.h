@@ -11,17 +11,20 @@
 
 #include "IOChannel.h"
 #include "Inode.h"
+#include <dispatcher/Lock.h>
 
 
 // File positions/seeking and directories:
-// The only allowed seeks are of the form seek(SEEK_SET) with an absolute position
+// The only allowed seeks are of the form seek(kSeek_Set) with an absolute position
 // that was previously obtained from another seek or a value of 0 to rewind to the
-// beginning of the directory listing. The seek position represents the index of
-// the first directory entry that should be returned by the next read() operation.
-// It is not a byte offset. This way it doesn't matter to the user of the read()
-// and seek() call how exactly the contents of a directory is stored in the file
-// system.  
+// beginning of the directory listing. The meaning of the offset is filesystem
+// specific. Ie it may represent a byte offset into the directory file or it may
+// represent a directory entry number.
+//
+// Locking:
+// See FileChannel.
 OPEN_CLASS_WITH_REF(DirectoryChannel, IOChannel,
+    Lock                lock;
     ObjectRef _Nonnull  filesystem;
     InodeRef _Nonnull   inode;
     FileOffset          offset;

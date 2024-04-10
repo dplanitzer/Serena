@@ -18,6 +18,7 @@ errno_t DirectoryChannel_Create(ObjectRef _Consuming _Nonnull pFilesystem, Inode
     DirectoryChannelRef self;
 
     try(IOChannel_AbstractCreate(&kDirectoryChannelClass, kOpen_Read, (IOChannelRef*)&self));
+    Lock_Init(&self->lock);
     self->filesystem = pFilesystem;
     self->inode = pNode;
     self->offset = 0ll;
@@ -27,8 +28,9 @@ catch:
     return err;
 }
 
-void DirectoryChannel_deinit(DirectoryChannelRef _Nonnull self)
+errno_t DirectoryChannel_close(DirectoryChannelRef _Nonnull self)
 {
+    Lock_Lock(&self->lock);
     if (self->inode) {
         Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
         self->inode = NULL;
@@ -37,6 +39,18 @@ void DirectoryChannel_deinit(DirectoryChannelRef _Nonnull self)
         Object_Release(self->filesystem);
         self->filesystem = NULL;
     }
+    Lock_Unlock(&self->lock);
+
+    return EOK;
+}
+
+void DirectoryChannel_deinit(DirectoryChannelRef _Nonnull self)
+{
+    if (self->inode) {
+        DirectoryChannel_close(self);
+    }
+
+    Lock_Deinit(&self->lock);
 }
 
 // Creates an independent copy of the receiver. The copy receives its own strong
@@ -44,15 +58,24 @@ void DirectoryChannel_deinit(DirectoryChannelRef _Nonnull self)
 ssize_t DirectoryChannel_dup(DirectoryChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
-    DirectoryChannelRef pNewDir;
+    DirectoryChannelRef pNewDir = NULL;
 
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewDir));
-    pNewDir->filesystem = Object_Retain(self->filesystem);
-    pNewDir->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
-    pNewDir->offset = self->offset;
+    Lock_Lock(&self->lock);
+    if (self->inode) {
+        try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewDir));
+        Lock_Init(&pNewDir->lock);
+        pNewDir->filesystem = Object_Retain(self->filesystem);
+        pNewDir->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
+        pNewDir->offset = self->offset;
+    }
+    else {
+        err = EBADF;
+    }
 
 catch:
+    Lock_Unlock(&self->lock);
     *pOutDir = (IOChannelRef)pNewDir;
+
     return err;
 }
 
@@ -70,40 +93,83 @@ errno_t DirectoryChannel_ioctl(DirectoryChannelRef _Nonnull self, int cmd, va_li
 
 errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Filesystem_ReadDirectory((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if (self->inode) {
+        err = Filesystem_ReadDirectory((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
+    }
+    else {
+        err = EBADF;
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
 }
 
 errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
 {
-    
-    if(pOutOldPosition) {
-        *pOutOldPosition = self->offset;
-    }
+    decl_try_err();
+
     if (whence != kSeek_Set || offset < 0) {
         return EINVAL;
     }
-    if (offset > (FileOffset)INT_MAX) {
+    if (offset > kFileOffset_Max) {
         return EOVERFLOW;
     }
 
-    self->offset = offset;
-    return EOK;
+    Lock_Lock(&self->lock);
+    if (self->inode) {
+        if(pOutOldPosition) {
+            *pOutOldPosition = self->offset;
+        }
+        self->offset = offset;
+    }
+    else {
+        err = EBADF;
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
 }
 
 errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    return Filesystem_GetFileInfo((FilesystemRef)self->filesystem, self->inode, pOutInfo);
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if (self->inode) {
+        err = Filesystem_GetFileInfo((FilesystemRef)self->filesystem, self->inode, pOutInfo);
+    }
+    else {
+        err = EBADF;
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
 }
 
 errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    return Filesystem_SetFileInfo((FilesystemRef)self->filesystem, self->inode, user, pInfo);
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if (self->inode) {
+        err = Filesystem_SetFileInfo((FilesystemRef)self->filesystem, self->inode, user, pInfo);
+    }
+    else {
+        err = EBADF;
+    }
+    Lock_Unlock(&self->lock);
+    
+    return err;
 }
 
 
 CLASS_METHODS(DirectoryChannel, IOChannel,
 OVERRIDE_METHOD_IMPL(deinit, DirectoryChannel, Object)
 OVERRIDE_METHOD_IMPL(dup, DirectoryChannel, IOChannel)
+OVERRIDE_METHOD_IMPL(close, DirectoryChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(ioctl, DirectoryChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(read, DirectoryChannel, IOChannel)
 OVERRIDE_METHOD_IMPL(seek, DirectoryChannel, IOChannel)
