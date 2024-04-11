@@ -176,6 +176,27 @@ extern errno_t Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull pProc, int
 extern errno_t Process_CopyPrivateResourceForDescriptor(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource);
 
 
+//
+// I/O Channels
+//
+
+extern errno_t Process_CloseChannel(ProcessRef _Nonnull pProc, int ioc);
+
+extern errno_t Process_ReadChannel(ProcessRef _Nonnull pProc, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead);
+
+extern errno_t Process_WriteChannel(ProcessRef _Nonnull pProc, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten);
+
+extern errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
+
+// Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
+// resource identified by the given descriptor.
+extern errno_t Process_vIOControl(ProcessRef _Nonnull pProc, int fd, int cmd, va_list ap);
+
+
+//
+// Directories
+//
+
 // Sets the receiver's root directory to the given path. Note that the path must
 // point to a directory that is a child or the current root directory of the
 // process.
@@ -188,6 +209,11 @@ extern errno_t Process_SetWorkingDirectoryPath(ProcessRef _Nonnull pProc, const 
 // written to the provided buffer 'pBuffer'. The buffer size must be at least as
 // large as length(path) + 1.
 extern errno_t Process_GetWorkingDirectoryPath(ProcessRef _Nonnull pProc, char* _Nonnull pBuffer, size_t bufferSize);
+
+
+//
+// Files
+//
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask
 // should be removed from the file permissions that user space sent to create a
@@ -233,10 +259,6 @@ extern errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonn
 
 // Same as above but the file is identified by the given I/O channel.
 extern errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, FileOffset length);
-
-// Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
-// resource identified by the given descriptor.
-extern errno_t Process_vIOControl(ProcessRef _Nonnull pProc, int fd, int cmd, va_list ap);
 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the

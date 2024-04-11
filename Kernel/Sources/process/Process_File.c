@@ -206,20 +206,6 @@ errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, Fil
     return err;
 }
 
-// Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
-// resource identified by the given descriptor.
-errno_t Process_vIOControl(ProcessRef _Nonnull pProc, int fd, int cmd, va_list ap)
-{
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
-        err = IOChannel_vIOControl(pChannel, cmd, ap);
-        Object_Release(pChannel);
-    }
-    return err;
-}
-
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.

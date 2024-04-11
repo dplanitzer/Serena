@@ -131,52 +131,30 @@ SYSCALL_2(mkpipe, int* _Nullable  pOutReadChannel, int* _Nullable  pOutWriteChan
 
 SYSCALL_1(close, int ioc)
 {
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = Process_UnregisterIOChannel(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
-        // The error that close() returns is purely advisory and thus we'll proceed
-        // with releasing the resource in any case.
-        err = IOChannel_Close(pChannel);
-        Object_Release(pChannel);
-    }
-    return err;
+    return Process_CloseChannel(Process_GetCurrent(), pArgs->ioc);
 }
 
-SYSCALL_4(read, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
+SYSCALL_4(read, int ioc, void* _Nullable buffer, size_t nBytesToRead, ssize_t* _Nullable nBytesRead)
 {
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
-        err = IOChannel_Read(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToRead), pArgs->nBytesRead);
-        Object_Release(pChannel);
+    if (pArgs->buffer == NULL || pArgs->nBytesRead == NULL) {
+        return EINVAL;
     }
-    return err;
+
+    return Process_ReadChannel(Process_GetCurrent(), pArgs->ioc, pArgs->buffer, pArgs->nBytesToRead, pArgs->nBytesRead);
 }
 
-SYSCALL_4(write, int ioc, const void* _Nonnull buffer, size_t nBytesToWrite, ssize_t* _Nonnull nBytesWritten)
+SYSCALL_4(write, int ioc, const void* _Nullable buffer, size_t nBytesToWrite, ssize_t* _Nullable nBytesWritten)
 {
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
-        err = IOChannel_Write(pChannel, pArgs->buffer, __SSizeByClampingSize(pArgs->nBytesToWrite), pArgs->nBytesWritten);
-        Object_Release(pChannel);
+    if (pArgs->buffer == NULL || pArgs->nBytesWritten == NULL) {
+        return EINVAL;
     }
-    return err;
+
+    return Process_WriteChannel(Process_GetCurrent(), pArgs->ioc, pArgs->buffer, pArgs->nBytesToWrite, pArgs->nBytesWritten);
 }
 
 SYSCALL_4(seek, int ioc, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
 {
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = Process_CopyIOChannelForDescriptor(Process_GetCurrent(), pArgs->ioc, &pChannel)) == EOK) {
-        err = IOChannel_Seek(pChannel, pArgs->offset, pArgs->pOutOldPosition, pArgs->whence);
-        Object_Release(pChannel);
-    }
-    return err;
+    return Process_SeekChannel(Process_GetCurrent(), pArgs->ioc, pArgs->offset, pArgs->pOutOldPosition, pArgs->whence);
 }
 
 SYSCALL_2(mkdir, const char* _Nullable path, uint32_t mode)
