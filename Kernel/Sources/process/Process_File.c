@@ -10,6 +10,11 @@
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FileChannel.h>
+// XXX tmp
+#include <console/Console.h>
+#include <console/ConsoleChannel.h>
+#include <driver/DriverManager.h>
+// XXX tmp
 
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask
@@ -67,6 +72,20 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
     IOChannelRef pFile = NULL;
 
     Lock_Lock(&pProc->lock);
+
+    // XXX tmp
+    if (String_Equals(pPath, "/dev/console")) {
+        ConsoleRef pConsole;
+
+        try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+        try(ConsoleChannel_Create((ObjectRef)pConsole, options, &pFile));
+        try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
+        Object_Release(pFile);
+        Lock_Unlock(&pProc->lock);
+        return EOK;
+    }
+    // XXX tmp
+
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenFile(r.filesystem, r.inode, options, pProc->realUser));
     // Note that this call takes ownership of the filesystem and inode references

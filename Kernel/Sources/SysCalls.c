@@ -8,9 +8,6 @@
 
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
-#include <console/Console.h>
-#include <console/ConsoleChannel.h>
-#include <driver/DriverManager.h>
 #include <process/Process.h>
 #include "IOChannel.h"
 #include "User.h"
@@ -85,30 +82,11 @@ SYSCALL_4(mkfile, const char* _Nullable path, unsigned options, uint32_t permiss
 
 SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable pOutIoc)
 {
-    decl_try_err();
-    IOChannelRef pChannel = NULL;
-
     if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
-        throw(EINVAL);
+        return EINVAL;
     }
 
-    if (String_Equals(pArgs->path, "/dev/console")) {
-        ConsoleRef pConsole;
-
-        try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-        try(ConsoleChannel_Create((ObjectRef)pConsole, pArgs->options, &pChannel));
-        try(Process_RegisterIOChannel(Process_GetCurrent(), pChannel, pArgs->pOutIoc));
-        Object_Release(pChannel);
-    }
-    else {
-        try(Process_OpenFile(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->pOutIoc));
-    }
-
-    return EOK;
-
-catch:
-    Object_Release(pChannel);
-    return err;
+    return Process_OpenFile(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->pOutIoc);
 }
 
 SYSCALL_2(opendir, const char* _Nullable path, int* _Nullable pOutIoc)
