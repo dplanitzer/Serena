@@ -30,7 +30,6 @@ catch:
 
 errno_t FileChannel_close(FileChannelRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
     if (self->inode) {
         Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
         self->inode = NULL;
@@ -39,7 +38,6 @@ errno_t FileChannel_close(FileChannelRef _Nonnull self)
         Object_Release(self->filesystem);
         self->filesystem = NULL;
     }
-    Lock_Unlock(&self->lock);
 
     return EOK;
 }
@@ -60,20 +58,16 @@ errno_t FileChannel_dup(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _
     decl_try_err();
     FileChannelRef pNewFile = NULL;
 
+    try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewFile));
+    Lock_Init(&pNewFile->lock);
+    pNewFile->filesystem = Object_Retain(self->filesystem);
+    pNewFile->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
+        
     Lock_Lock(&self->lock);
-    if (self->inode) {
-        try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewFile));
-        Lock_Init(&pNewFile->lock);
-        pNewFile->filesystem = Object_Retain(self->filesystem);
-        pNewFile->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
-        pNewFile->offset = self->offset;
-    }
-    else {
-        err = EBADF;
-    }
+    pNewFile->offset = self->offset;
+    Lock_Unlock(&self->lock);
 
 catch:
-    Lock_Unlock(&self->lock);
     *pOutFile = (IOChannelRef)pNewFile;
 
     return err;
@@ -96,12 +90,7 @@ errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, s
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    if (self->inode) {
-        err = Filesystem_ReadFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
-    }
-    else {
-        err = EBADF;
-    }
+    err = Filesystem_ReadFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
     Lock_Unlock(&self->lock);
 
     return err;
@@ -113,20 +102,15 @@ errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBu
     FileOffset offset;
 
     Lock_Lock(&self->lock);
-    if (self->inode) {
-        if ((IOChannel_GetMode(self) & kOpen_Append) == kOpen_Append) {
-            offset = Inode_GetFileSize(self->inode);
-        }
-        else {
-            offset = self->offset;
-        }
-
-        err = Filesystem_WriteFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToWrite, &offset, nOutBytesWritten);
-        self->offset = offset;
+    if ((IOChannel_GetMode(self) & kOpen_Append) == kOpen_Append) {
+        offset = Inode_GetFileSize(self->inode);
     }
     else {
-        err = EBADF;
+        offset = self->offset;
     }
+
+    err = Filesystem_WriteFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToWrite, &offset, nOutBytesWritten);
+    self->offset = offset;
     Lock_Unlock(&self->lock);
 
     return err;
@@ -181,50 +165,18 @@ catch:
 
 errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    if (self->inode) {
-        err = Filesystem_GetFileInfo((FilesystemRef)self->filesystem, self->inode, pOutInfo);
-    }
-    else {
-        err = EBADF;
-    }
-    Lock_Unlock(&self->lock);
-    
-    return err;
+    return Filesystem_GetFileInfo((FilesystemRef)self->filesystem, self->inode, pOutInfo);
 }
 
 errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    if (self->inode) {
-        err = Filesystem_SetFileInfo((FilesystemRef)self->filesystem, self->inode, user, pInfo);
-    }
-    else {
-        err = EBADF;
-    }
-    Lock_Unlock(&self->lock);
-    
-    return err;
+    return Filesystem_SetFileInfo((FilesystemRef)self->filesystem, self->inode, user, pInfo);
 }
 
 errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset length)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    if (self->inode) {
-        err = Filesystem_Truncate((FilesystemRef)self->filesystem, self->inode, user, length);
-    }
-    else {
-        err = EBADF;
-    }
-    Lock_Unlock(&self->lock);
-    
-    return err;
+    // Does not adjust the file offset
+    return Filesystem_Truncate((FilesystemRef)self->filesystem, self->inode, user, length);
 }
 
 

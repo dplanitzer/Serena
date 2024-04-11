@@ -14,6 +14,25 @@
 #include <System/IOChannel.h>
 
 
+// Behavior of read, write, seek operations:
+//
+// I/O channels guarantee that these operations are serialized with respect to
+// each other. This means that if you issue ie two concurrent write operations
+// and both target the same byte range, that after the completion of each
+// operation respective the byte range exclusively contains data provided by
+// either operation and never a mix of data from both operations. This guarantee
+// also includes that if you issue two overlapping concurrent operations that
+// the one issued after the first one will start reading/writing at the file
+// offset established by the completion of the previously issued operation.
+//
+//
+// Behavior of close:
+//
+// Close may flush buffered data to the I/O resource (ie disk). This write may
+// fail with an error and close returns this error. However the close will still
+// run to completion and close the I/O channel. The returned error is purely
+// advisory and will not stop the close operation from closing the I/O channel.
+//
 OPEN_CLASS_WITH_REF(IOChannel, Object,
     unsigned int    mode;
 );

@@ -30,7 +30,6 @@ catch:
 
 errno_t DirectoryChannel_close(DirectoryChannelRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
     if (self->inode) {
         Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
         self->inode = NULL;
@@ -39,7 +38,6 @@ errno_t DirectoryChannel_close(DirectoryChannelRef _Nonnull self)
         Object_Release(self->filesystem);
         self->filesystem = NULL;
     }
-    Lock_Unlock(&self->lock);
 
     return EOK;
 }
@@ -60,20 +58,16 @@ ssize_t DirectoryChannel_dup(DirectoryChannelRef _Nonnull self, IOChannelRef _Nu
     decl_try_err();
     DirectoryChannelRef pNewDir = NULL;
 
+    try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewDir));
+    Lock_Init(&pNewDir->lock);
+    pNewDir->filesystem = Object_Retain(self->filesystem);
+    pNewDir->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
+    
     Lock_Lock(&self->lock);
-    if (self->inode) {
-        try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewDir));
-        Lock_Init(&pNewDir->lock);
-        pNewDir->filesystem = Object_Retain(self->filesystem);
-        pNewDir->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
-        pNewDir->offset = self->offset;
-    }
-    else {
-        err = EBADF;
-    }
+    pNewDir->offset = self->offset;
+    Lock_Unlock(&self->lock);
 
 catch:
-    Lock_Unlock(&self->lock);
     *pOutDir = (IOChannelRef)pNewDir;
 
     return err;
@@ -96,12 +90,7 @@ errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull self, void* _Nonnull 
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    if (self->inode) {
-        err = Filesystem_ReadDirectory((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
-    }
-    else {
-        err = EBADF;
-    }
+    err = Filesystem_ReadDirectory((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
     Lock_Unlock(&self->lock);
 
     return err;
@@ -119,15 +108,10 @@ errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull self, FileOffset offs
     }
 
     Lock_Lock(&self->lock);
-    if (self->inode) {
-        if(pOutOldPosition) {
-            *pOutOldPosition = self->offset;
-        }
-        self->offset = offset;
+    if(pOutOldPosition) {
+        *pOutOldPosition = self->offset;
     }
-    else {
-        err = EBADF;
-    }
+    self->offset = offset;
     Lock_Unlock(&self->lock);
 
     return err;
@@ -135,34 +119,12 @@ errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull self, FileOffset offs
 
 errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    if (self->inode) {
-        err = Filesystem_GetFileInfo((FilesystemRef)self->filesystem, self->inode, pOutInfo);
-    }
-    else {
-        err = EBADF;
-    }
-    Lock_Unlock(&self->lock);
-
-    return err;
+    return Filesystem_GetFileInfo((FilesystemRef)self->filesystem, self->inode, pOutInfo);
 }
 
 errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
-    if (self->inode) {
-        err = Filesystem_SetFileInfo((FilesystemRef)self->filesystem, self->inode, user, pInfo);
-    }
-    else {
-        err = EBADF;
-    }
-    Lock_Unlock(&self->lock);
-    
-    return err;
+    return Filesystem_SetFileInfo((FilesystemRef)self->filesystem, self->inode, user, pInfo);
 }
 
 

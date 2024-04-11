@@ -24,9 +24,9 @@
 // Locking:
 // See FileChannel.
 OPEN_CLASS_WITH_REF(DirectoryChannel, IOChannel,
-    Lock                lock;
     ObjectRef _Nonnull  filesystem;
     InodeRef _Nonnull   inode;
+    Lock                lock;
     FileOffset          offset;
 );
 typedef struct DirectoryChannelMethodTable {
