@@ -17,9 +17,8 @@
 open_class_with_ref(USemaphore, Object,
     Semaphore    sema;
 );
-typedef struct USemaphoreMethodTable {
-    ObjectMethodTable   super;
-} USemaphoreMethodTable;
+open_class_funcs(USemaphore, Object,
+);
 
 
 // Creates a semaphore suitable for use by userspace code. 'npermits' is the initial

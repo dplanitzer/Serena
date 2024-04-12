@@ -25,9 +25,9 @@ root_class_with_ref(Object,
     ClassRef _Nonnull   clazz;
     AtomicInt           retainCount;
 );
-typedef struct ObjectMethodTable {
+root_class_funcs(Object,
     void    (*deinit)(void* _Nonnull self);
-} ObjectMethodTable;
+);
 
 
 // Allocates an instance of the given class. 'extraByteCount' is the number of

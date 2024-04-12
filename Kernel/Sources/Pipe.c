@@ -17,7 +17,7 @@ enum {
     kPipeState_Closed
 };
 
-class_ivars(Pipe, Object,
+final_class_ivars(Pipe, Object,
     Lock                lock;
     ConditionVariable   reader;
     ConditionVariable   writer;

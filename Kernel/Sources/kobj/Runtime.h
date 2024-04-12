@@ -34,12 +34,15 @@
 { (MethodImpl) __className##_##__name, offsetof(struct __superClassName##MethodTable, __name) },
 
 
-#define __CLASS_METHODS(__name, __super, ...) \
+#define __CLASS_METHOD_DEFS(__name, __super, ...) \
 static struct __name##MethodTable g##__name##VTable; \
 static const struct MethodDecl g##__name##MDecls[] = { __VA_ARGS__ {NULL, 0} }; \
 Class _ClassSection k##__name##Class = {(MethodImpl*)&g##__name##VTable, __super, #__name, sizeof(__name), 0, (uint16_t) sizeof(struct __name##MethodTable)/sizeof(MethodImpl), g##__name##MDecls}
 
-#define __CLASS_IVARS(__name, __super, __ivars_decls) \
+#define __CLASS_METHOD_DECLS(__name, __super, __func_decls) \
+typedef struct __name##MethodTable { __super __func_decls } __name##MethodTable
+
+#define __CLASS_IVARS_DECLS(__name, __super, __ivars_decls) \
 extern Class k##__name##Class; \
 typedef struct __name { __super __ivars_decls } __name
 
@@ -55,45 +58,61 @@ typedef struct __name* __name##Ref
 // Declares an open root class. An open class can be subclassed. Defines a
 // struct that declares all class ivars plus a reference type for the class.
 #define root_class_with_ref(__name, __ivar_decls) \
-__CLASS_IVARS(__name, , __ivar_decls); \
+__CLASS_IVARS_DECLS(__name, , __ivar_decls); \
 typedef struct __name* __name##Ref
+
+// Declares the methods of a root class. This macro should be placed after the
+// root class declaration.
+#define root_class_funcs(__name, __func_decls) \
+__CLASS_METHOD_DECLS(__name, , __func_decls)
 
 // Defines the method table of a root class. Expects the class name and a list
 // of func_def macros with one macro per dynamically dispatched method.
-#define root_class_funcs(__name, ...) \
-__CLASS_METHODS(__name, NULL, __VA_ARGS__)
+#define root_class_func_defs(__name, ...) \
+__CLASS_METHOD_DEFS(__name, NULL, __VA_ARGS__)
 
 
 // Declares an open class. An open class can be subclassed. Note that this variant
 // does not define the __nameRef type.
-#define open_class(__name, __super, __ivar_decls)\
-__CLASS_IVARS(__name, __super super;, __ivar_decls)
+#define open_class(__name, __super, __ivar_decls) \
+__CLASS_IVARS_DECLS(__name, __super super;, __ivar_decls)
 
 // Same as open_class but also defines a __nameRef type.
-#define open_class_with_ref(__name, __super, __ivar_decls)\
-__CLASS_IVARS(__name, __super super;, __ivar_decls); \
+#define open_class_with_ref(__name, __super, __ivar_decls) \
+__CLASS_IVARS_DECLS(__name, __super super;, __ivar_decls); \
 typedef struct __name* __name##Ref
 
+// Defines the methods of a open class. This macro should be placed after the
+// open_class() macro.
+#define open_class_funcs(__name, __super, __func_decls) \
+__CLASS_METHOD_DECLS(__name, __super##MethodTable super;, __func_decls)
 
-// Defines an opaque class. An opaque class supports limited subclassing only.
-// Overriding methods is supported but adding ivars is not. This macro should
-// be placed in the publicly accessible header file of the class.
+
+// Defines a final class. A final class does not support subclassing. Additionally
+// all class ivars are defined in a separate private header file or the class
+// implementation file.
+// This macro should be placed in the publicly accessible header file of the class.
 #define final_class(__name, __superName) \
 extern Class k##__name##Class; \
 struct __name; \
 typedef struct __name* __name##Ref
 
-// Defines the ivars of an opaque class. This macro should be placed either in
+// Defines the methods of a final class. This macro should be placed after the
+// final_class() macro.
+#define final_class_funcs(__name, __super, __func_decls) \
+__CLASS_METHOD_DECLS(__name, __super##MethodTable super;, __func_decls)
+
+// Defines the ivars of a final class. This macro should be placed either in
 // the class implementation file or a private class header file.
-#define class_ivars(__name, __super, __ivar_decls) \
-__CLASS_IVARS(__name, __super super;, __ivar_decls)
+#define final_class_ivars(__name, __super, __ivar_decls) \
+__CLASS_IVARS_DECLS(__name, __super super;, __ivar_decls)
 
 
-// Defines the method table of an open or opaque class. This macro expects a list
-// of func_def or override_func_def macros and it should be placed in the
+// Defines the method table of an open or final class. This macro expects a list
+// of func_def() or override_func_def() macros and it should be placed in the
 // class implementation file.
 #define class_func_defs(__name, __super, ...) \
-__CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
+__CLASS_METHOD_DEFS(__name, &k##__super##Class, __VA_ARGS__)
 
 
 //
@@ -115,7 +134,7 @@ __CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 // 1.b define a struct __className##MethodTable with the dynamically dispatched methods that the class defines
 //
 // 2. In the (private) .h file:
-// 2.a class_ivars(ivar, ...)
+// 2.a final_class_ivars(ivar, ...)
 //
 // 3. In the .c file:
 // 3.a add the implementation of dynamically dispatched methods

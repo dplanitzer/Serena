@@ -37,15 +37,14 @@
 open_class_with_ref(IOChannel, Object,
     unsigned int    mode;
 );
-typedef struct IOChannelMethodTable {
-    ObjectMethodTable   super;
+open_class_funcs(IOChannel, Object,
     errno_t   (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
     errno_t   (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
     errno_t   (*read)(void* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
     errno_t   (*write)(void* _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
     errno_t   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
     errno_t   (*close)(void* _Nonnull self);
-} IOChannelMethodTable;
+);
 
 
 // I/O Channel functions for use by I/O channel users.

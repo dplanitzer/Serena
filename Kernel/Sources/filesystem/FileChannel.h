@@ -20,9 +20,8 @@ open_class_with_ref(FileChannel, IOChannel,
     Lock                lock;           // Protects 'offset' and to provide read/write/seek serialization. See IOChannel
     FileOffset          offset;
 );
-typedef struct FileChannelMethodTable {
-    IOChannelMethodTable    super;
-} FileChannelMethodTable;
+open_class_funcs(FileChannel, IOChannel,
+);
 
 
 // Creates a file object.

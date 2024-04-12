@@ -35,8 +35,7 @@ open_class(Filesystem, Object,
     Lock                inodeManagementLock;
     PointerArray        inodesInUse;
 );
-typedef struct FilesystemMethodTable {
-    ObjectMethodTable   super;
+open_class_funcs(Filesystem, Object,
 
     //
     // Mounting/Unmounting
@@ -195,7 +194,7 @@ typedef struct FilesystemMethodTable {
     // operation is assumed to never fail.
     void (*onRemoveNodeFromDisk)(void* _Nonnull self, InodeRef _Nonnull pNode);
 
-} FilesystemMethodTable;
+);
 
 
 //

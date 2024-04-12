@@ -21,7 +21,7 @@ void Object_deinit(ObjectRef _Nonnull self)
 {
 }
 
-root_class_funcs(Object,
+root_class_func_defs(Object,
 func_def(deinit, Object)
 );
 

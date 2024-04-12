@@ -16,9 +16,8 @@ open_class_with_ref(EventChannel, IOChannel,
     ObjectRef       eventDriver;
     TimeInterval    timeout;
 );
-typedef struct EventChannelMethodTable {
-    IOChannelMethodTable    super;
-} EventChannelMethodTable;
+open_class_funcs(EventChannel, IOChannel,
+);
 
 
 extern errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);

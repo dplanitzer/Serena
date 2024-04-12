@@ -70,9 +70,8 @@ open_class_with_ref(FloppyDisk, DiskDriver,
     uint8_t             flags;
     FdcControlByte      ciabprb;                                    // shadow copy of the CIA BPRB register for this floppy drive
 );
-typedef struct FloppyDiskMethodTable {
-    DiskDriverMethodTable   super;
-} FloppyDiskMethodTable;
+open_class_funcs(FloppyDisk, DiskDriver,
+);
 
 
 

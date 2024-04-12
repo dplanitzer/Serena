@@ -17,7 +17,7 @@ typedef struct DiskExtent {
 } DiskExtent;
 
 
-class_ivars(RamDisk, DiskDriver,
+final_class_ivars(RamDisk, DiskDriver,
     SList               extents;            // Sorted ascending by 'firstBlockIndex'
     LogicalBlockCount   extentBlockCount;   // How many blocks an extent stores
     LogicalBlockCount   blockCount;

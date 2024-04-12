@@ -17,9 +17,8 @@
 open_class_with_ref(ULock, Object,
     Lock    lock;
 );
-typedef struct ULockMethodTable {
-    ObjectMethodTable   super;
-} ULockMethodTable;
+open_class_funcs(ULock, Object,
+);
 
 
 // Creates a lock suitable for use by userspace code. This means that:

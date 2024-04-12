@@ -26,8 +26,7 @@ typedef LogicalBlockAddress LogicalBlockCount;
 // [0, BlockCount].
 open_class_with_ref(DiskDriver, Object,
 );
-typedef struct DiskDriverMethodTable {
-    ObjectMethodTable   super;
+open_class_funcs(DiskDriver, Object,
 
     // Returns the size of a block.
     // The abstract implementation returns 0.
@@ -56,8 +55,7 @@ typedef struct DiskDriverMethodTable {
     // block may contain a mix of old and new data.
     // The abstract implementation returns EIO.
     errno_t (*putBlock)(void* _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba);
-
-} DiskDriverMethodTable;
+);
 
 
 //

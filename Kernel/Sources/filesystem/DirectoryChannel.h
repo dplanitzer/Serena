@@ -29,9 +29,8 @@ open_class_with_ref(DirectoryChannel, IOChannel,
     Lock                lock;
     FileOffset          offset;
 );
-typedef struct DirectoryChannelMethodTable {
-    IOChannelMethodTable    super;
-} DirectoryChannelMethodTable;
+open_class_funcs(DirectoryChannel, IOChannel,
+);
 
 
 // Creates a directory object.

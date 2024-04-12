@@ -9,8 +9,6 @@
 #ifndef di_DiskDriver_h
 #define di_DiskDriver_h
 
-#include <klib/Error.h>
-#include <klib/Types.h>
 #include <kobj/Object.h>
 
 
@@ -26,11 +24,8 @@ open_class_with_ref(DiskDriver, Object,
     size_t              blockSize;
     LogicalBlockCount   blockCount;
 );
-typedef struct DiskDriverMethodTable {
-    ObjectMethodTable   super;
-} DiskDriverMethodTable;
-
-
+open_class_funcs(DiskDriver, Object,
+);
 
 
 extern errno_t DiskDriver_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, DiskDriverRef _Nullable * _Nonnull pOutSelf);

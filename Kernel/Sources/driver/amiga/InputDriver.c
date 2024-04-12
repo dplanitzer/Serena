@@ -31,7 +31,7 @@ static const uint8_t gUSBHIDKeycodes[128] = {
 };
 
 
-class_ivars(KeyboardDriver, Object,
+final_class_ivars(KeyboardDriver, Object,
     const uint8_t* _Nonnull       keyCodeMap;
     EventDriverRef _Nonnull     eventDriver;
     HIDKeyRepeaterRef _Nonnull  keyRepeater;
@@ -146,7 +146,7 @@ override_func_def(deinit, KeyboardDriver, Object)
 // MARK: Mouse Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-class_ivars(MouseDriver, Object,
+final_class_ivars(MouseDriver, Object,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -285,7 +285,7 @@ override_func_def(deinit, MouseDriver, Object)
 // MARK: Digital Joystick Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-class_ivars(DigitalJoystickDriver, Object,
+final_class_ivars(DigitalJoystickDriver, Object,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -403,7 +403,7 @@ override_func_def(deinit, DigitalJoystickDriver, Object)
 // MARK: Analog Joystick (Paddles) Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-class_ivars(AnalogJoystickDriver, Object,
+final_class_ivars(AnalogJoystickDriver, Object,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -533,7 +533,7 @@ override_func_def(deinit, AnalogJoystickDriver, Object)
 // MARK: Light Pen Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-class_ivars(LightPenDriver, Object,
+final_class_ivars(LightPenDriver, Object,
     EventDriverRef _Nonnull     eventDriver;
     GraphicsDriverRef _Nonnull  gdevice;
     InterruptHandlerID          irqHandler;

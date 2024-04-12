@@ -15,9 +15,8 @@
 open_class_with_ref(PipeChannel, IOChannel,
     ObjectRef   pipe;
 );
-typedef struct PipeChannelMethodTable {
-    IOChannelMethodTable    super;
-} PipeChannelMethodTable;
+open_class_funcs(PipeChannel, IOChannel,
+);
 
 
 extern errno_t PipeChannel_Create(ObjectRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);

@@ -18,9 +18,8 @@
 open_class_with_ref(UConditionVariable, Object,
     ConditionVariable   cv;
 );
-typedef struct UConditionVariableMethodTable {
-    ObjectMethodTable   super;
-} UConditionVariableMethodTable;
+open_class_funcs(UConditionVariable, Object,
+);
 
 
 // Creates a condition variable suitable for use by userspace code.

@@ -156,7 +156,7 @@ typedef struct GraphicsContext {
 
 
 // The console object.
-class_ivars(Console, Object,
+final_class_ivars(Console, Object,
     Lock                        lock;
     EventDriverRef _Nonnull     eventDriver;
     IOChannelRef _Nonnull       eventDriverChannel;

@@ -29,9 +29,8 @@ open_class_with_ref(ConsoleChannel, IOChannel,
     int8_t      rdCount;                        // Number of bytes stored in the buffer
     int8_t      rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
 );
-typedef struct ConsoleChannelMethodTable {
-    IOChannelMethodTable    super;
-} ConsoleChannelMethodTable;
+open_class_funcs(ConsoleChannel, IOChannel,
+);
 
 
 extern errno_t ConsoleChannel_Create(ObjectRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);

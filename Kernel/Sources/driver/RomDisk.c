@@ -9,7 +9,7 @@
 #include "RomDisk.h"
 
 
-class_ivars(RomDisk, DiskDriver,
+final_class_ivars(RomDisk, DiskDriver,
     const char* _Nonnull    diskImage;
     LogicalBlockCount       blockCount;
     size_t                  blockSize;

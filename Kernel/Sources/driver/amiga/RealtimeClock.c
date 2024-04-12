@@ -12,7 +12,7 @@
 
 
 // The realtime clock
-class_ivars(RealtimeClock, Object,
+final_class_ivars(RealtimeClock, Object,
     int     type;
     Lock    lock;
     // XXX not fully implemented yet
