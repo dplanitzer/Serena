@@ -130,10 +130,10 @@ errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, File
     IOChannelRef pChannel;
 
     if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
-        if (Object_InstanceOf(pChannel, FileChannel)) {
+        if (instanceof(pChannel, FileChannel)) {
             err = FileChannel_GetInfo((FileChannelRef)pChannel, pOutInfo);
         }
-        else if (Object_InstanceOf(pChannel, DirectoryChannel)) {
+        else if (instanceof(pChannel, DirectoryChannel)) {
             err = DirectoryChannel_GetInfo((DirectoryChannelRef)pChannel, pOutInfo);
         }
         else {
@@ -169,10 +169,10 @@ errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, Muta
     IOChannelRef pChannel;
 
     if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
-        if (Object_InstanceOf(pChannel, FileChannel)) {
+        if (instanceof(pChannel, FileChannel)) {
             err = FileChannel_SetInfo((FileChannelRef)pChannel, pProc->realUser, pInfo);
         }
-        else if (Object_InstanceOf(pChannel, DirectoryChannel)) {
+        else if (instanceof(pChannel, DirectoryChannel)) {
             err = DirectoryChannel_SetInfo((DirectoryChannelRef)pChannel, pProc->realUser, pInfo);
         }
         else {
@@ -210,10 +210,10 @@ errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, Fil
     IOChannelRef pChannel;
 
     if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
-        if (Object_InstanceOf(pChannel, FileChannel)) {
+        if (instanceof(pChannel, FileChannel)) {
             err = FileChannel_Truncate((FileChannelRef)pChannel, pProc->realUser, length);
         }
-        else if (Object_InstanceOf(pChannel, DirectoryChannel)) {
+        else if (instanceof(pChannel, DirectoryChannel)) {
             err = EISDIR;
         }
         else {

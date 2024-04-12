@@ -21,19 +21,6 @@
 #endif
 
 
-// A method implementation declaration. This adds the method named '__name' of
-// the class named '__className' to this class. Use this macro to declare a
-// method that does not override the equally named superclass method.
-#define func_def(__name, __className) \
-{ (MethodImpl) __className##_##__name, offsetof(struct __className##MethodTable, __name) },
-
-// Same as func_def except that it declares the method '__name' to be an override
-// of the method with the same name and type signature which was originally defined
-// in the class '__superClassName'.
-#define override_func_def(__name, __className, __superClassName) \
-{ (MethodImpl) __className##_##__name, offsetof(struct __superClassName##MethodTable, __name) },
-
-
 #define __CLASS_METHOD_DEFS(__name, __super, ...) \
 static struct __name##MethodTable g##__name##VTable; \
 static const struct MethodDecl g##__name##MDecls[] = { __VA_ARGS__ {NULL, 0} }; \
@@ -55,20 +42,28 @@ struct __name; \
 typedef struct __name* __name##Ref
 
 
-// Declares an open root class. An open class can be subclassed. Defines a
-// struct that declares all class ivars plus a reference type for the class.
-#define root_class_with_ref(__name, __ivar_decls) \
-__CLASS_IVARS_DECLS(__name, , __ivar_decls); \
+// Used to declare the Any type.
+#define any_class(__name) \
+extern Class k##__name##Class; \
+typedef struct __name { ClassRef _Nonnull   clazz; } __name; \
 typedef struct __name* __name##Ref
 
-// Declares the methods of a root class. This macro should be placed after the
-// root class declaration.
-#define root_class_funcs(__name, __func_decls) \
+// Used to provide the definition of the Any type.
+#define any_class_def(__name) \
+static void* g##__name##VTable[1] = {(void*)0x5555}; \
+static const struct MethodDecl g##__name##MDecls[1] = { {NULL, 0} }; \
+Class _ClassSection k##__name##Class = {(MethodImpl*)g##__name##VTable, NULL, #__name, sizeof(__name), 0, 0, g##__name##MDecls}
+
+
+// Declares the methods of a class that is a direct descendent of the Any class.
+// This macro should be placed after the class declaration.
+#define any_subclass_funcs(__name, __func_decls) \
 __CLASS_METHOD_DECLS(__name, , __func_decls)
 
-// Defines the method table of a root class. Expects the class name and a list
-// of func_def macros with one macro per dynamically dispatched method.
-#define root_class_func_defs(__name, ...) \
+// Defines the method table of a class that is a direct descendent of the Any
+// class. Expects the class name and a list of func_def macros with one macro
+// per dynamically dispatched method.
+#define any_subclass_func_defs(__name, ...) \
 __CLASS_METHOD_DEFS(__name, NULL, __VA_ARGS__)
 
 
@@ -109,6 +104,18 @@ __CLASS_IVARS_DECLS(__name, __super super;, __ivar_decls)
 // class implementation file.
 #define class_func_defs(__name, __super, ...) \
 __CLASS_METHOD_DEFS(__name, &k##__super##Class, __VA_ARGS__)
+
+// A method implementation declaration. This adds the method named '__name' of
+// the class named '__className' to this class. Use this macro to declare a
+// method that does not override the equally named superclass method.
+#define func_def(__name, __className) \
+{ (MethodImpl) __className##_##__name, offsetof(struct __className##MethodTable, __name) },
+
+// Same as func_def except that it declares the method '__name' to be an override
+// of the method with the same name and type signature which was originally defined
+// in the class '__superClassName'.
+#define override_func_def(__name, __className, __superClassName) \
+{ (MethodImpl) __className##_##__name, offsetof(struct __superClassName##MethodTable, __name) },
 
 
 //

@@ -36,7 +36,7 @@ void _RegisterClass(ClassRef _Nonnull pClass)
     }
 
 
-    // Override methods in the VTable with methods from our method list
+    // Initialize our vtable with the methods from our method list
     const struct MethodDecl* pCurMethod = pClass->methodList;
     while (pCurMethod->method) {
         MethodImpl* pSlot = (MethodImpl*)((char*)pClass->vtable + pCurMethod->offset);

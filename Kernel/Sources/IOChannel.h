@@ -50,20 +50,20 @@ open_class_funcs(IOChannel, Object,
 // I/O Channel functions for use by I/O channel users.
 
 #define IOChannel_Dup(__self, __pOutChannel) \
-Object_InvokeN(dup, IOChannel, __self, __pOutChannel)
+invoke_n(dup, IOChannel, __self, __pOutChannel)
 
 #define IOChannel_vIOControl(__self, __cmd, __ap) \
-Object_InvokeN(ioctl, IOChannel, __self, __cmd, __ap)
+invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
 
 extern errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
 extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
 #define IOChannel_Seek(__self, __offset, __pOutOldPosition, __whence) \
-Object_InvokeN(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
+invoke_n(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
 
 #define IOChannel_Close(__self) \
-Object_Invoke0(close, IOChannel, __self)
+invoke_0(close, IOChannel, __self)
 
 
 // I/O Channel functions for use by subclassers

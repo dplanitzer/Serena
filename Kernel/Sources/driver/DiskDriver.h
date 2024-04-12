@@ -63,18 +63,18 @@ open_class_funcs(DiskDriver, Object,
 //
 
 #define DiskDriver_GetBlockSize(__self) \
-Object_Invoke0(getBlockSize, DiskDriver, __self)
+invoke_0(getBlockSize, DiskDriver, __self)
 
 #define DiskDriver_GetBlockCount(__self) \
-Object_Invoke0(getBlockCount, DiskDriver, __self)
+invoke_0(getBlockCount, DiskDriver, __self)
 
 #define DiskDriver_IsReadOnly(__self) \
-Object_Invoke0(isReadOnly, DiskDriver, __self)
+invoke_0(isReadOnly, DiskDriver, __self)
 
 #define DiskDriver_GetBlock(__self, __pBuffer, __lba) \
-Object_InvokeN(getBlock, DiskDriver, __self, __pBuffer, __lba)
+invoke_n(getBlock, DiskDriver, __self, __pBuffer, __lba)
 
 #define DiskDriver_PutBlock(__self, __pBuffer, __lba) \
-Object_InvokeN(putBlock, DiskDriver, __self, __pBuffer, __lba)
+invoke_n(putBlock, DiskDriver, __self, __pBuffer, __lba)
 
 #endif /* DiskDriver_h */

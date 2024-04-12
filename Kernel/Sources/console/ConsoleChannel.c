@@ -54,7 +54,7 @@ errno_t ConsoleChannel_ioctl(ConsoleChannelRef _Nonnull self, int cmd, va_list a
             return EOK;
 
         default:
-            return Object_SuperN(ioctl, IOChannel, self, cmd, ap);
+            return super_n(ioctl, IOChannel, self, cmd, ap);
     }
 }
 

@@ -212,63 +212,63 @@ extern errno_t Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _Non
     ((FilesystemRef)(__fs))->fsid
 
 #define Filesystem_OnMount(__self, __pDriver, __pParams, __paramsSize) \
-Object_InvokeN(onMount, Filesystem, __self, __pDriver, __pParams, __paramsSize)
+invoke_n(onMount, Filesystem, __self, __pDriver, __pParams, __paramsSize)
 
 #define Filesystem_OnUnmount(__self) \
-Object_Invoke0(onUnmount, Filesystem, __self)
+invoke_0(onUnmount, Filesystem, __self)
 
 
 #define Filesystem_AcquireRootNode(__self, __pOutNode) \
-Object_InvokeN(acquireRootNode, Filesystem, __self, __pOutNode)
+invoke_n(acquireRootNode, Filesystem, __self, __pOutNode)
 
 #define Filesystem_AcquireNodeForName(__self, __pParentNode, __pComponent, __user, __pOutNode) \
-Object_InvokeN(acquireNodeForName, Filesystem, __self, __pParentNode, __pComponent, __user, __pOutNode)
+invoke_n(acquireNodeForName, Filesystem, __self, __pParentNode, __pComponent, __user, __pOutNode)
 
 #define Filesystem_GetNameOfNode(__self, __pParentNode, __id, __user, __pComponent) \
-Object_InvokeN(getNameOfNode, Filesystem, __self, __pParentNode, __id, __user, __pComponent)
+invoke_n(getNameOfNode, Filesystem, __self, __pParentNode, __id, __user, __pComponent)
 
 
 #define Filesystem_GetFileInfo(__self, __pNode, __pOutInfo) \
-Object_InvokeN(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
+invoke_n(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 
 #define Filesystem_SetFileInfo(__self, __pNode, __user, __pInfo) \
-Object_InvokeN(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
+invoke_n(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
 #define Filesystem_CreateFile(__self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode) \
-Object_InvokeN(createFile, Filesystem, __self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode)
+invoke_n(createFile, Filesystem, __self, __pName, __pParentNode, __user, __options, __permissions, __pOutNode)
 
 #define Filesystem_OpenFile(__self, __pNode, __mode, __user) \
-Object_InvokeN(openFile, Filesystem, __self, __pNode, __mode, __user)
+invoke_n(openFile, Filesystem, __self, __pNode, __mode, __user)
 
 #define Filesystem_ReadFile(__self, __pNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
-Object_InvokeN(readFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
+invoke_n(readFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
 
 #define Filesystem_WriteFile(__self, __pNode, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten) \
-Object_InvokeN(writeFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten)
+invoke_n(writeFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten)
 
 
 #define Filesystem_CreateDirectory(__self, __pName, __pParentNode, __user, __permissions) \
-Object_InvokeN(createDirectory, Filesystem, __self, __pName, __pParentNode, __user, __permissions)
+invoke_n(createDirectory, Filesystem, __self, __pName, __pParentNode, __user, __permissions)
 
 #define Filesystem_OpenDirectory(__self, __pDirNode, __user) \
-Object_InvokeN(openDirectory, Filesystem, __self, __pDirNode, __user)
+invoke_n(openDirectory, Filesystem, __self, __pDirNode, __user)
 
 #define Filesystem_ReadDirectory(__self, __pDirNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
-Object_InvokeN(readDirectory, Filesystem, __self, __pDirNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
+invoke_n(readDirectory, Filesystem, __self, __pDirNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
 
 
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
-Object_InvokeN(checkAccess, Filesystem, __self, __pNode, __user, __mode)
+invoke_n(checkAccess, Filesystem, __self, __pNode, __user, __mode)
 
 #define Filesystem_Truncate(__self, __pNode, __user, __length) \
-Object_InvokeN(truncate, Filesystem, __self, __pNode, __user, __length)
+invoke_n(truncate, Filesystem, __self, __pNode, __user, __length)
 
 #define Filesystem_Unlink(__self, __pNode, __pParentNode, __user) \
-Object_InvokeN(unlink, Filesystem, __self, __pNode, __pParentNode, __user)
+invoke_n(unlink, Filesystem, __self, __pNode, __pParentNode, __user)
 
 #define Filesystem_Rename(__self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user) \
-Object_InvokeN(rename, Filesystem, __self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user)
+invoke_n(rename, Filesystem, __self, __pName, __pParentNode, __pNewName, __pNewParentNode, __user)
 
 // Acquires a new reference to the given node. The returned node is locked.
 extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
@@ -314,12 +314,12 @@ extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId
 extern bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
 
 #define Filesystem_OnReadNodeFromDisk(__self, __id, __pOutNode) \
-Object_InvokeN(onReadNodeFromDisk, Filesystem, __self, __id, __pOutNode)
+invoke_n(onReadNodeFromDisk, Filesystem, __self, __id, __pOutNode)
 
 #define Filesystem_OnWriteNodeToDisk(__self, __pNode) \
-Object_InvokeN(onWriteNodeToDisk, Filesystem, __self, __pNode)
+invoke_n(onWriteNodeToDisk, Filesystem, __self, __pNode)
 
 #define Filesystem_OnRemoveNodeFromDisk(__self, __pNode) \
-Object_InvokeN(onRemoveNodeFromDisk, Filesystem, __self, __pNode)
+invoke_n(onRemoveNodeFromDisk, Filesystem, __self, __pNode)
 
 #endif /* Filesystem_h */

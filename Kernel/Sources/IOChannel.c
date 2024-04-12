@@ -32,7 +32,7 @@ errno_t IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannel
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(_Object_Create(Object_GetClass(pInChannel), 0, (ObjectRef*)&pChannel));
+    try(_Object_Create(classof(pInChannel), 0, (ObjectRef*)&pChannel));
     pChannel->mode = pInChannel->mode;
 
 catch:
@@ -65,7 +65,7 @@ errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize
 errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     if ((self->mode & kOpen_Read) == kOpen_Read) {
-        return Object_InvokeN(read, IOChannel, self, pBuffer, nBytesToRead, nOutBytesRead);
+        return invoke_n(read, IOChannel, self, pBuffer, nBytesToRead, nOutBytesRead);
     } else {
         *nOutBytesRead = 0;
         return EBADF;
@@ -80,7 +80,7 @@ errno_t IOChannel_write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer
 errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     if ((self->mode & kOpen_Write) == kOpen_Write) {
-        return Object_InvokeN(write, IOChannel, self, pBuffer, nBytesToWrite, nOutBytesWritten);
+        return invoke_n(write, IOChannel, self, pBuffer, nBytesToWrite, nOutBytesWritten);
     } else {
         *nOutBytesWritten = 0;
         return EBADF;

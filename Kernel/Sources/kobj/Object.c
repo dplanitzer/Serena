@@ -7,23 +7,17 @@
 //
 
 #include "Object.h"
-#include <klib/Memory.h>
 #include <klib/Kalloc.h>
-#ifndef __DISKIMAGE__
-#include <klib/Log.h>
-
-extern char _class;
-extern char _eclass;
-#endif
 
 
 void Object_deinit(ObjectRef _Nonnull self)
 {
 }
 
-root_class_func_defs(Object,
+any_subclass_func_defs(Object,
 func_def(deinit, Object)
 );
+
 
 errno_t _Object_Create(ClassRef _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)
 {
@@ -35,7 +29,7 @@ errno_t _Object_Create(ClassRef _Nonnull pClass, size_t extraByteCount, ObjectRe
     }
 
     try(kalloc_cleared(pClass->instanceSize + extraByteCount, (void**) &pObject));
-    pObject->clazz = pClass;
+    pObject->super.clazz = pClass;
     pObject->retainCount = 1;
     *pOutObject = pObject;
     return EOK;
@@ -64,22 +58,7 @@ void _Object_Release(ObjectRef _Nullable self)
     // negative which is fine. In that sense a negative reference count signals
     // that the object is dead.
     if (rc == 0) {
-        ((ObjectMethodTable*)self->clazz->vtable)->deinit(self);
+        ((ObjectMethodTable*)self->super.clazz->vtable)->deinit(self);
         kfree(self);
     }
-}
-
-bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass)
-{
-    ClassRef curTargetClass = pTargetClass;
-    ClassRef objClass = Object_GetClass(pObj);
-
-    while (curTargetClass) {
-        if (objClass == curTargetClass) {
-            return true;
-        }
-        curTargetClass = curTargetClass->super;
-    }
-
-    return false;
 }

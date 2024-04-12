@@ -148,6 +148,7 @@ catch:
 
 static void init(void)
 {
+    _RegisterClass(&kAnyClass);
     _RegisterClass(&kObjectClass);
     _RegisterClass(&kDiskDriverClass);
     _RegisterClass(&kFilesystemClass);

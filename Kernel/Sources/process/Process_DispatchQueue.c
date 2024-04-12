@@ -65,7 +65,7 @@ errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned 
     // are blocking and waiting for the closure to finish running. Otherwise that closure and nobody
     // else would be able to do a system call anymore.
     if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pQueue)) == EOK) {
-        if (Object_InstanceOf(pQueue, DispatchQueue)) {
+        if (instanceof(pQueue, DispatchQueue)) {
             if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
                 err = DispatchQueue_DispatchSync(pQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
             } else {
@@ -90,7 +90,7 @@ errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od,
     // asynchronously because it will be executed asynchronously anyway. Thus we won't have to retain and
     // release the queue (which is safe to do if we hold the lock until we're done with dispatching)
     if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pQueue)) == EOK) {
-        if (Object_InstanceOf(pQueue, DispatchQueue)) {
+        if (instanceof(pQueue, DispatchQueue)) {
             err = DispatchQueue_DispatchAsyncAfter(pQueue, deadline, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
         } else {
             err = EBADF;
