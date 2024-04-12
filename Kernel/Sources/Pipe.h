@@ -18,9 +18,6 @@
 
 
 final_class(Pipe, Object);
-typedef struct PipeMethodTable {
-    ObjectMethodTable   super;
-} PipeMethodTable;
 
 
 extern errno_t Pipe_Create(size_t bufferSize, PipeRef _Nullable * _Nonnull pOutPipe);

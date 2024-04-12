@@ -19,9 +19,6 @@
 // memory region which means that the RomDisk will call free() on the provided
 // memory pointer when the RomDisk is deallocated.
 final_class(RomDisk, DiskDriver);
-typedef struct RomDiskMethodTable {
-    DiskDriverMethodTable   super;
-} RomDiskMethodTable;
 
 
 // Creates a new ROM disk instance. The disk data is provided by the contiguous

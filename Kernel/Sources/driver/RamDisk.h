@@ -17,9 +17,6 @@
 // allocated in the form of 'extents'. The RAM disk user can specify the size
 // of a block, an extent and the disk.
 final_class(RamDisk, DiskDriver);
-typedef struct RamDiskMethodTable {
-    DiskDriverMethodTable   super;
-} RamDiskMethodTable;
 
 
 // Creates a new ROM disk instance. The disk data is provided by the contiguous

@@ -25,9 +25,6 @@ typedef struct Timer* TimerRef;
 
 
 final_class(DispatchQueue, Object);
-typedef struct DispatchQueueMethodTable {
-    ObjectMethodTable   super;
-} DispatchQueueMethodTable;
 
 
 

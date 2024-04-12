@@ -95,12 +95,8 @@ __CLASS_METHOD_DECLS(__name, __super##MethodTable super;, __func_decls)
 #define final_class(__name, __superName) \
 extern Class k##__name##Class; \
 struct __name; \
-typedef struct __name* __name##Ref
-
-// Defines the methods of a final class. This macro should be placed after the
-// final_class() macro.
-#define final_class_funcs(__name, __super, __func_decls) \
-__CLASS_METHOD_DECLS(__name, __super##MethodTable super;, __func_decls)
+typedef struct __name* __name##Ref; \
+typedef struct __name##MethodTable { __superName##MethodTable super; } __name##MethodTable
 
 // Defines the ivars of a final class. This macro should be placed either in
 // the class implementation file or a private class header file.

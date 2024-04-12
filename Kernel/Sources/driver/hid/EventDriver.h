@@ -16,9 +16,6 @@
 
 
 final_class(EventDriver, Object);
-typedef struct EventDriverMethodTable {
-    ObjectMethodTable   super;
-} EventDriverMethodTable;
 
 
 // Input controller types

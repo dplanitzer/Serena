@@ -33,9 +33,6 @@ extern bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const Gregoria
 
 
 final_class(RealtimeClock, Object);
-typedef struct RealtimeClockMethodTable {
-    ObjectMethodTable   super;
-} RealtimeClockMethodTable;
 
 
 extern errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver);

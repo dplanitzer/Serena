@@ -13,9 +13,6 @@
 
 
 final_class(SerenaFS, Filesystem);
-typedef struct SerenaFSMethodTable {
-    FilesystemMethodTable   super;
-} SerenaFSMethodTable;
 
 
 // Formats the given disk drive and installs a SerenaFS with an empty root

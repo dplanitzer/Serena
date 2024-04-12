@@ -19,9 +19,6 @@
 //
 
 final_class(KeyboardDriver, Object);
-typedef struct KeyboardDriverMethodTable {
-    ObjectMethodTable   super;
-} KeyboardDriverMethodTable;
 
 extern errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -34,9 +31,6 @@ extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver
 //
 
 final_class(MouseDriver, Object);
-typedef struct MouseDriverMethodTable {
-    ObjectMethodTable   super;
-} MouseDriverMethodTable;
 
 extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -46,9 +40,6 @@ extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port
 //
 
 final_class(DigitalJoystickDriver, Object);
-typedef struct DigitalJoystickDriverMethodTable {
-    ObjectMethodTable   super;
-} DigitalJoystickDriverMethodTable;
 
 extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -58,9 +49,6 @@ extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver
 //
 
 final_class(AnalogJoystickDriver, Object);
-typedef struct AnalogJoystickDriverMethodTable {
-    ObjectMethodTable   super;
-} AnalogJoystickDriverMethodTable;
 
 
 extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
@@ -71,9 +59,6 @@ extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver,
 //
 
 final_class(LightPenDriver, Object);
-typedef struct LightPenDriverMethodTable {
-    ObjectMethodTable   super;
-} LightPenDriverMethodTable;
 
 extern errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
 

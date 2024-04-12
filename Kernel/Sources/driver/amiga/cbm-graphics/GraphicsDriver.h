@@ -42,9 +42,6 @@ extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig)
 
 
 final_class(GraphicsDriver, Object);
-typedef struct GraphicsDriverMethodTable {
-    ObjectMethodTable   super;
-} GraphicsDriverMethodTable;
 
 
 typedef int SpriteID;

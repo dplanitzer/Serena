@@ -17,9 +17,6 @@
 #include <User.h>
 
 final_class(Process, Object);
-typedef struct ProcessMethodTable {
-    ObjectMethodTable   super;
-} ProcessMethodTable;
 
 
 extern ProcessRef _Nonnull  gRootProcess;
