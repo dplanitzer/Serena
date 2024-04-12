@@ -74,31 +74,12 @@ extern void _Object_Release(ObjectRef _Nullable self);
 #define Object_Release(__self) \
     _Object_Release((ObjectRef) __self)
 
+
 #define Object_GetClass(__self)\
     ((Class*)(((ObjectRef)(__self))->clazz))
 
 #define Object_GetSuperclass(__self)\
     Object_GetClass(__self)->super
-
-
-// Assigns the object reference 'pNewObject' to 'pOldObject' by retaining
-// 'pNewObject' and releasing 'pOldObject' in the correct order.
-extern void _Object_Assign(ObjectRef _Nullable * _Nonnull pOldObject, ObjectRef _Nullable pNewObject);
-
-#define Object_Assign(__pOldObject, __pNewObject) \
-    _Object_Assign((ObjectRef*)__pOldObject, (ObjectRef)__pNewObject)
-
-
-// Assigns 'pNewObject' to the location that holds 'pOldObject' and moves ownership
-// of 'pNewObject' from the owner to the location that holds 'pOldObject'. What
-// this means is that this function expects that 'pNewObject' is +1, it releases
-// 'pOldObject' and stores 'pNewObject' in 'pOldObject'. If both storage locations
-// point to the same object then it releases 'pNewObject'. Once this function
-// returns 'pOldObject' is properly updated and at +1 while 'pNewObject' is at +0.
-extern void _Object_AssignMovingOwnership(ObjectRef _Nullable * _Nonnull pOldObject, ObjectRef _Nullable pNewObject);
-
-#define Object_AssignMovingOwnership(__pOldObject, __pNewObject) \
-    _Object_AssignMovingOwnership((ObjectRef*)__pOldObject, (ObjectRef)__pNewObject)
 
 
 // Returns true if the given object is an instance of the given class or one of

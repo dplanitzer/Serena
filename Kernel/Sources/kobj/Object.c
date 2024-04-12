@@ -69,47 +69,6 @@ void _Object_Release(ObjectRef _Nullable self)
     }
 }
 
-// Assigns the object reference 'pNewObject' to 'pOldObject' by retaining
-// 'pNewObject' and releasing 'pOldObject' in the correct order.
-void _Object_Assign(ObjectRef _Nullable * _Nonnull pOldObject, ObjectRef _Nullable pNewObject)
-{
-    ObjectRef pOldObj = *pOldObject;
-
-    if (pOldObj != pNewObject) {
-        Object_Release(pOldObj);
-        
-        if (pNewObject) {
-            *pOldObject = Object_Retain(pNewObject);
-        } else {
-            *pOldObject = NULL;
-        }
-    }
-}
-
-// Assigns 'pNewObject' to the location that holds 'pOldObject' and moves ownership
-// of 'pNewObject' from the owner to the location that holds 'pOldObject'. What
-// this means is that this function expects that 'pNewObject' is +1, it releases
-// 'pOldObject' and stores 'pNewObject' in 'pOldObject'. If both storage locations
-// point to the same object then it releases 'pNewObject'. Once this function
-// returns 'pOldObject' is properly updated and at +1 while 'pNewObject' is at +0.
-void _Object_AssignMovingOwnership(ObjectRef _Nullable * _Nonnull pOldObject, ObjectRef _Nullable pNewObject)
-{
-    ObjectRef pOldObj = *pOldObject;
-
-    if (pOldObj != pNewObject) {
-        // The new object is different from the old one: release the old object
-        // and update our object reference to point to the new object (it's
-        // already +1)
-        Object_Release(pOldObj);
-        *pOldObject = pNewObject;
-    } else {
-        // The old and the new object are the same: no need to do anything with
-        // our object reference. However release the new object reference since
-        // it's an extra +1
-        Object_Release(pNewObject);
-    }
-}
-
 bool _Object_InstanceOf(ObjectRef _Nonnull pObj, ClassRef _Nonnull pTargetClass)
 {
     ClassRef curTargetClass = pTargetClass;
