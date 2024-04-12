@@ -71,7 +71,7 @@ invoke_0(close, IOChannel, __self)
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t IOChannel_AbstractCreate(ClassRef _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Creates a copy of the given I/O channel. Subclassers should call this in their
 // own copying implementation and then copy the subclass specific properties.

@@ -205,7 +205,7 @@ open_class_funcs(Filesystem, Object,
 // should not use this function to allocate an instance of the concrete filesystem.
 // This function is for use by Filesystem subclassers to define the filesystem
 // specific instance allocation function.
-extern errno_t Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys);
+extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys);
 
 // Returns the filesystem ID of the given filesystem.
 #define Filesystem_GetId(__fs) \

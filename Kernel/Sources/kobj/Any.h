@@ -18,10 +18,10 @@
 // All other classes derive directly or indirectly from Any. The only
 // operations supported by Any are subclassing, evaluation of subclass
 // relationships and dynamic method dispatching.
-// Any does not define any other operations and no memory management model. This
-// definition of Any leaves a tremendous amount of power to subtypes to define
-// their respective behavior in precisely scoped and efficient ways. This is also
-// why we say that Any's definition is "pure".
+// Any does not define any dynamically dispatched operations and no memory
+// management model. This definition of Any leaves a tremendous amount of power
+// to subtypes to define their respective behavior in precisely scoped and
+// efficient ways. This is also why we say that Any's definition is 'pure'.
 //
 // Note that the Any type is an abstract type which can not be instantiated.
 //
@@ -74,6 +74,6 @@ any_class(Any);
 
 
 // Do not call these functions directly. Use the macros defined above instead.
-extern bool _instanceof(AnyRef _Nonnull pObj, ClassRef _Nonnull pTargetType);
+extern bool _instanceof(Any* _Nonnull pObj, Class* _Nonnull pTargetType);
 
 #endif /* Any_h */

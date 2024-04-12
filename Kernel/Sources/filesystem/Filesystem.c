@@ -24,7 +24,7 @@ static FilesystemId Filesystem_GetNextAvailableId(void)
 // should not use this function to allocate an instance of the concrete filesystem.
 // This function is for use by Filesystem subclassers to define the filesystem
 // specific instance allocation function.
-errno_t Filesystem_Create(ClassRef pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys)
+errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnull pOutFileSys)
 {
     decl_try_err();
     FilesystemRef self;

@@ -12,7 +12,7 @@
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-errno_t IOChannel_AbstractCreate(ClassRef _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef pChannel;

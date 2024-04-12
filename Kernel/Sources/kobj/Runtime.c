@@ -17,14 +17,14 @@ extern char _eclass;
 #endif
 
 
-void _RegisterClass(ClassRef _Nonnull pClass)
+void _RegisterClass(Class* _Nonnull pClass)
 {
     if ((pClass->flags & CLASSF_INITIALIZED) != 0) {
         return;
     }
 
     // Make sure that the super class is registered
-    ClassRef pSuperClass = pClass->super;
+    Class* pSuperClass = pClass->super;
     if (pSuperClass) {
         _RegisterClass(pSuperClass);
     }
@@ -68,8 +68,8 @@ void _RegisterClass(ClassRef _Nonnull pClass)
 // Note that this function is not concurrency safe.
 void RegisterClasses(void)
 {
-    ClassRef pClass = (ClassRef)&_class;
-    ClassRef pEndClass = (ClassRef)&_eclass;
+    Class* pClass = (Class*)&_class;
+    Class* pEndClass = (Class*)&_eclass;
 
     while (pClass < pEndClass) {
         _RegisterClass(pClass);
@@ -81,8 +81,8 @@ void RegisterClasses(void)
 // Note that this function is not concurrency safe.
 void PrintClasses(void)
 {
-    ClassRef pClass = (ClassRef)&_class;
-    ClassRef pEndClass = (ClassRef)&_eclass;
+    Class* pClass = (Class*)&_class;
+    Class* pEndClass = (Class*)&_eclass;
 
     print("_class: %p, _eclass: %p\n", pClass, pEndClass);
 

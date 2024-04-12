@@ -59,7 +59,7 @@ any_subclass_funcs(Object,
 
 
 // Do not call these functions directly. Use the macros defined above instead.
-extern errno_t _Object_Create(ClassRef _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
+extern errno_t _Object_Create(Class* _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
 extern void _Object_Release(ObjectRef _Nullable self);
 
 static inline ObjectRef _Nonnull _Object_Retain(ObjectRef _Nonnull self)

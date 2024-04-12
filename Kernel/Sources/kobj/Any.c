@@ -11,10 +11,10 @@
 
 any_class_def(Any);
 
-bool _instanceof(AnyRef _Nonnull pAny, ClassRef _Nonnull pTargetType)
+bool _instanceof(Any* _Nonnull pAny, Class* _Nonnull pTargetType)
 {
-    ClassRef curTargetType = pTargetType;
-    ClassRef anyType = classof(pAny);
+    Class* curTargetType = pTargetType;
+    Class* anyType = classof(pAny);
 
     while (curTargetType) {
         if (anyType == curTargetType) {

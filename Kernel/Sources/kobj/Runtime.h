@@ -45,8 +45,7 @@ typedef struct __name* __name##Ref
 // Used to declare the Any type.
 #define any_class(__name) \
 extern Class k##__name##Class; \
-typedef struct __name { ClassRef _Nonnull   clazz; } __name; \
-typedef struct __name* __name##Ref
+typedef struct __name { Class* _Nonnull clazz; } __name
 
 // Used to provide the definition of the Any type.
 #define any_class_def(__name) \
@@ -163,7 +162,6 @@ typedef struct Class {
     uint16_t                    methodCount;
     const MethodDecl* _Nonnull  methodList;
 } Class;
-typedef struct Class* ClassRef;
 
 
 #ifndef __DISKIMAGE__
@@ -180,7 +178,7 @@ extern void RegisterClasses(void);
 // Note that this function is not concurrency safe.
 extern void PrintClasses(void);
 #else
-extern void _RegisterClass(ClassRef _Nonnull pClass);
+extern void _RegisterClass(Class* _Nonnull pClass);
 #endif /* __DISKIMAGE__ */
 
 #endif /* Runtime_h */

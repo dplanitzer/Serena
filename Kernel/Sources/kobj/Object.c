@@ -19,7 +19,7 @@ func_def(deinit, Object)
 );
 
 
-errno_t _Object_Create(ClassRef _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)
+errno_t _Object_Create(Class* _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)
 {
     decl_try_err();
     ObjectRef pObject;
