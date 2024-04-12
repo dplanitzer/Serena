@@ -25,19 +25,19 @@
 // the class named '__className' to this class. Use this macro to declare a
 // method that does not override the equally named superclass method.
 #define METHOD_IMPL(__name, __className) \
-{ (Method) __className##_##__name, offsetof(struct __className##MethodTable, __name) },
+{ (MethodImpl) __className##_##__name, offsetof(struct __className##MethodTable, __name) },
 
 // Same as METHOD_IMPL except that it declares the method '__name' to be an override
 // of the method with the same name and type signature which was originally defined
 // in the class '__superClassName'.
 #define OVERRIDE_METHOD_IMPL(__name, __className, __superClassName) \
-{ (Method) __className##_##__name, offsetof(struct __superClassName##MethodTable, __name) },
+{ (MethodImpl) __className##_##__name, offsetof(struct __superClassName##MethodTable, __name) },
 
 
 #define __CLASS_METHODS(__name, __super, ...) \
 static struct __name##MethodTable g##__name##VTable; \
-static const struct MethodDecl gMethodImpls_##__name[] = { __VA_ARGS__ {(Method)0, 0} }; \
-Class _ClassSection k##__name##Class = {(Method*)&g##__name##VTable, __super, #__name, sizeof(__name), (int16_t) sizeof(struct __name##MethodTable)/sizeof(Method), 0, gMethodImpls_##__name}
+static const struct MethodDecl g##__name##MDecls[] = { __VA_ARGS__ {NULL, 0} }; \
+Class _ClassSection k##__name##Class = {(MethodImpl*)&g##__name##VTable, __super, #__name, sizeof(__name), 0, (uint16_t) sizeof(struct __name##MethodTable)/sizeof(MethodImpl), g##__name##MDecls}
 
 #define __CLASS_IVARS(__name, __super, __ivars_decls) \
 extern Class k##__name##Class; \
@@ -121,23 +121,24 @@ __CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 // 3.b CLASS_METHODS with one METHOD_IMPL per dynamically dispatched method
 //
 
-typedef void (*Method)(void* _Nonnull self, ...);
+typedef void (*MethodImpl)(void* _Nonnull self, ...);
 
-struct MethodDecl {
-    Method _Nonnull method;
-    size_t          offset;
-};
+typedef struct MethodDecl {
+    MethodImpl _Nonnull method;
+    size_t              offset;
+} MethodDecl;
+
 
 #define CLASSF_INITIALIZED  1
 
 typedef struct Class {
-    Method* _Nonnull                    vtable;
-    struct Class* _Nonnull              super;
-    const char* _Nonnull                name;
-    size_t                              instanceSize;
-    int16_t                             methodCount;
-    uint16_t                            flags;
-    const struct MethodDecl* _Nonnull   methodList;
+    MethodImpl* _Nonnull        vtable;
+    struct Class* _Nonnull      super;
+    const char* _Nonnull        name;
+    size_t                      instanceSize;
+    uint16_t                    flags;
+    uint16_t                    methodCount;
+    const MethodDecl* _Nonnull  methodList;
 } Class;
 typedef struct Class* ClassRef;
 

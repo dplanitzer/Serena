@@ -32,14 +32,14 @@ void _RegisterClass(ClassRef _Nonnull pClass)
 
     // Copy the super class vtable
     if (pSuperClass) {
-        memcpy(pClass->vtable, pSuperClass->vtable, pSuperClass->methodCount * sizeof(Method));
+        memcpy(pClass->vtable, pSuperClass->vtable, pSuperClass->methodCount * sizeof(MethodImpl));
     }
 
 
     // Override methods in the VTable with methods from our method list
     const struct MethodDecl* pCurMethod = pClass->methodList;
     while (pCurMethod->method) {
-        Method* pSlot = (Method*)((char*)pClass->vtable + pCurMethod->offset);
+        MethodImpl* pSlot = (MethodImpl*)((char*)pClass->vtable + pCurMethod->offset);
 
         *pSlot = pCurMethod->method;
         pCurMethod++;
@@ -47,10 +47,10 @@ void _RegisterClass(ClassRef _Nonnull pClass)
 
 
     // Make sure that none if the VTable entries is NULL or a bogus pointer
-    const int parentMethodCount = (pSuperClass) ? pSuperClass->methodCount : 0;
-    for (int i = parentMethodCount; i < pClass->methodCount; i++) {
+    const size_t parentMethodCount = (pSuperClass) ? pSuperClass->methodCount : 0;
+    for (size_t i = parentMethodCount; i < pClass->methodCount; i++) {
         if (pClass->vtable[i] == NULL) {
-            fatal("RegisterClass: missing %s method at vtable index #%d\n", pClass->name, i);
+            fatal("RegisterClass: missing %s method at vtable index #%zu\n", pClass->name, i);
             // NOT REACHED
         }
     }
@@ -95,8 +95,8 @@ void PrintClasses(void)
         print("mcount: %d\tisize: %zd\n", pClass->methodCount, pClass->instanceSize);
 
 #if 0
-        for (int i = 0; i < pClass->methodCount; i++) {
-            print("%d: 0x%p\n", i, pClass->vtable[i]);
+        for (size_t i = 0; i < pClass->methodCount; i++) {
+            print("%zu: 0x%p\n", i, pClass->vtable[i]);
         }
 #endif
         pClass++;
