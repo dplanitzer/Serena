@@ -10,6 +10,7 @@
 #define Inode_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <dispatcher/Lock.h>
 #include <User.h>
 #include <System/Directory.h>

@@ -10,6 +10,7 @@
 #define Pipe_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 
 
 // Recommended pipe buffer size

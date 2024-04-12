@@ -8,6 +8,7 @@
 
 #include "FilesystemManager.h"
 #include <dispatcher/Lock.h>
+#include <kobj/ObjectArray.h>
 
 
 typedef struct Mountpoint {

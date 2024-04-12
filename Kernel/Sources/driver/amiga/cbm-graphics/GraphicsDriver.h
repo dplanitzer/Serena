@@ -10,6 +10,7 @@
 #define GraphicsDriver_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include "Color.h"
 #include "Surface.h"
 

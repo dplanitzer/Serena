@@ -10,6 +10,7 @@
 #define IOChannel_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <System/File.h>
 #include <System/IOChannel.h>
 

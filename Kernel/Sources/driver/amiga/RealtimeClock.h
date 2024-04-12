@@ -10,6 +10,7 @@
 #define RealtimeClock_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <hal/SystemDescription.h>
 
 

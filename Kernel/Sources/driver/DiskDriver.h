@@ -10,6 +10,7 @@
 #define DiskDriver_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 
 
 // Represents a logical block address in the range 0..<DiskDriver.blockCount

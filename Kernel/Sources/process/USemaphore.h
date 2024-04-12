@@ -10,6 +10,7 @@
 #define USemaphore_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <dispatcher/Semaphore.h>
 
 

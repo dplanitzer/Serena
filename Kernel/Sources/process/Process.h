@@ -10,6 +10,7 @@
 #define Process_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <filesystem/Filesystem.h>
 #include <System/Process.h>
 #include <IOChannel.h>

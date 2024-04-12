@@ -6,9 +6,9 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef klib_Object_h
-#define klib_Object_h
+#ifndef kobj_Object_h
+#define kobj_Object_h
 
-#include "../../Kernel/Sources/klib/Object.h"
+#include "../../Kernel/Sources/kobj/Object.h"
 
-#endif /* klib_Object_h */
+#endif /* kobj_Object_h */

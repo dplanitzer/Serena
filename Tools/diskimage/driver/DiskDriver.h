@@ -11,7 +11,7 @@
 
 #include <klib/Error.h>
 #include <klib/Types.h>
-#include <klib/Object.h>
+#include <kobj/Object.h>
 
 
 // Represents a logical block address in the range 0..<DiskDriver.blockCount

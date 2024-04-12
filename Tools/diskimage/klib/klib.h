@@ -16,6 +16,5 @@
 #include <klib/Error.h>
 #include <klib/Kalloc.h>
 #include <klib/List.h>
-#include <klib/Object.h>
 
 #endif /* klib_klib_h */

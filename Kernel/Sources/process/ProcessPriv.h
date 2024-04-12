@@ -15,6 +15,7 @@
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filesystem/PathResolver.h>
+#include <kobj/ObjectArray.h>
 
 
 // A process tombstone is created by a process that voluntarily or involuntarily

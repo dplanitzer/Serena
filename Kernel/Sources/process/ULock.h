@@ -10,6 +10,7 @@
 #define ULock_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <dispatcher/Lock.h>
 
 

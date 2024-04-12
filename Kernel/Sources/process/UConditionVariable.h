@@ -10,6 +10,7 @@
 #define UConditionVariable_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <dispatcher/ConditionVariable.h>
 #include "ULock.h"
 

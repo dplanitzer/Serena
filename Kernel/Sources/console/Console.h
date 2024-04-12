@@ -10,6 +10,7 @@
 #define Console_h
 
 #include <klib/klib.h>
+#include <kobj/Object.h>
 #include <driver/amiga/cbm-graphics/GraphicsDriver.h>
 #include <driver/hid/EventDriver.h>
 
