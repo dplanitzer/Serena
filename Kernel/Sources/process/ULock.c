@@ -29,6 +29,6 @@ void ULock_deinit(ULockRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-CLASS_METHODS(ULock, Object,
-OVERRIDE_METHOD_IMPL(deinit, ULock, Object)
+class_func_defs(ULock, Object,
+override_func_def(deinit, ULock, Object)
 );

@@ -14,7 +14,7 @@
 #include <dispatcher/Lock.h>
 
 
-OPEN_CLASS_WITH_REF(FileChannel, IOChannel,
+open_class_with_ref(FileChannel, IOChannel,
     ObjectRef _Nonnull  filesystem;
     InodeRef _Nonnull   inode;
     Lock                lock;           // Protects 'offset' and to provide read/write/seek serialization. See IOChannel

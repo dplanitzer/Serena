@@ -12,7 +12,7 @@
 #include <IOChannel.h>
 
 
-OPEN_CLASS_WITH_REF(PipeChannel, IOChannel,
+open_class_with_ref(PipeChannel, IOChannel,
     ObjectRef   pipe;
 );
 typedef struct PipeChannelMethodTable {

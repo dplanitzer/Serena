@@ -102,6 +102,6 @@ catch:
 }
 
 
-CLASS_METHODS(DiskDriver, Object,
-OVERRIDE_METHOD_IMPL(deinit, DiskDriver, Object)
+class_func_defs(DiskDriver, Object,
+override_func_def(deinit, DiskDriver, Object)
 );

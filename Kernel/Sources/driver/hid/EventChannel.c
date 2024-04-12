@@ -62,9 +62,9 @@ errno_t EventChannel_read(EventChannelRef _Nonnull self, void* _Nonnull pBuffer,
 }
 
 
-CLASS_METHODS(EventChannel, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, EventChannel, Object)
-OVERRIDE_METHOD_IMPL(dup, EventChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(ioctl, EventChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(read, EventChannel, IOChannel)
+class_func_defs(EventChannel, IOChannel,
+override_func_def(deinit, EventChannel, Object)
+override_func_def(dup, EventChannel, IOChannel)
+override_func_def(ioctl, EventChannel, IOChannel)
+override_func_def(read, EventChannel, IOChannel)
 );

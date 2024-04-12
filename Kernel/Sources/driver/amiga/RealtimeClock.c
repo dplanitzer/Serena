@@ -12,7 +12,7 @@
 
 
 // The realtime clock
-CLASS_IVARS(RealtimeClock, Object,
+class_ivars(RealtimeClock, Object,
     int     type;
     Lock    lock;
     // XXX not fully implemented yet
@@ -141,6 +141,6 @@ catch:
 }
 
 
-CLASS_METHODS(RealtimeClock, Object,
-OVERRIDE_METHOD_IMPL(deinit, RealtimeClock, Object)
+class_func_defs(RealtimeClock, Object,
+override_func_def(deinit, RealtimeClock, Object)
 );

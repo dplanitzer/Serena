@@ -32,7 +32,7 @@ extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 extern bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
 
-OPAQUE_CLASS(RealtimeClock, Object);
+final_class(RealtimeClock, Object);
 typedef struct RealtimeClockMethodTable {
     ObjectMethodTable   super;
 } RealtimeClockMethodTable;

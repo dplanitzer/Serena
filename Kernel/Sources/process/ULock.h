@@ -14,7 +14,7 @@
 #include <dispatcher/Lock.h>
 
 
-OPEN_CLASS_WITH_REF(ULock, Object,
+open_class_with_ref(ULock, Object,
     Lock    lock;
 );
 typedef struct ULockMethodTable {

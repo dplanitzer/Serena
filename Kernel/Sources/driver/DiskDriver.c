@@ -48,10 +48,10 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pB
 }
 
 
-CLASS_METHODS(DiskDriver, Object,
-METHOD_IMPL(getBlockSize, DiskDriver)
-METHOD_IMPL(getBlockCount, DiskDriver)
-METHOD_IMPL(isReadOnly, DiskDriver)
-METHOD_IMPL(getBlock, DiskDriver)
-METHOD_IMPL(putBlock, DiskDriver)
+class_func_defs(DiskDriver, Object,
+func_def(getBlockSize, DiskDriver)
+func_def(getBlockCount, DiskDriver)
+func_def(isReadOnly, DiskDriver)
+func_def(getBlock, DiskDriver)
+func_def(putBlock, DiskDriver)
 );

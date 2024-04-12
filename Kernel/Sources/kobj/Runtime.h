@@ -24,13 +24,13 @@
 // A method implementation declaration. This adds the method named '__name' of
 // the class named '__className' to this class. Use this macro to declare a
 // method that does not override the equally named superclass method.
-#define METHOD_IMPL(__name, __className) \
+#define func_def(__name, __className) \
 { (MethodImpl) __className##_##__name, offsetof(struct __className##MethodTable, __name) },
 
-// Same as METHOD_IMPL except that it declares the method '__name' to be an override
+// Same as func_def except that it declares the method '__name' to be an override
 // of the method with the same name and type signature which was originally defined
 // in the class '__superClassName'.
-#define OVERRIDE_METHOD_IMPL(__name, __className, __superClassName) \
+#define override_func_def(__name, __className, __superClassName) \
 { (MethodImpl) __className##_##__name, offsetof(struct __superClassName##MethodTable, __name) },
 
 
@@ -47,30 +47,30 @@ typedef struct __name { __super __ivars_decls } __name
 // Generates a forward declaration for the class named '__name'. Additionally
 // declares a reference type of the form '__nameRef'. This type can be used to
 // represent a pointer to an instance of the class.
-#define CLASS_FORWARD(__name) \
+#define class_forward(__name) \
 struct __name; \
 typedef struct __name* __name##Ref
 
 
 // Declares an open root class. An open class can be subclassed. Defines a
 // struct that declares all class ivars plus a reference type for the class.
-#define OPEN_ROOT_CLASS_WITH_REF(__name, __ivar_decls) \
+#define root_class_with_ref(__name, __ivar_decls) \
 __CLASS_IVARS(__name, , __ivar_decls); \
 typedef struct __name* __name##Ref
 
 // Defines the method table of a root class. Expects the class name and a list
-// of METHOD_IMPL macros with one macro per dynamically dispatched method.
-#define ROOT_CLASS_METHODS(__name, ...) \
+// of func_def macros with one macro per dynamically dispatched method.
+#define root_class_funcs(__name, ...) \
 __CLASS_METHODS(__name, NULL, __VA_ARGS__)
 
 
 // Declares an open class. An open class can be subclassed. Note that this variant
 // does not define the __nameRef type.
-#define OPEN_CLASS(__name, __super, __ivar_decls)\
+#define open_class(__name, __super, __ivar_decls)\
 __CLASS_IVARS(__name, __super super;, __ivar_decls)
 
-// Same as OPEN_CLASS but also defines a __nameRef type.
-#define OPEN_CLASS_WITH_REF(__name, __super, __ivar_decls)\
+// Same as open_class but also defines a __nameRef type.
+#define open_class_with_ref(__name, __super, __ivar_decls)\
 __CLASS_IVARS(__name, __super super;, __ivar_decls); \
 typedef struct __name* __name##Ref
 
@@ -78,47 +78,48 @@ typedef struct __name* __name##Ref
 // Defines an opaque class. An opaque class supports limited subclassing only.
 // Overriding methods is supported but adding ivars is not. This macro should
 // be placed in the publicly accessible header file of the class.
-#define OPAQUE_CLASS(__name, __superName) \
+#define final_class(__name, __superName) \
 extern Class k##__name##Class; \
 struct __name; \
 typedef struct __name* __name##Ref
 
 // Defines the ivars of an opaque class. This macro should be placed either in
 // the class implementation file or a private class header file.
-#define CLASS_IVARS(__name, __super, __ivar_decls) \
+#define class_ivars(__name, __super, __ivar_decls) \
 __CLASS_IVARS(__name, __super super;, __ivar_decls)
 
 
 // Defines the method table of an open or opaque class. This macro expects a list
-// of METHOD_IMPL or OVERRIDE_METHOD_IMPL macros and it should be placed in the
+// of func_def or override_func_def macros and it should be placed in the
 // class implementation file.
-#define CLASS_METHODS(__name, __super, ...) \
+#define class_func_defs(__name, __super, ...) \
 __CLASS_METHODS(__name, &k##__super##Class, __VA_ARGS__)
 
 
-// Defining an open class:
+//
+// Defining an open class which can be subclassed:
 //
 // 1. In the (public) .h file:
-// 1.a OPEN_CLASS
-// 1.b define a struct __classNameMethodTable with the dynamically dispatched methods that the class defines
+// 1.a open_class(class_name, super_class_name, ivar, ...)
+// 1.b define a struct __className##MethodTable with the dynamically dispatched methods that the class defines
 //
 // 2. In the .c file:
 // 2.a add the implementation of dynamically dispatched methods
-// 2.b CLASS_METHODS with one METHOD_IMPL per dynamically dispatched method
+// 2.b class_func_defs() with one func_def() or override_func_def() per dynamically dispatched method
 //
 //
-// Defining an opaque class:
+// Defining a final class which can not be subclassed:
 //
 // 1. In the (public) .h file:
-// 1.a OPAQUE_CLASS
-// 1.b define a struct __classNameMethodTable with the dynamically dispatched methods that the class defines
+// 1.a final_class(class_name, super_class_name)
+// 1.b define a struct __className##MethodTable with the dynamically dispatched methods that the class defines
 //
 // 2. In the (private) .h file:
-// 2.a CLASS_IVARS
+// 2.a class_ivars(ivar, ...)
 //
 // 3. In the .c file:
 // 3.a add the implementation of dynamically dispatched methods
-// 3.b CLASS_METHODS with one METHOD_IMPL per dynamically dispatched method
+// 3.b class_func_defs() with one func_def() or override_func_def() per dynamically dispatched method
 //
 
 typedef void (*MethodImpl)(void* _Nonnull self, ...);

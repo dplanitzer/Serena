@@ -29,6 +29,6 @@ void UConditionVariable_deinit(UConditionVariableRef _Nonnull self)
     ConditionVariable_Deinit(&self->cv);
 }
 
-CLASS_METHODS(UConditionVariable, Object,
-OVERRIDE_METHOD_IMPL(deinit, UConditionVariable, Object)
+class_func_defs(UConditionVariable, Object,
+override_func_def(deinit, UConditionVariable, Object)
 );

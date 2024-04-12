@@ -21,7 +21,7 @@
 // DEC VT100                                        <https://vt100.net/docs/vt100-ug/contents.html>
 // DEC VT102 (ANSI X3.41-1977 & ANSI X3.64-1979)    <https://vt100.net/docs/vt102-ug/contents.html>
 //
-OPAQUE_CLASS(Console, Object);
+final_class(Console, Object);
 typedef struct ConsoleMethodTable {
     ObjectMethodTable   super;
 } ConsoleMethodTable;

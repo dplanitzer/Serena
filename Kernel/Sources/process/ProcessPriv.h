@@ -35,7 +35,7 @@ typedef struct ProcessTombstone {
 #define INITIAL_IOCHANNELS_CAPACITY         64
 #define INITIAL_PRIVATE_RESOURCES_CAPACITY  8
 
-CLASS_IVARS(Process, Object,
+class_ivars(Process, Object,
     Lock                            lock;
     
     ProcessId                       ppid;       // parent's PID

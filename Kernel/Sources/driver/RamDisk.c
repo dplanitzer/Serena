@@ -17,7 +17,7 @@ typedef struct DiskExtent {
 } DiskExtent;
 
 
-CLASS_IVARS(RamDisk, DiskDriver,
+class_ivars(RamDisk, DiskDriver,
     SList               extents;            // Sorted ascending by 'firstBlockIndex'
     LogicalBlockCount   extentBlockCount;   // How many blocks an extent stores
     LogicalBlockCount   blockCount;
@@ -184,11 +184,11 @@ catch:
 }
 
 
-CLASS_METHODS(RamDisk, DiskDriver,
-OVERRIDE_METHOD_IMPL(deinit, RamDisk, Object)
-OVERRIDE_METHOD_IMPL(getBlockSize, RamDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(getBlockCount, RamDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(isReadOnly, RamDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(getBlock, RamDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(putBlock, RamDisk, DiskDriver)
+class_func_defs(RamDisk, DiskDriver,
+override_func_def(deinit, RamDisk, Object)
+override_func_def(getBlockSize, RamDisk, DiskDriver)
+override_func_def(getBlockCount, RamDisk, DiskDriver)
+override_func_def(isReadOnly, RamDisk, DiskDriver)
+override_func_def(getBlock, RamDisk, DiskDriver)
+override_func_def(putBlock, RamDisk, DiskDriver)
 );

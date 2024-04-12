@@ -14,7 +14,7 @@
 #include <dispatcher/Semaphore.h>
 
 
-OPEN_CLASS_WITH_REF(USemaphore, Object,
+open_class_with_ref(USemaphore, Object,
     Semaphore    sema;
 );
 typedef struct USemaphoreMethodTable {

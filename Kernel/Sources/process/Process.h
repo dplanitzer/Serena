@@ -16,7 +16,7 @@
 #include <IOChannel.h>
 #include <User.h>
 
-OPAQUE_CLASS(Process, Object);
+final_class(Process, Object);
 typedef struct ProcessMethodTable {
     ObjectMethodTable   super;
 } ProcessMethodTable;

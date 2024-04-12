@@ -21,7 +21,7 @@
 // Dynamic method invocation is implemented via index-based method dispatching.
 // Every method is assigned an index and this index is used to look up the
 // implementation of a method.
-OPEN_ROOT_CLASS_WITH_REF(Object,
+root_class_with_ref(Object,
     ClassRef _Nonnull   clazz;
     AtomicInt           retainCount;
 );

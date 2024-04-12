@@ -34,7 +34,7 @@
 // run to completion and close the I/O channel. The returned error is purely
 // advisory and will not stop the close operation from closing the I/O channel.
 //
-OPEN_CLASS_WITH_REF(IOChannel, Object,
+open_class_with_ref(IOChannel, Object,
     unsigned int    mode;
 );
 typedef struct IOChannelMethodTable {

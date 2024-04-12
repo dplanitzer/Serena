@@ -71,10 +71,10 @@ errno_t ConsoleChannel_write(ConsoleChannelRef _Nonnull self, const void* _Nonnu
 }
 
 
-CLASS_METHODS(ConsoleChannel, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, ConsoleChannel, Object)
-OVERRIDE_METHOD_IMPL(dup, ConsoleChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(ioctl, ConsoleChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(read, ConsoleChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(write, ConsoleChannel, IOChannel)
+class_func_defs(ConsoleChannel, IOChannel,
+override_func_def(deinit, ConsoleChannel, Object)
+override_func_def(dup, ConsoleChannel, IOChannel)
+override_func_def(ioctl, ConsoleChannel, IOChannel)
+override_func_def(read, ConsoleChannel, IOChannel)
+override_func_def(write, ConsoleChannel, IOChannel)
 );

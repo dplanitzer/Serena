@@ -60,7 +60,7 @@ extern errno_t FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
 
 // Stores the state of a single floppy drive.
 // !!! Keep in sync with memory.i !!!
-OPEN_CLASS_WITH_REF(FloppyDisk, DiskDriver,
+open_class_with_ref(FloppyDisk, DiskDriver,
     uint16_t* _Nonnull  track_buffer;                               // cached track data (MFM encoded)
     int16_t             track_size;                                 // cache size in words
     int16_t             track_sectors[FLOPPY_SECTORS_CAPACITY];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist

@@ -30,7 +30,7 @@
 // Every inode has a lock associated with it. The filesystem (XXX currently)
 // must lock the inode before it accesses or modifies any of its properties. 
 //
-OPEN_CLASS(Filesystem, Object,
+open_class(Filesystem, Object,
     FilesystemId        fsid;
     Lock                inodeManagementLock;
     PointerArray        inodesInUse;

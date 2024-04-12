@@ -71,11 +71,11 @@ errno_t PipeChannel_write(PipeChannelRef _Nonnull self, const void* _Nonnull pBu
 }
 
 
-CLASS_METHODS(PipeChannel, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, PipeChannel, Object)
-OVERRIDE_METHOD_IMPL(close, PipeChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(dup, PipeChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(ioctl, PipeChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(read, PipeChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(write, PipeChannel, IOChannel)
+class_func_defs(PipeChannel, IOChannel,
+override_func_def(deinit, PipeChannel, Object)
+override_func_def(close, PipeChannel, IOChannel)
+override_func_def(dup, PipeChannel, IOChannel)
+override_func_def(ioctl, PipeChannel, IOChannel)
+override_func_def(read, PipeChannel, IOChannel)
+override_func_def(write, PipeChannel, IOChannel)
 );

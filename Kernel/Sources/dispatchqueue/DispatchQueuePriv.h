@@ -101,7 +101,7 @@ enum QueueState {
 #define MAX_ITEM_CACHE_COUNT    8
 #define MAX_TIMER_CACHE_COUNT   8
 #define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
-CLASS_IVARS(DispatchQueue, Object,
+class_ivars(DispatchQueue, Object,
     SList                               item_queue;         // Queue of work items that should be executed as soon as possible
     SList                               timer_queue;        // Queue of items that should be executed on or after their deadline
     SList                               item_cache_queue;   // Cache of reusable work items

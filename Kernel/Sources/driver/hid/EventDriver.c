@@ -570,6 +570,6 @@ errno_t EventDriver_Read(EventDriverRef _Nonnull pDriver, void* _Nonnull pBuffer
 }
 
 
-CLASS_METHODS(EventDriver, Object,
-OVERRIDE_METHOD_IMPL(deinit, EventDriver, Object)
+class_func_defs(EventDriver, Object,
+override_func_def(deinit, EventDriver, Object)
 );

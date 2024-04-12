@@ -23,7 +23,7 @@
 // We may leave partial character sequences in the buffer if a Console_Read() didn't
 // read all bytes of a sequence. The next Console_Read() will first receive the
 // remaining buffered bytes before it receives bytes from new events.
-OPEN_CLASS_WITH_REF(ConsoleChannel, IOChannel,
+open_class_with_ref(ConsoleChannel, IOChannel,
     ObjectRef   console;
     char        rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
     int8_t      rdCount;                        // Number of bytes stored in the buffer

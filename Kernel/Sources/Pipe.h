@@ -17,7 +17,7 @@
 #define kPipe_DefaultBufferSize 256
 
 
-OPAQUE_CLASS(Pipe, Object);
+final_class(Pipe, Object);
 typedef struct PipeMethodTable {
     ObjectMethodTable   super;
 } PipeMethodTable;

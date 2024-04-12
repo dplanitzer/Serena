@@ -53,7 +53,7 @@ typedef struct SFSDirectoryEntryPointer {
 // SerenaFS
 //
 
-CLASS_IVARS(SerenaFS, Filesystem,
+class_ivars(SerenaFS, Filesystem,
     Lock                    lock;                           // Shared between filesystem proper and inodes
     ConditionVariable       notifier;
 

@@ -16,7 +16,7 @@
 #include <System/Directory.h>
 #include <System/File.h>
 
-CLASS_FORWARD(Filesystem);
+class_forward(Filesystem);
 
 // Inode flags
 enum {

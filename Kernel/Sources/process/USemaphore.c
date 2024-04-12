@@ -29,6 +29,6 @@ void USemaphore_deinit(USemaphoreRef _Nonnull self)
     Semaphore_Deinit(&self->sema);
 }
 
-CLASS_METHODS(USemaphore, Object,
-OVERRIDE_METHOD_IMPL(deinit, USemaphore, Object)
+class_func_defs(USemaphore, Object,
+override_func_def(deinit, USemaphore, Object)
 );

@@ -18,7 +18,7 @@
 // when you create it. You can instruct the ROM disk to take ownership of this
 // memory region which means that the RomDisk will call free() on the provided
 // memory pointer when the RomDisk is deallocated.
-OPAQUE_CLASS(RomDisk, DiskDriver);
+final_class(RomDisk, DiskDriver);
 typedef struct RomDiskMethodTable {
     DiskDriverMethodTable   super;
 } RomDiskMethodTable;

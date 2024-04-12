@@ -12,7 +12,7 @@
 #include <IOChannel.h>
 
 
-OPEN_CLASS_WITH_REF(EventChannel, IOChannel,
+open_class_with_ref(EventChannel, IOChannel,
     ObjectRef       eventDriver;
     TimeInterval    timeout;
 );

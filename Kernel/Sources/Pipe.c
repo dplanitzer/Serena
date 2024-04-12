@@ -17,7 +17,7 @@ enum {
     kPipeState_Closed
 };
 
-CLASS_IVARS(Pipe, Object,
+class_ivars(Pipe, Object,
     Lock                lock;
     ConditionVariable   reader;
     ConditionVariable   writer;
@@ -191,6 +191,6 @@ errno_t Pipe_Write(PipeRef _Nonnull self, const void* _Nonnull pBytes, ssize_t n
 }
 
 
-CLASS_METHODS(Pipe, Object,
-OVERRIDE_METHOD_IMPL(deinit, Pipe, Object)
+class_func_defs(Pipe, Object,
+override_func_def(deinit, Pipe, Object)
 );

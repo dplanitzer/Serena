@@ -15,7 +15,7 @@
 #include "ULock.h"
 
 
-OPEN_CLASS_WITH_REF(UConditionVariable, Object,
+open_class_with_ref(UConditionVariable, Object,
     ConditionVariable   cv;
 );
 typedef struct UConditionVariableMethodTable {

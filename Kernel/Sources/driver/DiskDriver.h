@@ -24,7 +24,7 @@ typedef LogicalBlockAddress LogicalBlockCount;
 // access to the disk data. Data on a disk is organized in blocks. All blocks
 // are of the same size. Blocks are addresses with an index in the range
 // [0, BlockCount].
-OPEN_CLASS_WITH_REF(DiskDriver, Object,
+open_class_with_ref(DiskDriver, Object,
 );
 typedef struct DiskDriverMethodTable {
     ObjectMethodTable   super;

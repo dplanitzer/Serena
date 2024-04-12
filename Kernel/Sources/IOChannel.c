@@ -102,12 +102,12 @@ void IOChannel_deinit(IOChannelRef _Nonnull self)
 {
 }
 
-CLASS_METHODS(IOChannel, Object,
-METHOD_IMPL(dup, IOChannel)
-METHOD_IMPL(ioctl, IOChannel)
-METHOD_IMPL(read, IOChannel)
-METHOD_IMPL(write, IOChannel)
-METHOD_IMPL(seek, IOChannel)
-METHOD_IMPL(close, IOChannel)
-OVERRIDE_METHOD_IMPL(deinit, IOChannel, Object)
+class_func_defs(IOChannel, Object,
+func_def(dup, IOChannel)
+func_def(ioctl, IOChannel)
+func_def(read, IOChannel)
+func_def(write, IOChannel)
+func_def(seek, IOChannel)
+func_def(close, IOChannel)
+override_func_def(deinit, IOChannel, Object)
 );

@@ -15,7 +15,7 @@
 #include "HIDEvent.h"
 
 
-OPAQUE_CLASS(EventDriver, Object);
+final_class(EventDriver, Object);
 typedef struct EventDriverMethodTable {
     ObjectMethodTable   super;
 } EventDriverMethodTable;

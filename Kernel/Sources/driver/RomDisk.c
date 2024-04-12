@@ -9,7 +9,7 @@
 #include "RomDisk.h"
 
 
-CLASS_IVARS(RomDisk, DiskDriver,
+class_ivars(RomDisk, DiskDriver,
     const char* _Nonnull    diskImage;
     LogicalBlockCount       blockCount;
     size_t                  blockSize;
@@ -74,9 +74,9 @@ errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, Logic
 }
 
 
-CLASS_METHODS(RomDisk, DiskDriver,
-OVERRIDE_METHOD_IMPL(deinit, RomDisk, Object)
-OVERRIDE_METHOD_IMPL(getBlockSize, RomDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(getBlockCount, RomDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(getBlock, RomDisk, DiskDriver)
+class_func_defs(RomDisk, DiskDriver,
+override_func_def(deinit, RomDisk, Object)
+override_func_def(getBlockSize, RomDisk, DiskDriver)
+override_func_def(getBlockCount, RomDisk, DiskDriver)
+override_func_def(getBlock, RomDisk, DiskDriver)
 );

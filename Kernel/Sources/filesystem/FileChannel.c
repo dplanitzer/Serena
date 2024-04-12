@@ -180,12 +180,12 @@ errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset
 }
 
 
-CLASS_METHODS(FileChannel, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, FileChannel, Object)
-OVERRIDE_METHOD_IMPL(dup, FileChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(close, FileChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(ioctl, FileChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(read, FileChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(write, FileChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(seek, FileChannel, IOChannel)
+class_func_defs(FileChannel, IOChannel,
+override_func_def(deinit, FileChannel, Object)
+override_func_def(dup, FileChannel, IOChannel)
+override_func_def(close, FileChannel, IOChannel)
+override_func_def(ioctl, FileChannel, IOChannel)
+override_func_def(read, FileChannel, IOChannel)
+override_func_def(write, FileChannel, IOChannel)
+override_func_def(seek, FileChannel, IOChannel)
 );

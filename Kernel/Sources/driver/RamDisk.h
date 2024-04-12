@@ -16,7 +16,7 @@
 // Disk blocks are allocated on demand. Blocks are internally organized and
 // allocated in the form of 'extents'. The RAM disk user can specify the size
 // of a block, an extent and the disk.
-OPAQUE_CLASS(RamDisk, DiskDriver);
+final_class(RamDisk, DiskDriver);
 typedef struct RamDiskMethodTable {
     DiskDriverMethodTable   super;
 } RamDiskMethodTable;

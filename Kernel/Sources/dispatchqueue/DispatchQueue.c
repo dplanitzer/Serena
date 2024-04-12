@@ -8,8 +8,8 @@
 
 #include "DispatchQueuePriv.h"
 
-CLASS_METHODS(DispatchQueue, Object,
-OVERRIDE_METHOD_IMPL(deinit, DispatchQueue, Object)
+class_func_defs(DispatchQueue, Object,
+override_func_def(deinit, DispatchQueue, Object)
 );
 
 

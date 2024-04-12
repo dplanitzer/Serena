@@ -128,11 +128,11 @@ errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, M
 }
 
 
-CLASS_METHODS(DirectoryChannel, IOChannel,
-OVERRIDE_METHOD_IMPL(deinit, DirectoryChannel, Object)
-OVERRIDE_METHOD_IMPL(dup, DirectoryChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(close, DirectoryChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(ioctl, DirectoryChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(read, DirectoryChannel, IOChannel)
-OVERRIDE_METHOD_IMPL(seek, DirectoryChannel, IOChannel)
+class_func_defs(DirectoryChannel, IOChannel,
+override_func_def(deinit, DirectoryChannel, Object)
+override_func_def(dup, DirectoryChannel, IOChannel)
+override_func_def(close, DirectoryChannel, IOChannel)
+override_func_def(ioctl, DirectoryChannel, IOChannel)
+override_func_def(read, DirectoryChannel, IOChannel)
+override_func_def(seek, DirectoryChannel, IOChannel)
 );

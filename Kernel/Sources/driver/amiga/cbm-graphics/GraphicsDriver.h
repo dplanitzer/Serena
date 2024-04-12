@@ -41,7 +41,7 @@ extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig
 extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
 
 
-OPAQUE_CLASS(GraphicsDriver, Object);
+final_class(GraphicsDriver, Object);
 typedef struct GraphicsDriverMethodTable {
     ObjectMethodTable   super;
 } GraphicsDriverMethodTable;

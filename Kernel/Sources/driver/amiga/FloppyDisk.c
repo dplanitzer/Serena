@@ -767,11 +767,11 @@ errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pB
 
 
 
-CLASS_METHODS(FloppyDisk, DiskDriver,
-OVERRIDE_METHOD_IMPL(deinit, FloppyDisk, Object)
-OVERRIDE_METHOD_IMPL(getBlockSize, FloppyDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(getBlockCount, FloppyDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(isReadOnly, FloppyDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(getBlock, FloppyDisk, DiskDriver)
-OVERRIDE_METHOD_IMPL(putBlock, FloppyDisk, DiskDriver)
+class_func_defs(FloppyDisk, DiskDriver,
+override_func_def(deinit, FloppyDisk, Object)
+override_func_def(getBlockSize, FloppyDisk, DiskDriver)
+override_func_def(getBlockCount, FloppyDisk, DiskDriver)
+override_func_def(isReadOnly, FloppyDisk, DiskDriver)
+override_func_def(getBlock, FloppyDisk, DiskDriver)
+override_func_def(putBlock, FloppyDisk, DiskDriver)
 );

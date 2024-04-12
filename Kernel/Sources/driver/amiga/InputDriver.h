@@ -18,7 +18,7 @@
 // Keyboard input driver
 //
 
-OPAQUE_CLASS(KeyboardDriver, Object);
+final_class(KeyboardDriver, Object);
 typedef struct KeyboardDriverMethodTable {
     ObjectMethodTable   super;
 } KeyboardDriverMethodTable;
@@ -33,7 +33,7 @@ extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver
 // Mouse input driver
 //
 
-OPAQUE_CLASS(MouseDriver, Object);
+final_class(MouseDriver, Object);
 typedef struct MouseDriverMethodTable {
     ObjectMethodTable   super;
 } MouseDriverMethodTable;
@@ -45,7 +45,7 @@ extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port
 // Digital Joystick input driver
 //
 
-OPAQUE_CLASS(DigitalJoystickDriver, Object);
+final_class(DigitalJoystickDriver, Object);
 typedef struct DigitalJoystickDriverMethodTable {
     ObjectMethodTable   super;
 } DigitalJoystickDriverMethodTable;
@@ -57,7 +57,7 @@ extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver
 // Analog Joystick (Paddles) input driver
 //
 
-OPAQUE_CLASS(AnalogJoystickDriver, Object);
+final_class(AnalogJoystickDriver, Object);
 typedef struct AnalogJoystickDriverMethodTable {
     ObjectMethodTable   super;
 } AnalogJoystickDriverMethodTable;
@@ -70,7 +70,7 @@ extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver,
 // Light Pen input driver
 //
 
-OPAQUE_CLASS(LightPenDriver, Object);
+final_class(LightPenDriver, Object);
 typedef struct LightPenDriverMethodTable {
     ObjectMethodTable   super;
 } LightPenDriverMethodTable;

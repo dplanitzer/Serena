@@ -12,7 +12,7 @@
 #include <filesystem/Filesystem.h>
 
 
-OPAQUE_CLASS(SerenaFS, Filesystem);
+final_class(SerenaFS, Filesystem);
 typedef struct SerenaFSMethodTable {
     FilesystemMethodTable   super;
 } SerenaFSMethodTable;

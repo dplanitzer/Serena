@@ -21,8 +21,8 @@ void Object_deinit(ObjectRef _Nonnull self)
 {
 }
 
-ROOT_CLASS_METHODS(Object,
-METHOD_IMPL(deinit, Object)
+root_class_funcs(Object,
+func_def(deinit, Object)
 );
 
 errno_t _Object_Create(ClassRef _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject)

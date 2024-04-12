@@ -10,8 +10,8 @@
 #include <filesystem/FilesystemManager.h>
 
 
-CLASS_METHODS(Process, Object,
-OVERRIDE_METHOD_IMPL(deinit, Process, Object)
+class_func_defs(Process, Object,
+override_func_def(deinit, Process, Object)
 );
 
 

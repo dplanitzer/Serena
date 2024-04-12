@@ -634,6 +634,6 @@ errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssi
 }
 
 
-CLASS_METHODS(Console, Object,
-OVERRIDE_METHOD_IMPL(deinit, Console, Object)
+class_func_defs(Console, Object,
+override_func_def(deinit, Console, Object)
 );
