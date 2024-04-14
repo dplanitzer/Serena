@@ -81,7 +81,7 @@ errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, 
     pProc->ppid = ppid;
     pProc->pid = Process_GetNextAvailablePID();
 
-    try(ObjectArray_Init(&pProc->ioChannels, INITIAL_IOCHANNELS_CAPACITY));
+    try(IOChannelTable_Init(&pProc->ioChannelTable));
     try(ObjectArray_Init(&pProc->privateResources, INITIAL_PRIVATE_RESOURCES_CAPACITY));
     try(IntArray_Init(&pProc->childPids, 0));
 
@@ -113,8 +113,7 @@ catch:
 
 void Process_deinit(ProcessRef _Nonnull pProc)
 {
-    Process_CloseAllIOChannels_Locked(pProc);
-    ObjectArray_Deinit(&pProc->ioChannels);
+    IOChannelTable_Deinit(&pProc->ioChannelTable);
 
     Process_DisposeAllPrivateResources_Locked(pProc);
     ObjectArray_Deinit(&pProc->privateResources);

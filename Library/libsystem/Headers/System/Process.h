@@ -35,14 +35,10 @@ typedef struct ProcessArguments {
 } ProcessArguments;
 
 
-// Child process should not inherit the default descriptors. The default
-// descriptors are the parent process' stdin, stdout and stderr descriptors.
-#define kSpawn_NoDefaultDescriptors 0x0001
-
-// Instructs the spawn() call to set the umask of the newly spawned process to
-// the umask field in the spawn arguments struct rather than the umask field of
-// the parent process.
-#define kSpawn_OverrideUserMask     0x0002
+// Instructs the Process_Spawn() call to set the umask of the newly spawned
+// process to the umask field in the spawn arguments struct rather than the
+// umask field of the parent process.
+#define kSpawn_OverrideUserMask     0x0001
 
 // The 'envp' pointer points to a table of nul-terminated strings of the form
 // 'key=value'. The last entry in the table has to be NULL. All these strings
@@ -61,7 +57,7 @@ typedef struct SpawnOptions {
 } SpawnOptions;
 
 
-// The result of a waitpid system call.
+// The result of a Process_WaitForTerminationOfChild() system call.
 typedef struct ProcessTerminationStatus {
     ProcessId   pid;        // PID of the child process
     int         status;     // Child process exit status

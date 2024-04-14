@@ -10,6 +10,7 @@
 #define ConsoleChannel_h
 
 #include <IOChannel.h>
+#include <kobj/Object.h>
 #include "KeyMap.h"
 
 

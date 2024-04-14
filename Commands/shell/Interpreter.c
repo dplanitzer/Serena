@@ -174,7 +174,6 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
     decl_try_err();
     ProcessId childPid;
     SpawnOptions opts = {0};
-    opts.options |= kSpawn_NoDefaultDescriptors;
     
     const size_t cmdPathLen = strlen(gSearchPath) + strlen(argv[0]);
     if (cmdPathLen > PATH_MAX) {

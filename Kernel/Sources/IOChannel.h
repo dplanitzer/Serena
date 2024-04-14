@@ -10,7 +10,7 @@
 #define IOChannel_h
 
 #include <klib/klib.h>
-#include <kobj/Object.h>
+#include <kobj/Any.h>
 #include <System/File.h>
 #include <System/IOChannel.h>
 
@@ -34,17 +34,37 @@
 // run to completion and close the I/O channel. The returned error is purely
 // advisory and will not stop the close operation from closing the I/O channel.
 //
-open_class_with_ref(IOChannel, Object,
+open_class_with_ref(IOChannel, Any,
+    AtomicInt       retainCount;
     unsigned int    mode;
 );
-open_class_funcs(IOChannel, Object,
-    errno_t   (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
-    errno_t   (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
-    errno_t   (*read)(void* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-    errno_t   (*write)(void* _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
-    errno_t   (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
-    errno_t   (*close)(void* _Nonnull self);
+any_subclass_funcs(IOChannel,
+    void    (*deinit)(void* _Nonnull self);
+    errno_t (*dup)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
+    errno_t (*read)(void* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*write)(void* _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
+    errno_t (*close)(void* _Nonnull self);
 );
+
+
+#define IOChannel_Retain(__self) \
+    _IOChannel_Retain((IOChannelRef) __self)
+
+#define IOChannel_RetainAs(__self, __classType) \
+    ((__classType##Ref) _IOChannel_Retain((IOChannelRef) __self))
+
+#define IOChannel_Release(__self) \
+    _IOChannel_Release((IOChannelRef) __self)
+
+extern void _IOChannel_Release(IOChannelRef _Nullable self);
+
+static inline IOChannelRef _Nonnull _IOChannel_Retain(IOChannelRef _Nonnull self)
+{
+    AtomicInt_Increment(&self->retainCount);
+    return self;
+}
 
 
 // I/O Channel functions for use by I/O channel users.

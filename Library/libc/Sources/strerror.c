@@ -49,7 +49,8 @@ char *strerror(int err_no)
         /*EISDIR*/          "Is a directory",
         /*ENOTIOCTLCMD*/    "Not an IOCTL command",
         /*EILSEQ*/          "Invalid multibyte sequence",
-        /*EMLINK*/          "Too many links"
+        /*EMLINK*/          "Too many links",
+        /*EMFILE*/          "Too many open I/O channels"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

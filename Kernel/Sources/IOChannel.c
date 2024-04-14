@@ -15,13 +15,15 @@
 errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
-    IOChannelRef pChannel;
+    IOChannelRef self;
 
-    try(_Object_Create(pClass, 0, (ObjectRef*)&pChannel));
-    pChannel->mode = mode & (kOpen_ReadWrite | kOpen_Append);
+    try(kalloc_cleared(pClass->instanceSize, (void**) &self));
+    self->super.clazz = pClass;
+    self->retainCount = 1;
+    self->mode = mode & (kOpen_ReadWrite | kOpen_Append);
 
 catch:
-    *pOutChannel = pChannel;
+    *pOutChannel = self;
     return err;
 }
 
@@ -32,12 +34,47 @@ errno_t IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannel
     decl_try_err();
     IOChannelRef pChannel;
 
-    try(_Object_Create(classof(pInChannel), 0, (ObjectRef*)&pChannel));
+    try(kalloc_cleared(classof(pInChannel)->instanceSize, (void**) &pChannel));
+    pChannel->super.clazz = classof(pInChannel);
+    pChannel->retainCount = 1;
     pChannel->mode = pInChannel->mode;
 
 catch:
     *pOutChannel = pChannel;
     return err;
+}
+
+// Releases a strong reference on the given resource. Deallocates the resource
+// when the reference count transitions from 1 to 0. Invokes the deinit method
+// on the resource if the resource should be deallocated.
+void _IOChannel_Release(IOChannelRef _Nullable self)
+{
+    if (self == NULL) {
+        return;
+    }
+
+    const AtomicInt rc = AtomicInt_Decrement(&self->retainCount);
+
+    // Note that we trigger the deallocation when the reference count transitions
+    // from 1 to 0. The VP that caused this transition is the one that executes
+    // the deallocation code. If another VP calls Release() while we are
+    // deallocating the resource then nothing will happen. Most importantly no
+    // second deallocation will be triggered. The reference count simply becomes
+    // negative which is fine. In that sense a negative reference count signals
+    // that the object is dead.
+    if (rc == 0) {
+        ((IOChannelMethodTable*)self->super.clazz->vtable)->deinit(self);
+        kfree(self);
+    }
+}
+
+void IOChannel_deinit(IOChannelRef _Nonnull self)
+{
+}
+
+errno_t IOChannel_close(IOChannelRef _Nonnull self)
+{
+    return EOK;
 }
 
 errno_t IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
@@ -93,21 +130,13 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset
     return ESPIPE;
 }
 
-errno_t IOChannel_close(IOChannelRef _Nonnull self)
-{
-    return EOK;
-}
 
-void IOChannel_deinit(IOChannelRef _Nonnull self)
-{
-}
-
-class_func_defs(IOChannel, Object,
+any_subclass_func_defs(IOChannel,
+func_def(deinit, IOChannel)
 func_def(dup, IOChannel)
 func_def(ioctl, IOChannel)
 func_def(read, IOChannel)
 func_def(write, IOChannel)
 func_def(seek, IOChannel)
 func_def(close, IOChannel)
-override_func_def(deinit, IOChannel, Object)
 );

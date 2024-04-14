@@ -107,67 +107,6 @@ static errno_t Process_GetDescriptorForResource_Locked(ProcessRef _Nonnull self,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Registers the given I/O channel with the process. This action allows the
-// process to use this I/O channel. The process maintains a strong reference to
-// the channel until it is unregistered. Note that the process retains the
-// channel and thus you have to release it once the call returns. The call
-// returns a descriptor which can be used to refer to the channel from user
-// and/or kernel space.
-errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int* _Nonnull pOutDescriptor)
-{
-    return Process_RegisterResource_Locked(self, (ObjectRef) pChannel, &self->ioChannels, pOutDescriptor);
-}
-
-// Registers the given I/O channel with the process. This action allows the
-// process to use this I/O channel. The process maintains a strong reference to
-// the channel until it is unregistered. Note that the process retains the
-// channel and thus you have to release it once the call returns. The call
-// returns a descriptor which can be used to refer to the channel from user
-// and/or kernel space.
-errno_t Process_RegisterIOChannel(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int* _Nonnull pOutDescriptor)
-{
-    Lock_Lock(&self->lock);
-    const errno_t err = Process_RegisterIOChannel_Locked(self, pChannel, pOutDescriptor);
-    Lock_Unlock(&self->lock);
-
-    return err;
-}
-
-// Unregisters the I/O channel identified by the given descriptor. The channel
-// is removed from the process' I/O channel table and a strong reference to the
-// channel is returned. The caller should call close() on the channel to close
-// it and then release() to release the strong reference to the channel. Closing
-// the channel will mark itself as done and the channel will be deallocated once
-// the last strong reference to it has been released.
-errno_t Process_UnregisterIOChannel(ProcessRef _Nonnull self, int ioc, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    return Process_UnregisterResource(self, ioc, &self->ioChannels, (ObjectRef*) pOutChannel);
-}
-
-// Closes all registered I/O channels. Ignores any errors that may be returned
-// from the close() call of a channel.
-void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull self)
-{
-    for (ssize_t ioc = 0; ioc < ObjectArray_GetCount(&self->ioChannels); ioc++) {
-        IOChannelRef pChannel = (IOChannelRef) ObjectArray_GetAt(&self->ioChannels, ioc);
-
-        if (pChannel) {
-            IOChannel_Close(pChannel);
-        }
-    }
-}
-
-// Looks up the I/O channel identified by the given descriptor and returns a
-// strong reference to it if found. The caller should call release() on the
-// channel once it is no longer needed.
-errno_t Process_CopyIOChannelForDescriptor(ProcessRef _Nonnull self, int ioc, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    return Process_CopyResourceForDescriptor(self, ioc, &self->ioChannels, (ObjectRef*) pOutChannel);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
 // Registers the given private resource with the process. This action allows the
 // process to use this private resource. The process maintains a strong reference
 // to the private resource until it is unregistered. Note that the process retains

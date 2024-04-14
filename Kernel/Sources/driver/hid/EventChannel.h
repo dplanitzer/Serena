@@ -10,6 +10,7 @@
 #define EventChannel_h
 
 #include <IOChannel.h>
+#include <kobj/Object.h>
 
 
 open_class_with_ref(EventChannel, IOChannel,

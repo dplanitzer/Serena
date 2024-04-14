@@ -11,6 +11,7 @@
 
 #include "Process.h"
 #include "AddressSpace.h"
+#include "IOChannelTable.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
@@ -31,8 +32,6 @@ typedef struct ProcessTombstone {
 } ProcessTombstone;
 
 
-// Must be >= 3
-#define INITIAL_IOCHANNELS_CAPACITY         64
 #define INITIAL_PRIVATE_RESOURCES_CAPACITY  8
 
 final_class_ivars(Process, Object,
@@ -45,7 +44,7 @@ final_class_ivars(Process, Object,
     AddressSpaceRef _Nonnull        addressSpace;
 
     // Resources
-    ObjectArray                     ioChannels;         // I/O channels (aka sharable resources)
+    IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
     ObjectArray                     privateResources;   // Process private resources (aka non-sharable resources)
 
     // Filesystems/Namespace
@@ -72,9 +71,6 @@ final_class_ivars(Process, Object,
 
 extern errno_t Process_Create(ProcessId ppid, User user, PathResolverRef _Nonnull pResolver, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull self);
-
-extern errno_t Process_RegisterIOChannel_Locked(ProcessRef _Nonnull self, IOChannelRef _Nonnull pChannel, int* _Nonnull pOutDescriptor);
-extern void Process_CloseAllIOChannels_Locked(ProcessRef _Nonnull self);
 
 extern errno_t Process_RegisterPrivateResource_Locked(ProcessRef _Nonnull self, ObjectRef _Nonnull pResource, int* _Nonnull pOutDescriptor);
 extern errno_t Process_UnregisterPrivateResource(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource);

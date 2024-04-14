@@ -37,7 +37,7 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask
 }
 
 // Creates a file in the given filesystem location.
-errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, FilePermissions permissions, int* _Nonnull pOutDescriptor)
+errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, FilePermissions permissions, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     PathResolverResult r;
@@ -51,21 +51,24 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
     try(FileChannel_Create((ObjectRef)r.filesystem, pInode, options, &pFile));
     r.filesystem = NULL;
     pInode = NULL;
-    try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
-
-catch:
-    Object_Release(pFile);
-    if (pInode) {
-        Filesystem_RelinquishNode(r.filesystem, pInode);
-    }
+    try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
+    pFile = NULL;
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
+    return EOK;
+
+catch:
+    IOChannel_Release(pFile);
+    Filesystem_RelinquishNode(r.filesystem, pInode);
+    PathResolverResult_Deinit(&r);
+    Lock_Unlock(&pProc->lock);
+    *pOutIoc = -1;
     return err;
 }
 
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
-errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutDescriptor)
+errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     PathResolverResult r;
@@ -79,8 +82,8 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
 
         try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
         try(ConsoleChannel_Create((ObjectRef)pConsole, options, &pFile));
-        try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
-        Object_Release(pFile);
+        try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
+        pFile = NULL;
         Lock_Unlock(&pProc->lock);
         return EOK;
     }
@@ -92,8 +95,8 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
     try(FileChannel_Create((ObjectRef)r.filesystem, r.inode, options, &pFile));
     r.filesystem = NULL;
     r.inode = NULL;
-    try(Process_RegisterIOChannel_Locked(pProc, pFile, pOutDescriptor));
-    Object_Release(pFile);
+    try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
+    pFile = NULL;
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return EOK;
@@ -101,8 +104,8 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
 catch:
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
-    Object_Release(pFile);
-    *pOutDescriptor = -1;
+    IOChannel_Release(pFile);
+    *pOutIoc = -1;
     return err;
 }
 
@@ -124,12 +127,12 @@ errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, FileInfo* _Nonnull pOutInfo)
+errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int ioc, FileInfo* _Nonnull pOutInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
+    if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
         if (instanceof(pChannel, FileChannel)) {
             err = FileChannel_GetInfo((FileChannelRef)pChannel, pOutInfo);
         }
@@ -140,7 +143,7 @@ errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, File
             err = EBADF;
         }
 
-        Object_Release(pChannel);
+        IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
     return err;
 }
@@ -163,12 +166,12 @@ errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, MutableFileInfo* _Nonnull pInfo)
+errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int ioc, MutableFileInfo* _Nonnull pInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
+    if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
         if (instanceof(pChannel, FileChannel)) {
             err = FileChannel_SetInfo((FileChannelRef)pChannel, pProc->realUser, pInfo);
         }
@@ -179,7 +182,7 @@ errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, Muta
             err = EBADF;
         }
 
-        Object_Release(pChannel);
+        IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
 
     return err;
@@ -204,12 +207,12 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPa
 }
 
 // Same as above but the file is identified by the given I/O channel.
-errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, FileOffset length)
+errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int ioc, FileOffset length)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, fd, &pChannel)) == EOK) {
+    if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
         if (instanceof(pChannel, FileChannel)) {
             err = FileChannel_Truncate((FileChannelRef)pChannel, pProc->realUser, length);
         }
@@ -220,7 +223,7 @@ errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, Fil
             err = ENOTDIR;
         }
 
-        Object_Release(pChannel);
+        IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
     return err;
 }

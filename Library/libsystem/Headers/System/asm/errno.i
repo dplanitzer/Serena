@@ -47,8 +47,9 @@ EISDIR          equ 34
 ENOTIOCTLCMD    equ 35
 EILSEQ          equ 36
 EMLINK          equ 37
+EMFILE          equ 38
 
 __EFIRST    equ 1
-__ELAST     equ 37
+__ELAST     equ 38
 
         endif   ; __ABI_ERRNO_I

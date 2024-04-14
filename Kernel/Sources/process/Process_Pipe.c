@@ -19,7 +19,6 @@ errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChan
     PipeRef pPipe = NULL;
     IOChannelRef rdChannel = NULL, wrChannel = NULL;
     bool needsUnlock = false;
-    bool isReadChannelRegistered = false;
 
     try(Pipe_Create(kPipe_DefaultBufferSize, &pPipe));
     try(PipeChannel_Create((ObjectRef)pPipe, kOpen_Read, &rdChannel));
@@ -27,24 +26,22 @@ errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChan
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
-    try(Process_RegisterIOChannel_Locked(pProc, rdChannel, pOutReadChannel));
-    isReadChannelRegistered = true;
-    try(Process_RegisterIOChannel_Locked(pProc, wrChannel, pOutWriteChannel));
-    Object_Release(rdChannel);
-    Object_Release(wrChannel);
+    try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, rdChannel, pOutReadChannel));
+    rdChannel = NULL;
+    try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, wrChannel, pOutWriteChannel));
+    wrChannel = NULL;
     Lock_Unlock(&pProc->lock);
     return EOK;
 
 catch:
-    if (isReadChannelRegistered) {
-        Process_UnregisterIOChannel(pProc, *pOutReadChannel, &rdChannel);
-        Object_Release(rdChannel);
+    if (rdChannel == NULL) {
+        IOChannelTable_ReleaseChannel(&pProc->ioChannelTable, *pOutReadChannel);
     }
     if (needsUnlock) {
         Lock_Unlock(&pProc->lock);
     }
-    Object_Release(rdChannel);
-    Object_Release(wrChannel);
+    IOChannel_Release(rdChannel);
+    IOChannel_Release(wrChannel);
     Object_Release(pPipe);
     return err;
 }

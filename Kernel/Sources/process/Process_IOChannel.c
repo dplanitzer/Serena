@@ -11,16 +11,7 @@
 
 errno_t Process_CloseChannel(ProcessRef _Nonnull pProc, int ioc)
 {
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    if ((err = Process_UnregisterIOChannel(pProc, ioc, &pChannel)) == EOK) {
-        // The error that close() returns is purely advisory and thus we'll proceed
-        // with releasing the resource in any case.
-        err = IOChannel_Close(pChannel);
-        Object_Release(pChannel);
-    }
-    return err;
+    return IOChannelTable_ReleaseChannel(&pProc->ioChannelTable, ioc);
 }
 
 errno_t Process_ReadChannel(ProcessRef _Nonnull pProc, int ioc, void* _Nonnull buffer, size_t nBytesToRead, ssize_t* _Nonnull nBytesRead)
@@ -28,9 +19,9 @@ errno_t Process_ReadChannel(ProcessRef _Nonnull pProc, int ioc, void* _Nonnull b
     decl_try_err();
     IOChannelRef pChannel;
 
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, ioc, &pChannel)) == EOK) {
+    if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
         err = IOChannel_Read(pChannel, buffer, __SSizeByClampingSize(nBytesToRead), nBytesRead);
-        Object_Release(pChannel);
+        IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
     return err;
 }
@@ -40,9 +31,9 @@ errno_t Process_WriteChannel(ProcessRef _Nonnull pProc, int ioc, const void* _No
     decl_try_err();
     IOChannelRef pChannel;
 
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, ioc, &pChannel)) == EOK) {
+    if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
         err = IOChannel_Write(pChannel, buffer, __SSizeByClampingSize(nBytesToWrite), nBytesWritten);
-        Object_Release(pChannel);
+        IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
     return err;
 }
@@ -52,9 +43,9 @@ errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, FileOffset offse
     decl_try_err();
     IOChannelRef pChannel;
 
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, ioc, &pChannel)) == EOK) {
+    if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
         err = IOChannel_Seek(pChannel, offset, pOutOldPosition, whence);
-        Object_Release(pChannel);
+        IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
     return err;
 }
@@ -66,9 +57,9 @@ errno_t Process_vIOControl(ProcessRef _Nonnull pProc, int ioc, int cmd, va_list 
     decl_try_err();
     IOChannelRef pChannel;
 
-    if ((err = Process_CopyIOChannelForDescriptor(pProc, ioc, &pChannel)) == EOK) {
+    if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
         err = IOChannel_vIOControl(pChannel, cmd, ap);
-        Object_Release(pChannel);
+        IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
     return err;
 }

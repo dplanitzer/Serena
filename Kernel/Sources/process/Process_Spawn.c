@@ -32,21 +32,8 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
 
-    if ((pOptions->options & kSpawn_NoDefaultDescriptors) == 0) {
-        const int nStdIoChannelsToInherit = __min(3, ObjectArray_GetCount(&pProc->ioChannels));
-
-        for (int i = 0; i < nStdIoChannelsToInherit; i++) {
-            IOChannelRef pCurChannel = (IOChannelRef) ObjectArray_GetAt(&pProc->ioChannels, i);
-
-            if (pCurChannel) {
-                IOChannelRef pNewChannel;
-                try(IOChannel_Dup(pCurChannel, &pNewChannel));
-                ObjectArray_Add(&pChildProc->ioChannels, (ObjectRef) pNewChannel);
-            } else {
-                ObjectArray_Add(&pChildProc->ioChannels, NULL);
-            }
-        }
-    }
+    // XXX not yet
+    //IOChannelTable_CopyFrom(&pChildProc->ioChannelTable, &pProc->ioChannelTable);
 
     if (pOptions->root_dir && pOptions->root_dir[0] != '\0') {
         try(Process_SetRootDirectoryPath(pChildProc, pOptions->root_dir));

@@ -66,7 +66,7 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
 
 // Opens the directory at the given path and returns an I/O channel that represents
 // the open directory.
-errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int* _Nonnull pOutDescriptor)
+errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     PathResolverResult r;
@@ -79,8 +79,8 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
     try(DirectoryChannel_Create((ObjectRef)r.filesystem, r.inode, &pDir));
     r.filesystem = NULL;
     r.inode = NULL;
-    try(Process_RegisterIOChannel_Locked(pProc, (IOChannelRef)pDir, pOutDescriptor));
-    Object_Release(pDir);
+    try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pDir, pOutIoc));
+    pDir = NULL;
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return EOK;
@@ -88,7 +88,7 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
 catch:
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
-    Object_Release(pDir);
-    *pOutDescriptor = -1;
+    IOChannel_Release(pDir);
+    *pOutIoc = -1;
     return err;
 }
