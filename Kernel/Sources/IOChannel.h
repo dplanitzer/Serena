@@ -70,7 +70,7 @@
 //    actual finalization invocation is deferred until any still ongoing I/O
 //    operations have completed. Once every ongoing I/O operation has completed
 //    the channel is finalized.
-//    (deferred close mode)
+//    (close with deferred finalization mode)
 //
 // 2) Similar to (1), however all ongoing I/O operations are canceled by the
 //    last close() invocation and the I/O channel is finalized as soon as all
