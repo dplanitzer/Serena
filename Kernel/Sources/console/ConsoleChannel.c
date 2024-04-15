@@ -27,13 +27,15 @@ catch:
     return err;
 }
 
-void ConsoleChannel_deinit(ConsoleChannelRef _Nonnull self)
+errno_t ConsoleChannel_finalize(ConsoleChannelRef _Nonnull self)
 {
     Object_Release(self->console);
     self->console = NULL;
+    
+    return EOK;
 }
 
-errno_t ConsoleChannel_dup(ConsoleChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t ConsoleChannel_copy(ConsoleChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ConsoleChannelRef pNewChannel;
@@ -72,8 +74,8 @@ errno_t ConsoleChannel_write(ConsoleChannelRef _Nonnull self, const void* _Nonnu
 
 
 class_func_defs(ConsoleChannel, IOChannel,
-override_func_def(deinit, ConsoleChannel, Object)
-override_func_def(dup, ConsoleChannel, IOChannel)
+override_func_def(finalize, ConsoleChannel, IOChannel)
+override_func_def(copy, ConsoleChannel, IOChannel)
 override_func_def(ioctl, ConsoleChannel, IOChannel)
 override_func_def(read, ConsoleChannel, IOChannel)
 override_func_def(write, ConsoleChannel, IOChannel)

@@ -28,32 +28,21 @@ catch:
     return err;
 }
 
-errno_t FileChannel_close(FileChannelRef _Nonnull self)
+errno_t FileChannel_finalize(FileChannelRef _Nonnull self)
 {
-    if (self->inode) {
-        Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
-        self->inode = NULL;
-    }
-    if (self->filesystem) {
-        Object_Release(self->filesystem);
-        self->filesystem = NULL;
-    }
-
-    return EOK;
-}
-
-void FileChannel_deinit(FileChannelRef _Nonnull self)
-{
-    if (self->inode) {
-        FileChannel_close(self);
-    }
+    Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
+    self->inode = NULL;
+    
+    Object_Release(self->filesystem);
+    self->filesystem = NULL;
 
     Lock_Deinit(&self->lock);
+    return EOK;
 }
 
 // Creates an independent copy of teh receiver. The newly created file channel
 // receives its own independent strong file system and inode references.
-errno_t FileChannel_dup(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutFile)
+errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     FileChannelRef pNewFile = NULL;
@@ -181,9 +170,8 @@ errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset
 
 
 class_func_defs(FileChannel, IOChannel,
-override_func_def(deinit, FileChannel, Object)
-override_func_def(dup, FileChannel, IOChannel)
-override_func_def(close, FileChannel, IOChannel)
+override_func_def(finalize, FileChannel, IOChannel)
+override_func_def(copy, FileChannel, IOChannel)
 override_func_def(ioctl, FileChannel, IOChannel)
 override_func_def(read, FileChannel, IOChannel)
 override_func_def(write, FileChannel, IOChannel)

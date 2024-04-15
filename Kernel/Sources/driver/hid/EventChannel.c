@@ -24,13 +24,15 @@ catch:
     return err;
 }
 
-void EventChannel_deinit(EventChannelRef _Nonnull self)
+errno_t EventChannel_finalize(EventChannelRef _Nonnull self)
 {
     Object_Release(self->eventDriver);
     self->eventDriver = NULL;
+    
+    return EOK;
 }
 
-errno_t EventChannel_dup(EventChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t EventChannel_copy(EventChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     EventChannelRef pNewChannel;
@@ -63,8 +65,8 @@ errno_t EventChannel_read(EventChannelRef _Nonnull self, void* _Nonnull pBuffer,
 
 
 class_func_defs(EventChannel, IOChannel,
-override_func_def(deinit, EventChannel, Object)
-override_func_def(dup, EventChannel, IOChannel)
+override_func_def(finalize, EventChannel, IOChannel)
+override_func_def(copy, EventChannel, IOChannel)
 override_func_def(ioctl, EventChannel, IOChannel)
 override_func_def(read, EventChannel, IOChannel)
 );

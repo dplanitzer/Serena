@@ -25,10 +25,10 @@
 // read all bytes of a sequence. The next Console_Read() will first receive the
 // remaining buffered bytes before it receives bytes from new events.
 open_class_with_ref(ConsoleChannel, IOChannel,
-    ObjectRef   console;
-    char        rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
-    int8_t      rdCount;                        // Number of bytes stored in the buffer
-    int8_t      rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
+    ObjectRef _Nonnull  console;
+    char                rdBuffer[MAX_MESSAGE_LENGTH];   // Holds a full or partial byte sequence produced by a key down event
+    int8_t              rdCount;                        // Number of bytes stored in the buffer
+    int8_t              rdIndex;                        // Index of first byte in the buffer where a partial byte sequence begins
 );
 open_class_funcs(ConsoleChannel, IOChannel,
 );

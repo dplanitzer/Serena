@@ -28,32 +28,21 @@ catch:
     return err;
 }
 
-errno_t DirectoryChannel_close(DirectoryChannelRef _Nonnull self)
+errno_t DirectoryChannel_finalize(DirectoryChannelRef _Nonnull self)
 {
-    if (self->inode) {
-        Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
-        self->inode = NULL;
-    }
-    if (self->filesystem) {
-        Object_Release(self->filesystem);
-        self->filesystem = NULL;
-    }
+    Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
+    self->inode = NULL;
 
-    return EOK;
-}
-
-void DirectoryChannel_deinit(DirectoryChannelRef _Nonnull self)
-{
-    if (self->inode) {
-        DirectoryChannel_close(self);
-    }
+    Object_Release(self->filesystem);
+    self->filesystem = NULL;
 
     Lock_Deinit(&self->lock);
+    return EOK;
 }
 
 // Creates an independent copy of the receiver. The copy receives its own strong
 // filesystem and inode references.
-ssize_t DirectoryChannel_dup(DirectoryChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutDir)
+ssize_t DirectoryChannel_copy(DirectoryChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     DirectoryChannelRef pNewDir = NULL;
@@ -129,9 +118,8 @@ errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, M
 
 
 class_func_defs(DirectoryChannel, IOChannel,
-override_func_def(deinit, DirectoryChannel, Object)
-override_func_def(dup, DirectoryChannel, IOChannel)
-override_func_def(close, DirectoryChannel, IOChannel)
+override_func_def(finalize, DirectoryChannel, IOChannel)
+override_func_def(copy, DirectoryChannel, IOChannel)
 override_func_def(ioctl, DirectoryChannel, IOChannel)
 override_func_def(read, DirectoryChannel, IOChannel)
 override_func_def(seek, DirectoryChannel, IOChannel)

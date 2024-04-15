@@ -112,9 +112,7 @@ errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int ioc)
     self->channelCount--;
     Lock_Unlock(&self->lock);
 
-    err = IOChannel_Close(pChannel);
-    IOChannel_Release(pChannel);
-    return err;
+    return IOChannel_Release(pChannel);
 
 catch:
     Lock_Unlock(&self->lock);
@@ -136,7 +134,7 @@ errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int ioc, IO
     }
 
     pChannel = self->table[ioc];
-    IOChannel_Retain(pChannel);
+    IOChannel_BeginOperation(pChannel);
 
 catch:
     Lock_Unlock(&self->lock);
@@ -150,7 +148,7 @@ catch:
 // once this function returns.
 void IOChannelTable_RelinquishChannel(IOChannelTable* _Nonnull self, IOChannelRef _Nullable pChannel)
 {
-    IOChannel_Release(pChannel);
+    IOChannel_EndOperation(pChannel);
 }
 
 // Creates a new named reference of the I/O channel 'ioc'. The new descriptor/name
@@ -250,7 +248,7 @@ errno_t IOChannelTable_CopyFrom(IOChannelTable* _Nonnull self, IOChannelTable* _
         IOChannelRef pChannel = pOther->table[i];
 
         if (pChannel) {
-            try(IOChannel_Dup(pChannel, &self->table[i]));
+            try(IOChannel_Copy(pChannel, &self->table[i]));
             self->channelCount++;
             cc++;
         }

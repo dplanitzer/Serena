@@ -14,8 +14,8 @@
 
 
 open_class_with_ref(EventChannel, IOChannel,
-    ObjectRef       eventDriver;
-    TimeInterval    timeout;
+    ObjectRef _Nonnull  eventDriver;
+    TimeInterval        timeout;
 );
 open_class_funcs(EventChannel, IOChannel,
 );

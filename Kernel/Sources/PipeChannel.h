@@ -14,7 +14,7 @@
 
 
 open_class_with_ref(PipeChannel, IOChannel,
-    ObjectRef   pipe;
+    ObjectRef _Nonnull  pipe;
 );
 open_class_funcs(PipeChannel, IOChannel,
 );

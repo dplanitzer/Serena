@@ -15,6 +15,8 @@ errno_t PipeChannel_Create(ObjectRef _Nonnull pPipe, unsigned int mode, IOChanne
     decl_try_err();
     PipeChannelRef self;
 
+    assert((mode & kOpen_ReadWrite) == kOpen_Read || (mode & kOpen_ReadWrite) == kOpen_Write);
+
     try(IOChannel_AbstractCreate(&kPipeChannelClass, mode, (IOChannelRef*)&self));
     self->pipe = Object_Retain(pPipe);
 
@@ -23,13 +25,17 @@ catch:
     return err;
 }
 
-void PipeChannel_deinit(PipeChannelRef _Nonnull self)
+errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
 {
+    Pipe_Close((PipeRef)self->pipe, IOChannel_GetMode(self));
+
     Object_Release(self->pipe);
     self->pipe = NULL;
+    
+    return EOK;
 }
 
-errno_t PipeChannel_dup(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t PipeChannel_copy(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     PipeChannelRef pNewChannel;
@@ -40,12 +46,6 @@ errno_t PipeChannel_dup(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * _
 catch:
     *pOutChannel = (IOChannelRef)pNewChannel;
     return err;
-}
-
-errno_t PipeChannel_close(PipeChannelRef _Nonnull self)
-{
-    Pipe_Close((PipeRef)self->pipe, IOChannel_GetMode(self));
-    return EOK;
 }
 
 errno_t PipeChannel_ioctl(PipeChannelRef _Nonnull self, int cmd, va_list ap)
@@ -72,9 +72,8 @@ errno_t PipeChannel_write(PipeChannelRef _Nonnull self, const void* _Nonnull pBu
 
 
 class_func_defs(PipeChannel, IOChannel,
-override_func_def(deinit, PipeChannel, Object)
-override_func_def(close, PipeChannel, IOChannel)
-override_func_def(dup, PipeChannel, IOChannel)
+override_func_def(finalize, PipeChannel, IOChannel)
+override_func_def(copy, PipeChannel, IOChannel)
 override_func_def(ioctl, PipeChannel, IOChannel)
 override_func_def(read, PipeChannel, IOChannel)
 override_func_def(write, PipeChannel, IOChannel)

@@ -80,8 +80,7 @@ void Console_deinit(ConsoleRef _Nonnull pConsole)
     pConsole->gdevice = NULL;
 
     if (pConsole->eventDriverChannel) {
-        IOChannel_Close(pConsole->eventDriverChannel);
-        Object_Release(pConsole->eventDriverChannel);
+        IOChannel_Release(pConsole->eventDriverChannel);
         pConsole->eventDriverChannel = NULL;
     }
     Object_Release(pConsole->eventDriver);

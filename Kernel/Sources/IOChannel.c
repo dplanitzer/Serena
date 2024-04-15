@@ -19,7 +19,9 @@ errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOCh
 
     try(kalloc_cleared(pClass->instanceSize, (void**) &self));
     self->super.clazz = pClass;
-    self->retainCount = 1;
+    Lock_Init(&self->countLock);
+    self->ownerCount = 1;
+    self->useCount = 0;
     self->mode = mode & (kOpen_ReadWrite | kOpen_Append);
 
 catch:
@@ -36,7 +38,9 @@ errno_t IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannel
 
     try(kalloc_cleared(classof(pInChannel)->instanceSize, (void**) &pChannel));
     pChannel->super.clazz = classof(pInChannel);
-    pChannel->retainCount = 1;
+    Lock_Init(&pChannel->countLock);
+    pChannel->ownerCount = 1;
+    pChannel->useCount = 0;
     pChannel->mode = pInChannel->mode;
 
 catch:
@@ -44,40 +48,82 @@ catch:
     return err;
 }
 
-// Releases a strong reference on the given resource. Deallocates the resource
-// when the reference count transitions from 1 to 0. Invokes the deinit method
-// on the resource if the resource should be deallocated.
-void _IOChannel_Release(IOChannelRef _Nullable self)
+static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
 {
-    if (self == NULL) {
-        return;
+    decl_try_err();
+
+    err = invoke_0(finalize, IOChannel, self);
+    Lock_Deinit(&self->countLock);
+    kfree(self);
+
+    return err;
+}
+
+void IOChannel_Retain(IOChannelRef _Nonnull self)
+{
+    Lock_Lock(&self->countLock);
+    self->ownerCount++;
+    Lock_Unlock(&self->countLock);
+}
+
+errno_t IOChannel_Release(IOChannelRef _Nullable self)
+{
+    bool doFinalize = false;
+
+    Lock_Lock(&self->countLock);
+    if (self->ownerCount >= 1) {
+        self->ownerCount--;
+        if (self->ownerCount == 0 && self->useCount == 0) {
+            self->ownerCount = -1;  // Acts as a signal that we triggered finalization
+            doFinalize = true;
+        }
     }
+    Lock_Unlock(&self->countLock);
 
-    const AtomicInt rc = AtomicInt_Decrement(&self->retainCount);
-
-    // Note that we trigger the deallocation when the reference count transitions
-    // from 1 to 0. The VP that caused this transition is the one that executes
-    // the deallocation code. If another VP calls Release() while we are
-    // deallocating the resource then nothing will happen. Most importantly no
-    // second deallocation will be triggered. The reference count simply becomes
-    // negative which is fine. In that sense a negative reference count signals
-    // that the object is dead.
-    if (rc == 0) {
-        ((IOChannelMethodTable*)self->super.clazz->vtable)->deinit(self);
-        kfree(self);
+    if (doFinalize) {
+        // Can be triggered at most once. Thus no need to hold the lock while
+        // running finalization
+        return _IOChannel_Finalize(self);
+    }
+    else {
+        return EOK;
     }
 }
 
-void IOChannel_deinit(IOChannelRef _Nonnull self)
+void IOChannel_BeginOperation(IOChannelRef _Nonnull self)
 {
+    Lock_Lock(&self->countLock);
+    self->useCount++;
+    Lock_Unlock(&self->countLock);
 }
 
-errno_t IOChannel_close(IOChannelRef _Nonnull self)
+void IOChannel_EndOperation(IOChannelRef _Nonnull self)
+{
+    bool doFinalize = false;
+
+    Lock_Lock(&self->countLock);
+    if (self->useCount >= 1) {
+        self->useCount--;
+        if (self->useCount == 0 && self->ownerCount == 0) {
+            self->ownerCount = -1;
+            doFinalize = true;
+        }
+    }
+    Lock_Unlock(&self->countLock);
+
+    if (doFinalize) {
+        // Can be triggered at most once. Thus no need to hold the lock while
+        // running finalization
+        _IOChannel_Finalize(self);
+    }
+}
+
+errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
 {
     return EOK;
 }
 
-errno_t IOChannel_dup(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_copy(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return EBADF;
 }
@@ -132,11 +178,10 @@ errno_t IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset
 
 
 any_subclass_func_defs(IOChannel,
-func_def(deinit, IOChannel)
-func_def(dup, IOChannel)
+func_def(finalize, IOChannel)
+func_def(copy, IOChannel)
 func_def(ioctl, IOChannel)
 func_def(read, IOChannel)
 func_def(write, IOChannel)
 func_def(seek, IOChannel)
-func_def(close, IOChannel)
 );
