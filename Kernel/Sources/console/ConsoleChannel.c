@@ -31,7 +31,7 @@ errno_t ConsoleChannel_finalize(ConsoleChannelRef _Nonnull self)
 {
     Object_Release(self->console);
     self->console = NULL;
-    
+
     return EOK;
 }
 
@@ -40,7 +40,7 @@ errno_t ConsoleChannel_copy(ConsoleChannelRef _Nonnull self, IOChannelRef _Nulla
     decl_try_err();
     ConsoleChannelRef pNewChannel;
 
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewChannel));
+    try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
     pNewChannel->console = Object_Retain(self->console);
 
 catch:

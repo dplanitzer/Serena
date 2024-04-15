@@ -28,7 +28,7 @@ errno_t EventChannel_finalize(EventChannelRef _Nonnull self)
 {
     Object_Release(self->eventDriver);
     self->eventDriver = NULL;
-    
+
     return EOK;
 }
 
@@ -37,7 +37,7 @@ errno_t EventChannel_copy(EventChannelRef _Nonnull self, IOChannelRef _Nullable 
     decl_try_err();
     EventChannelRef pNewChannel;
 
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewChannel));
+    try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
     pNewChannel->eventDriver = Object_Retain(self->eventDriver);
     pNewChannel->timeout = self->timeout;
 

@@ -40,7 +40,7 @@ errno_t PipeChannel_copy(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * 
     decl_try_err();
     PipeChannelRef pNewChannel;
 
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewChannel));
+    try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
     pNewChannel->pipe = Object_Retain(self->pipe);
 
 catch:

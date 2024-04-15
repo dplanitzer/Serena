@@ -47,7 +47,7 @@ ssize_t DirectoryChannel_copy(DirectoryChannelRef _Nonnull self, IOChannelRef _N
     decl_try_err();
     DirectoryChannelRef pNewDir = NULL;
 
-    try(IOChannel_AbstractCreateCopy((IOChannelRef)self, (IOChannelRef*)&pNewDir));
+    try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
     Lock_Init(&pNewDir->lock);
     pNewDir->filesystem = Object_Retain(self->filesystem);
     pNewDir->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);

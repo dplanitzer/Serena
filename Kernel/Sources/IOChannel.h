@@ -157,10 +157,6 @@ invoke_n(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
 // properties. 
 extern errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-// Creates a copy of the given I/O channel. Subclassers should call this in their
-// own copying implementation and then copy the subclass specific properties.
-extern errno_t IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
 // Returns the I/O channel mode.
 #define IOChannel_GetMode(__self) \
     ((IOChannelRef)__self)->mode

@@ -29,25 +29,6 @@ catch:
     return err;
 }
 
-// Creates a copy of the given I/O channel. Subclassers should call this in their
-// own copying implementation and then copy the subclass specific properties.
-errno_t IOChannel_AbstractCreateCopy(IOChannelRef _Nonnull pInChannel, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    IOChannelRef pChannel;
-
-    try(kalloc_cleared(classof(pInChannel)->instanceSize, (void**) &pChannel));
-    pChannel->super.clazz = classof(pInChannel);
-    Lock_Init(&pChannel->countLock);
-    pChannel->ownerCount = 1;
-    pChannel->useCount = 0;
-    pChannel->mode = pInChannel->mode;
-
-catch:
-    *pOutChannel = pChannel;
-    return err;
-}
-
 static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
 {
     decl_try_err();
