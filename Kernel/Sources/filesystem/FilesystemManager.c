@@ -208,7 +208,7 @@ static errno_t FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull se
     Object_Release(pMount->mountedFilesystem);
     pMount->mountedFilesystem = NULL;
     if (pMount->mountingInode) {
-        Filesystem_RelinquishNode(pMount->mountingFilesystem, pMount->mountingInode);
+        err = Filesystem_RelinquishNode(pMount->mountingFilesystem, pMount->mountingInode);
         pMount->mountingInode = NULL;
     }
     Object_Release(pMount->mountingFilesystem);

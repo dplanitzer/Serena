@@ -136,10 +136,12 @@ InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull self, 
 // Relinquishes the given node back to the filesystem. This method will invoke
 // the filesystem onRemoveNodeFromDisk() if no directory is referencing the inode
 // anymore. This will remove the inode from disk.
-void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked pNode)
+errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked pNode)
 {
+    decl_try_err();
+
     if (pNode == NULL) {
-        return;
+        return EOK;
     }
     
     Lock_Lock(&self->inodeManagementLock);
@@ -155,7 +157,7 @@ void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _
         Filesystem_OnRemoveNodeFromDisk(self, pNode);
     }
     else if (Inode_IsModified(pNode)) {
-        Filesystem_OnWriteNodeToDisk(self, pNode);
+        err = Filesystem_OnWriteNodeToDisk(self, pNode);
         Inode_ClearModified(pNode);
     }
 
@@ -169,6 +171,8 @@ void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _
 
 
     Lock_Unlock(&self->inodeManagementLock);
+
+    return err;
 }
 
 // Returns true if the filesystem can be safely unmounted which means that no

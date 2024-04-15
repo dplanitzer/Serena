@@ -30,14 +30,16 @@ catch:
 
 errno_t DirectoryChannel_finalize(DirectoryChannelRef _Nonnull self)
 {
-    Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
+    decl_try_err();
+
+    err = Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
     self->inode = NULL;
 
     Object_Release(self->filesystem);
     self->filesystem = NULL;
 
     Lock_Deinit(&self->lock);
-    return EOK;
+    return err;
 }
 
 // Creates an independent copy of the receiver. The copy receives its own strong

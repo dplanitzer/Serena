@@ -279,7 +279,7 @@ extern InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull
 // Relinquishes the given node back to the filesystem. This method will invoke
 // the filesystem onRemoveNodeFromDisk() if no directory is referencing the inode
 // anymore. This will remove the inode from disk.
-extern void Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked pNode);
+extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked pNode);
 
 
 //
