@@ -52,6 +52,10 @@
 //
 // Behavior of the close() system call:
 //
+// The close() system call releases one ownership reference of an I/O channel
+// and it removes the provided descriptor/ioc from the I/O channel table. The
+// channel is scheduled for finalization once the last ownership reference (also
+// meaning the last user visible descriptor/ioc) has been dropped.
 // Close may flush buffered data to the I/O resource (ie disk). This write may
 // fail with an error and close returns this error. However the close will still
 // run to completion and close the I/O channel. The returned error is purely
@@ -95,6 +99,8 @@ any_subclass_funcs(IOChannel,
     // the finalization process. A channel is expected to be finalized and the
     // underlying I/O resource available for reuse once this method returns (with
     // or without an error).
+    // Subclassers should not invoke the super implementation themselves. This is
+    // taken care of automatically.
     errno_t (*finalize)(void* _Nonnull self);
 
     // Creates a copy of the receiver. Copying an I/O channel means that the new

@@ -49,7 +49,8 @@ extern errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int 
 // by calling IOChannelTable_AcquireChannel(). Note that the I/O channel may be
 // freed by this function. It is ot safe to continue to use the channel reference
 // once this function returns.
-extern void IOChannelTable_RelinquishChannel(IOChannelTable* _Nonnull self, IOChannelRef _Nullable pChannel);
+#define IOChannelTable_RelinquishChannel(__self, __pChannel) \
+IOChannel_EndOperation(pChannel)
 
 // Creates a new named reference of the I/O channel 'ioc'. The new descriptor/name
 // value will be at least 'minIocValue'.

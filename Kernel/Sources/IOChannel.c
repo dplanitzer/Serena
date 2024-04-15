@@ -8,6 +8,8 @@
 
 #include "IOChannel.h"
 
+typedef errno_t (*IOChannel_Finalize_Impl)(void* _Nonnull self);
+
 
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
@@ -32,8 +34,26 @@ catch:
 static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
 {
     decl_try_err();
+    IOChannel_Finalize_Impl pPrevFinalizeImpl = NULL;
+    Class* pCurClass = classof(self);
 
-    err = invoke_0(finalize, IOChannel, self);
+    for(;;) {
+        IOChannel_Finalize_Impl pCurFinalizeImpl = (IOChannel_Finalize_Impl)implementationof(finalize, IOChannel, pCurClass);
+        
+        if (pCurFinalizeImpl != pPrevFinalizeImpl) {
+            const errno_t err0 = pCurFinalizeImpl(self);
+
+            if (err == EOK) { err = err0; }
+            pPrevFinalizeImpl = pCurFinalizeImpl;
+        }
+
+        if (pCurClass == &kIOChannelClass) {
+            break;
+        }
+
+        pCurClass = pCurClass->super;
+    }
+
     Lock_Deinit(&self->countLock);
     kfree(self);
 

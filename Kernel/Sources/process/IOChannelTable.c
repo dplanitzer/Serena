@@ -142,15 +142,6 @@ catch:
     return err;
 }
 
-// Relinquishes the given channel. The channel must have been acquire previously
-// by calling IOChannelTable_AcquireChannel(). Note that the I/O channel may be
-// freed by this function. It is ot safe to continue to use the channel reference
-// once this function returns.
-void IOChannelTable_RelinquishChannel(IOChannelTable* _Nonnull self, IOChannelRef _Nullable pChannel)
-{
-    IOChannel_EndOperation(pChannel);
-}
-
 // Creates a new named reference of the I/O channel 'ioc'. The new descriptor/name
 // value will be at least 'minIocValue'.
 errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int ioc, int minIocValue, int * _Nonnull pOutNewIoc)
