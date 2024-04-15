@@ -20,6 +20,10 @@ open_class_with_ref(Object, Any,
     AtomicInt   retainCount;
 );
 any_subclass_funcs(Object,
+    // Invoked when the last strong reference of the object has been released.
+    // Overrides should release all resources held by the object.
+    // Note that you do not need to call the super implementation from your
+    // override. The object runtime takes care of that automatically. 
     void    (*deinit)(void* _Nonnull self);
 );
 
