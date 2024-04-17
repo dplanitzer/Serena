@@ -376,7 +376,7 @@ SYSCALL_2(sema_tryacquire, int od, int npermits)
 
 SYSCALL_1(dispose, int od)
 {
-    return Process_DisposePrivateResource(Process_GetCurrent(), pArgs->od);
+    return Process_DisposeUResource(Process_GetCurrent(), pArgs->od);
 }
 
 // Allocates more address space to the calling process. The address space is

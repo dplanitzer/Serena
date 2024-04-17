@@ -1,0 +1,69 @@
+//
+//  UResourceTable.h
+//  kernel
+//
+//  Created by Dietmar Planitzer on 4/15/24.
+//  Copyright © 2024 Dietmar Planitzer. All rights reserved.
+//
+
+#ifndef UResourceTable_h
+#define UResourceTable_h
+
+#include <dispatcher/Lock.h>
+#include <UResource.h>
+
+
+typedef struct UResourceTable {
+    UResourceRef _Nullable * _Nonnull   table;
+    size_t                              tableCapacity;
+    size_t                              resourcesCount;
+    Lock                                lock;
+} UResourceTable;
+
+
+extern errno_t UResourceTable_Init(UResourceTable* _Nonnull self);
+extern void UResourceTable_Deinit(UResourceTable* _Nonnull self);
+
+// Finds an empty slot in the resource table and stores the resource there.
+// Returns the resource descriptor and EOK on success and a suitable error and
+// -1 otherwise. Note that this function takes ownership of the provided
+// resource.
+extern errno_t UResourceTable_AdoptResource(UResourceTable* _Nonnull self, UResourceRef _Consuming _Nonnull pRes, int * _Nonnull pOutDescriptor);
+
+// Disposes the resource at the index 'desc'. Disposing a resource means that
+// the entry (name/descriptor) 'desc' is removed from the table and that the
+// resource is scheduled for deallocation and deallocated as soon as all still
+// ongoing operations have completed.
+extern errno_t UResourceTable_DisposeResource(UResourceTable* _Nonnull self, int desc);
+
+// Returns the resource that is named by 'desc'. The resource is guaranteed to
+// stay alive until it is relinquished. You should relinquish the resource by
+// calling UResourceTable_RelinquishResource(). Returns the resource and EOK on
+// success and a suitable error and NULL otherwise.
+extern errno_t UResourceTable_AcquireResource(UResourceTable* _Nonnull self, int desc, Class* _Nonnull pExpectedClass, UResourceRef _Nullable * _Nonnull pOutResource);
+
+#define UResourceTable_AcquireResourceAs(__self, __desc, __className, __pOutResource) \
+UResourceTable_AcquireResource(__self, __desc, &k##__className##Class, (UResourceRef*)__pOutResource)
+
+// Same as above but acquires two resources at the same time. Only succeeds if
+// both resources can be acquired successfully.
+extern errno_t UResourceTable_AcquireTwoResources(UResourceTable* _Nonnull self,
+    int desc1, Class* _Nonnull pExpectedClass1, UResourceRef _Nullable * _Nonnull pOutResource1,
+    int desc2, Class* _Nonnull pExpectedClass2, UResourceRef _Nullable * _Nonnull pOutResource2);
+
+#define UResourceTable_AcquireTwoResourcesAs(__self, __desc1, __className1, __pOutResource1, __desc2, __className2, __pOutResource2) \
+UResourceTable_AcquireTwoResources(__self, __desc1, &k##__className1##Class, (UResourceRef*)__pOutResource1, __desc2, &k##__className2##Class, (UResourceRef*)__pOutResource2)
+
+// Relinquishes the given resource. The resource must have been acquired previously
+// by calling UResourceTable_AcquireResource(). Note that the resource may be
+// freed by this function. It is not safe to continue to use the resource reference
+// once this function returns.
+#define UResourceTable_RelinquishResource(__self, __pResource) \
+UResource_EndOperation(__pResource)
+
+// Same as above but relinquishes two resources at the same time
+#define UResourceTable_RelinquishTwoResources(__self, __pResource1, __pResource2) \
+UResource_EndOperation(__pResource1); \
+UResource_EndOperation(__pResource2)
+
+#endif /* UResourceTable_h */

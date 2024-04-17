@@ -14,7 +14,7 @@ errno_t UConditionVariable_Create(UConditionVariableRef _Nullable * _Nonnull pOu
     decl_try_err();
     UConditionVariableRef self;
 
-    try(Object_Create(UConditionVariable, &self));
+    try(UResource_AbstractCreate(&kUConditionVariableClass, (UResourceRef*)&self));
     ConditionVariable_Init(&self->cv);
     *pOutSelf = self;
     return EOK;
@@ -29,6 +29,6 @@ void UConditionVariable_deinit(UConditionVariableRef _Nonnull self)
     ConditionVariable_Deinit(&self->cv);
 }
 
-class_func_defs(UConditionVariable, Object,
-override_func_def(deinit, UConditionVariable, Object)
+class_func_defs(UConditionVariable, UResource,
+override_func_def(deinit, UConditionVariable, UResource)
 );

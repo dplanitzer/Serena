@@ -9,15 +9,14 @@
 #ifndef USemaphore_h
 #define USemaphore_h
 
-#include <klib/klib.h>
-#include <kobj/Object.h>
+#include <UResource.h>
 #include <dispatcher/Semaphore.h>
 
 
-open_class_with_ref(USemaphore, Object,
+open_class_with_ref(USemaphore, UResource,
     Semaphore    sema;
 );
-open_class_funcs(USemaphore, Object,
+open_class_funcs(USemaphore, UResource,
 );
 
 

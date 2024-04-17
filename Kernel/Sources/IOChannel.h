@@ -27,13 +27,13 @@
 // is finalized. Finalizing an I/O channel means that it releases all its resources
 // and that it may flush data that is still buffered up.
 //
-// Operations on an I/O channel are tracking with the IOChannel_BeginOperation()
+// Operations on an I/O channel are tracked with the IOChannel_BeginOperation()
 // and IOChannel_EndOperation() calls. The former should be called before invoking
 // one or more channel I/O operations and the latter one should be called at the
 // end of a sequence of I/O operation calls.
 //
 // The IOChannelTable in a process takes care of the ownership of an I/O channel.
-// It also offers the IOChannelTable_AcquireChannel() and
+// It also provides the IOChannelTable_AcquireChannel() and
 // IOChannelTable_RelinquishChannel() calls to take care of the I/O operation
 // tracking.
 //

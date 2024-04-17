@@ -9,16 +9,15 @@
 #ifndef UConditionVariable_h
 #define UConditionVariable_h
 
-#include <klib/klib.h>
-#include <kobj/Object.h>
+#include <UResource.h>
 #include <dispatcher/ConditionVariable.h>
 #include "ULock.h"
 
 
-open_class_with_ref(UConditionVariable, Object,
+open_class_with_ref(UConditionVariable, UResource,
     ConditionVariable   cv;
 );
-open_class_funcs(UConditionVariable, Object,
+open_class_funcs(UConditionVariable, UResource,
 );
 
 

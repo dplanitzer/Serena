@@ -18,35 +18,28 @@ errno_t Process_CreateUConditionVariable(ProcessRef _Nonnull pProc, int* _Nullab
     decl_try_err();
     UConditionVariableRef pCV = NULL;
 
-    Lock_Lock(&pProc->lock);
-
-    *pOutOd = -1;
     try(UConditionVariable_Create(&pCV));
-    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pCV, pOutOd));
+    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pCV, pOutOd));
+    pCV = NULL;
+    return EOK;
 
 catch:
-    Object_Release(pCV);
-    Lock_Unlock(&pProc->lock);
+    UResource_Dispose(pCV);
+    *pOutOd = -1;
     return err;
 }
 
 // Wakes the given condition variable and unlock the associated lock if
 // 'dLock' is not -1. This does a signal or broadcast.
-errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int od, int dLock, bool bBroadcast)
+errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int odCV, int odLock, bool bBroadcast)
 {
     decl_try_err();
     UConditionVariableRef pCV = NULL;
     ULockRef pLock = NULL;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*)&pCV)) == EOK) {
-        if (dLock != -1) {
-            err = Process_CopyPrivateResourceForDescriptor(pProc, dLock, (ObjectRef*)&pLock);
-        }
-        if (err == EOK) {
-            UConditionVariable_WakeAndUnlock(pCV, pLock, bBroadcast);
-        }
-        Object_Release(pCV);
-        Object_Release(pLock);
+    if ((err = UResourceTable_AcquireTwoResourcesAs(&pProc->uResourcesTable, odCV, UConditionVariable, &pCV, odLock, ULock, &pLock)) == EOK) {
+        UConditionVariable_WakeAndUnlock(pCV, pLock, bBroadcast);
+        UResourceTable_RelinquishTwoResources(&pProc->uResourcesTable, pCV, pLock);
     }
     return err;
 }
@@ -55,21 +48,15 @@ errno_t Process_WakeUConditionVariable(ProcessRef _Nonnull pProc, int od, int dL
 // wait has timed out. Automatically and atomically acquires the associated
 // lock on wakeup. An ETIMEOUT error is returned if teh condition variable is
 // not signaled before 'deadline'.
-errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull pProc, int od, int dLock, TimeInterval deadline)
+errno_t Process_WaitUConditionVariable(ProcessRef _Nonnull pProc, int odCV, int odLock, TimeInterval deadline)
 {
     decl_try_err();
     UConditionVariableRef pCV = NULL;
     ULockRef pLock = NULL;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*)&pCV)) == EOK) {
-        if (dLock != -1) {
-            err = Process_CopyPrivateResourceForDescriptor(pProc, dLock, (ObjectRef*)&pLock);
-        }
-        if (err == EOK) {
-            err = UConditionVariable_Wait(pCV, pLock, deadline);
-        }
-        Object_Release(pCV);
-        Object_Release(pLock);
+    if ((err = UResourceTable_AcquireTwoResourcesAs(&pProc->uResourcesTable, odCV, UConditionVariable, &pCV, odLock, ULock, &pLock)) == EOK) {
+        err = UConditionVariable_Wait(pCV, pLock, deadline);
+        UResourceTable_RelinquishTwoResources(&pProc->uResourcesTable, pCV, pLock);
     }
     return err;
 }
@@ -81,15 +68,14 @@ errno_t Process_CreateULock(ProcessRef _Nonnull pProc, int* _Nullable pOutOd)
     decl_try_err();
     ULockRef pLock = NULL;
 
-    Lock_Lock(&pProc->lock);
-
-    *pOutOd = -1;
     try(ULock_Create(&pLock));
-    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pLock, pOutOd));
+    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pLock, pOutOd));
+    pLock = NULL;
+    return EOK;
 
 catch:
-    Object_Release(pLock);
-    Lock_Unlock(&pProc->lock);
+    UResource_Dispose(pLock);
+    *pOutOd = -1;
     return err;
 }
 
@@ -100,9 +86,9 @@ errno_t Process_TryULock(ProcessRef _Nonnull pProc, int od)
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pLock)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = (ULock_TryLock(pLock)) ? EOK : EBUSY;
-        Object_Release(pLock);
+        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pLock);
     }
     return err;
 }
@@ -114,9 +100,9 @@ errno_t Process_LockULock(ProcessRef _Nonnull pProc, int od)
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pLock)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = ULock_Lock(pLock);
-        Object_Release(pLock);
+        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pLock);
     }
     return err;
 }
@@ -128,9 +114,9 @@ errno_t Process_UnlockULock(ProcessRef _Nonnull pProc, int od)
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pLock)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = ULock_Unlock(pLock);
-        Object_Release(pLock);
+        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pLock);
     }
     return err;
 }
@@ -142,15 +128,14 @@ errno_t Process_CreateUSemaphore(ProcessRef _Nonnull pProc, int npermits, int* _
     decl_try_err();
     USemaphoreRef pSema = NULL;
 
-    Lock_Lock(&pProc->lock);
-
-    *pOutOd = -1;
     try(USemaphore_Create(npermits, &pSema));
-    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pSema, pOutOd));
+    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pSema, pOutOd));
+    pSema = NULL;
+    return EOK;
 
 catch:
-    Object_Release(pSema);
-    Lock_Unlock(&pProc->lock);
+    UResource_Dispose(pSema);
+    *pOutOd = -1;
     return err;
 }
 
@@ -160,9 +145,9 @@ errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull pProc, int od, int nper
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pSema)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         USemaphore_Relinquish(pSema, npermits);
-        Object_Release(pSema);
+        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pSema);
     }
     return err;
 }
@@ -175,9 +160,9 @@ errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull pProc, int od, int npermit
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pSema)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         err = USemaphore_Acquire(pSema, npermits, deadline);
-        Object_Release(pSema);
+        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pSema);
     }
     return err;
 }
@@ -189,9 +174,9 @@ errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull pProc, int npermits, in
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = Process_CopyPrivateResourceForDescriptor(pProc, od, (ObjectRef*) &pSema)) == EOK) {
+    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         err = USemaphore_TryAcquire(pSema, npermits) ? EOK : EBUSY;
-        Object_Release(pSema);
+        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pSema);
     }
     return err;
 }

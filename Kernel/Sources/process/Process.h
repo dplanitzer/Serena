@@ -74,6 +74,11 @@ extern void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
 extern errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, const SpawnOptions* _Nonnull pOptions, ProcessId * _Nullable pOutChildPid);
 
 
+// Disposes the user resource identified by the given descriptor. The resource
+// is deallocated and removed from the resource table.
+extern errno_t Process_DisposeUResource(ProcessRef _Nonnull pProc, int od);
+
+
 // Dispatches the execution of the given user closure on the given dispatch queue
 // with the given options. 
 extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned long options, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext);
@@ -138,18 +143,8 @@ extern errno_t Process_AcquireUSemaphore(ProcessRef _Nonnull pProc, int od, int 
 extern errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull pProc, int npermits, int od);
 
 
-// Destroys the private resource identified by the given descriptor. The resource
-// is deallocated and removed from the resource table.
-extern errno_t Process_DisposePrivateResource(ProcessRef _Nonnull pProc, int od);
-
 // Allocates more (user) address space to the given process.
 extern errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem);
-
-
-// Looks up the private resource identified by the given descriptor and returns
-// a strong reference to it if found. The caller should call release() on the
-// private resource once it is no longer needed.
-extern errno_t Process_CopyPrivateResourceForDescriptor(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource);
 
 
 //

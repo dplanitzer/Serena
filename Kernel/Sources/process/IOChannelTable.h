@@ -9,7 +9,6 @@
 #ifndef IOChannelTable_h
 #define IOChannelTable_h
 
-#include <klib/klib.h>
 #include <dispatcher/Lock.h>
 #include <IOChannel.h>
 
@@ -45,12 +44,12 @@ extern errno_t IOChannelTable_ReleaseChannel(IOChannelTable* _Nonnull self, int 
 // success and a suitable error and NULL otherwise.
 extern errno_t IOChannelTable_AcquireChannel(IOChannelTable* _Nonnull self, int ioc, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-// Relinquishes the given channel. The channel must have been acquire previously
+// Relinquishes the given channel. The channel must have been acquired previously
 // by calling IOChannelTable_AcquireChannel(). Note that the I/O channel may be
-// freed by this function. It is ot safe to continue to use the channel reference
+// freed by this function. It is not safe to continue to use the channel reference
 // once this function returns.
 #define IOChannelTable_RelinquishChannel(__self, __pChannel) \
-IOChannel_EndOperation(pChannel)
+IOChannel_EndOperation(__pChannel)
 
 // Creates a new named reference of the I/O channel 'ioc'. The new descriptor/name
 // value will be at least 'minIocValue'.

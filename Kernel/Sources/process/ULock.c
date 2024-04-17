@@ -14,7 +14,7 @@ errno_t ULock_Create(ULockRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     ULockRef self;
 
-    try(Object_Create(ULock, &self));
+    try(UResource_AbstractCreate(&kULockClass, (UResourceRef*)&self));
     Lock_InitWithOptions(&self->lock, kLockOption_InterruptibleLock);
     *pOutSelf = self;
     return EOK;
@@ -29,6 +29,6 @@ void ULock_deinit(ULockRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-class_func_defs(ULock, Object,
-override_func_def(deinit, ULock, Object)
+class_func_defs(ULock, UResource,
+override_func_def(deinit, ULock, UResource)
 );

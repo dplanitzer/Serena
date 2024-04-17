@@ -12,11 +12,11 @@
 #include "Process.h"
 #include "AddressSpace.h"
 #include "IOChannelTable.h"
+#include "UResourceTable.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filesystem/PathResolver.h>
-#include <kobj/ObjectArray.h>
 
 
 // A process tombstone is created by a process that voluntarily or involuntarily
@@ -32,8 +32,6 @@ typedef struct ProcessTombstone {
 } ProcessTombstone;
 
 
-#define INITIAL_PRIVATE_RESOURCES_CAPACITY  8
-
 final_class_ivars(Process, Object,
     Lock                            lock;
     
@@ -45,7 +43,7 @@ final_class_ivars(Process, Object,
 
     // Resources
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
-    ObjectArray                     privateResources;   // Process private resources (aka non-sharable resources)
+    UResourceTable                  uResourcesTable;    // Process private resources (aka non-sharable resources)
 
     // Filesystems/Namespace
     PathResolverRef _Nonnull        pathResolver;
@@ -71,11 +69,6 @@ final_class_ivars(Process, Object,
 
 extern errno_t Process_Create(ProcessId ppid, User user, PathResolverRef _Nonnull pResolver, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull self);
-
-extern errno_t Process_RegisterPrivateResource_Locked(ProcessRef _Nonnull self, ObjectRef _Nonnull pResource, int* _Nonnull pOutDescriptor);
-extern errno_t Process_UnregisterPrivateResource(ProcessRef _Nonnull self, int od, ObjectRef _Nullable * _Nonnull pOutResource);
-extern void Process_DisposeAllPrivateResources_Locked(ProcessRef _Nonnull self);
-extern errno_t Process_GetDescriptorForPrivateResource_Locked(ProcessRef _Nonnull self, ObjectRef _Nonnull pResource, int* _Nonnull pOutDescriptor);
 
 // Frees all tombstones
 extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self);

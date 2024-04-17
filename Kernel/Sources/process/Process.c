@@ -7,6 +7,7 @@
 //
 
 #include "ProcessPriv.h"
+#include "UDispatchQueue.h"
 #include <filesystem/FilesystemManager.h>
 
 
@@ -71,8 +72,8 @@ errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, 
 {
     decl_try_err();
     ProcessRef pProc;
-    DispatchQueueRef pMainDispatchQueue = NULL;
-    int mainDispatchQueueDesc = -1;
+    UDispatchQueueRef pMainQueue = NULL;
+    int mainQueueDesc = -1;
     
     try(Object_Create(Process, &pProc));
 
@@ -82,7 +83,7 @@ errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, 
     pProc->pid = Process_GetNextAvailablePID();
 
     try(IOChannelTable_Init(&pProc->ioChannelTable));
-    try(ObjectArray_Init(&pProc->privateResources, INITIAL_PRIVATE_RESOURCES_CAPACITY));
+    try(UResourceTable_Init(&pProc->uResourcesTable));
     try(IntArray_Init(&pProc->childPids, 0));
 
     pProc->pathResolver = pResolver;
@@ -92,12 +93,10 @@ errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, 
     List_Init(&pProc->tombstones);
     ConditionVariable_Init(&pProc->tombstoneSignaler);
 
-    try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, pProc, &pMainDispatchQueue));
-    try(Process_RegisterPrivateResource_Locked(pProc, (ObjectRef) pMainDispatchQueue, &mainDispatchQueueDesc));
-    Object_Release(pMainDispatchQueue);
-    pProc->mainDispatchQueue = pMainDispatchQueue;
-    pMainDispatchQueue = NULL;
-    assert(mainDispatchQueueDesc == 0);
+    try(UDispatchQueue_Create(0, 1, kDispatchQoS_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, pProc, &pMainQueue));
+    pProc->mainDispatchQueue = pMainQueue->dispatchQueue;
+    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pMainQueue, &mainQueueDesc));
+    assert(mainQueueDesc == 0);
 
     try(AddressSpace_Create(&pProc->addressSpace));
 
@@ -105,7 +104,8 @@ errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, 
     return EOK;
 
 catch:
-    Object_Release(pMainDispatchQueue);
+    UResource_Dispose(pMainQueue);
+    pProc->mainDispatchQueue = NULL;
     Object_Release(pProc);
     *pOutProc = NULL;
     return err;
@@ -114,9 +114,7 @@ catch:
 void Process_deinit(ProcessRef _Nonnull pProc)
 {
     IOChannelTable_Deinit(&pProc->ioChannelTable);
-
-    Process_DisposeAllPrivateResources_Locked(pProc);
-    ObjectArray_Deinit(&pProc->privateResources);
+    UResourceTable_Deinit(&pProc->uResourcesTable);
 
     PathResolver_Destroy(pProc->pathResolver);
 
@@ -168,19 +166,6 @@ void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
     void* ptr = pProc->argumentsBase;
     Lock_Unlock(&pProc->lock);
     return ptr;
-}
-
-// Destroys the private resource identified by the given descriptor. The resource
-// is deallocated and removed from the resource table.
-errno_t Process_DisposePrivateResource(ProcessRef _Nonnull pProc, int od)
-{
-    decl_try_err();
-    ObjectRef pResource;
-
-    if ((err = Process_UnregisterPrivateResource(pProc, od, &pResource)) == EOK) {
-        Object_Release(pResource);
-    }
-    return err;
 }
 
 // Allocates more (user) address space to the given process.

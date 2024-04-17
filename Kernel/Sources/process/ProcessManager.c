@@ -8,6 +8,7 @@
 
 #include "ProcessManager.h"
 #include <dispatcher/Lock.h>
+#include <kobj/ObjectArray.h>
 #include "ProcessPriv.h"
 
 typedef struct ProcessManager {

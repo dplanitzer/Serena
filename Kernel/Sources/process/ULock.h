@@ -9,15 +9,14 @@
 #ifndef ULock_h
 #define ULock_h
 
-#include <klib/klib.h>
-#include <kobj/Object.h>
+#include <UResource.h>
 #include <dispatcher/Lock.h>
 
 
-open_class_with_ref(ULock, Object,
+open_class_with_ref(ULock, UResource,
     Lock    lock;
 );
-open_class_funcs(ULock, Object,
+open_class_funcs(ULock, UResource,
 );
 
 
