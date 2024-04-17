@@ -60,13 +60,13 @@ int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc)
 errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned long options, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext)
 {
     decl_try_err();
-    DispatchQueueRef pQueue;
+    UDispatchQueueRef pQueue;
 
     if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
         if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
-            err = DispatchQueue_DispatchSync(pQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+            err = DispatchQueue_DispatchSync(pQueue->dispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
         } else {
-            err = DispatchQueue_DispatchAsync(pQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+            err = DispatchQueue_DispatchAsync(pQueue->dispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
         }
         UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
     }
@@ -78,10 +78,10 @@ errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned 
 errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext)
 {
     decl_try_err();
-    DispatchQueueRef pQueue;
+    UDispatchQueueRef pQueue;
 
     if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-        err = DispatchQueue_DispatchAsyncAfter(pQueue, deadline, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+        err = DispatchQueue_DispatchAsyncAfter(pQueue->dispatchQueue, deadline, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
         UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
     }
     return err;
