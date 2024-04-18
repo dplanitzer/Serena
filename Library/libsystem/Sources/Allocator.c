@@ -7,6 +7,7 @@
 //
 
 #include <System/Allocator.h>
+#include <System/Error.h>
 #include <System/Lock.h>
 #include <System/Process.h>
 #include <System/_math.h>

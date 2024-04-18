@@ -9,8 +9,6 @@
 #ifndef _SYS_ALLOCATOR_H
 #define _SYS_ALLOCATOR_H 1
 
-#include <System/_cmndef.h>
-#include <System/Error.h>
 #include <System/Types.h>
 
 struct Allocator;
