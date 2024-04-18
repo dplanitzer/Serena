@@ -7,24 +7,16 @@
 //
 
 #include <System/Urt.h>
-#include <System/Allocator.h>
 #include <System/Types.h>
 #include <System/Process.h>
 
 
 static UrtFunc* __gUrtFuncTable;
-AllocatorRef kAllocator_Main;
 
 
-void System_Init(ProcessArguments* _Nonnull argsp)
+void __UrtInit(ProcessArguments* _Nonnull argsp)
 {
-    if (__gUrtFuncTable) {
-        return;
-    }
-    
     __gUrtFuncTable = argsp->urt_funcs;
-
-    Allocator_Create(&kAllocator_Main);
 }
 
 

@@ -14,22 +14,17 @@
 
 void *malloc(size_t size)
 {
-    decl_try_err();
-    void* ptr;
-
-    err = Allocator_AllocateBytes(kAllocator_Main, size, &ptr);
-    if (err != EOK) {
-        errno = err;
-        return NULL;
+    void* ptr = Allocator_Allocate(kAllocator_Main, size);
+    
+    if (ptr == NULL) {
+        errno = ENOMEM;
     }
-    else {
-        return ptr;
-    }
+    return ptr;
 }
 
 void free(void *ptr)
 {
-    Allocator_DeallocateBytes(kAllocator_Main, ptr);
+    Allocator_Deallocate(kAllocator_Main, ptr);
 }
 
 void *calloc(size_t num, size_t size)
@@ -45,15 +40,10 @@ void *calloc(size_t num, size_t size)
 
 void *realloc(void *ptr, size_t new_size)
 {
-    decl_try_err();
-    void* np;
+    void* np = Allocator_Reallocate(kAllocator_Main, ptr, new_size);
 
-    err = Allocator_ReallocateBytes(kAllocator_Main, ptr, new_size, &np);
-    if (err != EOK) {
-        errno = err;
-        return NULL;
+    if (np == NULL) {
+        errno = ENOMEM;
     }
-    else {
-        return np;
-    }
+    return np;
 }

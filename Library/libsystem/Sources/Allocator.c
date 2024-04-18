@@ -282,7 +282,7 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 // Allocates a new heap.
 // \param pOutAllocator receives the allocator reference
 // \return an error or EOK
-errno_t Allocator_Create(AllocatorRef _Nullable * _Nonnull pOutAllocator)
+AllocatorRef _Nullable Allocator_Create(void)
 {
     decl_try_err();
     MemoryDescriptor md;
@@ -310,15 +310,13 @@ errno_t Allocator_Create(AllocatorRef _Nullable * _Nonnull pOutAllocator)
     pAllocator->first_region = pFirstRegion;
     pAllocator->last_region = pFirstRegion;
     
-    *pOutAllocator = pAllocator;
-    return EOK;
+    return pAllocator;
 
 catch:
     if (pAllocator) {
         Lock_Deinit(&pAllocator->lock);
     }
-    *pOutAllocator = NULL;
-    return err;
+    return NULL;
 }
 
 // Returns the size of the given memory block. This is the size minus the block
@@ -384,14 +382,13 @@ catch:
     return err;
 }
 
-static errno_t __Allocator_AllocateBytes_Locked(AllocatorRef _Nonnull pAllocator, size_t nbytes, void* _Nullable * _Nonnull pOutPtr)
+static void* _Nullable __Allocator_Allocate_Locked(AllocatorRef _Nonnull pAllocator, size_t nbytes)
 {
     decl_try_err();
 
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
-        *((uintptr_t*) pOutPtr) = UINTPTR_MAX;
-        return EOK;
+        return (void*)UINTPTR_MAX;
     }
     
     
@@ -425,26 +422,23 @@ static errno_t __Allocator_AllocateBytes_Locked(AllocatorRef _Nonnull pAllocator
     pAllocator->first_allocated_block = pMemBlock;
 
     // Calculate and return the user memory block pointer
-    *pOutPtr = (char*)pMemBlock + sizeof(MemBlock);
-
-    return EOK;
+    return (char*)pMemBlock + sizeof(MemBlock);
 
 catch:
-    *pOutPtr = NULL;
-    return err;
+    return NULL;
 }
 
-errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes, void* _Nullable * _Nonnull pOutPtr)
+void* _Nullable Allocator_Allocate(AllocatorRef _Nonnull pAllocator, size_t nbytes)
 {
     Lock_Lock(&pAllocator->lock);
-    const errno_t r = __Allocator_AllocateBytes_Locked(pAllocator, nbytes, pOutPtr);
+    void* p = __Allocator_Allocate_Locked(pAllocator, nbytes);
     Lock_Unlock(&pAllocator->lock);
-    return r;
+    return p;
 }
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-errno_t __Allocator_DeallocateBytes_Locked(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+errno_t __Allocator_Deallocate_Locked(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         return EOK;
@@ -493,27 +487,25 @@ errno_t __Allocator_DeallocateBytes_Locked(AllocatorRef _Nonnull pAllocator, voi
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+void Allocator_Deallocate(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     Lock_Lock(&pAllocator->lock);
-    const errno_t r = __Allocator_DeallocateBytes_Locked(pAllocator, ptr);
+    __Allocator_Deallocate_Locked(pAllocator, ptr);
     Lock_Unlock(&pAllocator->lock);
-    return r;
 }
 
-errno_t Allocator_ReallocateBytes(AllocatorRef _Nonnull pAllocator, void *ptr, size_t new_size, void* _Nullable * _Nonnull pOutPtr)
+void* _Nullable Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr, size_t new_size)
 {
-    decl_try_err();
     void* np;
 
     Lock_Lock(&pAllocator->lock);
     const size_t old_size = (ptr) ? __Allocator_GetBlockSize_Locked(pAllocator, ptr) : 0;
     
     if (old_size != new_size) {
-        try(__Allocator_AllocateBytes_Locked(pAllocator, new_size, &np));
+        np = __Allocator_Allocate_Locked(pAllocator, new_size);
 
         __Memcpy(np, ptr, __min(old_size, new_size));
-        __Allocator_DeallocateBytes_Locked(pAllocator, ptr);
+        __Allocator_Deallocate_Locked(pAllocator, ptr);
     }
     else {
         np = ptr;
@@ -521,9 +513,7 @@ errno_t Allocator_ReallocateBytes(AllocatorRef _Nonnull pAllocator, void *ptr, s
 
 catch:
     Lock_Unlock(&pAllocator->lock);
-    *pOutPtr = np;
-
-    return err;
+    return np;
 }
 
 // Returns the size of the given memory block. This is the size minus the block
@@ -535,6 +525,14 @@ size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull p
     const size_t r = __Allocator_GetBlockSize_Locked(pAllocator, ptr);
     Lock_Unlock(&pAllocator->lock);
     return r;
+}
+
+
+AllocatorRef kAllocator_Main;
+
+void __AllocatorInit(void)
+{
+    kAllocator_Main = Allocator_Create();
 }
 
 #if 0
