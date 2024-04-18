@@ -7,11 +7,14 @@
 //
 
 #include <System/Urt.h>
+#include <System/Allocator.h>
 #include <System/Types.h>
 #include <System/Process.h>
 
 
 static UrtFunc* __gUrtFuncTable;
+AllocatorRef kAllocator_Main;
+
 
 void System_Init(ProcessArguments* _Nonnull argsp)
 {
@@ -20,6 +23,24 @@ void System_Init(ProcessArguments* _Nonnull argsp)
     }
     
     __gUrtFuncTable = argsp->urt_funcs;
+
+    Allocator_Create(&kAllocator_Main);
+}
+
+
+void *__Memset(void *dst, int c, size_t count)
+{
+    return ((void* (*)(void*, int, size_t))__gUrtFuncTable[kUrtFunc_memset])(dst, c, count);
+}
+
+void *__Memcpy(void * _Restrict dst, const void * _Restrict src, size_t count)
+{
+    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gUrtFuncTable[kUrtFunc_memcpy])(dst, src, count);
+}
+
+void *__Memmove(void * _Restrict dst, const void * _Restrict src, size_t count)
+{
+    return ((void* (*)(void* _Restrict, const void* _Restrict, size_t))__gUrtFuncTable[kUrtFunc_memmove])(dst, src, count);
 }
 
 

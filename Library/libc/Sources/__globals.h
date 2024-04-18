@@ -10,13 +10,11 @@
 #define ___GLOBALS_H 1
 
 #include <stdlib.h>
-#include "Allocator.h"
 #include "List.h"
 #include <System/Process.h>
 
 
 // Private globals
-extern AllocatorRef __gAllocator;
 extern ProcessArguments* __gProcessArguments;
 extern SList __gAtExitQueue;
 

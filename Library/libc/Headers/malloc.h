@@ -19,14 +19,6 @@ extern void *calloc(size_t num, size_t size);
 extern void *realloc(void *ptr, size_t new_size);
 extern void free(void *ptr);
 
-
-//
-// Debugging tools.
-//
-
-// Prints a description of the heap to the console.
-extern void malloc_dump(void);
-
 __CPP_END
 
 #endif /* _MALLOC_H */

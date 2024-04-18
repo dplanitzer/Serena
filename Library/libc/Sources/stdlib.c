@@ -20,7 +20,6 @@ void __stdlibc_init(ProcessArguments* _Nonnull argsp)
 
     System_Init(argsp);
     __exit_init();
-    __malloc_init();
     __locale_init();
     __stdio_init();
 }

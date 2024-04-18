@@ -17,6 +17,5 @@ FILE* _Stdout;
 FILE* _Stderr;
 
 // Private globals
-AllocatorRef __gAllocator;
 ProcessArguments* __gProcessArguments;
 SList __gAtExitQueue;
