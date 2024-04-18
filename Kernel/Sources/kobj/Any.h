@@ -9,7 +9,7 @@
 #ifndef Any_h
 #define Any_h
 
-#include <kobj/Runtime.h>
+#include <kobj/Class.h>
 
 
 // The Any type. This is the root type aka top type of the object type system.

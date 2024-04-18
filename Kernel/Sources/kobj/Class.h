@@ -1,13 +1,13 @@
 //
-//  Runtime.h
+//  Class.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 10/16/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef Runtime_h
-#define Runtime_h
+#ifndef Class_h
+#define Class_h
 
 #include <klib/Types.h>
 
@@ -181,4 +181,4 @@ extern void PrintClasses(void);
 extern void _RegisterClass(Class* _Nonnull pClass);
 #endif /* __DISKIMAGE__ */
 
-#endif /* Runtime_h */
+#endif /* Class_h */
