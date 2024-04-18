@@ -38,6 +38,7 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     ConditionVariable_Init(&pQueue->work_available_signaler);
     ConditionVariable_Init(&pQueue->vp_shutdown_signaler);
     pQueue->owning_process = pProc;
+    pQueue->descriptor = -1;
     pQueue->virtual_processor_pool = vpPoolRef;
     pQueue->state = kQueueState_Running;
     pQueue->minConcurrency = (int8_t)minConcurrency;
@@ -519,13 +520,6 @@ static void DispatchQueue_RemoveTimer_Locked(DispatchQueueRef _Nonnull pQueue, T
 // MARK: API
 ////////////////////////////////////////////////////////////////////////////////
 
-// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
-// queue is not owned by any particular process. Eg the kernel main dispatch queue.
-ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue)
-{
-    return pQueue->owning_process;
-}
-
 // Returns the dispatch queue that is associated with the virtual processor that
 // is running the calling code. This will always return a dispatch queue for
 // callers that are running in a dispatch queue context. It returns NULL though
@@ -534,6 +528,29 @@ ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonn
 DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void)
 {
     return (DispatchQueueRef) VirtualProcessor_GetCurrent()->dispatchQueue;
+}
+
+
+// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
+// queue is not owned by any particular process. Eg the kernel main dispatch queue.
+ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue)
+{
+    return pQueue->owning_process;
+}
+
+// Sets the dispatch queue descriptor
+// Not concurrency safe
+void DispatchQueue_SetDescriptor(DispatchQueueRef _Nonnull pQueue, int desc)
+{
+    pQueue->descriptor = desc;
+}
+
+// Returns the dispatch queue descriptor and -1 if no descriptor has been set on
+// the queue.
+// Not concurrency safe
+int DispatchQueue_GetDescriptor(DispatchQueueRef _Nonnull pQueue)
+{
+    return pQueue->descriptor;
 }
 
 

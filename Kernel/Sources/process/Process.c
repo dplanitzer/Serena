@@ -96,6 +96,7 @@ errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, 
     try(UDispatchQueue_Create(0, 1, kDispatchQoS_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, pProc, &pMainQueue));
     pProc->mainDispatchQueue = pMainQueue->dispatchQueue;
     try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pMainQueue, &mainQueueDesc));
+    DispatchQueue_SetDescriptor(pProc->mainDispatchQueue, mainQueueDesc);
     assert(mainQueueDesc == 0);
 
     try(AddressSpace_Create(&pProc->addressSpace));

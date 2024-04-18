@@ -20,6 +20,7 @@ errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull pProc, int minConcurrenc
 
     try(UDispatchQueue_Create(minConcurrency, maxConcurrency, qos, priority, gVirtualProcessorPool, pProc, &pQueue));
     try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pQueue, pOutDescriptor));
+    DispatchQueue_SetDescriptor(pQueue, *pOutDescriptor);
     pQueue = NULL;
     return EOK;
 
@@ -35,24 +36,7 @@ catch:
 // the context of a (process owned) dispatch queue.
 int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc)
 {
-    decl_try_err();
-    int desc;
-
-    Lock_Lock(&pProc->lock);
-    // XXX optimize this: we don't need a persistent reference to the queue since
-    // we're holding the process lock while doing the lookup and we only care about
-    // the descriptor anyway.
-    // Actually, look into storing the descriptor in the queue object itself since
-    // we can get the queue object easily.
-    // XXX bring this back
-    //err = Process_GetDescriptorForPrivateResource_Locked(pProc, (ObjectRef) DispatchQueue_GetCurrent(), &desc);
-    desc = -1;
-    err = EOK;
-    //XXX
-    assert(err == EOK);
-    Lock_Unlock(&pProc->lock);
-
-    return desc;
+    return DispatchQueue_GetDescriptor(DispatchQueue_GetCurrent());
 }
 
 // Dispatches the execution of the given user closure on the given dispatch queue

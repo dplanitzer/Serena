@@ -108,9 +108,10 @@ final_class_ivars(DispatchQueue, Object,
     SList                               timer_cache_queue;  // Cache of reusable timers
     SList                               completion_signaler_cache_queue;    // Cache of reusable completion signalers
     Lock                                lock;
-    ConditionVariable                   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has bbeen enqueued
-    ConditionVariable                   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinqushed itself because the queue is in the process of shutting down
+    ConditionVariable                   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has been enqueued
+    ConditionVariable                   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinquished itself because the queue is in the process of shutting down
     ProcessRef _Nullable _Weak          owning_process;             // The process that owns this queue
+    int                                 descriptor;                 // The user space descriptor of this queue
     VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
     int                                 items_queued_count;         // Number of work items queued up (item_queue)
     int8_t                              state;                      // The current dispatch queue state

@@ -156,10 +156,6 @@ extern void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull 
 // Object_Release()
 
 
-// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
-// queue is not owned by any particular process. Eg the kernel main dispatch queue.
-extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue);
-
 // Returns the dispatch queue that is associated with the virtual processor that
 // is running the calling code. This will always return a dispatch queue for
 // callers that are running in a dispatch queue context. It returns NULL though
@@ -232,5 +228,19 @@ extern void DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull pQueue, TimerRef
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 // Note that queued up DispatchSync() calls will return with an EINTR.
 extern void DispatchQueue_Flush(DispatchQueueRef _Nonnull pQueue);
- 
+
+
+// Returns the process that owns the dispatch queue. Returns NULL if the dispatch
+// queue is not owned by any particular process. Eg the kernel main dispatch queue.
+extern ProcessRef _Nullable _Weak DispatchQueue_GetOwningProcess(DispatchQueueRef _Nonnull pQueue);
+
+// Sets the dispatch queue descriptor
+// Not concurrency safe
+extern void DispatchQueue_SetDescriptor(DispatchQueueRef _Nonnull pQueue, int desc);
+
+// Returns the dispatch queue descriptor and -1 if no descriptor has been set on
+// the queue.
+// Not concurrency safe
+extern int DispatchQueue_GetDescriptor(DispatchQueueRef _Nonnull pQueue);
+
 #endif /* DispatchQueue_h */
