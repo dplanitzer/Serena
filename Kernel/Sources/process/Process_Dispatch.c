@@ -86,9 +86,9 @@ errno_t Process_TryULock(ProcessRef _Nonnull pProc, int od)
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = (ULock_TryLock(pLock)) ? EOK : EBUSY;
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pLock);
+        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;
 }
@@ -114,9 +114,9 @@ errno_t Process_UnlockULock(ProcessRef _Nonnull pProc, int od)
     decl_try_err();
     ULockRef pLock;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, ULock, &pLock)) == EOK) {
         err = ULock_Unlock(pLock);
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pLock);
+        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;
 }
@@ -145,9 +145,9 @@ errno_t Process_RelinquishUSemaphore(ProcessRef _Nonnull pProc, int od, int nper
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         USemaphore_Relinquish(pSema, npermits);
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pSema);
+        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;
 }
@@ -174,9 +174,9 @@ errno_t Process_TryAcquireUSemaphore(ProcessRef _Nonnull pProc, int npermits, in
     decl_try_err();
     USemaphoreRef pSema;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, USemaphore, &pSema)) == EOK) {
         err = USemaphore_TryAcquire(pSema, npermits) ? EOK : EBUSY;
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pSema);
+        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;
 }

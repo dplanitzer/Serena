@@ -20,7 +20,7 @@ errno_t Process_CreateDispatchQueue(ProcessRef _Nonnull pProc, int minConcurrenc
 
     try(UDispatchQueue_Create(minConcurrency, maxConcurrency, qos, priority, gVirtualProcessorPool, pProc, &pQueue));
     try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pQueue, pOutDescriptor));
-    DispatchQueue_SetDescriptor(pQueue, *pOutDescriptor);
+    DispatchQueue_SetDescriptor(pQueue->dispatchQueue, *pOutDescriptor);
     pQueue = NULL;
     return EOK;
 
@@ -46,14 +46,19 @@ errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned 
     decl_try_err();
     UDispatchQueueRef pQueue;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-        if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
+    if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
+        if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
             err = DispatchQueue_DispatchSync(pQueue->dispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
-        } else {
-            err = DispatchQueue_DispatchAsync(pQueue->dispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+            UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
         }
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
     }
+    else {
+        if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
+            err = DispatchQueue_DispatchAsync(pQueue->dispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+            UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
+        }
+    }
+
     return err;
 }
 
@@ -64,9 +69,9 @@ errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od,
     decl_try_err();
     UDispatchQueueRef pQueue;
 
-    if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
+    if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
         err = DispatchQueue_DispatchAsyncAfter(pQueue->dispatchQueue, deadline, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
-        UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
+        UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;
 }

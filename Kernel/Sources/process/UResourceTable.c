@@ -118,6 +118,43 @@ catch:
     return err;
 }
 
+// Begins direct access on the resource identified by the descriptor 'desc'.
+// The resource is expected to be an instance of class 'pExpectedClass'. Returns
+// a reference to the resource on success and an error otherwise.
+// Note that this function leaves the resource table locked on success. You must
+// call the end-direct-resource-access method once you're done with the resource.
+// Direct resource access should only be used for cases where the resource
+// operation is running for a very short amount of time and can not block for a
+// potentially long time.
+errno_t UResourceTable_BeginDirectResourceAccess(UResourceTable* _Nonnull self, int desc, Class* _Nonnull pExpectedClass, UResourceRef _Nullable * _Nonnull pOutResource)
+{
+    decl_try_err();
+    UResourceRef pRes = NULL;
+
+    Lock_Lock(&self->lock);
+    if (desc < 0 || desc > self->tableCapacity || self->table[desc] == NULL) {
+        throw(EBADF);
+    }
+
+    pRes = self->table[desc];
+    if (classof(pRes) != pExpectedClass) {
+        throw(EBADF);
+    }
+    *pOutResource = pRes;
+    return EOK;
+
+catch:
+    Lock_Unlock(&self->lock);
+    *pOutResource = NULL;
+    return err;
+}
+
+// Ends direct access to a resource and unlocks the resource table.
+void UResourceTable_EndDirectResourceAccess(UResourceTable* _Nonnull self)
+{
+    Lock_Unlock(&self->lock);
+}
+
 // Returns the resource that is named by 'desc'. The resource is guaranteed to
 // stay alive until it is relinquished. You should relinquish the resource by
 // calling UResourceTable_RelinquishResource(). Returns the resource and EOK on
