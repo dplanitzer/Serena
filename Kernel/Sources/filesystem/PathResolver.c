@@ -211,8 +211,7 @@ errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull self, User us
 // Returns true if the given node represents the resolver's root directory.
 bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
-    return Inode_GetFilesystemId(self->rootDirectory) == Inode_GetFilesystemId(pNode)
-        && Inode_GetId(self->rootDirectory) == Inode_GetId(pNode);
+    return Inode_Equals(self->rootDirectory, pNode);
 }
 
 errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull self, User user, char* _Nonnull  pBuffer, size_t bufferSize)
@@ -233,7 +232,7 @@ errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull self, User
     char* p = &pBuffer[bufferSize - 1];
     *p = '\0';
 
-    while (iter.inode != self->rootDirectory) {
+    while (!Inode_Equals(iter.inode, self->rootDirectory)) {
         const InodeId childInodeIdToLookup = Inode_GetId(iter.inode);
 
         try(PathResolver_UpdateIteratorWalkingUp(self, user, &iter));
@@ -344,7 +343,7 @@ static errno_t PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull s
     // Note that if we do a lookup for ".", that we get back the same inode with
     // which we started but with an extra +1 ref count. We keep the iterator
     // intact and we drop the extra +1 ref in this case.
-    if (pIter->inode == pChildNode) {
+    if (Inode_Equals(pIter->inode, pChildNode)) {
         Filesystem_RelinquishNode(pIter->filesystem, pChildNode);
         return EOK;
     }
