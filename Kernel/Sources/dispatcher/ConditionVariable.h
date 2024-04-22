@@ -25,6 +25,14 @@ extern void ConditionVariable_Init(ConditionVariable* _Nonnull pCondVar);
 // waiting on the conditional variable are woken up with an EINTR error.
 extern void ConditionVariable_Deinit(ConditionVariable* _Nonnull pCondVar);
 
+// Signals the condition variable. This will wake up one waiter.
+#define ConditionVariable_Signal(__self) \
+ConditionVariable_WakeAndUnlock(__self, NULL, false)
+
+// Broadcasts the condition variable. This will wake up all waiters.
+#define ConditionVariable_Broadcast(__self) \
+ConditionVariable_WakeAndUnlock(__self, NULL, true)
+
 // Signals the condition variable and optionally unlocks the provided lock. This
 // will wake up one waiter.
 #define ConditionVariable_SignalAndUnlock(__self, __pLock) \
