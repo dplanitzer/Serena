@@ -15,20 +15,69 @@
 #include "User.h"
 
 
-// A file system stores Inodes. The Inodes may form a tree. This is an abstract
-// base  class that must be subclassed and fully implemented by a file system.
+// A filesystem stores files and directories persistently. Files and directories
+// are represented in memory by Inode instances. An inode has to be acquired by
+// invoking one of the Filesystem_AcquireNode() functions before it can be used.
+// Once an inode is no longer needed, it should be relinquished which will cause
+// the filesystem to write inode metadata changes back to the underlying storage
+// device.
 //
-// Inode state
 //
-// It is the responsibility of the filesystem to provide the required functionality
-// to modify the state of inodes and doing it in a way that preserves consistency
-// in the face on concurrency. Thus it is the job of the filesystem to implement
-// and apply a locking model for inodes. See "Locking protocol" below.
-// 
-// Locking protocol
+// Filesystem and inode lifetimes:
 //
-// Every inode has a lock associated with it. The filesystem (XXX currently)
-// must lock the inode before it accesses or modifies any of its properties. 
+// The lifetime of a filesystem instance is always >= the lifetime of all
+// acquired inodes. This is guaranteed by ensuring that a filesystem can not be
+// destroyed as long as there is at least one acquired inode outstanding. Thus
+// it is sufficient to either hold a strong reference to a filesystem object
+// (use Object_Retain() to get it) or a strong reference to an inode from the
+// filesystem in question (use Filesystem_AcquireNode9) to get it) to ensure that
+// the filesystem stays alive.
+//
+//
+// Mounting/unmounting a filesystem:
+//
+// A filesystem must be mounted before it can be used and any inodes can be
+// acquired. Conversely all acquired inodes must have been relinquished before
+// the filesystem can be unmounted and destroyed. However a filesystem may be
+// force-unmounted which means that the filesystem is removed from the file
+// hierarchy (and thus is no longer accessible by any process) and the actual
+// unmount and destruction action is deferred until the last acquired inode is
+// relinquished.
+//
+//
+// Locking protocol(s):
+//
+// File & Directory I/O Channels:
+//
+// This is handled by the kernel. Files and directories serialize read/write/seek
+// operations to ensure that a read will return all the original data found in the
+// region that it accesses and not a mix of original data and data that a concurrent
+// write wants to place there. Additionally this serialization ensures that the
+// current file position moves in a meaningful way and not in a way where it
+// appears to erratically jump forward and backward between concurrently scheduled
+// operations.
+//
+// Filesystem Mount, Unmount and Root Node Acquisition:
+//
+// This must be implemented by Filesystem subclassers. A concrete Filesystem
+// implementation must guarantee that mount, unmount and root inode acquisition
+// operations are executed non-currently and atomically. Ie all three operations
+// and their shared state must be protected by a lock. This way a filesystem user
+// can be sure that once they have successfully acquired the root node of a
+// filesystem that the filesystem can not be unmounted and neither deallocated
+// for as long as the user is holding on to the inode and using it. An unmount
+// will only succeed if no inodes are acquired at the beginning of the unmount
+// operation. Furthermore a Filesystem subclass implementation must guarantee
+// that a root inode acquisition will fail with an EIO error if the filesystem
+// is in unmounted state.
+//
+// Remember that a filesystem can not be unmounted and neither deallocated as
+// long as there is at least one acquired inode outstanding. Because of this and
+// the fact that all filesystem operations expect at least one inode as input,
+// non of the filesystem operation functions need to be protected with a lock.
+// The inode that is passed to an operation acts in a sense as a lock and a
+// guarantee that the filesystem can not be unmounted and deallocated while the
+// operation is executing.
 //
 open_class(Filesystem, Object,
     FilesystemId        fsid;
@@ -309,9 +358,9 @@ extern errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Non
 // \param pOutNode receives the acquired inode
 extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
-// Returns true if the filesystem can be safely unmounted which means that no
-// inodes owned by the filesystem is currently in memory.
-extern bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self);
+// Returns true if the filesystem can be unmounted which means that there are no
+// acquired inodes outstanding that belong to this filesystem.
+extern bool Filesystem_CanUnmount(FilesystemRef _Nonnull self);
 
 #define Filesystem_OnReadNodeFromDisk(__self, __id, __pOutNode) \
 invoke_n(onReadNodeFromDisk, Filesystem, __self, __id, __pOutNode)

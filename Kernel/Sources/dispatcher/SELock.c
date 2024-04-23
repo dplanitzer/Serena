@@ -39,6 +39,26 @@ errno_t SELock_Deinit(SELock* _Nonnull self)
     return err;
 }
 
+static errno_t _SELock_AcquireSharedLockSlow(SELock* _Nonnull self)
+{
+    decl_try_err();
+
+    for (;;) {
+        err = ConditionVariable_Wait(&self->cv, &self->lock, kTimeInterval_Infinity);
+        if (err != EOK) {
+            break;
+        }
+
+        if (self->state == kSELState_Unlocked || self->state == kSELState_LockedShared) {
+            self->state = kSELState_LockedShared;
+            self->ownerCount++;
+            break;
+        }
+    }
+
+    return err;
+}
+
 // Blocks the caller until the lock can be taken successfully in shared mode. If
 // the lock was initialized with the kLockOption_InterruptibleLock option, then
 // this function may be interrupted by another VP and it returns EINTR if this
@@ -50,6 +70,10 @@ errno_t SELock_LockShared(SELock* _Nonnull self)
     Lock_Lock(&self->lock);
     switch (self->state) {
         case kSELState_Unlocked:
+            self->state = kSELState_LockedShared;
+            self->ownerCount = 1;
+            break;
+
         case kSELState_LockedShared:
             self->state = kSELState_LockedShared;
             self->ownerCount++;
@@ -58,18 +82,7 @@ errno_t SELock_LockShared(SELock* _Nonnull self)
         case kSELState_LockedExclusive:
             // Someone is holding the lock in exclusive mode -> gotta wait until
             // that guy drops the exclusive lock
-            for (;;) {
-                err = ConditionVariable_Wait(&self->cv, &self->lock, kTimeInterval_Infinity);
-                if (err != EOK) {
-                    break;
-                }
-
-                if (self->state == kSELState_Unlocked || self->state == kSELState_LockedShared) {
-                    self->state = kSELState_LockedShared;
-                    self->ownerCount++;
-                    break;
-                }
-            }
+            err = _SELock_AcquireSharedLockSlow(self);
             break;
 
         default:
@@ -80,7 +93,7 @@ errno_t SELock_LockShared(SELock* _Nonnull self)
     return err;
 }
 
-static errno_t _SELock_AcquireExclusiveLock(SELock* _Nonnull self)
+static errno_t _SELock_AcquireExclusiveLockSlow(SELock* _Nonnull self)
 {
     decl_try_err();
 
@@ -112,12 +125,12 @@ errno_t SELock_LockExclusive(SELock* _Nonnull self)
     switch (self->state) {
         case kSELState_Unlocked:
             self->state = kSELState_LockedExclusive;
-            self->ownerCount = 0;
+            self->ownerCount = 1;
             self->exclusiveOwnerVpId = VirtualProcessor_GetCurrentVpid();
             break;
 
         case kSELState_LockedShared:
-            _SELock_AcquireExclusiveLock(self);
+            _SELock_AcquireExclusiveLockSlow(self);
             break;
 
         case kSELState_LockedExclusive:
@@ -125,7 +138,7 @@ errno_t SELock_LockExclusive(SELock* _Nonnull self)
                 self->ownerCount++;
             }
             else {
-                err = _SELock_AcquireExclusiveLock(self);
+                err = _SELock_AcquireExclusiveLockSlow(self);
             }
             break;
 

@@ -11,8 +11,7 @@
 
 #include "SerenaFS.h"
 #include "VolumeFormat.h"
-#include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
+#include <dispatcher/SELock.h>
 #include <driver/MonotonicClock.h>
 
 
@@ -54,8 +53,12 @@ typedef struct SFSDirectoryEntryPointer {
 //
 
 final_class_ivars(SerenaFS, Filesystem,
-    Lock                    lock;                           // Shared between filesystem proper and inodes
-    ConditionVariable       notifier;
+    SELock                  seLock;
+    struct {
+        unsigned int    isMounted:1;    // true while mounted; false if not mounted
+        unsigned int    isReadOnly;     // true if mounted read-only; false if mounted read-write
+        unsigned int    reserved:30;
+    }                       flags;
 
     DiskDriverRef _Nullable diskDriver;
     
@@ -67,7 +70,6 @@ final_class_ivars(SerenaFS, Filesystem,
 
     LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
 
-    bool                    isReadOnly;                     // true if mounted read-only; false if mounted read-write
     uint8_t                 tmpBlock[kSFSBlockSize];
 );
 

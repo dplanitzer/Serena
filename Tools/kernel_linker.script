@@ -1,5 +1,5 @@
 MEMORY  {
-    kernel_rom (rx)  : ORIGIN = 0xfc0000, LENGTH = 128K
+    kernel_rom (rx)  : ORIGIN = 0xfc0000, LENGTH = 256K
 }
 
 SECTIONS {

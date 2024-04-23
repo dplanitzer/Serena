@@ -13,9 +13,9 @@
 
 typedef SRWLOCK Lock; 
 
-extern void Lock_Init(Lock* pLock);
-extern void Lock_Deinit(Lock* pLock);
-extern void Lock_Lock(Lock* pLock);
-extern void Lock_Unlock(Lock* pLock);
+extern void Lock_Init(Lock* self);
+extern void Lock_Deinit(Lock* self);
+extern void Lock_Lock(Lock* self);
+extern void Lock_Unlock(Lock* self);
 
 #endif /* di_Lock_h */

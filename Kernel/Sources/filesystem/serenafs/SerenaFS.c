@@ -178,9 +178,9 @@ errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
     assert(sizeof(SFSDirectoryEntry) * kSFSDirectoryEntriesPerBlock == kSFSBlockSize);
     
     try(Filesystem_Create(&kSerenaFSClass, (FilesystemRef*)&self));
-    Lock_Init(&self->lock);
-    ConditionVariable_Init(&self->notifier);
-    self->isReadOnly = false;
+    SELock_Init(&self->seLock);
+    self->flags.isMounted = false;
+    self->flags.isReadOnly = false;
 
     *pOutSelf = self;
     return EOK;
@@ -196,10 +196,9 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
     // Can not be that we are getting deallocated while being mounted
     // diskimage note: the diskimage tool isn't currently properly unmounting
     // the FS which would trigger this assert. Disabled it for now
-    assert(self->diskDriver == NULL);
+    assert(!self->flags.isMounted);
 #endif
-    ConditionVariable_Deinit(&self->notifier);
-    Lock_Deinit(&self->lock);
+    SELock_Deinit(&self->seLock);
 }
 
 static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
@@ -446,7 +445,7 @@ void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
 static errno_t SerenaFS_CheckAccess_Locked(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
 {
     if (mode == kFilePermission_Write) {
-        if (self->isReadOnly) {
+        if (self->flags.isReadOnly) {
             return EROFS;
         }
 
@@ -771,9 +770,11 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
+        return err;
+    }
 
-    if (self->diskDriver) {
+    if (self->flags.isMounted) {
         throw(EIO);
     }
 
@@ -830,9 +831,10 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
     // Store the disk driver reference
     self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
+    self->flags.isMounted = true;
     
 catch:
-    Lock_Unlock(&self->lock);
+    SELock_Unlock(&self->seLock);
     return err;
 }
 
@@ -845,14 +847,15 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
-    if (self->diskDriver == NULL) {
+    if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
+        return err;
+    }
+    if (!self->flags.isMounted) {
         throw(EIO);
     }
-
-    // XXX wait for still ongoing FS operations to settle
-
-    // XXX make sure that there are no inodes in use anymore
+    if (!Filesystem_CanUnmount((FilesystemRef)self)) {
+        throw(EBUSY);
+    }
 
     // XXX flush all still cached file data to disk (synchronously)
 
@@ -865,33 +868,7 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
     self->diskDriver = NULL;
 
 catch:
-    Lock_Unlock(&self->lock);
-/*
-    Lock_Lock(&self->lock);
-    if (!self->isMounted) {
-        throw(EIO);
-    }
-
-    // There might be one or more operations currently ongoing. Wait until they
-    // are done.
-    while(self->busyCount > 0) {
-        try(ConditionVariable_Wait(&self->notifier, &self->lock, kTimeInterval_Infinity));
-    }
-
-
-    // Make sure that there are no open files anywhere referencing us
-    if (!FilesystemManager_CanSafelyUnmountFilesystem(gFilesystemManager, (FilesystemRef)self)) {
-        throw(EBUSY);
-    }
-
-    // XXX Flush dirty buffers to disk
-
-    Object_Release(self->root);
-    self->root = NULL;
-
-catch:
-    Lock_Unlock(&self->lock);
-    */
+    SELock_Unlock(&self->seLock);
     return err;
 }
 
@@ -900,7 +877,19 @@ catch:
 // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
 errno_t SerenaFS_acquireRootNode(SerenaFSRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
-    return Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, pOutNode);
+    decl_try_err();
+
+    err = SELock_LockShared(&self->seLock);
+    if (err == EOK) {
+        if (self->flags.isMounted) {
+            err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, pOutNode);
+        }
+        else {
+            err = EIO;
+        }
+        SELock_Unlock(&self->seLock);
+    }
+    return err;
 }
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
@@ -966,7 +955,7 @@ errno_t SerenaFS_setFileInfo(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locke
 {
     decl_try_err();
 
-    if (self->isReadOnly) {
+    if (self->flags.isReadOnly) {
         throw(EROFS);
     }
     try(Inode_SetFileInfo(pNode, user, pInfo));
@@ -1300,24 +1289,18 @@ catch:
 
 errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
-    const errno_t err = SerenaFS_xRead(self, 
-        pNode, 
-        *pInOutOffset,
-        pBuffer,
-        nBytesToRead,
-        nOutBytesRead);
+    decl_try_err();
+
+    err = SerenaFS_xRead(self, pNode, *pInOutOffset, pBuffer, nBytesToRead, nOutBytesRead);
     *pInOutOffset += *nOutBytesRead;
     return err;
 }
 
 errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten)
 {
-    const errno_t err = SerenaFS_xWrite(self, 
-        pNode, 
-        *pInOutOffset,
-        pBuffer,
-        nBytesToWrite,
-        nOutBytesWritten);
+    decl_try_err();
+
+    err = SerenaFS_xWrite(self, pNode, *pInOutOffset, pBuffer, nBytesToWrite, nOutBytesWritten);
     *pInOutOffset += *nOutBytesWritten;
     return err;
 }

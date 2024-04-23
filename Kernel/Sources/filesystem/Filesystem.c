@@ -175,9 +175,9 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     return err;
 }
 
-// Returns true if the filesystem can be safely unmounted which means that no
-// inodes owned by the filesystem is currently in memory.
-bool Filesystem_CanSafelyUnmount(FilesystemRef _Nonnull self)
+// Returns true if the filesystem can be unmounted which means that there are no
+// acquired inodes outstanding that belong to this filesystem.
+bool Filesystem_CanUnmount(FilesystemRef _Nonnull self)
 {
     Lock_Lock(&self->inodeManagementLock);
     const bool ok = PointerArray_IsEmpty(&self->inodesInUse);
