@@ -119,7 +119,8 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     try(formatDiskImage(pDisk));
 
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
-    try(FilesystemManager_Create(pFS, pDisk, &gFilesystemManager));
+    try(FilesystemManager_Create(&gFilesystemManager));
+    try(FilesystemManager_Mount(gFilesystemManager, pFS, pDisk, NULL, 0, NULL));
 
     di_iterate_directory_callbacks cb;
     cb.context = pFS;

@@ -170,7 +170,7 @@ static void init_root_filesystem(void)
     // Create a SerenaFS instance and mount it as the root filesystem on the RAM
     // disk
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
-    try(FilesystemManager_Create(pFS, (DiskDriverRef)pRamDisk, &gFilesystemManager));
+    try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pRamDisk, NULL, 0, NULL));
     return;
 
 catch:
@@ -211,6 +211,10 @@ static void OnMain(void)
     // to userspace in the form of the Userspace Runtime Services.
     krt_init();
     
+
+    // Initialize the filesystem manager
+    try_bang(FilesystemManager_Create(&gFilesystemManager));
+
 
     // Find and mount a root filesystem.
     init_root_filesystem();
