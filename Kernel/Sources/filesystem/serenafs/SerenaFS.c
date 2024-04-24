@@ -192,12 +192,6 @@ catch:
 
 void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
-#ifndef __DISKIMAGE__
-    // Can not be that we are getting deallocated while being mounted
-    // diskimage note: the diskimage tool isn't currently properly unmounting
-    // the FS which would trigger this assert. Disabled it for now
-    assert(!self->flags.isMounted);
-#endif
     SELock_Deinit(&self->seLock);
 }
 
@@ -866,6 +860,7 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
     
     Object_Release(self->diskDriver);
     self->diskDriver = NULL;
+    self->flags.isMounted = false;
 
 catch:
     SELock_Unlock(&self->seLock);

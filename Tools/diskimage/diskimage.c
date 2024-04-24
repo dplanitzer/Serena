@@ -39,7 +39,6 @@ static errno_t beginDirectory(FilesystemRef _Nonnull pFS, const char* _Nonnull p
     pc.name = pEntry->name;
     pc.count = strlen(pc.name);
 
-    //printf("  %s   <DIR>\n", pEntry->name);
     try(Filesystem_CreateDirectory(pFS, &pc, pParentNode, gDefaultUser, gDefaultDirPermissions));
     try(Filesystem_AcquireNodeForName(pFS, pParentNode, &pc, gDefaultUser, pOutDirInode));
     return EOK;
@@ -79,7 +78,6 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
     }
 
 
-    //printf("  %s   %llu bytes\n", pEntry->name, pEntry->fileSize);
     try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, permissions, &pDstFile));
 
     try(di_concat_path(pBasePath, pEntry->name, gBuffer, sizeof(gBuffer)));
@@ -132,6 +130,7 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     try(Filesystem_AcquireRootNode(pFS, &rootInode));
     try(di_iterate_directory(pRootPath, &cb, rootInode));
     Filesystem_RelinquishNode(pFS, rootInode);
+    try(FilesystemManager_Unmount(gFilesystemManager, pFS, false));
 
     try(DiskDriver_WriteToPath(pDisk, pDstPath));
     

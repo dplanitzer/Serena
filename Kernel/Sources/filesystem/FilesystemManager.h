@@ -24,7 +24,7 @@ extern FilesystemManagerRef _Nonnull  gFilesystemManager;
 extern errno_t FilesystemManager_Create(FilesystemRef _Nonnull pRootFileSys, DiskDriverRef _Nonnull pDriver, FilesystemManagerRef _Nullable * _Nonnull pOutManager);
 
 // Returns a strong reference to the root of the global filesystem.
-extern FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef _Nonnull pManager);
+extern FilesystemRef _Nullable FilesystemManager_CopyRootFilesystem(FilesystemManagerRef _Nonnull pManager);
 
 // Returns the filesystem for the given filesystem ID. NULL is returned if no
 // file system for the given ID is registered/mounted anywhere in the global
@@ -49,7 +49,16 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Fil
 // filesystem instance may be mounted at at most one directory.
 extern errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nonnull _Locked pDirNode);
 
-// Unmounts the given filesystem from the given directory.
-extern errno_t FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode);
+// Unmounts the given filesystem from the directory it is currently mounted on.
+// Remember that one filesystem instance can be mounted at most once at any given
+// time.
+// A filesystem is only unmountable under normal circumstances if there are no
+// more acquired inodes outstanding. Unmounting will fail with an EBUSY error if
+// there is at least one acquired inode outstanding. However you may pass true
+// for 'force' which forces the unmount. A forced unmount means that the
+// filesystem will be immediately removed from the file hierarchy. However the
+// unmounting and deallocation of the filesystem instance will be deferred until
+// after the last outstanding inode has been relinquished.
+extern errno_t FilesystemManager_Unmount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, bool force);
  
 #endif /* FilesystemManager_h */

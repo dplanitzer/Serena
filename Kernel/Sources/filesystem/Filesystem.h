@@ -43,6 +43,8 @@
 // hierarchy (and thus is no longer accessible by any process) and the actual
 // unmount and destruction action is deferred until the last acquired inode is
 // relinquished.
+// Note that a particular filesystem instance can be mounted at most once at any
+// given time.
 //
 //
 // Locking protocol(s):

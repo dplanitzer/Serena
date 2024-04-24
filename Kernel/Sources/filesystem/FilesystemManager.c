@@ -23,10 +23,10 @@ typedef struct Mountpoint {
 } Mountpoint;
 
 typedef struct FilesystemManager {
-    Lock                    lock;
-    ObjectArray             filesystems;
-    List                    mountpoints;
-    Mountpoint*             rootMountpoint;
+    Lock                        lock;
+    ObjectArray                 filesystems;
+    List                        mountpoints;
+    Mountpoint* _Weak _Nullable rootMountpoint;
 } FilesystemManager;
 
 static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable pDirNodeToMountAt);
@@ -118,6 +118,21 @@ static Mountpoint* _Nullable FilesystemManager_GetMountpointForInode_Locked(File
     return NULL;
 }
 
+// Returns the mountpoint data structure for the given filesystem.
+// Returns NULL if the filesystem isn't mounted.
+static Mountpoint* _Nullable FilesystemManager_GetMountpointForFilesystem_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFS)
+{
+    const FilesystemId fsidToLookFor = Filesystem_GetId(pFS);
+
+    List_ForEach(&self->mountpoints, Mountpoint, {
+        if (fsidToLookFor == Filesystem_GetId(pCurNode->mountedFilesystem)) {
+            return pCurNode;
+        }
+    });
+
+    return NULL;
+}
+
 // Internal mount function. Mounts the given filesystem at the given place. If
 // 'pDirNodeToMountAt' is NULL then 'pFileSysToMount' is mounted as the root
 // filesystem.
@@ -176,43 +191,45 @@ catch:
     return err;
 }
 
-// Unmounts the given filesystem from the given directory.
-static errno_t FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToUnmount, InodeRef _Nonnull _Locked pDirNode)
+// Unmounts the given filesystem instance from the filesystem hierarchy.
+static errno_t FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToUnmount, bool force)
 {
     decl_try_err();
 
-    // Make sure that 'pFileSys' is actually mounted at 'pDirNode'
+    // Make sure that 'pFileSysToUnmount' is actually mounted somewhere
     const FilesystemId unmountingFsid = Filesystem_GetId(pFileSysToUnmount);
-    Mountpoint* pMount = NULL;
-    
-    if (Inode_IsMountpoint(pDirNode)) {
-        pMount = FilesystemManager_GetMountpointForInode_Locked(self, pDirNode);
-    }
-    if (pMount == NULL || Filesystem_GetId(pMount->mountedFilesystem) != unmountingFsid) {
+    Mountpoint* pMount = FilesystemManager_GetMountpointForFilesystem_Locked(self, pFileSysToUnmount);
+    if (pMount == NULL) {
         throw(EINVAL);
     }
 
 
-    // Can not unmount our root filesystem
-    if (unmountingFsid == Filesystem_GetId(self->rootMountpoint->mountedFilesystem)) {
-        throw(EINVAL);
-    }
-
-
-    // The error returned from OnUnmount is purely advisory but will not stop the unmount from completing
+    // All errors returned from unmount are purely informational except EBUSY.
+    // The EBUSY error signals that the filesystem still has acquired inodes
+    // outstanding (XXX in the future we'll allow force unmounting by removing the
+    // FS from the file hierarchy but deferring the unmount until all inodes have
+    // been relinquished)
     err = Filesystem_OnUnmount(pMount->mountedFilesystem);
+    if (err == EBUSY) {
+        throw(EBUSY);
+    }
 
-    Inode_SetMountpoint(pDirNode, false);
     List_Remove(&self->mountpoints, &pMount->node);
+    if (List_IsEmpty(&self->mountpoints)) {
+        self->rootMountpoint = NULL;
+    }
 
-    Object_Release(pMount->mountedFilesystem);
-    pMount->mountedFilesystem = NULL;
+
     if (pMount->mountingInode) {
+        Inode_SetMountpoint(pMount->mountingInode, false);
         err = Filesystem_RelinquishNode(pMount->mountingFilesystem, pMount->mountingInode);
         pMount->mountingInode = NULL;
     }
+    Object_Release(pMount->mountedFilesystem);
+    pMount->mountedFilesystem = NULL;
     Object_Release(pMount->mountingFilesystem);
     pMount->mountingFilesystem = NULL;
+    
     kfree(pMount);
 
 catch:
@@ -221,10 +238,17 @@ catch:
 
 
 // Returns a strong reference to the root of the global filesystem.
-FilesystemRef _Nonnull FilesystemManager_CopyRootFilesystem(FilesystemManagerRef _Nonnull self)
+FilesystemRef _Nullable FilesystemManager_CopyRootFilesystem(FilesystemManagerRef _Nonnull self)
 {
+    FilesystemRef pFileSys;
+
     Lock_Lock(&self->lock);
-    FilesystemRef pFileSys = Object_RetainAs(self->rootMountpoint->mountedFilesystem, Filesystem);
+    if (self->rootMountpoint) {
+        pFileSys = Object_RetainAs(self->rootMountpoint->mountedFilesystem, Filesystem);
+    }
+    else {
+        pFileSys = NULL;
+    }
     Lock_Unlock(&self->lock);
 
     return pFileSys;
@@ -308,11 +332,20 @@ errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRe
     return err;
 }
 
-// Unmounts the given filesystem from the given directory.
-errno_t FilesystemManager_Unmount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, InodeRef _Nonnull _Locked pDirNode)
+// Unmounts the given filesystem from the directory it is currently mounted on.
+// Remember that one filesystem instance can be mounted at most once at any given
+// time.
+// A filesystem is only unmountable under normal circumstances if there are no
+// more acquired inodes outstanding. Unmounting will fail with an EBUSY error if
+// there is at least one acquired inode outstanding. However you may pass true
+// for 'force' which forces the unmount. A forced unmount means that the
+// filesystem will be immediately removed from the file hierarchy. However the
+// unmounting and deallocation of the filesystem instance will be deferred until
+// after the last outstanding inode has been relinquished.
+errno_t FilesystemManager_Unmount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, bool force)
 {
     Lock_Lock(&self->lock);
-    const errno_t err = FilesystemManager_Unmount_Locked(self, pFileSys, pDirNode);
+    const errno_t err = FilesystemManager_Unmount_Locked(self, pFileSys, force);
     Lock_Unlock(&self->lock);
     return err;
 }

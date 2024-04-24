@@ -40,6 +40,7 @@ errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
     FilesystemRef pRootFs = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
     PathResolverRef pResolver = NULL;
 
+    assert(pRootFs != NULL);
     try(PathResolver_Create(pRootFs, &pResolver));
     try(Process_Create(1, kUser_Root, pResolver, FilePermissions_MakeFromOctal(0022), pOutProc));
 
