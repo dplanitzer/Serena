@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <klib/klib.h>
-#include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 
 FilePermissions gDefaultDirPermissions;
@@ -113,14 +112,14 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     DiskDriverRef pDisk = NULL;
     FilesystemRef pFS = NULL;
     InodeRef rootInode = NULL;
+    uint32_t dummyParam = 0;
 
     DiskDriver_Create(512, 128, &pDisk);
     
     try(formatDiskImage(pDisk));
 
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
-    try(FilesystemManager_Create(&gFilesystemManager));
-    try(FilesystemManager_Mount(gFilesystemManager, pFS, pDisk, NULL, 0, NULL));
+    try(Filesystem_OnMount(pFS, pDisk, &dummyParam, 0));
 
     di_iterate_directory_callbacks cb;
     cb.context = pFS;
@@ -131,7 +130,7 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     try(Filesystem_AcquireRootNode(pFS, &rootInode));
     try(di_iterate_directory(pRootPath, &cb, rootInode));
     Filesystem_RelinquishNode(pFS, rootInode);
-    try(FilesystemManager_Unmount(gFilesystemManager, pFS, false));
+    try(Filesystem_OnUnmount(pFS));
 
     try(DiskDriver_WriteToPath(pDisk, pDstPath));
     

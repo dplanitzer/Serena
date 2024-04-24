@@ -68,7 +68,6 @@ DISKIMAGE_SRCS += ../Kernel/Sources/klib/Array.c ../Kernel/Sources/klib/List.c
 DISKIMAGE_SRCS += ../Kernel/Sources/kobj/Class.c ../Kernel/Sources/kobj/Any.c ../Kernel/Sources/kobj/Object.c ../Kernel/Sources/kobj/ObjectArray.c
 DISKIMAGE_SRCS += ../Kernel/Sources/User.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Filesystem.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/FilesystemManager.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Inode.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/PathComponent.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS.c
