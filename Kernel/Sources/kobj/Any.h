@@ -70,14 +70,15 @@ any_class(Any);
 
 // Invokes a dynamically dispatched method with the given arguments on the superclass of the receiver.
 #define super_0(__func, __superClassName, __self) \
-    dispatch_0(__func, __superClassName, superclassof(__self), __self)
+    dispatch_0(__func, __superClassName, _superimplclassof((Any*)__self, offsetof(struct __superClassName##MethodTable, __func)), __self)
 
 #define super_n(__func, __superClassName, __self, ...) \
-    dispatch_n(__func, __superClassName, superclassof(__self), __self, __VA_ARGS__)
+    dispatch_n(__func, __superClassName, _superimplclassof((Any*)__self, offsetof(struct __superClassName##MethodTable, __func)), __self, __VA_ARGS__)
 
 
 
 // Do not call these functions directly. Use the macros defined above instead.
 extern bool _instanceof(Any* _Nonnull pObj, Class* _Nonnull pTargetType);
+extern Class* _Nonnull _superimplclassof(Any* _Nonnull pObj, size_t methodOffset);
 
 #endif /* Any_h */
