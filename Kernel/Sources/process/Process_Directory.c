@@ -55,7 +55,7 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
     Lock_Lock(&pProc->lock);
 
     if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_CreateDirectory(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
+        err = Filesystem_CreateDirectory(Inode_GetFilesystem(r.inode), &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
     }
     PathResolverResult_Deinit(&r);
 
@@ -74,7 +74,7 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_OpenDirectory(r.filesystem, r.inode, pProc->realUser));
+    try(Filesystem_OpenDirectory(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser));
     // Note that this method takes ownership of the inode reference
     try(DirectoryChannel_Create(r.inode, &pDir));
     r.inode = NULL;

@@ -30,11 +30,12 @@ extern FilesystemRef _Nullable FilesystemManager_CopyRootFilesystem(FilesystemMa
 // namespace.
 extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerRef _Nonnull pManager, FilesystemId fsid);
 
-// Returns the mountpoint information of the node and filesystem that mounts the
-// given filesystem. ENOENT and NULLs are returned if the filesystem was never
-// mounted or is no longer mounted. EOK and NULLs are returned if 'pFileSys' is
-// the root filesystem (it has no parent file system).
-extern errno_t FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem);
+// Acquires the inode that is mounting the given filesystem instance. A suitable
+// error and NULL is returned if the given filesystem is not mounted (anymore)
+// or some other problem is detected.
+// EOK and NULLs are returned if 'pFileSys' is the root filesystem (it has no
+// parent file system).
+extern errno_t FilesystemManager_AcquireNodeMountingFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode);
 
 // Returns true if the given node is a mountpoint and false otherwise.
 extern bool FilesystemManager_IsNodeMountpoint(FilesystemManagerRef _Nonnull pManager, InodeRef _Nonnull _Locked pNode);

@@ -7,6 +7,7 @@
 //
 
 #include "GemDosExecutableLoader.h"
+#include <filesystem/Filesystem.h>
 
 
 static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull self, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)
@@ -46,7 +47,7 @@ static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _N
     return EOK;
 }
 
-errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FilesystemRef _Nonnull pFS, InodeRef _Nonnull pNode, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
+errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, InodeRef _Nonnull pNode, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
 {
     decl_try_err();
     FileOffset fileSize = Inode_GetFileSize(pNode);
@@ -68,9 +69,9 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 
 
     // Read the executable header
-    try(Filesystem_OpenFile(pFS, pNode, kOpen_Read, self->user));
+    try(Filesystem_OpenFile(Inode_GetFilesystem(pNode), pNode, kOpen_Read, self->user));
     fileOffset = 0ll;
-    try(Filesystem_ReadFile(pFS, pNode, &hdr, sizeof(hdr), &fileOffset, &nBytesRead));
+    try(Filesystem_ReadFile(Inode_GetFilesystem(pNode), pNode, &hdr, sizeof(hdr), &fileOffset, &nBytesRead));
 
 //    print("magic: %hx\n", hdr.magic);
 //    print("text: %d\n", hdr.text_size);
@@ -113,7 +114,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
 
     // Read the executable header, text and data segments into memory
     fileOffset = 0ll;
-    try(Filesystem_ReadFile(pFS, pNode, pImageBase, nbytes_to_read, &fileOffset, &nBytesRead));
+    try(Filesystem_ReadFile(Inode_GetFilesystem(pNode), pNode, pImageBase, nbytes_to_read, &fileOffset, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
     }
@@ -122,7 +123,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Files
     // Read the relocation information into memory
     uint8_t* pRelocBase = pImageBase + nbytes_to_read;
     fileOffset = fileOffset_to_reloc;
-    try(Filesystem_ReadFile(pFS, pNode, pRelocBase, reloc_size, &fileOffset, &nBytesRead));
+    try(Filesystem_ReadFile(Inode_GetFilesystem(pNode), pNode, pRelocBase, reloc_size, &fileOffset, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);
     }

@@ -46,7 +46,7 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
 
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pInode));
+    try(Filesystem_CreateFile(Inode_GetFilesystem(r.inode), &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pInode));
     // Note that this call takes ownership of the inode reference
     try(FileChannel_Create(pInode, options, &pFile));
     pInode = NULL;
@@ -58,7 +58,7 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
 
 catch:
     IOChannel_Release(pFile);
-    Filesystem_RelinquishNode(r.filesystem, pInode);
+    Filesystem_RelinquishNode(Inode_GetFilesystem(pInode), pInode);
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     *pOutIoc = -1;
@@ -89,7 +89,7 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
     // XXX tmp
 
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_OpenFile(r.filesystem, r.inode, options, pProc->realUser));
+    try(Filesystem_OpenFile(Inode_GetFilesystem(r.inode), r.inode, options, pProc->realUser));
     // Note that this call takes ownership of the inode reference
     try(FileChannel_Create(r.inode, options, &pFile));
     r.inode = NULL;
@@ -115,7 +115,7 @@ errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
 
     Lock_Lock(&pProc->lock);
     if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_GetFileInfo(r.filesystem, r.inode, pOutInfo);
+        err = Filesystem_GetFileInfo(Inode_GetFilesystem(r.inode), r.inode, pOutInfo);
     }
     PathResolverResult_Deinit(&r);
     
@@ -154,7 +154,7 @@ errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
 
     Lock_Lock(&pProc->lock);
     if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_SetFileInfo(r.filesystem, r.inode, pProc->realUser, pInfo);
+        err = Filesystem_SetFileInfo(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, pInfo);
     }
     PathResolverResult_Deinit(&r);
     
@@ -195,7 +195,7 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPa
 
     Lock_Lock(&pProc->lock);
     if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_Truncate(r.filesystem, r.inode, pProc->realUser, length);
+        err = Filesystem_Truncate(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, length);
     }
     PathResolverResult_Deinit(&r);
 
@@ -237,7 +237,7 @@ errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull 
     Lock_Lock(&pProc->lock);
     if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
         if (mode != 0) {
-            err = Filesystem_CheckAccess(r.filesystem, r.inode, pProc->realUser, mode);
+            err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, mode);
         }
     }
     PathResolverResult_Deinit(&r);
@@ -263,12 +263,12 @@ errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
     // unlink("."): we need to grab the parent of the directory and make r.inode the node to unlink
     // unlink("anything_else"): r.inode is our parent and we look up the target
     if (r.lastPathComponent.count == 1 && r.lastPathComponent.name[0] == '.') {
-        try(Filesystem_AcquireNodeForName(r.filesystem, r.inode, &kPathComponent_Parent, pProc->realUser, &pSecondNode));
+        try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, &kPathComponent_Parent, pProc->realUser, &pSecondNode));
         pNodeToUnlink = r.inode;
         pParentNode = pSecondNode;
     }
     else {
-        try(Filesystem_AcquireNodeForName(r.filesystem, r.inode, &r.lastPathComponent, pProc->realUser, &pSecondNode));
+        try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, &r.lastPathComponent, pProc->realUser, &pSecondNode));
         pNodeToUnlink = pSecondNode;
         pParentNode = r.inode;
     }
@@ -291,11 +291,11 @@ errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
         throw(EBUSY);
     }
 
-    try(Filesystem_Unlink(r.filesystem, pNodeToUnlink, pParentNode, pProc->realUser));
+    try(Filesystem_Unlink(Inode_GetFilesystem(pNodeToUnlink), pNodeToUnlink, pParentNode, pProc->realUser));
 
 catch:
     if (pSecondNode) {
-        Filesystem_RelinquishNode(r.filesystem, pSecondNode);
+        Filesystem_RelinquishNode(Inode_GetFilesystem(pSecondNode), pSecondNode);
     }
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
@@ -324,7 +324,7 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
     // unlink the target node if one exists for newpath
     // XXX implement me
     
-    try(Filesystem_Rename(or.filesystem, &or.lastPathComponent, or.inode, &nr.lastPathComponent, nr.inode, pProc->realUser));
+    try(Filesystem_Rename(Inode_GetFilesystem(or.inode), &or.lastPathComponent, or.inode, &nr.lastPathComponent, nr.inode, pProc->realUser));
 
 catch:
     PathResolverResult_Deinit(&or);

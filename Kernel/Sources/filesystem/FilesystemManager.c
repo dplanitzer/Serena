@@ -263,23 +263,22 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemForId(FilesystemManagerR
     return pFileSys;
 }
 
-// Returns the mountpoint information of the node and filesystem that mounts the
-// given filesystem. ENOENT and NULLs are returned if the filesystem was never
-// mounted or is no longer mounted. EOK and NULLs are returned if 'pFileSys' is
-// the root filesystem (it has no parent file system).
-errno_t FilesystemManager_CopyMountpointOfFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode, FilesystemRef _Nullable * _Nonnull pOutMountingFilesystem)
+// Acquires the inode that is mounting the given filesystem instance. A suitable
+// error and NULL is returned if the given filesystem is not mounted (anymore)
+// or some other problem is detected.
+// EOK and NULLs are returned if 'pFileSys' is the root filesystem (it has no
+// parent file system).
+errno_t FilesystemManager_AcquireNodeMountingFilesystem(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, InodeRef _Nullable _Locked * _Nonnull pOutMountingNode)
 {
+    decl_try_err();
+
     Lock_Lock(&pManager->lock);
     const Mountpoint* pMount = FilesystemManager_GetMountpointForFilesystemId_Locked(pManager, Filesystem_GetId(pFileSys));
-    errno_t err;
-
     if (pMount) {
         *pOutMountingNode = (pMount->mountingInode) ? Filesystem_ReacquireNode(pMount->mountingFilesystem, pMount->mountingInode) : NULL;
-        *pOutMountingFilesystem = (pMount->mountingInode) ? Object_RetainAs(pMount->mountingFilesystem, Filesystem) : NULL;
         err = EOK;
     } else {
         *pOutMountingNode = NULL;
-        *pOutMountingFilesystem = NULL;
         err = ENOENT;
     }
     Lock_Unlock(&pManager->lock);
