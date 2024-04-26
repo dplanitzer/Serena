@@ -227,6 +227,8 @@ static errno_t FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull se
     kfree(pMount);
 
 catch:
+    // XXX for now. If FS_unmount returns EBUSY -> out the FS in a deferred-unmount queue and attempt to unmount after we've terminated a process
+    abort();
     return err;
 }
 

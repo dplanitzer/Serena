@@ -32,21 +32,21 @@ enum {
 // See the description of the Filesystem class to learn about how locking for
 // Inodes works.
 typedef struct Inode {
-    TimeInterval        accessTime;
-    TimeInterval        modificationTime;
-    TimeInterval        statusChangeTime;
-    FileOffset          size;       // File size
-    Lock                lock;
-    FilesystemId        fsid;       // Globally unique ID of the filesystem that owns this node
-    InodeId             inid;       // Filesystem specific ID of the inode
-    int                 useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
-    int                 linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
-    void*               refcon;     // Filesystem specific information
-    FileType            type;
-    uint8_t             flags;
-    FilePermissions     permissions;
-    UserId              uid;
-    GroupId             gid;
+    TimeInterval                    accessTime;
+    TimeInterval                    modificationTime;
+    TimeInterval                    statusChangeTime;
+    FileOffset                      size;       // File size
+    Lock                            lock;
+    FilesystemRef _Weak _Nonnull    filesystem; // The owning filesystem instance
+    InodeId                         inid;       // Filesystem specific ID of the inode
+    int                             useCount;   // Number of entities that are using this inode at this moment. Incremented on acquisition and decremented on relinquishing (protected by the FS inode management lock)
+    int                             linkCount;  // Number of directory entries referencing this inode. Incremented on create/link and decremented on unlink
+    void*                           refcon;     // Filesystem specific information
+    FileType                        type;
+    uint8_t                         flags;
+    FilePermissions                 permissions;
+    UserId                          uid;
+    GroupId                         gid;
 } Inode;
 typedef struct Inode* InodeRef;
 
@@ -56,7 +56,7 @@ typedef struct Inode* InodeRef;
 //
 
 // Creates an instance an Inode.
-extern errno_t Inode_Create(FilesystemId fsid, InodeId id,
+extern errno_t Inode_Create(FilesystemRef _Nonnull pFS, InodeId id,
                     FileType type,
                     int linkCount,
                     UserId uid, GroupId gid, FilePermissions permissions,
@@ -215,7 +215,12 @@ extern errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileI
 
 // Returns the ID of the filesystem to which this node belongs.
 #define Inode_GetFilesystemId(__self) \
-    (__self)->fsid
+    Filesystem_GetId((__self)->filesystem)
+
+// Returns the filesystem that owns the inode. The returned reference is unowned
+// and guaranteed to be valid as long as the inode reference remains valid.
+#define Inode_GetFilesystem(__self) \
+    (__self)->filesystem
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);

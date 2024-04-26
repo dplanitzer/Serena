@@ -293,7 +293,7 @@ static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, Use
     }
 
     try(Inode_Create(
-        Filesystem_GetId(self),
+        (FilesystemRef)self,
         (InodeId)inodeLba,
         type,
         1,
@@ -360,7 +360,7 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
     }
 
     return Inode_Create(
-        Filesystem_GetId(self),
+        (FilesystemRef)self,
         id,
         ip->type,
         Int32_BigToHost(ip->linkCount),

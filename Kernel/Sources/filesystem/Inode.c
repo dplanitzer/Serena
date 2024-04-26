@@ -10,7 +10,7 @@
 #include "FilesystemManager.h"
 #include <driver/MonotonicClock.h>
 
-errno_t Inode_Create(FilesystemId fsid, InodeId id, FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Inode_Create(FilesystemRef _Nonnull pFS, InodeId id, FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef self;
@@ -21,7 +21,7 @@ errno_t Inode_Create(FilesystemId fsid, InodeId id, FileType type, int linkCount
     self->statusChangeTime = statusChangeTime;
     self->size = size;
     Lock_Init(&self->lock);
-    self->fsid = fsid;
+    self->filesystem = pFS;
     self->inid = id;
     self->useCount = 0;
     self->linkCount = linkCount;
@@ -43,6 +43,7 @@ catch:
 void Inode_Destroy(InodeRef _Nullable self)
 {
     if (self) {
+        self->filesystem = NULL;
         self->refcon = NULL;
         Lock_Deinit(&self->lock);
         kfree(self);
@@ -120,7 +121,7 @@ void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
     pOutInfo->type = self->type;
     pOutInfo->reserved = 0;
     pOutInfo->linkCount = self->linkCount;
-    pOutInfo->filesystemId = self->fsid;
+    pOutInfo->filesystemId = Filesystem_GetId(self->filesystem);
     pOutInfo->inodeId = self->inid;
 }
 
@@ -170,5 +171,6 @@ errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _N
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
 {
-    return self->fsid == pOther->fsid && self->inid == pOther->inid;
+    return self->inid == pOther->inid
+        && Filesystem_GetId(self->filesystem) == Filesystem_GetId(pOther->filesystem);
 }

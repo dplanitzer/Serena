@@ -47,9 +47,8 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
     Lock_Lock(&pProc->lock);
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
     try(Filesystem_CreateFile(r.filesystem, &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pInode));
-    // Note that this call takes ownership of the filesystem and inode references
-    try(FileChannel_Create((ObjectRef)r.filesystem, pInode, options, &pFile));
-    r.filesystem = NULL;
+    // Note that this call takes ownership of the inode reference
+    try(FileChannel_Create(pInode, options, &pFile));
     pInode = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
     pFile = NULL;
@@ -91,9 +90,8 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
 
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
     try(Filesystem_OpenFile(r.filesystem, r.inode, options, pProc->realUser));
-    // Note that this call takes ownership of the filesystem and inode references
-    try(FileChannel_Create((ObjectRef)r.filesystem, r.inode, options, &pFile));
-    r.filesystem = NULL;
+    // Note that this call takes ownership of the inode reference
+    try(FileChannel_Create(r.inode, options, &pFile));
     r.inode = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
     pFile = NULL;

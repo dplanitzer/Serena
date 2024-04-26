@@ -10,16 +10,15 @@
 #include "Filesystem.h"
 
 
-// Creates a file channel which takes ownership of the provided filesystem and
-// inode references. These references will be released by deinit().
-errno_t FileChannel_Create(ObjectRef _Consuming _Nonnull pFilesystem, InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile)
+// Creates a file channel which takes ownership of the provided inode reference.
+// This reference will be released by deinit().
+errno_t FileChannel_Create(InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile)
 {
     decl_try_err();
     FileChannelRef self;
 
     try(IOChannel_AbstractCreate(&kFileChannelClass, mode, (IOChannelRef*)&self));
     Lock_Init(&self->lock);
-    self->filesystem = pFilesystem;
     self->inode = pNode;
     self->offset = 0ll;
 
@@ -32,11 +31,8 @@ errno_t FileChannel_finalize(FileChannelRef _Nonnull self)
 {
     decl_try_err();
 
-    err = Filesystem_RelinquishNode((FilesystemRef)self->filesystem, self->inode);
+    err = Filesystem_RelinquishNode(Inode_GetFilesystem(self->inode), self->inode);
     self->inode = NULL;
-    
-    Object_Release(self->filesystem);
-    self->filesystem = NULL;
 
     Lock_Deinit(&self->lock);
     return err;
@@ -51,8 +47,7 @@ errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * 
 
     try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
     Lock_Init(&pNewFile->lock);
-    pNewFile->filesystem = Object_Retain(self->filesystem);
-    pNewFile->inode = Filesystem_ReacquireUnlockedNode((FilesystemRef)self->filesystem, self->inode);
+    pNewFile->inode = Filesystem_ReacquireUnlockedNode(Inode_GetFilesystem(self->inode), self->inode);
         
     Lock_Lock(&self->lock);
     pNewFile->offset = self->offset;
@@ -81,7 +76,7 @@ errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, s
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    err = Filesystem_ReadFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
+    err = Filesystem_ReadFile(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
     Lock_Unlock(&self->lock);
 
     return err;
@@ -100,7 +95,7 @@ errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBu
         offset = self->offset;
     }
 
-    err = Filesystem_WriteFile((FilesystemRef)self->filesystem, self->inode, pBuffer, nBytesToWrite, &offset, nOutBytesWritten);
+    err = Filesystem_WriteFile(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToWrite, &offset, nOutBytesWritten);
     self->offset = offset;
     Lock_Unlock(&self->lock);
 
@@ -156,18 +151,18 @@ catch:
 
 errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    return Filesystem_GetFileInfo((FilesystemRef)self->filesystem, self->inode, pOutInfo);
+    return Filesystem_GetFileInfo(Inode_GetFilesystem(self->inode), self->inode, pOutInfo);
 }
 
 errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    return Filesystem_SetFileInfo((FilesystemRef)self->filesystem, self->inode, user, pInfo);
+    return Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, user, pInfo);
 }
 
 errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset length)
 {
     // Does not adjust the file offset
-    return Filesystem_Truncate((FilesystemRef)self->filesystem, self->inode, user, length);
+    return Filesystem_Truncate(Inode_GetFilesystem(self->inode), self->inode, user, length);
 }
 
 

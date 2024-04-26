@@ -24,17 +24,16 @@
 // Locking:
 // See FileChannel.
 open_class_with_ref(DirectoryChannel, IOChannel,
-    ObjectRef _Nonnull  filesystem;
+    FileOffset          offset;
     InodeRef _Nonnull   inode;
     Lock                lock;
-    FileOffset          offset;
 );
 open_class_funcs(DirectoryChannel, IOChannel,
 );
 
 
 // Creates a directory object.
-extern errno_t DirectoryChannel_Create(ObjectRef _Consuming _Nonnull pFilesystem, InodeRef _Consuming _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutDir);
+extern errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutDir);
 
 extern errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 extern errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
