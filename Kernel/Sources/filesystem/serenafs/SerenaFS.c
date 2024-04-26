@@ -178,6 +178,7 @@ errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
     assert(sizeof(SFSDirectoryEntry) * kSFSDirectoryEntriesPerBlock == kSFSBlockSize);
     
     try(Filesystem_Create(&kSerenaFSClass, (FilesystemRef*)&self));
+    Lock_Init(&self->allocationLock);
     SELock_Init(&self->seLock);
     self->flags.isMounted = false;
     self->flags.isReadOnly = false;
@@ -193,6 +194,7 @@ catch:
 void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
     SELock_Deinit(&self->seLock);
+    Lock_Deinit(&self->allocationLock);
 }
 
 static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
@@ -206,10 +208,12 @@ static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull sel
     return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, allocationBitmapBlockLba);
 }
 
-static errno_t SerenaFS_AllocateBlock_Locked(SerenaFSRef _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
+static errno_t SerenaFS_AllocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
     LogicalBlockAddress lba = 0;    // Safe because LBA #0 is the volume header which is always allocated when the FS is mounted
+
+    Lock_Lock(&self->allocationLock);
 
     for (LogicalBlockAddress i = 1; i < self->volumeBlockCount; i++) {
         if (!AllocationBitmap_IsBlockInUse(self->allocationBitmap, i)) {
@@ -223,6 +227,7 @@ static errno_t SerenaFS_AllocateBlock_Locked(SerenaFSRef _Nonnull self, LogicalB
 
     AllocationBitmap_SetBlockInUse(self->allocationBitmap, lba, true);
     try(SerenaFS_WriteBackAllocationBitmapForLba(self, lba));
+    Lock_Unlock(&self->allocationLock);
 
     *pOutLba = lba;
     return EOK;
@@ -231,20 +236,23 @@ catch:
     if (lba > 0) {
         AllocationBitmap_SetBlockInUse(self->allocationBitmap, lba, false);
     }
+    Lock_Unlock(&self->allocationLock);
     *pOutLba = 0;
     return err;
 }
 
-static void SerenaFS_DeallocateBlock_Locked(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
+static void SerenaFS_DeallocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
 {
     if (lba == 0) {
         return;
     }
 
+    Lock_Lock(&self->allocationLock);
     AllocationBitmap_SetBlockInUse(self->allocationBitmap, lba, false);
 
     // XXX check for error here?
     SerenaFS_WriteBackAllocationBitmapForLba(self, lba);
+    Lock_Unlock(&self->allocationLock);
 }
 
 // Creates a new inode with type 'type', user information 'user', permissions
@@ -264,12 +272,12 @@ static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, Use
     bool isPublished = false;
 
     try(kalloc_cleared(sizeof(SFSBlockMap), (void**)&pBlockMap));
-    try(SerenaFS_AllocateBlock_Locked(self, &inodeLba));
+    try(SerenaFS_AllocateBlock(self, &inodeLba));
     
     if (type == kFileType_Directory) {
         // Write the initial directory content. This are just the '.' and '..'
         // entries
-        try(SerenaFS_AllocateBlock_Locked(self, &dirContLba));
+        try(SerenaFS_AllocateBlock(self, &dirContLba));
 
         memset(self->tmpBlock, 0, kSFSBlockSize);
         SFSDirectoryEntry* dep = (SFSDirectoryEntry*)self->tmpBlock;
@@ -322,10 +330,10 @@ catch:
     kfree(pBlockMap);
 
     if (dirContLba != 0) {
-        SerenaFS_DeallocateBlock_Locked(self, dirContLba);
+        SerenaFS_DeallocateBlock(self, dirContLba);
     }
     if (inodeLba != 0) {
-        SerenaFS_DeallocateBlock_Locked(self, inodeLba);
+        SerenaFS_DeallocateBlock(self, inodeLba);
     }
     *pOutNode = NULL;
 
@@ -408,7 +416,7 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
 }
 
-static void SerenaFS_DeallocateFileContentBlocks_Locked(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
+static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     const SFSBlockMap* pBlockMap = (const SFSBlockMap*)Inode_GetBlockMap(pNode);
 
@@ -417,7 +425,7 @@ static void SerenaFS_DeallocateFileContentBlocks_Locked(SerenaFSRef _Nonnull sel
             break;
         }
 
-        SerenaFS_DeallocateBlock_Locked(self, pBlockMap->p[i]);
+        SerenaFS_DeallocateBlock(self, pBlockMap->p[i]);
     }
 }
 
@@ -429,8 +437,8 @@ void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
 {
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
 
-    SerenaFS_DeallocateFileContentBlocks_Locked(self, pNode);
-    SerenaFS_DeallocateBlock_Locked(self, lba);
+    SerenaFS_DeallocateFileContentBlocks(self, pNode);
+    SerenaFS_DeallocateBlock(self, lba);
 }
 
 // Checks whether the given user should be granted access to the given node based
@@ -626,8 +634,7 @@ static errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _N
     LogicalBlockAddress lba = pBlockMap->p[fba];
 
     if (lba == 0 && mode == kSFSBlockMode_Write) {
-        // XXX fix locking here
-        try(SerenaFS_AllocateBlock_Locked(self, &lba));
+        try(SerenaFS_AllocateBlock(self, &lba));
         pBlockMap->p[fba] = lba;
     }
     *pOutLba = lba;
@@ -1036,7 +1043,7 @@ static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef
                 throw(EIO);
             }
 
-            try(SerenaFS_AllocateBlock_Locked(self, &lba));
+            try(SerenaFS_AllocateBlock(self, &lba));
             memset(self->tmpBlock, 0, kSFSBlockSize);
             dep = (SFSDirectoryEntry*)self->tmpBlock;
         }
@@ -1311,8 +1318,7 @@ static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
 
     for (int i = firstBlockIdx; i < kSFSMaxDirectDataBlockPointers; i++) {
         if (pBlockMap->p[i] != 0) {
-            // XXX locking
-            SerenaFS_DeallocateBlock_Locked(self, pBlockMap->p[i]);
+            SerenaFS_DeallocateBlock(self, pBlockMap->p[i]);
             pBlockMap->p[i] = 0;
         }
     }

@@ -59,6 +59,19 @@
 // appears to erratically jump forward and backward between concurrently scheduled
 // operations.
 //
+// Inode Acquisition, Relinquishing, Write-Backs and On-Disk Removal:
+//
+// This is handled by the Filesystem base class. Inode acquisition and
+// relinquishing is protected by an inode management lock and these operations
+// are atomic. Furthermore writing the changed (meta-)data of an inode back to
+// disk and deleting the the (meta-)data of an inode on disk are done atomically
+// in the sense that no other thread of execution can acquire an inode that is
+// currently in the process of a write-back or on-disk removal.
+// Reacquiring an inode is also atomic. Finally publishing an inode is an atomic
+// operation that guarantees that the inode to publish will only be accessible
+// to other threads of execution (via acquisition) once the publish operation has
+// completed.
+//
 // Filesystem Mount, Unmount and Root Node Acquisition:
 //
 // This must be implemented by Filesystem subclassers. A concrete Filesystem

@@ -11,6 +11,7 @@
 
 #include "SerenaFS.h"
 #include "VolumeFormat.h"
+#include <dispatcher/Lock.h>
 #include <dispatcher/SELock.h>
 #include <driver/MonotonicClock.h>
 
@@ -52,6 +53,10 @@ typedef struct SFSDirectoryEntryPointer {
 // SerenaFS
 //
 
+// SerenaFS Locking:
+//
+// seLock:         provides exclusion for mount, unmount and acquire-root-node
+// allocationLock: implements atomic block allocation and deallocation
 final_class_ivars(SerenaFS, Filesystem,
     SELock                  seLock;
     struct {
@@ -61,7 +66,8 @@ final_class_ivars(SerenaFS, Filesystem,
     }                       flags;
 
     DiskDriverRef _Nullable diskDriver;
-    
+
+    Lock                    allocationLock;                 // Protects all block allocation related state    
     LogicalBlockAddress     allocationBitmapLba;            // Info for writing the allocation bitmap back to disk
     LogicalBlockCount       allocationBitmapBlockCount;     // -"-
     uint8_t* _Nullable      allocationBitmap;
