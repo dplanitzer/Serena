@@ -177,7 +177,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
     assert(pProc->imageBase == NULL);
 
     try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pExecPath, pProc->realUser, &r));
-    try(Inode_CheckAccess(r.inode, pProc->realUser, kFilePermission_Execute | kFilePermission_Read));
+    try(Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, kAccess_Readable | kAccess_Executable));
 
 
     // Copy the process arguments into the process address space
