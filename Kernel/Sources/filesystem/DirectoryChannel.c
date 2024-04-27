@@ -31,7 +31,7 @@ errno_t DirectoryChannel_finalize(DirectoryChannelRef _Nonnull self)
 {
     decl_try_err();
 
-    err = Filesystem_RelinquishNode(Inode_GetFilesystem(self->inode), self->inode);
+    err = Inode_Relinquish(self->inode);
     self->inode = NULL;
 
     Lock_Deinit(&self->lock);
@@ -47,7 +47,7 @@ ssize_t DirectoryChannel_copy(DirectoryChannelRef _Nonnull self, IOChannelRef _N
 
     try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
     Lock_Init(&pNewDir->lock);
-    pNewDir->inode = Filesystem_ReacquireUnlockedNode(Inode_GetFilesystem(self->inode), self->inode);
+    pNewDir->inode = Inode_AcquireUnlocked(self->inode);
     
     Lock_Lock(&self->lock);
     pNewDir->offset = self->offset;

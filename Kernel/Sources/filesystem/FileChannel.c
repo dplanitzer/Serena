@@ -31,7 +31,7 @@ errno_t FileChannel_finalize(FileChannelRef _Nonnull self)
 {
     decl_try_err();
 
-    err = Filesystem_RelinquishNode(Inode_GetFilesystem(self->inode), self->inode);
+    err = Inode_Relinquish(self->inode);
     self->inode = NULL;
 
     Lock_Deinit(&self->lock);
@@ -47,7 +47,7 @@ errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * 
 
     try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
     Lock_Init(&pNewFile->lock);
-    pNewFile->inode = Filesystem_ReacquireUnlockedNode(Inode_GetFilesystem(self->inode), self->inode);
+    pNewFile->inode = Inode_AcquireUnlocked(self->inode);
         
     Lock_Lock(&self->lock);
     pNewFile->offset = self->offset;

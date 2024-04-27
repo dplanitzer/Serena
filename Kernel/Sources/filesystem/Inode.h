@@ -75,6 +75,22 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
     Lock_Unlock(&((InodeRef)__self)->lock)
 
 
+//
+// The caller must hold the inode lock while calling any of the functions below.
+//
+
+// Reacquiring and relinquishing an existing inode
+
+#define Inode_Acquire(__self) \
+    Filesystem_ReacquireNode((__self)->filesystem, __self)
+
+#define Inode_AcquireUnlocked(__self) \
+    Filesystem_ReacquireUnlockedNode((__self)->filesystem, __self)
+
+#define Inode_Relinquish(__self) \
+    Filesystem_RelinquishNode((__self)->filesystem, __self)
+
+
 // Inode timestamps
 
 #define Inode_GetAccessTime(__self) \

@@ -19,7 +19,7 @@ static void PathResolverResult_Init(PathResolverResult* _Nonnull self)
 void PathResolverResult_Deinit(PathResolverResult* _Nonnull self)
 {
     if (self->inode) {
-        Filesystem_RelinquishNode(Inode_GetFilesystem(self->inode), self->inode);
+        Inode_Relinquish(self->inode);
         self->inode = NULL;
     }
 }
@@ -38,13 +38,13 @@ typedef struct InodeIterator {
 
 static void InodeIterator_Init(InodeIterator* _Nonnull self, InodeRef _Nonnull pNode)
 {
-    self->inode = Filesystem_ReacquireNode(Inode_GetFilesystem(pNode), pNode);
+    self->inode = Inode_Acquire(pNode);
 }
 
 static void InodeIterator_Deinit(InodeIterator* _Nonnull self)
 {
     if (self->inode) {
-        Filesystem_RelinquishNode(Inode_GetFilesystem(self->inode), self->inode);
+        Inode_Relinquish(self->inode);
         self->inode = NULL;
     }
 }
@@ -53,7 +53,7 @@ static void InodeIterator_Deinit(InodeIterator* _Nonnull self)
 // of the iterator are different.
 static void InodeIterator_Update(InodeIterator* self, InodeRef _Nonnull pNewNode)
 {
-    Filesystem_RelinquishNode(Inode_GetFilesystem(self->inode), self->inode);
+    Inode_Relinquish(self->inode);
     self->inode = pNewNode;
 }
 
@@ -102,8 +102,8 @@ errno_t PathResolver_CreateCopy(PathResolverRef _Nonnull pOther, PathResolverRef
     PathResolverRef self;
 
     try(kalloc_cleared(sizeof(PathResolver), (void**)&self));
-    self->rootDirectory = Filesystem_ReacquireUnlockedNode(Inode_GetFilesystem(self->rootDirectory), pOther->rootDirectory);
-    self->workingDirectory = Filesystem_ReacquireUnlockedNode(Inode_GetFilesystem(self->workingDirectory), pOther->workingDirectory);
+    self->rootDirectory = Inode_AcquireUnlocked(pOther->rootDirectory);
+    self->workingDirectory = Inode_AcquireUnlocked(pOther->workingDirectory);
     self->pathComponent.name = self->nameBuffer;
     self->pathComponent.count = 0;
     *pOutSelf = self;
@@ -119,11 +119,11 @@ void PathResolver_Destroy(PathResolverRef _Nullable self)
 {
     if (self) {
         if (self->rootDirectory) {
-            Filesystem_RelinquishNode(Inode_GetFilesystem(self->rootDirectory), self->rootDirectory);
+            Inode_Relinquish(self->rootDirectory);
             self->rootDirectory = NULL;
         }
         if (self->workingDirectory) {
-            Filesystem_RelinquishNode(Inode_GetFilesystem(self->workingDirectory), self->workingDirectory);
+            Inode_Relinquish(self->workingDirectory);
             self->workingDirectory = NULL;
         }
 
@@ -152,7 +152,7 @@ static errno_t PathResolver_SetDirectoryPath(PathResolverRef _Nonnull self, User
 
     // Remember the new inode as our new directory
     if (Inode_GetId(*pDirToAssign) != Inode_GetId(r.inode)) {
-        Filesystem_RelinquishNode(Inode_GetFilesystem(*pDirToAssign), *pDirToAssign);
+        Inode_Relinquish(*pDirToAssign);
         *pDirToAssign = r.inode;
         r.inode = NULL;
     }
@@ -257,7 +257,7 @@ static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull sel
         InodeIterator_Update(pIter, pParentNode);
     }
     else {
-        Filesystem_RelinquishNode(Inode_GetFilesystem(pParentNode), pParentNode);
+        Inode_Relinquish(pParentNode);
         pParentNode = NULL;
 
 
@@ -272,14 +272,14 @@ static errno_t PathResolver_UpdateIteratorWalkingUp(PathResolverRef _Nonnull sel
         try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pMountingDir), pMountingDir, &kPathComponent_Parent, user, &pParentOfMountingDir));
 
         InodeIterator_Update(pIter, pParentOfMountingDir);
-        Filesystem_RelinquishNode(Inode_GetFilesystem(pMountingDir), pMountingDir);
+        Inode_Relinquish(pMountingDir);
     }
 
     return EOK;
 
 catch:
     if (pMountingDir) {
-        Filesystem_RelinquishNode(Inode_GetFilesystem(pMountingDir), pMountingDir);
+        Inode_Relinquish(pMountingDir);
     }
     return err;
 }
@@ -303,7 +303,7 @@ static errno_t PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull s
     // which we started but with an extra +1 ref count. We keep the iterator
     // intact and we drop the extra +1 ref in this case.
     if (Inode_Equals(pIter->inode, pChildNode)) {
-        Filesystem_RelinquishNode(Inode_GetFilesystem(pChildNode), pChildNode);
+        Inode_Relinquish(pChildNode);
         return EOK;
     }
 
@@ -320,7 +320,7 @@ static errno_t PathResolver_UpdateIteratorWalkingDown(PathResolverRef _Nonnull s
         InodeRef pMountedFileSysRootNode;
 
         try(Filesystem_AcquireRootNode(pMountedFileSys, &pMountedFileSysRootNode));
-        Filesystem_RelinquishNode(Inode_GetFilesystem(pChildNode), pChildNode);
+        Inode_Relinquish(pChildNode);
         InodeIterator_Update(pIter, pMountedFileSysRootNode);
         Object_Release(pMountedFileSys);
     }

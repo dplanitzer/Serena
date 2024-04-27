@@ -58,7 +58,7 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
 
 catch:
     IOChannel_Release(pFile);
-    Filesystem_RelinquishNode(Inode_GetFilesystem(pInode), pInode);
+    Inode_Relinquish(pInode);
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     *pOutIoc = -1;
@@ -295,7 +295,7 @@ errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 
 catch:
     if (pSecondNode) {
-        Filesystem_RelinquishNode(Inode_GetFilesystem(pSecondNode), pSecondNode);
+        Inode_Relinquish(pSecondNode);
     }
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
