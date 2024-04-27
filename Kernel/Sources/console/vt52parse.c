@@ -570,6 +570,7 @@ void vt52parse_do_state_change(vt52parse_t *parser, unsigned char ch)
 
         default:
             parser->cb(parser->user_data, VT52PARSE_ACTION_ERROR, 0);
+            break;
     }
 
     parser->state = new_state;

@@ -94,6 +94,7 @@ static void do_action(vt500parse_t *parser, vt500parse_action_t action, unsigned
 
         default:
             parser->cb(parser->user_data, VT500PARSE_ACTION_ERROR, 0);
+            break;
     }
 }
 
