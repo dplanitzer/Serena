@@ -52,19 +52,8 @@ typedef struct Inode* InodeRef;
 
 
 //
-// Only filesystem implementations should call the following functions.
+// The following functions may be called without holding the inode lock.
 //
-
-// Creates an instance an Inode.
-extern errno_t Inode_Create(FilesystemRef _Nonnull pFS, InodeId id,
-                    FileType type,
-                    int linkCount,
-                    UserId uid, GroupId gid, FilePermissions permissions,
-                    FileOffset size,
-                    TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
-                    void* refcon,
-                    InodeRef _Nullable * _Nonnull pOutNode);
-extern void Inode_Destroy(InodeRef _Nonnull self);
 
 // Inode locking
 
@@ -74,10 +63,6 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
 #define Inode_Unlock(__self) \
     Lock_Unlock(&((InodeRef)__self)->lock)
 
-
-//
-// The caller must hold the inode lock while calling any of the functions below.
-//
 
 // Reacquiring and relinquishing an existing inode
 
@@ -90,6 +75,10 @@ extern void Inode_Destroy(InodeRef _Nonnull self);
 #define Inode_Relinquish(__self) \
     Filesystem_RelinquishNode((__self)->filesystem, __self)
 
+
+//
+// The caller must hold the inode lock while calling any of the functions below.
+//
 
 // Inode timestamps
 
@@ -240,5 +229,21 @@ extern errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileI
 
 // Returns true if the receiver and 'pOther' are the same node; false otherwise
 extern bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther);
+
+
+//
+// Only filesystem implementations should call the following functions.
+//
+
+// Creates an instance an Inode.
+extern errno_t Inode_Create(FilesystemRef _Nonnull pFS, InodeId id,
+                    FileType type,
+                    int linkCount,
+                    UserId uid, GroupId gid, FilePermissions permissions,
+                    FileOffset size,
+                    TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime,
+                    void* refcon,
+                    InodeRef _Nullable * _Nonnull pOutNode);
+extern void Inode_Destroy(InodeRef _Nonnull self);
 
 #endif /* Inode_h */
