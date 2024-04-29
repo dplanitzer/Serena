@@ -338,10 +338,67 @@ errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
+// Returns a set of file permissions that apply to all files of type 'fileType'
+// on the disk. Ie if a filesystem supports a read-only mounting option then
+// this function should return 0555. If the filesystem supports a do-not-
+// execute-files mount option then this function should return 0666. A
+// filesystem which always supports all permissions for all file types and
+// permission classes should return 0777 (this is what the default
+// implementation does).
+FilePermissions Filesystem_getDiskPermissions(FilesystemRef _Nonnull self, FileType fileType)
+{
+    return FilePermissions_MakeFromOctal(0777);
+}
+
 // Verifies that the given node is accessible assuming the given access mode.
 errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
 {
-    return EACCESS;
+    const FilePermissions diskPerms = Filesystem_GetDiskPermissions(self, Inode_GetFileType(pNode));
+    const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
+    FilePermissions reqPerms = 0;
+
+    if ((mode & kAccess_Readable) == kAccess_Readable) {
+        reqPerms |= kFilePermission_Read;
+    }
+    if ((mode & kAccess_Writable) == kAccess_Writable) {
+        reqPerms |= kFilePermission_Write;
+    }
+    if ((mode & kAccess_Executable) == kAccess_Executable) {
+        reqPerms |= kFilePermission_Execute;
+    }
+
+
+    FilePermissions finalDiskPerms;
+    FilePermissions finalNodePerms;
+
+    if (Inode_GetUserId(pNode) == user.uid) {
+        finalDiskPerms = FilePermissions_Get(diskPerms, kFilePermissionsClass_User);
+        finalNodePerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_User);
+    }
+    else if (Inode_GetGroupId(pNode) == user.gid) {
+        finalDiskPerms = FilePermissions_Get(diskPerms, kFilePermissionsClass_Group);
+        finalNodePerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Group);
+    }
+    else {
+        finalDiskPerms = FilePermissions_Get(diskPerms, kFilePermissionsClass_Other);
+        finalNodePerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Other);
+    }
+
+
+    const FilePermissions finalPerms = finalNodePerms & finalDiskPerms;
+    if ((finalPerms & reqPerms) == reqPerms) {
+        return EOK;
+    }
+
+
+    // Return EROFS if the problem is that write permissions were requested but
+    // the disk is read-only. Otherwise return EACCESS
+    if ((mode & kAccess_Writable) == kAccess_Writable && (finalDiskPerms & kFilePermission_Write) == 0) {
+        return EROFS;
+    }
+    else {
+        return EACCESS;
+    }
 }
 
 // Change the size of the file 'pNode' to 'length'. EINVAL is returned if
@@ -395,6 +452,7 @@ func_def(writeFile, Filesystem)
 func_def(createDirectory, Filesystem)
 func_def(openDirectory, Filesystem)
 func_def(readDirectory, Filesystem)
+func_def(getDiskPermissions, Filesystem)
 func_def(checkAccess, Filesystem)
 func_def(truncate, Filesystem)
 func_def(unlink, Filesystem)

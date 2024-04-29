@@ -154,11 +154,6 @@ void Inode_Unlink(InodeRef _Nonnull self);
 #define Inode_SetGroupId(__self, __gid) \
     (__self)->gid = __gid
 
-// Returns EOK if the given user has at least the permissions 'permission' to
-// access and/or manipulate the node; a suitable error code otherwise. The
-// 'permission' parameter represents a set of the permissions of a single
-// permission scope.
-extern errno_t Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission);
 
 
 // Inode file size

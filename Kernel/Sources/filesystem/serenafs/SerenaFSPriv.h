@@ -61,8 +61,7 @@ final_class_ivars(SerenaFS, Filesystem,
     SELock                  seLock;
     struct {
         unsigned int    isMounted:1;    // true while mounted; false if not mounted
-        unsigned int    isReadOnly;     // true if mounted read-only; false if mounted read-write
-        unsigned int    reserved:30;
+        unsigned int    reserved:31;
     }                       flags;
 
     DiskDriverRef _Nullable diskDriver;
@@ -75,6 +74,7 @@ final_class_ivars(SerenaFS, Filesystem,
     uint32_t                volumeBlockCount;
 
     LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
+    FilePermissions         fsPermissions;                  // Disk-wide permissions as calculated at mount time
 
     uint8_t                 tmpBlock[kSFSBlockSize];
 );

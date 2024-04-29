@@ -157,7 +157,6 @@ errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
         err = Filesystem_SetFileInfo(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, pInfo);
     }
     PathResolverResult_Deinit(&r);
-    
     Lock_Unlock(&pProc->lock);
     
     return err;
@@ -236,7 +235,7 @@ errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull 
 
     Lock_Lock(&pProc->lock);
     if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
-        if (mode != 0) {
+        if (mode != kAccess_Exists) {
             err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, mode);
         }
     }

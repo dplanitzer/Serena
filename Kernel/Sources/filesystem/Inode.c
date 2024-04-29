@@ -57,38 +57,6 @@ void Inode_Unlink(InodeRef _Nonnull self)
     }
 }
 
-// Returns EOK if the given user has at least the permissions 'permission' to
-// access and/or manipulate the node; a suitable error code otherwise. The
-// 'permission' parameter represents a set of the permissions of a single
-// permission scope.
-errno_t Inode_CheckAccess(InodeRef _Nonnull self, User user, FilePermissions permission)
-{
-    // XXX revisit this once we put a proper user permission model in place
-    // XXX forcing superuser off for now since it's the only user we got at this
-    // XXX time and we want the file permissions to actually do something.
-    //if (user.uid == kRootUserId) {
-    //    return EOK;
-    //}
-
-    FilePermissions reqPerms = 0;
-
-    if (Inode_GetUserId(self) == user.uid) {
-        reqPerms = FilePermissions_Make(permission, 0, 0);
-    }
-    else if (Inode_GetGroupId(self) == user.gid) {
-        reqPerms = FilePermissions_Make(0, permission, 0);
-    }
-    else {
-        reqPerms = FilePermissions_Make(0, 0, permission);
-    }
-
-    if ((Inode_GetFilePermissions(self) & reqPerms) == reqPerms) {
-        return EOK;
-    }
-
-    return EACCESS;
-}
-
 // Returns a file info record from the node data.
 void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {

@@ -181,7 +181,7 @@ errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
     Lock_Init(&self->allocationLock);
     SELock_Init(&self->seLock);
     self->flags.isMounted = false;
-    self->flags.isReadOnly = false;
+    self->fsPermissions = FilePermissions_MakeFromOctal(0);
 
     *pOutSelf = self;
     return EOK;
@@ -439,29 +439,6 @@ void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
 
     SerenaFS_DeallocateFileContentBlocks(self, pNode);
     SerenaFS_DeallocateBlock(self, lba);
-}
-
-// Checks whether the given user should be granted access to the given node based
-// on the requested permission. Returns EOK if access should be granted and a suitable
-// error code if it should be denied.
-static errno_t SerenaFS_CheckAccess_Locked(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
-{
-    if (mode == kFilePermission_Write) {
-        if (self->flags.isReadOnly) {
-            return EROFS;
-        }
-
-        // XXX once we support actual text mapping, we'll need to check whether the text file is in use
-    }
-
-    FilePermissions permissions;
-    switch (mode) {
-        case kAccess_Readable:      permissions = FilePermissions_Make(kFilePermission_Read, 0, 0); break;
-        case kAccess_Writable:      permissions = FilePermissions_Make(kFilePermission_Write, 0, 0); break;
-        case kAccess_Executable:    permissions = FilePermissions_Make(kFilePermission_Execute, 0, 0); break;
-        default:                    permissions = 0; break;
-    }
-    return Inode_CheckAccess(pNode, user, permissions);
 }
 
 // Returns true if the array of directory entries starting at 'pEntry' and holding
@@ -770,6 +747,7 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
 errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
+    const bool isReadOnly = false;
 
     if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
         return err;
@@ -833,6 +811,12 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
     // Store the disk driver reference
     self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
     self->flags.isMounted = true;
+    if (isReadOnly) {
+        self->fsPermissions = FilePermissions_MakeFromOctal(0555);
+    }
+    else {
+        self->fsPermissions = FilePermissions_MakeFromOctal(0777);
+    }
     
 catch:
     SELock_Unlock(&self->seLock);
@@ -868,6 +852,7 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
     Object_Release(self->diskDriver);
     self->diskDriver = NULL;
     self->flags.isMounted = false;
+    self->fsPermissions = FilePermissions_MakeFromOctal(0);
 
 catch:
     SELock_Unlock(&self->seLock);
@@ -907,7 +892,7 @@ errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull
     SFSDirectoryQuery q;
     InodeId entryId;
 
-    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Execute));
+    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
     try(SerenaFS_GetDirectoryEntry(self, pParentNode, &q, NULL, NULL, &entryId, NULL));
@@ -932,7 +917,7 @@ errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
     decl_try_err();
     SFSDirectoryQuery q;
 
-    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Read | kFilePermission_Execute));
+    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Readable | kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = id;
     try(SerenaFS_GetDirectoryEntry(self, pParentNode, &q, NULL, NULL, NULL, pComponent));
@@ -955,15 +940,11 @@ errno_t SerenaFS_getFileInfo(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locke
 // Inode. The Inode may be of any type.
 errno_t SerenaFS_setFileInfo(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    decl_try_err();
-
-    if (self->flags.isReadOnly) {
-        throw(EROFS);
+    if (!FilePermissions_Has(self->fsPermissions, kFilePermissionsClass_User, kFilePermission_Write)) {
+        return EROFS;
     }
-    try(Inode_SetFileInfo(pNode, user, pInfo));
-
-catch:
-    return err;
+    
+    return Inode_SetFileInfo(pNode, user, pInfo);
 }
 
 static errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove)
@@ -1104,7 +1085,7 @@ errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent*
 
 
     // We must have write permissions for 'pParentNode'
-    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
 
 
     // Create the new directory and add it to its parent directory
@@ -1124,7 +1105,7 @@ catch:
 // expected to validate whether the user has access to the directory content.
 errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user)
 {
-    return Inode_CheckAccess(pDirNode, user, kFilePermission_Read);
+    return Filesystem_CheckAccess(self, pDirNode, user, kAccess_Readable);
 }
 
 errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull pDirNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
@@ -1177,7 +1158,7 @@ errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull pDir
 errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user)
 {
     decl_try_err();
-    FilePermissions permissions = 0;
+    AccessMode accessMode = 0;
 
     if (Inode_IsDirectory(pNode)) {
         throw(EISDIR);
@@ -1187,13 +1168,13 @@ errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked p
         throw(EACCESS);
     }
     if ((mode & kOpen_Read) == kOpen_Read) {
-        permissions |= kFilePermission_Read;
+        accessMode |= kAccess_Readable;
     }
     if ((mode & kOpen_Write) == kOpen_Write || (mode & kOpen_Truncate) == kOpen_Truncate) {
-        permissions |= kFilePermission_Write;
+        accessMode |= kAccess_Writable;
     }
 
-    try(Inode_CheckAccess(pNode, user, permissions));
+    try(Filesystem_CheckAccess(self, pNode, user, accessMode));
 
 
     // A negative file size is treated as an overflow
@@ -1241,7 +1222,7 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
 
 
         // We must have write permissions for 'pParentNode'
-        try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+        try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
 
 
         // The user provided read/write mode must match up with the provided (user) permissions
@@ -1347,7 +1328,7 @@ errno_t SerenaFS_truncate(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked p
     if (length < 0) {
         throw(EINVAL);
     }
-    try(Inode_CheckAccess(pNode, user, kFilePermission_Write));
+    try(Filesystem_CheckAccess(self, pNode, user, kAccess_Writable));
 
     const FileOffset oldLength = Inode_GetFileSize(pNode);
     if (oldLength < length) {
@@ -1366,22 +1347,16 @@ catch:
     return err;
 }
 
-// Verifies that the given node is accessible assuming the given access mode.
-errno_t SerenaFS_checkAccess(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, int mode)
+// Returns a set of file permissions that apply to all files of type 'fileType'
+// on the disk. Ie if a filesystem supports a read-only mounting option then
+// this function should return 0555. If the filesystem supports a do-not-
+// execute-files mount option then this function should return 0666. A
+// filesystem which always supports all permissions for all file types and
+// permission classes should return 0777 (this is what the default
+// implementation does).
+FilePermissions SerenaFS_getDiskPermissions(SerenaFSRef _Nonnull self, FileType fileType)
 {
-    decl_try_err();
-
-    if ((mode & kAccess_Readable) == kAccess_Readable) {
-        err = Inode_CheckAccess(pNode, user, kFilePermission_Read);
-    }
-    if (err == EOK && ((mode & kAccess_Writable) == kAccess_Writable)) {
-        err = Inode_CheckAccess(pNode, user, kFilePermission_Write);
-    }
-    if (err == EOK && ((mode & kAccess_Executable) == kAccess_Executable)) {
-        err = Inode_CheckAccess(pNode, user, kFilePermission_Execute);
-    }
-
-    return err;
+    return self->fsPermissions;
 }
 
 // Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
@@ -1395,7 +1370,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
     decl_try_err();
 
     // We must have write permissions for 'pParentNode'
-    try(SerenaFS_CheckAccess_Locked(self, pParentNode, user, kFilePermission_Write));
+    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
 
 
     // A directory must be empty in order to be allowed to unlink it
@@ -1452,7 +1427,7 @@ override_func_def(createDirectory, SerenaFS, Filesystem)
 override_func_def(openDirectory, SerenaFS, Filesystem)
 override_func_def(readDirectory, SerenaFS, Filesystem)
 override_func_def(truncate, SerenaFS, Filesystem)
-override_func_def(checkAccess, SerenaFS, Filesystem)
+override_func_def(getDiskPermissions, SerenaFS, Filesystem)
 override_func_def(unlink, SerenaFS, Filesystem)
 override_func_def(rename, SerenaFS, Filesystem)
 );

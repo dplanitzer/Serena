@@ -237,7 +237,7 @@ open_class_funcs(Filesystem, Object,
 
 
     //
-    // Required override points for subclassers
+    // Subclassing Override points
     //
 
     // Invoked when Filesystem_AcquireNodeWithId() needs to read the requested
@@ -258,6 +258,14 @@ open_class_funcs(Filesystem, Object,
     // operation is assumed to never fail.
     void (*onRemoveNodeFromDisk)(void* _Nonnull self, InodeRef _Nonnull pNode);
 
+    // Returns a set of file permissions that apply to all files of type 'fileType'
+    // on the disk. Ie if a filesystem supports a read-only mounting option then
+    // this function should return 0555. If the filesystem supports a do-not-
+    // execute-files mount option then this function should return 0666. A
+    // filesystem which always supports all permissions for all file types and
+    // permission classes should return 0777 (this is what the default
+    // implementation does).
+    FilePermissions (*getDiskPermissions)(void* _Nonnull self, FileType fileType);
 );
 
 
@@ -385,5 +393,8 @@ invoke_n(onWriteNodeToDisk, Filesystem, __self, __pNode)
 
 #define Filesystem_OnRemoveNodeFromDisk(__self, __pNode) \
 invoke_n(onRemoveNodeFromDisk, Filesystem, __self, __pNode)
+
+#define Filesystem_GetDiskPermissions(__self, __fileType) \
+invoke_n(getDiskPermissions, Filesystem, __self, __fileType)
 
 #endif /* Filesystem_h */
