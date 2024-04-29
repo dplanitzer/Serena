@@ -66,14 +66,14 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
 
 
     FilePermissions permissions = gDefaultFilePermissions;
-    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_User, kFilePermission_Execute)) {
-        FilePermissions_Add(permissions, kFilePermissionsScope_User, kFilePermission_Execute);
+    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsClass_User, kFilePermission_Execute)) {
+        FilePermissions_Add(permissions, kFilePermissionsClass_User, kFilePermission_Execute);
     }
-    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_Group, kFilePermission_Execute)) {
-        FilePermissions_Add(permissions, kFilePermissionsScope_Group, kFilePermission_Execute);
+    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsClass_Group, kFilePermission_Execute)) {
+        FilePermissions_Add(permissions, kFilePermissionsClass_Group, kFilePermission_Execute);
     }
-    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsScope_Other, kFilePermission_Execute)) {
-        FilePermissions_Add(permissions, kFilePermissionsScope_Other, kFilePermission_Execute);
+    if (FilePermissions_Has(pEntry->permissions, kFilePermissionsClass_Other, kFilePermission_Execute)) {
+        FilePermissions_Add(permissions, kFilePermissionsClass_Other, kFilePermission_Execute);
     }
 
 

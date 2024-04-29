@@ -83,8 +83,8 @@ static errno_t _di_recursive_iterate_directory(const char* _Nonnull pBasePath, c
                 // XXX force the execute bit for now. We need a way to specify which files should be executable
                 //const char* extPtr = strrchr(entry.name, '.');
                 //if (extPtr && !strcmp(extPtr, ".exe")) {
-                    FilePermissions_Add(entry.permissions, kFilePermissionsScope_User, kFilePermission_Execute);
-                    FilePermissions_Add(entry.permissions, kFilePermissionsScope_Group, kFilePermission_Execute);
+                    FilePermissions_Add(entry.permissions, kFilePermissionsClass_User, kFilePermission_Execute);
+                    FilePermissions_Add(entry.permissions, kFilePermissionsClass_Group, kFilePermission_Execute);
                 //}
 
                 err = cb->file(cb->context, buf, &entry, parentToken);

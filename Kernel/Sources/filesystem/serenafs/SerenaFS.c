@@ -1248,10 +1248,10 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
         if ((mode & kOpen_ReadWrite) == 0) {
             throw(EACCESS);
         }
-        if ((mode & kOpen_Read) == kOpen_Read && !FilePermissions_Has(permissions, kFilePermissionsScope_User, kFilePermission_Read)) {
+        if ((mode & kOpen_Read) == kOpen_Read && !FilePermissions_Has(permissions, kFilePermissionsClass_User, kFilePermission_Read)) {
             throw(EACCESS);
         }
-        if ((mode & kOpen_Write) == kOpen_Write && !FilePermissions_Has(permissions, kFilePermissionsScope_User, kFilePermission_Write)) {
+        if ((mode & kOpen_Write) == kOpen_Write && !FilePermissions_Has(permissions, kFilePermissionsClass_User, kFilePermission_Write)) {
             throw(EACCESS);
         }
 
