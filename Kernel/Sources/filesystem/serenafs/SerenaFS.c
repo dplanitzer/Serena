@@ -1209,7 +1209,20 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
     q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
     err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &ep, NULL, &existingFileId, NULL);
-    if (err == ENOENT) {
+    if (err == EOK) {
+        // File exists - reject the operation in exclusive mode and open the file
+        // if in non-exclusive mode
+        if ((mode & kOpen_Exclusive) == kOpen_Exclusive) {
+            // Exclusive mode: File already exists -> throw an error
+            throw(EEXIST);
+        }
+
+
+        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, &pInode));
+        try(SerenaFS_openFile(self, pInode, mode, user));
+        *pOutNode = pInode;
+    }
+    else if (err == ENOENT) {
         // File does not exist - create it
         err = EOK;
 
@@ -1232,19 +1245,6 @@ errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Non
 
         // Create the new file and add it to its parent directory
         try(SerenaFS_CreateNode(self, kFileType_RegularFile, user, permissions, pParentNode, pName, &ep, &pInode));
-        *pOutNode = pInode;
-    }
-    else if (err == EOK) {
-        // File exists - reject the operation in exclusive mode and open the file
-        // in non-exclusive mode
-        if ((mode & kOpen_Exclusive) == kOpen_Exclusive) {
-            // Exclusive mode: File already exists -> throw an error
-            throw(EEXIST);
-        }
-
-
-        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, &pInode));
-        try(SerenaFS_openFile(self, pInode, mode, user));
         *pOutNode = pInode;
     }
     else {
