@@ -8,6 +8,7 @@
 
 #include "Filesystem.h"
 #include <System/IOChannel.h>
+#include <driver/MonotonicClock.h>
 
 
 // Returns the next available FSID.
@@ -270,14 +271,89 @@ errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 // file type.
 errno_t Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
 {
-    return EIO;
+    TimeInterval curTime;
+
+    if (Inode_IsModified(pNode)) {
+        curTime = MonotonicClock_GetCurrentTime();
+    }
+
+    if (Inode_IsAccessed(pNode)) {
+        pOutInfo->accessTime = curTime;
+    } else {
+        pOutInfo->accessTime = Inode_GetAccessTime(pNode);
+    }
+    if (Inode_IsUpdated(pNode)) {
+        pOutInfo->modificationTime = curTime;
+    } else {
+        pOutInfo->modificationTime = Inode_GetModificationTime(pNode);
+    }
+    if (Inode_IsStatusChanged(pNode)) {
+        pOutInfo->statusChangeTime = curTime;
+    } else {
+        pOutInfo->statusChangeTime = Inode_GetStatusChangeTime(pNode);
+    }
+    
+    pOutInfo->size = Inode_GetFileSize(pNode);
+    pOutInfo->uid = Inode_GetUserId(pNode);
+    pOutInfo->gid = Inode_GetGroupId(pNode);
+    pOutInfo->permissions = Inode_GetFilePermissions(pNode);
+    pOutInfo->type = Inode_GetFileType(pNode);
+    pOutInfo->reserved = 0;
+    pOutInfo->linkCount = Inode_GetLinkCount(pNode);
+    pOutInfo->filesystemId = Filesystem_GetId(self);
+    pOutInfo->inodeId = Inode_GetId(pNode);
+
+    return EOK;
 }
 
 // Modifies one or more attributes stored in the file info record of the given
 // Inode. The Inode may be of any type.
 errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    return EIO;
+    const uint32_t  modify = pInfo->modify & kModifyFileInfo_All;
+
+    if (modify == 0) {
+        return EOK;
+    }
+
+    // Only the owner of a file may change its metadata.
+    if (user.uid != Inode_GetUserId(pNode) && user.uid != kRootUserId) {
+        return EPERM;
+    }
+
+    // Can't change the metadata if the disk is read-only
+    if (!FilePermissions_Has(Filesystem_GetDiskPermissions(self, Inode_GetFileType(pNode)), kFilePermissionsClass_User, kFilePermission_Write)) {
+        return EROFS;
+    }
+    
+
+    // We got permissions. Now update the data as requested.
+    if ((modify & kModifyFileInfo_UserId) == kModifyFileInfo_UserId) {
+        Inode_SetUserId(pNode, pInfo->uid);
+    }
+
+    if ((modify & kModifyFileInfo_GroupId) == kModifyFileInfo_GroupId) {
+        Inode_SetGroupId(pNode, pInfo->gid);
+    }
+
+    if ((modify & kModifyFileInfo_Permissions) == kModifyFileInfo_Permissions) {
+        const FilePermissions oldPerms = Inode_GetFilePermissions(pNode);
+        const FilePermissions newPerms = (oldPerms & ~pInfo->permissionsModifyMask) | (pInfo->permissions & pInfo->permissionsModifyMask);
+
+        Inode_SetFilePermissions(pNode, newPerms);
+    }
+
+    // Update timestamps
+    if ((modify & kModifyFileInfo_AccessTime) == kModifyFileInfo_AccessTime) {
+        Inode_SetAccessTime(pNode, pInfo->accessTime);
+    }
+    if ((modify & kModifyFileInfo_ModificationTime) == kModifyFileInfo_ModificationTime) {
+        Inode_SetModificationTime(pNode, pInfo->modificationTime);
+    }
+
+    Inode_SetModified(pNode, kInodeFlag_StatusChanged);
+
+    return EOK;
 }
 
 // Creates and opens a file and returns the inode of that file. The behavior is

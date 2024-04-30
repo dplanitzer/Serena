@@ -108,6 +108,8 @@ open_class_funcs(Filesystem, Object,
     // Invoked when an instance of this file system is mounted. Note that the
     // kernel guarantees that no operations will be issued to the filesystem
     // before onMount() has returned with EOK.
+    // Override: Advised
+    // Default Behavior: Returns EIO
     errno_t (*onMount)(void* _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize);
 
     // Invoked when a mounted instance of this file system is unmounted. A file
@@ -115,6 +117,8 @@ open_class_funcs(Filesystem, Object,
     // and the file system implementation is required to do everything it can to
     // successfully unmount. Unmount errors are ignored and the file system manager
     // will complete the unmount in any case.
+    // Override: Optional
+    // Default Behavior: Returns EOK
     errno_t (*onUnmount)(void* _Nonnull self);
 
 
@@ -124,6 +128,8 @@ open_class_funcs(Filesystem, Object,
 
     // Returns the root node of the filesystem if the filesystem is currently in
     // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
+    // Override: Advised
+    // Default Behavior: Returns NULL and ENOENT
     errno_t (*acquireRootNode)(void* _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
     // Returns EOK and the node that corresponds to the tuple (parent-node, name),
@@ -133,6 +139,8 @@ open_class_funcs(Filesystem, Object,
     // the root node of the filesystem and 'pComponent' is ".." then 'pParentNode'
     // should be returned. If the path component name is longer than what is
     // supported by the file system, ENAMETOOLONG should be returned.
+    // Override: Advised
+    // Default Behavior: Returns NULL and ENOENT
     errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
@@ -143,6 +151,8 @@ open_class_funcs(Filesystem, Object,
     // contains 'id' and ENOENT otherwise. If the name of 'id' as stored in the
     // file system is > the capacity of the path component, then ERANGE should
     // be returned.
+    // Override: Advised
+    // Default Behavior: Returns ENOENT and sets 'pComponent' to an empty name
     errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent);
 
 
@@ -151,11 +161,15 @@ open_class_funcs(Filesystem, Object,
     //
 
     // Returns a file info record for the given Inode. The Inode may be of any
-    // file type.
+    // type.
+    // Override: Optional
+    // Default Behavior: Returns the inode's file info
     errno_t (*getFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo);
 
     // Modifies one or more attributes stored in the file info record of the given
     // Inode. The Inode may be of any type.
+    // Override: Optional
+    // Default Behavior: Updates the inode's file info
     errno_t (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo);
 
 
@@ -211,6 +225,8 @@ open_class_funcs(Filesystem, Object,
     //
 
     // Verifies that the given node is accessible assuming the given access mode.
+    // Override: Optional
+    // Default Behavior: Returns EOK if the given node is accessible; EACCESS or EROFS otherwise
     errno_t (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode);
 
     // Change the size of the file 'pNode' to 'length'. EINVAL is returned if
@@ -245,17 +261,23 @@ open_class_funcs(Filesystem, Object,
     // create and inode instance and fill it in with the data from the disk and
     // then return it. It should return a suitable error and NULL if the inode
     // data can not be read off the disk.
+    // Override: Advised
+    // Default Behavior: Returns EIO
     errno_t (*onReadNodeFromDisk)(void* _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Invoked when the inode is relinquished and it is marked as modified. The
     // filesystem override should write the inode meta-data back to the 
     // corresponding disk node.
+    // Override: Advised
+    // Default Behavior: Returns EIO
     errno_t (*onWriteNodeToDisk)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode);
 
     // Invoked when Filesystem_RelinquishNode() has determined that the inode is
     // no longer being referenced by any directory and that the on-disk
     // representation should be deleted from the disk and deallocated. This
     // operation is assumed to never fail.
+    // Override: Advised
+    // Default Behavior: Does nothing
     void (*onRemoveNodeFromDisk)(void* _Nonnull self, InodeRef _Nonnull pNode);
 
     // Returns a set of file permissions that apply to all files of type 'fileType'
@@ -265,6 +287,8 @@ open_class_funcs(Filesystem, Object,
     // filesystem which always supports all permissions for all file types and
     // permission classes should return 0777 (this is what the default
     // implementation does).
+    // Override: Optional
+    // Default Behavior: Returns 0777 (R/W/X for user, group & other)
     FilePermissions (*getDiskPermissions)(void* _Nonnull self, FileType fileType);
 );
 

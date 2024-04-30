@@ -50,7 +50,10 @@ enum ModifyFileInfo {
     kModifyFileInfo_ModificationTime = 2,
     kModifyFileInfo_UserId = 4,
     kModifyFileInfo_GroupId = 8,
-    kModifyFileInfo_Permissions = 16
+    kModifyFileInfo_Permissions = 16,
+    kModifyFileInfo_All = kModifyFileInfo_AccessTime | kModifyFileInfo_ModificationTime
+                        | kModifyFileInfo_UserId | kModifyFileInfo_GroupId
+                        | kModifyFileInfo_Permissions
 };
 
 typedef struct MutableFileInfo {

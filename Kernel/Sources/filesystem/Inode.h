@@ -85,11 +85,20 @@ typedef struct Inode* InodeRef;
 #define Inode_GetAccessTime(__self) \
     (__self)->accessTime
 
+#define Inode_SetAccessTime(__self, __time) \
+    (__self)->accessTime = __time
+
 #define Inode_GetModificationTime(__self) \
     (__self)->modificationTime
 
+#define Inode_SetModificationTime(__self, __time) \
+    (__self)->modificationTime = __time
+
 #define Inode_GetStatusChangeTime(__self) \
     (__self)->statusChangeTime
+
+#define Inode_SetStatusChangeTime(__self, __time) \
+    (__self)->statusChangeTime = __time
 
 
 // Inode modified and timestamp changed flags
@@ -170,13 +179,6 @@ void Inode_Unlink(InodeRef _Nonnull self);
 #define Inode_DecrementFileSize(__self, __delta) \
     (__self)->size -= (__delta)
 
-
-// Returns a file info record from the node data.
-extern void Inode_GetFileInfo(InodeRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
-
-// Modifies the node's file info if the operation is permissible based on the
-// given user and inode permissions status.
-extern errno_t Inode_SetFileInfo(InodeRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
 
 
 //

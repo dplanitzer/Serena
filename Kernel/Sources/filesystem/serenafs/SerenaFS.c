@@ -859,6 +859,18 @@ catch:
     return err;
 }
 
+// Returns a set of file permissions that apply to all files of type 'fileType'
+// on the disk. Ie if a filesystem supports a read-only mounting option then
+// this function should return 0555. If the filesystem supports a do-not-
+// execute-files mount option then this function should return 0666. A
+// filesystem which always supports all permissions for all file types and
+// permission classes should return 0777 (this is what the default
+// implementation does).
+FilePermissions SerenaFS_getDiskPermissions(SerenaFSRef _Nonnull self, FileType fileType)
+{
+    return self->fsPermissions;
+}
+
 
 // Returns the root node of the filesystem if the filesystem is currently in
 // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
@@ -926,25 +938,6 @@ errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
 catch:
     pComponent->count = 0;
     return err;
-}
-
-// Returns a file info record for the given Inode. The Inode may be of any
-// file type.
-errno_t SerenaFS_getFileInfo(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
-{
-    Inode_GetFileInfo(pNode, pOutInfo);
-    return EOK;
-}
-
-// Modifies one or more attributes stored in the file info record of the given
-// Inode. The Inode may be of any type.
-errno_t SerenaFS_setFileInfo(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
-{
-    if (!FilePermissions_Has(self->fsPermissions, kFilePermissionsClass_User, kFilePermission_Write)) {
-        return EROFS;
-    }
-    
-    return Inode_SetFileInfo(pNode, user, pInfo);
 }
 
 static errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove)
@@ -1347,18 +1340,6 @@ catch:
     return err;
 }
 
-// Returns a set of file permissions that apply to all files of type 'fileType'
-// on the disk. Ie if a filesystem supports a read-only mounting option then
-// this function should return 0555. If the filesystem supports a do-not-
-// execute-files mount option then this function should return 0666. A
-// filesystem which always supports all permissions for all file types and
-// permission classes should return 0777 (this is what the default
-// implementation does).
-FilePermissions SerenaFS_getDiskPermissions(SerenaFSRef _Nonnull self, FileType fileType)
-{
-    return self->fsPermissions;
-}
-
 // Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
 // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
 // is guaranteed to exist and that it isn't a mountpoint and not the root
@@ -1414,11 +1395,10 @@ override_func_def(onWriteNodeToDisk, SerenaFS, Filesystem)
 override_func_def(onRemoveNodeFromDisk, SerenaFS, Filesystem)
 override_func_def(onMount, SerenaFS, Filesystem)
 override_func_def(onUnmount, SerenaFS, Filesystem)
+override_func_def(getDiskPermissions, SerenaFS, Filesystem)
 override_func_def(acquireRootNode, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
-override_func_def(getFileInfo, SerenaFS, Filesystem)
-override_func_def(setFileInfo, SerenaFS, Filesystem)
 override_func_def(createFile, SerenaFS, Filesystem)
 override_func_def(openFile, SerenaFS, Filesystem)
 override_func_def(readFile, SerenaFS, Filesystem)
@@ -1427,7 +1407,6 @@ override_func_def(createDirectory, SerenaFS, Filesystem)
 override_func_def(openDirectory, SerenaFS, Filesystem)
 override_func_def(readDirectory, SerenaFS, Filesystem)
 override_func_def(truncate, SerenaFS, Filesystem)
-override_func_def(getDiskPermissions, SerenaFS, Filesystem)
 override_func_def(unlink, SerenaFS, Filesystem)
 override_func_def(rename, SerenaFS, Filesystem)
 );
