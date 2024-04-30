@@ -504,12 +504,12 @@ static errno_t SerenaFS_GetDirectoryEntry(
 
     if (pOutEmptyPtr) {
         pOutEmptyPtr->lba = 0;
-        pOutEmptyPtr->offset = 0;
+        pOutEmptyPtr->blockOffset = 0;
         pOutEmptyPtr->fileOffset = 0ll;
     }
     if (pOutEntryPtr) {
         pOutEntryPtr->lba = 0;
-        pOutEntryPtr->offset = 0;
+        pOutEntryPtr->blockOffset = 0;
         pOutEntryPtr->fileOffset = 0ll;
     }
     if (pOutId) {
@@ -553,8 +553,8 @@ static errno_t SerenaFS_GetDirectoryEntry(
         hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
         if (pEmptyEntry) {
             pOutEmptyPtr->lba = lba;
-            pOutEmptyPtr->offset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
-            pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->offset;
+            pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
+            pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;
         }
         if (hasMatch) {
             break;
@@ -566,8 +566,8 @@ static errno_t SerenaFS_GetDirectoryEntry(
     if (hasMatch) {
         if (pOutEntryPtr) {
             pOutEntryPtr->lba = lba;
-            pOutEntryPtr->offset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
-            pOutEntryPtr->fileOffset = offset + pOutEntryPtr->offset;
+            pOutEntryPtr->blockOffset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
+            pOutEntryPtr->fileOffset = offset + pOutEntryPtr->blockOffset;
         }
         if (pOutId) {
             *pOutId = UInt32_BigToHost(pMatchingEntry->id);
@@ -951,7 +951,7 @@ static errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef
     try(SerenaFS_GetDirectoryEntry(self, pDirNode, &q, NULL, &mp, NULL, NULL));
 
     try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, mp.lba));
-    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.offset);
+    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.blockOffset);
     memset(dep, 0, sizeof(SFSDirectoryEntry));
     try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, mp.lba));
 
@@ -982,7 +982,7 @@ static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef
     if (pEmptyPtr && pEmptyPtr->lba > 0) {
         // Reuse an empty entry
         try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, pEmptyPtr->lba));
-        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + pEmptyPtr->offset);
+        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + pEmptyPtr->blockOffset);
 
         char* p = String_CopyUpTo(dep->filename, pName->name, pName->count);
         while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
