@@ -149,20 +149,19 @@ errno_t HIDEventQueue_Get(HIDEventQueueRef _Nonnull pQueue, HIDEvent* _Nonnull p
     const int irs = cpu_disable_irqs();
 
     while (true) {
-        // This implicitly and temporarily reenables IRQs while we are blocked
-        // waiting. IRQs are disabled once again when this call comes back.
-        try(Semaphore_Acquire(&pQueue->semaphore, timeout));
-
         if (!HIDEventQueue_IsEmpty_Locked(pQueue)) {
             *pOutEvent = pQueue->data[pQueue->readIdx++ & pQueue->capacityMask];
+            break;
+        }
+
+        // This temporarily reenables IRQs while we are blocked waiting. IRQs
+        // are disabled once again when this call comes back.
+        err = Semaphore_Acquire(&pQueue->semaphore, timeout);
+        if (err != EOK) {
             break;
         }
     }
     cpu_restore_irqs(irs);
 
-    return EOK;
-
-catch:
-    cpu_restore_irqs(irs);
     return err;
 }

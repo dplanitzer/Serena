@@ -547,10 +547,9 @@ errno_t EventDriver_Read(EventDriverRef _Nonnull pDriver, void* _Nonnull pBuffer
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
     ssize_t nBytesRead = 0;
-    int i;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        const errno_t e1 = HIDEventQueue_Get(pDriver->eventQueue, pEvent, (i > 0) ? timeout : kTimeInterval_Zero);
+        const errno_t e1 = HIDEventQueue_Get(pDriver->eventQueue, pEvent, timeout);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at
@@ -562,7 +561,6 @@ errno_t EventDriver_Read(EventDriverRef _Nonnull pDriver, void* _Nonnull pBuffer
         
         nBytesRead += sizeof(HIDEvent);
         pEvent++;
-        i++;
     }
 
     *nOutBytesRead = nBytesRead;

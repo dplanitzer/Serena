@@ -398,6 +398,10 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
                 LineReader_ReadEscapeSequence(self);
                 break;
 
+            case EOF:
+                // XXX gotta decide what to do in this case
+                break;
+
             default:
                 LineReader_AcceptCharacter(self, ch);
                 break;
