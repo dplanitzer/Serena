@@ -403,7 +403,9 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
                 break;
 
             default:
-                LineReader_AcceptCharacter(self, ch);
+                if (isprint(ch)) {
+                    LineReader_AcceptCharacter(self, ch);
+                }
                 break;
         }
     }
