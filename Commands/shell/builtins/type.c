@@ -8,6 +8,7 @@
 
 #include "Interpreter.h"
 #include <ctype.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,7 +70,7 @@ static errno_t type_hex(const char* _Nonnull path)
     size_t addr = 0;
     uint8_t buf[16];
     
-    try_null(fp, fopen(path, "rb"), ENOENT);
+    try_null(fp, fopen(path, "rb"), errno);
 
     while (!feof(fp)) {
         const size_t r = fread(buf, 1, sizeof(buf), fp);
@@ -107,7 +108,7 @@ static errno_t type_text(const char* _Nonnull path)
     FILE* fp = NULL;
     uint8_t buf[128];
     
-    try_null(fp, fopen(path, "r"), ENOENT);
+    try_null(fp, fopen(path, "r"), errno);
 
     while (!feof(fp)) {
         const size_t r = fread(buf, sizeof(buf), 1, fp);
