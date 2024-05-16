@@ -16,8 +16,9 @@
 
 
 typedef struct PathResolver {
-    InodeRef _Nonnull       rootDirectory;
-    InodeRef _Nonnull       workingDirectory;
+    InodeRef _Nonnull   rootDirectory;
+    InodeRef _Nonnull   workingDirectory;
+    User                user;
 } PathResolver;
 typedef PathResolver* PathResolverRef;
 
@@ -66,15 +67,10 @@ typedef struct PathResolverResult {
 extern void PathResolverResult_Deinit(PathResolverResult* self);
 
 
-extern errno_t PathResolver_Create(FilesystemRef _Nonnull pRootFs, PathResolverRef _Nullable * _Nonnull pOutSelf);
-extern errno_t PathResolver_CreateCopy(PathResolverRef _Nonnull pOther, PathResolverRef _Nullable * _Nonnull pOutSelf);
-extern void PathResolver_Destroy(PathResolverRef _Nullable self);
+extern void PathResolver_Init(PathResolverRef _Nonnull self, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, User user);
+extern void PathResolver_Deinit(PathResolverRef _Nullable self);
 
-extern errno_t PathResolver_SetRootDirectoryPath(PathResolverRef _Nonnull self, User user, const char* _Nonnull pPath);
-extern bool PathResolver_IsRootDirectory(PathResolverRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
-
-extern errno_t PathResolver_GetWorkingDirectoryPath(PathResolverRef _Nonnull self, User user, char* _Nonnull pBuffer, size_t bufferSize);
-extern errno_t PathResolver_SetWorkingDirectoryPath(PathResolverRef _Nonnull self, User user, const char* _Nonnull pPath);
+extern errno_t PathResolver_GetDirectoryPath(PathResolverRef _Nonnull self, InodeRef _Nonnull pStartDir, char* _Nonnull  pBuffer, size_t bufferSize);
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
 // If it is relative then the resolution starts with the current working directory.
@@ -86,6 +82,6 @@ extern errno_t PathResolver_SetWorkingDirectoryPath(PathResolverRef _Nonnull sel
 // The caller of this function has to call PathResolverResult_Deinit() on the
 // returned result when no longer needed, no matter whether this function has
 // returned with EOK or some error.
-extern errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
+extern errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, PathResolverResult* _Nonnull pResult);
 
 #endif /* PathResolver_h */

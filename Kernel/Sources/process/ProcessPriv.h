@@ -45,12 +45,11 @@ final_class_ivars(Process, Object,
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
     UResourceTable                  uResourcesTable;    // Process private resources (aka non-sharable resources)
 
-    // Filesystems/Namespace
-    PathResolverRef _Nonnull        pathResolver;
+    // Filesystem hierarchy
+    InodeRef _Nonnull               rootDirectory;
+    InodeRef _Nonnull               workingDirectory;
     FilePermissions                 fileCreationMask;   // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
-    
-    // User identity
-    User                            realUser;       // User identity inherited from the parent process / set at spawn time
+    User                            realUser;           // User identity inherited from the parent process / set at spawn time
     
     // Process image
     char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments
@@ -67,7 +66,7 @@ final_class_ivars(Process, Object,
 );
 
 
-extern errno_t Process_Create(ProcessId ppid, User user, PathResolverRef _Nonnull pResolver, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
+extern errno_t Process_Create(ProcessId ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc);
 extern void Process_deinit(ProcessRef _Nonnull self);
 
 // Frees all tombstones
@@ -98,5 +97,7 @@ extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessId chil
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
 extern errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull pExecPath, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv);
+
+extern void Process_MakePathResolver(ProcessRef _Nonnull self, PathResolverRef _Nonnull pResolver);
 
 #endif /* ProcessPriv_h */

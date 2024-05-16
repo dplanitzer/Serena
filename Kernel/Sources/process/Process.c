@@ -37,18 +37,20 @@ ProcessRef _Nullable Process_GetCurrent(void)
 errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
-    FilesystemRef pRootFs = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
-    PathResolverRef pResolver = NULL;
+    FilesystemRef pFS = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
+    InodeRef pRootDir = NULL;
 
-    assert(pRootFs != NULL);
-    try(PathResolver_Create(pRootFs, &pResolver));
-    try(Process_Create(1, kUser_Root, pResolver, FilePermissions_MakeFromOctal(0022), pOutProc));
+    assert(pFS != NULL);
+    try(Filesystem_AcquireRootNode(pFS, &pRootDir));
+    try(Process_Create(1, kUser_Root, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc));
+    Inode_Relinquish(pRootDir);
+    Object_Release(pFS);
 
     return EOK;
 
 catch:
-    PathResolver_Destroy(pResolver);
-    Object_Release(pRootFs);
+    Inode_Relinquish(pRootDir);
+    Object_Release(pFS);
     *pOutProc = NULL;
     return err;
 }
@@ -69,7 +71,7 @@ errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPa
 
 
 
-errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t Process_Create(int ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
     ProcessRef pProc;
@@ -87,7 +89,8 @@ errno_t Process_Create(int ppid, User user, PathResolverRef _Nonnull pResolver, 
     try(UResourceTable_Init(&pProc->uResourcesTable));
     try(IntArray_Init(&pProc->childPids, 0));
 
-    pProc->pathResolver = pResolver;
+    pProc->rootDirectory = Inode_AcquireUnlocked(pRootDir);
+    pProc->workingDirectory = Inode_AcquireUnlocked(pWorkingDir);
     pProc->fileCreationMask = fileCreationMask;
     pProc->realUser = user;
 
@@ -118,7 +121,10 @@ void Process_deinit(ProcessRef _Nonnull pProc)
     IOChannelTable_Deinit(&pProc->ioChannelTable);
     UResourceTable_Deinit(&pProc->uResourcesTable);
 
-    PathResolver_Destroy(pProc->pathResolver);
+    Inode_Relinquish(pProc->workingDirectory);
+    pProc->workingDirectory = NULL;
+    Inode_Relinquish(pProc->rootDirectory);
+    pProc->rootDirectory = NULL;
 
     Process_DestroyAllTombstones_Locked(pProc);
     ConditionVariable_Deinit(&pProc->tombstoneSignaler);
@@ -174,4 +180,9 @@ void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
 errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem)
 {
     return AddressSpace_Allocate(pProc->addressSpace, count, pOutMem);
+}
+
+void Process_MakePathResolver(ProcessRef _Nonnull self, PathResolverRef _Nonnull pResolver)
+{
+    PathResolver_Init(pResolver, self->rootDirectory, self->workingDirectory, self->realUser);
 }

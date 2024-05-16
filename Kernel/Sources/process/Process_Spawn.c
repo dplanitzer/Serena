@@ -16,16 +16,13 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
-    PathResolverRef pChildResolver = NULL;
     bool needsUnlock = false;
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
     const FilePermissions childUMask = ((pOptions->options & kSpawn_OverrideUserMask) != 0) ? (pOptions->umask & 0777) : pProc->fileCreationMask;
-    try(PathResolver_CreateCopy(pProc->pathResolver, &pChildResolver));
-    try(Process_Create(pProc->pid, pProc->realUser, pChildResolver, pProc->fileCreationMask, &pChildProc));
-    pChildResolver = NULL;
+    try(Process_Create(pProc->pid, pProc->realUser, pProc->rootDirectory, pProc->workingDirectory, pProc->fileCreationMask, &pChildProc));
 
 
     // Note that we do not lock the child process although we're reaching directly
@@ -57,9 +54,6 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     return EOK;
 
 catch:
-    if (pChildResolver) {
-        PathResolver_Destroy(pChildResolver);
-    }
     if (pChildProc) {
         Process_AbandonChild_Locked(pProc, pChildProc->pid);
     }
@@ -169,6 +163,7 @@ catch:
 errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPath, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
 {
     decl_try_err();
+    PathResolver pr;
     PathResolverResult r;
     GemDosExecutableLoader loader;
     void* pEntryPoint = NULL;
@@ -176,7 +171,8 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
     // XXX for now to keep loading simpler
     assert(pProc->imageBase == NULL);
 
-    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOnly, pExecPath, pProc->realUser, &r));
+    Process_MakePathResolver(pProc, &pr);
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_TargetOnly, pExecPath, &r));
     try(Filesystem_CheckAccess(Inode_GetFilesystem(r.target), r.target, pProc->realUser, kAccess_Readable | kAccess_Executable));
 
 
@@ -197,6 +193,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
 catch:
     //XXX free the executable image if an error occurred
     PathResolverResult_Deinit(&r);
+    PathResolver_Deinit(&pr);
     return err;
 }
 
