@@ -18,30 +18,47 @@
 typedef struct PathResolver {
     InodeRef _Nonnull       rootDirectory;
     InodeRef _Nonnull       workingDirectory;
-
-    PathComponent           pathComponent;
-    char                    nameBuffer[kMaxPathComponentLength + 1];
 } PathResolver;
 typedef PathResolver* PathResolverRef;
 
 
 // The path resolution mode
-typedef enum PathResolutionMode {
-    // Return the inode named by the path. This is the target node of the path.
+typedef enum PathResolverMode {
+    // Returns the inode named by the path. This is the target node of the path.
     // An error and NULL is returned if no such node exists or if the node is
     // not accessible.
-    kPathResolutionMode_TargetOnly,
+    kPathResolverMode_TargetOnly,
 
-    // Returns the inode that is the parent of the inode named by the path. An
-    // error and NULL is returned if no such node exists or is accessible.
-    kPathResolutionMode_ParentOnly
+    // Returns the target node if it exists or the immediate parent node and the
+    // last path component if the target does not exist.
+    kPathResolverMode_TargetOrParent,
 
-} PathResolutionMode;
+    // Returns the target and the parent node. Both nodes are expected to exist.
+    // Returns a suitable error if neither exists.
+    kPathResolverMode_TargetAndParent,
+
+    // Returns the parent directory of the target and the last path component.
+    // Additionally returns the target node if it exists. The parent node is
+    // expected to exist in any case. Returns a suitable error if the parent
+    // does not exist.
+    kPathResolverMode_OptionalTargetAndParent,
+
+} PathResolverMode;
+
+
+// Path resolution options
+enum PathResolverOption {
+    kPathResolverOption_NotYet = 1
+};
+typedef uint32_t PathResolverOptions;
+
 
 // The result of a path resolution operation.
 typedef struct PathResolverResult {
-    InodeRef _Nullable _Locked  inode;              // The inode named by the path if it exists and the parent inode otherwise, if requested
+    InodeRef _Nullable          parent;             // Parent node if requested
+    InodeRef _Nullable          target;             // Target node if requested
     PathComponent               lastPathComponent;  // Last path component if the resolution mode is ParentOnly. Note that this stores a reference into the path that was passed to the resolution function
+    DirectoryEntryInsertionHint insertionHint;      // Insertion hint for inserting the last path component into 'parent' if the resolution mode is TargetOrParent and the target doesn't exist; otherwise undefined
 } PathResolverResult;
 
 
@@ -69,6 +86,6 @@ extern errno_t PathResolver_SetWorkingDirectoryPath(PathResolverRef _Nonnull sel
 // The caller of this function has to call PathResolverResult_Deinit() on the
 // returned result when no longer needed, no matter whether this function has
 // returned with EOK or some error.
-extern errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolutionMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
+extern errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, User user, PathResolverResult* _Nonnull pResult);
 
 #endif /* PathResolver_h */

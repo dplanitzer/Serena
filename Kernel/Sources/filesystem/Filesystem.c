@@ -237,20 +237,30 @@ errno_t Filesystem_onUnmount(FilesystemRef _Nonnull self)
 errno_t Filesystem_acquireRootNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
-    return ENOENT;
+    return EIO;
 }
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
-// function has to support the special names "." (node itself) and ".."
-// (parent of node) in addition to "regular" filenames. If 'pParentNode' is
-// the root node of the filesystem and 'pComponent' is ".." then 'pParentNode'
-// should be returned. If the path component name is longer than what is
-// supported by the file system, ENAMETOOLONG should be returned.
-errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+// function has to support the special name ".." (parent of node) in addition
+// to "regular" filenames. If 'pParentNode' is the root node of the filesystem
+// and 'pComponent' is ".." then 'pParentNode' should be returned. Note that
+// a lookup of '..' may not fail with ENOENT. This particular kind of lookup
+// must always succeed or fail with a general I/O error. If the path component
+// name is longer than what is supported by the file system, ENAMETOOLONG
+// should be returned.  caller may pass a pointer to a directory-entry-insertion-
+// hint data structure. This function may store information in this data
+// structure to help speed up a follow=up CreateNode() call for a node with
+// the name 'pComponent' in the directory 'pParentNode'.
+errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     *pOutNode = NULL;
-    return ENOENT;
+    
+    if (pComponent->count == 2 && pComponent->name[0] == '.' && pComponent->name[1] == '.') {
+        return EIO;
+    } else {
+        return ENOENT;
+    }
 }
 
 // Returns the name of the node with the id 'id' which a child of the
@@ -264,7 +274,7 @@ errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Non
 errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
 {
     pComponent->count = 0;
-    return ENOENT;
+    return EIO;
 }
 
 // Returns a file info record for the given Inode. The Inode may be of any
@@ -356,13 +366,11 @@ errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     return EOK;
 }
 
-// Creates and opens a file and returns the inode of that file. The behavior is
-// non-exclusive by default. Meaning the file is created if it does not 
-// exist and the file's inode is merrily acquired if it already exists. If
-// the mode is exclusive then the file is created if it doesn't exist and
-// an error is thrown if the file exists. Returns a file object, representing
-// the created and opened file.
-errno_t Filesystem_createFile(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int options, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+// Creates a new inode with type 'type', user information 'user', permissions
+// 'permissions' and adds it to parent inode (directory) 'pParentNode'. The new
+// node will be added to 'pParentNode' with the name 'pName'. Returns the newly
+// acquired inode on success and NULL otherwise.
+errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
@@ -386,14 +394,6 @@ errno_t Filesystem_readFile(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode
 errno_t Filesystem_writeFile(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EIO;
-}
-
-// Creates an empty directory as a child of the given directory node and with
-// the given name, user and file permissions. Returns EEXIST if a node with
-// the given name already exists.
-errno_t Filesystem_createDirectory(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions)
-{
-    return EACCESS;
 }
 
 // Opens the directory represented by the given node. The filesystem is
@@ -489,21 +489,21 @@ errno_t Filesystem_truncate(FilesystemRef _Nonnull self, InodeRef _Nonnull _Lock
     return EIO;
 }
 
-// Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
+// Unlink the node 'pNode' which is an immediate child of 'pParentDir'.
 // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
 // is guaranteed to exist and that it isn't a mountpoint and not the root
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentNode, User user)
+errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentDir, User user)
 {
     return EACCESS;
 }
 
-// Renames the node with name 'pName' and which is an immediate child of the
-// node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
+// Renames the node 'pSourceNode' which is an immediate child of the
+// node 'pSourceDir' such that it becomes a child of 'pTargetDir' with
 // the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
-errno_t Filesystem_rename(FilesystemRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pNewParentNode, User user)
+errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pTargetDir, User user)
 {
     return EACCESS;
 }
@@ -521,11 +521,10 @@ func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)
 func_def(getFileInfo, Filesystem)
 func_def(setFileInfo, Filesystem)
-func_def(createFile, Filesystem)
+func_def(createNode, Filesystem)
 func_def(openFile, Filesystem)
 func_def(readFile, Filesystem)
 func_def(writeFile, Filesystem)
-func_def(createDirectory, Filesystem)
 func_def(openDirectory, Filesystem)
 func_def(readDirectory, Filesystem)
 func_def(getDiskPermissions, Filesystem)

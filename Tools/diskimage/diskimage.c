@@ -32,18 +32,12 @@ static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
 
 static errno_t beginDirectory(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePath, const di_direntry* _Nonnull pEntry, InodeRef _Nonnull pParentNode, InodeRef* pOutDirInode)
 {
-    decl_try_err();
     PathComponent pc;
 
     pc.name = pEntry->name;
     pc.count = strlen(pc.name);
 
-    try(Filesystem_CreateDirectory(pFS, &pc, pParentNode, gDefaultUser, gDefaultDirPermissions));
-    try(Filesystem_AcquireNodeForName(pFS, pParentNode, &pc, gDefaultUser, pOutDirInode));
-    return EOK;
-
-catch:
-    return err;
+    return Filesystem_CreateNode(pFS, kFileType_Directory, gDefaultUser, gDefaultDirPermissions, pParentNode, &pc, NULL, pOutDirInode);
 }
 
 static errno_t endDirectory(FilesystemRef _Nonnull pFS, InodeRef pDirInode)
@@ -77,7 +71,7 @@ static errno_t copyFile(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePa
     }
 
 
-    try(Filesystem_CreateFile(pFS, &pc, pDirInode, gDefaultUser, mode, permissions, &pDstFile));
+    try(Filesystem_CreateNode(pFS, kFileType_RegularFile, gDefaultUser, permissions, pDirInode, &pc, NULL, &pDstFile));
 
     try(di_concat_path(pBasePath, pEntry->name, gBuffer, sizeof(gBuffer)));
     try_null(pSrcFile, fopen(gBuffer, "rb"), EIO);

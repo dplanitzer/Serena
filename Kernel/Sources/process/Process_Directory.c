@@ -51,16 +51,24 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
 {
     decl_try_err();
     PathResolverResult r;
+    InodeRef pDirNode = NULL;
 
     Lock_Lock(&pProc->lock);
-
-    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_CreateDirectory(Inode_GetFilesystem(r.inode), &r.lastPathComponent, r.inode, pProc->realUser, ~pProc->fileCreationMask & (permissions & 0777));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOrParent, pPath, pProc->realUser, &r));
+    if (r.target != NULL) {
+        throw(EEXIST);
     }
+    FilesystemRef pFS = Inode_GetFilesystem(r.parent);
+    FilePermissions dirPerms = ~pProc->fileCreationMask & (permissions & 0777);
+
+
+    // Create the new directory and add it to its parent directory
+    try(Filesystem_CreateNode(pFS, kFileType_Directory, pProc->realUser, dirPerms, r.parent, &r.lastPathComponent, &r.insertionHint, &pDirNode));
+
+catch:
+    Inode_Relinquish(pDirNode);
     PathResolverResult_Deinit(&r);
-
     Lock_Unlock(&pProc->lock);
-
     return err;
 }
 
@@ -73,11 +81,11 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
     IOChannelRef pDir = NULL;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_OpenDirectory(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_OpenDirectory(Inode_GetFilesystem(r.target), r.target, pProc->realUser));
     // Note that this method takes ownership of the inode reference
-    try(DirectoryChannel_Create(r.inode, &pDir));
-    r.inode = NULL;
+    try(DirectoryChannel_Create(r.target, &pDir));
+    r.target = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pDir, pOutIoc));
     pDir = NULL;
     PathResolverResult_Deinit(&r);

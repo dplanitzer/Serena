@@ -50,7 +50,8 @@ char *strerror(int err_no)
         /*ENOTIOCTLCMD*/    "Not an IOCTL command",
         /*EILSEQ*/          "Invalid multibyte sequence",
         /*EMLINK*/          "Too many links",
-        /*EMFILE*/          "Too many open I/O channels"
+        /*EMFILE*/          "Too many open I/O channels",
+        /*EXDEV*/           "Cross-device link not permitted"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

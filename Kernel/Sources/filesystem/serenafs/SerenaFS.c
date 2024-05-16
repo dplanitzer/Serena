@@ -259,7 +259,7 @@ static void SerenaFS_DeallocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddr
 // 'permissions' and adds it to parent inode (directory) 'pParentNode'. The new
 // node will be added to 'pParentNode' with the name 'pName'. Returns the newly
 // acquired inode on success and NULL otherwise.
-static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
@@ -271,11 +271,22 @@ static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, Use
     InodeRef pNode = NULL;
     bool isPublished = false;
 
+    // We must have write permissions for the parent directory
+    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
+
+
+    if (type == kFileType_Directory) {
+        // Make sure that the parent directory is able to accept one more link
+        if (Inode_GetLinkCount(pParentNode) >= kSFSLimit_LinkMax) {
+            throw(EMLINK);
+        }
+    }
+
     try(kalloc_cleared(sizeof(SFSBlockMap), (void**)&pBlockMap));
     try(SerenaFS_AllocateBlock(self, &inodeLba));
     
     if (type == kFileType_Directory) {
-        // Write the initial directory content. This are just the '.' and '..'
+        // Write the initial directory content. These are just the '.' and '..'
         // entries
         try(SerenaFS_AllocateBlock(self, &dirContLba));
 
@@ -316,6 +327,13 @@ static errno_t SerenaFS_CreateNode(SerenaFSRef _Nonnull self, FileType type, Use
     try(Filesystem_PublishNode((FilesystemRef)self, pNode));
     isPublished = true;
     try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pNode), pDirInsertionHint));
+
+    if (type == kFileType_Directory) {
+        // Increment the parent directory link count to account for the '..' entry
+        // in the just created subdirectory
+        Inode_Link(pParentNode);
+    }
+
     *pOutNode = pNode;
 
     return EOK;
@@ -893,12 +911,17 @@ errno_t SerenaFS_acquireRootNode(SerenaFSRef _Nonnull self, InodeRef _Nullable _
 
 // Returns EOK and the node that corresponds to the tuple (parent-node, name),
 // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
-// function has to support the special names "." (node itself) and ".."
-// (parent of node) in addition to "regular" filenames. If 'pParentNode' is
-// the root node of the filesystem and 'pComponent' is ".." then 'pParentNode'
-// should be returned. If the path component name is longer than what is
-// supported by the file system, ENAMETOOLONG should be returned.
-errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pName, User user, InodeRef _Nullable _Locked * _Nonnull pOutNode)
+// function has to support the special name ".." (parent of node) in addition
+// to "regular" filenames. If 'pParentNode' is the root node of the filesystem
+// and 'pComponent' is ".." then 'pParentNode' should be returned. Note that
+// a lookup of '..' may not fail with ENOENT. This particular kind of lookup
+// must always succeed or fail with a general I/O error. If the path component
+// name is longer than what is supported by the file system, ENAMETOOLONG
+// should be returned.  caller may pass a pointer to a directory-entry-insertion-
+// hint data structure. This function may store information in this data
+// structure to help speed up a follow=up CreateNode() call for a node with
+// the name 'pComponent' in the directory 'pParentNode'.
+errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable _Locked * _Nonnull pOutNode)
 {
     decl_try_err();
     SFSDirectoryQuery q;
@@ -907,7 +930,7 @@ errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull
     try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
-    try(SerenaFS_GetDirectoryEntry(self, pParentNode, &q, NULL, NULL, &entryId, NULL));
+    try(SerenaFS_GetDirectoryEntry(self, pParentNode, &q, (pDirInsHint) ? (SFSDirectoryEntryPointer*)pDirInsHint->data : NULL, NULL, &entryId, NULL));
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self, entryId, pOutNode));
     return EOK;
 
@@ -1040,60 +1063,6 @@ catch:
     return err;
 }
 
-// Creates an empty directory as a child of the given directory node and with
-// the given name, user and file permissions. Returns EEXIST if a node with
-// the given name already exists.
-errno_t SerenaFS_createDirectory(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, FilePermissions permissions)
-{
-    decl_try_err();
-    InodeRef pDirNode = NULL;
-
-    // 'pParentNode' must be a directory
-    if (!Inode_IsDirectory(pParentNode)) {
-        throw(ENOTDIR);
-    }
-
-
-    // Make sure that the parent directory is able to accept one more link
-    if (Inode_GetLinkCount(pParentNode) >= kSFSLimit_LinkMax) {
-        throw(EMLINK);
-    }
-
-
-    // Make sure that 'pParentNode' doesn't already have an entry with name 'pName'.
-    // Also figure out whether there's an empty entry that we can reuse.
-    SFSDirectoryEntryPointer ep;
-    SFSDirectoryQuery q;
-
-    q.kind = kSFSDirectoryQuery_PathComponent;
-    q.u.pc = pName;
-    err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &ep, NULL, NULL, NULL);
-    if (err == ENOENT) {
-        err = EOK;
-    } else if (err == EOK) {
-        throw(EEXIST);
-    } else {
-        throw(err);
-    }
-
-
-    // We must have write permissions for 'pParentNode'
-    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
-
-
-    // Create the new directory and add it to its parent directory
-    try(SerenaFS_CreateNode(self, kFileType_Directory, user, permissions, pParentNode, pName, &ep, &pDirNode));
-    Filesystem_RelinquishNode((FilesystemRef)self, pDirNode);
-
-
-    // Increment the parent directory link count to account for the '..' entry
-    // in the just created subdirectory
-    Inode_Link(pParentNode);
-
-catch:
-    return err;
-}
-
 // Opens the directory represented by the given node. The filesystem is
 // expected to validate whether the user has access to the directory content.
 errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user)
@@ -1181,85 +1150,6 @@ errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked p
     }
     
 catch:
-    return err;
-}
-
-// Creates and opens a file and returns the inode of that file. The behavior is
-// non-exclusive by default. Meaning the file is created if it does not 
-// exist and the file's inode is merrily acquired if it already exists. If
-// the mode is exclusive then the file is created if it doesn't exist and
-// an error is thrown if the file exists. Returns a file object, representing
-// the created and opened file.
-errno_t SerenaFS_createFile(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, User user, unsigned int mode, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    decl_try_err();
-    InodeRef pInode = NULL;
-
-    // 'pParentNode' must be a directory
-    if (!Inode_IsDirectory(pParentNode)) {
-        throw(ENOTDIR);
-    }
-
-
-    // Check whether a file with name 'pName' already exists
-    InodeId existingFileId;
-    SFSDirectoryEntryPointer ep;
-    SFSDirectoryQuery q;
-
-    q.kind = kSFSDirectoryQuery_PathComponent;
-    q.u.pc = pName;
-    err = SerenaFS_GetDirectoryEntry(self, pParentNode, &q, &ep, NULL, &existingFileId, NULL);
-    if (err == EOK) {
-        // File exists - reject the operation in exclusive mode and open the file
-        // if in non-exclusive mode
-        if ((mode & kOpen_Exclusive) == kOpen_Exclusive) {
-            // Exclusive mode: File already exists -> throw an error
-            throw(EEXIST);
-        }
-
-
-        try(Filesystem_AcquireNodeWithId((FilesystemRef)self, existingFileId, &pInode));
-        try(SerenaFS_openFile(self, pInode, mode, user));
-        *pOutNode = pInode;
-    }
-    else if (err == ENOENT) {
-        // File does not exist - create it
-        err = EOK;
-
-
-        // We must have write permissions for 'pParentNode'
-        try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
-
-
-        // The user provided read/write mode must match up with the provided (user) permissions
-        if ((mode & kOpen_ReadWrite) == 0) {
-            throw(EACCESS);
-        }
-        if ((mode & kOpen_Read) == kOpen_Read && !FilePermissions_Has(permissions, kFilePermissionsClass_User, kFilePermission_Read)) {
-            throw(EACCESS);
-        }
-        if ((mode & kOpen_Write) == kOpen_Write && !FilePermissions_Has(permissions, kFilePermissionsClass_User, kFilePermission_Write)) {
-            throw(EACCESS);
-        }
-
-
-        // Create the new file and add it to its parent directory
-        try(SerenaFS_CreateNode(self, kFileType_RegularFile, user, permissions, pParentNode, pName, &ep, &pInode));
-        *pOutNode = pInode;
-    }
-    else {
-        // Some lookup error
-        throw(err);
-    }
-
-    return EOK;
-
-catch:
-    if (pInode) {
-        Filesystem_RelinquishNode((FilesystemRef)self, pInode);
-    }
-    *pOutNode = NULL;
-    
     return err;
 }
 
@@ -1378,10 +1268,10 @@ catch:
     return err;
 }
 
-// Renames the node with name 'pName' and which is an immediate child of the
-// node 'pParentNode' such that it becomes a child of 'pNewParentNode' with
+// Renames the node 'pSourceNode' which is an immediate child of the
+// node 'pSourceDir' such that it becomes a child of 'pTargetDir' with
 // the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
-errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, const PathComponent* _Nonnull pName, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pNewParentNode, User user)
+errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pTargetDir, User user)
 {
     // XXX implement me
     return EACCESS;
@@ -1399,11 +1289,10 @@ override_func_def(getDiskPermissions, SerenaFS, Filesystem)
 override_func_def(acquireRootNode, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
-override_func_def(createFile, SerenaFS, Filesystem)
+override_func_def(createNode, SerenaFS, Filesystem)
 override_func_def(openFile, SerenaFS, Filesystem)
 override_func_def(readFile, SerenaFS, Filesystem)
 override_func_def(writeFile, SerenaFS, Filesystem)
-override_func_def(createDirectory, SerenaFS, Filesystem)
 override_func_def(openDirectory, SerenaFS, Filesystem)
 override_func_def(readDirectory, SerenaFS, Filesystem)
 override_func_def(truncate, SerenaFS, Filesystem)

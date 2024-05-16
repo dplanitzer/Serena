@@ -45,9 +45,43 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
     IOChannelRef pFile = NULL;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_CreateFile(Inode_GetFilesystem(r.inode), &r.lastPathComponent, r.inode, pProc->realUser, options, ~pProc->fileCreationMask & (permissions & 0777), &pInode));
-    // Note that this call takes ownership of the inode reference
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOrParent, pPath, pProc->realUser, &r));
+    if (r.target != NULL) {
+        // File exists - reject the operation in exclusive mode and open the
+        // file otherwise
+        if ((options & kOpen_Exclusive) == kOpen_Exclusive) {
+            // Exclusive mode: File already exists -> throw an error
+            throw(EEXIST);
+        }
+
+        try(Filesystem_OpenFile(Inode_GetFilesystem(r.target), r.target, options, pProc->realUser));
+        pInode = r.target;
+        r.target = NULL;
+    }
+    else {
+        // File does not exist - create it
+        FilesystemRef pFS = Inode_GetFilesystem(r.parent);
+        FilePermissions filePerms = ~pProc->fileCreationMask & (permissions & 0777);
+
+
+        // The user provided read/write mode must match up with the provided (user) permissions
+        if ((options & kOpen_ReadWrite) == 0) {
+            throw(EACCESS);
+        }
+        if ((options & kOpen_Read) == kOpen_Read && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Read)) {
+            throw(EACCESS);
+        }
+        if ((options & kOpen_Write) == kOpen_Write && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Write)) {
+            throw(EACCESS);
+        }
+
+
+        // Create the new file and add it to its parent directory
+        try(Filesystem_CreateNode(pFS, kFileType_RegularFile, pProc->realUser, filePerms, r.parent, &r.lastPathComponent, &r.insertionHint, &pInode));
+    }
+
+
+    // Note that the file channel takes ownership of the inode reference
     try(FileChannel_Create(pInode, options, &pFile));
     pInode = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
@@ -88,11 +122,11 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
     }
     // XXX tmp
 
-    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r));
-    try(Filesystem_OpenFile(Inode_GetFilesystem(r.inode), r.inode, options, pProc->realUser));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOnly, pPath, pProc->realUser, &r));
+    try(Filesystem_OpenFile(Inode_GetFilesystem(r.target), r.target, options, pProc->realUser));
     // Note that this call takes ownership of the inode reference
-    try(FileChannel_Create(r.inode, options, &pFile));
-    r.inode = NULL;
+    try(FileChannel_Create(r.target, options, &pFile));
+    r.target = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
     pFile = NULL;
     PathResolverResult_Deinit(&r);
@@ -114,8 +148,8 @@ errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_GetFileInfo(Inode_GetFilesystem(r.inode), r.inode, pOutInfo);
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+        err = Filesystem_GetFileInfo(Inode_GetFilesystem(r.target), r.target, pOutInfo);
     }
     PathResolverResult_Deinit(&r);
     
@@ -153,8 +187,8 @@ errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPat
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_SetFileInfo(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, pInfo);
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+        err = Filesystem_SetFileInfo(Inode_GetFilesystem(r.target), r.target, pProc->realUser, pInfo);
     }
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
@@ -193,8 +227,8 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPa
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
-        err = Filesystem_Truncate(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, length);
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+        err = Filesystem_Truncate(Inode_GetFilesystem(r.target), r.target, pProc->realUser, length);
     }
     PathResolverResult_Deinit(&r);
 
@@ -234,9 +268,9 @@ errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull 
     PathResolverResult r;
 
     Lock_Lock(&pProc->lock);
-    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
+    if ((err = PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetOnly, pPath, pProc->realUser, &r)) == EOK) {
         if (mode != kAccess_Exists) {
-            err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, mode);
+            err = Filesystem_CheckAccess(Inode_GetFilesystem(r.target), r.target, pProc->realUser, mode);
         }
     }
     PathResolverResult_Deinit(&r);
@@ -250,52 +284,32 @@ errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pPath)
 {
     decl_try_err();
     PathResolverResult r;
-    InodeRef _Locked pSecondNode = NULL;
-    InodeRef _Weak _Locked pParentNode = NULL;
-    InodeRef _Weak _Locked pNodeToUnlink = NULL;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pPath, pProc->realUser, &r));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetAndParent, pPath, pProc->realUser, &r));
+
+    if (Inode_IsDirectory(r.target)) {
+        // Can not unlink a mountpoint
+        if (FilesystemManager_IsNodeMountpoint(gFilesystemManager, r.target)) {
+            throw(EBUSY);
+        }
 
 
-    // Get the inode of the file/directory to unlink. Note that there are two cases here:
-    // unlink("."): we need to grab the parent of the directory and make r.inode the node to unlink
-    // unlink("anything_else"): r.inode is our parent and we look up the target
-    if (r.lastPathComponent.count == 1 && r.lastPathComponent.name[0] == '.') {
-        try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, &kPathComponent_Parent, pProc->realUser, &pSecondNode));
-        pNodeToUnlink = r.inode;
-        pParentNode = pSecondNode;
-    }
-    else {
-        try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, &r.lastPathComponent, pProc->realUser, &pSecondNode));
-        pNodeToUnlink = pSecondNode;
-        pParentNode = r.inode;
-    }
+        // Can not unlink the root of a filesystem
+        if (Inode_GetId(r.target) == Inode_GetId(r.parent)) {
+            throw(EBUSY);
+        }
 
 
-    // Can not unlink a mountpoint
-    if (FilesystemManager_IsNodeMountpoint(gFilesystemManager, pNodeToUnlink)) {
-        throw(EBUSY);
+        // Can not unlink the process' root directory
+        if (PathResolver_IsRootDirectory(pProc->pathResolver, r.target)) {
+            throw(EBUSY);
+        }
     }
 
-
-    // Can not unlink the root of a filesystem
-    if (Inode_IsDirectory(pNodeToUnlink) && Inode_GetId(pNodeToUnlink) == Inode_GetId(pParentNode)) {
-        throw(EBUSY);
-    }
-
-
-    // Can not unlink the process' root directory
-    if (PathResolver_IsRootDirectory(pProc->pathResolver, pNodeToUnlink)) {
-        throw(EBUSY);
-    }
-
-    try(Filesystem_Unlink(Inode_GetFilesystem(pNodeToUnlink), pNodeToUnlink, pParentNode, pProc->realUser));
+    try(Filesystem_Unlink(Inode_GetFilesystem(r.target), r.target, r.parent, pProc->realUser));
 
 catch:
-    if (pSecondNode) {
-        Inode_Relinquish(pSecondNode);
-    }
     PathResolverResult_Deinit(&r);
     Lock_Unlock(&pProc->lock);
     return err;
@@ -305,17 +319,19 @@ catch:
 errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const char* pNewPath)
 {
     decl_try_err();
-    PathResolverResult or, nr;
+    PathResolverResult sr, tr;
 
     Lock_Lock(&pProc->lock);
-    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pOldPath, pProc->realUser, &or));
-    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolutionMode_ParentOnly, pNewPath, pProc->realUser, &nr));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_TargetAndParent, pOldPath, pProc->realUser, &sr));
+    try(PathResolver_AcquireNodeForPath(pProc->pathResolver, kPathResolverMode_OptionalTargetAndParent, pNewPath, pProc->realUser, &tr));
+
+    // newpath and oldpath have to be in the same filesystem
+    if (Inode_GetFilesystem(sr.parent) != Inode_GetFilesystem(tr.parent)) {
+        throw(EXDEV);
+    }
 
     // Can not rename a mount point
     // XXX implement this check once we've refined the mount point handling (return EBUSY)
-
-    // newpath and oldpath have to be in the same filesystem
-    // XXX implement me
 
     // newpath can't be a child of oldpath
     // XXX implement me
@@ -323,11 +339,12 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
     // unlink the target node if one exists for newpath
     // XXX implement me
     
-    try(Filesystem_Rename(Inode_GetFilesystem(or.inode), &or.lastPathComponent, or.inode, &nr.lastPathComponent, nr.inode, pProc->realUser));
+    try(Filesystem_Rename(Inode_GetFilesystem(sr.parent), sr.target, sr.parent, &tr.lastPathComponent, tr.parent, pProc->realUser));
 
 catch:
-    PathResolverResult_Deinit(&or);
-    PathResolverResult_Deinit(&nr);
+    PathResolverResult_Deinit(&tr);
+    PathResolverResult_Deinit(&sr);
     Lock_Unlock(&pProc->lock);
+    err = ENOSYS;   // XXX for now
     return err;
 }

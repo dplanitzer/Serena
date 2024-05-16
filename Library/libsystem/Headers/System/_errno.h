@@ -61,9 +61,10 @@
 #define EILSEQ          36
 #define EMLINK          37
 #define EMFILE          38
+#define EXDEV           39
 
 #define __EFIRST    1
-#define __ELAST     38
+#define __ELAST     39
 
 #endif  /* __SYSTEM_SHIM__ */
 
