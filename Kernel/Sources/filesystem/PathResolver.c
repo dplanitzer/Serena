@@ -62,7 +62,7 @@ static errno_t PathResolver_AcquireParentDirectory(PathResolverRef _Nonnull self
 
     // Do not walk past the root directory
     if (Inode_Equals(pDir, self->rootDirectory)) {
-        *pOutParentDir = Inode_Acquire(pDir);
+        *pOutParentDir = Inode_Reacquire(pDir);
         return EOK;
     }
 
@@ -196,11 +196,26 @@ catch:
     return err;
 }
 
+// Atomically looks up the name of the node 'idOfNodeToLookup' in the directory
+// 'pDir' and returns it in 'pc' if successful. This lookup may fail with ENOENT
+// which happens if the node has been removed from the directory. It may fail
+// with EACCESS if the directory lacks search and read permissions for the user
+// 'user'.
+static errno_t get_name_of_node(InodeId idOfNodeToLookup, InodeRef _Nonnull pDir, User user, MutablePathComponent* _Nonnull pc)
+{
+    decl_try_err();
+
+    Inode_Lock(pDir);
+    err = Filesystem_GetNameOfNode(Inode_GetFilesystem(pDir), pDir, idOfNodeToLookup, user, pc);
+    Inode_Unlock(pDir);
+    return err;
+}
+
 errno_t PathResolver_GetDirectoryPath(PathResolverRef _Nonnull self, InodeRef _Nonnull pStartDir, char* _Nonnull  pBuffer, size_t bufferSize)
 {
     decl_try_err();
-    InodeRef pCurDir = Inode_AcquireUnlocked(pStartDir);
     MutablePathComponent pc;
+    InodeRef pCurDir = Inode_Reacquire(pStartDir);
 
     if (bufferSize < 1) {
         throw(EINVAL);
@@ -223,7 +238,7 @@ errno_t PathResolver_GetDirectoryPath(PathResolverRef _Nonnull self, InodeRef _N
         pc.name = pBuffer;
         pc.count = 0;
         pc.capacity = p - pBuffer;
-        try(Filesystem_GetNameOfNode(Inode_GetFilesystem(pCurDir), pCurDir, childInodeIdToLookup, self->user, &pc));
+        try(get_name_of_node(childInodeIdToLookup, pCurDir, self->user, &pc));
 
         p -= pc.count;
         memcpy(p, pc.name, pc.count);
@@ -275,7 +290,7 @@ errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResol
     // Start with the root directory if the path starts with a '/' and the
     // current working directory otherwise
     InodeRef pStartNode = (pPath[0] == '/') ? self->rootDirectory : self->workingDirectory;
-    pCurNode = Inode_Acquire(pStartNode);
+    pCurNode = Inode_Reacquire(pStartNode);
 
 
     // Iterate through the path components, looking up the inode that corresponds

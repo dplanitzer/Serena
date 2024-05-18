@@ -169,7 +169,7 @@ static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self
     // Update our mount table
     pMount->mountedFilesystem = Object_RetainAs(pFileSysToMount, Filesystem);
     pMount->mountingFilesystem = (pDirNodeToMountAt) ? Object_RetainAs(pDirNodeMount->mountedFilesystem, Filesystem) : NULL;
-    pMount->mountingInode = (pDirNodeToMountAt) ? Filesystem_ReacquireUnlockedNode(pMount->mountingFilesystem, pDirNodeToMountAt) : NULL;
+    pMount->mountingInode = (pDirNodeToMountAt) ? Inode_Reacquire(pDirNodeToMountAt) : NULL;
 
     if (List_IsEmpty(&self->mountpoints)) {
         self->rootMountpoint = pMount;

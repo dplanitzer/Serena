@@ -11,6 +11,7 @@
 
 #include "IOChannel.h"
 #include "Inode.h"
+#include <User.h>
 #include <dispatcher/Lock.h>
 
 

@@ -12,7 +12,6 @@
 #include <klib/klib.h>
 #include <kobj/Object.h>
 #include <dispatcher/Lock.h>
-#include <User.h>
 #include <System/Directory.h>
 #include <System/File.h>
 
@@ -55,25 +54,24 @@ typedef struct Inode* InodeRef;
 // The following functions may be called without holding the inode lock.
 //
 
-// Inode locking
+// Reacquiring and relinquishing an existing inode
+
+#define Inode_Reacquire(__self) \
+    Filesystem_ReacquireNode((__self)->filesystem, __self)
+
+#define Inode_Relinquish(__self) \
+    Filesystem_RelinquishNode((__self)->filesystem, __self)
+
+
+//
+// Locking/unlocking an inode
+//
 
 #define Inode_Lock(__self) \
     Lock_Lock(&((InodeRef)__self)->lock)
 
 #define Inode_Unlock(__self) \
     Lock_Unlock(&((InodeRef)__self)->lock)
-
-
-// Reacquiring and relinquishing an existing inode
-
-#define Inode_Acquire(__self) \
-    Filesystem_ReacquireNode((__self)->filesystem, __self)
-
-#define Inode_AcquireUnlocked(__self) \
-    Filesystem_ReacquireUnlockedNode((__self)->filesystem, __self)
-
-#define Inode_Relinquish(__self) \
-    Filesystem_RelinquishNode((__self)->filesystem, __self)
 
 
 //

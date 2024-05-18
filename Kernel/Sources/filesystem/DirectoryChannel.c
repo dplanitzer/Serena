@@ -47,7 +47,7 @@ ssize_t DirectoryChannel_copy(DirectoryChannelRef _Nonnull self, IOChannelRef _N
 
     try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
     Lock_Init(&pNewDir->lock);
-    pNewDir->inode = Inode_AcquireUnlocked(self->inode);
+    pNewDir->inode = Inode_Reacquire(self->inode);
     
     Lock_Lock(&self->lock);
     pNewDir->offset = self->offset;

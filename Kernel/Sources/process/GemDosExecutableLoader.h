@@ -11,6 +11,7 @@
 
 #include <klib/klib.h>
 #include <filesystem/Inode.h>
+#include <User.h>
 #include "AddressSpace.h"
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual

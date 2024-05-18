@@ -89,8 +89,8 @@ errno_t Process_Create(int ppid, User user, InodeRef _Nonnull pRootDir, InodeRef
     try(UResourceTable_Init(&pProc->uResourcesTable));
     try(IntArray_Init(&pProc->childPids, 0));
 
-    pProc->rootDirectory = Inode_AcquireUnlocked(pRootDir);
-    pProc->workingDirectory = Inode_AcquireUnlocked(pWorkingDir);
+    pProc->rootDirectory = Inode_Reacquire(pRootDir);
+    pProc->workingDirectory = Inode_Reacquire(pWorkingDir);
     pProc->fileCreationMask = fileCreationMask;
     pProc->realUser = user;
 

@@ -47,7 +47,7 @@ errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * 
 
     try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
     Lock_Init(&pNewFile->lock);
-    pNewFile->inode = Inode_AcquireUnlocked(self->inode);
+    pNewFile->inode = Inode_Reacquire(self->inode);
         
     Lock_Lock(&self->lock);
     pNewFile->offset = self->offset;

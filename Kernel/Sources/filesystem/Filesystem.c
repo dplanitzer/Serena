@@ -70,9 +70,9 @@ catch:
     return err;
 }
 
-// Acquires the inode with the ID 'id'. The node is returned in a locked state.
-// This methods guarantees that there will always only be at most one inode instance
-// in memory at any given time and that only one VP can access/modify the inode.
+// Acquires the inode with the ID 'id'. This methods guarantees that there will
+// always only be at most one inode instance in memory at any given time and
+// that only one VP can access/modify the inode.
 // Once you're done with the inode, you should relinquish it back to the filesystem.
 // This method should be used by subclassers to acquire inodes in order to return
 // them to a filesystem user.
@@ -101,7 +101,6 @@ errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, In
     }
 
     pNode->useCount++;
-    //XXX Inode_Lock(pNode);
     Lock_Unlock(&self->inodeManagementLock);
     *pOutNode = pNode;
 
@@ -115,17 +114,6 @@ catch:
 
 // Acquires a new reference to the given node. The returned node is locked.
 InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
-{
-    Lock_Lock(&self->inodeManagementLock);
-    pNode->useCount++;
-    //XXX Inode_Lock(pNode);
-    Lock_Unlock(&self->inodeManagementLock);
-
-    return pNode;
-}
-
-// Acquires a new reference to the given node. The returned node is NOT locked.
-InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     Lock_Lock(&self->inodeManagementLock);
     pNode->useCount++;
@@ -168,8 +156,6 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
         PointerArray_Remove(&self->inodesInUse, pNode);
         Inode_Destroy(pNode);
     }
-    //XXX Inode_Unlock(pNode);
-
 
     Lock_Unlock(&self->inodeManagementLock);
 

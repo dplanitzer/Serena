@@ -372,11 +372,8 @@ invoke_n(unlink, Filesystem, __self, __pNode, __pParentDir, __user)
 #define Filesystem_Rename(__self, __pSourceNode, __pSourceDir, __pNewName, __pTargetDir, __user) \
 invoke_n(rename, Filesystem, __self, __pSourceNode, __pSourceDir, __pNewName, __pTargetDir, __user)
 
-// Acquires a new reference to the given node. The returned node is locked.
+// Acquires a new reference to the given node.
 extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
-
-// Acquires a new reference to the given node. The returned node is NOT locked.
-extern InodeRef _Nonnull Filesystem_ReacquireUnlockedNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
 
 // Relinquishes the given node back to the filesystem. This method will invoke
 // the filesystem onRemoveNodeFromDisk() if no directory is referencing the inode
@@ -397,9 +394,9 @@ extern errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _
 // calling Filesystem_RelinquishNode(). 
 extern errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
 
-// Acquires the inode with the ID 'id'. The node is returned in a locked state.
-// This methods guarantees that there will always only be at most one inode instance
-// in memory at any given time and that only one VP can access/modify the inode.
+// Acquires the inode with the ID 'id'. This methods guarantees that there will
+// always only be at most one inode instance in memory at any given time and
+// that only one VP can access/modify the inode.
 // Once you're done with the inode, you should relinquish it back to the filesystem.
 // This method should be used by subclassers to acquire inodes in order to return
 // them to a filesystem user.
