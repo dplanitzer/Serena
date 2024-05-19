@@ -20,24 +20,24 @@ static errno_t Process_SetDirectoryPath_Locked(ProcessRef _Nonnull self, const c
     Process_MakePathResolver(self, &pr);
 
     // Get the inode that represents the new directory
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_TargetOnly, pPath, &r));
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pPath, &r));
 
 
     // Make sure that it is actually a directory
-    if (!Inode_IsDirectory(r.target)) {
+    if (!Inode_IsDirectory(r.inode)) {
         throw(ENOTDIR);
     }
 
 
     // Make sure that we do have search permission on the last path component (directory)
-    try(Filesystem_CheckAccess(Inode_GetFilesystem(r.target), r.target, pr.user, kFilePermission_Execute));
+    try(Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pr.user, kFilePermission_Execute));
 
 
     // Remember the new inode as our new directory
-    if (Inode_GetId(*pDirToAssign) != Inode_GetId(r.target)) {
+    if (Inode_GetId(*pDirToAssign) != Inode_GetId(r.inode)) {
         Inode_Relinquish(*pDirToAssign);
-        *pDirToAssign = r.target;
-        r.target = NULL;
+        *pDirToAssign = r.inode;
+        r.inode = NULL;
     }
 
 catch:
@@ -91,20 +91,38 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
     decl_try_err();
     PathResolver pr;
     PathResolverResult r;
+    DirectoryEntryInsertionHint dih;
     InodeRef pDirNode = NULL;
 
     Lock_Lock(&pProc->lock);
     Process_MakePathResolver(pProc, &pr);
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_TargetOrParent, pPath, &r));
-    if (r.target != NULL) {
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_PredecessorOfTarget, pPath, &r));
+
+    FilesystemRef pFS = Inode_GetFilesystem(r.inode);
+    InodeRef pParentDir = r.inode;
+    const PathComponent* pName = &r.lastPathComponent;
+    const FilePermissions dirPerms = ~pProc->fileCreationMask & (permissions & 0777);
+
+
+    // Can not create a directory with names . or ..
+    if ((pName->count == 1 && pName->name[0] == '.')
+        || (pName->count == 2 && pName->name[0] == '.' && pName->name[1] == '.')) {
         throw(EEXIST);
     }
-    FilesystemRef pFS = Inode_GetFilesystem(r.parent);
-    FilePermissions dirPerms = ~pProc->fileCreationMask & (permissions & 0777);
+
+
+    // The last path component must not exist
+    err = Filesystem_AcquireNodeForName(pFS, pParentDir, pName, pr.user, &dih, NULL);
+    if (err == EOK) {
+        throw(EEXIST);
+    }
+    else if (err != ENOENT) {
+        throw(err);
+    }
 
 
     // Create the new directory and add it to its parent directory
-    try(Filesystem_CreateNode(pFS, kFileType_Directory, pr.user, dirPerms, r.parent, &r.lastPathComponent, &r.insertionHint, &pDirNode));
+    try(Filesystem_CreateNode(pFS, kFileType_Directory, pr.user, dirPerms, pParentDir, pName, &dih, &pDirNode));
 
 catch:
     Inode_Relinquish(pDirNode);
@@ -125,11 +143,11 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
 
     Lock_Lock(&pProc->lock);
     Process_MakePathResolver(pProc, &pr);
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_TargetOnly, pPath, &r));
-    try(Filesystem_OpenDirectory(Inode_GetFilesystem(r.target), r.target, pr.user));
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pPath, &r));
+    try(Filesystem_OpenDirectory(Inode_GetFilesystem(r.inode), r.inode, pr.user));
     // Note that this method takes ownership of the inode reference
-    try(DirectoryChannel_Create(r.target, &pDir));
-    r.target = NULL;
+    try(DirectoryChannel_Create(r.inode, &pDir));
+    r.inode = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pDir, pOutIoc));
     pDir = NULL;
     PathResolverResult_Deinit(&r);

@@ -172,8 +172,8 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
     assert(pProc->imageBase == NULL);
 
     Process_MakePathResolver(pProc, &pr);
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_TargetOnly, pExecPath, &r));
-    try(Filesystem_CheckAccess(Inode_GetFilesystem(r.target), r.target, pProc->realUser, kAccess_Readable | kAccess_Executable));
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pExecPath, &r));
+    try(Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, kAccess_Readable | kAccess_Executable));
 
 
     // Copy the process arguments into the process address space
@@ -182,7 +182,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExe
 
     // Load the executable
     GemDosExecutableLoader_Init(&loader, pProc->addressSpace, pProc->realUser);
-    try(GemDosExecutableLoader_Load(&loader, r.target, (void**)&pProc->imageBase, &pEntryPoint));
+    try(GemDosExecutableLoader_Load(&loader, r.inode, (void**)&pProc->imageBase, &pEntryPoint));
     GemDosExecutableLoader_Deinit(&loader);
 
     ((ProcessArguments*) pProc->argumentsBase)->image_base = pProc->imageBase;

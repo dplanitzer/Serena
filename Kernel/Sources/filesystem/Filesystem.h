@@ -140,23 +140,26 @@ open_class_funcs(Filesystem, Object,
     // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
     // Override: Advised
     // Default Behavior: Returns NULL and EIO
-    errno_t (*acquireRootNode)(void* _Nonnull self, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+    errno_t (*acquireRootNode)(void* _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Returns EOK and the node that corresponds to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
     // function has to support the special name ".." (parent of node) in addition
     // to "regular" filenames. If 'pParentNode' is the root node of the filesystem
-    // and 'pComponent' is ".." then 'pParentNode' should be returned. Note that
-    // a lookup of '..' may not fail with ENOENT. This particular kind of lookup
-    // must always succeed or fail with a general I/O error. If the path component
-    // name is longer than what is supported by the file system, ENAMETOOLONG
-    // should be returned.  caller may pass a pointer to a directory-entry-insertion-
-    // hint data structure. This function may store information in this data
-    // structure to help speed up a follow=up CreateNode() call for a node with
-    // the name 'pComponent' in the directory 'pParentNode'.
+    // and 'pComponent' is ".." then 'pParentNode' should be returned. If the
+    // path component name is longer than what is supported by the file system,
+    // ENAMETOOLONG should be returned.  caller may pass a pointer to a
+    // directory-entry-insertion-hint data structure. This function may store
+    // information in this data structure to help speed up a follow up
+    // CreateNode() call for a node with the name 'pComponent' in the directory
+    // 'pParentNode'. You may pass NULL for 'pOutNode' which means that the
+    // function will do the inode lookup and return a status that reflects the
+    // outcome of the lookup, however the function will not return the looked up
+    // node. You can use this mechanism to check whether a directory contains a
+    // node with a name or not without forcing the creation of the node.
     // Override: Advised
     // Default Behavior: Returns NULL and ENOENT (EIO for '..' lookups)
-    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
     // directory node 'pParentNode'. 'id' may be of any type. The name is
@@ -406,7 +409,7 @@ extern errno_t Filesystem_PublishNode(FilesystemRef _Nonnull self, InodeRef _Non
 // \param self the filesystem instance
 // \param id the id of the inode to acquire
 // \param pOutNode receives the acquired inode
-extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable _Locked * _Nonnull pOutNode);
+extern errno_t Filesystem_AcquireNodeWithId(FilesystemRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
 
 // Returns true if the filesystem can be unmounted which means that there are no
 // acquired inodes outstanding that belong to this filesystem.
