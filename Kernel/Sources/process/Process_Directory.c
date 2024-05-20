@@ -22,19 +22,21 @@ static errno_t Process_SetDirectoryPath_Locked(ProcessRef _Nonnull self, const c
     // Get the inode that represents the new directory
     try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pPath, &r));
 
+    Inode_Lock(r.inode);
 
-    // Make sure that it is actually a directory
-    if (!Inode_IsDirectory(r.inode)) {
-        throw(ENOTDIR);
+    // Make sure that it is actually a directory and that we have at least search
+    // permission
+    if (Inode_IsDirectory(r.inode)) {
+        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pr.user, kAccess_Searchable);
+    }
+    else {
+        err = ENOTDIR;
     }
 
+    Inode_Unlock(r.inode);
 
-    // Make sure that we do have search permission on the last path component (directory)
-    try(Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pr.user, kFilePermission_Execute));
-
-
-    // Remember the new inode as our new directory
-    if (Inode_GetId(*pDirToAssign) != Inode_GetId(r.inode)) {
+    if (err == EOK) {
+        // Remember the new inode as our new directory
         Inode_Relinquish(*pDirToAssign);
         *pDirToAssign = r.inode;
         r.inode = NULL;
