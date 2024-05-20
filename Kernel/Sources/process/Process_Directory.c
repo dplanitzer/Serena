@@ -113,18 +113,19 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
     }
 
 
-    // The last path component must not exist
+    // Create the new directory and add it to the parent directory if it doesn't
+    // exist; otherwise error out
+    Inode_Lock(pParentDir);
+
     err = Filesystem_AcquireNodeForName(pFS, pParentDir, pName, pr.user, &dih, NULL);
-    if (err == EOK) {
-        throw(EEXIST);
+    if (err == ENOENT) {
+        err = Filesystem_CreateNode(pFS, kFileType_Directory, pr.user, dirPerms, pParentDir, pName, &dih, &pDirNode);
     }
-    else if (err != ENOENT) {
-        throw(err);
+    else if (err == EOK) {
+        err = EEXIST;
     }
 
-
-    // Create the new directory and add it to its parent directory
-    try(Filesystem_CreateNode(pFS, kFileType_Directory, pr.user, dirPerms, pParentDir, pName, &dih, &pDirNode));
+    Inode_Unlock(pParentDir);
 
 catch:
     Inode_Relinquish(pDirNode);
@@ -146,22 +147,26 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull pP
     Lock_Lock(&pProc->lock);
     Process_MakePathResolver(pProc, &pr);
     try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pPath, &r));
-    try(Filesystem_OpenDirectory(Inode_GetFilesystem(r.inode), r.inode, pr.user));
+
+    Inode_Lock(r.inode);
+    err = Filesystem_OpenDirectory(Inode_GetFilesystem(r.inode), r.inode, pr.user);
+    Inode_Unlock(r.inode);
+    throw_iferr(err);
+    
     // Note that this method takes ownership of the inode reference
     try(DirectoryChannel_Create(r.inode, &pDir));
     r.inode = NULL;
+    
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pDir, pOutIoc));
     pDir = NULL;
-    PathResolverResult_Deinit(&r);
-    PathResolver_Deinit(&pr);
-    Lock_Unlock(&pProc->lock);
-    return EOK;
-
+    
 catch:
     PathResolverResult_Deinit(&r);
     PathResolver_Deinit(&pr);
     Lock_Unlock(&pProc->lock);
-    IOChannel_Release(pDir);
-    *pOutIoc = -1;
+    if (err != EOK) {
+        IOChannel_Release(pDir);
+        *pOutIoc = -1;
+    }
     return err;
 }

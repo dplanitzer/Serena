@@ -48,6 +48,10 @@ typedef _Errno_t errno_t;
 // is null. Otherwise fall through to the next statement.
 #define _Throw_ifnull(p, e)  if ((p) == NULL) { err = e; goto catch; }
 
+// Set 'err' to the given error and go to the 'catch' label if the given error
+// is not EOK. Otherwise fall through to the next statement.
+#define _Throw_iferr(e)  if ((e) != EOK) { err = e; goto catch; }
+
 // Set 'err' to the given error and go to the 'catch' label.
 #define _Throw(e)            {err = e; goto catch;}
 
@@ -62,6 +66,7 @@ typedef _Errno_t errno_t;
 #define try(f)              _Try(f)
 #define try_null(p, f, e)   _Try_null(p, f, e)
 #define throw_ifnull(p, e)  _Throw_ifnull(p, e)
+#define throw_iferr(e)      _Throw_iferr(e)
 #define throw(e)            _Throw(e)
 
 #endif  /* __cplusplus */
