@@ -41,9 +41,8 @@ typedef enum PathResolverMode {
 
 // The result of a path resolution operation.
 typedef struct PathResolverResult {
-    InodeRef _Nullable          inode;              // The target or the directory of the target node
-    PathComponent               lastPathComponent;  // Last path component if the resolution mode is ParentOnly. Note that this stores a reference into the path that was passed to the resolution function
-    DirectoryEntryInsertionHint insertionHint;      // Insertion hint for inserting the last path component into 'inode' if the resolution mode is DirectoryOfTarget; otherwise undefined
+    InodeRef _Nullable  inode;              // The target or the directory of the target node
+    PathComponent       lastPathComponent;  // Last path component if the resolution mode is ParentOnly. Note that this stores a reference into the path that was passed to the resolution function
 } PathResolverResult;
 
 

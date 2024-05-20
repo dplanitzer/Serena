@@ -43,12 +43,12 @@ void PathResolver_Deinit(PathResolverRef _Nullable self)
     self->workingDirectory = NULL;
 }
 
-static errno_t acquire_node_for_name(InodeRef _Nonnull pDir, const PathComponent* _Nonnull pc, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nonnull pOutNode)
+static errno_t acquire_node_for_name(InodeRef _Nonnull pDir, const PathComponent* _Nonnull pc, User user, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
 
     Inode_Lock(pDir);
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pc, user, pDirInsHint, pOutNode);
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pc, user, NULL, pOutNode);
     Inode_Unlock(pDir);
     return err;
 }
@@ -71,7 +71,7 @@ static errno_t PathResolver_AcquireParentDirectory(PathResolverRef _Nonnull self
     }
 
 
-    try(acquire_node_for_name(pDir, &kPathComponent_Parent, self->user, NULL, &pParentDir));
+    try(acquire_node_for_name(pDir, &kPathComponent_Parent, self->user, &pParentDir));
 
     if (!Inode_Equals(pDir, pParentDir)) {
         // We're moving to a parent directory in the same file system
@@ -90,7 +90,7 @@ static errno_t PathResolver_AcquireParentDirectory(PathResolverRef _Nonnull self
         // is (because you can not mount a file system on the root node of another
         // file system).
         try(FilesystemManager_AcquireNodeMountingFilesystem(gFilesystemManager, Inode_GetFilesystem(pDir), &pMountingDir));
-        try(acquire_node_for_name(pMountingDir, &kPathComponent_Parent, self->user, NULL, &pParentOfMountingDir));
+        try(acquire_node_for_name(pMountingDir, &kPathComponent_Parent, self->user, &pParentOfMountingDir));
 
         Inode_Relinquish(pMountingDir);
         *pOutParentDir = pParentOfMountingDir;
@@ -109,14 +109,14 @@ catch:
 // This function handles the case that we want to walk down the filesystem tree
 // (meaning that the given path component is a file or directory name and
 // neither '.' nor '..').
-static errno_t PathResolver_AcquireChildNode(PathResolverRef _Nonnull self, InodeRef _Nonnull pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nonnull pOutChildNode)
+static errno_t PathResolver_AcquireChildNode(PathResolverRef _Nonnull self, InodeRef _Nonnull pDir, const PathComponent* _Nonnull pName, InodeRef _Nullable * _Nonnull pOutChildNode)
 {
     decl_try_err();
     InodeRef _Locked pChildNode = NULL;
     FilesystemRef pMountedFileSys = NULL;
 
     // Ask the filesystem for the inode that is named by the tuple (pDir, pName)
-    try(acquire_node_for_name(pDir, pName, self->user, pDirInsHint, &pChildNode));
+    try(acquire_node_for_name(pDir, pName, self->user, &pChildNode));
 
 
     // This can only happen if the filesystem is in a corrupted state.
@@ -295,7 +295,7 @@ errno_t PathResolver_AcquireNodeForPathComponent(PathResolverRef _Nonnull self, 
         try(PathResolver_AcquireParentDirectory(self, pDir, pOutNode));
     }
     else {
-        try(PathResolver_AcquireChildNode(self, pDir, pComponent, NULL, pOutNode));
+        try(PathResolver_AcquireChildNode(self, pDir, pComponent, pOutNode));
     }
 
     return EOK;
@@ -309,7 +309,6 @@ catch:
 errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, PathResolverResult* _Nonnull pResult)
 {
     decl_try_err();
-    DirectoryEntryInsertionHint* pInsertionHint;
     InodeRef pCurNode = NULL;
     InodeRef pNextNode = NULL;
     PathComponent pc;
@@ -317,7 +316,6 @@ errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResol
     bool isLastPathComponent = false;
 
     PathResolverResult_Init(pResult);
-    pInsertionHint = (mode == kPathResolverMode_PredecessorOfTarget) ? &pResult->insertionHint : NULL;
 
     if (pPath[0] == '\0') {
         return ENOENT;
@@ -362,7 +360,7 @@ errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResol
             try(PathResolver_AcquireParentDirectory(self, pCurNode, &pNextNode));
         }
         else {
-            try(PathResolver_AcquireChildNode(self, pCurNode, &pc, pInsertionHint, &pNextNode));
+            try(PathResolver_AcquireChildNode(self, pCurNode, &pc, &pNextNode));
         }
 
         Inode_Relinquish(pCurNode);
