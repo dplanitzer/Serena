@@ -12,14 +12,14 @@
 
 // Creates a directory channel which takes ownership of the provided inode
 // reference. This reference will be released by deinit().
-errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pNode, IOChannelRef _Nullable * _Nonnull pOutDir)
+errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pDir, IOChannelRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
     DirectoryChannelRef self;
 
     try(IOChannel_AbstractCreate(&kDirectoryChannelClass, kOpen_Read, (IOChannelRef*)&self));
     Lock_Init(&self->lock);
-    self->inode = pNode;
+    self->inode = pDir;
     self->offset = 0ll;
 
 catch:
@@ -76,7 +76,9 @@ errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull self, void* _Nonnull 
     decl_try_err();
 
     Lock_Lock(&self->lock);
+    Inode_Lock(self->inode);
     err = Filesystem_ReadDirectory(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
+    Inode_Unlock(self->inode);
     Lock_Unlock(&self->lock);
 
     return err;
@@ -105,12 +107,20 @@ errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull self, FileOffset offs
 
 errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    return Filesystem_GetFileInfo(Inode_GetFilesystem(self->inode), self->inode, pOutInfo);
+    Inode_Lock(self->inode);
+    const errno_t err = Filesystem_GetFileInfo(Inode_GetFilesystem(self->inode), self->inode, pOutInfo);
+    Inode_Unlock(self->inode);
+    
+    return err;
 }
 
 errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    return Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, user, pInfo);
+    Inode_Lock(self->inode);
+    const errno_t err = Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, user, pInfo);
+    Inode_Unlock(self->inode);
+
+    return err;
 }
 
 
