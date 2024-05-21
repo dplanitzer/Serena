@@ -76,7 +76,9 @@ errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, s
     decl_try_err();
 
     Lock_Lock(&self->lock);
+    Inode_Lock(self->inode);
     err = Filesystem_ReadFile(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
+    Inode_Unlock(self->inode);
     Lock_Unlock(&self->lock);
 
     return err;
@@ -88,6 +90,7 @@ errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBu
     FileOffset offset;
 
     Lock_Lock(&self->lock);
+    Inode_Lock(self->inode);
     if ((IOChannel_GetMode(self) & kOpen_Append) == kOpen_Append) {
         offset = Inode_GetFileSize(self->inode);
     }
@@ -97,9 +100,18 @@ errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBu
 
     err = Filesystem_WriteFile(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToWrite, &offset, nOutBytesWritten);
     self->offset = offset;
+    Inode_Unlock(self->inode);
     Lock_Unlock(&self->lock);
 
     return err;
+}
+
+static FileOffset get_file_size(InodeRef _Nonnull pNode)
+{
+    Inode_Lock(pNode);
+    const FileOffset size = Inode_GetFileSize(pNode);
+    Inode_Unlock(pNode);
+    return size;
 }
 
 errno_t FileChannel_seek(FileChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
@@ -123,12 +135,14 @@ errno_t FileChannel_seek(FileChannelRef _Nonnull self, FileOffset offset, FileOf
             newOffset = self->offset + offset;
             break;
 
-        case kSeek_End:
-            if (offset < 0ll && -offset > Inode_GetFileSize(self->inode)) {
+        case kSeek_End: {
+            const FileOffset fileSize = get_file_size(self->inode);
+            if (offset < 0ll && -offset > fileSize) {
                 throw(EINVAL);
             }
-            newOffset = Inode_GetFileSize(self->inode) + offset;
+            newOffset = fileSize + offset;
             break;
+        }
 
         default:
             throw(EINVAL);
@@ -151,18 +165,27 @@ catch:
 
 errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    return Filesystem_GetFileInfo(Inode_GetFilesystem(self->inode), self->inode, pOutInfo);
+    Inode_Lock(self->inode);
+    const errno_t err = Filesystem_GetFileInfo(Inode_GetFilesystem(self->inode), self->inode, pOutInfo);
+    Inode_Unlock(self->inode);
+    return err;
 }
 
 errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    return Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, user, pInfo);
+    Inode_Lock(self->inode);
+    const errno_t err = Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, user, pInfo);
+    Inode_Unlock(self->inode);
+    return err;
 }
 
 errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset length)
 {
     // Does not adjust the file offset
-    return Filesystem_Truncate(Inode_GetFilesystem(self->inode), self->inode, user, length);
+    Inode_Lock(self->inode);
+    const errno_t err = Filesystem_Truncate(Inode_GetFilesystem(self->inode), self->inode, user, length);
+    Inode_Unlock(self->inode);
+    return err;
 }
 
 
