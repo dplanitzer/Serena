@@ -18,16 +18,34 @@ int printf(const char *format, ...)
     va_list ap;
     
     va_start(ap, format);
-    const int r = vprintf(format, ap);
+    const int r = vfprintf(stdout, format, ap);
     va_end(ap);
     return r;
 }
 
 int vprintf(const char *format, va_list ap)
 {
+    return vfprintf(stdout, format, ap);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+int fprintf(FILE *s, const char *format, ...)
+{
+    va_list ap;
+    
+    va_start(ap, format);
+    const int r = vfprintf(s, format, ap);
+    va_end(ap);
+    return r;
+}
+
+int vfprintf(FILE *s, const char *format, va_list ap)
+{
     Formatter fmt;
 
-    __Formatter_Init(&fmt, stdout);
+    __Formatter_Init(&fmt, s);
     const errno_t err = __Formatter_vFormat(&fmt, format, ap);
     const size_t nchars = fmt.charactersWritten;
     __Formatter_Deinit(&fmt);

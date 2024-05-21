@@ -17,9 +17,9 @@ void print_error(const char* _Nonnull cmd, const char* _Nullable path, errno_t e
     const char* errstr = strerror(err);
 
     if (path && path[0] != '\0') {
-        printf( "%s: %s: %s\n", cmd, path, errstr);
+        fprintf(stderr, "%s: %s: %s\n", cmd, path, errstr);
     }
     else {
-        printf("%s: %s\n", cmd, errstr);
+        fprintf(stderr, "%s: %s\n", cmd, errstr);
     }
 }

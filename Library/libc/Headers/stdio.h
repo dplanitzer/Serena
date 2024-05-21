@@ -144,6 +144,9 @@ extern int puts(const char *str);
 extern int printf(const char *format, ...);
 extern int vprintf(const char *format, va_list ap);
 
+extern int fprintf(FILE *s, const char *format, ...);
+extern int vfprintf(FILE *s, const char *format, va_list ap);
+
 extern int sprintf(char *buffer, const char *format, ...);
 extern int vsprintf(char *buffer, const char *format, va_list ap);
 extern int snprintf(char *buffer, size_t bufsiz, const char *format, ...);

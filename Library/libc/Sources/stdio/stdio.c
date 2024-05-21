@@ -18,11 +18,12 @@ static __IOChannel_FILE _StderrObj;
 void __stdio_init(void)
 {
     // XXX temporary until we'll put something like an init process in place
-    int fd0, fd1;
+    int fd0, fd1, fd2;
     //    assert(File_Open("/dev/console", kOpen_Read, &fd0) == 0);
     //    assert(File_Open("/dev/console", kOpen_Write, &fd1) == 0);
     File_Open("/dev/console", kOpen_Read, &fd0);
     File_Open("/dev/console", kOpen_Write, &fd1);
+    File_Open("/dev/console", kOpen_Write, &fd2);
     // XXX temporary until we'll put something like an init process in place
 
     _Stdin = (FILE*)&_StdinObj;
@@ -31,7 +32,7 @@ void __stdio_init(void)
 
     __fdopen_init(&_StdinObj, false, kIOChannel_Stdin, "r");
     __fdopen_init(&_StdoutObj, false, kIOChannel_Stdout, "w");
-    // XXX add support for stderr
+    __fdopen_init(&_StderrObj, false, kIOChannel_Stderr, "w");
 }
 
 void __stdio_exit(void)
