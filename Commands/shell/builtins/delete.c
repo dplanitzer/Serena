@@ -7,14 +7,15 @@
 //
 
 #include "Interpreter.h"
+#include "cmdlib.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 
 
 int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
+    decl_try_err();
     const char* path = (argc > 1) ? argv[1] : "";
 
     if (*path == '\0') {
@@ -22,11 +23,10 @@ int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    const errno_t err = File_Unlink(path);
-    if (err != 0) {
-        printf("%s: %s.\n", argv[0], strerror(err));
-        return EXIT_FAILURE;
+    err = File_Unlink(path);
+    if (err != EOK) {
+        print_error(argv[0], path, err);
     }
 
-    return EXIT_SUCCESS;
+    return exit_code(err);
 }

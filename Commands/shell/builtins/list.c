@@ -7,6 +7,7 @@
 //
 
 #include "Interpreter.h"
+#include "cmdlib.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,7 +174,7 @@ int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv)
 
         err = list_dir(&ctx, path);
         if (err != EOK) {
-            printf("%s: %s.\n", argv[0], strerror(err));
+            print_error(argv[0], path, err);
             anyError = true;
         }
 

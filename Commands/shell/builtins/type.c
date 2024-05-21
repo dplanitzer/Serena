@@ -7,6 +7,7 @@
 //
 
 #include "Interpreter.h"
+#include "cmdlib.h"
 #include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -154,10 +155,9 @@ int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv)
     err = type_text(argv[1]);
 #endif
 
-    if (err != 0) {
-        printf("%s: %s.\n", argv[0], strerror(err));
-        return EXIT_FAILURE;
+    if (err != EOK) {
+        print_error(argv[0], argv[1], err);
     }
 
-    return EXIT_SUCCESS;
+    return exit_code(err);
 }

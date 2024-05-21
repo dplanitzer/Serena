@@ -9,7 +9,6 @@
 #include "Interpreter.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 
 

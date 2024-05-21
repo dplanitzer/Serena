@@ -7,6 +7,7 @@
 //
 
 #include "Interpreter.h"
+#include "cmdlib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +29,8 @@ int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
 
 catch:
     free(buf);
-    if (err != EOK) { printf("%s: %s.\n", argv[0], strerror(err)); }    
-    return (err == EOK) ? EXIT_SUCCESS : EXIT_FAILURE;
+    if (err != EOK) {
+        print_error(argv[0], NULL, err);
+    }    
+    return exit_code(err);
 }

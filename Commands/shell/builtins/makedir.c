@@ -7,26 +7,26 @@
 //
 
 #include "Interpreter.h"
+#include "cmdlib.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 
 
 int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
+    decl_try_err();
     const char* path = (argc > 1) ? argv[1] : "";
 
     if (*path == '\0') {
-        printf("%s: expected a path.\n", argv[0]);
+        printf("%s: expected a path\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    const errno_t err = Directory_Create(path, 0755);
-    if (err != 0) {
-        printf("%s: %s.\n", argv[0], strerror(err));
-        return EXIT_FAILURE;
+    err = Directory_Create(path, 0755);
+    if (err != EOK) {
+        print_error(argv[0], path, err);
     }
 
-    return EXIT_SUCCESS;
+    return exit_code(err);
 }
