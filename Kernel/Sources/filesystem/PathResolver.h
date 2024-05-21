@@ -67,9 +67,4 @@ extern errno_t PathResolver_GetDirectoryPath(PathResolverRef _Nonnull self, Inod
 // returned with EOK or some error.
 extern errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, PathResolverResult* _Nonnull pResult);
 
-// Looks up the node that corresponds to the path component 'pComponent' which is
-// assumed to be relative to the directory 'pDir'. The path component may be a
-// file/directory name, '..' or '.'.
-extern errno_t PathResolver_AcquireNodeForPathComponent(PathResolverRef _Nonnull self, InodeRef _Nonnull pDir, const PathComponent* _Nonnull pComponent, InodeRef _Nullable * _Nonnull pOutNode);
-
 #endif /* PathResolver_h */

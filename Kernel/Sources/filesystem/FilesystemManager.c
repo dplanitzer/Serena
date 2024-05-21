@@ -216,7 +216,7 @@ static errno_t FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull se
 
     if (pMount->mountingInode) {
         Inode_SetMountpoint(pMount->mountingInode, false);
-        err = Filesystem_RelinquishNode(pMount->mountingFilesystem, pMount->mountingInode);
+        err = Inode_Relinquish(pMount->mountingInode);
         pMount->mountingInode = NULL;
     }
     Object_Release(pMount->mountedFilesystem);
@@ -275,7 +275,7 @@ errno_t FilesystemManager_AcquireNodeMountingFilesystem(FilesystemManagerRef _No
     Lock_Lock(&pManager->lock);
     const Mountpoint* pMount = FilesystemManager_GetMountpointForFilesystemId_Locked(pManager, Filesystem_GetId(pFileSys));
     if (pMount) {
-        *pOutMountingNode = (pMount->mountingInode) ? Filesystem_ReacquireNode(pMount->mountingFilesystem, pMount->mountingInode) : NULL;
+        *pOutMountingNode = (pMount->mountingInode) ? Inode_Reacquire(pMount->mountingInode) : NULL;
         err = EOK;
     } else {
         *pOutMountingNode = NULL;

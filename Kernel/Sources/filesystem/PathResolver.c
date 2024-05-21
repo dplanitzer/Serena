@@ -271,40 +271,6 @@ catch:
     return err;
 }
 
-// Looks up the node that corresponds to the path component 'pComponent' which is
-// assumed to be relative to the directory 'pDir'. The path component may be a
-// file/directory name, '..' or '.'.
-errno_t PathResolver_AcquireNodeForPathComponent(PathResolverRef _Nonnull self, InodeRef _Nonnull pDir, const PathComponent* _Nonnull pComponent, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    decl_try_err();
-
-    // The current directory better be an actual directory
-    if (!Inode_IsDirectory(pDir)) {
-        throw(ENOTDIR);
-    }
-
-
-    if (pComponent->count == 0) {
-        throw(ENOENT);
-    }
-    else if (pComponent->count == 1 && pComponent->name[0] == '.') {
-        Inode_Reacquire(pDir);
-        *pOutNode = pDir;
-    }
-    else if (pComponent->count == 2 && pComponent->name[0] == '.' && pComponent->name[1] == '.') {
-        try(PathResolver_AcquireParentDirectory(self, pDir, pOutNode));
-    }
-    else {
-        try(PathResolver_AcquireChildNode(self, pDir, pComponent, pOutNode));
-    }
-
-    return EOK;
-
-catch:
-    *pOutNode = NULL;
-    return err;
-}
-
 // Looks up the inode named by the given path. The path may be relative or absolute.
 errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, PathResolverResult* _Nonnull pResult)
 {
