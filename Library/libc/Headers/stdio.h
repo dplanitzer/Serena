@@ -158,6 +158,9 @@ extern int vasprintf(char **str_ptr, const char *format, va_list ap);
 extern int scanf(const char *format, ...);
 extern int vscanf(const char *format, va_list ap);
 
+extern int fscanf(FILE *s, const char *format, ...);
+extern int vfscanf(FILE *s, const char *format, va_list ap);
+
 extern int sscanf(const char *buffer, const char *format, ...);
 extern int vsscanf(const char *buffer, const char *format, va_list ap);
 
