@@ -31,6 +31,7 @@ extern int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv)
 extern int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_pwd(ShellContextRef _Nonnull pContext, int argc, char** argv);
+extern int cmd_rename(ShellContextRef _Nonnull pContext, int argc, char** argv);
 extern int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv);
 
 
@@ -45,6 +46,7 @@ static const InterpreterCommand gBuiltinCommands[] = {
     {"list", cmd_list},
     {"makedir", cmd_makedir},
     {"pwd", cmd_pwd},
+    {"rename", cmd_rename},
     {"type", cmd_type},
 };
 

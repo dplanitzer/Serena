@@ -149,6 +149,10 @@ Creates an empty directory at the file system location indicated by the provided
 
 Prints the absolute path of the current working directory.
 
+#### RENAME \<source_path> \<destination_path>
+
+Renames the file or directory at 'source_path' to 'destination_path'. If a file or directory exists at 'destination_path' then this file system object is atomically deleted and replaced with the source file or directory.
+
 #### SHELL
 
 Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command.

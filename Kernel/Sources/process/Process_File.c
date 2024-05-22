@@ -413,20 +413,21 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
 {
     decl_try_err();
     PathResolver pr;
-    PathResolverResult sr, tr;
+    PathResolverResult or, nr;
     DirectoryEntryInsertionHint dih;
     InodeRef pOldDir = NULL;
     InodeRef pOldNode = NULL;
     InodeRef pNewDir = NULL;
     InodeRef pNewNode = NULL;
+    bool isMove = false;
 
     Lock_Lock(&pProc->lock);
     Process_MakePathResolver(pProc, &pr);
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_PredecessorOfTarget, pOldPath, &sr));
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_PredecessorOfTarget, pNewPath, &tr));
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_PredecessorOfTarget, pOldPath, &or));
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_PredecessorOfTarget, pNewPath, &nr));
 
-    const PathComponent* pOldName = &sr.lastPathComponent;
-    const PathComponent* pNewName = &tr.lastPathComponent;
+    const PathComponent* pOldName = &or.lastPathComponent;
+    const PathComponent* pNewName = &nr.lastPathComponent;
 
 
     // Final path components of . and .. are not supported
@@ -440,45 +441,95 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
     }
 
 
+    // Lock the source and destination parents and figure out whether they are
+    // the same
+    pOldDir = or.inode;
+    or.inode = NULL;
+    Inode_Lock(pOldDir);
+
+    pNewDir = nr.inode;
+    nr.inode = NULL;
+    if (!Inode_Equals(or.inode, nr.inode)) {
+        Inode_Lock(pNewDir);
+        isMove = true;
+    }
+
+
     // newpath and oldpath have to be in the same filesystem
-    if (Inode_GetFilesystem(sr.inode) != Inode_GetFilesystem(tr.inode)) {
+    if (Inode_GetFilesystem(pOldDir) != Inode_GetFilesystem(pNewDir)) {
         throw(EXDEV);
     }
 
 
-    // The source file/directory must exist
-    pOldDir = sr.inode;
-    sr.inode = NULL;
+    // Get the source node. It must exist
     try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pOldDir), pOldDir, pOldName, pr.user, NULL, &pOldNode));
+    Inode_Lock(pOldNode);
 
 
-    // The target file/directory may exist
-    pNewDir = tr.inode;
-    tr.inode = NULL;
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pNewDir), pNewDir, pNewName, pr.user, &dih, &pNewNode);
+    // The destination may exist
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pNewDir), pNewDir, pNewName, pr.user, NULL, &pNewNode);
+    if (err != EOK && err != ENOENT) {
+        throw(err);
+    }
     if (err == EOK) {
-        // Unlink the target node
-        try(Filesystem_Unlink(Inode_GetFilesystem(pNewNode), pNewNode, tr.inode, pr.user));
+        if (Inode_Equals(pOldNode, pNewNode)) {
+            // Source and destination nodes are the same nodes -> do nothing
+            err = EOK;
+            goto catch;
+        }
+
+        Inode_Lock(pNewNode);
     }
 
 
-    // Can not rename a mount point
-    // XXX implement this check once we've refined the mount point handling (return EBUSY)
+    // Source and destination nodes may not be mountpoints
+    if (FilesystemManager_IsNodeMountpoint(gFilesystemManager, pOldNode)) {
+        throw(EBUSY);
+    }
+    if (pNewNode != NULL && FilesystemManager_IsNodeMountpoint(gFilesystemManager, pNewNode)) {
+        throw(EBUSY);
+    }
 
-    // newpath can't be a child of oldpath
-    // XXX implement me
 
-    try(Filesystem_Rename(Inode_GetFilesystem(pOldNode), pOldNode, pOldDir, pNewName, pNewDir, pr.user));
+    // Remove the destination node if it exists
+    if (pNewNode) {
+        try(Filesystem_Unlink(Inode_GetFilesystem(pNewNode), pNewNode, pNewDir, pr.user));
+    }
+
+
+    // Do the move or rename
+    if (isMove) {
+        // newpath can't be a child of oldpath
+        // XXX implement me
+        throw(EIO);
+    }
+    else {
+        err = Filesystem_Rename(Inode_GetFilesystem(pOldNode), pOldNode, pOldDir, pNewName, pr.user);
+    }
 
 catch:
+    if (pNewNode && pNewNode != pOldNode) {
+        Inode_Unlock(pNewNode);
+    }
+    if (pOldNode) {
+        Inode_Unlock(pOldNode);
+    }
+    if (pNewDir && isMove) {
+        Inode_Unlock(pNewDir);
+    }
+    if (pOldDir) {
+        Inode_Unlock(pOldDir);
+    }
+
     Inode_Relinquish(pNewNode);
     Inode_Relinquish(pNewDir);
     Inode_Relinquish(pOldNode);
     Inode_Relinquish(pOldDir);
-    PathResolverResult_Deinit(&tr);
-    PathResolverResult_Deinit(&sr);
+    
+    PathResolverResult_Deinit(&nr);
+    PathResolverResult_Deinit(&or);
     PathResolver_Deinit(&pr);
+    
     Lock_Unlock(&pProc->lock);
-    err = ENOSYS;   // XXX for now
     return err;
 }

@@ -491,10 +491,9 @@ errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked
     return EACCESS;
 }
 
-// Renames the node 'pSourceNode' which is an immediate child of the
-// node 'pSourceDir' such that it becomes a child of 'pTargetDir' with
-// the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
-errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pTargetDir, User user)
+// Changes the existing name of the node 'pSourceNode' which is an immediate
+// child of the directory 'pSourceDir' such that it will be 'pNewName'.
+errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, User user)
 {
     return EACCESS;
 }

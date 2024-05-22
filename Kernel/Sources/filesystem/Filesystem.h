@@ -257,10 +257,9 @@ open_class_funcs(Filesystem, Object,
     // directory is empty (contains nothing except "." and "..").
     errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentDir, User user);
 
-    // Renames the node 'pSourceNode' which is an immediate child of the
-    // node 'pSourceDir' such that it becomes a child of 'pTargetDir' with
-    // the name 'pNewName'. All nodes are guaranteed to be owned by the filesystem.
-    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, InodeRef _Nonnull _Locked pTargetDir, User user);
+    // Changes the existing name of the node 'pSourceNode' which is an immediate
+    // child of the directory 'pSourceDir' such that it will be 'pNewName'.
+    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, User user);
 
 
     //
@@ -372,8 +371,8 @@ invoke_n(truncate, Filesystem, __self, __pNode, __user, __length)
 #define Filesystem_Unlink(__self, __pNode, __pParentDir, __user) \
 invoke_n(unlink, Filesystem, __self, __pNode, __pParentDir, __user)
 
-#define Filesystem_Rename(__self, __pSourceNode, __pSourceDir, __pNewName, __pTargetDir, __user) \
-invoke_n(rename, Filesystem, __self, __pSourceNode, __pSourceDir, __pNewName, __pTargetDir, __user)
+#define Filesystem_Rename(__self, __pSourceNode, __pSourceDir, __pNewName, __user) \
+invoke_n(rename, Filesystem, __self, __pSourceNode, __pSourceDir, __pNewName, __user)
 
 // Acquires a new reference to the given node.
 extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
