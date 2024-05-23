@@ -1269,21 +1269,21 @@ catch:
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pParentNode, User user)
+errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir, User user)
 {
     decl_try_err();
 
     // We must have write permissions for 'pParentNode'
-    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
+    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Writable));
 
 
     // A directory must be empty in order to be allowed to unlink it
-    if (Inode_IsDirectory(pNodeToUnlink) && DirectoryNode_IsNotEmpty(pNodeToUnlink)) {
+    if (Inode_IsDirectory(pNodeToUnlink) && Inode_GetLinkCount(pNodeToUnlink) > 1 && DirectoryNode_IsNotEmpty(pNodeToUnlink)) {
         throw(EBUSY);
     }
 
 
-    try(SerenaFS_unlinkCore(self, pNodeToUnlink, pParentNode));
+    try(SerenaFS_unlinkCore(self, pNodeToUnlink, pDir));
 
 catch:
     return err;
@@ -1363,7 +1363,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
     // Add a new entry in the destination directory and remove the old entry from
     // the source directory
     try(SerenaFS_link(self, pSrcNode, pDstDir, pNewName, user, pDirInstHint));
-    try(SerenaFS_unlinkCore(self, pSrcNode, pSrcDir));
+    try(SerenaFS_unlinkCore(self, pSrcNode, pSrcDir));  // XXX should theoretically be able to use unlink() here. Fails with resource busy because we trigger the empty check on the destination directory
 
 
     // If we're moving a directory then we need to repoint its parent entry '..'
