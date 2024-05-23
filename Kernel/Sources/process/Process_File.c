@@ -408,6 +408,28 @@ catch:
     return err;
 }
 
+static void ilock_ordered(InodeRef _Nonnull ip, InodeRef _Nonnull ipp[4], int* _Nonnull pCount)
+{
+    for(int i = 0; i < *pCount; i++) {
+        if (Inode_Equals(ip, ipp[i])) {
+            return;
+        }
+    }
+
+    Inode_Lock(ip);
+    ipp[*pCount] = ip;
+    *pCount = *pCount + 1;
+}
+
+static void iunlock_ordered_all(InodeRef _Nonnull ipp[4], int* _Nonnull pCount)
+{
+    for (int i = *pCount - 1; i >= 0; i--) {
+        Inode_Unlock(ipp[i]);
+        ipp[i] = NULL;
+    }
+    *pCount = 0;
+}
+
 // Renames the file or directory at 'pOldPath' to the new location 'pNewPath'.
 errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const char* pNewPath)
 {
@@ -419,6 +441,8 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
     InodeRef pOldNode = NULL;
     InodeRef pNewDir = NULL;
     InodeRef pNewNode = NULL;
+    InodeRef pLockedNodes[4];
+    int lockedNodeCount = 0;
     bool isMove = false;
 
     Lock_Lock(&pProc->lock);
@@ -445,12 +469,12 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
     // the same
     pOldDir = or.inode;
     or.inode = NULL;
-    Inode_Lock(pOldDir);
+    ilock_ordered(pOldDir, pLockedNodes, &lockedNodeCount);
 
     pNewDir = nr.inode;
     nr.inode = NULL;
-    if (!Inode_Equals(or.inode, nr.inode)) {
-        Inode_Lock(pNewDir);
+    if (!Inode_Equals(pOldDir, pNewDir)) {
+        ilock_ordered(pNewDir, pLockedNodes, &lockedNodeCount);
         isMove = true;
     }
 
@@ -463,11 +487,11 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
 
     // Get the source node. It must exist
     try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pOldDir), pOldDir, pOldName, pr.user, NULL, &pOldNode));
-    Inode_Lock(pOldNode);
+    ilock_ordered(pOldNode, pLockedNodes, &lockedNodeCount);
 
 
     // The destination may exist
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pNewDir), pNewDir, pNewName, pr.user, NULL, &pNewNode);
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pNewDir), pNewDir, pNewName, pr.user, &dih, &pNewNode);
     if (err != EOK && err != ENOENT) {
         throw(err);
     }
@@ -478,7 +502,7 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
             goto catch;
         }
 
-        Inode_Lock(pNewNode);
+        ilock_ordered(pNewNode, pLockedNodes, &lockedNodeCount);
     }
 
 
@@ -491,6 +515,13 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
     }
 
 
+    // Make sure that the parent directories are writeable
+    try(Filesystem_CheckAccess(Inode_GetFilesystem(pOldDir), pOldDir, pr.user, kAccess_Writable));
+    if (pOldDir != pNewDir) {
+        try(Filesystem_CheckAccess(Inode_GetFilesystem(pNewDir), pNewDir, pr.user, kAccess_Writable));
+    }
+
+
     // Remove the destination node if it exists
     if (pNewNode) {
         try(Filesystem_Unlink(Inode_GetFilesystem(pNewNode), pNewNode, pNewDir, pr.user));
@@ -499,27 +530,14 @@ errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const ch
 
     // Do the move or rename
     if (isMove) {
-        // newpath can't be a child of oldpath
-        // XXX implement me
-        throw(EIO);
+        err = Filesystem_Move(Inode_GetFilesystem(pOldNode), pOldNode, pOldDir, pNewDir, pNewName, pr.user, &dih);
     }
     else {
         err = Filesystem_Rename(Inode_GetFilesystem(pOldNode), pOldNode, pOldDir, pNewName, pr.user);
     }
 
 catch:
-    if (pNewNode && pNewNode != pOldNode) {
-        Inode_Unlock(pNewNode);
-    }
-    if (pOldNode) {
-        Inode_Unlock(pOldNode);
-    }
-    if (pNewDir && isMove) {
-        Inode_Unlock(pNewDir);
-    }
-    if (pOldDir) {
-        Inode_Unlock(pOldDir);
-    }
+    iunlock_ordered_all(pLockedNodes, &lockedNodeCount);
 
     Inode_Relinquish(pNewNode);
     Inode_Relinquish(pNewDir);

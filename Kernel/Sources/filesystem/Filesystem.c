@@ -491,6 +491,14 @@ errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked
     return EACCESS;
 }
 
+// Moves the node 'pSrcNode' from its current parent directory 'pSrcDir' to
+// the new parent directory 'pDstDir' and assigns it the name 'pName' in this
+// new directory.
+errno_t Filesystem_move(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+{
+    return EACCESS;
+}
+
 // Changes the existing name of the node 'pSourceNode' which is an immediate
 // child of the directory 'pSourceDir' such that it will be 'pNewName'.
 errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, User user)
@@ -521,5 +529,6 @@ func_def(getDiskPermissions, Filesystem)
 func_def(checkAccess, Filesystem)
 func_def(truncate, Filesystem)
 func_def(unlink, Filesystem)
+func_def(move, Filesystem)
 func_def(rename, Filesystem)
 );

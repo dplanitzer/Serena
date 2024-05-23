@@ -257,6 +257,11 @@ open_class_funcs(Filesystem, Object,
     // directory is empty (contains nothing except "." and "..").
     errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentDir, User user);
 
+    // Moves the node 'pSrcNode' from its current parent directory 'pSrcDir' to
+    // the new parent directory 'pDstDir' and assigns it the name 'pName' in this
+    // new directory.
+    errno_t (*move)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint);
+
     // Changes the existing name of the node 'pSourceNode' which is an immediate
     // child of the directory 'pSourceDir' such that it will be 'pNewName'.
     errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, User user);
@@ -370,6 +375,9 @@ invoke_n(truncate, Filesystem, __self, __pNode, __user, __length)
 
 #define Filesystem_Unlink(__self, __pNode, __pParentDir, __user) \
 invoke_n(unlink, Filesystem, __self, __pNode, __pParentDir, __user)
+
+#define Filesystem_Move(__self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __user, __pDirInstHint) \
+invoke_n(move, Filesystem, __self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __user, __pDirInstHint)
 
 #define Filesystem_Rename(__self, __pSourceNode, __pSourceDir, __pNewName, __user) \
 invoke_n(rename, Filesystem, __self, __pSourceNode, __pSourceDir, __pNewName, __user)

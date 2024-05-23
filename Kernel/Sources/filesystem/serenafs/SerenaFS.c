@@ -180,6 +180,7 @@ errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
     try(Filesystem_Create(&kSerenaFSClass, (FilesystemRef*)&self));
     Lock_Init(&self->allocationLock);
     SELock_Init(&self->seLock);
+    Lock_Init(&self->moveLock);
     self->flags.isMounted = false;
     self->fsPermissions = FilePermissions_MakeFromOctal(0);
 
@@ -193,6 +194,7 @@ catch:
 
 void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
+    Lock_Deinit(&self->moveLock);
     SELock_Deinit(&self->seLock);
     Lock_Deinit(&self->allocationLock);
 }
@@ -1001,7 +1003,7 @@ catch:
 // entry; otherwise a completely new entry will be added to the directory.
 // NOTE: this function does not verify that the new entry is unique. The caller
 // has to ensure that it doesn't try to add a duplicate entry to the directory.
-static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, SFSDirectoryEntryPointer* _Nullable pEmptyPtr)
+static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, const SFSDirectoryEntryPointer* _Nullable pEmptyPtr)
 {
     decl_try_err();
 
@@ -1237,6 +1239,30 @@ catch:
     return err;
 }
 
+static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pParentNode)
+{
+    decl_try_err();
+
+    // Remove the directory entry in the parent directory
+    try(SerenaFS_RemoveDirectoryEntry(self, pParentNode, Inode_GetId(pNodeToUnlink)));
+    SerenaFS_xTruncateFile(self, pParentNode, Inode_GetFileSize(pParentNode));
+
+
+    // If this is a directory then unlink it from its parent since we remove a
+    // '..' entry that points to the parent
+    if (Inode_IsDirectory(pNodeToUnlink)) {
+        Inode_Unlink(pParentNode);
+    }
+
+
+    // Unlink the node itself
+    Inode_Unlink(pNodeToUnlink);
+    Inode_SetModified(pNodeToUnlink, kInodeFlag_StatusChanged);
+
+catch:
+    return err;
+}
+
 // Unlink the node 'pNode' which is an immediate child of 'pParentNode'.
 // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
 // is guaranteed to exist and that it isn't a mountpoint and not the root
@@ -1257,21 +1283,112 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
     }
 
 
-    // Remove the directory entry in the parent directory
-    try(SerenaFS_RemoveDirectoryEntry(self, pParentNode, Inode_GetId(pNodeToUnlink)));
-    SerenaFS_xTruncateFile(self, pParentNode, Inode_GetFileSize(pParentNode));
-
-
-    // If this is a directory then unlink it from its parent since we remove a
-    // '..' entry that points to the parent
-    Inode_Unlink(pParentNode);
-
-
-    // Unlink the node itself
-    Inode_Unlink(pNodeToUnlink);
-    Inode_SetModified(pNodeToUnlink, kInodeFlag_StatusChanged);
+    try(SerenaFS_unlinkCore(self, pNodeToUnlink, pParentNode));
 
 catch:
+    return err;
+}
+
+// Returns true if the function can establish that 'pDir' is a subdirectory of
+// 'pAncestorDir' or that it is in fact 'pAncestorDir' itself.
+static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pAncestorDir, InodeRef _Nonnull _Locked pGrandAncestorDir, InodeRef _Nonnull _Locked pDir, User user)
+{
+    InodeRef pCurDir = Inode_Reacquire(pDir);
+    bool r = false;
+
+    while (true) {
+        InodeRef pParentDir = NULL;
+        bool didLock = false;
+
+        if (Inode_Equals(pCurDir, pAncestorDir)) {
+            r = true;
+            break;
+        }
+
+        if (pCurDir != pDir && pCurDir != pAncestorDir && pCurDir != pGrandAncestorDir) {
+            Inode_Lock(pCurDir);
+            didLock = true;
+        }
+        const errno_t err = Filesystem_AcquireNodeForName(self, pCurDir, &kPathComponent_Parent, user, NULL, &pParentDir);
+        if (didLock) {
+            Inode_Unlock(pCurDir);
+        }
+
+        if (err != EOK || Inode_Equals(pCurDir, pParentDir)) {
+            // Hit the root directory or encountered an error
+            Inode_Relinquish(pParentDir);
+            break;
+        }
+
+        Inode_Relinquish(pCurDir);
+        pCurDir = pParentDir;
+    }
+
+catch:
+    Inode_Relinquish(pCurDir);
+    return r;
+}
+
+static errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+{
+    decl_try_err();
+
+    try(SerenaFS_InsertDirectoryEntry(self, pDstDir, pName, Inode_GetId(pSrcNode), (SFSDirectoryEntryPointer*)pDirInstHint->data));
+    Inode_Link(pSrcNode);
+    Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
+
+    return EOK;
+
+catch:
+    return err;
+}
+
+errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+{
+    decl_try_err();
+    const bool isMovingDir = Inode_IsDirectory(pSrcNode);
+
+    // The 'moveLock' ensures that there can be only one operation active at any
+    // given time that might move directories around in the filesystem. This ie
+    // ensures that the result that we get from calling IsAscendentOfDirectory()
+    // stays meaningful while we are busy executing the move.
+    Lock_Lock(&self->moveLock);
+
+    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pSrcNode, pSrcDir, pDstDir, user)) {
+        // oldpath is an ancestor of newpath (Don't allow moving a directory inside of itself)
+        throw(EINVAL);
+    }
+
+
+    // Add a new entry in the destination directory and remove the old entry from
+    // the source directory
+    try(SerenaFS_link(self, pSrcNode, pDstDir, pNewName, user, pDirInstHint));
+    try(SerenaFS_unlinkCore(self, pSrcNode, pSrcDir));
+
+
+    // If we're moving a directory then we need to repoint its parent entry '..'
+    // to the new parent directory
+    if (isMovingDir) {
+        SFSDirectoryEntryPointer mp;
+        SFSDirectoryQuery q;
+
+        q.kind = kSFSDirectoryQuery_PathComponent;
+        q.u.pc = &kPathComponent_Parent;
+        try(SerenaFS_GetDirectoryEntry(self, pSrcNode, &q, NULL, &mp, NULL, NULL));
+
+        try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, mp.lba));
+
+        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.blockOffset);
+        dep->id = Inode_GetId(pDstDir);
+
+        try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, mp.lba));
+
+        // Our parent receives a +1 on the link count because of our .. entry
+        Inode_Link(pDstDir);
+    }
+
+catch:
+    Lock_Unlock(&self->moveLock);
     return err;
 }
 
@@ -1325,5 +1442,6 @@ override_func_def(openDirectory, SerenaFS, Filesystem)
 override_func_def(readDirectory, SerenaFS, Filesystem)
 override_func_def(truncate, SerenaFS, Filesystem)
 override_func_def(unlink, SerenaFS, Filesystem)
+override_func_def(move, SerenaFS, Filesystem)
 override_func_def(rename, SerenaFS, Filesystem)
 );

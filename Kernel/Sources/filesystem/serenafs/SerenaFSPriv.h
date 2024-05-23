@@ -59,6 +59,7 @@ typedef struct SFSDirectoryEntryPointer {
 // allocationLock: implements atomic block allocation and deallocation
 final_class_ivars(SerenaFS, Filesystem,
     SELock                  seLock;
+    Lock                    moveLock;   // To make the move operation atomic
     struct {
         unsigned int    isMounted:1;    // true while mounted; false if not mounted
         unsigned int    reserved:31;
@@ -92,6 +93,6 @@ static errno_t SerenaFS_FormatWithEmptyFilesystem(SerenaFSRef _Nonnull self);
 static void SerenaFS_DestroyDiskNode(SerenaFSRef _Nonnull self, SFSInodeRef _Nullable pDiskNode);
 static errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba);
 static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length);
-static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, SFSDirectoryEntryPointer* _Nullable pEmptyPtr);
+static errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, const PathComponent* _Nonnull pName, InodeId id, const SFSDirectoryEntryPointer* _Nullable pEmptyPtr);
 
 #endif /* SerenaFSPriv_h */
