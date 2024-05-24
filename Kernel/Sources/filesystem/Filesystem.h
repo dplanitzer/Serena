@@ -40,8 +40,8 @@ typedef struct DirectoryEntryInsertionHint {
 // destroyed as long as there is at least one acquired inode outstanding. Thus
 // it is sufficient to either hold a strong reference to a filesystem object
 // (use Object_Retain() to get it) or a strong reference to an inode from the
-// filesystem in question (use Filesystem_AcquireNode9) to get it) to ensure that
-// the filesystem stays alive.
+// filesystem in question (use Filesystem_AcquireNode() to get one) to ensure
+// that the filesystem stays alive.
 //
 //
 // Mounting/unmounting a filesystem:
