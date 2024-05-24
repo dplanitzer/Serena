@@ -62,7 +62,7 @@ typedef struct Inode* InodeRef;
 #define Inode_Relinquish(__self) \
     Filesystem_RelinquishNode((__self)->filesystem, __self)
 
-extern void Inode_UnlockRelinquish(InodeRef _Nonnull _Locked self);
+extern void Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 
 
 //

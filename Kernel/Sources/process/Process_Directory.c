@@ -94,16 +94,19 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
     PathResolver pr;
     PathResolverResult r;
     DirectoryEntryInsertionHint dih;
-    InodeRef pDirNode = NULL;
+    InodeRef pParentDir = NULL;
+    InodeRef pNewDir = NULL;
 
     Lock_Lock(&pProc->lock);
     Process_MakePathResolver(pProc, &pr);
     try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_PredecessorOfTarget, pPath, &r));
 
-    FilesystemRef pFS = Inode_GetFilesystem(r.inode);
-    InodeRef pParentDir = r.inode;
     const PathComponent* pName = &r.lastPathComponent;
     const FilePermissions dirPerms = ~pProc->fileCreationMask & (permissions & 0777);
+    FilesystemRef pFS = Inode_GetFilesystem(r.inode);
+    pParentDir = r.inode;
+    r.inode = NULL;
+    Inode_Lock(pParentDir);
 
 
     // Can not create a directory with names . or ..
@@ -115,22 +118,21 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull pProc, const char* _Nonnull 
 
     // Create the new directory and add it to the parent directory if it doesn't
     // exist; otherwise error out
-    Inode_Lock(pParentDir);
-
     err = Filesystem_AcquireNodeForName(pFS, pParentDir, pName, pr.user, &dih, NULL);
     if (err == ENOENT) {
-        err = Filesystem_CreateNode(pFS, kFileType_Directory, pr.user, dirPerms, pParentDir, pName, &dih, &pDirNode);
+        try(Filesystem_CreateNode(pFS, kFileType_Directory, pr.user, dirPerms, pParentDir, pName, &dih, &pNewDir));
     }
     else if (err == EOK) {
-        err = EEXIST;
+        throw(EEXIST);
     }
 
-    Inode_Unlock(pParentDir);
-
 catch:
-    Inode_Relinquish(pDirNode);
+    Inode_Relinquish(pNewDir);
+    Inode_UnlockRelinquish(pParentDir);
+
     PathResolverResult_Deinit(&r);
     PathResolver_Deinit(&pr);
+    
     Lock_Unlock(&pProc->lock);
     return err;
 }
