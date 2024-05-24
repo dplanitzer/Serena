@@ -43,26 +43,18 @@ void PathResolver_Deinit(PathResolverRef _Nullable self)
     self->workingDirectory = NULL;
 }
 
-static errno_t acquire_node_for_name(InodeRef _Nonnull pDir, const PathComponent* _Nonnull pc, User user, InodeRef _Nullable * _Nonnull pOutNode)
-{
-    decl_try_err();
-
-    Inode_Lock(pDir);
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pc, user, NULL, pOutNode);
-    Inode_Unlock(pDir);
-    return err;
-}
-
 // Acquires the parent directory of the directory 'pDir'. Returns 'pDir' again
 // if that inode is the path resolver's root directory. Returns a suitable error
 // code and leaves the iterator unchanged if an error (eg access denied) occurs.
 // Walking up means resolving a path component of the form '..'.
-static errno_t PathResolver_AcquireParentDirectory(PathResolverRef _Nonnull self, InodeRef _Nonnull pDir, InodeRef _Nullable * _Nonnull pOutParentDir)
+static errno_t PathResolver_AcquireParentDirectory(PathResolverRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeRef _Nullable * _Nonnull pOutParentDir)
 {
     decl_try_err();
-    InodeRef _Locked pParentDir = NULL;
-    InodeRef _Locked pMountingDir = NULL;
-    InodeRef _Locked pParentOfMountingDir = NULL;
+    InodeRef pParentDir = NULL;
+    InodeRef pMountingDir = NULL;
+    InodeRef pParentOfMountingDir = NULL;
+
+    *pOutParentDir = NULL;
 
     // Do not walk past the root directory
     if (Inode_Equals(pDir, self->rootDirectory)) {
@@ -71,7 +63,7 @@ static errno_t PathResolver_AcquireParentDirectory(PathResolverRef _Nonnull self
     }
 
 
-    try(acquire_node_for_name(pDir, &kPathComponent_Parent, self->user, &pParentDir));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, &kPathComponent_Parent, self->user, NULL, &pParentDir));
 
     if (!Inode_Equals(pDir, pParentDir)) {
         // We're moving to a parent directory in the same file system
@@ -90,17 +82,15 @@ static errno_t PathResolver_AcquireParentDirectory(PathResolverRef _Nonnull self
         // is (because you can not mount a file system on the root node of another
         // file system).
         try(FilesystemManager_AcquireNodeMountingFilesystem(gFilesystemManager, Inode_GetFilesystem(pDir), &pMountingDir));
-        try(acquire_node_for_name(pMountingDir, &kPathComponent_Parent, self->user, &pParentOfMountingDir));
 
-        Inode_Relinquish(pMountingDir);
+        Inode_Lock(pMountingDir);
+        err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pMountingDir), pMountingDir, &kPathComponent_Parent, self->user, NULL, &pParentOfMountingDir);
+        Inode_UnlockRelinquish(pMountingDir);
+
         *pOutParentDir = pParentOfMountingDir;
     }
 
-    return EOK;
-
 catch:
-    Inode_Relinquish(pMountingDir);
-    *pOutParentDir = NULL;
     return err;
 }
 
@@ -109,14 +99,15 @@ catch:
 // This function handles the case that we want to walk down the filesystem tree
 // (meaning that the given path component is a file or directory name and
 // neither '.' nor '..').
-static errno_t PathResolver_AcquireChildNode(PathResolverRef _Nonnull self, InodeRef _Nonnull pDir, const PathComponent* _Nonnull pName, InodeRef _Nullable * _Nonnull pOutChildNode)
+static errno_t PathResolver_AcquireChildNode(PathResolverRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, InodeRef _Nullable * _Nonnull pOutChildNode)
 {
     decl_try_err();
-    InodeRef _Locked pChildNode = NULL;
-    FilesystemRef pMountedFileSys = NULL;
+    InodeRef pChildNode = NULL;
+
+    *pOutChildNode = NULL;
 
     // Ask the filesystem for the inode that is named by the tuple (pDir, pName)
-    try(acquire_node_for_name(pDir, pName, self->user, &pChildNode));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pName, self->user, NULL, &pChildNode));
 
 
     // This can only happen if the filesystem is in a corrupted state.
@@ -129,23 +120,21 @@ static errno_t PathResolver_AcquireChildNode(PathResolverRef _Nonnull self, Inod
     // Check whether the new inode is a mountpoint. If not then we just return
     // the acquired node as is. Otherwise we'll have to look up the root directory
     // of the mounted filesystem.
-    pMountedFileSys = FilesystemManager_CopyFilesystemMountedAtNode(gFilesystemManager, pChildNode);
+    FilesystemRef pMountedFs = FilesystemManager_CopyFilesystemMountedAtNode(gFilesystemManager, pChildNode);
 
-    if (pMountedFileSys == NULL) {
+    if (pMountedFs == NULL) {
         *pOutChildNode = pChildNode;
     }
     else {
-        InodeRef pMountedFileSysRootNode;
+        InodeRef pMountedFsRootDir;
 
-        try(Filesystem_AcquireRootNode(pMountedFileSys, &pMountedFileSysRootNode));
-        *pOutChildNode = pMountedFileSysRootNode;
+        err = Filesystem_AcquireRootNode(pMountedFs, &pMountedFsRootDir);
+        *pOutChildNode = pMountedFsRootDir;
         Inode_Relinquish(pChildNode);
-        Object_Release(pMountedFileSys);
+        Object_Release(pMountedFs);
     }
-    return EOK;
 
 catch:
-    Object_Release(pMountedFileSys);
     return err;
 }
 
@@ -197,6 +186,84 @@ catch:
     pc->count = 0;
     *pi = i;
     *pOutIsLastPathComponent = false;
+    return err;
+}
+
+// Looks up the inode named by the given path. The path may be relative or absolute.
+errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, PathResolverResult* _Nonnull pResult)
+{
+    decl_try_err();
+    InodeRef pCurNode = NULL;
+    InodeRef pNextNode = NULL;
+    PathComponent pc;
+    size_t pi = 0;
+    bool isLastPathComponent = false;
+
+    PathResolverResult_Init(pResult);
+
+    if (pPath[0] == '\0') {
+        return ENOENT;
+    }
+
+
+    // Start with the root directory if the path starts with a '/' and the
+    // current working directory otherwise
+    InodeRef pStartNode = (pPath[0] == '/') ? self->rootDirectory : self->workingDirectory;
+    pCurNode = Inode_Reacquire(pStartNode);
+
+
+    // Iterate through the path components, looking up the inode that corresponds
+    // to the current path component. Stop once we hit the end of the path.
+    // Note that:
+    // * lookup of '.' can not fail with ENOENT because it's the same as the current directory
+    // * lookup of '..' can not fail with ENOENT because every directory has a parent (parent of root is root itself)
+    // * lookup of a named entry can fail with ENOENT
+    Inode_Lock(pCurNode);
+    for (;;) {
+        try(get_next_path_component(pPath, &pi, &pc, &isLastPathComponent));
+
+        if (pc.count == 0) {
+            break;
+        }
+
+
+        // The current directory better be an actual directory
+        if (!Inode_IsDirectory(pCurNode)) {
+            throw(ENOTDIR);
+        }
+
+
+        if (mode == kPathResolverMode_PredecessorOfTarget && isLastPathComponent) {
+            break;
+        }
+
+        if (pc.count == 1 && pc.name[0] == '.') {
+            // pCurNode does not change
+            continue;
+        }
+        else if (pc.count == 2 && pc.name[0] == '.' && pc.name[1] == '.') {
+            try(PathResolver_AcquireParentDirectory(self, pCurNode, &pNextNode));
+        }
+        else {
+            try(PathResolver_AcquireChildNode(self, pCurNode, &pc, &pNextNode));
+        }
+
+        Inode_UnlockRelinquish(pCurNode);
+        pCurNode = pNextNode;
+        pNextNode = NULL;
+
+        Inode_Lock(pCurNode);
+    }
+    Inode_Unlock(pCurNode);
+
+
+    // Note that we move ownership of the target node to the result structure
+    pResult->inode = pCurNode;
+    pResult->lastPathComponent = pc;
+    return EOK;
+
+catch:
+    Inode_UnlockRelinquish(pCurNode);
     return err;
 }
 
@@ -268,79 +335,5 @@ errno_t PathResolver_GetDirectoryPath(PathResolverRef _Nonnull self, InodeRef _N
 catch:
     Inode_Relinquish(pCurDir);
     pBuffer[0] = '\0';
-    return err;
-}
-
-// Looks up the inode named by the given path. The path may be relative or absolute.
-errno_t PathResolver_AcquireNodeForPath(PathResolverRef _Nonnull self, PathResolverMode mode, const char* _Nonnull pPath, PathResolverResult* _Nonnull pResult)
-{
-    decl_try_err();
-    InodeRef pCurNode = NULL;
-    InodeRef pNextNode = NULL;
-    PathComponent pc;
-    size_t pi = 0;
-    bool isLastPathComponent = false;
-
-    PathResolverResult_Init(pResult);
-
-    if (pPath[0] == '\0') {
-        return ENOENT;
-    }
-
-
-    // Start with the root directory if the path starts with a '/' and the
-    // current working directory otherwise
-    InodeRef pStartNode = (pPath[0] == '/') ? self->rootDirectory : self->workingDirectory;
-    pCurNode = Inode_Reacquire(pStartNode);
-
-
-    // Iterate through the path components, looking up the inode that corresponds
-    // to the current path component. Stop once we hit the end of the path.
-    // Note that:
-    // * lookup of '.' can not fail with ENOENT because it's the same as the current directory
-    // * lookup of '..' can not fail with ENOENT because every directory has a parent (parent of root is root itself)
-    // * lookup of a named entry can fail with ENOENT
-    for (;;) {
-        try(get_next_path_component(pPath, &pi, &pc, &isLastPathComponent));
-
-        if (pc.count == 0) {
-            break;
-        }
-
-
-        // The current directory better be an actual directory
-        if (!Inode_IsDirectory(pCurNode)) {
-            throw(ENOTDIR);
-        }
-
-
-        if (mode == kPathResolverMode_PredecessorOfTarget && isLastPathComponent) {
-            break;
-        }
-
-        if (pc.count == 1 && pc.name[0] == '.') {
-            // pCurNode does not change
-            continue;
-        }
-        else if (pc.count == 2 && pc.name[0] == '.' && pc.name[1] == '.') {
-            try(PathResolver_AcquireParentDirectory(self, pCurNode, &pNextNode));
-        }
-        else {
-            try(PathResolver_AcquireChildNode(self, pCurNode, &pc, &pNextNode));
-        }
-
-        Inode_Relinquish(pCurNode);
-        pCurNode = pNextNode;
-        pNextNode = NULL;
-    }
-
-
-    // Note that we move ownership of the target node to the result structure
-    pResult->inode = pCurNode;
-    pResult->lastPathComponent = pc;
-    return EOK;
-
-catch:
-    Inode_Relinquish(pCurNode);
     return err;
 }

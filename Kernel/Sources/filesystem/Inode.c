@@ -63,3 +63,9 @@ bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
     return self->inid == pOther->inid
         && Filesystem_GetId(self->filesystem) == Filesystem_GetId(pOther->filesystem);
 }
+
+void Inode_UnlockRelinquish(InodeRef _Nonnull _Locked self)
+{
+    Inode_Unlock(self);
+    Inode_Relinquish(self);
+}
