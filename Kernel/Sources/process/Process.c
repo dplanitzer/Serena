@@ -41,7 +41,7 @@ errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
     InodeRef pRootDir = NULL;
 
     assert(pFS != NULL);
-    try(Filesystem_AcquireRootNode(pFS, &pRootDir));
+    try(Filesystem_AcquireRootDirectory(pFS, &pRootDir));
     try(Process_Create(1, kUser_Root, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc));
     Inode_Relinquish(pRootDir);
     Object_Release(pFS);

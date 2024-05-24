@@ -105,7 +105,7 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     decl_try_err();
     DiskDriverRef pDisk = NULL;
     FilesystemRef pFS = NULL;
-    InodeRef rootInode = NULL;
+    InodeRef pRootDir = NULL;
     uint32_t dummyParam = 0;
 
     DiskDriver_Create(512, 128, &pDisk);
@@ -121,9 +121,9 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     cb.endDirectory = (di_end_directory_callback)endDirectory;
     cb.file = (di_file_callback)copyFile;
 
-    try(Filesystem_AcquireRootNode(pFS, &rootInode));
-    try(di_iterate_directory(pRootPath, &cb, rootInode));
-    Filesystem_RelinquishNode(pFS, rootInode);
+    try(Filesystem_AcquireRootDirectory(pFS, &pRootDir));
+    try(di_iterate_directory(pRootPath, &cb, pRootDir));
+    Filesystem_RelinquishNode(pFS, pRootDir);
     try(Filesystem_OnUnmount(pFS));
 
     try(DiskDriver_WriteToPath(pDisk, pDstPath));

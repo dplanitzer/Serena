@@ -128,7 +128,7 @@ static errno_t PathResolver_AcquireChildNode(PathResolverRef _Nonnull self, Inod
     else {
         InodeRef pMountedFsRootDir;
 
-        err = Filesystem_AcquireRootNode(pMountedFs, &pMountedFsRootDir);
+        err = Filesystem_AcquireRootDirectory(pMountedFs, &pMountedFsRootDir);
         *pOutChildNode = pMountedFsRootDir;
         Inode_Relinquish(pChildNode);
         Object_Release(pMountedFs);

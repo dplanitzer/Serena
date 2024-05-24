@@ -283,12 +283,21 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPa
     PathResolver pr;
     PathResolverResult r;
 
+    if (length < 0ll) {
+        return EINVAL;
+    }
+    
     Lock_Lock(&pProc->lock);
     Process_MakePathResolver(pProc, &pr);
     
     if ((err = PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pPath, &r)) == EOK) {
         Inode_Lock(r.inode);
-        err = Filesystem_Truncate(Inode_GetFilesystem(r.inode), r.inode, pr.user, length);
+        if (Inode_IsRegularFile(r.inode)) {
+            err = Filesystem_TruncateFile(Inode_GetFilesystem(r.inode), r.inode, pr.user, length);
+        }
+        else {
+            err = EISDIR;
+        }
         Inode_Unlock(r.inode);
     }
 

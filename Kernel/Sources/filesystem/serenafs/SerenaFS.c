@@ -257,15 +257,11 @@ static void SerenaFS_DeallocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddr
     Lock_Unlock(&self->allocationLock);
 }
 
-// Creates a new inode with type 'type', user information 'user', permissions
-// 'permissions' and adds it to parent inode (directory) 'pParentNode'. The new
-// node will be added to 'pParentNode' with the name 'pName'. Returns the newly
-// acquired inode on success and NULL otherwise.
-errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    InodeId parentInodeId = Inode_GetId(pParentNode);
+    InodeId parentInodeId = Inode_GetId(pDir);
     LogicalBlockAddress inodeLba = 0;
     LogicalBlockAddress dirContLba = 0;
     FileOffset fileSize = 0ll;
@@ -274,12 +270,12 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
     bool isPublished = false;
 
     // We must have write permissions for the parent directory
-    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Writable));
+    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Writable));
 
 
     if (type == kFileType_Directory) {
         // Make sure that the parent directory is able to accept one more link
-        if (Inode_GetLinkCount(pParentNode) >= kSFSLimit_LinkMax) {
+        if (Inode_GetLinkCount(pDir) >= kSFSLimit_LinkMax) {
             throw(EMLINK);
         }
     }
@@ -328,12 +324,12 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
     // a second inode object representing the same inode.  
     try(Filesystem_PublishNode((FilesystemRef)self, pNode));
     isPublished = true;
-    try(SerenaFS_InsertDirectoryEntry(self, pParentNode, pName, Inode_GetId(pNode), pDirInsertionHint));
+    try(SerenaFS_InsertDirectoryEntry(self, pDir, pName, Inode_GetId(pNode), pDirInsertionHint));
 
     if (type == kFileType_Directory) {
         // Increment the parent directory link count to account for the '..' entry
         // in the just created subdirectory
-        Inode_Link(pParentNode);
+        Inode_Link(pDir);
     }
 
     *pOutNode = pNode;
@@ -342,7 +338,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
 
 catch:
     if (isPublished) {
-        Filesystem_Unlink((FilesystemRef)self, pNode, pParentNode, user);
+        Filesystem_Unlink((FilesystemRef)self, pNode, pDir, user);
         Filesystem_RelinquishNode((FilesystemRef)self, pNode);
     } else {
         Inode_Destroy(pNode);
@@ -360,11 +356,6 @@ catch:
     return err;
 }
 
-// Invoked when Filesystem_AcquireNodeWithId() needs to read the requested inode
-// off the disk. The override should read the inode data from the disk,
-// create and inode instance and fill it in with the data from the disk and
-// then return it. It should return a suitable error and NULL if the inode
-// data can not be read off the disk.
 errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
@@ -400,9 +391,6 @@ catch:
     return err;
 }
 
-// Invoked when the inode is relinquished and it is marked as modified. The
-// filesystem override should write the inode meta-data back to the 
-// corresponding disk node.
 errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
@@ -449,10 +437,6 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, Inod
     }
 }
 
-// Invoked when Filesystem_RelinquishNode() has determined that the inode is
-// no longer being referenced by any directory and that the on-disk
-// representation should be deleted from the disk and deallocated. This
-// operation is assumed to never fail.
 void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
@@ -761,9 +745,6 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
 }
 
 
-// Invoked when an instance of this file system is mounted. Note that the
-// kernel guarantees that no operations will be issued to the filesystem
-// before onMount() has returned with EOK.
 errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
@@ -843,11 +824,6 @@ catch:
     return err;
 }
 
-// Invoked when a mounted instance of this file system is unmounted. A file
-// system may return an error. Note however that this error is purely advisory
-// and the file system implementation is required to do everything it can to
-// successfully unmount. Unmount errors are ignored and the file system manager
-// will complete the unmount in any case.
 errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
 {
     decl_try_err();
@@ -879,29 +855,20 @@ catch:
     return err;
 }
 
-// Returns a set of file permissions that apply to all files of type 'fileType'
-// on the disk. Ie if a filesystem supports a read-only mounting option then
-// this function should return 0555. If the filesystem supports a do-not-
-// execute-files mount option then this function should return 0666. A
-// filesystem which always supports all permissions for all file types and
-// permission classes should return 0777 (this is what the default
-// implementation does).
 FilePermissions SerenaFS_getDiskPermissions(SerenaFSRef _Nonnull self, FileType fileType)
 {
     return self->fsPermissions;
 }
 
 
-// Returns the root node of the filesystem if the filesystem is currently in
-// mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
-errno_t SerenaFS_acquireRootNode(SerenaFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir)
 {
     decl_try_err();
 
     err = SELock_LockShared(&self->seLock);
     if (err == EOK) {
         if (self->flags.isMounted) {
-            err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, pOutNode);
+            err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, pOutDir);
         }
         else {
             err = EIO;
@@ -911,31 +878,16 @@ errno_t SerenaFS_acquireRootNode(SerenaFSRef _Nonnull self, InodeRef _Nullable *
     return err;
 }
 
-// Returns EOK and the node that corresponds to the tuple (parent-node, name),
-// if that node exists. Otherwise returns ENOENT and NULL.  Note that this
-// function has to support the special name ".." (parent of node) in addition
-// to "regular" filenames. If 'pParentNode' is the root node of the filesystem
-// and 'pComponent' is ".." then 'pParentNode' should be returned. If the
-// path component name is longer than what is supported by the file system,
-// ENAMETOOLONG should be returned.  caller may pass a pointer to a
-// directory-entry-insertion-hint data structure. This function may store
-// information in this data structure to help speed up a follow up
-// CreateNode() call for a node with the name 'pComponent' in the directory
-// 'pParentNode'. You may pass NULL for 'pOutNode' which means that the
-// function will do the inode lookup and return a status that reflects the
-// outcome of the lookup, however the function will not return the looked up
-// node. You can use this mechanism to check whether a directory contains a
-// node with a name or not without forcing the creation of the node.
-errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     decl_try_err();
     SFSDirectoryQuery q;
     InodeId entryId;
 
-    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Searchable));
+    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
-    try(SerenaFS_GetDirectoryEntry(self, pParentNode, &q, (pDirInsHint) ? (SFSDirectoryEntryPointer*)pDirInsHint->data : NULL, NULL, &entryId, NULL));
+    try(SerenaFS_GetDirectoryEntry(self, pDir, &q, (pDirInsHint) ? (SFSDirectoryEntryPointer*)pDirInsHint->data : NULL, NULL, &entryId, NULL));
     if (pOutNode) {
         try(Filesystem_AcquireNodeWithId((FilesystemRef)self, entryId, pOutNode));
     }
@@ -948,27 +900,19 @@ catch:
     return err;
 }
 
-// Returns the name of the node with the id 'id' which a child of the
-// directory node 'pParentNode'. 'id' may be of any type. The name is
-// returned in the mutable path component 'pComponent'. 'count' in path
-// component is 0 on entry and should be set to the actual length of the
-// name on exit. The function is expected to return EOK if the parent node
-// contains 'id' and ENOENT otherwise. If the name of 'id' as stored in the
-// file system is > the capacity of the path component, then ERANGE should
-// be returned.
-errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent)
+errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, User user, MutablePathComponent* _Nonnull pName)
 {
     decl_try_err();
     SFSDirectoryQuery q;
 
-    try(Filesystem_CheckAccess(self, pParentNode, user, kAccess_Readable | kAccess_Searchable));
+    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Readable | kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = id;
-    try(SerenaFS_GetDirectoryEntry(self, pParentNode, &q, NULL, NULL, NULL, pComponent));
+    try(SerenaFS_GetDirectoryEntry(self, pDir, &q, NULL, NULL, NULL, pName));
     return EOK;
 
 catch:
-    pComponent->count = 0;
+    pName->count = 0;
     return err;
 }
 
@@ -1072,14 +1016,12 @@ catch:
     return err;
 }
 
-// Opens the directory represented by the given node. The filesystem is
-// expected to validate whether the user has access to the directory content.
-errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user)
+errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, User user)
 {
-    return Filesystem_CheckAccess(self, pDirNode, user, kAccess_Readable);
+    return Filesystem_CheckAccess(self, pDir, user, kAccess_Readable);
 }
 
-errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull pDirNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
+errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     FileOffset offset = *pInOutOffset;
@@ -1089,7 +1031,7 @@ errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull pDir
 
     while (nBytesToRead > 0) {
         ssize_t nDirBytesRead;
-        const errno_t e1 = SerenaFS_xRead(self, pDirNode, offset, &dirent, sizeof(SFSDirectoryEntry), &nDirBytesRead);
+        const errno_t e1 = SerenaFS_xRead(self, pDir, offset, &dirent, sizeof(SFSDirectoryEntry), &nDirBytesRead);
 
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
@@ -1124,14 +1066,12 @@ errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull pDir
     return err;
 }
 
-// Opens the file identified by the given inode. The file is opened for reading
-// and or writing, depending on the 'mode' bits.
-errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user)
+errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode, User user)
 {
     decl_try_err();
     AccessMode accessMode = 0;
 
-    if (Inode_IsDirectory(pNode)) {
+    if (Inode_IsDirectory(pFile)) {
         throw(EISDIR);
     }
 
@@ -1145,37 +1085,37 @@ errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked p
         accessMode |= kAccess_Writable;
     }
 
-    try(Filesystem_CheckAccess(self, pNode, user, accessMode));
+    try(Filesystem_CheckAccess(self, pFile, user, accessMode));
 
 
     // A negative file size is treated as an overflow
-    if (Inode_GetFileSize(pNode) < 0ll || Inode_GetFileSize(pNode) > kSFSLimit_FileSizeMax) {
+    if (Inode_GetFileSize(pFile) < 0ll || Inode_GetFileSize(pFile) > kSFSLimit_FileSizeMax) {
         throw(EOVERFLOW);
     }
 
 
     if ((mode & kOpen_Truncate) == kOpen_Truncate) {
-        SerenaFS_xTruncateFile(self, pNode, 0);
+        SerenaFS_xTruncateFile(self, pFile, 0);
     }
     
 catch:
     return err;
 }
 
-errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
+errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
 
-    err = SerenaFS_xRead(self, pNode, *pInOutOffset, pBuffer, nBytesToRead, nOutBytesRead);
+    err = SerenaFS_xRead(self, pFile, *pInOutOffset, pBuffer, nBytesToRead, nOutBytesRead);
     *pInOutOffset += *nOutBytesRead;
     return err;
 }
 
-errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten)
+errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
 
-    err = SerenaFS_xWrite(self, pNode, *pInOutOffset, pBuffer, nBytesToWrite, nOutBytesWritten);
+    err = SerenaFS_xWrite(self, pFile, *pInOutOffset, pBuffer, nBytesToWrite, nOutBytesWritten);
     *pInOutOffset += *nOutBytesWritten;
     return err;
 }
@@ -1200,58 +1140,42 @@ static void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 }
 
-// Change the size of the file 'pNode' to 'length'. EINVAL is returned if
-// the new length is negative. No longer needed blocks are deallocated if
-// the new length is less than the old length and zero-fille blocks are
-// allocated and assigned to the file if the new length is longer than the
-// old length. Note that a filesystem implementation is free to defer the
-// actual allocation of the new blocks until an attempt is made to read or
-// write them.
-errno_t SerenaFS_truncate(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length)
+errno_t SerenaFS_truncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, FileOffset length)
 {
     decl_try_err();
 
-    if (Inode_IsDirectory(pNode)) {
-        throw(EISDIR);
-    }
-    if (!Inode_IsRegularFile(pNode)) {
-        throw(ENOTDIR);
-    }
-    if (length < 0) {
-        throw(EINVAL);
-    }
-    try(Filesystem_CheckAccess(self, pNode, user, kAccess_Writable));
+    try(Filesystem_CheckAccess(self, pFile, user, kAccess_Writable));
 
-    const FileOffset oldLength = Inode_GetFileSize(pNode);
+    const FileOffset oldLength = Inode_GetFileSize(pFile);
     if (oldLength < length) {
         // Expansion in size
         // Just set the new file size. The needed blocks will be allocated on
         // demand when read/write is called to manipulate the new data range.
-        Inode_SetFileSize(pNode, length);
-        Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged); 
+        Inode_SetFileSize(pFile, length);
+        Inode_SetModified(pFile, kInodeFlag_Updated | kInodeFlag_StatusChanged); 
     }
     else if (oldLength > length) {
         // Reduction in size
-        SerenaFS_xTruncateFile(self, pNode, length);
+        SerenaFS_xTruncateFile(self, pFile, length);
     }
 
 catch:
     return err;
 }
 
-static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pParentNode)
+static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir)
 {
     decl_try_err();
 
     // Remove the directory entry in the parent directory
-    try(SerenaFS_RemoveDirectoryEntry(self, pParentNode, Inode_GetId(pNodeToUnlink)));
-    SerenaFS_xTruncateFile(self, pParentNode, Inode_GetFileSize(pParentNode));
+    try(SerenaFS_RemoveDirectoryEntry(self, pDir, Inode_GetId(pNodeToUnlink)));
+    SerenaFS_xTruncateFile(self, pDir, Inode_GetFileSize(pDir));
 
 
     // If this is a directory then unlink it from its parent since we remove a
     // '..' entry that points to the parent
     if (Inode_IsDirectory(pNodeToUnlink)) {
-        Inode_Unlink(pParentNode);
+        Inode_Unlink(pDir);
     }
 
 
@@ -1392,9 +1316,7 @@ catch:
     return err;
 }
 
-// Changes the existing name of the node 'pSourceNode' which is an immediate
-// child of the directory 'pSourceDir' such that it will be 'pNewName'.
-errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, User user)
+errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, User user)
 {
     decl_try_err();
     SFSDirectoryEntryPointer mp;
@@ -1405,8 +1327,8 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSo
     }
     
     q.kind = kSFSDirectoryQuery_InodeId;
-    q.u.id = Inode_GetId(pSourceNode);
-    try(SerenaFS_GetDirectoryEntry(self, pSourceDir, &q, NULL, &mp, NULL, NULL));
+    q.u.id = Inode_GetId(pSrcNode);
+    try(SerenaFS_GetDirectoryEntry(self, pSrcDir, &q, NULL, &mp, NULL, NULL));
 
     try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, mp.lba));
 
@@ -1431,16 +1353,16 @@ override_func_def(onRemoveNodeFromDisk, SerenaFS, Filesystem)
 override_func_def(onMount, SerenaFS, Filesystem)
 override_func_def(onUnmount, SerenaFS, Filesystem)
 override_func_def(getDiskPermissions, SerenaFS, Filesystem)
-override_func_def(acquireRootNode, SerenaFS, Filesystem)
+override_func_def(acquireRootDirectory, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
 override_func_def(createNode, SerenaFS, Filesystem)
 override_func_def(openFile, SerenaFS, Filesystem)
 override_func_def(readFile, SerenaFS, Filesystem)
 override_func_def(writeFile, SerenaFS, Filesystem)
+override_func_def(truncateFile, SerenaFS, Filesystem)
 override_func_def(openDirectory, SerenaFS, Filesystem)
 override_func_def(readDirectory, SerenaFS, Filesystem)
-override_func_def(truncate, SerenaFS, Filesystem)
 override_func_def(unlink, SerenaFS, Filesystem)
 override_func_def(move, SerenaFS, Filesystem)
 override_func_def(rename, SerenaFS, Filesystem)

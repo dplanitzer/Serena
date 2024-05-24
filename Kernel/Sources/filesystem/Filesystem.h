@@ -136,56 +136,56 @@ open_class_funcs(Filesystem, Object,
     // Filesystem Navigation
     //
 
-    // Returns the root node of the filesystem if the filesystem is currently in
-    // mounted state. Returns ENOENT and NULL if the filesystem is not mounted.
+    // Returns the root directory of the filesystem if the filesystem is currently
+    // in mounted state. Returns EIO and NULL if the filesystem is not mounted.
     // Override: Advised
     // Default Behavior: Returns NULL and EIO
-    errno_t (*acquireRootNode)(void* _Nonnull self, InodeRef _Nullable * _Nonnull pOutNode);
+    errno_t (*acquireRootDirectory)(void* _Nonnull self, InodeRef _Nullable * _Nonnull pOutDir);
 
-    // Returns EOK and the node that corresponds to the tuple (parent-node, name),
+    // Returns EOK and the node corresponding to the tuple (parent-node, name),
     // if that node exists. Otherwise returns ENOENT and NULL.  Note that this
     // function has to support the special name ".." (parent of node) in addition
-    // to "regular" filenames. If 'pParentNode' is the root node of the filesystem
-    // and 'pComponent' is ".." then 'pParentNode' should be returned. If the
-    // path component name is longer than what is supported by the file system,
-    // ENAMETOOLONG should be returned.  caller may pass a pointer to a
-    // directory-entry-insertion-hint data structure. This function may store
-    // information in this data structure to help speed up a follow up
-    // CreateNode() call for a node with the name 'pComponent' in the directory
-    // 'pParentNode'. You may pass NULL for 'pOutNode' which means that the
-    // function will do the inode lookup and return a status that reflects the
-    // outcome of the lookup, however the function will not return the looked up
-    // node. You can use this mechanism to check whether a directory contains a
-    // node with a name or not without forcing the creation of the node.
+    // to "regular" filenames. If 'pDir' is the root directory of the filesystem
+    // and 'pName' is ".." then 'pDir' should be returned again. If the
+    // length of the path component is longer than what is supported by the
+    // filesystem, then ENAMETOOLONG should be returned. The caller may pass a
+    // pointer to a directory-entry-insertion-hint data structure. This function
+    // may store information in this data structure to help speed up a follow up
+    // CreateNode() call for a node with the name 'pName' in the directory
+    // 'pDir'. You may pass NULL for 'pOutNode' which means that the function
+    // will do the inode lookup and return a status that reflects the outcome
+    // of the lookup, however the function will not return the looked up node.
+    // You may use this mechanism to check whether a directory contains a node
+    // with a given name without forcing the acquisition of the node itself.
     // Override: Advised
     // Default Behavior: Returns NULL and ENOENT (EIO for '..' lookups)
-    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, const PathComponent* _Nonnull pComponent, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
+    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
-    // directory node 'pParentNode'. 'id' may be of any type. The name is
-    // returned in the mutable path component 'pComponent'. 'count' in path
-    // component is 0 on entry and should be set to the actual length of the
-    // name on exit. The function is expected to return EOK if the parent node
-    // contains 'id' and ENOENT otherwise. If the name of 'id' as stored in the
-    // file system is > the capacity of the path component, then ERANGE should
-    // be returned.
+    // directory node 'pDir'. 'id' may be of any type. The name is returned in
+    // the mutable path component 'pName'. The 'count' in the path component is
+    // set to 0 on entry and should be set to the actual length of the name on
+    // exit. The function is expected to return EOK if the directory contains
+    // 'id' and ENOENT otherwise. If the name of 'id' as stored in the
+    // filesystem is > the capacity of the path component, then ENAMETOOLONG
+    // should be returned.
     // Override: Advised
-    // Default Behavior: Returns EIO and sets 'pComponent' to an empty name
-    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pParentNode, InodeId id, User user, MutablePathComponent* _Nonnull pComponent);
+    // Default Behavior: Returns EIO and sets 'pName' to an empty name
+    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, User user, MutablePathComponent* _Nonnull pName);
 
 
     //
     // Get/Set Inode Attributes
     //
 
-    // Returns a file info record for the given Inode. The Inode may be of any
+    // Returns the file information of the given node. The node may be of any
     // type.
     // Override: Optional
-    // Default Behavior: Returns the inode's file info
+    // Default Behavior: Returns the node's file info
     errno_t (*getFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo);
 
-    // Modifies one or more attributes stored in the file info record of the given
-    // Inode. The Inode may be of any type.
+    // Modifies one or more attributes stored in the file information of the given
+    // node. The node may be of any type.
     // Override: Optional
     // Default Behavior: Updates the inode's file info
     errno_t (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo);
@@ -197,15 +197,23 @@ open_class_funcs(Filesystem, Object,
 
     // Opens the file identified by the given inode. The file is opened for
     // reading and or writing, depending on the 'mode' bits.
-    errno_t (*openFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, unsigned int mode, User user);
+    errno_t (*openFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode, User user);
 
     // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
-    // from the file 'pNode'.
-    errno_t (*readFile)(void* _Nonnull self, InodeRef _Nonnull pNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
+    // from the file 'pFile'.
+    errno_t (*readFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
-    // to the file 'pNode'.
-    errno_t (*writeFile)(void* _Nonnull self, InodeRef _Nonnull pNode, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten);
+    // to the file 'pFile'.
+    errno_t (*writeFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten);
+
+    // Change the size of the file 'pFile' to 'length'. 'length' is guaranteed
+    // to be >= 0. No longer needed blocks are deallocated if the new length is
+    // less than the old length and zero-fille blocks are allocated and assigned
+    // to the file if the new length is longer than the old length. Note that a
+    // filesystem implementation is free to defer the actual allocation of the
+    // new blocks until an attempt is made to read or write them.
+    errno_t (*truncateFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, FileOffset length);
 
 
     //
@@ -214,7 +222,7 @@ open_class_funcs(Filesystem, Object,
 
     // Opens the directory represented by the given node. The filesystem is
     // expected to validate whether the user has access to the directory content.
-    errno_t (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDirNode, User user);
+    errno_t (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, User user);
 
     // Reads the next set of directory entries. The first entry read is the one
     // at the current directory index stored in 'pDir'. This function guarantees
@@ -222,7 +230,7 @@ open_class_funcs(Filesystem, Object,
     // return a partial entry. Consequently the provided buffer must be big enough
     // to hold at least one directory entry. Note that this function is expected
     // to return "." for the entry at index #0 and ".." for the entry at index #1.
-    errno_t (*readDirectory)(void* _Nonnull self, InodeRef _Nonnull pDirNode, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*readDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
 
 
     //
@@ -230,41 +238,32 @@ open_class_funcs(Filesystem, Object,
     //
 
     // Creates a new inode with type 'type', user information 'user', permissions
-    // 'permissions' and adds it to parent inode (directory) 'pParentNode'. The new
-    // node will be added to 'pParentNode' with the name 'pName'. Returns the newly
-    // acquired inode on success and NULL otherwise.
-    errno_t (*createNode)(void* _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull pParentNode, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode);
+    // 'permissions' and adds it to the directory 'pDir'. The new node will be
+    // added to 'pDir' with the name 'pName'. Returns the newly acquired inode
+    // on success and NULL otherwise.
+    errno_t (*createNode)(void* _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Verifies that the given node is accessible assuming the given access mode.
     // Override: Optional
     // Default Behavior: Returns EOK if the given node is accessible; EACCESS or EROFS otherwise
     errno_t (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode);
 
-    // Change the size of the file 'pNode' to 'length'. EINVAL is returned if
-    // the new length is negative. No longer needed blocks are deallocated if
-    // the new length is less than the old length and zero-fille blocks are
-    // allocated and assigned to the file if the new length is longer than the
-    // old length. Note that a filesystem implementation is free to defer the
-    // actual allocation of the new blocks until an attempt is made to read or
-    // write them.
-    errno_t (*truncate)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, FileOffset length);
-
-    // Unlink the node 'pNode' which is an immediate child of 'pParentDir'.
-    // Both nodes are guaranteed to be members of the same filesystem. 'pNode'
-    // is guaranteed to exist and that it isn't a mountpoint and not the root
-    // node of the filesystem.
+    // Unlink the node 'pNode' which is an immediate child of 'pDir'. Both nodes
+    // are guaranteed to be members of the same filesystem. 'pNode' is guaranteed
+    // to exist and that it isn't a mountpoint and not the root node of the
+    // filesystem.
     // This function must validate that that if 'pNode' is a directory, that the
-    // directory is empty (contains nothing except "." and "..").
-    errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pParentDir, User user);
+    // directory is empty (contains nothing except "." and ".." entries).
+    errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pDir, User user);
 
     // Moves the node 'pSrcNode' from its current parent directory 'pSrcDir' to
     // the new parent directory 'pDstDir' and assigns it the name 'pName' in this
     // new directory.
     errno_t (*move)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint);
 
-    // Changes the existing name of the node 'pSourceNode' which is an immediate
-    // child of the directory 'pSourceDir' such that it will be 'pNewName'.
-    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSourceNode, InodeRef _Nonnull _Locked pSourceDir, const PathComponent* _Nonnull pNewName, User user);
+    // Changes the existing name of the node 'pSrcNode' which is an immediate
+    // child of the directory 'pSrcDir' such that it will be 'pNewName'.
+    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, User user);
 
 
     //
@@ -329,18 +328,18 @@ invoke_n(onMount, Filesystem, __self, __pDriver, __pParams, __paramsSize)
 invoke_0(onUnmount, Filesystem, __self)
 
 
-#define Filesystem_AcquireRootNode(__self, __pOutNode) \
-invoke_n(acquireRootNode, Filesystem, __self, __pOutNode)
+#define Filesystem_AcquireRootDirectory(__self, __pOutDir) \
+invoke_n(acquireRootDirectory, Filesystem, __self, __pOutDir)
 
-#define Filesystem_AcquireNodeForName(__self, __pParentNode, __pComponent, __user, __pDirInsHint, __pOutNode) \
-invoke_n(acquireNodeForName, Filesystem, __self, __pParentNode, __pComponent, __user, __pDirInsHint, __pOutNode)
+#define Filesystem_AcquireNodeForName(__self, __pDir, __pName, __user, __pDirInsHint, __pOutNode) \
+invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __user, __pDirInsHint, __pOutNode)
 
-#define Filesystem_GetNameOfNode(__self, __pParentNode, __id, __user, __pComponent) \
-invoke_n(getNameOfNode, Filesystem, __self, __pParentNode, __id, __user, __pComponent)
+#define Filesystem_GetNameOfNode(__self, __pDir, __id, __user, __pName) \
+invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __user, __pName)
 
 
-#define Filesystem_CreateNode(__self, __type, __user, __permissions, __pParentNode, __pName, __pDirInsertionHint, __pOutNode) \
-invoke_n(createNode, Filesystem, __self, __type, __user, __permissions, __pParentNode, __pName, __pDirInsertionHint, __pOutNode)
+#define Filesystem_CreateNode(__self, __type, __user, __permissions, __pDir, __pName, __pDirInsertionHint, __pOutNode) \
+invoke_n(createNode, Filesystem, __self, __type, __user, __permissions, __pDir, __pName, __pDirInsertionHint, __pOutNode)
 
 
 #define Filesystem_GetFileInfo(__self, __pNode, __pOutInfo) \
@@ -350,37 +349,37 @@ invoke_n(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 invoke_n(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
-#define Filesystem_OpenFile(__self, __pNode, __mode, __user) \
-invoke_n(openFile, Filesystem, __self, __pNode, __mode, __user)
+#define Filesystem_OpenFile(__self, __pFile, __mode, __user) \
+invoke_n(openFile, Filesystem, __self, __pFile, __mode, __user)
 
-#define Filesystem_ReadFile(__self, __pNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
-invoke_n(readFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
+#define Filesystem_ReadFile(__self, __pFile, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
+invoke_n(readFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
 
-#define Filesystem_WriteFile(__self, __pNode, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten) \
-invoke_n(writeFile, Filesystem, __self, __pNode, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten)
+#define Filesystem_WriteFile(__self, __pFile, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten) \
+invoke_n(writeFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten)
+
+#define Filesystem_TruncateFile(__self, __pFile, __user, __length) \
+invoke_n(truncateFile, Filesystem, __self, __pFile, __user, __length)
 
 
-#define Filesystem_OpenDirectory(__self, __pDirNode, __user) \
-invoke_n(openDirectory, Filesystem, __self, __pDirNode, __user)
+#define Filesystem_OpenDirectory(__self, __pDir, __user) \
+invoke_n(openDirectory, Filesystem, __self, __pDir, __user)
 
-#define Filesystem_ReadDirectory(__self, __pDirNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
-invoke_n(readDirectory, Filesystem, __self, __pDirNode, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
+#define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
+invoke_n(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
 
 
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
 invoke_n(checkAccess, Filesystem, __self, __pNode, __user, __mode)
 
-#define Filesystem_Truncate(__self, __pNode, __user, __length) \
-invoke_n(truncate, Filesystem, __self, __pNode, __user, __length)
-
-#define Filesystem_Unlink(__self, __pNode, __pParentDir, __user) \
-invoke_n(unlink, Filesystem, __self, __pNode, __pParentDir, __user)
+#define Filesystem_Unlink(__self, __pNode, __pDir, __user) \
+invoke_n(unlink, Filesystem, __self, __pNode, __pDir, __user)
 
 #define Filesystem_Move(__self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __user, __pDirInstHint) \
 invoke_n(move, Filesystem, __self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __user, __pDirInstHint)
 
-#define Filesystem_Rename(__self, __pSourceNode, __pSourceDir, __pNewName, __user) \
-invoke_n(rename, Filesystem, __self, __pSourceNode, __pSourceDir, __pNewName, __user)
+#define Filesystem_Rename(__self, __pSrcNode, __pSrcDir, __pNewName, __user) \
+invoke_n(rename, Filesystem, __self, __pSrcNode, __pSrcDir, __pNewName, __user)
 
 // Acquires a new reference to the given node.
 extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);
