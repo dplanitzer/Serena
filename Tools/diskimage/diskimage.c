@@ -100,7 +100,15 @@ catch:
     return err;
 }
 
-static void createDiskImage(const char* pRootPath, const char* pDstPath)
+static errno_t createADFDiskDriver(size_t diskImageSize, DiskDriverRef *pOutDriver)
+{
+    const size_t blockSize = 512;
+    const size_t nblocks = __Ceil_PowerOf2(diskImageSize, blockSize) / blockSize;
+
+    return DiskDriver_Create(blockSize, nblocks, pOutDriver);
+}
+
+static void createDiskImage(const char* pRootPath, const char* pDstPath, size_t diskImageSize)
 {
     decl_try_err();
     DiskDriverRef pDisk = NULL;
@@ -108,7 +116,7 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath)
     InodeRef pRootDir = NULL;
     uint32_t dummyParam = 0;
 
-    DiskDriver_Create(512, 128, &pDisk);
+    try(createADFDiskDriver(diskImageSize, &pDisk));
     
     try(formatDiskImage(pDisk));
 
@@ -166,7 +174,7 @@ int main(int argc, char* argv[])
     if (argc > 1) {
         if (!strcmp(argv[1], "create")) {
             if (argc > 3) {
-                createDiskImage(argv[2], argv[3]);
+                createDiskImage(argv[2], argv[3], 64 * 1024);
                 return EXIT_SUCCESS;
             }
         }
