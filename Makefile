@@ -49,7 +49,7 @@ else
 endif
 
 
-CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68030=1
+CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68030=1 -D__SERENA__
 
 #XXX vbcc always defines -D__STDC_HOSTED__=1 and we can't override it for the kernel (which should define -D__STDC_HOSTED__=0)
 KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
@@ -123,6 +123,12 @@ LIBM_OBJS_DIR := $(OBJS_DIR)/Library/libm
 LIBM_FILE := $(LIBM_OBJS_DIR)/libm.a
 
 
+LIBCLAP_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libclap
+LIBCLAP_HEADERS_DIR := $(LIBCLAP_PROJECT_DIR)/Headers
+LIBCLAP_OBJS_DIR := $(OBJS_DIR)/Library/libclap
+LIBCLAP_FILE := $(LIBCLAP_OBJS_DIR)/libclap.a
+
+
 # --------------------------------------------------------------------------
 # Project includes
 #
@@ -130,6 +136,7 @@ LIBM_FILE := $(LIBM_OBJS_DIR)/libm.a
 include $(LIBSYSTEM_PROJECT_DIR)/project.mk
 include $(LIBC_PROJECT_DIR)/project.mk
 include $(LIBM_PROJECT_DIR)/project.mk
+include $(LIBCLAP_PROJECT_DIR)/project.mk
 
 include $(KERNEL_PROJECT_DIR)/project.mk
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk

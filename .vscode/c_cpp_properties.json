@@ -8,6 +8,7 @@
                 "${workspaceFolder}/Library/libsystem/Headers/**",
                 "${workspaceFolder}/Library/libc/**",
                 "${workspaceFolder}/Library/libm/**",
+                "${workspaceFolder}/Library/libclap/Headers/**",
                 "${workspaceFolder}/Commands/shell/**"
             ],
             "defines": [
