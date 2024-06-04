@@ -26,7 +26,8 @@ typedef struct clap_t {
     int                     cur_label_len;
 
     int                     pos_param_idx;      // Index of the parameter to which the current positional parameter should be bound. -1 in the beginning
-    bool                    prev_pos_param_was_array;
+    int                     most_recent_pos_array_param_idx;    // Index of most recently bound positional array paramater (cleared at start of argv, when encountering a named paramater and end of argv)
+    int                     pos_array_count;    // Number of positional array parameters we've parsed
 
     char* _Nullable         app_name;
     char                    short_label_buffer[3];
@@ -49,9 +50,12 @@ static const char* const clap_g_type_string[] = {
 static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params);
 
 
-static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nullable params)
+static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nullable params, int argc, const char** argv)
 {
     memset(self, 0, sizeof(clap_t));
+    self->arg_idx = 1;
+    self->argc = argc;
+    self->argv = argv;
     self->short_label_buffer[0] = '-';
     self->short_label_buffer[2] = '\0';
 
@@ -69,6 +73,9 @@ static void clap_deinit(clap_t* _Nullable self)
 
         self->cur_label = NULL;
         self->cur_label_len = 0;
+
+        self->argc = 0;
+        self->argv = NULL;
     }
 }
 
@@ -81,6 +88,7 @@ static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable param
     self->params = params;
     self->params_count = 0;
     self->pos_param_idx = -1;
+    self->most_recent_pos_array_param_idx = -1;
 
     for (int i = 0; i < 100; i++) {
         clap_param_t* p = &params[i];
@@ -150,7 +158,7 @@ static void clap_verror(clap_t* _Nonnull self, const char* format, va_list ap)
     exit(EXIT_FAILURE);
 }
 
-static void clap_error(clap_t* _Nonnull self, const char* format, ...)
+void clap_error(struct clap_t* _Nonnull self, const char* format, ...)
 {
     va_list ap;
     
@@ -175,7 +183,7 @@ static void clap_vparam_error(clap_t* _Nonnull self, const clap_param_t* _Nonnul
     exit(EXIT_FAILURE);
 }
 
-static void clap_param_error(clap_t* _Nonnull self, const clap_param_t* _Nonnull param, const char* format, ...)
+void clap_param_error(struct clap_t* _Nonnull self, const clap_param_t* _Nonnull param, const char* format, ...)
 {
     va_list ap;
     
@@ -484,6 +492,18 @@ static void clap_update_command_param_value(clap_t* _Nonnull self, clap_param_t*
     clap_set_params(self, param->u.cmds->params[*(int*)param->value]);
 }
 
+static void clap_update_value_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
+{
+    const char* user_str = "";
+    void* vptr = param->value;
+
+    param->value = &user_str;
+    clap_update_string_param_value(self, param, eq);
+    param->value = vptr;
+
+    param->u.value_func(self, param, user_str);
+}
+
 static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
 {
     switch (param->type) {
@@ -517,6 +537,11 @@ static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnul
             clap_update_command_param_value(self, param, eq);
             break;
 
+        case clap_type_value:
+            // const char* (1 value)
+            clap_update_value_param_value(self, param, eq);
+            break;
+
         case clap_type_help:
             clap_print_help(self, &param->u.help);
             break;
@@ -526,6 +551,13 @@ static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnul
     }
 
     param->flags |= clap_flag_appeared;
+}
+
+static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
+{
+    clap_update_param_value(self, param, eq, isUnset);
+    param->flags &= ~clap_flag_positionally_bound;
+    self->most_recent_pos_array_param_idx = -1;
 }
 
 
@@ -560,7 +592,7 @@ static void clap_parse_long_label_param(clap_t* _Nonnull self)
     }
 
     // Update the parameter value
-    clap_update_param_value(self, param, eq, isUnset);
+    clap_update_named_param_value(self, param, eq, isUnset);
 
     self->cur_label = NULL;
     self->cur_label_len = 0;
@@ -594,7 +626,7 @@ static void clap_parse_short_label_param(clap_t* _Nonnull self)
         }
 
         // Update the parameter value
-        clap_update_param_value(self, param, (*label == '=') ? label : NULL, false);
+        clap_update_named_param_value(self, param, (*label == '=') ? label : NULL, false);
     }
 
     self->cur_label = NULL;
@@ -625,7 +657,7 @@ static void clap_parse_positional_param(clap_t* _Nonnull self)
         clap_error(self, "unexpected superfluous parameter");
         // not reached
     }
-    if (self->prev_pos_param_was_array && self->params[self->pos_param_idx].type == clap_type_string_array) {
+    if (self->most_recent_pos_array_param_idx != -1 && self->params[self->pos_param_idx].type == clap_type_string_array) {
         clap_error(self, "ambiguous positional parameter sequence");
         // not reached
     }
@@ -635,12 +667,89 @@ static void clap_parse_positional_param(clap_t* _Nonnull self)
     self->cur_label_len = 0;
     clap_update_param_value(self, &self->params[self->pos_param_idx], NULL, false);
     self->params[self->pos_param_idx].flags |= clap_flag_positionally_bound;
-    self->prev_pos_param_was_array = (self->params[self->pos_param_idx].type == clap_type_string_array) ? true : false;
+
+    if (self->params[self->pos_param_idx].type == clap_type_string_array) {
+        self->pos_array_count++;
+        self->most_recent_pos_array_param_idx = self->pos_param_idx;
+    }
 
 
     clap_find_next_positional_bindable_param(self);
 }
 
+
+// Look for a positional array with content and then try to redistribute its
+// trailing values to required single-value positional parameters that follow
+// the array. Stop the redistribution once we hit a named parameter. Then
+// repeat this process for positional array parameters that follow after this
+// named paramater. The goal is to enable parameter declarations like this:
+//
+// POSITIONAL_STRING_ARRAY(...)
+// REQUIRED_POSITIONAL_STRING(...)
+//
+// with input like this:
+//    foo bar hicks
+// the result should be:
+//    [foo, bar] hicks
+//
+// Note that the positional parameter parsing code guarantees that there can not
+// be a positionally bound array B between a positionally bound array A and the
+// closest following named parameter.
+static void clap_smartly_distribute_positional_params(clap_t* _Nonnull self)
+{
+    int i = 0;
+
+    if (self->pos_array_count == 0) {
+        return;
+    }
+
+    while (i < self->params_count) {
+        const clap_param_t* ary_param = &self->params[i];
+
+        if (ary_param->type == clap_type_string_array
+            && (ary_param->flags & clap_flag_positionally_bound) == clap_flag_positionally_bound
+            && ((clap_string_array_t*)ary_param->value)->count > 0) {
+            clap_string_array_t* pos_array = (clap_string_array_t*)ary_param->value;
+
+            // Find the closest, following named parameter or the end of the
+            // parameter list
+            int np_idx = i + 1;
+
+            while (np_idx < self->params_count 
+                && (self->params[np_idx].flags & clap_flag_positionally_bindable) == clap_flag_positionally_bindable) {
+                np_idx++;
+            }
+
+
+            // Move from the named parameter towards the array, find every required
+            // single-value positionally bindable parameter that isn't bound and
+            // assign it a trailing value from the array
+            int j = np_idx - 1;
+            while (j > i) {
+                clap_param_t* rsvp_param = &self->params[j];
+
+                // XXX currently handling string args only
+                if (rsvp_param->type == clap_type_string
+                    && (rsvp_param->flags & (clap_flag_required|clap_flag_positionally_bindable)) == (clap_flag_required|clap_flag_positionally_bindable)
+                    && (rsvp_param->flags & clap_flag_positionally_bound) == 0) {
+                    if (pos_array->count == 0) {
+                        clap_error(self, "expected a %s", clap_g_type_string[rsvp_param->type]);
+                        // not reached
+                    }
+
+                    *((const char**)rsvp_param->value) = pos_array->strings[pos_array->count - 1];
+                    rsvp_param->flags |= clap_flag_appeared|clap_flag_positionally_bound;
+                    pos_array->count--;
+                }
+                j--;
+            }
+
+            i = np_idx;
+        }
+
+        i++;
+    }
+}
 
 static void clap_enforce_required_params(clap_t* _Nonnull self)
 {
@@ -672,16 +781,12 @@ static void clap_enforce_required_params(clap_t* _Nonnull self)
     }
 }
 
-static void clap_parse_args(clap_t* _Nonnull self, int argc, const char** argv)
+static void clap_parse_args(clap_t* _Nonnull self)
 {
     bool doNamedParams = true;
 
-    self->arg_idx = 1;
-    self->argc = argc;
-    self->argv = argv;
-
-    while (self->arg_idx < argc) {
-        const char* ap = argv[self->arg_idx];
+    while (self->arg_idx < self->argc) {
+        const char* ap = self->argv[self->arg_idx];
 
         if (doNamedParams && *ap == '-' && *(ap + 1) != '\0') {
             ap++;
@@ -707,11 +812,12 @@ static void clap_parse_args(clap_t* _Nonnull self, int argc, const char** argv)
     }
 
 
+    // Redistribute positional parameters if necessary
+    clap_smartly_distribute_positional_params(self);
+
+    
     // Check that all required parameters have appeared in the command line
     clap_enforce_required_params(self);
-
-    self->argc = 0;
-    self->argv = NULL;
 }
 
 
@@ -719,7 +825,7 @@ void clap_parse(clap_param_t* _Nonnull params, int argc, const char** argv)
 {
     clap_t clap;
 
-    clap_init(&clap, params);
-    clap_parse_args(&clap, argc, argv);
+    clap_init(&clap, params, argc, argv);
+    clap_parse_args(&clap);
     clap_deinit(&clap);
 }

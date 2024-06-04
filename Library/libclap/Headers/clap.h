@@ -45,7 +45,38 @@
 
 __CPP_BEGIN
 
+struct clap_t;
 struct clap_param_t;
+
+
+// A command line argument parser library.
+//
+// The libclap parser supports named and positional parameters and parameters of
+// various different types. A named parameter is a parameter that starts with a
+// short or long label. A short label starts with a single dash while a long
+// label starts with a double dash.
+// A positional parameter has no label. It picks up whatever arguments appear on
+// the command line that are not immediately following a named parameter label.
+// A parameter may be declared as required or optional: all parameters are
+// optional by default and a parameter that should be required must be declared
+// as such.
+// A named parameter takes a single or multiple values. A single valued parameter
+// may be written in one of these ways:
+// --foo 10
+// --foo=10
+// Mutiple named short label parameters may be clustered like this:
+// -abc
+// where 'a', 'b' and 'c' are separate parameters. Alternatively you could have
+// written:
+// -a -b -c
+// instead.
+// The '--' (double dash surrounded by whitespace) parameter signals that the
+// rest of the command line should be exclusively treated as parameter values
+// and not as (named) parameters. Note that the '--' itself is transparent. This
+// means that it will never appear as a value in the parser output.
+// A parameter may be of type string array. A string array is a list of parameter
+// values that is terminated either by the end of the command line or by a short
+// or long label of a named parameter.
 
 
 // The type of value that a parameter expects.
@@ -57,6 +88,7 @@ enum clap_type {
     clap_type_string_array,     // clap_string_array_t
     clap_type_enum,             // int (index of selected enum value)
     clap_type_command,          // int (index value of the selected command)
+    clap_type_value,            // A value of a type defined by a callback function
 
     // Semantic parameters
     clap_type_help,             // a parameter which triggers the display of a help message
@@ -85,6 +117,13 @@ typedef struct clap_command_enum_t {
     const char * _Nonnull * _Nullable           names;  // NULL terminated array of command names
     struct clap_param_t* _Nonnull * _Nonnull    params; // Array of command specific parameters with one entry per command
 } clap_command_enum_t;
+
+
+// A callback function that the command line parser invokes to parse the command
+// line argument 'arg' into a value that the callback should store in the storage
+// pointed to by clap_param_t->value. The callback should invoke one of the
+// clap_error() functions if it detects a syntax or semantic error.
+typedef (*clap_value_func_t)(struct clap_t* _Nonnull, const struct clap_param_t* _Nonnull, const char* _Nonnull arg);
 
 
 // The command line syntax help information. 'usages' is a NULL terminated array
@@ -117,7 +156,8 @@ typedef struct clap_param_t {
     void* _Nonnull          value;
     union {
         const char* _Nonnull * _Nullable    enum_strings;  // NULL terminated array of enum values
-        clap_command_enum_t* _Nonnull       cmds;       
+        clap_command_enum_t* _Nonnull       cmds;
+        clap_value_func_t _Nonnull          value_func;
         clap_help_t                         help;
         const char*                         title;
     }                       u;
@@ -226,6 +266,23 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 {clap_type_command, clap_flag_required | clap_flag_positionally_bindable, '\0', "", __help, (void*)__iptr, {.cmds = __cmds}}
 
 
+// Defines an optional/required value (option) parameter. '__vptr' is expected
+// to point to a variable that will hold the value. '__func' is the function
+// that will be used to parse an argument string and to update the value variable.
+#define CLAP_VALUE(__short_label, __long_label, __vptr, __func, __help) \
+{clap_type_value, 0, __short_label, __long_label, __help, (void*)__vptr, {.value_func = __func }}
+
+#define CLAP_REQUIRED_VALUE(__short_label, __long_label, __vptr, __func, __help) \
+{clap_type_value, clap_flag_required, __short_label, __long_label, __help, (void*)__vptr, {.value_func = __func }}
+
+// Defines an optional/required positional string parameter. 
+#define CLAP_POSITIONAL_VALUE(__vptr, __func, __help) \
+{clap_type_value, clap_flag_positionally_bindable, '\0', "", __help, (void*)__vptr, {.value_func = __func }}
+
+#define CLAP_REQUIRED_POSITIONAL_VALUE(__vptr, __func, __help) \
+{clap_type_value, clap_flag_required | clap_flag_positionally_bindable, '\0', "", __help, (void*)__vptr, {.value_func = __func }}
+
+
 // __usages: a NULL terminates string array with one entry per possible usage
 // __prolog: displayed after the usages lines and before the parameter descriptions
 // __epilog: displayed at the very end of the help page
@@ -248,6 +305,15 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 // by the 'params' parameter list. Prints an appropriate error and terminates the
 // process with a failure exit code if a syntax or semantic error is detected.
 extern void clap_parse(clap_param_t* _Nonnull params, int argc, const char** argv);
+
+
+// Call this function from a clap_value_func_t to print an error and to terminate
+// the process.
+extern void clap_error(struct clap_t* _Nonnull self, const char* format, ...);
+
+// Similar to clap_error but prints an error message of the form:
+// proc_name: param_name: format
+extern void clap_param_error(struct clap_t* _Nonnull self, const struct clap_param_t* _Nonnull param, const char* format, ...);
 
 __CPP_END
 
