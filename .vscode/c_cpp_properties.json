@@ -17,7 +17,8 @@
                 "__M68K__",
                 "__M68882",
                 "TARGET_CPU_68030=1",
-                "__KERNEL__"
+                "__KERNEL__",
+                "__SERENA__"
             ],        
             "compilerPath": "",
             "cStandard": "c99",

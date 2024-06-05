@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <clap.h>
 
 
 // To compile on Windows:
@@ -572,7 +573,7 @@ static void Archive_Write(Archive* pArchive, const char* libPath, LongNameFormat
 // Create Library
 ////////////////////////////////////////////////////////////////////////////////
 
-static void createLibrary(const char* libPath, char* objPaths[], int nObjPaths, LongNameFormat longNameFormat)
+static void createLibrary(const char* libPath, const char** objPaths, size_t nObjPaths, LongNameFormat longNameFormat)
 {
     Archive* pArchive = Archive_Create();
 
@@ -623,30 +624,61 @@ static void listLibrary(const char* libPath)
 // main
 ////////////////////////////////////////////////////////////////////////////////
 
+enum {
+    kCommand_Create = 0,
+    kCommand_List,
+};
+
+
+static clap_string_array_t paths = {NULL, 0};
+
+static CLAP_DECL(create_params,
+    CLAP_VARARG(&paths, "Paths")
+);
+static CLAP_DECL(list_params,
+    CLAP_VARARG(&paths, "Path")
+);
+
+static const char* cmd_names[] = {"create", "list", NULL};
+static clap_param_t* cmd_params[] = {create_params, list_params, NULL};
+static const char* cmd_usage[] = {"<lib_path> <a.out_path> ...", "<lib_path>", NULL};
+static const char* cmd_help[] = {"Creates a static library from a list of a.out files. Replaces 'lib_path' if it already exists.", "Lists the a.out files stored inside the library file.", NULL};
+static clap_command_set_t cmd_set = {cmd_names, cmd_params, cmd_usage, cmd_help};
+static int cmd_id = -1;
+
+static const char* usages[] = {"libtool <command> ...", NULL};
+
+static CLAP_DECL(params,
+    CLAP_HELP(usages, NULL, NULL),
+    CLAP_REQUIRED_COMMAND(&cmd_id, &cmd_set)
+);
+
+
 int main(int argc, char* argv[])
 {
-    if (argc > 1) {
-        if (!strcmp(argv[1], "create")) {
-            if (argc > 2) {
-                char* libPath = argv[2];
+    clap_parse(params, argc, argv);
 
-                createLibrary(libPath, &argv[3], argc - 3, kLongNameFormat_BSD);
-                return EXIT_SUCCESS;
+    switch (cmd_id) {
+        case kCommand_Create:
+            if (paths.count < 2) {
+                clap_error("expected a library name and at least one object file");
+                // not reached
             }
-        }
-        else if (!strcmp(argv[1], "list")) {
-            if (argc > 1) {
-                char* libPath = argv[2];
+            createLibrary(paths.strings[0], &paths.strings[1], paths.count - 1, kLongNameFormat_BSD);
+            break;
 
-                listLibrary(libPath);
-                return EXIT_SUCCESS;
+        case kCommand_List:
+            for (size_t i = 0; i < paths.count; i++) {
+                if (paths.count > 1) {
+                    if (i > 0) {
+                        putchar('\n');
+                    }
+                    printf("%s:\n", paths.strings[i]);
+                }
+                listLibrary(paths.strings[i]);
             }
-        }
+            break;
     }
 
-    printf("libtool <action> ...\n");
-    printf("   create <lib_path> <a.out_path> ...   Creates a static library from a list of a.out files. Replaces 'lib_path' if it already exists.\n");
-    printf("   list <lib_path>                      Lists the a.out files stored inside the library file.\n");
-
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }

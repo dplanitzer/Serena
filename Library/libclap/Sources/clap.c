@@ -12,24 +12,26 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef __SERENA__
+#include <System/Process.h>
+#endif
 
 
 typedef struct clap_t {
     clap_param_t* _Nonnull  params;
     int                     params_count;
+    clap_param_t* _Nullable cmd_param;      // First command type parameter in the parameter list; NULL if none exists
+    clap_param_t* _Nullable vararg_param;   // First vararg type parameter in the parameter list; NULL if none exists
 
     const char**            argv;
     int                     argc;
     int                     arg_idx;
 
+    bool                    should_interpret_args;  // If true then args are interpreted; if false then they are always assigned to the varargs
+
     const char* _Nullable   cur_label;
     int                     cur_label_len;
 
-    int                     pos_param_idx;      // Index of the parameter to which the current positional parameter should be bound. -1 in the beginning
-    int                     most_recent_pos_array_param_idx;    // Index of most recently bound positional array paramater (cleared at start of argv, when encountering a named paramater and end of argv)
-    int                     pos_array_count;    // Number of positional array parameters we've parsed
-
-    char* _Nullable         app_name;
     char                    short_label_buffer[3];
 } clap_t;
 
@@ -41,7 +43,9 @@ static const char* const clap_g_type_string[] = {
     "strings",
     "enumeration",
     "command",
+    "value",
 
+    "vararg",
     "help",
     "help section",
     "end"
@@ -56,6 +60,7 @@ static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nullable params, int
     self->arg_idx = 1;
     self->argc = argc;
     self->argv = argv;
+    self->should_interpret_args = true;
     self->short_label_buffer[0] = '-';
     self->short_label_buffer[2] = '\0';
 
@@ -68,8 +73,8 @@ static void clap_deinit(clap_t* _Nullable self)
         self->params = NULL;
         self->params_count = 0;
 
-        free(self->app_name);
-        self->app_name = NULL;
+        self->cmd_param = NULL;
+        self->vararg_param = NULL;
 
         self->cur_label = NULL;
         self->cur_label_len = 0;
@@ -87,13 +92,14 @@ static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable param
 
     self->params = params;
     self->params_count = 0;
-    self->pos_param_idx = -1;
-    self->most_recent_pos_array_param_idx = -1;
+
+    self->cmd_param = NULL;
+    self->vararg_param = NULL;
 
     for (int i = 0; i < 100; i++) {
         clap_param_t* p = &params[i];
 
-        p->flags &= ~(clap_flag_appeared | clap_flag_positionally_bindable | clap_flag_positionally_bound);
+        p->flags &= ~clap_flag_appeared;
 
         if (p->type == clap_type_end) {
             p->flags |= clap_flag_appeared;
@@ -101,9 +107,11 @@ static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable param
             break;
         }
 
-        if ((p->long_label == NULL || *p->long_label == '\0') && (p->short_label == '\0') && (p->type != clap_type_help) && (p->type != clap_type_section) && (p->type != clap_type_end)) {
-            // Positionally bindable parameter
-            p->flags |= clap_flag_positionally_bindable;
+        if (p->type == clap_type_command && self->cmd_param == NULL) {
+            self->cmd_param = p;
+        }
+        if (p->type == clap_type_vararg && self->vararg_param == NULL) {
+            self->vararg_param = p;
         }
 
         self->params_count++;
@@ -112,72 +120,79 @@ static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable param
 }
 
 
-// Returns the application name as it appears in argv[0]. This is just the name
+// Prints the application name as it appears in argv[0]. This is just the name
 // of the app without the platform specific path and extension.
-static const char* clap_get_app_name(clap_t* _Nonnull self)
+static void clap_print_app_name(void)
 {
-    if (self->app_name == NULL && self->argv) {
-#ifdef _WIN32
-        const char* sp = strrchr(self->argv[0], '\\');
-        const char* ep = strrchr(self->argv[0], '.');
-        const char* bp;
-        size_t len;
+    const char* app_name = "";
+    int app_name_len = 0;
+
+#if __SERENA__
+    ProcessArguments* pa = Process_GetArguments();
+
+    if (pa->argc > 0 && pa->argv[0] && pa->argv[0][0] != '\0') {
+        const char* sp = strrchr(pa->argv[0], '/');
+        
+        app_name = (sp) ? sp + 1 : pa->argv[0];
+        app_name_len = (int) strlen(app_name);
+    }
+#elif _WIN32
+    char* argv_zero = NULL;
+
+    _get_pgmptr(&argv_zero);
+    if (argv_zero && *argv_zero != '\0') {
+        const char* sp = strrchr(argv_zero, '\\');
+        const char* ep = strrchr(argv_zero, '.');
 
         if (sp && ep) {
-            bp = sp + 1;
-            len = ep - 1 - sp;
+            app_name = sp + 1;
+            app_name_len = ep - 1 - sp;
         }
         else if (sp == NULL && ep) {
-            bp = self->argv[0];
-            len = ep - 1 - bp;
+            app_name = argv_zero;
+            app_name_len = ep - 1 - app_name;
         }
         else {
-            bp = self->argv[0];
-            len = strlen(bp);
+            app_name = argv_zero;
+            app_name_len = (int) strlen(app_name);
         }
-
-        self->app_name = malloc(len + 1);
-        strncpy(self->app_name, bp, len);
-#else
-        // Assuming POSIX style argv[0]
-        const char* sp = strrchr(self->argv[0], '/');
-        const char* bp = (sp) ? sp + 1 : self->argv[0];
-
-        self->app_name = strdup(bp);
-#endif
     }
+#else
+    // XXX
+#endif
 
-    return self->app_name;
+    if (app_name_len > 0) {
+        fprintf(stderr, "%.*s: ", app_name_len, app_name);
+    }
 }
 
-static void clap_verror(clap_t* _Nonnull self, const char* format, va_list ap)
+static void clap_verror(const char* format, va_list ap)
 {
-    fprintf(stderr, "%s: ", clap_get_app_name(self));
+    clap_print_app_name();
     vfprintf(stderr, format, ap);
     fputc('\n', stderr);
     exit(EXIT_FAILURE);
 }
 
-void clap_error(struct clap_t* _Nonnull self, const char* format, ...)
+void clap_error(const char* format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    clap_verror(self, format, ap);
+    clap_verror(format, ap);
     va_end(ap);
 }
 
 static void clap_vparam_error(clap_t* _Nonnull self, const clap_param_t* _Nonnull param, const char* format, va_list ap)
 {
-    const char* app_name = clap_get_app_name(self);
     const char* param_kind = (param->type == clap_type_boolean) ? "switch" : "option";
 
+    clap_print_app_name();
+
     if (self->cur_label && self->cur_label_len > 0) {
-        fprintf(stderr, "%s: %s '%.*s': ", app_name, param_kind, self->cur_label_len, self->cur_label);
+        fprintf(stderr, "%s '%.*s': ", param_kind, self->cur_label_len, self->cur_label);
     }
-    else {
-        fprintf(stderr, "%s: ", app_name, param_kind);
-    }
+
     vfprintf(stderr, format, ap);
     fputc('\n', stderr);
     exit(EXIT_FAILURE);
@@ -193,7 +208,7 @@ void clap_param_error(struct clap_t* _Nonnull self, const clap_param_t* _Nonnull
 }
 
 
-static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull help)
+static void clap_print_app_usages(const clap_help_t* _Nonnull help)
 {
     const char** usages = help->usages;
 
@@ -208,6 +223,39 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
     else {
         fprintf(stdout, "usage:\n");
     }
+}
+
+static void clap_print_param_help(const clap_param_t* _Nonnull p, int column_0_width)
+{
+    int cw = 0;
+
+    if (p->short_label == '\0' && (p->long_label == NULL || *p->long_label == '\0') && (p->help == NULL || *p->help == '\0')) {
+        return;
+    }
+
+    fprintf(stdout, "  ");
+    cw += 2;
+
+    if (p->short_label != '\0') {
+        fprintf(stdout, "-%c", p->short_label);
+        cw += 2;
+    }
+    if (p->short_label != '\0' && p->long_label && *p->long_label != '\0') {
+        fprintf(stdout, ", ");
+        cw += 2;
+    }
+    if (p->long_label && *p->long_label != '\0') {
+        fprintf(stdout, "--%s", p->long_label);
+        cw += 2 + strlen(p->long_label);
+    }
+
+    int nspaces = (cw <= column_0_width) ? column_0_width - cw : 0;
+    fprintf(stdout, "%*s%s\n", 3 + nspaces, "", p->help);
+}
+
+static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull help)
+{
+    clap_print_app_usages(help);
 
 
     // Prolog aka description or short documentation
@@ -216,6 +264,36 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
     }
 
     fputc('\n', stdout);
+
+
+    // Print the commands, if they exist
+    if (self->cmd_param) {
+        const clap_command_set_t* cmd_set = self->cmd_param->u.cmd_set;
+
+        fprintf(stdout, "The following commands are supported:\n");
+
+        const char** pname = &cmd_set->names[0];
+        const char** pusage = &cmd_set->usages[0];
+        const char** phelp = &cmd_set->helps[0];
+
+        while(*pname) {
+            fprintf(stdout, "  %s", *pname);
+            if (*pusage) {
+                fprintf(stdout, " %s", *pusage);
+            }
+            if (*phelp) {
+                fprintf(stdout, "   %s", *phelp);
+            }
+            fputc('\n', stdout);
+
+            pname++;
+            pusage++;
+            phelp++;
+        }
+    }
+
+    fputc('\n', stdout);
+
 
     // Calculate the width of column #0. This is the column that contains the
     // parameter short & long names
@@ -247,7 +325,6 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
     // Print the parameter descriptions
     for (int i = 0; i < self->params_count; i++) {
         const clap_param_t* p = &self->params[i];
-        int col_width = 0;
 
         if (p->type == clap_type_section && p->u.title && *p->u.title != '\0') {
             if (i > 0) {
@@ -257,23 +334,7 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
             continue;
         }
 
-        fprintf(stdout, "  ");
-        col_width += 2;
-        if (p->short_label != '\0') {
-            fprintf(stdout, "-%c", p->short_label);
-            col_width += 2;
-        }
-        if (p->short_label != '\0' && p->long_label && *p->long_label != '\0') {
-            fprintf(stdout, ", ");
-            col_width += 2;
-        }
-        if (p->long_label && *p->long_label != '\0') {
-            fprintf(stdout, "--%s", p->long_label);
-            col_width += 2 + strlen(p->long_label);
-        }
-
-        int nspaces = (col_width <= column_0_width) ? column_0_width - col_width : 0;
-        fprintf(stdout, "%*s%s\n", 3 + nspaces, "", p->help);
+        clap_print_param_help(p, column_0_width);
     }
 
 
@@ -281,6 +342,8 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
     if (help->epilog && *help->epilog != '\0') {
         fprintf(stdout, "\n%s\n", help->epilog);
     }
+
+    exit(EXIT_SUCCESS);
 }
 
 
@@ -366,7 +429,7 @@ static void clap_update_string_param_value(clap_t* _Nonnull self, clap_param_t* 
     *(const char**)param->value = vptr;
 }
 
-static void clap_update_string_array_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
+static void clap_update_string_array_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool shouldEndAtLabel)
 {
     const char* vptr;
 
@@ -397,12 +460,12 @@ static void clap_update_string_array_param_value(clap_t* _Nonnull self, clap_par
                     dashDashIdx = i;
                     isDashDashing = true;
                 }
-                else {
+                else if (shouldEndAtLabel) {
                     // --foo -> end of array
                     break;
                 }
             }
-            else if (s[1] != '\0') {
+            else if (s[1] != '\0' && shouldEndAtLabel) {
                 // -foo -> end of array
                 break;
             }
@@ -488,8 +551,8 @@ static void clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _N
 
 static void clap_update_command_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
 {
-    _clap_update_enum_param_value(self, param, eq, param->u.cmds->names, "command");
-    clap_set_params(self, param->u.cmds->params[*(int*)param->value]);
+    _clap_update_enum_param_value(self, param, eq, param->u.cmd_set->names, "command");
+    clap_set_params(self, param->u.cmd_set->params[*(int*)param->value]);
 }
 
 static void clap_update_value_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
@@ -524,7 +587,7 @@ static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnul
 
         case clap_type_string_array:
             // [const char*] (multiple values)
-            clap_update_string_array_param_value(self, param, eq);
+            clap_update_string_array_param_value(self, param, eq, true);
             break;
 
         case clap_type_enum:
@@ -542,6 +605,11 @@ static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnul
             clap_update_value_param_value(self, param, eq);
             break;
 
+        case clap_type_vararg:
+            // [const char*] (multiple values)
+            clap_update_string_array_param_value(self, param, eq, false);
+            break;
+
         case clap_type_help:
             clap_print_help(self, &param->u.help);
             break;
@@ -556,8 +624,6 @@ static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnul
 static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
 {
     clap_update_param_value(self, param, eq, isUnset);
-    param->flags &= ~clap_flag_positionally_bound;
-    self->most_recent_pos_array_param_idx = -1;
 }
 
 
@@ -587,7 +653,7 @@ static void clap_parse_long_label_param(clap_t* _Nonnull self)
     // Find the parameter for the label
     clap_param_t* param = clap_find_param_by_long_label(self, label_to_match, label_to_match_len);
     if (param == NULL || (param && isUnset && param->type != clap_type_boolean)) {
-        clap_error(self, "unknown option '%.*s'", self->cur_label_len, self->cur_label);
+        clap_error("unknown option '%.*s'", self->cur_label_len, self->cur_label);
         // not reached
     }
 
@@ -621,7 +687,7 @@ static void clap_parse_short_label_param(clap_t* _Nonnull self)
         // Find the parameter for the label
         clap_param_t* param = clap_find_param_by_short_label(self, ch);
         if (param == NULL) {
-            clap_error(self, "unknown option '%.*s'", self->cur_label_len, self->cur_label);
+            clap_error("unknown option '%.*s'", self->cur_label_len, self->cur_label);
             // not reached
         }
 
@@ -634,122 +700,33 @@ static void clap_parse_short_label_param(clap_t* _Nonnull self)
 }
 
 
-// Finds the next parameter that is able to accept a positional parameter value
-static void clap_find_next_positional_bindable_param(clap_t* _Nonnull self)
-{
-    for (int i = self->pos_param_idx + 1; i < self->params_count; i++) {
-        if ((self->params[i].flags & clap_flag_positionally_bindable) == clap_flag_positionally_bindable) {
-            self->pos_param_idx = i;
-            return;
-        }
-    }
-
-    self->pos_param_idx = self->params_count;
-}
-
 static void clap_parse_positional_param(clap_t* _Nonnull self)
 {
-    if (self->pos_param_idx == -1) {
-        clap_find_next_positional_bindable_param(self);
+    clap_param_t* param;
+
+    if (self->cmd_param && (self->cmd_param->flags & clap_flag_appeared) == 0 && self->should_interpret_args) {
+        param = self->cmd_param;
+    }
+    else if (self->vararg_param) {
+        param = self->vararg_param;
+        self->should_interpret_args = false;
+    }
+    else {
+        param = NULL;
     }
 
-    if (self->pos_param_idx == -1 || self->pos_param_idx == self->params_count) {
-        clap_error(self, "unexpected superfluous parameter");
+
+    if (param) {
+        self->cur_label = NULL;
+        self->cur_label_len = 0;
+        clap_update_param_value(self, param, NULL, false);
+    }
+    else {
+        clap_error("superfluous parameter '%s'", self->argv[self->arg_idx]);
         // not reached
     }
-    if (self->most_recent_pos_array_param_idx != -1 && self->params[self->pos_param_idx].type == clap_type_string_array) {
-        clap_error(self, "ambiguous positional parameter sequence");
-        // not reached
-    }
-
-
-    self->cur_label = NULL;
-    self->cur_label_len = 0;
-    clap_update_param_value(self, &self->params[self->pos_param_idx], NULL, false);
-    self->params[self->pos_param_idx].flags |= clap_flag_positionally_bound;
-
-    if (self->params[self->pos_param_idx].type == clap_type_string_array) {
-        self->pos_array_count++;
-        self->most_recent_pos_array_param_idx = self->pos_param_idx;
-    }
-
-
-    clap_find_next_positional_bindable_param(self);
 }
 
-
-// Look for a positional array with content and then try to redistribute its
-// trailing values to required single-value positional parameters that follow
-// the array. Stop the redistribution once we hit a named parameter. Then
-// repeat this process for positional array parameters that follow after this
-// named paramater. The goal is to enable parameter declarations like this:
-//
-// POSITIONAL_STRING_ARRAY(...)
-// REQUIRED_POSITIONAL_STRING(...)
-//
-// with input like this:
-//    foo bar hicks
-// the result should be:
-//    [foo, bar] hicks
-//
-// Note that the positional parameter parsing code guarantees that there can not
-// be a positionally bound array B between a positionally bound array A and the
-// closest following named parameter.
-static void clap_smartly_distribute_positional_params(clap_t* _Nonnull self)
-{
-    int i = 0;
-
-    if (self->pos_array_count == 0) {
-        return;
-    }
-
-    while (i < self->params_count) {
-        const clap_param_t* ary_param = &self->params[i];
-
-        if (ary_param->type == clap_type_string_array
-            && (ary_param->flags & clap_flag_positionally_bound) == clap_flag_positionally_bound
-            && ((clap_string_array_t*)ary_param->value)->count > 0) {
-            clap_string_array_t* pos_array = (clap_string_array_t*)ary_param->value;
-
-            // Find the closest, following named parameter or the end of the
-            // parameter list
-            int np_idx = i + 1;
-
-            while (np_idx < self->params_count 
-                && (self->params[np_idx].flags & clap_flag_positionally_bindable) == clap_flag_positionally_bindable) {
-                np_idx++;
-            }
-
-
-            // Move from the named parameter towards the array, find every required
-            // single-value positionally bindable parameter that isn't bound and
-            // assign it a trailing value from the array
-            int j = np_idx - 1;
-            while (j > i) {
-                clap_param_t* rsvp_param = &self->params[j];
-
-                // XXX currently handling string args only
-                if (rsvp_param->type == clap_type_string
-                    && (rsvp_param->flags & (clap_flag_required|clap_flag_positionally_bindable)) == (clap_flag_required|clap_flag_positionally_bindable)
-                    && (rsvp_param->flags & clap_flag_positionally_bound) == 0) {
-                    if (pos_array->count == 0) {
-                        clap_error(self, "expected a %s", clap_g_type_string[rsvp_param->type]);
-                        // not reached
-                    }
-
-                    *((const char**)rsvp_param->value) = pos_array->strings[pos_array->count - 1];
-                    rsvp_param->flags |= clap_flag_appeared|clap_flag_positionally_bound;
-                    pos_array->count--;
-                }
-                j--;
-            }
-
-            i = np_idx;
-        }
-
-        i++;
-    }
-}
 
 static void clap_enforce_required_params(clap_t* _Nonnull self)
 {
@@ -771,10 +748,10 @@ static void clap_enforce_required_params(clap_t* _Nonnull self)
             }
 
             if (label) {
-                clap_error(self, "required option '%s%s' missing", label_prefix, label);
+                clap_error("required option '%s%s' missing", label_prefix, label);
             }
             else {
-                clap_error(self, "expected a %s", clap_g_type_string[param->type]);
+                clap_error("expected a %s", clap_g_type_string[param->type]);
             }
             // not reached
         }
@@ -783,18 +760,18 @@ static void clap_enforce_required_params(clap_t* _Nonnull self)
 
 static void clap_parse_args(clap_t* _Nonnull self)
 {
-    bool doNamedParams = true;
+    self->should_interpret_args = true;
 
     while (self->arg_idx < self->argc) {
         const char* ap = self->argv[self->arg_idx];
 
-        if (doNamedParams && *ap == '-' && *(ap + 1) != '\0') {
+        if (self->should_interpret_args && *ap == '-' && *(ap + 1) != '\0') {
             ap++;
 
             if (*ap == '-' && *(ap + 1) == '\0') {
                 // --
                 self->arg_idx++;
-                doNamedParams = false;
+                self->should_interpret_args = false;
             }
             else if (*ap == '-' && *(ap + 1) != '\0') {
                 // --bla
@@ -810,10 +787,6 @@ static void clap_parse_args(clap_t* _Nonnull self)
             clap_parse_positional_param(self);
         }
     }
-
-
-    // Redistribute positional parameters if necessary
-    clap_smartly_distribute_positional_params(self);
 
     
     // Check that all required parameters have appeared in the command line

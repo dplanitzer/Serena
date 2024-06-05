@@ -91,6 +91,7 @@ enum clap_type {
     clap_type_value,            // A value of a type defined by a callback function
 
     // Semantic parameters
+    clap_type_vararg,           // all unnamed/positional parameters at the end of the command line
     clap_type_help,             // a parameter which triggers the display of a help message
     clap_type_section,          // a help section (title)
     clap_type_end,              // marks the end of the parameter declarations
@@ -106,17 +107,19 @@ typedef struct clap_string_array_t {
 } clap_string_array_t;
 
 
-// A command enumeration. It consists of two tables: a NULL terminated array of
-// command (enumeration) names plus a parallel array of per-command parameter
+// A command set. It consists of two tables: a NULL terminated array of
+// command (set) names plus a parallel array of per-command parameter
 // lists. Note that the parameter table does not have to be NULL terminated.
 // NULL termination is only required or the names array. Once a command has been
 // detected, the active parameter list is switched to the one associated with the
 // command and all the following command line arguments are parsed according to
 // the rules defined by the new parameter list. 
-typedef struct clap_command_enum_t {
+typedef struct clap_command_set_t {
     const char * _Nonnull * _Nullable           names;  // NULL terminated array of command names
     struct clap_param_t* _Nonnull * _Nonnull    params; // Array of command specific parameters with one entry per command
-} clap_command_enum_t;
+    const char* _Nonnull * _Nullable            usages;
+    const char* _Nonnull * _Nullable            helps;
+} clap_command_set_t;
 
 
 // A callback function that the command line parser invokes to parse the command
@@ -140,8 +143,6 @@ typedef struct clap_help_t {
 enum clap_flag {
     clap_flag_required = 1,                 // The user must provide this parameter in the command line
     clap_flag_appeared = 2,                 // This parameter appeared in the command line
-    clap_flag_positionally_bindable = 4,    // This parameter is able to bind to a positional parameter
-    clap_flag_positionally_bound = 8,       // The value of this parameter was bound via positional syntax
 };
 
 
@@ -156,7 +157,7 @@ typedef struct clap_param_t {
     void* _Nonnull          value;
     union {
         const char* _Nonnull * _Nullable    enum_strings;  // NULL terminated array of enum values
-        clap_command_enum_t* _Nonnull       cmds;
+        clap_command_set_t* _Nonnull        cmd_set;
         clap_value_func_t _Nonnull          value_func;
         clap_help_t                         help;
         const char*                         title;
@@ -203,13 +204,6 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 #define CLAP_REQUIRED_STRING(__short_label, __long_label, __sptr, __help) \
 {clap_type_string, clap_flag_required, __short_label, __long_label, __help, (void*)__sptr}
 
-// Defines an optional/required positional string parameter. 
-#define CLAP_POSITIONAL_STRING(__sptr, __help) \
-{clap_type_string, clap_flag_positionally_bindable, '\0', "", __help, (void*)__sptr}
-
-#define CLAP_REQUIRED_POSITIONAL_STRING(__sptr, __help) \
-{clap_type_string, clap_flag_required | clap_flag_positionally_bindable, '\0', "", __help, (void*)__sptr}
-
 
 // Defines an optional/required string array (option) parameter. '__saptr' is
 // expected to point to a clap_string_array_t variable. Note that the array
@@ -222,13 +216,6 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 #define CLAP_REQUIRED_STRING_ARRAY(__short_label, __long_label, __saptr, __help) \
 {clap_type_string_array, clap_flag_required, __short_label, __long_label, __help, (void*)__saptr}
 
-// Defines an optional/required positional string array parameter.
-#define CLAP_POSITIONAL_STRING_ARRAY(__saptr, __help) \
-{clap_type_string_array, clap_flag_positionally_bindable, '\0', "", __help, (void*)__saptr}
-
-#define CLAP_REQUIRED_POSITIONAL_STRING_ARRAY(__saptr, __help) \
-{clap_type_string_array, clap_flag_required | clap_flag_positionally_bindable, '\0', "", __help, (void*)__saptr}
-
 
 // Defines an optional/required (string) enumeration) (option) parameter. '__iptr'
 // is expected to point to an int variable and it will be set to the index of the
@@ -240,30 +227,17 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 #define CLAP_REQUIRED_ENUM(__short_label, __long_label, __iptr, __strs, __help) \
 {clap_type_enum, clap_flag_required, __short_label, __long_label, __help, (void*)__iptr, {.enum_strings = __strs}}
 
-// Defines an optional/required positional string enumeration parameter.
-#define CLAP_POSITIONAL_ENUM(__iptr, __strs, __help) \
-{clap_type_enum, clap_flag_positionally_bindable, '\0', "", __help, (void*)__iptr, {.enum_strings = __strs}}
-
-#define CLAP_REQUIRED_POSITIONAL_ENUM(__iptr, __strs, __help) \
-{clap_type_enum, clap_flag_required | clap_flag_positionally_bindable, '\0', "", __help, (void*)__iptr, {.enum_strings = __strs}}
-
 
 // Defines an optional/required command (option) parameter. '__iptr' is expected
 // to point to an int variable and it will be set to the index of the command
 // names array entry that matches the command name that the user provided on the
 // command line.
-#define CLAP_COMMAND(__short_label, __long_label,  __iptr, __cmds, __help) \
-{clap_type_command, 0, __short_label, __long_label, __help, (void*)__iptr, {.cmds = __cmds}}
+// Note that a command is always a positional parameter.
+#define CLAP_COMMAND(__iptr, __cmds) \
+{clap_type_command, 0, '\0', "", "", (void*)__iptr, {.cmd_set = __cmds}}
 
-#define CLAP_REQUIRED_COMMAND(__short_label, __long_label, __iptr, __cmds, __help) \
-{clap_type_command, clap_flag_required, __short_label, __long_label, __help, (void*)__iptr, {.cmds = __cmds}}
-
-// Defines an optional/required positional command parameter.
-#define CLAP_POSITIONAL_COMMAND(__iptr, __cmds, __help) \
-{clap_type_command, clap_flag_positionally_bindable, '\0', "", __help, (void*)__iptr, {.cmds = __cmds}}
-
-#define CLAP_REQUIRED_POSITIONAL_COMMAND(__iptr, __cmds, __help) \
-{clap_type_command, clap_flag_required | clap_flag_positionally_bindable, '\0', "", __help, (void*)__iptr, {.cmds = __cmds}}
+#define CLAP_REQUIRED_COMMAND(__iptr, __cmds) \
+{clap_type_command, clap_flag_required, '\0', "", "", (void*)__iptr, {.cmd_set = __cmds}}
 
 
 // Defines an optional/required value (option) parameter. '__vptr' is expected
@@ -275,12 +249,19 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 #define CLAP_REQUIRED_VALUE(__short_label, __long_label, __vptr, __func, __help) \
 {clap_type_value, clap_flag_required, __short_label, __long_label, __help, (void*)__vptr, {.value_func = __func }}
 
-// Defines an optional/required positional string parameter. 
-#define CLAP_POSITIONAL_VALUE(__vptr, __func, __help) \
-{clap_type_value, clap_flag_positionally_bindable, '\0', "", __help, (void*)__vptr, {.value_func = __func }}
 
-#define CLAP_REQUIRED_POSITIONAL_VALUE(__vptr, __func, __help) \
-{clap_type_value, clap_flag_required | clap_flag_positionally_bindable, '\0', "", __help, (void*)__vptr, {.value_func = __func }}
+// Defines a variable argument list. This is the list of positional parameters
+// at the end of the command line. It starts either with the first parameter that
+// appears in a position where the parser would expect a short or long label and
+// that is not a label (doesn't start with '-' or '--') or it is the first
+// parameter following a '--' that is surrounded by whitespace. This list always
+// extends to the very end of the command line. Parameters are appear in the
+// string array in the same order in which they appear on the command line.
+#define CLAP_VARARG(__saptr, __help) \
+{clap_type_vararg, 0, '\0', "", __help, (void*)__saptr}
+
+#define CLAP_REQUIRED_VARARG(__saptr, __help) \
+{clap_type_vararg, clap_flag_required, '\0', "", __help, (void*)__saptr}
 
 
 // __usages: a NULL terminates string array with one entry per possible usage
@@ -307,9 +288,10 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 extern void clap_parse(clap_param_t* _Nonnull params, int argc, const char** argv);
 
 
-// Call this function from a clap_value_func_t to print an error and to terminate
-// the process.
-extern void clap_error(struct clap_t* _Nonnull self, const char* format, ...);
+// Call this function to print an error and to terminate the process. The error
+// message is formatted like this:
+// proc_name: format
+extern void clap_error(const char* format, ...);
 
 // Similar to clap_error but prints an error message of the form:
 // proc_name: param_name: format
