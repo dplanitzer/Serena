@@ -624,33 +624,18 @@ static void listLibrary(const char* libPath)
 // main
 ////////////////////////////////////////////////////////////////////////////////
 
-enum {
-    kCommand_Create = 0,
-    kCommand_List,
-};
+clap_string_array_t paths = {NULL, 0};
+const char* cmd_id = "";
 
+const char* usages[] = {"libtool <command> ...", NULL};
 
-static clap_string_array_t paths = {NULL, 0};
-
-static CLAP_DECL(create_params,
-    CLAP_VARARG(&paths, "Paths")
-);
-static CLAP_DECL(list_params,
-    CLAP_VARARG(&paths, "Path")
-);
-
-static const char* cmd_names[] = {"create", "list", NULL};
-static clap_param_t* cmd_params[] = {create_params, list_params, NULL};
-static const char* cmd_usage[] = {"<lib_path> <a.out_path> ...", "<lib_path>", NULL};
-static const char* cmd_help[] = {"Creates a static library from a list of a.out files. Replaces 'lib_path' if it already exists.", "Lists the a.out files stored inside the library file.", NULL};
-static clap_command_set_t cmd_set = {cmd_names, cmd_params, cmd_usage, cmd_help};
-static int cmd_id = -1;
-
-static const char* usages[] = {"libtool <command> ...", NULL};
-
-static CLAP_DECL(params,
+CLAP_DECL(params,
     CLAP_HELP(usages, NULL, NULL),
-    CLAP_REQUIRED_COMMAND(&cmd_id, &cmd_set)
+
+    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<lib_path> <a.out_path> ...", "Creates a static library from a list of a.out files. Replaces 'lib_path' if it already exists."),
+        CLAP_VARARG(&paths, "Paths"),
+    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<lib_path>", "Lists the a.out files stored inside the library file."),
+        CLAP_VARARG(&paths, "Path")
 );
 
 
@@ -658,26 +643,23 @@ int main(int argc, char* argv[])
 {
     clap_parse(params, argc, argv);
 
-    switch (cmd_id) {
-        case kCommand_Create:
-            if (paths.count < 2) {
-                clap_error("expected a library name and at least one object file");
-                // not reached
-            }
-            createLibrary(paths.strings[0], &paths.strings[1], paths.count - 1, kLongNameFormat_BSD);
-            break;
-
-        case kCommand_List:
-            for (size_t i = 0; i < paths.count; i++) {
-                if (paths.count > 1) {
-                    if (i > 0) {
-                        putchar('\n');
-                    }
-                    printf("%s:\n", paths.strings[i]);
+    if (!strcmp("create", cmd_id)) {
+        if (paths.count < 2) {
+            clap_error("expected a library name and at least one object file");
+            // not reached
+        }
+        createLibrary(paths.strings[0], &paths.strings[1], paths.count - 1, kLongNameFormat_BSD);
+    }
+    else if (!strcmp("list", cmd_id)) {
+        for (size_t i = 0; i < paths.count; i++) {
+            if (paths.count > 1) {
+                if (i > 0) {
+                    putchar('\n');
                 }
-                listLibrary(paths.strings[i]);
+                printf("%s:\n", paths.strings[i]);
             }
-            break;
+            listLibrary(paths.strings[i]);
+        }
     }
 
     return EXIT_SUCCESS;

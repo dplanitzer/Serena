@@ -107,19 +107,35 @@ typedef struct clap_string_array_t {
 } clap_string_array_t;
 
 
-// A command set. It consists of two tables: a NULL terminated array of
-// command (set) names plus a parallel array of per-command parameter
-// lists. Note that the parameter table does not have to be NULL terminated.
-// NULL termination is only required or the names array. Once a command has been
-// detected, the active parameter list is switched to the one associated with the
-// command and all the following command line arguments are parsed according to
-// the rules defined by the new parameter list. 
-typedef struct clap_command_set_t {
-    const char * _Nonnull * _Nullable           names;  // NULL terminated array of command names
-    struct clap_param_t* _Nonnull * _Nonnull    params; // Array of command specific parameters with one entry per command
-    const char* _Nonnull * _Nullable            usages;
-    const char* _Nonnull * _Nullable            helps;
-} clap_command_set_t;
+// A command. Each command has a name, an optional usage and help line and command
+// specific parameters. A tool may define multiple command however the user can
+// only select one command per tool invocation. The parameters that are associated
+// with a command are only activated and interpreted if the user selects the
+// corresponding command.
+// Commands are declared just like any other parameter in a CLAP_DECL() paramater
+// list declaration. All non-command parameters up to the first command parameter
+// are considered to be global tool parameters. Then all non-command parameters
+// following the first command paramater declaration are considered to be
+// associated with the first command. Then all non-command parameters following
+// the second command parameter declaration are associated with the second
+// command, etc.
+// Here is an example of how a tool can declare a global help and two command
+// parameters with command specific options:
+//
+// CLAP_DECL(params,
+//    CLAP_HELP(...),
+//    CLAP_REQUIRED_COMMAND("first", ...),
+//       CLAP_INT("foo", ...),
+//    CLAP_REQUIRED_COMMAND("second", ...),
+//       CLAP_VARARG(...)
+// )
+//
+// The user must provide either the first or the second command when they invoke
+// the tool.
+typedef struct clap_command {
+    const char* _Nonnull    name;
+    const char* _Nullable   usage;
+} clap_command_t;
 
 
 // A callback function that the command line parser invokes to parse the command
@@ -157,8 +173,8 @@ typedef struct clap_param_t {
     void* _Nonnull          value;
     union {
         const char* _Nonnull * _Nullable    enum_strings;  // NULL terminated array of enum values
-        clap_command_set_t* _Nonnull        cmd_set;
         clap_value_func_t _Nonnull          value_func;
+        clap_command_t                      cmd;
         clap_help_t                         help;
         const char*                         title;
     }                       u;
@@ -228,16 +244,19 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 {clap_type_enum, clap_flag_required, __short_label, __long_label, __help, (void*)__iptr, {.enum_strings = __strs}}
 
 
-// Defines an optional/required command (option) parameter. '__iptr' is expected
-// to point to an int variable and it will be set to the index of the command
-// names array entry that matches the command name that the user provided on the
+// Defines an optional/required command (option) parameter. '__name_ptr' is
+// expected to point to a variable that stores a pointer to a string. This 
+// variable will be set to point to the name of the command that appeared on the
 // command line.
+// All parameter declarations until the next command or end parameter declaration
+// are considered to be associated with this command and will only be interpreted
+// if the user selects this command. 
 // Note that a command is always a positional parameter.
-#define CLAP_COMMAND(__iptr, __cmds) \
-{clap_type_command, 0, '\0', "", "", (void*)__iptr, {.cmd_set = __cmds}}
+#define CLAP_COMMAND(__name, __name_ptr, __usage, __help) \
+{clap_type_command, 0, '\0', "", __help, (void*)__name_ptr, {.cmd = {__name, __usage}}}
 
-#define CLAP_REQUIRED_COMMAND(__iptr, __cmds) \
-{clap_type_command, clap_flag_required, '\0', "", "", (void*)__iptr, {.cmd_set = __cmds}}
+#define CLAP_REQUIRED_COMMAND(__name, __name_ptr, __usage, __help) \
+{clap_type_command, clap_flag_required, '\0', "", __help, (void*)__name_ptr, {.cmd = {__name, __usage}}}
 
 
 // Defines an optional/required value (option) parameter. '__vptr' is expected

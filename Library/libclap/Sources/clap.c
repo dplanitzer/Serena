@@ -20,7 +20,6 @@
 typedef struct clap_t {
     clap_param_t* _Nonnull  params;
     int                     params_count;
-    clap_param_t* _Nullable cmd_param;      // First command type parameter in the parameter list; NULL if none exists
     clap_param_t* _Nullable vararg_param;   // First vararg type parameter in the parameter list; NULL if none exists
 
     const char**            argv;
@@ -28,6 +27,11 @@ typedef struct clap_t {
     int                     arg_idx;
 
     bool                    should_interpret_args;  // If true then args are interpreted; if false then they are always assigned to the varargs
+
+    clap_param_t * _Nullable * _Nonnull cmds;
+    int                                 cmds_count;
+    bool                                cmd_required;
+    bool                                cmd_appeared;
 
     const char* _Nullable   cur_label;
     int                     cur_label_len;
@@ -51,7 +55,8 @@ static const char* const clap_g_type_string[] = {
     "end"
 };
 
-static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params);
+static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params, bool isCommand);
+static void clap_enforce_required_params(clap_t* _Nonnull self);
 
 
 static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nullable params, int argc, const char** argv)
@@ -64,7 +69,7 @@ static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nullable params, int
     self->short_label_buffer[0] = '-';
     self->short_label_buffer[2] = '\0';
 
-    clap_set_params(self, params);
+    clap_set_params(self, params, false);
 }
 
 static void clap_deinit(clap_t* _Nullable self)
@@ -73,11 +78,14 @@ static void clap_deinit(clap_t* _Nullable self)
         self->params = NULL;
         self->params_count = 0;
 
-        self->cmd_param = NULL;
         self->vararg_param = NULL;
 
         self->cur_label = NULL;
         self->cur_label_len = 0;
+
+        free(self->cmds);
+        self->cmds = NULL;
+        self->cmds_count = 0;
 
         self->argc = 0;
         self->argv = NULL;
@@ -85,38 +93,72 @@ static void clap_deinit(clap_t* _Nullable self)
 }
 
 
-static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params)
+static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params, bool isCommand)
 {
-    assert(params != NULL);
-    bool hasEnd = false;
+    clap_param_t* p = params;
+    int cmds_count = 0;
 
     self->params = params;
     self->params_count = 0;
 
-    self->cmd_param = NULL;
     self->vararg_param = NULL;
 
-    for (int i = 0; i < 100; i++) {
-        clap_param_t* p = &params[i];
+    free(self->cmds);
+    self->cmds = NULL;
+    self->cmds_count = 0;
+    self->cmd_required = false;
+    self->cmd_appeared = false;
 
-        p->flags &= ~clap_flag_appeared;
-
-        if (p->type == clap_type_end) {
-            p->flags |= clap_flag_appeared;
-            hasEnd = true;
+    // Analyze the parameter list. If this is a top-level parameter list (isCommand == false)
+    // then iterate until we hit the clap_type_end parameter. If however this is a command
+    // parameter list, then stop iterating either when we hit the end of the parameter list
+    // or we hit the next command declaration.
+    while (p) {
+        if (p->type == clap_type_end || (isCommand && p->type == clap_type_command)) {
             break;
         }
 
-        if (p->type == clap_type_command && self->cmd_param == NULL) {
-            self->cmd_param = p;
-        }
-        if (p->type == clap_type_vararg && self->vararg_param == NULL) {
-            self->vararg_param = p;
+        p->flags &= ~clap_flag_appeared;
+
+        switch (p->type) {
+            case clap_type_command:
+                if ((p->flags & clap_flag_required) == clap_flag_required) {
+                    self->cmd_required = true;
+                }
+                cmds_count++;
+                break;
+
+            case clap_type_vararg:
+                if (self->vararg_param == NULL && ((!isCommand && cmds_count == 0) || isCommand)) {
+                    self->vararg_param = p;
+                }
+                break;
+
+            default:
+                break;
         }
 
+        p++;
         self->params_count++;
     }
-    assert(hasEnd);
+
+
+    // Collect the command declarations
+    if (cmds_count > 0) {
+        self->cmds = malloc(sizeof(clap_param_t*) * cmds_count);
+
+        p = params;
+        while (self->cmds_count < cmds_count) {
+            if (p->type == clap_type_command) {
+                self->cmds[self->cmds_count++] = p;
+                if (self->cmd_required) {
+                    p->flags |= clap_flag_required;
+                }
+            }
+
+            p++;
+        }
+    }
 }
 
 
@@ -267,28 +309,20 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
 
 
     // Print the commands, if they exist
-    if (self->cmd_param) {
-        const clap_command_set_t* cmd_set = self->cmd_param->u.cmd_set;
-
+    if (self->cmds_count > 0) {
         fprintf(stdout, "The following commands are supported:\n");
 
-        const char** pname = &cmd_set->names[0];
-        const char** pusage = &cmd_set->usages[0];
-        const char** phelp = &cmd_set->helps[0];
+        for (int i = 0; i < self->cmds_count; i++) {
+            const clap_param_t* cp = self->cmds[i];
 
-        while(*pname) {
-            fprintf(stdout, "  %s", *pname);
-            if (*pusage) {
-                fprintf(stdout, " %s", *pusage);
+            fprintf(stdout, "  %s", cp->u.cmd.name);
+            if (cp->u.cmd.usage && *cp->u.cmd.usage != '\0') {
+                fprintf(stdout, " %s", cp->u.cmd.usage);
             }
-            if (*phelp) {
-                fprintf(stdout, "   %s", *phelp);
+            if (cp->help && *cp->help != '\0') {
+                fprintf(stdout, "   %s", cp->help);
             }
             fputc('\n', stdout);
-
-            pname++;
-            pusage++;
-            phelp++;
         }
     }
 
@@ -516,8 +550,9 @@ static void clap_update_string_array_param_value(clap_t* _Nonnull self, clap_par
     }
 }
 
-static void _clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, const char** enum_strs, const char* _Nonnull msg)
+static void clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
 {
+    const char** enum_strs = param->u.enum_strings;
     const char* user_str = "";
     int* iptr = (int*)param->value;
     int i = 0;
@@ -539,20 +574,9 @@ static void _clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _
         param->value = iptr;
     }
     else {
-        clap_param_error(self, param, "unknown %s '%s'", msg, user_str);
+        clap_param_error(self, param, "unknown enum value '%s'", user_str);
         // not reached
     }
-}
-
-static void clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
-{
-    _clap_update_enum_param_value(self, param, eq, param->u.enum_strings, "unknown enum value");
-}
-
-static void clap_update_command_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
-{
-    _clap_update_enum_param_value(self, param, eq, param->u.cmd_set->names, "command");
-    clap_set_params(self, param->u.cmd_set->params[*(int*)param->value]);
 }
 
 static void clap_update_value_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
@@ -567,7 +591,7 @@ static void clap_update_value_param_value(clap_t* _Nonnull self, clap_param_t* _
     param->u.value_func(self, param, user_str);
 }
 
-static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
+static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
 {
     switch (param->type) {
         case clap_type_boolean:
@@ -595,19 +619,9 @@ static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnul
             clap_update_enum_param_value(self, param, eq);
             break;
 
-        case clap_type_command:
-            // int (1 value)
-            clap_update_command_param_value(self, param, eq);
-            break;
-
         case clap_type_value:
             // const char* (1 value)
             clap_update_value_param_value(self, param, eq);
-            break;
-
-        case clap_type_vararg:
-            // [const char*] (multiple values)
-            clap_update_string_array_param_value(self, param, eq, false);
             break;
 
         case clap_type_help:
@@ -615,15 +629,11 @@ static void clap_update_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnul
             break;
 
         default:
+            abort();
             break;
     }
 
     param->flags |= clap_flag_appeared;
-}
-
-static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
-{
-    clap_update_param_value(self, param, eq, isUnset);
 }
 
 
@@ -700,28 +710,60 @@ static void clap_parse_short_label_param(clap_t* _Nonnull self)
 }
 
 
+static bool clap_parse_command_param(clap_t* _Nonnull self)
+{
+    const char* cmd_name = self->argv[self->arg_idx];
+    clap_param_t* cmd_param = NULL;
+
+    for (int i = 0; i < self->cmds_count; i++) {
+        clap_param_t* cc = self->cmds[i];
+
+        if (!strcmp(cmd_name, cc->u.cmd.name)) {
+            cmd_param = cc;
+            break;
+        }
+    }
+
+    if (cmd_param) {
+        *(const char**)cmd_param->value = cmd_name;
+        cmd_param->flags |= clap_flag_appeared;
+        self->cmd_appeared = true;
+        self->arg_idx++;
+
+        clap_enforce_required_params(self);
+        clap_set_params(self, cmd_param + 1, true);
+        return true;
+    }
+    else if(self->cmd_required) {
+        clap_error("unknown command '%s'", cmd_name);
+        // not reached
+        return false;
+    }
+    else {
+        return false;
+    }
+}
+
 static void clap_parse_positional_param(clap_t* _Nonnull self)
 {
     clap_param_t* param;
+    bool didConsume = false;
 
-    if (self->cmd_param && (self->cmd_param->flags & clap_flag_appeared) == 0 && self->should_interpret_args) {
-        param = self->cmd_param;
+    if (self->cmds_count > 0 && !self->cmd_appeared && self->should_interpret_args) {
+        didConsume = clap_parse_command_param(self);
     }
-    else if (self->vararg_param) {
-        param = self->vararg_param;
+
+    if (!didConsume && self->vararg_param) {
         self->should_interpret_args = false;
-    }
-    else {
-        param = NULL;
-    }
-
-
-    if (param) {
         self->cur_label = NULL;
         self->cur_label_len = 0;
-        clap_update_param_value(self, param, NULL, false);
+
+        clap_update_string_array_param_value(self, self->vararg_param, NULL, false);
+        self->vararg_param->flags |= clap_flag_appeared;
+        didConsume = true;
     }
-    else {
+
+    if (!didConsume) {
         clap_error("superfluous parameter '%s'", self->argv[self->arg_idx]);
         // not reached
     }
@@ -734,7 +776,11 @@ static void clap_enforce_required_params(clap_t* _Nonnull self)
         const clap_param_t* param = &self->params[i];
         const uint8_t flags = param->flags;
 
-        if ((flags & clap_flag_required) == clap_flag_required && (flags & clap_flag_appeared) == 0) {
+        if (param->type == clap_type_command && self->cmd_required && !self->cmd_appeared) {
+            clap_error("required command missing");
+        }
+        else if (param->type != clap_type_command
+            && ((flags & clap_flag_required) == clap_flag_required && (flags & clap_flag_appeared) == 0)) {
             const char* label = NULL;
             const char* label_prefix = NULL;
 
