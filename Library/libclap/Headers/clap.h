@@ -45,7 +45,6 @@
 
 __CPP_BEGIN
 
-struct clap_t;
 struct clap_param_t;
 
 
@@ -146,7 +145,7 @@ typedef struct clap_command {
 // line argument 'arg' into a value that the callback should store in the storage
 // pointed to by clap_param_t->value. The callback should invoke one of the
 // clap_error() functions if it detects a syntax or semantic error.
-typedef (*clap_value_func_t)(struct clap_t* _Nonnull, const struct clap_param_t* _Nonnull, const char* _Nonnull arg);
+typedef (*clap_value_func_t)(const struct clap_param_t* _Nonnull, unsigned int eo, const char* _Nonnull arg);
 
 
 enum clap_flag {
@@ -326,9 +325,14 @@ extern void clap_parse(clap_param_t* _Nonnull params, int argc, const char** arg
 // proc_name: format
 extern void clap_error(const char* format, ...);
 
+
+enum {
+    clap_eo_long_label = 1
+};
+
 // Similar to clap_error but prints an error message of the form:
 // proc_name: param_name: format
-extern void clap_param_error(struct clap_t* _Nonnull self, const struct clap_param_t* _Nonnull param, const char* format, ...);
+extern void clap_param_error(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* format, ...);
 
 __CPP_END
 

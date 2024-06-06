@@ -28,11 +28,6 @@ typedef struct clap_t {
     int                                 cmds_count;
     bool                                cmd_required;
     bool                                cmd_appeared;
-
-    const char* _Nullable   cur_label;
-    int                     cur_label_len;
-
-    char                    short_label_buffer[3];
 } clap_t;
 
 

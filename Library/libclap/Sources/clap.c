@@ -7,33 +7,18 @@
 //
 
 #include "clap_priv.h"
-#include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef __SERENA__
-#include <System/Process.h>
-#endif
 
 
-static const char* const clap_g_type_string[] = {
+static const char* const clap_g_enforceable_type_string[] = {
     "boolean",
     "integer",
     "string",
     "strings",
-    "enumeration",
-    "command",
-    "value",
-
-    "vararg",
-    "version",
-    "help",
-    "usage",
-    "prolog",
-    "help section",
-    "epilog",
-    "end"
+    "enumeration"
 };
 
 static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params, bool isCommand);
@@ -47,8 +32,6 @@ static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nullable params, int
     self->argc = argc;
     self->argv = argv;
     self->should_interpret_args = true;
-    self->short_label_buffer[0] = '-';
-    self->short_label_buffer[2] = '\0';
 
     clap_set_params(self, params, false);
 }
@@ -60,9 +43,6 @@ static void clap_deinit(clap_t* _Nullable self)
         self->params_count = 0;
 
         self->vararg_param = NULL;
-
-        self->cur_label = NULL;
-        self->cur_label_len = 0;
 
         free(self->cmds);
         self->cmds = NULL;
@@ -160,14 +140,17 @@ void clap_error(const char* format, ...)
     va_end(ap);
 }
 
-static void clap_vparam_error(clap_t* _Nonnull self, const clap_param_t* _Nonnull param, const char* format, va_list ap)
+static void clap_vparam_error(const clap_param_t* _Nonnull param, unsigned int eo, const char* format, va_list ap)
 {
     const char* param_kind = (param->type == clap_type_boolean) ? "switch" : "option";
 
     _clap_print_app_name();
 
-    if (self->cur_label && self->cur_label_len > 0) {
-        fprintf(stderr, "%s '%.*s': ", param_kind, self->cur_label_len, self->cur_label);
+    if ((eo & clap_eo_long_label) == clap_eo_long_label) {
+        fprintf(stderr, "%s '--%s': ", param_kind, param->long_label);
+    }
+    else {
+        fprintf(stderr, "%s '-%c': ", param_kind, param->short_label);
     }
 
     vfprintf(stderr, format, ap);
@@ -175,12 +158,12 @@ static void clap_vparam_error(clap_t* _Nonnull self, const clap_param_t* _Nonnul
     exit(EXIT_FAILURE);
 }
 
-void clap_param_error(struct clap_t* _Nonnull self, const clap_param_t* _Nonnull param, const char* format, ...)
+void clap_param_error(const clap_param_t* _Nonnull param, unsigned int eo, const char* format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    clap_vparam_error(self, param, format, ap);
+    clap_vparam_error(param, eo, format, ap);
     va_end(ap);
 }
 
@@ -224,17 +207,17 @@ static clap_param_t* _Nullable clap_find_param_by_short_label(clap_t* _Nonnull s
 }
 
 
-static void clap_update_bool_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
+static void clap_update_bool_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq, bool isUnset)
 {
     if (eq) {
-        clap_param_error(self, param, "unexpected value '%s'", eq + 1);
+        clap_param_error(param, eo, "unexpected value '%s'", eq + 1);
         // not reached
     }
 
     *(bool*)param->value = (isUnset) ? false : true;
 }
 
-static void clap_update_int_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
+static void clap_update_int_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq)
 {
     const char* vptr;
 
@@ -245,7 +228,7 @@ static void clap_update_int_param_value(clap_t* _Nonnull self, clap_param_t* _No
         vptr = self->argv[self->arg_idx++];
     }
     else {
-        clap_param_error(self, param, "expected an integer");
+        clap_param_error(param, eo, "expected an integer");
         // not reached
     }
 
@@ -254,11 +237,11 @@ static void clap_update_int_param_value(clap_t* _Nonnull self, clap_param_t* _No
     *(int*)param->value = (int)strtol(vptr, NULL, 10);
 
     if (errno == ERANGE) {
-        clap_param_error(self, param, "integer %s is out of range", vptr);
+        clap_param_error(param, eo, "integer %s is out of range", vptr);
     }
 }
 
-static void clap_update_string_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
+static void clap_update_string_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq)
 {
     const char* vptr;
 
@@ -269,7 +252,7 @@ static void clap_update_string_param_value(clap_t* _Nonnull self, clap_param_t* 
         vptr = self->argv[self->arg_idx++];
     }
     else {
-        clap_param_error(self, param, "expected a string");
+        clap_param_error(param, eo, "expected a string");
         // not reached
     }
 
@@ -277,16 +260,16 @@ static void clap_update_string_param_value(clap_t* _Nonnull self, clap_param_t* 
     *(const char**)param->value = vptr;
 }
 
-static void clap_update_string_array_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool shouldEndAtLabel)
+static void clap_update_string_array_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq, bool shouldEndAtLabel)
 {
     const char* vptr;
 
     if (eq) {
-        clap_param_error(self, param, "expects separate strings");
+        clap_param_error(param, eo, "expects separate strings");
         // not reached
     }
     if (self->arg_idx >= self->argc) {
-        clap_param_error(self, param, "expected at least one string");
+        clap_param_error(param, eo, "expected at least one string");
         // not reached
     }
     
@@ -364,7 +347,7 @@ static void clap_update_string_array_param_value(clap_t* _Nonnull self, clap_par
     }
 }
 
-static void clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
+static void clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq)
 {
     const char** enum_strs = param->u.enum_strings;
     const char* user_str = "";
@@ -372,7 +355,7 @@ static void clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _N
     int i = 0;
 
     param->value = &user_str;
-    clap_update_string_param_value(self, param, eq);
+    clap_update_string_param_value(self, param, eo, eq);
 
     while (*enum_strs) {
         if (!strcmp(user_str, *enum_strs)) {
@@ -388,54 +371,54 @@ static void clap_update_enum_param_value(clap_t* _Nonnull self, clap_param_t* _N
         param->value = iptr;
     }
     else {
-        clap_param_error(self, param, "unknown enum value '%s'", user_str);
+        clap_param_error(param, eo, "unknown enum value '%s'", user_str);
         // not reached
     }
 }
 
-static void clap_update_value_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq)
+static void clap_update_value_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq)
 {
     const char* user_str = "";
     void* vptr = param->value;
 
     param->value = &user_str;
-    clap_update_string_param_value(self, param, eq);
+    clap_update_string_param_value(self, param, eo, eq);
     param->value = vptr;
 
-    param->u.value_func(self, param, user_str);
+    param->u.value_func(param, eo, user_str);
 }
 
-static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, const char* _Nullable eq, bool isUnset)
+static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq, bool isUnset)
 {
     switch (param->type) {
         case clap_type_boolean:
             // bool (no value)
-            clap_update_bool_param_value(self, param, eq, isUnset);
+            clap_update_bool_param_value(self, param, eo, eq, isUnset);
             break;
 
         case clap_type_integer:
             // int (1 value)
-            clap_update_int_param_value(self, param, eq);
+            clap_update_int_param_value(self, param, eo, eq);
             break;
 
         case clap_type_string:
             // const char* (1 value)
-            clap_update_string_param_value(self, param, eq);
+            clap_update_string_param_value(self, param, eo, eq);
             break;
 
         case clap_type_string_array:
             // [const char*] (multiple values)
-            clap_update_string_array_param_value(self, param, eq, true);
+            clap_update_string_array_param_value(self, param, eo, eq, true);
             break;
 
         case clap_type_enum:
             // int (1 value)
-            clap_update_enum_param_value(self, param, eq);
+            clap_update_enum_param_value(self, param, eo, eq);
             break;
 
         case clap_type_value:
             // const char* (1 value)
-            clap_update_value_param_value(self, param, eq);
+            clap_update_value_param_value(self, param, eo, eq);
             break;
 
         case clap_type_version:
@@ -474,22 +457,17 @@ static void clap_parse_long_label_param(clap_t* _Nonnull self)
     // Parse --foo=x forms for value-accepting parameters
     const char* eq = strchr(label_to_match, '=');
     const size_t label_to_match_len = (eq) ? eq - label_to_match : strlen(label_to_match);
-
-    self->cur_label = label;
-    self->cur_label_len = (eq) ? eq - label : strlen(label);
+    const size_t label_len = (eq) ? eq - label : strlen(label);
 
     // Find the parameter for the label
     clap_param_t* param = clap_find_param_by_long_label(self, label_to_match, label_to_match_len);
     if (param == NULL || (param && isUnset && param->type != clap_type_boolean)) {
-        clap_error("unknown option '%.*s'", self->cur_label_len, self->cur_label);
+        clap_error("unknown option '%.*s'", label_len, label);
         // not reached
     }
 
     // Update the parameter value
-    clap_update_named_param_value(self, param, eq, isUnset);
-
-    self->cur_label = NULL;
-    self->cur_label_len = 0;
+    clap_update_named_param_value(self, param, clap_eo_long_label, eq, isUnset);
 }
 
 // Parses a short label option like:
@@ -501,30 +479,23 @@ static void clap_parse_short_label_param(clap_t* _Nonnull self)
 {
     const char* label = &self->argv[self->arg_idx++][1];
 
-    self->cur_label = self->short_label_buffer;
-    self->cur_label_len = 2;
-
     for (;;) {
         const char ch = *label++;
 
         if (ch == '\0' || ch == '=') {
             break;
         }
-        self->short_label_buffer[1] = ch;
 
         // Find the parameter for the label
         clap_param_t* param = clap_find_param_by_short_label(self, ch);
         if (param == NULL) {
-            clap_error("unknown option '%.*s'", self->cur_label_len, self->cur_label);
+            clap_error("unknown option '-%c'", ch);
             // not reached
         }
 
         // Update the parameter value
-        clap_update_named_param_value(self, param, (*label == '=') ? label : NULL, false);
+        clap_update_named_param_value(self, param, 0, (*label == '=') ? label : NULL, false);
     }
-
-    self->cur_label = NULL;
-    self->cur_label_len = 0;
 }
 
 
@@ -573,10 +544,8 @@ static void clap_parse_positional_param(clap_t* _Nonnull self)
 
     if (!didConsume && self->vararg_param) {
         self->should_interpret_args = false;
-        self->cur_label = NULL;
-        self->cur_label_len = 0;
 
-        clap_update_string_array_param_value(self, self->vararg_param, NULL, false);
+        clap_update_string_array_param_value(self, self->vararg_param, 0, NULL, false);
         self->vararg_param->flags |= clap_flag_appeared;
         didConsume = true;
     }
@@ -590,6 +559,11 @@ static void clap_parse_positional_param(clap_t* _Nonnull self)
 
 static void clap_enforce_required_params(clap_t* _Nonnull self)
 {
+    char short_label_buffer[3];
+
+    short_label_buffer[0] = '-';
+    short_label_buffer[2] = '\0';
+
     for (int i = 0; i < self->params_count; i++) {
         const clap_param_t* param = &self->params[i];
         const uint8_t flags = param->flags;
@@ -615,15 +589,15 @@ static void clap_enforce_required_params(clap_t* _Nonnull self)
                         label_prefix = "--";
                     }
                     else if (param->short_label != '\0') {
-                        self->short_label_buffer[1] = param->short_label;
-                        label = self->short_label_buffer;
+                        short_label_buffer[1] = param->short_label;
+                        label = short_label_buffer;
                     }
 
                     if (label) {
                         clap_error("required option '%s%s' missing", label_prefix, label);
                     }
                     else {
-                        clap_error("expected a %s", clap_g_type_string[param->type]);
+                        clap_error("expected a %s", clap_g_enforceable_type_string[param->type]);
                     }
                     // not reached
                 }

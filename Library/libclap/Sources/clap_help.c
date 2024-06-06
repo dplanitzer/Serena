@@ -7,9 +7,6 @@
 //
 
 #include "clap_priv.h"
-#include <assert.h>
-#include <errno.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #ifdef __SERENA__
