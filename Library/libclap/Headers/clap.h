@@ -9,36 +9,7 @@
 #ifndef _CLAP_H
 #define _CLAP_H 1
 
-#ifdef __SERENA__
-#include <System/_cmndef.h>
-#else
-#ifndef __has_feature
-#define __has_feature(x) 0
-#endif
-
-
-#if !__has_feature(nullability)
-#ifndef _Nullable
-#define _Nullable
-#endif
-#ifndef _Nonnull
-#define _Nonnull
-#endif
-#endif
-
-#ifdef __cplusplus
-#define __CPP_BEGIN extern "C" {
-#else
-#define __CPP_BEGIN
-#endif
-
-#ifdef __cplusplus
-#define __CPP_END }
-#else
-#define __CPP_END
-#endif
-
-#endif
+#include <clapdef.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
