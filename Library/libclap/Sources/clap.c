@@ -6,7 +6,7 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "clap.h"
+#include "clap_priv.h"
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -15,29 +15,6 @@
 #ifdef __SERENA__
 #include <System/Process.h>
 #endif
-
-
-typedef struct clap_t {
-    clap_param_t* _Nonnull  params;
-    int                     params_count;
-    clap_param_t* _Nullable vararg_param;   // First vararg type parameter in the parameter list; NULL if none exists
-
-    const char**            argv;
-    int                     argc;
-    int                     arg_idx;
-
-    bool                    should_interpret_args;  // If true then args are interpreted; if false then they are always assigned to the varargs
-
-    clap_param_t * _Nullable * _Nonnull cmds;
-    int                                 cmds_count;
-    bool                                cmd_required;
-    bool                                cmd_appeared;
-
-    const char* _Nullable   cur_label;
-    int                     cur_label_len;
-
-    char                    short_label_buffer[3];
-} clap_t;
 
 
 static const char* const clap_g_type_string[] = {
@@ -166,55 +143,9 @@ static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable param
 }
 
 
-// Prints the application name as it appears in argv[0]. This is just the name
-// of the app without the platform specific path and extension.
-static void clap_print_app_name(void)
-{
-    const char* app_name = "";
-    int app_name_len = 0;
-
-#if __SERENA__
-    ProcessArguments* pa = Process_GetArguments();
-
-    if (pa->argc > 0 && pa->argv[0] && pa->argv[0][0] != '\0') {
-        const char* sp = strrchr(pa->argv[0], '/');
-        
-        app_name = (sp) ? sp + 1 : pa->argv[0];
-        app_name_len = (int) strlen(app_name);
-    }
-#elif _WIN32
-    char* argv_zero = NULL;
-
-    _get_pgmptr(&argv_zero);
-    if (argv_zero && *argv_zero != '\0') {
-        const char* sp = strrchr(argv_zero, '\\');
-        const char* ep = strrchr(argv_zero, '.');
-
-        if (sp && ep) {
-            app_name = sp + 1;
-            app_name_len = ep - 1 - sp;
-        }
-        else if (sp == NULL && ep) {
-            app_name = argv_zero;
-            app_name_len = ep - 1 - app_name;
-        }
-        else {
-            app_name = argv_zero;
-            app_name_len = (int) strlen(app_name);
-        }
-    }
-#else
-    // XXX
-#endif
-
-    if (app_name_len > 0) {
-        fprintf(stderr, "%.*s: ", app_name_len, app_name);
-    }
-}
-
 static void clap_verror(const char* format, va_list ap)
 {
-    clap_print_app_name();
+    _clap_print_app_name();
     vfprintf(stderr, format, ap);
     fputc('\n', stderr);
     exit(EXIT_FAILURE);
@@ -233,7 +164,7 @@ static void clap_vparam_error(clap_t* _Nonnull self, const clap_param_t* _Nonnul
 {
     const char* param_kind = (param->type == clap_type_boolean) ? "switch" : "option";
 
-    clap_print_app_name();
+    _clap_print_app_name();
 
     if (self->cur_label && self->cur_label_len > 0) {
         fprintf(stderr, "%s '%.*s': ", param_kind, self->cur_label_len, self->cur_label);
@@ -259,160 +190,6 @@ static void clap_version(clap_t* _Nonnull self, const clap_param_t* _Nonnull par
     if (param->u.text && *param->u.text != '\0') {
         puts(param->u.text);
     }
-
-    exit(EXIT_SUCCESS);
-}
-
-static bool clap_print_usage(clap_t* _Nonnull self)
-{
-    const clap_param_t* p = self->params;
-    int c = 0;
-
-    while (p->type != clap_type_end && p->type != clap_type_command) {
-        if (p->type == clap_type_usage && *p->u.text != '\0') {
-            printf((c == 0) ? "usage: %s\n" : "       %s\n", p->u.text);
-            c++;
-        }
-        p++;
-    }
-
-    if (c == 0) {
-        printf("usage:\n");
-    }
-
-    return (c > 0) ? true : false;
-}
-
-static bool clap_print_prolog_epilog(clap_t* _Nonnull self, enum clap_type type, bool wantsLeadingNewline)
-{
-    const clap_param_t* p = self->params;
-    int c = 0;
-
-    while (p->type != clap_type_end && p->type != clap_type_command) {
-        if (p->type == type && *p->u.text != '\0') {
-            if (wantsLeadingNewline && c == 0) {
-                putchar('\n');
-            }
-            puts(p->u.text);
-            c++;
-        }
-        p++;
-    }
-
-    return (c > 0) ? true : false;
-}
-
-static void clap_print_param_help(const clap_param_t* _Nonnull p, int column_0_width)
-{
-    int cw = 0;
-
-    if (p->short_label == '\0' && (p->long_label == NULL || *p->long_label == '\0') && (p->help == NULL || *p->help == '\0')) {
-        return;
-    }
-
-    fputs("  ", stdout);
-    cw += 2;
-
-    if (p->short_label != '\0') {
-        printf("-%c", p->short_label);
-        cw += 2;
-    }
-    if (p->short_label != '\0' && p->long_label && *p->long_label != '\0') {
-        fputs(", ", stdout);
-        cw += 2;
-    }
-    if (p->long_label && *p->long_label != '\0') {
-        printf("--%s", p->long_label);
-        cw += 2 + strlen(p->long_label);
-    }
-
-    int nSpaces = (cw <= column_0_width) ? column_0_width - cw : 0;
-    printf("%*s%s\n", 3 + nSpaces, "", p->help);
-}
-
-static void clap_print_params_help(clap_t* _Nonnull self)
-{
-    // Calculate the width of column #0. This is the column that contains the
-    // parameter short & long names
-    int column_0_width = 0;
-    for (int i = 0; i < self->params_count; i++) {
-        const clap_param_t* p = &self->params[i];
-        int col_width = 2;
-
-        if (p->type == clap_type_section && p->u.text && *p->u.text != '\0') {
-            continue;
-        }
-
-        if (p->short_label != '\0') {
-            col_width += 2;
-        }
-        if (p->short_label != '\0' && p->long_label && *p->long_label != '\0') {
-            col_width += 2;
-        }
-        if (p->long_label && *p->long_label != '\0') {
-            col_width += 2 + strlen(p->long_label);
-        }
-
-        if (col_width > column_0_width) {
-            column_0_width = col_width;
-        }
-    }
-
-
-    // Print the parameter descriptions
-    for (int i = 0; i < self->params_count; i++) {
-        const clap_param_t* p = &self->params[i];
-
-        if (p->type == clap_type_section && p->u.text && *p->u.text != '\0') {
-            if (i > 0) {
-                putchar('\n');
-            }
-            puts(p->u.text);
-            continue;
-        }
-
-        clap_print_param_help(p, column_0_width);
-    }
-}
-
-static void clap_print_commands_help(clap_t* _Nonnull self)
-{
-    if (self->cmds_count == 0) {
-        return;
-    }
-
-    puts("The following commands are supported:");
-
-    for (int i = 0; i < self->cmds_count; i++) {
-        const clap_param_t* cp = self->cmds[i];
-
-        fprintf(stdout, "  %s", cp->u.cmd.name);
-        if (cp->u.cmd.usage && *cp->u.cmd.usage != '\0') {
-            fprintf(stdout, " %s", cp->u.cmd.usage);
-        }
-        if (cp->help && *cp->help != '\0') {
-            fprintf(stdout, "   %s", cp->help);
-        }
-        putchar('\n');
-    }
-}
-
-static void clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
-{
-    const hasUsage = clap_print_usage(self);
-    const hasProlog = clap_print_prolog_epilog(self, clap_type_prolog, hasUsage);
-
-    if (hasProlog || hasUsage) {
-        putchar('\n');
-    }
-
-    clap_print_commands_help(self);
-
-    putchar('\n');
-
-    clap_print_params_help(self);
-
-    clap_print_prolog_epilog(self, clap_type_epilog, true);
 
     exit(EXIT_SUCCESS);
 }
@@ -666,7 +443,7 @@ static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _
             break;
 
         case clap_type_help:
-            clap_help(self, param);
+            _clap_help(self, param);
             break;
 
         default:
