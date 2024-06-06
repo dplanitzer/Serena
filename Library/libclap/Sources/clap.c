@@ -50,8 +50,12 @@ static const char* const clap_g_type_string[] = {
     "value",
 
     "vararg",
+    "version",
     "help",
+    "usage",
+    "prolog",
     "help section",
+    "epilog",
     "end"
 };
 
@@ -250,21 +254,52 @@ void clap_param_error(struct clap_t* _Nonnull self, const clap_param_t* _Nonnull
 }
 
 
-static void clap_print_app_usages(const clap_help_t* _Nonnull help)
+static void clap_version(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
 {
-    const char** usages = help->usages;
+    if (param->u.text && *param->u.text != '\0') {
+        puts(param->u.text);
+    }
 
-    // Usage line(s)
-    if (usages && *usages) {
-        fprintf(stdout, "usage: %s\n", *usages++);
+    exit(EXIT_SUCCESS);
+}
 
-        while (*usages) {
-            fprintf(stdout, "       %s\n", *usages++);
+static bool clap_print_usage(clap_t* _Nonnull self)
+{
+    const clap_param_t* p = self->params;
+    int c = 0;
+
+    while (p->type != clap_type_end && p->type != clap_type_command) {
+        if (p->type == clap_type_usage && *p->u.text != '\0') {
+            printf((c == 0) ? "usage: %s\n" : "       %s\n", p->u.text);
+            c++;
         }
+        p++;
     }
-    else {
-        fprintf(stdout, "usage:\n");
+
+    if (c == 0) {
+        printf("usage:\n");
     }
+
+    return (c > 0) ? true : false;
+}
+
+static bool clap_print_prolog_epilog(clap_t* _Nonnull self, enum clap_type type, bool wantsLeadingNewline)
+{
+    const clap_param_t* p = self->params;
+    int c = 0;
+
+    while (p->type != clap_type_end && p->type != clap_type_command) {
+        if (p->type == type && *p->u.text != '\0') {
+            if (wantsLeadingNewline && c == 0) {
+                putchar('\n');
+            }
+            puts(p->u.text);
+            c++;
+        }
+        p++;
+    }
+
+    return (c > 0) ? true : false;
 }
 
 static void clap_print_param_help(const clap_param_t* _Nonnull p, int column_0_width)
@@ -275,60 +310,28 @@ static void clap_print_param_help(const clap_param_t* _Nonnull p, int column_0_w
         return;
     }
 
-    fprintf(stdout, "  ");
+    fputs("  ", stdout);
     cw += 2;
 
     if (p->short_label != '\0') {
-        fprintf(stdout, "-%c", p->short_label);
+        printf("-%c", p->short_label);
         cw += 2;
     }
     if (p->short_label != '\0' && p->long_label && *p->long_label != '\0') {
-        fprintf(stdout, ", ");
+        fputs(", ", stdout);
         cw += 2;
     }
     if (p->long_label && *p->long_label != '\0') {
-        fprintf(stdout, "--%s", p->long_label);
+        printf("--%s", p->long_label);
         cw += 2 + strlen(p->long_label);
     }
 
-    int nspaces = (cw <= column_0_width) ? column_0_width - cw : 0;
-    fprintf(stdout, "%*s%s\n", 3 + nspaces, "", p->help);
+    int nSpaces = (cw <= column_0_width) ? column_0_width - cw : 0;
+    printf("%*s%s\n", 3 + nSpaces, "", p->help);
 }
 
-static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull help)
+static void clap_print_params_help(clap_t* _Nonnull self)
 {
-    clap_print_app_usages(help);
-
-
-    // Prolog aka description or short documentation
-    if (help->prolog && *help->prolog != '\0') {
-        fprintf(stdout, "%s\n", help->prolog);
-    }
-
-    fputc('\n', stdout);
-
-
-    // Print the commands, if they exist
-    if (self->cmds_count > 0) {
-        fprintf(stdout, "The following commands are supported:\n");
-
-        for (int i = 0; i < self->cmds_count; i++) {
-            const clap_param_t* cp = self->cmds[i];
-
-            fprintf(stdout, "  %s", cp->u.cmd.name);
-            if (cp->u.cmd.usage && *cp->u.cmd.usage != '\0') {
-                fprintf(stdout, " %s", cp->u.cmd.usage);
-            }
-            if (cp->help && *cp->help != '\0') {
-                fprintf(stdout, "   %s", cp->help);
-            }
-            fputc('\n', stdout);
-        }
-    }
-
-    fputc('\n', stdout);
-
-
     // Calculate the width of column #0. This is the column that contains the
     // parameter short & long names
     int column_0_width = 0;
@@ -336,7 +339,7 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
         const clap_param_t* p = &self->params[i];
         int col_width = 2;
 
-        if (p->type == clap_type_section && p->u.title && *p->u.title != '\0') {
+        if (p->type == clap_type_section && p->u.text && *p->u.text != '\0') {
             continue;
         }
 
@@ -360,22 +363,56 @@ static void clap_print_help(clap_t* _Nonnull self, const clap_help_t* _Nonnull h
     for (int i = 0; i < self->params_count; i++) {
         const clap_param_t* p = &self->params[i];
 
-        if (p->type == clap_type_section && p->u.title && *p->u.title != '\0') {
+        if (p->type == clap_type_section && p->u.text && *p->u.text != '\0') {
             if (i > 0) {
-                fputc('\n', stdout);
+                putchar('\n');
             }
-            fprintf(stdout, "%s\n", p->u.title);
+            puts(p->u.text);
             continue;
         }
 
         clap_print_param_help(p, column_0_width);
     }
+}
 
-
-    // Print the epilog aka trailing documentation
-    if (help->epilog && *help->epilog != '\0') {
-        fprintf(stdout, "\n%s\n", help->epilog);
+static void clap_print_commands_help(clap_t* _Nonnull self)
+{
+    if (self->cmds_count == 0) {
+        return;
     }
+
+    puts("The following commands are supported:");
+
+    for (int i = 0; i < self->cmds_count; i++) {
+        const clap_param_t* cp = self->cmds[i];
+
+        fprintf(stdout, "  %s", cp->u.cmd.name);
+        if (cp->u.cmd.usage && *cp->u.cmd.usage != '\0') {
+            fprintf(stdout, " %s", cp->u.cmd.usage);
+        }
+        if (cp->help && *cp->help != '\0') {
+            fprintf(stdout, "   %s", cp->help);
+        }
+        putchar('\n');
+    }
+}
+
+static void clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
+{
+    const hasUsage = clap_print_usage(self);
+    const hasProlog = clap_print_prolog_epilog(self, clap_type_prolog, hasUsage);
+
+    if (hasProlog || hasUsage) {
+        putchar('\n');
+    }
+
+    clap_print_commands_help(self);
+
+    putchar('\n');
+
+    clap_print_params_help(self);
+
+    clap_print_prolog_epilog(self, clap_type_epilog, true);
 
     exit(EXIT_SUCCESS);
 }
@@ -624,8 +661,12 @@ static void clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _
             clap_update_value_param_value(self, param, eq);
             break;
 
+        case clap_type_version:
+            clap_version(self, param);
+            break;
+
         case clap_type_help:
-            clap_print_help(self, &param->u.help);
+            clap_help(self, param);
             break;
 
         default:
@@ -776,30 +817,43 @@ static void clap_enforce_required_params(clap_t* _Nonnull self)
         const clap_param_t* param = &self->params[i];
         const uint8_t flags = param->flags;
 
-        if (param->type == clap_type_command && self->cmd_required && !self->cmd_appeared) {
-            clap_error("required command missing");
-        }
-        else if (param->type != clap_type_command
-            && ((flags & clap_flag_required) == clap_flag_required && (flags & clap_flag_appeared) == 0)) {
-            const char* label = NULL;
-            const char* label_prefix = NULL;
+        switch (param->type) {
+            case clap_type_command:
+                if (self->cmd_required && !self->cmd_appeared) {
+                    clap_error("required command missing");
+                }
+                break;
 
-            if (param->long_label && *param->long_label != '\0') {
-                label = param->long_label;
-                label_prefix = "--";
-            }
-            else if (param->short_label != '\0') {
-                self->short_label_buffer[1] = param->short_label;
-                label = self->short_label_buffer;
-            }
+            case clap_type_boolean:
+            case clap_type_integer:
+            case clap_type_string:
+            case clap_type_string_array:
+            case clap_type_enum:
+                if ((flags & clap_flag_required) == clap_flag_required && (flags & clap_flag_appeared) == 0) {
+                    const char* label = NULL;
+                    const char* label_prefix = NULL;
 
-            if (label) {
-                clap_error("required option '%s%s' missing", label_prefix, label);
-            }
-            else {
-                clap_error("expected a %s", clap_g_type_string[param->type]);
-            }
-            // not reached
+                    if (param->long_label && *param->long_label != '\0') {
+                        label = param->long_label;
+                        label_prefix = "--";
+                    }
+                    else if (param->short_label != '\0') {
+                        self->short_label_buffer[1] = param->short_label;
+                        label = self->short_label_buffer;
+                    }
+
+                    if (label) {
+                        clap_error("required option '%s%s' missing", label_prefix, label);
+                    }
+                    else {
+                        clap_error("expected a %s", clap_g_type_string[param->type]);
+                    }
+                    // not reached
+                }
+                break;
+
+            default:
+                break;
         }
     }
 }

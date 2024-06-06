@@ -627,10 +627,10 @@ static void listLibrary(const char* libPath)
 clap_string_array_t paths = {NULL, 0};
 const char* cmd_id = "";
 
-const char* usages[] = {"libtool <command> ...", NULL};
-
 CLAP_DECL(params,
-    CLAP_HELP(usages, NULL, NULL),
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("libtool <command> ..."),
 
     CLAP_REQUIRED_COMMAND("create", &cmd_id, "<lib_path> <a.out_path> ...", "Creates a static library from a list of a.out files. Replaces 'lib_path' if it already exists."),
         CLAP_VARARG(&paths, "Paths"),

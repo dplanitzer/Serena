@@ -92,8 +92,12 @@ enum clap_type {
 
     // Semantic parameters
     clap_type_vararg,           // all unnamed/positional parameters at the end of the command line
-    clap_type_help,             // a parameter which triggers the display of a help message
+    clap_type_version,          // an option to print version information
+    clap_type_help,             // an option to print the help page
+    clap_type_usage,            // a usage line in the help page
+    clap_type_prolog,           // a prolog paragraph in the help page
     clap_type_section,          // a help section (title)
+    clap_type_epilog,           // an epilog paragraph in the help page
     clap_type_end,              // marks the end of the parameter declarations
 };
 
@@ -145,17 +149,6 @@ typedef struct clap_command {
 typedef (*clap_value_func_t)(struct clap_t* _Nonnull, const struct clap_param_t* _Nonnull, const char* _Nonnull arg);
 
 
-// The command line syntax help information. 'usages' is a NULL terminated array
-// of usage strings. 'prolog' is a string that is displayed after the last usage
-// string and before the parameter descriptions and 'epilog' is a string that is
-// displayed after the last parameter description.
-typedef struct clap_help_t {
-    const char* _Nullable * _Nullable   usages;
-    const char* _Nullable               prolog;
-    const char* _Nullable               epilog;
-} clap_help_t;
-
-
 enum clap_flag {
     clap_flag_required = 1,                 // The user must provide this parameter in the command line
     clap_flag_appeared = 2,                 // This parameter appeared in the command line
@@ -175,8 +168,7 @@ typedef struct clap_param_t {
         const char* _Nonnull * _Nullable    enum_strings;  // NULL terminated array of enum values
         clap_value_func_t _Nonnull          value_func;
         clap_command_t                      cmd;
-        clap_help_t                         help;
-        const char*                         title;
+        const char*                         text;
     }                       u;
 } clap_param_t;
 
@@ -283,21 +275,43 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 {clap_type_vararg, clap_flag_required, '\0', "", __help, (void*)__saptr}
 
 
-// __usages: a NULL terminates string array with one entry per possible usage
-// __prolog: displayed after the usages lines and before the parameter descriptions
-// __epilog: displayed at the very end of the help page
-#define CLAP_HELP(__usages, __prolog, __epilog) \
-{clap_type_help, 0, 'h', "help", "Print help", "", {.help = {__usages, __prolog, __epilog}}}
+// Enables the user to print the version information for the tool by passing
+// -v or --version.
+#define CLAP_VERSION(__text) \
+{clap_type_version, 0, 'v', "version", "Print version", "", {.text = __text}}
+
+
+// Enables the user to print a help page by passing -h or --help
+#define CLAP_HELP() \
+{clap_type_help, 0, 'h', "help", "Print help", ""}
+
+// A usage string in the help page. Usage strings are printed in the order in
+// which they appear in the parameter list. All usage strings up to the first
+// command declaration apply to the help page.
+#define CLAP_USAGE(__text) \
+{clap_type_usage, 0, '\0', "", "", "", {.text = __text}}
+
+// A prolog paragraph in the help page. Prolog strings are printed in the order
+// in which they appear in the parameter list. All prolog strings up to the first
+// command declaration apply to the help page.
+#define CLAP_PROLOG(__text) \
+{clap_type_prolog, 0, '\0', "", "", "", {.text = __text}}
 
 // __title: the help section title
 #define CLAP_SECTION(__title) \
-{clap_type_section, 0, '\0', "", "", "", {.title = __title}}
+{clap_type_section, 0, '\0', "", "", "", {.text = __title}}
+
+// An epilog paragraph in the help page. Epilog strings are printed in the order
+// in which they appear in the parameter list. All epilog strings up to the first
+// command declaration apply to the help page.
+#define CLAP_EPILOG(__text) \
+{clap_type_epilog, 0, '\0', "", "", "", {.text = __text}}
 
 
 // Marks the end of a parameter list. This entry is automatically added by the
 // CLAP_DECL() macro.
 #define CLAP_END() \
-{clap_type_end, clap_flag_required, '\0', "", "", ""}
+{clap_type_end, 0, '\0', "", "", ""}
 
 
 
