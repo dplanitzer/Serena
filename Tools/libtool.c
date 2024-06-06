@@ -632,10 +632,10 @@ CLAP_DECL(params,
     CLAP_HELP(),
     CLAP_USAGE("libtool <command> ..."),
 
-    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<lib_path> <a.out_path> ...", "Creates a static library from a list of a.out files. Replaces 'lib_path' if it already exists."),
-        CLAP_VARARG(&paths, "Paths"),
-    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<lib_path>", "Lists the a.out files stored inside the library file."),
-        CLAP_VARARG(&paths, "Path")
+    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<lib_path> <obj_path> ...", "Builds a new static library from a list of object files. Replaces the library file at 'lib_path' if it already exists."),
+        CLAP_VARARG(&paths),
+    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<lib_path>", "Lists all object files stored in the library file."),
+        CLAP_VARARG(&paths)
 );
 
 

@@ -268,8 +268,8 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 // parameter following a '--' that is surrounded by whitespace. This list always
 // extends to the very end of the command line. Parameters are appear in the
 // string array in the same order in which they appear on the command line.
-#define CLAP_VARARG(__saptr, __help) \
-{clap_type_vararg, 0, '\0', "", __help, (void*)__saptr}
+#define CLAP_VARARG(__saptr) \
+{clap_type_vararg, 0, '\0', "", "", (void*)__saptr}
 
 #define CLAP_REQUIRED_VARARG(__saptr, __help) \
 {clap_type_vararg, clap_flag_required, '\0', "", __help, (void*)__saptr}
