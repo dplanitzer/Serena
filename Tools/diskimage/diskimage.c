@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <klib/klib.h>
 #include <filesystem/serenafs/SerenaFS.h>
+#include <clap.h>
 
 FilePermissions gDefaultDirPermissions;
 FilePermissions gDefaultFilePermissions;
@@ -18,12 +19,6 @@ User gDefaultUser;
 
 char gBuffer[4096];
 
-
-static void failed(errno_t err)
-{
-    printf("Error: %d\n", err);
-    exit(EXIT_FAILURE);
-}
 
 static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
 {
@@ -141,11 +136,26 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath, size_t 
     return;
 
 catch:
-    failed(err);
+    clap_error(err);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// main
+////////////////////////////////////////////////////////////////////////////////
+
+clap_string_array_t paths = {NULL, 0};
+const char* cmd_id = "";
+
+CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("diskimage <command> ..."),
+
+    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<root_path> <dimg_path>", "Creates a SerenaFS formatted disk image file 'dimg_path' which stores a recursive copy of the directory hierarchy and files located at 'root_path'."),
+        CLAP_VARARG(&paths)
+);
+
 
 static void init(void)
 {
@@ -169,19 +179,18 @@ static void init(void)
 
 int main(int argc, char* argv[])
 {
+    clap_parse(params, argc, argv);
+
     init();
 
-    if (argc > 1) {
-        if (!strcmp(argv[1], "create")) {
-            if (argc > 3) {
-                createDiskImage(argv[2], argv[3], 64 * 1024);
-                return EXIT_SUCCESS;
-            }
+    if (!strcmp(argv[1], "create")) {
+        if (paths.count != 2) {
+            clap_error("expected a disk image and root path");
+            // not reached
         }
+
+        createDiskImage(paths.strings[0], paths.strings[1], 64 * 1024);
     }
 
-    printf("diskimage <action> ...\n");
-    printf("   create <root_path> <dimg_path> ...   Creates a SerenaFS formatted disk image file 'dimg_path' which stores a recursive copy of the directory hierarchy and files located at 'root_path'\n");
-
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
