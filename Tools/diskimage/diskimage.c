@@ -7,8 +7,11 @@
 //
 
 #include "diskimage.h"
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <klib/klib.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <clap.h>
@@ -136,7 +139,7 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath, size_t 
     return;
 
 catch:
-    clap_error(err);
+    clap_error(strerror(err));
 }
 
 
@@ -144,8 +147,92 @@ catch:
 // main
 ////////////////////////////////////////////////////////////////////////////////
 
+struct disk_size_entry {
+    const char* name;
+    size_t      size;
+};
+
+const struct disk_size_entry gDiskSizes[] = {
+//    {"auto", -1},
+    {"amiga-dd", 880 * 1024},
+    {"amiga-hd", 1760 * 1024},
+    {NULL, 0}
+};
+
+// One of:
+// 26326        (positive integer)
+// 880k         (power-of-two unit postfix: k, K, m, M, g, G, t, T)
+// amiga-dd     (Amiga double density floppy disk - 880k)
+// amiga-hd     (Amiga high density floppy disk - 1760k)
+// auto         (auto-calculate the smallest disk size to cover all blocks that were written to)    XXX not yet
+static void parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
+{
+    long long size = 0ll;
+    char* pptr = NULL;
+
+    errno = 0;
+    size = strtoll(arg, &pptr, 10);
+    if (pptr != arg) {
+        // Some numeric input
+        if (errno == 0) {
+            long long mtp = 1ll;
+            long long limit = LLONG_MAX;
+
+            switch (*pptr) {
+                case 'k':
+                case 'K':   pptr++; mtp = 1024ll; break;
+                case 'm':
+                case 'M':   pptr++; mtp = 1024ll * 1024ll; break;
+                case 'g':
+                case 'G':   pptr++; mtp = 1024ll * 1024ll * 1024ll; break;
+                case 't':
+                case 'T':   pptr++; mtp = 1024ll * 1024ll * 1024ll * 1024ll; break;
+                    break;
+
+                default:
+                    break;
+            }
+
+            if (*pptr != '\0') {
+                clap_param_error(param, eo, "unknown disk size multiplier '%s'", pptr);
+                // not reached
+            }
+
+            limit /= mtp;
+            if (size >= 0ll && size <= limit) {
+                long long r = size * mtp;
+
+                if (r <= SIZE_MAX) {
+                    *(size_t*)param->value = r;
+                    return;
+                }
+            }
+        }
+
+        clap_param_error(param, eo, "disk size too large");
+        // not reached
+    }
+    else {
+        // Check for symbolic disk sizes
+        const struct disk_size_entry* dse = &gDiskSizes[0];
+
+        while (dse->name) {
+            if (!strcmp(arg, dse->name)) {
+                *(size_t*)param->value = dse->size;
+                return;
+            }
+            dse++;
+        }
+
+        clap_param_error(param, eo, "unknown symbolic disk size '%s", arg);
+        // not reached
+    }
+}
+
+
 clap_string_array_t paths = {NULL, 0};
 const char* cmd_id = "";
+size_t disk_size = 880 * 1024;     // Actual disk size, if > 0; Auto-calculate disk size, if == -1
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
@@ -153,6 +240,7 @@ CLAP_DECL(params,
     CLAP_USAGE("diskimage <command> ..."),
 
     CLAP_REQUIRED_COMMAND("create", &cmd_id, "<root_path> <dimg_path>", "Creates a SerenaFS formatted disk image file 'dimg_path' which stores a recursive copy of the directory hierarchy and files located at 'root_path'."),
+        CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the resulting disk image (default: Amiga DD)"),
         CLAP_VARARG(&paths)
 );
 
@@ -189,7 +277,7 @@ int main(int argc, char* argv[])
             // not reached
         }
 
-        createDiskImage(paths.strings[0], paths.strings[1], 64 * 1024);
+        createDiskImage(paths.strings[0], paths.strings[1], disk_size);
     }
 
     return EXIT_SUCCESS;

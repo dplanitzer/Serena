@@ -116,7 +116,7 @@ typedef struct clap_command {
 // line argument 'arg' into a value that the callback should store in the storage
 // pointed to by clap_param_t->value. The callback should invoke one of the
 // clap_error() functions if it detects a syntax or semantic error.
-typedef (*clap_value_func_t)(const struct clap_param_t* _Nonnull, unsigned int eo, const char* _Nonnull arg);
+typedef void (*clap_value_func_t)(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg);
 
 
 enum clap_flag {

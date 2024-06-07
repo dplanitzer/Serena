@@ -167,7 +167,7 @@ build-boot-disk: $(SH_FILE)
 
 $(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
 	@echo Making boot_disk.dmg
-	$(DISKIMAGE) create $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
+	$(DISKIMAGE) create --size=64k $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
 
 #$(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)
 #	@echo Making ROM
