@@ -99,6 +99,24 @@ static bool clap_print_prolog_epilog(clap_t* _Nonnull self, enum clap_type type,
     return (c > 0) ? true : false;
 }
 
+static bool clap_should_print_help_for_param(const clap_param_t* _Nonnull param)
+{
+    switch (param->type) {
+        case clap_type_boolean:
+        case clap_type_integer:
+        case clap_type_string:
+        case clap_type_string_array:
+        case clap_type_enum:
+        case clap_type_value:
+        case clap_type_version:
+        case clap_type_help:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 static void clap_print_param_help(const clap_param_t* _Nonnull p, int column_0_width)
 {
     int cw = 0;
@@ -139,7 +157,10 @@ static void clap_print_params_help(clap_t* _Nonnull self)
         if (p->type == clap_type_section && p->u.text && *p->u.text != '\0') {
             continue;
         }
-
+        if (!clap_should_print_help_for_param(p)) {
+            continue;
+        }
+        
         if (p->short_label != '\0') {
             col_width += 2;
         }
@@ -168,7 +189,9 @@ static void clap_print_params_help(clap_t* _Nonnull self)
             continue;
         }
 
-        clap_print_param_help(p, column_0_width);
+        if (clap_should_print_help_for_param(p)) {
+            clap_print_param_help(p, column_0_width);
+        }
     }
 }
 
@@ -180,15 +203,26 @@ static void clap_print_commands_help(clap_t* _Nonnull self)
 
     puts("The following commands are supported:");
 
+    int column_0_width = 0;
+    for (int i = 0; i < self->cmds_count; i++) {
+        const int w = (int)strlen(self->cmds[i]->u.cmd.name);
+
+        if (w > column_0_width) {
+            column_0_width = w;
+        }
+    }
+
     for (int i = 0; i < self->cmds_count; i++) {
         const clap_param_t* cp = self->cmds[i];
+        const int cw = strlen(cp->u.cmd.name);
+        const int nSpaces = (cw <= column_0_width) ? column_0_width - cw : 0;
 
-        fprintf(stdout, "  %s", cp->u.cmd.name);
+        printf("  %s%*s", cp->u.cmd.name, 2 + nSpaces, "");
         if (cp->u.cmd.usage && *cp->u.cmd.usage != '\0') {
-            fprintf(stdout, " %s", cp->u.cmd.usage);
+            printf(" %s", cp->u.cmd.usage);
         }
         if (cp->help && *cp->help != '\0') {
-            fprintf(stdout, "   %s", cp->help);
+            printf("   %s", cp->help);
         }
         putchar('\n');
     }
