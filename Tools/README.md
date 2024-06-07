@@ -24,19 +24,19 @@ libtool create path/to/libc.a a.o b.o c.o ...
 
 Where the first argument after the "create" keyword is the path and name of the static library that should be created and where the rest of the argument line is a list of object code files that go into the static library.
 
-You can use the following command to list the content of a static library:
+Use the following command to list the contents of an existing static library:
 
 ```
 libtool list path/to/lib
 ```
 
-This will show the name and size of each object code file in the static library.
+This will show the name and size of each object code file inside the static library.
 
 ## Makerom
 
-The makerom tool is used to assemble files into an Amiga ROM image. This image can then be used in the next step to burn an EPROM or it can be loaded into an Amiga emulator like WinUAE.
+The makerom tool is used to assemble a series of files into an Amiga ROM image. This image can then be used in the next step to burn an EPROM or it can be loaded into an Amiga emulator like WinUAE.
 
-Makerom accepts a list of files as input. At least one file must be specified and this (first) file will be placed at the very beginning of the ROM. This first file should be a raw binary that contains the kernel code. All other files are placed on 4 byte boundaries in the order in which they appear on the command line.
+Makerom accepts a list of files as input. At least one input file must be specified and this first file will be placed at the very beginning of the ROM. The first file should be a raw binary of the operating system kernel. All other files are placed on 4 byte boundaries after the kernel binary, in the order in which they appear on the command line.
 
 Invoke makerom like this to create a ROM image:
 
@@ -66,9 +66,9 @@ Note that diskimage always creates a ROM-style disk image at this time. This mea
 
 ## Keymap
 
-You use the keymap tool to create key maps for the Serena HID (human interface devices) system. A key map maps a USB standard key code to the character or string that should be delivered on a key press. Key maps allow you to specify separate mappings for key presses without a key modifier active and key presses with one or more modifiers active at the same time.
+You use the keymap tool to create key maps for the Serena HID (human interface devices) system. A key map maps a USB standard key code to the character or string that should be delivered on a key press. Key maps allow you to specify separate mappings for key presses without a key modifier active and key presses with one or more modifier keys pressed at the same time.
 
-Key maps are text files that describe a key mapping with a domain specific language. Here is an example of a command that maps the USB key code (hexadecimal) 0x0004 to the lower- and upper-case A character:
+Key maps are text files that describe a key mapping with the help of a domain specific language. Here is an example of a command that maps the USB key code 0x0004 (hexadecimal) to the lower- and upper-case 'A' character:
 
 ```
 key(0x0004, 'a', 'A', 0, 0)
@@ -112,18 +112,20 @@ This mapping binds the USB key code that represents a left cursor key to the esc
 
 Note that key mappings which map a key to a string do not support modifier keys at this time. The same string is generated whether a modifier key is pressed at the same time or not. Also pressing the Control key while pressing a key that is bound to a string will not change the string that is generated for the key press.
 
-You use the keymap tool to compile a key map text file to a keymap file like this:
+Compile a key map text file to a binary keymap file by invoking the keymap tool like this:
 
 ```
 keymap compile path/to/key.keys
 ```
 
-Where the first argument is a path to a key map text file with the extension "keys". This file is compiled to a keymap file at the same location but with the extension "keymap".
+Where the first argument is a path to a key map text file with the extension "keys". This file is compiled to a keymap file at the same location but with the extension "keymap". Alternatively, a key map file may be compiled to a C source code file by explicitly specifying the output format:
 
-An existing key map file can be decompiled and its content listed with the following command:
+```
+keymap compile --format=C path/to/key.keys
+```
+
+An existing binary key map file can be decompiled and its contents listed with the following command:
 
 ```
 keymap decompile path/to/keymaps_file
 ```
-
-Note however that the keymap tools currently always compiles key maps to C source code and thus keymap doesn't generate files that could actually be decompiled. Support for binary key map files does exist in the keymap sources, however this code is currently disabled.

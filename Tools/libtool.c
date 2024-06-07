@@ -7,7 +7,6 @@
 //
 
 #include <assert.h>
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -87,28 +86,12 @@ typedef struct Archive {
 // Utilities
 ////////////////////////////////////////////////////////////////////////////////
 
-static void failed(const char* msg)
-{
-    puts(msg);
-    exit(EXIT_FAILURE);
-}
-
-static void failedf(const char* fmt, ...)
-{
-    va_list ap;
-    
-    va_start(ap, fmt);
-    vprintf(fmt, ap);
-    va_end(ap);
-    exit(EXIT_FAILURE);
-}
-
 static void* malloc_require(size_t size, bool doClear)
 {
     void* p = malloc(size);
 
     if (p == NULL) {
-        failed("Out of memory");
+        clap_error("Out of memory");
         // NOT REACHED
     }
 
@@ -124,7 +107,7 @@ static char* stralloc_require(const char* str, size_t len)
     char* p = (char*) malloc(len + 1);
 
     if (p == NULL) {
-        failed("Out of memory");
+        clap_error("Out of memory");
         // NOT REACHED
     }
 
@@ -142,7 +125,7 @@ static void itoa_unterminated(int val, char* buffer, int bufsiz)
     
     const int ndigits = (int)strlen(digits);
     if (ndigits > bufsiz) {
-        failed("Overflow");
+        clap_error("Overflow");
         // NOT REACHED
     }
 
@@ -156,7 +139,7 @@ static FILE* open_require(const char* filename, const char* mode)
     FILE* s = fopen(filename, mode);
 
     if (s == NULL) {
-        failedf("Unable to open '%s'", filename);
+        clap_error("Unable to open '%s'", filename);
         // NOT REACHED
     }
     return s;
@@ -165,7 +148,7 @@ static FILE* open_require(const char* filename, const char* mode)
 static void fread_require(void* data, size_t size, FILE* s)
 {
     if (fread(data, size, 1, s) < 1) {
-        failed("I/O error");
+        clap_error("I/O error");
         // NOT REACHED
     }
 }
@@ -173,7 +156,7 @@ static void fread_require(void* data, size_t size, FILE* s)
 static void fwrite_require(const void* data, size_t size, FILE* s)
 {
     if (fwrite(data, size, 1, s) < 1) {
-        failed("I/O error");
+        clap_error("I/O error");
         // NOT REACHED
     }
 }
@@ -221,7 +204,7 @@ static void _ArchiveMember_ParseHeader(ArchiveMember* pMember, Archive* pArchive
     // Get the data size
     pMember->size = strtoul(hdr->size, NULL, 10);
     if (pMember->size == 0) {
-        failed("Corrupt library file");
+        clap_error("Corrupt library file");
         // NOT REACHED
     }
 
@@ -232,7 +215,7 @@ static void _ArchiveMember_ParseHeader(ArchiveMember* pMember, Archive* pArchive
         // System V.4 long name
         pMember->longStringOffset = strtoul(&hdr->name[1], NULL, 10);
         if (pMember->longStringOffset >= pArchive->longStrings->size - 2) {
-            failed("Corrupt library file");
+            clap_error("Corrupt library file");
             // NOT REACHED
         }
 
@@ -249,7 +232,7 @@ static void _ArchiveMember_ParseHeader(ArchiveMember* pMember, Archive* pArchive
         // BSD long name
         nameLen = strtoul(&hdr->name[3], NULL, 10);
         if (nameLen == 0 || nameLen >= pMember->size) {
-            failed("Corrupt library file");
+            clap_error("Corrupt library file");
             // NOT REACHED
         }
 
@@ -285,7 +268,7 @@ static void _ArchiveMember_ParseHeader(ArchiveMember* pMember, Archive* pArchive
 
     if (pName) {
         if (nameLen == 0) {
-            failed("Corrupt library file");
+            clap_error("Corrupt library file");
             // NOT REACHED
         }
 
@@ -302,12 +285,12 @@ static ArchiveMember* ArchiveMember_CreateFromArchive(Archive* pArchive, FILE* s
         if (feof(s)) {
             return NULL;
         } else {
-            failed("I/O error");
+            clap_error("I/O error");
             // NOT REACHED
         }
     }
     if (strncmp(hdr.eol, AR_EOL, 2)) {
-        failed("Corrupt library file");
+        clap_error("Corrupt library file");
         // NOT REACHED
     }
 
@@ -390,7 +373,7 @@ static Archive* Archive_CreateFromPath(const char* path)
     // Read the header
     fread_require(&hdr, sizeof(hdr), s);
     if (strncmp(hdr.magic, AR_MAGIC, 8)) {
-        failed("Not a library file");
+        clap_error("Not a library file");
         // NOT REACHED
     }
 
@@ -632,7 +615,7 @@ CLAP_DECL(params,
     CLAP_HELP(),
     CLAP_USAGE("libtool <command> ..."),
 
-    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<lib_path> <obj_path> ...", "Builds a new static library from a list of object files. Replaces the library file at 'lib_path' if it already exists."),
+    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<lib_path> <obj_path ...>", "Builds a new static library from a list of object files. Replaces the library file at 'lib_path' if it already exists."),
         CLAP_VARARG(&paths),
     CLAP_REQUIRED_COMMAND("list", &cmd_id, "<lib_path>", "Lists all object files stored in the library file."),
         CLAP_VARARG(&paths)

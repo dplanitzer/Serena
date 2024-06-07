@@ -195,10 +195,10 @@ static void clap_print_params_help(clap_t* _Nonnull self)
     }
 }
 
-static void clap_print_commands_help(clap_t* _Nonnull self)
+static bool clap_print_commands_help(clap_t* _Nonnull self)
 {
     if (self->cmds_count == 0) {
-        return;
+        return false;
     }
 
     puts("The following commands are supported:");
@@ -226,6 +226,8 @@ static void clap_print_commands_help(clap_t* _Nonnull self)
         }
         putchar('\n');
     }
+
+    return true;
 }
 
 void _clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
@@ -237,9 +239,11 @@ void _clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
         putchar('\n');
     }
 
-    clap_print_commands_help(self);
+    const bool hasCommands = clap_print_commands_help(self);
 
-    putchar('\n');
+    if (hasCommands) {
+        putchar('\n');
+    }
 
     clap_print_params_help(self);
 

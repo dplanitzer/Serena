@@ -7,11 +7,11 @@
 //
 
 #include <assert.h>
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <clap.h>
 
 
 // To compile on Windows:
@@ -30,28 +30,12 @@
 
 #define SIZE_KB(x) (((size_t)x) * 1024l)
 
-static void failed(const char* msg)
-{
-    puts(msg);
-    exit(EXIT_FAILURE);
-}
-
-static void failedf(const char* fmt, ...)
-{
-    va_list ap;
-    
-    va_start(ap, fmt);
-    vprintf(fmt, ap);
-    va_end(ap);
-    exit(EXIT_FAILURE);
-}
-
 static FILE* open_require(const char* filename, const char* mode)
 {
     FILE* s = fopen(filename, mode);
 
     if (s == NULL) {
-        failedf("Unable to open '%s'", filename);
+        clap_error("Unable to open '%s'", filename);
         // NOT REACHED
     }
     return s;
@@ -60,7 +44,7 @@ static FILE* open_require(const char* filename, const char* mode)
 static void fwrite_require(const void* data, size_t size, FILE* s)
 {
     if (fwrite(data, size, 1, s) < 1) {
-        failed("I/O error");
+        clap_error("I/O error");
         // NOT REACHED
     }
 }
@@ -68,7 +52,7 @@ static void fwrite_require(const void* data, size_t size, FILE* s)
 static void fputc_require(int ch, FILE* s)
 {
     if (fputc(ch, s) == EOF) {
-        failed("I/O error");
+        clap_error("I/O error");
         // NOT REACHED
     }
 }
@@ -80,7 +64,7 @@ static size_t getFileSize(FILE* s)
     const long r = ftell(s);
 
     if (r == -1 || r0 != 0 || origpos == -1) {
-        failed("I/O error");
+        clap_error("I/O error");
         // NOT REACHED
     }
 
@@ -115,7 +99,7 @@ static void appendContentsOfFile(FILE* src_s, FILE* s)
         const size_t nBytesRead = fread(gBlock, 1, BLOCK_SIZE, src_s);
 
         if (nBytesRead < BLOCK_SIZE && ferror(src_s)) {
-            failed("I/O error");
+            clap_error("I/O error");
             // NOT REACHED
         }
 
@@ -130,17 +114,27 @@ static void appendContentsOfFile(FILE* src_s, FILE* s)
 // main
 ////////////////////////////////////////////////////////////////////////////////
 
-static void help(void)
-{
-    printf("makerom <romFile> <kernelFile> ... \n");
+clap_string_array_t paths = {NULL, 0};
 
-    exit(EXIT_SUCCESS);
-}
+CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("makerom <romFile> <binaryImagePath ...>"),
+    CLAP_PROLOG(
+        "Creates a ROM image file for use in Amiga computers. Takes a path to a kernel image file <binaryImagePath> as input"
+        " plus optional additional image files and packages all those files up into a ROM image file which will be stored at <romFile>."
+    ),
+
+    CLAP_VARARG(&paths)
+);
+
 
 int main(int argc, char* argv[])
 {
-    if (argc < 3) {
-        help();
+    clap_parse(params, argc, argv);
+
+    if (paths.count < 2) {
+        clap_error("missing image file paths");
         // NOT REACHED
     }
 
@@ -152,18 +146,18 @@ int main(int argc, char* argv[])
     const size_t romCapacity = SIZE_KB(256) - sizeof(autovec);
     size_t romSize = 0;
 
-    FILE* romFile = open_require(argv[1], "wb");
+    FILE* romFile = open_require(paths.strings[0], "wb");
     setvbuf(romFile, NULL, _IOFBF, 8192);
 
 
     // Add the input files to the ROM
-    for (int i = 2; i < argc; i++) {
-        FILE* fp = open_require(argv[i], "rb");
+    for (int i = 1; i < paths.count; i++) {
+        FILE* fp = open_require(paths.strings[i], "rb");
         const size_t fileSize = getFileSize(fp);
         const size_t nb = 4 - (fileSize & 0x03);
 
         if (romSize + fileSize + nb > romCapacity) {
-            failed("ROM too big");
+            clap_error("ROM image too big");
             // NOT REACHED
         }
 

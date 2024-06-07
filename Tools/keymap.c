@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <clap.h>
 
 
 // To compile on Windows:
@@ -101,6 +102,13 @@ typedef struct KeyMap {
 } KeyMap;
 
 
+// Compiler output file format
+enum OutputFormat {
+    kOutputFormat_Binary,       // .keymap file
+    kOutputFormat_C             // C source code
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Errors
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,26 +118,10 @@ typedef struct SourceLocation {
     int column;
 } SourceLocation;
 
-static void failed(const char* msg)
+static void parse_error(SourceLocation loc, const char* msg)
 {
-    puts(msg);
-    exit(EXIT_FAILURE);
-}
-
-static void failedf(const char* fmt, ...)
-{
-    va_list ap;
-    
-    va_start(ap, fmt);
-    vprintf(fmt, ap);
-    va_end(ap);
-    exit(EXIT_FAILURE);
-}
-
-static void failedParsing(SourceLocation loc, const char* msg)
-{
-    printf("line %d:%d: %s\n", loc.line, loc.column, msg);
-    exit(EXIT_FAILURE);
+    clap_error("line %d:%d: %s\n", loc.line, loc.column, msg);
+    // NOT REACHED
 }
 
 
@@ -142,7 +134,7 @@ static FILE* km_open(const char* filename, const char* mode)
     FILE* s = fopen(filename, mode);
 
     if (s == NULL) {
-        failedf("Unable to open '%s'", filename);
+        clap_error("Unable to open '%s'", filename);
         // NOT REACHED
     }
     return s;
@@ -321,7 +313,7 @@ static char readEscapedCharacter(FILE *s)
         case '\'':  return '\'';
         case '\"':  return '\"';
         case '\\':  return '\\';
-        default:    failedParsing(gCurrentLoc, "expected a valid escaped character"); return 0;
+        default:    parse_error(gCurrentLoc, "expected a valid escaped character"); return 0;
     }
 }
 
@@ -333,7 +325,7 @@ static char readCharacterLiteral(FILE *s)
         ch = readEscapedCharacter(s);
     }
     if (km_getc(s) != '\'') {
-        failedParsing(gCurrentLoc, "expected a ' character");
+        parse_error(gCurrentLoc, "expected a ' character");
     }
 
     return ch;
@@ -478,7 +470,7 @@ static Token peekNextToken(FILE *s)
 
 #define expectToken(ttype, err_msg) \
     t = getNextToken(s); \
-    if (t.type != ttype) { failedParsing(t.loc, err_msg); }
+    if (t.type != ttype) { parse_error(t.loc, err_msg); }
 
 #define expectComma() \
     expectToken(kTokenType_Comma, "expected a comma")
@@ -495,7 +487,7 @@ static char parseCharacter(FILE *s)
         return t.u.character;
     }
     else {
-        failedParsing(t.loc, "expected a character literal");
+        parse_error(t.loc, "expected a character literal");
         // NOT REACHED
         return 0;
     }
@@ -592,7 +584,7 @@ static void parseKeysFile(FILE* s, KeyMap* kmap)
                 break;
 
             default:
-                failedParsing(t.loc, "expected a 'key' statement");
+                parse_error(t.loc, "expected a 'key' statement");
                 break;
         }
     }
@@ -733,7 +725,7 @@ static void patchLabeled16(CompiledKeyMap* ckmap, const void* label, uint16_t w)
 static void ensureCompiledKeyMapSize(CompiledKeyMap* ckmap, size_t minCapacityIncrease)
 {
     if (ckmap->data.count > 65535) {
-        failed("Compiled key map is too big");
+        clap_error("Compiled key map is too big");
         // NOT REACHED
     }
 
@@ -866,7 +858,7 @@ static void writeKeyMap_Binary(CompiledKeyMap* ckmap, const char *pathToKeysFile
     fflush(s);
 
     if (ferror(s)) {
-        failed("Unable to write key map file");
+        clap_error("Unable to write key map file");
         // NOT REACHED
     }
 
@@ -907,7 +899,7 @@ static void writeKeyMap_C_Source(CompiledKeyMap* ckmap, const char *pathToKeysFi
     free(pathToKeymapsFile);
 }
 
-static void compileKeyMap(const char *pathToKeysFile)
+static void compileKeyMap(const char *pathToKeysFile, enum OutputFormat format)
 {
     FILE* inFile = km_open(pathToKeysFile, "r");
 
@@ -919,8 +911,19 @@ static void compileKeyMap(const char *pathToKeysFile)
     calculateKeyRanges(&kmap);
 
     compileKeyMap_Type0(&kmap, &ckmap);
-    //writeKeyMap_Binary(&ckmap, pathToKeysFile);
-    writeKeyMap_C_Source(&ckmap, pathToKeysFile);
+    switch (format) {
+        case kOutputFormat_Binary:
+            writeKeyMap_Binary(&ckmap, pathToKeysFile);
+            break;
+
+        case kOutputFormat_C:
+            writeKeyMap_C_Source(&ckmap, pathToKeysFile);
+            break;
+
+        default:
+            abort();
+            break;
+    }
 
     freeCompiledKeyMap(&ckmap);
     freeKeyMap(&kmap);
@@ -937,7 +940,7 @@ static void readKeyMapFile(FILE* s, Data* data)
     uint16_t hdr16[2];
 
     if (fread(hdr8, 1, 4, s) != 4) {
-        failed("Unexpected EOF");
+        clap_error("Unexpected EOF");
         // NOT REACHED
     }
 
@@ -945,7 +948,7 @@ static void readKeyMapFile(FILE* s, Data* data)
     const uint16_t size = (uint16_t)((((uint8_t)hdr8[2]) << 8) | ((uint8_t)hdr8[3]));
 
     if (type != kKeyMapType_0) {
-        failedf("Unknown key map type: 0x%hx", hdr16[0]);
+        clap_error("Unknown key map type: 0x%hx", hdr16[0]);
         // NOT REACHED
     }
 
@@ -955,7 +958,7 @@ static void readKeyMapFile(FILE* s, Data* data)
 
     rewind(s);
     if (fread(data->bytes, 1, size, s) != size) {
-        failed("Unexpected EOF");
+        clap_error("Unexpected EOF");
         // NOT REACHED
     }
 }
@@ -963,7 +966,7 @@ static void readKeyMapFile(FILE* s, Data* data)
 static uint8_t read8(const Data* data, uint16_t* offset)
 {
     if (*offset >= data->count) {
-        failedf("Out-of-range offset: %hu (%hu)", *offset, data->count);
+        clap_error("Out-of-range offset: %hu (%hu)", *offset, data->count);
         // NOT REACHED
     }
     return data->bytes[(*offset)++];
@@ -972,7 +975,7 @@ static uint8_t read8(const Data* data, uint16_t* offset)
 static uint16_t read16(const Data* data, uint16_t* offset)
 {
     if (*offset >= data->count) {
-        failedf("Out-of-range offset: %hu (%hu)", *offset, data->count);
+        clap_error("Out-of-range offset: %hu (%hu)", *offset, data->count);
         // NOT REACHED
     }
 
@@ -1114,7 +1117,7 @@ static void decompileKeyRange(uint16_t keyRangeOffset, const Data* data, FILE* o
                 break;
 
             default:
-                failedf("Unknown key trap type: 0x%hx", type);
+                clap_error("Unknown key trap type: 0x%hx", type);
         }
     }
 }
@@ -1144,31 +1147,56 @@ static void decompileKeyMap(const char* pathToKeymapsFile)
 // main
 ////////////////////////////////////////////////////////////////////////////////
 
+const char* format_enum[] = {"binary", "C", NULL};
+
+clap_string_array_t paths = {NULL, 0};
+const char* cmd_id = "";
+int format_id = kOutputFormat_Binary;
+
+CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("keymap <command> ..."),
+
+    CLAP_REQUIRED_COMMAND("compile", &cmd_id, "<path ...>", "Compiles a list of .keys file to a .keymap files with the same name."),
+        CLAP_ENUM('f', "format", &format_id, format_enum, "Selects the output format ('binary', 'C')."),
+        CLAP_VARARG(&paths),
+    CLAP_REQUIRED_COMMAND("decompile", &cmd_id, "<path ...>", "Decompiles a list of .keymap file and lists their contents."),
+        CLAP_VARARG(&paths)
+);
+
+
 int main(int argc, char* argv[])
 {
-    if (argc > 1) {
-        if (!strcmp(argv[1], "compile")) {
-            if (argc > 2) {
-                char* inputPath = argv[2];
+    clap_parse(params, argc, argv);
 
-                compileKeyMap(inputPath);
-                puts("OK");
-                return EXIT_SUCCESS;
-            }
+    if (!strcmp(argv[1], "compile")) {
+        if (paths.count < 1) {
+            clap_error("expected at least one path to a .keys file");
+            // NOT REACHED
         }
-        else if (!strcmp(argv[1], "decompile")) {
-            if (argc > 2) {
-                char* inputPath = argv[2];
 
-                decompileKeyMap(inputPath);
-                return EXIT_SUCCESS;
+        for (size_t i = 0; i < paths.count; i++) {
+            compileKeyMap(paths.strings[i], format_id);
+        }
+        puts("OK");
+    }
+    else if (!strcmp(argv[1], "decompile")) {
+        if (paths.count < 1) {
+            clap_error("expected at least one path to a .keymap file");
+            // NOT REACHED
+        }
+
+        for (size_t i = 0; i < paths.count; i++) {
+            if (paths.count > 1) {
+                if (i > 0) {
+                    putchar('\n');
+                }
+                printf("%s:\n", paths.strings[i]);
             }
+            decompileKeyMap(paths.strings[i]);
         }
     }
 
-    printf("keymap <action> ...\n");
-    printf("   compile <path>     Compiles a .keys file to a .keymap file with the same name.\n");
-    printf("   decompile <path>   Decompiles a .keymap file and lists its contents.\n");
-
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }
