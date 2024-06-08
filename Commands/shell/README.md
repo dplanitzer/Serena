@@ -157,6 +157,6 @@ Renames the file or directory at 'source_path' to 'destination_path'. If a file 
 
 Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command.
 
-#### TYPE \<path>
+#### TYPE [--hex] \<path>
 
-Prints a hexdump of the file at 'path' to the console.
+Prints the contents of the file 'path' to the console. Pass the switch '--hex' to print the file contents as a series of hexadecimal numbers.

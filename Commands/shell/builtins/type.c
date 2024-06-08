@@ -8,6 +8,7 @@
 
 #include "Interpreter.h"
 #include "cmdlib.h"
+#include <clap.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -140,23 +141,42 @@ catch:
     return err;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+
+static clap_string_array_t paths = {NULL, 0};
+static bool is_hex = false;
+
+static CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("type [--hex] <path>"),
+
+    CLAP_BOOL('\0', "hex", &is_hex, "Type the file contents as columns of hexadecimal numbers"),
+    CLAP_VARARG(&paths)
+);
+
+
 int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     decl_try_err();
 
-    // XXX This is very simplistic for now...
-    if (argc < 2) {
-        return EXIT_SUCCESS;
+    clap_parse(params, argc, argv);
+
+    if (paths.count < 1) {
+        clap_error("expected a file to type");
+        // not reached
+    }
+    
+    if (is_hex) {
+        err = type_hex(paths.strings[0]);
+    }
+    else {
+        err = type_text(paths.strings[0]);
     }
 
-#if 1
-    err = type_hex(argv[1]);
-#else
-    err = type_text(argv[1]);
-#endif
-
     if (err != EOK) {
-        print_error(argv[0], argv[1], err);
+        print_error(argv[0], paths.strings[0], err);
     }
 
     return exit_code(err);
