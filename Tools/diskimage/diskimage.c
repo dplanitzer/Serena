@@ -9,6 +9,7 @@
 #include "diskimage.h"
 #include <errno.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,23 @@ FilePermissions gDefaultFilePermissions;
 User gDefaultUser;
 
 char gBuffer[4096];
+
+
+static void vfatal(const char* fmt, va_list ap)
+{
+    clap_verror(fmt, ap);
+    exit(EXIT_FAILURE);
+    // NOT REACHED
+}
+
+static void fatal(const char* fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfatal(fmt, ap);
+    va_end(ap);
+}
 
 
 static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
@@ -139,7 +157,7 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath, size_t 
     return;
 
 catch:
-    clap_error(strerror(err));
+    fatal(strerror(err));
 }
 
 
@@ -165,7 +183,7 @@ const struct disk_size_entry gDiskSizes[] = {
 // amiga-dd     (Amiga double density floppy disk - 880k)
 // amiga-hd     (Amiga high density floppy disk - 1760k)
 // auto         (auto-calculate the smallest disk size to cover all blocks that were written to)    XXX not yet
-static void parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
+static int parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
 {
     long long size = 0ll;
     char* pptr = NULL;
@@ -195,7 +213,7 @@ static void parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned in
 
             if (*pptr != '\0') {
                 clap_param_error(param, eo, "unknown disk size multiplier '%s'", pptr);
-                // not reached
+                return EXIT_FAILURE;
             }
 
             limit /= mtp;
@@ -204,13 +222,12 @@ static void parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned in
 
                 if (r <= SIZE_MAX) {
                     *(size_t*)param->value = r;
-                    return;
+                    return EXIT_SUCCESS;
                 }
             }
         }
 
         clap_param_error(param, eo, "disk size too large");
-        // not reached
     }
     else {
         // Check for symbolic disk sizes
@@ -219,14 +236,15 @@ static void parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned in
         while (dse->name) {
             if (!strcmp(arg, dse->name)) {
                 *(size_t*)param->value = dse->size;
-                return;
+                return EXIT_SUCCESS;
             }
             dse++;
         }
 
         clap_param_error(param, eo, "unknown symbolic disk size '%s", arg);
-        // not reached
     }
+
+    return EXIT_FAILURE;
 }
 
 
@@ -267,14 +285,14 @@ static void init(void)
 
 int main(int argc, char* argv[])
 {
-    clap_parse(params, argc, argv);
+    clap_parse(0, params, argc, argv);
 
     init();
 
     if (!strcmp(argv[1], "create")) {
         if (paths.count != 2) {
             clap_error("expected a disk image and root path");
-            // not reached
+            return EXIT_FAILURE;
         }
 
         createDiskImage(paths.strings[0], paths.strings[1], disk_size);

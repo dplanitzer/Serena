@@ -13,6 +13,8 @@
 
 __CPP_BEGIN
 
+typedef int clap_status_t;
+
 typedef struct clap_t {
     clap_param_t* _Nonnull  params;
     int                     params_count;
@@ -23,6 +25,7 @@ typedef struct clap_t {
     int                     arg_idx;
 
     bool                    should_interpret_args;  // If true then args are interpreted; if false then they are always assigned to the varargs
+    bool                    should_terminate;       // Terminates the clap_parse() loop if set to true
 
     clap_param_t * _Nullable * _Nonnull cmds;
     int                                 cmds_count;
@@ -31,7 +34,6 @@ typedef struct clap_t {
 } clap_t;
 
 
-extern void _clap_print_app_name(void);
 extern void _clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param);
 
 __CPP_END

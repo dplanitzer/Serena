@@ -63,11 +63,11 @@ $(OBJS_DIR):
 
 LIBCLAP_DIR := ../Library/libclap
 LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
-LIBCLAP_SRCS := $(LIBCLAP_SOURCES_DIR)/clap.c $(LIBCLAP_SOURCES_DIR)/clap_help.c
+LIBCLAP_SRCS := $(LIBCLAP_SOURCES_DIR)/clap.c $(LIBCLAP_SOURCES_DIR)/clap_error.c $(LIBCLAP_SOURCES_DIR)/clap_help.c
 
 $(OBJS_DIR)/clap.lib: $(LIBCLAP_SRCS) $(LIBCLAP_HEADERS_DIR)/clap.h $(LIBCLAP_SOURCES_DIR)/clap_priv.h
 	cl /c /I $(LIBCLAP_HEADERS_DIR) /I $(LIBCLAP_SOURCES_DIR) $(DEBUG_FLAGS) /Fo:"$(OBJS_DIR)/" $(filter %.c,$^)
-	link /lib /out:"$@" $(OBJS_DIR)\clap_help.obj $(OBJS_DIR)\clap.obj
+	link /lib /out:"$@" $(OBJS_DIR)\clap_error.obj $(OBJS_DIR)\clap_help.obj $(OBJS_DIR)\clap.obj
 
 
 # --------------------------------------------------------------------------

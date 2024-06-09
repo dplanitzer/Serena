@@ -121,7 +121,24 @@ typedef struct SourceLocation {
 static void parse_error(SourceLocation loc, const char* msg)
 {
     clap_error("line %d:%d: %s\n", loc.line, loc.column, msg);
+    exit(EXIT_FAILURE);
     // NOT REACHED
+}
+
+static void vfatal(const char* fmt, va_list ap)
+{
+    clap_verror(fmt, ap);
+    exit(EXIT_FAILURE);
+    // NOT REACHED
+}
+
+static void fatal(const char* fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfatal(fmt, ap);
+    va_end(ap);
 }
 
 
@@ -134,7 +151,7 @@ static FILE* km_open(const char* filename, const char* mode)
     FILE* s = fopen(filename, mode);
 
     if (s == NULL) {
-        clap_error("Unable to open '%s'", filename);
+        fatal("Unable to open '%s'", filename);
         // NOT REACHED
     }
     return s;
@@ -725,7 +742,7 @@ static void patchLabeled16(CompiledKeyMap* ckmap, const void* label, uint16_t w)
 static void ensureCompiledKeyMapSize(CompiledKeyMap* ckmap, size_t minCapacityIncrease)
 {
     if (ckmap->data.count > 65535) {
-        clap_error("Compiled key map is too big");
+        fatal("Compiled key map is too big");
         // NOT REACHED
     }
 
@@ -858,7 +875,7 @@ static void writeKeyMap_Binary(CompiledKeyMap* ckmap, const char *pathToKeysFile
     fflush(s);
 
     if (ferror(s)) {
-        clap_error("Unable to write key map file");
+        fatal("Unable to write key map file");
         // NOT REACHED
     }
 
@@ -940,7 +957,7 @@ static void readKeyMapFile(FILE* s, Data* data)
     uint16_t hdr16[2];
 
     if (fread(hdr8, 1, 4, s) != 4) {
-        clap_error("Unexpected EOF");
+        fatal("Unexpected EOF");
         // NOT REACHED
     }
 
@@ -948,7 +965,7 @@ static void readKeyMapFile(FILE* s, Data* data)
     const uint16_t size = (uint16_t)((((uint8_t)hdr8[2]) << 8) | ((uint8_t)hdr8[3]));
 
     if (type != kKeyMapType_0) {
-        clap_error("Unknown key map type: 0x%hx", hdr16[0]);
+        fatal("Unknown key map type: 0x%hx", hdr16[0]);
         // NOT REACHED
     }
 
@@ -958,7 +975,7 @@ static void readKeyMapFile(FILE* s, Data* data)
 
     rewind(s);
     if (fread(data->bytes, 1, size, s) != size) {
-        clap_error("Unexpected EOF");
+        fatal("Unexpected EOF");
         // NOT REACHED
     }
 }
@@ -966,7 +983,7 @@ static void readKeyMapFile(FILE* s, Data* data)
 static uint8_t read8(const Data* data, uint16_t* offset)
 {
     if (*offset >= data->count) {
-        clap_error("Out-of-range offset: %hu (%hu)", *offset, data->count);
+        fatal("Out-of-range offset: %hu (%hu)", *offset, data->count);
         // NOT REACHED
     }
     return data->bytes[(*offset)++];
@@ -975,7 +992,7 @@ static uint8_t read8(const Data* data, uint16_t* offset)
 static uint16_t read16(const Data* data, uint16_t* offset)
 {
     if (*offset >= data->count) {
-        clap_error("Out-of-range offset: %hu (%hu)", *offset, data->count);
+        fatal("Out-of-range offset: %hu (%hu)", *offset, data->count);
         // NOT REACHED
     }
 
@@ -1117,7 +1134,7 @@ static void decompileKeyRange(uint16_t keyRangeOffset, const Data* data, FILE* o
                 break;
 
             default:
-                clap_error("Unknown key trap type: 0x%hx", type);
+                fatal("Unknown key trap type: 0x%hx", type);
         }
     }
 }
@@ -1168,11 +1185,11 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    clap_parse(params, argc, argv);
+    clap_parse(0, params, argc, argv);
 
     if (!strcmp(argv[1], "compile")) {
         if (paths.count < 1) {
-            clap_error("expected at least one path to a .keys file");
+            fatal("expected at least one path to a .keys file");
             // NOT REACHED
         }
 
@@ -1183,7 +1200,7 @@ int main(int argc, char* argv[])
     }
     else if (!strcmp(argv[1], "decompile")) {
         if (paths.count < 1) {
-            clap_error("expected at least one path to a .keymap file");
+            fatal("expected at least one path to a .keymap file");
             // NOT REACHED
         }
 

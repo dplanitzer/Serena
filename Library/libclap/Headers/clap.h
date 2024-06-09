@@ -10,6 +10,7 @@
 #define _CLAP_H 1
 
 #include <clapdef.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -115,13 +116,15 @@ typedef struct clap_command {
 // A callback function that the command line parser invokes to parse the command
 // line argument 'arg' into a value that the callback should store in the storage
 // pointed to by clap_param_t->value. The callback should invoke one of the
-// clap_error() functions if it detects a syntax or semantic error.
-typedef void (*clap_value_func_t)(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg);
+// clap_error() functions if it detects a syntax or semantic error and then return
+// EXIT_FAILURE. It should return EXIT_SUCCESS on success.
+typedef int (*clap_value_func_t)(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg);
 
 
 enum clap_flag {
     clap_flag_required = 1,                 // The user must provide this parameter in the command line
-    clap_flag_appeared = 2,                 // This parameter appeared in the command line
+    clap_flag_terminator = 2,               // This parameter terminates clap_parse()
+    clap_flag_appeared = 4,                 // This parameter appeared in the command line
 };
 
 
@@ -248,12 +251,12 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 // Enables the user to print the version information for the tool by passing
 // -v or --version.
 #define CLAP_VERSION(__text) \
-{clap_type_version, 0, 'v', "version", "Print version", "", {.text = __text}}
+{clap_type_version, clap_flag_terminator, 'v', "version", "Print version", "", {.text = __text}}
 
 
 // Enables the user to print a help page by passing -h or --help
 #define CLAP_HELP() \
-{clap_type_help, 0, 'h', "help", "Print help", ""}
+{clap_type_help, clap_flag_terminator, 'h', "help", "Print help", ""}
 
 // A usage string in the help page. Usage strings are printed in the order in
 // which they appear in the parameter list. All usage strings up to the first
@@ -285,16 +288,21 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 
 
 
+enum {
+    clap_option_no_exit = 1     // do not exit the process when encountering an error. Instead return from clap_parse() with a suitable exit status
+};
+
 // Parses the provided command line arguments based on the syntax rules defined
 // by the 'params' parameter list. Prints an appropriate error and terminates the
 // process with a failure exit code if a syntax or semantic error is detected.
-extern void clap_parse(clap_param_t* _Nonnull params, int argc, const char** argv);
+extern int clap_parse(unsigned int options, clap_param_t* _Nonnull params, int argc, const char** argv);
 
 
-// Call this function to print an error and to terminate the process. The error
+// Call this function to print an error to the standard error channel. The error
 // message is formatted like this:
 // proc_name: format
 extern void clap_error(const char* format, ...);
+extern void clap_verror(const char* format, va_list ap);
 
 
 enum {
@@ -304,6 +312,7 @@ enum {
 // Similar to clap_error but prints an error message of the form:
 // proc_name: param_name: format
 extern void clap_param_error(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* format, ...);
+extern void clap_vparam_error(const clap_param_t* _Nonnull param, unsigned int eo, const char* format, va_list ap);
 
 __CPP_END
 

@@ -161,11 +161,14 @@ int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     decl_try_err();
 
-    clap_parse(params, argc, argv);
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    if (status != EXIT_SUCCESS) {
+        return status;
+    }
 
     if (paths.count < 1) {
         clap_error("expected a file to type");
-        // not reached
+        return EXIT_FAILURE;
     }
     
     if (is_hex) {

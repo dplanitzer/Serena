@@ -7,6 +7,7 @@
 //
 
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -30,12 +31,29 @@
 
 #define SIZE_KB(x) (((size_t)x) * 1024l)
 
+static void vfatal(const char* fmt, va_list ap)
+{
+    clap_verror(fmt, ap);
+    exit(EXIT_FAILURE);
+    // NOT REACHED
+}
+
+static void fatal(const char* fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfatal(fmt, ap);
+    va_end(ap);
+}
+
+
 static FILE* open_require(const char* filename, const char* mode)
 {
     FILE* s = fopen(filename, mode);
 
     if (s == NULL) {
-        clap_error("Unable to open '%s'", filename);
+        fatal("Unable to open '%s'", filename);
         // NOT REACHED
     }
     return s;
@@ -44,7 +62,7 @@ static FILE* open_require(const char* filename, const char* mode)
 static void fwrite_require(const void* data, size_t size, FILE* s)
 {
     if (fwrite(data, size, 1, s) < 1) {
-        clap_error("I/O error");
+        fatal("I/O error");
         // NOT REACHED
     }
 }
@@ -52,7 +70,7 @@ static void fwrite_require(const void* data, size_t size, FILE* s)
 static void fputc_require(int ch, FILE* s)
 {
     if (fputc(ch, s) == EOF) {
-        clap_error("I/O error");
+        fatal("I/O error");
         // NOT REACHED
     }
 }
@@ -64,7 +82,7 @@ static size_t getFileSize(FILE* s)
     const long r = ftell(s);
 
     if (r == -1 || r0 != 0 || origpos == -1) {
-        clap_error("I/O error");
+        fatal("I/O error");
         // NOT REACHED
     }
 
@@ -99,7 +117,7 @@ static void appendContentsOfFile(FILE* src_s, FILE* s)
         const size_t nBytesRead = fread(gBlock, 1, BLOCK_SIZE, src_s);
 
         if (nBytesRead < BLOCK_SIZE && ferror(src_s)) {
-            clap_error("I/O error");
+            fatal("I/O error");
             // NOT REACHED
         }
 
@@ -131,10 +149,10 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
-    clap_parse(params, argc, argv);
+    clap_parse(0, params, argc, argv);
 
     if (paths.count < 2) {
-        clap_error("missing image file paths");
+        fatal("missing image file paths");
         // NOT REACHED
     }
 
@@ -157,7 +175,7 @@ int main(int argc, char* argv[])
         const size_t nb = 4 - (fileSize & 0x03);
 
         if (romSize + fileSize + nb > romCapacity) {
-            clap_error("ROM image too big");
+            fatal("ROM image too big");
             // NOT REACHED
         }
 
