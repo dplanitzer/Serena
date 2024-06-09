@@ -57,7 +57,7 @@ static void clap_deinit(clap_t* _Nullable self)
 static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params, bool isCommand)
 {
     clap_param_t* p = params;
-    int cmds_count = 0;
+    size_t cmds_count = 0;
 
     self->params = params;
     self->params_count = 0;
@@ -494,7 +494,7 @@ static clap_status_t clap_parse_command_param(clap_t* _Nonnull self, bool* _Nonn
 
     *pOutConsumed = false;
 
-    for (int i = 0; i < self->cmds_count; i++) {
+    for (size_t i = 0; i < self->cmds_count; i++) {
         clap_param_t* cc = self->cmds[i];
 
         if (!strcmp(cmd_name, cc->u.cmd.name)) {
@@ -567,7 +567,7 @@ static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self)
     short_label_buffer[0] = '-';
     short_label_buffer[2] = '\0';
 
-    for (int i = 0; i < self->params_count; i++) {
+    for (size_t i = 0; i < self->params_count; i++) {
         const clap_param_t* param = &self->params[i];
         const uint8_t flags = param->flags;
 
@@ -648,9 +648,13 @@ static clap_status_t clap_parse_args(clap_t* _Nonnull self)
     }
 
     
-    if (status == 0) {
+    if (status == 0 && !self->should_terminate) {
         // Check that all required parameters have appeared in the command line
         status = clap_enforce_required_params(self);
+    }
+
+    if (status != 0 || self->should_terminate) {
+        status |= 0x100;
     }
 
     return status;
@@ -665,12 +669,12 @@ int clap_parse(unsigned int options, clap_param_t* _Nonnull params, int argc, co
     const clap_status_t status = clap_parse_args(&clap);
     clap_deinit(&clap);
 
-    if (status != 0) {
+    if (clap_should_exit(status)) {
         if ((options & clap_option_no_exit) == clap_option_no_exit) {
             return status;
         }
         else {
-            exit(status);
+            exit(clap_exit_code(status));
             // NOT REACHED
         }
     }

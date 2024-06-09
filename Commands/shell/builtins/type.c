@@ -162,8 +162,8 @@ int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv)
     decl_try_err();
 
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (status != EXIT_SUCCESS) {
-        return status;
+    if (clap_should_exit(status)) {
+        return clap_exit_code(status);
     }
 
     if (paths.count < 1) {

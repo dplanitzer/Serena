@@ -298,6 +298,20 @@ enum {
 extern int clap_parse(unsigned int options, clap_param_t* _Nonnull params, int argc, const char** argv);
 
 
+// Call this macro with the result of a clap_error(clap_option_no_exit, ...) call
+// to check whether the process should terminate even though the clap_error()
+// result is EXIT_SUCCESS. This situation arises if the user invokes the process
+// with ie the --help option.
+#define clap_should_exit(__status) \
+((__status) == 0x100 || ((__status) & 0xff) != 0)
+
+
+// Use this macro to extract the exit status code from the result of a
+// clap_parse(clap_option_no_exit, ...) call.
+#define clap_exit_code(__status) \
+((__status) & 0xff)
+
+
 // Call this function to print an error to the standard error channel. The error
 // message is formatted like this:
 // proc_name: format

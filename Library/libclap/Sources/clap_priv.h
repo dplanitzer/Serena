@@ -17,7 +17,7 @@ typedef int clap_status_t;
 
 typedef struct clap_t {
     clap_param_t* _Nonnull  params;
-    int                     params_count;
+    size_t                  params_count;
     clap_param_t* _Nullable vararg_param;   // First vararg type parameter in the parameter list; NULL if none exists
 
     const char**            argv;
@@ -28,7 +28,7 @@ typedef struct clap_t {
     bool                    should_terminate;       // Terminates the clap_parse() loop if set to true
 
     clap_param_t * _Nullable * _Nonnull cmds;
-    int                                 cmds_count;
+    size_t                              cmds_count;
     bool                                cmd_required;
     bool                                cmd_appeared;
 } clap_t;
