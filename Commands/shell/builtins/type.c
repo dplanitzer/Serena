@@ -167,7 +167,7 @@ int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv)
     }
 
     if (paths.count < 1) {
-        clap_error("expected a file to type");
+        clap_error(argv[0], "expected a file to type");
         return EXIT_FAILURE;
     }
     

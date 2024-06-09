@@ -118,7 +118,7 @@ typedef struct clap_command {
 // pointed to by clap_param_t->value. The callback should invoke one of the
 // clap_error() functions if it detects a syntax or semantic error and then return
 // EXIT_FAILURE. It should return EXIT_SUCCESS on success.
-typedef int (*clap_value_func_t)(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg);
+typedef int (*clap_value_func_t)(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg);
 
 
 enum clap_flag {
@@ -301,8 +301,10 @@ extern int clap_parse(unsigned int options, clap_param_t* _Nonnull params, int a
 // Call this function to print an error to the standard error channel. The error
 // message is formatted like this:
 // proc_name: format
-extern void clap_error(const char* format, ...);
-extern void clap_verror(const char* format, va_list ap);
+// The 'proc_name' argument may be a pure process name or a argv[0] style path
+// to the process.
+extern void clap_error(const char* _Nonnull proc_name, const char* format, ...);
+extern void clap_verror(const char* _Nonnull proc_name, const char* format, va_list ap);
 
 
 enum {
@@ -311,8 +313,10 @@ enum {
 
 // Similar to clap_error but prints an error message of the form:
 // proc_name: param_name: format
-extern void clap_param_error(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* format, ...);
-extern void clap_vparam_error(const clap_param_t* _Nonnull param, unsigned int eo, const char* format, va_list ap);
+// The 'proc_name' argument may be a pure process name or a argv[0] style path
+// to the process.
+extern void clap_param_error(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* format, ...);
+extern void clap_vparam_error(const char* _Nonnull proc_name, const clap_param_t* _Nonnull param, unsigned int eo, const char* format, va_list ap);
 
 __CPP_END
 

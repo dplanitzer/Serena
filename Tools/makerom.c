@@ -31,9 +31,11 @@
 
 #define SIZE_KB(x) (((size_t)x) * 1024l)
 
+static const char* gArgv_Zero = "";
+
 static void vfatal(const char* fmt, va_list ap)
 {
-    clap_verror(fmt, ap);
+    clap_verror(gArgv_Zero, fmt, ap);
     exit(EXIT_FAILURE);
     // NOT REACHED
 }
@@ -149,6 +151,7 @@ CLAP_DECL(params,
 
 int main(int argc, char* argv[])
 {
+    gArgv_Zero = argv[0];
     clap_parse(0, params, argc, argv);
 
     if (paths.count < 2) {

@@ -163,7 +163,7 @@ static clap_param_t* _Nullable clap_find_param_by_short_label(clap_t* _Nonnull s
 static clap_status_t clap_update_bool_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq, bool isUnset)
 {
     if (eq) {
-        clap_param_error(param, eo, "unexpected value '%s'", eq + 1);
+        clap_param_error(self->argv[0], param, eo, "unexpected value '%s'", eq + 1);
         return EXIT_FAILURE;
     }
 
@@ -182,7 +182,7 @@ static clap_status_t clap_update_int_param_value(clap_t* _Nonnull self, clap_par
         vptr = self->argv[self->arg_idx++];
     }
     else {
-        clap_param_error(param, eo, "expected an integer");
+        clap_param_error(self->argv[0], param, eo, "expected an integer");
         return EXIT_FAILURE;
     }
 
@@ -191,7 +191,7 @@ static clap_status_t clap_update_int_param_value(clap_t* _Nonnull self, clap_par
     *(int*)param->value = (int)strtol(vptr, NULL, 10);
 
     if (errno == ERANGE) {
-        clap_param_error(param, eo, "integer %s is out of range", vptr);
+        clap_param_error(self->argv[0], param, eo, "integer %s is out of range", vptr);
         return EXIT_FAILURE;
     }
     else {
@@ -210,7 +210,7 @@ static clap_status_t clap_update_string_param_value(clap_t* _Nonnull self, clap_
         vptr = self->argv[self->arg_idx++];
     }
     else {
-        clap_param_error(param, eo, "expected a string");
+        clap_param_error(self->argv[0], param, eo, "expected a string");
         return EXIT_FAILURE;
     }
 
@@ -232,7 +232,7 @@ static clap_status_t clap_update_string_array_param_value(clap_t* _Nonnull self,
     }
 
     if (errmsg) {
-        clap_param_error(param, eo, errmsg);
+        clap_param_error(self->argv[0], param, eo, errmsg);
         return EXIT_FAILURE;
     }
     
@@ -343,7 +343,7 @@ static clap_status_t clap_update_enum_param_value(clap_t* _Nonnull self, clap_pa
         return EXIT_SUCCESS;
     }
     else {
-        clap_param_error(param, eo, "unknown enum value '%s'", user_str);
+        clap_param_error(self->argv[0], param, eo, "unknown enum value '%s'", user_str);
         return EXIT_FAILURE;
     }
 }
@@ -361,7 +361,7 @@ static clap_status_t clap_update_value_param_value(clap_t* _Nonnull self, clap_p
         return status;
     }
 
-    return param->u.value_func(param, eo, user_str);
+    return param->u.value_func(self->argv[0], param, eo, user_str);
 }
 
 static clap_status_t clap_update_named_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param, unsigned int eo, const char* _Nullable eq, bool isUnset)
@@ -445,7 +445,7 @@ static clap_status_t clap_parse_long_label_param(clap_t* _Nonnull self)
     // Find the parameter for the label
     clap_param_t* param = clap_find_param_by_long_label(self, label_to_match, label_to_match_len);
     if (param == NULL || (param && isUnset && param->type != clap_type_boolean)) {
-        clap_error("unknown option '%.*s'", label_len, label);
+        clap_error(self->argv[0], "unknown option '%.*s'", label_len, label);
         return EXIT_FAILURE;
     }
 
@@ -472,7 +472,7 @@ static clap_status_t clap_parse_short_label_param(clap_t* _Nonnull self)
         // Find the parameter for the label
         clap_param_t* param = clap_find_param_by_short_label(self, ch);
         if (param == NULL) {
-            clap_error("unknown option '-%c'", ch);
+            clap_error(self->argv[0], "unknown option '-%c'", ch);
             return EXIT_FAILURE;
         }
 
@@ -519,7 +519,7 @@ static clap_status_t clap_parse_command_param(clap_t* _Nonnull self, bool* _Nonn
         return EXIT_SUCCESS;
     }
     else if(self->cmd_required) {
-        clap_error("unknown command '%s'", cmd_name);
+        clap_error(self->argv[0], "unknown command '%s'", cmd_name);
         return EXIT_FAILURE;
     }
     else {
@@ -552,7 +552,7 @@ static clap_status_t clap_parse_positional_param(clap_t* _Nonnull self)
     }
 
     if (!didConsume) {
-        clap_error("superfluous parameter '%s'", self->argv[self->arg_idx]);
+        clap_error(self->argv[0], "superfluous parameter '%s'", self->argv[self->arg_idx]);
         return EXIT_FAILURE;
     }
 
@@ -574,7 +574,7 @@ static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self)
         switch (param->type) {
             case clap_type_command:
                 if (self->cmd_required && !self->cmd_appeared) {
-                    clap_error("required command missing");
+                    clap_error(self->argv[0], "required command missing");
                     return EXIT_FAILURE;
                 }
                 break;
@@ -598,10 +598,10 @@ static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self)
                     }
 
                     if (label) {
-                        clap_error("required option '%s%s' missing", label_prefix, label);
+                        clap_error(self->argv[0], "required option '%s%s' missing", label_prefix, label);
                     }
                     else {
-                        clap_error("expected a %s", clap_g_enforceable_type_string[param->type]);
+                        clap_error(self->argv[0], "expected a %s", clap_g_enforceable_type_string[param->type]);
                     }
                     return EXIT_FAILURE;
                 }

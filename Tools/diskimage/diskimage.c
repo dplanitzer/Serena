@@ -24,9 +24,11 @@ User gDefaultUser;
 char gBuffer[4096];
 
 
+static const char* gArgv_Zero = "";
+
 static void vfatal(const char* fmt, va_list ap)
 {
-    clap_verror(fmt, ap);
+    clap_verror(gArgv_Zero, fmt, ap);
     exit(EXIT_FAILURE);
     // NOT REACHED
 }
@@ -183,7 +185,7 @@ const struct disk_size_entry gDiskSizes[] = {
 // amiga-dd     (Amiga double density floppy disk - 880k)
 // amiga-hd     (Amiga high density floppy disk - 1760k)
 // auto         (auto-calculate the smallest disk size to cover all blocks that were written to)    XXX not yet
-static int parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
+static int parseDiskSize(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
 {
     long long size = 0ll;
     char* pptr = NULL;
@@ -212,7 +214,7 @@ static int parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned int
             }
 
             if (*pptr != '\0') {
-                clap_param_error(param, eo, "unknown disk size multiplier '%s'", pptr);
+                clap_param_error(proc_name, param, eo, "unknown disk size multiplier '%s'", pptr);
                 return EXIT_FAILURE;
             }
 
@@ -227,7 +229,7 @@ static int parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned int
             }
         }
 
-        clap_param_error(param, eo, "disk size too large");
+        clap_param_error(proc_name, param, eo, "disk size too large");
     }
     else {
         // Check for symbolic disk sizes
@@ -241,7 +243,7 @@ static int parseDiskSize(const struct clap_param_t* _Nonnull param, unsigned int
             dse++;
         }
 
-        clap_param_error(param, eo, "unknown symbolic disk size '%s", arg);
+        clap_param_error(proc_name, param, eo, "unknown symbolic disk size '%s", arg);
     }
 
     return EXIT_FAILURE;
@@ -285,13 +287,14 @@ static void init(void)
 
 int main(int argc, char* argv[])
 {
+    gArgv_Zero = argv[0];
     clap_parse(0, params, argc, argv);
 
     init();
 
     if (!strcmp(argv[1], "create")) {
         if (paths.count != 2) {
-            clap_error("expected a disk image and root path");
+            fatal("expected a disk image and root path");
             return EXIT_FAILURE;
         }
 

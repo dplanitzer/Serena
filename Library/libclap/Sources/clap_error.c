@@ -10,50 +10,46 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef __SERENA__
-#include <System/Process.h>
-#endif
 
 
 // Prints the application name as it appears in argv[0]. This is just the name
 // of the app without the platform specific path and extension.
-static void _clap_print_app_name(void)
+static void _clap_print_app_name(const char* _Nonnull proc_name)
 {
     const char* app_name = "";
     int app_name_len = 0;
 
 #if __SERENA__
-    ProcessArguments* pa = Process_GetArguments();
-
-    if (pa->argc > 0 && pa->argv[0] && pa->argv[0][0] != '\0') {
-        const char* sp = strrchr(pa->argv[0], '/');
+    if (*proc_name != '\0') {
+        const char* sp = strrchr(proc_name, '/');
         
-        app_name = (sp) ? sp + 1 : pa->argv[0];
+        app_name = (sp) ? sp + 1 : proc_name;
         app_name_len = (int) strlen(app_name);
     }
 #elif _WIN32
-    char* argv_zero = NULL;
-
-    _get_pgmptr(&argv_zero);
-    if (argv_zero && *argv_zero != '\0') {
-        const char* sp = strrchr(argv_zero, '\\');
-        const char* ep = strrchr(argv_zero, '.');
+    if (*proc_name != '\0') {
+        const char* sp = strrchr(proc_name, '\\');
+        const char* ep = strrchr(proc_name, '.');
 
         if (sp && ep) {
             app_name = sp + 1;
             app_name_len = ep - 1 - sp;
         }
         else if (sp == NULL && ep) {
-            app_name = argv_zero;
+            app_name = proc_name;
             app_name_len = ep - 1 - app_name;
         }
         else {
-            app_name = argv_zero;
+            app_name = proc_name;
             app_name_len = (int) strlen(app_name);
         }
     }
 #else
     // XXX
+    if (*proc_name) {
+        app_name = proc_name;
+        app_name_len = strlen(proc_name);
+    }
 #endif
 
     if (app_name_len > 0) {
@@ -61,27 +57,27 @@ static void _clap_print_app_name(void)
     }
 }
 
-void clap_verror(const char* format, va_list ap)
+void clap_verror(const char* _Nonnull proc_name, const char* format, va_list ap)
 {
-    _clap_print_app_name();
+    _clap_print_app_name(proc_name);
     vfprintf(stderr, format, ap);
     fputc('\n', stderr);
 }
 
-void clap_error(const char* format, ...)
+void clap_error(const char* _Nonnull proc_name, const char* format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    clap_verror(format, ap);
+    clap_verror(proc_name, format, ap);
     va_end(ap);
 }
 
-void clap_vparam_error(const clap_param_t* _Nonnull param, unsigned int eo, const char* format, va_list ap)
+void clap_vparam_error(const char* _Nonnull proc_name, const clap_param_t* _Nonnull param, unsigned int eo, const char* format, va_list ap)
 {
     const char* param_kind = (param->type == clap_type_boolean) ? "switch" : "option";
 
-    _clap_print_app_name();
+    _clap_print_app_name(proc_name);
 
     if ((eo & clap_eo_long_label) == clap_eo_long_label) {
         fprintf(stderr, "%s '--%s': ", param_kind, param->long_label);
@@ -94,11 +90,11 @@ void clap_vparam_error(const clap_param_t* _Nonnull param, unsigned int eo, cons
     fputc('\n', stderr);
 }
 
-void clap_param_error(const clap_param_t* _Nonnull param, unsigned int eo, const char* format, ...)
+void clap_param_error(const char* _Nonnull proc_name, const clap_param_t* _Nonnull param, unsigned int eo, const char* format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    clap_vparam_error(param, eo, format, ap);
+    clap_vparam_error(proc_name, param, eo, format, ap);
     va_end(ap);
 }
