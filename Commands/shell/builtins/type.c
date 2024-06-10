@@ -144,7 +144,7 @@ catch:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static clap_string_array_t paths = {NULL, 0};
+static const char* path;
 static bool is_hex = false;
 
 static CLAP_DECL(params,
@@ -153,7 +153,7 @@ static CLAP_DECL(params,
     CLAP_USAGE("type [--hex] <path>"),
 
     CLAP_BOOL('\0', "hex", &is_hex, "Type the file contents as columns of hexadecimal numbers"),
-    CLAP_VARARG(&paths)
+    CLAP_REQUIRED_POSITIONAL_STRING(&path, "expected a file to type")
 );
 
 
@@ -166,20 +166,15 @@ int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv)
         return clap_exit_code(status);
     }
 
-    if (paths.count < 1) {
-        clap_error(argv[0], "expected a file to type");
-        return EXIT_FAILURE;
-    }
-    
     if (is_hex) {
-        err = type_hex(paths.strings[0]);
+        err = type_hex(path);
     }
     else {
-        err = type_text(paths.strings[0]);
+        err = type_text(path);
     }
 
     if (err != EOK) {
-        print_error(argv[0], paths.strings[0], err);
+        print_error(argv[0], path, err);
     }
 
     return exit_code(err);

@@ -1168,8 +1168,8 @@ static void decompileKeyMap(const char* pathToKeymapsFile)
 
 const char* format_enum[] = {"binary", "C", NULL};
 
-clap_string_array_t paths = {NULL, 0};
-const char* cmd_id = "";
+const char* path;
+const char* cmd_id;
 int format_id = kOutputFormat_Binary;
 
 CLAP_DECL(params,
@@ -1177,11 +1177,11 @@ CLAP_DECL(params,
     CLAP_HELP(),
     CLAP_USAGE("keymap <command> ..."),
 
-    CLAP_REQUIRED_COMMAND("compile", &cmd_id, "<path ...>", "Compiles a list of .keys file to a .keymap files with the same name."),
+    CLAP_REQUIRED_COMMAND("compile", &cmd_id, "<path>", "Compiles a .keys file to a like-named .keymap file."),
         CLAP_ENUM('f', "format", &format_id, format_enum, "Selects the output format ('binary', 'C')."),
-        CLAP_VARARG(&paths),
-    CLAP_REQUIRED_COMMAND("decompile", &cmd_id, "<path ...>", "Decompiles a list of .keymap file and lists their contents."),
-        CLAP_VARARG(&paths)
+        CLAP_REQUIRED_POSITIONAL_STRING(&path, "expected a .keys file"),
+    CLAP_REQUIRED_COMMAND("decompile", &cmd_id, "<path>", "Decompiles a .keymap file and lists its contents."),
+        CLAP_REQUIRED_POSITIONAL_STRING(&path, "expected a .keymaps file")
 );
 
 
@@ -1191,31 +1191,11 @@ int main(int argc, char* argv[])
     clap_parse(0, params, argc, argv);
 
     if (!strcmp(argv[1], "compile")) {
-        if (paths.count < 1) {
-            fatal("expected at least one path to a .keys file");
-            // NOT REACHED
-        }
-
-        for (size_t i = 0; i < paths.count; i++) {
-            compileKeyMap(paths.strings[i], format_id);
-        }
+        compileKeyMap(path, format_id);
         puts("OK");
     }
     else if (!strcmp(argv[1], "decompile")) {
-        if (paths.count < 1) {
-            fatal("expected at least one path to a .keymap file");
-            // NOT REACHED
-        }
-
-        for (size_t i = 0; i < paths.count; i++) {
-            if (paths.count > 1) {
-                if (i > 0) {
-                    putchar('\n');
-                }
-                printf("%s:\n", paths.strings[i]);
-            }
-            decompileKeyMap(paths.strings[i]);
-        }
+        decompileKeyMap(path);
     }
 
     return EXIT_SUCCESS;

@@ -17,9 +17,8 @@ typedef int clap_status_t;
 
 
 typedef struct clap_param_list {
-    clap_param_t* _Nonnull      p;
-    clap_param_t * _Nullable    vararg;     // First vararg entry
-    int                         count;
+    clap_param_t* _Nonnull  p;
+    int                     count;
 } clap_param_list_t;
 
 
@@ -45,8 +44,9 @@ typedef struct clap {
     clap_param_list_t   global_params;  // Parameters up to the first End or Command entry
     clap_command_def_t  cmd;            // Definitions of all commands, if commands exist
 
-    clap_param_list_t   cur_params;     // Currently active parameters (global or command-based)
-    int                 cur_cmd_idx;    // Index of command in effect; -1 if no command is active
+    clap_param_list_t   cur_params;         // Currently active parameters (global or command-based)
+    int                 cur_cmd_idx;        // Index of command in effect; -1 if no command is active
+    int                 cur_pos_param_idx;  // Index of the currently active positional parameter; -1 if none is active
 
     bool                should_interpret_args;  // If true then args are interpreted; if false then they are always assigned to the varargs
     bool                should_terminate;       // Terminates the clap_parse() loop if set to true

@@ -79,16 +79,6 @@ static void clap_analyze_params(clap_t* _Nonnull self, clap_param_t* _Nonnull pa
 
     // Collect the global parameter list
     if (firstCmdIdx != 0) {
-        p = params; i = 0;
-
-        while (i < max_param_count) {
-            if (p->type == clap_type_vararg) {
-                self->global_params.vararg = p;
-                break;
-            }
-            p++; i++;
-        }
-
         self->global_params.p = params;
         self->global_params.count = (firstCmdIdx == -1) ? endIdx : firstCmdIdx;
     }
@@ -106,7 +96,6 @@ static void clap_analyze_params(clap_t* _Nonnull self, clap_param_t* _Nonnull pa
 
         p = &params[firstCmdIdx]; i = firstCmdIdx;
         for (int cmd_idx = 0; cmd_idx < nCmds; cmd_idx++) {
-            clap_param_t* vararg_param = NULL;
             int nParams = 0;
 
             self->cmd.entries[cmd_idx].decl = p;
@@ -114,14 +103,10 @@ static void clap_analyze_params(clap_t* _Nonnull self, clap_param_t* _Nonnull pa
 
             p++; i++;
             while (p->type != clap_type_command && p->type != clap_type_end && i < max_param_count) {
-                if (p->type == clap_type_vararg && vararg_param == NULL) {
-                    vararg_param = p;
-                }
                 p++; i++; nParams++;
             }
 
             self->cmd.entries[cmd_idx].params.count = nParams;
-            self->cmd.entries[cmd_idx].params.vararg = vararg_param;
 
             if (nParams == 0) {
                 self->cmd.entries[cmd_idx].params.p = &self->end_param;
@@ -137,12 +122,13 @@ static void clap_set_params(clap_t* _Nonnull self, int cmdIdx)
 {
     if (cmdIdx == -1) {
         self->cur_params = self->global_params;
-        self->cur_cmd_idx = -1;
     }
     else {
         self->cur_params = self->cmd.entries[cmdIdx].params;
-        self->cur_cmd_idx = cmdIdx;
     }
+
+    self->cur_cmd_idx = cmdIdx;
+    self->cur_pos_param_idx = -1;
 }
 
 
@@ -443,6 +429,41 @@ static clap_status_t clap_update_named_param_value(clap_t* _Nonnull self, clap_p
     return status;
 }
 
+static clap_status_t clap_update_positional_param_value(clap_t* _Nonnull self, clap_param_t* _Nonnull param)
+{
+    clap_status_t status = 0;
+
+    switch (param->type) {
+        case clap_type_string:
+            // const char* (1 value)
+            status = clap_update_string_param_value(self, param, 0, NULL);
+            break;
+
+        case clap_type_enum:
+            // int (1 value)
+            status = clap_update_enum_param_value(self, param, 0, NULL);
+            break;
+
+        case clap_type_value:
+            // const char* (1 value)
+            status = clap_update_value_param_value(self, param, 0, NULL);
+            break;
+
+        case clap_type_vararg:
+            // [const char*] (multiple values)
+            status = clap_update_string_array_param_value(self, param, 0, NULL, false);
+            break;
+
+        default:
+            abort();
+            break;
+    }
+
+    param->flags |= clap_flag_appeared;
+    
+    return status;
+}
+
 
 // Parses a long label option like:
 // --foo
@@ -510,6 +531,33 @@ static clap_status_t clap_parse_short_label_param(clap_t* _Nonnull self)
 }
 
 
+static void clap_activate_next_positional_param(clap_t* _Nonnull self)
+{
+    int i = self->cur_pos_param_idx + 1;
+
+    while (i < self->cur_params.count) {
+        const clap_param_t* p = &self->cur_params.p[i];
+
+        switch (p->type) {
+            case clap_type_string:
+            case clap_type_enum:
+            case clap_type_value:
+            case clap_type_vararg:
+                if (p->short_label == '\0' && (p->long_label == NULL || *p->long_label == '\0')) {
+                    self->cur_pos_param_idx = i;
+                    return;
+            }
+            break;
+
+            default:
+                break;
+        }
+        
+        i++;
+    }
+    self->cur_pos_param_idx = i;
+}
+
 static clap_status_t clap_parse_command_param(clap_t* _Nonnull self, bool* _Nonnull pOutConsumed)
 {
     const char* cmd_name = self->argv[self->arg_idx];
@@ -554,26 +602,36 @@ static clap_status_t clap_parse_command_param(clap_t* _Nonnull self, bool* _Nonn
 
 static clap_status_t clap_parse_positional_param(clap_t* _Nonnull self)
 {
-    clap_param_t* param;
     bool didConsume = false;
 
-    if (self->cmd.entries_count > 0 && !self->cmd.appeared && self->should_interpret_args) {
-        const clap_status_t status = clap_parse_command_param(self, &didConsume);
-        if (status != 0) {
-            return status;
-        }
+    // Try to activate the first positional parameter if there is one
+    if (self->cur_pos_param_idx == -1) {
+        clap_activate_next_positional_param(self);
     }
 
-    if (!didConsume && self->cur_params.vararg) {
-        self->should_interpret_args = false;
 
-        const clap_status_t status = clap_update_string_array_param_value(self, self->cur_params.vararg, 0, NULL, false);
-        if (status != 0) {
-            return status;
+    if (self->cur_pos_param_idx >= 0 && self->cur_pos_param_idx < self->cur_params.count) {
+        clap_param_t* p = &self->cur_params.p[self->cur_pos_param_idx];
+
+        if (p->type == clap_type_vararg) {
+            self->should_interpret_args = false;
         }
 
-        self->cur_params.vararg->flags |= clap_flag_appeared;
+        clap_update_positional_param_value(self, p);
+        clap_activate_next_positional_param(self);
         didConsume = true;
+    }
+    else {
+        // If we were not able to activate a positional parameter (in the global
+        // parameter list), no command is currently selected, but we do have command
+        // definitions then we'll interpret the provided parameter value as a command
+        // selector
+        if (self->cur_cmd_idx == -1 && self->cmd.entries_count > 0 && !self->cmd.appeared && self->should_interpret_args) {
+            const clap_status_t status = clap_parse_command_param(self, &didConsume);
+            if (status != 0) {
+                return status;
+            }
+        }
     }
 
     if (!didConsume) {
@@ -625,6 +683,9 @@ static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self)
 
                     if (label) {
                         clap_error(self->argv[0], "required option '%s%s' missing", label_prefix, label);
+                    }
+                    else if (param->help && *param->help != '\0') {
+                        clap_error(self->argv[0], param->help);
                     }
                     else {
                         clap_error(self->argv[0], "expected an argument");

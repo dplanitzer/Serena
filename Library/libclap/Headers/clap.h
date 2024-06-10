@@ -185,6 +185,12 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 #define CLAP_REQUIRED_STRING(__short_label, __long_label, __sptr, __help) \
 {clap_type_string, clap_flag_required, __short_label, __long_label, __help, (void*)__sptr}
 
+#define CLAP_POSITIONAL_STRING(__sptr) \
+{clap_type_string, 0, '\0', "", "", (void*)__sptr}
+
+#define CLAP_REQUIRED_POSITIONAL_STRING(__sptr, __missing_param_help) \
+{clap_type_string, clap_flag_required, '\0', "", __missing_param_help, (void*)__sptr}
+
 
 // Defines an optional/required string array (option) parameter. '__saptr' is
 // expected to point to a clap_string_array_t variable. Note that the array
@@ -208,6 +214,28 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 #define CLAP_REQUIRED_ENUM(__short_label, __long_label, __iptr, __strs, __help) \
 {clap_type_enum, clap_flag_required, __short_label, __long_label, __help, (void*)__iptr, {.enum_strings = __strs}}
 
+#define CLAP_POSITIONAL_ENUM(__iptr, __strs) \
+{clap_type_enum, 0, '\0', "", "", (void*)__iptr, {.enum_strings = __strs}}
+
+#define CLAP_REQUIRED_POSITIONAL_ENUM(__iptr, __strs, __missing_param_help) \
+{clap_type_enum, clap_flag_required, '\0', "", __missing_param_help, (void*)__iptr, {.enum_strings = __strs}}
+
+
+// Defines an optional/required value (option) parameter. '__vptr' is expected
+// to point to a variable that will hold the value. '__func' is the function
+// that will be used to parse an argument string and to update the value variable.
+#define CLAP_VALUE(__short_label, __long_label, __vptr, __func, __help) \
+{clap_type_value, 0, __short_label, __long_label, __help, (void*)__vptr, {.value_func = __func }}
+
+#define CLAP_REQUIRED_VALUE(__short_label, __long_label, __vptr, __func, __help) \
+{clap_type_value, clap_flag_required, __short_label, __long_label, __help, (void*)__vptr, {.value_func = __func }}
+
+#define CLAP_POSITIONAL_VALUE(__vptr, __func) \
+{clap_type_value, 0, '\0', "", "", (void*)__vptr, {.value_func = __func }}
+
+#define CLAP_REQUIRED_POSITIONAL_VALUE(__vptr, __func, __missing_param_help) \
+{clap_type_value, clap_flag_required, '\0', "", __missing_param_help, (void*)__vptr, {.value_func = __func }}
+
 
 // Defines an optional/required command (option) parameter. '__name_ptr' is
 // expected to point to a variable that stores a pointer to a string. This 
@@ -224,16 +252,6 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 {clap_type_command, clap_flag_required, '\0', "", __help, (void*)__name_ptr, {.cmd = {__name, __usage}}}
 
 
-// Defines an optional/required value (option) parameter. '__vptr' is expected
-// to point to a variable that will hold the value. '__func' is the function
-// that will be used to parse an argument string and to update the value variable.
-#define CLAP_VALUE(__short_label, __long_label, __vptr, __func, __help) \
-{clap_type_value, 0, __short_label, __long_label, __help, (void*)__vptr, {.value_func = __func }}
-
-#define CLAP_REQUIRED_VALUE(__short_label, __long_label, __vptr, __func, __help) \
-{clap_type_value, clap_flag_required, __short_label, __long_label, __help, (void*)__vptr, {.value_func = __func }}
-
-
 // Defines a variable argument list. This is the list of positional parameters
 // at the end of the command line. It starts either with the first parameter that
 // appears in a position where the parser would expect a short or long label and
@@ -244,8 +262,8 @@ clap_param_t __params_name[] = { __VA_ARGS__, CLAP_END() }
 #define CLAP_VARARG(__saptr) \
 {clap_type_vararg, 0, '\0', "", "", (void*)__saptr}
 
-#define CLAP_REQUIRED_VARARG(__saptr, __help) \
-{clap_type_vararg, clap_flag_required, '\0', "", __help, (void*)__saptr}
+#define CLAP_REQUIRED_VARARG(__saptr, __missing_param_help) \
+{clap_type_vararg, clap_flag_required, '\0', "", __missing_param_help, (void*)__saptr}
 
 
 // Enables the user to print the version information for the tool by passing

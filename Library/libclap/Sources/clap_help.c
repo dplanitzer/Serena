@@ -48,9 +48,9 @@ static bool clap_print_prolog_epilog(const clap_param_t* _Nonnull p, enum clap_t
     return (c > 0) ? true : false;
 }
 
-static bool clap_should_print_help_for_param(const clap_param_t* _Nonnull param)
+static bool clap_should_print_help_for_param(const clap_param_t* _Nonnull p)
 {
-    switch (param->type) {
+    switch (p->type) {
         case clap_type_boolean:
         case clap_type_integer:
         case clap_type_string:
@@ -59,20 +59,21 @@ static bool clap_should_print_help_for_param(const clap_param_t* _Nonnull param)
         case clap_type_value:
         case clap_type_version:
         case clap_type_help:
-            return true;
+            if ((p->short_label != '\0' || (p->long_label && *p->long_label != '\0')) && (p->help && *p->help != '\0')) {
+                return true;
+            }
+            break;
 
         default:
-            return false;
+            break;
     }
+
+    return false;
 }
 
 static void clap_print_param_help(const clap_param_t* _Nonnull p, int column_0_width)
 {
     int cw = 0;
-
-    if (p->short_label == '\0' && (p->long_label == NULL || *p->long_label == '\0') && (p->help == NULL || *p->help == '\0')) {
-        return;
-    }
 
     fputs("  ", stdout);
     cw += 2;
