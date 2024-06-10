@@ -79,11 +79,13 @@ void clap_vparam_error(const char* _Nonnull proc_name, const clap_param_t* _Nonn
 
     _clap_print_app_name(proc_name);
 
-    if ((eo & clap_eo_long_label) == clap_eo_long_label) {
-        fprintf(stderr, "%s '--%s': ", param_kind, param->long_label);
-    }
-    else {
-        fprintf(stderr, "%s '-%c': ", param_kind, param->short_label);
+    if (param->short_label != '\0' || (param->long_label && *param->long_label != '\0')) {
+        if ((eo & clap_eo_long_label) == clap_eo_long_label) {
+            fprintf(stderr, "%s '--%s': ", param_kind, param->long_label);
+        }
+        else {
+            fprintf(stderr, "%s '-%c': ", param_kind, param->short_label);
+        }
     }
 
     vfprintf(stderr, format, ap);
