@@ -121,9 +121,9 @@ Set the current working directory to the directory indicated by the provided pat
 
 Clears the screen.
 
-#### DELETE \<path>
+#### DELETE \<path ...>
 
-Deletes the directory or file indicated by the provided path. A directory has to be empty to be deletable.
+Deletes one or multiple directories or files indicated by the provided paths. A directory has to be empty to be deletable.
 
 #### ECHO str1 str2 ...
 

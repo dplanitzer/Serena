@@ -13,14 +13,6 @@
 #include <string.h>
 
 
-static const char* const clap_g_enforceable_type_string[] = {
-    "boolean",
-    "integer",
-    "string",
-    "strings",
-    "enumeration"
-};
-
 static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params, bool isCommand);
 static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self);
 
@@ -584,6 +576,7 @@ static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self)
             case clap_type_string:
             case clap_type_string_array:
             case clap_type_enum:
+            case clap_type_vararg:
                 if ((flags & clap_flag_required) == clap_flag_required && (flags & clap_flag_appeared) == 0) {
                     const char* label = NULL;
                     const char* label_prefix = NULL;
@@ -601,7 +594,7 @@ static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self)
                         clap_error(self->argv[0], "required option '%s%s' missing", label_prefix, label);
                     }
                     else {
-                        clap_error(self->argv[0], "expected a %s", clap_g_enforceable_type_string[param->type]);
+                        clap_error(self->argv[0], "expected an argument");
                     }
                     return EXIT_FAILURE;
                 }
