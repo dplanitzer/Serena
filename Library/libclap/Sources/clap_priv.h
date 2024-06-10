@@ -15,22 +15,43 @@ __CPP_BEGIN
 
 typedef int clap_status_t;
 
-typedef struct clap_t {
-    clap_param_t* _Nonnull  params;
-    size_t                  params_count;
-    clap_param_t* _Nullable vararg_param;   // First vararg type parameter in the parameter list; NULL if none exists
 
-    const char**            argv;
-    int                     argc;
-    int                     arg_idx;
+typedef struct clap_param_list {
+    clap_param_t* _Nonnull      p;
+    clap_param_t * _Nullable    vararg;     // First vararg entry
+    int                         count;
+} clap_param_list_t;
 
-    bool                    should_interpret_args;  // If true then args are interpreted; if false then they are always assigned to the varargs
-    bool                    should_terminate;       // Terminates the clap_parse() loop if set to true
 
-    clap_param_t * _Nullable * _Nonnull cmds;
-    size_t                              cmds_count;
-    bool                                cmd_required;
-    bool                                cmd_appeared;
+typedef struct clap_command_entry {
+    clap_param_t* _Nonnull  decl;       // Parameter declaring the command
+    clap_param_list_t       params;     // Parameters associated with this command
+} clap_command_entry_t;
+
+
+typedef struct clap_command_def {
+    clap_command_entry_t * _Nonnull entries;
+    int                             entries_count;
+    bool                            required;
+    bool                            appeared;
+} clap_command_def_t;
+
+
+typedef struct clap {
+    const char**        argv;
+    int                 argc;
+    int                 arg_idx;
+
+    clap_param_list_t   global_params;  // Parameters up to the first End or Command entry
+    clap_command_def_t  cmd;            // Definitions of all commands, if commands exist
+
+    clap_param_list_t   cur_params;     // Currently active parameters (global or command-based)
+    int                 cur_cmd_idx;    // Index of command in effect; -1 if no command is active
+
+    bool                should_interpret_args;  // If true then args are interpreted; if false then they are always assigned to the varargs
+    bool                should_terminate;       // Terminates the clap_parse() loop if set to true
+
+    clap_param_t        end_param;      // End parameter used as a sentinel for empty parameter lists
 } clap_t;
 
 

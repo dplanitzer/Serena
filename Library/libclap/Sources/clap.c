@@ -8,109 +8,140 @@
 
 #include "clap_priv.h"
 #include <errno.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
 
-static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params, bool isCommand);
+static void clap_analyze_params(clap_t* _Nonnull self, clap_param_t* params);
+static void clap_set_params(clap_t* _Nonnull self, int cmdIdx);
 static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self);
 
 
-static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nullable params, int argc, const char** argv)
+static void clap_init(clap_t* _Nonnull self, clap_param_t* _Nonnull params, int argc, const char** argv)
 {
     memset(self, 0, sizeof(clap_t));
     self->arg_idx = 1;
     self->argc = argc;
     self->argv = argv;
     self->should_interpret_args = true;
+    self->end_param.type = clap_type_end;
+    self->end_param.long_label = "";
+    self->end_param.help = "";
 
-    clap_set_params(self, params, false);
+    clap_analyze_params(self, params);
+    clap_set_params(self, -1);
 }
 
 static void clap_deinit(clap_t* _Nullable self)
 {
     if (self) {
-        self->params = NULL;
-        self->params_count = 0;
-
-        self->vararg_param = NULL;
-
-        free(self->cmds);
-        self->cmds = NULL;
-        self->cmds_count = 0;
-
-        self->argc = 0;
-        self->argv = NULL;
+        free(self->cmd.entries);
+        memset(self, 0, sizeof(clap_t));
     }
 }
 
 
-static void clap_set_params(clap_t* _Nonnull self, clap_param_t* _Nullable params, bool isCommand)
+// Analyzes the provided parameter list and figures out which commands it defines.
+// It creates a command table and finds the sections in the parameter list that
+// correspond to the global and per-command parameters. 
+static void clap_analyze_params(clap_t* _Nonnull self, clap_param_t* _Nonnull params)
 {
     clap_param_t* p = params;
-    size_t cmds_count = 0;
+    const int max_param_count = INT_MAX;
+    bool isCmdRequired = false;
+    int nCmds = 0, firstCmdIdx = -1, endIdx = 0;
+    int i = 0;
 
-    self->params = params;
-    self->params_count = 0;
-
-    self->vararg_param = NULL;
-
-    free(self->cmds);
-    self->cmds = NULL;
-    self->cmds_count = 0;
-    self->cmd_required = false;
-    self->cmd_appeared = false;
-
-    // Analyze the parameter list. If this is a top-level parameter list (isCommand == false)
-    // then iterate until we hit the clap_type_end parameter. If however this is a command
-    // parameter list, then stop iterating either when we hit the end of the parameter list
-    // or we hit the next command declaration.
-    while (p) {
-        if (p->type == clap_type_end || (isCommand && p->type == clap_type_command)) {
+    // Find the index of the first command, number of commands and the end parameter
+    for(;;) {
+        if (p->type == clap_type_end || i == max_param_count) {
+            endIdx = i;
             break;
         }
 
-        p->flags &= ~clap_flag_appeared;
-
-        switch (p->type) {
-            case clap_type_command:
-                if ((p->flags & clap_flag_required) == clap_flag_required) {
-                    self->cmd_required = true;
-                }
-                cmds_count++;
-                break;
-
-            case clap_type_vararg:
-                if (self->vararg_param == NULL && ((!isCommand && cmds_count == 0) || isCommand)) {
-                    self->vararg_param = p;
-                }
-                break;
-
-            default:
-                break;
+        if (p->type == clap_type_command) {
+            nCmds++;
+            if ((p->flags & clap_flag_required) == clap_flag_required) {
+                isCmdRequired = true;
+            }
+            if (firstCmdIdx == -1) {
+                firstCmdIdx = i;
+            }
         }
 
+        p->flags &= ~clap_flag_appeared;
         p++;
-        self->params_count++;
+        i++;
     }
 
 
-    // Collect the command declarations
-    if (cmds_count > 0) {
-        self->cmds = malloc(sizeof(clap_param_t*) * cmds_count);
+    // Collect the global parameter list
+    if (firstCmdIdx != 0) {
+        p = params; i = 0;
 
-        p = params;
-        while (self->cmds_count < cmds_count) {
-            if (p->type == clap_type_command) {
-                self->cmds[self->cmds_count++] = p;
-                if (self->cmd_required) {
-                    p->flags |= clap_flag_required;
+        while (i < max_param_count) {
+            if (p->type == clap_type_vararg) {
+                self->global_params.vararg = p;
+                break;
+            }
+            p++; i++;
+        }
+
+        self->global_params.p = params;
+        self->global_params.count = (firstCmdIdx == -1) ? endIdx : firstCmdIdx;
+    }
+    else {
+        self->global_params.p = &self->end_param;
+        self->global_params.count = 0;
+    }
+
+
+    // Collect the command entries
+    if (nCmds > 0) {
+        self->cmd.entries = calloc(nCmds, sizeof(clap_command_entry_t));
+        self->cmd.entries_count = nCmds;
+        self->cmd.required = isCmdRequired;
+
+        p = &params[firstCmdIdx]; i = firstCmdIdx;
+        for (int cmd_idx = 0; cmd_idx < nCmds; cmd_idx++) {
+            clap_param_t* vararg_param = NULL;
+            int nParams = 0;
+
+            self->cmd.entries[cmd_idx].decl = p;
+            self->cmd.entries[cmd_idx].params.p = p + 1;
+
+            p++; i++;
+            while (p->type != clap_type_command && p->type != clap_type_end && i < max_param_count) {
+                if (p->type == clap_type_vararg && vararg_param == NULL) {
+                    vararg_param = p;
                 }
+                p++; i++; nParams++;
             }
 
-            p++;
+            self->cmd.entries[cmd_idx].params.count = nParams;
+            self->cmd.entries[cmd_idx].params.vararg = vararg_param;
+
+            if (nParams == 0) {
+                self->cmd.entries[cmd_idx].params.p = &self->end_param;
+            }
         }
+    }
+}
+
+// Sets the currently active parameters and command. Sets the global parameters
+// as the active parameters if 'cmdIdx' is -1; otherwise the corresponding command
+// and its associated parameters are made active
+static void clap_set_params(clap_t* _Nonnull self, int cmdIdx)
+{
+    if (cmdIdx == -1) {
+        self->cur_params = self->global_params;
+        self->cur_cmd_idx = -1;
+    }
+    else {
+        self->cur_params = self->cmd.entries[cmdIdx].params;
+        self->cur_cmd_idx = cmdIdx;
     }
 }
 
@@ -125,8 +156,8 @@ static void clap_version(clap_t* _Nonnull self, const clap_param_t* _Nonnull par
 
 static clap_param_t* _Nullable clap_find_param_by_long_label(clap_t* _Nonnull self, const char* _Nonnull label, size_t label_len)
 {
-    for (int i = 0; i < self->params_count; i++) {
-        clap_param_t* p = &self->params[i];
+    for (int i = 0; i < self->cur_params.count; i++) {
+        clap_param_t* p = &self->cur_params.p[i];
 
         if (p->long_label && *(p->long_label) != '\0') {
             if (!strncmp(p->long_label, label, label_len) && strlen(p->long_label) == label_len) {
@@ -140,8 +171,8 @@ static clap_param_t* _Nullable clap_find_param_by_long_label(clap_t* _Nonnull se
 
 static clap_param_t* _Nullable clap_find_param_by_short_label(clap_t* _Nonnull self, char label)
 {
-    for (int i = 0; i < self->params_count; i++) {
-        clap_param_t* p = &self->params[i];
+    for (int i = 0; i < self->cur_params.count; i++) {
+        clap_param_t* p = &self->cur_params.p[i];
 
         if (p->short_label != '\0' && p->short_label == label) {
             return p;
@@ -483,14 +514,16 @@ static clap_status_t clap_parse_command_param(clap_t* _Nonnull self, bool* _Nonn
 {
     const char* cmd_name = self->argv[self->arg_idx];
     clap_param_t* cmd_param = NULL;
+    int cmd_idx;
 
     *pOutConsumed = false;
 
-    for (size_t i = 0; i < self->cmds_count; i++) {
-        clap_param_t* cc = self->cmds[i];
+    for (size_t i = 0; i < self->cmd.entries_count; i++) {
+        clap_param_t* cc = self->cmd.entries[i].decl;
 
         if (!strcmp(cmd_name, cc->u.cmd.name)) {
             cmd_param = cc;
+            cmd_idx = i;
             break;
         }
     }
@@ -498,7 +531,7 @@ static clap_status_t clap_parse_command_param(clap_t* _Nonnull self, bool* _Nonn
     if (cmd_param) {
         *(const char**)cmd_param->value = cmd_name;
         cmd_param->flags |= clap_flag_appeared;
-        self->cmd_appeared = true;
+        self->cmd.appeared = true;
         self->arg_idx++;
 
         const clap_status_t status = clap_enforce_required_params(self);
@@ -506,11 +539,11 @@ static clap_status_t clap_parse_command_param(clap_t* _Nonnull self, bool* _Nonn
             return status;
         }
 
-        clap_set_params(self, cmd_param + 1, true);
+        clap_set_params(self, cmd_idx);
         *pOutConsumed = true;
         return EXIT_SUCCESS;
     }
-    else if(self->cmd_required) {
+    else if(self->cmd.required) {
         clap_error(self->argv[0], "unknown command '%s'", cmd_name);
         return EXIT_FAILURE;
     }
@@ -524,22 +557,22 @@ static clap_status_t clap_parse_positional_param(clap_t* _Nonnull self)
     clap_param_t* param;
     bool didConsume = false;
 
-    if (self->cmds_count > 0 && !self->cmd_appeared && self->should_interpret_args) {
+    if (self->cmd.entries_count > 0 && !self->cmd.appeared && self->should_interpret_args) {
         const clap_status_t status = clap_parse_command_param(self, &didConsume);
         if (status != 0) {
             return status;
         }
     }
 
-    if (!didConsume && self->vararg_param) {
+    if (!didConsume && self->cur_params.vararg) {
         self->should_interpret_args = false;
 
-        const clap_status_t status = clap_update_string_array_param_value(self, self->vararg_param, 0, NULL, false);
+        const clap_status_t status = clap_update_string_array_param_value(self, self->cur_params.vararg, 0, NULL, false);
         if (status != 0) {
             return status;
         }
 
-        self->vararg_param->flags |= clap_flag_appeared;
+        self->cur_params.vararg->flags |= clap_flag_appeared;
         didConsume = true;
     }
 
@@ -559,13 +592,13 @@ static clap_status_t clap_enforce_required_params(clap_t* _Nonnull self)
     short_label_buffer[0] = '-';
     short_label_buffer[2] = '\0';
 
-    for (size_t i = 0; i < self->params_count; i++) {
-        const clap_param_t* param = &self->params[i];
+    for (int i = 0; i < self->cur_params.count; i++) {
+        const clap_param_t* param = &self->cur_params.p[i];
         const uint8_t flags = param->flags;
 
         switch (param->type) {
             case clap_type_command:
-                if (self->cmd_required && !self->cmd_appeared) {
+                if (self->cmd.required && !self->cmd.appeared) {
                     clap_error(self->argv[0], "required command missing");
                     return EXIT_FAILURE;
                 }

@@ -146,23 +146,24 @@ static void clap_print_params_help(const clap_param_t* _Nonnull params, size_t p
 
 static bool clap_print_commands_help(clap_t* _Nonnull self)
 {
-    if (self->cmds_count == 0) {
+    if (self->cmd.entries_count == 0) {
         return false;
     }
 
     puts("The following commands are supported:");
 
     int column_0_width = 0;
-    for (int i = 0; i < self->cmds_count; i++) {
-        const int w = (int)strlen(self->cmds[i]->u.cmd.name);
+    for (int i = 0; i < self->cmd.entries_count; i++) {
+        const clap_param_t* cmd = self->cmd.entries[i].decl;
+        const int w = (int)strlen(cmd->u.cmd.name);
 
         if (w > column_0_width) {
             column_0_width = w;
         }
     }
 
-    for (int i = 0; i < self->cmds_count; i++) {
-        const clap_param_t* cp = self->cmds[i];
+    for (int i = 0; i < self->cmd.entries_count; i++) {
+        const clap_param_t* cp = self->cmd.entries[i].decl;
         const int cw = strlen(cp->u.cmd.name);
         const int nSpaces = (cw <= column_0_width) ? column_0_width - cw : 0;
 
@@ -181,8 +182,8 @@ static bool clap_print_commands_help(clap_t* _Nonnull self)
 
 void _clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
 {
-    const hasUsage = clap_print_usage(self->params);
-    const hasProlog = clap_print_prolog_epilog(self->params, clap_type_prolog, hasUsage);
+    const hasUsage = clap_print_usage(self->cur_params.p);
+    const hasProlog = clap_print_prolog_epilog(self->cur_params.p, clap_type_prolog, hasUsage);
 
     if (hasProlog || hasUsage) {
         putchar('\n');
@@ -194,7 +195,7 @@ void _clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
         putchar('\n');
     }
 
-    clap_print_params_help(self->params, self->params_count);
+    clap_print_params_help(self->cur_params.p, self->cur_params.count);
 
-    clap_print_prolog_epilog(self->params, clap_type_epilog, true);
+    clap_print_prolog_epilog(self->cur_params.p, clap_type_epilog, true);
 }
