@@ -11,7 +11,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <clap.h>
 
+
+static CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("pwd")
+);
 
 
 int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
@@ -19,8 +26,9 @@ int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
     decl_try_err();
     char* buf = NULL;
 
-    if (argc > 1) {
-        printf("%s: unexpected extra arguments\n", argv[0]);
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    if (clap_should_exit(status)) {
+        return clap_exit_code(status);
     }
 
     try_null(buf, malloc(PATH_MAX), ENOMEM);
