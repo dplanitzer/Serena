@@ -9,18 +9,50 @@
 #include "Interpreter.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <clap.h>
 
+
+static void echo_string(const char* _Nonnull str)
+{
+    fputs(str, stdout);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+static clap_string_array_t strs = {NULL, 0};
+static bool is_noline = false;
+static bool is_nosep = false;
+
+static CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("echo [-n| --noline] [-s | --nospace] <strings ...>"),
+
+    CLAP_BOOL('n', "noline", &is_noline, "Do not output a newline"),
+    CLAP_BOOL('s', "nospace", &is_nosep, "Do not output a space between arguments"),
+    CLAP_VARARG(&strs)
+);
 
 
 int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
-    for (int i = 1; i < argc; i++) {
-        fputs(argv[i], stdout);
-        if (i < (argc - 1)) {
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    if (clap_should_exit(status)) {
+        return clap_exit_code(status);
+    }
+
+    for (size_t i = 0; i < strs.count; i++) {
+        echo_string(strs.strings[i]);
+        
+        if (!is_nosep && i < (argc - 1)) {
             fputc(' ', stdout);
         }
     }
-    fputc('\n', stdout);
+
+    if (!is_noline) {
+        fputc('\n', stdout);
+    }
 
     return EXIT_SUCCESS;
 }

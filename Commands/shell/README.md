@@ -82,7 +82,7 @@ Hello World
 
 ### Escape Sequences
 
-An escape sequence is a special sequence of characters that trigger some predetermined function. Such a sequence may only appear inside of a double quoted string. Most of the supported escape sequences are based on the same sequences supported in ANSI C. However, additional sequences are supported. The supported sequences are:
+An escape sequence is a special sequence of characters that triggers some predetermined function and they are only recognized inside of a double quoted string. Escape sequences are based on the same sequences supported in ANSI C plus some additional sequences. The supported sequences are:
 
 * \\a Plays the bell sound
 * \\b Inserts a backspace character
@@ -123,11 +123,11 @@ Clears the screen.
 
 #### DELETE \<path ...>
 
-Deletes one or multiple directories or files indicated by the provided paths. A directory has to be empty to be deletable.
+Deletes one or more directories or files indicated by the provided path(s). A directory must be empty to be eligible for deleting.
 
-#### ECHO str1 str2 ...
+#### ECHO [-n | --noline] [-s | --nospace] \<strings ...>
 
-Prints the given list of strings separated by single space characters to standard out. The list of strings is followed by a single newline character.
+Prints the given list of strings separated by single space characters to standard out. The list of strings is followed by a single newline character. The output of the final newline character may be suppressed by specifying the '--noline' option. Use the '--nospace' option to print multiple strings without a separating space character. All strings following a '--' parameter are printed verbatim and not interpreted as an option even if they start with '-' or '--' characters.
 
 #### EXIT [exit_code]
 

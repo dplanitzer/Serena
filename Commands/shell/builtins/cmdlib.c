@@ -10,16 +10,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <clap.h>
 
 
-void print_error(const char* _Nonnull cmd, const char* _Nullable path, errno_t err)
+void print_error(const char* _Nonnull proc_name, const char* _Nullable path, errno_t err)
 {
     const char* errstr = strerror(err);
 
-    if (path && path[0] != '\0') {
-        fprintf(stderr, "%s: %s: %s\n", cmd, path, errstr);
+    if (path && *path != '\0') {
+        clap_error(proc_name, "%s: %s", path, errstr);
     }
     else {
-        fprintf(stderr, "%s: %s\n", cmd, errstr);
+        clap_error(proc_name, "%s", errstr);
     }
 }

@@ -170,6 +170,7 @@ static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self)
         case 'e':   ch = 0x1b;  break;
         case 'f':   ch = 0x0c;  break;
         case 'r':   ch = 0x0d;  break;
+        case 'n':   ch = 0x0a;  break;
         case 'v':   ch = 0x0b;  break;
 
         case '$':   break;
