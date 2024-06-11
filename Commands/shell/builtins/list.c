@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <clap.h>
 #include <System/_math.h>
 
 
@@ -32,6 +33,11 @@ typedef struct ListContext {
     int     gidWidth;
     int     sizeWidth;
     int     inodeIdWidth;
+
+    struct Flags {
+        unsigned int printAll:1;
+        unsigned int reserved:31;
+    }       flags;
 } ListContext;
 typedef ListContext* ListContextRef;
 
@@ -126,6 +132,10 @@ static errno_t iterate_dir(ListContextRef _Nonnull self, int dp, const char* _No
             break;
         }
 
+        if (!self->flags.printAll && dirent.name[0] == '.') {
+            continue;
+        }
+
         try(cb(self, path, &dirent));
     }
 
@@ -148,27 +158,46 @@ catch:
     return err;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+
+static const char* default_path[1] = {"."};
+static clap_string_array_t paths = {default_path, 1};
+static bool is_print_all = false;
+
+static CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("list [-a | --all] <path>"),
+
+    CLAP_BOOL('a', "all", &is_print_all, "Print entries starting with a '.'"),
+    CLAP_VARARG(&paths)
+);
+
+
 int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     decl_try_err();
-    char* dummy_argv[3] = { argv[0], ".", NULL };
     ListContext ctx = {0};
     bool anyError = false;
 
-    if (argc < 2) {
-        argv = dummy_argv;
-        argc = 2;
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    if (clap_should_exit(status)) {
+        return clap_exit_code(status);
     }
 
+    ctx.flags.printAll = is_print_all;
+
+    
     ctx.pathBuffer = malloc(PATH_MAX);
     if (ctx.pathBuffer == NULL) {
         return EXIT_FAILURE;
     }
 
-    for (int i = 1; i < argc; i++) {
-        const char* path = argv[i];
+    for (size_t i = 0; i < paths.count; i++) {
+        const char* path = paths.strings[i];
 
-        if (argc > 2) {
+        if (paths.count > 1) {
             printf("%s:\n", path);
         }
 

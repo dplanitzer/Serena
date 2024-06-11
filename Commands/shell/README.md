@@ -137,9 +137,9 @@ Exits the current shell with the exit code 'exit_code'. The exit code is passed 
 
 Prints the contents of the shell history to standard out. Each history entry is printed as a separate line. The entries are printed in the order of newest to oldest.
 
-#### LIST [path1 path2 ...]
+#### LIST [-a | --all] [paths ...]
 
-Lists the contents of one or more directories indicated by the provided paths. Lists the contents of the current working directory if no path is provided.
+Lists the contents of one or more directories as indicated by the provided paths. Lists the contents of the current working directory if no path is provided. By default the list command does not list entries that start with a '.'. Pass the '--all' parameter to enable the output of all directory entries.
 
 #### MAKEDIR \<path>
 
