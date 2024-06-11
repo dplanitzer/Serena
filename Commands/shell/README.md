@@ -141,9 +141,9 @@ Prints the contents of the shell history to standard out. Each history entry is 
 
 Lists the contents of one or more directories as indicated by the provided paths. Lists the contents of the current working directory if no path is provided. By default the list command does not list entries that start with a '.'. Pass the '--all' parameter to enable the output of all directory entries.
 
-#### MAKEDIR \<path>
+#### MAKEDIR [-p | --parents] \<path>
 
-Creates an empty directory at the file system location indicated by the provided path. The last path component in the path specifies the name of the directory to create.
+Creates an empty directory at the file system location designated by the provided path. The last path component in the path specifies the name of the directory to create. Any non-existing intermediate directories are automatically created if you pass the '--parents' option.
 
 #### PWD
 

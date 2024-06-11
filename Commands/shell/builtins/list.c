@@ -181,6 +181,10 @@ int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv)
     ListContext ctx = {0};
     bool anyError = false;
 
+    paths.strings = default_path;
+    paths.count = 1;
+    is_print_all = false;
+
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
     if (clap_should_exit(status)) {
         return clap_exit_code(status);

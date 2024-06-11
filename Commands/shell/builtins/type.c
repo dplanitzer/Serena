@@ -161,6 +161,8 @@ int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
     decl_try_err();
 
+    is_hex = false;
+    
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
     if (clap_should_exit(status)) {
         return clap_exit_code(status);

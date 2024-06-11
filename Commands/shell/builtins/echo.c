@@ -22,7 +22,7 @@ static void echo_string(const char* _Nonnull str)
 
 static clap_string_array_t strs = {NULL, 0};
 static bool is_noline = false;
-static bool is_nosep = false;
+static bool is_nospace = false;
 
 static CLAP_DECL(params,
     CLAP_VERSION("1.0"),
@@ -30,13 +30,16 @@ static CLAP_DECL(params,
     CLAP_USAGE("echo [-n| --noline] [-s | --nospace] <strings ...>"),
 
     CLAP_BOOL('n', "noline", &is_noline, "Do not output a newline"),
-    CLAP_BOOL('s', "nospace", &is_nosep, "Do not output a space between arguments"),
+    CLAP_BOOL('s', "nospace", &is_nospace, "Do not output a space between arguments"),
     CLAP_VARARG(&strs)
 );
 
 
 int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv)
 {
+    is_noline = false;
+    is_nospace = false;
+
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
     if (clap_should_exit(status)) {
         return clap_exit_code(status);
@@ -45,7 +48,7 @@ int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv)
     for (size_t i = 0; i < strs.count; i++) {
         echo_string(strs.strings[i]);
         
-        if (!is_nosep && i < (argc - 1)) {
+        if (!is_nospace && i < (argc - 1)) {
             fputc(' ', stdout);
         }
     }
