@@ -22,6 +22,7 @@ extern const char* const kGraphicsDriverName;
 extern const char* const kConsoleName;
 extern const char* const kEventsDriverName;
 extern const char* const kRealtimeClockName;
+extern const char* const kFloppyDrive0Name;
 
 
 extern DriverManagerRef _Nonnull  gDriverManager;

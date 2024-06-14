@@ -47,6 +47,7 @@ _fdc_set_drive_motor:
         move.l  sdm_fdc_ptr(sp), a0
         move.l  sdm_onoff(sp), d0
 
+        move.b  CIABPRB, d1
         or.b    #%01111000, d1              ; deselect all drives
         move.b  d1, CIABPRB
 

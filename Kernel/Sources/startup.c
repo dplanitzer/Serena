@@ -16,6 +16,7 @@
 #include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
 #include <driver/RomDisk.h>
+#include <driver/amiga/FloppyDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <hal/Platform.h>
@@ -132,6 +133,8 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 static void init_root_filesystem(void)
 {
     decl_try_err();
+
+#if __BOOT_FROM_ROM__
     RamDiskRef pRamDisk;
     FilesystemRef pFS;
 
@@ -161,6 +164,7 @@ static void init_root_filesystem(void)
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
     // that the disk image is exactly 64k in size.
+    print("Booting from ROM...\n");
     try(RamDisk_Create(512, 128, 128, &pRamDisk));
     for (LogicalBlockAddress lba = 0; lba < 128; lba++) {
         try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * 512], lba));
@@ -171,6 +175,16 @@ static void init_root_filesystem(void)
     // disk
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
     try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pRamDisk, NULL, 0, NULL));
+#else
+    FloppyDiskRef pDisk;
+    FilesystemRef pFS;
+
+    pDisk = (FloppyDiskRef) DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name);
+    assert(pDisk != NULL);
+    try(SerenaFS_Create((SerenaFSRef*)&pFS));
+    try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pDisk, NULL, 0, NULL));
+    print("Booting from fd0...\n");
+#endif
     return;
 
 catch:

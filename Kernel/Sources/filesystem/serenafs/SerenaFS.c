@@ -393,6 +393,7 @@ catch:
 
 errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
+#if __BOOT_FROM_ROM__   /* XXX tmp to work around read errors after writes to floppy disk. */
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     const SFSBlockMap* pBlockMap = (const SFSBlockMap*)Inode_GetBlockMap(pNode);
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
@@ -422,6 +423,9 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     }
 
     return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
+#else
+    return EOK;
+#endif
 }
 
 static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)

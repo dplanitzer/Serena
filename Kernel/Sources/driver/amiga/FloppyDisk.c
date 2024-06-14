@@ -100,9 +100,9 @@ static errno_t FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull
     decl_try_err();
     
     try(Semaphore_Acquire(&pDma->inuse, kTimeInterval_Infinity));
-    
+//    print("b, buffer: %p, nwords: %d\n", pData, nwords);
     fdc_io_begin(pFdc, pData, nwords, 0);
-    err = Semaphore_Acquire(&pDma->done, TimeInterval_MakeSeconds(10));
+    err = Semaphore_Acquire(&pDma->done, kTimeInterval_Infinity);
     if (err == EOK) {
         const unsigned int status = fdc_get_io_status(pFdc);
         
@@ -112,14 +112,12 @@ static errno_t FloppyDMA_DoIO(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull
         else if ((status & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
             err = EDISKCHANGE;
         }
-        else if ((status & (1 << CIABPRA_BIT_IODONE)) != 0) {
-            err = EOK;
-        }
     }
     fdc_io_end(pFdc);
     
     Semaphore_Relinquish(&pDma->inuse);
-    
+//    print("DMA done (%d)\n", (int)err);
+
     return (err == ETIMEDOUT) ? ENOMEDIUM : err;
 
 catch:
@@ -131,6 +129,7 @@ catch:
 // disk.
 static errno_t FloppyDMA_Read(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords)
 {
+//    print("DMA_Read ");
     return FloppyDMA_DoIO(pDma, pFdc, pData, nwords, 0);
 }
 
@@ -139,6 +138,7 @@ static errno_t FloppyDMA_Read(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull
 // disk.
 static errno_t FloppyDMA_Write(FloppyDMA* _Nonnull pDma, FdcControlByte* _Nonnull pFdc, const uint16_t* _Nonnull pData, int nwords)
 {
+//    print("DMA_Write ");
     return FloppyDMA_DoIO(pDma, pFdc, (uint16_t*)pData, nwords, 1);
 }
 
@@ -407,7 +407,8 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull pDisk, int cylinder, int
     const int last_dir = (pDisk->flags & FLOPPY_FLAG_PREV_STEP_INWARD) ? 1 : -1;
     const int nsteps = __abs(diff);
     const bool change_side = (pDisk->head != head);
-    
+
+//    print("*** SeekTo(c: %d, h: %d)\n", cylinder, head);
     FloppyDisk_InvalidateTrackBuffer(pDisk);
     
     // Wait 18 ms if we have to reverse the seek direction
@@ -598,9 +599,11 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull pDisk, int head, int 
         
         // MFM decode the sector header
         mfm_decode_sector((const uint32_t*)&track_buffer[i], (uint32_t*)&header.format, 1);
-        
+
+     //   print("offset: %d, fmt: %d, t: %d, s: %d, sg: %d\n", (int)(2*i), (int)header.format, (int)header.track, (int)header.sector, (int)header.seceow);
+
         // Validate the sector header. We record valid sectors only.
-        if (header.format != ADF_FORMAT_V1 || header.track != cylinder || header.sector >= ADF_DD_SECS_PER_TRACK) {
+        if (header.format != ADF_FORMAT_V1 || header.track != 2*cylinder + head || header.sector >= ADF_DD_SECS_PER_TRACK) {
             continue;
         }
         
@@ -639,16 +642,6 @@ errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull pDisk, size_t head, size_t 
     
     // MFM decode the sector data
     mfm_decode_sector((const uint32_t*)&track_buffer[idx + 28], (uint32_t*)pBuffer, ADF_SECTOR_SIZE / sizeof(uint32_t));
-    
-    /*
-     for(int i = 0; i < ADF_HD_SECS_PER_CYL; i++) {
-     int offset = sector_table[i];
-     
-     if (offset != 0) {
-     print("H: %d, C: %d, S: %d -> %d  (0x%x)\n", head, cylinder, i, offset, &track_buffer[offset]);
-     }
-     }
-     */
     return EOK;
 
 catch:
@@ -726,7 +719,7 @@ size_t FloppyDisk_getBlockSize(FloppyDiskRef _Nonnull self)
 LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
 {
     // XXX detect DD vs HD disk types
-    return ADF_HD_SECS_PER_TRACK * ADF_HD_CYLS_PER_DISK * ADF_HD_HEADS_PER_CYL;
+    return ADF_DD_SECS_PER_TRACK * ADF_DD_CYLS_PER_DISK * ADF_DD_HEADS_PER_CYL;
 }
 
 // Returns true if the disk if read-only.
@@ -742,11 +735,16 @@ bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 // returned, or it fails and no block data is returned.
 errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
-    // XXX hardcoded to HD for now
-    const size_t c = lba / (ADF_HD_HEADS_PER_CYL * ADF_HD_SECS_PER_TRACK);
-    const size_t h = (lba / ADF_HD_SECS_PER_TRACK) % ADF_HD_HEADS_PER_CYL;
-    const size_t s = lba % ADF_HD_SECS_PER_TRACK;
+    // XXX hardcoded to DD for now
+    if (lba >= ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK) {
+        return EIO;
+    }
 
+    const size_t c = lba / (ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK);
+    const size_t h = (lba / ADF_DD_SECS_PER_TRACK) % ADF_DD_HEADS_PER_CYL;
+    const size_t s = lba % ADF_DD_SECS_PER_TRACK;
+
+//    print("lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
     return FloppyDisk_ReadSector(self, h, c, s, pBuffer);
 }
 
@@ -757,11 +755,17 @@ errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer,
 // block may contain a mix of old and new data.
 errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
-    // XXX hardcoded to HD for now
-    const size_t c = lba / (ADF_HD_HEADS_PER_CYL * ADF_HD_SECS_PER_TRACK);
-    const size_t h = (lba / ADF_HD_SECS_PER_TRACK) % ADF_HD_HEADS_PER_CYL;
-    const size_t s = lba % ADF_HD_SECS_PER_TRACK;
-    
+    // XXX hardcoded to DD for now
+    if (lba >= ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK) {
+        return EIO;
+    }
+
+    const size_t c = lba / (ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK);
+    const size_t h = (lba / ADF_DD_SECS_PER_TRACK) % ADF_DD_HEADS_PER_CYL;
+    const size_t s = lba % ADF_DD_SECS_PER_TRACK;
+
+//    print("WRITE: lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
+
     return FloppyDisk_WriteSector(self, h, c, s, pBuffer);
 }
 

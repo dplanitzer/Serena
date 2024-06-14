@@ -11,8 +11,8 @@
 
 #include <klib/klib.h>
 #include <dispatcher/Semaphore.h>
-#include "InterruptController.h"
-#include "DiskDriver.h"
+#include <driver/InterruptController.h>
+#include <driver/DiskDriver.h>
 
 
 // See http://lclevy.free.fr/adflib/adf_info.html
@@ -28,7 +28,7 @@
 
 
 // Sector table capacity
-#define FLOPPY_SECTORS_CAPACITY         ADF_HD_SECS_PER_TRACK
+#define FLOPPY_SECTORS_CAPACITY         ADF_DD_SECS_PER_TRACK
 #define FLOPPY_TRACK_BUFFER_CAPACITY    6400
 
 

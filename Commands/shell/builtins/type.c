@@ -26,7 +26,7 @@
 
 static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_t ncolumns)
 {
-    printf(ADDR_FMT":  ", addr);
+    printf(ADDR_FMT"   ", addr);
 
     for (size_t i = 0; i < nbytes; i++) {
         printf("%.2hhx ", buf[i]);
@@ -35,7 +35,7 @@ static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_
         fputs("   ", stdout);
     }
     
-    fputs(" |", stdout);
+    fputs("  ", stdout);
     for (size_t i = 0; i < nbytes; i++) {
         const int ch = (isprint(buf[i])) ? buf[i] : '.';
 
@@ -44,7 +44,6 @@ static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_
     for (size_t i = nbytes; i < ncolumns; i++) {
         fputc(' ', stdout);
     }
-    fputc('|', stdout);
 }
 
 static bool should_quit(void)

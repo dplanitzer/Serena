@@ -48,8 +48,13 @@ else
 	CC_GEN_DEBUG_INFO := -g
 endif
 
+# XXX comment out to build a system that boots from floppy disk
+BOOT_FROM_ROM := 1
 
 CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68030=1 -D__SERENA__
+ifdef BOOT_FROM_ROM
+CC_PREPROC_DEFS += -D__BOOT_FROM_ROM__
+endif
 
 #XXX vbcc always defines -D__STDC_HOSTED__=1 and we can't override it for the kernel (which should define -D__STDC_HOSTED__=0)
 KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1
@@ -95,7 +100,8 @@ KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/Kernel_Tests
 ROM_FILE := $(PRODUCT_DIR)/Serena.rom
 
 BOOT_DISK_DIR := $(BUILD_DIR)/bootdisk
-BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.dmg
+BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.adf
+#BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.dmg
 
 
 SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/shell
@@ -166,16 +172,23 @@ build-boot-disk: $(SH_FILE)
 	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
 
 $(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
-	@echo Making boot_disk.dmg
+ifdef BOOT_FROM_ROM
+	@echo Making boot_disk.adf
 	$(DISKIMAGE) create --size=64k $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
+else
+	@echo Making boot_disk.adf
+	$(DISKIMAGE) create --size=amiga-dd $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
+endif
 
-#$(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)
-#	@echo Making ROM
-#	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE) $(BOOT_DMG_FILE)
-
+ifdef BOOT_FROM_ROM
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)
 	@echo Making ROM
 	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE) $(BOOT_DMG_FILE)
+else
+$(ROM_FILE): $(KERNEL_FILE) | $(PRODUCT_DIR)
+	@echo Making ROM
+	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE)
+endif
 
 $(PRODUCT_DIR):
 	$(call mkdir_if_needed,$(PRODUCT_DIR))
