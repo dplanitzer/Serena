@@ -13,18 +13,7 @@
 #include <dispatcher/Semaphore.h>
 #include <driver/InterruptController.h>
 #include <driver/DiskDriver.h>
-
-
-// See http://lclevy.free.fr/adflib/adf_info.html
-#define ADF_SECTOR_SIZE         512
-
-#define ADF_DD_SECS_PER_TRACK   11
-#define ADF_DD_HEADS_PER_CYL    2
-#define ADF_DD_CYLS_PER_DISK    80
-
-#define ADF_HD_SECS_PER_TRACK   22
-#define ADF_HD_HEADS_PER_CYL    2
-#define ADF_HD_CYLS_PER_DISK    80
+#include <driver/amiga/cbm-floppy/AmigaDiskFormat.h>
 
 
 // Sector table capacity

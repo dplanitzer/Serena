@@ -16,7 +16,7 @@
 #include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
 #include <driver/RomDisk.h>
-#include <driver/amiga/FloppyDisk.h>
+#include <driver/amiga/cbm-floppy/FloppyDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <hal/Platform.h>
@@ -164,7 +164,7 @@ static void init_root_filesystem(void)
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
     // that the disk image is exactly 64k in size.
-    print("Booting from ROM...\n");
+    print("Booting from ROM...\n\n");
     try(RamDisk_Create(512, 128, 128, &pRamDisk));
     for (LogicalBlockAddress lba = 0; lba < 128; lba++) {
         try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * 512], lba));
@@ -183,7 +183,7 @@ static void init_root_filesystem(void)
     assert(pDisk != NULL);
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
     try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pDisk, NULL, 0, NULL));
-    print("Booting from fd0...\n");
+    print("Booting from fd0...\n\n");
 #endif
     return;
 

@@ -9,7 +9,7 @@
 #include "DriverManager.h"
 #include <console/Console.h>
 #include <dispatcher/Lock.h>
-#include <driver/amiga/FloppyDisk.h>
+#include <driver/amiga/cbm-floppy/FloppyDisk.h>
 #include <driver/amiga/cbm-graphics/GraphicsDriver.h>
 #include <driver/amiga/RealtimeClock.h>
 #include <driver/hid/EventDriver.h>
