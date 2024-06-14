@@ -49,7 +49,7 @@ else
 endif
 
 # XXX comment out to build a system that boots from floppy disk
-BOOT_FROM_ROM := 1
+#BOOT_FROM_ROM := 1
 
 CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68030=1 -D__SERENA__
 ifdef BOOT_FROM_ROM
