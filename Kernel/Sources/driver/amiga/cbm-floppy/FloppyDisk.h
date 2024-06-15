@@ -10,34 +10,14 @@
 #define FloppyDisk_h
 
 #include <klib/klib.h>
-#include <dispatcher/Semaphore.h>
-#include <driver/InterruptController.h>
 #include <driver/DiskDriver.h>
-#include <driver/amiga/cbm-floppy/AmigaDiskFormat.h>
+#include <driver/amiga/cbm-floppy/AmigaDiskFormat.h>    // XXX
+#include <driver/amiga/cbm-floppy/FloppyController.h>   // XXX
 
 
 // Sector table capacity
 #define FLOPPY_SECTORS_CAPACITY         ADF_DD_SECS_PER_TRACK
 #define FLOPPY_TRACK_BUFFER_CAPACITY    6400
-
-
-typedef uint8_t   FdcControlByte;       // shadow copy of the CIABRPB register
-
-
-// The floppy DMA singleton. The Amiga has just one single floppy DMA channel
-// which is shared by all drives.
-typedef struct FloppyDMA {
-    Semaphore           inuse;  // Semaphore indicating whether the DMA is in use
-    Semaphore           done;   // Semaphore indicating whether the DMA is done
-    InterruptHandlerID  irqHandler;
-} FloppyDMA;
-
-
-extern FloppyDMA* _Nonnull  gFloppyDma;
-
-// Creates the floppy DMA singleton
-extern errno_t FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma);
-
 
 
 // Stores the state of a single floppy drive.

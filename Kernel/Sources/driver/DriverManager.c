@@ -247,7 +247,6 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 #ifndef __BOOT_FROM_ROM__
     // XXX Stops A4000 (68040/68060) from completing the boot process, if enabled
     FloppyDiskRef fd0 = NULL;
-    try(FloppyDMA_Create(&gFloppyDma));
     try(FloppyDisk_Create(0, &fd0));
     try(FloppyDisk_Reset(fd0));
     try(DriverManager_AddDriver_Locked(pManager, kFloppyDrive0Name, fd0));

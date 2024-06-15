@@ -12,144 +12,6 @@
 #include "mfm.h"
 
 
-// CIABPRA bits (FDC status byte)
-#define CIABPRA_BIT_DSKRDY      5
-#define CIABPRA_BIT_DSKTRACK0   4
-#define CIABPRA_BIT_DSKPROT     3
-#define CIABPRA_BIT_DSKCHANGE   2
-#define CIABPRA_BIT_IODONE      0   /* see fdc_get_io_status() */
-
-
-// CIABPRB bits (FDC control byte)
-#define CIABPRB_BIT_DSKMOTOR    7
-#define CIABPRB_BIT_DSKSEL3     6
-#define CIABPRB_BIT_DSKSEL2     5
-#define CIABPRB_BIT_DSKSEL1     4
-#define CIABPRB_BIT_DSKSEL0     3
-#define CIABPRB_BIT_DSKSIDE     2
-#define CIABPRB_BIT_DSKDIREC    1
-#define CIABPRB_BIT_DSKSTEP     0
-
-
-
-extern unsigned int fdc_get_drive_status(FdcControlByte* _Nonnull fdc);
-extern void fdc_set_drive_motor(FdcControlByte* _Nonnull fdc, int onoff);
-extern void fdc_step_head(FdcControlByte* _Nonnull fdc, int inout);
-extern void fdc_select_head(FdcControlByte* _Nonnull fdc, int side);
-extern void fdc_io_begin(FdcControlByte* _Nonnull fdc, uint16_t* pData, int nwords, int readwrite);
-extern unsigned int fdc_get_io_status(FdcControlByte* _Nonnull fdc);
-extern void fdc_io_end(FdcControlByte*  _Nonnull fdc);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Floppy DMA
-////////////////////////////////////////////////////////////////////////////////
-
-
-FloppyDMA*  gFloppyDma;
-
-// Destroys the floppy DMA.
-static void FloppyDMA_Destroy(FloppyDMA* _Nullable self)
-{
-    if (self) {
-        if (self->irqHandler != 0) {
-            try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
-        }
-        self->irqHandler = 0;
-        
-        Semaphore_Deinit(&self->inuse);
-        Semaphore_Deinit(&self->done);
-        
-        kfree(self);
-    }
-}
-
-// Creates the floppy DMA singleton
-errno_t FloppyDMA_Create(FloppyDMA* _Nullable * _Nonnull pOutFloppyDma)
-{
-    decl_try_err();
-    FloppyDMA* self;
-    
-    try(kalloc_cleared(sizeof(FloppyDMA), (void**) &self));
-
-    Semaphore_Init(&self->inuse, 1);
-    Semaphore_Init(&self->done, 0);
-        
-    try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
-                                                         INTERRUPT_ID_DISK_BLOCK,
-                                                         INTERRUPT_HANDLER_PRIORITY_NORMAL,
-                                                         &self->done,
-                                                         &self->irqHandler));
-    InterruptController_SetInterruptHandlerEnabled(gInterruptController,
-                                                       self->irqHandler,
-                                                       true);
-    *pOutFloppyDma = self;
-    return EOK;
-
-catch:
-    FloppyDMA_Destroy(self);
-    *pOutFloppyDma = NULL;
-    return err;
-}
-
-// Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
-// the caller until the DMA is available and all words have been transferred from
-// disk.
-static errno_t FloppyDMA_DoIO(FloppyDMA* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, int readwrite)
-{
-    decl_try_err();
-    
-    try(Semaphore_Acquire(&self->inuse, kTimeInterval_Infinity));
-    //print("b, buffer: %p, nwords: %d\n", pData, nwords);
-    fdc_io_begin(pFdc, pData, nwords, 0);
-    err = Semaphore_Acquire(&self->done, kTimeInterval_Infinity);
-    if (err == EOK) {
-        const unsigned int status = fdc_get_io_status(pFdc);
-        
-        if ((status & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
-            err = ENOMEDIUM;
-        }
-        else if ((status & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
-            err = EDISKCHANGE;
-        }
-    }
-    fdc_io_end(pFdc);
-    
-    Semaphore_Relinquish(&self->inuse);
-    //print("DMA done (%d)\n", (int)err);
-    //while(1);
-
-    return (err == ETIMEDOUT) ? ENOMEDIUM : err;
-
-catch:
-    return err;
-}
-
-// Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
-// the caller until the DMA is available and all words have been transferred from
-// disk.
-static errno_t FloppyDMA_Read(FloppyDMA* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords)
-{
-//    print("DMA_Read ");
-    return FloppyDMA_DoIO(self, pFdc, pData, nwords, 0);
-}
-
-// Synchronously writes 'nwords' 16bit words from the given word buffer. Blocks
-// the caller until the DMA is available and all words have been transferred to
-// disk.
-static errno_t FloppyDMA_Write(FloppyDMA* _Nonnull self, FdcControlByte* _Nonnull pFdc, const uint16_t* _Nonnull pData, int nwords)
-{
-//    print("DMA_Write ");
-    return FloppyDMA_DoIO(self, pFdc, (uint16_t*)pData, nwords, 1);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: API
-////////////////////////////////////////////////////////////////////////////////
-
 static void FloppyDisk_InvalidateReadTrack(FloppyDiskRef _Nonnull pDisk);
 
 
@@ -160,6 +22,10 @@ errno_t FloppyDisk_Create(int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk
     decl_try_err();
     FloppyDisk* self;
     
+    if (gFloppyController == NULL) {
+        try(FloppyController_Create(&gFloppyController));
+    }
+
     try(Object_Create(FloppyDisk, &self));
     try(kalloc_options(sizeof(uint16_t) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (void**) &self->readTrackBuffer));
     try(kalloc_options(sizeof(uint16_t) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (void**) &self->writeTrackBuffer));
@@ -456,7 +322,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     
     
     // Read the track
-    try(FloppyDMA_Read(gFloppyDma, &self->ciabprb, self->readTrackBuffer, self->readTrackBufferSize));
+    try(FloppyController_Read(gFloppyController, &self->ciabprb, self->readTrackBuffer, self->readTrackBufferSize));
     
     
     
@@ -548,7 +414,7 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     
     
     // write the track
-    try(FloppyDMA_Write(gFloppyDma, &self->ciabprb, self->readTrackBuffer, self->readTrackBufferSize));
+    try(FloppyController_Write(gFloppyController, &self->ciabprb, self->readTrackBuffer, self->readTrackBufferSize));
     
     return EOK;
 

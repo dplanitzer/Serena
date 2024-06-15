@@ -37,7 +37,7 @@ typedef struct ADF_SectorHeader
     uint8_t   format;     // Amiga 1.0 format 0xff
     uint8_t   track;
     uint8_t   sector;
-    uint8_t   seceow;
+    uint8_t   sectors_until_gap;
     uint32_t  zero;
     uint32_t  header_crc;
     uint32_t  data_crc;
