@@ -23,45 +23,81 @@
 #define ADF_HD_CYLS_PER_DISK    80
 
 
-#define MFM_SYNC_WORD   0x4489
-#define ADF_FORMAT_V1   0xff
+#define MFM_PRESYNC_WORD    0xAAAA
+#define MFM_SYNC_WORD       0x4489
+#define ADF_FORMAT_V1       0xff
 
 
-typedef struct ADF_Synchronization {
-    uint16_t    sync[2];    // 2 * MFM_SYNC_WORD
-} ADF_Synchronization;
+//
+// MFM encoded sector
+//
+
+typedef uint16_t ADF_MFMPreSync[2]; // 2 * MFM_PRESYNC_WORD
+typedef uint16_t ADF_MFMSync[2];    // 2 * MFM_SYNC_WORD
 
 
-typedef struct ADF_SectorHeader
+typedef struct ADF_MFMSectorInfo
+{
+    uint32_t    odd_bits;
+    uint32_t    even_bits;
+} ADF_MFMSectorInfo;
+
+
+typedef struct ADF_MFMSectorLabel
+{
+    uint32_t    odd_bits[4];
+    uint32_t    even_bits[4];
+} ADF_MFMSectorLabel;
+
+
+typedef struct ADF_MFMChecksum {
+    uint32_t    odd_bits;       // MFM odd bits of checksum
+    uint32_t    even_bits;      // MFM even bits of checksum
+} ADF_MFMChecksum;
+
+
+typedef struct ADF_MFMData {
+    uint32_t    odd_bits[512 / sizeof(uint32_t)];   // MFM odd bits of sector data
+    uint32_t    even_bits[512 / sizeof(uint32_t)];  // MFM even bits of sector data
+} ADF_MFMData;
+
+
+// A MFM encoded sector suitable for writing to disk
+typedef struct ADF_MFMWriteSector {
+    ADF_MFMPreSync          presync;
+    ADF_MFMSync             sync;
+    ADF_MFMSectorInfo       info;
+    ADF_MFMSectorLabel      label;
+    ADF_MFMChecksum         header_checksum;
+    ADF_MFMChecksum         data_checksum;
+    ADF_MFMData             data;
+} ADF_MFMWriteSector;
+
+
+// A MFM encoded sector as read off the disk assuming that the track is read with
+// hardware syncing enabled
+typedef struct ADF_MFMReadSector {
+    uint16_t                sync;
+    ADF_MFMSectorInfo       info;
+    ADF_MFMSectorLabel      label;
+    ADF_MFMChecksum         header_checksum;
+    ADF_MFMChecksum         data_checksum;
+    ADF_MFMData             data;
+} ADF_MFMReadSector;
+
+
+//
+// Decoded sector
+//
+
+typedef struct ADF_SectorInfo
 {
     uint8_t   format;     // Amiga 1.0 format 0xff
     uint8_t   track;
     uint8_t   sector;
     uint8_t   sectors_until_gap;
-    uint32_t  zero;
-    uint32_t  header_crc;
-    uint32_t  data_crc;
-} ADF_SectorHeader;
+} ADF_SectorInfo;
 
-
-typedef struct ADF_Checksum {
-    uint32_t    odd_bits;       // MFM odd bits of checksum
-    uint32_t    even_bits;      // MFM even bits of checksum
-} ADF_Checksum;
-
-
-typedef struct ADF_SectorData {
-    uint32_t    odd_bits[512 / sizeof(uint32_t)];   // MFM odd bits of sector data
-    uint32_t    even_bits[512 / sizeof(uint32_t)];  // MFM even bits of sector data
-} ADF_SectorData;
-
-
-typedef struct ADF_EncodedSector {
-    ADF_Synchronization     sync;
-    ADF_SectorHeader        header;
-    ADF_Checksum            header_checksum;
-    ADF_Checksum            data_checksum;
-    ADF_SectorData          data;
-} ADF_EncodedSector;
+typedef uint32_t    ADF_SectorLabel[4];
 
 #endif /* AmigaDiskFormat_h */
