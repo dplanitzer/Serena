@@ -237,6 +237,7 @@ errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
     FloppyDisk_InvalidateReadTrack(self);
     self->head = -1;
     self->cylinder = -1;
+    self->readErrorCount = 0;
     
     
     // Turn the motor on to see whether there is an actual drive connected
@@ -283,7 +284,8 @@ void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
     // then this means that there is truly no disk in the drive.
     // Also invalidate the cache 'cause it is certainly no longer valid.
     FloppyDisk_InvalidateReadTrack(self);
-    
+    self->readErrorCount = 0;
+
     const int dir = (self->cylinder == 0) ? 1 : -1;
     fdc_step_head(&self->ciabprb, dir);
 }
@@ -305,6 +307,11 @@ static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
 {
     fdc_set_drive_motor(&self->ciabprb, 0);
 }
+
+enum {
+    kScanMode_Scanning,     // Scan until we find a ADF_MFM_SYNC word (inside the gap)
+    kScanMode_Sectoring,    // Picking up expected sectors (outside the gap)
+};
 
 static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int cylinder)
 {
@@ -335,46 +342,68 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_limit = &self->trackBuffer[self->trackWordCountToRead];
-    int valid_sector_count = 0;
+    const uint16_t* gap_start = NULL;
+    int mode = kScanMode_Sectoring, valid_sector_count = 0;
     ADF_SectorInfo info;
 
-    //print("start: %p, limit: %p\n", pt, pt_limit);
+   // print("start: %p, limit: %p\n", pt, pt_limit);
     while (pt < pt_limit && valid_sector_count < self->sectorsPerTrack) {
-
-        // Find the sync words
-        while ((pt < pt_limit) && *pt != ADF_MFM_SYNC) {
+        if (mode == kScanMode_Sectoring) {
+            // Skip 1 or 2 sync words. 1 word appears in front of the first sector
+            // that Paula returns and in front of the first sector following the
+            // gap. 2 sync words appear in front of all other sectors.
             pt++;
-        }
-        
-        // Skip past the sync words
-        while ((pt < pt_limit) && *pt == ADF_MFM_SYNC) {
-            pt++;
-        }
-        
-        if ((pt + ADF_MFM_SECTOR_SIZE / 2) > pt_limit) {
-            break;
-        }
-        
-        // MFM decode the sector header
-        mfm_decode_sector((const uint32_t*)pt, (uint32_t*)&info, 1);
+            if (pt < pt_limit && *pt == ADF_MFM_SYNC) {
+                pt++;
+            }
 
-     //   print("offset: %d, fmt: %d, t: %d, s: %d, sg: %d\n", (int)(2*i), (int)info.format, (int)info.track, (int)info.sector, (int)info.sectors_until_gap);
+            if ((pt + ADF_MFM_SECTOR_SIZE / 2) > pt_limit) {
+                break;
+            }
 
-        // Validate the sector header. We record valid sectors only.
-        if (info.format != ADF_FORMAT_V1 || info.track != 2*cylinder + head || info.sector >= self->sectorsPerTrack) {
-            continue;
+            // MFM decode the sector header
+            mfm_decode_sector((const uint32_t*)pt, (uint32_t*)&info, 1);
+
+            // Validate the sector header. We record valid sectors only.
+            if (info.format != ADF_FORMAT_V1 || info.track != 2*cylinder + head || info.sector >= self->sectorsPerTrack) {
+                // Bad sector
+                pt += ADF_MFM_SECTOR_SIZE / 2;
+                continue;
+            }
+
+            // Record the sector. Note that a sector may appear more than once because
+            // we may have read more data from the disk than fits in a single track. We
+            // keep the first occurrence of a sector.
+            if (self->sectors[info.sector] == NULL) {
+                #if 0
+                if (info.sectors_until_gap == 1) {
+                    print("sector: %d, at: %p -- gap starts here\n", info.sector, pt);
+                } else {
+                    print("sector: %d, at: %p\n", info.sector, pt);
+                }
+                #endif
+                self->sectors[info.sector] = (ADF_MFMSector*)pt;
+            }
+
+            pt += ADF_MFM_SECTOR_SIZE / 2;
+            pt += 4 / 2;
+
+            if (info.sectors_until_gap == 1) {
+                // We've reached the start pf the gap. Switch to scanning until
+                // we find a sync word
+                mode = kScanMode_Scanning;
+                gap_start = pt;
+            }
         }
-        
-        // Record the sector. Note that a sector may appear more than once because
-        // we may have read more data from the disk than fits in a single track. We
-        // keep the first occurrence of a sector.
-        if (self->sectors[info.sector] == NULL) {
-//            if (info.sectors_until_gap == 1) {
-//                print("sector: %d, at: %p -- gap starts here\n", info.sector, pt);
-//            } else {
-//                print("sector: %d, at: %p\n", info.sector, pt);
-//            }
-            self->sectors[info.sector] = (ADF_MFMSector*)pt;
+        else {
+            // we scan until we find 1 sync word
+            if (*pt == ADF_MFM_SYNC) {
+                mode = kScanMode_Sectoring;
+                self->gapSize = (pt - gap_start) * sizeof(uint16_t);
+            }
+            else {
+                pt++;
+            }
         }
     }
     
@@ -397,6 +426,7 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     // Get the sector
     ADF_MFMSector* psec = self->sectors[sector];
     if (psec == NULL) {
+        self->readErrorCount++;
         return EIO;
     }
     

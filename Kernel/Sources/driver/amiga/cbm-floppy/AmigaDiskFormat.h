@@ -25,7 +25,7 @@
 #define ADF_HD_CYLS_PER_DISK    80
 
 
-#define ADF_MFM_PRESYNC     0xAAAA
+#define ADF_MFM_TRAILER     0xAAAA
 #define ADF_MFM_SYNC        0x4489
 #define ADF_FORMAT_V1       0xff
 
@@ -34,7 +34,7 @@
 // MFM encoded sector
 //
 
-typedef uint16_t ADF_MFMPreSync[2]; // 2 * ADF_MFM_PRESYNC
+typedef uint16_t ADF_MFMTrailer[2]; // 2 * ADF_MFM_TRAILER
 typedef uint16_t ADF_MFMSync[2];    // 2 * ADF_MFM_SYNC
 
 
@@ -77,9 +77,9 @@ typedef struct ADF_MFMSector {
 
 // A MFM encoded sector suitable for writing to disk
 typedef struct ADF_MFMWriteSector {
-    ADF_MFMPreSync          presync;
     ADF_MFMSync             sync;
     ADF_MFMSector           payload;
+    ADF_MFMTrailer          trailer;
 } ADF_MFMWriteSector;
 
 

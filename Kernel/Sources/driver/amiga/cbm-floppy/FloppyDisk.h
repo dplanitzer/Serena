@@ -25,8 +25,9 @@ open_class_with_ref(FloppyDisk, DiskDriver,
     // Buffer used to cache a read track (Chip mem)
     uint16_t* _Nonnull          trackBuffer;                        // cached read track data (MFM encoded)
     size_t                      trackBufferSize;                    // cached read track buffer size in words
-    ADF_MFMSector * _Nullable   sectors[ADF_HD_SECS_PER_TRACK];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist    
-    
+    ADF_MFMSector * _Nullable   sectors[ADF_HD_SECS_PER_TRACK];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist  
+    int                         gapSize;                            // track gap size
+
     // Buffer used to compose a track for writing to disk
     uint16_t* _Nonnull          trackCompositionBuffer;
 
@@ -37,6 +38,8 @@ open_class_with_ref(FloppyDisk, DiskDriver,
     int                         headsPerCylinder;
     int                         trackWordCountToRead;
     int                         trackWordCountToWrite;
+
+    int                         readErrorCount;                         // Number of read errors since last disk driver reset / disk change
 
     int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDisk_Reset()
     int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_Reset()
