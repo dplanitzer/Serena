@@ -513,7 +513,7 @@ LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
 // Returns true if the disk if read-only.
 bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 {
-    return false;
+    return FloppyController_IsReadOnly(gFloppyController, self->drive);
 }
 
 // Reads the contents of the block at index 'lba'. 'buffer' must be big

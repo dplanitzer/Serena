@@ -7,6 +7,7 @@
 //
 
 #include "FloppyController.h"
+#include <hal/Platform.h>
 
 static void FloppyController_Destroy(FloppyController* _Nullable self);
 
@@ -55,6 +56,38 @@ static void FloppyController_Destroy(FloppyController* _Nullable self)
         
         kfree(self);
     }
+}
+
+// Selects or deselects the given drive
+static void FloppyController_Select(FloppyController* _Nonnull self, int drive, bool doSelect)
+{
+    CIAB_BASE_DECL(ciab);
+    uint8_t sel = 0;
+
+    if (drive >= 0 && drive < 4) {
+        sel = 1 << (CIABPRB_BIT_DSKSEL0 + drive);
+    }
+    else {
+        abort();
+    }
+
+    if (doSelect) {
+        *CIA_REG_8(ciab, CIA_PRB) &= ~sel;
+    }
+    else {
+        *CIA_REG_8(ciab, CIA_PRB) |= sel;
+    }
+}
+
+// Returns true if the drive 'drive' is hardware write protected; false otherwise
+bool FloppyController_IsReadOnly(FloppyController* _Nonnull self, int drive)
+{
+    FloppyController_Select(self, drive, true);
+    CIAA_BASE_DECL(ciaa);
+    const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
+    FloppyController_Select(self, drive, false);
+
+    return ((r & (1 << CIABPRA_BIT_DSKPROT)) == 0) ? true : false;
 }
 
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks

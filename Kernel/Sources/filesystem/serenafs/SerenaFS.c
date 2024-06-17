@@ -752,7 +752,6 @@ static errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
 errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
-    const bool isReadOnly = false;
 
     if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
         return err;
@@ -816,7 +815,8 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
     // Store the disk driver reference
     self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
     self->flags.isMounted = true;
-    if (isReadOnly) {
+    // XXX should be drive->is_readonly || mount-params->is_readonly
+    if (DiskDriver_IsReadOnly(pDriver)) {
         self->fsPermissions = FilePermissions_MakeFromOctal(0555);
     }
     else {

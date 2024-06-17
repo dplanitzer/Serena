@@ -57,6 +57,8 @@ extern FloppyController* gFloppyController;
 // Creates the floppy controller
 extern errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutFloppyController);
 
+extern bool FloppyController_IsReadOnly(FloppyController* _Nonnull self, int drive);
+
 extern errno_t FloppyController_Read(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords);
 extern errno_t FloppyController_Write(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, const uint16_t* _Nonnull pData, int nwords);
 
