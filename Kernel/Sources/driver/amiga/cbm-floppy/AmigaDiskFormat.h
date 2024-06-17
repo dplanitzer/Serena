@@ -12,7 +12,9 @@
 #include <klib/klib.h>
 
 // See http://lclevy.free.fr/adflib/adf_info.html
-#define ADF_SECTOR_SIZE         512
+#define ADF_MFM_WRITE_SECTOR_SIZE   1088
+#define ADF_MFM_SECTOR_SIZE         1080
+#define ADF_SECTOR_DATA_SIZE        512
 
 #define ADF_DD_SECS_PER_TRACK   11
 #define ADF_DD_HEADS_PER_CYL    2
@@ -23,8 +25,8 @@
 #define ADF_HD_CYLS_PER_DISK    80
 
 
-#define MFM_PRESYNC_WORD    0xAAAA
-#define MFM_SYNC_WORD       0x4489
+#define ADF_MFM_PRESYNC     0xAAAA
+#define ADF_MFM_SYNC        0x4489
 #define ADF_FORMAT_V1       0xff
 
 
@@ -32,8 +34,8 @@
 // MFM encoded sector
 //
 
-typedef uint16_t ADF_MFMPreSync[2]; // 2 * MFM_PRESYNC_WORD
-typedef uint16_t ADF_MFMSync[2];    // 2 * MFM_SYNC_WORD
+typedef uint16_t ADF_MFMPreSync[2]; // 2 * ADF_MFM_PRESYNC
+typedef uint16_t ADF_MFMSync[2];    // 2 * ADF_MFM_SYNC
 
 
 typedef struct ADF_MFMSectorInfo
@@ -62,28 +64,23 @@ typedef struct ADF_MFMData {
 } ADF_MFMData;
 
 
+// The payload of a MFM sector. This is the data (header + user data) that follows
+// the last sync word
+typedef struct ADF_MFMSector {
+    ADF_MFMSectorInfo       info;
+    ADF_MFMSectorLabel      label;
+    ADF_MFMChecksum         header_checksum;
+    ADF_MFMChecksum         data_checksum;
+    ADF_MFMData             data;
+} ADF_MFMSector;
+
+
 // A MFM encoded sector suitable for writing to disk
 typedef struct ADF_MFMWriteSector {
     ADF_MFMPreSync          presync;
     ADF_MFMSync             sync;
-    ADF_MFMSectorInfo       info;
-    ADF_MFMSectorLabel      label;
-    ADF_MFMChecksum         header_checksum;
-    ADF_MFMChecksum         data_checksum;
-    ADF_MFMData             data;
+    ADF_MFMSector           payload;
 } ADF_MFMWriteSector;
-
-
-// A MFM encoded sector as read off the disk assuming that the track is read with
-// hardware syncing enabled
-typedef struct ADF_MFMReadSector {
-    uint16_t                sync;
-    ADF_MFMSectorInfo       info;
-    ADF_MFMSectorLabel      label;
-    ADF_MFMChecksum         header_checksum;
-    ADF_MFMChecksum         data_checksum;
-    ADF_MFMData             data;
-} ADF_MFMReadSector;
 
 
 //

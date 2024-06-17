@@ -28,16 +28,17 @@ errno_t FloppyDisk_Create(int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk
     }
 
     try(Object_Create(FloppyDisk, &self));
-    try(kalloc_options(sizeof(uint16_t) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer));
-    try(kalloc_options(sizeof(uint16_t) * FLOPPY_TRACK_BUFFER_CAPACITY, KALLOC_OPTION_UNIFIED, (void**) &self->trackCompositionBuffer));
-
-    self->trackBufferSize = FLOPPY_TRACK_BUFFER_CAPACITY;
     
     // XXX hardcoded to DD for now
     self->logicalBlockCapacity = ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK;
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
+    self->trackWordCountToRead = ADF_DD_TRACK_WORD_COUNT_TO_READ;
+    self->trackWordCountToWrite = ADF_DD_TRACK_WORD_COUNT_TO_WRITE;
+
+    try(kalloc_options(sizeof(uint16_t) * self->trackWordCountToRead, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer));
+    try(kalloc_options(sizeof(uint16_t) * self->trackWordCountToWrite, KALLOC_OPTION_UNIFIED, (void**) &self->trackCompositionBuffer));
 
     self->head = -1;
     self->cylinder = -1;
@@ -70,10 +71,7 @@ static void FloppyDisk_InvalidateReadTrack(FloppyDiskRef _Nonnull self)
 {
     if (self->flags.isReadTrackValid) {
         self->flags.isReadTrackValid = 0;
-        
-        for (int i = 0; i < ADF_HD_SECS_PER_TRACK; i++) {
-            self->sectors[i] = 0;
-        }
+        memset(self->sectors, 0, sizeof(ADF_MFMSector*) * ADF_HD_SECS_PER_TRACK);
     }
 }
 
@@ -330,44 +328,53 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     
     
     // Read the track
-    try(FloppyController_Read(gFloppyController, &self->ciabprb, self->trackBuffer, self->trackBufferSize));
+    try(FloppyController_Read(gFloppyController, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead));
     
     
     
     // Build the sector table
-    const size_t track_buffer_size = self->trackBufferSize;
-    for (size_t i = 0; i < track_buffer_size; i++) {
-        ADF_SectorInfo info;
+    const uint16_t* pt = self->trackBuffer;
+    const uint16_t* pt_limit = &self->trackBuffer[self->trackWordCountToRead];
+    int valid_sector_count = 0;
+    ADF_SectorInfo info;
+
+    //print("start: %p, limit: %p\n", pt, pt_limit);
+    while (pt < pt_limit && valid_sector_count < self->sectorsPerTrack) {
 
         // Find the sync words
-        while ((i < track_buffer_size) && self->trackBuffer[i] != MFM_SYNC_WORD) {
-            i++;
+        while ((pt < pt_limit) && *pt != ADF_MFM_SYNC) {
+            pt++;
         }
         
         // Skip past the sync words
-        while ((i < track_buffer_size) && self->trackBuffer[i] == MFM_SYNC_WORD) {
-            i++;
+        while ((pt < pt_limit) && *pt == ADF_MFM_SYNC) {
+            pt++;
         }
         
-        if (i == track_buffer_size) {
+        if ((pt + ADF_MFM_SECTOR_SIZE / 2) > pt_limit) {
             break;
         }
         
         // MFM decode the sector header
-        mfm_decode_sector((const uint32_t*)&self->trackBuffer[i], (uint32_t*)&info, 1);
+        mfm_decode_sector((const uint32_t*)pt, (uint32_t*)&info, 1);
 
      //   print("offset: %d, fmt: %d, t: %d, s: %d, sg: %d\n", (int)(2*i), (int)info.format, (int)info.track, (int)info.sector, (int)info.sectors_until_gap);
 
         // Validate the sector header. We record valid sectors only.
-        if (info.format != ADF_FORMAT_V1 || info.track != 2*cylinder + head || info.sector >= ADF_DD_SECS_PER_TRACK) {
+        if (info.format != ADF_FORMAT_V1 || info.track != 2*cylinder + head || info.sector >= self->sectorsPerTrack) {
             continue;
         }
         
         // Record the sector. Note that a sector may appear more than once because
         // we may have read more data from the disk than fits in a single track. We
         // keep the first occurrence of a sector.
-        if (self->sectors[info.sector] == 0) {
-            self->sectors[info.sector] = i;
+        if (self->sectors[info.sector] == NULL) {
+//            if (info.sectors_until_gap == 1) {
+//                print("sector: %d, at: %p -- gap starts here\n", info.sector, pt);
+//            } else {
+//                print("sector: %d, at: %p\n", info.sector, pt);
+//            }
+            self->sectors[info.sector] = (ADF_MFMSector*)pt;
         }
     }
     
@@ -388,14 +395,14 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     
     
     // Get the sector
-    size_t idx = self->sectors[sector];
-    if (idx == 0) {
+    ADF_MFMSector* psec = self->sectors[sector];
+    if (psec == NULL) {
         return EIO;
     }
     
     
     // MFM decode the sector data
-    mfm_decode_sector((const uint32_t*)&self->trackBuffer[idx + 28], (uint32_t*)pBuffer, ADF_SECTOR_SIZE / sizeof(uint32_t));
+    mfm_decode_sector((const uint32_t*)psec->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
     return EOK;
 
 catch:
@@ -422,7 +429,7 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     
     
     // write the track
-    try(FloppyController_Write(gFloppyController, &self->ciabprb, self->trackBuffer, self->trackBufferSize));
+    try(FloppyController_Write(gFloppyController, &self->ciabprb, self->trackBuffer, self->trackWordCountToWrite));
     
     return EOK;
 
@@ -439,14 +446,14 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     
     
     // Override the sector with the new data
-    const int16_t idx = self->sectors[sector];
-    if (idx == 0) {
+    const ADF_MFMSector* psec = self->sectors[sector];
+    if (psec == NULL) {
         return EIO;
     }
     
     
     // MFM encode the sector data
-    mfm_encode_sector((const uint32_t*)pBuffer, (uint32_t*)&self->trackBuffer[idx + 28], ADF_SECTOR_SIZE / sizeof(uint32_t));
+    mfm_encode_sector((const uint32_t*)pBuffer, (uint32_t*)psec->data.odd_bits, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
     
     
     // Write the track back out
@@ -464,7 +471,7 @@ catch:
 // Returns the size of a block.
 size_t FloppyDisk_getBlockSize(FloppyDiskRef _Nonnull self)
 {
-    return ADF_SECTOR_SIZE;
+    return ADF_SECTOR_DATA_SIZE;
 }
 
 // Returns the number of blocks that the disk is able to store.
