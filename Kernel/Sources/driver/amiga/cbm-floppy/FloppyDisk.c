@@ -469,6 +469,7 @@ catch:
 
 static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, const void* pBuffer)
 {
+#if 0
     decl_try_err();
     
     // Make sure that we have the track in memory
@@ -496,6 +497,9 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
 
 catch:
     return err;
+#else
+    return EROFS;
+#endif
 }
 
 // Returns the size of a block.
