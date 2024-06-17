@@ -111,19 +111,20 @@ errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullabl
     
     Lock_Lock(&self->inodeManagementLock);
 
-    // XXX take FS readonly status into account here
-    // Remove the inode (file) from disk if the use count goes to 0 and the link
-    // count is 0. The reason why we defer deleting the on-disk version of the
-    // inode is that this allows you to create a file, immediately unlink it and
-    // that you are then still able to read/write the file until you close it.
-    // This gives you anonymous temporary storage that is guaranteed to disappear
-    // with the death of the process.  
-    if (pNode->useCount == 1 && pNode->linkCount == 0) {
-        Filesystem_OnRemoveNodeFromDisk(self, pNode);
-    }
-    else if (Inode_IsModified(pNode)) {
-        err = Filesystem_OnWriteNodeToDisk(self, pNode);
-        Inode_ClearModified(pNode);
+    if (!Filesystem_IsReadOnly(self)) {
+        // Remove the inode (file) from disk if the use count goes to 0 and the link
+        // count is 0. The reason why we defer deleting the on-disk version of the
+        // inode is that this allows you to create a file, immediately unlink it and
+        // that you are then still able to read/write the file until you close it.
+        // This gives you anonymous temporary storage that is guaranteed to disappear
+        // with the death of the process.  
+        if (pNode->useCount == 1 && pNode->linkCount == 0) {
+            Filesystem_OnRemoveNodeFromDisk(self, pNode);
+        }
+        else if (Inode_IsModified(pNode)) {
+            err = Filesystem_OnWriteNodeToDisk(self, pNode);
+            Inode_ClearModified(pNode);
+        }
     }
 
     assert(pNode->useCount > 0);
@@ -248,7 +249,7 @@ errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     }
 
     // Can't change the metadata if the disk is read-only
-    if (!FilePermissions_Has(Filesystem_GetDiskPermissions(self, Inode_GetFileType(pNode)), kFilePermissionsClass_User, kFilePermission_Write)) {
+    if (Filesystem_IsReadOnly(self)) {
         return EROFS;
     }
     
@@ -317,14 +318,13 @@ errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, User u
     return EIO;
 }
 
-FilePermissions Filesystem_getDiskPermissions(FilesystemRef _Nonnull self, FileType fileType)
+bool Filesystem_isReadOnly(FilesystemRef _Nonnull self)
 {
-    return FilePermissions_MakeFromOctal(0777);
+    return true;
 }
 
 errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
 {
-    const FilePermissions diskPerms = Filesystem_GetDiskPermissions(self, Inode_GetFileType(pNode));
     const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
     FilePermissions reqPerms = 0;
 
@@ -333,39 +333,32 @@ errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     }
     if ((mode & kAccess_Writable) == kAccess_Writable) {
         reqPerms |= kFilePermission_Write;
+
+        // Return EROFS if write permissions are requested but the disk is read-only.
+        if (Filesystem_IsReadOnly(self)) {
+            return EROFS;
+        }
     }
     if ((mode & kAccess_Executable) == kAccess_Executable) {
         reqPerms |= kFilePermission_Execute;
     }
 
 
-    FilePermissions finalDiskPerms;
-    FilePermissions finalNodePerms;
+    FilePermissions finalPerms;
 
     if (Inode_GetUserId(pNode) == user.uid) {
-        finalDiskPerms = FilePermissions_Get(diskPerms, kFilePermissionsClass_User);
-        finalNodePerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_User);
+        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_User);
     }
     else if (Inode_GetGroupId(pNode) == user.gid) {
-        finalDiskPerms = FilePermissions_Get(diskPerms, kFilePermissionsClass_Group);
-        finalNodePerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Group);
+        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Group);
     }
     else {
-        finalDiskPerms = FilePermissions_Get(diskPerms, kFilePermissionsClass_Other);
-        finalNodePerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Other);
+        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Other);
     }
 
 
-    const FilePermissions finalPerms = finalNodePerms & finalDiskPerms;
     if ((finalPerms & reqPerms) == reqPerms) {
         return EOK;
-    }
-
-
-    // Return EROFS if the problem is that write permissions were requested but
-    // the disk is read-only. Otherwise return EACCESS
-    if ((mode & kAccess_Writable) == kAccess_Writable && (finalDiskPerms & kFilePermission_Write) == 0) {
-        return EROFS;
     }
     else {
         return EACCESS;
@@ -407,7 +400,7 @@ func_def(writeFile, Filesystem)
 func_def(truncateFile, Filesystem)
 func_def(openDirectory, Filesystem)
 func_def(readDirectory, Filesystem)
-func_def(getDiskPermissions, Filesystem)
+func_def(isReadOnly, Filesystem)
 func_def(checkAccess, Filesystem)
 func_def(unlink, Filesystem)
 func_def(move, Filesystem)

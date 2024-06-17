@@ -62,7 +62,8 @@ final_class_ivars(SerenaFS, Filesystem,
     Lock                    moveLock;   // To make the move operation atomic
     struct {
         unsigned int    isMounted:1;    // true while mounted; false if not mounted
-        unsigned int    reserved:31;
+        unsigned int    isReadOnly:1;
+        unsigned int    reserved:30;
     }                       flags;
 
     DiskDriverRef _Nullable diskDriver;
@@ -75,7 +76,6 @@ final_class_ivars(SerenaFS, Filesystem,
     uint32_t                volumeBlockCount;
 
     LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
-    FilePermissions         fsPermissions;                  // Disk-wide permissions as calculated at mount time
 
     uint8_t                 tmpBlock[kSFSBlockSize];
 );

@@ -181,8 +181,6 @@ errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
     Lock_Init(&self->allocationLock);
     SELock_Init(&self->seLock);
     Lock_Init(&self->moveLock);
-    self->flags.isMounted = false;
-    self->fsPermissions = FilePermissions_MakeFromOctal(0);
 
     *pOutSelf = self;
     return EOK;
@@ -393,7 +391,6 @@ catch:
 
 errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
-#if __BOOT_FROM_ROM__   /* XXX tmp to work around read errors after writes to floppy disk. */
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     const SFSBlockMap* pBlockMap = (const SFSBlockMap*)Inode_GetBlockMap(pNode);
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
@@ -423,9 +420,6 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     }
 
     return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
-#else
-    return EOK;
-#endif
 }
 
 static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
@@ -814,13 +808,13 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
     // Store the disk driver reference
     self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
-    self->flags.isMounted = true;
+    self->flags.isMounted = 1;
     // XXX should be drive->is_readonly || mount-params->is_readonly
     if (DiskDriver_IsReadOnly(pDriver)) {
-        self->fsPermissions = FilePermissions_MakeFromOctal(0555);
+        self->flags.isReadOnly = 1;
     }
     else {
-        self->fsPermissions = FilePermissions_MakeFromOctal(0777);
+        self->flags.isReadOnly = 0;
     }
     
 catch:
@@ -851,17 +845,17 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
     
     Object_Release(self->diskDriver);
     self->diskDriver = NULL;
-    self->flags.isMounted = false;
-    self->fsPermissions = FilePermissions_MakeFromOctal(0);
+    self->flags.isMounted = 0;
+    self->flags.isReadOnly = 0;
 
 catch:
     SELock_Unlock(&self->seLock);
     return err;
 }
 
-FilePermissions SerenaFS_getDiskPermissions(SerenaFSRef _Nonnull self, FileType fileType)
+bool SerenaFS_isReadOnly(SerenaFSRef _Nonnull self)
 {
-    return self->fsPermissions;
+    return (self->flags.isReadOnly) ? true : false;
 }
 
 
@@ -1356,7 +1350,7 @@ override_func_def(onWriteNodeToDisk, SerenaFS, Filesystem)
 override_func_def(onRemoveNodeFromDisk, SerenaFS, Filesystem)
 override_func_def(onMount, SerenaFS, Filesystem)
 override_func_def(onUnmount, SerenaFS, Filesystem)
-override_func_def(getDiskPermissions, SerenaFS, Filesystem)
+override_func_def(isReadOnly, SerenaFS, Filesystem)
 override_func_def(acquireRootDirectory, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)
 override_func_def(getNameOfNode, SerenaFS, Filesystem)
