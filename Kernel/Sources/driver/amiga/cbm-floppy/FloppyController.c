@@ -11,11 +11,9 @@
 
 static void FloppyController_Destroy(FloppyController* _Nullable self);
 
-FloppyController* gFloppyController;
-
 
 // Creates the floppy controller
-errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutFloppyController)
+errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FloppyController* self;
@@ -33,12 +31,12 @@ errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutFlopp
     InterruptController_SetInterruptHandlerEnabled(gInterruptController,
                                                        self->irqHandler,
                                                        true);
-    *pOutFloppyController = self;
+    *pOutSelf = self;
     return EOK;
 
 catch:
     FloppyController_Destroy(self);
-    *pOutFloppyController = NULL;
+    *pOutSelf = NULL;
     return err;
 }
 
@@ -59,7 +57,7 @@ static void FloppyController_Destroy(FloppyController* _Nullable self)
 }
 
 // Selects or deselects the given drive
-static void FloppyController_Select(FloppyController* _Nonnull self, int drive, bool doSelect)
+static void fdc_select_drive(int drive, bool doSelect)
 {
     CIAB_BASE_DECL(ciab);
     uint8_t sel = 0;
@@ -79,15 +77,61 @@ static void FloppyController_Select(FloppyController* _Nonnull self, int drive, 
     }
 }
 
+// Detects and returns the drive type
+uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, int drive)
+{
+    CIAA_BASE_DECL(ciaa);
+    uint32_t dt = 0;
+
+    // Reset the drive's serial register
+    FloppyController_SetMotor(self, drive, true);
+    FloppyController_SetMotor(self, drive, false);
+
+    // Read the bits from MSB to LSB
+    for (int bit = 31; bit >= 0; bit--) {
+        fdc_select_drive(drive, true);
+        const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
+        const uint32_t rdy = (~(r >> CIABPRA_BIT_DSKRDY) & 1);
+        dt |= rdy << bit;
+        fdc_select_drive(drive, false);
+    }
+
+    return dt;
+}
+
 // Returns true if the drive 'drive' is hardware write protected; false otherwise
 bool FloppyController_IsReadOnly(FloppyController* _Nonnull self, int drive)
 {
-    FloppyController_Select(self, drive, true);
+    fdc_select_drive(drive, true);
+    
     CIAA_BASE_DECL(ciaa);
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
-    FloppyController_Select(self, drive, false);
+    
+    fdc_select_drive(drive, false);
 
     return ((r & (1 << CIABPRA_BIT_DSKPROT)) == 0) ? true : false;
+}
+
+// Turns the motor for drive 'drive' on or off. This function does not wait for
+// the motor to reach its final speed.
+void FloppyController_SetMotor(FloppyController* _Nonnull self, int drive, bool onoff)
+{
+    CIAB_BASE_DECL(ciab);
+
+    fdc_select_drive(drive, false);
+    fdc_nano_delay();
+
+    // The drive latches the new motor state when we select it
+    if (onoff) {
+        *CIA_REG_8(ciab, CIA_PRB) &= ~CIABPRB_BIT_DSKMOTOR;
+    }
+    else {
+        *CIA_REG_8(ciab, CIA_PRB) |= CIABPRB_BIT_DSKMOTOR;
+    }
+    fdc_select_drive(drive, true);
+    fdc_nano_delay();
+
+    fdc_select_drive(drive, false);
 }
 
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks

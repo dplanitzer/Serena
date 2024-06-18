@@ -179,8 +179,7 @@ static void init_root_filesystem(void)
     FloppyDiskRef pDisk;
     FilesystemRef pFS;
 
-    pDisk = (FloppyDiskRef) DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name);
-    assert(pDisk != NULL);
+    try_null(pDisk, DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name), ENODEV);
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
     try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pDisk, NULL, 0, NULL));
     print("Booting from fd0...\n\n");

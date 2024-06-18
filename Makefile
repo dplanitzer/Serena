@@ -201,8 +201,13 @@ clean:
 	$(call rm_if_exists,$(BOOT_DISK_DIR))
 	@echo Done
 
+ifdef BOOT_FROM_ROM
 clean-rom: clean-kernel clean-kernel-tests clean-sh clean-libc clean-libsystem
 	@echo Done
+else
+clean-rom: clean-kernel clean-kernel-tests
+	@echo Done
+endif
 
 clean-boot-disk:
 	$(call rm_if_exists,$(BOOT_DISK_DIR))

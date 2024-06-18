@@ -14,6 +14,7 @@
 #include <driver/amiga/RealtimeClock.h>
 #include <driver/hid/EventDriver.h>
 
+#define MAX_DRIVER_NAME_LENGTH  10
 
 const char* const kGraphicsDriverName = "graphics";
 const char* const kConsoleName = "con";
@@ -24,8 +25,8 @@ const char* const kFloppyDrive0Name = "fd0";
 
 typedef struct DriverEntry {
     SListNode   node;
-    const char* name;
     DriverRef   instance;
+    char        name[MAX_DRIVER_NAME_LENGTH + 1];
 } DriverEntry;
 
 
@@ -45,7 +46,6 @@ static void DriverEntry_Destroy(DriverEntry* _Nullable pEntry)
 {
     if (pEntry) {
         SListNode_Deinit(&pEntry->node);
-        pEntry->name = NULL;
 
         Object_Release(pEntry->instance);
         pEntry->instance = NULL;
@@ -64,8 +64,8 @@ static errno_t DriverEntry_Create(const char* _Nonnull pName, DriverRef _Nonnull
 
     try(kalloc_cleared(sizeof(DriverEntry), (void**) &pEntry));
     SListNode_Init(&pEntry->node);
-    pEntry->name = pName;
     pEntry->instance = pDriverInstance;
+    String_CopyUpTo(pEntry->name, pName, MAX_DRIVER_NAME_LENGTH);
 
     *pOutEntry = pEntry;
     return EOK;
@@ -246,10 +246,20 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
     // Floppy
 #ifndef __BOOT_FROM_ROM__
     // XXX Stops A4000 (68040/68060) from completing the boot process, if enabled
-    FloppyDiskRef fd0 = NULL;
-    try(FloppyDisk_Create(0, &fd0));
-    try(FloppyDisk_Reset(fd0));
-    try(DriverManager_AddDriver_Locked(pManager, kFloppyDrive0Name, fd0));
+    FloppyDiskRef fdx[MAX_FLOPPY_DISK_DRIVES];
+    char fdx_name[4];
+
+    fdx_name[0] = 'f';
+    fdx_name[1] = 'd';
+    fdx_name[3] = '\0';
+
+    try(FloppyDisk_DiscoverDrives(fdx));
+    for(int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
+        if (fdx[i]) {
+            fdx_name[2] = '0' + i;
+            try(DriverManager_AddDriver_Locked(pManager, fdx_name, fdx[i]));
+        }
+    }
 #endif
 
 

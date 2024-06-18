@@ -6,29 +6,63 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FloppyDisk.h"
+#include "FloppyDiskPriv.h"
 #include <dispatcher/VirtualProcessor.h>
 #include <hal/Platform.h>
 #include "mfm.h"
 
-
+static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
+static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_InvalidateReadTrack(FloppyDiskRef _Nonnull pDisk);
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 
 
+errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
+{
+    decl_try_err();
+    FloppyController* fdc = NULL;
+    int nDrivesOkay = 0;
+
+    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
+        pOutDrives[i] = NULL;
+    }
+
+
+    err = FloppyController_Create(&fdc);
+    if (err != EOK) {
+        return err;
+    }
+
+    for (int i = 0; i < 1 /*MAX_FLOPPY_DISK_DRIVES*/; i++) {
+        errno_t err0 = FloppyDisk_Create(i, fdc, &pOutDrives[i]);
+        if (err0 == EOK) {
+            err0 = FloppyDisk_Reset(pOutDrives[i]);
+        }
+
+        if (err0 != EOK && nDrivesOkay == 0) {
+            err = err0;
+        }
+    }
+
+    return (nDrivesOkay > 0) ? EOK : err;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-errno_t FloppyDisk_Create(int drive, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
+static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDisk* self;
     
-    if (gFloppyController == NULL) {
-        try(FloppyController_Create(&gFloppyController));
-    }
-
     try(Object_Create(FloppyDisk, &self));
     
+    self->fdc = pFdc;
+
     // XXX hardcoded to DD for now
     self->logicalBlockCapacity = ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK;
@@ -64,6 +98,8 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
     
     kfree(self->trackCompositionBuffer);
     self->trackCompositionBuffer = NULL;
+
+    self->fdc = NULL;
 }
 
 // Invalidates the read track cache.
@@ -230,7 +266,7 @@ catch:
 // Note that this function leaves the floppy motor turned on and that it implicitly
 // acknowledges any pending disk change.
 // Upper layer code should treat this function like a disk change.
-errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
 {
     decl_try_err();
 
@@ -335,7 +371,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     
     
     // Read the track
-    try(FloppyController_Read(gFloppyController, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead));
+    try(FloppyController_Read(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead));
     
     
     
@@ -459,7 +495,7 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     
     
     // write the track
-    try(FloppyController_Write(gFloppyController, &self->ciabprb, self->trackBuffer, self->trackWordCountToWrite));
+    try(FloppyController_Write(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToWrite));
     
     return EOK;
 
@@ -517,7 +553,7 @@ LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
 // Returns true if the disk if read-only.
 bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 {
-    return FloppyController_IsReadOnly(gFloppyController, self->drive);
+    return FloppyController_IsReadOnly(self->fdc, self->drive);
 }
 
 // Reads the contents of the block at index 'lba'. 'buffer' must be big
@@ -527,7 +563,6 @@ bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 // returned, or it fails and no block data is returned.
 errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
-    // XXX hardcoded to DD for now
     if (lba >= self->logicalBlockCapacity) {
         return EIO;
     }
@@ -547,7 +582,6 @@ errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer,
 // block may contain a mix of old and new data.
 errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
-    // XXX hardcoded to DD for now
     if (lba >= self->logicalBlockCapacity) {
         return EIO;
     }

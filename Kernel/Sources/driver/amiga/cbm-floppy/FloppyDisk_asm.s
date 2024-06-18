@@ -16,8 +16,18 @@
     xdef _fdc_io_begin
     xdef _fdc_get_io_status
     xdef _fdc_io_end
+    xdef _fdc_nano_delay
 
 
+;-------------------------------------------------------------------------------
+; void fdc_nano_delay(void)
+; Waits a few nanoseconds.
+_fdc_nano_delay:
+    nop
+    nop
+    rts
+
+    
 ;-------------------------------------------------------------------------------
 ; unsigned int fdc_get_drive_status(FdcControlByte* fdc)
 ; Returns the status word of the floppy disk controller.

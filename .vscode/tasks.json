@@ -23,6 +23,48 @@
         },
 
         {
+            "label": "Build ROM",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "build-rom",
+                "-s",
+                "-R",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
+        },
+
+        {
+            "label": "Build Boot Disk",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "build-boot-dmg",
+                "-s",
+                "-R",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
+        },
+
+        {
             "label": "Clean All",
             "type": "shell",
             "command": "",

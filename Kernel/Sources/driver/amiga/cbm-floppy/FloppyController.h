@@ -41,6 +41,14 @@ extern void fdc_select_head(FdcControlByte* _Nonnull fdc, int side);
 extern void fdc_io_begin(FdcControlByte* _Nonnull fdc, uint16_t* pData, int nwords, int readwrite);
 extern unsigned int fdc_get_io_status(FdcControlByte* _Nonnull fdc);
 extern void fdc_io_end(FdcControlByte*  _Nonnull fdc);
+extern void fdc_nano_delay(void);
+
+
+enum DriveType {
+    kDriveType_None = 0x00000000,       // No drive connected
+    kDriveType_3_5 =  0xffffffff,       // 3.5" drive
+    kDriveType_5_25 = 0x55555555,       // 5.25" drive
+};
 
 
 // The floppy controller. The Amiga has just one single floppy DMA channel
@@ -52,12 +60,13 @@ typedef struct FloppyController {
 } FloppyController;
 
 
-extern FloppyController* gFloppyController;
-
 // Creates the floppy controller
-extern errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutFloppyController);
+extern errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutSelf);
+
+extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, int drive);
 
 extern bool FloppyController_IsReadOnly(FloppyController* _Nonnull self, int drive);
+extern void FloppyController_SetMotor(FloppyController* _Nonnull self, int drive, bool onoff);
 
 extern errno_t FloppyController_Read(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords);
 extern errno_t FloppyController_Write(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, const uint16_t* _Nonnull pData, int nwords);
