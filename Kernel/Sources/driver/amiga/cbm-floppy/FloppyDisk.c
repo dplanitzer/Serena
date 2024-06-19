@@ -340,6 +340,31 @@ static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
     fdc_set_drive_motor(&self->ciabprb, 0);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Disk I/O
+////////////////////////////////////////////////////////////////////////////////
+
+static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder, int head)
+{
+    decl_try_err();
+
+    // Seek to the required cylinder and select the required head
+    if (self->cylinder != cylinder || self->head != head) {
+        try(FloppyDisk_SeekTo(self, cylinder, head));
+    }
+
+    // Validate that the drive is still there, motor turned on and that there was
+    // no disk change
+    try(FloppyDisk_GetStatus(self));
+
+    return EOK;
+
+catch:
+    return err;
+}
+
+
 enum {
     kScanMode_Scanning,     // Scan until we find a ADF_MFM_SYNC word (inside the gap)
     kScanMode_Sectoring,    // Picking up expected sectors (outside the gap)
@@ -349,25 +374,16 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
 {
     decl_try_err();
     
-    // Seek to the required cylinder and select the required head
-    if (self->cylinder != cylinder || self->head != head) {
-        try(FloppyDisk_SeekTo(self, cylinder, head));
-    }
-    
-    
-    // Nothing to do if we already have this track cached in the track buffer
-    if (self->flags.isReadTrackValid) {
+    if (self->cylinder == cylinder && self->head == head && self->flags.isReadTrackValid) {
         return EOK;
     }
-    
-    
-    // Validate that the drive is still there, motor turned on and that there was
-    // no disk change
-    try(FloppyDisk_GetStatus(self));
+
+    // Prepare disk I/O
+    try(FloppyDisk_PrepareForIO(self, cylinder, head));
     
     
     // Read the track
-    try(FloppyController_Read(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead));
+    try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead, false));
     
     
     
@@ -479,19 +495,12 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     assert(self->flags.isReadTrackValid);
     
     
-    // Seek to the required cylinder and select the required head
-    if (self->cylinder != cylinder || self->head != head) {
-        try(FloppyDisk_SeekTo(self, cylinder, head));
-    }
-    
-    
-    // Validate that the drive is still there, motor turned on and that there was
-    // no disk change
-    try(FloppyDisk_GetStatus(self));
+    // Prepare disk I/O
+    try(FloppyDisk_PrepareForIO(self, cylinder, head));
     
     
     // write the track
-    try(FloppyController_Write(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToWrite));
+    try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToWrite, true));
     
     return EOK;
 
@@ -533,6 +542,11 @@ catch:
     return EROFS;
 #endif
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// DiskDriver overrides
+////////////////////////////////////////////////////////////////////////////////
 
 // Returns the size of a block.
 size_t FloppyDisk_getBlockSize(FloppyDiskRef _Nonnull self)

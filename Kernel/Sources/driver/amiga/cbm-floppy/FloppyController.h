@@ -18,7 +18,6 @@
 #define CIABPRA_BIT_DSKTRACK0   4
 #define CIABPRA_BIT_DSKPROT     3
 #define CIABPRA_BIT_DSKCHANGE   2
-#define CIABPRA_BIT_IODONE      0   /* see fdc_get_io_status() */
 
 
 // CIABPRB bits (FDC control byte)
@@ -68,7 +67,6 @@ extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, i
 extern bool FloppyController_IsReadOnly(FloppyController* _Nonnull self, int drive);
 extern void FloppyController_SetMotor(FloppyController* _Nonnull self, int drive, bool onoff);
 
-extern errno_t FloppyController_Read(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords);
-extern errno_t FloppyController_Write(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, const uint16_t* _Nonnull pData, int nwords);
+extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, bool readwrite);
 
 #endif /* FloppyController_h */

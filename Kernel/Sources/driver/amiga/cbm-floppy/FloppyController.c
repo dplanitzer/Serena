@@ -137,13 +137,13 @@ void FloppyController_SetMotor(FloppyController* _Nonnull self, int drive, bool 
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
 // the caller until the DMA is available and all words have been transferred from
 // disk.
-static errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, int readwrite)
+errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, bool readwrite)
 {
     decl_try_err();
     
     try(Semaphore_Acquire(&self->inuse, kTimeInterval_Infinity));
     //print("b, buffer: %p, nwords: %d\n", pData, nwords);
-    fdc_io_begin(pFdc, pData, nwords, 0);
+    fdc_io_begin(pFdc, pData, nwords, (int)readwrite);
     err = Semaphore_Acquire(&self->done, kTimeInterval_Infinity);
     if (err == EOK) {
         const unsigned int status = fdc_get_io_status(pFdc);
@@ -165,22 +165,4 @@ static errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControl
 
 catch:
     return err;
-}
-
-// Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
-// the caller until the DMA is available and all words have been transferred from
-// disk.
-errno_t FloppyController_Read(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords)
-{
-//    print("DMA_Read ");
-    return FloppyController_DoIO(self, pFdc, pData, nwords, 0);
-}
-
-// Synchronously writes 'nwords' 16bit words from the given word buffer. Blocks
-// the caller until the DMA is available and all words have been transferred to
-// disk.
-errno_t FloppyController_Write(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, const uint16_t* _Nonnull pData, int nwords)
-{
-//    print("DMA_Write ");
-    return FloppyController_DoIO(self, pFdc, (uint16_t*)pData, nwords, 1);
 }
