@@ -72,7 +72,6 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
     self->trackWordCountToWrite = ADF_DD_TRACK_WORD_COUNT_TO_WRITE;
 
     try(kalloc_options(sizeof(uint16_t) * self->trackWordCountToRead, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer));
-    try(kalloc_options(sizeof(uint16_t) * self->trackWordCountToWrite, KALLOC_OPTION_UNIFIED, (void**) &self->trackCompositionBuffer));
 
     self->head = -1;
     self->cylinder = -1;
@@ -95,9 +94,6 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 {
     kfree(self->trackBuffer);
     self->trackBuffer = NULL;
-    
-    kfree(self->trackCompositionBuffer);
-    self->trackCompositionBuffer = NULL;
 
     self->fdc = NULL;
 }

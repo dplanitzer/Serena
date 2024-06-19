@@ -30,9 +30,6 @@ final_class_ivars(FloppyDisk, DiskDriver,
     ADF_MFMSector * _Nullable   sectors[ADF_HD_SECS_PER_TRACK];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist  
     int                         gapSize;                            // track gap size
 
-    // Buffer used to compose a track for writing to disk
-    uint16_t* _Nonnull          trackCompositionBuffer;
-
     // Disk geometry
     LogicalBlockAddress         logicalBlockCapacity;                   // disk size in terms of logical blocks
     int                         sectorsPerCylinder;

@@ -12,7 +12,7 @@
 #include <klib/klib.h>
 
 // See http://lclevy.free.fr/adflib/adf_info.html
-#define ADF_MFM_WRITE_SECTOR_SIZE   1088
+#define ADF_MFM_SYNC_SIZE           8
 #define ADF_MFM_SECTOR_SIZE         1080
 #define ADF_SECTOR_DATA_SIZE        512
 
@@ -25,7 +25,7 @@
 #define ADF_HD_CYLS_PER_DISK    80
 
 
-#define ADF_MFM_TRAILER     0xAAAA
+#define ADF_MFM_PRESYNC     0xAAAA
 #define ADF_MFM_SYNC        0x4489
 #define ADF_FORMAT_V1       0xff
 
@@ -34,19 +34,16 @@
 // MFM encoded sector
 //
 
-typedef uint16_t ADF_MFMTrailer[2]; // 2 * ADF_MFM_TRAILER
-typedef uint16_t ADF_MFMSync[2];    // 2 * ADF_MFM_SYNC
+typedef uint16_t ADF_MFMSync[4];    // 2 * ADF_MFM_PRESYNC, 2 * ADF_MFM_SYNC
 
 
-typedef struct ADF_MFMSectorInfo
-{
+typedef struct ADF_MFMSectorInfo {
     uint32_t    odd_bits;
     uint32_t    even_bits;
 } ADF_MFMSectorInfo;
 
 
-typedef struct ADF_MFMSectorLabel
-{
+typedef struct ADF_MFMSectorLabel {
     uint32_t    odd_bits[4];
     uint32_t    even_bits[4];
 } ADF_MFMSectorLabel;
@@ -65,7 +62,7 @@ typedef struct ADF_MFMData {
 
 
 // The payload of a MFM sector. This is the data (header + user data) that follows
-// the last sync word
+// the MFM sync words
 typedef struct ADF_MFMSector {
     ADF_MFMSectorInfo       info;
     ADF_MFMSectorLabel      label;
@@ -73,14 +70,6 @@ typedef struct ADF_MFMSector {
     ADF_MFMChecksum         data_checksum;
     ADF_MFMData             data;
 } ADF_MFMSector;
-
-
-// A MFM encoded sector suitable for writing to disk
-typedef struct ADF_MFMWriteSector {
-    ADF_MFMSync             sync;
-    ADF_MFMSector           payload;
-    ADF_MFMTrailer          trailer;
-} ADF_MFMWriteSector;
 
 
 //
@@ -96,5 +85,6 @@ typedef struct ADF_SectorInfo
 } ADF_SectorInfo;
 
 typedef uint32_t    ADF_SectorLabel[4];
+typedef uint32_t    ADF_Checksum;
 
 #endif /* AmigaDiskFormat_h */
