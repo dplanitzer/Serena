@@ -93,6 +93,7 @@ static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
 
     self->ciabprb = FloppyController_Reset(self->fdc, self->drive);
     
+    self->flags.motorState = kMotor_Off;
     self->flags.isTrackBufferValid = 0;
     self->head = -1;
     self->cylinder = -1;
@@ -101,8 +102,9 @@ static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
     
     // Turn the motor on to see whether there is an actual drive connected
     FloppyDisk_MotorOn(self);
+    try(FloppyDisk_WaitForDiskReady(self));
     try(FloppyDisk_GetStatus(self));
-    
+   
     
     // Move the head to track #0
     err = FloppyDisk_SeekToTrack_0(self);
@@ -115,9 +117,12 @@ static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
         fdc_step_head(&self->ciabprb, -1);
     }
 
+    FloppyDisk_MotorOff(self);
+
     return EOK;
 
 catch:
+    FloppyDisk_MotorOff(self);
     return err;
 }
 
@@ -153,41 +158,56 @@ static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
 // Turns the drive motor on and blocks the caller until the disk is ready.
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
 {
-    FloppyController_SetMotor(self->fdc, &self->ciabprb, true);
-    
-    const errno_t err = FloppyDisk_WaitForMotorSpinning(self);
-    if (err == ETIMEDOUT) {
-        FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
+    if (self->flags.motorState == kMotor_Off) {
+        FloppyController_SetMotor(self->fdc, &self->ciabprb, true);
+        self->flags.motorState = kMotor_SpinningUp;
     }
 }
 
 // Turns the drive motor off.
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
 {
-    FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
+    if (self->flags.motorState != kMotor_Off) {
+        FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
+        self->flags.motorState = kMotor_Off;
+    }
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
 // waits for at most 500ms for the disk to become ready.
 // Returns S_OK if the drive is ready; ETIMEDOUT  if the drive failed to become
 // ready in time.
-static errno_t FloppyDisk_WaitForMotorSpinning(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 {
-    const TimeInterval delay = TimeInterval_MakeMilliseconds(10);
-
-    for (int i = 0; i < 50; i++) {
-        const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
-        
-        if ((status & kDriveStatus_DiskReady) != 0) {
-            return EOK;
-        }
-        const errno_t err = VirtualProcessor_Sleep(delay);
-        if (err != EOK) {
-            return err;
-        }
+    if (self->flags.motorState == kMotor_AtTargetSpeed) {
+        return EOK;
     }
-    
-    return ETIMEDOUT;
+    else if (self->flags.motorState == kMotor_SpinningUp) {
+        // Waits for at most 500ms for the motor to reach its target speed
+        const TimeInterval delay = TimeInterval_MakeMilliseconds(10);
+
+        for (int i = 0; i < 50; i++) {
+            const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+        
+            if ((status & kDriveStatus_DiskReady) != 0) {
+                self->flags.motorState = kMotor_AtTargetSpeed;
+                return EOK;
+            }
+            const errno_t err = VirtualProcessor_Sleep(delay);
+            if (err != EOK) {
+                return EIO;
+            }
+        }
+
+        // Timed out. Turn the motor off for now so that another I/O request can
+        // try spinning the motor up to its target speed again.
+        FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
+        self->flags.motorState = kMotor_Off;
+        return EIO;
+    }
+    else if (self->flags.motorState == kMotor_Off) {
+        return EIO;
+    }
 }
 
 
@@ -363,6 +383,18 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
 {
     decl_try_err();
 
+    // Make sure that the motor is turned on
+    FloppyDisk_MotorOn(self);
+
+
+    // Make sure we got a track buffer
+    try(FloppyDisk_EnsureTrackBuffer(self));
+
+
+    // Wait until the motor has reached its target speed
+    try(FloppyDisk_WaitForDiskReady(self));
+
+
     // Seek to the required cylinder and select the required head
     if (self->cylinder != cylinder || self->head != head) {
         try(FloppyDisk_SeekTo(self, cylinder, head));
@@ -372,10 +404,6 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
     // Validate that the drive is still there, motor turned on and that there was
     // no disk change
     try(FloppyDisk_GetStatus(self));
-
-
-    // Make sure we got a track buffer
-    try(FloppyDisk_EnsureTrackBuffer(self));
 
     return EOK;
 

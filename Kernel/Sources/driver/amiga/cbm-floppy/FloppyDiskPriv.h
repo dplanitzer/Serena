@@ -19,6 +19,14 @@
 #define ADF_DD_TRACK_WORD_COUNT_TO_WRITE    6400
 
 
+// Floppy motor state
+enum {
+    kMotor_Off = 0,             // Motor not spinning at all
+    kMotor_SpinningUp = 1,      // Motor turned on recently and spinning up to target speed
+    kMotor_AtTargetSpeed = 2    // Motor is at target speed, disk read/write is permissible 
+};
+
+
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
@@ -48,6 +56,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     struct __Flags {
         unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
+        unsigned int    motorState:2;
         unsigned int    reserved:29;
     }                           flags;
 );
@@ -57,7 +66,8 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
 static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
-static errno_t FloppyDisk_WaitForMotorSpinning(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self);
