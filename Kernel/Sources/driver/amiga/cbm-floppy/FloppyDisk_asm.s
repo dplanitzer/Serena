@@ -10,7 +10,6 @@
     include "../hal/lowmem.i"
 
     xdef _fdc_get_drive_status
-    xdef _fdc_set_drive_motor
     xdef _fdc_step_head
     xdef _fdc_select_head
     xdef _fdc_io_begin
@@ -42,37 +41,6 @@ _fdc_get_drive_status:
         move.b  CIAAPRA, d0
 
         or.b    #%01111000, d1              ; make sure that we leave the drives in a deselected state
-        move.b  d1, CIABPRB
-
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
-; void fdc_set_drive_motor(FdcControlByte* fdc int onoff)
-; Turns the drive motor on or off.
-_fdc_set_drive_motor:
-    inline
-    cargs sdm_fdc_ptr.l, sdm_onoff.l
-        move.l  sdm_fdc_ptr(sp), a0
-        move.l  sdm_onoff(sp), d0
-
-        move.b  CIABPRB, d1
-        or.b    #%01111000, d1              ; deselect all drives
-        move.b  d1, CIABPRB
-
-        move.b  (a0), d1                    ; make sure that we use our fdc control byte
-        tst.l   d0                          ; update the motor bit
-        beq.s   .motor_off
-        bclr    #7, d1
-        bra.s   .latch_motor_state
-.motor_off:
-        bset    #7, d1
-.latch_motor_state:
-        move.b  d1, CIABPRB                 ; this triggers the motor switch in the hardware
-        move.b  d1, (a0)                    ; update the fdc control byte shadow copy
-
-        or.b    #%01111000, d1              ; deselect all drives
         move.b  d1, CIABPRB
 
         rts

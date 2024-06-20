@@ -48,7 +48,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     struct __Flags {
         unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
-        unsigned int    reserved:31;
+        unsigned int    reserved:29;
     }                           flags;
 );
 
@@ -57,7 +57,7 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
 static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
-static errno_t FloppyDisk_WaitDriveReady(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDisk_WaitForMotorSpinning(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self);

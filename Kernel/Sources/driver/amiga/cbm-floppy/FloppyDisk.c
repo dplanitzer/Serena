@@ -153,42 +153,41 @@ static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
 // Turns the drive motor on and blocks the caller until the disk is ready.
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
 {
-    fdc_set_drive_motor(&self->ciabprb, 1);
+    FloppyController_SetMotor(self->fdc, &self->ciabprb, true);
     
-    const errno_t err = FloppyDisk_WaitDriveReady(self);
+    const errno_t err = FloppyDisk_WaitForMotorSpinning(self);
     if (err == ETIMEDOUT) {
-        fdc_set_drive_motor(&self->ciabprb, 0);
-        return;
+        FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
     }
 }
 
 // Turns the drive motor off.
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
 {
-    fdc_set_drive_motor(&self->ciabprb, 0);
+    FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
 // waits for at most 500ms for the disk to become ready.
 // Returns S_OK if the drive is ready; ETIMEDOUT  if the drive failed to become
 // ready in time.
-static errno_t FloppyDisk_WaitDriveReady(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDisk_WaitForMotorSpinning(FloppyDiskRef _Nonnull self)
 {
-    decl_try_err();
+    const TimeInterval delay = TimeInterval_MakeMilliseconds(10);
 
-    for (int ntries = 0; ntries < 50; ntries++) {
-        const unsigned int status = fdc_get_drive_status(&self->ciabprb);
+    for (int i = 0; i < 50; i++) {
+        const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
         
-        if ((status & (1 << CIABPRA_BIT_DSKRDY)) == 0) {
+        if ((status & kDriveStatus_DiskReady) != 0) {
             return EOK;
         }
-        try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(10)));
+        const errno_t err = VirtualProcessor_Sleep(delay);
+        if (err != EOK) {
+            return err;
+        }
     }
     
     return ETIMEDOUT;
-
-catch:
-    return err;
 }
 
 
@@ -369,11 +368,13 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
         try(FloppyDisk_SeekTo(self, cylinder, head));
     }
 
+
     // Validate that the drive is still there, motor turned on and that there was
     // no disk change
     try(FloppyDisk_GetStatus(self));
 
 
+    // Make sure we got a track buffer
     try(FloppyDisk_EnsureTrackBuffer(self));
 
     return EOK;

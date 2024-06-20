@@ -36,7 +36,6 @@
 typedef uint8_t   FdcControlByte;       // shadow copy of the CIABRPB register
 
 extern unsigned int fdc_get_drive_status(FdcControlByte* _Nonnull fdc);
-extern void fdc_set_drive_motor(FdcControlByte* _Nonnull fdc, int onoff);
 extern void fdc_step_head(FdcControlByte* _Nonnull fdc, int inout);
 extern void fdc_select_head(FdcControlByte* _Nonnull fdc, int side);
 extern void fdc_io_begin(FdcControlByte* _Nonnull fdc, uint16_t* pData, int nwords, int readwrite);
@@ -74,10 +73,10 @@ extern errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pO
 
 extern FdcControlByte FloppyController_Reset(FloppyController* _Nonnull self, int drive);
 
-extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, int drive);
+extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb);
 
 extern uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, FdcControlByte cb);
-extern void FloppyController_SetMotor(FloppyController* _Nonnull self, int drive, bool onoff);
+extern void FloppyController_SetMotor(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, bool onoff);
 
 extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, bool readwrite);
 
