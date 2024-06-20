@@ -56,6 +56,25 @@ static void FloppyController_Destroy(FloppyController* _Nullable self)
     }
 }
 
+FdcControlByte FloppyController_Reset(FloppyController* _Nonnull self, int drive)
+{
+    CIAB_BASE_DECL(ciab);
+    uint8_t r;
+
+    // motor off; all drives deselected; head 0; stepping off
+    r = (1 << CIABPRB_BIT_DSKMOTOR) | CIABPRB_DSKSELALL | (1 << CIABPRB_BIT_DSKSTEP);
+    
+    // select 'drive'
+    r &= ~(1 << (CIABPRB_BIT_DSKSEL0 + (drive & 0x03)));
+
+    // Make sure that the motor is off and then deselect the drive
+    *CIA_REG_8(ciab, CIA_PRB) = r;
+    fdc_nano_delay();
+    *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+
+    return r;
+}
+
 // Selects or deselects the given drive
 static void fdc_select_drive(int drive, bool doSelect)
 {
@@ -99,17 +118,17 @@ uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, int driv
     return dt;
 }
 
-// Returns true if the drive 'drive' is hardware write protected; false otherwise
-bool FloppyController_IsReadOnly(FloppyController* _Nonnull self, int drive)
+// Returns the current drive status
+uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, FdcControlByte cb)
 {
-    fdc_select_drive(drive, true);
-    
     CIAA_BASE_DECL(ciaa);
-    const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
-    
-    fdc_select_drive(drive, false);
+    CIAB_BASE_DECL(ciab);
 
-    return ((r & (1 << CIABPRA_BIT_DSKPROT)) == 0) ? true : false;
+    *CIA_REG_8(ciab, CIA_PRB) = cb;
+    const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
+    *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
+
+    return ~r & ((1 << CIABPRA_BIT_DSKRDY) | (1 << CIABPRA_BIT_DSKTRACK0) | (1 << CIABPRA_BIT_DSKPROT) | (1 << CIABPRA_BIT_DSKCHANGE));
 }
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for

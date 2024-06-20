@@ -46,15 +46,20 @@ final_class_ivars(FloppyDisk, DiskDriver,
     FdcControlByte              ciabprb;                                // shadow copy of the CIA BPRB register for this floppy drive
 
     struct __Flags {
-        unsigned int    isReadTrackValid:1;
+        unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    reserved:31;
     }                           flags;
 );
 
 
-extern errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull pDisk);
-
-extern void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
+static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDisk_WaitDriveReady(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self);
 
 #endif /* FloppyDiskPriv_h */

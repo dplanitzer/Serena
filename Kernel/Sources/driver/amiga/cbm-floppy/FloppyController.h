@@ -30,6 +30,8 @@
 #define CIABPRB_BIT_DSKDIREC    1
 #define CIABPRB_BIT_DSKSTEP     0
 
+#define CIABPRB_DSKSELALL ((1 << CIABPRB_BIT_DSKSEL3) | (1 << CIABPRB_BIT_DSKSEL2) | (1 << CIABPRB_BIT_DSKSEL1) | (1 << CIABPRB_BIT_DSKSEL0))
+
 
 typedef uint8_t   FdcControlByte;       // shadow copy of the CIABRPB register
 
@@ -50,6 +52,14 @@ enum DriveType {
 };
 
 
+enum DriveStatus {
+    kDriveStatus_DiskChanged = 0x04,
+    kDriveStatus_IsReadOnly = 0x08,
+    kDriveStatus_AtTrack0 = 0x10,
+    kDriveStatus_DiskReady = 0x20
+};
+
+
 // The floppy controller. The Amiga has just one single floppy DMA channel
 // which is shared by all drives.
 typedef struct FloppyController {
@@ -62,9 +72,11 @@ typedef struct FloppyController {
 // Creates the floppy controller
 extern errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutSelf);
 
+extern FdcControlByte FloppyController_Reset(FloppyController* _Nonnull self, int drive);
+
 extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, int drive);
 
-extern bool FloppyController_IsReadOnly(FloppyController* _Nonnull self, int drive);
+extern uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, FdcControlByte cb);
 extern void FloppyController_SetMotor(FloppyController* _Nonnull self, int drive, bool onoff);
 
 extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, bool readwrite);

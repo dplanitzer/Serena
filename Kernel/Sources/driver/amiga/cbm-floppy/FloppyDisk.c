@@ -11,11 +11,6 @@
 #include <hal/Platform.h>
 #include "mfm.h"
 
-static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
-static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_InvalidateReadTrack(FloppyDiskRef _Nonnull pDisk);
-static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
-
 
 errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
 {
@@ -34,10 +29,7 @@ errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_
     }
 
     for (int i = 0; i < 1 /*MAX_FLOPPY_DISK_DRIVES*/; i++) {
-        errno_t err0 = FloppyDisk_Create(i, fdc, &pOutDrives[i]);
-        if (err0 == EOK) {
-            err0 = FloppyDisk_Reset(pOutDrives[i]);
-        }
+        const errno_t err0 = FloppyDisk_Create(i, fdc, &pOutDrives[i]);
 
         if (err0 != EOK && nDrivesOkay == 0) {
             err = err0;
@@ -62,25 +54,10 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
     try(Object_Create(FloppyDisk, &self));
     
     self->fdc = pFdc;
-
-    // XXX hardcoded to DD for now
-    self->logicalBlockCapacity = ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK;
-    self->sectorsPerCylinder = ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK;
-    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
-    self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
-    self->trackWordCountToRead = ADF_DD_TRACK_WORD_COUNT_TO_READ;
-    self->trackWordCountToWrite = ADF_DD_TRACK_WORD_COUNT_TO_WRITE;
-
-    try(kalloc_options(sizeof(uint16_t) * self->trackWordCountToRead, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer));
-
-    self->head = -1;
-    self->cylinder = -1;
     self->drive = drive;
-    self->ciabprb = 0xf9;     // motor off; all drives deselected; head 0; stepping off
-    self->ciabprb &= ~(1 << ((drive & 0x03) + 3));    // select this drive
     
-    FloppyDisk_InvalidateReadTrack(self);
-    
+    try(FloppyDisk_Reset(self));
+
     *pOutDisk = self;
     return EOK;
     
@@ -92,32 +69,103 @@ catch:
 
 static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 {
-    kfree(self->trackBuffer);
-    self->trackBuffer = NULL;
-
+    FloppyDisk_DisposeTrackBuffer(self);
     self->fdc = NULL;
 }
 
-// Invalidates the read track cache.
-static void FloppyDisk_InvalidateReadTrack(FloppyDiskRef _Nonnull self)
+// Resets the floppy drive. This function figures out whether there is an actual
+// physical floppy drive connected and whether it responds to commands and it then
+// moves the disk head to track #0.
+// Note that this function leaves the floppy motor turned on and that it implicitly
+// acknowledges any pending disk change.
+// Upper layer code should treat this function like a disk change.
+static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
 {
-    if (self->flags.isReadTrackValid) {
-        self->flags.isReadTrackValid = 0;
-        memset(self->sectors, 0, sizeof(ADF_MFMSector*) * ADF_HD_SECS_PER_TRACK);
+    decl_try_err();
+
+    // XXX hardcoded to DD for now
+    self->logicalBlockCapacity = ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK;
+    self->sectorsPerCylinder = ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK;
+    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
+    self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
+    self->trackWordCountToRead = ADF_DD_TRACK_WORD_COUNT_TO_READ;
+    self->trackWordCountToWrite = ADF_DD_TRACK_WORD_COUNT_TO_WRITE;
+
+    self->ciabprb = FloppyController_Reset(self->fdc, self->drive);
+    
+    self->flags.isTrackBufferValid = 0;
+    self->head = -1;
+    self->cylinder = -1;
+    self->readErrorCount = 0;
+    
+    
+    // Turn the motor on to see whether there is an actual drive connected
+    FloppyDisk_MotorOn(self);
+    try(FloppyDisk_GetStatus(self));
+    
+    
+    // Move the head to track #0
+    err = FloppyDisk_SeekToTrack_0(self);
+    
+    
+    // We didn't seek if we were already at track #0. So step to track #1 and
+    // then back to #0 to acknowledge a disk change.
+    if (err != EOK) {
+        fdc_step_head(&self->ciabprb,  1);
+        fdc_step_head(&self->ciabprb, -1);
+    }
+
+    return EOK;
+
+catch:
+    return err;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Track Buffer
+////////////////////////////////////////////////////////////////////////////////
+
+static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
+{
+    if (self->trackBuffer) {
+        return EOK;
+    }
+    
+    self->flags.isTrackBufferValid = 0;
+    return kalloc_options(sizeof(uint16_t) * self->trackWordCountToRead, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+}
+
+static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
+{
+    if (self->trackBuffer) {
+        kfree(self->trackBuffer);
+        self->trackBuffer = NULL;
+        self->flags.isTrackBufferValid = 0;
     }
 }
 
-// Computes and returns the floppy status from the given fdc drive status.
-static inline errno_t FloppyDisk_StatusFromDriveStatus(unsigned int drvstat)
+
+////////////////////////////////////////////////////////////////////////////////
+// Motor Control
+////////////////////////////////////////////////////////////////////////////////
+
+// Turns the drive motor on and blocks the caller until the disk is ready.
+static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
 {
-    if ((drvstat & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
-        return ENOMEDIUM;
-    }
-    if ((drvstat & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
-        return EDISKCHANGE;
-    }
+    fdc_set_drive_motor(&self->ciabprb, 1);
     
-    return EOK;
+    const errno_t err = FloppyDisk_WaitDriveReady(self);
+    if (err == ETIMEDOUT) {
+        fdc_set_drive_motor(&self->ciabprb, 0);
+        return;
+    }
+}
+
+// Turns the drive motor off.
+static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
+{
+    fdc_set_drive_motor(&self->ciabprb, 0);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
@@ -143,6 +191,11 @@ catch:
     return err;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Seeking & Head Selection
+////////////////////////////////////////////////////////////////////////////////
+
 // Seeks to track #0 and selects head #0. Returns EOK if the function sought at
 // least once.
 // Note that this function is expected to implicitly acknowledge a disk change if
@@ -152,7 +205,7 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self)
     decl_try_err();
     bool did_step_once = false;
     
-    FloppyDisk_InvalidateReadTrack(self);
+    self->flags.isTrackBufferValid = 0;
     
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
@@ -203,7 +256,7 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     const bool change_side = (self->head != head);
 
 //    print("*** SeekTo(c: %d, h: %d)\n", cylinder, head);
-    FloppyDisk_InvalidateReadTrack(self);
+    self->flags.isTrackBufferValid = 0;
     
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
@@ -256,46 +309,26 @@ catch:
     return err;
 }
 
-// Resets the floppy drive. This function figures out whether there is an actual
-// physical floppy drive connected and whether it responds to commands and it then
-// moves the disk head to track #0.
-// Note that this function leaves the floppy motor turned on and that it implicitly
-// acknowledges any pending disk change.
-// Upper layer code should treat this function like a disk change.
-static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
+
+////////////////////////////////////////////////////////////////////////////////
+// Drive Status & Disk Change
+////////////////////////////////////////////////////////////////////////////////
+
+// Computes and returns the floppy status from the given fdc drive status.
+static inline errno_t FloppyDisk_StatusFromDriveStatus(unsigned int drvstat)
 {
-    decl_try_err();
-
-    FloppyDisk_InvalidateReadTrack(self);
-    self->head = -1;
-    self->cylinder = -1;
-    self->readErrorCount = 0;
-    
-    
-    // Turn the motor on to see whether there is an actual drive connected
-    FloppyDisk_MotorOn(self);
-    try(FloppyDisk_GetStatus(self));
-    
-    
-    // Move the head to track #0
-    err = FloppyDisk_SeekToTrack_0(self);
-    
-    
-    // We didn't seek if we were already at track #0. So step to track #1 and
-    // then back to #0 to acknowledge a disk change.
-    if (err != EOK) {
-        fdc_step_head(&self->ciabprb,  1);
-        fdc_step_head(&self->ciabprb, -1);
+    if ((drvstat & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
+        return ENOMEDIUM;
     }
-
+    if ((drvstat & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
+        return EDISKCHANGE;
+    }
+    
     return EOK;
-
-catch:
-    return err;
 }
 
 // Returns the current floppy drive status.
-errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull self)
 {
     return FloppyDisk_StatusFromDriveStatus(fdc_get_drive_status(&self->ciabprb));
 }
@@ -309,35 +342,17 @@ errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull self)
 // in this case to acknowledge the disk change. If the FloppyDisk_GetStatus()
 // function continues to return EDISKCHANGE after acking' the disk change, then
 // you know that there is no disk in the disk drive.
-void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
+static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
 {
     // Step by one track. This clears the disk change drive state if there is a
     // disk in the drive. If the disk change state doesn't change after the seek
     // then this means that there is truly no disk in the drive.
     // Also invalidate the cache 'cause it is certainly no longer valid.
-    FloppyDisk_InvalidateReadTrack(self);
+    self->flags.isTrackBufferValid = 0;
     self->readErrorCount = 0;
 
     const int dir = (self->cylinder == 0) ? 1 : -1;
     fdc_step_head(&self->ciabprb, dir);
-}
-
-// Turns the drive motor on and blocks the caller until the disk is ready.
-static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
-{
-    fdc_set_drive_motor(&self->ciabprb, 1);
-    
-    const errno_t err = FloppyDisk_WaitDriveReady(self);
-    if (err == ETIMEDOUT) {
-        fdc_set_drive_motor(&self->ciabprb, 0);
-        return;
-    }
-}
-
-// Turns the drive motor off.
-static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
-{
-    fdc_set_drive_motor(&self->ciabprb, 0);
 }
 
 
@@ -358,6 +373,9 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
     // no disk change
     try(FloppyDisk_GetStatus(self));
 
+
+    try(FloppyDisk_EnsureTrackBuffer(self));
+
     return EOK;
 
 catch:
@@ -374,7 +392,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
 {
     decl_try_err();
     
-    if (self->cylinder == cylinder && self->head == head && self->flags.isReadTrackValid) {
+    if (self->cylinder == cylinder && self->head == head && self->flags.isTrackBufferValid) {
         return EOK;
     }
 
@@ -384,9 +402,15 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     
     // Read the track
     try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead, false));
+    self->flags.isTrackBufferValid = 1;
+
     
-    
-    
+    // Reset the sector table
+    for (int i = 0; i < ADF_HD_SECS_PER_TRACK; i++) {
+        self->sectors[i] = NULL;
+    }
+
+
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_limit = &self->trackBuffer[self->trackWordCountToRead];
@@ -454,9 +478,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
             }
         }
     }
-    
-    self->flags.isReadTrackValid = 1;
-    
+        
     return EOK;
 
 catch:
@@ -473,7 +495,7 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     
     // Get the sector
     ADF_MFMSector* psec = self->sectors[sector];
-    if (psec == NULL) {
+    if (psec == NULL || !self->flags.isTrackBufferValid) {
         self->readErrorCount++;
         return EIO;
     }
@@ -492,7 +514,7 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     decl_try_err();
     
     // There must be a valid track cache
-    assert(self->flags.isReadTrackValid);
+    assert(self->flags.isTrackBufferValid);
     
     
     // Prepare disk I/O
@@ -519,7 +541,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     
     // Override the sector with the new data
     const ADF_MFMSector* psec = self->sectors[sector];
-    if (psec == NULL) {
+    if (psec == NULL || !self->flags.isTrackBufferValid) {
         return EIO;
     }
     
@@ -563,7 +585,7 @@ LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
 // Returns true if the disk if read-only.
 bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 {
-    return FloppyController_IsReadOnly(self->fdc, self->drive);
+    return ((FloppyController_GetStatus(self->fdc, self->ciabprb) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
 }
 
 // Reads the contents of the block at index 'lba'. 'buffer' must be big
