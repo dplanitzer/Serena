@@ -28,7 +28,7 @@ errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_
         return err;
     }
 
-    for (int i = 0; i < 1 /*MAX_FLOPPY_DISK_DRIVES*/; i++) {
+    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
         const errno_t err0 = FloppyDisk_Create(i, fdc, &pOutDrives[i]);
 
         if (err0 != EOK && nDrivesOkay == 0) {
@@ -56,7 +56,7 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
     self->fdc = pFdc;
     self->drive = drive;
     
-    try(FloppyDisk_Reset(self));
+    FloppyDisk_Reset(self);
 
     *pOutDisk = self;
     return EOK;
@@ -79,10 +79,8 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 // Note that this function leaves the floppy motor turned on and that it implicitly
 // acknowledges any pending disk change.
 // Upper layer code should treat this function like a disk change.
-static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
+static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
 {
-    decl_try_err();
-
     // XXX hardcoded to DD for now
     self->logicalBlockCapacity = ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK;
@@ -98,32 +96,6 @@ static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
     self->head = -1;
     self->cylinder = -1;
     self->readErrorCount = 0;
-    
-    
-    // Turn the motor on to see whether there is an actual drive connected
-    FloppyDisk_MotorOn(self);
-    try(FloppyDisk_WaitForDiskReady(self));
-    try(FloppyDisk_GetStatus(self));
-   
-    
-    // Move the head to track #0
-    err = FloppyDisk_SeekToTrack_0(self);
-    
-    
-    // We didn't seek if we were already at track #0. So step to track #1 and
-    // then back to #0 to acknowledge a disk change.
-    if (err != EOK) {
-        fdc_step_head(&self->ciabprb,  1);
-        fdc_step_head(&self->ciabprb, -1);
-    }
-
-    FloppyDisk_MotorOff(self);
-
-    return EOK;
-
-catch:
-    FloppyDisk_MotorOff(self);
-    return err;
 }
 
 
@@ -188,7 +160,7 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 
         for (int i = 0; i < 50; i++) {
             const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
-        
+
             if ((status & kDriveStatus_DiskReady) != 0) {
                 self->flags.motorState = kMotor_AtTargetSpeed;
                 return EOK;
@@ -203,7 +175,7 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
         // try spinning the motor up to its target speed again.
         FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
         self->flags.motorState = kMotor_Off;
-        return EIO;
+        return ETIMEDOUT;
     }
     else if (self->flags.motorState == kMotor_Off) {
         return EIO;
@@ -392,7 +364,43 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
 
 
     // Wait until the motor has reached its target speed
-    try(FloppyDisk_WaitForDiskReady(self));
+    err = FloppyDisk_WaitForDiskReady(self);
+    if (err == ETIMEDOUT) {
+        // A timeout may be caused by:
+        // - no drive connected
+        // - no disk in drive
+        // - electro-mechanical problem
+        if (FloppyController_GetDriveType(self->fdc, &self->ciabprb) == 0) {
+            throw(ENODEV);
+        }
+        else if ((FloppyController_GetStatus(self->fdc, self->ciabprb) & kDriveStatus_DiskChanged) != 0) {
+            // Can not acknowledge the disk change at this point because the motor isn't running and thus stepping is unreliable
+            throw(ENOMEDIUM);
+        }
+        else {
+            throw(EIO);
+        }
+    }
+    else if (err != EOK) {
+        throw(err);
+    }
+
+
+    // Seek to track 0 and acknowledge any pending disk change if this is the
+    // first I/O operation after a drive reset
+    if (self->cylinder == -1 || self->head == -1) {
+        err = FloppyDisk_SeekToTrack_0(self);
+    
+    
+        // We didn't step if the drive was already at track 0. So we need to
+        // do a step and then step back to 0. However this is really only
+        // necessary if we do the I/O from/to cylinder 0. Otherwise we'll step
+        // away from 0 anyway.
+        if (err != EOK && cylinder == 0) {
+            fdc_step_head(&self->ciabprb,  1);
+            fdc_step_head(&self->ciabprb, -1);
+        }
+    }
 
 
     // Seek to the required cylinder and select the required head

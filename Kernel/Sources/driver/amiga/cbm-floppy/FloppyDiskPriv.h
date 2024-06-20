@@ -63,7 +63,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
 
 
 static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
-static errno_t FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
