@@ -1,5 +1,5 @@
 ;
-;  FloppyDisk_asm.s
+;  FloppyController_asm.s
 ;  kernel
 ;
 ;  Created by Dietmar Planitzer on 2/12/21.
@@ -9,7 +9,6 @@
     include "../hal/chipset.i"
     include "../hal/lowmem.i"
 
-    xdef _fdc_get_drive_status
     xdef _fdc_step_head
     xdef _fdc_select_head
     xdef _fdc_io_begin
@@ -27,26 +26,6 @@ _fdc_nano_delay:
     rts
 
     
-;-------------------------------------------------------------------------------
-; unsigned int fdc_get_drive_status(FdcControlByte* fdc)
-; Returns the status word of the floppy disk controller.
-_fdc_get_drive_status:
-    inline
-    cargs gds_fdc_ptr.l
-        move.l  gds_fdc_ptr(sp), a0
-        move.b  (a0), d1                    ; make sure that we use our fdc control byte and that our drive is selected
-        move.b  d1, CIABPRB
-
-        clr.l   d0                          ; read the fdc status
-        move.b  CIAAPRA, d0
-
-        or.b    #%01111000, d1              ; make sure that we leave the drives in a deselected state
-        move.b  d1, CIABPRB
-
-        rts
-    einline
-
-
 ;-------------------------------------------------------------------------------
 ; void fdc_step_head(FdcControlByte* fdc, int inout)
 ; Steps the drive head one cylinder towards the inside (+1) or the outside (-1)

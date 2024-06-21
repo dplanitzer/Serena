@@ -82,10 +82,11 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
 {
     // XXX hardcoded to DD for now
-    self->logicalBlockCapacity = ADF_DD_HEADS_PER_CYL*ADF_DD_CYLS_PER_DISK*ADF_DD_SECS_PER_TRACK;
-    self->sectorsPerCylinder = ADF_DD_HEADS_PER_CYL * ADF_DD_SECS_PER_TRACK;
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
+    self->cylindersPerDisk = ADF_DD_CYLS_PER_DISK;
+    self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
+    self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
     self->trackWordCountToRead = ADF_DD_TRACK_WORD_COUNT_TO_READ;
     self->trackWordCountToWrite = ADF_DD_TRACK_WORD_COUNT_TO_WRITE;
 
@@ -93,6 +94,8 @@ static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
     
     self->flags.motorState = kMotor_Off;
     self->flags.isTrackBufferValid = 0;
+    self->flags.hasPendingDiskChangeAck = 0;
+    self->flags.wasMostRecentSeekInward = 0;
     self->head = -1;
     self->cylinder = -1;
     self->readErrorCount = 0;
@@ -147,7 +150,7 @@ static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
 // waits for at most 500ms for the disk to become ready.
-// Returns S_OK if the drive is ready; ETIMEDOUT  if the drive failed to become
+// Returns EOK if the drive is ready; ETIMEDOUT if the drive failed to become
 // ready in time.
 static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 {
@@ -187,14 +190,10 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 // Seeking & Head Selection
 ////////////////////////////////////////////////////////////////////////////////
 
-// Seeks to track #0 and selects head #0. Returns EOK if the function sought at
-// least once.
-// Note that this function is expected to implicitly acknowledge a disk change if
-// it has actually sought.
-static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self)
+// Seeks to track #0 and selects head #0.
+static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnull pInOutStepCount)
 {
     decl_try_err();
-    bool did_step_once = false;
     
     self->flags.isTrackBufferValid = 0;
     
@@ -205,14 +204,14 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self)
     try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18)));
     
     for(;;) {
-        const unsigned int status = fdc_get_drive_status(&self->ciabprb);
-        
-        if ((status & (1 << CIABPRA_BIT_DSKTRACK0)) == 0) {
+        const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+
+        if ((status & kDriveStatus_AtTrack0) != 0) {
             break;
         }
         
         fdc_step_head(&self->ciabprb, -1);
-        did_step_once = true;
+        (*pInOutStepCount)++;
         try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
     }
     fdc_select_head(&self->ciabprb, 0);
@@ -223,27 +222,20 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self)
     self->head = 0;
     self->cylinder = 0;
     self->flags.wasMostRecentSeekInward = 0;
-    
-    return (did_step_once) ? EOK : EIO;
 
 catch:
     return err;
 }
 
 // Seeks to the specified cylinder and selects the specified drive head.
-// (0: outermost, 80: innermost, +: inward, -: outward).
-// Returns EDISKCHANGE if the disk has changed.
-// Note that we purposefully treat a disk change as an error. We don't want to
-// implicitly and accidentally acknowledge a disk change as a side effect of seeking.
-// The user of the API needs to become aware of the disk change so that he can actually
-// handle it in a sensible way.
-static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head)
+// (0: outermost, 79: innermost, +: inward, -: outward).
+static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head, int* _Nonnull pInOutStepCount)
 {
     decl_try_err();
     const int diff = cylinder - self->cylinder;
     const int cur_dir = (diff >= 0) ? 1 : -1;
     const int last_dir = (self->flags.wasMostRecentSeekInward) ? 1 : -1;
-    const int nsteps = __abs(diff);
+    const int nSteps = __abs(diff);
     const bool change_side = (self->head != head);
 
 //    print("*** SeekTo(c: %d, h: %d)\n", cylinder, head);
@@ -251,7 +243,7 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
-    const int seek_pre_wait_ms = (nsteps > 0 && cur_dir != last_dir) ? 18 : 0;
+    const int seek_pre_wait_ms = (nSteps > 0 && cur_dir != last_dir) ? 18 : 0;
     const int side_pre_wait_ms = 2;
     const int pre_wait_ms = __max(seek_pre_wait_ms, side_pre_wait_ms);
     
@@ -261,12 +253,12 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     
     
     // Seek if necessary
-    if (nsteps > 0) {
-        for (int i = nsteps; i > 0; i--) {
-            try(FloppyDisk_GetStatus(self));
-            
+    if (nSteps > 0) {
+        for (int i = nSteps; i > 0; i--) {            
             fdc_step_head(&self->ciabprb, cur_dir);
+            
             self->cylinder += cur_dir;
+            (*pInOutStepCount)++;
             
             if (cur_dir >= 0) {
                 self->flags.wasMostRecentSeekInward = 1;
@@ -286,7 +278,7 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     
     // Seek settle time: 15ms
     // Head select settle time: 100us
-    const int seek_settle_us = (nsteps > 0) ? 15*1000 : 0;
+    const int seek_settle_us = (nSteps > 0) ? 15*1000 : 0;
     const int side_settle_us = (change_side) ? 100 : 0;
     const int settle_us = __max(seek_settle_us, side_settle_us);
     
@@ -294,56 +286,8 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
         try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(settle_us)));
     }
     
-    return EOK;
-
 catch:
     return err;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Drive Status & Disk Change
-////////////////////////////////////////////////////////////////////////////////
-
-// Computes and returns the floppy status from the given fdc drive status.
-static inline errno_t FloppyDisk_StatusFromDriveStatus(unsigned int drvstat)
-{
-    if ((drvstat & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
-        return ENOMEDIUM;
-    }
-    if ((drvstat & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
-        return EDISKCHANGE;
-    }
-    
-    return EOK;
-}
-
-// Returns the current floppy drive status.
-static errno_t FloppyDisk_GetStatus(FloppyDiskRef _Nonnull self)
-{
-    return FloppyDisk_StatusFromDriveStatus(fdc_get_drive_status(&self->ciabprb));
-}
-
-// The following functions may return an EDISKCHANGE error when called:
-// - FloppyDisk_GetStatus()
-// - FloppyDisk_ReadSector()
-// - FloppyDisk_WriteSector()
-//
-// You MUST either call FloppyDisk_AcknowledgeDiskChange() or FloppyDisk_Reset()
-// in this case to acknowledge the disk change. If the FloppyDisk_GetStatus()
-// function continues to return EDISKCHANGE after acking' the disk change, then
-// you know that there is no disk in the disk drive.
-static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
-{
-    // Step by one track. This clears the disk change drive state if there is a
-    // disk in the drive. If the disk change state doesn't change after the seek
-    // then this means that there is truly no disk in the drive.
-    // Also invalidate the cache 'cause it is certainly no longer valid.
-    self->flags.isTrackBufferValid = 0;
-    self->readErrorCount = 0;
-
-    const int dir = (self->cylinder == 0) ? 1 : -1;
-    fdc_step_head(&self->ciabprb, dir);
 }
 
 
@@ -374,7 +318,9 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
             throw(ENODEV);
         }
         else if ((FloppyController_GetStatus(self->fdc, self->ciabprb) & kDriveStatus_DiskChanged) != 0) {
-            // Can not acknowledge the disk change at this point because the motor isn't running and thus stepping is unreliable
+            // Can not acknowledge the disk change at this point because the motor isn't running and thus stepping is unreliable.
+            // Do it in the future when we detect that a disk is present.
+            self->flags.hasPendingDiskChangeAck = 1;
             throw(ENOMEDIUM);
         }
         else {
@@ -386,34 +332,33 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
     }
 
 
+    // Disk motor has spun up. Check whether the disk has been replaced.
+    const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+    const hasDiskChanged = (status & kDriveStatus_DiskChanged) != 0 || self->flags.hasPendingDiskChangeAck;
+    int stepCount = 0;
+    self->flags.hasPendingDiskChangeAck = 0;
+
+
     // Seek to track 0 and acknowledge any pending disk change if this is the
     // first I/O operation after a drive reset
     if (self->cylinder == -1 || self->head == -1) {
-        err = FloppyDisk_SeekToTrack_0(self);
-    
-    
-        // We didn't step if the drive was already at track 0. So we need to
-        // do a step and then step back to 0. However this is really only
-        // necessary if we do the I/O from/to cylinder 0. Otherwise we'll step
-        // away from 0 anyway.
-        if (err != EOK && cylinder == 0) {
-            fdc_step_head(&self->ciabprb,  1);
-            fdc_step_head(&self->ciabprb, -1);
-        }
+        try(FloppyDisk_SeekToTrack_0(self, &stepCount));
     }
 
 
     // Seek to the required cylinder and select the required head
     if (self->cylinder != cylinder || self->head != head) {
-        try(FloppyDisk_SeekTo(self, cylinder, head));
+        try(FloppyDisk_SeekTo(self, cylinder, head, &stepCount));
     }
 
 
-    // Validate that the drive is still there, motor turned on and that there was
-    // no disk change
-    try(FloppyDisk_GetStatus(self));
+    // Acknowledge a disk change here if we didn't already step above.
+    if (hasDiskChanged && stepCount == 0) {
+        const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
 
-    return EOK;
+        fdc_step_head(&self->ciabprb,  delta);
+        fdc_step_head(&self->ciabprb, -delta);
+    }
 
 catch:
     return err;
@@ -519,6 +464,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     return EOK;
 
 catch:
+    self->flags.isTrackBufferValid = 0;
     return err;
 }
 
