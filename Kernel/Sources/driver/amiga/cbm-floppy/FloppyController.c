@@ -9,6 +9,26 @@
 #include "FloppyController.h"
 #include <hal/Platform.h>
 
+// CIABPRA bits (FDC status byte)
+#define CIABPRA_BIT_DSKRDY      5
+#define CIABPRA_BIT_DSKTRACK0   4
+#define CIABPRA_BIT_DSKPROT     3
+#define CIABPRA_BIT_DSKCHANGE   2
+
+
+// CIABPRB bits (FDC control byte)
+#define CIABPRB_BIT_DSKMOTOR    7
+#define CIABPRB_BIT_DSKSEL3     6
+#define CIABPRB_BIT_DSKSEL2     5
+#define CIABPRB_BIT_DSKSEL1     4
+#define CIABPRB_BIT_DSKSEL0     3
+#define CIABPRB_BIT_DSKSIDE     2
+#define CIABPRB_BIT_DSKDIREC    1
+#define CIABPRB_BIT_DSKSTEP     0
+
+#define CIABPRB_DSKSELALL ((1 << CIABPRB_BIT_DSKSEL3) | (1 << CIABPRB_BIT_DSKSEL2) | (1 << CIABPRB_BIT_DSKSEL1) | (1 << CIABPRB_BIT_DSKSEL0))
+
+
 static void FloppyController_Destroy(FloppyController* _Nullable self);
 
 
@@ -75,27 +95,6 @@ FdcControlByte FloppyController_Reset(FloppyController* _Nonnull self, int drive
     return r;
 }
 
-// Selects or deselects the given drive
-static void fdc_select_drive(int drive, bool doSelect)
-{
-    CIAB_BASE_DECL(ciab);
-    uint8_t sel = 0;
-
-    if (drive >= 0 && drive < 4) {
-        sel = 1 << (CIABPRB_BIT_DSKSEL0 + drive);
-    }
-    else {
-        abort();
-    }
-
-    if (doSelect) {
-        *CIA_REG_8(ciab, CIA_PRB) &= ~sel;
-    }
-    else {
-        *CIA_REG_8(ciab, CIA_PRB) |= sel;
-    }
-}
-
 // Detects and returns the drive type
 uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb)
 {
@@ -157,6 +156,21 @@ void FloppyController_SetMotor(FloppyController* _Nonnull self, FdcControlByte* 
     *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
 }
 
+void FloppyController_SetHead(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, int head)
+{
+    CIAB_BASE_DECL(ciab);
+
+    // Update the disk side bit
+    const uint8_t bit = (1 << CIABPRB_BIT_DSKSIDE);
+    const uint8_t r = (head == 0) ? *cb | bit : *cb & ~bit;
+    *CIA_REG_8(ciab, CIA_PRB) = r;
+    *cb = r;
+
+
+    // Deselect all drives
+    *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+}
+
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
 // the caller until the DMA is available and all words have been transferred from
 // disk.
@@ -168,16 +182,6 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _
     //print("b, buffer: %p, nwords: %d\n", pData, nwords);
     fdc_io_begin(pFdc, pData, nwords, (int)readwrite);
     err = Semaphore_Acquire(&self->done, kTimeInterval_Infinity);
-    if (err == EOK) {
-        const unsigned int status = fdc_get_io_status(pFdc);
-        
-        if ((status & (1 << CIABPRA_BIT_DSKRDY)) != 0) {
-            err = ENOMEDIUM;
-        }
-        else if ((status & (1 << CIABPRA_BIT_DSKCHANGE)) == 0) {
-            err = EDISKCHANGE;
-        }
-    }
     fdc_io_end(pFdc);
     
     Semaphore_Relinquish(&self->inuse);

@@ -142,10 +142,11 @@ static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
 // Turns the drive motor off.
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
 {
-    if (self->flags.motorState != kMotor_Off) {
-        FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
-        self->flags.motorState = kMotor_Off;
-    }
+    // Note: may be called if the motor when off on us without our doing. We call
+    // this function in this case to resync out software state with the hardware
+    // state.
+    FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
+    self->flags.motorState = kMotor_Off;
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
@@ -176,8 +177,7 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 
         // Timed out. Turn the motor off for now so that another I/O request can
         // try spinning the motor up to its target speed again.
-        FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
-        self->flags.motorState = kMotor_Off;
+        FloppyDisk_MotorOff(self);
         return ETIMEDOUT;
     }
     else if (self->flags.motorState == kMotor_Off) {
@@ -214,7 +214,7 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnu
         (*pInOutStepCount)++;
         try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
     }
-    fdc_select_head(&self->ciabprb, 0);
+    FloppyController_SetHead(self->fdc, &self->ciabprb, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
     try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(15)));
@@ -272,7 +272,7 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     
     // Switch heads if necessary
     if (change_side) {
-        fdc_select_head(&self->ciabprb, head);
+        FloppyController_SetHead(self->fdc, &self->ciabprb, head);
         self->head = head;
     }
     
@@ -290,12 +290,22 @@ catch:
     return err;
 }
 
+static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
+{
+    const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
+
+    fdc_step_head(&self->ciabprb,  delta);
+    fdc_step_head(&self->ciabprb, -delta);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Disk I/O
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder, int head)
+// Invoked at the beginning of a disk read/write operation to prepare the drive
+// state. Ie turn motor on, seek, switch disk head, detect drive status, etc. 
+static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
 
@@ -354,14 +364,29 @@ static errno_t FloppyDisk_PrepareForIO(FloppyDiskRef _Nonnull self, int cylinder
 
     // Acknowledge a disk change here if we didn't already step above.
     if (hasDiskChanged && stepCount == 0) {
-        const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
-
-        fdc_step_head(&self->ciabprb,  delta);
-        fdc_step_head(&self->ciabprb, -delta);
+        FloppyDisk_AcknowledgeDiskChange(self);
     }
 
 catch:
     return err;
+}
+
+// Invoked at the end of a read/write operation to clean up and verify that the
+// drive state is still okay
+static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self)
+{
+    const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+
+    if ((status & kDriveStatus_DiskChanged) != 0) {
+        FloppyDisk_AcknowledgeDiskChange(self);
+        return EDISKCHANGE;
+    }
+    if ((status & kDriveStatus_DiskReady) == 0) {
+        FloppyDisk_MotorOff(self);
+        return EIO;
+    }
+
+    return EOK;
 }
 
 
@@ -370,23 +395,8 @@ enum {
     kScanMode_Sectoring,    // Picking up expected sectors (outside the gap)
 };
 
-static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int cylinder)
+static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
 {
-    decl_try_err();
-    
-    if (self->cylinder == cylinder && self->head == head && self->flags.isTrackBufferValid) {
-        return EOK;
-    }
-
-    // Prepare disk I/O
-    try(FloppyDisk_PrepareForIO(self, cylinder, head));
-    
-    
-    // Read the track
-    try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead, false));
-    self->flags.isTrackBufferValid = 1;
-
-    
     // Reset the sector table
     for (int i = 0; i < ADF_HD_SECS_PER_TRACK; i++) {
         self->sectors[i] = NULL;
@@ -419,7 +429,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
             mfm_decode_sector((const uint32_t*)pt, (uint32_t*)&info, 1);
 
             // Validate the sector header. We record valid sectors only.
-            if (info.format != ADF_FORMAT_V1 || info.track != 2*cylinder + head || info.sector >= self->sectorsPerTrack) {
+            if (info.format != ADF_FORMAT_V1 || info.track != 2*self->cylinder + self->head || info.sector >= self->sectorsPerTrack) {
                 // Bad sector
                 pt += ADF_MFM_SECTOR_SIZE / 2;
                 continue;
@@ -460,7 +470,24 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
             }
         }
     }
-        
+}
+
+static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int cylinder)
+{
+    decl_try_err();
+    
+    if (self->cylinder == cylinder && self->head == head && self->flags.isTrackBufferValid) {
+        return EOK;
+    }
+
+    try(FloppyDisk_BeginIO(self, cylinder, head));
+    try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead, false));
+    
+    self->flags.isTrackBufferValid = 1;
+    FloppyDisk_SectorizeTrackBuffer(self);
+    
+    try(FloppyDisk_EndIO(self));
+
     return EOK;
 
 catch:
@@ -498,15 +525,11 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     
     // There must be a valid track cache
     assert(self->flags.isTrackBufferValid);
-    
-    
-    // Prepare disk I/O
-    try(FloppyDisk_PrepareForIO(self, cylinder, head));
-    
-    
-    // write the track
+        
+    try(FloppyDisk_BeginIO(self, cylinder, head));
     try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToWrite, true));
-    
+    try(FloppyDisk_EndIO(self));
+
     return EOK;
 
 catch:

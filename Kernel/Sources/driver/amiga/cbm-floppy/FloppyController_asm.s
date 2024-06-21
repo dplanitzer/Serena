@@ -10,9 +10,7 @@
     include "../hal/lowmem.i"
 
     xdef _fdc_step_head
-    xdef _fdc_select_head
     xdef _fdc_io_begin
-    xdef _fdc_get_io_status
     xdef _fdc_io_end
     xdef _fdc_nano_delay
 
@@ -64,32 +62,6 @@ _fdc_step_head:
 
 
 ;-------------------------------------------------------------------------------
-; void fdc_select_head(FdcControlByte* fdc, int side)
-; Selects the disk head. 0 (lower head) or 1 (upper head).
-_fdc_select_head:
-    inline
-    cargs seh_fdc_ptr.l, seh_head.l
-        move.l  seh_fdc_ptr(sp), a0
-        move.b  (a0), d0                    ; make sure that we use our fdc control byte
-
-        tst.l   seh_head(sp)                ; update the dskside bit
-        beq.s   .1
-        bclr    #2, d0
-        bra.s   .2
-.1:
-        bset    #2, d0
-.2:
-        move.b  d0, (a0)
-        move.b  d0, CIABPRB
-
-        or.b    #%01111000, d0              ; deselect all drives
-        move.b  d0, CIABPRB
-
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
 ; void fdc_io_begin(FdcControlByte* fdc, uint16_t* data, int nwords, int readwrite)
 ; Starts an fdc i/o operation to read or write the contents of the track buffer.
 _fdc_io_begin:
@@ -117,26 +89,6 @@ _fdc_io_begin:
         bset    #15, d0
         move.w  d0, DSKLEN(a1)                  ; turn disk DMA on
         move.w  d0, DSKLEN(a1)
-        rts
-    einline
-
-
-;-------------------------------------------------------------------------------
-; unsigned int fdc_get_io_status(FdcControlByte* fdc)
-; Returns true if the currently active fdc_io_begin() call is done.
-_fdc_get_io_status:
-    inline
-    cargs ios_fdc_ptr.l
-        move.b  CIAAPRA, d1                 ; read the fdc status
-        tst.l   d0
-        beq.s   .io_not_done
-        bset    #0, d1
-        bra.s   .io_status_return
-.io_not_done:
-        bclr    #0, d1
-.io_status_return:
-        clr.l   d0
-        move.b  d1, d0
         rts
     einline
 
