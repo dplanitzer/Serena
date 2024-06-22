@@ -31,6 +31,7 @@
 
 extern void fdc_nano_delay(void);
 static void FloppyController_Destroy(FloppyController* _Nullable self);
+static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
 
 
 // Creates the floppy controller
@@ -41,7 +42,8 @@ errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(FloppyController), (void**) &self));
 
-    Semaphore_Init(&self->inuse, 1);
+    Lock_Init(&self->lock);
+    ConditionVariable_Init(&self->cv);
     Semaphore_Init(&self->done, 0);
         
     try(InterruptController_AddSemaphoreInterruptHandler(gInterruptController,
@@ -70,8 +72,9 @@ static void FloppyController_Destroy(FloppyController* _Nullable self)
         }
         self->irqHandler = 0;
         
-        Semaphore_Deinit(&self->inuse);
         Semaphore_Deinit(&self->done);
+        ConditionVariable_Deinit(&self->cv);
+        Lock_Deinit(&self->lock);
         
         kfree(self);
     }
@@ -89,9 +92,11 @@ DriveState FloppyController_Reset(FloppyController* _Nonnull self, int drive)
     r &= ~(1 << (CIABPRB_BIT_DSKSEL0 + (drive & 0x03)));
 
     // Make sure that the motor is off and then deselect the drive
+    Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = r;
     fdc_nano_delay();
     *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+    Lock_Unlock(&self->lock);
 
     return r;
 }
@@ -103,10 +108,12 @@ uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, DriveSta
     CIAB_BASE_DECL(ciab);
     uint32_t dt = 0;
 
+    Lock_Lock(&self->lock);
+
     // Reset the drive's serial register
-    FloppyController_SetMotor(self, cb, true);
+    _FloppyController_SetMotor(self, cb, true);
     fdc_nano_delay();
-    FloppyController_SetMotor(self, cb, false);
+    _FloppyController_SetMotor(self, cb, false);
 
     // Read the bits from MSB to LSB
     uint8_t r = *cb;
@@ -118,6 +125,8 @@ uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, DriveSta
         *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
     }
 
+    Lock_Unlock(&self->lock);
+
     return dt;
 }
 
@@ -127,16 +136,18 @@ uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, DriveState c
     CIAA_BASE_DECL(ciaa);
     CIAB_BASE_DECL(ciab);
 
+    Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = cb;
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
+    Lock_Unlock(&self->lock);
 
     return ~r & ((1 << CIABPRA_BIT_DSKRDY) | (1 << CIABPRA_BIT_DSKTRACK0) | (1 << CIABPRA_BIT_DSKPROT) | (1 << CIABPRA_BIT_DSKCHANGE));
 }
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
 // the motor to reach its final speed.
-void FloppyController_SetMotor(FloppyController* _Nonnull self, DriveState* _Nonnull cb, bool onoff)
+static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff)
 {
     CIAB_BASE_DECL(ciab);
 
@@ -157,9 +168,20 @@ void FloppyController_SetMotor(FloppyController* _Nonnull self, DriveState* _Non
     *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
 }
 
+// Turns the motor for drive 'drive' on or off. This function does not wait for
+// the motor to reach its final speed.
+void FloppyController_SetMotor(FloppyController* _Nonnull self, DriveState* _Nonnull cb, bool onoff)
+{
+    Lock_Lock(&self->lock);
+    _FloppyController_SetMotor(self, cb, onoff);
+    Lock_Unlock(&self->lock);
+}
+
 void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _Nonnull cb, int head)
 {
     CIAB_BASE_DECL(ciab);
+
+    Lock_Lock(&self->lock);
 
     // Update the disk side bit
     const uint8_t bit = (1 << CIABPRB_BIT_DSKSIDE);
@@ -170,6 +192,8 @@ void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _N
 
     // Deselect all drives
     *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+
+    Lock_Unlock(&self->lock);
 }
 
 // Steps the drive head one cylinder towards the inside (+1) or the outside (-1)
@@ -177,6 +201,8 @@ void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _N
 void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, int delta)
 {
     CIAB_BASE_DECL(ciab);
+
+    Lock_Lock(&self->lock);
 
     // Update the seek direction bit
     const uint8_t bit = (1 << CIABPRB_BIT_DSKDIREC);
@@ -199,6 +225,8 @@ void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, i
 
     // Deselect all drives
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
+
+    Lock_Unlock(&self->lock);
 }
 
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
@@ -210,7 +238,17 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     CIAB_BASE_DECL(ciab);
     CHIPSET_BASE_DECL(cs);
 
-    try(Semaphore_Acquire(&self->inuse, kTimeInterval_Infinity));
+    Lock_Lock(&self->lock);
+
+    while (self->flags.inUse && err == EOK) {
+        err = ConditionVariable_Wait(&self->cv, &self->lock, kTimeInterval_Infinity);
+    }
+    if (err != EOK) {
+        Lock_Unlock(&self->lock);
+        throw(err);
+    }
+
+    self->flags.inUse = 1;
     //print("b, buffer: %p, nwords: %d\n", pData, nwords);
 
 
@@ -238,10 +276,14 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     *CHIPSET_REG_16(cs, DSKLEN) = dlen;
     *CHIPSET_REG_16(cs, DSKLEN) = dlen;
 
+    Lock_Unlock(&self->lock);
+
 
     // Wait for the DMA to complete
     err = Semaphore_Acquire(&self->done, kTimeInterval_Infinity);
 
+
+    Lock_Lock(&self->lock);
 
     // Turn DMA off
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
@@ -251,9 +293,8 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     // Deselect all drives
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
 
-    Semaphore_Relinquish(&self->inuse);
-    //print("DMA done (%d)\n", (int)err);
-    //while(1);
+    self->flags.inUse = 0;
+    ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);
 
     return (err == ETIMEDOUT) ? ENOMEDIUM : err;
 
