@@ -9,7 +9,6 @@
     include "../hal/chipset.i"
     include "../hal/lowmem.i"
 
-    xdef _fdc_step_head
     xdef _fdc_io_begin
     xdef _fdc_io_end
     xdef _fdc_nano_delay
@@ -24,43 +23,6 @@ _fdc_nano_delay:
     rts
 
     
-;-------------------------------------------------------------------------------
-; void fdc_step_head(FdcControlByte* fdc, int inout)
-; Steps the drive head one cylinder towards the inside (+1) or the outside (-1)
-; of the drive.
-_fdc_step_head:
-    inline
-    cargs sh_fdc_ptr.l, sh_inout.l
-        move.l  sh_fdc_ptr(sp), a0
-        move.b  (a0), d0                    ; make sure that we use our fdc control byte
-
-        tst.l   sh_inout(sp)                ; compute direction bit
-        bmi.s   .dir_outside
-        bclr    #1, d0                      ; step inward
-        bra.s   .do_step
-.dir_outside:
-        bset    #1, d0                      ; step outward
-
-.do_step:
-        move.b  d0, (a0)
-        bset    #0, d0                      ; pulse dskstep high
-        move.b  d0, CIABPRB
-        nop
-        nop
-        bclr    #0, d0                      ; pulse dskstep low
-        move.b  d0, CIABPRB
-        nop
-        nop
-        bset    #0, d0                      ; pulse dskstep high again
-        move.b  d0, CIABPRB
-
-        or.b    #%01111000, d0              ; deselect all drives
-        move.b  d0, CIABPRB
-
-        rts
-    einline
-
-
 ;-------------------------------------------------------------------------------
 ; void fdc_io_begin(FdcControlByte* fdc, uint16_t* data, int nwords, int readwrite)
 ; Starts an fdc i/o operation to read or write the contents of the track buffer.

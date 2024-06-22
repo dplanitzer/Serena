@@ -15,7 +15,6 @@
 
 typedef uint8_t   FdcControlByte;       // Per-drive hardware state
 
-extern void fdc_step_head(FdcControlByte* _Nonnull fdc, int inout);
 extern void fdc_io_begin(FdcControlByte* _Nonnull fdc, uint16_t* pData, int nwords, int readwrite);
 extern void fdc_io_end(FdcControlByte*  _Nonnull fdc);
 extern void fdc_nano_delay(void);
@@ -54,7 +53,8 @@ extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, F
 
 extern uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, FdcControlByte cb);
 extern void FloppyController_SetMotor(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, bool onoff);
-extern void FloppyController_SetHead(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, int head);
+extern void FloppyController_SelectHead(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, int head);
+extern void FloppyController_StepHead(FloppyController* _Nonnull self, FdcControlByte cb, int delta);
 
 extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, bool readwrite);
 

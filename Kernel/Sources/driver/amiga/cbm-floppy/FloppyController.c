@@ -156,7 +156,7 @@ void FloppyController_SetMotor(FloppyController* _Nonnull self, FdcControlByte* 
     *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
 }
 
-void FloppyController_SetHead(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, int head)
+void FloppyController_SelectHead(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, int head)
 {
     CIAB_BASE_DECL(ciab);
 
@@ -169,6 +169,35 @@ void FloppyController_SetHead(FloppyController* _Nonnull self, FdcControlByte* _
 
     // Deselect all drives
     *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+}
+
+// Steps the drive head one cylinder towards the inside (+1) or the outside (-1)
+// of the drive.
+void FloppyController_StepHead(FloppyController* _Nonnull self, FdcControlByte cb, int delta)
+{
+    CIAB_BASE_DECL(ciab);
+
+    // Update the seek direction bit
+    const uint8_t bit = (1 << CIABPRB_BIT_DSKDIREC);
+    uint8_t r = (delta < 0) ? cb | bit : cb & ~bit;
+    *CIA_REG_8(ciab, CIA_PRB) = r;
+    
+
+    // Execute the step pulse
+    r |= (1 << CIABPRB_BIT_DSKSTEP);
+    *CIA_REG_8(ciab, CIA_PRB) = r;
+    fdc_nano_delay();
+
+    r &= ~(1 << CIABPRB_BIT_DSKSTEP);
+    *CIA_REG_8(ciab, CIA_PRB) = r;
+    fdc_nano_delay();
+
+    r |= (1 << CIABPRB_BIT_DSKSTEP);
+    *CIA_REG_8(ciab, CIA_PRB) = r;
+
+
+    // Deselect all drives
+    *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
 }
 
 // Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks

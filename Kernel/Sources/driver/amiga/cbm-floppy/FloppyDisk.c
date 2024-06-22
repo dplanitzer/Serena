@@ -210,11 +210,11 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnu
             break;
         }
         
-        fdc_step_head(&self->ciabprb, -1);
+        FloppyController_StepHead(self->fdc, self->ciabprb, -1);
         (*pInOutStepCount)++;
         try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
     }
-    FloppyController_SetHead(self->fdc, &self->ciabprb, 0);
+    FloppyController_SelectHead(self->fdc, &self->ciabprb, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
     try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(15)));
@@ -254,8 +254,8 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     
     // Seek if necessary
     if (nSteps > 0) {
-        for (int i = nSteps; i > 0; i--) {            
-            fdc_step_head(&self->ciabprb, cur_dir);
+        for (int i = nSteps; i > 0; i--) {
+            FloppyController_StepHead(self->fdc, self->ciabprb, cur_dir);     
             
             self->cylinder += cur_dir;
             (*pInOutStepCount)++;
@@ -272,7 +272,7 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     
     // Switch heads if necessary
     if (change_side) {
-        FloppyController_SetHead(self->fdc, &self->ciabprb, head);
+        FloppyController_SelectHead(self->fdc, &self->ciabprb, head);
         self->head = head;
     }
     
@@ -294,8 +294,8 @@ static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
 {
     const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
 
-    fdc_step_head(&self->ciabprb,  delta);
-    fdc_step_head(&self->ciabprb, -delta);
+    FloppyController_StepHead(self->fdc, self->ciabprb,  delta);
+    FloppyController_StepHead(self->fdc, self->ciabprb, -delta);
 }
 
 
