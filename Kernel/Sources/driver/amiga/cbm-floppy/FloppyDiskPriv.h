@@ -52,7 +52,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDisk_Reset()
     int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_Reset()
     int8_t                      drive;                                  // drive number that this fd object represents
-    FdcControlByte              ciabprb;                                // shadow copy of the CIA BPRB register for this floppy drive
+    DriveState                  driveState;                             // current drive hardware state as maintained by the floppy controller
 
     struct __Flags {
         unsigned int    isTrackBufferValid:1;

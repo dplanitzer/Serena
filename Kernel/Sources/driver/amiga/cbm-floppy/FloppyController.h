@@ -13,11 +13,7 @@
 #include <dispatcher/Semaphore.h>
 #include <driver/InterruptController.h>
 
-typedef uint8_t   FdcControlByte;       // Per-drive hardware state
-
-extern void fdc_io_begin(FdcControlByte* _Nonnull fdc, uint16_t* pData, int nwords, int readwrite);
-extern void fdc_io_end(FdcControlByte*  _Nonnull fdc);
-extern void fdc_nano_delay(void);
+typedef uint8_t   DriveState;       // Per-drive hardware state
 
 
 enum DriveType {
@@ -47,15 +43,15 @@ typedef struct FloppyController {
 // Creates the floppy controller
 extern errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutSelf);
 
-extern FdcControlByte FloppyController_Reset(FloppyController* _Nonnull self, int drive);
+extern DriveState FloppyController_Reset(FloppyController* _Nonnull self, int drive);
 
-extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb);
+extern uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, DriveState* _Nonnull cb);
 
-extern uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, FdcControlByte cb);
-extern void FloppyController_SetMotor(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, bool onoff);
-extern void FloppyController_SelectHead(FloppyController* _Nonnull self, FdcControlByte* _Nonnull cb, int head);
-extern void FloppyController_StepHead(FloppyController* _Nonnull self, FdcControlByte cb, int delta);
+extern uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, DriveState cb);
+extern void FloppyController_SetMotor(FloppyController* _Nonnull self, DriveState* _Nonnull cb, bool onoff);
+extern void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _Nonnull cb, int head);
+extern void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, int delta);
 
-extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, FdcControlByte* _Nonnull pFdc, uint16_t* _Nonnull pData, int nwords, bool readwrite);
+extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, uint16_t* _Nonnull pData, int nwords, bool bWrite);
 
 #endif /* FloppyController_h */

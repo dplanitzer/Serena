@@ -90,7 +90,7 @@ static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
     self->trackWordCountToRead = ADF_DD_TRACK_WORD_COUNT_TO_READ;
     self->trackWordCountToWrite = ADF_DD_TRACK_WORD_COUNT_TO_WRITE;
 
-    self->ciabprb = FloppyController_Reset(self->fdc, self->drive);
+    self->driveState = FloppyController_Reset(self->fdc, self->drive);
     
     self->flags.motorState = kMotor_Off;
     self->flags.isTrackBufferValid = 0;
@@ -134,7 +134,7 @@ static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
 {
     if (self->flags.motorState == kMotor_Off) {
-        FloppyController_SetMotor(self->fdc, &self->ciabprb, true);
+        FloppyController_SetMotor(self->fdc, &self->driveState, true);
         self->flags.motorState = kMotor_SpinningUp;
     }
 }
@@ -145,7 +145,7 @@ static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
     // Note: may be called if the motor when off on us without our doing. We call
     // this function in this case to resync out software state with the hardware
     // state.
-    FloppyController_SetMotor(self->fdc, &self->ciabprb, false);
+    FloppyController_SetMotor(self->fdc, &self->driveState, false);
     self->flags.motorState = kMotor_Off;
 }
 
@@ -163,7 +163,7 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
         const TimeInterval delay = TimeInterval_MakeMilliseconds(10);
 
         for (int i = 0; i < 50; i++) {
-            const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+            const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
             if ((status & kDriveStatus_DiskReady) != 0) {
                 self->flags.motorState = kMotor_AtTargetSpeed;
@@ -204,17 +204,17 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnu
     try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18)));
     
     for(;;) {
-        const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+        const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
         if ((status & kDriveStatus_AtTrack0) != 0) {
             break;
         }
         
-        FloppyController_StepHead(self->fdc, self->ciabprb, -1);
+        FloppyController_StepHead(self->fdc, self->driveState, -1);
         (*pInOutStepCount)++;
         try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
     }
-    FloppyController_SelectHead(self->fdc, &self->ciabprb, 0);
+    FloppyController_SelectHead(self->fdc, &self->driveState, 0);
     
     // Head settle time (includes the 100us settle time for the head select)
     try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(15)));
@@ -255,7 +255,7 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     // Seek if necessary
     if (nSteps > 0) {
         for (int i = nSteps; i > 0; i--) {
-            FloppyController_StepHead(self->fdc, self->ciabprb, cur_dir);     
+            FloppyController_StepHead(self->fdc, self->driveState, cur_dir);     
             
             self->cylinder += cur_dir;
             (*pInOutStepCount)++;
@@ -272,7 +272,7 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
     
     // Switch heads if necessary
     if (change_side) {
-        FloppyController_SelectHead(self->fdc, &self->ciabprb, head);
+        FloppyController_SelectHead(self->fdc, &self->driveState, head);
         self->head = head;
     }
     
@@ -294,8 +294,8 @@ static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
 {
     const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
 
-    FloppyController_StepHead(self->fdc, self->ciabprb,  delta);
-    FloppyController_StepHead(self->fdc, self->ciabprb, -delta);
+    FloppyController_StepHead(self->fdc, self->driveState,  delta);
+    FloppyController_StepHead(self->fdc, self->driveState, -delta);
 }
 
 
@@ -324,10 +324,10 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
         // - no drive connected
         // - no disk in drive
         // - electro-mechanical problem
-        if (FloppyController_GetDriveType(self->fdc, &self->ciabprb) == 0) {
+        if (FloppyController_GetDriveType(self->fdc, &self->driveState) == 0) {
             throw(ENODEV);
         }
-        else if ((FloppyController_GetStatus(self->fdc, self->ciabprb) & kDriveStatus_DiskChanged) != 0) {
+        else if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
             // Can not acknowledge the disk change at this point because the motor isn't running and thus stepping is unreliable.
             // Do it in the future when we detect that a disk is present.
             self->flags.hasPendingDiskChangeAck = 1;
@@ -343,7 +343,7 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
 
 
     // Disk motor has spun up. Check whether the disk has been replaced.
-    const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+    const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
     const hasDiskChanged = (status & kDriveStatus_DiskChanged) != 0 || self->flags.hasPendingDiskChangeAck;
     int stepCount = 0;
     self->flags.hasPendingDiskChangeAck = 0;
@@ -375,7 +375,7 @@ catch:
 // drive state is still okay
 static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self)
 {
-    const uint8_t status = FloppyController_GetStatus(self->fdc, self->ciabprb);
+    const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
     if ((status & kDriveStatus_DiskChanged) != 0) {
         FloppyDisk_AcknowledgeDiskChange(self);
@@ -481,7 +481,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     }
 
     try(FloppyDisk_BeginIO(self, cylinder, head));
-    try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToRead, false));
+    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackWordCountToRead, false));
     
     self->flags.isTrackBufferValid = 1;
     FloppyDisk_SectorizeTrackBuffer(self);
@@ -527,7 +527,7 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     assert(self->flags.isTrackBufferValid);
         
     try(FloppyDisk_BeginIO(self, cylinder, head));
-    try(FloppyController_DoIO(self->fdc, &self->ciabprb, self->trackBuffer, self->trackWordCountToWrite, true));
+    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackWordCountToWrite, true));
     try(FloppyDisk_EndIO(self));
 
     return EOK;
@@ -591,7 +591,7 @@ LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
 // Returns true if the disk if read-only.
 bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 {
-    return ((FloppyController_GetStatus(self->fdc, self->ciabprb) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
+    return ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
 }
 
 // Reads the contents of the block at index 'lba'. 'buffer' must be big
