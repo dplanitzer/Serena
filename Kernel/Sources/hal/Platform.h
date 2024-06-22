@@ -260,14 +260,16 @@ typedef struct MemoryLayout {
 #define CIA_CRA     0xe00
 #define CIA_CRB     0xf00
 
-#define CIAA_PRAF_OVL   0x01
-#define CIAA_PRAF_LED   0x02
-#define CIAA_PRAF_CHNG  0x04
-#define CIAA_PRAF_WPRO  0x08
-#define CIAA_PRAF_TK0   0x10
-#define CIAA_PRAF_RDY   0x20
-#define CIAA_PRAF_FIR0  0x40
-#define CIAA_PRAF_FIR1  0x80
+#define CIAA_PRAF_OVL       0x01
+#define CIAA_PRAF_LED       0x02
+#define CIAA_PRAF_DSKCHNG   0x04
+#define CIAA_PRAF_DSKWPRO   0x08
+#define CIAA_PRAF_DSKTK0    0x10
+#define CIAA_PRAF_DSKRDY    0x20
+#define CIAA_PRAF_FIR0      0x40
+#define CIAA_PRAF_FIR1      0x80
+
+#define CIAA_PRAB_DSKRDY    5
 
 #define CIAB_PRAF_BUSY  0x01
 #define CIAB_PRAF_POUT  0x02
@@ -278,14 +280,17 @@ typedef struct MemoryLayout {
 #define CIAB_PRAF_RTS   0x40
 #define CIAB_PRAF_DTR   0x80
 
-#define CIAB_PRBF_STEP  0x01
-#define CIAB_PRBF_DIR   0x02
-#define CIAB_PRBF_SIDE  0x04
-#define CIAB_PRBF_SEL0  0x08
-#define CIAB_PRBF_SEL1  0x10
-#define CIAB_PRBF_SEL2  0x20
-#define CIAB_PRBF_SEL3  0x40
-#define CIAB_PRBF_MTR   0x80
+#define CIAB_PRBF_DSKSTEP   0x01
+#define CIAB_PRBF_DSKDIR    0x02
+#define CIAB_PRBF_DSKSIDE   0x04
+#define CIAB_PRBF_DSKSEL0   0x08
+#define CIAB_PRBF_DSKSEL1   0x10
+#define CIAB_PRBF_DSKSEL2   0x20
+#define CIAB_PRBF_DSKSEL3   0x40
+#define CIAB_PRBF_DSKSELALL (CIAB_PRBF_DSKSEL0 | CIAB_PRBF_DSKSEL1 | CIAB_PRBF_DSKSEL2 | CIAB_PRBF_DSKSEL3)
+#define CIAB_PRBF_DSKMTR    0x80
+
+#define CIAB_PRBB_DSKSEL0   3
 
 
 //

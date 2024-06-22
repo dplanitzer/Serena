@@ -54,7 +54,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     int8_t                      drive;                                  // drive number that this fd object represents
     DriveState                  driveState;                             // current drive hardware state as maintained by the floppy controller
 
-    struct __Flags {
+    struct __fdFlags {
         unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    hasPendingDiskChangeAck:1;      // detected disk change earlier but was not able to acknowledge it. So do it now

@@ -9,26 +9,6 @@
 #include "FloppyController.h"
 #include <hal/Platform.h>
 
-// CIABPRA bits (FDC status byte)
-#define CIABPRA_BIT_DSKRDY      5
-#define CIABPRA_BIT_DSKTRACK0   4
-#define CIABPRA_BIT_DSKPROT     3
-#define CIABPRA_BIT_DSKCHANGE   2
-
-
-// CIABPRB bits (FDC control byte)
-#define CIABPRB_BIT_DSKMOTOR    7
-#define CIABPRB_BIT_DSKSEL3     6
-#define CIABPRB_BIT_DSKSEL2     5
-#define CIABPRB_BIT_DSKSEL1     4
-#define CIABPRB_BIT_DSKSEL0     3
-#define CIABPRB_BIT_DSKSIDE     2
-#define CIABPRB_BIT_DSKDIREC    1
-#define CIABPRB_BIT_DSKSTEP     0
-
-#define CIABPRB_DSKSELALL ((1 << CIABPRB_BIT_DSKSEL3) | (1 << CIABPRB_BIT_DSKSEL2) | (1 << CIABPRB_BIT_DSKSEL1) | (1 << CIABPRB_BIT_DSKSEL0))
-
-
 extern void fdc_nano_delay(void);
 static void FloppyController_Destroy(FloppyController* _Nullable self);
 static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
@@ -86,16 +66,16 @@ DriveState FloppyController_Reset(FloppyController* _Nonnull self, int drive)
     uint8_t r;
 
     // motor off; all drives deselected; head 0; stepping off
-    r = (1 << CIABPRB_BIT_DSKMOTOR) | CIABPRB_DSKSELALL | (1 << CIABPRB_BIT_DSKSTEP);
+    r = CIAB_PRBF_DSKMTR | CIAB_PRBF_DSKSELALL | CIAB_PRBF_DSKSTEP;
     
     // select 'drive'
-    r &= ~(1 << (CIABPRB_BIT_DSKSEL0 + (drive & 0x03)));
+    r &= ~(1 << (CIAB_PRBB_DSKSEL0 + (drive & 0x03)));
 
     // Make sure that the motor is off and then deselect the drive
     Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = r;
     fdc_nano_delay();
-    *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+    *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     Lock_Unlock(&self->lock);
 
     return r;
@@ -120,9 +100,9 @@ uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, DriveSta
     for (int bit = 31; bit >= 0; bit--) {
         *CIA_REG_8(ciab, CIA_PRB) = r;
         const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
-        const uint32_t rdy = (~(r >> CIABPRA_BIT_DSKRDY)) & 1u;
+        const uint32_t rdy = (~(r >> CIAA_PRAB_DSKRDY)) & 1u;
         dt |= (rdy << (uint32_t)bit);
-        *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+        *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     }
 
     Lock_Unlock(&self->lock);
@@ -139,10 +119,10 @@ uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, DriveState c
     Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = cb;
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
-    *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
+    *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
     Lock_Unlock(&self->lock);
 
-    return ~r & ((1 << CIABPRA_BIT_DSKRDY) | (1 << CIABPRA_BIT_DSKTRACK0) | (1 << CIABPRA_BIT_DSKPROT) | (1 << CIABPRA_BIT_DSKCHANGE));
+    return ~r & (CIAA_PRAF_DSKRDY | CIAA_PRAF_DSKTK0 | CIAA_PRAF_DSKWPRO | CIAA_PRAF_DSKCHNG);
 }
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
@@ -153,19 +133,18 @@ static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, 
 
     // Make sure that none of the drives are selected since a drive latches the
     // motor state when it is selected 
-    *CIA_REG_8(ciab, CIA_PRB) = *CIA_REG_8(ciab, CIA_PRB) | CIABPRB_DSKSELALL;
+    *CIA_REG_8(ciab, CIA_PRB) = *CIA_REG_8(ciab, CIA_PRB) | CIAB_PRBF_DSKSELALL;
     fdc_nano_delay();
 
 
     // Turn the motor on/off
-    const uint8_t bit = (1 << CIABPRB_BIT_DSKMOTOR);
-    const uint8_t r = (onoff) ? *cb & ~bit : *cb | bit;
+    const uint8_t r = (onoff) ? *cb & ~CIAB_PRBF_DSKMTR : *cb | CIAB_PRBF_DSKMTR;
     *CIA_REG_8(ciab, CIA_PRB) = r;
     *cb = r;
 
 
     // Deselect all drives
-    *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+    *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 }
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
@@ -184,14 +163,13 @@ void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _N
     Lock_Lock(&self->lock);
 
     // Update the disk side bit
-    const uint8_t bit = (1 << CIABPRB_BIT_DSKSIDE);
-    const uint8_t r = (head == 0) ? *cb | bit : *cb & ~bit;
+    const uint8_t r = (head == 0) ? *cb | CIAB_PRBF_DSKSIDE : *cb & ~CIAB_PRBF_DSKSIDE;
     *CIA_REG_8(ciab, CIA_PRB) = r;
     *cb = r;
 
 
     // Deselect all drives
-    *CIA_REG_8(ciab, CIA_PRB) = r | CIABPRB_DSKSELALL;
+    *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 
     Lock_Unlock(&self->lock);
 }
@@ -205,26 +183,25 @@ void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, i
     Lock_Lock(&self->lock);
 
     // Update the seek direction bit
-    const uint8_t bit = (1 << CIABPRB_BIT_DSKDIREC);
-    uint8_t r = (delta < 0) ? cb | bit : cb & ~bit;
+    uint8_t r = (delta < 0) ? cb | CIAB_PRBF_DSKDIR : cb & ~CIAB_PRBF_DSKDIR;
     *CIA_REG_8(ciab, CIA_PRB) = r;
     
 
     // Execute the step pulse
-    r |= (1 << CIABPRB_BIT_DSKSTEP);
+    r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
     fdc_nano_delay();
 
-    r &= ~(1 << CIABPRB_BIT_DSKSTEP);
+    r &= ~CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
     fdc_nano_delay();
 
-    r |= (1 << CIABPRB_BIT_DSKSTEP);
+    r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
 
 
     // Deselect all drives
-    *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
+    *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
 
     Lock_Unlock(&self->lock);
 }
@@ -291,7 +268,7 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
 
 
     // Deselect all drives
-    *CIA_REG_8(ciab, CIA_PRB) = cb | CIABPRB_DSKSELALL;
+    *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
 
     self->flags.inUse = 0;
     ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);

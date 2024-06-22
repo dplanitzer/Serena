@@ -40,7 +40,7 @@ typedef struct FloppyController {
     ConditionVariable   cv;
     Semaphore           done;       // Semaphore indicating whether the DMA is done
     InterruptHandlerID  irqHandler;
-    struct __Flags {
+    struct __fdcFlags {
         unsigned int        inUse:1;
         unsigned int        reserved:31;
     }                   flags;
