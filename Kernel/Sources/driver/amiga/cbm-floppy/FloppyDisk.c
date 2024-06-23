@@ -97,7 +97,6 @@ static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
     
     self->flags.motorState = kMotor_Off;
     self->flags.isTrackBufferValid = 0;
-    self->flags.hasPendingDiskChangeAck = 0;
     self->flags.wasMostRecentSeekInward = 0;
     self->head = -1;
     self->cylinder = -1;
@@ -368,9 +367,7 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
             throw(ENODEV);
         }
         else if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
-            // Can not acknowledge the disk change at this point because the motor isn't running and thus stepping is unreliable.
-            // Do it in the future when we detect that a disk is present.
-            self->flags.hasPendingDiskChangeAck = 1;
+            FloppyDisk_AcknowledgeDiskChange(self);
             throw(ENOMEDIUM);
         }
         else {
@@ -384,9 +381,8 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
 
     // Disk motor has spun up. Check whether the disk has been replaced.
     const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
-    const hasDiskChanged = (status & kDriveStatus_DiskChanged) != 0 || self->flags.hasPendingDiskChangeAck;
+    const hasDiskChanged = (status & kDriveStatus_DiskChanged) != 0;
     int stepCount = 0;
-    self->flags.hasPendingDiskChangeAck = 0;
 
 
     // Seek to track 0 and acknowledge any pending disk change if this is the
@@ -574,6 +570,7 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     try(FloppyDisk_BeginIO(self, cylinder, head));
     try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackWordCountToWrite, true));
     try(FloppyDisk_EndIO(self));
+    try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200)));
 
     return EOK;
 

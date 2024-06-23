@@ -63,9 +63,8 @@ final_class_ivars(FloppyDisk, DiskDriver,
     struct __fdFlags {
         unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
-        unsigned int    hasPendingDiskChangeAck:1;      // detected disk change earlier but was not able to acknowledge it. So do it now
         unsigned int    motorState:2;
-        unsigned int    reserved:27;
+        unsigned int    reserved:26;
     }                           flags;
 );
 
@@ -77,6 +76,7 @@ static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnull pInOutStepCount);
+static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head, int* _Nonnull pInOutStepCount);
 static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnIdle(FloppyDiskRef _Nonnull self);
