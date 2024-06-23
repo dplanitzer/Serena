@@ -222,7 +222,7 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     }
     if (err != EOK) {
         Lock_Unlock(&self->lock);
-        throw(err);
+        return err;
     }
 
     self->flags.inUse = 1;
@@ -241,9 +241,7 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
     *CHIPSET_REG_16(cs, DMACON) = 0x8210;
 
-    uint16_t dlen = 0;
-    dlen |= 0x8000;
-    dlen |= (uint16_t)(nwords & 0x3fff);
+    uint16_t dlen = 0x8000 | (nwords & 0x3fff);
     if (bWrite) {
         dlen |= (1 << 14);
     }
@@ -274,7 +272,4 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);
 
     return (err == ETIMEDOUT) ? ENOMEDIUM : err;
-
-catch:
-    return err;
 }

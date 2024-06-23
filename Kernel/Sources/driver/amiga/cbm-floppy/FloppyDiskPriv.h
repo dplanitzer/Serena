@@ -12,6 +12,7 @@
 #include "FloppyDisk.h"
 #include "FloppyController.h"
 #include "AmigaDiskFormat.h"
+#include <dispatchqueue/DispatchQueue.h>
 
 
 // Sector table capacity
@@ -30,7 +31,12 @@ enum {
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
+    Lock                        ioLock;                             // XXX tmp concurrency protection. Will be replaced with a dispatch queue once we've finalized the disk driver & disk cache design 
+
     FloppyController * _Nonnull fdc;
+
+    // Flow control
+    TimerRef _Nullable          idleWatcher;
 
     // Buffer used to cache a read track (Chip mem)
     uint16_t* _Nonnull          trackBuffer;                        // cached read track data (MFM encoded)
@@ -39,7 +45,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     int                         gapSize;                            // track gap size
 
     // Disk geometry
-    LogicalBlockAddress         logicalBlockCapacity;                   // disk size in terms of logical blocks
+    LogicalBlockCount           logicalBlockCapacity;                   // disk size in terms of logical blocks
     int                         sectorsPerCylinder;
     int                         sectorsPerTrack;
     int                         headsPerCylinder;
@@ -59,7 +65,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    hasPendingDiskChangeAck:1;      // detected disk change earlier but was not able to acknowledge it. So do it now
         unsigned int    motorState:2;
-        unsigned int    reserved:28;
+        unsigned int    reserved:27;
     }                           flags;
 );
 
@@ -71,5 +77,8 @@ static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnull pInOutStepCount);
+static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_OnIdle(FloppyDiskRef _Nonnull self);
 
 #endif /* FloppyDiskPriv_h */

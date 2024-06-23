@@ -53,9 +53,10 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
     
     try(Object_Create(FloppyDisk, &self));
     
+    Lock_Init(&self->ioLock);
     self->fdc = pFdc;
     self->drive = drive;
-    
+
     FloppyDisk_Reset(self);
 
     *pOutDisk = self;
@@ -69,8 +70,10 @@ catch:
 
 static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 {
+    FloppyDisk_CancelIdleWatcher(self);
     FloppyDisk_DisposeTrackBuffer(self);
     self->fdc = NULL;
+    Lock_Deinit(&self->ioLock);
 }
 
 // Resets the floppy drive. This function figures out whether there is an actual
@@ -147,6 +150,8 @@ static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
     // state.
     FloppyController_SetMotor(self->fdc, &self->driveState, false);
     self->flags.motorState = kMotor_Off;
+
+    FloppyDisk_CancelIdleWatcher(self);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
@@ -300,6 +305,41 @@ static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// Drive Flow Control
+////////////////////////////////////////////////////////////////////////////////
+
+// Called from a timer after the drive has been sitting idle for some time. Turn
+// the drive motor off. 
+static void FloppyDisk_OnIdle(FloppyDiskRef _Nonnull self)
+{
+    Lock_Lock(&self->ioLock);
+    FloppyDisk_MotorOff(self);
+    Lock_Unlock(&self->ioLock);
+}
+
+static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self)
+{
+    FloppyDisk_CancelIdleWatcher(self);
+
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeMilliseconds(4000));
+    Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnIdle, self), &self->idleWatcher);
+    if (self->idleWatcher) {
+        DispatchQueue_DispatchTimer(gMainDispatchQueue, self->idleWatcher);
+    }
+}
+
+static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self)
+{
+    if (self->idleWatcher) {
+        DispatchQueue_RemoveTimer(gMainDispatchQueue, self->idleWatcher);
+        Timer_Destroy(self->idleWatcher);
+        self->idleWatcher = NULL;
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Disk I/O
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -385,6 +425,11 @@ static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self)
         FloppyDisk_MotorOff(self);
         return EIO;
     }
+
+
+    // Instead of turning off the motor right away, let's wait some time and
+    // turn the motor off if no further I/O request arrives in the meantime
+    FloppyDisk_StartIdleWatcher(self);
 
     return EOK;
 }
@@ -609,8 +654,12 @@ errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer,
     const int h = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int s = lba % self->sectorsPerTrack;
 
+    Lock_Lock(&self->ioLock);
 //    print("lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
-    return FloppyDisk_ReadSector(self, h, c, s, pBuffer);
+    const errno_t err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
+    Lock_Unlock(&self->ioLock);
+
+    return err;
 }
 
 // Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
@@ -628,9 +677,12 @@ errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pB
     const int h = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int s = lba % self->sectorsPerTrack;
 
+    Lock_Lock(&self->ioLock);
 //    print("WRITE: lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
+    const errno_t err = FloppyDisk_WriteSector(self, h, c, s, pBuffer);
+    Lock_Unlock(&self->ioLock);
 
-    return FloppyDisk_WriteSector(self, h, c, s, pBuffer);
+    return err;
 }
 
 
