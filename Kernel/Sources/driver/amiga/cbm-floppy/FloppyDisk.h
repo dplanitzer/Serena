@@ -20,4 +20,6 @@ final_class(FloppyDisk, DiskDriver);
 
 extern errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES]);
 
+extern bool FloppyDisk_HasDisk(FloppyDiskRef _Nonnull self);
+
 #endif /* FloppyDisk_h */

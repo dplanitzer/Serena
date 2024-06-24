@@ -11,6 +11,13 @@
 #include <hal/Platform.h>
 #include "mfm.h"
 
+//#define TRACE_STATE 1
+#ifdef TRACE_STATE
+#define LOG(__drive, fmt, ...) if (self->drive == (__drive)) { print(fmt, __VA_ARGS__); }
+#else
+#define LOG(drive, fmt, ...)
+#endif
+
 
 errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
 {
@@ -56,8 +63,19 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
     Lock_Init(&self->ioLock);
     self->fdc = pFdc;
     self->drive = drive;
+    self->flags.isOnline = 0;
+    self->flags.hasDisk = 0;
 
-    FloppyDisk_Reset(self);
+    Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(2000), DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnOndiStateCheck, self), &self->ondiStateChecker);
+
+    self->driveState = FloppyController_Reset(self->fdc, self->drive);
+
+    if (FloppyController_GetDriveType(self->fdc, &self->driveState) == kDriveType_3_5) {
+        FloppyDisk_ResetDrive(self);
+    }
+
+    FloppyDisk_ScheduleOndiStateChecker(self);
+    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 
     *pOutDisk = self;
     return EOK;
@@ -71,6 +89,11 @@ catch:
 static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 {
     FloppyDisk_CancelIdleWatcher(self);
+    FloppyDisk_CancelOndiStateChecker(self);
+    
+    Timer_Destroy(self->ondiStateChecker);
+    self->ondiStateChecker = NULL;
+
     FloppyDisk_DisposeTrackBuffer(self);
     self->fdc = NULL;
     Lock_Deinit(&self->ioLock);
@@ -82,7 +105,7 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 // Note that this function leaves the floppy motor turned on and that it implicitly
 // acknowledges any pending disk change.
 // Upper layer code should treat this function like a disk change.
-static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
+static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
 {
     // XXX hardcoded to DD for now
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
@@ -101,6 +124,21 @@ static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self)
     self->head = -1;
     self->cylinder = -1;
     self->readErrorCount = 0;
+
+    int steps = 0;
+    const errno_t err = FloppyDisk_SeekToTrack_0(self, &steps);
+    if (err == EOK) {
+        if (steps == 0) {
+            FloppyDisk_ResetDriveDiskChange(self);
+        }
+
+        self->flags.isOnline = 1;
+        self->flags.hasDisk = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
+    }
+    else {
+        self->flags.isOnline = 0;
+        self->flags.hasDisk = 0;
+    }
 }
 
 
@@ -296,14 +334,6 @@ catch:
     return err;
 }
 
-static void FloppyDisk_AcknowledgeDiskChange(FloppyDiskRef _Nonnull self)
-{
-    const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
-
-    FloppyController_StepHead(self->fdc, self->driveState,  delta);
-    FloppyController_StepHead(self->fdc, self->driveState, -delta);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Drive Flow Control
@@ -339,58 +369,137 @@ static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self)
     }
 }
 
+static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self)
+{
+    const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
+
+    FloppyController_StepHead(self->fdc, self->driveState,  delta);
+    FloppyController_StepHead(self->fdc, self->driveState, -delta);
+}
+
+// Called from a timer as long as the drive is not connected or there's no disk
+// in the drive. 
+static void FloppyDisk_OnOndiStateCheck(FloppyDiskRef _Nonnull self)
+{
+    Lock_Lock(&self->ioLock);
+    
+    // Update the drive online state
+    if (!self->flags.isOnline) {
+        // Drive is offline
+        if (FloppyController_GetDriveType(self->fdc, &self->driveState) == kDriveType_3_5) {
+            self->flags.isOnline = 1;
+            FloppyDisk_ResetDrive(self);
+        }
+    }
+    else {
+        // Drive is online
+        // Only poll the drive type is the motor is off since the check forces
+        // the motor off... 
+        if (self->flags.motorState == kMotor_Off) {
+            if (FloppyController_GetDriveType(self->fdc, &self->driveState) != kDriveType_3_5) {
+                self->flags.isOnline = 0;
+                self->flags.hasDisk = 0;
+            }
+        }
+
+    }
+
+
+    // Update the drive has-disk state
+    if (self->flags.isOnline) {
+        FloppyDisk_UpdateHasDiskState(self);
+    }
+
+    Lock_Unlock(&self->ioLock);
+}
+
+static void FloppyDisk_ScheduleOndiStateChecker(FloppyDiskRef _Nonnull self)
+{
+    if (!self->flags.isOndiStateCheckingActive) {
+        self->flags.isOndiStateCheckingActive = 1;
+        DispatchQueue_DispatchTimer(gMainDispatchQueue, self->ondiStateChecker);
+    }
+}
+
+static void FloppyDisk_CancelOndiStateChecker(FloppyDiskRef _Nonnull self)
+{
+    if (self->flags.isOndiStateCheckingActive) {
+        self->flags.isOndiStateCheckingActive = 0;
+        DispatchQueue_RemoveTimer(gMainDispatchQueue, self->ondiStateChecker);
+    }
+}
+
+// Updates the drive's has-disk state
+static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self)
+{
+    int newHasDisk = 0;
+
+    if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
+        FloppyDisk_ResetDriveDiskChange(self);
+
+        if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
+            newHasDisk = 0;
+        }
+        else {
+            newHasDisk = 1;
+        }
+    }
+    else {
+        newHasDisk = self->flags.hasDisk;
+    }
+
+
+    self->flags.hasDisk = newHasDisk;
+
+    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Disk I/O
 ////////////////////////////////////////////////////////////////////////////////
+
+static errno_t FloppyDisk_OnFailedIO(FloppyDiskRef _Nonnull self, errno_t err)
+{
+    FloppyDisk_MotorOff(self);
+
+    if (err == ETIMEDOUT) {
+        // A timeout may be caused by:
+        // - no drive connected
+        // - no disk in drive
+        // - electro-mechanical problem
+        self->flags.isOnline = 0;
+        self->flags.hasDisk = 0;
+        err = ENODEV;
+    }
+    else if (err == EDISKCHANGE) {
+        FloppyDisk_UpdateHasDiskState(self);
+
+        if (!self->flags.hasDisk) {
+            err = ENOMEDIUM;
+        }
+    }
+    else {
+        err = EIO;
+    }
+
+    return err;
+}
 
 // Invoked at the beginning of a disk read/write operation to prepare the drive
 // state. Ie turn motor on, seek, switch disk head, detect drive status, etc. 
 static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
+    int stepCount = 0;
 
     // Make sure that the motor is turned on
     FloppyDisk_MotorOn(self);
 
 
-    // Make sure we got a track buffer
-    try(FloppyDisk_EnsureTrackBuffer(self));
-
-
-    // Wait until the motor has reached its target speed
-    err = FloppyDisk_WaitForDiskReady(self);
-    if (err == ETIMEDOUT) {
-        // A timeout may be caused by:
-        // - no drive connected
-        // - no disk in drive
-        // - electro-mechanical problem
-        if (FloppyController_GetDriveType(self->fdc, &self->driveState) == 0) {
-            throw(ENODEV);
-        }
-        else if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
-            FloppyDisk_AcknowledgeDiskChange(self);
-            throw(ENOMEDIUM);
-        }
-        else {
-            throw(EIO);
-        }
-    }
-    else if (err != EOK) {
-        throw(err);
-    }
-
-
-    // Disk motor has spun up. Check whether the disk has been replaced.
-    const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
-    const hasDiskChanged = (status & kDriveStatus_DiskChanged) != 0;
-    int stepCount = 0;
-
-
-    // Seek to track 0 and acknowledge any pending disk change if this is the
-    // first I/O operation after a drive reset
-    if (self->cylinder == -1 || self->head == -1) {
-        try(FloppyDisk_SeekToTrack_0(self, &stepCount));
+    // Make sure that the disk hasn't changed on us
+    if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
+        throw(EDISKCHANGE);
     }
 
 
@@ -400,36 +509,41 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
     }
 
 
-    // Acknowledge a disk change here if we didn't already step above.
-    if (hasDiskChanged && stepCount == 0) {
-        FloppyDisk_AcknowledgeDiskChange(self);
-    }
+    // Make sure we got a track buffer
+    try(FloppyDisk_EnsureTrackBuffer(self));
+
+
+    // Wait until the motor has reached its target speed
+    try(FloppyDisk_WaitForDiskReady(self));
+
+    return EOK;
 
 catch:
-    return err;
+    return FloppyDisk_OnFailedIO(self, err);
 }
 
 // Invoked at the end of a read/write operation to clean up and verify that the
 // drive state is still okay
 static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self)
 {
+    decl_try_err();
     const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
-    if ((status & kDriveStatus_DiskChanged) != 0) {
-        FloppyDisk_AcknowledgeDiskChange(self);
-        return EDISKCHANGE;
-    }
     if ((status & kDriveStatus_DiskReady) == 0) {
-        FloppyDisk_MotorOff(self);
-        return EIO;
+        throw(ETIMEDOUT);
     }
-
+    if ((status & kDriveStatus_DiskChanged) != 0) {
+        throw(EDISKCHANGE);
+    }
 
     // Instead of turning off the motor right away, let's wait some time and
     // turn the motor off if no further I/O request arrives in the meantime
     FloppyDisk_StartIdleWatcher(self);
 
     return EOK;
+
+catch:
+    return FloppyDisk_OnFailedIO(self, err);
 }
 
 
@@ -619,6 +733,14 @@ catch:
 ////////////////////////////////////////////////////////////////////////////////
 // DiskDriver overrides
 ////////////////////////////////////////////////////////////////////////////////
+
+bool FloppyDisk_HasDisk(FloppyDiskRef _Nonnull self)
+{
+    Lock_Lock(&self->ioLock);
+    const bool r = (self->flags.isOnline && self->flags.hasDisk) ? true : false;
+    Lock_Unlock(&self->ioLock);
+    return r;
+}
 
 // Returns the size of a block.
 size_t FloppyDisk_getBlockSize(FloppyDiskRef _Nonnull self)

@@ -37,6 +37,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
 
     // Flow control
     TimerRef _Nullable          idleWatcher;
+    TimerRef _Nonnull           ondiStateChecker;
 
     // Buffer used to cache a read track (Chip mem)
     uint16_t* _Nonnull          trackBuffer;                        // cached read track data (MFM encoded)
@@ -55,8 +56,8 @@ final_class_ivars(FloppyDisk, DiskDriver,
 
     int                         readErrorCount;                         // Number of read errors since last disk driver reset / disk change
 
-    int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDisk_Reset()
-    int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_Reset()
+    int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDisk_ResetDrive()
+    int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_ResetDrive()
     int8_t                      drive;                                  // drive number that this fd object represents
     DriveState                  driveState;                             // current drive hardware state as maintained by the floppy controller
 
@@ -64,21 +65,33 @@ final_class_ivars(FloppyDisk, DiskDriver,
         unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    motorState:2;
-        unsigned int    reserved:26;
+        unsigned int    isOnline:1;                     // true if a drive is connected
+        unsigned int    hasDisk:1;                      // true if disk is in drive
+        unsigned int    isOndiStateCheckingActive:1;
+        unsigned int    reserved:23;
     }                           flags;
 );
 
 
 static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
-static void FloppyDisk_Reset(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
+
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self);
+
 static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnull pInOutStepCount);
 static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head, int* _Nonnull pInOutStepCount);
+
 static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnIdle(FloppyDiskRef _Nonnull self);
+
+static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_ScheduleOndiStateChecker(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_CancelOndiStateChecker(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_OnOndiStateCheck(FloppyDiskRef _Nonnull self);
 
 #endif /* FloppyDiskPriv_h */
