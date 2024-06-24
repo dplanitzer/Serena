@@ -194,28 +194,29 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 // Seeking & Head Selection
 ////////////////////////////////////////////////////////////////////////////////
 
-// Seeks to track #0 and selects head #0.
+// Seeks to track #0 and selects head #0. Returns ETIMEDOUT if the seek failed
+// because there's probably no drive connected.
 static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnull pInOutStepCount)
 {
     decl_try_err();
-    
+    int steps = 0;
+
     self->flags.isTrackBufferValid = 0;
-    
+
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
     // Since this is about resetting the drive we can't assume that we know whether
     // we have to wait 18ms or 2ms. So just wait for 18ms to be safe.
     try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(18)));
     
-    for(;;) {
-        const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
-
-        if ((status & kDriveStatus_AtTrack0) != 0) {
-            break;
-        }
-        
+    while ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_AtTrack0) == 0) {
         FloppyController_StepHead(self->fdc, self->driveState, -1);
-        (*pInOutStepCount)++;
+        
+        steps++;
+        if (steps > 80) {
+            throw(ETIMEDOUT);
+        }
+
         try(VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(3)));
     }
     FloppyController_SelectHead(self->fdc, &self->driveState, 0);
@@ -226,6 +227,7 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnu
     self->head = 0;
     self->cylinder = 0;
     self->flags.wasMostRecentSeekInward = 0;
+    *pInOutStepCount = steps;
 
 catch:
     return err;
