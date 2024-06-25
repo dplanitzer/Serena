@@ -127,6 +127,7 @@ static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
     self->flags.motorState = kMotor_Off;
     self->flags.isTrackBufferValid = 0;
     self->flags.wasMostRecentSeekInward = 0;
+    self->flags.shouldResetDiskChangeStepInward = 0;
     self->head = -1;
     self->cylinder = -1;
     self->readErrorCount = 0;
@@ -377,12 +378,24 @@ static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self)
 
 static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self)
 {
-    const int delta = (self->cylinder == (self->cylindersPerDisk - 1)) ? -1 : 1;
-    const int c1 = self->cylinder;
-    const int c0 = (c1 > 0) ? c1 - 1 : 1;
+    // We have to step the disk head to trigger a reset of the disk change bit.
+    // We do this in a smart way in the sense that we step back and forth while
+    // maintaining the general location of the disk head. Ie disk head is at
+    // cylinder 3 and there's no disk in the drive. We step 4, 3, 4, 3... until
+    // a disk is inserted.
+    int c = (self->flags.shouldResetDiskChangeStepInward) ? self->cylinder + 1 : self->cylinder - 1;
 
-    FloppyDisk_SeekTo(self, c0, self->head);
-    FloppyDisk_SeekTo(self, c1, self->head);
+    if (c > self->cylindersPerDisk - 1) {
+        c = self->cylinder - 1;
+        self->flags.shouldResetDiskChangeStepInward = 0;
+    }
+    else if (c < 0) {
+        c = 1;
+        self->flags.shouldResetDiskChangeStepInward = 1;
+    }
+
+    FloppyDisk_SeekTo(self, c, self->head);
+    self->flags.shouldResetDiskChangeStepInward = !self->flags.shouldResetDiskChangeStepInward;
 }
 
 // Called from a timer as long as the drive is not connected or there's no disk

@@ -66,10 +66,11 @@ final_class_ivars(FloppyDisk, DiskDriver,
         unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    motorState:2;
-        unsigned int    isOnline:1;                     // true if a drive is connected
-        unsigned int    hasDisk:1;                      // true if disk is in drive
+        unsigned int    isOnline:1;                         // true if a drive is connected
+        unsigned int    hasDisk:1;                          // true if disk is in drive
         unsigned int    isOndiStateCheckingActive:1;
-        unsigned int    reserved:23;
+        unsigned int    shouldResetDiskChangeStepInward:1;  // tells the reset-disk-change function in which direction to step to trigger a reset of the disk change hardware bit
+        unsigned int    reserved:22;
     }                           flags;
 );
 
