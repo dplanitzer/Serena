@@ -114,9 +114,9 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
 {
     // XXX hardcoded to DD for now
-    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
-    self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
     self->cylindersPerDisk = ADF_DD_CYLS_PER_DISK;
+    self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
+    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
     self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
     self->trackWordCountToRead = ADF_DD_TRACK_WORD_COUNT_TO_READ;

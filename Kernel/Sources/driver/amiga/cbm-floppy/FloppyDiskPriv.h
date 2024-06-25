@@ -48,10 +48,10 @@ final_class_ivars(FloppyDisk, DiskDriver,
 
     // Disk geometry
     LogicalBlockCount           logicalBlockCapacity;                   // disk size in terms of logical blocks
-    int                         sectorsPerCylinder;
-    int                         sectorsPerTrack;
-    int                         headsPerCylinder;
-    int                         cylindersPerDisk;
+    int8_t                      sectorsPerCylinder;
+    int8_t                      sectorsPerTrack;
+    int8_t                      headsPerCylinder;
+    int8_t                      cylindersPerDisk;
     int                         trackWordCountToRead;
     int                         trackWordCountToWrite;
 
