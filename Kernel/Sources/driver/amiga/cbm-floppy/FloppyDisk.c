@@ -61,6 +61,8 @@ static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, Flo
     try(Object_Create(FloppyDisk, &self));
     
     Lock_Init(&self->ioLock);
+    try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
+
     self->fdc = pFdc;
     self->drive = drive;
     self->flags.isOnline = 0;
@@ -96,6 +98,10 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 
     FloppyDisk_DisposeTrackBuffer(self);
     self->fdc = NULL;
+
+    Object_Release(self->dispatchQueue);
+    self->dispatchQueue = NULL;
+
     Lock_Deinit(&self->ioLock);
 }
 
@@ -125,10 +131,10 @@ static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
     self->cylinder = -1;
     self->readErrorCount = 0;
 
-    int steps = 0;
-    const errno_t err = FloppyDisk_SeekToTrack_0(self, &steps);
+    bool didStep;
+    const errno_t err = FloppyDisk_SeekToTrack_0(self, &didStep);
     if (err == EOK) {
-        if (steps == 0) {
+        if (!didStep) {
             FloppyDisk_ResetDriveDiskChange(self);
         }
 
@@ -234,12 +240,13 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 
 // Seeks to track #0 and selects head #0. Returns ETIMEDOUT if the seek failed
 // because there's probably no drive connected.
-static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnull pInOutStepCount)
+static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, bool* _Nonnull pOutDidStep)
 {
     decl_try_err();
     int steps = 0;
 
     self->flags.isTrackBufferValid = 0;
+    *pOutDidStep = false;
 
     // Wait 18 ms if we have to reverse the seek direction
     // Wait 2 ms if there was a write previously and we have to change the head
@@ -265,7 +272,7 @@ static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnu
     self->head = 0;
     self->cylinder = 0;
     self->flags.wasMostRecentSeekInward = 0;
-    *pInOutStepCount = steps;
+    *pOutDidStep = (steps > 0) ? true : false;
 
 catch:
     return err;
@@ -273,7 +280,7 @@ catch:
 
 // Seeks to the specified cylinder and selects the specified drive head.
 // (0: outermost, 79: innermost, +: inward, -: outward).
-static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head, int* _Nonnull pInOutStepCount)
+static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
     const int diff = cylinder - self->cylinder;
@@ -302,7 +309,6 @@ static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int 
             FloppyController_StepHead(self->fdc, self->driveState, cur_dir);     
             
             self->cylinder += cur_dir;
-            (*pInOutStepCount)++;
             
             if (cur_dir >= 0) {
                 self->flags.wasMostRecentSeekInward = 1;
@@ -356,14 +362,14 @@ static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self)
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeMilliseconds(4000));
     Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnIdle, self), &self->idleWatcher);
     if (self->idleWatcher) {
-        DispatchQueue_DispatchTimer(gMainDispatchQueue, self->idleWatcher);
+        DispatchQueue_DispatchTimer(self->dispatchQueue, self->idleWatcher);
     }
 }
 
 static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self)
 {
     if (self->idleWatcher) {
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, self->idleWatcher);
+        DispatchQueue_RemoveTimer(self->dispatchQueue, self->idleWatcher);
         Timer_Destroy(self->idleWatcher);
         self->idleWatcher = NULL;
     }
@@ -371,10 +377,12 @@ static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self)
 
 static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self)
 {
-    const int delta = (self->cylinder == self->cylindersPerDisk - 1) ? -1 : 1;
+    const int delta = (self->cylinder == (self->cylindersPerDisk - 1)) ? -1 : 1;
+    const int c1 = self->cylinder;
+    const int c0 = (c1 > 0) ? c1 - 1 : 1;
 
-    FloppyController_StepHead(self->fdc, self->driveState,  delta);
-    FloppyController_StepHead(self->fdc, self->driveState, -delta);
+    FloppyDisk_SeekTo(self, c0, self->head);
+    FloppyDisk_SeekTo(self, c1, self->head);
 }
 
 // Called from a timer as long as the drive is not connected or there's no disk
@@ -417,7 +425,7 @@ static void FloppyDisk_ScheduleOndiStateChecker(FloppyDiskRef _Nonnull self)
 {
     if (!self->flags.isOndiStateCheckingActive) {
         self->flags.isOndiStateCheckingActive = 1;
-        DispatchQueue_DispatchTimer(gMainDispatchQueue, self->ondiStateChecker);
+        DispatchQueue_DispatchTimer(self->dispatchQueue, self->ondiStateChecker);
     }
 }
 
@@ -425,7 +433,7 @@ static void FloppyDisk_CancelOndiStateChecker(FloppyDiskRef _Nonnull self)
 {
     if (self->flags.isOndiStateCheckingActive) {
         self->flags.isOndiStateCheckingActive = 0;
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, self->ondiStateChecker);
+        DispatchQueue_RemoveTimer(self->dispatchQueue, self->ondiStateChecker);
     }
 }
 
@@ -491,7 +499,6 @@ static errno_t FloppyDisk_OnFailedIO(FloppyDiskRef _Nonnull self, errno_t err)
 static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
-    int stepCount = 0;
 
     // Make sure that the motor is turned on
     FloppyDisk_MotorOn(self);
@@ -505,7 +512,7 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
 
     // Seek to the required cylinder and select the required head
     if (self->cylinder != cylinder || self->head != head) {
-        try(FloppyDisk_SeekTo(self, cylinder, head, &stepCount));
+        try(FloppyDisk_SeekTo(self, cylinder, head));
     }
 
 

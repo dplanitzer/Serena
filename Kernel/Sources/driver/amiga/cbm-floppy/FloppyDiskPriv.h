@@ -32,6 +32,7 @@ enum {
 final_class_ivars(FloppyDisk, DiskDriver,
 
     Lock                        ioLock;                             // XXX tmp concurrency protection. Will be replaced with a dispatch queue once we've finalized the disk driver & disk cache design 
+    DispatchQueueRef _Nonnull   dispatchQueue;
 
     FloppyController * _Nonnull fdc;
 
@@ -81,8 +82,8 @@ static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self);
 
-static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, int* _Nonnull pInOutStepCount);
-static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head, int* _Nonnull pInOutStepCount);
+static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, bool* _Nonnull pOutDidStep);
+static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head);
 
 static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self);

@@ -176,18 +176,30 @@ static void init_root_filesystem(void)
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
     try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pRamDisk, NULL, 0, NULL));
 #else
-    FloppyDiskRef pDisk;
+    FloppyDiskRef fd0;
     FilesystemRef pFS;
 
-    try_null(pDisk, DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name), ENODEV);
+    try_null(fd0, DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name), ENODEV);
     try(SerenaFS_Create((SerenaFSRef*)&pFS));
-    try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pDisk, NULL, 0, NULL));
+
+    while (true) {
+        if (FloppyDisk_HasDisk(fd0)) {
+            if (FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)fd0, NULL, 0, NULL) == EOK) {
+                break;
+            }
+        }
+
+        print("Please insert a Serena boot disk...\n\n");
+        while (!FloppyDisk_HasDisk(fd0)) {
+            VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
+        }
+    }
     print("Booting from fd0...\n\n");
 #endif
     return;
 
 catch:
-    print("Unable to mount the root filesystem.\nError: %d\nHalting\n", err);
+    print("Unable to mount a root filesystem.\nError: %d\nHalting\n", err);
     while(true);
     /* NOT REACHED */
 }
