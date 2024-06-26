@@ -30,9 +30,26 @@ void __stdio_init(void)
     _Stdout = (FILE*)&_StdoutObj;
     _Stderr = (FILE*)&_StderrObj;
 
-    __fdopen_init(&_StdinObj, false, kIOChannel_Stdin, "r");
-    __fdopen_init(&_StdoutObj, false, kIOChannel_Stdout, "w");
-    __fdopen_init(&_StderrObj, false, kIOChannel_Stderr, "w");
+    if (IOChannel_GetMode(kIOChannel_Stdin) != 0) {
+        __fdopen_init(&_StdinObj, false, kIOChannel_Stdin, "r");
+    }
+    else {
+        __fopen_null_init((FILE*)&_StdinObj, "r");
+    }
+
+    if (IOChannel_GetMode(kIOChannel_Stdout) != 0) {
+        __fdopen_init(&_StdoutObj, false, kIOChannel_Stdout, "w");
+    }
+    else {
+        __fopen_null_init((FILE*)&_StdoutObj, "w");
+    }
+
+    if (IOChannel_GetMode(kIOChannel_Stderr) != 0) {
+        __fdopen_init(&_StderrObj, false, kIOChannel_Stderr, "w");
+    }
+    else {
+        __fopen_null_init((FILE*)&_StderrObj, "w");
+    }
 }
 
 void __stdio_exit(void)

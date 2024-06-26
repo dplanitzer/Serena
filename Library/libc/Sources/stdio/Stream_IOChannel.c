@@ -47,6 +47,11 @@ errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int io
     const int sm = __fopen_parse_mode(mode);
     const int iocmode = IOChannel_GetMode(ioc);
 
+    // The I/O channel must be valid and open
+    if (iocmode == 0) {
+        return EBADF;
+    }
+
     // Make sure that 'mode' lines up with what the I/O channel can actually
     // do
     if ((sm & __kStreamMode_Read) != 0 && (iocmode & kOpen_Read) == 0) {
@@ -77,6 +82,27 @@ catch:
     errno = err;
     return NULL;
 }
+
+FILE *fdreopen(int ioc, const char *mode, FILE *s)
+{
+    const bool isFreeOnClose = s->flags.shouldFreeOnClose;
+
+    if ((__fopen_parse_mode(mode) & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
+        fclose(s);
+        return NULL;
+    }
+
+    __fclose(s);
+    const errno_t err = __fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, mode);
+    if (err != 0) {
+        errno = err;
+        return NULL;
+    }
+    else {
+        return s;
+    }
+}
+
 
 errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filename, const char *mode)
 {

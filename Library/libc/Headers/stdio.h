@@ -71,11 +71,11 @@ typedef struct FILE_MemoryQuery {
 
 
 typedef struct FILE {
-    struct FILE*                prev;
-    struct FILE*                next;
+    struct FILE* _Nullable      prev;
+    struct FILE* _Nullable      next;
     FILE_Callbacks              cb;
-    void*                       context;
-    char*                       buffer;
+    void* _Nullable             context;
+    char* _Nullable             buffer;
     size_t                      bufferCapacity;
     size_t                      bufferCount;
     struct FILE_Flags {
@@ -84,13 +84,14 @@ typedef struct FILE {
         unsigned int hasError:1;
         unsigned int hasEof:1;
         unsigned int shouldFreeOnClose:1;
+        unsigned int reserved:24;
     }                           flags;
 } FILE;
 
 
-extern FILE* _Stdin;
-extern FILE* _Stdout;
-extern FILE* _Stderr;
+extern FILE* _Nonnull _Stdin;
+extern FILE* _Nonnull _Stdout;
+extern FILE* _Nonnull _Stderr;
 #define stdin _Stdin
 #define stdout _Stdout
 #define stderr _Stderr
@@ -98,9 +99,13 @@ extern FILE* _Stderr;
 
 extern FILE *fopen(const char *filename, const char *mode);
 extern FILE *freopen(const char *filename, const char *mode, FILE *s);
+
 extern FILE *fdopen(int ioc, const char *mode);
+extern FILE *fdreopen(int ioc, const char *mode, FILE *s);
+
 extern FILE *fopen_callbacks(void* context, const FILE_Callbacks *callbacks, const char* mode);
 extern FILE *fopen_memory(FILE_Memory *mem, const char *mode);
+
 extern int fclose(FILE *s);
 
 extern int fileno(FILE *s);
