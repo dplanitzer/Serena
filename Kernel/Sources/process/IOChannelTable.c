@@ -235,13 +235,12 @@ errno_t IOChannelTable_CopyFrom(IOChannelTable* _Nonnull self, IOChannelTable* _
         throw(EINVAL);
     }
 
-    for (size_t i = 0, cc = 0; i < pOther->channelCount; i++) {
+    for (size_t i = 0; i < pOther->channelCount; i++) {
         IOChannelRef pChannel = pOther->table[i];
 
         if (pChannel) {
             try(IOChannel_Copy(pChannel, &self->table[i]));
             self->channelCount++;
-            cc++;
         }
     }
 

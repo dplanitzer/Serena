@@ -29,8 +29,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
 
-    // XXX not yet
-    //IOChannelTable_CopyFrom(&pChildProc->ioChannelTable, &pProc->ioChannelTable);
+    IOChannelTable_CopyFrom(&pChildProc->ioChannelTable, &pProc->ioChannelTable);
 
     if (pOptions->root_dir && pOptions->root_dir[0] != '\0') {
         try(Process_SetRootDirectoryPath(pChildProc, pOptions->root_dir));

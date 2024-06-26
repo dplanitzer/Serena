@@ -13,10 +13,29 @@
 #include "Shell.h"
 
 
+static void xxx_tmp_open_console_if_needed()
+{
+    int fd;
+
+    if (IOChannel_GetMode(kIOChannel_Stdin) != 0) {
+        return;
+    }
+
+    File_Open("/dev/console", kOpen_Read, &fd);
+    File_Open("/dev/console", kOpen_Write, &fd);
+    File_Open("/dev/console", kOpen_Write, &fd);
+
+    fdreopen(kIOChannel_Stdin, "r", stdin);
+    fdreopen(kIOChannel_Stdout, "w", stdout);
+    fdreopen(kIOChannel_Stderr, "w", stderr);
+}
+
 void main_closure(int argc, char *argv[])
 {
     decl_try_err();
     ShellRef pShell = NULL;
+
+    xxx_tmp_open_console_if_needed();
 
     // XXX disabled insertion mode for now because the line reader doesn't support
     // XXX it properly yet
