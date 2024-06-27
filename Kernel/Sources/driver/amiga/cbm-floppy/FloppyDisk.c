@@ -119,8 +119,8 @@ static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
     self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
-    self->trackWordCountToRead = ADF_DD_TRACK_WORD_COUNT_TO_READ;
-    self->trackWordCountToWrite = ADF_DD_TRACK_WORD_COUNT_TO_WRITE;
+    self->trackWordCountToRead = (self->sectorsPerTrack * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SECTOR_SIZE-2) / 2;
+    self->trackWordCountToWrite = self->trackWordCountToRead;
 
     self->driveState = FloppyController_Reset(self->fdc, self->drive);
     
@@ -155,12 +155,23 @@ static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
 
 static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
 {
+    decl_try_err();
+
     if (self->trackBuffer) {
         return EOK;
     }
     
     self->flags.isTrackBufferValid = 0;
-    return kalloc_options(sizeof(uint16_t) * self->trackWordCountToRead, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    err = kalloc_options(sizeof(uint16_t) * self->trackWordCountToRead, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    if (err == EOK) {
+        err = kalloc_options(sizeof(ADFSector) * self->sectorsPerTrack, KALLOC_OPTION_CLEAR, (void**) &self->sectors);
+        if (err == EOK) {
+            return EOK;
+        }
+    }
+
+    FloppyDisk_DisposeTrackBuffer(self);
+    return err;
 }
 
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
@@ -169,6 +180,10 @@ static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
         kfree(self->trackBuffer);
         self->trackBuffer = NULL;
         self->flags.isTrackBufferValid = 0;
+    }
+    if (self->sectors) {
+        kfree(self->sectors);
+        self->sectors = NULL;
     }
 }
 
@@ -567,86 +582,95 @@ catch:
 }
 
 
-enum {
-    kScanMode_Scanning,     // Scan until we find a ADF_MFM_SYNC word (inside the gap)
-    kScanMode_Sectoring,    // Picking up expected sectors (outside the gap)
-};
+static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offset, int* _Nonnull pOutSectorsUntilGap)
+{
+    ADF_SectorInfo info;
+
+    // MFM decode the sector info long word
+    mfm_decode_sector((const uint32_t*)&self->trackBuffer[offset], (uint32_t*)&info, 1);
+
+
+    // Validate the sector info
+    if (info.format == ADF_FORMAT_V1 
+        && info.track == (2*self->cylinder + self->head)
+        && info.sector < self->sectorsPerTrack) {
+        // Record the sector. Note that a sector may appear more than once because
+        // we may have read more data from the disk than fits in a single track. We
+        // keep the first occurrence of a sector.
+        ADFSector* s = &self->sectors[info.sector];
+
+        if ((s->flags & kSectorFlag_Exists) == 0) {
+            // XXX validate the header checksum
+            s->info = info;
+            s->offsetToHeader = offset;
+            s->flags = s->flags | kSectorFlag_Exists | kSectorFlag_IsValid;
+            *pOutSectorsUntilGap = info.sectors_until_gap;
+            return true;
+        }
+    }
+
+    return false;
+}
 
 static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
 {
     // Reset the sector table
-    for (int i = 0; i < ADF_HD_SECS_PER_TRACK; i++) {
-        self->sectors[i] = NULL;
-    }
+    memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
 
 
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
+    const uint16_t* pt_start = pt;
     const uint16_t* pt_limit = &self->trackBuffer[self->trackWordCountToRead];
-    const uint16_t* gap_start = NULL;
-    int mode = kScanMode_Sectoring, valid_sector_count = 0;
+    const uint16_t* pg_start = NULL;
+    const uint16_t* pg_end = NULL;
+    int sectorsUntilGap = -1;
+    int valid_sector_count = 0;
     ADF_SectorInfo info;
 
    // print("start: %p, limit: %p\n", pt, pt_limit);
     while (pt < pt_limit && valid_sector_count < self->sectorsPerTrack) {
-        if (mode == kScanMode_Sectoring) {
-            // Skip 1 or 2 sync words. 1 word appears in front of the first sector
-            // that Paula returns and in front of the first sector following the
-            // gap. 2 sync words appear in front of all other sectors.
+        const uint16_t* ps_start = pt;
+
+        // Find the next MFM sync mark
+        while (pt < pt_limit && *pt != ADF_MFM_SYNC) {
             pt++;
-            if (pt < pt_limit && *pt == ADF_MFM_SYNC) {
-                pt++;
-            }
-
-            if ((pt + ADF_MFM_SECTOR_SIZE / 2) > pt_limit) {
-                break;
-            }
-
-            // MFM decode the sector header
-            mfm_decode_sector((const uint32_t*)pt, (uint32_t*)&info, 1);
-
-            // Validate the sector header. We record valid sectors only.
-            if (info.format != ADF_FORMAT_V1 || info.track != 2*self->cylinder + self->head || info.sector >= self->sectorsPerTrack) {
-                // Bad sector
-                pt += ADF_MFM_SECTOR_SIZE / 2;
-                continue;
-            }
-
-            // Record the sector. Note that a sector may appear more than once because
-            // we may have read more data from the disk than fits in a single track. We
-            // keep the first occurrence of a sector.
-            if (self->sectors[info.sector] == NULL) {
-                #if 0
-                if (info.sectors_until_gap == 1) {
-                    print("sector: %d, at: %p -- gap starts here\n", info.sector, pt);
-                } else {
-                    print("sector: %d, at: %p\n", info.sector, pt);
-                }
-                #endif
-                self->sectors[info.sector] = (ADF_MFMSector*)pt;
-            }
-
-            pt += ADF_MFM_SECTOR_SIZE / 2;
-            pt += 4 / 2;
-
-            if (info.sectors_until_gap == 1) {
-                // We've reached the start pf the gap. Switch to scanning until
-                // we find a sync word
-                mode = kScanMode_Scanning;
-                gap_start = pt;
-            }
         }
-        else {
-            // we scan until we find 1 sync word
-            if (*pt == ADF_MFM_SYNC) {
-                mode = kScanMode_Sectoring;
-                self->gapSize = (pt - gap_start) * sizeof(uint16_t);
-            }
-            else {
-                pt++;
-            }
+        pt++;
+
+        if (pt < pt_limit && *pt == ADF_MFM_SYNC) {
+            pt++;
         }
+
+
+        // Pick up the sector gap
+        if (sectorsUntilGap == 1 && pg_start == NULL) {
+            pg_start = ps_start;
+            pg_end = pt - ADF_MFM_SYNC_SIZE/2;
+        }
+
+
+        // We're done if this isn't a complete sector anymore
+        if (pt + ADF_MFM_SECTOR_SIZE/2 > pt_limit) {
+            break;
+        }
+
+
+        // Pick up the sector
+        FloppyDisk_RegisterSector(self, pt - pt_start, &sectorsUntilGap);
+        pt += ADF_MFM_SECTOR_SIZE/2;
     }
+
+    self->gapSize = (pg_start && pg_end) ? pg_end - pg_start : 0;
+
+#if 0
+    print("c: %d, h: %d ----------\n", self->cylinder, self->head);
+    for(int i = 0; i < self->sectorsPerTrack; i++) {
+        print(" s: %d, sug: %d, off: %d\n", self->sectors[i].info.sector, self->sectors[i].info.sectors_until_gap, self->sectors[i].offsetToHeader);
+    }
+    print(" gap at: %d, gap size: %d\n", pg_start - pt_start, self->gapSize);
+    print("\n");
+#endif
 }
 
 static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int cylinder)
@@ -681,15 +705,16 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     
     
     // Get the sector
-    ADF_MFMSector* psec = self->sectors[sector];
-    if (psec == NULL || !self->flags.isTrackBufferValid) {
+    ADFSector* s = &self->sectors[sector];
+    if ((s->flags & (kSectorFlag_Exists|kSectorFlag_IsValid) == 0) || !self->flags.isTrackBufferValid) {
         self->readErrorCount++;
         return EIO;
     }
     
     
     // MFM decode the sector data
-    mfm_decode_sector((const uint32_t*)psec->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+    const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
+    mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
     return EOK;
 
 catch:
@@ -724,14 +749,15 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     
     
     // Override the sector with the new data
-    const ADF_MFMSector* psec = self->sectors[sector];
-    if (psec == NULL || !self->flags.isTrackBufferValid) {
+    ADFSector* s = &self->sectors[sector];
+    if ((s->flags & (kSectorFlag_Exists|kSectorFlag_IsValid) == 0) || !self->flags.isTrackBufferValid) {
         return EIO;
     }
     
     
     // MFM encode the sector data
-    mfm_encode_sector((const uint32_t*)pBuffer, (uint32_t*)psec->data.odd_bits, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+    ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
+    mfm_encode_sector((const uint32_t*)pBuffer, (uint32_t*)mfms->data.odd_bits, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
     
     
     // Write the track back out

@@ -15,17 +15,24 @@
 #include <dispatchqueue/DispatchQueue.h>
 
 
-// Sector table capacity
-#define ADF_DD_TRACK_WORD_COUNT_TO_READ     6400
-#define ADF_DD_TRACK_WORD_COUNT_TO_WRITE    6400
-
-
 // Floppy motor state
 enum {
     kMotor_Off = 0,             // Motor not spinning at all
     kMotor_SpinningUp = 1,      // Motor turned on recently and spinning up to target speed
     kMotor_AtTargetSpeed = 2    // Motor is at target speed, disk read/write is permissible 
 };
+
+
+enum {
+    kSectorFlag_Exists = 1,     // Sector exists in the track
+    kSectorFlag_IsValid = 2,    // Sector is valid (has valid sector info and header checksum checks out)
+};
+
+typedef struct ADFSector {
+    ADF_SectorInfo  info;
+    int16_t         offsetToHeader;     // offset to first word past the sector sync words
+    uint16_t        flags;
+} ADFSector;
 
 
 // Stores the state of a single floppy drive.
@@ -40,11 +47,11 @@ final_class_ivars(FloppyDisk, DiskDriver,
     TimerRef _Nullable          idleWatcher;
     TimerRef _Nonnull           ondiStateChecker;
 
-    // Buffer used to cache a read track (Chip mem)
-    uint16_t* _Nonnull          trackBuffer;                        // cached read track data (MFM encoded)
-    size_t                      trackBufferSize;                    // cached read track buffer size in words
-    ADF_MFMSector * _Nullable   sectors[ADF_HD_SECS_PER_TRACK];     // table with offsets to the sector starts. The offset points to the first word after the sector sync word(s); 0 means that this sector does not exist  
-    int                         gapSize;                            // track gap size
+    // Buffer used to cache a read track
+    ADFSector* _Nullable        sectors;                            // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
+    uint16_t* _Nullable         trackBuffer;                        // cached read track data (MFM encoded)
+    int16_t                     trackBufferSize;                    // cached read track buffer size in words
+    int16_t                     gapSize;                            // track gap size
 
     // Disk geometry
     LogicalBlockCount           logicalBlockCapacity;                   // disk size in terms of logical blocks
