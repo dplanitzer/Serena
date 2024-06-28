@@ -13,6 +13,7 @@
 #include <System/_errno.h>
 #include <System/_null.h>
 #include <System/abi/_size.h>
+#include <System/abi/_ssize.h>
 #include <System/_syslimits.h>
 #include <stdarg.h>
 
@@ -38,10 +39,10 @@ typedef struct fpos_t {
 
 
 // A stream defined by a set of callbacks
-typedef _Errno_t (*FILE_Read)(void* self, void* pBuffer, __ssize_t nBytesToRead, __ssize_t* pOutBytesRead);
-typedef _Errno_t (*FILE_Write)(void* self, const void* pBytes, __ssize_t nBytesToWrite, __ssize_t* pOutBytesWritten);
-typedef _Errno_t (*FILE_Seek)(void* self, long long offset, long long *outOldOffset, int whence);
-typedef _Errno_t (*FILE_Close)(void* self);
+typedef _Errno_t (*FILE_Read)(void *self, void *buffer, ssize_t nBytesToRead, ssize_t *pOutBytesRead);
+typedef _Errno_t (*FILE_Write)(void *self, const void *buffer, ssize_t nBytesToWrite, ssize_t *pOutBytesWritten);
+typedef _Errno_t (*FILE_Seek)(void *self, long long offset, long long *outOldOffset, int whence);
+typedef _Errno_t (*FILE_Close)(void *self);
 
 typedef struct FILE_Callbacks {
     FILE_Read _Nullable     read;
@@ -123,6 +124,9 @@ extern int fseek(FILE *s, long offset, int whence);
 extern int fgetpos(FILE *s, fpos_t *pos);
 extern int fsetpos(FILE *s, const fpos_t *pos);
 extern void rewind(FILE *s);
+
+extern ssize_t getline(char **line, size_t *n, FILE *s);
+extern ssize_t getdelim(char **line, size_t *n, int delimiter, FILE *s);
 
 extern int fgetc(FILE *s);
 #define getc(s) fgetc(s)
