@@ -28,6 +28,8 @@ static void xxx_tmp_open_console_if_needed()
     fdreopen(kIOChannel_Stdin, "r", stdin);
     fdreopen(kIOChannel_Stdout, "w", stdout);
     fdreopen(kIOChannel_Stderr, "w", stderr);
+
+    Process_SetWorkingDirectory("/Users/Administrator");
 }
 
 void main_closure(int argc, char *argv[])
