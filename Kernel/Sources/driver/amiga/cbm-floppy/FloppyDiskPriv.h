@@ -50,7 +50,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     // Buffer used to cache a read track
     ADFSector* _Nullable        sectors;                            // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
     uint16_t* _Nullable         trackBuffer;                        // cached read track data (MFM encoded)
-    int16_t                     trackBufferSize;                    // cached read track buffer size in words
+    int16_t                     trackBufferWordCount;               // cached read track buffer size in words
     int16_t                     gapSize;                            // track gap size
 
     // Disk geometry
@@ -59,8 +59,6 @@ final_class_ivars(FloppyDisk, DiskDriver,
     int8_t                      sectorsPerTrack;
     int8_t                      headsPerCylinder;
     int8_t                      cylindersPerDisk;
-    int                         trackWordCountToRead;
-    int                         trackWordCountToWrite;
 
     int                         readErrorCount;                         // Number of read errors since last disk driver reset / disk change
 

@@ -119,8 +119,7 @@ static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
     self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
-    self->trackWordCountToRead = (self->sectorsPerTrack * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SECTOR_SIZE-2) / 2;
-    self->trackWordCountToWrite = self->trackWordCountToRead;
+    self->trackBufferWordCount = (self->sectorsPerTrack * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SECTOR_SIZE-2) / 2;
 
     self->driveState = FloppyController_Reset(self->fdc, self->drive);
     
@@ -162,7 +161,7 @@ static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
     }
     
     self->flags.isTrackBufferValid = 0;
-    err = kalloc_options(sizeof(uint16_t) * self->trackWordCountToRead, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    err = kalloc_options(sizeof(uint16_t) * self->trackBufferWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
     if (err == EOK) {
         err = kalloc_options(sizeof(ADFSector) * self->sectorsPerTrack, KALLOC_OPTION_CLEAR, (void**) &self->sectors);
         if (err == EOK) {
@@ -593,7 +592,8 @@ static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offse
     // Validate the sector info
     if (info.format == ADF_FORMAT_V1 
         && info.track == (2*self->cylinder + self->head)
-        && info.sector < self->sectorsPerTrack) {
+        && info.sector < self->sectorsPerTrack
+        && info.sectors_until_gap <= self->sectorsPerTrack) {
         // Record the sector. Note that a sector may appear more than once because
         // we may have read more data from the disk than fits in a single track. We
         // keep the first occurrence of a sector.
@@ -621,15 +621,14 @@ static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
-    const uint16_t* pt_limit = &self->trackBuffer[self->trackWordCountToRead];
+    const uint16_t* pt_limit = &self->trackBuffer[self->trackBufferWordCount];
     const uint16_t* pg_start = NULL;
     const uint16_t* pg_end = NULL;
     int sectorsUntilGap = -1;
-    int valid_sector_count = 0;
     ADF_SectorInfo info;
 
    // print("start: %p, limit: %p\n", pt, pt_limit);
-    while (pt < pt_limit && valid_sector_count < self->sectorsPerTrack) {
+    while (pt < pt_limit) {
         const uint16_t* ps_start = pt;
 
         // Find the next MFM sync mark
@@ -651,7 +650,7 @@ static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
 
 
         // We're done if this isn't a complete sector anymore
-        if (pt + ADF_MFM_SECTOR_SIZE/2 > pt_limit) {
+        if ((pt + ADF_MFM_SECTOR_SIZE/2) > pt_limit) {
             break;
         }
 
@@ -677,12 +676,12 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
 {
     decl_try_err();
     
-    if (self->cylinder == cylinder && self->head == head && self->flags.isTrackBufferValid) {
+    if (self->flags.isTrackBufferValid && self->cylinder == cylinder && self->head == head) {
         return EOK;
     }
 
     try(FloppyDisk_BeginIO(self, cylinder, head));
-    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackWordCountToRead, false));
+    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, false));
     
     self->flags.isTrackBufferValid = 1;
     FloppyDisk_SectorizeTrackBuffer(self);
@@ -701,7 +700,10 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     decl_try_err();
     
     // Read the track
-    try(FloppyDisk_ReadTrack(self, head, cylinder));
+    err = FloppyDisk_ReadTrack(self, head, cylinder);
+    if (err != EOK) {
+        return err;
+    }
     
     
     // Get the sector
@@ -716,9 +718,6 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
     mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
     return EOK;
-
-catch:
-    return err;
 }
 
 static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int cylinder)
@@ -729,11 +728,9 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     assert(self->flags.isTrackBufferValid);
         
     try(FloppyDisk_BeginIO(self, cylinder, head));
-    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackWordCountToWrite, true));
+    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, true));
     try(FloppyDisk_EndIO(self));
     try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200)));
-
-    return EOK;
 
 catch:
     return err;
@@ -745,7 +742,10 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     decl_try_err();
     
     // Make sure that we have the track in memory
-    try(FloppyDisk_ReadTrack(self, head, cylinder));
+    err = FloppyDisk_ReadTrack(self, head, cylinder);
+    if (err != EOK) {
+        return err;
+    }
     
     
     // Override the sector with the new data
@@ -764,12 +764,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     // XXX should just mark the track buffer as dirty
     // XXX the cache_invalidate() function should then write the cache back to disk before we seek / switch heads
     // XXX there should be a floppy_is_cache_dirty() and floppy_flush_cache() which writes the cache to disk
-    try(FloppyDisk_WriteTrack(self, head, cylinder));
-    
-    return EOK;
-
-catch:
-    return err;
+    return FloppyDisk_WriteTrack(self, head, cylinder);
 #else
     return EROFS;
 #endif
