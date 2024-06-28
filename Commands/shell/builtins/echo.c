@@ -45,10 +45,10 @@ int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv)
         return clap_exit_code(status);
     }
 
-    for (size_t i = 0; i < strs.count; i++) {
+    for (int i = 0; i < (int)strs.count; i++) {
         echo_string(strs.strings[i]);
         
-        if (!is_nospace && i < (argc - 1)) {
+        if (!is_nospace && i < (argc - 2)) {
             fputc(' ', stdout);
         }
     }

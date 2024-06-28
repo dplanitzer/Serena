@@ -10,7 +10,18 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <clap.h>
 #include "Shell.h"
+
+static clap_string_array_t scriptFiles = {NULL, 0};
+
+static CLAP_DECL(params,
+    CLAP_VERSION("1.0"),
+    CLAP_HELP(),
+    CLAP_USAGE("shell [path ...]"),
+
+    CLAP_VARARG(&scriptFiles)
+);
 
 
 static void xxx_tmp_open_console_if_needed()
@@ -39,13 +50,24 @@ void main_closure(int argc, char *argv[])
 
     xxx_tmp_open_console_if_needed();
 
-    // XXX disabled insertion mode for now because the line reader doesn't support
-    // XXX it properly yet
-    //printf("\033[4h");  // Switch the console to insert mode
-    printf("\033[36mSerena OS v0.1.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+    clap_parse(0, params, argc, argv);
+    const bool isInteractive = (scriptFiles.count == 0) ? true : false;
 
-    try(Shell_CreateInteractive(&pShell));
-    try(Shell_Run(pShell));
+    try(Shell_Create(isInteractive, &pShell));
+
+    if (isInteractive) {
+        // XXX disabled insertion mode for now because the line reader doesn't support
+        // XXX it properly yet
+        //printf("\033[4h");  // Switch the console to insert mode
+        printf("\033[36mSerena OS v0.1.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+        
+        try(Shell_Run(pShell));
+    }
+    else {
+        for (size_t i = 0; i < scriptFiles.count; i++) {
+            try(Shell_RunContentsOfFile(pShell, scriptFiles.strings[i]));
+        }
+    }
 
 catch:
     Shell_Destroy(pShell);

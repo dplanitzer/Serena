@@ -13,6 +13,7 @@ WORKSPACE_DIR := $(CURDIR)
 SCRIPTS_DIR := $(WORKSPACE_DIR)/Tools
 BUILD_DIR := $(WORKSPACE_DIR)/build
 TOOLS_DIR := $(BUILD_DIR)/tools
+DEMOS_DIR := $(WORKSPACE_DIR)/Demos
 OBJS_DIR := $(BUILD_DIR)/objs
 PRODUCT_DIR := $(BUILD_DIR)/product
 
@@ -170,6 +171,7 @@ build-boot-disk: $(SH_FILE)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/System/Commands)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/Users/Administrator)
 	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
+	$(call copy,$(DEMOS_DIR)/helloworld.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 
 $(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
 ifdef BOOT_FROM_ROM

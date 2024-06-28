@@ -23,8 +23,10 @@ typedef struct Shell {
 typedef Shell* ShellRef;
 
 
-// Creates an instance of an interactive shell.
-extern errno_t Shell_CreateInteractive(ShellRef _Nullable * _Nonnull pOutSelf);
+// Creates a shell instance. The shell will be interactive if 'isInteractive' is
+// true. Otherwise the shell will not present a user interface and instead you
+// should use RunContentsOfFile commands to execute shell scripts. 
+extern errno_t Shell_Create(bool isInteractive, ShellRef _Nullable * _Nonnull pOutSelf);
 
 // Destroys the given shell instance.
 
@@ -36,5 +38,9 @@ extern void Shell_Destroy(ShellRef _Nullable self);
 // encounters an out-of-memory error. Otherwise blocks until the user explicitly
 // exits the interactive shell.
 extern errno_t Shell_Run(ShellRef _Nonnull self);
+
+// Interprets the contents of the given file as a shell script and runs the commands
+// in that script, line by line.
+extern errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path);
 
 #endif  /* Shell_h */

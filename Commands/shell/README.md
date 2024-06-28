@@ -153,9 +153,9 @@ Prints the absolute path of the current working directory.
 
 Renames the file or directory at 'source_path' to 'destination_path'. If a file or directory exists at 'destination_path' then this file system object is atomically deleted and replaced with the source file or directory.
 
-#### SHELL
+#### SHELL [path ...]
 
-Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command.
+Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command. The shell runs in interactive mode by default. You can pass one or more paths to shell scripts when you invoke a shell and the shell will then run in batch mode and execute one shell script after the other. Shell scripts are executed in the order in which they are passed to the shell executable.
 
 #### TYPE [--hex] \<path>
 

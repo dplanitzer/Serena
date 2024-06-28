@@ -68,30 +68,30 @@ catch:
     return err;
 }
 
-static ssize_t calc_size_of_arg_table(const char* const _Nullable * _Nullable pTable, ssize_t maxByteCount, int* _Nonnull pOutTableEntryCount)
+static ssize_t calc_size_of_arg_table(const char* const _Nullable * _Nullable pTable, ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)
 {
     ssize_t nbytes = 0;
-    int count = 0;
+    size_t i = 0;
 
-    if (pTable != NULL) {
-        while (*pTable != NULL) {
-            const char* pStr = *pTable;
+    if (pTable) {
+        while (pTable[i]) {
+            const char* pStr = pTable[i];
 
             nbytes += sizeof(char*);
             while (*pStr != '\0' && nbytes <= maxByteCount) {
                 pStr++;
+                nbytes++;
             }
-            nbytes += 1;    // space for terminating '\0'
+            nbytes++;   // terminating '\0'
 
             if (nbytes > maxByteCount) {
                 break;
             }
 
-            pTable++;
+            i++;
         }
-        count++;
     }
-    *pOutTableEntryCount = count;
+    *pOutTableEntryCount = i;
 
     return nbytes;
 }
@@ -99,11 +99,12 @@ static ssize_t calc_size_of_arg_table(const char* const _Nullable * _Nullable pT
 static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
 {
     decl_try_err();
-    int nArgvCount = 0;
-    int nEnvCount = 0;
+    size_t nArgvCount = 0;
+    size_t nEnvCount = 0;
     const ssize_t nbytes_argv = calc_size_of_arg_table(pArgv, __ARG_MAX, &nArgvCount);
     const ssize_t nbytes_envp = calc_size_of_arg_table(pEnv, __ARG_MAX, &nEnvCount);
     const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
+    
     if (nbytes_argv_envp > __ARG_MAX) {
         return E2BIG;
     }
@@ -120,7 +121,7 @@ static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, 
 
 
     // Argv
-    for (int i = 0; i < nArgvCount; i++) {
+    for (size_t i = 0; i < nArgvCount; i++) {
         const char* pSrc = (const char*)pSrcArgv[i];
 
         pProcArgv[i] = pDst;
@@ -130,14 +131,13 @@ static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, 
 
 
     // Envp
-    for (int i = 0; i < nEnvCount; i++) {
+    for (size_t i = 0; i < nEnvCount; i++) {
         const char* pSrc = (const char*)pSrcEnv[i];
 
         pProcEnv[i] = pDst;
         pDst = String_Copy(pDst, pSrc);
     }
     pProcEnv[nEnvCount] = NULL;
-
 
     // Descriptor
     pProcArgs->version = sizeof(ProcessArguments);

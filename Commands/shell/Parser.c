@@ -163,7 +163,19 @@ static bool Parser_Word(ParserRef _Nonnull self, bool isNested, SentenceRef _Non
                     Lexer_ConsumeToken(&self->lexer);
                 }
                 else {
-                    printf("Error: unexpected character '%c'.\n", t->id);
+                    char s[3];
+
+                    if (isprint(t->id)) {
+                        s[0] = t->id;
+                        s[1] = '\0';
+                    } else {
+                        s[0] = '^';
+                        s[1] = t->id + 64;
+                        s[2] = '\0';
+                    }
+                    
+
+                    printf("Error: unexpected character %s.\n", s);
                     hasError = true;
                     done = true;
                 }
