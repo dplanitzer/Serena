@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <clap.h>
+#include "builtins/cmdlib.h"
 #include "Shell.h"
 
 static clap_string_array_t scriptFiles = {NULL, 0};
@@ -65,7 +66,11 @@ void main_closure(int argc, char *argv[])
     }
     else {
         for (size_t i = 0; i < scriptFiles.count; i++) {
-            try(Shell_RunContentsOfFile(pShell, scriptFiles.strings[i]));
+            err = Shell_RunContentsOfFile(pShell, scriptFiles.strings[i]);
+            if (err != EOK) {
+                print_error(argv[0], scriptFiles.strings[i], err);
+                throw(err);
+            }
         }
     }
 
