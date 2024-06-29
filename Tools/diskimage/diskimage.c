@@ -118,15 +118,12 @@ catch:
     return err;
 }
 
-static errno_t createADFDiskDriver(size_t diskImageSize, DiskDriverRef *pOutDriver)
+static errno_t createADFDiskDriver(const DiskImageFormat* diskImageFormat, DiskDriverRef *pOutDriver)
 {
-    const size_t blockSize = 512;
-    const size_t nblocks = __Ceil_PowerOf2(diskImageSize, blockSize) / blockSize;
-
-    return DiskDriver_Create(blockSize, nblocks, pOutDriver);
+    return DiskDriver_Create(diskImageFormat->blockSize, diskImageFormat->blocksPerDisk, pOutDriver);
 }
 
-static void createDiskImage(const char* pRootPath, const char* pDstPath, size_t diskImageSize)
+static void createDiskImage(const char* pRootPath, const char* pDstPath, const DiskImageFormat* diskImageFormat)
 {
     decl_try_err();
     DiskDriverRef pDisk = NULL;
@@ -134,7 +131,7 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath, size_t 
     InodeRef pRootDir = NULL;
     uint32_t dummyParam = 0;
 
-    try(createADFDiskDriver(diskImageSize, &pDisk));
+    try(createADFDiskDriver(diskImageFormat, &pDisk));
     
     try(formatDiskImage(pDisk));
 
@@ -167,24 +164,35 @@ catch:
 // main
 ////////////////////////////////////////////////////////////////////////////////
 
-struct disk_size_entry {
-    const char* name;
-    size_t      size;
+DiskImageFormat gDiskImageFormats[] = {
+    {"adf-dd", kDiskImage_Amiga_DD_Floppy, 512, 11 * 2 * 80},   // 880KB
+    {"adf-hd", kDiskImage_Amiga_HD_Floppy, 512, 22 * 2 * 80},   // 1.7MB
+    {"smg", kDiskImage_Serena, 512, 128},
+    {NULL, 0, 0, 0}
 };
 
-const struct disk_size_entry gDiskSizes[] = {
-//    {"auto", -1},
-    {"amiga-dd", 880 * 1024},
-    {"amiga-hd", 1760 * 1024},
-    {NULL, 0}
-};
+static int parseDiskFormat(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
+{
+    long long size = 0ll;
+    char* pptr = NULL;
+    DiskImageFormat* de = &gDiskImageFormats[0];
+
+    while (de->name) {
+        if (!strcmp(arg, de->name)) {
+            *(DiskImageFormat**)param->value = de;
+            return EXIT_SUCCESS;
+        }
+        de++;
+    }
+
+    clap_param_error(proc_name, param, eo, "unknown disk image type '%s", arg);
+
+    return EXIT_FAILURE;
+}
 
 // One of:
-// 26326        (positive integer)
-// 880k         (power-of-two unit postfix: k, K, m, M, g, G, t, T)
-// amiga-dd     (Amiga double density floppy disk - 880k)
-// amiga-hd     (Amiga high density floppy disk - 1760k)
-// auto         (auto-calculate the smallest disk size to cover all blocks that were written to)    XXX not yet
+// 26326    (positive integer)
+// 880k     (power-of-two unit postfix: k, K, m, M, g, G, t, T)
 static int parseDiskSize(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
 {
     long long size = 0ll;
@@ -232,18 +240,8 @@ static int parseDiskSize(const char* _Nonnull proc_name, const struct clap_param
         clap_param_error(proc_name, param, eo, "disk size too large");
     }
     else {
-        // Check for symbolic disk sizes
-        const struct disk_size_entry* dse = &gDiskSizes[0];
-
-        while (dse->name) {
-            if (!strcmp(arg, dse->name)) {
-                *(size_t*)param->value = dse->size;
-                return EXIT_SUCCESS;
-            }
-            dse++;
-        }
-
-        clap_param_error(proc_name, param, eo, "unknown symbolic disk size '%s", arg);
+        // Syntax error
+        clap_param_error(proc_name, param, eo, "not a valid disk size '%s", arg);
     }
 
     return EXIT_FAILURE;
@@ -252,7 +250,8 @@ static int parseDiskSize(const char* _Nonnull proc_name, const struct clap_param
 
 clap_string_array_t paths = {NULL, 0};
 const char* cmd_id = "";
-size_t disk_size = 880 * 1024;     // Actual disk size, if > 0; Auto-calculate disk size, if == -1
+DiskImageFormat* disk_format = NULL;
+size_t disk_size = 0;       // disk size as specified by user; 0 by default -> use the disk format defined size
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
@@ -260,7 +259,8 @@ CLAP_DECL(params,
     CLAP_USAGE("diskimage <command> ..."),
 
     CLAP_REQUIRED_COMMAND("create", &cmd_id, "<root_path> <dimg_path>", "Creates a SerenaFS formatted disk image file 'dimg_path' which stores a recursive copy of the directory hierarchy and files located at 'root_path'."),
-        CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the resulting disk image (default: Amiga DD)"),
+        CLAP_VALUE('d', "disk", &disk_format, parseDiskFormat, "Specify the format of the generated disk image (default: Amiga DD)"),
+        CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the disk image (default: depends on the disk image format)"),
         CLAP_VARARG(&paths)
 );
 
@@ -298,7 +298,19 @@ int main(int argc, char* argv[])
             return EXIT_FAILURE;
         }
 
-        createDiskImage(paths.strings[0], paths.strings[1], disk_size);
+
+        if (disk_format == NULL) {
+            disk_format = &gDiskImageFormats[0];
+        }
+        
+        if (disk_size > 0) {
+            disk_format->blocksPerDisk = disk_size / disk_format->blockSize;
+            if (disk_format->blocksPerDisk * disk_format->blockSize < disk_size) {
+                disk_format->blocksPerDisk++;
+            }
+        }
+
+        createDiskImage(paths.strings[0], paths.strings[1], disk_format);
     }
 
     return EXIT_SUCCESS;

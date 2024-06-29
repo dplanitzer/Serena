@@ -176,10 +176,10 @@ build-boot-disk: $(SH_FILE)
 $(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
 ifdef BOOT_FROM_ROM
 	@echo Making boot_disk.adf
-	$(DISKIMAGE) create --size=64k $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
+	$(DISKIMAGE) create --disk=smg --size=64k $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
 else
 	@echo Making boot_disk.adf
-	$(DISKIMAGE) create --size=amiga-dd $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
+	$(DISKIMAGE) create --disk=adf-dd $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
 endif
 
 ifdef BOOT_FROM_ROM

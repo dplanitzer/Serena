@@ -50,7 +50,7 @@ The generated ROM image is 256KB in size and it includes the necessary IRQ auto-
 
 ## Diskimage
 
-The diskimage tool is used to create a SerenaFS formatted ADF disk image. It creates a Amiga DD disk image by default. However the size may be explicitly set using the `--size` option.
+The diskimage tool allows you to create a disk image. It currently supports the creation of Amiga DD and Amiga HD ADF disk images plus Serena disk images. It creates an Amiga DD disk image by default. Use the `--disk` option to select the disk image format (one of `adf-dd`, `adf-hd` or `smg`). Use the `--size` option to specify the size for a Serena disk image.
 
 The diskimage tool expects a path to a directory on the host system as input. The directory at this path represents the root folder of the disk image that should be created. Diskimage first creates an empty disk image file, formats it with SerenaFS and then recursively copies all directories and files from the host file system to the SerenaFS disk image. However, hidden files, special files and system files are not copied.
 
