@@ -97,35 +97,15 @@ catch:
 
 // Loads an executable from the given executable file into the process address
 // space.
-static errno_t Process_LoadExecutableImage_Locked(ProcessRef _Nonnull self, const char* _Nonnull pExecPath, void** pImageBase, void** pEntryPoint)
+static errno_t load_gemdos_executable(ProcessRef _Nonnull self, InodeRef _Locked inode, void** pImageBase, void** pEntryPoint)
 {
     decl_try_err();
-    PathResolver pr;
-    PathResolverResult r;
     GemDosExecutableLoader loader;
 
     GemDosExecutableLoader_Init(&loader, self->addressSpace, self->realUser);
-    Process_MakePathResolver(self, &pr);
-
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pExecPath, &r));
-
-    Inode_Lock(r.inode); 
-    if (Inode_IsRegularFile(r.inode)) {
-        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Readable | kAccess_Executable);
-        if (err == EOK) {
-            err = GemDosExecutableLoader_Load(&loader, r.inode, pImageBase, pEntryPoint);
-        }
-    }
-    else {
-        // Not a regular file
-        err = EACCESS;
-    }
-    Inode_Unlock(r.inode);
-
-catch:
+    err = GemDosExecutableLoader_Load(&loader, inode, pImageBase, pEntryPoint);
     GemDosExecutableLoader_Deinit(&loader);
-    PathResolverResult_Deinit(&r);
-    PathResolver_Deinit(&pr);
+
     return err;
 }
 
@@ -136,6 +116,9 @@ catch:
 errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
+    PathResolver pr;
+    PathResolverResult r;
+    InodeRef pExecFile = NULL;
     void* pImageBase = NULL;
     void* pEntryPoint = NULL;
     const char* null_sptr[1] = {NULL};
@@ -151,12 +134,30 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
     assert(self->imageBase == NULL);
 
 
+    // Resolve the path to teh executable file
+    Process_MakePathResolver(self, &pr);
+    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, path, &r));
+    pExecFile = r.inode;
+    r.inode = NULL;
+
+
+    Inode_Lock(pExecFile); 
+
+
+    // Make sure that the executable is a regular file and that it has the correct
+    // access mode
+    if (!Inode_IsRegularFile(pExecFile)) {
+        throw(EACCESS);
+    }
+    try(Filesystem_CheckAccess(Inode_GetFilesystem(pExecFile), pExecFile, self->realUser, kAccess_Readable | kAccess_Executable));
+
+
     // Copy the process arguments into the process address space
     try(Process_CopyInProcessArguments_Locked(self, argv, env));
 
 
     // Load the executable
-    try(Process_LoadExecutableImage_Locked(self, path, &pImageBase, &pEntryPoint));
+    try(load_gemdos_executable(self, pExecFile, &pImageBase, &pEntryPoint));
 
     self->imageBase = pImageBase;
     ((ProcessArguments*) self->argumentsBase)->image_base = self->imageBase;
@@ -168,5 +169,8 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
 
 catch:
     //XXX free the executable image if an error occurred
+    Inode_UnlockRelinquish(pExecFile);
+    PathResolverResult_Deinit(&r);
+    PathResolver_Deinit(&pr);
     return err;
 }
