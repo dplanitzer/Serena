@@ -51,9 +51,9 @@ UserId Process_GetUserId(void)
     return _syscall(SC_getuid);
 }
 
-errno_t Process_Spawn(const char* _Nonnull path, const SpawnOptions* _Nonnull options, ProcessId* _Nullable rpid)
+errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, ProcessId* _Nullable rpid)
 {
-    return _syscall(SC_spawn_process, path, options, rpid);
+    return _syscall(SC_spawn_process, path, argv, options, rpid);
 }
 
 errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result)

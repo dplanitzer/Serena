@@ -56,13 +56,7 @@ void child_process_test(int argc, char *argv[])
         child_argv[0] = "--child";
         child_argv[1] = NULL;
 
-        SpawnOptions spargs;
-        memset(&spargs, 0, sizeof(spargs));
-        //spargs.execbase = (void*)0xfe0000;
-        //spargs.execbase = (void*)(0xfe0000 + ((char*)app_main));
-        spargs.argv = child_argv;
-        spargs.envp = NULL;
-        Process_Spawn(&spargs, NULL);
+        Process_Spawn(""/*XXX*/, child_argv, NULL, NULL);
 
         // Do a parent's work
         parent_process();

@@ -192,9 +192,7 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
     strcpy(cmdPath, gSearchPath);
     strcat(cmdPath, argv[0]);
 
-    opts.argv = argv;
-
-    err = Process_Spawn(cmdPath, &opts, &childPid);
+    err = Process_Spawn(cmdPath, argv, &opts, &childPid);
     if (err == ENOENT) {
         return false;
     }

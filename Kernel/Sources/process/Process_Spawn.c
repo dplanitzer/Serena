@@ -10,16 +10,21 @@
 #include "ProcessManager.h"
 
 
-errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, const SpawnOptions* _Nonnull pOptions, ProcessId * _Nullable pOutChildPid)
+errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable pOptions, ProcessId * _Nullable pOutChildPid)
 {
     decl_try_err();
     ProcessRef pChildProc = NULL;
     bool needsUnlock = false;
+    SpawnOptions so = {0};
+
+    if (pOptions) {
+        so = *pOptions;
+    }
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    const FilePermissions childUMask = ((pOptions->options & kSpawn_OverrideUserMask) != 0) ? (pOptions->umask & 0777) : pProc->fileCreationMask;
+    const FilePermissions childUMask = ((so.options & kSpawn_OverrideUserMask) != 0) ? (so.umask & 0777) : pProc->fileCreationMask;
     try(Process_Create(pProc->pid, pProc->realUser, pProc->rootDirectory, pProc->workingDirectory, pProc->fileCreationMask, &pChildProc));
 
 
@@ -29,15 +34,15 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
 
     IOChannelTable_CopyFrom(&pChildProc->ioChannelTable, &pProc->ioChannelTable);
 
-    if (pOptions->root_dir && pOptions->root_dir[0] != '\0') {
-        try(Process_SetRootDirectoryPath(pChildProc, pOptions->root_dir));
+    if (so.root_dir && *so.root_dir != '\0') {
+        try(Process_SetRootDirectoryPath(pChildProc, so.root_dir));
     }
-    if (pOptions->cw_dir && pOptions->cw_dir[0] != '\0') {
-        try(Process_SetWorkingDirectoryPath(pChildProc, pOptions->cw_dir));
+    if (so.cw_dir && *so.cw_dir != '\0') {
+        try(Process_SetWorkingDirectoryPath(pChildProc, so.cw_dir));
     }
 
     try(Process_AdoptChild_Locked(pProc, pChildProc->pid));
-    try(Process_Exec_Locked(pChildProc, pPath, pOptions->argv, pOptions->envp));
+    try(Process_Exec_Locked(pChildProc, path, argv, so.envp));
 
     try(ProcessManager_Register(gProcessManager, pChildProc));
     Object_Release(pChildProc);

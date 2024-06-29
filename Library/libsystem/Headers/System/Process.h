@@ -43,12 +43,10 @@ typedef struct ProcessArguments {
 // The 'envp' pointer points to a table of nul-terminated strings of the form
 // 'key=value'. The last entry in the table has to be NULL. All these strings
 // are the enviornment variables that should be passed to the new process.
-// Both 'argv' and 'envp' may be NULL pointers. A NULL pointer is equivalent to
-// a table with a single entry that is the NULL pointer. So a NULL 'argv'
-// pointer means that the child process receives no command line arguments and
-// a NULL 'envp' means that the child process receives an empty environment.
+// 'envp' may be NULL pointer. A NULL pointer is equivalent to a table with a
+// single entry that is the NULL pointer. So a NULL 'envp' means that the child
+// process receives an empty environment.
 typedef struct SpawnOptions {
-    const char* _Nullable * _Nullable   argv;
     const char* _Nullable * _Nullable   envp;
     const char* _Nullable               root_dir;       // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;         // Process current working directory, if not NULL; otherwise inherited from the parent
@@ -84,7 +82,7 @@ extern ProcessId Process_GetParentId(void);
 extern UserId Process_GetUserId(void);
 
 
-extern errno_t Process_Spawn(const char* _Nonnull path, const SpawnOptions* _Nonnull options, ProcessId* _Nullable rpid);
+extern errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, ProcessId* _Nullable rpid);
 extern errno_t Process_WaitForTerminationOfChild(ProcessId pid, ProcessTerminationStatus* _Nullable result);
 
 extern ProcessArguments* _Nonnull Process_GetArguments(void);

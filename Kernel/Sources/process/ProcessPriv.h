@@ -96,7 +96,7 @@ extern void Process_AbandonChild_Locked(ProcessRef _Nonnull self, ProcessId chil
 // \param pEnv the environment for the process. Null means that the process inherits the environment from its parent
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-extern errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull pExecPath, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv);
+extern errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[]);
 
 extern void Process_MakePathResolver(ProcessRef _Nonnull self, PathResolverRef _Nonnull pResolver);
 

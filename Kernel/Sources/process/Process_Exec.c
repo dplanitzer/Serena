@@ -11,41 +11,39 @@
 #include <krt/krt.h>
 
 
-static ssize_t calc_size_of_arg_table(const char* const _Nullable * _Nullable pTable, ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)
+static ssize_t calc_size_of_arg_table(const char* const _Nullable table[], ssize_t maxByteCount, size_t* _Nonnull pOutTableEntryCount)
 {
     ssize_t nbytes = 0;
     size_t i = 0;
 
-    if (pTable) {
-        while (pTable[i]) {
-            const char* pStr = pTable[i];
+    while (table[i]) {
+        const char* pStr = table[i];
 
-            nbytes += sizeof(char*);
-            while (*pStr != '\0' && nbytes <= maxByteCount) {
-                pStr++;
-                nbytes++;
-            }
-            nbytes++;   // terminating '\0'
-
-            if (nbytes > maxByteCount) {
-                break;
-            }
-
-            i++;
+        nbytes += sizeof(char*);
+        while (*pStr != '\0' && nbytes <= maxByteCount) {
+            pStr++;
+            nbytes++;
         }
+        nbytes++;   // terminating '\0'
+
+        if (nbytes > maxByteCount) {
+            break;
+        }
+
+        i++;
     }
     *pOutTableEntryCount = i;
 
     return nbytes;
 }
 
-static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
+static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull self, const char* argv[], const char* _Nullable env[])
 {
     decl_try_err();
     size_t nArgvCount = 0;
     size_t nEnvCount = 0;
-    const ssize_t nbytes_argv = calc_size_of_arg_table(pArgv, __ARG_MAX, &nArgvCount);
-    const ssize_t nbytes_envp = calc_size_of_arg_table(pEnv, __ARG_MAX, &nEnvCount);
+    const ssize_t nbytes_argv = calc_size_of_arg_table(argv, __ARG_MAX, &nArgvCount);
+    const ssize_t nbytes_envp = calc_size_of_arg_table(env, __ARG_MAX, &nEnvCount);
     const ssize_t nbytes_argv_envp = nbytes_argv + nbytes_envp;
     
     if (nbytes_argv_envp > __ARG_MAX) {
@@ -53,14 +51,14 @@ static errno_t Process_CopyInProcessArguments_Locked(ProcessRef _Nonnull pProc, 
     }
 
     const ssize_t nbytes_procargs = __Ceil_PowerOf2(sizeof(ProcessArguments) + nbytes_argv_envp, CPU_PAGE_SIZE);
-    try(AddressSpace_Allocate(pProc->addressSpace, nbytes_procargs, (void**)&pProc->argumentsBase));
+    try(AddressSpace_Allocate(self->addressSpace, nbytes_procargs, (void**)&self->argumentsBase));
 
-    ProcessArguments* pProcArgs = (ProcessArguments*) pProc->argumentsBase;
-    char** pProcArgv = (char**)(pProc->argumentsBase + sizeof(ProcessArguments));
+    ProcessArguments* pProcArgs = (ProcessArguments*) self->argumentsBase;
+    char** pProcArgv = (char**)(self->argumentsBase + sizeof(ProcessArguments));
     char** pProcEnv = (char**)&pProcArgv[nArgvCount + 1];
     char*  pDst = (char*)&pProcEnv[nEnvCount + 1];
-    const char** pSrcArgv = (const char**) pArgv;
-    const char** pSrcEnv = (const char**) pEnv;
+    const char** pSrcArgv = (const char**) argv;
+    const char** pSrcEnv = (const char**) env;
 
 
     // Argv
@@ -99,21 +97,21 @@ catch:
 
 // Loads an executable from the given executable file into the process address
 // space.
-static errno_t Process_LoadExecutableImage_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPath, void** pImageBase, void** pEntryPoint)
+static errno_t Process_LoadExecutableImage_Locked(ProcessRef _Nonnull self, const char* _Nonnull pExecPath, void** pImageBase, void** pEntryPoint)
 {
     decl_try_err();
     PathResolver pr;
     PathResolverResult r;
     GemDosExecutableLoader loader;
 
-    GemDosExecutableLoader_Init(&loader, pProc->addressSpace, pProc->realUser);
-    Process_MakePathResolver(pProc, &pr);
+    GemDosExecutableLoader_Init(&loader, self->addressSpace, self->realUser);
+    Process_MakePathResolver(self, &pr);
 
     try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pExecPath, &r));
 
     Inode_Lock(r.inode); 
     if (Inode_IsRegularFile(r.inode)) {
-        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, pProc->realUser, kAccess_Readable | kAccess_Executable);
+        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Readable | kAccess_Executable);
         if (err == EOK) {
             err = GemDosExecutableLoader_Load(&loader, r.inode, pImageBase, pEntryPoint);
         }
@@ -135,30 +133,38 @@ catch:
 // space.
 // XXX expects that the address space is empty at call time
 // XXX the executable format is GemDOS
-errno_t Process_Exec_Locked(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPath, const char* const _Nullable * _Nullable pArgv, const char* const _Nullable * _Nullable pEnv)
+errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
     void* pImageBase = NULL;
     void* pEntryPoint = NULL;
+    const char* null_sptr[1] = {NULL};
+
+    if (argv == NULL) {
+        argv = null_sptr;
+    }
+    if (env == NULL) {
+        env = null_sptr;
+    }
 
     // XXX for now to keep loading simpler
-    assert(pProc->imageBase == NULL);
+    assert(self->imageBase == NULL);
 
 
     // Copy the process arguments into the process address space
-    try(Process_CopyInProcessArguments_Locked(pProc, pArgv, pEnv));
+    try(Process_CopyInProcessArguments_Locked(self, argv, env));
 
 
     // Load the executable
-    try(Process_LoadExecutableImage_Locked(pProc, pExecPath, &pImageBase, &pEntryPoint));
+    try(Process_LoadExecutableImage_Locked(self, path, &pImageBase, &pEntryPoint));
 
-    pProc->imageBase = pImageBase;
-    ((ProcessArguments*) pProc->argumentsBase)->image_base = pProc->imageBase;
+    self->imageBase = pImageBase;
+    ((ProcessArguments*) self->argumentsBase)->image_base = self->imageBase;
 
 
     // Dispatch the invocation of the entry point
-    try(DispatchQueue_DispatchAsync(pProc->mainDispatchQueue,
-        DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, pProc->argumentsBase)));
+    try(DispatchQueue_DispatchAsync(self->mainDispatchQueue,
+        DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, self->argumentsBase)));
 
 catch:
     //XXX free the executable image if an error occurred
