@@ -131,8 +131,9 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
-// Locates the root filesystem and mounts it.
-static void init_root_filesystem(void)
+// Scans the ROM area following the end of the kernel for a embedded Serena disk
+// image with the root filesystem.
+static bool try_rootfs_from_rom(void)
 {
     decl_try_err();
     const size_t txt_size = &_etext - &_text;
@@ -152,39 +153,55 @@ static void init_root_filesystem(void)
         p4++;
     }
 
-    if (smg_hdr) {
-        // Found an embedded disk image in the ROM. Boot from it
-        const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
-        RamDiskRef pRamDisk;
-        FilesystemRef pFS;
-
-        // Create a RAM disk and copy the ROM disk image into it. We assume for now
-        // that the disk image is exactly 64k in size.
-        print("Booting from ROM...\n\n");
-        try(RamDisk_Create(smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, &pRamDisk));
-        for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
-            try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * smg_hdr->blockSize], lba));
-        }
-
-
-        // Create a SerenaFS instance and mount it as the root filesystem on the RAM
-        // disk
-        try(SerenaFS_Create((SerenaFSRef*)&pFS));
-        try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pRamDisk, NULL, 0, NULL));
-
-        return;
+    if (smg_hdr == NULL) {
+        return false;
     }
 
-    // Try to boot from a floppy disk
+
+    // Found an embedded disk image in the ROM. Boot from it
+    const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
+    DiskDriverRef disk;
+    FilesystemRef fs;
+
+    // Create a RAM disk and copy the ROM disk image into it. We assume for now
+    // that the disk image is exactly 64k in size.
+    print("Booting from ROM...\n\n");
+    if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
+        try(RomDisk_Create(dmg, smg_hdr->blockSize, smg_hdr->physicalBlockCount, false, (RomDiskRef*)&disk));
+    }
+    else {
+        try(RamDisk_Create(smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
+        for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
+            try(DiskDriver_PutBlock(disk, &dmg[lba * smg_hdr->blockSize], lba));
+        }
+    }
+
+
+    // Create a SerenaFS instance and mount it as the root filesystem on the RAM
+    // disk
+    try(SerenaFS_Create((SerenaFSRef*)&fs));
+    try(FilesystemManager_Mount(gFilesystemManager, fs, disk, NULL, 0, NULL));
+
+    return true;
+
+catch:
+    print("Error: unable to mount ROM root FS: %d\n", err);
+    return false;
+}
+
+// Tries to mount the root filesystem from a floppy disk in drive 0.
+static bool try_rootfs_from_fd0(void)
+{
+    decl_try_err();
     FloppyDiskRef fd0;
-    FilesystemRef pFS;
+    FilesystemRef fs;
 
     try_null(fd0, DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name), ENODEV);
-    try(SerenaFS_Create((SerenaFSRef*)&pFS));
+    try(SerenaFS_Create((SerenaFSRef*)&fs));
 
     while (true) {
         if (FloppyDisk_HasDisk(fd0)) {
-            if (FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)fd0, NULL, 0, NULL) == EOK) {
+            if (FilesystemManager_Mount(gFilesystemManager, fs, (DiskDriverRef)fd0, NULL, 0, NULL) == EOK) {
                 break;
             }
         }
@@ -196,10 +213,25 @@ static void init_root_filesystem(void)
     }
     print("Booting from fd0...\n\n");
 
-    return;
+    return true;
 
 catch:
-    print("Unable to mount a root filesystem.\nError: %d\nHalting\n", err);
+    print("Error: unable to mount FD0 root FS: %d\n", err);
+    return false;
+}
+
+// Locates the root filesystem and mounts it.
+static void init_root_filesystem(void)
+{
+    if (try_rootfs_from_rom()) {
+        return;
+    }
+
+    if (try_rootfs_from_fd0()) {
+        return;
+    }
+
+    print("Halting\n");
     while(true);
     /* NOT REACHED */
 }
@@ -224,11 +256,16 @@ static void OnMain(void)
     print_init();
 
 
+    // Boot message
+    print("\033[36mSerena OS v0.1.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+
+
     // Debug printing
     //PrintClasses();
 
 
     // Initialize all other drivers
+    print("Detecting devices...\n");
     try_bang(DriverManager_AutoConfigure(gDriverManager));
 
 
@@ -255,5 +292,6 @@ static void OnMain(void)
 
 
     // Get the root process going
+    print("Starting shell.\n");
     try_bang(RootProcess_Exec(pRootProc, "/System/Commands/shell"));
 }

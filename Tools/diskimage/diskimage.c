@@ -303,7 +303,7 @@ int main(int argc, char* argv[])
             disk_format = &gDiskImageFormats[0];
         }
         
-        if (disk_size > 0) {
+        if (disk_size > 0 && disk_format->format == kDiskImage_Serena) {
             disk_format->blocksPerDisk = disk_size / disk_format->blockSize;
             if (disk_format->blocksPerDisk * disk_format->blockSize < disk_size) {
                 disk_format->blocksPerDisk++;

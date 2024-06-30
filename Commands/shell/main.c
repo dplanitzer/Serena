@@ -60,7 +60,6 @@ void main_closure(int argc, char *argv[])
         // XXX disabled insertion mode for now because the line reader doesn't support
         // XXX it properly yet
         //printf("\033[4h");  // Switch the console to insert mode
-        printf("\033[36mSerena OS v0.1.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
         
         try(Shell_Run(pShell));
     }

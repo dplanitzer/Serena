@@ -103,10 +103,12 @@ ROM_FILE := $(PRODUCT_DIR)/Serena.rom
 BOOT_DISK_DIR := $(BUILD_DIR)/bootdisk
 ifdef BOOT_FROM_ROM
 BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.smg
-BOOT_DMG_CONFIG := --disk=smg --size=512k
+BOOT_DMG_CONFIG := --disk=smg --size=256k
+BOOT_DMG_FILE_FOR_ROM := $(BOOT_DMG_FILE)
 else
 BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.adf
 BOOT_DMG_CONFIG := --disk=adf-dd
+BOOT_DMG_FILE_FOR_ROM :=
 endif
 
 
@@ -182,15 +184,9 @@ $(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
 
-ifdef BOOT_FROM_ROM
-$(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)
+$(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM) | $(PRODUCT_DIR)
 	@echo Making ROM
-	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE) $(BOOT_DMG_FILE)
-else
-$(ROM_FILE): $(KERNEL_FILE) | $(PRODUCT_DIR)
-	@echo Making ROM
-	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE)
-endif
+	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
 
 $(PRODUCT_DIR):
 	$(call mkdir_if_needed,$(PRODUCT_DIR))
