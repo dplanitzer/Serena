@@ -10,6 +10,7 @@
 #define di_DiskDriver_h
 
 #include <kobj/Object.h>
+#include "DiskImageFormat.h"
 
 
 // Represents a logical block address in the range 0..<DiskDriver.blockCount
@@ -20,15 +21,17 @@ typedef LogicalBlockAddress LogicalBlockCount;
 
 
 open_class_with_ref(DiskDriver, Object,
-    uint8_t*            disk;
-    size_t              blockSize;
-    LogicalBlockCount   blockCount;
+    uint8_t*                    diskImage;
+    size_t                      blockSize;
+    LogicalBlockCount           blockCount;
+    LogicalBlockAddress         highestWrittenToLba;
+    enum DiskImageFormatType    format;
 );
 open_class_funcs(DiskDriver, Object,
 );
 
 
-extern errno_t DiskDriver_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, DiskDriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskDriver_Create(const DiskImageFormat* _Nonnull pFormat, DiskDriverRef _Nullable * _Nonnull pOutSelf);
 extern void DiskDriver_Destroy(DiskDriverRef _Nullable self);
 
 // Returns the size of a block.

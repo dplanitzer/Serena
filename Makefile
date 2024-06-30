@@ -101,8 +101,13 @@ KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/Kernel_Tests
 ROM_FILE := $(PRODUCT_DIR)/Serena.rom
 
 BOOT_DISK_DIR := $(BUILD_DIR)/bootdisk
+ifdef BOOT_FROM_ROM
+BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.smg
+BOOT_DMG_CONFIG := --disk=smg --size=512k
+else
 BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.adf
-#BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.dmg
+BOOT_DMG_CONFIG := --disk=adf-dd
+endif
 
 
 SH_PROJECT_DIR := $(WORKSPACE_DIR)/Commands/shell
@@ -174,13 +179,8 @@ build-boot-disk: $(SH_FILE)
 	$(call copy,$(DEMOS_DIR)/helloworld.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 
 $(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
-ifdef BOOT_FROM_ROM
 	@echo Making boot_disk.adf
-	$(DISKIMAGE) create --disk=smg --size=64k $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
-else
-	@echo Making boot_disk.adf
-	$(DISKIMAGE) create --disk=adf-dd $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
-endif
+	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
 
 ifdef BOOT_FROM_ROM
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE) | $(PRODUCT_DIR)

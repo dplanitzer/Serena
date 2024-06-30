@@ -7,19 +7,25 @@
 //
 
 #include "DiskDriver.h"
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <filesystem/SerenaDiskImage.h>
+#include <System/ByteOrder.h>
 
-errno_t DiskDriver_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, DiskDriverRef _Nullable * _Nonnull pOutSelf)
+
+errno_t DiskDriver_Create(const DiskImageFormat* _Nonnull pFormat, DiskDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self;
 
     try(Object_Create(DiskDriver, &self));
-    self->disk = calloc(nBlockCount, nBlockSize);
-    self->blockSize = nBlockSize;
-    self->blockCount = nBlockCount;
+    self->diskImage = calloc(pFormat->blocksPerDisk, pFormat->blockSize);
+    self->blockSize = pFormat->blockSize;
+    self->blockCount = pFormat->blocksPerDisk;
+    self->highestWrittenToLba = 0;
+    self->format = pFormat->format;
 
     *pOutSelf = self;
     return EOK;
@@ -32,8 +38,8 @@ catch:
 
 void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 {
-    free(self->disk);
-    self->disk = NULL;
+    free(self->diskImage);
+    self->diskImage = NULL;
 }
 
 // Returns the size of a block.
@@ -65,7 +71,7 @@ errno_t DiskDriver_GetBlock(DiskDriverRef _Nonnull self, void* _Nonnull pBuffer,
         return EIO;
     }
 
-    memcpy(pBuffer, &self->disk[lba * self->blockSize], self->blockSize);
+    memcpy(pBuffer, &self->diskImage[lba * self->blockSize], self->blockSize);
     return EOK;
 }
 
@@ -80,7 +86,11 @@ errno_t DiskDriver_PutBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pB
         return EIO;
     }
 
-    memcpy(&self->disk[lba * self->blockSize], pBuffer, self->blockSize);
+    memcpy(&self->diskImage[lba * self->blockSize], pBuffer, self->blockSize);
+    if (lba > self->highestWrittenToLba) {
+        self->highestWrittenToLba = lba;
+    }
+
     return EOK;
 }
 
@@ -91,8 +101,34 @@ errno_t DiskDriver_WriteToPath(DiskDriverRef _Nonnull self, const char* pPath)
     FILE* fp;
 
     try_null(fp, fopen(pPath, "wb"), EIO);
-    const size_t nwritten = fwrite(self->disk, self->blockSize, self->blockCount, fp);
-    if (nwritten < self->blockCount) {
+    
+    if (self->format == kDiskImage_Serena) {
+        SMG_Header  hdr;
+
+        memset(&hdr, 0, sizeof(SMG_Header));
+        hdr.signature = UInt32_HostToBig(SMG_SIGNATURE);
+        hdr.headerSize = UInt32_HostToBig(SMG_HEADER_SIZE);
+        hdr.physicalBlockCount = UInt64_HostToBig(self->blockCount);
+        hdr.logicalBlockCount = UInt64_HostToBig((uint64_t)self->highestWrittenToLba + 1ull);
+        hdr.blockSize = UInt32_HostToBig(self->blockSize);
+        hdr.options = 0;
+
+        fwrite(&hdr, SMG_HEADER_SIZE, 1, fp);
+        if (ferror(fp)) {
+            throw(EIO);
+        }
+    }
+
+    printf("blockCount: %d, highestBlockIdx: %d\n", (int)self->blockCount, (int)self->highestWrittenToLba);
+
+    LogicalBlockCount nBlocksToWrite = self->blockCount;
+    if (self->format == kDiskImage_Serena) {
+        nBlocksToWrite = __min(nBlocksToWrite, self->highestWrittenToLba + 1);
+    }
+    printf("nBlocksToWrite: %d\n", (int)nBlocksToWrite);
+
+    fwrite(self->diskImage, self->blockSize, nBlocksToWrite, fp);
+    if (ferror(fp)) {
         throw(EIO);
     }
 

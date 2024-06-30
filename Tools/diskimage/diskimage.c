@@ -120,7 +120,7 @@ catch:
 
 static errno_t createADFDiskDriver(const DiskImageFormat* diskImageFormat, DiskDriverRef *pOutDriver)
 {
-    return DiskDriver_Create(diskImageFormat->blockSize, diskImageFormat->blocksPerDisk, pOutDriver);
+    return DiskDriver_Create(diskImageFormat, pOutDriver);
 }
 
 static void createDiskImage(const char* pRootPath, const char* pDstPath, const DiskImageFormat* diskImageFormat)

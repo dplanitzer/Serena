@@ -19,9 +19,11 @@
 #include <driver/amiga/cbm-floppy/FloppyDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
+#include <filesystem/SerenaDiskImage.h>
 #include <hal/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
+#include <System/ByteOrder.h>
 #include "BootAllocator.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
@@ -133,49 +135,47 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 static void init_root_filesystem(void)
 {
     decl_try_err();
-
-#if __BOOT_FROM_ROM__
-    RamDiskRef pRamDisk;
-    FilesystemRef pFS;
-
-    // XXX This is temporary:
-    // XXX We're creating a RAM disk and then we'll look for a disk image in the
-    // XXX ROM. We then copy this disk image into the RAM disk and use this as
-    // XXX our root filesystem.
     const size_t txt_size = &_etext - &_text;
     const size_t dat_size = &_edata - &_data;
     const char* ps = (const char*)(BOOT_ROM_BASE + txt_size + dat_size);
-    const char* pe = (const char*)(BOOT_ROM_BASE + BOOT_ROM_SIZE);
-    const char* p = __Ceil_Ptr_PowerOf2(ps, 4);
-    const char* dmg = NULL;
+    const uint32_t* pe4 = (const uint32_t*)__min((const char*)(BOOT_ROM_BASE + BOOT_ROM_SIZE), ps + CPU_PAGE_SIZE);
+    const uint32_t* p4 = (const uint32_t*)__Ceil_Ptr_PowerOf2(ps, 4);
+    const SMG_Header* smg_hdr = NULL;
+    const uint32_t smg_sig = UInt32_HostToBig(SMG_SIGNATURE);
 
-    while (p < pe) {
-        if (String_EqualsUpTo(p, "SeFS", 4)) {
-            dmg = p;
+    while (p4 < pe4) {
+        if (*p4 == smg_sig) {
+            smg_hdr = (const SMG_Header*)p4;
             break;
         }
 
-        p += 4;
-    }
-    if (dmg == NULL) {
-        throw(ENOENT);
+        p4++;
     }
 
+    if (smg_hdr) {
+        // Found an embedded disk image in the ROM. Boot from it
+        const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
+        RamDiskRef pRamDisk;
+        FilesystemRef pFS;
 
-    // Create a RAM disk and copy the ROM disk image into it. We assume for now
-    // that the disk image is exactly 64k in size.
-    print("Booting from ROM...\n\n");
-    try(RamDisk_Create(512, 128, 128, &pRamDisk));
-    for (LogicalBlockAddress lba = 0; lba < 128; lba++) {
-        try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * 512], lba));
+        // Create a RAM disk and copy the ROM disk image into it. We assume for now
+        // that the disk image is exactly 64k in size.
+        print("Booting from ROM...\n\n");
+        try(RamDisk_Create(smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, &pRamDisk));
+        for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
+            try(DiskDriver_PutBlock(pRamDisk, &dmg[lba * smg_hdr->blockSize], lba));
+        }
+
+
+        // Create a SerenaFS instance and mount it as the root filesystem on the RAM
+        // disk
+        try(SerenaFS_Create((SerenaFSRef*)&pFS));
+        try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pRamDisk, NULL, 0, NULL));
+
+        return;
     }
 
-
-    // Create a SerenaFS instance and mount it as the root filesystem on the RAM
-    // disk
-    try(SerenaFS_Create((SerenaFSRef*)&pFS));
-    try(FilesystemManager_Mount(gFilesystemManager, pFS, (DiskDriverRef)pRamDisk, NULL, 0, NULL));
-#else
+    // Try to boot from a floppy disk
     FloppyDiskRef fd0;
     FilesystemRef pFS;
 
@@ -195,7 +195,7 @@ static void init_root_filesystem(void)
         }
     }
     print("Booting from fd0...\n\n");
-#endif
+
     return;
 
 catch:

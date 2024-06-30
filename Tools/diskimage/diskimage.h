@@ -15,20 +15,7 @@
 #include <System/Error.h>
 #include <System/FilePermissions.h>
 #include <System/Types.h>
-
-enum DiskImageFormatType {
-    kDiskImage_Amiga_DD_Floppy,
-    kDiskImage_Amiga_HD_Floppy,
-    kDiskImage_Serena
-};
-
-typedef struct DiskImageFormat {
-    const char*                 name;
-    enum DiskImageFormatType    format;
-    size_t                      blockSize;
-    size_t                      blocksPerDisk;
-} DiskImageFormat;
-
+#include "driver/DiskImageFormat.h"
 
 typedef struct di_direntry {
     const char*     name;
