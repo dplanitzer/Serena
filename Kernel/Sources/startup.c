@@ -243,6 +243,8 @@ static void init_root_filesystem(void)
 // driver manager and the first process.
 static void OnMain(void)
 {
+    decl_try_err();
+
     // Create the driver manager
     try_bang(DriverManager_Create(&gDriverManager));
 
@@ -266,7 +268,7 @@ static void OnMain(void)
 
     // Initialize all other drivers
     print("Detecting devices...\n");
-    try_bang(DriverManager_AutoConfigure(gDriverManager));
+    try(DriverManager_AutoConfigure(gDriverManager));
 
 
     // Initialize the Kernel Runtime Services so that we can make it available
@@ -275,7 +277,7 @@ static void OnMain(void)
     
 
     // Initialize the filesystem manager
-    try_bang(FilesystemManager_Create(&gFilesystemManager));
+    try(FilesystemManager_Create(&gFilesystemManager));
 
 
     // Find and mount a root filesystem.
@@ -284,14 +286,20 @@ static void OnMain(void)
 
     // Create the root process
     ProcessRef pRootProc;
-    try_bang(RootProcess_Create(&pRootProc));
+    try(RootProcess_Create(&pRootProc));
 
 
     // Create the process manager
-    try_bang(ProcessManager_Create(pRootProc, &gProcessManager));
+    try(ProcessManager_Create(pRootProc, &gProcessManager));
 
 
     // Get the root process going
     print("Starting shell.\n");
-    try_bang(RootProcess_Exec(pRootProc, "/System/Commands/shell"));
+    try(RootProcess_Exec(pRootProc, "/System/Commands/shell"));
+    return;
+    
+catch:
+    print("Error: unable to complete startup: %d\nHalting.\n", err);
+    while(1);
+    /* NOT REACHED */
 }
