@@ -18,7 +18,7 @@
 // must be substituted by an empty block. 0 is returned if no absolute logical
 // block address exists for 'fba'.
 // XXX 'fba' should be LogicalBlockAddress. However we want to be able to detect overflows
-errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba)
+errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
 
@@ -39,6 +39,17 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
 catch:
     *pOutLba = 0;
     return err;
+}
+
+void SerenaFS_DeallocateFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba)
+{
+    SFSBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
+    LogicalBlockAddress lba = pBlockMap->p[fba];
+
+    if (lba != 0) {
+        SerenaFS_DeallocateBlock(self, lba);
+        pBlockMap->p[fba] = 0;
+    }
 }
 
 // Reads 'nBytesToRead' bytes from the file 'pNode' starting at offset 'offset'.
@@ -215,21 +226,19 @@ errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked 
 
 // Internal file truncation function. Shortens the file 'pNode' to the new and
 // smaller size 'length'. Does not support increasing the size of a file.
-void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset length)
+void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset newLength)
 {
     const FileOffset oldLength = Inode_GetFileSize(pNode);
-    const FileOffset oldLengthRoundedUpToBlockBoundary = __Ceil_PowerOf2(oldLength, kSFSBlockSize);
-    const int firstBlockIdx = (int)(oldLengthRoundedUpToBlockBoundary >> (FileOffset)kSFSBlockSizeShift);    //XXX blockIdx should be 64bit
-    SFSBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
+    const FileOffset ceilOfOldLength = __Ceil_PowerOf2(oldLength, kSFSBlockSize);
+    const FileOffset ceilOfNewLength = __Ceil_PowerOf2(newLength, kSFSBlockSize);
+    const int oldCeilFba = (int)(ceilOfOldLength >> (FileOffset)kSFSBlockSizeShift);    //XXX blockIdx should be 64bit
+    const int newCeilFba = (int)(ceilOfNewLength >> (FileOffset)kSFSBlockSizeShift);    //XXX blockIdx should be 64bit
 
-    for (int i = firstBlockIdx; i < kSFSMaxDirectDataBlockPointers; i++) {
-        if (pBlockMap->p[i] != 0) {
-            SerenaFS_DeallocateBlock(self, pBlockMap->p[i]);
-            pBlockMap->p[i] = 0;
-        }
+    for (int fba = newCeilFba; fba < oldCeilFba; fba++) {
+        SerenaFS_DeallocateFileBlock(self, pNode, fba);
     }
 
-    Inode_SetFileSize(pNode, length);
+    Inode_SetFileSize(pNode, newLength);
     Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 }
 
