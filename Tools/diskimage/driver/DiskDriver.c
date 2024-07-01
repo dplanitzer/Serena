@@ -119,13 +119,10 @@ errno_t DiskDriver_WriteToPath(DiskDriverRef _Nonnull self, const char* pPath)
         }
     }
 
-    printf("blockCount: %d, highestBlockIdx: %d\n", (int)self->blockCount, (int)self->highestWrittenToLba);
-
     LogicalBlockCount nBlocksToWrite = self->blockCount;
     if (self->format == kDiskImage_Serena) {
         nBlocksToWrite = __min(nBlocksToWrite, self->highestWrittenToLba + 1);
     }
-    printf("nBlocksToWrite: %d\n", (int)nBlocksToWrite);
 
     fwrite(self->diskImage, self->blockSize, nBlocksToWrite, fp);
     if (ferror(fp)) {

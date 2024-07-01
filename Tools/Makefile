@@ -112,6 +112,8 @@ DISKIMAGE_SRCS += ../Kernel/Sources/User.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Filesystem.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Inode.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/PathComponent.c
+DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Alloc.c ../Kernel/Sources/filesystem/serenafs/SerenaFS_Inode.c
+DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Directory.c ../Kernel/Sources/filesystem/serenafs/SerenaFS_File.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS.c
 DISKIMAGE_SRCS += diskimage/diskimage.c diskimage/diskimage_win32.c
 
