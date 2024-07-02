@@ -27,7 +27,7 @@ static errno_t _create_directory_recursively(char* _Nonnull path, FilePermission
         char* ps = strchr(p, '/');
 
         if (ps) { *ps = '\0'; }
-        printf("path: %s\n", path);
+
         err = Directory_Create(path, permissions);
         if (ps) { *ps = '/'; }
 
@@ -75,7 +75,7 @@ static errno_t create_directory_recursively(char* _Nonnull path, FilePermissions
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static char* path;
+static clap_string_array_t paths = {NULL, 0};
 static bool should_create_parents = false;
 
 static CLAP_DECL(params,
@@ -84,7 +84,7 @@ static CLAP_DECL(params,
     CLAP_USAGE("makedir [-p | --parents] <path>"),
 
     CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
-    CLAP_REQUIRED_POSITIONAL_STRING(&path, "expected a path")
+    CLAP_REQUIRED_VARARG(&paths, "expected paths of directories to create")
 );
 
 
@@ -100,14 +100,18 @@ int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv)
         return clap_exit_code(status);
     }
 
-    err = Directory_Create(path, permissions);
-    if (err != EOK) {
-        if (err == ENOENT && should_create_parents) {
-            err = create_directory_recursively(path, permissions);
-        }
+    for (size_t i = 0; i < paths.count; i++) {
+        char* path = (char*)paths.strings[i];
 
+        err = Directory_Create(path, permissions);
         if (err != EOK) {
-            print_error(argv[0], path, err);
+            if (err == ENOENT && should_create_parents) {
+                err = create_directory_recursively(path, permissions);
+            }
+
+            if (err != EOK) {
+                print_error(argv[0], path, err);
+            }
         }
     }
 
