@@ -102,7 +102,7 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     ip->linkCount = Int32_HostToBig(1);
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;
-    ip->blockMap.p[0] = UInt32_HostToBig(rootDirContentLba);
+    ip->bp[0] = UInt32_HostToBig(rootDirContentLba);
     try(DiskDriver_PutBlock(pDriver, ip, rootDirInodeLba));
 
 

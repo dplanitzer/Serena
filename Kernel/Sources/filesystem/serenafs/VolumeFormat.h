@@ -17,7 +17,10 @@
 #define kSFSBlockSizeMask                   (kSFSBlockSize - 1)
 #define kSFSDirectoryEntriesPerBlock        (kSFSBlockSize / sizeof(SFSDirectoryEntry))
 #define kSFSDirectoryEntriesPerBlockMask    (kSFSDirectoryEntriesPerBlock - 1)
-#define kSFSMaxDirectDataBlockPointers      114
+#define kSFSDirectBlockPointersCount        113
+#define kSFSIndirectBlockPointersCount      1
+#define kSFSInodeBlockPointersCount         (kSFSDirectBlockPointersCount + kSFSIndirectBlockPointersCount)
+#define kSFSBlockPointersPerBlockCount      128
 
 
 //
@@ -112,12 +115,10 @@ typedef struct SFSVolumeHeader {
 // directly instead of copying it back and forth. That's okay because the inode
 // lock effectively protects the disk node sitting behind the inode. 
 
-// XXX currently limited to file sizes of 58k. That's fine for now since we'll
+// XXX currently limited to file sizes of 122k. That's fine for now since we'll
 // XXX move to B-Trees for block mapping, directory content and extended
 // XXX attributes anyway.
-typedef struct SFSBlockMap {
-    uint32_t    p[kSFSMaxDirectDataBlockPointers];
-} SFSBlockMap;
+typedef uint32_t SFSBlockNumber;
 
 typedef struct SFSInode {
     SFSDateTime     accessTime;
@@ -130,7 +131,7 @@ typedef struct SFSInode {
     uint16_t        permissions;
     uint8_t         type;
     uint8_t         reserved;
-    SFSBlockMap     blockMap;
+    SFSBlockNumber  bp[kSFSInodeBlockPointersCount];
 } SFSInode;
 typedef SFSInode* SFSInodeRef;
 

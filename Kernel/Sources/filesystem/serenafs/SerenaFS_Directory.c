@@ -285,7 +285,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
     }
     else {
         // Append a new entry
-        SFSBlockMap* pBlockMap = Inode_GetBlockMap(pDirNode);
+        SFSBlockNumber* ino_bp = Inode_GetBlockMap(pDirNode);
         const FileOffset size = Inode_GetFileSize(pDirNode);
         const int remainder = size & kSFSBlockSizeMask;
         SFSDirectoryEntry* dep;
@@ -294,14 +294,14 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
 
         if (remainder > 0) {
             idx = size / kSFSBlockSize;
-            lba = pBlockMap->p[idx];
+            lba = ino_bp[idx];
 
             try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba));
             dep = (SFSDirectoryEntry*)(self->tmpBlock + remainder);
         }
         else {
-            for (int i = 0; i < kSFSMaxDirectDataBlockPointers; i++) {
-                if (pBlockMap->p[i] == 0) {
+            for (int i = 0; i < kSFSDirectBlockPointersCount; i++) {
+                if (ino_bp[i] == 0) {
                     idx = i;
                     break;
                 }
@@ -318,7 +318,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
         String_CopyUpTo(dep->filename, pName->name, pName->count);
         dep->id = UInt32_HostToBig(id);
         try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba));
-        pBlockMap->p[idx] = lba;
+        ino_bp[idx] = lba;
 
         Inode_IncrementFileSize(pDirNode, sizeof(SFSDirectoryEntry));
     }

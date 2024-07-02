@@ -21,35 +21,63 @@
 errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
+    SFSBlockNumber* ino_bp = Inode_GetBlockMap(pNode);
 
-    if (fba < 0 || fba >= kSFSMaxDirectDataBlockPointers) {
-        throw(EFBIG);
+    if (fba < 0) {
+        return EFBIG;
     }
 
-    SFSBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
-    LogicalBlockAddress lba = pBlockMap->p[fba];
+    if (fba < kSFSDirectBlockPointersCount) {
+        LogicalBlockAddress dat_lba = ino_bp[fba];
 
-    if (lba == 0 && mode == kSFSBlockMode_Write) {
-        try(SerenaFS_AllocateBlock(self, &lba));
-        pBlockMap->p[fba] = lba;
+        if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
+            try(SerenaFS_AllocateBlock(self, &dat_lba));
+            ino_bp[fba] = dat_lba;
+        }
+
+        *pOutLba = dat_lba;
+        return EOK;
     }
-    *pOutLba = lba;
-    return EOK;
+    fba -= kSFSDirectBlockPointersCount;
+
+
+    if (fba < kSFSBlockPointersPerBlockCount) {
+        LogicalBlockAddress i0_lba = ino_bp[fba];
+
+        if (i0_lba == 0) {
+            if (mode == kSFSBlockMode_Write) {
+                try(SerenaFS_AllocateBlock(self, &i0_lba));
+                ino_bp[fba] = i0_lba;
+
+                memset(self->tmpBlock, 0, kSFSBlockSize);
+                try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, i0_lba));
+            }
+            else {
+                *pOutLba = 0;
+                return EOK;
+            }
+        }
+        
+        try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, i0_lba));
+
+        SFSBlockNumber* dat_bp = (SFSBlockNumber*)self->tmpBlock;
+        LogicalBlockAddress dat_lba = dat_bp[fba];
+
+        if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
+            try(SerenaFS_AllocateBlock(self, &dat_lba));
+            dat_bp[fba] = dat_lba;
+            try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, i0_lba));
+        }
+        
+        *pOutLba = dat_lba;
+        return EOK;
+    }
+
+    throw(EFBIG);
 
 catch:
     *pOutLba = 0;
     return err;
-}
-
-void SerenaFS_DeallocateFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba)
-{
-    SFSBlockMap* pBlockMap = Inode_GetBlockMap(pNode);
-    LogicalBlockAddress lba = pBlockMap->p[fba];
-
-    if (lba != 0) {
-        SerenaFS_DeallocateBlock(self, lba);
-        pBlockMap->p[fba] = 0;
-    }
 }
 
 // Reads 'nBytesToRead' bytes from the file 'pNode' starting at offset 'offset'.
@@ -229,14 +257,44 @@ errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked 
 void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset newLength)
 {
     const FileOffset oldLength = Inode_GetFileSize(pNode);
-    const FileOffset ceilOfOldLength = __Ceil_PowerOf2(oldLength, kSFSBlockSize);
-    const FileOffset ceilOfNewLength = __Ceil_PowerOf2(newLength, kSFSBlockSize);
-    const int oldCeilFba = (int)(ceilOfOldLength >> (FileOffset)kSFSBlockSizeShift);    //XXX blockIdx should be 64bit
-    const int newCeilFba = (int)(ceilOfNewLength >> (FileOffset)kSFSBlockSizeShift);    //XXX blockIdx should be 64bit
+    SFSBlockNumber* ino_bp = Inode_GetBlockMap(pNode);
+    const SFSBlockNumber bn_nlen = (SFSBlockNumber)(newLength >> (FileOffset)kSFSBlockSizeShift);   //XXX should be 64bit
+    const size_t boff_nlen = newLength & (FileOffset)kSFSBlockSizeMask;
+    SFSBlockNumber bn_first_to_discard = (boff_nlen > 0) ? bn_nlen + 1 : bn_nlen;   // first block to discard (the block that contains newLength or that is right in front of newLength)
 
-    for (int fba = newCeilFba; fba < oldCeilFba; fba++) {
-        SerenaFS_DeallocateFileBlock(self, pNode, fba);
+    if (bn_first_to_discard < kSFSDirectBlockPointersCount) {
+        for (SFSBlockNumber bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
+            if (ino_bp[bn] != 0) {
+                SerenaFS_DeallocateBlock(self, ino_bp[bn]);
+                ino_bp[bn] = 0;
+            }
+        }
     }
+
+    const SFSBlockNumber bn_first_i1_to_discard = (bn_first_to_discard < kSFSDirectBlockPointersCount) ? 0 : bn_first_to_discard - kSFSDirectBlockPointersCount;
+    const LogicalBlockAddress i1_lba = ino_bp[kSFSDirectBlockPointersCount];
+
+    if (i1_lba != 0) {
+        DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, i1_lba);
+        SFSBlockNumber* i1_bp = (SFSBlockNumber*)self->tmpBlock;
+
+        for (SFSBlockNumber bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
+            if (i1_bp[bn] != 0) {
+                SerenaFS_DeallocateBlock(self, i1_bp[bn]);
+                i1_bp[bn] = 0;
+            }
+        }
+
+        if (bn_first_i1_to_discard == 0) {
+            // We removed the whole i1 level
+            ino_bp[kSFSDirectBlockPointersCount] = 0;
+        }
+        else {
+            // We partially removed the i1 level
+            DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, i1_lba);
+        }
+    }
+
 
     Inode_SetFileSize(pNode, newLength);
     Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
