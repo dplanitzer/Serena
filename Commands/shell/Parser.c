@@ -7,6 +7,7 @@
 //
 
 #include "Parser.h"
+#include <builtins/cmdlib.h>
 #include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
@@ -165,17 +166,7 @@ static bool Parser_Word(ParserRef _Nonnull self, bool isNested, SentenceRef _Non
                 else {
                     char s[3];
 
-                    if (isprint(t->id)) {
-                        s[0] = t->id;
-                        s[1] = '\0';
-                    } else {
-                        s[0] = '^';
-                        s[1] = t->id + 64;
-                        s[2] = '\0';
-                    }
-                    
-
-                    printf("Error: unexpected character %s.\n", s);
+                    printf("Error: unexpected character %s.\n", char_to_ascii(t->id, s));
                     hasError = true;
                     done = true;
                 }

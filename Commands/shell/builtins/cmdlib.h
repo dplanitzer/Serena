@@ -16,5 +16,6 @@
 ((__err) == EOK) ? EXIT_SUCCESS : EXIT_FAILURE
 
 extern void print_error(const char* _Nonnull cmd, const char* _Nullable path, errno_t err);
+extern const char* char_to_ascii(char ch, char buf[3]);
 
 #endif  /* cmdlib_h */
