@@ -1,48 +1,46 @@
 # The Shell
 
-The shell enables you to launch executables, navigate the file system, list the contents of directories, work with files and other things. A number of commands are built into the shell. You can find a description of each command in the list below.
+The shell enables you to launch executables, navigate the file system, list the contents of directories, work with files and other things. A number of commands are built directly into the shell. You can find a description of each command in the list below.
 
 ## Line Editor
 
-You enter shell commands in the shell's line editor. The line editor allows you to enter, edit and recall previously entered commands. Note that the line editor is currently limited to override/replace mode.
+You enter shell commands in the shell's line editor. The line editor allows you to enter, edit and recall previously entered commands. Please note that the line editor is currently limited to override/replace mode.
 
-To enter a command, type it in the currently active line and hit the return/enter key. This triggers the execution of the command and it adds the command to the command history. A previously entered command can be recalled by pressing the cursor-up key. You can scroll through all commands in the command history by pressing the cursor-up and cursor-down keys.
+To enter a command, type it in the currently active line and hit the return/enter key. This triggers the execution of the command and it adds the command to the command history. A previously entered command may be recalled by pressing the cursor-up key. You can scroll through all commands in the command history by pressing the cursor-up and cursor-down keys.
 
-Some simple editing functions are supported. Backspace moves the cursor one column to the left, the cursor-left and right keys move the cursor left and right. Ctrl-a moves the cursor to the beginning of the line and cursor-e moves the cursor to the end of the line. Ctrl-l clears the screen.
+Some simple editing functions are supported. Backspace moves the cursor one column to the left, the cursor-left and cursor-right keys move the cursor left and right respectively. Ctrl-a moves the cursor to the beginning of the line and Ctrl-e moves the cursor to the end of the line. Finally, pressing Ctrl-l clears the screen.
 
 ## The Shell Language
 
-The shell language is primarily inspired by the AmigaDOS, Fish shell and the Windows PowerShell, plus some
-(light) influence from zsh, bash and finally a healthy dose of new
-design elements.
+The shell language is inspired by the AmigaDOS, Nushell, Fish shell and the Windows PowerShell, plus some
+(light) influence from zsh, bash and finally a healthy dose of new design elements.
 
 ### Language Basics
 
-* A shell script is a sequence of sentences
-* A sentence is a sequence of words, terminated by a sentence terminator
-* The first word in a sentence is interpreted as an internal or external command and all other words in the sentence are treated as arguments to the command
-* All words in a sentence are separated by whitespace
-* A word is a sequence of morphemes which are the constituent parts of a word and which are directly adjacent to each other (there is no whitespace between morphemes)
-* Note however that a morpheme may in fact contain whitespace in some circumstances. Ie if the morpheme is a quoted string then there may be whitespace inside the string
-* Morphemes are:
-  * An unquoted sequence of non-whitespace characters
-  * Single quoted strings
-  * Double quoted strings
-  * Backslash followed by a character (quoted character)
-  * $ followed by an identifier (variable reference)
-  * Nested sentences (block) enclosed in ( and )
-* Sentence terminators are:
-  * The end of the input (EOF)
-  * Newline
-  * The ; character (command will be executed synchronously)
-  * The & character (command will be executed asynchronously)
-  * The ) character if the command appears inside a block
+A shell script is a sequence of commands. A command consists of the name of the command plus a whitespace separated list of command arguments. The end of a command is marked by a semicolon, ampersand or just a sigle newline character. A semicolon at the end of a command causes the shell to wait for the command to finish execution before it executes the next command while an ampersand at the end of a command causes the shell to start executing the next command before the current one has completed.
 
-### Quoting Characters
+Use the '#' character to start a comment. The shell ignores every character between the '#' and the next newline character.
 
-You can quote a character on the command line by prefixing it with a '\\' (backslash) character. Quoting a character prevents the shell from interpreting the character and it is instead treated as the literal character that has no special meaning attached to it.
+The following is a simple example of a shell script:
 
-For example, the sequence '\n' causes the shell to insert the literal character 'n' into the command line and the sequence '\$' prevents the shell from interpreting the \$ as the beginning of a variable reference. Instead the \$ is inserted into the command line as the literal \$ character.
+```
+# This is a comment
+echo -n "The Serena Shell Language"
+echo " is nice!"
+
+makedir --parents a b c d e f
+shell my-shell-script.sh
+
+list "foo bar"; list "a\$b"
+```
+
+You run a script like this by typing 'shell' followed by the name of the shell script.
+
+### Escaped Characters
+
+Escape a character on the command line by prefixing it with a '\\' (backslash) character. Escaping a character prevents the shell from interpreting the character and it is instead treated as a literal character with no special meaning attached to it.
+
+For example, the character sequence '\n' causes the shell to insert the literal character 'n' into the command line and the character sequence '\$' prevents the shell from interpreting the \$ as the beginning of a variable reference. Instead the \$ is inserted into the command line as the literal \$ character.
 
 ### Single Quoted Strings
 
@@ -100,16 +98,6 @@ An escape sequence is a special sequence of characters that triggers some predet
 * \\NL This is a backslash followed by a literal newline and is used to escape a newline which allows you to continue a string on the next line
 
 Note that all other characters following a backslash are reserved.
-
-### Blocks (Nested Sentences)
-
-A sentence may be nested inside another sentence by enclosing the nested sentence in parentheses like this:
-
-```
-echo (seq 5)
-```
-
-The shell executes the nested sentence first and it then replaces the nested sentence with the output of all the commands of the nested sentence. This is similar to the \$( ... ) substitution command in POSIX shells except that the leading $ is not needed.
 
 ### Commands
 

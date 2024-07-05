@@ -12,18 +12,20 @@
 #include "Lexer.h"
 #include "Script.h"
 
+#define ESYNTAX -1
+
+
 typedef struct Parser {
     Lexer                                   lexer;
-    StackAllocatorRef _Nullable /*Weak*/    scriptAllocator;
+    StackAllocatorRef _Nullable /*Weak*/    allocator;
 } Parser;
-typedef Parser* ParserRef;
 
 
-extern errno_t Parser_Create(ParserRef _Nullable * _Nonnull pOutSelf);
-extern void Parser_Destroy(ParserRef _Nullable self);
+extern errno_t Parser_Create(Parser* _Nullable * _Nonnull pOutSelf);
+extern void Parser_Destroy(Parser* _Nullable self);
 
-// Parses the text 'text' and updates the script object 'pScript' to reflect the
+// Parses the text 'text' and updates the script object 'script' to reflect the
 // result of parsing 'text'.
-extern void Parser_Parse(ParserRef _Nonnull self, const char* _Nonnull text, ScriptRef _Nonnull pScript);
+extern errno_t Parser_Parse(Parser* _Nonnull self, const char* _Nonnull text, Script* _Nonnull script);
 
 #endif  /* Parser_h */

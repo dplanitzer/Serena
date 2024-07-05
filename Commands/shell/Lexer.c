@@ -17,7 +17,7 @@
 #define INITIAL_TEXT_BUFFER_CAPACITY    16
 
 
-errno_t Lexer_Init(LexerRef _Nonnull self)
+errno_t Lexer_Init(Lexer* _Nonnull self)
 {
     memset(self, 0, sizeof(Lexer));
 
@@ -32,7 +32,7 @@ errno_t Lexer_Init(LexerRef _Nonnull self)
     return 0;
 }
 
-void Lexer_Deinit(LexerRef _Nonnull self)
+void Lexer_Deinit(Lexer* _Nonnull self)
 {
     self->source = NULL;
     free(self->textBuffer);
@@ -41,7 +41,7 @@ void Lexer_Deinit(LexerRef _Nonnull self)
 
 // Sets the lexer input. Note that the lexer maintains a reference to the input
 // text. It does not copy it.
-void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable source)
+void Lexer_SetInput(Lexer* _Nonnull self, const char* _Nullable source)
 {
     self->source = (source) ? source : "";
     self->sourceIndex = 0;
@@ -50,7 +50,7 @@ void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable source)
     Lexer_ConsumeToken(self);
 }
 
-static void Lexer_AddCharToTextBuffer(LexerRef _Nonnull self, char ch)
+static void Lexer_AddCharToTextBuffer(Lexer* _Nonnull self, char ch)
 {
     if (self->textBufferCount == self->textBufferCapacity) {
         int newCapacity = (self->textBufferCapacity > 0) ? self->textBufferCapacity * 2 : INITIAL_TEXT_BUFFER_CAPACITY;
@@ -66,7 +66,7 @@ static void Lexer_AddCharToTextBuffer(LexerRef _Nonnull self, char ch)
 
 // Scans a variable name. Expects that the current input position is at the first
 // character of the variable name.
-static void Lexer_ScanVariableName(LexerRef _Nonnull self)
+static void Lexer_ScanVariableName(Lexer* _Nonnull self)
 {
     self->textBufferCount = 0;
 
@@ -88,7 +88,7 @@ static void Lexer_ScanVariableName(LexerRef _Nonnull self)
 
 // Scans a single quoted string. Expects that the current input position is at
 // the first character of the string contents.
-static void Lexer_ScanSingleQuotedString(LexerRef _Nonnull self)
+static void Lexer_ScanSingleQuotedString(Lexer* _Nonnull self)
 {
     self->textBufferCount = 0;
 
@@ -116,7 +116,7 @@ static void Lexer_ScanSingleQuotedString(LexerRef _Nonnull self)
 // Scans an octal code escape sequence of one, two or three digits into the text
 // buffer at its current position. Expects that the current input position is at
 // the first (valid) digit
-static void Lexer_ScanOctalEscapeSequence(LexerRef _Nonnull self)
+static void Lexer_ScanOctalEscapeSequence(Lexer* _Nonnull self)
 {
     int val = 0;
 
@@ -137,7 +137,7 @@ static void Lexer_ScanOctalEscapeSequence(LexerRef _Nonnull self)
 
 // Scans a single byte escape code in the form of a hexadecimal number. Expects
 // that the current input position is at the first (valid) digit.
-static void Lexer_ScanHexByteEscapeSequence(LexerRef _Nonnull self)
+static void Lexer_ScanHexByteEscapeSequence(Lexer* _Nonnull self)
 {
     int val = 0;
 
@@ -160,7 +160,7 @@ static void Lexer_ScanHexByteEscapeSequence(LexerRef _Nonnull self)
 // Scans an escape sequence that appears inside of a double quoted string. Expects
 // that the current input position is at the first character following the
 // initial '\' character.
-static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self)
+static void Lexer_ScanEscapeSequence(Lexer* _Nonnull self)
 {
     char ch = self->source[self->sourceIndex];
 
@@ -230,7 +230,7 @@ static void Lexer_ScanEscapeSequence(LexerRef _Nonnull self)
 
 // Scans a double quoted string. Expects that the current input position is at
 // the first character of the string contents.
-static void Lexer_ScanDoubleQuotedString(LexerRef _Nonnull self)
+static void Lexer_ScanDoubleQuotedString(Lexer* _Nonnull self)
 {
     bool done = false;
 
@@ -266,9 +266,9 @@ static void Lexer_ScanDoubleQuotedString(LexerRef _Nonnull self)
     self->textBufferCount--;
 }
 
-// Scans a quoted character. Expects that the current input position is at the
+// Scans an escaped character. Expects that the current input position is at the
 // first character following the initial '\' character.
-static void Lexer_ScanQuotedCharacter(LexerRef _Nonnull self)
+static void Lexer_ScanEscapedCharacter(Lexer* _Nonnull self)
 {
     char ch = self->source[self->sourceIndex];
 
@@ -300,19 +300,27 @@ static void Lexer_ScanQuotedCharacter(LexerRef _Nonnull self)
     Lexer_AddCharToTextBuffer(self, ch);
 }
 
-// Returns true if the given character is a valid morpheme character; false otherwise.
-// Characters which are not valid word characters are used to separate words.
-static bool isMorphemeChar(char ch)
+// Returns true if the given character is a valid atom character; false otherwise.
+// Characters which are not valid atom characters are used to separate atoms.
+static bool isAtomChar(char ch)
 {
     switch (ch) {
         case '\0':
-            return false;
-
+        case '{':
+        case '}':
+        case '[':
+        case ']':
         case '(':
         case ')':
         case '|':
         case '<':
         case '>':
+        case '!':
+        case '=':
+        case '+':
+        case '-':
+        case '*':
+        case '/':
         case '&':
         case '#':
         case ';':
@@ -323,20 +331,20 @@ static bool isMorphemeChar(char ch)
             return false;
 
         default:
-            return (isgraph(ch) != 0) ? true : false;
+            return (isgraph(ch) != 0 && isspace(ch) == 0) ? true : false;
     }
 }
 
-// Scans a morpheme. Expects that the current input position is at the first
-// character of the morpheme.
-static void Lexer_ScanMorpheme(LexerRef _Nonnull self)
+// Scans an atom. Expects that the current input position is at the first
+// character of the atom.
+static void Lexer_ScanAtom(Lexer* _Nonnull self)
 {
     self->textBufferCount = 0;
 
     while (true) {
         const char ch = self->source[self->sourceIndex];
 
-        if (!isMorphemeChar(ch)) {
+        if (!isAtomChar(ch)) {
             break;
         }
 
@@ -349,7 +357,7 @@ static void Lexer_ScanMorpheme(LexerRef _Nonnull self)
     self->textBufferCount--;
 }
 
-static void Lexer_SkipWhitespace(LexerRef _Nonnull self)
+static void Lexer_SkipWhitespace(Lexer* _Nonnull self)
 {
     while (true) {
         const char ch = self->source[self->sourceIndex];
@@ -363,7 +371,7 @@ static void Lexer_SkipWhitespace(LexerRef _Nonnull self)
     }
 }
 
-static void Lexer_SkipEndOfLineComment(LexerRef _Nonnull self)
+static void Lexer_SkipEndOfLineComment(Lexer* _Nonnull self)
 {
     while (true) {
         const char ch = self->source[self->sourceIndex];
@@ -377,18 +385,15 @@ static void Lexer_SkipEndOfLineComment(LexerRef _Nonnull self)
     }
 }
 
-static bool hasTrailingWhitespace(LexerRef _Nonnull self)
+void Lexer_ConsumeToken(Lexer* _Nonnull self)
 {
-    const char ch = self->source[self->sourceIndex];
-    return (ch == '\0' || isspace(ch));
-}
+    const char c = self->source[self->sourceIndex];
 
-void Lexer_ConsumeToken(LexerRef _Nonnull self)
-{
     self->t.column = self->column;
     self->t.line = self->line;
     self->t.length = 0;
     self->t.u.string = NULL;
+    self->t.hasLeadingWhitespace = (c == '\0' || c == '#' || isspace(c));
     
     while (true) {
         const char ch = self->source[self->sourceIndex];
@@ -396,7 +401,6 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
         switch (ch) {
             case '\0':
                 self->t.id = kToken_Eof;
-                self->t.hasTrailingWhitespace = true;
                 return;
 
             case ' ':
@@ -425,21 +429,57 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
 
                 self->t.id = kToken_Newline;
                 self->t.length = (ch == '\n') ? 1 : 2;
-                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
 
             case '(':
             case ')':
-            case '<':
-            case '>':
+            case '{':
+            case '}':
+            case '[':
+            case ']':
             case '|':
             case '&':
             case ';':
+            case '+':
+            case '-':
+            case '*':
+            case '/':
                 self->sourceIndex++;
                 self->column++;
 
                 self->t.id = ch;
-                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
+                return;
+
+            case '<':
+            case '>':
+                self->sourceIndex++;
+                self->column++;
+
+                if (self->source[self->sourceIndex] == '=') {
+                    self->sourceIndex++;
+                    self->column++;
+                    self->t.id = (ch == '<') ? kToken_LessEqual : kToken_GreaterEqual;
+                } else {
+                    self->t.id = ch;
+                }
+                return;
+
+            case '!':
+            case '=':
+                self->sourceIndex++;
+                self->column++;
+
+                if (self->source[self->sourceIndex] == '=') {
+                    self->sourceIndex++;
+                    self->column++;
+                    self->t.id = (ch == '!') ? kToken_NotEqual : kToken_Equal;
+                } else if (ch == '=') {
+                    self->t.id = ch;
+                } else {
+                    self->t.id = kToken_Character;
+                    self->t.u.character = ch;
+                    self->t.length = 1;
+                }
                 return;
 
             case '$':
@@ -450,7 +490,6 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                 self->t.id = kToken_VariableName;
                 self->t.u.string = self->textBuffer;
                 self->t.length = self->textBufferCount;
-                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
 
             case '\'':
@@ -461,7 +500,6 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                 self->t.id = kToken_SingleQuotedString;
                 self->t.u.string = self->textBuffer;
                 self->t.length = self->textBufferCount;
-                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
 
             case '"':
@@ -472,14 +510,13 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                 self->t.id = kToken_DoubleQuotedString;
                 self->t.u.string = self->textBuffer;
                 self->t.length = self->textBufferCount;
-                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
 
             case '\\':
                 self->sourceIndex++;
                 self->column++;
                 self->textBufferCount = 0;
-                Lexer_ScanQuotedCharacter(self);
+                Lexer_ScanEscapedCharacter(self);
                 Lexer_AddCharToTextBuffer(self, '\0');
                 self->textBufferCount--;
 
@@ -488,16 +525,15 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                     break;
                 }
                 else {
-                    self->t.id = kToken_QuotedCharacter;
+                    self->t.id = kToken_EscapedCharacter;
                     self->t.u.string = self->textBuffer;
                     self->t.length = self->textBufferCount;
-                    self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                     return;
                 }
 
             default:
-                if (isMorphemeChar(ch)) {
-                    Lexer_ScanMorpheme(self);
+                if (isAtomChar(ch)) {
+                    Lexer_ScanAtom(self);
 
                     self->t.id = kToken_UnquotedString;
                     self->t.u.string = self->textBuffer;
@@ -511,7 +547,6 @@ void Lexer_ConsumeToken(LexerRef _Nonnull self)
                     self->t.u.character = ch;
                     self->t.length = 1;
                 }
-                self->t.hasTrailingWhitespace = hasTrailingWhitespace(self);
                 return;
         }
     }

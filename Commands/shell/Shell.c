@@ -52,39 +52,53 @@ void Shell_Destroy(ShellRef _Nullable self)
     }
 }
 
+static errno_t Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull str, Script* _Nonnull script)
+{
+    decl_try_err();
+
+    Script_Reset(script);
+
+    err = Parser_Parse(self->parser, str, script);
+    if (err == EOK) {
+        Interpreter_Execute(self->interpreter, script);
+    }
+    else {
+        printf("Syntax error.\n");
+    }
+
+    return err;
+}
+
 errno_t Shell_Run(ShellRef _Nonnull self)
 {
     decl_try_err();
-    ScriptRef pScript = NULL;
+    Script* script = NULL;
 
     if (self->lineReader == NULL) {
         throw(EINVAL);
     }
-    try(Script_Create(&pScript));
+    try(Script_Create(&script));
 
     while (true) {
         char* line = LineReader_ReadLine(self->lineReader);
 
         putchar('\n');
-        
-        Parser_Parse(self->parser, line, pScript);
-        Interpreter_Execute(self->interpreter, pScript);
+        Shell_ExecuteString(self, line, script);
     }
-    return EOK;
 
 catch:
-    Script_Destroy(pScript);
+    Script_Destroy(script);
     return err;
 }
 
 errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();
-    ScriptRef pScript = NULL;
+    Script* script = NULL;
     FILE* fp = NULL;
     char* text = NULL;
 
-    try(Script_Create(&pScript));
+    try(Script_Create(&script));
     try_null(fp, fopen(path, "r"), errno);
     fseek(fp, 0, SEEK_END);
     const size_t fileSize = ftell(fp);
@@ -98,18 +112,12 @@ errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull pat
         }
         text[fileSize] = '\0';
 
-        Parser_Parse(self->parser, text, pScript);
-        Interpreter_Execute(self->interpreter, pScript);
-
-        free(text);
+        Shell_ExecuteString(self, text, script);
     }
-    fclose(fp);
-
-    return EOK;
 
 catch:
     free(text);
     fclose(fp);
-    Script_Destroy(pScript);
+    Script_Destroy(script);
     return err;
 }

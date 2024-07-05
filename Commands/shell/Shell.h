@@ -17,7 +17,7 @@
 typedef struct Shell {
     LineReaderRef _Nullable     lineReader;
     ShellContextRef _Nonnull    context;
-    ParserRef _Nonnull          parser;
+    Parser* _Nonnull            parser;
     InterpreterRef _Nonnull     interpreter;
 } Shell;
 typedef Shell* ShellRef;

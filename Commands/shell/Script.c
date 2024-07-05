@@ -8,6 +8,7 @@
 
 #include "Script.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -16,175 +17,243 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Morpheme
+// MARK: Atom
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t StringMorpheme_Create(StackAllocatorRef _Nonnull pAllocator, MorphemeType type, const char* _Nonnull pString, MorphemeRef _Nullable * _Nonnull pOutMorpheme)
+errno_t Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
-    size_t len = strlen(pString);
-    StringMorpheme* self = (StringMorpheme*)StackAllocator_ClearAlloc(pAllocator, sizeof(StringMorpheme) + len);
+    decl_try_err();
+    Atom* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom)), ENOMEM);
+    self->type = type;
+    self->hasLeadingWhitespace = hasLeadingWhitespace;
 
-    if (self == NULL) {
-        *pOutMorpheme = NULL;
-        return ENOMEM;
-    }
-
-    self->super.type = type;
-    strcpy(self->string, pString);
-
-    *pOutMorpheme = (MorphemeRef)self;
-    return 0;
+catch:
+    *pOutSelf = self;
+    return err;
 }
 
-errno_t BlockMorpheme_Create(StackAllocatorRef _Nonnull pAllocator, BlockRef _Nonnull pBlock, MorphemeRef _Nullable * _Nonnull pOutMorpheme)
+errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
-    BlockMorpheme* self = (BlockMorpheme*)StackAllocator_ClearAlloc(pAllocator, sizeof(BlockMorpheme));
+    decl_try_err();
+    Atom* self = NULL;
 
-    if (self == NULL) {
-        *pOutMorpheme = NULL;
-        return ENOMEM;
-    }
+    try(Atom_Create(pAllocator, kAtom_Character, hasLeadingWhitespace, &self));
+    self->u.character = ch;   
 
-    self->super.type = kMorpheme_NestedBlock;
-    self->block = pBlock;
-
-    *pOutMorpheme = (MorphemeRef)self;
-    return 0;
+catch:
+    *pOutSelf = self;
+    return err;
 }
 
-void Morpheme_Print(MorphemeRef _Nonnull self)
+errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
-    printf("{");
+    decl_try_err();
+    Atom* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom) + len + 1), ENOMEM);
+    self->type = type;
+    self->hasLeadingWhitespace = hasLeadingWhitespace;
+    self->u.string.chars = ((char*)self) + sizeof(Atom);
+    memcpy(self->u.string.chars, str, len);
+    self->u.string.chars[len] = '\0';
+    self->u.string.length = len;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithPExpression(StackAllocatorRef _Nonnull pAllocator, PExpression* _Nonnull expr, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, kAtom_PExpression, true, &self));
+    self->u.expr = expr;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void Atom_Print(Atom* _Nonnull self)
+{
+    if (self->hasLeadingWhitespace) {
+        putchar(' ');
+    }
+
     switch (self->type) {
-        case kMorpheme_UnquotedString:
-            printf("%s", ((StringMorpheme*)self)->string);
+        case kAtom_Character:
+            putchar(self->u.character);
+            break;
+            
+        case kAtom_UnquotedString:
+            fputs(self->u.string.chars, stdout);
             break;
 
-        case kMorpheme_SingleQuotedString:
-            printf("'%s'", ((StringMorpheme*)self)->string);
+        case kAtom_SingleQuotedString:
+            printf("'%s'", self->u.string.chars);
             break;
 
-        case kMorpheme_DoubleQuotedString:
-            printf("\"%s\"", ((StringMorpheme*)self)->string);
+        case kAtom_DoubleQuotedString:
+            printf("\"%s\"", self->u.string.chars);
             break;
 
-        case kMorpheme_QuotedCharacter:
-            printf("\\%s", ((StringMorpheme*)self)->string);
+        case kAtom_EscapedCharacter:
+            printf("\\%s", self->u.string.chars);
             break;
 
-        case kMorpheme_VariableReference:
-            printf("$%s", ((StringMorpheme*)self)->string);
+        case kAtom_VariableReference:
+            printf("$%s", self->u.string.chars);
             break;
 
-        case kMorpheme_NestedBlock:
-            printf("(");
-            Block_Print(((BlockMorpheme*)self)->block);
-            printf(")");
+        case kAtom_PExpression:
+            putchar('(');
+            PExpression_Print(self->u.expr);
+            putchar(')');
+            break;
+
+        case kAtom_Plus:
+            putchar('+');
+            break;
+
+        case kAtom_Minus:
+            putchar('-');
+            break;
+
+        case kAtom_Multiply:
+            putchar('*');
+            break;
+
+        case kAtom_Divide:
+            putchar('/');
+            break;
+
+        case kAtom_Assignment:
+            putchar('=');
+            break;
+
+        case kAtom_Less:
+            putchar('<');
+            break;
+
+        case kAtom_Greater:
+            putchar('>');
+            break;
+
+        case kAtom_LessEqual:
+            fputs("<=", stdout);
+            break;
+
+        case kAtom_GreaterEqual:
+            fputs(">=", stdout);
+            break;
+
+        case kAtom_NotEqual:
+            fputs("!=", stdout);
+            break;
+
+        case kAtom_Equal:
+            fputs("==", stdout);
             break;
 
         default:
-            assert(false);
+            abort();
             break;
     }
-    printf("}");
 }
+#endif
 
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Word
+// MARK: SExpression (Symbolic expression)
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Word_Create(StackAllocatorRef _Nonnull pAllocator, WordRef _Nullable * _Nonnull pOutWord)
+errno_t SExpression_Create(StackAllocatorRef _Nonnull pAllocator, SExpression* _Nullable * _Nonnull pOutSelf)
 {
-    WordRef self = (WordRef)StackAllocator_ClearAlloc(pAllocator, sizeof(Word));
+    SExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(SExpression));
 
-    *pOutWord = self;
-    return (self) ? 0 : ENOMEM;
+    *pOutSelf = self;
+    return (self) ? EOK : ENOMEM;
 }
 
-void Word_Print(WordRef _Nonnull self)
+void SExpression_AddAtom(SExpression* _Nonnull self, Atom* _Nonnull atom)
 {
-    MorphemeRef mp = self->morphemes;
-
-    while(mp) {
-        Morpheme_Print(mp);
-        mp = mp->next;
-    }
-}
-
-void Word_AddMorpheme(WordRef _Nonnull self, MorphemeRef _Nonnull pMorpheme)
-{
-    if (self->lastMorpheme) {
-        (self->lastMorpheme)->next = pMorpheme;
-        self->lastMorpheme = pMorpheme;
+    if (self->lastAtom) {
+        (self->lastAtom)->next = atom;
     }
     else {
-        self->morphemes = pMorpheme;
-        self->lastMorpheme = pMorpheme;
+        self->atoms = atom;
+    }
+
+    self->lastAtom = atom;
+}
+
+#ifdef SCRIPT_PRINTING
+void SExpression_Print(SExpression* _Nonnull self)
+{
+    Atom* atom = self->atoms;
+
+    while(atom) {
+        Atom_Print(atom);
+        atom = atom->next;
     }
 }
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Sentence
+// MARK: PExpression (pipe-connected expression)
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Sentence_Create(StackAllocatorRef _Nonnull pAllocator, SentenceRef _Nullable * _Nonnull pOutSentence)
+errno_t PExpression_Create(StackAllocatorRef _Nonnull pAllocator, PExpression* _Nullable * _Nonnull pOutSelf)
 {
-    SentenceRef self = (SentenceRef)StackAllocator_ClearAlloc(pAllocator, sizeof(Sentence));
+    PExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(PExpression));
 
-    *pOutSentence = self;
-    return (self) ? 0 : ENOMEM;
+    *pOutSelf = self;
+    return (self) ? EOK : ENOMEM;
 }
 
-void Sentence_Print(SentenceRef _Nonnull self)
+void PExpression_AddSExpression(PExpression* _Nonnull self, SExpression* _Nonnull expr)
 {
-    WordRef wd = self->words;
+    if (self->lastExpr) {
+        (self->lastExpr)->next = expr;
+    }
+    else {
+        self->exprs = expr;
+    }
 
-    while(wd) {
-        Word_Print(wd);
-        wd = wd->next;
-        if (wd) {
-            printf(" ");
+    self->lastExpr = expr;
+}
+
+#ifdef SCRIPT_PRINTING
+void PExpression_Print(PExpression* _Nonnull self)
+{
+    SExpression* expr = self->exprs;
+
+    while(expr) {
+        SExpression_Print(expr);
+        expr = expr->next;
+        if (expr) {
+            printf(" | ");
         }
     }
 
     switch (self->terminator) {
-        case kToken_Eof:        printf("<EOF>"); break;
-        case kToken_Newline:    printf("<NL>"); break;
-        case kToken_Semicolon:  printf(";"); break;
-        case kToken_Ampersand:  printf("&"); break;
-        case kToken_ClosingParenthesis: /* printed by Block */ break;
-        default:                printf("<%d>?", self->terminator); break;
+        case kToken_Eof:        fputs("<EOF>", stdout); break;
+        case kToken_Newline:    fputs("<NL>", stdout); break;
+        case kToken_Semicolon:  putchar(';'); break;
+        case kToken_Ampersand:  putchar('&'); break;
+        default:                abort(); break;
     }
 }
-
-int Sentence_GetWordCount(SentenceRef _Nonnull self)
-{
-    WordRef curWord = self->words;
-    int count = 0;
-
-    while (curWord) {
-        curWord = curWord->next;
-        count++;
-    }
-    return count;
-}
-
-void Sentence_AddWord(SentenceRef _Nonnull self, WordRef _Nonnull pWord)
-{
-    if (self->lastWord) {
-        (self->lastWord)->next = pWord;
-        self->lastWord = pWord;
-    }
-    else {
-        self->words = pWord;
-        self->lastWord = pWord;
-    }
-}
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -192,38 +261,39 @@ void Sentence_AddWord(SentenceRef _Nonnull self, WordRef _Nonnull pWord)
 // MARK: Block
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, BlockRef _Nullable * _Nonnull pOutBlock)
+errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, Block* _Nullable * _Nonnull pOutSelf)
 {
-    BlockRef self = (BlockRef)StackAllocator_ClearAlloc(pAllocator, sizeof(Block));
+    Block* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Block));
 
-    *pOutBlock = self;
-    return (self) ? 0 : ENOMEM;
+    *pOutSelf = self;
+    return (self) ? EOK : ENOMEM;
 }
 
-void Block_Print(BlockRef _Nonnull self)
+void Block_AddPExpression(Block* _Nonnull self, PExpression* _Nonnull expr)
 {
-    SentenceRef st = self->sentences;
+    if (self->lastExpr) {
+        (self->lastExpr)->next = expr;
+    }
+    else {
+        self->exprs = expr;
+    }
+    self->lastExpr = expr;
+}
 
-    while(st) {
-        Sentence_Print(st);
-        st = st->next;
-        if (st) {
-            printf("\n");
+#ifdef SCRIPT_PRINTING
+void Block_Print(Block* _Nonnull self)
+{
+    PExpression* expr = self->exprs;
+
+    while(expr) {
+        PExpression_Print(expr);
+        expr = expr->next;
+        if (expr) {
+            putchar('\n');
         }
     }
 }
-
-void Block_AddSentence(BlockRef _Nonnull self, SentenceRef _Nonnull pSentence)
-{
-    if (self->lastSentence) {
-        (self->lastSentence)->next = pSentence;
-        self->lastSentence = pSentence;
-    }
-    else {
-        self->sentences = pSentence;
-        self->lastSentence = pSentence;
-    }
-}
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -231,47 +301,48 @@ void Block_AddSentence(BlockRef _Nonnull self, SentenceRef _Nonnull pSentence)
 // MARK: Script
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Script_Create(ScriptRef _Nullable * _Nonnull pOutScript)
+errno_t Script_Create(Script* _Nullable * _Nonnull pOutSelf)
 {
-    ScriptRef self = (ScriptRef)calloc(1, sizeof(Script));
+    decl_try_err();
+    Script* self;
 
-    if (self == NULL) {
-        *pOutScript = NULL;
-        return ENOMEM;
-    }
-    if (StackAllocator_Create(512, 4096, &self->allocator) != 0) {
-        Script_Destroy(self);
-        *pOutScript = NULL;
-        return ENOMEM;
-    }
+    try_null(self, calloc(1, sizeof(Script)), errno);
+    try(StackAllocator_Create(512, 4096, &self->allocator));
 
-    *pOutScript = self;
-    return 0;
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    Script_Destroy(self);
+    *pOutSelf = NULL;
+    return err;
 }
 
-void Script_Reset(ScriptRef _Nonnull self)
+void Script_Reset(Script* _Nonnull self)
 {
     StackAllocator_DeallocAll(self->allocator);
-    self->block = NULL;
+    self->body = NULL;
 }
 
-void Script_Destroy(ScriptRef _Nullable self)
+void Script_Destroy(Script* _Nullable self)
 {
     if (self) {
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
-        self->block = NULL;
+        self->body = NULL;
         free(self);
     }
 }
 
-void Script_Print(ScriptRef _Nonnull self)
+void Script_SetBlock(Script* _Nonnull self, Block* _Nonnull block)
 {
-    Block_Print(self->block);
-    printf("\n");
+    self->body = block;
 }
 
-void Script_SetBlock(ScriptRef _Nonnull self, BlockRef _Nonnull pBlock)
+#ifdef SCRIPT_PRINTING
+void Script_Print(Script* _Nonnull self)
 {
-    self->block = pBlock;
+    Block_Print(self->body);
+    putchar('\n');
 }
+#endif

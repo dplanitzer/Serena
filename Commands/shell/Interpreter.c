@@ -82,76 +82,6 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
     }
 }
 
-// Expands the given word to a string. Expansion means that:
-// XXX
-// Returns the string on success (note that it may be empty) and NULL if there's
-// not enough memory to do the expansion.
-static char* _Nullable Interpreter_ExpandWord(InterpreterRef _Nonnull self, WordRef _Nonnull pWord)
-{
-    size_t wordSize = 0;
-    MorphemeRef pCurMorpheme;
-
-    // Figure out how big the expanded word will be
-    pCurMorpheme = pWord->morphemes;
-    while (pCurMorpheme) {
-        switch (pCurMorpheme->type) {
-            case kMorpheme_UnquotedString:
-            case kMorpheme_SingleQuotedString:
-            case kMorpheme_DoubleQuotedString:
-            case kMorpheme_QuotedCharacter: {
-                const StringMorpheme* mp = (StringMorpheme*)pCurMorpheme;
-                wordSize += strlen(mp->string);
-                break;
-            }
-
-            case kMorpheme_VariableReference:
-                // XXX
-                break;
-
-            case kMorpheme_NestedBlock:
-                // XXX
-                break;
-        }
-
-        pCurMorpheme = pCurMorpheme->next;
-    }
-    wordSize++;
-
-    char* str = (char*)StackAllocator_Alloc(self->allocator, wordSize);
-    if (str == NULL) {
-        return NULL;
-    }
-
-
-    // Do the actual expansion
-    str[0] = '\0';
-    pCurMorpheme = pWord->morphemes;
-    while (pCurMorpheme) {
-        switch (pCurMorpheme->type) {
-            case kMorpheme_UnquotedString:
-            case kMorpheme_SingleQuotedString:
-            case kMorpheme_DoubleQuotedString:
-            case kMorpheme_QuotedCharacter: {
-                const StringMorpheme* mp = (StringMorpheme*)pCurMorpheme;
-                strcat(str, mp->string);
-                break;
-            }
-
-            case kMorpheme_VariableReference:
-                // XXX
-                break;
-
-            case kMorpheme_NestedBlock:
-                // XXX
-                break;
-        }
-
-        pCurMorpheme = pCurMorpheme->next;
-    }
-
-    return str;
-}
-
 static int xCompareCommandEntry(const char* _Nonnull lhs, const InterpreterCommand* _Nonnull rhs)
 {
     return strcmp(lhs, rhs->name);
@@ -207,37 +137,142 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
     return true;
 }
 
-static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonnull pSentence)
+static int calc_argc(SExpression* _Nonnull s_expr)
 {
-    const int nWords = Sentence_GetWordCount(pSentence);
+    Atom* atom = s_expr->atoms;
+    int argc = 0;
 
-    // Create the command argument vector by expanding all words in the sentence
+    if (atom) {
+        atom = atom->next;
+        argc++;
+    }
+
+    while (atom) {
+        if (atom->hasLeadingWhitespace) {
+            argc++;
+        }
+
+        atom = atom->next;
+    }
+
+    return argc;
+}
+
+static size_t calc_atom_string_length(Atom* _Nonnull atom)
+{
+    switch (atom->type) {
+        case kAtom_Character:
+        case kAtom_Assignment:
+        case kAtom_Plus:
+        case kAtom_Minus:
+        case kAtom_Multiply:
+        case kAtom_Divide:
+        case kAtom_Less:
+        case kAtom_Greater:
+            return 1;
+
+        case kAtom_LessEqual:
+        case kAtom_GreaterEqual:
+        case kAtom_NotEqual:
+        case kAtom_Equal:
+            return 2;
+
+        case kAtom_UnquotedString:
+        case kAtom_SingleQuotedString:
+        case kAtom_DoubleQuotedString:
+        case kAtom_EscapedCharacter:
+            return atom->u.string.length;
+
+        default:
+            return 0;
+    }
+}
+
+static char* _Nonnull get_atom_string(Atom* _Nonnull atom, char* _Nonnull ap)
+{
+    switch (atom->type) {
+        case kAtom_Character:           *ap++ = atom->u.character; break;
+        case kAtom_Assignment:          *ap++ = '='; break;
+        case kAtom_Plus:                *ap++ = '+'; break;
+        case kAtom_Minus:               *ap++ = '-'; break;
+        case kAtom_Multiply:            *ap++ = '*'; break;
+        case kAtom_Divide:              *ap++ = '/'; break;
+        case kAtom_Less:                *ap++ = '<'; break;
+        case kAtom_Greater:             *ap++ = '>'; break;
+
+        case kAtom_LessEqual:           *ap++ = '<'; *ap++ = '='; break;
+        case kAtom_GreaterEqual:        *ap++ = '>'; *ap++ = '='; break;
+        case kAtom_NotEqual:            *ap++ = '!'; *ap++ = '='; break;
+        case kAtom_Equal:               *ap++ = '='; *ap++ = '='; break;
+
+        case kAtom_UnquotedString:
+        case kAtom_SingleQuotedString:
+        case kAtom_DoubleQuotedString:
+        case kAtom_EscapedCharacter:
+            memcpy(ap, atom->u.string.chars, atom->u.string.length * sizeof(char));
+            ap += atom->u.string.length;
+            break;
+
+        default:
+            break;
+    }
+
+    return ap;
+}
+
+static void Interpreter_SExpression(InterpreterRef _Nonnull self, SExpression* _Nonnull s_expr)
+{
+    decl_try_err();
+    char** argv = NULL;
+
+    // Create the command argument vector by expanding all atoms in the s-expression
     // to strings.
-    char** argv = StackAllocator_Alloc(self->allocator, sizeof(char*) * (nWords + 1));
-    if (argv == NULL) {
-        printf(strerror(ENOMEM));
+    int argc = calc_argc(s_expr);
+    if (argc == 0) {
         return;
     }
 
-    int argc = 0;
-    WordRef curWord = pSentence->words;
-    while (curWord) {
-        char* arg = Interpreter_ExpandWord(self, curWord);
+    try_null(argv, StackAllocator_Alloc(self->allocator, sizeof(char*) * (argc + 1)), ENOMEM);
 
-        if (arg == NULL) {
-            printf(strerror(ENOMEM));
-            return;
+    argc = 0;
+    Atom* atom = s_expr->atoms;
+    while (atom) {
+        Atom* sav_atom = atom;
+        Atom* end_atom;
+
+        // We always pick up the first atom in an non-whitespace-separated-atom-sequence
+        // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
+        size_t arg_size = calc_atom_string_length(atom);
+        atom = atom->next;
+        while (atom && !atom->hasLeadingWhitespace) {
+            arg_size += calc_atom_string_length(atom);
+            atom = atom->next;
         }
+        end_atom = atom;
 
-        argv[argc++] = arg;
-        curWord = curWord->next;
+
+        if (arg_size > 0) {
+            char* ap = NULL;
+            char* cap;
+
+            try_null(ap, StackAllocator_Alloc(self->allocator, sizeof(char) * (arg_size + 1)), ENOMEM);
+
+            cap = ap;
+            atom = sav_atom;
+            while (atom != end_atom) {
+                cap = get_atom_string(atom, cap);
+                atom = atom->next;
+            }
+            *cap = '\0';
+
+            argv[argc++] = ap;
+        }
     }
     argv[argc] = NULL;
 
     if (argc == 0) {
         return;
     }
-
 
     // Check whether this is a builtin command and execute it, if so
     if (Interpreter_ExecuteInternalCommand(self, argc, argv)) {
@@ -253,22 +288,41 @@ static void Interpreter_Sentence(InterpreterRef _Nonnull self, SentenceRef _Nonn
 
     // Not a command at all
     printf("%s: unknown command.\n", argv[0]);
+    return;
+
+catch:
+    printf(strerror(err));
 }
 
-static void Interpreter_Block(InterpreterRef _Nonnull self, BlockRef _Nonnull pBlock)
+static void Interpreter_PExpression(InterpreterRef _Nonnull self, PExpression* _Nonnull p_expr)
 {
-    SentenceRef st = pBlock->sentences;
+    SExpression* s_expr = p_expr->exprs;
 
-    while (st) {
-        Interpreter_Sentence(self, st);
-        st = st->next;
+    // XXX create an intermediate representation that allows us to model a set of
+    // XXX commands that are linked through pipes. For now we'll do each command
+    // XXX individually. Which is wrong. But good enough for now
+    while (s_expr) {
+        Interpreter_SExpression(self, s_expr);
+        s_expr = s_expr->next;
     }
 }
 
-// Interprets 'pScript' and executes all its statements.
-void Interpreter_Execute(InterpreterRef _Nonnull self, ScriptRef _Nonnull pScript)
+static void Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
 {
-    //Script_Print(pScript);
-    Interpreter_Block(self, pScript->block);
+    PExpression* p_expr = block->exprs;
+
+    while (p_expr) {
+        Interpreter_PExpression(self, p_expr);
+        p_expr = p_expr->next;
+    }
+}
+
+// Interprets 'script' and executes all its statements.
+void Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script)
+{
+    //Script_Print(script);
+    //putchar('\n');
+
+    Interpreter_Block(self, script->body);
     StackAllocator_DeallocAll(self->allocator);
 }

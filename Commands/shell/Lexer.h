@@ -15,32 +15,45 @@
 
 typedef enum TokenId {
     kToken_Eof = 0,                     // -            End of file
-    kToken_Character,                   // character    Some character that doesn't start any of the other tokens (note that this includes things like ASCII control codes)
-    kToken_UnquotedString,              // string
-    kToken_SingleQuotedString,          // string
-    kToken_DoubleQuotedString,          // string
-    kToken_QuotedCharacter,             // string
-    kToken_VariableName,                // string
+    kToken_Character = 256,             // u.character  Some character that doesn't start any of the other tokens (note that this includes things like ASCII control codes)
+    kToken_UnquotedString = 257,        // u.string
+    kToken_SingleQuotedString = 258,    // u.string
+    kToken_DoubleQuotedString = 259,    // u.string
+    kToken_EscapedCharacter = 260,      // u.string
+    kToken_VariableName = 261,          // u.string
+    kToken_LessEqual = 262,             // -
+    kToken_GreaterEqual = 263,          // -
+    kToken_NotEqual = 264,              // -
+    kToken_Equal = 265,                 // -
     kToken_Semicolon = ';',             // -
     kToken_Newline = '\n',              // -
     kToken_OpeningParenthesis = '(',    // -
     kToken_ClosingParenthesis = ')',    // -
+    kToken_OpeningBraces = '{',         // -
+    kToken_ClosingBraces = '}',         // -
+    kToken_OpeningBrackets = '[',       // -
+    kToken_ClosingBrackets = ']',       // -
     kToken_Less = '<',                  // -
     kToken_Greater = '>',               // -
     kToken_Bar = '|',                   // -
-    kToken_Ampersand = '&'              // -
+    kToken_Ampersand = '&',             // -
+    kToken_Plus = '+',                  // -
+    kToken_Minus = '-',                 // -
+    kToken_Multiply = '*',              // -
+    kToken_Divide = '/',                // -
+    kToken_Assignment = '=',            // -
 } TokenId;
 
 typedef struct Token {
-    TokenId         id;
+    TokenId     id;
     union {
         const char* string;
         char        character;
-    }               u;
-    int             column;     // column & line at the start of the token
-    int             line;
-    int             length;     // token length in terms of characters
-    bool            hasTrailingWhitespace;
+    }           u;
+    int         column;     // column & line at the start of the token
+    int         line;
+    int         length;     // token length in terms of characters
+    bool        hasLeadingWhitespace;
 } Token;
 
 
@@ -57,15 +70,14 @@ typedef struct Lexer {
     
     Token                   t;
 } Lexer;
-typedef Lexer* LexerRef;
 
 
-extern errno_t Lexer_Init(LexerRef _Nonnull self);
-extern void Lexer_Deinit(LexerRef _Nonnull self);
+extern errno_t Lexer_Init(Lexer* _Nonnull self);
+extern void Lexer_Deinit(Lexer* _Nonnull self);
 
 // Sets the lexer input. Note that the lexer maintains a reference to the input
 // text. It does not copy it.
-extern void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable source);
+extern void Lexer_SetInput(Lexer* _Nonnull self, const char* _Nullable source);
 
 // Returns the token at the current lexer position. This function does not
 // consume the token. The caller must copy whatever data it wants to retain.
@@ -73,6 +85,6 @@ extern void Lexer_SetInput(LexerRef _Nonnull self, const char* _Nullable source)
     ((const Token*)&(__self)->t)
 
 // Consumes the current token and advances the current lexer position.
-extern void Lexer_ConsumeToken(LexerRef _Nonnull self);
+extern void Lexer_ConsumeToken(Lexer* _Nonnull self);
 
 #endif  /* Lexer_h */
