@@ -11,11 +11,13 @@
 
 #include "Script.h"
 #include "ShellContext.h"
+#include "SymbolTable.h"
 #include "StackAllocator.h"
 
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
     ShellContextRef _Weak       context;
+    SymbolTable* _Nonnull       symbolTable;
 } Interpreter;
 typedef Interpreter* InterpreterRef;
 

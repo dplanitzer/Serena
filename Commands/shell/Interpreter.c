@@ -14,45 +14,21 @@
 #include <string.h>
 #include <System/System.h>
 
-typedef int (*InterpreterCommandCallback)(ShellContextRef _Nonnull, int argc, char** argv);
+extern int cmd_cd(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_cls(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_delete(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_echo(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_exit(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_history(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_list(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_makedir(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_pwd(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_rename(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_type(ShellContext* _Nonnull pContext, int argc, char** argv);
 
-typedef struct InterpreterCommand {
-    const char* _Nonnull                name;
-    InterpreterCommandCallback _Nonnull cb;
-} InterpreterCommand;
-
-
-extern int cmd_cd(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_cls(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_exit(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_pwd(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_rename(ShellContextRef _Nonnull pContext, int argc, char** argv);
-extern int cmd_type(ShellContextRef _Nonnull pContext, int argc, char** argv);
-
-
-// Keep this table sorted by names, in ascending order
-static const InterpreterCommand gBuiltinCommands[] = {
-    {"cd", cmd_cd},
-    {"cls", cmd_cls},
-    {"delete", cmd_delete},
-    {"echo", cmd_echo},
-    {"exit", cmd_exit},
-    {"history", cmd_history},
-    {"list", cmd_list},
-    {"makedir", cmd_makedir},
-    {"pwd", cmd_pwd},
-    {"rename", cmd_rename},
-    {"type", cmd_type},
-};
-
+static errno_t Interpreter_RegisterGlobalSymbols(InterpreterRef _Nonnull self);
 
 ////////////////////////////////////////////////////////////////////////////////
-
 
 errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nullable * _Nonnull pOutSelf)
 {
@@ -62,6 +38,8 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     try_null(self, calloc(1, sizeof(Interpreter)), ENOMEM);
     try(StackAllocator_Create(1024, 8192, &self->allocator));
     self->context = pContext;
+    try(SymbolTable_Create(&self->symbolTable));
+    try(Interpreter_RegisterGlobalSymbols(self));
 
     *pOutSelf = self;
     return 0;
@@ -75,25 +53,43 @@ catch:
 void Interpreter_Destroy(InterpreterRef _Nullable self)
 {
     if (self) {
-        self->context = NULL;
+        SymbolTable_Destroy(self->symbolTable);
+        self->symbolTable = NULL;
+
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
+
+        self->context = NULL;
         free(self);
     }
 }
 
-static int xCompareCommandEntry(const char* _Nonnull lhs, const InterpreterCommand* _Nonnull rhs)
+static errno_t Interpreter_RegisterGlobalSymbols(InterpreterRef _Nonnull self)
 {
-    return strcmp(lhs, rhs->name);
+    decl_try_err();
+
+    try(SymbolTable_AddCommand(self->symbolTable, "cd", cmd_cd));
+    try(SymbolTable_AddCommand(self->symbolTable, "cls", cmd_cls));
+    try(SymbolTable_AddCommand(self->symbolTable, "delete", cmd_delete));
+    try(SymbolTable_AddCommand(self->symbolTable, "echo", cmd_echo));
+    try(SymbolTable_AddCommand(self->symbolTable, "exit", cmd_exit));
+    try(SymbolTable_AddCommand(self->symbolTable, "history", cmd_history));
+    try(SymbolTable_AddCommand(self->symbolTable, "list", cmd_list));
+    try(SymbolTable_AddCommand(self->symbolTable, "makedir", cmd_makedir));
+    try(SymbolTable_AddCommand(self->symbolTable, "pwd", cmd_pwd));
+    try(SymbolTable_AddCommand(self->symbolTable, "rename", cmd_rename));
+    try(SymbolTable_AddCommand(self->symbolTable, "type", cmd_type));
+
+catch:
+    return err;
 }
 
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv)
 {
-    const int nCmds = sizeof(gBuiltinCommands) / sizeof(InterpreterCommand);
-    const InterpreterCommand* cmd = bsearch(argv[0], &gBuiltinCommands[0], nCmds, sizeof(InterpreterCommand), (int (*)(const void*, const void*))xCompareCommandEntry);
+    Symbol* cmd = SymbolTable_GetSymbol(self->symbolTable, kSymbolType_Command, argv[0]);
 
     if (cmd) {
-        cmd->cb(self->context, argc, argv);
+        cmd->u.command.cb(self->context, argc, argv);
         return true;
     }
 
