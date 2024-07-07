@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <string.h>
 
+static Symbol* _Nullable _SymbolTable_GetSymbol(SymbolTable* _Nonnull self, SymbolType type, const char* _Nonnull name, Scope* _Nonnull * _Nullable);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Symbol
@@ -104,6 +106,7 @@ static errno_t Scope_Create(Scope* _Nullable parentScope, Scope* _Nullable * _No
     try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Symbol*)), errno);
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
     self->parentScope = parentScope;
+    self->level = (parentScope) ? parentScope->level + 1 : 0;
 
     *pOutSelf = self;
     return EOK;
@@ -154,9 +157,9 @@ static size_t hash_cstring(const char* _Nonnull str)
     return h;
 }
 
-static Symbol* _Nullable _Scope_GetSymbol(Scope* _Nonnull self, SymbolType type, const char* _Nonnull name, size_t hashIdx)
+static Symbol* _Nullable _Scope_GetSymbol(Scope* _Nonnull self, SymbolType type, const char* _Nonnull name, size_t hashCode)
 {
-    Symbol* sym = self->hashtable[hashIdx];
+    Symbol* sym = self->hashtable[hashCode % self->hashtableCapacity];
 
     while (sym) {
         if (sym->type == type && !strcmp(sym->name, name)) {
@@ -171,22 +174,46 @@ static Symbol* _Nullable _Scope_GetSymbol(Scope* _Nonnull self, SymbolType type,
 
 static Symbol* _Nullable Scope_GetSymbol(Scope* _Nonnull self, SymbolType type, const char* _Nonnull name)
 {
-    return _Scope_GetSymbol(self, kSymbolType_Command, name, hash_cstring(name) % self->hashtableCapacity);
+    return _Scope_GetSymbol(self, kSymbolType_Command, name, hash_cstring(name));
+}
+
+static errno_t Scope_IterateSymbols(Scope* _Nonnull self, SymbolTableIterator _Nonnull cb, void* _Nullable context, bool* _Nonnull pOutDone)
+{
+    decl_try_err();
+    bool done = false;
+
+    for (size_t i = 0; i < self->hashtableCapacity; i++) {
+        Symbol* sym = self->hashtable[i];
+
+        while (sym) {
+            err = cb(context, sym, self->level, &done);
+
+            if (err != EOK || done) {
+                break;
+            }
+        
+            sym = sym->next;
+        }
+    }
+
+    *pOutDone = done;
+    return err;
 }
 
 static errno_t Scope_AddCommand(Scope* _Nonnull self, const char* _Nonnull name, CommandCallback _Nonnull cb)
 {
     decl_try_err();
     Symbol* sym;
-    const size_t hashCode = hash_cstring(name) % self->hashtableCapacity;
+    const size_t hashCode = hash_cstring(name);
+    const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Scope_GetSymbol(self, kSymbolType_Command, name, hashCode)) {
         throw(EEXIST);
     }
 
     try(Symbol_CreateCommand(name, cb, &sym));
-    sym->next = self->hashtable[hashCode];
-    self->hashtable[hashCode] = sym;
+    sym->next = self->hashtable[hashIndex];
+    self->hashtable[hashIndex] = sym;
 
 catch:
     return err;
@@ -196,15 +223,16 @@ static errno_t Scope_AddVariable(Scope* _Nonnull self, const char* _Nonnull name
 {
     decl_try_err();
     Symbol* sym;
-    const size_t hashCode = hash_cstring(name) % self->hashtableCapacity;
+    const size_t hashCode = hash_cstring(name);
+    const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Scope_GetSymbol(self, kSymbolType_Variable, name, hashCode)) {
         throw(EEXIST);
     }
 
     try(Symbol_CreateStringVariable(name, value, flags, &sym));
-    sym->next = self->hashtable[hashCode];
-    self->hashtable[hashCode] = sym;
+    sym->next = self->hashtable[hashIndex];
+    self->hashtable[hashIndex] = sym;
 
 catch:
     return err;
@@ -268,6 +296,10 @@ errno_t SymbolTable_PopScope(SymbolTable* _Nonnull self)
         return EOVERFLOW;
     }
 
+    if (self->currentScope->exportedVariablesCount > 0) {
+        self->exportedVariablesGeneration++;
+    }
+
     Scope* scope = self->currentScope;
     self->currentScope = scope->parentScope;
     scope->parentScope = NULL;
@@ -276,9 +308,76 @@ errno_t SymbolTable_PopScope(SymbolTable* _Nonnull self)
     return EOK;
 }
 
+errno_t SymbolTable_SetVariableExported(SymbolTable* _Nonnull self, const char* _Nonnull name, bool bExported)
+{
+    Scope* scope;
+    Symbol* sym = _SymbolTable_GetSymbol(self, kSymbolType_Variable, name, &scope);
+
+    if (sym == NULL) {
+        return ENOENT;
+    }
+
+    if (bExported && (sym->u.variable.flags & kVariableFlag_Exported) == 0) {
+        sym->u.variable.flags |= kVariableFlag_Exported;
+        scope->exportedVariablesCount++;
+        self->exportedVariablesGeneration++;
+    }
+    else if (!bExported && (sym->u.variable.flags & kVariableFlag_Exported) == kVariableFlag_Exported) {
+        sym->u.variable.flags &= ~kVariableFlag_Exported;
+        scope->exportedVariablesCount--;
+        self->exportedVariablesGeneration++;
+    }
+
+    return EOK;
+}
+
+int SymbolTable_GetExportedVariablesGeneration(SymbolTable* _Nonnull self)
+{
+    return self->exportedVariablesGeneration;
+}
+
+static Symbol* _Nullable _SymbolTable_GetSymbol(SymbolTable* _Nonnull self, SymbolType type, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope)
+{
+    const size_t hashCode = hash_cstring(name);
+    Scope* scope = self->currentScope;
+
+    while (scope) {
+        Symbol* sym = _Scope_GetSymbol(scope, type, name, hashCode);
+
+        if (sym) {
+            if (pOutScope) *pOutScope = scope;
+            return sym;
+        }
+
+        scope = scope->parentScope;
+    }
+
+    if (pOutScope) *pOutScope = NULL;
+    return NULL;
+}
+
 Symbol* _Nullable SymbolTable_GetSymbol(SymbolTable* _Nonnull self, SymbolType type, const char* _Nonnull name)
 {
-    return Scope_GetSymbol(self->currentScope, type, name);
+    return _SymbolTable_GetSymbol(self, type, name, NULL);
+}
+
+errno_t SymbolTable_IterateSymbols(SymbolTable* _Nonnull self, SymbolTableIterator _Nonnull cb, void* _Nullable context)
+{
+    decl_try_err();
+    bool done = false;
+    Scope* scope = self->currentScope;
+
+    while (scope) {
+        err = Scope_IterateSymbols(scope, cb, context, &done);
+
+        if (err != EOK || done) {
+            break;
+        }
+
+        scope = scope->parentScope;
+    }
+
+    return err;
 }
 
 errno_t SymbolTable_AddCommand(SymbolTable* _Nonnull self, const char* _Nonnull name, CommandCallback _Nonnull cb)
@@ -288,5 +387,13 @@ errno_t SymbolTable_AddCommand(SymbolTable* _Nonnull self, const char* _Nonnull 
 
 errno_t SymbolTable_AddVariable(SymbolTable* _Nonnull self, const char* _Nonnull name, const char* _Nonnull value, unsigned int flags)
 {
-    return Scope_AddVariable(self->currentScope, name, value, flags);
+    decl_try_err();
+
+    err = Scope_AddVariable(self->currentScope, name, value, flags);
+    if (err == EOK && (flags & kVariableFlag_Exported) == kVariableFlag_Exported) {
+        self->currentScope->exportedVariablesCount++;
+        self->exportedVariablesGeneration++;
+    }
+
+    return err;
 }
