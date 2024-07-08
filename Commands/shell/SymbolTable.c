@@ -7,9 +7,9 @@
 //
 
 #include "SymbolTable.h"
+#include "Errors.h"
 #include <assert.h>
 #include <ctype.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -208,7 +208,7 @@ static errno_t Scope_AddCommand(Scope* _Nonnull self, const char* _Nonnull name,
     const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Scope_GetSymbol(self, kSymbolType_Command, name, hashCode)) {
-        throw(EEXIST);
+        throw(EREDEFINED);
     }
 
     try(Symbol_CreateCommand(name, cb, &sym));
@@ -227,7 +227,7 @@ static errno_t Scope_AddVariable(Scope* _Nonnull self, const char* _Nonnull name
     const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Scope_GetSymbol(self, kSymbolType_Variable, name, hashCode)) {
-        throw(EEXIST);
+        throw(EREDEFINED);
     }
 
     try(Symbol_CreateStringVariable(name, value, flags, &sym));
@@ -293,7 +293,7 @@ catch:
 errno_t SymbolTable_PopScope(SymbolTable* _Nonnull self)
 {
     if (self->currentScope->parentScope == NULL) {
-        return EOVERFLOW;
+        return EUNDERFLOW;
     }
 
     if (self->currentScope->exportedVariablesCount > 0) {
@@ -314,7 +314,7 @@ errno_t SymbolTable_SetVariableExported(SymbolTable* _Nonnull self, const char* 
     Symbol* sym = _SymbolTable_GetSymbol(self, kSymbolType_Variable, name, &scope);
 
     if (sym == NULL) {
-        return ENOENT;
+        return EUNDEFINED;
     }
 
     if (bExported && (sym->u.variable.flags & kVariableFlag_Exported) == 0) {

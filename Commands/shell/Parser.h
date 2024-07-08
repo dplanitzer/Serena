@@ -11,8 +11,7 @@
 
 #include "Lexer.h"
 #include "Script.h"
-
-#define ESYNTAX -1
+#include "Errors.h"
 
 
 typedef struct Parser {

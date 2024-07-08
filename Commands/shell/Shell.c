@@ -7,8 +7,8 @@
 //
 
 #include "Shell.h"
+#include "Errors.h"
 #include <assert.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,7 +63,7 @@ static errno_t Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull 
         Interpreter_Execute(self->interpreter, script);
     }
     else {
-        printf("Syntax error.\n");
+        printf("Error: %s.\n", shell_strerror(err));
     }
 
     return err;

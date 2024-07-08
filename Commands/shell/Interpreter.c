@@ -7,6 +7,7 @@
 //
 
 #include "Interpreter.h"
+#include "Errors.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -111,7 +112,7 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
 
     char* cmdPath = StackAllocator_Alloc(self->allocator, sizeof(char*) * (cmdPathLen + 1));
     if (cmdPath == NULL) {
-        printf(strerror(ENOMEM));
+        printf(shell_strerror(ENOMEM));
         return true;
     }
 
@@ -123,7 +124,7 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
         return false;
     }
     else if (err != EOK) {
-        printf("%s: %s.\n", argv[0], strerror(err));
+        printf("%s: %s.\n", argv[0], shell_strerror(err));
         return true;
     }
 
@@ -287,7 +288,7 @@ static void Interpreter_SExpression(InterpreterRef _Nonnull self, SExpression* _
     return;
 
 catch:
-    printf(strerror(err));
+    printf(shell_strerror(err));
 }
 
 static void Interpreter_PExpression(InterpreterRef _Nonnull self, PExpression* _Nonnull p_expr)

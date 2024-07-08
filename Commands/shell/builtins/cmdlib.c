@@ -16,7 +16,7 @@
 
 void print_error(const char* _Nonnull proc_name, const char* _Nullable path, errno_t err)
 {
-    const char* errstr = strerror(err);
+    const char* errstr = shell_strerror(err);
 
     if (path && *path != '\0') {
         clap_error(proc_name, "%s: %s", path, errstr);

@@ -9,7 +9,7 @@
 #ifndef cmdlib_h
 #define cmdlib_h
 
-#include <System/Error.h>
+#include "../Errors.h"
 #include <stdlib.h>
 
 #define exit_code(__err) \
