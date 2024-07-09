@@ -107,11 +107,15 @@ static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull 
             *eqp = '\0';
             err = SymbolTable_AddVariable(self->symbolTable, keyp, valp, kVariableFlag_Exported);
             *eqp = '=';
-
-            if (err != EOK) {
+            // We ignore non-fatal errors here and simply drop the erroneous
+            // environment variable because we don't want the shell to die over
+            // e.g. a simple redefinition...
+            if (err == ENOMEM) {
                 return err;
             }
         }
+
+        envp++;
     }
 
     return EOK;

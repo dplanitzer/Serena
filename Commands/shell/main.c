@@ -25,31 +25,10 @@ static CLAP_DECL(params,
 );
 
 
-static void xxx_tmp_open_console_if_needed()
-{
-    int fd;
-
-    if (IOChannel_GetMode(kIOChannel_Stdin) != 0) {
-        return;
-    }
-
-    File_Open("/dev/console", kOpen_Read, &fd);
-    File_Open("/dev/console", kOpen_Write, &fd);
-    File_Open("/dev/console", kOpen_Write, &fd);
-
-    fdreopen(kIOChannel_Stdin, "r", stdin);
-    fdreopen(kIOChannel_Stdout, "w", stdout);
-    fdreopen(kIOChannel_Stderr, "w", stderr);
-
-    Process_SetWorkingDirectory("/Users/Administrator");
-}
-
 void main_closure(int argc, char *argv[])
 {
     decl_try_err();
     ShellRef pShell = NULL;
-
-    xxx_tmp_open_console_if_needed();
 
     clap_parse(0, params, argc, argv);
     const bool isInteractive = (scriptFiles.count == 0) ? true : false;
@@ -60,7 +39,8 @@ void main_closure(int argc, char *argv[])
         // XXX disabled insertion mode for now because the line reader doesn't support
         // XXX it properly yet
         //printf("\033[4h");  // Switch the console to insert mode
-        
+        fputs("\n\033[36mSerena Shell v0.1.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
+
         try(Shell_Run(pShell));
     }
     else {

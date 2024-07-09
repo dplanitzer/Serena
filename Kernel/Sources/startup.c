@@ -294,8 +294,8 @@ static void OnMain(void)
 
 
     // Get the root process going
-    print("Starting shell.\n");
-    try(RootProcess_Exec(pRootProc, "/System/Commands/shell"));
+    print("Starting login...\n");
+    try(RootProcess_Exec(pRootProc, "/System/Commands/login"));
     return;
     
 catch:

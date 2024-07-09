@@ -117,6 +117,11 @@ SH_OBJS_DIR := $(OBJS_DIR)/Commands/shell
 SH_FILE := $(SH_OBJS_DIR)/shell
 
 
+CMDS_PROJECT_DIR := $(WORKSPACE_DIR)/Commands
+CMDS_OBJS_DIR := $(OBJS_DIR)/Commands
+LOGIN_FILE := $(CMDS_OBJS_DIR)/login
+
+
 LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem
 LIBSYSTEM_HEADERS_DIR := $(LIBSYSTEM_PROJECT_DIR)/Headers
 LIBSYSTEM_OBJS_DIR := $(OBJS_DIR)/Library/libsystem
@@ -156,6 +161,7 @@ include $(KERNEL_PROJECT_DIR)/project.mk
 include $(KERNEL_TESTS_PROJECT_DIR)/project.mk
 
 include $(SH_PROJECT_DIR)/project.mk
+include $(CMDS_PROJECT_DIR)/project.mk
 
 
 # --------------------------------------------------------------------------
@@ -173,10 +179,11 @@ build-rom: $(ROM_FILE)
 
 build-boot-dmg: $(BOOT_DMG_FILE)
 
-build-boot-disk: $(SH_FILE)
+build-boot-disk: $(LOGIN_FILE) $(SH_FILE)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR))
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/System/Commands)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/Users/Administrator)
+	$(call copy,$(LOGIN_FILE),$(BOOT_DISK_DIR)/System/Commands/)
 	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
 	$(call copy,$(DEMOS_DIR)/helloworld.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 
@@ -200,7 +207,7 @@ clean:
 	@echo Done
 
 ifdef BOOT_FROM_ROM
-clean-rom: clean-kernel clean-kernel-tests clean-sh clean-libc clean-libsystem
+clean-rom: clean-kernel clean-kernel-tests clean-cmds clean-sh clean-libc clean-libsystem
 	@echo Done
 else
 clean-rom: clean-kernel clean-kernel-tests
