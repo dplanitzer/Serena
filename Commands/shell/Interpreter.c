@@ -27,7 +27,9 @@ extern int cmd_pwd(ShellContext* _Nonnull pContext, int argc, char** argv, char*
 extern int cmd_rename(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
 extern int cmd_type(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
 
-static errno_t Interpreter_RegisterGlobalSymbols(InterpreterRef _Nonnull self);
+static errno_t Interpreter_RegisterBuiltinCommand(InterpreterRef _Nonnull self);
+static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull self);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -40,7 +42,8 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     try(StackAllocator_Create(1024, 8192, &self->allocator));
     self->context = pContext;
     try(SymbolTable_Create(&self->symbolTable));
-    try(Interpreter_RegisterGlobalSymbols(self));
+    try(Interpreter_RegisterBuiltinCommand(self));
+    try(Interpreter_RegisterEnvironmentVariables(self));
     try(EnvironCache_Create(self->symbolTable, &self->environCache));
 
     *pOutSelf = self;
@@ -69,7 +72,7 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
     }
 }
 
-static errno_t Interpreter_RegisterGlobalSymbols(InterpreterRef _Nonnull self)
+static errno_t Interpreter_RegisterBuiltinCommand(InterpreterRef _Nonnull self)
 {
     decl_try_err();
 
@@ -87,6 +90,31 @@ static errno_t Interpreter_RegisterGlobalSymbols(InterpreterRef _Nonnull self)
 
 catch:
     return err;
+}
+
+static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull self)
+{
+    decl_try_err();
+    ProcessArguments* pargs = Process_GetArguments();
+    char** envp = pargs->envp;
+
+    while (*envp) {
+        char* keyp = *envp;
+        char* eqp = strchr(keyp, '=');
+        char* valp = (eqp) ? eqp + 1 : NULL;
+
+        if (valp) {
+            *eqp = '\0';
+            err = SymbolTable_AddVariable(self->symbolTable, keyp, valp, kVariableFlag_Exported);
+            *eqp = '=';
+
+            if (err != EOK) {
+                return err;
+            }
+        }
+    }
+
+    return EOK;
 }
 
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
