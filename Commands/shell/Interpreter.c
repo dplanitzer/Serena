@@ -8,24 +8,13 @@
 
 #include "Interpreter.h"
 #include "Errors.h"
+#include "builtins/Builtins.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <System/System.h>
-
-extern int cmd_cd(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_cls(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_delete(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_echo(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_exit(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_history(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_list(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_makedir(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_pwd(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_rename(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
-extern int cmd_type(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
 
 static errno_t Interpreter_RegisterBuiltinCommand(InterpreterRef _Nonnull self);
 static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull self);

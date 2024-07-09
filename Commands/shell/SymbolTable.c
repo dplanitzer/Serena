@@ -7,7 +7,7 @@
 //
 
 #include "SymbolTable.h"
-#include "builtins/cmdlib.h"
+#include "Utilities.h"
 #include <string.h>
 
 static Symbol* _Nullable _SymbolTable_GetSymbol(SymbolTable* _Nonnull self, SymbolType type, const char* _Nonnull name, Scope* _Nonnull * _Nullable);

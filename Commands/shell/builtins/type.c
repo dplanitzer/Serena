@@ -7,10 +7,9 @@
 //
 
 #include "Interpreter.h"
-#include "cmdlib.h"
+#include "Utilities.h"
 #include <clap.h>
 #include <ctype.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

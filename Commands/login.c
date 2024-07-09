@@ -63,7 +63,7 @@ void main_closure(int argc, char *argv[])
 {
     const char* homePath = "/Users/Administrator";
     const char* shellPath = "/System/Commands/shell";
-    int shell_status = 0, run_count = 0;
+    int shell_status = 0, failed_count = 0;
     int fd;
 
 
@@ -88,28 +88,25 @@ void main_closure(int argc, char *argv[])
     // Make the user's home directory the current directory
     Process_SetWorkingDirectory(homePath);
 
+
+    // Run the user's shell
     while (true) {
         const errno_t err = run_shell(shellPath, homePath, &shell_status);
 
         if (err == EOK) {
-            printf("Error: unexpected shell termination (%d). ", shell_status);
+            failed_count = (shell_status != EXIT_SUCCESS) ? failed_count + 1 : 0;
 
-            if (run_count == 2) {
-                puts("Halting...");
+            if (failed_count == 2) {
+                printf("Error: unexpected shell termination: %d. Halting...", shell_status);
                 while (1);
                 /* NOT REACHED */
             }
-            else {
-                puts("Restarting...");
-            }
         }
         else {
-            printf("Error: unable to start shell: %s. Halting...\n", strerror(err));
+            printf("Error: %s. Halting...", strerror(err));
             while (1);
             /* NOT REACHED */
         }
-
-        run_count++;
     }
 
     /* NOT REACHED */

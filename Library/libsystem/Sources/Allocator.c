@@ -512,7 +512,6 @@ void* _Nullable Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr
         np = ptr;
     }
 
-catch:
     Lock_Unlock(&pAllocator->lock);
     return np;
 }

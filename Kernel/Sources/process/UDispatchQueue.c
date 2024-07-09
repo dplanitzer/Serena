@@ -27,6 +27,17 @@ catch:
 
 void UDispatchQueue_deinit(UDispatchQueueRef _Nonnull self)
 {
+    // Calling destroy() on a dispatch queue should terminate the queue in any
+    // case. We then drop our reference to the queue. However, keep in mind that
+    // some other portion of the kernel may still hold another reference to the
+    // queue which keeps it alive. This is okay. User space though has declared
+    // that it no longer wants this queue to execute anything and thus we move
+    // it to terminated state here. This ensures that if some other kernel portion
+    // attempts to dispatch something to the queue that this dispatch will fail
+    // with an appropriate error and that no new code will run on the queue. Once
+    // the last kernel portion holding a reference to the queue releases this
+    // reference, the queue will get destroyed for good.
+    DispatchQueue_Terminate(self->dispatchQueue);
     Object_Release(self->dispatchQueue);
     self->dispatchQueue = NULL;
 }

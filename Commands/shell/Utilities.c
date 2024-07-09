@@ -1,12 +1,12 @@
 //
-//  cmdlib.c
+//  Utilities.c
 //  sh
 //
 //  Created by Dietmar Planitzer on 5/20/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "cmdlib.h"
+#include "Utilities.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

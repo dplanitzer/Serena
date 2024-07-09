@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <clap.h>
-#include "builtins/cmdlib.h"
+#include "Utilities.h"
 #include "Shell.h"
 
 static clap_string_array_t scriptFiles = {NULL, 0};
