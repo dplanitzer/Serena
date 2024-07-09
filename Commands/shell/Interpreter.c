@@ -15,17 +15,17 @@
 #include <string.h>
 #include <System/System.h>
 
-extern int cmd_cd(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_cls(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_delete(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_echo(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_exit(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_history(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_list(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_makedir(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_pwd(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_rename(ShellContext* _Nonnull pContext, int argc, char** argv);
-extern int cmd_type(ShellContext* _Nonnull pContext, int argc, char** argv);
+extern int cmd_cd(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_cls(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_delete(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_echo(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_exit(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_history(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_list(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_makedir(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_pwd(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_rename(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
+extern int cmd_type(ShellContext* _Nonnull pContext, int argc, char** argv, char** envp);
 
 static errno_t Interpreter_RegisterGlobalSymbols(InterpreterRef _Nonnull self);
 
@@ -41,6 +41,7 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     self->context = pContext;
     try(SymbolTable_Create(&self->symbolTable));
     try(Interpreter_RegisterGlobalSymbols(self));
+    try(EnvironCache_Create(self->symbolTable, &self->environCache));
 
     *pOutSelf = self;
     return 0;
@@ -54,6 +55,9 @@ catch:
 void Interpreter_Destroy(InterpreterRef _Nullable self)
 {
     if (self) {
+        EnvironCache_Destroy(self->environCache);
+        self->environCache = NULL;
+
         SymbolTable_Destroy(self->symbolTable);
         self->symbolTable = NULL;
 
@@ -85,19 +89,19 @@ catch:
     return err;
 }
 
-static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv)
+static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     Symbol* cmd = SymbolTable_GetSymbol(self->symbolTable, kSymbolType_Command, argv[0]);
 
     if (cmd) {
-        cmd->u.command.cb(self->context, argc, argv);
+        cmd->u.command.cb(self->context, argc, argv, envp);
         return true;
     }
 
     return false;
 }
 
-static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int argc, char** argv)
+static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     static const char* gSearchPath = "/System/Commands/";
     decl_try_err();
@@ -119,6 +123,10 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
     strcpy(cmdPath, gSearchPath);
     strcat(cmdPath, argv[0]);
 
+    opts.envp = envp;
+
+
+    // Spawn the external command
     err = Process_Spawn(cmdPath, argv, &opts, &childPid);
     if (err == ENOENT) {
         return false;
@@ -128,6 +136,8 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
         return true;
     }
 
+
+    // Wait for the command to complete its task
     ProcessTerminationStatus pts;
     Process_WaitForTerminationOfChild(childPid, &pts);
     
@@ -271,14 +281,17 @@ static void Interpreter_SExpression(InterpreterRef _Nonnull self, SExpression* _
         return;
     }
 
+    char** envp = EnvironCache_GetEnvironment(self->environCache);
+
+
     // Check whether this is a builtin command and execute it, if so
-    if (Interpreter_ExecuteInternalCommand(self, argc, argv)) {
+    if (Interpreter_ExecuteInternalCommand(self, argc, argv, envp)) {
         return;
     }
 
 
     // Not a builtin command. Look for an external command
-    if (Interpreter_ExecuteExternalCommand(self, argc, argv)) {
+    if (Interpreter_ExecuteExternalCommand(self, argc, argv, envp)) {
         return;
     }
 

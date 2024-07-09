@@ -35,7 +35,7 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv)
+int cmd_echo(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
 {
     is_noline = false;
     is_nospace = false;

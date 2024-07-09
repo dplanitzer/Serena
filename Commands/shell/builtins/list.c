@@ -175,7 +175,7 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv)
+int cmd_list(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
 {
     decl_try_err();
     ListContext ctx = {0};

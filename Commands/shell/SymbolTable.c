@@ -7,15 +7,59 @@
 //
 
 #include "SymbolTable.h"
-#include "Errors.h"
-#include <assert.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "builtins/cmdlib.h"
 #include <string.h>
 
 static Symbol* _Nullable _SymbolTable_GetSymbol(SymbolTable* _Nonnull self, SymbolType type, const char* _Nonnull name, Scope* _Nonnull * _Nullable);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Variable
+////////////////////////////////////////////////////////////////////////////////
+
+// Returns the length of the string that represents the value of the variable.
+size_t Variable_GetStringValueLength(const Variable* _Nonnull self)
+{
+    switch (self->type) {
+        case kVariableType_String:
+            return self->u.string.length;
+
+        default:
+            return 0;
+    }
+}
+
+// Copies up to 'bufSize' - 1 characters of the variable's value converted to a
+// string to the given buffer. Returns true if the whole value was copied and
+// false otherwise.
+bool Variable_GetStringValue(const Variable* _Nonnull self, size_t bufSize, char* _Nonnull buf)
+{
+    bool copiedAll = false;
+
+    if (bufSize < 1) {
+        return false;
+    }
+
+    switch (self->type) {
+        case kVariableType_String: {
+            char* src = self->u.string.characters;
+
+            while (bufSize > 1 && *src != '\0') {
+                *buf++ = *src++;
+                bufSize--;
+            }
+            *buf = '\0';
+            copiedAll = *src == '\0';
+            break;
+        }
+
+        default:
+            *buf = '\0';
+            break;
+    }
+
+    return copiedAll;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -141,20 +185,8 @@ static void _Scope_DestroyHashtable(Scope* _Nonnull self)
     }
 
     free(self->hashtable);
-    self->hashtable = 0;
+    self->hashtable = NULL;
     self->hashtableCapacity = 0;
-}
-
-static size_t hash_cstring(const char* _Nonnull str)
-{
-    size_t h = 5381;
-    char c;
-
-    while (c = *str++) {
-        h = ((h << 5) + h) + c;
-    }
-
-    return h;
 }
 
 static Symbol* _Nullable _Scope_GetSymbol(Scope* _Nonnull self, SymbolType type, const char* _Nonnull name, size_t hashCode)

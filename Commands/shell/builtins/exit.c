@@ -12,7 +12,7 @@
 
 
 
-int cmd_exit(ShellContextRef _Nonnull pContext, int argc, char** argv)
+int cmd_exit(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
 {
     exit((argc > 1) ? atoi(argv[1]) : EXIT_SUCCESS);
     /* NOT REACHED */

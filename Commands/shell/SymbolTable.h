@@ -9,13 +9,15 @@
 #ifndef SymbolTable_h
 #define SymbolTable_h
 
-#include <System/System.h>
+#include "Errors.h"
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 struct ShellContext;
 
 
-typedef int (*CommandCallback)(struct ShellContext* _Nonnull, int argc, char** argv);
+typedef int (*CommandCallback)(struct ShellContext* _Nonnull, int argc, char** argv, char** envp);
 
 typedef struct Command {
     CommandCallback _Nonnull    cb;
@@ -44,6 +46,14 @@ typedef struct Variable {
         StringValue string;
     }       u;
 } Variable;
+
+// Returns the length of the string that represents the value of the variable.
+extern size_t Variable_GetStringValueLength(const Variable* _Nonnull self);
+
+// Copies up to 'bufSize' - 1 characters of the variable's value converted to a
+// string to the given buffer. Returns true if the whole value was copied and
+// false otherwise.
+extern bool Variable_GetStringValue(const Variable* _Nonnull self, size_t bufSize, char* _Nonnull buf);
 
 
 typedef enum SymbolType {
@@ -76,6 +86,9 @@ typedef struct SymbolTable {
 } SymbolTable;
 
 
+typedef errno_t (*SymbolTableIterator)(void* _Nullable context, const Symbol* _Nonnull symbol, int scopeLevel, bool* _Nonnull pOutDone);
+
+
 extern errno_t SymbolTable_Create(SymbolTable* _Nullable * _Nonnull pOutSelf);
 extern void SymbolTable_Destroy(SymbolTable* _Nullable self);
 
@@ -96,10 +109,13 @@ extern Symbol* _Nullable SymbolTable_GetSymbol(SymbolTable* _Nonnull self, Symbo
 
 // Iterates all definitions of the given symbol type. Note that this includes
 // symbols in a lower scope that are shadowed in a higher scope. The callback
-// has to resolve this ambiguity itself. It can use the provided scope level
-// to do this. The iteration continues until the callback either returns with
-// an error or it sets 'pOutDone' to true.
-typedef errno_t (*SymbolTableIterator)(void* _Nullable context, const Symbol* _Nonnull symbol, int scopeLevel, bool* _Nonnull pOutDone);
+// has to resolve this ambiguity itself. It may use the provided scope level
+// to do this. That said, this function guarantees that symbols are iterated
+// starting in the current scope and moving towards the bottom scope. It also
+// guarantees that all symbols of a scope X are iterated before the symbols of
+// the parent scope X-1 are iterated. The iteration continues until the callback
+// either returns with an error or it sets 'pOutDone' to true. Note that
+// 'pOutDone' is initialized to false when teh iterator is called.
 extern errno_t SymbolTable_IterateSymbols(SymbolTable* _Nonnull self, SymbolTableIterator _Nonnull cb, void* _Nullable context);
 
 extern errno_t SymbolTable_AddCommand(SymbolTable* _Nonnull self, const char* _Nonnull name, CommandCallback _Nonnull cb);

@@ -31,7 +31,7 @@ static CLAP_DECL(params,
     CLAP_REQUIRED_VARARG(&paths, "expected paths of files to delete")
 );
 
-int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv)
+int cmd_delete(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
 {
     decl_try_err();
 

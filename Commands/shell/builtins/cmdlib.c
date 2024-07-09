@@ -40,3 +40,15 @@ const char* char_to_ascii(char ch, char buf[3])
 
     return buf;
 }
+
+size_t hash_cstring(const char* _Nonnull str)
+{
+    size_t h = 5381;
+    char c;
+
+    while (c = *str++) {
+        h = ((h << 5) + h) + c;
+    }
+
+    return h;
+}

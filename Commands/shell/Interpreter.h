@@ -10,14 +10,18 @@
 #define Interpreter_h
 
 #include "Script.h"
+#include "EnvironCache.h"
 #include "ShellContext.h"
-#include "SymbolTable.h"
 #include "StackAllocator.h"
+#include "SymbolTable.h"
+
 
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
+    
     ShellContextRef _Weak       context;
     SymbolTable* _Nonnull       symbolTable;
+    EnvironCache* _Nonnull      environCache;
 } Interpreter;
 typedef Interpreter* InterpreterRef;
 

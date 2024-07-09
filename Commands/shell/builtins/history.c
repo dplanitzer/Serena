@@ -12,7 +12,7 @@
 #include <string.h>
 
 
-int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv)
+int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
 {
     int count = ShellContext_GetHistoryCount(pContext);
 

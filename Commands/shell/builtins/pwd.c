@@ -21,7 +21,7 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv)
+int cmd_pwd(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     decl_try_err();
     char* buf = NULL;
