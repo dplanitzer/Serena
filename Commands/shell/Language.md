@@ -163,6 +163,7 @@ commandSecondaryFragment
     | SINGLE_BACKTICK_STRING
     | doubleBacktickString
     | varReference
+    | parenthesizedExpression
     | commandFragmentAtom
     ;
 
