@@ -12,8 +12,7 @@ Some simple editing functions are supported. Backspace moves the cursor one colu
 
 ## The Shell Language
 
-The shell language is inspired by the AmigaDOS, Nushell, Fish shell and the Windows PowerShell, plus some
-(light) influence from zsh, bash and finally a healthy dose of new design elements.
+The shell language supports commands and expressions and its design is somewhat influenced by PowerShell, Nushell, AmigaDOS and Bash. A formal definition can be found [here](Language.md).
 
 ### Language Basics
 
