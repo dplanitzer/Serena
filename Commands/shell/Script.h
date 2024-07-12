@@ -13,7 +13,7 @@
 #include "Lexer.h"
 #include "StackAllocator.h"
 
-#define SCRIPT_PRINTING 1
+//#define SCRIPT_PRINTING 1
 struct Expression;
 
 
@@ -64,42 +64,65 @@ extern void Atom_Print(Atom* _Nonnull self);
 #endif
 
 
-typedef struct SExpression {
-    struct SExpression* _Nullable   next;
-    Atom* _Nonnull                  atoms;
-    Atom* _Nonnull                  lastAtom;
-} SExpression;
+typedef struct Command {
+    struct Command* _Nullable   next;
+    Atom* _Nonnull              atoms;
+    Atom* _Nonnull              lastAtom;
+} Command;
 
-extern errno_t SExpression_Create(StackAllocatorRef _Nonnull pAllocator, SExpression* _Nullable * _Nonnull pOutSelf);
-extern void SExpression_AddAtom(SExpression* _Nonnull self, Atom* _Nonnull atom);
+extern errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf);
+extern void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom);
 #ifdef SCRIPT_PRINTING
-extern void SExpression_Print(SExpression* _Nonnull self);
+extern void Command_Print(Command* _Nonnull self);
 #endif
 
 
 
 typedef struct Expression {
-    struct Expression* _Nullable   next;
-    SExpression* _Nonnull           exprs;
-    SExpression* _Nonnull           lastExpr;
-    TokenId                         terminator;
+    Command* _Nonnull   cmds;
+    Command* _Nonnull   lastCmd;
 } Expression;
 
 extern errno_t Expression_Create(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
-extern void Expression_AddSExpression(Expression* _Nonnull self, SExpression* _Nonnull expr);
+extern void Expression_AddCommand(Expression* _Nonnull self, Command* _Nonnull cmd);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);
 #endif
 
 
 
+typedef enum StatementType {
+    kStatementType_Null,
+    kStatementType_Expression,
+    kStatementType_VarAssignment,
+    kStatementType_VarDeclaration,
+} StatementType;
+
+typedef struct Statement {
+    struct Statement* _Nullable next;
+    int8_t                      type;
+    int8_t                      reserved[2];
+    bool                        isAsync;    // '&' -> true and ';' | '\n' -> false
+    union {
+        Expression* _Nonnull    expr;
+    }                           u;
+} Statement;
+
+extern errno_t Statement_Create(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf);
+extern void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr);
+#ifdef SCRIPT_PRINTING
+extern void Statement_Print(Statement* _Nonnull self);
+#endif
+
+
+
 typedef struct StatementList {
-    Expression* _Nullable  exprs;
-    Expression* _Nullable  lastExpr;
+    Statement* _Nullable    stmts;
+    Statement* _Nullable    lastStmt;
 } StatementList;
 
 extern void StatementList_Init(StatementList* _Nonnull self);
-extern void StatementList_AddExpression(StatementList* _Nonnull self, Expression* _Nonnull expr);
+extern void StatementList_AddStatement(StatementList* _Nonnull self, Statement* _Nonnull stmt);
 #ifdef SCRIPT_PRINTING
 extern void StatementList_Print(StatementList* _Nonnull self);
 #endif

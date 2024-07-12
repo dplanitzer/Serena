@@ -19,9 +19,9 @@ struct ShellContext;
 
 typedef int (*CommandCallback)(struct ShellContext* _Nonnull, int argc, char** argv, char** envp);
 
-typedef struct Command {
+typedef struct CommandDef {
     CommandCallback _Nonnull    cb;
-} Command;
+} CommandDef;
 
 
 typedef enum VariableType {
@@ -66,7 +66,7 @@ typedef struct Symbol {
     const char* _Nonnull        name;
     int                         type;
     union {
-        Command     command;
+        CommandDef  command;
         Variable    variable;
     }                           u;
 } Symbol;

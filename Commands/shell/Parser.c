@@ -22,7 +22,6 @@
 #define match(__id) Parser_Match(self, __id)
 
 
-static bool Parser_IsExpressionTerminator(Parser* _Nonnull self);
 static errno_t Parser_Expression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull _Nonnull pOutExpr);
 
 
@@ -66,23 +65,20 @@ static errno_t Parser_Match(Parser* _Nonnull self, char id)
     }
 }
 
-// sub-p-expr:  '(' p-expr [p-expr-terminator] ')'
-static errno_t Parser_SubExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+//
+// parenthesizedExpression
+//     : OPEN_PARA expression CLOSE_PARA
+//     ;
+static errno_t Parser_ParenthesizedExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
-    Expression* p_expr = NULL;
+    Expression* expr = NULL;
 
-    try(match('('));
-    try(Parser_Expression(self, &p_expr));
-    if (Parser_IsExpressionTerminator(self)) {
-        p_expr->terminator = Lexer_GetToken(&self->lexer)->id;
-    }
-    else {
-        p_expr->terminator = ';';
-    }
-    try(match(')'));
+    try(match(kToken_OpeningParenthesis));
+    try(Parser_Expression(self, &expr));
+    try(match(kToken_ClosingParenthesis));
 
-    *pOutExpr = p_expr;
+    *pOutExpr = expr;
     return EOK;
 
 catch:
@@ -132,15 +128,15 @@ static int GetAtomTypeFromToken(TokenId id)
 //          | =
 //          | CHARACTER
 //       )+
-static errno_t Parser_SExpression(Parser* _Nonnull self, SExpression* _Nullable * _Nonnull pOutExpr)
+static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnull pOutCmd)
 {
     decl_try_err();
-    SExpression* s_expr = NULL;
+    Command* cmd = NULL;
     Expression* expr = NULL;
     Atom* atom = NULL;
     bool done = false;
 
-    try(SExpression_Create(self->allocator, &s_expr));
+    try(Command_Create(self->allocator, &cmd));
 
     while (!done) {
         const Token* t = Lexer_GetToken(&self->lexer);
@@ -180,7 +176,7 @@ static errno_t Parser_SExpression(Parser* _Nonnull self, SExpression* _Nullable 
                 break;
 
             case '(':
-                try(Parser_SubExpression(self, &expr));
+                try(Parser_ParenthesizedExpression(self, &expr));
                 try(Atom_CreateWithExpression(self->allocator, expr, &atom));
                 break;
 
@@ -189,53 +185,42 @@ static errno_t Parser_SExpression(Parser* _Nonnull self, SExpression* _Nullable 
                 break;
         }
 
-        if (s_expr) {
-            SExpression_AddAtom(s_expr, atom);
+        if (atom) {
+            Command_AddAtom(cmd, atom);
             atom = NULL;
         }
     }
 
-    *pOutExpr = s_expr;
+    *pOutCmd = cmd;
     return EOK;
 
 catch:
-    *pOutExpr = NULL;
+    *pOutCmd = NULL;
     return err;
 }
 
-// p-expr-terminator: '\n' | ';' | '&'
-static bool Parser_IsExpressionTerminator(Parser* _Nonnull self)
-{
-    switch (Lexer_GetToken(&self->lexer)->id) {
-        case kToken_Newline:
-        case kToken_Semicolon:
-        case kToken_Ampersand:
-            return true;
-
-        default:
-            return false;
-    }
-}
-
-// expr:	s-expr ('|' s-expr)*
+//
+// expression
+//     : (disjunction | command) (BAR command)*
+//     ;
 static errno_t Parser_Expression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
     Expression* expr = NULL;
-    SExpression* s_expr = NULL;
+    Command* cmd = NULL;
 
     try(Expression_Create(self->allocator, &expr));
 
-    try(Parser_SExpression(self, &s_expr));
-    Expression_AddSExpression(expr, s_expr);
-    s_expr = NULL;
+    try(Parser_Command(self, &cmd));
+    Expression_AddCommand(expr, cmd);
+    cmd = NULL;
 
     while (peek('|')) {
         consume();
 
-        try(Parser_SExpression(self, &s_expr));
-        Expression_AddSExpression(expr, s_expr);
-        s_expr = NULL;
+        try(Parser_Command(self, &cmd));
+        Expression_AddCommand(expr, cmd);
+        cmd = NULL;
     }
 
     *pOutExpr = expr;
@@ -250,7 +235,7 @@ catch:
 // statementTerminator
 //     : NL | SEMICOLON | AMPERSAND
 //     ;
-static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Expression* _Nonnull expr, bool isScriptLevel)
+static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Statement* _Nonnull stmt, bool isScriptLevel)
 {
     decl_try_err();
     const Token* t = Lexer_GetToken(&self->lexer);
@@ -258,8 +243,12 @@ static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Expression* _No
     switch (t->id) {
         case kToken_Newline:
         case kToken_Semicolon:
+            stmt->isAsync = false;
+            consume();
+            break;
+
         case kToken_Ampersand:
-            expr->terminator = t->id;
+            stmt->isAsync = true;
             consume();
             break;
 
@@ -267,6 +256,7 @@ static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Expression* _No
             if (isScriptLevel && t->id == kToken_Eof) {
                 // Accept scripts where the last line is terminated by EOF
                 // since this is what we get in interactive mode anyway
+                stmt->isAsync = false;
                 break; 
             }
             err = ESYNTAX;
@@ -285,16 +275,18 @@ static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Expression* _No
 static errno_t Parser_Statement(Parser* _Nonnull self, StatementList* _Nonnull stmts, bool isScriptLevel)
 {
     decl_try_err();
+    Statement* stmt = NULL;
+
+    try(Statement_Create(self->allocator, &stmt));
+
     Expression* expr = NULL;
+    try(Parser_Expression(self, &expr));
+    Statement_SetExpression(stmt, expr);
 
-    err = Parser_Expression(self, &expr);
-    if (err == EOK) {
-        err = Parser_StatementTerminator(self, expr, isScriptLevel);
-        if (err == EOK) {
-            StatementList_AddExpression(stmts, expr);
-        }
-    }
+    try(Parser_StatementTerminator(self, stmt, isScriptLevel));
+    StatementList_AddStatement(stmts, stmt);
 
+catch:
     return err;
 }
 

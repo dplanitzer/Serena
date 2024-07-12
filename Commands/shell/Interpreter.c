@@ -165,9 +165,9 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
     return true;
 }
 
-static int calc_argc(SExpression* _Nonnull s_expr)
+static int calc_argc(Command* _Nonnull cmd)
 {
-    Atom* atom = s_expr->atoms;
+    Atom* atom = cmd->atoms;
     int argc = 0;
 
     if (atom) {
@@ -248,14 +248,14 @@ static char* _Nonnull get_atom_string(Atom* _Nonnull atom, char* _Nonnull ap)
     return ap;
 }
 
-static void Interpreter_SExpression(InterpreterRef _Nonnull self, SExpression* _Nonnull s_expr)
+static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull cmd)
 {
     decl_try_err();
     char** argv = NULL;
 
     // Create the command argument vector by expanding all atoms in the s-expression
     // to strings.
-    int argc = calc_argc(s_expr);
+    int argc = calc_argc(cmd);
     if (argc == 0) {
         return;
     }
@@ -263,7 +263,7 @@ static void Interpreter_SExpression(InterpreterRef _Nonnull self, SExpression* _
     try_null(argv, StackAllocator_Alloc(self->allocator, sizeof(char*) * (argc + 1)), ENOMEM);
 
     argc = 0;
-    Atom* atom = s_expr->atoms;
+    Atom* atom = cmd->atoms;
     while (atom) {
         Atom* sav_atom = atom;
         Atom* end_atom;
@@ -327,24 +327,46 @@ catch:
 
 static void Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
-    SExpression* s_expr = expr->exprs;
+    Command* cmd = expr->cmds;
 
     // XXX create an intermediate representation that allows us to model a set of
     // XXX commands that are linked through pipes. For now we'll do each command
     // XXX individually. Which is wrong. But good enough for now
-    while (s_expr) {
-        Interpreter_SExpression(self, s_expr);
-        s_expr = s_expr->next;
+    while (cmd) {
+        Interpreter_Command(self, cmd);
+        cmd = cmd->next;
+    }
+}
+
+static void Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
+{
+    switch (stmt->type) {
+        case kStatementType_Null:
+            break;
+
+        case kStatementType_Expression:
+            Interpreter_Expression(self, stmt->u.expr);
+            break;
+
+        case kStatementType_VarAssignment:
+            break;
+
+        case kStatementType_VarDeclaration:
+            break;
+
+        default:
+            abort();
+            break;
     }
 }
 
 static void Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)
 {
-    Expression* expr = stmts->exprs;
+    Statement* stmt = stmts->stmts;
 
-    while (expr) {
-        Interpreter_Expression(self, expr);
-        expr = expr->next;
+    while (stmt) {
+        Interpreter_Statement(self, stmt);
+        stmt = stmt->next;
     }
 }
 

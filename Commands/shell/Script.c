@@ -168,21 +168,20 @@ void Atom_Print(Atom* _Nonnull self)
 #endif
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: SExpression (Symbolic expression)
+// MARK: Command
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t SExpression_Create(StackAllocatorRef _Nonnull pAllocator, SExpression* _Nullable * _Nonnull pOutSelf)
+errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf)
 {
-    SExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(SExpression));
+    Command* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Command));
 
     *pOutSelf = self;
     return (self) ? EOK : ENOMEM;
 }
 
-void SExpression_AddAtom(SExpression* _Nonnull self, Atom* _Nonnull atom)
+void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom)
 {
     if (self->lastAtom) {
         (self->lastAtom)->next = atom;
@@ -195,7 +194,7 @@ void SExpression_AddAtom(SExpression* _Nonnull self, Atom* _Nonnull atom)
 }
 
 #ifdef SCRIPT_PRINTING
-void SExpression_Print(SExpression* _Nonnull self)
+void Command_Print(Command* _Nonnull self)
 {
     Atom* atom = self->atoms;
 
@@ -220,37 +219,72 @@ errno_t Expression_Create(StackAllocatorRef _Nonnull pAllocator, Expression* _Nu
     return (self) ? EOK : ENOMEM;
 }
 
-void Expression_AddSExpression(Expression* _Nonnull self, SExpression* _Nonnull expr)
+void Expression_AddCommand(Expression* _Nonnull self, Command* _Nonnull cmd)
 {
-    if (self->lastExpr) {
-        (self->lastExpr)->next = expr;
+    if (self->lastCmd) {
+        (self->lastCmd)->next = cmd;
     }
     else {
-        self->exprs = expr;
+        self->cmds = cmd;
     }
 
-    self->lastExpr = expr;
+    self->lastCmd = cmd;
 }
 
 #ifdef SCRIPT_PRINTING
 void Expression_Print(Expression* _Nonnull self)
 {
-    SExpression* expr = self->exprs;
+    Command* cmd = self->cmds;
 
-    while(expr) {
-        SExpression_Print(expr);
-        expr = expr->next;
-        if (expr) {
-            printf(" | ");
+    while(cmd) {
+        Command_Print(cmd);
+        cmd = cmd->next;
+        if (cmd) {
+            fputs(" | ", stdout);
         }
     }
+}
+#endif
 
-    switch (self->terminator) {
-        case kToken_Eof:        fputs("<EOF>", stdout); break;
-        case kToken_Newline:    fputs("<NL>", stdout); break;
-        case kToken_Semicolon:  putchar(';'); break;
-        case kToken_Ampersand:  putchar('&'); break;
-        default:                abort(); break;
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Statement
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t Statement_Create(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf)
+{
+    Statement* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Statement));
+
+    self->type = kStatementType_Null;
+    *pOutSelf = self;
+    return (self) ? EOK : ENOMEM;
+}
+
+void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr)
+{
+    self->type = kStatementType_Expression;
+    self->u.expr = expr;
+}
+
+#ifdef SCRIPT_PRINTING
+void Statement_Print(Statement* _Nonnull self)
+{
+    switch (self->type) {
+        case kStatementType_Expression:
+            Expression_Print(self->u.expr);
+            break;
+
+        default:
+            abort();
+            break;
+    }
+
+    if (self->isAsync) {
+        putchar('&');
+    }
+    else {
+        putchar(';');
     }
 }
 #endif
@@ -263,30 +297,30 @@ void Expression_Print(Expression* _Nonnull self)
 
 void StatementList_Init(StatementList* _Nonnull self)
 {
-    self->exprs = NULL;
-    self->lastExpr = NULL;
+    self->stmts = NULL;
+    self->lastStmt = NULL;
 }
 
-void StatementList_AddExpression(StatementList* _Nonnull self, Expression* _Nonnull expr)
+void StatementList_AddStatement(StatementList* _Nonnull self, Statement* _Nonnull stmt)
 {
-    if (self->lastExpr) {
-        (self->lastExpr)->next = expr;
+    if (self->lastStmt) {
+        (self->lastStmt)->next = stmt;
     }
     else {
-        self->exprs = expr;
+        self->stmts = stmt;
     }
-    self->lastExpr = expr;
+    self->lastStmt = stmt;
 }
 
 #ifdef SCRIPT_PRINTING
 void StatementList_Print(StatementList* _Nonnull self)
 {
-    Expression* expr = self->exprs;
+    Statement* stmt = self->stmts;
 
-    while(expr) {
-        Expression_Print(expr);
-        expr = expr->next;
-        if (expr) {
+    while(stmt) {
+        Statement_Print(stmt);
+        stmt = stmt->next;
+        if (stmt) {
             putchar('\n');
         }
     }
@@ -345,8 +379,8 @@ catch:
 void Script_Reset(Script* _Nonnull self)
 {
     StackAllocator_DeallocAll(self->allocator);
-    self->statements.exprs = NULL;
-    self->statements.lastExpr = NULL;
+    self->statements.stmts = NULL;
+    self->statements.lastStmt = NULL;
 }
 
 void Script_Destroy(Script* _Nullable self)
@@ -354,8 +388,8 @@ void Script_Destroy(Script* _Nullable self)
     if (self) {
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
-        self->statements.exprs = NULL;
-        self->statements.lastExpr = NULL;
+        self->statements.stmts = NULL;
+        self->statements.lastStmt = NULL;
         free(self);
     }
 }
