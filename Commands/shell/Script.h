@@ -13,8 +13,8 @@
 #include "Lexer.h"
 #include "StackAllocator.h"
 
-//#define SCRIPT_PRINTING 1
-struct PExpression;
+#define SCRIPT_PRINTING 1
+struct Expression;
 
 
 typedef enum AtomType {
@@ -24,7 +24,7 @@ typedef enum AtomType {
     kAtom_DoubleQuotedString,       // u.string
     kAtom_EscapedCharacter,         // u.string
     kAtom_VariableReference,        // u.string
-    kAtom_PExpression,              // u.expr
+    kAtom_Expression,               // u.expr
     kAtom_Less,
     kAtom_Greater,
     kAtom_LessEqual,
@@ -51,14 +51,14 @@ typedef struct Atom {
     union {
         char                    character;
         struct AtomString       string;
-        struct PExpression*     expr;
+        struct Expression*      expr;
     }                       u;
 } Atom;
 
 extern errno_t Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
 extern errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
 extern errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
-extern errno_t Atom_CreateWithPExpression(StackAllocatorRef _Nonnull pAllocator, struct PExpression* _Nonnull expr, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the p-expression
+extern errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the p-expression
 #ifdef SCRIPT_PRINTING
 extern void Atom_Print(Atom* _Nonnull self);
 #endif
@@ -78,28 +78,39 @@ extern void SExpression_Print(SExpression* _Nonnull self);
 
 
 
-typedef struct PExpression {
-    struct PExpression* _Nullable   next;
+typedef struct Expression {
+    struct Expression* _Nullable   next;
     SExpression* _Nonnull           exprs;
     SExpression* _Nonnull           lastExpr;
     TokenId                         terminator;
-} PExpression;
+} Expression;
 
-extern errno_t PExpression_Create(StackAllocatorRef _Nonnull pAllocator, PExpression* _Nullable * _Nonnull pOutSelf);
-extern void PExpression_AddSExpression(PExpression* _Nonnull self, SExpression* _Nonnull expr);
+extern errno_t Expression_Create(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
+extern void Expression_AddSExpression(Expression* _Nonnull self, SExpression* _Nonnull expr);
 #ifdef SCRIPT_PRINTING
-extern void PExpression_Print(PExpression* _Nonnull self);
+extern void Expression_Print(Expression* _Nonnull self);
+#endif
+
+
+
+typedef struct StatementList {
+    Expression* _Nullable  exprs;
+    Expression* _Nullable  lastExpr;
+} StatementList;
+
+extern void StatementList_Init(StatementList* _Nonnull self);
+extern void StatementList_AddExpression(StatementList* _Nonnull self, Expression* _Nonnull expr);
+#ifdef SCRIPT_PRINTING
+extern void StatementList_Print(StatementList* _Nonnull self);
 #endif
 
 
 
 typedef struct Block {
-    PExpression* _Nullable  exprs;
-    PExpression* _Nullable  lastExpr;
+    StatementList   statements;
 } Block;
 
 extern errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, Block* _Nullable * _Nonnull pOutSelf);
-extern void Block_AddPExpression(Block* _Nonnull self, PExpression* _Nonnull expr);
 #ifdef SCRIPT_PRINTING
 extern void Block_Print(Block* _Nonnull self);
 #endif
@@ -107,7 +118,7 @@ extern void Block_Print(Block* _Nonnull self);
 
 
 typedef struct Script {
-    Block* _Nullable            body;
+    StatementList               statements;
     StackAllocatorRef _Nonnull  allocator;
 } Script;
 
@@ -116,7 +127,6 @@ typedef struct Script {
 extern errno_t Script_Create(Script* _Nullable * _Nonnull pOutSelf);
 extern void Script_Destroy(Script* _Nullable self);
 extern void Script_Reset(Script* _Nonnull self);
-extern void Script_SetBlock(Script* _Nonnull self, Block* _Nonnull block);
 #ifdef SCRIPT_PRINTING
 extern void Script_Print(Script* _Nonnull self);
 #endif

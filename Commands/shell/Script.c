@@ -65,12 +65,12 @@ catch:
     return err;
 }
 
-errno_t Atom_CreateWithPExpression(StackAllocatorRef _Nonnull pAllocator, PExpression* _Nonnull expr, Atom* _Nullable * _Nonnull pOutSelf)
+errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, Atom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Atom* self = NULL;
 
-    try(Atom_Create(pAllocator, kAtom_PExpression, true, &self));
+    try(Atom_Create(pAllocator, kAtom_Expression, true, &self));
     self->u.expr = expr;
 
 catch:
@@ -110,9 +110,9 @@ void Atom_Print(Atom* _Nonnull self)
             printf("$%s", self->u.string.chars);
             break;
 
-        case kAtom_PExpression:
+        case kAtom_Expression:
             putchar('(');
-            PExpression_Print(self->u.expr);
+            Expression_Print(self->u.expr);
             putchar(')');
             break;
 
@@ -209,18 +209,18 @@ void SExpression_Print(SExpression* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: PExpression (pipe-connected expression)
+// MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t PExpression_Create(StackAllocatorRef _Nonnull pAllocator, PExpression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_Create(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
 {
-    PExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(PExpression));
+    Expression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Expression));
 
     *pOutSelf = self;
     return (self) ? EOK : ENOMEM;
 }
 
-void PExpression_AddSExpression(PExpression* _Nonnull self, SExpression* _Nonnull expr)
+void Expression_AddSExpression(Expression* _Nonnull self, SExpression* _Nonnull expr)
 {
     if (self->lastExpr) {
         (self->lastExpr)->next = expr;
@@ -233,7 +233,7 @@ void PExpression_AddSExpression(PExpression* _Nonnull self, SExpression* _Nonnul
 }
 
 #ifdef SCRIPT_PRINTING
-void PExpression_Print(PExpression* _Nonnull self)
+void Expression_Print(Expression* _Nonnull self)
 {
     SExpression* expr = self->exprs;
 
@@ -258,18 +258,16 @@ void PExpression_Print(PExpression* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Block
+// MARK: StatementList
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, Block* _Nullable * _Nonnull pOutSelf)
+void StatementList_Init(StatementList* _Nonnull self)
 {
-    Block* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Block));
-
-    *pOutSelf = self;
-    return (self) ? EOK : ENOMEM;
+    self->exprs = NULL;
+    self->lastExpr = NULL;
 }
 
-void Block_AddPExpression(Block* _Nonnull self, PExpression* _Nonnull expr)
+void StatementList_AddExpression(StatementList* _Nonnull self, Expression* _Nonnull expr)
 {
     if (self->lastExpr) {
         (self->lastExpr)->next = expr;
@@ -281,17 +279,42 @@ void Block_AddPExpression(Block* _Nonnull self, PExpression* _Nonnull expr)
 }
 
 #ifdef SCRIPT_PRINTING
-void Block_Print(Block* _Nonnull self)
+void StatementList_Print(StatementList* _Nonnull self)
 {
-    PExpression* expr = self->exprs;
+    Expression* expr = self->exprs;
 
     while(expr) {
-        PExpression_Print(expr);
+        Expression_Print(expr);
         expr = expr->next;
         if (expr) {
             putchar('\n');
         }
     }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Block
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, Block* _Nullable * _Nonnull pOutSelf)
+{
+    Block* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Block));
+
+    StatementList_Init(&self->statements);
+    *pOutSelf = self;
+    return (self) ? EOK : ENOMEM;
+}
+
+#ifdef SCRIPT_PRINTING
+void Block_Print(Block* _Nonnull self)
+{
+    putchar('{');
+    StatementList_Print(&self->statements);
+    putchar('}');
+    putchar('\n');
 }
 #endif
 
@@ -308,6 +331,7 @@ errno_t Script_Create(Script* _Nullable * _Nonnull pOutSelf)
 
     try_null(self, calloc(1, sizeof(Script)), errno);
     try(StackAllocator_Create(512, 4096, &self->allocator));
+    StatementList_Init(&self->statements);
 
     *pOutSelf = self;
     return EOK;
@@ -321,7 +345,8 @@ catch:
 void Script_Reset(Script* _Nonnull self)
 {
     StackAllocator_DeallocAll(self->allocator);
-    self->body = NULL;
+    self->statements.exprs = NULL;
+    self->statements.lastExpr = NULL;
 }
 
 void Script_Destroy(Script* _Nullable self)
@@ -329,20 +354,16 @@ void Script_Destroy(Script* _Nullable self)
     if (self) {
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
-        self->body = NULL;
+        self->statements.exprs = NULL;
+        self->statements.lastExpr = NULL;
         free(self);
     }
-}
-
-void Script_SetBlock(Script* _Nonnull self, Block* _Nonnull block)
-{
-    self->body = block;
 }
 
 #ifdef SCRIPT_PRINTING
 void Script_Print(Script* _Nonnull self)
 {
-    Block_Print(self->body);
+    StatementList_Print(&self->statements);
     putchar('\n');
 }
 #endif

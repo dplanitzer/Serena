@@ -29,10 +29,10 @@ typedef enum TokenId {
     kToken_Newline = '\n',              // -
     kToken_OpeningParenthesis = '(',    // -
     kToken_ClosingParenthesis = ')',    // -
-    kToken_OpeningBraces = '{',         // -
-    kToken_ClosingBraces = '}',         // -
-    kToken_OpeningBrackets = '[',       // -
-    kToken_ClosingBrackets = ']',       // -
+    kToken_OpeningBrace = '{',          // -
+    kToken_ClosingBrace = '}',          // -
+    kToken_OpeningBracket = '[',        // -
+    kToken_ClosingBracket = ']',        // -
     kToken_Less = '<',                  // -
     kToken_Greater = '>',               // -
     kToken_Bar = '|',                   // -

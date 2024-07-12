@@ -325,9 +325,9 @@ catch:
     printf(shell_strerror(err));
 }
 
-static void Interpreter_PExpression(InterpreterRef _Nonnull self, PExpression* _Nonnull p_expr)
+static void Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
-    SExpression* s_expr = p_expr->exprs;
+    SExpression* s_expr = expr->exprs;
 
     // XXX create an intermediate representation that allows us to model a set of
     // XXX commands that are linked through pipes. For now we'll do each command
@@ -338,14 +338,19 @@ static void Interpreter_PExpression(InterpreterRef _Nonnull self, PExpression* _
     }
 }
 
+static void Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)
+{
+    Expression* expr = stmts->exprs;
+
+    while (expr) {
+        Interpreter_Expression(self, expr);
+        expr = expr->next;
+    }
+}
+
 static void Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
 {
-    PExpression* p_expr = block->exprs;
-
-    while (p_expr) {
-        Interpreter_PExpression(self, p_expr);
-        p_expr = p_expr->next;
-    }
+    Interpreter_StatementList(self, &block->statements);
 }
 
 // Interprets 'script' and executes all its statements.
@@ -354,6 +359,6 @@ void Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script)
     //Script_Print(script);
     //putchar('\n');
 
-    Interpreter_Block(self, script->body);
+    Interpreter_StatementList(self, &script->statements);
     StackAllocator_DeallocAll(self->allocator);
 }
