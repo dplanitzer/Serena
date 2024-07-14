@@ -110,6 +110,59 @@ static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull 
     return EOK;
 }
 
+static size_t Interpreter_GetQuotedStringLength(InterpreterRef _Nonnull self, QuotedString* _Nonnull qstr)
+{
+    StringAtom* atom = qstr->atoms;
+    size_t len = 0;
+
+    while (atom) {
+        switch (atom->type) {
+            case kStringAtom_EscapeSequence:
+            case kStringAtom_Segment:
+                len += StringAtom_GetStringLength(atom);
+                break;
+
+            case kStringAtom_Expression:
+            case kStringAtom_VariableReference:
+                break;
+
+            default:
+                abort();
+                break;
+        }
+        atom = atom->next;
+    }
+    return len;
+}
+
+static char* _Nonnull Interpreter_GetQuotedStringText(InterpreterRef _Nonnull self, QuotedString* _Nonnull qstr, char* _Nonnull buf)
+{
+    StringAtom* atom = qstr->atoms;
+
+    while (atom) {
+        switch (atom->type) {
+            case kStringAtom_EscapeSequence:
+            case kStringAtom_Segment: {
+                const size_t len = StringAtom_GetStringLength(atom);
+
+                memcpy(buf, StringAtom_GetString(atom), len * sizeof(char));
+                buf += len;
+                break;
+            }
+
+            case kStringAtom_Expression:
+            case kStringAtom_VariableReference:
+                break;
+
+            default:
+                abort();
+                break;
+        }
+        atom = atom->next;
+    }
+    return buf;
+}
+
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     Symbol* cmd = SymbolTable_GetSymbol(self->symbolTable, kSymbolType_Command, argv[0]);
@@ -186,63 +239,39 @@ static int calc_argc(Command* _Nonnull cmd)
     return argc;
 }
 
-static size_t calc_atom_string_length(Atom* _Nonnull atom)
+static size_t calc_atom_string_length(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
 {
     switch (atom->type) {
-        case kAtom_Character:
-        case kAtom_Assignment:
-        case kAtom_Plus:
-        case kAtom_Minus:
-        case kAtom_Multiply:
-        case kAtom_Divide:
-        case kAtom_Less:
-        case kAtom_Greater:
-            return 1;
+        case kAtom_Expression:
+        case kAtom_VariableReference:
+            return 0;
 
-        case kAtom_LessEqual:
-        case kAtom_GreaterEqual:
-        case kAtom_NotEqual:
-        case kAtom_Equal:
-            return 2;
-
-        case kAtom_UnquotedString:
-        case kAtom_SingleQuotedString:
-        case kAtom_DoubleQuotedString:
-        case kAtom_EscapedCharacter:
-            return atom->u.string.length;
+        case kAtom_QuotedString:
+            return Interpreter_GetQuotedStringLength(self, atom->u.qstring);
 
         default:
-            return 0;
+            return Atom_GetStringLength(atom);
     }
 }
 
-static char* _Nonnull get_atom_string(Atom* _Nonnull atom, char* _Nonnull ap)
+static char* _Nonnull get_atom_string(InterpreterRef _Nonnull self, Atom* _Nonnull atom, char* _Nonnull ap)
 {
     switch (atom->type) {
-        case kAtom_Character:           *ap++ = atom->u.character; break;
-        case kAtom_Assignment:          *ap++ = '='; break;
-        case kAtom_Plus:                *ap++ = '+'; break;
-        case kAtom_Minus:               *ap++ = '-'; break;
-        case kAtom_Multiply:            *ap++ = '*'; break;
-        case kAtom_Divide:              *ap++ = '/'; break;
-        case kAtom_Less:                *ap++ = '<'; break;
-        case kAtom_Greater:             *ap++ = '>'; break;
-
-        case kAtom_LessEqual:           *ap++ = '<'; *ap++ = '='; break;
-        case kAtom_GreaterEqual:        *ap++ = '>'; *ap++ = '='; break;
-        case kAtom_NotEqual:            *ap++ = '!'; *ap++ = '='; break;
-        case kAtom_Equal:               *ap++ = '='; *ap++ = '='; break;
-
-        case kAtom_UnquotedString:
-        case kAtom_SingleQuotedString:
-        case kAtom_DoubleQuotedString:
-        case kAtom_EscapedCharacter:
-            memcpy(ap, atom->u.string.chars, atom->u.string.length * sizeof(char));
-            ap += atom->u.string.length;
+        case kAtom_Expression:
+        case kAtom_VariableReference:
             break;
 
-        default:
+        case kAtom_QuotedString:
+            ap = Interpreter_GetQuotedStringText(self, atom->u.qstring, ap);
             break;
+
+        default: {
+            const size_t len = Atom_GetStringLength(atom);
+
+            memcpy(ap, Atom_GetString(atom), len * sizeof(char));
+            ap += len;
+            break;
+        }
     }
 
     return ap;
@@ -270,10 +299,10 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
 
         // We always pick up the first atom in an non-whitespace-separated-atom-sequence
         // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
-        size_t arg_size = calc_atom_string_length(atom);
+        size_t arg_size = calc_atom_string_length(self, atom);
         atom = atom->next;
         while (atom && !atom->hasLeadingWhitespace) {
-            arg_size += calc_atom_string_length(atom);
+            arg_size += calc_atom_string_length(self, atom);
             atom = atom->next;
         }
         end_atom = atom;
@@ -288,7 +317,7 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
             cap = ap;
             atom = sav_atom;
             while (atom != end_atom) {
-                cap = get_atom_string(atom, cap);
+                cap = get_atom_string(self, atom, cap);
                 atom = atom->next;
             }
             *cap = '\0';

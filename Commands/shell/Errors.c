@@ -13,14 +13,14 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
-        /*ESYNTAX*/         "Syntax error",
-        /*EUNDERFLOW*/      "Underflow",
-        /*EUNDEFINED*/      "Undefined",
         /*EREDEFINED*/      "Redefinition",
+        /*EUNDEFINED*/      "Undefined",
+        /*EUNDERFLOW*/      "Underflow",
+        /*ESYNTAX*/         "Syntax error",
     };
 
-    if (err_no >= _EFIRST_SHELL && err_no <= _ELAST_SHELL) {
-        return gErrorDescs[err_no + _EFIRST_SHELL];
+    if (err_no >= _ELAST_SHELL && err_no <= _EFIRST_SHELL) {
+        return gErrorDescs[err_no - _ELAST_SHELL];
     } else {
         return (const char*)strerror(err_no);
     }

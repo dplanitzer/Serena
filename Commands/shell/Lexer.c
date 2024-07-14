@@ -11,25 +11,22 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 #define INITIAL_TEXT_BUFFER_CAPACITY    16
 
 
-errno_t Lexer_Init(Lexer* _Nonnull self)
+void Lexer_Init(Lexer* _Nonnull self)
 {
-    memset(self, 0, sizeof(Lexer));
-
     self->source = "";
     self->sourceIndex = 0;
+    self->textBuffer = NULL;
     self->textBufferCapacity = 0;
     self->textBufferCount = 0;
     self->column = 1;
     self->line = 1;
     self->t.id = kToken_Eof;
-    
-    return 0;
+    self->mode = kLexerMode_Default;
 }
 
 void Lexer_Deinit(Lexer* _Nonnull self)
@@ -86,24 +83,26 @@ static void Lexer_ScanVariableName(Lexer* _Nonnull self)
     self->textBufferCount--;
 }
 
-// Scans a single quoted string. Expects that the current input position is at
-// the first character of the string contents.
-static void Lexer_ScanSingleQuotedString(Lexer* _Nonnull self)
+// Scans a single quoted/backticked string. Expects that the current input
+// position is at the first character of the string contents.
+static bool Lexer_ScanString(Lexer* _Nonnull self, char closingMark)
 {
+    bool isIncomplete = false;
+
     self->textBufferCount = 0;
 
     while (true) {
         const char ch = self->source[self->sourceIndex];
 
         if (ch == '\0') {
-            printf("Error: unexpected end of string\n");
+            isIncomplete = true;
             break;
         }
 
         self->sourceIndex++;
         self->column++;
 
-        if (ch == '\'') {
+        if (ch == closingMark) {
             break;
         }
         Lexer_AddCharToTextBuffer(self, ch);
@@ -111,6 +110,7 @@ static void Lexer_ScanSingleQuotedString(Lexer* _Nonnull self)
 
     Lexer_AddCharToTextBuffer(self, '\0');
     self->textBufferCount--;
+    return isIncomplete;
 }
 
 // Scans an octal code escape sequence of one, two or three digits into the text
@@ -157,10 +157,10 @@ static void Lexer_ScanHexByteEscapeSequence(Lexer* _Nonnull self)
     Lexer_AddCharToTextBuffer(self, val & 0xff);
 }
 
-// Scans an escape sequence that appears inside of a double quoted string. Expects
+// Scans an escape sequence that appears inside of a " or `` string. Expects
 // that the current input position is at the first character following the
 // initial '\' character.
-static void Lexer_ScanEscapeSequence(Lexer* _Nonnull self)
+static bool Lexer_ScanStringEscapeSequence(Lexer* _Nonnull self)
 {
     char ch = self->source[self->sourceIndex];
 
@@ -187,20 +187,19 @@ static void Lexer_ScanEscapeSequence(Lexer* _Nonnull self)
         case '6':
         case '7':
             Lexer_ScanOctalEscapeSequence(self);
-            return;
+            return false;
 
         case 'x':
         case 'X':
             self->sourceIndex++;
             self->column++;
             Lexer_ScanHexByteEscapeSequence(self);
-            return;
+            return false;
             
         // XXX add \uxxxx and \Uxxxxyyyy (Unicode) support
 
         case '\0':
-            printf("Error: incomplete escape sequence\n");
-            return;
+            return true;
 
         case '\r':
             if (self->source[self->sourceIndex + 1] != '\n') {
@@ -218,48 +217,40 @@ static void Lexer_ScanEscapeSequence(Lexer* _Nonnull self)
             break;
 
         default:
-            printf("Error: unexpected escape sequence (ignored)\n");
             self->sourceIndex++;
             self->column++;
-            return;
+            return false;
     }
 
     self->sourceIndex++;
     Lexer_AddCharToTextBuffer(self, ch);
+    return false;
 }
 
-// Scans a double quoted string. Expects that the current input position is at
-// the first character of the string contents.
-static void Lexer_ScanDoubleQuotedString(Lexer* _Nonnull self)
+// Scans a string segment inside a " or `` string. Expects that the current
+// input position is at the first character of the string contents.
+static void Lexer_ScanStringSegment(Lexer* _Nonnull self)
 {
-    bool done = false;
+    LexerMode mode = self->mode;
 
     self->textBufferCount = 0;
 
-    while (!done) {
+    for (;;) {
         const char ch = self->source[self->sourceIndex];
 
-        if (ch == '\0') {
-            printf("Error: unexpected end of string\n");
+        if (ch == '\0' || ch == '$' || ch == '\\') {
+            break;
+        }
+        if (ch == '"' && mode == kLexerMode_DoubleQuote) {
+            break;
+        }
+        if (ch == '`' && self->source[self->sourceIndex + 1] == '`' && mode == kLexerMode_DoubleBacktick) {
             break;
         }
 
         self->sourceIndex++;
         self->column++;
-
-        switch(ch) {
-            case '"':
-                done = true;
-                break;
-
-            case '\\':
-                Lexer_ScanEscapeSequence(self);
-                break;
-
-            default:
-                Lexer_AddCharToTextBuffer(self, ch);
-                break;
-        }
+        Lexer_AddCharToTextBuffer(self, ch);
     }
 
     Lexer_AddCharToTextBuffer(self, '\0');
@@ -268,14 +259,13 @@ static void Lexer_ScanDoubleQuotedString(Lexer* _Nonnull self)
 
 // Scans an escaped character. Expects that the current input position is at the
 // first character following the initial '\' character.
-static void Lexer_ScanEscapedCharacter(Lexer* _Nonnull self)
+static bool Lexer_ScanEscapedCharacter(Lexer* _Nonnull self)
 {
     char ch = self->source[self->sourceIndex];
 
     switch (ch) {
         case '\0':
-            printf("Error: incomplete escape sequence\n");
-            return;
+            return true;
 
         case '\r':
             if (self->source[self->sourceIndex + 1] != '\n') {
@@ -298,53 +288,118 @@ static void Lexer_ScanEscapedCharacter(Lexer* _Nonnull self)
 
     self->sourceIndex++;
     Lexer_AddCharToTextBuffer(self, ch);
+    return false;
 }
 
-// Returns true if the given character is a valid atom character; false otherwise.
-// Characters which are not valid atom characters are used to separate atoms.
-static bool isAtomChar(char ch)
+// Tries scanning a variable name of the form:
+// '$' (('_' | [a-z] | [A-Z] | [0-9])* ':')? ('_' | [a-z] | [A-Z] | [0-9])+
+// 
+// Expects that the current input position is at the '$' character.
+static bool Lexer_TryScanVariableName(Lexer* _Nonnull self)
 {
-    switch (ch) {
-        case '\0':
-        case '{':
-        case '}':
-        case '[':
-        case ']':
-        case '(':
-        case ')':
-        case '|':
-        case '<':
-        case '>':
-        case '!':
-        case '=':
-        case '+':
-        case '-':
-        case '*':
-        case '/':
-        case '&':
-        case '#':
-        case ';':
-        case '$':
-        case '\"':
-        case '\'':
-        case '\\':
-            return false;
+    size_t nameLen = 0;
+    int savedSourceIndex = self->sourceIndex;
 
-        default:
-            return (isgraph(ch) != 0 && isspace(ch) == 0) ? true : false;
-    }
-}
-
-// Scans an atom. Expects that the current input position is at the first
-// character of the atom.
-static void Lexer_ScanAtom(Lexer* _Nonnull self)
-{
     self->textBufferCount = 0;
+
+    // Consume '$'
+    self->sourceIndex++;
+    self->column++;
 
     while (true) {
         const char ch = self->source[self->sourceIndex];
 
-        if (!isAtomChar(ch)) {
+        if (!isalnum(ch) && ch != '_') {
+            break;
+        }
+
+        self->sourceIndex++;
+        self->column++;
+        nameLen++;
+        Lexer_AddCharToTextBuffer(self, ch);
+    }
+
+    if (self->source[self->sourceIndex] == ':') {
+        self->column++;
+        Lexer_AddCharToTextBuffer(self, ':');
+        nameLen = 0;
+
+        while (true) {
+            const char ch = self->source[self->sourceIndex];
+
+            if (!isalnum(ch) && ch != '_') {
+                break;
+            }
+
+            self->sourceIndex++;
+            self->column++;
+            nameLen++;
+            Lexer_AddCharToTextBuffer(self, ch);
+        }
+    }
+
+    Lexer_AddCharToTextBuffer(self, '\0');
+    self->textBufferCount--;
+
+    if (nameLen > 0) {
+        return true;
+    }
+    else {
+        self->sourceIndex = savedSourceIndex;
+        return false;
+    }
+}
+
+// Returns true if the given character should terminate the construction of an
+// identifier character; false otherwise.
+static bool isIdentifierTerminator(char ch)
+{
+    switch (ch) {
+        case '\0':
+        case '|':
+        case '&':
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case ';':
+        case '$':
+        case '"':
+        case '`':
+        case '\'':
+        case '(':
+        case ')':
+        case '{':
+        case '}':
+        case '<':
+        case '>':
+        case '=':
+        case '!':
+        case '_':
+            return true;
+
+        default:
+            return (!isalnum(ch)) ? true : false;
+    }
+}
+
+// Scans an identifier of the form:
+// [^\0x20\0x09|&+-*/\;$"`'(){}<>=!_a-zA-Z0-9]+
+// 
+// Expects that the current input position is at the first character of the
+// identifier. This first character is accepted no matter what. Even if it would
+// be treated as a terminating character otherwise.
+static void Lexer_ScanIdentifier(Lexer* _Nonnull self)
+{
+    self->textBufferCount = 0;
+
+    self->column++;
+    Lexer_AddCharToTextBuffer(self, self->source[self->sourceIndex++]);
+
+    while (true) {
+        const char ch = self->source[self->sourceIndex];
+
+        if (isIdentifierTerminator(ch)) {
             break;
         }
 
@@ -362,7 +417,7 @@ static void Lexer_SkipWhitespace(Lexer* _Nonnull self)
     while (true) {
         const char ch = self->source[self->sourceIndex];
 
-        if (ch != ' ' && ch != '\t' && ch != '\v' && ch != '\f') {
+        if (ch == '\0' || !isspace(ch)) {
             break;
         }
 
@@ -371,12 +426,12 @@ static void Lexer_SkipWhitespace(Lexer* _Nonnull self)
     }
 }
 
-static void Lexer_SkipEndOfLineComment(Lexer* _Nonnull self)
+static void Lexer_SkipLineComment(Lexer* _Nonnull self)
 {
     while (true) {
         const char ch = self->source[self->sourceIndex];
 
-        if (ch == '\n' || (ch == '\r' && self->source[self->sourceIndex + 1] == '\n')) {
+        if (ch == '\0' || ch == '\n' || (ch == '\r' && self->source[self->sourceIndex + 1] == '\n')) {
             break;
         }
 
@@ -385,7 +440,7 @@ static void Lexer_SkipEndOfLineComment(Lexer* _Nonnull self)
     }
 }
 
-void Lexer_ConsumeToken(Lexer* _Nonnull self)
+static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
 {
     const char c = self->source[self->sourceIndex];
 
@@ -393,7 +448,8 @@ void Lexer_ConsumeToken(Lexer* _Nonnull self)
     self->t.line = self->line;
     self->t.length = 0;
     self->t.u.string = NULL;
-    self->t.hasLeadingWhitespace = (c == '\0' || c == '#' || isspace(c));
+    self->t.hasLeadingWhitespace = (c == '#' || isspace(c) || self->sourceIndex == 0);
+    self->t.isIncomplete = false;
     
     while (true) {
         const char ch = self->source[self->sourceIndex];
@@ -411,7 +467,7 @@ void Lexer_ConsumeToken(Lexer* _Nonnull self)
                 break;
 
             case '#':
-                Lexer_SkipEndOfLineComment(self);
+                Lexer_SkipLineComment(self);
                 break;
 
             case '\r':
@@ -435,19 +491,42 @@ void Lexer_ConsumeToken(Lexer* _Nonnull self)
             case ')':
             case '{':
             case '}':
-            case '[':
-            case ']':
-            case '|':
-            case '&':
-            case ';':
             case '+':
             case '-':
             case '*':
             case '/':
+            case '"':
+            case ';':
                 self->sourceIndex++;
                 self->column++;
 
                 self->t.id = ch;
+                return;
+
+            case '&':
+                self->sourceIndex++;
+                self->column++;
+
+                if (self->source[self->sourceIndex] == '&') {
+                    self->sourceIndex++;
+                    self->column++;
+                    self->t.id = kToken_Conjunction;
+                } else {
+                    self->t.id = ch;        // &
+                }
+                return;
+
+            case '|':
+                self->sourceIndex++;
+                self->column++;
+
+                if (self->source[self->sourceIndex] == '|') {
+                    self->sourceIndex++;
+                    self->column++;
+                    self->t.id = kToken_Disjunction;
+                } else {
+                    self->t.id = ch;        // |
+                }
                 return;
 
             case '<':
@@ -460,11 +539,23 @@ void Lexer_ConsumeToken(Lexer* _Nonnull self)
                     self->column++;
                     self->t.id = (ch == '<') ? kToken_LessEqual : kToken_GreaterEqual;
                 } else {
-                    self->t.id = ch;
+                    self->t.id = ch;        // < or >
                 }
                 return;
 
             case '!':
+                self->sourceIndex++;
+                self->column++;
+
+                if (self->source[self->sourceIndex] == '=') {
+                    self->sourceIndex++;
+                    self->column++;
+                    self->t.id = kToken_NotEqual;
+                } else {
+                    self->t.id = ch;        // !
+                }
+                return;
+
             case '=':
                 self->sourceIndex++;
                 self->column++;
@@ -472,42 +563,34 @@ void Lexer_ConsumeToken(Lexer* _Nonnull self)
                 if (self->source[self->sourceIndex] == '=') {
                     self->sourceIndex++;
                     self->column++;
-                    self->t.id = (ch == '!') ? kToken_NotEqual : kToken_Equal;
-                } else if (ch == '=') {
-                    self->t.id = ch;
+                    self->t.id = kToken_EqualEqual;
                 } else {
-                    self->t.id = kToken_Character;
-                    self->t.u.character = ch;
-                    self->t.length = 1;
+                    self->t.id = ch;        // =
                 }
                 return;
 
-            case '$':
+            case '`':
                 self->sourceIndex++;
                 self->column++;
-                Lexer_ScanVariableName(self);
 
-                self->t.id = kToken_VariableName;
-                self->t.u.string = self->textBuffer;
-                self->t.length = self->textBufferCount;
+                if (self->source[self->sourceIndex] == '`') {
+                    self->sourceIndex++;
+                    self->column++;
+                    self->t.id = kToken_DoubleBacktick;
+                } else {
+                    self->t.id = kToken_BacktickString;
+                    self->t.isIncomplete = Lexer_ScanString(self, '`');
+                    self->t.u.string = self->textBuffer;
+                    self->t.length = self->textBufferCount;
+                }
                 return;
 
             case '\'':
                 self->sourceIndex++;
                 self->column++;
-                Lexer_ScanSingleQuotedString(self);
 
-                self->t.id = kToken_SingleQuotedString;
-                self->t.u.string = self->textBuffer;
-                self->t.length = self->textBufferCount;
-                return;
-
-            case '"':
-                self->sourceIndex++;
-                self->column++;
-                Lexer_ScanDoubleQuotedString(self);
-
-                self->t.id = kToken_DoubleQuotedString;
+                self->t.id = kToken_SingleQuoteString;
+                self->t.isIncomplete = Lexer_ScanString(self, '\'');
                 self->t.u.string = self->textBuffer;
                 self->t.length = self->textBufferCount;
                 return;
@@ -516,7 +599,7 @@ void Lexer_ConsumeToken(Lexer* _Nonnull self)
                 self->sourceIndex++;
                 self->column++;
                 self->textBufferCount = 0;
-                Lexer_ScanEscapedCharacter(self);
+                self->t.isIncomplete = Lexer_ScanEscapedCharacter(self);
                 Lexer_AddCharToTextBuffer(self, '\0');
                 self->textBufferCount--;
 
@@ -525,29 +608,116 @@ void Lexer_ConsumeToken(Lexer* _Nonnull self)
                     break;
                 }
                 else {
-                    self->t.id = kToken_EscapedCharacter;
+                    self->t.id = kToken_EscapeSequence;
                     self->t.u.string = self->textBuffer;
                     self->t.length = self->textBufferCount;
                     return;
                 }
 
             default:
-                if (isAtomChar(ch)) {
-                    Lexer_ScanAtom(self);
-
-                    self->t.id = kToken_UnquotedString;
-                    self->t.u.string = self->textBuffer;
-                    self->t.length = self->textBufferCount;
+                if (ch == '$') {
+                    if (Lexer_TryScanVariableName(self)) {
+                        self->t.id = kToken_VariableName;
+                        self->t.u.string = self->textBuffer;
+                        self->t.length = self->textBufferCount;
+                        return;
+                    }
                 }
-                else {
-                    self->sourceIndex++;
-                    self->column++;
 
-                    self->t.id = kToken_Character;
-                    self->t.u.character = ch;
-                    self->t.length = 1;
-                }
+                Lexer_ScanIdentifier(self);
+                self->t.id = kToken_Identifier;
+                self->t.u.string = self->textBuffer;
+                self->t.length = self->textBufferCount;
                 return;
         }
+    }
+}
+
+static void Lexer_ConsumeToken_StringMode(Lexer* _Nonnull self)
+{
+    const char ch = self->source[self->sourceIndex];
+
+    self->t.column = self->column;
+    self->t.line = self->line;
+    self->t.length = 0;
+    self->t.u.string = NULL;
+    self->t.hasLeadingWhitespace = false;
+    self->t.isIncomplete = false;
+
+    if (ch == '"' && self->mode == kLexerMode_DoubleQuote) {
+        self->sourceIndex++;
+        self->column++;
+
+        self->t.id = kToken_DoubleQuote;
+        return;
+    }
+    else if (ch == '`' && self->source[self->sourceIndex + 1] == '`' && self->mode == kLexerMode_DoubleBacktick) {
+        self->sourceIndex += 2;
+        self->column += 2;
+
+        self->t.id = kToken_DoubleBacktick;
+        return;
+    }
+
+    switch (ch) {
+        case '\0':
+            self->t.id = kToken_Eof;
+            break;
+
+        case '\\':
+            self->sourceIndex++;
+            self->column++;
+
+            if (self->source[self->sourceIndex] == '(') {
+                self->sourceIndex++;
+                self->column++;
+        
+                self->t.id = kToken_EscapedExpression;
+            }
+            else {
+                self->textBufferCount = 0;
+                self->t.isIncomplete = Lexer_ScanStringEscapeSequence(self);
+                Lexer_AddCharToTextBuffer(self, '\0');
+                self->textBufferCount--;
+
+                self->t.id = kToken_EscapeSequence;
+                self->t.u.string = self->textBuffer;
+                self->t.length = self->textBufferCount;
+            }
+            break;
+
+        case '$':
+            if (Lexer_TryScanVariableName(self)) {
+                self->t.id = kToken_VariableName;
+                self->t.u.string = self->textBuffer;
+                self->t.length = self->textBufferCount;
+                return;
+            }
+            // fall through
+
+        default:
+            Lexer_ScanStringSegment(self);
+            self->t.id = kToken_StringSegment;
+            self->t.u.string = self->textBuffer;
+            self->t.length = self->textBufferCount;
+            break;
+    }
+}
+
+void Lexer_ConsumeToken(Lexer* _Nonnull self)
+{
+    switch (self->mode) {
+        case kLexerMode_Default:
+            Lexer_ConsumeToken_DefaultMode(self);
+            break;
+
+        case kLexerMode_DoubleBacktick:
+        case kLexerMode_DoubleQuote:
+            Lexer_ConsumeToken_StringMode(self);
+            break;
+
+        default:
+            abort();
+            break;
     }
 }

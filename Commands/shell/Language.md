@@ -40,6 +40,10 @@ These are the semantic rules of the language:
 ## Tokens
 
 ```
+//
+// Default Mode
+//
+
 NL
     : \x0a | \x0d \0xa
     ;
@@ -52,30 +56,46 @@ VAR:        'var';
 WHILE:      'while';
 PUBLIC:     'public';
 
+AMPERSAND:          '&';
 ASSIGNMENT:         '=';
+ASTERISK:           '*';
+BANG:               '!';
 BAR:                '|';
+CLOSE_BRACE:        '}';
+CLOSE_PARA:         ')';
 CONJUNCTION:        '&&';
 DISJUNCTION:        '||';
-PLUS:               '+';
-MINUS:              '-';
-MULT:               '*';
-SLASH:              '/';
-COLON:              ':';
-SEMICOLON:          ';';
-AMPERSAND:          '&';
-DOLLAR:             '$';
-DOUBLE_QUOTE:       '"';
-DOUBLE_BACKTICK:    '``';
-OPEN_PARA:          '(';
-CLOSE_PARA:         ')';
-OPEN_BRACE:         '{';
-CLOSE_BRACE:        '}';
 EQEQ:               '==';
-NOEQ:               '!=';
-LEEQ:               '<=';
-GREQ:               '>=';
-LESS:               '<';
 GREATER:            '>';
+GREQ:               '>=';
+LEEQ:               '<=';
+LESS:               '<';
+MINUS:              '-';
+NOEQ:               '!=';
+OPEN_BRACE:         '{';
+OPEN_PARA:          '(';
+PLUS:               '+';
+SEMICOLON:          ';';
+SLASH:              '/';
+
+DOUBLE_BACKTICK(default, dbt_mode): '``';
+DOUBLE_QUOTE(default, dq_mode):     '"';
+
+STRING_SEGMENT(dq_mode)
+    : [^\$"]
+    ;
+
+STRING_SEGMENT(dbt_mode)
+    : [^\$``]
+    ;
+
+ESCAPE_SEQUENCE(dq_mode, dbt_mode)
+    : '\' [abefvrn$"'\]
+    ;
+
+ESCAPED_EXPRESSION(dq_mode, dbt_mode)
+    : '\('
+    ;
 
 SINGLE_QUOTED_STRING
     : '''[^']'''
@@ -85,29 +105,16 @@ SINGLE_BACKTICK_STRING
     : '`'[^`]'`'
     ;
 
-STRING_SEGMENT(string_mode)
-    : [^\$"]
-    ;
-
-ESCAPE_SEQUENCE(string_mode)
-    : '\' [abefvrn$"'\]
-    ;
-
-ESCAPED_EXPRESSION(string_mode)
-    : '\('
-    ;
-
 INTEGER
-    : ['+' | '-'] ('0'[box])? [0-9]+
+    : ('0'[box])? [0-9]+
+    ;
+
+VAR_NAME(default, dq_mode, dbt_mode)
+    : '$' (('_' | [a-z] | [A-Z] | [0-9])* ':')? ('_' | [a-z] | [A-Z] | [0-9])+
     ;
 
 IDENTIFIER
-    : ('_' | [a-z] | [A-Z]) ('_' | [a-z] | [A-Z] | [0-9])*
-    ;
-
-// Basically, a significant characters sequence is a sequence of non-whitespace characters followed by at least one whitespace character and which doesn't match any of the previous rules
-SIG_CHAR_SEQ
-    : [^/'"` (){}[]<>;&*+-=!$|]+
+    : [^\0x20\0x09\0x0b\0x0c|&+-*/\;$"`'(){}<>=!_a-zA-Z0-9]+
     ;
 ```
 
@@ -133,11 +140,11 @@ statementTerminator
     ;
 
 varDeclaration
-    : (INTERNAL | PUBLIC)? (LET | VAR) varReference ASSIGNMENT expression
+    : (INTERNAL | PUBLIC)? (LET | VAR) VAR_NAME ASSIGNMENT expression
     ;
 
 assignmentStatement
-    : varReference ASSIGNMENT expression
+    : VAR_NAME ASSIGNMENT expression
     ;
 
 command
@@ -152,24 +159,21 @@ commandPrimaryFragment
 
 commandName
     : (SLASH
-        | COLON
         | ASSIGNMENT
-        | IDENTIFIER
-        | SIG_CHAR_SEQ)<no whitespace>+
+        | IDENTIFIER)<no whitespace>+
     ;
 
 commandSecondaryFragment
     : literal
     | SINGLE_BACKTICK_STRING
     | doubleBacktickString
-    | varReference
+    | VAR_NAME
     | parenthesizedExpression
     | commandFragmentAtom
     ;
 
 commandFragmentAtom
     : (IDENTIFIER
-        | SIG_CHAR_SEQ
         | ELSE
         | IF
         | INTERNAL
@@ -182,15 +186,14 @@ commandFragmentAtom
         | DISJUNCTION
         | PLUS
         | MINUS
-        | MULT
+        | ASTERISK
         | SLASH
         | EQEQ
         | NOEQ
         | LEEQ
         | GREQ
         | LESS
-        | GREATER
-        | COLON)<no whitespace>+
+        | GREATER)<no whitespace>+
     ;
 
 expression
@@ -228,17 +231,27 @@ additionOperator
     ;
 
 multiplication
-    : primaryExpression (multiplicationOperator primaryExpression)*
+    : prefixUnaryExpression (multiplicationOperator prefixUnaryExpression)*
     ;
 
 multiplicationOperator
-    : MULT
+    : ASTERISK
     | SLASH
+    ;
+
+prefixOperator:
+    : PLUS
+    | MINUS
+    | BANG
+    ;
+
+prefixUnaryExpression
+    : prefixOperator* primaryExpression
     ;
 
 primaryExpression
     : literal
-    | varReference
+    | VAR_NAME
     | parenthesizedExpression
     | conditionalExpression
     | loopExpression
@@ -274,30 +287,26 @@ literal
     | doubleQuotedString
     ;
 
-varReference
-    : DOLLAR (IDENTIFIER COLON)? IDENTIFIER
-    ;
-
 doubleBacktickString
     : DOUBLE_BACKTICK
-        ( STRING_SEGMENT(string_mode)
-        | ESCAPE_SEQUENCE(string_mode)
-        | escapedExpression
-        | varReference
-      )* DOUBLE_BACKTICK
+        ( STRING_SEGMENT(dbt_mode)
+        | ESCAPE_SEQUENCE(dbt_mode)
+        | escapedExpression(dbt_mode)
+        | VAR_NAME(dbt_mode)
+      )* DOUBLE_BACKTICK(dbt_mode)
     ;
 
 doubleQuotedString
     : DOUBLE_QUOTE
-        ( STRING_SEGMENT(string_mode)
-        | ESCAPE_SEQUENCE(string_mode)
-        | escapedExpression
-        | varReference
-      )* DOUBLE_QUOTE
+        ( STRING_SEGMENT(dq_mode)
+        | ESCAPE_SEQUENCE(dq_mode)
+        | escapedExpression(dq_mode)
+        | VAR_NAME(dq_mode)
+      )* DOUBLE_QUOTE(dq_mode)
     ;
 
 escapedExpression
-    : ESCAPED_EXPRESSION expression CLOSE_PARA
+    : ESCAPED_EXPRESSION expression(default) CLOSE_PARA(default)
     ;
 ```
 

@@ -20,12 +20,12 @@
 // MARK: Atom
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+static errno_t Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, size_t nExtraBytes, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Atom* self = NULL;
     
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom)), ENOMEM);
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom) + nExtraBytes), ENOMEM);
     self->type = type;
     self->hasLeadingWhitespace = hasLeadingWhitespace;
 
@@ -34,13 +34,17 @@ catch:
     return err;
 }
 
-errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Atom* self = NULL;
-
-    try(Atom_Create(pAllocator, kAtom_Character, hasLeadingWhitespace, &self));
-    self->u.character = ch;   
+    
+    try(Atom_Create(pAllocator, type, 1 + 1, hasLeadingWhitespace, &self));
+    self->u.stringLength = 1;
+    
+    char* str = Atom_GetMutableString(self);
+    str[0] = ch;
+    str[1] = '\0';
 
 catch:
     *pOutSelf = self;
@@ -51,27 +55,52 @@ errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType ty
 {
     decl_try_err();
     Atom* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom) + len + 1), ENOMEM);
-    self->type = type;
-    self->hasLeadingWhitespace = hasLeadingWhitespace;
-    self->u.string.chars = ((char*)self) + sizeof(Atom);
-    memcpy(self->u.string.chars, str, len);
-    self->u.string.chars[len] = '\0';
-    self->u.string.length = len;
+
+    try(Atom_Create(pAllocator, type, len + 1, hasLeadingWhitespace, &self));    
+    self->u.stringLength = len;
+
+    char* dst = Atom_GetMutableString(self);
+    memcpy(dst, str, len);
+    dst[len] = '\0';
 
 catch:
     *pOutSelf = self;
     return err;
 }
 
-errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, Atom* _Nullable * _Nonnull pOutSelf)
+errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Atom* self = NULL;
 
-    try(Atom_Create(pAllocator, kAtom_Expression, true, &self));
+    try(Atom_Create(pAllocator, kAtom_Expression, 0, hasLeadingWhitespace, &self));
     self->u.expr = expr;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, kAtom_VariableReference, 0, hasLeadingWhitespace, &self));
+    self->u.vref = vref;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, kAtom_QuotedString, 0, hasLeadingWhitespace, &self));
+    self->u.qstring = str;
 
 catch:
     *pOutSelf = self;
@@ -86,28 +115,24 @@ void Atom_Print(Atom* _Nonnull self)
     }
 
     switch (self->type) {
-        case kAtom_Character:
-            putchar(self->u.character);
-            break;
-            
-        case kAtom_UnquotedString:
-            fputs(self->u.string.chars, stdout);
+        case kAtom_BacktickString:
+            printf("`%s`", Atom_GetString(self));
             break;
 
-        case kAtom_SingleQuotedString:
-            printf("'%s'", self->u.string.chars);
+        case kAtom_SingleQuoteString:
+            printf("'%s'", Atom_GetString(self));
             break;
 
-        case kAtom_DoubleQuotedString:
-            printf("\"%s\"", self->u.string.chars);
+        case kAtom_EscapeSequence:
+            printf("\\%s", Atom_GetString(self));
             break;
 
-        case kAtom_EscapedCharacter:
-            printf("\\%s", self->u.string.chars);
+        case kAtom_QuotedString:
+            QuotedString_Print(self->u.qstring);
             break;
 
         case kAtom_VariableReference:
-            printf("$%s", self->u.string.chars);
+            VarRef_Print(self->u.vref);
             break;
 
         case kAtom_Expression:
@@ -116,54 +141,52 @@ void Atom_Print(Atom* _Nonnull self)
             putchar(')');
             break;
 
-        case kAtom_Plus:
-            putchar('+');
-            break;
-
-        case kAtom_Minus:
-            putchar('-');
-            break;
-
-        case kAtom_Multiply:
-            putchar('*');
-            break;
-
-        case kAtom_Divide:
-            putchar('/');
-            break;
-
-        case kAtom_Assignment:
-            putchar('=');
-            break;
-
-        case kAtom_Less:
-            putchar('<');
-            break;
-
-        case kAtom_Greater:
-            putchar('>');
-            break;
-
-        case kAtom_LessEqual:
-            fputs("<=", stdout);
-            break;
-
-        case kAtom_GreaterEqual:
-            fputs(">=", stdout);
-            break;
-
-        case kAtom_NotEqual:
-            fputs("!=", stdout);
-            break;
-
-        case kAtom_Equal:
-            fputs("==", stdout);
-            break;
-
         default:
-            abort();
+            fputs(Atom_GetString(self), stdout);
             break;
     }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: VarRef
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    const char* colon = (const char*)strrchr(str, ':');
+    const char* scope = (colon) ? str : "";
+    const char* name = (colon) ? colon + 1 : str;
+    const size_t scopeLen = (colon) ? colon - str : 0;
+    const size_t nameLen = strlen(name);
+    VarRef* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarRef) + scopeLen + 1 + nameLen + 1), ENOMEM);
+    self->scope = ((char*)self) + sizeof(VarRef);
+    self->name = self->scope + scopeLen + 1;
+
+    memcpy(self->scope, scope, scopeLen);
+    self->scope[scopeLen] = '\0';
+    memcpy(self->name, name, nameLen);
+    self->name[nameLen] = '\0';
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void VarRef_Print(VarRef* _Nonnull self)
+{
+    putchar('$');
+    if (*self->scope != '\0') {
+        fputs(self->scope, stdout);
+        putchar(':');
+    }
+    fputs(self->name, stdout);
 }
 #endif
 
@@ -201,6 +224,150 @@ void Command_Print(Command* _Nonnull self)
     while(atom) {
         Atom_Print(atom);
         atom = atom->next;
+    }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: StringAtom
+////////////////////////////////////////////////////////////////////////////////
+
+static errno_t StringAtom_Create(StackAllocatorRef _Nonnull pAllocator, StringAtomType type, size_t nExtraBytes, StringAtom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    StringAtom* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(StringAtom) + nExtraBytes), ENOMEM);
+    self->type = type;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t StringAtom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, StringAtomType type, const char* _Nonnull str, size_t len, StringAtom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    StringAtom* self = NULL;
+
+    try(StringAtom_Create(pAllocator, type, len + 1, &self));    
+    self->u.length = len;
+
+    char* dst = StringAtom_GetMutableString(self);
+    memcpy(dst, str, len);
+    dst[len] = '\0';
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t StringAtom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, StringAtom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    StringAtom* self = NULL;
+
+    try(StringAtom_Create(pAllocator, kStringAtom_Expression, 0, &self));
+    self->u.expr = expr;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t StringAtom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, StringAtom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    StringAtom* self = NULL;
+
+    try(StringAtom_Create(pAllocator, kStringAtom_VariableReference, 0, &self));
+    self->u.vref = vref;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void StringAtom_Print(StringAtom* _Nonnull self)
+{
+    switch (self->type) {
+        case kStringAtom_VariableReference:
+            VarRef_Print(self->u.vref);
+            break;
+
+        case kStringAtom_Expression:
+            fputs("\\(", stdout);
+            Expression_Print(self->u.expr);
+            putchar(')');
+            break;
+
+        case kStringAtom_EscapeSequence:
+            putchar('\\');
+            fputs(Atom_GetString(self), stdout);
+            break;
+
+        case kStringAtom_Segment:
+            fputs(Atom_GetString(self), stdout);
+            break;
+
+        default:
+            abort();
+            break;
+    }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: QuotedString
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t QuotedString_Create(StackAllocatorRef _Nonnull pAllocator, bool isBacktick, QuotedString* _Nullable * _Nonnull pOutSelf)
+{
+    QuotedString* self = StackAllocator_ClearAlloc(pAllocator, sizeof(QuotedString));
+    self->isBacktick = isBacktick;
+
+    *pOutSelf = self;
+    return (self) ? EOK : ENOMEM;
+}
+
+void QuotedString_AddAtom(QuotedString* _Nonnull self, StringAtom* _Nonnull atom)
+{
+    if (self->lastAtom) {
+        (self->lastAtom)->next = atom;
+    }
+    else {
+        self->atoms = atom;
+    }
+
+    self->lastAtom = atom;
+}
+
+#ifdef SCRIPT_PRINTING
+void QuotedString_Print(QuotedString* _Nonnull self)
+{
+    if (self->isBacktick) {
+        fputs("``", stdout);
+    }
+    else {
+        putchar('"');
+    }
+
+    StringAtom* atom = self->atoms;
+    while(atom) {
+        StringAtom_Print(atom);
+        atom = atom->next;
+    }
+
+    if (self->isBacktick) {
+        fputs("``", stdout);
+    }
+    else {
+        putchar('"');
     }
 }
 #endif

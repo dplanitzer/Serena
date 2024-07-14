@@ -18,7 +18,7 @@
 #define EREDEFINED  -4
 
 #define _EFIRST_SHELL   ESYNTAX
-#define _ELAST_SHELL    EUNDEFINED
+#define _ELAST_SHELL    EREDEFINED
 
 extern const char *shell_strerror(int err_no);
 

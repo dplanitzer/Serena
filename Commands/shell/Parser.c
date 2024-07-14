@@ -20,8 +20,12 @@
 #define consume() Lexer_ConsumeToken(&self->lexer)
 
 #define match(__id) Parser_Match(self, __id)
+#define matchAndSwitchMode(__id, __mode) Parser_MatchAndSwitchMode(self, __id, __mode)
+#define failOnIncomplete(__t) ((__t)->isIncomplete) ? ESYNTAX : EOK
 
-
+static errno_t Parser_VarReference(Parser* _Nonnull self, VarRef* _Nullable * _Nonnull pOutVarRef);
+static errno_t Parser_EscapedExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr);
+static errno_t Parser_ParenthesizedExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr);
 static errno_t Parser_Expression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull _Nonnull pOutExpr);
 
 
@@ -31,7 +35,7 @@ errno_t Parser_Create(Parser* _Nullable * _Nonnull pOutSelf)
     Parser* self;
     
     try_null(self, calloc(1, sizeof(Parser)), errno);
-    try(Lexer_Init(&self->lexer));
+    Lexer_Init(&self->lexer);
 
     *pOutSelf = self;
     return EOK;
@@ -52,7 +56,7 @@ void Parser_Destroy(Parser* _Nullable self)
     }
 }
 
-static errno_t Parser_Match(Parser* _Nonnull self, char id)
+static errno_t Parser_Match(Parser* _Nonnull self, TokenId id)
 {
     const Token* t = Lexer_GetToken(&self->lexer);
 
@@ -63,6 +67,116 @@ static errno_t Parser_Match(Parser* _Nonnull self, char id)
     else {
         return ESYNTAX;
     }
+}
+
+static errno_t Parser_MatchAndSwitchMode(Parser* _Nonnull self, TokenId id, LexerMode mode)
+{
+    if (Lexer_GetToken(&self->lexer)->id != id) {
+        return ESYNTAX;
+    }
+    Lexer_SetMode(&self->lexer, mode);
+    Lexer_ConsumeToken(&self->lexer);
+    return EOK;
+}
+
+
+//
+// doubleQuotedString
+//     : DOUBLE_QUOTE 
+//         ( STRING_SEGMENT(dq_mode)
+//         | ESCAPE_SEQUENCE(dq_mode)
+//         | escapedExpression(dq_mode)
+//         | VAR_NAME(dq_mode)
+//       )* DOUBLE_QUOTE(dq_mode)
+//     ;
+static errno_t Parser_QuotedString(Parser* _Nonnull self, bool isBacktick, QuotedString* _Nullable * _Nonnull pOutStr)
+{
+    decl_try_err();
+    QuotedString* str = NULL;
+    StringAtom* atom = NULL;
+    TokenId quoteToken = (isBacktick) ? kToken_DoubleBacktick : kToken_DoubleQuote;
+    LexerMode lexerMode = (isBacktick) ? kLexerMode_DoubleBacktick : kLexerMode_DoubleQuote;
+    bool done = false;
+
+    try(matchAndSwitchMode(quoteToken, lexerMode));
+    try(QuotedString_Create(self->allocator, isBacktick, &str));
+
+    while(!done) {
+        const Token* t = Lexer_GetToken(&self->lexer);
+
+        switch (t->id) {
+            case kToken_StringSegment:
+                try(StringAtom_CreateWithString(self->allocator, kStringAtom_Segment, t->u.string, t->length, &atom));
+                consume();
+                break;
+
+            case kToken_EscapeSequence:
+                try(failOnIncomplete(t));
+                try(StringAtom_CreateWithString(self->allocator, kStringAtom_EscapeSequence, t->u.string, t->length, &atom));
+                consume();
+                break;
+
+            case kToken_EscapedExpression: {
+                Expression* expr = NULL;
+                try(Parser_EscapedExpression(self, &expr));
+                try(StringAtom_CreateWithExpression(self->allocator, expr, &atom));
+                break;
+            }
+
+            case kToken_VariableName: {
+                VarRef* vref = NULL;
+                try(Parser_VarReference(self, &vref));
+                try(StringAtom_CreateWithVarRef(self->allocator, vref, &atom));
+                break;
+            }
+
+            default:
+                if (t->id == quoteToken) {
+                    done = true;
+                    break;
+                }
+                throw(ESYNTAX);
+                break;
+        }
+
+        if (atom) {
+            QuotedString_AddAtom(str, atom);
+            atom = NULL;
+        }
+    }
+    Lexer_SetMode(&self->lexer, kLexerMode_Default);
+    consume();
+
+    *pOutStr = str;
+    return EOK;
+
+catch:
+    Lexer_SetMode(&self->lexer, kLexerMode_Default);
+    *pOutStr = NULL;
+    return err;
+}
+
+//
+// escapedExpression
+//     : ESCAPED_EXPRESSION expression CLOSE_PARA
+//     ;
+static errno_t Parser_EscapedExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    LexerMode savedMode = Lexer_GetMode(&self->lexer);
+    Expression* expr = NULL;
+
+    try(matchAndSwitchMode(kToken_EscapedExpression, kLexerMode_Default));
+    try(Parser_Expression(self, &expr));
+    try(matchAndSwitchMode(kToken_ClosingParenthesis, savedMode));
+
+    *pOutExpr = expr;
+    return EOK;
+
+catch:
+    Lexer_SetMode(&self->lexer, savedMode);
+    *pOutExpr = NULL;
+    return err;
 }
 
 //
@@ -86,26 +200,38 @@ catch:
     return err;
 }
 
-static int GetAtomTypeFromToken(TokenId id)
+//
+// varReference
+//     : VAR_NAME
+//     ;
+static errno_t Parser_VarReference(Parser* _Nonnull self, VarRef* _Nullable * _Nonnull pOutVarRef)
+{
+    decl_try_err();
+    const Token* t = Lexer_GetToken(&self->lexer);
+
+    if (t->id != kToken_VariableName) {
+        throw(ESYNTAX);
+    }
+
+    try(VarRef_Create(self->allocator, t->u.string, pOutVarRef));
+    consume();
+    return EOK;
+
+catch:
+    *pOutVarRef = NULL;
+    return err;
+}
+
+static const char* _Nonnull get_op2_token_string(TokenId id)
 {
     switch (id) {
-        case kToken_UnquotedString:     return kAtom_UnquotedString;
-        case kToken_SingleQuotedString: return kAtom_SingleQuotedString;
-        case kToken_DoubleQuotedString: return kAtom_DoubleQuotedString;
-        case kToken_EscapedCharacter:   return kAtom_EscapedCharacter;
-        case kToken_VariableName:       return kAtom_VariableReference;
-        case kToken_LessEqual:          return kAtom_LessEqual;
-        case kToken_GreaterEqual:       return kAtom_GreaterEqual;
-        case kToken_NotEqual:           return kAtom_NotEqual;
-        case kToken_Equal:              return kAtom_Equal;
-        case '<':                       return kAtom_Less;
-        case '>':                       return kAtom_Greater;
-        case '+':                       return kAtom_Plus;
-        case '-':                       return kAtom_Minus;
-        case '*':                       return kAtom_Multiply;
-        case '/':                       return kAtom_Divide;
-        case '=':                       return kAtom_Assignment;
-        default: return -1;
+        case kToken_Conjunction:        return "&&";
+        case kToken_Disjunction:        return "||";
+        case kToken_EqualEqual:         return "==";
+        case kToken_GreaterEqual:       return ">=";
+        case kToken_LessEqual:          return "<=";
+        case kToken_NotEqual:           return "!=";
+        default:                        abort(); break;
     }
 }
 
@@ -132,7 +258,6 @@ static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnu
 {
     decl_try_err();
     Command* cmd = NULL;
-    Expression* expr = NULL;
     Atom* atom = NULL;
     bool done = false;
 
@@ -140,45 +265,75 @@ static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnu
 
     while (!done) {
         const Token* t = Lexer_GetToken(&self->lexer);
+        const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
 
         switch (t->id) {
-            case kToken_UnquotedString:
-            case kToken_SingleQuotedString:
-            case kToken_DoubleQuotedString:
-            case kToken_EscapedCharacter:
-            case kToken_VariableName:
-                try(Atom_CreateWithString(self->allocator, GetAtomTypeFromToken(t->id), t->u.string, t->length, t->hasLeadingWhitespace, &atom));
+            case kToken_Assignment:
+            case kToken_Asterisk:
+            case kToken_Bang:
+            case kToken_Greater:
+            case kToken_Less:
+            case kToken_Minus:
+            case kToken_Plus:
+            case kToken_Slash:
+                try(Atom_CreateWithCharacter(self->allocator, kAtom_Operator, t->id, hasLeadingWhitespace, &atom));
                 consume();
                 break;
 
-            case kToken_LessEqual:
+            case kToken_Conjunction:
+            case kToken_Disjunction:
+            case kToken_EqualEqual:
             case kToken_GreaterEqual:
+            case kToken_LessEqual:
             case kToken_NotEqual:
-            case kToken_Equal:
-                try(Atom_Create(self->allocator, GetAtomTypeFromToken(t->id), t->hasLeadingWhitespace, &atom));
+                try(Atom_CreateWithString(self->allocator, kAtom_Operator, get_op2_token_string(t->id), 2, hasLeadingWhitespace, &atom));
                 consume();
                 break;
 
-            case kToken_Character:
-                try(Atom_CreateWithCharacter(self->allocator, t->u.character, t->hasLeadingWhitespace, &atom));
+            case kToken_BacktickString:
+                try(failOnIncomplete(t));
+                try(Atom_CreateWithString(self->allocator, kAtom_BacktickString, t->u.string, t->length, hasLeadingWhitespace, &atom));
                 consume();
                 break;
 
-            case '<':
-            case '>':
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-            case '=':
-                try(Atom_Create(self->allocator, GetAtomTypeFromToken(t->id), t->hasLeadingWhitespace, &atom));
+            case kToken_SingleQuoteString:
+                try(failOnIncomplete(t));
+                try(Atom_CreateWithString(self->allocator, kAtom_SingleQuoteString, t->u.string, t->length, hasLeadingWhitespace, &atom));
                 consume();
                 break;
 
-            case '(':
+            case kToken_DoubleBacktick:
+            case kToken_DoubleQuote: {
+                QuotedString* str = NULL;
+                try(Parser_QuotedString(self, t->id == kToken_DoubleBacktick, &str));
+                try(Atom_CreateWithQuotedString(self->allocator, str, hasLeadingWhitespace, &atom));
+                break;
+            }
+
+            case kToken_EscapeSequence:
+                try(failOnIncomplete(t));
+                try(Atom_CreateWithString(self->allocator, kAtom_EscapeSequence, t->u.string, t->length, hasLeadingWhitespace, &atom));
+                consume();
+                break;
+
+            case kToken_Identifier:
+                try(Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace, &atom));
+                consume();
+                break;
+
+            case kToken_OpeningParenthesis: {
+                Expression* expr = NULL;
                 try(Parser_ParenthesizedExpression(self, &expr));
-                try(Atom_CreateWithExpression(self->allocator, expr, &atom));
+                try(Atom_CreateWithExpression(self->allocator, expr, hasLeadingWhitespace, &atom));
                 break;
+            }
+
+            case kToken_VariableName: {
+                VarRef* vref = NULL;
+                try(Parser_VarReference(self, &vref));
+                try(Atom_CreateWithVarRef(self->allocator, vref, hasLeadingWhitespace, &atom));
+                break;
+            }
 
             default:
                 done = true;
