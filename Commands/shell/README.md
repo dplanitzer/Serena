@@ -39,7 +39,7 @@ You run a script like this by typing 'shell' followed by the name of the shell s
 
 Escape a character on the command line by prefixing it with a '\\' (backslash) character. Escaping a character prevents the shell from interpreting the character and it is instead treated as a literal character with no special meaning attached to it.
 
-For example, the character sequence '\n' causes the shell to insert the literal character 'n' into the command line and the character sequence '\$' prevents the shell from interpreting the \$ as the beginning of a variable reference. Instead the \$ is inserted into the command line as the literal \$ character.
+For example, the character sequence '\\+' causes the shell to insert the literal character '+' into the command line and the character sequence '\\$' prevents the shell from interpreting the \$ as the beginning of a variable reference. Instead \$ is inserted into the command line as the literal \$ character.
 
 ### Single Quoted Strings
 

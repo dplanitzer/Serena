@@ -22,7 +22,6 @@ struct VarRef;
 typedef enum AtomType {
     kAtom_BacktickString,           // u.stringLength
     kAtom_SingleQuoteString,        // u.stringLength
-    kAtom_EscapeSequence,           // u.stringLength
     kAtom_Identifier,               // u.stringLength
     kAtom_Operator,                 // u.stringLength
 

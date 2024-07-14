@@ -8,7 +8,7 @@ _Note:_ The current version of the shell only implements a small subset of the l
 
 These are the semantic rules of the language:
 
-* The language is scoped:
+* Scopes:
   * The bottom most scope is the global scope which is established when the shell starts up
   * Every shell script invocation is associated with a scope
   * Every block inside a shell script is associated with a scope
@@ -114,7 +114,7 @@ VAR_NAME(default, dq_mode, dbt_mode)
     ;
 
 IDENTIFIER
-    : [^\0x20\0x09\0x0b\0x0c|&+-*/\;$"`'(){}<>=!_a-zA-Z0-9]+
+    : ([^\0x20\0x09\0x0b\0x0c|&+-*/\;$"`'(){}<>=!] | ('\'?))+
     ;
 ```
 
@@ -316,6 +316,8 @@ escapedExpression
 * Postfix operators must exhibit whitespace on the right side and no whitespace on the left side
 * Infix operators must either exhibit whitespace on both sides or on neither side
 * A command parameter is the longest sequence of commandSecondaryFragment objects which are not separated by whitespace
+* Escaping a character outside of a double quoted string effectively turns the escaped character into an identifier character
+* Escaping the LF or CRLF character(s) outside a double quoted string replaces the LF/CRLF sequence with an empty string and does not terminate the identifier that is currently being lexed
 * Adjacent tokens are merged into a single token under the following circumstances:
   * A sequence of non-whitespace separated IDENTIFIER tokens
   * A homogenous or heterogenous sequence of non-whitespace separated single and double quoted strings

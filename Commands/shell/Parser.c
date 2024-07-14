@@ -310,13 +310,8 @@ static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnu
                 break;
             }
 
-            case kToken_EscapeSequence:
-                try(failOnIncomplete(t));
-                try(Atom_CreateWithString(self->allocator, kAtom_EscapeSequence, t->u.string, t->length, hasLeadingWhitespace, &atom));
-                consume();
-                break;
-
             case kToken_Identifier:
+                try(failOnIncomplete(t));
                 try(Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace, &atom));
                 consume();
                 break;

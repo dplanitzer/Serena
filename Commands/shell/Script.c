@@ -123,10 +123,6 @@ void Atom_Print(Atom* _Nonnull self)
             printf("'%s'", Atom_GetString(self));
             break;
 
-        case kAtom_EscapeSequence:
-            printf("\\%s", Atom_GetString(self));
-            break;
-
         case kAtom_QuotedString:
             QuotedString_Print(self->u.qstring);
             break;

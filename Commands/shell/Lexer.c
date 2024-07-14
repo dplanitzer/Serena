@@ -257,40 +257,6 @@ static void Lexer_ScanStringSegment(Lexer* _Nonnull self)
     self->textBufferCount--;
 }
 
-// Scans an escaped character. Expects that the current input position is at the
-// first character following the initial '\' character.
-static bool Lexer_ScanEscapedCharacter(Lexer* _Nonnull self)
-{
-    char ch = self->source[self->sourceIndex];
-
-    switch (ch) {
-        case '\0':
-            return true;
-
-        case '\r':
-            if (self->source[self->sourceIndex + 1] != '\n') {
-                // not CRLF
-                break;
-            }
-            // CRLF
-            self->sourceIndex++;
-            // Fall through
-            
-        case '\n':
-            self->column = 1;
-            self->line++;
-            // Our caller expects a single \n character
-            break;
-
-        default:
-            break;
-    }
-
-    self->sourceIndex++;
-    Lexer_AddCharToTextBuffer(self, ch);
-    return false;
-}
-
 // Tries scanning a variable name of the form:
 // '$' (('_' | [a-z] | [A-Z] | [0-9])* ':')? ('_' | [a-z] | [A-Z] | [0-9])+
 // 
@@ -350,6 +316,42 @@ static bool Lexer_TryScanVariableName(Lexer* _Nonnull self)
     }
 }
 
+// Scans an escaped character. Expects that the current input position is at the
+// first character following the initial '\' character.
+static bool Lexer_ScanEscapedCharacter(Lexer* _Nonnull self)
+{
+    const char ch = self->source[self->sourceIndex];
+
+    switch (ch) {
+        case '\0':
+            return true;
+
+        case '\r':
+            if (self->source[self->sourceIndex + 1] != '\n') {
+                // not CRLF
+                break;
+            }
+            // CRLF
+            self->sourceIndex++;
+            // Fall through
+            
+        case '\n':
+            self->column = 1;
+            self->line++;
+            self->sourceIndex++;
+            // Drop the escaped newline
+            return false;
+
+        default:
+            break;
+    }
+
+    self->column++;
+    self->sourceIndex++;
+    Lexer_AddCharToTextBuffer(self, ch);
+    return false;
+}
+
 // Returns true if the given character should terminate the construction of an
 // identifier character; false otherwise.
 static bool isIdentifierTerminator(char ch)
@@ -375,11 +377,10 @@ static bool isIdentifierTerminator(char ch)
         case '>':
         case '=':
         case '!':
-        case '_':
             return true;
 
         default:
-            return (!isalnum(ch)) ? true : false;
+            return (isspace(ch)) ? true : false;
     }
 }
 
@@ -389,12 +390,17 @@ static bool isIdentifierTerminator(char ch)
 // Expects that the current input position is at the first character of the
 // identifier. This first character is accepted no matter what. Even if it would
 // be treated as a terminating character otherwise.
-static void Lexer_ScanIdentifier(Lexer* _Nonnull self)
+static bool Lexer_ScanIdentifier(Lexer* _Nonnull self)
 {
+    bool isIncomplete = false;
+
     self->textBufferCount = 0;
 
-    self->column++;
-    Lexer_AddCharToTextBuffer(self, self->source[self->sourceIndex++]);
+    if (self->source[self->sourceIndex] != '\\') {
+        Lexer_AddCharToTextBuffer(self, self->source[self->sourceIndex]);
+        self->column++;
+        self->sourceIndex++;
+    }
 
     while (true) {
         const char ch = self->source[self->sourceIndex];
@@ -405,11 +411,19 @@ static void Lexer_ScanIdentifier(Lexer* _Nonnull self)
 
         self->sourceIndex++;
         self->column++;
-        Lexer_AddCharToTextBuffer(self, ch);
+
+        if (ch != '\\') {
+            Lexer_AddCharToTextBuffer(self, ch);
+        }
+        else if (Lexer_ScanEscapedCharacter(self)) {
+            isIncomplete = true;
+            break;
+        }
     }
 
     Lexer_AddCharToTextBuffer(self, '\0');
     self->textBufferCount--;
+    return isIncomplete;
 }
 
 static void Lexer_SkipWhitespace(Lexer* _Nonnull self)
@@ -595,25 +609,6 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                 self->t.length = self->textBufferCount;
                 return;
 
-            case '\\':
-                self->sourceIndex++;
-                self->column++;
-                self->textBufferCount = 0;
-                self->t.isIncomplete = Lexer_ScanEscapedCharacter(self);
-                Lexer_AddCharToTextBuffer(self, '\0');
-                self->textBufferCount--;
-
-                if (self->textBufferCount == 1 && self->textBuffer[0] == '\n') {
-                    // a line continuation escape
-                    break;
-                }
-                else {
-                    self->t.id = kToken_EscapeSequence;
-                    self->t.u.string = self->textBuffer;
-                    self->t.length = self->textBufferCount;
-                    return;
-                }
-
             default:
                 if (ch == '$') {
                     if (Lexer_TryScanVariableName(self)) {
@@ -624,7 +619,7 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                     }
                 }
 
-                Lexer_ScanIdentifier(self);
+                self->t.isIncomplete = Lexer_ScanIdentifier(self);
                 self->t.id = kToken_Identifier;
                 self->t.u.string = self->textBuffer;
                 self->t.length = self->textBufferCount;

@@ -43,18 +43,17 @@ typedef enum TokenId {
     kToken_Slash = '/',                 // -
 
     kToken_BacktickString = 263,        // u.string
-    kToken_EscapeSequence = 264,        // u.string
-    kToken_Identifier = 265,            // u.string
-    kToken_SingleQuoteString = 266,     // u.string
-    kToken_VariableName = 267,          // u.string 'foo:bar'
+    kToken_Identifier = 264,            // u.string
+    kToken_SingleQuoteString = 265,     // u.string
+    kToken_VariableName = 266,          // u.string 'foo:bar'
 
     // DQ, DBT Mode
     // kToken_Eof
     // kToken_ClosingParenthesis
     // kToken_DoubleBacktick
     // kToken_DoubleQuote
-    // kToken_EscapeSequence
     // kToken_VariableName
+    kToken_EscapeSequence = 267,        // u.string
     kToken_EscapedExpression = 268,     // -
     kToken_StringSegment = 269,         // u.string
 } TokenId;
@@ -76,8 +75,21 @@ typedef struct Token {
     int         line;
     int         length;                 // token length in terms of characters
     bool        hasLeadingWhitespace;
-    bool        isIncomplete;           // escape sequence, backtick string, single quote string: true if token is incomplete, i.e. because of hitting EOF before the end of the token; false otherwise
+    bool        isIncomplete;           // identifier, escape sequence, backtick string, single quote string: true if token is incomplete; false otherwise
 } Token;
+
+// Incomplete identifier:
+// Is an identifier where the last character is the '\' of a escaped character
+// and the actual character to escape is missing because the lexer encountered
+// EOF before that character.
+//
+// Incomplete ' and ` string:
+// Is a string where the closing ' or ` is missing because the lexer encountered
+// EOF before the closing quote.
+//
+// Incomplete escape sequence:
+// Is an escape sequence where the actual character to escape is missing because
+// the lexer encountered EOF before that character.
 
 
 typedef struct Lexer {
