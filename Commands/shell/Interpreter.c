@@ -34,6 +34,7 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     try(Interpreter_RegisterBuiltinCommand(self));
     try(Interpreter_RegisterEnvironmentVariables(self));
     try(EnvironCache_Create(self->symbolTable, &self->environCache));
+    try(ArgumentVector_Create(&self->argumentVector));
 
     *pOutSelf = self;
     return 0;
@@ -47,6 +48,9 @@ catch:
 void Interpreter_Destroy(InterpreterRef _Nullable self)
 {
     if (self) {
+        ArgumentVector_Destroy(self->argumentVector);
+        self->argumentVector = NULL;
+
         EnvironCache_Destroy(self->environCache);
         self->environCache = NULL;
 
@@ -110,59 +114,6 @@ static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull 
     return EOK;
 }
 
-static size_t Interpreter_GetQuotedStringLength(InterpreterRef _Nonnull self, QuotedString* _Nonnull qstr)
-{
-    StringAtom* atom = qstr->atoms;
-    size_t len = 0;
-
-    while (atom) {
-        switch (atom->type) {
-            case kStringAtom_EscapeSequence:
-            case kStringAtom_Segment:
-                len += StringAtom_GetStringLength(atom);
-                break;
-
-            case kStringAtom_Expression:
-            case kStringAtom_VariableReference:
-                break;
-
-            default:
-                abort();
-                break;
-        }
-        atom = atom->next;
-    }
-    return len;
-}
-
-static char* _Nonnull Interpreter_GetQuotedStringText(InterpreterRef _Nonnull self, QuotedString* _Nonnull qstr, char* _Nonnull buf)
-{
-    StringAtom* atom = qstr->atoms;
-
-    while (atom) {
-        switch (atom->type) {
-            case kStringAtom_EscapeSequence:
-            case kStringAtom_Segment: {
-                const size_t len = StringAtom_GetStringLength(atom);
-
-                memcpy(buf, StringAtom_GetString(atom), len * sizeof(char));
-                buf += len;
-                break;
-            }
-
-            case kStringAtom_Expression:
-            case kStringAtom_VariableReference:
-                break;
-
-            default:
-                abort();
-                break;
-        }
-        atom = atom->next;
-    }
-    return buf;
-}
-
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     Symbol* cmd = SymbolTable_GetSymbol(self->symbolTable, kSymbolType_Command, argv[0]);
@@ -218,115 +169,77 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
     return true;
 }
 
-static int calc_argc(Command* _Nonnull cmd)
+static errno_t Interpreter_WriteQuotedStringText(InterpreterRef _Nonnull self, QuotedString* _Nonnull str)
 {
-    Atom* atom = cmd->atoms;
-    int argc = 0;
+    decl_try_err();
+    StringAtom* atom = str->atoms;
 
-    if (atom) {
-        atom = atom->next;
-        argc++;
-    }
+    while (atom && err == EOK) {
+        switch (atom->type) {
+            case kStringAtom_EscapeSequence:
+            case kStringAtom_Segment:
+                err = ArgumentVector_AppendBytes(self->argumentVector, StringAtom_GetString(atom), StringAtom_GetStringLength(atom));
+                break;
 
-    while (atom) {
-        if (atom->hasLeadingWhitespace) {
-            argc++;
+            case kStringAtom_Expression:
+            case kStringAtom_VariableReference:
+                break;
+
+            default:
+                abort();
+                break;
         }
-
         atom = atom->next;
     }
-
-    return argc;
+    return err;
 }
 
-static size_t calc_atom_string_length(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
+static errno_t Interpreter_WriteArgumentString(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
 {
+    decl_try_err();
+
     switch (atom->type) {
         case kAtom_Expression:
         case kAtom_VariableReference:
-            return 0;
+            break;
 
         case kAtom_QuotedString:
-            return Interpreter_GetQuotedStringLength(self, atom->u.qstring);
+            err = Interpreter_WriteQuotedStringText(self, atom->u.qstring);
+            break;
 
         default:
-            return Atom_GetStringLength(atom);
-    }
-}
-
-static char* _Nonnull get_atom_string(InterpreterRef _Nonnull self, Atom* _Nonnull atom, char* _Nonnull ap)
-{
-    switch (atom->type) {
-        case kAtom_Expression:
-        case kAtom_VariableReference:
+            err = ArgumentVector_AppendBytes(self->argumentVector, Atom_GetString(atom), Atom_GetStringLength(atom));
             break;
-
-        case kAtom_QuotedString:
-            ap = Interpreter_GetQuotedStringText(self, atom->u.qstring, ap);
-            break;
-
-        default: {
-            const size_t len = Atom_GetStringLength(atom);
-
-            memcpy(ap, Atom_GetString(atom), len * sizeof(char));
-            ap += len;
-            break;
-        }
     }
 
-    return ap;
+    return err;
 }
 
 static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull cmd)
 {
     decl_try_err();
-    char** argv = NULL;
 
-    // Create the command argument vector by expanding all atoms in the s-expression
-    // to strings.
-    int argc = calc_argc(cmd);
-    if (argc == 0) {
-        return;
-    }
+    // Create the command argument vector by converting all atoms in the command
+    // expression into argument strings.
+    ArgumentVector_Open(self->argumentVector);
 
-    try_null(argv, StackAllocator_Alloc(self->allocator, sizeof(char*) * (argc + 1)), ENOMEM);
-
-    argc = 0;
     Atom* atom = cmd->atoms;
     while (atom) {
-        Atom* sav_atom = atom;
-        Atom* end_atom;
-
         // We always pick up the first atom in an non-whitespace-separated-atom-sequence
         // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
-        size_t arg_size = calc_atom_string_length(self, atom);
+        try(Interpreter_WriteArgumentString(self, atom));
         atom = atom->next;
         while (atom && !atom->hasLeadingWhitespace) {
-            arg_size += calc_atom_string_length(self, atom);
+            try(Interpreter_WriteArgumentString(self, atom));
             atom = atom->next;
         }
-        end_atom = atom;
 
-
-        if (arg_size > 0) {
-            char* ap = NULL;
-            char* cap;
-
-            try_null(ap, StackAllocator_Alloc(self->allocator, sizeof(char) * (arg_size + 1)), ENOMEM);
-
-            cap = ap;
-            atom = sav_atom;
-            while (atom != end_atom) {
-                cap = get_atom_string(self, atom, cap);
-                atom = atom->next;
-            }
-            *cap = '\0';
-
-            argv[argc++] = ap;
-        }
+        try(ArgumentVector_EndOfArg(self->argumentVector));
     }
-    argv[argc] = NULL;
+    try(ArgumentVector_Close(self->argumentVector));
 
+    const int argc = ArgumentVector_GetArgc(self->argumentVector);
+    char** argv = ArgumentVector_GetArgv(self->argumentVector);
     if (argc == 0) {
         return;
     }

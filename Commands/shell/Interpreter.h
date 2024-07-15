@@ -10,6 +10,7 @@
 #define Interpreter_h
 
 #include "Script.h"
+#include "ArgumentVector.h"
 #include "EnvironCache.h"
 #include "ShellContext.h"
 #include "StackAllocator.h"
@@ -22,6 +23,7 @@ typedef struct Interpreter {
     ShellContextRef _Weak       context;
     SymbolTable* _Nonnull       symbolTable;
     EnvironCache* _Nonnull      environCache;
+    ArgumentVector* _Nonnull    argumentVector;
 } Interpreter;
 typedef Interpreter* InterpreterRef;
 

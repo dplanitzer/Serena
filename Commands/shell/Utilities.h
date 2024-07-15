@@ -11,6 +11,7 @@
 
 #include "Errors.h"
 #include <stdlib.h>
+#include <System/_math.h>
 
 #define exit_code(__err) \
 ((__err) == EOK) ? EXIT_SUCCESS : EXIT_FAILURE
