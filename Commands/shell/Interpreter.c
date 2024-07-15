@@ -225,19 +225,20 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
 
     Atom* atom = cmd->atoms;
     while (atom) {
+        bool isFirstAtom = true;
+
         // We always pick up the first atom in an non-whitespace-separated-atom-sequence
         // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
-        try(Interpreter_WriteArgumentString(self, atom));
-        atom = atom->next;
-        while (atom && !atom->hasLeadingWhitespace) {
+        while (atom && (!atom->hasLeadingWhitespace || isFirstAtom)) {
             try(Interpreter_WriteArgumentString(self, atom));
             atom = atom->next;
+            isFirstAtom = false;
         }
 
         try(ArgumentVector_EndOfArg(self->argumentVector));
     }
     try(ArgumentVector_Close(self->argumentVector));
-
+    
     const int argc = ArgumentVector_GetArgc(self->argumentVector);
     char** argv = ArgumentVector_GetArgv(self->argumentVector);
     if (argc == 0) {
