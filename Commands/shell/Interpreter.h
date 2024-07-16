@@ -12,16 +12,18 @@
 #include "Script.h"
 #include "ArgumentVector.h"
 #include "EnvironCache.h"
+#include "NameTable.h"
+#include "RunStack.h"
 #include "ShellContext.h"
 #include "StackAllocator.h"
-#include "SymbolTable.h"
 
 
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
     
     ShellContextRef _Weak       context;
-    SymbolTable* _Nonnull       symbolTable;
+    NameTable* _Nonnull         nameTable;
+    RunStack* _Nonnull          runStack;
     EnvironCache* _Nonnull      environCache;
     ArgumentVector* _Nonnull    argumentVector;
 } Interpreter;

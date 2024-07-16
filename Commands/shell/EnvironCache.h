@@ -12,7 +12,7 @@
 #include "Errors.h"
 #include <stdlib.h>
 
-struct SymbolTable;
+struct RunStack;
 
 typedef struct EnvironEntry {
     struct EnvironEntry* _Nullable  next;   // Next entry in hash chain
@@ -20,17 +20,17 @@ typedef struct EnvironEntry {
 } EnvironEntry;
 
 typedef struct EnvironCache {
-    struct SymbolTable* _Nonnull    symbolTable;
-    EnvironEntry**                  hashtable;
-    size_t                          hashtableCapacity;
-    char**                          envtable;
-    size_t                          envtableCount;
-    size_t                          envtableCapacity;
-    int                             generation;
+    struct RunStack* _Nonnull   runStack;
+    EnvironEntry**              hashtable;
+    size_t                      hashtableCapacity;
+    char**                      envtable;
+    size_t                      envtableCount;
+    size_t                      envtableCapacity;
+    int                         generation;
 } EnvironCache;
 
 
-extern errno_t EnvironCache_Create(struct SymbolTable* _Nonnull symbolTable, EnvironCache* _Nullable * _Nonnull pOutSelf);
+extern errno_t EnvironCache_Create(struct RunStack* _Nonnull runStack, EnvironCache* _Nullable * _Nonnull pOutSelf);
 extern void EnvironCache_Destroy(EnvironCache* _Nullable self);
 
 // Returns a pointer to the cached environment variable table. The returned table

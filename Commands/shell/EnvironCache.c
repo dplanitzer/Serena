@@ -7,7 +7,7 @@
 //
 
 #include "EnvironCache.h"
-#include "SymbolTable.h"
+#include "RunStack.h"
 #include "Utilities.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -21,7 +21,7 @@
 static void _EnvironCache_ClearCache(EnvironCache* _Nonnull self);
 
 
-errno_t EnvironCache_Create(struct SymbolTable* _Nonnull symbolTable, EnvironCache* _Nullable * _Nonnull pOutSelf)
+errno_t EnvironCache_Create(struct RunStack* _Nonnull runStack, EnvironCache* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     EnvironCache* self;
@@ -31,7 +31,7 @@ errno_t EnvironCache_Create(struct SymbolTable* _Nonnull symbolTable, EnvironCac
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
     try_null(self->envtable, calloc(INITIAL_ENVTABLE_CAPACITY, sizeof(char*)), errno);
     self->envtableCapacity = INITIAL_ENVTABLE_CAPACITY;
-    self->symbolTable = symbolTable;
+    self->runStack = runStack;
     self->generation = -1;
 
     *pOutSelf = self;
@@ -97,10 +97,10 @@ static int ec_strcmp(const char *lhs, const char *rhs)
     }
 }
 
-static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull self, const Symbol* _Nonnull symbol, int scopeLevel, bool* _Nonnull pOutDone)
+static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull self, const Variable* _Nonnull var, const char* _Nonnull name, int scopeLevel, bool* _Nonnull pOutDone)
 {
     // We only care about exported variables
-    if (symbol->type != kSymbolType_Variable || (symbol->type == kSymbolType_Variable && (symbol->u.variable.flags & kVariableFlag_Exported) == 0)) {
+    if ((var->flags & kVariableFlag_Exported) == 0) {
         return EOK;
     }
 
@@ -108,11 +108,11 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
     // Check whether an entry 'name=value' already exists in our hash table. Shadow
     // definitions won't get added since the definition from the newest scope was
     // added first.
-    const size_t hashIndex = hash_cstring(symbol->name) % self->hashtableCapacity;
+    const size_t hashIndex = hash_cstring(name) % self->hashtableCapacity;
     EnvironEntry* entry = self->hashtable[hashIndex];
 
     while (entry) {
-        if (!ec_strcmp(symbol->name, entry->kv)) {
+        if (!ec_strcmp(name, entry->kv)) {
             return EOK;
         }
 
@@ -121,8 +121,8 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
 
 
     // This is a new variable. Add it
-    const size_t keyLen = strlen(symbol->name);
-    const size_t valLen = Variable_GetStringValueLength(&symbol->u.variable);
+    const size_t keyLen = strlen(name);
+    const size_t valLen = Variable_GetStringValueLength(var);
     const size_t kvLen = keyLen + 1 + valLen; // '\0' is already reserved in EnvironEntry
     EnvironEntry* newEntry = malloc(sizeof(EnvironEntry) + kvLen);
     if (newEntry == NULL) {
@@ -131,9 +131,9 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
 
 
     // Create the 'key=value' string
-    memcpy(&newEntry->kv[0], symbol->name, keyLen);
+    memcpy(&newEntry->kv[0], name, keyLen);
     newEntry->kv[keyLen] = '=';
-    Variable_GetStringValue(&symbol->u.variable, valLen, &newEntry->kv[keyLen + 1]);
+    Variable_GetStringValue(var, valLen, &newEntry->kv[keyLen + 1]);
 
 
     // Add the new entry to the hash chain
@@ -176,13 +176,13 @@ static errno_t _EnvironCache_BuildEnvironTable(EnvironCache* _Nonnull self)
 // state.
 char* _Nullable * _Nullable EnvironCache_GetEnvironment(EnvironCache* _Nonnull self)
 {
-    const int stGen = SymbolTable_GetExportedVariablesGeneration(self->symbolTable);
+    const int stGen = RunStack_GetExportedVariablesGeneration(self->runStack);
     char** ep = NULL;
 
     if (self->generation != stGen) {
         _EnvironCache_ClearCache(self);
 
-        if (SymbolTable_IterateSymbols(self->symbolTable, (SymbolTableIterator)_EnvironCache_CollectEnvironmentVariables, self) == EOK) {
+        if (RunStack_Iterate(self->runStack, (RunStackIterator)_EnvironCache_CollectEnvironmentVariables, self) == EOK) {
             if (_EnvironCache_BuildEnvironTable(self) == EOK) {
                 self->generation = stGen;
             }

@@ -30,10 +30,14 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     try_null(self, calloc(1, sizeof(Interpreter)), ENOMEM);
     try(StackAllocator_Create(1024, 8192, &self->allocator));
     self->context = pContext;
-    try(SymbolTable_Create(&self->symbolTable));
+
+    try(NameTable_Create(&self->nameTable));
     try(Interpreter_RegisterBuiltinCommand(self));
+    
+    try(RunStack_Create(&self->runStack));
     try(Interpreter_RegisterEnvironmentVariables(self));
-    try(EnvironCache_Create(self->symbolTable, &self->environCache));
+    
+    try(EnvironCache_Create(self->runStack, &self->environCache));
     try(ArgumentVector_Create(&self->argumentVector));
 
     *pOutSelf = self;
@@ -54,8 +58,11 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
         EnvironCache_Destroy(self->environCache);
         self->environCache = NULL;
 
-        SymbolTable_Destroy(self->symbolTable);
-        self->symbolTable = NULL;
+        RunStack_Destroy(self->runStack);
+        self->runStack = NULL;
+
+        NameTable_Destroy(self->nameTable);
+        self->nameTable = NULL;
 
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
@@ -69,17 +76,17 @@ static errno_t Interpreter_RegisterBuiltinCommand(InterpreterRef _Nonnull self)
 {
     decl_try_err();
 
-    try(SymbolTable_AddCommand(self->symbolTable, "cd", cmd_cd));
-    try(SymbolTable_AddCommand(self->symbolTable, "cls", cmd_cls));
-    try(SymbolTable_AddCommand(self->symbolTable, "delete", cmd_delete));
-    try(SymbolTable_AddCommand(self->symbolTable, "echo", cmd_echo));
-    try(SymbolTable_AddCommand(self->symbolTable, "exit", cmd_exit));
-    try(SymbolTable_AddCommand(self->symbolTable, "history", cmd_history));
-    try(SymbolTable_AddCommand(self->symbolTable, "list", cmd_list));
-    try(SymbolTable_AddCommand(self->symbolTable, "makedir", cmd_makedir));
-    try(SymbolTable_AddCommand(self->symbolTable, "pwd", cmd_pwd));
-    try(SymbolTable_AddCommand(self->symbolTable, "rename", cmd_rename));
-    try(SymbolTable_AddCommand(self->symbolTable, "type", cmd_type));
+    try(NameTable_AddSymbol(self->nameTable, "cd", cmd_cd));
+    try(NameTable_AddSymbol(self->nameTable, "cls", cmd_cls));
+    try(NameTable_AddSymbol(self->nameTable, "delete", cmd_delete));
+    try(NameTable_AddSymbol(self->nameTable, "echo", cmd_echo));
+    try(NameTable_AddSymbol(self->nameTable, "exit", cmd_exit));
+    try(NameTable_AddSymbol(self->nameTable, "history", cmd_history));
+    try(NameTable_AddSymbol(self->nameTable, "list", cmd_list));
+    try(NameTable_AddSymbol(self->nameTable, "makedir", cmd_makedir));
+    try(NameTable_AddSymbol(self->nameTable, "pwd", cmd_pwd));
+    try(NameTable_AddSymbol(self->nameTable, "rename", cmd_rename));
+    try(NameTable_AddSymbol(self->nameTable, "type", cmd_type));
 
 catch:
     return err;
@@ -98,7 +105,7 @@ static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull 
 
         if (valp) {
             *eqp = '\0';
-            err = SymbolTable_AddVariable(self->symbolTable, keyp, valp, kVariableFlag_Exported);
+            err = RunStack_AddVariable(self->runStack, keyp, valp, kVariableFlag_Exported);
             *eqp = '=';
             // We ignore non-fatal errors here and simply drop the erroneous
             // environment variable because we don't want the shell to die over
@@ -116,10 +123,10 @@ static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull 
 
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
-    Symbol* cmd = SymbolTable_GetSymbol(self->symbolTable, kSymbolType_Command, argv[0]);
+    Symbol* cmd = NameTable_GetSymbol(self->nameTable, argv[0]);
 
     if (cmd) {
-        cmd->u.command.cb(self->context, argc, argv, envp);
+        cmd->cb(self->context, argc, argv, envp);
         return true;
     }
 
