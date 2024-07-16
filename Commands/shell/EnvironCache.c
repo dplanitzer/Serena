@@ -97,10 +97,10 @@ static int ec_strcmp(const char *lhs, const char *rhs)
     }
 }
 
-static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull self, const Variable* _Nonnull var, const char* _Nonnull name, int scopeLevel, bool* _Nonnull pOutDone)
+static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull self, const Variable* _Nonnull vp, int scopeLevel, bool* _Nonnull pOutDone)
 {
     // We only care about exported variables
-    if ((var->flags & kVariableFlag_Exported) == 0) {
+    if ((vp->modifiers & kVarModifier_Public) == 0) {
         return EOK;
     }
 
@@ -108,11 +108,11 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
     // Check whether an entry 'name=value' already exists in our hash table. Shadow
     // definitions won't get added since the definition from the newest scope was
     // added first.
-    const size_t hashIndex = hash_cstring(name) % self->hashtableCapacity;
+    const size_t hashIndex = hash_cstring(vp->name) % self->hashtableCapacity;
     EnvironEntry* entry = self->hashtable[hashIndex];
 
     while (entry) {
-        if (!ec_strcmp(name, entry->kv)) {
+        if (!ec_strcmp(vp->name, entry->kv)) {
             return EOK;
         }
 
@@ -121,8 +121,8 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
 
 
     // This is a new variable. Add it
-    const size_t keyLen = strlen(name);
-    const size_t valLen = Variable_GetStringValueLength(var);
+    const size_t keyLen = strlen(vp->name);
+    const size_t valLen = Value_GetStringValueLength(&vp->var);
     const size_t kvLen = keyLen + 1 + valLen; // '\0' is already reserved in EnvironEntry
     EnvironEntry* newEntry = malloc(sizeof(EnvironEntry) + kvLen);
     if (newEntry == NULL) {
@@ -131,9 +131,9 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
 
 
     // Create the 'key=value' string
-    memcpy(&newEntry->kv[0], name, keyLen);
+    memcpy(&newEntry->kv[0], vp->name, keyLen);
     newEntry->kv[keyLen] = '=';
-    Variable_GetStringValue(var, valLen, &newEntry->kv[keyLen + 1]);
+    Value_GetStringValue(&vp->var, valLen, &newEntry->kv[keyLen + 1]);
 
 
     // Add the new entry to the hash chain
@@ -176,7 +176,7 @@ static errno_t _EnvironCache_BuildEnvironTable(EnvironCache* _Nonnull self)
 // state.
 char* _Nullable * _Nullable EnvironCache_GetEnvironment(EnvironCache* _Nonnull self)
 {
-    const int stGen = RunStack_GetExportedVariablesGeneration(self->runStack);
+    const int stGen = RunStack_GetGenerationOfPublicVariables(self->runStack);
     char** ep = NULL;
 
     if (self->generation != stGen) {

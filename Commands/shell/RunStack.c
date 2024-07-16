@@ -11,20 +11,21 @@
 #include <string.h>
 
 ////////////////////////////////////////////////////////////////////////////////
-// NamedVariable
+// Variable
 ////////////////////////////////////////////////////////////////////////////////
 
-static void NamedVariable_Destroy(NamedVariable* _Nullable self);
+static void Variable_Destroy(Variable* _Nullable self);
 
-static errno_t NamedVariable_Create(const char* _Nonnull name, const char* value, unsigned int flags, NamedVariable* _Nullable * _Nonnull pOutSelf)
+static errno_t Variable_Create(unsigned int modifiers, const char* _Nonnull name, const char* value, Variable* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    NamedVariable* self;
+    Variable* self;
 
-    try_null(self, calloc(1, sizeof(NamedVariable)), errno);
+    try_null(self, calloc(1, sizeof(Variable)), errno);
     try_null(self->name, strdup(name), errno);
-    self->var.type = kVariableType_String;
-    self->var.flags = flags;
+    self->modifiers = modifiers;
+
+    self->var.type = kValueType_String;
     try_null(self->var.u.string.characters, strdup(value), errno);
     self->var.u.string.length = strlen(value);
 
@@ -32,16 +33,16 @@ static errno_t NamedVariable_Create(const char* _Nonnull name, const char* value
     return EOK;
 
 catch:
-    NamedVariable_Destroy(self);
+    Variable_Destroy(self);
     *pOutSelf = NULL;
     return err;
 }
 
-static void NamedVariable_Destroy(NamedVariable* _Nullable self)
+static void Variable_Destroy(Variable* _Nullable self)
 {
     if (self) {
         switch (self->var.type) {
-            case kVariableType_String:
+            case kValueType_String:
                 free(self->var.u.string.characters);
                 self->var.u.string.characters = NULL;
                 self->var.u.string.length = 0;
@@ -76,9 +77,9 @@ static errno_t Scope_Create(Scope* _Nullable parentScope, Scope* _Nullable * _No
     Scope* self;
 
     try_null(self, calloc(1, sizeof(Scope)), errno);
-    try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(NamedVariable*)), errno);
+    try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Variable*)), errno);
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
-    self->parentScope = parentScope;
+    self->parent = parentScope;
     self->level = (parentScope) ? parentScope->level + 1 : 0;
 
     *pOutSelf = self;
@@ -101,13 +102,13 @@ static void Scope_Destroy(Scope* _Nullable self)
 static void _Scope_DestroyHashtable(Scope* _Nonnull self)
 {
     for (size_t i = 0; i < self->hashtableCapacity; i++) {
-        NamedVariable* nv = self->hashtable[i];
+        Variable* vp = self->hashtable[i];
 
-        while (nv) {
-            NamedVariable* next_nv = nv->next;
+        while (vp) {
+            Variable* next_vp = vp->next;
 
-            NamedVariable_Destroy(nv);
-            nv = next_nv;
+            Variable_Destroy(vp);
+            vp = next_vp;
         }
 
         self->hashtable[i] = NULL;
@@ -120,14 +121,14 @@ static void _Scope_DestroyHashtable(Scope* _Nonnull self)
 
 static Variable* _Nullable _Scope_GetVariable(Scope* _Nonnull self, const char* _Nonnull name, size_t hashCode)
 {
-    NamedVariable* nv = self->hashtable[hashCode % self->hashtableCapacity];
+    Variable* vp = self->hashtable[hashCode % self->hashtableCapacity];
 
-    while (nv) {
-        if (!strcmp(nv->name, name)) {
-            return &nv->var;
+    while (vp) {
+        if (!strcmp(vp->name, name)) {
+            return vp;
         }
 
-        nv = nv->next;
+        vp = vp->next;
     }
 
     return NULL;
@@ -144,16 +145,16 @@ static errno_t Scope_Iterate(Scope* _Nonnull self, RunStackIterator _Nonnull cb,
     bool done = false;
 
     for (size_t i = 0; i < self->hashtableCapacity; i++) {
-        NamedVariable* nv = self->hashtable[i];
+        Variable* vp = self->hashtable[i];
 
-        while (nv) {
-            err = cb(context, &nv->var, nv->name, self->level, &done);
+        while (vp) {
+            err = cb(context, vp, self->level, &done);
 
             if (err != EOK || done) {
                 break;
             }
         
-            nv = nv->next;
+            vp = vp->next;
         }
     }
 
@@ -161,10 +162,10 @@ static errno_t Scope_Iterate(Scope* _Nonnull self, RunStackIterator _Nonnull cb,
     return err;
 }
 
-static errno_t Scope_AddVariable(Scope* _Nonnull self, const char* _Nonnull name, const char* _Nonnull value, unsigned int flags)
+static errno_t Scope_DeclareVariable(Scope* _Nonnull self, unsigned int modifiers, const char* _Nonnull name, const char* _Nonnull value)
 {
     decl_try_err();
-    NamedVariable* nv;
+    Variable* vp;
     const size_t hashCode = hash_cstring(name);
     const size_t hashIndex = hashCode % self->hashtableCapacity;
 
@@ -172,9 +173,9 @@ static errno_t Scope_AddVariable(Scope* _Nonnull self, const char* _Nonnull name
         throw(EREDEFINED);
     }
 
-    try(NamedVariable_Create(name, value, flags, &nv));
-    nv->next = self->hashtable[hashIndex];
-    self->hashtable[hashIndex] = nv;
+    try(Variable_Create(modifiers, name, value, &vp));
+    vp->next = self->hashtable[hashIndex];
+    self->hashtable[hashIndex] = vp;
 
 catch:
     return err;
@@ -212,7 +213,7 @@ void RunStack_Destroy(RunStack* _Nullable self)
         Scope* scope = self->currentScope;
 
         while (scope) {
-            Scope* next_scope = scope->parentScope;
+            Scope* next_scope = scope->parent;
 
             Scope_Destroy(scope);
             scope = next_scope;
@@ -237,48 +238,48 @@ catch:
 
 errno_t RunStack_PopScope(RunStack* _Nonnull self)
 {
-    if (self->currentScope->parentScope == NULL) {
+    if (self->currentScope->parent == NULL) {
         return EUNDERFLOW;
     }
 
-    if (self->currentScope->exportedVariablesCount > 0) {
-        self->exportedVariablesGeneration++;
+    if (self->currentScope->publicVariablesCount > 0) {
+        self->generationOfPublicVariables++;
     }
 
     Scope* scope = self->currentScope;
-    self->currentScope = scope->parentScope;
-    scope->parentScope = NULL;
+    self->currentScope = scope->parent;
+    scope->parent = NULL;
     Scope_Destroy(scope);
 
     return EOK;
 }
 
-errno_t RunStack_SetVariableExported(RunStack* _Nonnull self, const char* _Nonnull name, bool bExported)
+errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nonnull name, bool bExported)
 {
     Scope* scope;
-    Variable* v = _RunStack_GetVariable(self, name, &scope);
+    Variable* vp = _RunStack_GetVariable(self, name, &scope);
 
-    if (v == NULL) {
+    if (vp == NULL) {
         return EUNDEFINED;
     }
 
-    if (bExported && (v->flags & kVariableFlag_Exported) == 0) {
-        v->flags |= kVariableFlag_Exported;
-        scope->exportedVariablesCount++;
-        self->exportedVariablesGeneration++;
+    if (bExported && (vp->modifiers & kVarModifier_Public) == 0) {
+        vp->modifiers |= kVarModifier_Public;
+        scope->publicVariablesCount++;
+        self->generationOfPublicVariables++;
     }
-    else if (!bExported && (v->flags & kVariableFlag_Exported) == kVariableFlag_Exported) {
-        v->flags &= ~kVariableFlag_Exported;
-        scope->exportedVariablesCount--;
-        self->exportedVariablesGeneration++;
+    else if (!bExported && (vp->modifiers & kVarModifier_Public) == kVarModifier_Public) {
+        vp->modifiers &= ~kVarModifier_Public;
+        scope->publicVariablesCount--;
+        self->generationOfPublicVariables++;
     }
 
     return EOK;
 }
 
-int RunStack_GetExportedVariablesGeneration(RunStack* _Nonnull self)
+int RunStack_GetGenerationOfPublicVariables(RunStack* _Nonnull self)
 {
-    return self->exportedVariablesGeneration;
+    return self->generationOfPublicVariables;
 }
 
 static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope)
@@ -287,14 +288,14 @@ static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const 
     Scope* scope = self->currentScope;
 
     while (scope) {
-        Variable* v = _Scope_GetVariable(scope, name, hashCode);
+        Variable* vp = _Scope_GetVariable(scope, name, hashCode);
 
-        if (v) {
+        if (vp) {
             if (pOutScope) *pOutScope = scope;
-            return v;
+            return vp;
         }
 
-        scope = scope->parentScope;
+        scope = scope->parent;
     }
 
     if (pOutScope) *pOutScope = NULL;
@@ -319,20 +320,20 @@ errno_t RunStack_Iterate(RunStack* _Nonnull self, RunStackIterator _Nonnull cb, 
             break;
         }
 
-        scope = scope->parentScope;
+        scope = scope->parent;
     }
 
     return err;
 }
 
-errno_t RunStack_AddVariable(RunStack* _Nonnull self, const char* _Nonnull name, const char* _Nonnull value, unsigned int flags)
+errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nonnull name, const char* _Nonnull value)
 {
     decl_try_err();
 
-    err = Scope_AddVariable(self->currentScope, name, value, flags);
-    if (err == EOK && (flags & kVariableFlag_Exported) == kVariableFlag_Exported) {
-        self->currentScope->exportedVariablesCount++;
-        self->exportedVariablesGeneration++;
+    err = Scope_DeclareVariable(self->currentScope, modifiers, name, value);
+    if (err == EOK && (modifiers & kVarModifier_Public) == kVarModifier_Public) {
+        self->currentScope->publicVariablesCount++;
+        self->generationOfPublicVariables++;
     }
 
     return err;

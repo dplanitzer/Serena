@@ -16,8 +16,8 @@
 #include <string.h>
 #include <System/System.h>
 
-static errno_t Interpreter_RegisterBuiltinCommand(InterpreterRef _Nonnull self);
-static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull self);
+static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self);
+static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,10 +32,10 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     self->context = pContext;
 
     try(NameTable_Create(&self->nameTable));
-    try(Interpreter_RegisterBuiltinCommand(self));
+    try(Interpreter_DeclareInternalCommands(self));
     
     try(RunStack_Create(&self->runStack));
-    try(Interpreter_RegisterEnvironmentVariables(self));
+    try(Interpreter_DeclareEnvironmentVariables(self));
     
     try(EnvironCache_Create(self->runStack, &self->environCache));
     try(ArgumentVector_Create(&self->argumentVector));
@@ -72,27 +72,27 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
     }
 }
 
-static errno_t Interpreter_RegisterBuiltinCommand(InterpreterRef _Nonnull self)
+static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
 {
     decl_try_err();
 
-    try(NameTable_AddSymbol(self->nameTable, "cd", cmd_cd));
-    try(NameTable_AddSymbol(self->nameTable, "cls", cmd_cls));
-    try(NameTable_AddSymbol(self->nameTable, "delete", cmd_delete));
-    try(NameTable_AddSymbol(self->nameTable, "echo", cmd_echo));
-    try(NameTable_AddSymbol(self->nameTable, "exit", cmd_exit));
-    try(NameTable_AddSymbol(self->nameTable, "history", cmd_history));
-    try(NameTable_AddSymbol(self->nameTable, "list", cmd_list));
-    try(NameTable_AddSymbol(self->nameTable, "makedir", cmd_makedir));
-    try(NameTable_AddSymbol(self->nameTable, "pwd", cmd_pwd));
-    try(NameTable_AddSymbol(self->nameTable, "rename", cmd_rename));
-    try(NameTable_AddSymbol(self->nameTable, "type", cmd_type));
+    try(NameTable_DeclareName(self->nameTable, "cd", cmd_cd));
+    try(NameTable_DeclareName(self->nameTable, "cls", cmd_cls));
+    try(NameTable_DeclareName(self->nameTable, "delete", cmd_delete));
+    try(NameTable_DeclareName(self->nameTable, "echo", cmd_echo));
+    try(NameTable_DeclareName(self->nameTable, "exit", cmd_exit));
+    try(NameTable_DeclareName(self->nameTable, "history", cmd_history));
+    try(NameTable_DeclareName(self->nameTable, "list", cmd_list));
+    try(NameTable_DeclareName(self->nameTable, "makedir", cmd_makedir));
+    try(NameTable_DeclareName(self->nameTable, "pwd", cmd_pwd));
+    try(NameTable_DeclareName(self->nameTable, "rename", cmd_rename));
+    try(NameTable_DeclareName(self->nameTable, "type", cmd_type));
 
 catch:
     return err;
 }
 
-static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull self)
+static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self)
 {
     decl_try_err();
     ProcessArguments* pargs = Process_GetArguments();
@@ -105,7 +105,7 @@ static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull 
 
         if (valp) {
             *eqp = '\0';
-            err = RunStack_AddVariable(self->runStack, keyp, valp, kVariableFlag_Exported);
+            err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public, keyp, valp);
             *eqp = '=';
             // We ignore non-fatal errors here and simply drop the erroneous
             // environment variable because we don't want the shell to die over
@@ -123,10 +123,10 @@ static errno_t Interpreter_RegisterEnvironmentVariables(InterpreterRef _Nonnull 
 
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
-    Symbol* cmd = NameTable_GetSymbol(self->nameTable, argv[0]);
+    Name* np = NameTable_GetName(self->nameTable, argv[0]);
 
-    if (cmd) {
-        cmd->cb(self->context, argc, argv, envp);
+    if (np) {
+        np->cb(self->context, argc, argv, envp);
         return true;
     }
 
