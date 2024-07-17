@@ -265,6 +265,7 @@ static bool Lexer_TryScanVariableName(Lexer* _Nonnull self)
 {
     size_t nameLen = 0;
     int savedSourceIndex = self->sourceIndex;
+    int savedColumn = self->column;
 
     self->textBufferCount = 0;
 
@@ -286,6 +287,7 @@ static bool Lexer_TryScanVariableName(Lexer* _Nonnull self)
     }
 
     if (self->source[self->sourceIndex] == ':') {
+        self->sourceIndex++;
         self->column++;
         Lexer_AddCharToTextBuffer(self, ':');
         nameLen = 0;
@@ -312,6 +314,7 @@ static bool Lexer_TryScanVariableName(Lexer* _Nonnull self)
     }
     else {
         self->sourceIndex = savedSourceIndex;
+        self->column = savedColumn;
         return false;
     }
 }

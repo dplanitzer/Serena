@@ -181,7 +181,30 @@ static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int
     return true;
 }
 
-static errno_t Interpreter_WriteQuotedStringText(InterpreterRef _Nonnull self, QuotedString* _Nonnull str)
+static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const VarRef* vref)
+{
+    decl_try_err();
+    Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
+
+    if (varp == NULL) {
+        return EUNDEFINED;
+    }
+
+    Value* vp = &varp->var;
+    switch (vp->type) {
+        case kValueType_String:
+            err = ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
+            break;
+
+        default:
+            abort();
+            break;
+    }
+
+    return err;
+}
+
+static errno_t Interpreter_SerializeQuotedStringText(InterpreterRef _Nonnull self, QuotedString* _Nonnull str)
 {
     decl_try_err();
     StringAtom* atom = str->atoms;
@@ -194,7 +217,10 @@ static errno_t Interpreter_WriteQuotedStringText(InterpreterRef _Nonnull self, Q
                 break;
 
             case kStringAtom_Expression:
+                break;
+
             case kStringAtom_VariableReference:
+                err = Interpreter_SerializeVariable(self, atom->u.vref);
                 break;
 
             default:
@@ -206,17 +232,20 @@ static errno_t Interpreter_WriteQuotedStringText(InterpreterRef _Nonnull self, Q
     return err;
 }
 
-static errno_t Interpreter_WriteArgumentString(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
+static errno_t Interpreter_SerializeArgumentString(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
 {
     decl_try_err();
 
     switch (atom->type) {
         case kAtom_Expression:
+            break;
+
         case kAtom_VariableReference:
+            err = Interpreter_SerializeVariable(self, atom->u.vref);
             break;
 
         case kAtom_QuotedString:
-            err = Interpreter_WriteQuotedStringText(self, atom->u.qstring);
+            err = Interpreter_SerializeQuotedStringText(self, atom->u.qstring);
             break;
 
         default:
@@ -242,7 +271,7 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
         // We always pick up the first atom in an non-whitespace-separated-atom-sequence
         // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
         while (atom && (!atom->hasLeadingWhitespace || isFirstAtom)) {
-            try(Interpreter_WriteArgumentString(self, atom));
+            try(Interpreter_SerializeArgumentString(self, atom));
             atom = atom->next;
             isFirstAtom = false;
         }
@@ -277,7 +306,7 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
     return;
 
 catch:
-    printf(shell_strerror(err));
+    printf("%s\n", shell_strerror(err));
 }
 
 static void Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)

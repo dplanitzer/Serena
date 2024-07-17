@@ -187,9 +187,6 @@ catch:
 // RunStack
 ////////////////////////////////////////////////////////////////////////////////
 
-static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope);
-
-
 errno_t RunStack_Create(RunStack* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
@@ -230,6 +227,12 @@ errno_t RunStack_PushScope(RunStack* _Nonnull self)
     Scope* scope;
 
     try(Scope_Create(self->currentScope, &scope));
+    if (self->currentScope == NULL) {
+        self->globalScope = scope;
+    }
+    else if (self->currentScope == self->globalScope) {
+        self->scriptScope = scope;
+    }
     self->currentScope = scope;
 
 catch:
@@ -247,6 +250,12 @@ errno_t RunStack_PopScope(RunStack* _Nonnull self)
     }
 
     Scope* scope = self->currentScope;
+    if (scope == self->scriptScope) {
+        self->scriptScope = NULL;
+    }
+    else if (scope == self->globalScope) {
+        self->globalScope = NULL;
+    }
     self->currentScope = scope->parent;
     scope->parent = NULL;
     Scope_Destroy(scope);
@@ -254,38 +263,25 @@ errno_t RunStack_PopScope(RunStack* _Nonnull self)
     return EOK;
 }
 
-errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nonnull name, bool bExported)
-{
-    Scope* scope;
-    Variable* vp = _RunStack_GetVariable(self, name, &scope);
-
-    if (vp == NULL) {
-        return EUNDEFINED;
-    }
-
-    if (bExported && (vp->modifiers & kVarModifier_Public) == 0) {
-        vp->modifiers |= kVarModifier_Public;
-        scope->publicVariablesCount++;
-        self->generationOfPublicVariables++;
-    }
-    else if (!bExported && (vp->modifiers & kVarModifier_Public) == kVarModifier_Public) {
-        vp->modifiers &= ~kVarModifier_Public;
-        scope->publicVariablesCount--;
-        self->generationOfPublicVariables++;
-    }
-
-    return EOK;
-}
-
-int RunStack_GetGenerationOfPublicVariables(RunStack* _Nonnull self)
-{
-    return self->generationOfPublicVariables;
-}
-
-static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope)
+static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull scopeName, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope)
 {
     const size_t hashCode = hash_cstring(name);
     Scope* scope = self->currentScope;
+
+    if (*scopeName != '\0') {
+        if (!strcmp(scopeName, "global")) {
+            scope = self->globalScope;
+        }
+        else if (!strcmp(scopeName, "script")) {
+            scope = self->scriptScope;
+        }
+        else if (!strcmp(scopeName, "local")) {
+            scope = self->currentScope;
+        }
+        else {
+            return NULL;
+        }
+    }
 
     while (scope) {
         Variable* vp = _Scope_GetVariable(scope, name, hashCode);
@@ -302,9 +298,37 @@ static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const 
     return NULL;
 }
 
-Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull name)
+errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nonnull scopeName, const char* _Nonnull name, bool bPublic)
 {
-    return _RunStack_GetVariable(self, name, NULL);
+    Scope* scope;
+    Variable* vp = _RunStack_GetVariable(self, scopeName, name, &scope);
+
+    if (vp == NULL) {
+        return EUNDEFINED;
+    }
+
+    if (bPublic && (vp->modifiers & kVarModifier_Public) == 0) {
+        vp->modifiers |= kVarModifier_Public;
+        scope->publicVariablesCount++;
+        self->generationOfPublicVariables++;
+    }
+    else if (!bPublic && (vp->modifiers & kVarModifier_Public) == kVarModifier_Public) {
+        vp->modifiers &= ~kVarModifier_Public;
+        scope->publicVariablesCount--;
+        self->generationOfPublicVariables++;
+    }
+
+    return EOK;
+}
+
+int RunStack_GetGenerationOfPublicVariables(RunStack* _Nonnull self)
+{
+    return self->generationOfPublicVariables;
+}
+
+Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull scopeName, const char* _Nonnull name)
+{
+    return _RunStack_GetVariable(self, scopeName, name, NULL);
 }
 
 errno_t RunStack_Iterate(RunStack* _Nonnull self, RunStackIterator _Nonnull cb, void* _Nullable context)

@@ -13,9 +13,9 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
-        /*EREDEFINED*/      "Redefinition",
-        /*EUNDEFINED*/      "Undefined",
-        /*EUNDERFLOW*/      "Underflow",
+        /*EREDEFINED*/      "Variable redefinition",
+        /*EUNDEFINED*/      "Undefined variable",
+        /*EUNDERFLOW*/      "Stack underflow",
         /*ESYNTAX*/         "Syntax error",
     };
 

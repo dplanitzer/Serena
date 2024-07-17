@@ -37,8 +37,10 @@ typedef struct Scope {
 
 
 typedef struct RunStack {
-    Scope* _Nonnull currentScope;
-    int             generationOfPublicVariables;
+    Scope* _Nonnull     currentScope;
+    Scope* _Nonnull     globalScope;
+    Scope* _Nullable    scriptScope;
+    int                 generationOfPublicVariables;
 } RunStack;
 
 
@@ -51,7 +53,10 @@ extern void RunStack_Destroy(RunStack* _Nullable self);
 extern errno_t RunStack_PushScope(RunStack* _Nonnull self);
 extern errno_t RunStack_PopScope(RunStack* _Nonnull self);
 
-extern errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nonnull name, bool bExported);
+// Marks the variable named 'name' as public or internal. Public variables are
+// exported to the environment and thus are visible to child processes; internal
+// variables are only visible to the shell process.
+extern errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nonnull scope, const char* _Nonnull name, bool bPublic);
 
 // Returns a number that represents the current generation of public variables.
 // This number changes every time a new public variable is added to the current
@@ -60,8 +65,9 @@ extern errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _
 extern int RunStack_GetGenerationOfPublicVariables(RunStack* _Nonnull self);
 
 // Looks through the scopes on the run stack and returns the top-most definition
-// of the variable with name 'name'.
-extern Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull name);
+// of the variable with name 'name'. 'scope' my be 'global', 'script' or 'local'
+// (or "").
+extern Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull scope, const char* _Nonnull name);
 
 // Iterates all variable definitions. Note that this includes variables in a
 // lower scope that are shadowed in a higher scope. The callback has to resolve
