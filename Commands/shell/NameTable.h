@@ -20,7 +20,7 @@ typedef int (*CommandCallback)(struct ShellContext* _Nonnull, int argc, char** a
 
 
 typedef struct Name {
-    struct Name* _Nullable      next;       // Next symbol in hash chain
+    struct Name* _Nullable      next;       // Next name in hash chain
     CommandCallback _Nonnull    cb;
     char                        name[1];
 } Name;

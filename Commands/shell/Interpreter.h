@@ -13,6 +13,7 @@
 #include "ArgumentVector.h"
 #include "EnvironCache.h"
 #include "NameTable.h"
+#include "OpStack.h"
 #include "RunStack.h"
 #include "ShellContext.h"
 #include "StackAllocator.h"
@@ -23,6 +24,7 @@ typedef struct Interpreter {
     
     ShellContextRef _Weak       context;
     NameTable* _Nonnull         nameTable;
+    OpStack* _Nonnull           opStack;
     RunStack* _Nonnull          runStack;
     EnvironCache* _Nonnull      environCache;
     ArgumentVector* _Nonnull    argumentVector;

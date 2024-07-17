@@ -34,6 +34,8 @@ errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nu
     try(NameTable_Create(&self->nameTable));
     try(Interpreter_DeclareInternalCommands(self));
     
+    try(OpStack_Create(&self->opStack));
+
     try(RunStack_Create(&self->runStack));
     try(Interpreter_DeclareEnvironmentVariables(self));
     
@@ -61,6 +63,9 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
         RunStack_Destroy(self->runStack);
         self->runStack = NULL;
 
+        OpStack_Destroy(self->opStack);
+        self->opStack = NULL;
+        
         NameTable_Destroy(self->nameTable);
         self->nameTable = NULL;
 
