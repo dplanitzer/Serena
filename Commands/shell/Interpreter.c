@@ -256,29 +256,47 @@ static errno_t Interpreter_SerializeArgumentString(InterpreterRef _Nonnull self,
     return err;
 }
 
+static errno_t Interpreter_SerializeCommandArguments(InterpreterRef _Nonnull self, Atom* _Nonnull atoms)
+{
+    decl_try_err();
+    Atom* atom = atoms;
+
+    ArgumentVector_Open(self->argumentVector);
+
+    while (atom && err == EOK) {
+        bool isFirstAtom = true;
+
+        // We always pick up the first atom in an non-whitespace-separated-atom-sequence
+        // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
+        while (atom && (!atom->hasLeadingWhitespace || isFirstAtom)) {
+            err = Interpreter_SerializeArgumentString(self, atom);
+            if (err != EOK) {
+                break;
+            }
+
+            atom = atom->next;
+            isFirstAtom = false;
+        }
+
+        if (err == EOK) {
+            err = ArgumentVector_EndOfArg(self->argumentVector);
+        }
+    }
+
+    const errno_t err2 = ArgumentVector_Close(self->argumentVector);
+    if (err == EOK) {
+        err = err2;
+    }
+    return err;
+}
+
 static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull cmd)
 {
     decl_try_err();
 
     // Create the command argument vector by converting all atoms in the command
     // expression into argument strings.
-    ArgumentVector_Open(self->argumentVector);
-
-    Atom* atom = cmd->atoms;
-    while (atom) {
-        bool isFirstAtom = true;
-
-        // We always pick up the first atom in an non-whitespace-separated-atom-sequence
-        // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
-        while (atom && (!atom->hasLeadingWhitespace || isFirstAtom)) {
-            try(Interpreter_SerializeArgumentString(self, atom));
-            atom = atom->next;
-            isFirstAtom = false;
-        }
-
-        try(ArgumentVector_EndOfArg(self->argumentVector));
-    }
-    try(ArgumentVector_Close(self->argumentVector));
+    try(Interpreter_SerializeCommandArguments(self, cmd->atoms));
     
     const int argc = ArgumentVector_GetArgc(self->argumentVector);
     char** argv = ArgumentVector_GetArgv(self->argumentVector);
