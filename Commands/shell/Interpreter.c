@@ -138,59 +138,50 @@ static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int
     return false;
 }
 
-static bool Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
+static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     static const char* gSearchPath = "/System/Commands/";
+
     decl_try_err();
     ProcessId childPid;
+    char* cmdPath = NULL;
+    const bool isAbsPath = argv[0][0] == '/';
+    const size_t searchPathLen = (isAbsPath) ? 0 : strlen(gSearchPath);
     SpawnOptions opts = {0};
     
-    const size_t cmdPathLen = strlen(gSearchPath) + strlen(argv[0]);
-    if (cmdPathLen > PATH_MAX) {
-        printf("Command line too long.\n");
-        return true;
+    const size_t cmdPathLen = searchPathLen + strlen(argv[0]);
+    if (cmdPathLen > PATH_MAX - 1) {
+        throw(ENAMETOOLONG);
     }
 
-    char* cmdPath = StackAllocator_Alloc(self->allocator, sizeof(char*) * (cmdPathLen + 1));
-    if (cmdPath == NULL) {
-        printf(shell_strerror(ENOMEM));
-        return true;
+    try_null(cmdPath, StackAllocator_Alloc(self->allocator, sizeof(char*) * (cmdPathLen + 1)), ENOMEM);
+    if (!isAbsPath) {
+        strcpy(cmdPath, gSearchPath);
+        strcat(cmdPath, argv[0]);
     }
-
-    strcpy(cmdPath, gSearchPath);
-    strcat(cmdPath, argv[0]);
+    else {
+        strcpy(cmdPath, argv[0]);
+    }
 
     opts.envp = envp;
 
 
     // Spawn the external command
-    err = Process_Spawn(cmdPath, argv, &opts, &childPid);
-    if (err == ENOENT) {
-        return false;
-    }
-    else if (err != EOK) {
-        printf("%s: %s.\n", argv[0], shell_strerror(err));
-        return true;
-    }
+    try(Process_Spawn(cmdPath, argv, &opts, &childPid));
 
 
     // Wait for the command to complete its task
     ProcessTerminationStatus pts;
     Process_WaitForTerminationOfChild(childPid, &pts);
-    
-    return true;
+
+catch:    
+    return err;
 }
 
-static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const VarRef* vref)
+static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Value* vp)
 {
     decl_try_err();
-    Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
 
-    if (varp == NULL) {
-        return EUNDEFINED;
-    }
-
-    Value* vp = &varp->var;
     switch (vp->type) {
         case kValueType_String:
             err = ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
@@ -202,6 +193,17 @@ static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const
     }
 
     return err;
+}
+
+static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const VarRef* vref)
+{
+    Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
+
+    if (varp == NULL) {
+        return EUNDEFINED;
+    }
+
+    return Interpreter_SerializeValue(self, &varp->var);
 }
 
 static errno_t Interpreter_SerializeQuotedStringText(InterpreterRef _Nonnull self, QuotedString* _Nonnull str)
@@ -300,6 +302,7 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
     
     const int argc = ArgumentVector_GetArgc(self->argumentVector);
     char** argv = ArgumentVector_GetArgv(self->argumentVector);
+
     if (argc == 0) {
         return;
     }
@@ -314,17 +317,11 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
 
 
     // Not a builtin command. Look for an external command
-    if (Interpreter_ExecuteExternalCommand(self, argc, argv, envp)) {
-        return;
-    }
-
-
-    // Not a command at all
-    printf("%s: unknown command.\n", argv[0]);
+    try(Interpreter_ExecuteExternalCommand(self, argc, argv, envp));
     return;
 
 catch:
-    printf("%s\n", shell_strerror(err));
+    printf("%s: %s.\n", argv[0], shell_strerror(err));
 }
 
 static void Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)

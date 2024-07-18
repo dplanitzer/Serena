@@ -148,52 +148,42 @@ assignmentStatement
     ;
 
 command
-    : commandPrimaryFragment commandSecondaryFragment*
+    : (commandPrimaryFragment)<no whitespace>+ commandSecondaryFragment*
     ;
 
 commandPrimaryFragment
-    : SINGLE_BACKTICK_STRING
+    : SLASH
+    | ASSIGNMENT
+    | IDENTIFIER
+    | SINGLE_BACKTICK_STRING
     | doubleBacktickString
-    | commandName
-    ;
-
-commandName
-    : (SLASH
-        | ASSIGNMENT
-        | IDENTIFIER)<no whitespace>+
     ;
 
 commandSecondaryFragment
-    : literal
-    | SINGLE_BACKTICK_STRING
-    | doubleBacktickString
+    : IDENTIFIER
+    | ELSE
+    | IF
+    | INTERNAL
+    | LET
+    | VAR
+    | WHILE
+    | PUBLIC
+    | ASSIGNMENT
+    | CONJUNCTION
+    | DISJUNCTION
+    | PLUS
+    | MINUS
+    | ASTERISK
+    | SLASH
+    | EQEQ
+    | NOEQ
+    | LEEQ
+    | GREQ
+    | LESS
+    | GREATER
     | VAR_NAME
+    | literal
     | parenthesizedExpression
-    | commandFragmentAtom
-    ;
-
-commandFragmentAtom
-    : (IDENTIFIER
-        | ELSE
-        | IF
-        | INTERNAL
-        | LET
-        | VAR
-        | WHILE
-        | PUBLIC
-        | ASSIGNMENT
-        | CONJUNCTION
-        | DISJUNCTION
-        | PLUS
-        | MINUS
-        | ASTERISK
-        | SLASH
-        | EQEQ
-        | NOEQ
-        | LEEQ
-        | GREQ
-        | LESS
-        | GREATER)<no whitespace>+
     ;
 
 expression
@@ -315,7 +305,9 @@ escapedExpression
 * Prefix operators must exhibit whitespace on the left side and no whitespace on the right side
 * Postfix operators must exhibit whitespace on the right side and no whitespace on the left side
 * Infix operators must either exhibit whitespace on both sides or on neither side
-* A command parameter is the longest sequence of commandSecondaryFragment objects which are not separated by whitespace
+* A character sequence enclosed by single or double backticks indicates that the character sequence names an external command
+* A command name is the longest sequence of commandPrimaryFragment objects which are not separated by whitespace
+* A single command parameter is the longest sequence of commandSecondaryFragment objects which are not separated by whitespace
 * Escaping a character outside of a double quoted string effectively turns the escaped character into an identifier character
 * Escaping the LF or CRLF character(s) outside a double quoted string replaces the LF/CRLF sequence with an empty string and does not terminate the identifier that is currently being lexed
 * Adjacent tokens are merged into a single token under the following circumstances:

@@ -235,80 +235,48 @@ static const char* _Nonnull get_op2_token_string(TokenId id)
     }
 }
 
-// s-expr: (UNQUOTED_STRING
-//          | SINGLE_QUOTED_STRING 
-//          | DOUBLE_QUOTED_STRING 
-//          | ESCAPED_CHARACTER
-//          | VARIABLE_REFERENCE 
-//          | sub-p-expr
-//          | <
-//          | >
-//          | >=
-//          | <=
-//          | ==
-//          | !=
-//          | +
-//          | -
-//          | *
-//          | /
-//          | =
-//          | CHARACTER
-//       )+
-static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnull pOutCmd)
+//
+// commandPrimaryFragment
+//     : (SINGLE_BACKTICK_STRING
+//         | doubleBacktickString
+//         | SLASH
+//         | ASSIGNMENT
+//         | IDENTIFIER)<no whitespace>+
+//         ;
+//     ;
+static errno_t Parser_CommandPrimaryFragment(Parser* _Nonnull self, Command* _Nonnull cmd)
 {
     decl_try_err();
-    Command* cmd = NULL;
     Atom* atom = NULL;
-    bool done = false;
+    bool isFirst = true;
 
-    try(Command_Create(self->allocator, &cmd));
-
-    while (!done) {
+    for (;;) {
         const Token* t = Lexer_GetToken(&self->lexer);
         const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
 
+        if (!isFirst && hasLeadingWhitespace) {
+            break;
+        }
+
         switch (t->id) {
-            case kToken_Assignment:
-            case kToken_Asterisk:
-            case kToken_Bang:
-            case kToken_Greater:
-            case kToken_Less:
-            case kToken_Minus:
-            case kToken_Plus:
-            case kToken_Slash:
-                try(Atom_CreateWithCharacter(self->allocator, kAtom_Operator, t->id, hasLeadingWhitespace, &atom));
-                consume();
-                break;
-
-            case kToken_Conjunction:
-            case kToken_Disjunction:
-            case kToken_EqualEqual:
-            case kToken_GreaterEqual:
-            case kToken_LessEqual:
-            case kToken_NotEqual:
-                try(Atom_CreateWithString(self->allocator, kAtom_Operator, get_op2_token_string(t->id), 2, hasLeadingWhitespace, &atom));
-                consume();
-                break;
-
             case kToken_BacktickString:
                 try(failOnIncomplete(t));
                 try(Atom_CreateWithString(self->allocator, kAtom_BacktickString, t->u.string, t->length, hasLeadingWhitespace, &atom));
                 consume();
                 break;
 
-            case kToken_SingleQuoteString:
-                try(failOnIncomplete(t));
-                try(Atom_CreateWithString(self->allocator, kAtom_SingleQuoteString, t->u.string, t->length, hasLeadingWhitespace, &atom));
-                consume();
-                break;
-
-            case kToken_DoubleBacktick:
-            case kToken_DoubleQuote: {
+            case kToken_DoubleBacktick: {
                 QuotedString* str = NULL;
-                try(Parser_QuotedString(self, t->id == kToken_DoubleBacktick, &str));
+                try(Parser_QuotedString(self, true, &str));
                 try(Atom_CreateWithQuotedString(self->allocator, str, hasLeadingWhitespace, &atom));
                 break;
             }
+
+            case kToken_Assignment:
+            case kToken_Slash:
+                try(Atom_CreateWithCharacter(self->allocator, kAtom_Identifier, t->id, hasLeadingWhitespace, &atom));
+                consume();
+                break;
 
             case kToken_Identifier:
                 try(failOnIncomplete(t));
@@ -316,36 +284,149 @@ static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnu
                 consume();
                 break;
 
-            case kToken_OpeningParenthesis: {
-                Expression* expr = NULL;
-                try(Parser_ParenthesizedExpression(self, &expr));
-                try(Atom_CreateWithExpression(self->allocator, expr, hasLeadingWhitespace, &atom));
-                break;
-            }
-
-            case kToken_VariableName: {
-                VarRef* vref = NULL;
-                try(Parser_VarReference(self, &vref));
-                try(Atom_CreateWithVarRef(self->allocator, vref, hasLeadingWhitespace, &atom));
-                break;
-            }
-
             default:
-                done = true;
                 break;
         }
 
-        if (atom) {
-            Command_AddAtom(cmd, atom);
-            atom = NULL;
+        if (atom == NULL) {
+            break;
         }
+
+        Command_AddAtom(cmd, atom);
+        atom = NULL;
+        isFirst = false;
     }
 
-    *pOutCmd = cmd;
+catch:
+    return err;
+}
+
+//
+// commandSecondaryFragment
+//     : IDENTIFIER
+//     | ELSE
+//     | IF
+//     | INTERNAL
+//     | LET
+//     | VAR
+//     | WHILE
+//     | PUBLIC
+//     | ASSIGNMENT
+//     | CONJUNCTION
+//     | DISJUNCTION
+//     | PLUS
+//     | MINUS
+//     | ASTERISK
+//     | SLASH
+//     | EQEQ
+//     | NOEQ
+//     | LEEQ
+//     | GREQ
+//     | LESS
+//     | GREATER
+//     | VAR_NAME
+//     | literal
+//     | parenthesizedExpression
+//     ;
+static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nullable * _Nonnull pOutAtom)
+{
+    decl_try_err();
+    Atom* atom = NULL;
+    const Token* t = Lexer_GetToken(&self->lexer);
+    const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
+
+    switch (t->id) {
+        case kToken_Assignment:
+        case kToken_Asterisk:
+        case kToken_Bang:
+        case kToken_Greater:
+        case kToken_Less:
+        case kToken_Minus:
+        case kToken_Plus:
+        case kToken_Slash:
+            try(Atom_CreateWithCharacter(self->allocator, kAtom_Identifier, t->id, hasLeadingWhitespace, &atom));
+            consume();
+            break;
+
+        case kToken_Conjunction:
+        case kToken_Disjunction:
+        case kToken_EqualEqual:
+        case kToken_GreaterEqual:
+        case kToken_LessEqual:
+        case kToken_NotEqual:
+            try(Atom_CreateWithString(self->allocator, kAtom_Identifier, get_op2_token_string(t->id), 2, hasLeadingWhitespace, &atom));
+            consume();
+            break;
+
+        case kToken_SingleQuoteString:
+            try(failOnIncomplete(t));
+            try(Atom_CreateWithString(self->allocator, kAtom_SingleQuoteString, t->u.string, t->length, hasLeadingWhitespace, &atom));
+            consume();
+            break;
+
+        case kToken_DoubleQuote: {
+            QuotedString* str = NULL;
+            try(Parser_QuotedString(self, t->id == kToken_DoubleBacktick, &str));
+            try(Atom_CreateWithQuotedString(self->allocator, str, hasLeadingWhitespace, &atom));
+            break;
+        }
+
+        case kToken_Identifier:
+            try(failOnIncomplete(t));
+            try(Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace, &atom));
+            consume();
+            break;
+
+        case kToken_OpeningParenthesis: {
+            Expression* expr = NULL;
+            try(Parser_ParenthesizedExpression(self, &expr));
+            try(Atom_CreateWithExpression(self->allocator, expr, hasLeadingWhitespace, &atom));
+            break;
+        }
+
+        case kToken_VariableName: {
+            VarRef* vref = NULL;
+            try(Parser_VarReference(self, &vref));
+            try(Atom_CreateWithVarRef(self->allocator, vref, hasLeadingWhitespace, &atom));
+            break;
+        }
+
+        default:
+            break;
+    }
+    *pOutAtom = atom;
     return EOK;
 
 catch:
-    *pOutCmd = NULL;
+    *pOutAtom = NULL;
+    return err;
+}
+
+//
+// command
+//     : commandPrimaryFragment commandSecondaryFragment*
+//     ;
+static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnull pOutCmd)
+{
+    decl_try_err();
+    Command* cmd = NULL;
+    Atom* atom = NULL;
+
+    try(Command_Create(self->allocator, &cmd));
+    try(Parser_CommandPrimaryFragment(self, cmd));
+
+    for (;;) {
+        err = Parser_CommandSecondaryFragment(self, &atom);
+        if (atom == NULL || err != EOK) {
+            break;
+        }
+
+        Command_AddAtom(cmd, atom);
+        atom = NULL;
+    }
+
+catch:
+    *pOutCmd = cmd;
     return err;
 }
 

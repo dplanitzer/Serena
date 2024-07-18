@@ -13,7 +13,7 @@
 #include "Lexer.h"
 #include "StackAllocator.h"
 
-//#define SCRIPT_PRINTING 1
+#define SCRIPT_PRINTING 1
 struct Expression;
 struct QuotedString;
 struct VarRef;
@@ -56,15 +56,32 @@ extern void Atom_Print(Atom* _Nonnull self);
 #endif
 
 
+
 typedef struct VarRef {
     char* _Nonnull  scope;
     char* _Nonnull  name;
 } VarRef;
 
 extern errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf);
+extern errno_t VarRef_Init(VarRef* _Nonnull self, const char* str);
 #ifdef SCRIPT_PRINTING
 extern void VarRef_Print(VarRef* _Nonnull self);
 #endif
+
+
+
+typedef struct VarDecl {
+    bool                        isPublic;
+    bool                        isMutable;
+    VarRef* _Nonnull            vref;
+    struct Expression* _Nonnull expr;
+} VarDecl;
+
+extern errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, bool isPublic, bool isMutable, const char* name, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf);
+#ifdef SCRIPT_PRINTING
+extern void VarDecl_Print(VarDecl* _Nonnull self);
+#endif
+
 
 
 typedef struct Command {

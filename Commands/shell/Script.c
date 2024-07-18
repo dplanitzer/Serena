@@ -189,6 +189,42 @@ void VarRef_Print(VarRef* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: VarDecl
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, bool isPublic, bool isMutable, const char* name, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    VarDecl* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarDecl)), ENOMEM);
+    try(VarRef_Create(pAllocator, name, &self->vref));
+    self->expr = expr;
+    self->isPublic = isPublic;
+    self->isMutable = isMutable;
+
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void VarDecl_Print(VarDecl* _Nonnull self)
+{
+    fputs((self->isPublic) ? "public " : "internal ", stdout);
+    fputs((self->isMutable) ? "var " : "let ", stdout);
+    VarRef_Print(self->vref);
+    fputs(" = ", stdout);
+    Expression_Print(self->expr);
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: Command
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -133,7 +133,7 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
     // Create the 'key=value' string
     memcpy(&newEntry->kv[0], vp->name, keyLen);
     newEntry->kv[keyLen] = '=';
-    Value_GetStringValue(&vp->var, valLen, &newEntry->kv[keyLen + 1]);
+    Value_GetStringValue(&vp->var, valLen + 1, &newEntry->kv[keyLen + 1]);
 
 
     // Add the new entry to the hash chain
