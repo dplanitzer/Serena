@@ -494,6 +494,12 @@ static errno_t Parser_StatementTerminator(Parser* _Nonnull self, bool isScriptLe
         case kToken_Ampersand:
             isAsync = (t->id == kToken_Ampersand) ? true : false;
             consume();
+
+            // Optimization: we want to generate a single statement for a foo;\n line instead of two statements ('foo;' and '<null>\n')
+            // since a semicolon \n combo isn't that rare
+            if (peek(kToken_Newline)) {
+                consume();
+            }
             break;
 
         default:
