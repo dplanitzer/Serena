@@ -110,7 +110,7 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
 
         if (valp) {
             *eqp = '\0';
-            err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public, keyp, valp);
+            err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public | kVarModifier_Mutable, keyp, valp);
             *eqp = '=';
             // We ignore non-fatal errors here and simply drop the erroneous
             // environment variable because we don't want the shell to die over
