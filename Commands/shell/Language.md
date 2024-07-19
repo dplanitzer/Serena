@@ -52,9 +52,9 @@ ELSE:       'else';
 IF:         'if';
 INTERNAL:   'internal';
 LET:        'let';
+PUBLIC:     'public';
 VAR:        'var';
 WHILE:      'while';
-PUBLIC:     'public';
 
 AMPERSAND:          '&';
 ASSIGNMENT:         '=';
@@ -132,7 +132,7 @@ statements:
 statement
     : (varDeclaration
         | assignmentStatement
-        | expression) statementTerminator
+        | expression)? statementTerminator
     ;
 
 statementTerminator

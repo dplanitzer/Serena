@@ -16,6 +16,22 @@
 #define INITIAL_TEXT_BUFFER_CAPACITY    16
 
 
+typedef struct Keyword {
+    const char* _Nonnull    kw;
+    TokenId                 id;
+} Keyword;
+
+static const Keyword gKeywords[] = {
+    { "else", kToken_Else },
+    { "if", kToken_If },
+    { "internal", kToken_Internal },
+    { "let", kToken_Let },
+    { "public", kToken_Public },
+    { "var", kToken_Var },
+    { "while", kToken_While },
+};
+
+
 void Lexer_Init(Lexer* _Nonnull self)
 {
     self->source = "";
@@ -429,6 +445,22 @@ static bool Lexer_ScanIdentifier(Lexer* _Nonnull self)
     return isIncomplete;
 }
 
+static int kw_cmp(const char* _Nonnull lhs, const Keyword* _Nonnull rhs)
+{
+    return strcmp(lhs, rhs->kw);
+}
+
+static TokenId Lexer_GetIdentifierTokenId(Lexer* _Nonnull self)
+{
+    const Keyword* kw = NULL;
+
+    if (self->textBufferCount >= 2 && isalpha(self->textBuffer[0])) {
+        kw = bsearch(self->textBuffer, gKeywords, sizeof(gKeywords) / sizeof(Keyword), sizeof(Keyword), (int (*)(const void*, const void*))kw_cmp);
+    }
+
+    return (kw) ? kw->id : kToken_Identifier;
+}
+
 static void Lexer_SkipWhitespace(Lexer* _Nonnull self)
 {
     while (true) {
@@ -623,7 +655,7 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                 }
 
                 self->t.isIncomplete = Lexer_ScanIdentifier(self);
-                self->t.id = kToken_Identifier;
+                self->t.id = Lexer_GetIdentifierTokenId(self);
                 self->t.u.string = self->textBuffer;
                 self->t.length = self->textBufferCount;
                 return;

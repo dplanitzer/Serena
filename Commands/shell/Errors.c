@@ -13,7 +13,7 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
-        /*EUNCMD*/          "Unknown command",
+        /*ENOCMD*/          "Unknown command",
         /*EREDEFINED*/      "Variable redefinition",
         /*EUNDEFINED*/      "Undefined variable",
         /*EUNDERFLOW*/      "Stack underflow",

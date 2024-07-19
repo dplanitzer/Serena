@@ -47,6 +47,15 @@ typedef enum TokenId {
     kToken_SingleQuoteString = 265,     // u.string
     kToken_VariableName = 266,          // u.string 'foo:bar'
 
+    kToken_Else = 267,                  // u.string
+    kToken_If = 268,                    // u.string
+    kToken_Internal = 269,              // u.string
+    kToken_Let = 270,                   // u.string
+    kToken_Public = 271,                // u.string
+    kToken_Var = 272,                   // u.string
+    kToken_While = 273,                 // u.string
+    
+    
     // DQ, DBT Mode
     // kToken_Eof
     // kToken_ClosingParenthesis

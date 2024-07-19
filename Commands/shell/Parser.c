@@ -371,6 +371,13 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
         }
 
         case kToken_Identifier:
+        case kToken_Else:
+        case kToken_If:
+        case kToken_Internal:
+        case kToken_Let:
+        case kToken_Public:
+        case kToken_Var:
+        case kToken_While:
             try(failOnIncomplete(t));
             try(Atom_CreateWithString(self->allocator, kAtom_Identifier, t->u.string, t->length, hasLeadingWhitespace, pOutAtom));
             consume();
@@ -475,20 +482,17 @@ catch:
 // statementTerminator
 //     : NL | SEMICOLON | AMPERSAND
 //     ;
-static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Statement* _Nonnull stmt, bool isScriptLevel)
+static errno_t Parser_StatementTerminator(Parser* _Nonnull self, bool isScriptLevel, bool* _Nonnull pOutIsAsync)
 {
     decl_try_err();
     const Token* t = Lexer_GetToken(&self->lexer);
-    
+    bool isAsync = false;
+
     switch (t->id) {
         case kToken_Newline:
         case kToken_Semicolon:
-            stmt->isAsync = false;
-            consume();
-            break;
-
         case kToken_Ampersand:
-            stmt->isAsync = true;
+            isAsync = (t->id == kToken_Ampersand) ? true : false;
             consume();
             break;
 
@@ -496,13 +500,13 @@ static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Statement* _Non
             if (isScriptLevel && t->id == kToken_Eof) {
                 // Accept scripts where the last line is terminated by EOF
                 // since this is what we get in interactive mode anyway
-                stmt->isAsync = false;
                 break; 
             }
             err = ESYNTAX;
             break;
     }
 
+    *pOutIsAsync = isAsync;
     return err;
 }
 
@@ -510,7 +514,7 @@ static errno_t Parser_StatementTerminator(Parser* _Nonnull self, Statement* _Non
 // statement
 //     : (varDeclaration
 //         | assignmentStatement
-//         | expression) statementTerminator
+//         | expression)? statementTerminator
 //     ;
 static errno_t Parser_Statement(Parser* _Nonnull self, StatementList* _Nonnull stmts, bool isScriptLevel)
 {
@@ -519,11 +523,24 @@ static errno_t Parser_Statement(Parser* _Nonnull self, StatementList* _Nonnull s
 
     try(Statement_Create(self->allocator, &stmt));
 
-    Expression* expr = NULL;
-    try(Parser_Expression(self, &expr));
-    Statement_SetExpression(stmt, expr);
+    switch (Lexer_GetToken(&self->lexer)->id) {
+        case kToken_Newline:
+        case kToken_Semicolon:
+        case kToken_Ampersand:
+        case kToken_Eof:
+            // Looks like a null statement
+            break;
 
-    try(Parser_StatementTerminator(self, stmt, isScriptLevel));
+        default: {
+            // mathematical expression or command
+            Expression* expr = NULL;
+            try(Parser_Expression(self, &expr));
+            Statement_SetExpression(stmt, expr);
+        }
+    }
+
+    // Required statement terminator
+    try(Parser_StatementTerminator(self, isScriptLevel, &stmt->isAsync));
     StatementList_AddStatement(stmts, stmt);
 
 catch:

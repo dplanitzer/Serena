@@ -175,7 +175,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     Process_WaitForTerminationOfChild(childPid, &pts);
 
 catch:
-    return (err == ENOENT) ? EUNCMD : err;
+    return (err == ENOENT) ? ENOCMD : err;
 }
 
 static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Value* vp)
