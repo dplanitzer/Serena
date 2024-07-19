@@ -263,12 +263,11 @@ errno_t RunStack_PopScope(RunStack* _Nonnull self)
     return EOK;
 }
 
-static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull scopeName, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope)
+static Scope* _Nullable _RunStack_GetScopeForName(RunStack* _Nonnull self, const char* _Nullable scopeName)
 {
-    const size_t hashCode = hash_cstring(name);
     Scope* scope = self->currentScope;
 
-    if (*scopeName != '\0') {
+    if (scopeName && *scopeName != '\0') {
         if (!strcmp(scopeName, "global")) {
             scope = self->globalScope;
         }
@@ -279,32 +278,41 @@ static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const 
             scope = self->currentScope;
         }
         else {
-            return NULL;
+            scope = NULL;
         }
     }
+    return scope;
+}
+
+static Variable* _Nullable _RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nullable scopeName, const char* _Nonnull name, Scope* _Nonnull * _Nullable pOutScope)
+{
+    const size_t hashCode = hash_cstring(name);
+    Scope* scope = _RunStack_GetScopeForName(self, scopeName);
+    Variable* vp = NULL;
 
     while (scope) {
-        Variable* vp = _Scope_GetVariable(scope, name, hashCode);
-
+        vp = _Scope_GetVariable(scope, name, hashCode);
         if (vp) {
-            if (pOutScope) *pOutScope = scope;
-            return vp;
+            break;
         }
 
         scope = scope->parent;
     }
 
-    if (pOutScope) *pOutScope = NULL;
-    return NULL;
+    if (pOutScope) {
+        *pOutScope = (vp) ? scope : NULL;
+    }
+
+    return vp;
 }
 
-errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nonnull scopeName, const char* _Nonnull name, bool bPublic)
+errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nullable scopeName, const char* _Nonnull name, bool bPublic)
 {
     Scope* scope;
     Variable* vp = _RunStack_GetVariable(self, scopeName, name, &scope);
 
     if (vp == NULL) {
-        return EUNDEFINED;
+        return (scope) ? EUNDEFINED : ENOSCOPE;
     }
 
     if (bPublic && (vp->modifiers & kVarModifier_Public) == 0) {
@@ -326,7 +334,7 @@ int RunStack_GetGenerationOfPublicVariables(RunStack* _Nonnull self)
     return self->generationOfPublicVariables;
 }
 
-Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull scopeName, const char* _Nonnull name)
+Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nullable scopeName, const char* _Nonnull name)
 {
     return _RunStack_GetVariable(self, scopeName, name, NULL);
 }
@@ -350,9 +358,14 @@ errno_t RunStack_Iterate(RunStack* _Nonnull self, RunStackIterator _Nonnull cb, 
     return err;
 }
 
-errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nonnull name, const char* _Nonnull value)
+errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nullable scopeName, const char* _Nonnull name, const char* _Nonnull value)
 {
     decl_try_err();
+    Scope* scope = _RunStack_GetScopeForName(self, scopeName);
+
+    if (scope == NULL) {
+        return ENOSCOPE;
+    }
 
     err = Scope_DeclareVariable(self->currentScope, modifiers, name, value);
     if (err == EOK && (modifiers & kVarModifier_Public) == kVarModifier_Public) {

@@ -13,7 +13,7 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
-        /*ENOSCOPE*/        "No scope allowed here",
+        /*ENOSCOPE*/        "Unknown scope",
         /*ENOTIMPL*/        "Not implemented",
         /*ENOCMD*/          "Unknown command",
         /*EREDEFINED*/      "Variable redefinition",

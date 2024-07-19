@@ -56,7 +56,7 @@ extern errno_t RunStack_PopScope(RunStack* _Nonnull self);
 // Marks the variable named 'name' as public or internal. Public variables are
 // exported to the environment and thus are visible to child processes; internal
 // variables are only visible to the shell process.
-extern errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nonnull scope, const char* _Nonnull name, bool bPublic);
+extern errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nullable scope, const char* _Nonnull name, bool bPublic);
 
 // Returns a number that represents the current generation of public variables.
 // This number changes every time a new public variable is added to the current
@@ -67,7 +67,7 @@ extern int RunStack_GetGenerationOfPublicVariables(RunStack* _Nonnull self);
 // Looks through the scopes on the run stack and returns the top-most definition
 // of the variable with name 'name'. 'scope' my be 'global', 'script' or 'local'
 // (or "").
-extern Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nonnull scope, const char* _Nonnull name);
+extern Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const char* _Nullable scope, const char* _Nonnull name);
 
 // Iterates all variable definitions. Note that this includes variables in a
 // lower scope that are shadowed in a higher scope. The callback has to resolve
@@ -80,6 +80,6 @@ extern Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const c
 // initialized to false when the iterator is called.
 extern errno_t RunStack_Iterate(RunStack* _Nonnull self, RunStackIterator _Nonnull cb, void* _Nullable context);
 
-extern errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nonnull name, const char* _Nonnull value);
+extern errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nullable scope, const char* _Nonnull name, const char* _Nonnull value);
 
 #endif  /* RunStack_h */
