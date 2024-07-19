@@ -340,6 +340,15 @@ catch:
     return err;
 }
 
+static errno_t Interpreter_VarDecl(Interpreter* _Nonnull self, VarDecl* _Nonnull decl)
+{
+    if (decl->vref->scope[0] != '\0') {
+        return ENOSCOPE;
+    }
+
+    return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->name, "Not yet");  // XXX
+}
+
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
     switch (stmt->type) {
@@ -353,7 +362,7 @@ static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _N
             break;
 
         case kStatementType_VarDeclaration:
-            break;
+            return Interpreter_VarDecl(self, stmt->u.decl);
 
         default:
             abort();

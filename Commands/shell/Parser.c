@@ -479,6 +479,54 @@ catch:
 }
 
 //
+// varDeclaration
+//     : (INTERNAL | PUBLIC)? (LET | VAR) VAR_NAME ASSIGNMENT expression
+//     ;
+static errno_t Parser_VarDeclaration(Parser* _Nonnull self, VarDecl* _Nullable * _Nonnull pOutDecl)
+{
+    decl_try_err();
+    VarDecl* decl = NULL;
+    VarRef* vref = NULL;
+    Expression* expr = NULL;
+    const char* name = NULL;
+    unsigned int modifiers = 0;
+
+    if (match(kToken_Public) == EOK) {
+        modifiers |= kVarModifier_Public;
+    }
+    else if (match(kToken_Internal) == EOK) {
+        modifiers &= ~kVarModifier_Public;
+    }
+
+    if (match(kToken_Let) == EOK) {
+        modifiers &= ~kVarModifier_Mutable;
+    }
+    else if (match(kToken_Var) == EOK) {
+        modifiers |= kVarModifier_Mutable;
+    }
+    else {
+        throw(ESYNTAX);
+    }
+
+    const Token* t = Lexer_GetToken(&self->lexer);
+    if (t->id != kToken_VariableName) {
+        throw(ESYNTAX);
+    }
+    try(VarRef_Create(self->allocator, t->u.string, &vref));
+    consume();
+
+    try(match(kToken_Assignment));
+    try(Parser_Expression(self, &expr));
+
+    try(VarDecl_Create(self->allocator, modifiers, vref, expr, pOutDecl));
+    return EOK;
+
+catch:
+    *pOutDecl = NULL;
+    return err;
+}
+
+//
 // statementTerminator
 //     : NL | SEMICOLON | AMPERSAND
 //     ;
@@ -536,8 +584,19 @@ static errno_t Parser_Statement(Parser* _Nonnull self, StatementList* _Nonnull s
             // Looks like a null statement
             break;
 
+        case kToken_Public:
+        case kToken_Internal:
+        case kToken_Let:
+        case kToken_Var: {
+            // Variable declaration
+            VarDecl* decl = NULL;
+            try(Parser_VarDeclaration(self, &decl));
+            Statement_SetVarDecl(stmt, decl);
+            break;
+        }
+
         default: {
-            // mathematical expression or command
+            // Mathematical expression or command
             Expression* expr = NULL;
             try(Parser_Expression(self, &expr));
             Statement_SetExpression(stmt, expr);

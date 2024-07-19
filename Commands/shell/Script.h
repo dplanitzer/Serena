@@ -11,6 +11,7 @@
 
 #include <System/System.h>
 #include "Lexer.h"
+#include "RunStack.h"
 #include "StackAllocator.h"
 
 #define SCRIPT_PRINTING 1
@@ -72,13 +73,12 @@ extern void VarRef_Print(VarRef* _Nonnull self);
 
 
 typedef struct VarDecl {
-    bool                        isPublic;
-    bool                        isMutable;
     VarRef* _Nonnull            vref;
     struct Expression* _Nonnull expr;
+    unsigned int                modifiers;
 } VarDecl;
 
-extern errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, bool isPublic, bool isMutable, const char* name, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf);
+extern errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf);
 #ifdef SCRIPT_PRINTING
 extern void VarDecl_Print(VarDecl* _Nonnull self);
 #endif
@@ -168,11 +168,13 @@ typedef struct Statement {
     bool                        isAsync;    // '&' -> true and ';' | '\n' -> false
     union {
         Expression* _Nonnull    expr;
+        VarDecl* _Nonnull       decl;
     }                           u;
 } Statement;
 
 extern errno_t Statement_Create(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf);
 extern void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr);
+extern void Statement_SetVarDecl(Statement* _Nonnull self, VarDecl* _Nonnull decl);
 #ifdef SCRIPT_PRINTING
 extern void Statement_Print(Statement* _Nonnull self);
 #endif

@@ -199,16 +199,15 @@ void VarRef_Print(VarRef* _Nonnull self)
 // MARK: VarDecl
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, bool isPublic, bool isMutable, const char* name, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf)
+errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     VarDecl* self = NULL;
     
     try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarDecl)), ENOMEM);
-    try(VarRef_Create(pAllocator, name, &self->vref));
+    self->vref = vref;
     self->expr = expr;
-    self->isPublic = isPublic;
-    self->isMutable = isMutable;
+    self->modifiers = modifiers;
 
     *pOutSelf = self;
     return EOK;
@@ -221,10 +220,10 @@ catch:
 #ifdef SCRIPT_PRINTING
 void VarDecl_Print(VarDecl* _Nonnull self)
 {
-    fputs((self->isPublic) ? "public " : "internal ", stdout);
-    fputs((self->isMutable) ? "var " : "let ", stdout);
+    fputs(((self->modifiers & kVarModifier_Public) != 0) ? "public " : "internal ", stdout);
+    fputs(((self->modifiers & kVarModifier_Mutable) != 0) ? "var " : "let ", stdout);
     VarRef_Print(self->vref);
-    fputs(" = ", stdout);
+    fputs(" =", stdout);
     Expression_Print(self->expr);
 }
 #endif
@@ -458,6 +457,12 @@ void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr
     self->u.expr = expr;
 }
 
+void Statement_SetVarDecl(Statement* _Nonnull self, VarDecl* _Nonnull decl)
+{
+    self->type = kStatementType_VarDeclaration;
+    self->u.decl = decl;
+}
+
 #ifdef SCRIPT_PRINTING
 void Statement_Print(Statement* _Nonnull self)
 {
@@ -469,6 +474,10 @@ void Statement_Print(Statement* _Nonnull self)
             Expression_Print(self->u.expr);
             break;
 
+        case kStatementType_VarDeclaration:
+            VarDecl_Print(self->u.decl);
+            break;
+            
         default:
             abort();
             break;
