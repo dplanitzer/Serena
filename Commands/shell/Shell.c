@@ -52,7 +52,7 @@ void Shell_Destroy(ShellRef _Nullable self)
     }
 }
 
-static errno_t Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull str, Script* _Nonnull script)
+static void _Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull str, Script* _Nonnull script)
 {
     decl_try_err();
 
@@ -60,13 +60,12 @@ static errno_t Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull 
 
     err = Parser_Parse(self->parser, str, script);
     if (err == EOK) {
-        Interpreter_Execute(self->interpreter, script);
-    }
-    else {
-        printf("Error: %s.\n", shell_strerror(err));
+        err = Interpreter_Execute(self->interpreter, script);
     }
 
-    return err;
+    if (err != EOK) {
+        printf("Error: %s.\n", shell_strerror(err));
+    }
 }
 
 errno_t Shell_Run(ShellRef _Nonnull self)
@@ -83,7 +82,7 @@ errno_t Shell_Run(ShellRef _Nonnull self)
         char* line = LineReader_ReadLine(self->lineReader);
 
         putchar('\n');
-        Shell_ExecuteString(self, line, script);
+        _Shell_ExecuteString(self, line, script);
     }
 
 catch:
@@ -112,7 +111,7 @@ errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull pat
         }
         text[fileSize] = '\0';
 
-        Shell_ExecuteString(self, text, script);
+        _Shell_ExecuteString(self, text, script);
     }
 
 catch:

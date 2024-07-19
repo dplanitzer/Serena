@@ -17,9 +17,10 @@
 #define EUNDEFINED  -3
 #define EREDEFINED  -4
 #define ENOCMD      -5
+#define ENOTIMPL    -6
 
 #define _EFIRST_SHELL   ESYNTAX
-#define _ELAST_SHELL    ENOCMD
+#define _ELAST_SHELL    ENOTIMPL
 
 extern const char *shell_strerror(int err_no);
 

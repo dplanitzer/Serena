@@ -13,6 +13,7 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
+        /*ENOTIMPL*/        "Not implemented",
         /*ENOCMD*/          "Unknown command",
         /*EREDEFINED*/      "Variable redefinition",
         /*EUNDEFINED*/      "Undefined variable",

@@ -36,6 +36,6 @@ extern errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, Interpreter
 extern void Interpreter_Destroy(InterpreterRef _Nullable self);
 
 // Interprets 'pScript' and executes all its statements.
-extern void Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script);
+extern errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script);
 
 #endif  /* Interpreter_h */

@@ -7,7 +7,6 @@
 //
 
 #include "Script.h"
-#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -463,6 +462,9 @@ void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr
 void Statement_Print(Statement* _Nonnull self)
 {
     switch (self->type) {
+        case kStatementType_Null:
+            break;
+
         case kStatementType_Expression:
             Expression_Print(self->u.expr);
             break;
@@ -472,12 +474,7 @@ void Statement_Print(Statement* _Nonnull self)
             break;
     }
 
-    if (self->isAsync) {
-        putchar('&');
-    }
-    else {
-        putchar(';');
-    }
+    putchar((self->isAsync) ? '&' : ';');
 }
 #endif
 
@@ -539,8 +536,7 @@ void Block_Print(Block* _Nonnull self)
 {
     putchar('{');
     StatementList_Print(&self->statements);
-    putchar('}');
-    putchar('\n');
+    fputs("}\n", stdout);
 }
 #endif
 

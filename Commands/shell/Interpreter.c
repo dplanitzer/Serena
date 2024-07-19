@@ -294,7 +294,7 @@ catch:
     return err;
 }
 
-static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull cmd)
+static errno_t Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull cmd)
 {
     decl_try_err();
     bool isForcedExternal;
@@ -304,10 +304,6 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
     try(Interpreter_SerializeCommand(self, cmd->atoms, &isForcedExternal));
     
     const int argc = ArgumentVector_GetArgc(self->argumentVector);
-    if (argc == 0) {
-        return;
-    }
-
     char** argv = ArgumentVector_GetArgv(self->argumentVector);
     char** envp = EnvironCache_GetEnvironment(self->environCache);
 
@@ -315,41 +311,43 @@ static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull 
     // Check whether this is a builtin command and execute it, if so
     if (!isForcedExternal) {
         if (Interpreter_ExecuteInternalCommand(self, argc, argv, envp)) {
-            return;
+            return EOK;
         }
     }
 
 
     // Not a builtin command. Look for an external command
-    try(Interpreter_ExecuteExternalCommand(self, argc, argv, envp));
-    return;
+    err = Interpreter_ExecuteExternalCommand(self, argc, argv, envp);
 
 catch:
-    printf("%s: %s.\n", argv[0], shell_strerror(err));
+    return err;
 }
 
-static void Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
+static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
+    decl_try_err();
     Command* cmd = expr->cmds;
 
     // XXX create an intermediate representation that allows us to model a set of
     // XXX commands that are linked through pipes. For now we'll do each command
     // XXX individually. Which is wrong. But good enough for now
     while (cmd) {
-        Interpreter_Command(self, cmd);
+        try(Interpreter_Command(self, cmd));
         cmd = cmd->next;
     }
+
+catch:
+    return err;
 }
 
-static void Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
+static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
     switch (stmt->type) {
         case kStatementType_Null:
-            break;
+            return EOK;
 
         case kStatementType_Expression:
-            Interpreter_Expression(self, stmt->u.expr);
-            break;
+            return Interpreter_Expression(self, stmt->u.expr);
 
         case kStatementType_VarAssignment:
             break;
@@ -361,29 +359,38 @@ static void Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonn
             abort();
             break;
     }
+
+    return ENOTIMPL;
 }
 
-static void Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)
+static errno_t Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)
 {
+    decl_try_err();
     Statement* stmt = stmts->stmts;
 
     while (stmt) {
-        Interpreter_Statement(self, stmt);
+        try(Interpreter_Statement(self, stmt));
         stmt = stmt->next;
     }
+
+catch:
+    return err;
 }
 
-static void Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
+static errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
 {
-    Interpreter_StatementList(self, &block->statements);
+    return Interpreter_StatementList(self, &block->statements);
 }
 
 // Interprets 'script' and executes all its statements.
-void Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script)
+errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script)
 {
+    decl_try_err();
+
     //Script_Print(script);
     //putchar('\n');
 
-    Interpreter_StatementList(self, &script->statements);
+    err = Interpreter_StatementList(self, &script->statements);
     StackAllocator_DeallocAll(self->allocator);
+    return err;
 }
