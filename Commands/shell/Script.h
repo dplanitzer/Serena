@@ -25,7 +25,8 @@ typedef enum AtomType {
     kAtom_Identifier,               // u.stringLength
     kAtom_Operator,                 // u.stringLength
 
-    kAtom_QuotedString,             // u.qstring
+    kAtom_DoubleBacktickString,     // u.qstring
+    kAtom_DoubleQuoteString,        // u.qstring
     kAtom_VariableReference,        // u.vref
     kAtom_Expression,               // u.expr
 } AtomType;
@@ -47,7 +48,7 @@ extern errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, A
 extern errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
 extern errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
 extern errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
-extern errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
+extern errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
 #define Atom_GetStringLength(__self) (__self)->u.stringLength
 #define Atom_GetString(__self) (((const char*)__self) + sizeof(Atom))
 #define Atom_GetMutableString(__self) (((char*)__self) + sizeof(Atom))
@@ -130,10 +131,9 @@ extern void StringAtom_Print(StringAtom* _Nonnull self);
 typedef struct QuotedString {
     StringAtom* _Nonnull    atoms;
     StringAtom* _Nonnull    lastAtom;
-    bool                    isBacktick;     // `` vs "
 } QuotedString;
 
-extern errno_t QuotedString_Create(StackAllocatorRef _Nonnull pAllocator, bool isBacktick, QuotedString* _Nullable * _Nonnull pOutSelf);
+extern errno_t QuotedString_Create(StackAllocatorRef _Nonnull pAllocator, QuotedString* _Nullable * _Nonnull pOutSelf);
 extern void QuotedString_AddAtom(QuotedString* _Nonnull self, StringAtom* _Nonnull atom);
 #ifdef SCRIPT_PRINTING
 extern void QuotedString_Print(QuotedString* _Nonnull self);

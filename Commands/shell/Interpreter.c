@@ -174,8 +174,8 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     ProcessTerminationStatus pts;
     Process_WaitForTerminationOfChild(childPid, &pts);
 
-catch:    
-    return err;
+catch:
+    return (err == ENOENT) ? EUNCMD : err;
 }
 
 static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Value* vp)
@@ -234,7 +234,7 @@ static errno_t Interpreter_SerializeQuotedStringText(InterpreterRef _Nonnull sel
     return err;
 }
 
-static errno_t Interpreter_SerializeArgumentString(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
+static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
 {
     decl_try_err();
 
@@ -246,7 +246,8 @@ static errno_t Interpreter_SerializeArgumentString(InterpreterRef _Nonnull self,
             err = Interpreter_SerializeVariable(self, atom->u.vref);
             break;
 
-        case kAtom_QuotedString:
+        case kAtom_DoubleBacktickString:
+        case kAtom_DoubleQuoteString:
             err = Interpreter_SerializeQuotedStringText(self, atom->u.qstring);
             break;
 
@@ -258,11 +259,13 @@ static errno_t Interpreter_SerializeArgumentString(InterpreterRef _Nonnull self,
     return err;
 }
 
-static errno_t Interpreter_SerializeCommandArguments(InterpreterRef _Nonnull self, Atom* _Nonnull atoms)
+static errno_t Interpreter_SerializeCommand(InterpreterRef _Nonnull self, Atom* _Nonnull atoms, bool* _Nonnull pOutIsForcedExternal)
 {
     decl_try_err();
     Atom* atom = atoms;
+    bool isFirstArg = true;
 
+    *pOutIsForcedExternal = false;
     ArgumentVector_Open(self->argumentVector);
 
     while (atom && err == EOK) {
@@ -271,48 +274,49 @@ static errno_t Interpreter_SerializeCommandArguments(InterpreterRef _Nonnull sel
         // We always pick up the first atom in an non-whitespace-separated-atom-sequence
         // The 2nd, 3rd, etc we only pick up if they don't have leading whitespace
         while (atom && (!atom->hasLeadingWhitespace || isFirstAtom)) {
-            err = Interpreter_SerializeArgumentString(self, atom);
-            if (err != EOK) {
-                break;
+            try(Interpreter_SerializeCommandFragment(self, atom));
+
+            if (isFirstArg && (atom->type == kAtom_BacktickString || atom->type == kAtom_DoubleBacktickString)) {
+                *pOutIsForcedExternal = true;
             }
 
             atom = atom->next;
             isFirstAtom = false;
         }
 
-        if (err == EOK) {
-            err = ArgumentVector_EndOfArg(self->argumentVector);
-        }
+        try(ArgumentVector_EndOfArg(self->argumentVector));
+        isFirstArg = false;
     }
 
-    const errno_t err2 = ArgumentVector_Close(self->argumentVector);
-    if (err == EOK) {
-        err = err2;
-    }
+    try(ArgumentVector_Close(self->argumentVector));
+
+catch:
     return err;
 }
 
 static void Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull cmd)
 {
     decl_try_err();
+    bool isForcedExternal;
 
     // Create the command argument vector by converting all atoms in the command
     // expression into argument strings.
-    try(Interpreter_SerializeCommandArguments(self, cmd->atoms));
+    try(Interpreter_SerializeCommand(self, cmd->atoms, &isForcedExternal));
     
     const int argc = ArgumentVector_GetArgc(self->argumentVector);
-    char** argv = ArgumentVector_GetArgv(self->argumentVector);
-
     if (argc == 0) {
         return;
     }
 
+    char** argv = ArgumentVector_GetArgv(self->argumentVector);
     char** envp = EnvironCache_GetEnvironment(self->environCache);
 
 
     // Check whether this is a builtin command and execute it, if so
-    if (Interpreter_ExecuteInternalCommand(self, argc, argv, envp)) {
-        return;
+    if (!isForcedExternal) {
+        if (Interpreter_ExecuteInternalCommand(self, argc, argv, envp)) {
+            return;
+        }
     }
 
 

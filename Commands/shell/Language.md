@@ -148,12 +148,11 @@ assignmentStatement
     ;
 
 command
-    : (commandPrimaryFragment)<no whitespace>+ commandSecondaryFragment*
+    : commandPrimaryFragment commandSecondaryFragment*
     ;
 
 commandPrimaryFragment
     : SLASH
-    | ASSIGNMENT
     | IDENTIFIER
     | SINGLE_BACKTICK_STRING
     | doubleBacktickString
@@ -182,6 +181,8 @@ commandSecondaryFragment
     | LESS
     | GREATER
     | VAR_NAME
+    | SINGLE_BACKTICK_STRING
+    | doubleBacktickString
     | literal
     | parenthesizedExpression
     ;
@@ -306,8 +307,10 @@ escapedExpression
 * Postfix operators must exhibit whitespace on the right side and no whitespace on the left side
 * Infix operators must either exhibit whitespace on both sides or on neither side
 * A character sequence enclosed by single or double backticks indicates that the character sequence names an external command
-* A command name is the longest sequence of commandPrimaryFragment objects which are not separated by whitespace
-* A single command parameter is the longest sequence of commandSecondaryFragment objects which are not separated by whitespace
+* A command name is the longest sequence of a commandPrimaryFragment followed by 0 or more command SecondaryFragment instances which are not separated by whitespace
+* A single command parameter is the longest sequence of commandSecondaryFragment instances which are not separated by whitespace
+* a string that is enclosed in single or double backticks and that appears as part of a command name forces the resolution of the command name to an external command. Thus none of the internal commands are considered in this case
+* a string that is enclosed in single or double backticks and that appears as part of a command parameter is treated as a plain string with no special semantics
 * Escaping a character outside of a double quoted string effectively turns the escaped character into an identifier character
 * Escaping the LF or CRLF character(s) outside a double quoted string replaces the LF/CRLF sequence with an empty string and does not terminate the identifier that is currently being lexed
 * Adjacent tokens are merged into a single token under the following circumstances:

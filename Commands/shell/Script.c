@@ -94,12 +94,12 @@ catch:
     return err;
 }
 
-errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Atom* self = NULL;
 
-    try(Atom_Create(pAllocator, kAtom_QuotedString, 0, hasLeadingWhitespace, &self));
+    try(Atom_Create(pAllocator, type, 0, hasLeadingWhitespace, &self));
     self->u.qstring = str;
 
 catch:
@@ -119,12 +119,20 @@ void Atom_Print(Atom* _Nonnull self)
             printf("`%s`", Atom_GetString(self));
             break;
 
+        case kAtom_DoubleBacktickString:
+            fputs("``", stdout);
+            QuotedString_Print(self->u.qstring);
+            fputs("``", stdout);
+            break;
+
         case kAtom_SingleQuoteString:
             printf("'%s'", Atom_GetString(self));
             break;
 
-        case kAtom_QuotedString:
+        case kAtom_DoubleQuoteString:
+            putchar('"');
             QuotedString_Print(self->u.qstring);
+            putchar('"');
             break;
 
         case kAtom_VariableReference:
@@ -358,10 +366,9 @@ void StringAtom_Print(StringAtom* _Nonnull self)
 // MARK: QuotedString
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t QuotedString_Create(StackAllocatorRef _Nonnull pAllocator, bool isBacktick, QuotedString* _Nullable * _Nonnull pOutSelf)
+errno_t QuotedString_Create(StackAllocatorRef _Nonnull pAllocator, QuotedString* _Nullable * _Nonnull pOutSelf)
 {
     QuotedString* self = StackAllocator_ClearAlloc(pAllocator, sizeof(QuotedString));
-    self->isBacktick = isBacktick;
 
     *pOutSelf = self;
     return (self) ? EOK : ENOMEM;
@@ -382,24 +389,10 @@ void QuotedString_AddAtom(QuotedString* _Nonnull self, StringAtom* _Nonnull atom
 #ifdef SCRIPT_PRINTING
 void QuotedString_Print(QuotedString* _Nonnull self)
 {
-    if (self->isBacktick) {
-        fputs("``", stdout);
-    }
-    else {
-        putchar('"');
-    }
-
     StringAtom* atom = self->atoms;
     while(atom) {
         StringAtom_Print(atom);
         atom = atom->next;
-    }
-
-    if (self->isBacktick) {
-        fputs("``", stdout);
-    }
-    else {
-        putchar('"');
     }
 }
 #endif

@@ -16,9 +16,10 @@
 #define EUNDERFLOW  -2
 #define EUNDEFINED  -3
 #define EREDEFINED  -4
+#define EUNCMD      -5
 
 #define _EFIRST_SHELL   ESYNTAX
-#define _ELAST_SHELL    EREDEFINED
+#define _ELAST_SHELL    EUNCMD
 
 extern const char *shell_strerror(int err_no);
 
