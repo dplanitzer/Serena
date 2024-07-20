@@ -487,13 +487,11 @@ catch:
 // varDeclaration
 //     : (INTERNAL | PUBLIC)? (LET | VAR) VAR_NAME ASSIGNMENT expression
 //     ;
-static errno_t Parser_VarDeclaration(Parser* _Nonnull self, VarDecl* _Nullable * _Nonnull pOutDecl)
+static errno_t Parser_VarDeclaration(Parser* _Nonnull self, Statement* _Nullable * _Nonnull pOutDecl)
 {
     decl_try_err();
-    VarDecl* decl = NULL;
     VarRef* vref = NULL;
     Expression* expr = NULL;
-    const char* name = NULL;
     unsigned int modifiers = 0;
 
     if (match(kToken_Public) == EOK) {
@@ -523,7 +521,7 @@ static errno_t Parser_VarDeclaration(Parser* _Nonnull self, VarDecl* _Nullable *
     try(match(kToken_Assignment));
     try(Parser_Expression(self, &expr));
 
-    try(VarDecl_Create(self->allocator, modifiers, vref, expr, pOutDecl));
+    try(Statement_CreateVarDecl(self->allocator, modifiers, vref, expr, pOutDecl));
     return EOK;
 
 catch:
@@ -578,40 +576,38 @@ static errno_t Parser_Statement(Parser* _Nonnull self, StatementList* _Nonnull s
     decl_try_err();
     Statement* stmt = NULL;
 
-    try(Statement_Create(self->allocator, &stmt));
-
     switch (Lexer_GetToken(&self->lexer)->id) {
         case kToken_Newline:
         case kToken_Semicolon:
         case kToken_Ampersand:
         case kToken_Eof:
-            // Looks like a null statement
+            // Null statement
+            try(Statement_CreateNull(self->allocator, &stmt));
             break;
 
         case kToken_Public:
         case kToken_Internal:
         case kToken_Let:
-        case kToken_Var: {
+        case kToken_Var:
             // Variable declaration
-            VarDecl* decl = NULL;
-            try(Parser_VarDeclaration(self, &decl));
-            Statement_SetVarDecl(stmt, decl);
+            try(Parser_VarDeclaration(self, &stmt));
             break;
-        }
 
         default: {
             // Mathematical expression or command
             Expression* expr = NULL;
             try(Parser_Expression(self, &expr));
-            Statement_SetExpression(stmt, expr);
 
             // Check for assignment statement
             if (peek(kToken_Assignment)) {
-                Expression* rhsExpr = NULL;
+                Expression* rvalue = NULL;
 
                 consume();
-                try(Parser_Expression(self, &rhsExpr));
-                Statement_SetAssignment(stmt, expr, rhsExpr);
+                try(Parser_Expression(self, &rvalue));
+                try(Statement_CreateAssignment(self->allocator, expr, rvalue, &stmt));
+            }
+            else {
+                try(Statement_CreateExpression(self->allocator, expr, &stmt));
             }
         }
     }

@@ -367,7 +367,7 @@ catch:
     return err;
 }
 
-static errno_t Interpreter_VarDecl(Interpreter* _Nonnull self, VarDecl* _Nonnull decl)
+static errno_t Interpreter_VarDecl(Interpreter* _Nonnull self, VarDeclStatement* _Nonnull decl)
 {
     return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, "Not yet");  // XXX
 }
@@ -375,17 +375,17 @@ static errno_t Interpreter_VarDecl(Interpreter* _Nonnull self, VarDecl* _Nonnull
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
     switch (stmt->type) {
-        case kStatementType_Null:
+        case kStatement_Null:
             return EOK;
 
-        case kStatementType_Expression:
-            return Interpreter_Expression(self, stmt->u.expr);
+        case kStatement_Expression:
+            return Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
 
-        case kStatementType_Assignment:
+        case kStatement_Assignment:
             break;
 
-        case kStatementType_VarDeclaration:
-            return Interpreter_VarDecl(self, stmt->u.decl);
+        case kStatement_VarDecl:
+            return Interpreter_VarDecl(self, AS(stmt, VarDeclStatement));
 
         default:
             abort();

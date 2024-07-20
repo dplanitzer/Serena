@@ -19,6 +19,8 @@ struct Expression;
 struct QuotedString;
 struct VarRef;
 
+#define AS(__self, __type) ((__type*)__self)
+
 
 typedef enum StringAtomType {
     kStringAtom_Segment,            // u.string
@@ -143,42 +145,41 @@ extern void VarRef_Print(VarRef* _Nonnull self);
 
 
 
-typedef struct VarDecl {
-    VarRef* _Nonnull            vref;
-    struct Expression* _Nonnull expr;
-    unsigned int                modifiers;
-} VarDecl;
-
-extern errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf);
-#ifdef SCRIPT_PRINTING
-extern void VarDecl_Print(VarDecl* _Nonnull self);
-#endif
-
-
-
 typedef enum StatementType {
-    kStatementType_Null,
-    kStatementType_Expression,
-    kStatementType_Assignment,
-    kStatementType_VarDeclaration,
+    kStatement_Null,            // Statement
+    kStatement_Expression,      // ExpressionStatement
+    kStatement_Assignment,      // AssignmentStatement
+    kStatement_VarDecl,         // VarDeclStatement
 } StatementType;
 
 typedef struct Statement {
     struct Statement* _Nullable next;
     int8_t                      type;
-    int8_t                      reserved[2];
     bool                        isAsync;    // '&' -> true and ';' | '\n' -> false
-    union {
-        Expression* _Nonnull    expr;
-        VarDecl* _Nonnull       decl;
-        Expression* _Nonnull    lrExprs[2];
-    }                           u;
 } Statement;
 
-extern errno_t Statement_Create(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf);
-extern void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr);
-extern void Statement_SetAssignment(Statement* _Nonnull self, Expression* _Nonnull lhs, Expression* _Nonnull rhs);
-extern void Statement_SetVarDecl(Statement* _Nonnull self, VarDecl* _Nonnull decl);
+typedef struct ExpressionStatement {
+    Statement               super;
+    Expression* _Nonnull    expr;
+} ExpressionStatement;
+
+typedef struct AssignmentStatement {
+    Statement               super;
+    Expression* _Nonnull    lvalue;
+    Expression* _Nonnull    rvalue;
+} AssignmentStatement;
+
+typedef struct VarDeclStatement {
+    Statement                   super;
+    VarRef* _Nonnull            vref;
+    struct Expression* _Nonnull expr;
+    unsigned int                modifiers;
+} VarDeclStatement;
+
+extern errno_t Statement_CreateNull(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf);
+extern errno_t Statement_CreateExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, Statement* _Nullable * _Nonnull pOutSelf);
+extern errno_t Statement_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull lvalue, Expression* _Nonnull rvalue, Statement* _Nullable * _Nonnull pOutSelf);
+extern errno_t Statement_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, Statement* _Nullable * _Nonnull pOutSelf);
 #ifdef SCRIPT_PRINTING
 extern void Statement_Print(Statement* _Nonnull self);
 #endif

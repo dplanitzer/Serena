@@ -421,86 +421,78 @@ void VarRef_Print(VarRef* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: VarDecl
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    VarDecl* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarDecl)), ENOMEM);
-    self->vref = vref;
-    self->expr = expr;
-    self->modifiers = modifiers;
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-#ifdef SCRIPT_PRINTING
-void VarDecl_Print(VarDecl* _Nonnull self)
-{
-    fputs(((self->modifiers & kVarModifier_Public) != 0) ? "public " : "internal ", stdout);
-    fputs(((self->modifiers & kVarModifier_Mutable) != 0) ? "var " : "let ", stdout);
-    VarRef_Print(self->vref);
-    fputs(" =", stdout);
-    Expression_Print(self->expr);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
 // MARK: Statement
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Statement_Create(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf)
+errno_t Statement_CreateNull(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf)
 {
     Statement* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Statement));
 
-    self->type = kStatementType_Null;
+    self->type = kStatement_Null;
     *pOutSelf = self;
     return (self) ? EOK : ENOMEM;
 }
 
-void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr)
+errno_t Statement_CreateExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, Statement* _Nullable * _Nonnull pOutSelf)
 {
-    self->type = kStatementType_Expression;
-    self->u.expr = expr;
+    ExpressionStatement* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ExpressionStatement));
+
+    self->super.type = kStatement_Expression;
+    self->expr = expr;
+    *pOutSelf = (Statement*)self;
+    return (self) ? EOK : ENOMEM;
 }
 
-void Statement_SetAssignment(Statement* _Nonnull self, Expression* _Nonnull lhs, Expression* _Nonnull rhs)
+errno_t Statement_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull lvalue, Expression* _Nonnull rvalue, Statement* _Nullable * _Nonnull pOutSelf)
 {
-    self->type = kStatementType_Assignment;
-    self->u.lrExprs[0] = lhs;
-    self->u.lrExprs[1] = rhs;
+    AssignmentStatement* self = StackAllocator_ClearAlloc(pAllocator, sizeof(AssignmentStatement));
+
+    self->super.type = kStatement_Assignment;
+    self->lvalue = lvalue;
+    self->rvalue = rvalue;
+    *pOutSelf = (Statement*)self;
+    return (self) ? EOK : ENOMEM;
 }
 
-void Statement_SetVarDecl(Statement* _Nonnull self, VarDecl* _Nonnull decl)
+errno_t Statement_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, Statement* _Nullable * _Nonnull pOutSelf)
 {
-    self->type = kStatementType_VarDeclaration;
-    self->u.decl = decl;
+    VarDeclStatement* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarDeclStatement));
+
+    self->super.type = kStatement_VarDecl;
+    self->vref = vref;
+    self->expr = expr;
+    self->modifiers = modifiers;
+    *pOutSelf = (Statement*)self;
+    return (self) ? EOK : ENOMEM;
 }
 
 #ifdef SCRIPT_PRINTING
 void Statement_Print(Statement* _Nonnull self)
 {
     switch (self->type) {
-        case kStatementType_Null:
+        case kStatement_Null:
             break;
 
-        case kStatementType_Expression:
-            Expression_Print(self->u.expr);
+        case kStatement_Expression:
+            Expression_Print(AS(self, ExpressionStatement)->expr);
             break;
 
-        case kStatementType_VarDeclaration:
-            VarDecl_Print(self->u.decl);
+        case kStatement_Assignment:
+            Expression_Print(AS(self, AssignmentStatement)->lvalue);
+            fputs(" =", stdout);
+            Expression_Print(AS(self, AssignmentStatement)->rvalue);
             break;
+
+        case kStatement_VarDecl: {
+            VarDeclStatement* decl = AS(self, VarDeclStatement);
+
+            fputs(((decl->modifiers & kVarModifier_Public) != 0) ? "public " : "internal ", stdout);
+            fputs(((decl->modifiers & kVarModifier_Mutable) != 0) ? "var " : "let ", stdout);
+            VarRef_Print(decl->vref);
+            fputs(" =", stdout);
+            Expression_Print(decl->expr);
+            break;
+        }
             
         default:
             abort();
