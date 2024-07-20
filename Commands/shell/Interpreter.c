@@ -381,7 +381,7 @@ static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _N
         case kStatementType_Expression:
             return Interpreter_Expression(self, stmt->u.expr);
 
-        case kStatementType_VarAssignment:
+        case kStatementType_Assignment:
             break;
 
         case kStatementType_VarDeclaration:

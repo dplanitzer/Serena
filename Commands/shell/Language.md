@@ -144,7 +144,7 @@ varDeclaration
     ;
 
 assignmentStatement
-    : VAR_NAME ASSIGNMENT expression
+    : expression ASSIGNMENT expression
     ;
 
 command

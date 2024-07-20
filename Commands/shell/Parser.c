@@ -571,8 +571,7 @@ static errno_t Parser_StatementTerminator(Parser* _Nonnull self, bool isScriptLe
 //
 // statement
 //     : (varDeclaration
-//         | assignmentStatement
-//         | expression)? statementTerminator
+//         | expression (ASSIGNMENT expression)? )? statementTerminator
 //     ;
 static errno_t Parser_Statement(Parser* _Nonnull self, StatementList* _Nonnull stmts, bool isScriptLevel)
 {
@@ -605,6 +604,15 @@ static errno_t Parser_Statement(Parser* _Nonnull self, StatementList* _Nonnull s
             Expression* expr = NULL;
             try(Parser_Expression(self, &expr));
             Statement_SetExpression(stmt, expr);
+
+            // Check for assignment statement
+            if (peek(kToken_Assignment)) {
+                Expression* rhsExpr = NULL;
+
+                consume();
+                try(Parser_Expression(self, &rhsExpr));
+                Statement_SetAssignment(stmt, expr, rhsExpr);
+            }
         }
     }
 

@@ -159,7 +159,7 @@ extern void VarDecl_Print(VarDecl* _Nonnull self);
 typedef enum StatementType {
     kStatementType_Null,
     kStatementType_Expression,
-    kStatementType_VarAssignment,
+    kStatementType_Assignment,
     kStatementType_VarDeclaration,
 } StatementType;
 
@@ -171,11 +171,13 @@ typedef struct Statement {
     union {
         Expression* _Nonnull    expr;
         VarDecl* _Nonnull       decl;
+        Expression* _Nonnull    lrExprs[2];
     }                           u;
 } Statement;
 
 extern errno_t Statement_Create(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf);
 extern void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr);
+extern void Statement_SetAssignment(Statement* _Nonnull self, Expression* _Nonnull lhs, Expression* _Nonnull rhs);
 extern void Statement_SetVarDecl(Statement* _Nonnull self, VarDecl* _Nonnull decl);
 #ifdef SCRIPT_PRINTING
 extern void Statement_Print(Statement* _Nonnull self);

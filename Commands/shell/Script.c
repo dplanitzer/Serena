@@ -279,7 +279,7 @@ void Atom_Print(Atom* _Nonnull self)
         case kAtom_Integer:
             printf("%d", self->u.i32);
             break;
-            
+
         case kAtom_VariableReference:
             VarRef_Print(self->u.vref);
             break;
@@ -472,6 +472,13 @@ void Statement_SetExpression(Statement* _Nonnull self, Expression* _Nonnull expr
 {
     self->type = kStatementType_Expression;
     self->u.expr = expr;
+}
+
+void Statement_SetAssignment(Statement* _Nonnull self, Expression* _Nonnull lhs, Expression* _Nonnull rhs)
+{
+    self->type = kStatementType_Assignment;
+    self->u.lrExprs[0] = lhs;
+    self->u.lrExprs[1] = rhs;
 }
 
 void Statement_SetVarDecl(Statement* _Nonnull self, VarDecl* _Nonnull decl)
