@@ -461,6 +461,29 @@ static TokenId Lexer_GetIdentifierTokenId(Lexer* _Nonnull self)
     return (kw) ? kw->id : kToken_Identifier;
 }
 
+// Scans a positive integer literal. Expects that the current input position is
+// at the first digit.
+// XXX do the parsing ourselves so that we can handle escaped digits correctly
+static int32_t Lexer_ScanInteger(Lexer* _Nonnull self)
+{
+    const char* sp = &self->source[self->sourceIndex];
+    char* ep;
+    unsigned long long val = strtoull(sp, &ep, 10);
+    const size_t ndigits = ep - sp;
+
+    self->sourceIndex += ndigits;
+    self->column += ndigits;
+    while(isdigit(self->source[self->sourceIndex])) {
+        self->sourceIndex++;
+        self->column++;
+    }
+
+    if (val > INT32_MAX) {
+        val = INT32_MAX;
+    }
+    return (int32_t)val;
+}
+
 static void Lexer_SkipWhitespace(Lexer* _Nonnull self)
 {
     while (true) {
@@ -642,6 +665,20 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                 self->t.isIncomplete = Lexer_ScanString(self, '\'');
                 self->t.u.string = self->textBuffer;
                 self->t.length = self->textBufferCount;
+                return;
+
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                self->t.id = kToken_Integer;
+                self->t.u.i32 = Lexer_ScanInteger(self);
                 return;
 
             default:

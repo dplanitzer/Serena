@@ -16,259 +16,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Atom
-////////////////////////////////////////////////////////////////////////////////
-
-static errno_t Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, size_t nExtraBytes, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    Atom* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom) + nExtraBytes), ENOMEM);
-    self->type = type;
-    self->hasLeadingWhitespace = hasLeadingWhitespace;
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    Atom* self = NULL;
-    
-    try(Atom_Create(pAllocator, type, 1 + 1, hasLeadingWhitespace, &self));
-    self->u.stringLength = 1;
-    
-    char* str = Atom_GetMutableString(self);
-    str[0] = ch;
-    str[1] = '\0';
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    Atom* self = NULL;
-
-    try(Atom_Create(pAllocator, type, len + 1, hasLeadingWhitespace, &self));    
-    self->u.stringLength = len;
-
-    char* dst = Atom_GetMutableString(self);
-    memcpy(dst, str, len);
-    dst[len] = '\0';
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    Atom* self = NULL;
-
-    try(Atom_Create(pAllocator, kAtom_Expression, 0, hasLeadingWhitespace, &self));
-    self->u.expr = expr;
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    Atom* self = NULL;
-
-    try(Atom_Create(pAllocator, kAtom_VariableReference, 0, hasLeadingWhitespace, &self));
-    self->u.vref = vref;
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    Atom* self = NULL;
-
-    try(Atom_Create(pAllocator, type, 0, hasLeadingWhitespace, &self));
-    self->u.qstring = str;
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-#ifdef SCRIPT_PRINTING
-void Atom_Print(Atom* _Nonnull self)
-{
-    if (self->hasLeadingWhitespace) {
-        putchar(' ');
-    }
-
-    switch (self->type) {
-        case kAtom_BacktickString:
-            printf("`%s`", Atom_GetString(self));
-            break;
-
-        case kAtom_DoubleBacktickString:
-            fputs("``", stdout);
-            QuotedString_Print(self->u.qstring);
-            fputs("``", stdout);
-            break;
-
-        case kAtom_SingleQuoteString:
-            printf("'%s'", Atom_GetString(self));
-            break;
-
-        case kAtom_DoubleQuoteString:
-            putchar('"');
-            QuotedString_Print(self->u.qstring);
-            putchar('"');
-            break;
-
-        case kAtom_VariableReference:
-            VarRef_Print(self->u.vref);
-            break;
-
-        case kAtom_Expression:
-            putchar('(');
-            Expression_Print(self->u.expr);
-            putchar(')');
-            break;
-
-        default:
-            fputs(Atom_GetString(self), stdout);
-            break;
-    }
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: VarRef
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    const char* colon = (const char*)strrchr(str, ':');
-    const char* scope = (colon) ? str : "";
-    const char* name = (colon) ? colon + 1 : str;
-    const size_t scopeLen = (colon) ? colon - str : 0;
-    const size_t nameLen = strlen(name);
-    VarRef* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarRef) + scopeLen + 1 + nameLen + 1), ENOMEM);
-    self->scope = ((char*)self) + sizeof(VarRef);
-    self->name = self->scope + scopeLen + 1;
-
-    memcpy(self->scope, scope, scopeLen);
-    self->scope[scopeLen] = '\0';
-    memcpy(self->name, name, nameLen);
-    self->name[nameLen] = '\0';
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-#ifdef SCRIPT_PRINTING
-void VarRef_Print(VarRef* _Nonnull self)
-{
-    putchar('$');
-    if (*self->scope != '\0') {
-        fputs(self->scope, stdout);
-        putchar(':');
-    }
-    fputs(self->name, stdout);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: VarDecl
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    VarDecl* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarDecl)), ENOMEM);
-    self->vref = vref;
-    self->expr = expr;
-    self->modifiers = modifiers;
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-#ifdef SCRIPT_PRINTING
-void VarDecl_Print(VarDecl* _Nonnull self)
-{
-    fputs(((self->modifiers & kVarModifier_Public) != 0) ? "public " : "internal ", stdout);
-    fputs(((self->modifiers & kVarModifier_Mutable) != 0) ? "var " : "let ", stdout);
-    VarRef_Print(self->vref);
-    fputs(" =", stdout);
-    Expression_Print(self->expr);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Command
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf)
-{
-    Command* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Command));
-
-    *pOutSelf = self;
-    return (self) ? EOK : ENOMEM;
-}
-
-void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom)
-{
-    if (self->lastAtom) {
-        (self->lastAtom)->next = atom;
-    }
-    else {
-        self->atoms = atom;
-    }
-
-    self->lastAtom = atom;
-}
-
-#ifdef SCRIPT_PRINTING
-void Command_Print(Command* _Nonnull self)
-{
-    Atom* atom = self->atoms;
-
-    while(atom) {
-        Atom_Print(atom);
-        atom = atom->next;
-    }
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
 // MARK: StringAtom
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -398,6 +145,199 @@ void QuotedString_Print(QuotedString* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: Atom
+////////////////////////////////////////////////////////////////////////////////
+
+static errno_t Atom_Create(StackAllocatorRef _Nonnull pAllocator, AtomType type, size_t nExtraBytes, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(Atom) + nExtraBytes), ENOMEM);
+    self->type = type;
+    self->hasLeadingWhitespace = hasLeadingWhitespace;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+    
+    try(Atom_Create(pAllocator, type, 1 + 1, hasLeadingWhitespace, &self));
+    self->u.stringLength = 1;
+    
+    char* str = Atom_GetMutableString(self);
+    str[0] = ch;
+    str[1] = '\0';
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, type, len + 1, hasLeadingWhitespace, &self));    
+    self->u.stringLength = len;
+
+    char* dst = Atom_GetMutableString(self);
+    memcpy(dst, str, len);
+    dst[len] = '\0';
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, kAtom_Integer, 0, hasLeadingWhitespace, &self));
+    self->u.i32 = i32;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, kAtom_Expression, 0, hasLeadingWhitespace, &self));
+    self->u.expr = expr;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, kAtom_VariableReference, 0, hasLeadingWhitespace, &self));
+    self->u.vref = vref;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    Atom* self = NULL;
+
+    try(Atom_Create(pAllocator, type, 0, hasLeadingWhitespace, &self));
+    self->u.qstring = str;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void Atom_Print(Atom* _Nonnull self)
+{
+    if (self->hasLeadingWhitespace) {
+        putchar(' ');
+    }
+
+    switch (self->type) {
+        case kAtom_BacktickString:
+            printf("`%s`", Atom_GetString(self));
+            break;
+
+        case kAtom_DoubleBacktickString:
+            fputs("``", stdout);
+            QuotedString_Print(self->u.qstring);
+            fputs("``", stdout);
+            break;
+
+        case kAtom_SingleQuoteString:
+            printf("'%s'", Atom_GetString(self));
+            break;
+
+        case kAtom_DoubleQuoteString:
+            putchar('"');
+            QuotedString_Print(self->u.qstring);
+            putchar('"');
+            break;
+
+        case kAtom_Integer:
+            printf("%d", self->u.i32);
+            break;
+            
+        case kAtom_VariableReference:
+            VarRef_Print(self->u.vref);
+            break;
+
+        case kAtom_Expression:
+            putchar('(');
+            Expression_Print(self->u.expr);
+            putchar(')');
+            break;
+
+        default:
+            fputs(Atom_GetString(self), stdout);
+            break;
+    }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: Command
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf)
+{
+    Command* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Command));
+
+    *pOutSelf = self;
+    return (self) ? EOK : ENOMEM;
+}
+
+void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom)
+{
+    if (self->lastAtom) {
+        (self->lastAtom)->next = atom;
+    }
+    else {
+        self->atoms = atom;
+    }
+
+    self->lastAtom = atom;
+}
+
+#ifdef SCRIPT_PRINTING
+void Command_Print(Command* _Nonnull self)
+{
+    Atom* atom = self->atoms;
+
+    while(atom) {
+        Atom_Print(atom);
+        atom = atom->next;
+    }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -433,6 +373,83 @@ void Expression_Print(Expression* _Nonnull self)
             fputs(" | ", stdout);
         }
     }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: VarRef
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    const char* colon = (const char*)strrchr(str, ':');
+    const char* scope = (colon) ? str : "";
+    const char* name = (colon) ? colon + 1 : str;
+    const size_t scopeLen = (colon) ? colon - str : 0;
+    const size_t nameLen = strlen(name);
+    VarRef* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarRef) + scopeLen + 1 + nameLen + 1), ENOMEM);
+    self->scope = ((char*)self) + sizeof(VarRef);
+    self->name = self->scope + scopeLen + 1;
+
+    memcpy(self->scope, scope, scopeLen);
+    self->scope[scopeLen] = '\0';
+    memcpy(self->name, name, nameLen);
+    self->name[nameLen] = '\0';
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void VarRef_Print(VarRef* _Nonnull self)
+{
+    putchar('$');
+    if (*self->scope != '\0') {
+        fputs(self->scope, stdout);
+        putchar(':');
+    }
+    fputs(self->name, stdout);
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: VarDecl
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    VarDecl* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarDecl)), ENOMEM);
+    self->vref = vref;
+    self->expr = expr;
+    self->modifiers = modifiers;
+
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void VarDecl_Print(VarDecl* _Nonnull self)
+{
+    fputs(((self->modifiers & kVarModifier_Public) != 0) ? "public " : "internal ", stdout);
+    fputs(((self->modifiers & kVarModifier_Mutable) != 0) ? "var " : "let ", stdout);
+    VarRef_Print(self->vref);
+    fputs(" =", stdout);
+    Expression_Print(self->expr);
 }
 #endif
 

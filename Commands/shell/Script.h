@@ -20,85 +20,6 @@ struct QuotedString;
 struct VarRef;
 
 
-typedef enum AtomType {
-    kAtom_BacktickString,           // u.stringLength
-    kAtom_SingleQuoteString,        // u.stringLength
-    kAtom_Identifier,               // u.stringLength
-    kAtom_Operator,                 // u.stringLength
-
-    kAtom_DoubleBacktickString,     // u.qstring
-    kAtom_DoubleQuoteString,        // u.qstring
-    kAtom_VariableReference,        // u.vref
-    kAtom_Expression,               // u.expr
-} AtomType;
-
-typedef struct Atom {
-    struct Atom* _Nullable  next;
-    int8_t                  type;
-    int8_t                  reserved[2];
-    bool                    hasLeadingWhitespace;
-    union {
-        size_t                          stringLength;   // nul-terminated string follows the atom structure
-        struct QuotedString* _Nonnull   qstring;
-        struct Expression* _Nonnull     expr;
-        struct VarRef* _Nonnull         vref;
-    }                       u;
-} Atom;
-
-extern errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
-extern errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
-extern errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
-extern errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
-extern errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
-#define Atom_GetStringLength(__self) (__self)->u.stringLength
-#define Atom_GetString(__self) (((const char*)__self) + sizeof(Atom))
-#define Atom_GetMutableString(__self) (((char*)__self) + sizeof(Atom))
-#ifdef SCRIPT_PRINTING
-extern void Atom_Print(Atom* _Nonnull self);
-#endif
-
-
-
-typedef struct VarRef {
-    char* _Nonnull  scope;
-    char* _Nonnull  name;
-} VarRef;
-
-extern errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf);
-extern errno_t VarRef_Init(VarRef* _Nonnull self, const char* str);
-#ifdef SCRIPT_PRINTING
-extern void VarRef_Print(VarRef* _Nonnull self);
-#endif
-
-
-
-typedef struct VarDecl {
-    VarRef* _Nonnull            vref;
-    struct Expression* _Nonnull expr;
-    unsigned int                modifiers;
-} VarDecl;
-
-extern errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf);
-#ifdef SCRIPT_PRINTING
-extern void VarDecl_Print(VarDecl* _Nonnull self);
-#endif
-
-
-
-typedef struct Command {
-    struct Command* _Nullable   next;
-    Atom* _Nonnull              atoms;
-    Atom* _Nonnull              lastAtom;
-} Command;
-
-extern errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf);
-extern void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom);
-#ifdef SCRIPT_PRINTING
-extern void Command_Print(Command* _Nonnull self);
-#endif
-
-
-
 typedef enum StringAtomType {
     kStringAtom_Segment,            // u.string
     kStringAtom_EscapeSequence,     // u.string
@@ -141,6 +62,61 @@ extern void QuotedString_Print(QuotedString* _Nonnull self);
 
 
 
+typedef enum AtomType {
+    kAtom_BacktickString,           // u.stringLength
+    kAtom_SingleQuoteString,        // u.stringLength
+    kAtom_Identifier,               // u.stringLength
+    kAtom_Integer,                  // u.i32
+
+    kAtom_DoubleBacktickString,     // u.qstring
+    kAtom_DoubleQuoteString,        // u.qstring
+    kAtom_VariableReference,        // u.vref
+    kAtom_Expression,               // u.expr
+} AtomType;
+
+typedef struct Atom {
+    struct Atom* _Nullable  next;
+    int8_t                  type;
+    int8_t                  reserved[2];
+    bool                    hasLeadingWhitespace;
+    union {
+        size_t                          stringLength;   // nul-terminated string follows the atom structure
+        struct QuotedString* _Nonnull   qstring;
+        struct Expression* _Nonnull     expr;
+        struct VarRef* _Nonnull         vref;
+        int32_t                         i32;
+    }                       u;
+} Atom;
+
+extern errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
+extern errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
+extern errno_t Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
+extern errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
+extern errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
+extern errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
+#define Atom_GetStringLength(__self) (__self)->u.stringLength
+#define Atom_GetString(__self) (((const char*)__self) + sizeof(Atom))
+#define Atom_GetMutableString(__self) (((char*)__self) + sizeof(Atom))
+#ifdef SCRIPT_PRINTING
+extern void Atom_Print(Atom* _Nonnull self);
+#endif
+
+
+
+typedef struct Command {
+    struct Command* _Nullable   next;
+    Atom* _Nonnull              atoms;
+    Atom* _Nonnull              lastAtom;
+} Command;
+
+extern errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf);
+extern void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom);
+#ifdef SCRIPT_PRINTING
+extern void Command_Print(Command* _Nonnull self);
+#endif
+
+
+
 typedef struct Expression {
     Command* _Nonnull   cmds;
     Command* _Nonnull   lastCmd;
@@ -150,6 +126,32 @@ extern errno_t Expression_Create(StackAllocatorRef _Nonnull pAllocator, Expressi
 extern void Expression_AddCommand(Expression* _Nonnull self, Command* _Nonnull cmd);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);
+#endif
+
+
+
+typedef struct VarRef {
+    char* _Nonnull  scope;
+    char* _Nonnull  name;
+} VarRef;
+
+extern errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf);
+extern errno_t VarRef_Init(VarRef* _Nonnull self, const char* str);
+#ifdef SCRIPT_PRINTING
+extern void VarRef_Print(VarRef* _Nonnull self);
+#endif
+
+
+
+typedef struct VarDecl {
+    VarRef* _Nonnull            vref;
+    struct Expression* _Nonnull expr;
+    unsigned int                modifiers;
+} VarDecl;
+
+extern errno_t VarDecl_Create(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, VarDecl* _Nullable * _Nonnull pOutSelf);
+#ifdef SCRIPT_PRINTING
+extern void VarDecl_Print(VarDecl* _Nonnull self);
 #endif
 
 

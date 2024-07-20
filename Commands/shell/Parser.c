@@ -370,6 +370,11 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
             break;
         }
 
+        case kToken_Integer:
+            try(Atom_CreateWithInteger(self->allocator, t->u.i32, hasLeadingWhitespace, pOutAtom));
+            consume();
+            break;
+
         case kToken_Identifier:
         case kToken_Else:
         case kToken_If:

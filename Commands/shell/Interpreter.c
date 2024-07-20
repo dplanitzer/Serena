@@ -234,16 +234,27 @@ static errno_t Interpreter_SerializeQuotedStringText(InterpreterRef _Nonnull sel
     return err;
 }
 
+static errno_t Interpreter_SerializeInteger(InterpreterRef _Nonnull self, int32_t i32)
+{
+    char buf[__INT_MAX_BASE_10_DIGITS + 1];
+
+    itoa(i32, buf, 10);
+    return ArgumentVector_AppendBytes(self->argumentVector, buf, strlen(buf));
+}
+
 static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
 {
     decl_try_err();
 
     switch (atom->type) {
-        case kAtom_Expression:
+        case kAtom_BacktickString:
+        case kAtom_SingleQuoteString:
+        case kAtom_Identifier:
+            err = ArgumentVector_AppendBytes(self->argumentVector, Atom_GetString(atom), Atom_GetStringLength(atom));
             break;
 
-        case kAtom_VariableReference:
-            err = Interpreter_SerializeVariable(self, atom->u.vref);
+        case kAtom_Integer:
+            err = Interpreter_SerializeInteger(self, atom->u.i32);
             break;
 
         case kAtom_DoubleBacktickString:
@@ -251,14 +262,30 @@ static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self
             err = Interpreter_SerializeQuotedStringText(self, atom->u.qstring);
             break;
 
+        case kAtom_VariableReference:
+            err = Interpreter_SerializeVariable(self, atom->u.vref);
+            break;
+
+        case kAtom_Expression:
+            break;
+
         default:
-            err = ArgumentVector_AppendBytes(self->argumentVector, Atom_GetString(atom), Atom_GetStringLength(atom));
+            err = ENOTIMPL;
             break;
     }
 
     return err;
 }
 
+// XXX Serialization should grab the original text that appears in the input line.
+// XXX To make this work however, we first need source ranges in the intermediate
+// XXX representation. Once this is there we can fix problems like 'echo 32232323213213'
+// XXX which overflows teh i32 representation and thus the echo prints INT32_MAX
+// XXX instead of the expected integer. Once we got teh source ranges we can associate
+// XXX the original too-big-number with the converted number and the serialization
+// XXX can then serialize the original number the way it was written. This will also
+// XXX then take care of subtle differences like Unicode chars were not normalized
+// XXX in the source but are normalized after lexing, etc.
 static errno_t Interpreter_SerializeCommand(InterpreterRef _Nonnull self, Atom* _Nonnull atoms, bool* _Nonnull pOutIsForcedExternal)
 {
     decl_try_err();

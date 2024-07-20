@@ -11,6 +11,7 @@
 
 #include <System/System.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
 
@@ -42,18 +43,19 @@ typedef enum TokenId {
     kToken_Semicolon = ';',             // -
     kToken_Slash = '/',                 // -
 
-    kToken_BacktickString = 263,        // u.string
-    kToken_Identifier = 264,            // u.string
-    kToken_SingleQuoteString = 265,     // u.string
-    kToken_VariableName = 266,          // u.string 'foo:bar'
+    kToken_Integer = 263,               // u.i32
+    kToken_BacktickString = 264,        // u.string
+    kToken_Identifier = 265,            // u.string
+    kToken_SingleQuoteString = 266,     // u.string
+    kToken_VariableName = 267,          // u.string 'foo:bar'
 
-    kToken_Else = 267,                  // u.string
-    kToken_If = 268,                    // u.string
-    kToken_Internal = 269,              // u.string
-    kToken_Let = 270,                   // u.string
-    kToken_Public = 271,                // u.string
-    kToken_Var = 272,                   // u.string
-    kToken_While = 273,                 // u.string
+    kToken_Else = 268,                  // u.string
+    kToken_If = 269,                    // u.string
+    kToken_Internal = 270,              // u.string
+    kToken_Let = 271,                   // u.string
+    kToken_Public = 272,                // u.string
+    kToken_Var = 273,                   // u.string
+    kToken_While = 274,                 // u.string
     
     
     // DQ, DBT Mode
@@ -62,9 +64,9 @@ typedef enum TokenId {
     // kToken_DoubleBacktick
     // kToken_DoubleQuote
     // kToken_VariableName
-    kToken_EscapeSequence = 267,        // u.string
-    kToken_EscapedExpression = 268,     // -
-    kToken_StringSegment = 269,         // u.string
+    kToken_EscapeSequence = 275,        // u.string
+    kToken_EscapedExpression = 276,     // -
+    kToken_StringSegment = 277,         // u.string
 } TokenId;
 
 
@@ -79,6 +81,7 @@ typedef struct Token {
     TokenId     id;
     union {
         const char* string;
+        int32_t     i32;
     }           u;
     int         column;                 // column & line at the start of the token
     int         line;
