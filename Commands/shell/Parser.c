@@ -89,17 +89,17 @@ static errno_t Parser_MatchAndSwitchMode(Parser* _Nonnull self, TokenId id, Lexe
 //         | VAR_NAME(dq_mode)
 //       )* DOUBLE_QUOTE(dq_mode)
 //     ;
-static errno_t Parser_QuotedString(Parser* _Nonnull self, bool isBacktick, QuotedString* _Nullable * _Nonnull pOutStr)
+static errno_t Parser_CompoundString(Parser* _Nonnull self, bool isBacktick, CompoundString* _Nullable * _Nonnull pOutStr)
 {
     decl_try_err();
-    QuotedString* str = NULL;
+    CompoundString* str = NULL;
     StringAtom* atom = NULL;
     TokenId quoteToken = (isBacktick) ? kToken_DoubleBacktick : kToken_DoubleQuote;
     LexerMode lexerMode = (isBacktick) ? kLexerMode_DoubleBacktick : kLexerMode_DoubleQuote;
     bool done = false;
 
     try(matchAndSwitchMode(quoteToken, lexerMode));
-    try(QuotedString_Create(self->allocator, &str));
+    try(CompoundString_Create(self->allocator, &str));
 
     while(!done) {
         const Token* t = Lexer_GetToken(&self->lexer);
@@ -140,7 +140,7 @@ static errno_t Parser_QuotedString(Parser* _Nonnull self, bool isBacktick, Quote
         }
 
         if (atom) {
-            QuotedString_AddAtom(str, atom);
+            CompoundString_AddAtom(str, atom);
             atom = NULL;
         }
     }
@@ -259,9 +259,9 @@ static errno_t Parser_CommandPrimaryFragment(Parser* _Nonnull self, Atom* _Nulla
             break;
 
         case kToken_DoubleBacktick: {
-            QuotedString* str = NULL;
-            try(Parser_QuotedString(self, true, &str));
-            try(Atom_CreateWithQuotedString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace, pOutAtom));
+            CompoundString* str = NULL;
+            try(Parser_CompoundString(self, true, &str));
+            try(Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace, pOutAtom));
             break;
         }
 
@@ -351,9 +351,9 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
             break;
 
         case kToken_DoubleBacktick: {
-            QuotedString* str = NULL;
-            try(Parser_QuotedString(self, true, &str));
-            try(Atom_CreateWithQuotedString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace, pOutAtom));
+            CompoundString* str = NULL;
+            try(Parser_CompoundString(self, true, &str));
+            try(Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleBacktickString, str, hasLeadingWhitespace, pOutAtom));
             break;
         }
 
@@ -364,9 +364,9 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
             break;
 
         case kToken_DoubleQuote: {
-            QuotedString* str = NULL;
-            try(Parser_QuotedString(self, t->id == kToken_DoubleBacktick, &str));
-            try(Atom_CreateWithQuotedString(self->allocator, kAtom_DoubleQuoteString, str, hasLeadingWhitespace, pOutAtom));
+            CompoundString* str = NULL;
+            try(Parser_CompoundString(self, t->id == kToken_DoubleBacktick, &str));
+            try(Atom_CreateWithCompoundString(self->allocator, kAtom_DoubleQuoteString, str, hasLeadingWhitespace, pOutAtom));
             break;
         }
 
@@ -423,16 +423,15 @@ static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnu
     try(Command_Create(self->allocator, &cmd));
 
 
-    // The primary fragment is required
+    // Primary fragment is required
     try(Parser_CommandPrimaryFragment(self, &atom));
     if (atom == NULL) {
         throw(ESYNTAX);
     }
-
     Command_AddAtom(cmd, atom);
 
 
-    // The secondary fragment is optional
+    // Secondary fragments are optional
     for (;;) {
         try(Parser_CommandSecondaryFragment(self, &atom));
         if (atom == NULL) {
@@ -461,17 +460,18 @@ static errno_t Parser_Expression(Parser* _Nonnull self, Expression* _Nullable * 
     Expression* expr = NULL;
     Command* cmd = NULL;
 
-    try(Expression_Create(self->allocator, &expr));
+    try(Expression_CreatePipeline(self->allocator, &expr));
+    PipelineExpression* pe = AS(expr, PipelineExpression);
 
     try(Parser_Command(self, &cmd));
-    Expression_AddCommand(expr, cmd);
+    PipelineExpression_AddCommand(pe, cmd);
     cmd = NULL;
 
     while (peek('|')) {
         consume();
 
         try(Parser_Command(self, &cmd));
-        Expression_AddCommand(expr, cmd);
+        PipelineExpression_AddCommand(pe, cmd);
         cmd = NULL;
     }
 

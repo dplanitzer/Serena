@@ -16,6 +16,48 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: VarRef
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    const char* colon = (const char*)strrchr(str, ':');
+    const char* scope = (colon) ? str : "";
+    const char* name = (colon) ? colon + 1 : str;
+    const size_t scopeLen = (colon) ? colon - str : 0;
+    const size_t nameLen = strlen(name);
+    VarRef* self = NULL;
+    
+    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarRef) + scopeLen + 1 + nameLen + 1), ENOMEM);
+    self->scope = ((char*)self) + sizeof(VarRef);
+    self->name = self->scope + scopeLen + 1;
+
+    memcpy(self->scope, scope, scopeLen);
+    self->scope[scopeLen] = '\0';
+    memcpy(self->name, name, nameLen);
+    self->name[nameLen] = '\0';
+
+catch:
+    *pOutSelf = self;
+    return err;
+}
+
+#ifdef SCRIPT_PRINTING
+void VarRef_Print(VarRef* _Nonnull self)
+{
+    putchar('$');
+    if (*self->scope != '\0') {
+        fputs(self->scope, stdout);
+        putchar(':');
+    }
+    fputs(self->name, stdout);
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: StringAtom
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -62,7 +104,7 @@ catch:
     return err;
 }
 
-errno_t StringAtom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, StringAtom* _Nullable * _Nonnull pOutSelf)
+errno_t StringAtom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, StringAtom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     StringAtom* self = NULL;
@@ -108,18 +150,18 @@ void StringAtom_Print(StringAtom* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: QuotedString
+// MARK: CompoundString
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t QuotedString_Create(StackAllocatorRef _Nonnull pAllocator, QuotedString* _Nullable * _Nonnull pOutSelf)
+errno_t CompoundString_Create(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nullable * _Nonnull pOutSelf)
 {
-    QuotedString* self = StackAllocator_ClearAlloc(pAllocator, sizeof(QuotedString));
+    CompoundString* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundString));
 
     *pOutSelf = self;
     return (self) ? EOK : ENOMEM;
 }
 
-void QuotedString_AddAtom(QuotedString* _Nonnull self, StringAtom* _Nonnull atom)
+void CompoundString_AddAtom(CompoundString* _Nonnull self, StringAtom* _Nonnull atom)
 {
     if (self->lastAtom) {
         (self->lastAtom)->next = atom;
@@ -132,7 +174,7 @@ void QuotedString_AddAtom(QuotedString* _Nonnull self, StringAtom* _Nonnull atom
 }
 
 #ifdef SCRIPT_PRINTING
-void QuotedString_Print(QuotedString* _Nonnull self)
+void CompoundString_Print(CompoundString* _Nonnull self)
 {
     StringAtom* atom = self->atoms;
     while(atom) {
@@ -222,7 +264,7 @@ catch:
     return err;
 }
 
-errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Atom* self = NULL;
@@ -235,7 +277,7 @@ catch:
     return err;
 }
 
-errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
+errno_t Atom_CreateWithCompoundString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct CompoundString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Atom* self = NULL;
@@ -262,7 +304,7 @@ void Atom_Print(Atom* _Nonnull self)
 
         case kAtom_DoubleBacktickString:
             fputs("``", stdout);
-            QuotedString_Print(self->u.qstring);
+            CompoundString_Print(self->u.qstring);
             fputs("``", stdout);
             break;
 
@@ -272,7 +314,7 @@ void Atom_Print(Atom* _Nonnull self)
 
         case kAtom_DoubleQuoteString:
             putchar('"');
-            QuotedString_Print(self->u.qstring);
+            CompoundString_Print(self->u.qstring);
             putchar('"');
             break;
 
@@ -341,15 +383,100 @@ void Command_Print(Command* _Nonnull self)
 // MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Expression_Create(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf)
 {
-    Expression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Expression));
+    IntegerLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(IntegerLiteral));
 
-    *pOutSelf = self;
+    self->super.type = kExpression_Integer;
+    self->i32 = i32;
+    *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
-void Expression_AddCommand(Expression* _Nonnull self, Command* _Nonnull cmd)
+errno_t Expression_CreateString(StackAllocatorRef _Nonnull pAllocator, const char* text, size_t len, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    StringLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(StringLiteral) + len + 1);
+
+    self->super.type = kExpression_String;
+    memcpy(self->characters, text, len + 1);
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    CompoundStringLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundStringLiteral));
+
+    self->super.type = kExpression_CompoundString;
+    self->qstring = qstr;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreateInfix(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    InfixExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(InfixExpression));
+
+    self->super.type = type;
+    self->lhs = lhs;
+    self->rhs = rhs;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    UnaryExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(UnaryExpression));
+
+    self->super.type = type;
+    self->expr = expr;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    VarRefExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarRefExpression));
+
+    self->super.type = kExpression_VarRef;
+    self->vref = vref;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, Block* _Nonnull thenBlock, Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    IfExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(IfExpression));
+
+    self->super.type = kExpression_If;
+    self->cond = cond;
+    self->thenBlock = thenBlock;
+    self->elseBlock = elseBlock;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    WhileExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(WhileExpression));
+
+    self->super.type = kExpression_While;
+    self->cond = cond;
+    self->body = body;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    PipelineExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(PipelineExpression));
+
+    self->super.type = kExpression_Pipeline;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+void PipelineExpression_AddCommand(PipelineExpression* _Nonnull self, Command* _Nonnull cmd)
 {
     if (self->lastCmd) {
         (self->lastCmd)->next = cmd;
@@ -364,57 +491,106 @@ void Expression_AddCommand(Expression* _Nonnull self, Command* _Nonnull cmd)
 #ifdef SCRIPT_PRINTING
 void Expression_Print(Expression* _Nonnull self)
 {
-    Command* cmd = self->cmds;
+    static const char* gPrefix[] = {
+        "+", "-", "!"
+    };
+    static const char* gInfix[] = {
+        "||", "&&", "==", "!=", "<=", ">=", "<", ">", "+", "-", "*", "/",
+    };
 
-    while(cmd) {
-        Command_Print(cmd);
-        cmd = cmd->next;
-        if (cmd) {
-            fputs(" | ", stdout);
+    switch (self->type) {
+        case kExpression_Pipeline: {
+            PipelineExpression* this = AS(self, PipelineExpression);
+            Command* cmd = this->cmds;
+
+            while(cmd) {
+                Command_Print(cmd);
+                cmd = cmd->next;
+                if (cmd) {
+                    fputs(" | ", stdout);
+                }
+            }
+            break;
         }
+
+        case kExpression_Disjunction:
+        case kExpression_Conjunction:
+        case kExpression_Equal:
+        case kExpression_NotEqual:
+        case kExpression_LessEqual:
+        case kExpression_GreaterEqual:
+        case kExpression_Less:
+        case kExpression_Greater:
+        case kExpression_Addition:
+        case kExpression_Subtraction:
+        case kExpression_Multiplication:
+        case kExpression_Division: {
+            InfixExpression* ie = AS(self, InfixExpression);
+            Expression_Print(ie->lhs);
+            printf(" %s", gInfix[self->type - kExpression_Disjunction]);
+            Expression_Print(ie->rhs);
+            break;
+        }
+
+        case kExpression_Positive:
+        case kExpression_Negative:
+        case kExpression_LogicalInverse: {
+            UnaryExpression* ue = AS(self, UnaryExpression);
+            fputs(gPrefix[self->type - kExpression_Positive], stdout);
+            Expression_Print(ue->expr);
+            break;
+        }
+
+        case kExpression_Parenthesized: {
+            UnaryExpression* ue = AS(self, UnaryExpression);
+            putchar('(');
+            Expression_Print(ue->expr);
+            putchar(')');
+            break;
+        }
+
+        case kExpression_Integer:
+            printf("%d", AS(self, IntegerLiteral)->i32);
+            break;
+
+        case kExpression_String:
+            fputs(AS(self, StringLiteral)->characters, stdout);
+            break;
+
+        case kExpression_CompoundString:
+            CompoundString_Print(AS(self, CompoundStringLiteral)->qstring);
+            break;
+
+        case kExpression_VarRef:
+            VarRef_Print(AS(self, VarRefExpression)->vref);
+            break;
+
+        case kExpression_If: {
+            IfExpression* ie = AS(self, IfExpression);
+            fputs("if ", stdout);
+            Expression_Print(ie->cond);
+            putchar(' ');
+            Block_Print(ie->thenBlock);
+            if (ie->elseBlock) {
+                fputs(" else ", stdout);
+                Block_Print(ie->elseBlock);
+            }
+            break;
+        }
+
+        case kExpression_While: {
+            WhileExpression* we = AS(self, WhileExpression);
+            fputs("while ", stdout);
+            Expression_Print(we->cond);
+            putchar(' ');
+            Block_Print(we->body);
+            break;
+        }
+
+        default:
+            abort();
+            break;
     }
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: VarRef
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    const char* colon = (const char*)strrchr(str, ':');
-    const char* scope = (colon) ? str : "";
-    const char* name = (colon) ? colon + 1 : str;
-    const size_t scopeLen = (colon) ? colon - str : 0;
-    const size_t nameLen = strlen(name);
-    VarRef* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(VarRef) + scopeLen + 1 + nameLen + 1), ENOMEM);
-    self->scope = ((char*)self) + sizeof(VarRef);
-    self->name = self->scope + scopeLen + 1;
-
-    memcpy(self->scope, scope, scopeLen);
-    self->scope[scopeLen] = '\0';
-    memcpy(self->name, name, nameLen);
-    self->name[nameLen] = '\0';
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-#ifdef SCRIPT_PRINTING
-void VarRef_Print(VarRef* _Nonnull self)
-{
-    putchar('$');
-    if (*self->scope != '\0') {
-        fputs(self->scope, stdout);
-        putchar(':');
-    }
-    fputs(self->name, stdout);
 }
 #endif
 

@@ -14,12 +14,24 @@
 #include "RunStack.h"
 #include "StackAllocator.h"
 
-#define SCRIPT_PRINTING 1
+//#define SCRIPT_PRINTING 1
+struct Block;
 struct Expression;
-struct QuotedString;
-struct VarRef;
 
 #define AS(__self, __type) ((__type*)__self)
+
+
+typedef struct VarRef {
+    char* _Nonnull  scope;
+    char* _Nonnull  name;
+} VarRef;
+
+extern errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf);
+extern errno_t VarRef_Init(VarRef* _Nonnull self, const char* str);
+#ifdef SCRIPT_PRINTING
+extern void VarRef_Print(VarRef* _Nonnull self);
+#endif
+
 
 
 typedef enum StringAtomType {
@@ -36,13 +48,13 @@ typedef struct StringAtom {
     union {
         size_t                      length;     // nul-terminated string follows the atom structure
         struct Expression* _Nonnull expr;
-        struct VarRef* _Nonnull     vref;
+        VarRef* _Nonnull            vref;
     }                       u;
 } StringAtom;
 
 extern errno_t StringAtom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, StringAtomType type, const char* _Nonnull str, size_t len, StringAtom* _Nullable * _Nonnull pOutSelf);
 extern errno_t StringAtom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, StringAtom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
-extern errno_t StringAtom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, StringAtom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
+extern errno_t StringAtom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, StringAtom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
 #define StringAtom_GetStringLength(__self) (__self)->u.length
 #define StringAtom_GetString(__self) (((const char*)__self) + sizeof(StringAtom))
 #define StringAtom_GetMutableString(__self) (((char*)__self) + sizeof(StringAtom))
@@ -51,15 +63,15 @@ extern void StringAtom_Print(StringAtom* _Nonnull self);
 #endif
 
 
-typedef struct QuotedString {
+typedef struct CompoundString {
     StringAtom* _Nonnull    atoms;
     StringAtom* _Nonnull    lastAtom;
-} QuotedString;
+} CompoundString;
 
-extern errno_t QuotedString_Create(StackAllocatorRef _Nonnull pAllocator, QuotedString* _Nullable * _Nonnull pOutSelf);
-extern void QuotedString_AddAtom(QuotedString* _Nonnull self, StringAtom* _Nonnull atom);
+extern errno_t CompoundString_Create(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nullable * _Nonnull pOutSelf);
+extern void CompoundString_AddAtom(CompoundString* _Nonnull self, StringAtom* _Nonnull atom);
 #ifdef SCRIPT_PRINTING
-extern void QuotedString_Print(QuotedString* _Nonnull self);
+extern void CompoundString_Print(CompoundString* _Nonnull self);
 #endif
 
 
@@ -83,9 +95,9 @@ typedef struct Atom {
     bool                    hasLeadingWhitespace;
     union {
         size_t                          stringLength;   // nul-terminated string follows the atom structure
-        struct QuotedString* _Nonnull   qstring;
+        struct CompoundString* _Nonnull qstring;
         struct Expression* _Nonnull     expr;
-        struct VarRef* _Nonnull         vref;
+        VarRef* _Nonnull                vref;
         int32_t                         i32;
     }                       u;
 } Atom;
@@ -94,8 +106,8 @@ extern errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, A
 extern errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
 extern errno_t Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
 extern errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
-extern errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, struct VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
-extern errno_t Atom_CreateWithQuotedString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct QuotedString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
+extern errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
+extern errno_t Atom_CreateWithCompoundString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct CompoundString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
 #define Atom_GetStringLength(__self) (__self)->u.stringLength
 #define Atom_GetString(__self) (((const char*)__self) + sizeof(Atom))
 #define Atom_GetMutableString(__self) (((char*)__self) + sizeof(Atom))
@@ -118,29 +130,99 @@ extern void Command_Print(Command* _Nonnull self);
 #endif
 
 
+typedef enum ExpressionType {
+    kExpression_Pipeline,           // PipelineExpression
+    kExpression_Disjunction,        // InfixExpression
+    kExpression_Conjunction,        // InfixExpression
+    kExpression_Equal,              // InfixExpression
+    kExpression_NotEqual,           // InfixExpression
+    kExpression_LessEqual,          // InfixExpression
+    kExpression_GreaterEqual,       // InfixExpression
+    kExpression_Less,               // InfixExpression
+    kExpression_Greater,            // InfixExpression
+    kExpression_Addition,           // InfixExpression
+    kExpression_Subtraction,        // InfixExpression
+    kExpression_Multiplication,     // InfixExpression
+    kExpression_Division,           // InfixExpression
+    kExpression_Positive,           // UnaryExpression
+    kExpression_Negative,           // UnaryExpression
+    kExpression_LogicalInverse,     // UnaryExpression
+    kExpression_Parenthesized,      // UnaryExpression
+    kExpression_Integer,            // IntegerLiteral
+    kExpression_String,             // StringLiteral
+    kExpression_CompoundString,     // CompoundStringLiteral
+    kExpression_VarRef,             // VarRefExpression
+    kExpression_If,                 // IfExpression
+    kExpression_While,              // WhileExpression
+} ExpressionType;
 
 typedef struct Expression {
-    Command* _Nonnull   cmds;
-    Command* _Nonnull   lastCmd;
+    int8_t      type;
 } Expression;
 
-extern errno_t Expression_Create(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
-extern void Expression_AddCommand(Expression* _Nonnull self, Command* _Nonnull cmd);
+typedef struct IntegerLiteral {
+    Expression  super;
+    int32_t     i32;
+} IntegerLiteral;
+
+typedef struct StringLiteral {
+    Expression  super;
+    size_t      length;
+    char        characters[1];
+} StringLiteral;
+
+typedef struct CompoundStringLiteral {
+    Expression      super;
+    CompoundString* qstring;
+} CompoundStringLiteral;
+
+typedef struct InfixExpression {
+    Expression              super;
+    Expression* _Nonnull    lhs;
+    Expression* _Nonnull    rhs;
+} InfixExpression;
+
+typedef struct UnaryExpression {
+    Expression              super;
+    Expression* _Nonnull    expr;
+} UnaryExpression;
+
+typedef struct VarRefExpression {
+    Expression          super;
+    VarRef* _Nonnull    vref;
+} VarRefExpression;
+
+typedef struct IfExpression {
+    Expression              super;
+    Expression* _Nonnull    cond;
+    struct Block* _Nonnull  thenBlock;
+    struct Block* _Nullable elseBlock;
+} IfExpression;
+
+typedef struct WhileExpression {
+    Expression              super;
+    Expression* _Nonnull    cond;
+    struct Block* _Nonnull  body;
+} WhileExpression;
+
+typedef struct PipelineExpression {
+    Expression          super;
+    Command* _Nonnull   cmds;
+    Command* _Nonnull   lastCmd;
+} PipelineExpression;
+
+extern errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateString(StackAllocatorRef _Nonnull pAllocator, const char* text, size_t len, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateInfix(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
+extern void PipelineExpression_AddCommand(PipelineExpression* _Nonnull self, Command* _Nonnull cmd);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);
-#endif
-
-
-
-typedef struct VarRef {
-    char* _Nonnull  scope;
-    char* _Nonnull  name;
-} VarRef;
-
-extern errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf);
-extern errno_t VarRef_Init(VarRef* _Nonnull self, const char* str);
-#ifdef SCRIPT_PRINTING
-extern void VarRef_Print(VarRef* _Nonnull self);
 #endif
 
 

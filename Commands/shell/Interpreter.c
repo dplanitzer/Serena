@@ -206,7 +206,7 @@ static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const
     return Interpreter_SerializeValue(self, &varp->var);
 }
 
-static errno_t Interpreter_SerializeQuotedStringText(InterpreterRef _Nonnull self, QuotedString* _Nonnull str)
+static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str)
 {
     decl_try_err();
     StringAtom* atom = str->atoms;
@@ -259,7 +259,7 @@ static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self
 
         case kAtom_DoubleBacktickString:
         case kAtom_DoubleQuoteString:
-            err = Interpreter_SerializeQuotedStringText(self, atom->u.qstring);
+            err = Interpreter_SerializeCompoundString(self, atom->u.qstring);
             break;
 
         case kAtom_VariableReference:
@@ -350,7 +350,7 @@ catch:
     return err;
 }
 
-static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
+static errno_t Interpreter_PipelineExpression(InterpreterRef _Nonnull self, PipelineExpression* _Nonnull expr)
 {
     decl_try_err();
     Command* cmd = expr->cmds;
@@ -358,41 +358,60 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
     // XXX create an intermediate representation that allows us to model a set of
     // XXX commands that are linked through pipes. For now we'll do each command
     // XXX individually. Which is wrong. But good enough for now
-    while (cmd) {
-        try(Interpreter_Command(self, cmd));
+    while (cmd && err == EOK) {
+        err = Interpreter_Command(self, cmd);
         cmd = cmd->next;
     }
 
-catch:
     return err;
 }
 
-static errno_t Interpreter_VarDecl(Interpreter* _Nonnull self, VarDeclStatement* _Nonnull decl)
+static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
-    return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, "Not yet");  // XXX
+    decl_try_err();
+
+    switch (expr->type) {
+        case kExpression_Pipeline:
+            err = Interpreter_PipelineExpression(self, AS(expr, PipelineExpression));
+            break;
+
+        default:
+            err = ENOTIMPL;
+            break;
+    }
+
+    return err;
 }
 
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
+    decl_try_err();
+
     switch (stmt->type) {
         case kStatement_Null:
-            return EOK;
-
-        case kStatement_Expression:
-            return Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
-
-        case kStatement_Assignment:
+            err = EOK;
             break;
 
-        case kStatement_VarDecl:
-            return Interpreter_VarDecl(self, AS(stmt, VarDeclStatement));
+        case kStatement_Expression:
+            err = Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
+            break;
+
+        case kStatement_Assignment:
+            err = ENOTIMPL;
+            break;
+
+        case kStatement_VarDecl: {
+            VarDeclStatement* decl = AS(stmt, VarDeclStatement);
+            err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, "Not yet");  // XXX
+            break;
+        }
 
         default:
-            abort();
+            err = ENOTIMPL;
             break;
     }
 
-    return ENOTIMPL;
+    return err;
 }
 
 static errno_t Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)
@@ -400,12 +419,11 @@ static errno_t Interpreter_StatementList(InterpreterRef _Nonnull self, Statement
     decl_try_err();
     Statement* stmt = stmts->stmts;
 
-    while (stmt) {
-        try(Interpreter_Statement(self, stmt));
+    while (stmt && err == EOK) {
+        err = Interpreter_Statement(self, stmt);
         stmt = stmt->next;
     }
 
-catch:
     return err;
 }
 
