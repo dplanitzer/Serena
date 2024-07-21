@@ -342,44 +342,6 @@ void Atom_Print(Atom* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Command
-////////////////////////////////////////////////////////////////////////////////
-
-errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf)
-{
-    Command* self = StackAllocator_ClearAlloc(pAllocator, sizeof(Command));
-
-    *pOutSelf = self;
-    return (self) ? EOK : ENOMEM;
-}
-
-void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom)
-{
-    if (self->lastAtom) {
-        (self->lastAtom)->next = atom;
-    }
-    else {
-        self->atoms = atom;
-    }
-
-    self->lastAtom = atom;
-}
-
-#ifdef SCRIPT_PRINTING
-void Command_Print(Command* _Nonnull self)
-{
-    Atom* atom = self->atoms;
-
-    while(atom) {
-        Atom_Print(atom);
-        atom = atom->next;
-    }
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
 // MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -467,36 +429,25 @@ errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable cmd, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
 {
     CommandExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CommandExpression));
 
     self->super.type = kExpression_Command;
-    self->cmd = cmd;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable headExpr, Expression* _Nullable * _Nonnull pOutSelf)
+void CommandExpression_AddAtom(CommandExpression* _Nonnull self, Atom* _Nonnull atom)
 {
-    PipelineExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(PipelineExpression));
-
-    self->super.type = kExpression_Pipeline;
-    self->headExpr = headExpr;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
-}
-
-void PipelineExpression_AddCommand(PipelineExpression* _Nonnull self, Command* _Nonnull cmd)
-{
-    if (self->lastCmd) {
-        (self->lastCmd)->next = cmd;
+    if (self->lastAtom) {
+        (self->lastAtom)->next = atom;
     }
     else {
-        self->cmds = cmd;
+        self->atoms = atom;
     }
 
-    self->lastCmd = cmd;
+    self->lastAtom = atom;
 }
 
 #ifdef SCRIPT_PRINTING
@@ -506,33 +457,21 @@ void Expression_Print(Expression* _Nonnull self)
         "+", "-", "!"
     };
     static const char* gInfix[] = {
-        "||", "&&", "==", "!=", "<=", ">=", "<", ">", "+", "-", "*", "/",
+        "|", "||", "&&", "==", "!=", "<=", ">=", "<", ">", "+", "-", "*", "/",
     };
 
     switch (self->type) {
-        case kExpression_Pipeline: {
-            PipelineExpression* pe = AS(self, PipelineExpression);
-            Command* cmd = pe->cmds;
+        case kExpression_Command: {
+            Atom* atom = AS(self, CommandExpression)->atoms;
 
-            if (pe->headExpr) {
-                Expression_Print(pe->headExpr);
-                if (cmd) fputs(" | ", stdout);
-            }
-
-            while(cmd) {
-                Command_Print(cmd);
-                cmd = cmd->next;
-                if (cmd) {
-                    fputs(" | ", stdout);
-                }
+            while(atom) {
+                Atom_Print(atom);
+                atom = atom->next;
             }
             break;
         }
 
-        case kExpression_Command:
-            Command_Print(AS(self, CommandExpression)->cmd);
-            break;
-
+        case kExpression_Pipeline:
         case kExpression_Disjunction:
         case kExpression_Conjunction:
         case kExpression_Equal:
@@ -546,7 +485,7 @@ void Expression_Print(Expression* _Nonnull self)
         case kExpression_Multiplication:
         case kExpression_Division:
             Expression_Print(AS(self, BinaryExpression)->lhs);
-            printf(" %s", gInfix[self->type - kExpression_Disjunction]);
+            printf(" %s", gInfix[self->type - kExpression_Pipeline]);
             Expression_Print(AS(self, BinaryExpression)->rhs);
             break;
 

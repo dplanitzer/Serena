@@ -414,13 +414,14 @@ catch:
 // command
 //     : commandPrimaryFragment commandSecondaryFragment*
 //     ;
-static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnull pOutCmd)
+static errno_t Parser_Command(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutCmd)
 {
     decl_try_err();
-    Command* cmd = NULL;
+    Expression* expr = NULL;
     Atom* atom = NULL;
 
-    try(Command_Create(self->allocator, &cmd));
+    try(Expression_CreateCommand(self->allocator, &expr));
+    CommandExpression* cmd = AS(expr, CommandExpression);
 
 
     // Primary fragment is required
@@ -428,7 +429,7 @@ static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnu
     if (atom == NULL) {
         throw(ESYNTAX);
     }
-    Command_AddAtom(cmd, atom);
+    CommandExpression_AddAtom(cmd, atom);
 
 
     // Secondary fragments are optional
@@ -438,11 +439,11 @@ static errno_t Parser_Command(Parser* _Nonnull self, Command* _Nullable * _Nonnu
             break;
         }
 
-        Command_AddAtom(cmd, atom);
+        CommandExpression_AddAtom(cmd, atom);
         atom = NULL;
     }
 
-    *pOutCmd = cmd;
+    *pOutCmd = expr;
     return EOK;
 
 catch:
@@ -790,61 +791,36 @@ catch:
 static errno_t Parser_Expression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
-    Expression* headExpr = NULL;
     Expression* expr = NULL;
-    Command* cmd = NULL;
+    Expression* lhs = NULL;
+    Expression* rhs = NULL;
 
-    // Check whether the head of the pipeline is an expression
+    // The first component may be a mathematical expression or a command
     switch (Lexer_GetToken(&self->lexer)->id) {
         case kToken_BacktickString:
         case kToken_DoubleBacktick:
         case kToken_Slash:
         case kToken_Identifier:
             // a command
-            try(Parser_Command(self, &cmd));
+            try(Parser_Command(self, &lhs));
             break;
 
         default:
             // an expression
-            try(Parser_Disjunction(self, &headExpr));
+            try(Parser_Disjunction(self, &lhs));
             break;
     }
 
-    // Don't create a pipeline if this is just a plain expression that isn't the
-    // head of a pipeline
-    if (headExpr && !peek(kToken_Bar)) {
-        *pOutExpr = headExpr;
-        return EOK;
-    }
-
-
-    // Neither create a pipeline if this is just a plain command that isn't the
-    // head of a pipeline
-    if (cmd && !peek(kToken_Bar)) {
-        try(Expression_CreateCommand(self->allocator, cmd, pOutExpr));
-        return EOK;
-    }
-
-
-    // This is a pipeline
-    try(Expression_CreatePipeline(self->allocator, headExpr, &expr));
-    PipelineExpression* pe = AS(expr, PipelineExpression);
-
-    if (cmd) {
-        PipelineExpression_AddCommand(pe, cmd);
-        cmd = NULL;
-    }
-
-    // Collect the remaining stages of the pipeline. They are all commands
+    // The rest is the tail of a pipeline if the rest exists 
     while (peek(kToken_Bar)) {
         consume();
-
-        try(Parser_Command(self, &cmd));
-        PipelineExpression_AddCommand(pe, cmd);
-        cmd = NULL;
+        try(Parser_Command(self, &rhs));
+        try(Expression_CreateBinary(self->allocator, kExpression_Pipeline, lhs, rhs, &expr));
+        lhs = expr;
+        expr = NULL;
     }
 
-    *pOutExpr = expr;
+    *pOutExpr = lhs;
     return EOK;
 
 catch:

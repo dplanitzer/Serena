@@ -117,22 +117,8 @@ extern void Atom_Print(Atom* _Nonnull self);
 
 
 
-typedef struct Command {
-    struct Command* _Nullable   next;
-    Atom* _Nonnull              atoms;
-    Atom* _Nonnull              lastAtom;
-} Command;
-
-extern errno_t Command_Create(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable * _Nonnull pOutSelf);
-extern void Command_AddAtom(Command* _Nonnull self, Atom* _Nonnull atom);
-#ifdef SCRIPT_PRINTING
-extern void Command_Print(Command* _Nonnull self);
-#endif
-
-
 typedef enum ExpressionType {
-    kExpression_Pipeline,           // PipelineExpression
-    kExpression_Command,            // CommandExpression
+    kExpression_Pipeline,           // BinaryExpression
     kExpression_Disjunction,        // BinaryExpression
     kExpression_Conjunction,        // BinaryExpression
     kExpression_Equal,              // BinaryExpression
@@ -153,6 +139,7 @@ typedef enum ExpressionType {
     kExpression_String,             // StringLiteral
     kExpression_CompoundString,     // CompoundStringLiteral
     kExpression_VarRef,             // VarRefExpression
+    kExpression_Command,            // CommandExpression
     kExpression_If,                 // IfExpression
     kExpression_While,              // WhileExpression
 } ExpressionType;
@@ -193,6 +180,12 @@ typedef struct VarRefExpression {
     VarRef* _Nonnull    vref;
 } VarRefExpression;
 
+typedef struct CommandExpression {
+    Expression          super;
+    Atom* _Nonnull      atoms;
+    Atom* _Nonnull      lastAtom;
+} CommandExpression;
+
 typedef struct IfExpression {
     Expression              super;
     Expression* _Nonnull    cond;
@@ -206,18 +199,6 @@ typedef struct WhileExpression {
     struct Block* _Nonnull  body;
 } WhileExpression;
 
-typedef struct CommandExpression {
-    Expression          super;
-    Command* _Nonnull   cmd;
-} CommandExpression;
-
-typedef struct PipelineExpression {
-    Expression              super;
-    Expression* _Nullable   headExpr;   // != NULL -> pipeline starts with an expression; == NULL -> pipeline is a list of commands
-    Command* _Nonnull       cmds;
-    Command* _Nonnull       lastCmd;
-} PipelineExpression;
-
 extern errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateString(StackAllocatorRef _Nonnull pAllocator, const char* text, size_t len, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);
@@ -226,9 +207,8 @@ extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, Exp
 extern errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable cmd, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable headExpr, Expression* _Nullable * _Nonnull pOutSelf);
-extern void PipelineExpression_AddCommand(PipelineExpression* _Nonnull self, Command* _Nonnull cmd);
+extern errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
+extern void CommandExpression_AddAtom(CommandExpression* _Nonnull self, Atom* _Nonnull atom);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);
 #endif

@@ -180,30 +180,20 @@ catch:
 
 static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Value* vp)
 {
-    decl_try_err();
-
     switch (vp->type) {
         case kValueType_String:
-            err = ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
-            break;
+            return ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
 
         default:
-            abort();
-            break;
+            return ENOTIMPL;
     }
-
-    return err;
 }
 
 static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const VarRef* vref)
 {
     Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
 
-    if (varp == NULL) {
-        return EUNDEFINED;
-    }
-
-    return Interpreter_SerializeValue(self, &varp->var);
+    return (varp) ? Interpreter_SerializeValue(self, &varp->var) : EUNDEFINED;
 }
 
 static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str)
@@ -226,7 +216,7 @@ static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self,
                 break;
 
             default:
-                abort();
+                err = ENOTIMPL;
                 break;
         }
         atom = atom->next;
@@ -244,37 +234,28 @@ static errno_t Interpreter_SerializeInteger(InterpreterRef _Nonnull self, int32_
 
 static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
 {
-    decl_try_err();
-
     switch (atom->type) {
         case kAtom_BacktickString:
         case kAtom_SingleQuoteString:
         case kAtom_Identifier:
-            err = ArgumentVector_AppendBytes(self->argumentVector, Atom_GetString(atom), Atom_GetStringLength(atom));
-            break;
+            return ArgumentVector_AppendBytes(self->argumentVector, Atom_GetString(atom), Atom_GetStringLength(atom));
 
         case kAtom_Integer:
-            err = Interpreter_SerializeInteger(self, atom->u.i32);
-            break;
+            return Interpreter_SerializeInteger(self, atom->u.i32);
 
         case kAtom_DoubleBacktickString:
         case kAtom_DoubleQuoteString:
-            err = Interpreter_SerializeCompoundString(self, atom->u.qstring);
-            break;
+            return Interpreter_SerializeCompoundString(self, atom->u.qstring);
 
         case kAtom_VariableReference:
-            err = Interpreter_SerializeVariable(self, atom->u.vref);
-            break;
+            return Interpreter_SerializeVariable(self, atom->u.vref);
 
         case kAtom_Expression:
-            break;
+            return ENOTIMPL;
 
         default:
-            err = ENOTIMPL;
-            break;
+            return ENOTIMPL;
     }
-
-    return err;
 }
 
 // XXX Serialization should grab the original text that appears in the input line.
@@ -321,7 +302,7 @@ catch:
     return err;
 }
 
-static errno_t Interpreter_Command(InterpreterRef _Nonnull self, Command* _Nonnull cmd)
+static errno_t Interpreter_Command(InterpreterRef _Nonnull self, CommandExpression* _Nonnull cmd)
 {
     decl_try_err();
     bool isForcedExternal;
@@ -350,72 +331,37 @@ catch:
     return err;
 }
 
-static errno_t Interpreter_PipelineExpression(InterpreterRef _Nonnull self, PipelineExpression* _Nonnull expr)
-{
-    decl_try_err();
-    Command* cmd = expr->cmds;
-
-    // XXX create an intermediate representation that allows us to model a set of
-    // XXX commands that are linked through pipes. For now we'll do each command
-    // XXX individually. Which is wrong. But good enough for now
-    while (cmd && err == EOK) {
-        err = Interpreter_Command(self, cmd);
-        cmd = cmd->next;
-    }
-
-    return err;
-}
-
 static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
-    decl_try_err();
-
     switch (expr->type) {
-        case kExpression_Pipeline:
-            err = Interpreter_PipelineExpression(self, AS(expr, PipelineExpression));
-            break;
-
         case kExpression_Command:
-            err = Interpreter_Command(self, AS(expr, CommandExpression)->cmd);
-            break;
+            return Interpreter_Command(self, AS(expr, CommandExpression));
 
         default:
-            err = ENOTIMPL;
-            break;
+            return ENOTIMPL;
     }
-
-    return err;
 }
 
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
-    decl_try_err();
-
     switch (stmt->type) {
         case kStatement_Null:
-            err = EOK;
-            break;
+            return EOK;
 
         case kStatement_Expression:
-            err = Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
-            break;
+            return Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
 
         case kStatement_Assignment:
-            err = ENOTIMPL;
-            break;
+            return ENOTIMPL;
 
         case kStatement_VarDecl: {
             VarDeclStatement* decl = AS(stmt, VarDeclStatement);
-            err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, "Not yet");  // XXX
-            break;
+            return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, "Not yet");  // XXX
         }
 
         default:
-            err = ENOTIMPL;
-            break;
+            return ENOTIMPL;
     }
-
-    return err;
 }
 
 static errno_t Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)
