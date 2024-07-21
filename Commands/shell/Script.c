@@ -413,9 +413,9 @@ errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, C
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateInfix(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf)
 {
-    InfixExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(InfixExpression));
+    BinaryExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(BinaryExpression));
 
     self->super.type = type;
     self->lhs = lhs;
@@ -424,7 +424,7 @@ errno_t Expression_CreateInfix(StackAllocatorRef _Nonnull pAllocator, Expression
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf)
 {
     UnaryExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(UnaryExpression));
 
@@ -467,11 +467,22 @@ errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable cmd, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    CommandExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CommandExpression));
+
+    self->super.type = kExpression_Command;
+    self->cmd = cmd;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable headExpr, Expression* _Nullable * _Nonnull pOutSelf)
 {
     PipelineExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(PipelineExpression));
 
     self->super.type = kExpression_Pipeline;
+    self->headExpr = headExpr;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
@@ -500,8 +511,13 @@ void Expression_Print(Expression* _Nonnull self)
 
     switch (self->type) {
         case kExpression_Pipeline: {
-            PipelineExpression* this = AS(self, PipelineExpression);
-            Command* cmd = this->cmds;
+            PipelineExpression* pe = AS(self, PipelineExpression);
+            Command* cmd = pe->cmds;
+
+            if (pe->headExpr) {
+                Expression_Print(pe->headExpr);
+                if (cmd) fputs(" | ", stdout);
+            }
 
             while(cmd) {
                 Command_Print(cmd);
@@ -512,6 +528,10 @@ void Expression_Print(Expression* _Nonnull self)
             }
             break;
         }
+
+        case kExpression_Command:
+            Command_Print(AS(self, CommandExpression)->cmd);
+            break;
 
         case kExpression_Disjunction:
         case kExpression_Conjunction:
@@ -524,30 +544,24 @@ void Expression_Print(Expression* _Nonnull self)
         case kExpression_Addition:
         case kExpression_Subtraction:
         case kExpression_Multiplication:
-        case kExpression_Division: {
-            InfixExpression* ie = AS(self, InfixExpression);
-            Expression_Print(ie->lhs);
+        case kExpression_Division:
+            Expression_Print(AS(self, BinaryExpression)->lhs);
             printf(" %s", gInfix[self->type - kExpression_Disjunction]);
-            Expression_Print(ie->rhs);
+            Expression_Print(AS(self, BinaryExpression)->rhs);
             break;
-        }
 
         case kExpression_Positive:
         case kExpression_Negative:
-        case kExpression_LogicalInverse: {
-            UnaryExpression* ue = AS(self, UnaryExpression);
+        case kExpression_LogicalInverse:
             fputs(gPrefix[self->type - kExpression_Positive], stdout);
-            Expression_Print(ue->expr);
+            Expression_Print(AS(self, UnaryExpression)->expr);
             break;
-        }
 
-        case kExpression_Parenthesized: {
-            UnaryExpression* ue = AS(self, UnaryExpression);
+        case kExpression_Parenthesized:
             putchar('(');
-            Expression_Print(ue->expr);
+            Expression_Print(AS(self, UnaryExpression)->expr);
             putchar(')');
             break;
-        }
 
         case kExpression_Integer:
             printf("%d", AS(self, IntegerLiteral)->i32);

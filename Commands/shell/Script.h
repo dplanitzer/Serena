@@ -132,18 +132,19 @@ extern void Command_Print(Command* _Nonnull self);
 
 typedef enum ExpressionType {
     kExpression_Pipeline,           // PipelineExpression
-    kExpression_Disjunction,        // InfixExpression
-    kExpression_Conjunction,        // InfixExpression
-    kExpression_Equal,              // InfixExpression
-    kExpression_NotEqual,           // InfixExpression
-    kExpression_LessEqual,          // InfixExpression
-    kExpression_GreaterEqual,       // InfixExpression
-    kExpression_Less,               // InfixExpression
-    kExpression_Greater,            // InfixExpression
-    kExpression_Addition,           // InfixExpression
-    kExpression_Subtraction,        // InfixExpression
-    kExpression_Multiplication,     // InfixExpression
-    kExpression_Division,           // InfixExpression
+    kExpression_Command,            // CommandExpression
+    kExpression_Disjunction,        // BinaryExpression
+    kExpression_Conjunction,        // BinaryExpression
+    kExpression_Equal,              // BinaryExpression
+    kExpression_NotEqual,           // BinaryExpression
+    kExpression_LessEqual,          // BinaryExpression
+    kExpression_GreaterEqual,       // BinaryExpression
+    kExpression_Less,               // BinaryExpression
+    kExpression_Greater,            // BinaryExpression
+    kExpression_Addition,           // BinaryExpression
+    kExpression_Subtraction,        // BinaryExpression
+    kExpression_Multiplication,     // BinaryExpression
+    kExpression_Division,           // BinaryExpression
     kExpression_Positive,           // UnaryExpression
     kExpression_Negative,           // UnaryExpression
     kExpression_LogicalInverse,     // UnaryExpression
@@ -176,15 +177,15 @@ typedef struct CompoundStringLiteral {
     CompoundString* qstring;
 } CompoundStringLiteral;
 
-typedef struct InfixExpression {
+typedef struct BinaryExpression {
     Expression              super;
     Expression* _Nonnull    lhs;
     Expression* _Nonnull    rhs;
-} InfixExpression;
+} BinaryExpression;
 
 typedef struct UnaryExpression {
     Expression              super;
-    Expression* _Nonnull    expr;
+    Expression* _Nullable   expr;
 } UnaryExpression;
 
 typedef struct VarRefExpression {
@@ -205,21 +206,28 @@ typedef struct WhileExpression {
     struct Block* _Nonnull  body;
 } WhileExpression;
 
-typedef struct PipelineExpression {
+typedef struct CommandExpression {
     Expression          super;
-    Command* _Nonnull   cmds;
-    Command* _Nonnull   lastCmd;
+    Command* _Nonnull   cmd;
+} CommandExpression;
+
+typedef struct PipelineExpression {
+    Expression              super;
+    Expression* _Nullable   headExpr;   // != NULL -> pipeline starts with an expression; == NULL -> pipeline is a list of commands
+    Command* _Nonnull       cmds;
+    Command* _Nonnull       lastCmd;
 } PipelineExpression;
 
 extern errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateString(StackAllocatorRef _Nonnull pAllocator, const char* text, size_t len, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateInfix(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Command* _Nullable cmd, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreatePipeline(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable headExpr, Expression* _Nullable * _Nonnull pOutSelf);
 extern void PipelineExpression_AddCommand(PipelineExpression* _Nonnull self, Command* _Nonnull cmd);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);

@@ -451,23 +451,392 @@ catch:
 }
 
 //
+// literal
+//     : INTEGER
+//     | SINGLE_QUOTED_STRING
+//     | doubleQuotedString
+//     ;
+static errno_t Parser_Literal(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    const Token* t = Lexer_GetToken(&self->lexer);
+    Expression* expr = NULL;
+
+    switch (t->id) {
+        case kToken_Integer:
+            try(Expression_CreateInteger(self->allocator, t->u.i32, pOutExpr));
+            consume();
+            break;
+
+        case kToken_SingleQuoteString:
+            try(Expression_CreateString(self->allocator, t->u.string, t->length, pOutExpr));
+            consume();
+            break;
+
+        case kToken_DoubleQuote: {
+            CompoundString* str = NULL;
+            try(Parser_CompoundString(self, false, &str));
+            try(Expression_CreateCompoundString(self->allocator, str, pOutExpr));
+            break;
+        }
+
+        default:
+            throw(ESYNTAX);
+            break;
+    }
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// primaryExpression
+//     : literal
+//     | VAR_NAME
+//     | parenthesizedExpression
+//     | conditionalExpression
+//     | loopExpression
+//    ;
+static errno_t Parser_PrimaryExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    const Token* t = Lexer_GetToken(&self->lexer);
+    Expression* expr = NULL;
+
+    switch (t->id) {
+        case kToken_VariableName: {
+            VarRef* vref = NULL;
+            try(Parser_VarReference(self, &vref));
+            try(Expression_CreateVarRef(self->allocator, vref, pOutExpr));
+            break;
+        }
+
+        case kToken_OpeningParenthesis: {
+            Expression* expr = NULL;
+            try(Parser_ParenthesizedExpression(self, &expr));
+            try(Expression_CreateUnary(self->allocator, kExpression_Parenthesized, expr, pOutExpr));
+            break;
+        }
+
+        case kToken_If:
+        case kToken_While:
+            // XXX implement me
+            throw(ESYNTAX);
+            break;
+
+        default:
+            try(Parser_Literal(self, pOutExpr));
+            break;
+    }
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// prefixUnaryExpression
+//     : prefixOperator* primaryExpression
+//     ;
+static errno_t Parser_PrefixUnaryExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Expression* firstExpr = NULL;
+    Expression* curExpr = NULL;
+    Expression* expr = NULL;
+
+    // Grab all prefix operators
+    for (;;) {
+        const Token* t = Lexer_GetToken(&self->lexer);
+        bool done = false;
+        ExpressionType type;
+
+        switch (t->id) {
+            case kToken_Plus:   type = kExpression_Positive; break;
+            case kToken_Minus:  type = kExpression_Negative; break;
+            case kToken_Bang:   type = kExpression_LogicalInverse; break;
+            default:            done = true; break;
+        }
+        if (done) {
+            break;
+        }
+
+        consume();
+        try(Expression_CreateUnary(self->allocator, type, NULL, &expr));
+        if (curExpr) {
+            AS(curExpr, UnaryExpression)->expr = expr;
+            curExpr = expr;
+        }
+        else {
+            firstExpr = expr;
+            curExpr = expr;
+        }
+        expr = NULL;
+    }
+
+
+    // Grab the value the operators apply to
+    try(Parser_PrimaryExpression(self, &expr));
+    if (curExpr) {
+        AS(curExpr, UnaryExpression)->expr = expr;
+        *pOutExpr = firstExpr;
+    }
+    else {
+        *pOutExpr = expr;
+    }
+    
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// multiplication
+//     : prefixUnaryExpression (multiplicationOperator prefixUnaryExpression)*
+//     ;
+static errno_t Parser_Multiplication(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Expression* expr = NULL;
+    Expression* lhs = NULL;
+    Expression* rhs = NULL;
+
+    try(Parser_PrefixUnaryExpression(self, &lhs));
+
+    for (;;) {
+        const Token* t = Lexer_GetToken(&self->lexer);
+        ExpressionType type;
+        bool done = false;
+
+        switch (t->id) {
+            case kToken_Asterisk:   type = kExpression_Multiplication; break;
+            case kToken_Slash:      type = kExpression_Division; break;
+            default:                done = true; break;
+        }
+        if (done) {
+            break;
+        }
+
+        consume();
+        try(Parser_PrefixUnaryExpression(self, &rhs));
+        try(Expression_CreateBinary(self->allocator, type, lhs, rhs, &expr));
+        lhs = expr;
+        expr = NULL;
+    }
+
+    *pOutExpr = lhs;
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// addition
+//     : multiplication (additionOperator multiplication)*
+//     ;
+static errno_t Parser_Addition(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Expression* expr = NULL;
+    Expression* lhs = NULL;
+    Expression* rhs = NULL;
+
+    try(Parser_Multiplication(self, &lhs));
+
+    for (;;) {
+        const Token* t = Lexer_GetToken(&self->lexer);
+        ExpressionType type;
+        bool done = false;
+
+        switch (t->id) {
+            case kToken_Plus:   type = kExpression_Addition; break;
+            case kToken_Minus:  type = kExpression_Subtraction; break;
+            default:            done = true; break;
+        }
+        if (done) {
+            break;
+        }
+
+        consume();
+        try(Parser_Multiplication(self, &rhs));
+        try(Expression_CreateBinary(self->allocator, type, lhs, rhs, &expr));
+        lhs = expr;
+        expr = NULL;
+    }
+
+    *pOutExpr = lhs;
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// comparison
+//     : addition (comparisonOperator addition)*
+//     ;
+static errno_t Parser_Comparison(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Expression* expr = NULL;
+    Expression* lhs = NULL;
+    Expression* rhs = NULL;
+
+    try(Parser_Addition(self, &lhs));
+
+    for (;;) {
+        const Token* t = Lexer_GetToken(&self->lexer);
+        ExpressionType type;
+        bool done = false;
+
+        switch (t->id) {
+            case kToken_EqualEqual:     type = kExpression_Equal; break;
+            case kToken_NotEqual:       type = kExpression_NotEqual; break;
+            case kToken_LessEqual:      type = kExpression_LessEqual; break;
+            case kToken_GreaterEqual:   type = kExpression_GreaterEqual; break;
+            case kToken_Less:           type = kExpression_Less; break;
+            case kToken_Greater:        type = kExpression_Greater; break;
+            default:                    done = true; break;
+        }
+        if (done) {
+            break;
+        }
+
+        consume();
+        try(Parser_Addition(self, &rhs));
+        try(Expression_CreateBinary(self->allocator, type, lhs, rhs, &expr));
+        lhs = expr;
+        expr = NULL;
+    }
+
+    *pOutExpr = lhs;
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// conjunction
+//     : comparison (CONJUNCTION comparison)*
+//     ;
+static errno_t Parser_Conjunction(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Expression* expr = NULL;
+    Expression* lhs = NULL;
+    Expression* rhs = NULL;
+
+    try(Parser_Comparison(self, &lhs));
+
+    while (peek(kToken_Conjunction)) {
+        consume();
+        try(Parser_Comparison(self, &rhs));
+        try(Expression_CreateBinary(self->allocator, kExpression_Conjunction, lhs, rhs, &expr));
+        lhs = expr;
+        expr = NULL;
+    }
+
+    *pOutExpr = lhs;
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// disjunction
+//     : conjunction (DISJUNCTION conjunction)*
+//     ;
+static errno_t Parser_Disjunction(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Expression* expr = NULL;
+    Expression* lhs = NULL;
+    Expression* rhs = NULL;
+
+    try(Parser_Conjunction(self, &lhs));
+
+    while (peek(kToken_Disjunction)) {
+        consume();
+        try(Parser_Conjunction(self, &rhs));
+        try(Expression_CreateBinary(self->allocator, kExpression_Disjunction, lhs, rhs, &expr));
+        lhs = expr;
+        expr = NULL;
+    }
+
+    *pOutExpr = lhs;
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
 // expression
 //     : (disjunction | command) (BAR command)*
 //     ;
 static errno_t Parser_Expression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
+    Expression* headExpr = NULL;
     Expression* expr = NULL;
     Command* cmd = NULL;
 
-    try(Expression_CreatePipeline(self->allocator, &expr));
+    // Check whether the head of the pipeline is an expression
+    switch (Lexer_GetToken(&self->lexer)->id) {
+        case kToken_BacktickString:
+        case kToken_DoubleBacktick:
+        case kToken_Slash:
+        case kToken_Identifier:
+            // a command
+            try(Parser_Command(self, &cmd));
+            break;
+
+        default:
+            // an expression
+            try(Parser_Disjunction(self, &headExpr));
+            break;
+    }
+
+    // Don't create a pipeline if this is just a plain expression that isn't the
+    // head of a pipeline
+    if (headExpr && !peek(kToken_Bar)) {
+        *pOutExpr = headExpr;
+        return EOK;
+    }
+
+
+    // Neither create a pipeline if this is just a plain command that isn't the
+    // head of a pipeline
+    if (cmd && !peek(kToken_Bar)) {
+        try(Expression_CreateCommand(self->allocator, cmd, pOutExpr));
+        return EOK;
+    }
+
+
+    // This is a pipeline
+    try(Expression_CreatePipeline(self->allocator, headExpr, &expr));
     PipelineExpression* pe = AS(expr, PipelineExpression);
 
-    try(Parser_Command(self, &cmd));
-    PipelineExpression_AddCommand(pe, cmd);
-    cmd = NULL;
+    if (cmd) {
+        PipelineExpression_AddCommand(pe, cmd);
+        cmd = NULL;
+    }
 
-    while (peek('|')) {
+    // Collect the remaining stages of the pipeline. They are all commands
+    while (peek(kToken_Bar)) {
         consume();
 
         try(Parser_Command(self, &cmd));

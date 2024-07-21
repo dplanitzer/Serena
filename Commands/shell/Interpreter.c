@@ -375,6 +375,10 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
             err = Interpreter_PipelineExpression(self, AS(expr, PipelineExpression));
             break;
 
+        case kExpression_Command:
+            err = Interpreter_Command(self, AS(expr, CommandExpression)->cmd);
+            break;
+
         default:
             err = ENOTIMPL;
             break;
