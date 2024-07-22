@@ -512,6 +512,10 @@ void Expression_Print(Expression* _Nonnull self)
             putchar(')');
             break;
 
+        case kExpression_Bool:
+            fputs((AS(self, BoolLiteral)->b) ? "true" : "false", stdout);
+            break;
+
         case kExpression_Integer:
             printf("%d", AS(self, IntegerLiteral)->i32);
             break;
