@@ -49,10 +49,12 @@ NL
     ;
 
 ELSE:       'else';
+FALSE:      'false';
 IF:         'if';
 INTERNAL:   'internal';
 LET:        'let';
 PUBLIC:     'public';
+TRUE:       'true';
 VAR:        'var';
 WHILE:      'while';
 
@@ -161,12 +163,14 @@ commandPrimaryFragment
 commandSecondaryFragment
     : IDENTIFIER
     | ELSE
+    | FALSE
     | IF
     | INTERNAL
     | LET
     | VAR
     | WHILE
     | PUBLIC
+    | TRUE
     | ASSIGNMENT
     | CONJUNCTION
     | DISJUNCTION
@@ -273,7 +277,9 @@ block
     ;
 
 literal
-    : INTEGER
+    : FALSE
+    | TRUE
+    | INTEGER
     | SINGLE_QUOTED_STRING
     | doubleQuotedString
     ;

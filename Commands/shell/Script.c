@@ -345,6 +345,16 @@ void Atom_Print(Atom* _Nonnull self)
 // MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
+errno_t Expression_CreateBool(StackAllocatorRef _Nonnull pAllocator, bool b, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    BoolLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(BoolLiteral));
+
+    self->super.type = kExpression_Bool;
+    self->b = b;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
 errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf)
 {
     IntegerLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(IntegerLiteral));

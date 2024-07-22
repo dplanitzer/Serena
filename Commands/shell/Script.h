@@ -135,6 +135,7 @@ typedef enum ExpressionType {
     kExpression_Negative,           // UnaryExpression
     kExpression_LogicalInverse,     // UnaryExpression
     kExpression_Parenthesized,      // UnaryExpression
+    kExpression_Bool,               // BoolLiteral
     kExpression_Integer,            // IntegerLiteral
     kExpression_String,             // StringLiteral
     kExpression_CompoundString,     // CompoundStringLiteral
@@ -147,6 +148,11 @@ typedef enum ExpressionType {
 typedef struct Expression {
     int8_t      type;
 } Expression;
+
+typedef struct BoolLiteral {
+    Expression  super;
+    bool        b;
+} BoolLiteral;
 
 typedef struct IntegerLiteral {
     Expression  super;
@@ -199,6 +205,7 @@ typedef struct WhileExpression {
     struct Block* _Nonnull  body;
 } WhileExpression;
 
+extern errno_t Expression_CreateBool(StackAllocatorRef _Nonnull pAllocator, bool b, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateString(StackAllocatorRef _Nonnull pAllocator, const char* text, size_t len, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);

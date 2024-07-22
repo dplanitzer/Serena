@@ -56,6 +56,8 @@ typedef enum TokenId {
     kToken_Public = 272,                // u.string
     kToken_Var = 273,                   // u.string
     kToken_While = 274,                 // u.string
+    kToken_False = 275,                 // u.string
+    kToken_True = 276,                  // u.string
     
     
     // DQ, DBT Mode
@@ -64,9 +66,9 @@ typedef enum TokenId {
     // kToken_DoubleBacktick
     // kToken_DoubleQuote
     // kToken_VariableName
-    kToken_EscapeSequence = 275,        // u.string
-    kToken_EscapedExpression = 276,     // -
-    kToken_StringSegment = 277,         // u.string
+    kToken_EscapeSequence = 512,        // u.string
+    kToken_EscapedExpression = 513,     // -
+    kToken_StringSegment = 514,         // u.string
 } TokenId;
 
 

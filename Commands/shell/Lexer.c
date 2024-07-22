@@ -22,13 +22,15 @@ typedef struct Keyword {
 } Keyword;
 
 static const Keyword gKeywords[] = {
-    { "else", kToken_Else },
-    { "if", kToken_If },
-    { "internal", kToken_Internal },
-    { "let", kToken_Let },
-    { "public", kToken_Public },
-    { "var", kToken_Var },
-    { "while", kToken_While },
+    { "else",       kToken_Else },
+    { "false",      kToken_False },
+    { "if",         kToken_If },
+    { "internal",   kToken_Internal },
+    { "let",        kToken_Let },
+    { "public",     kToken_Public },
+    { "true",       kToken_True },
+    { "var",        kToken_Var },
+    { "while",      kToken_While },
 };
 
 
