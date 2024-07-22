@@ -12,6 +12,7 @@
 #include "Errors.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 typedef enum ValueType {
@@ -67,6 +68,10 @@ extern errno_t Value_Less(const Value* _Nonnull lhs, const Value* _Nonnull rhs, 
 extern errno_t Value_Greater(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r);
 extern errno_t Value_LessEquals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r);
 extern errno_t Value_GreaterEquals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r);
+
+extern errno_t Value_MakeString(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues);
+
+extern errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream);
 
 // Returns the max length of the string that represents the value of the Value.
 // Note that the actual string returned by Value_GetString() may be shorter,

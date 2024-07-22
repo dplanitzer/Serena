@@ -379,3 +379,52 @@ size_t Value_GetString(const Value* _Nonnull self, size_t bufSize, char* _Nonnul
     buf[nchars] = '\0';
     return nchars;
 }
+
+errno_t Value_MakeString(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues)
+{
+    size_t nchars = 0;
+
+    for (size_t i = 0; i < nValues; i++) {
+        nchars += Value_GetMaxStringLength(&values[i]);
+    }
+
+    char* str = malloc(nchars + 1);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    nchars = 0;
+    for (size_t i = 0; i < nValues; i++) {
+        nchars += Value_GetString(&values[i], __SIZE_MAX, &str[nchars]);
+    }
+    str[nchars] = '\0';
+
+    self->type = kValue_String;
+    self->u.string.characters = str;
+    self->u.string.length = nchars;
+    return EOK;
+}
+
+errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream)
+{
+    char buf[__INT_MAX_BASE_10_DIGITS];
+
+    switch (self->type) {
+        case kValue_Bool: 
+            fputs((self->u.b) ? "true" : "false", stream);
+            break;
+
+        case kValue_Integer:
+            itoa(self->u.i32, buf, 10);
+            fputs(buf, stream);
+            break;
+
+        case kValue_String:
+            fputs(self->u.string.characters, stream);
+            break;
+
+        default:
+            break;
+    }
+    return (ferror(stream) ? ferror(stream) : EOK);
+}
