@@ -42,10 +42,12 @@ ifndef BUILD_CONFIGURATION
 endif
 
 ifeq ($(BUILD_CONFIGURATION), release)
-	CC_OPT_SETTING := -O=17407
+	CC_OPT_SETTING := -O3 -size
+	CC_KOPT_SETTING := -O3 -size
 	CC_GEN_DEBUG_INFO :=
 else
 	CC_OPT_SETTING := -O0
+	CC_KOPT_SETTING := -O0
 	CC_GEN_DEBUG_INFO := -g
 endif
 
