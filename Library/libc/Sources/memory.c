@@ -10,34 +10,6 @@
 #include <__globals.h>
 
 
-void *memchr(const void *ptr, int ch, size_t count)
-{
-    unsigned char *p = (unsigned char *)ptr;
-    unsigned char c = (unsigned char)ch;
-
-    while(count-- > 0) {
-        if (*p++ == c) {
-            return p;
-        }
-    }
-
-    return NULL;
-}
-
-int memcmp(const void *lhs, const void *rhs, size_t count)
-{
-    unsigned char *plhs = (unsigned char *)lhs;
-    unsigned char *prhs = (unsigned char *)rhs;
-    
-    while (count-- > 0) {
-        if (*plhs++ != *prhs++) {
-            return ((int)*plhs) - ((int)*prhs);
-        }
-    }
-
-    return 0;
-}
-
 void *memset(void *dst, int c, size_t count)
 {
     return ((void* (*)(void*, int, size_t))__gProcessArguments->urt_funcs[kUrtFunc_memset])(dst, c, count);

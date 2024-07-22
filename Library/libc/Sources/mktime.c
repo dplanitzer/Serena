@@ -1,5 +1,5 @@
 //
-//  time.c
+//  mktime.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -10,7 +10,7 @@
 
 
 // XXX implement me
-time_t time(time_t *timer)
+time_t mktime(struct tm *timeptr)
 {
     return -1;
 }

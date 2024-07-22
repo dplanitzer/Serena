@@ -1,5 +1,5 @@
 //
-//  time.c
+//  gmtime.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -10,7 +10,7 @@
 
 
 // XXX implement me
-time_t time(time_t *timer)
+struct tm *gmtime(const time_t *timer)
 {
-    return -1;
+    return NULL;
 }

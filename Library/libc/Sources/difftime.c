@@ -1,5 +1,5 @@
 //
-//  time.c
+//  difftime.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -9,8 +9,7 @@
 #include <time.h>
 
 
-// XXX implement me
-time_t time(time_t *timer)
+double difftime(time_t time1, time_t time0)
 {
-    return -1;
+    return (double)time1 - (double)time0;
 }

@@ -1,5 +1,5 @@
 //
-//  intmath.c
+//  div.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -9,27 +9,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <System/_math.h>
-
-int abs(int n)
-{
-    return __abs(n);
-}
-
-long labs(long n)
-{
-    return __abs(n);
-}
-
-long long llabs(long long n)
-{
-    return __abs(n);
-}
-
-intmax_t imaxabs(intmax_t n)
-{
-    return __abs(n);
-}
-
 
 div_t div(int x, int y)
 {
