@@ -68,41 +68,6 @@ errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int io
     return __fopen_init((FILE*)self, false, &self->v, &__FILE_ioc_callbacks, mode);
 }
 
-FILE *fdopen(int ioc, const char *mode)
-{
-    decl_try_err();
-    __IOChannel_FILE* self = NULL;
-
-    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(__IOChannel_FILE)), ENOMEM);
-    try(__fdopen_init(self, true, ioc, mode));
-    return (FILE*)self;
-
-catch:
-    free(self);
-    errno = err;
-    return NULL;
-}
-
-FILE *fdreopen(int ioc, const char *mode, FILE *s)
-{
-    const bool isFreeOnClose = s->flags.shouldFreeOnClose;
-
-    if ((__fopen_parse_mode(mode) & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
-        fclose(s);
-        return NULL;
-    }
-
-    __fclose(s);
-    const errno_t err = __fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, mode);
-    if (err != 0) {
-        errno = err;
-        return NULL;
-    }
-    else {
-        return s;
-    }
-}
-
 
 errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filename, const char *mode)
 {
@@ -158,39 +123,6 @@ catch:
         IOChannel_Close(ioc);
     }
     return err;
-}
-
-FILE *fopen(const char *filename, const char *mode)
-{
-    decl_try_err();
-    __IOChannel_FILE* self = NULL;
-
-    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(__IOChannel_FILE)), ENOMEM);
-    try(__fopen_filename_init(self, filename, mode));
-    return (FILE*)self;
-
-catch:
-    free(self);
-    errno = err;
-    return NULL;
-}
-
-FILE *freopen(const char *filename, const char *mode, FILE *s)
-{
-    if ((__fopen_parse_mode(mode) & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
-        fclose(s);
-        return NULL;
-    }
-
-    __fclose(s);
-    const errno_t err = __fopen_filename_init((__IOChannel_FILE*)s, filename, mode);
-    if (err != 0) {
-        errno = err;
-        return NULL;
-    }
-    else {
-        return s;
-    }
 }
 
 int fileno(FILE *s)

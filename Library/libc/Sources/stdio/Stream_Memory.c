@@ -11,6 +11,7 @@
 #include <string.h>
 #include <System/System.h>
 
+
 // We implement POSIX zero-fill gap semantic in the sense that we maintain at
 // most one zero-fill gap at the very end of the memory file. This gap is zero-
 // filled on __mem_read(). The __mem_write() function hard-fills the portion of
@@ -161,22 +162,6 @@ errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, cons
     mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
     return __fopen_init((FILE*)self, true, mp, &__FILE_mem_callbacks, mode);
-}
-
-FILE *fopen_memory(FILE_Memory *mem, const char *mode)
-{
-    decl_try_err();
-    __Memory_FILE* self = NULL;
-
-    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(__Memory_FILE)), ENOMEM);
-    try(__fopen_memory_init(self, mem, mode));
-
-    return (FILE*)self;
-
-catch:
-    free(self);
-    errno = err;
-    return NULL;
 }
 
 int filemem(FILE *s, FILE_MemoryQuery *query)
