@@ -125,6 +125,27 @@
                 "reveal":"always"
             },
             "problemMatcher": []
+        },
+
+        {
+            "label": "Clean Shell",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "clean-sh",
+                "-s",
+                "-R",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
         }
     ]
 }
