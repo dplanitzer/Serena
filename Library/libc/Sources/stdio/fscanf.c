@@ -1,5 +1,5 @@
 //
-//  scanf.c
+//  fscanf.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 1/26/24.
@@ -9,17 +9,18 @@
 #include <stdio.h>
 
 
-int scanf(const char *format, ...)
+int fscanf(FILE *s, const char *format, ...)
 {
     va_list ap;
     
     va_start(ap, format);
-    const int r = vfscanf(stdin, format, ap);
+    const int r = vfscanf(s, format, ap);
     va_end(ap);
     return r;
 }
 
-int vscanf(const char *format, va_list ap)
+int vfscanf(FILE *s, const char *format, va_list ap)
 {
-    return vfscanf(stdin, format, ap);
+    // XXX implement me
+    return EOF;
 }

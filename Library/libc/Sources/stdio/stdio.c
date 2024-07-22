@@ -7,7 +7,6 @@
 //
 
 #include "Stream.h"
-#include <string.h>
 #include <System/System.h>
 
 static __IOChannel_FILE _StdinObj;
@@ -48,42 +47,4 @@ void __stdio_exit(void)
     fflush(NULL);
     // All open I/O channels will be automatically closed by the kernel when the
     // process terminates.
-}
-
-void perror(const char *str)
-{
-    if (str && *str != '\0') {
-        puts(str);
-        puts(": ");
-    }
-
-    puts(strerror(errno));
-}
-
-int remove(const char* path)
-{
-    decl_try_err();
-
-    err = File_Unlink(path);
-    if (err != 0) {
-        errno = err;
-        return -1;
-    }
-    else {
-        return 0;
-    }
-}
-
-int rename(const char* oldpath, const char* newpath)
-{
-    decl_try_err();
-
-    err = File_Rename(oldpath, newpath);
-    if (err != 0) {
-        errno = err;
-        return -1;
-    }
-    else {
-        return 0;
-    }
 }
