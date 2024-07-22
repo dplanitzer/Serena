@@ -112,23 +112,29 @@ char *strncat(char *dst, const char *src, size_t count)
 
 int strcmp(const char *lhs, const char *rhs)
 {
-    while (*lhs != '\0' && *lhs == *rhs) {
+    while (*lhs == *rhs) {
+        if (*lhs == '\0') {
+            return 0;
+        }
         lhs++;
         rhs++;
     }
 
-    return *((unsigned char*)lhs) - *((unsigned char*)rhs);
+    return (*((unsigned char*)lhs) < *((unsigned char*)rhs)) ? -1 : 1;
 }
 
 int strncmp(const char *lhs, const char *rhs, size_t count)
 {
-    while (count > 0 && *lhs != '\0' && *lhs == *rhs) {
+    while (count > 0 && *lhs == *rhs) {
+        if (*lhs == '\0') {
+            return 0;
+        }
         lhs++;
         rhs++;
         count--;
     }
 
-    return (count == 0) ? 0 : *((unsigned char*)lhs) - *((unsigned char*)rhs);
+    return (count == 0) ? 0 : (*((unsigned char*)lhs) < *((unsigned char*)rhs)) ? -1 : 1;
 }
 
 char *strchr(const char *str, int ch)

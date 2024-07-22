@@ -23,7 +23,7 @@ typedef struct Variable {
     struct Variable* _Nullable  next;       // Next variable in hash chain
     const char* _Nonnull        name;
     uint32_t                    modifiers;
-    Value                       var;
+    Value                       value;
 } Variable;
 
 
@@ -80,6 +80,6 @@ extern Variable* _Nullable RunStack_GetVariable(RunStack* _Nonnull self, const c
 // initialized to false when the iterator is called.
 extern errno_t RunStack_Iterate(RunStack* _Nonnull self, RunStackIterator _Nonnull cb, void* _Nullable context);
 
-extern errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nullable scope, const char* _Nonnull name, const char* _Nonnull value);
+extern errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nullable scope, const char* _Nonnull name, ValueType type, RawData data);
 
 #endif  /* RunStack_h */

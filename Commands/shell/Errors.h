@@ -12,16 +12,18 @@
 #include <System/Error.h>
 #include <errno.h>
 
-#define ESYNTAX     -1
-#define EUNDERFLOW  -2
-#define EUNDEFINED  -3
-#define EREDEFINED  -4
-#define ENOCMD      -5
-#define ENOTIMPL    -6
-#define ENOSCOPE    -7
+#define ESYNTAX         -1
+#define EUNDERFLOW      -2
+#define EUNDEFINED      -3
+#define EREDEFINED      -4
+#define ENOCMD          -5
+#define ENOTIMPL        -6
+#define ENOSCOPE        -7
+#define ETYPEMISMATCH   -8
+#define EDIVBYZERO      -9
 
 #define _EFIRST_SHELL   ESYNTAX
-#define _ELAST_SHELL    ENOSCOPE
+#define _ELAST_SHELL    EDIVBYZERO
 
 extern const char *shell_strerror(int err_no);
 

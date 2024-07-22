@@ -122,7 +122,7 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
 
     // This is a new variable. Add it
     const size_t keyLen = strlen(vp->name);
-    const size_t valLen = Value_GetStringValueLength(&vp->var);
+    const size_t valLen = Value_GetMaxStringLength(&vp->value);
     const size_t kvLen = keyLen + 1 + valLen; // '\0' is already reserved in EnvironEntry
     EnvironEntry* newEntry = malloc(sizeof(EnvironEntry) + kvLen);
     if (newEntry == NULL) {
@@ -133,7 +133,7 @@ static errno_t _EnvironCache_CollectEnvironmentVariables(EnvironCache* _Nonnull 
     // Create the 'key=value' string
     memcpy(&newEntry->kv[0], vp->name, keyLen);
     newEntry->kv[keyLen] = '=';
-    Value_GetStringValue(&vp->var, valLen + 1, &newEntry->kv[keyLen + 1]);
+    Value_GetString(&vp->value, valLen + 1, &newEntry->kv[keyLen + 1]);
 
 
     // Add the new entry to the hash chain

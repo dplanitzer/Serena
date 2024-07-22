@@ -13,6 +13,8 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
+        /*EDIVBYZERO*/      "Division by zero",
+        /*ETYPEMISMTACH*/   "Type mismatch",
         /*ENOSCOPE*/        "Unknown scope",
         /*ENOTIMPL*/        "Not implemented",
         /*ENOCMD*/          "Unknown command",

@@ -100,6 +100,7 @@ catch:
 static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self)
 {
     decl_try_err();
+    RawData vdat;
     ProcessArguments* pargs = Process_GetArguments();
     char** envp = pargs->envp;
 
@@ -109,8 +110,11 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
         char* valp = (eqp) ? eqp + 1 : NULL;
 
         if (valp) {
+            vdat.string.characters = valp;
+            vdat.string.length = strlen(valp);
+
             *eqp = '\0';
-            err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public | kVarModifier_Mutable, "global", keyp, valp);
+            err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public | kVarModifier_Mutable, "global", keyp, kValue_String, vdat);
             *eqp = '=';
             // We ignore non-fatal errors here and simply drop the erroneous
             // environment variable because we don't want the shell to die over
@@ -181,7 +185,7 @@ catch:
 static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Value* vp)
 {
     switch (vp->type) {
-        case kValueType_String:
+        case kValue_String:
             return ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
 
         default:
@@ -193,7 +197,7 @@ static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const
 {
     Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
 
-    return (varp) ? Interpreter_SerializeValue(self, &varp->var) : EUNDEFINED;
+    return (varp) ? Interpreter_SerializeValue(self, &varp->value) : EUNDEFINED;
 }
 
 static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str)
@@ -356,7 +360,8 @@ static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _N
 
         case kStatement_VarDecl: {
             VarDeclStatement* decl = AS(stmt, VarDeclStatement);
-            return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, "Not yet");  // XXX
+            RawData vdat = {.string = {"Not yet", 7}};
+            return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, kValue_String, vdat);  // XXX
         }
 
         default:

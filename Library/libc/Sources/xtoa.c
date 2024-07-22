@@ -140,13 +140,12 @@ char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnu
     return p;
 }
 
-static char* _Nonnull copy_out(char* _Nonnull buf, const char* _Nonnull pCanonDigits)
+static void copy_out(char* _Nonnull buf, const char* _Nonnull pCanonDigits)
 {
     const char* p = (pCanonDigits[1] == '+') ? &pCanonDigits[2] : &pCanonDigits[1];
 
     while (*p != '\0') { *buf++ = *p++; }
     *buf = '\0';
-    return buf;
 }
 
 char *itoa(int val, char *buf, int radix)
@@ -156,7 +155,8 @@ char *itoa(int val, char *buf, int radix)
     }
 
     char t[DIGIT_BUFFER_CAPACITY];
-    return copy_out(buf, __i32toa((int32_t)val, radix, false, t));
+    copy_out(buf, __i32toa((int32_t)val, radix, false, t));
+    return buf;
 }
 
 char *ltoa(long val, char *buf, int radix)
@@ -166,7 +166,8 @@ char *ltoa(long val, char *buf, int radix)
     }
 
     char t[DIGIT_BUFFER_CAPACITY];
-    return copy_out(buf, __i32toa((int32_t)val, radix, false, t));
+    copy_out(buf, __i32toa((int32_t)val, radix, false, t));
+    return buf;
 }
 
 char *lltoa(long long val, char *buf, int radix)
@@ -176,5 +177,6 @@ char *lltoa(long long val, char *buf, int radix)
     }
 
     char t[DIGIT_BUFFER_CAPACITY];
-    return copy_out(buf, __i64toa((int64_t)val, radix, false, t));
+    copy_out(buf, __i64toa((int64_t)val, radix, false, t));
+    return buf;
 }
