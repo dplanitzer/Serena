@@ -59,17 +59,23 @@ void Value_Deinit(Value* _Nonnull self)
     self->type = kValue_Undefined;
 }
 
-errno_t Value_Negate(const Value* _Nonnull self, Value* _Nonnull r)
+errno_t Value_Not(Value* _Nonnull self)
 {
     switch (self->type) {
         case kValue_Bool:
-            r->type = kValue_Bool;
-            r->u.b = !self->u.b;
+            self->u.b = !self->u.b;
             return EOK;
 
+        default:
+            return ETYPEMISMATCH;
+    }
+}
+
+errno_t Value_Negate(Value* _Nonnull self)
+{
+    switch (self->type) {
         case kValue_Integer:
-            r->type = kValue_Integer;
-            r->u.i32 = -self->u.i32;
+            self->u.i32 = -self->u.i32;
             return EOK;
 
         default:
@@ -77,12 +83,11 @@ errno_t Value_Negate(const Value* _Nonnull self, Value* _Nonnull r)
     }
 }
 
-errno_t Value_Mult(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_Mult(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Integer):
-            r->type = kValue_Integer;
-            r->u.i32 = lhs->u.i32 * rhs->u.i32;
+            lhs_r->u.i32 = lhs_r->u.i32 * rhs->u.i32;
             return EOK;
 
         default:
@@ -90,16 +95,15 @@ errno_t Value_Mult(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* 
     }
 }
 
-errno_t Value_Div(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_Div(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Integer):
             if (rhs->u.i32 == 0) {
                 return EDIVBYZERO;
             }
 
-            r->type = kValue_Integer;
-            r->u.i32 = lhs->u.i32 / rhs->u.i32;
+            lhs_r->u.i32 = lhs_r->u.i32 / rhs->u.i32;
             return EOK;
 
         default:
@@ -107,28 +111,27 @@ errno_t Value_Div(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _
     }
 }
 
-errno_t Value_Add(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_Add(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Integer):
-            r->type = kValue_Integer;
-            r->u.i32 = lhs->u.i32 + rhs->u.i32;
+            lhs_r->u.i32 = lhs_r->u.i32 + rhs->u.i32;
             return EOK;
 
         case TUPLE(kValue_String): {
-            const size_t lhs_len = lhs->u.string.length;
+            const size_t lhs_len = lhs_r->u.string.length;
             const size_t rhs_len = rhs->u.string.length;
             const size_t len = lhs_len + rhs_len;
             char* str = malloc(len + 1);
             if (str == NULL) {
                 return ENOMEM;
             }
-            memcpy(str, lhs->u.string.characters, lhs_len);
+            memcpy(str, lhs_r->u.string.characters, lhs_len);
             memcpy(&str[lhs_len], rhs->u.string.characters, rhs_len);
             str[len] = '\0';
-            r->type = kValue_String;
-            r->u.string.characters = str;
-            r->u.string.length = len;
+
+            lhs_r->u.string.characters = str;
+            lhs_r->u.string.length = len;
             return EOK;
         }
 
@@ -137,12 +140,11 @@ errno_t Value_Add(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _
     }
 }
 
-errno_t Value_Sub(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_Sub(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Integer):
-            r->type = kValue_Integer;
-            r->u.i32 = lhs->u.i32 - rhs->u.i32;
+            lhs_r->u.i32 = lhs_r->u.i32 - rhs->u.i32;
             return EOK;
 
         default:
@@ -150,27 +152,26 @@ errno_t Value_Sub(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _
     }
 }
 
-errno_t Value_Equals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_Equals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Bool):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.b == rhs->u.b) ? true : false;
+            lhs_r->u.b = (lhs_r->u.b == rhs->u.b) ? true : false;
             break;
 
         case TUPLE(kValue_Integer):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.i32 == rhs->u.i32) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_r->u.i32 == rhs->u.i32) ? true : false;
             return EOK;
 
         case TUPLE(kValue_String): {
-            const char* lhs_chars = lhs->u.string.characters;
+            const char* lhs_chars = lhs_r->u.string.characters;
             const char* rhs_chars = rhs->u.string.characters;
-            const size_t lhs_len = lhs->u.string.length;
+            const size_t lhs_len = lhs_r->u.string.length;
             const size_t rhs_len = rhs->u.string.length;
 
-            r->type = kValue_Bool;
-            r->u.b = (lhs_len == rhs_len && !memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_len == rhs_len && !memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
             return EOK;
         }
 
@@ -179,27 +180,26 @@ errno_t Value_Equals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value
     }
 }
 
-errno_t Value_NotEquals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_NotEquals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Bool):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.b != rhs->u.b) ? true : false;
+            lhs_r->u.b = (lhs_r->u.b != rhs->u.b) ? true : false;
             break;
 
         case TUPLE(kValue_Integer):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.i32 != rhs->u.i32) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_r->u.i32 != rhs->u.i32) ? true : false;
             return EOK;
 
         case TUPLE(kValue_String): {
-            const char* lhs_chars = lhs->u.string.characters;
+            const char* lhs_chars = lhs_r->u.string.characters;
             const char* rhs_chars = rhs->u.string.characters;
-            const size_t lhs_len = lhs->u.string.length;
+            const size_t lhs_len = lhs_r->u.string.length;
             const size_t rhs_len = rhs->u.string.length;
 
-            r->type = kValue_Bool;
-            r->u.b = (lhs_len != rhs_len || memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_len != rhs_len || memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
             return EOK;
         }
 
@@ -208,26 +208,25 @@ errno_t Value_NotEquals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Va
     }
 }
 
-errno_t Value_Less(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_Less(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Bool):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.b < rhs->u.b) ? true : false;
+            lhs_r->u.b = (lhs_r->u.b < rhs->u.b) ? true : false;
             break;
 
         case TUPLE(kValue_Integer):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.i32 < rhs->u.i32) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_r->u.i32 < rhs->u.i32) ? true : false;
             return EOK;
 
         case TUPLE(kValue_String): {
-            const char* lhs_chars = lhs->u.string.characters;
+            const char* lhs_chars = lhs_r->u.string.characters;
             const char* rhs_chars = rhs->u.string.characters;
 
             // lexicographical order
-            r->type = kValue_Bool;
-            r->u.b = (strcmp(lhs_chars, rhs_chars) < 0) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) < 0) ? true : false;
             return EOK;
         }
 
@@ -236,26 +235,25 @@ errno_t Value_Less(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* 
     }
 }
 
-errno_t Value_Greater(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_Greater(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Bool):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.b > rhs->u.b) ? true : false;
+            lhs_r->u.b = (lhs_r->u.b > rhs->u.b) ? true : false;
             break;
 
         case TUPLE(kValue_Integer):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.i32 > rhs->u.i32) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_r->u.i32 > rhs->u.i32) ? true : false;
             return EOK;
 
         case TUPLE(kValue_String): {
-            const char* lhs_chars = lhs->u.string.characters;
+            const char* lhs_chars = lhs_r->u.string.characters;
             const char* rhs_chars = rhs->u.string.characters;
 
             // lexicographical order
-            r->type = kValue_Bool;
-            r->u.b = (strcmp(lhs_chars, rhs_chars) > 0) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) > 0) ? true : false;
             return EOK;
         }
 
@@ -264,26 +262,25 @@ errno_t Value_Greater(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Valu
     }
 }
 
-errno_t Value_LessEquals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_LessEquals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Bool):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.b <= rhs->u.b) ? true : false;
+            lhs_r->u.b = (lhs_r->u.b <= rhs->u.b) ? true : false;
             break;
 
         case TUPLE(kValue_Integer):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.i32 <= rhs->u.i32) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_r->u.i32 <= rhs->u.i32) ? true : false;
             return EOK;
 
         case TUPLE(kValue_String): {
-            const char* lhs_chars = lhs->u.string.characters;
+            const char* lhs_chars = lhs_r->u.string.characters;
             const char* rhs_chars = rhs->u.string.characters;
 
             // lexicographical order
-            r->type = kValue_Bool;
-            r->u.b = (strcmp(lhs_chars, rhs_chars) <= 0) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) <= 0) ? true : false;
             return EOK;
         }
 
@@ -292,26 +289,25 @@ errno_t Value_LessEquals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, V
     }
 }
 
-errno_t Value_GreaterEquals(const Value* _Nonnull lhs, const Value* _Nonnull rhs, Value* _Nonnull r)
+errno_t Value_GreaterEquals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs)
 {
-    switch (TUPLE_2(lhs->type, rhs->type)) {
+    switch (TUPLE_2(lhs_r->type, rhs->type)) {
         case TUPLE(kValue_Bool):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.b >= rhs->u.b) ? true : false;
+            lhs_r->u.b = (lhs_r->u.b >= rhs->u.b) ? true : false;
             break;
 
         case TUPLE(kValue_Integer):
-            r->type = kValue_Bool;
-            r->u.b = (lhs->u.i32 >= rhs->u.i32) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (lhs_r->u.i32 >= rhs->u.i32) ? true : false;
             return EOK;
 
         case TUPLE(kValue_String): {
-            const char* lhs_chars = lhs->u.string.characters;
+            const char* lhs_chars = lhs_r->u.string.characters;
             const char* rhs_chars = rhs->u.string.characters;
 
             // lexicographical order
-            r->type = kValue_Bool;
-            r->u.b = (strcmp(lhs_chars, rhs_chars) >= 0) ? true : false;
+            lhs_r->type = kValue_Bool;
+            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) >= 0) ? true : false;
             return EOK;
         }
 
