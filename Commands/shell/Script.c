@@ -721,6 +721,7 @@ errno_t Script_Create(Script* _Nullable * _Nonnull pOutSelf)
 
     try_null(self, calloc(1, sizeof(Script)), errno);
     try(StackAllocator_Create(512, 4096, &self->allocator));
+    try(ConstantPool_Create(&self->constantPool));
     StatementList_Init(&self->statements);
 
     *pOutSelf = self;
@@ -737,6 +738,7 @@ void Script_Reset(Script* _Nonnull self)
     StackAllocator_DeallocAll(self->allocator);
     self->statements.stmts = NULL;
     self->statements.lastStmt = NULL;
+    // keep the constant pool around to allow for reuse
 }
 
 void Script_Destroy(Script* _Nullable self)
@@ -744,6 +746,10 @@ void Script_Destroy(Script* _Nullable self)
     if (self) {
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
+
+        ConstantPool_Destroy(self->constantPool);
+        self->constantPool = NULL;
+        
         self->statements.stmts = NULL;
         self->statements.lastStmt = NULL;
         free(self);

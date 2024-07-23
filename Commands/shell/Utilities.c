@@ -52,3 +52,15 @@ size_t hash_cstring(const char* _Nonnull str)
 
     return h;
 }
+
+size_t hash_string(const char* _Nonnull str, size_t len)
+{
+    size_t h = 5381;
+    char c;
+
+    while (len-- > 0) {
+        h = ((h << 5) + h) + *str++;
+    }
+
+    return h;
+}

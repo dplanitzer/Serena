@@ -11,6 +11,7 @@
 
 #include <System/System.h>
 #include "Lexer.h"
+#include "ConstantPool.h"
 #include "RunStack.h"
 #include "StackAllocator.h"
 
@@ -289,6 +290,7 @@ extern void Block_Print(Block* _Nonnull self);
 
 typedef struct Script {
     StatementList               statements;
+    ConstantPool* _Nonnull      constantPool;
     StackAllocatorRef _Nonnull  allocator;
 } Script;
 
