@@ -49,7 +49,7 @@ void Shell_Destroy(ShellRef _Nullable self)
     }
 }
 
-static void _Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull str, Script* _Nonnull script)
+static void _Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull str, Script* _Nonnull script, bool bPushScope)
 {
     decl_try_err();
 
@@ -57,7 +57,7 @@ static void _Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull st
 
     err = Parser_Parse(self->parser, str, script);
     if (err == EOK) {
-        err = Interpreter_Execute(self->interpreter, script);
+        err = Interpreter_Execute(self->interpreter, script, bPushScope);
     }
 
     if (err != EOK) {
@@ -79,7 +79,7 @@ errno_t Shell_Run(ShellRef _Nonnull self)
         char* line = LineReader_ReadLine(self->lineReader);
 
         putchar('\n');
-        _Shell_ExecuteString(self, line, script);
+        _Shell_ExecuteString(self, line, script, false);    // No script scope in interactive mode
     }
 
 catch:
@@ -87,33 +87,50 @@ catch:
     return err;
 }
 
-errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path)
+static errno_t read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText)
 {
     decl_try_err();
-    Script* script = NULL;
     FILE* fp = NULL;
     char* text = NULL;
 
-    try(Script_Create(&script));
     try_null(fp, fopen(path, "r"), errno);
     fseek(fp, 0, SEEK_END);
     const size_t fileSize = ftell(fp);
     rewind(fp);
 
+    try_null(text, malloc(fileSize + 1), errno);
     if (fileSize > 0ll) {
-        text = malloc(fileSize + 1);
         fread(text, fileSize, 1, fp);
         if (ferror(fp)) {
             throw(errno);
         }
-        text[fileSize] = '\0';
-
-        _Shell_ExecuteString(self, text, script);
     }
+    text[fileSize] = '\0';
+    fclose(fp);
+
+    *pOutText = text;
+    return EOK;
 
 catch:
     free(text);
     fclose(fp);
+
+    *pOutText = NULL;
+    return err;
+}
+
+errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull path)
+{
+    decl_try_err();
+    Script* script = NULL;
+    char* text = NULL;
+
+    try(Script_Create(&script));
+    try(read_contents_of_file(path, &text));
+    _Shell_ExecuteString(self, text, script, true);
+
+catch:
+    free(text);
     Script_Destroy(script);
     return err;
 }

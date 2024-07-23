@@ -36,7 +36,7 @@ extern errno_t Interpreter_Create(LineReaderRef _Nonnull lineReader, Interpreter
 extern void Interpreter_Destroy(InterpreterRef _Nullable self);
 
 // Interprets 'pScript' and executes all its statements.
-extern errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script);
+extern errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script, bool bPushScope);
 
 //
 // For use by command callbacks

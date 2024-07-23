@@ -345,39 +345,19 @@ void Atom_Print(Atom* _Nonnull self)
 // MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Expression_CreateBool(StackAllocatorRef _Nonnull pAllocator, bool b, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateValue(StackAllocatorRef _Nonnull pAllocator, const Value* value, Expression* _Nullable * _Nonnull pOutSelf)
 {
-    BoolLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(BoolLiteral));
+    ValueExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ValueExpression));
 
-    self->super.type = kExpression_Bool;
-    self->b = b;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
-}
-
-errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf)
-{
-    IntegerLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(IntegerLiteral));
-
-    self->super.type = kExpression_Integer;
-    self->i32 = i32;
-    *pOutSelf = (Expression*)self;
-    return (self) ? EOK : ENOMEM;
-}
-
-errno_t Expression_CreateString(StackAllocatorRef _Nonnull pAllocator, const char* text, size_t len, Expression* _Nullable * _Nonnull pOutSelf)
-{
-    StringLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(StringLiteral) + len + 1);
-
-    self->super.type = kExpression_String;
-    memcpy(self->characters, text, len + 1);
+    self->super.type = kExpression_Value;
+    self->value = *value;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
 errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf)
 {
-    CompoundStringLiteral* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundStringLiteral));
+    CompoundStringExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundStringExpression));
 
     self->super.type = kExpression_CompoundString;
     self->qstring = qstr;
@@ -512,20 +492,12 @@ void Expression_Print(Expression* _Nonnull self)
             putchar(')');
             break;
 
-        case kExpression_Bool:
-            fputs((AS(self, BoolLiteral)->b) ? "true" : "false", stdout);
-            break;
-
-        case kExpression_Integer:
-            printf("%d", AS(self, IntegerLiteral)->i32);
-            break;
-
-        case kExpression_String:
-            fputs(AS(self, StringLiteral)->characters, stdout);
+        case kExpression_Value:
+            Value_Write(&AS(self, ValueExpression)->value, stdout);
             break;
 
         case kExpression_CompoundString:
-            CompoundString_Print(AS(self, CompoundStringLiteral)->qstring);
+            CompoundString_Print(AS(self, CompoundStringExpression)->qstring);
             break;
 
         case kExpression_VarRef:

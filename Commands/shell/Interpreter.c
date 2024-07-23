@@ -352,8 +352,40 @@ catch:
 static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
     switch (expr->type) {
+        case kExpression_Pipeline:
+        case kExpression_Disjunction:
+        case kExpression_Conjunction:
+        case kExpression_Equal:
+        case kExpression_NotEqual:
+        case kExpression_LessEqual:
+        case kExpression_GreaterEqual:
+        case kExpression_Less:
+        case kExpression_Greater:
+        case kExpression_Addition:
+        case kExpression_Subtraction:
+        case kExpression_Multiplication:
+        case kExpression_Division:
+        case kExpression_Positive:
+        case kExpression_Negative:
+        case kExpression_LogicalInverse:
+            return ENOTIMPL;
+
+        case kExpression_Parenthesized:
+            return Interpreter_Expression(self, AS(expr, UnaryExpression)->expr);
+
+        case kExpression_Value:
+            return OpStack_Push(self->opStack, &AS(expr, ValueExpression)->value);
+
+        case kExpression_CompoundString:
+        case kExpression_VarRef:
+            return ENOTIMPL;
+            
         case kExpression_Command:
             return Interpreter_Command(self, AS(expr, CommandExpression));
+
+        case kExpression_If:
+        case kExpression_While:
+            return ENOTIMPL;
 
         default:
             return ENOTIMPL;
@@ -362,25 +394,37 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
 
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
+    decl_try_err();
+
     switch (stmt->type) {
         case kStatement_Null:
             return EOK;
 
         case kStatement_Expression:
-            return Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
+            err = Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
+            if (err == EOK && !OpStack_IsEmpty(self->opStack)) {
+                Value_Write(OpStack_GetTos(self->opStack), stdout);
+                putchar('\n');
+            }
+            OpStack_PopAll(self->opStack);
+            break;
 
         case kStatement_Assignment:
-            return ENOTIMPL;
+            err = ENOTIMPL;
+            break;
 
         case kStatement_VarDecl: {
             VarDeclStatement* decl = AS(stmt, VarDeclStatement);
             RawData vdat = {.string = {"Not yet", 7}};
-            return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, kValue_String, vdat);  // XXX
+            err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, kValue_String, vdat);  // XXX
+            break;
         }
 
         default:
-            return ENOTIMPL;
+            err = ENOTIMPL;
+            break;
     }
+    return err;
 }
 
 static errno_t Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)
@@ -402,14 +446,27 @@ static errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull b
 }
 
 // Interprets 'script' and executes all its statements.
-errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script)
+errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script, bool bPushScope)
 {
     decl_try_err();
 
     //Script_Print(script);
     //putchar('\n');
 
+    if (bPushScope) {
+        err = RunStack_PushScope(self->runStack);
+        if (err != EOK) {
+            return err;
+        }
+    }
+
     err = Interpreter_StatementList(self, &script->statements);
+    
+    if (bPushScope) {
+        RunStack_PopScope(self->runStack);
+    }
+
+    OpStack_PopAll(self->opStack);
     StackAllocator_DeallocAll(self->allocator);
     return err;
 }

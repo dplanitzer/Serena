@@ -14,6 +14,7 @@
 #include "ConstantsPool.h"
 #include "RunStack.h"
 #include "StackAllocator.h"
+#include "Value.h"
 
 //#define SCRIPT_PRINTING 1
 struct Block;
@@ -136,10 +137,8 @@ typedef enum ExpressionType {
     kExpression_Negative,           // UnaryExpression
     kExpression_LogicalInverse,     // UnaryExpression
     kExpression_Parenthesized,      // UnaryExpression
-    kExpression_Bool,               // BoolLiteral
-    kExpression_Integer,            // IntegerLiteral
-    kExpression_String,             // StringLiteral
-    kExpression_CompoundString,     // CompoundStringLiteral
+    kExpression_Value,              // ValueExpression
+    kExpression_CompoundString,     // CompoundStringExpression
     kExpression_VarRef,             // VarRefExpression
     kExpression_Command,            // CommandExpression
     kExpression_If,                 // IfExpression
@@ -150,26 +149,15 @@ typedef struct Expression {
     int8_t      type;
 } Expression;
 
-typedef struct BoolLiteral {
+typedef struct ValueExpression {
     Expression  super;
-    bool        b;
-} BoolLiteral;
+    Value       value;
+} ValueExpression;
 
-typedef struct IntegerLiteral {
-    Expression  super;
-    int32_t     i32;
-} IntegerLiteral;
-
-typedef struct StringLiteral {
-    Expression  super;
-    size_t      length;
-    char        characters[1];
-} StringLiteral;
-
-typedef struct CompoundStringLiteral {
+typedef struct CompoundStringExpression {
     Expression      super;
     CompoundString* qstring;
-} CompoundStringLiteral;
+} CompoundStringExpression;
 
 typedef struct BinaryExpression {
     Expression              super;
@@ -206,9 +194,7 @@ typedef struct WhileExpression {
     struct Block* _Nonnull  body;
 } WhileExpression;
 
-extern errno_t Expression_CreateBool(StackAllocatorRef _Nonnull pAllocator, bool b, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateString(StackAllocatorRef _Nonnull pAllocator, const char* text, size_t len, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateValue(StackAllocatorRef _Nonnull pAllocator, const Value* value, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);

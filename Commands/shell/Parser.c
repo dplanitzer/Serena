@@ -51,6 +51,7 @@ void Parser_Destroy(Parser* _Nullable self)
     if (self) {
         Lexer_Deinit(&self->lexer);
         self->allocator = NULL;
+        self->constantsPool = NULL;
 
         free(self);
     }
@@ -468,24 +469,30 @@ static errno_t Parser_Literal(Parser* _Nonnull self, Expression* _Nullable * _No
     decl_try_err();
     const Token* t = Lexer_GetToken(&self->lexer);
     Expression* expr = NULL;
+    Value v;
 
     switch (t->id) {
         case kToken_False:
-            try(Expression_CreateBool(self->allocator, false, pOutExpr));
+            Value_InitBool(&v, false);
+            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
             consume();
+            break;
 
         case kToken_True:
-            try(Expression_CreateBool(self->allocator, true, pOutExpr));
+            Value_InitBool(&v, true);
+            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
             consume();
             break;
             
         case kToken_Integer:
-            try(Expression_CreateInteger(self->allocator, t->u.i32, pOutExpr));
+            Value_InitInteger(&v, t->u.i32);
+            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
             consume();
             break;
 
         case kToken_SingleQuoteString:
-            try(Expression_CreateString(self->allocator, t->u.string, t->length, pOutExpr));
+            try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
+            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
             consume();
             break;
 
@@ -1041,7 +1048,11 @@ errno_t Parser_Parse(Parser* _Nonnull self, const char* _Nonnull text, Script* _
 
     Lexer_SetInput(&self->lexer, text);
     self->allocator = script->allocator;
+    self->constantsPool = script->constantsPool;
+
     err = Parser_Script(self, script);
+    
+    self->constantsPool = NULL;
     self->allocator = NULL;
     Lexer_SetInput(&self->lexer, NULL);
 

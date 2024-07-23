@@ -53,6 +53,17 @@ typedef union RawData {
 } RawData;
 
 
+#define Value_InitUndefined(__self) \
+    (__self)->type = kValue_Undefined;
+
+#define Value_InitBool(__self, __b) \
+    (__self)->type = kValue_Bool; \
+    (__self)->u.b = __b;
+
+#define Value_InitInteger(__self, __i32) \
+    (__self)->type = kValue_Integer; \
+    (__self)->u.i32 = __i32;
+
 extern errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data);
 extern void Value_Deinit(Value* _Nonnull self);
 

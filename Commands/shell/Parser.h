@@ -16,6 +16,7 @@
 
 typedef struct Parser {
     Lexer                                   lexer;
+    ConstantsPool* _Nullable /*Weak*/       constantsPool;
     StackAllocatorRef _Nullable /*Weak*/    allocator;
 } Parser;
 

@@ -56,6 +56,11 @@ errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value)
     self->values[self->count++] = *value;
 }
 
+void OpStack_PopAll(OpStack* _Nonnull self)
+{
+    self->count = 0;
+}
+
 errno_t OpStack_Pop(OpStack* _Nonnull self, size_t count)
 {
     if (self->count < count) {

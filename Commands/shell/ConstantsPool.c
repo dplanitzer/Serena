@@ -117,6 +117,11 @@ errno_t ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _
     if (err == EOK) {
         cp->next = self->hashtable[hashIndex];
         self->hashtable[hashIndex] = cp;
+        *pOutValue = cp->value;
+        return EOK;
     }
-    return err;
+    else {
+        Value_InitUndefined(pOutValue);
+        return err;
+    }
 }
