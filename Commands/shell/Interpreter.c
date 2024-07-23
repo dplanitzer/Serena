@@ -22,14 +22,14 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
 
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nullable * _Nonnull pOutSelf)
+errno_t Interpreter_Create(LineReaderRef _Nonnull lineReader, InterpreterRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     InterpreterRef self;
     
     try_null(self, calloc(1, sizeof(Interpreter)), ENOMEM);
     try(StackAllocator_Create(1024, 8192, &self->allocator));
-    self->context = pContext;
+    self->lineReader = lineReader;
 
     try(NameTable_Create(&self->nameTable));
     try(Interpreter_DeclareInternalCommands(self));
@@ -72,10 +72,24 @@ void Interpreter_Destroy(InterpreterRef _Nullable self)
         StackAllocator_Destroy(self->allocator);
         self->allocator = NULL;
 
-        self->context = NULL;
+        self->lineReader = NULL;
         free(self);
     }
 }
+
+// Returns the number of entries that currently exist in the history.
+int Interpreter_GetHistoryCount(InterpreterRef _Nonnull self)
+{
+    return (self->lineReader) ? LineReader_GetHistoryCount(self->lineReader) : 0;
+}
+
+// Returns a reference to the history entry at the given index. Entries are
+// ordered ascending from oldest to newest.
+const char* _Nonnull Interpreter_GetHistoryAt(InterpreterRef _Nonnull self, int idx)
+{
+    return (self->lineReader) ? LineReader_GetHistoryAt(self->lineReader, idx) : "";
+}
+
 
 static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
 {
@@ -135,7 +149,7 @@ static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int
     Name* np = NameTable_GetName(self->nameTable, argv[0]);
 
     if (np) {
-        np->cb(self->context, argc, argv, envp);
+        np->cb(self, argc, argv, envp);
         return true;
     }
 

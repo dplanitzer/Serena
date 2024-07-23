@@ -14,9 +14,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-struct ShellContext;
+struct Interpreter;
 
-typedef int (*CommandCallback)(struct ShellContext* _Nonnull, int argc, char** argv, char** envp);
+typedef int (*CommandCallback)(struct Interpreter* _Nonnull interpreter, int argc, char** argv, char** envp);
 
 
 typedef struct Name {

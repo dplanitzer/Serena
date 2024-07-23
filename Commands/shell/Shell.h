@@ -12,11 +12,9 @@
 #include "LineReader.h"
 #include "Interpreter.h"
 #include "Parser.h"
-#include "ShellContext.h"
 
 typedef struct Shell {
     LineReaderRef _Nullable     lineReader;
-    ShellContextRef _Nonnull    context;
     Parser* _Nonnull            parser;
     InterpreterRef _Nonnull     interpreter;
 } Shell;

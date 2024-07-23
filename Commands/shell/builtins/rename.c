@@ -26,7 +26,7 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_rename(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
+int cmd_rename(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     decl_try_err();
 

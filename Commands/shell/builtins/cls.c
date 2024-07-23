@@ -20,7 +20,7 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_cls(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
+int cmd_cls(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
     if (clap_should_exit(status)) {

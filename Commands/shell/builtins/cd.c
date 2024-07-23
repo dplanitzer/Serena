@@ -24,7 +24,7 @@ CLAP_DECL(params,
 );
 
 
-int cmd_cd(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
+int cmd_cd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     decl_try_err();
 

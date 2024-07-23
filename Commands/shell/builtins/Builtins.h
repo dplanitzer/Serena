@@ -11,18 +11,18 @@
 
 #include <System/_cmndef.h>
 
-struct ShellContext;
+struct Interpreter;
 
-extern int cmd_cd(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_cls(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_delete(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_echo(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_exit(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_history(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_list(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_makedir(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_pwd(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_rename(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
-extern int cmd_type(struct ShellContext* _Nonnull ctx, int argc, char** argv, char** envp);
+extern int cmd_cd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_cls(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_delete(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_echo(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_exit(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_history(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_list(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_makedir(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_pwd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_rename(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_type(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 
 #endif  /* Builtins_h */

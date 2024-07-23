@@ -12,17 +12,17 @@
 #include "Script.h"
 #include "ArgumentVector.h"
 #include "EnvironCache.h"
+#include "LineReader.h"
 #include "NameTable.h"
 #include "OpStack.h"
 #include "RunStack.h"
-#include "ShellContext.h"
 #include "StackAllocator.h"
 
 
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
     
-    ShellContextRef _Weak       context;
+    LineReaderRef _Weak         lineReader;
     NameTable* _Nonnull         nameTable;
     OpStack* _Nonnull           opStack;
     RunStack* _Nonnull          runStack;
@@ -32,10 +32,17 @@ typedef struct Interpreter {
 typedef Interpreter* InterpreterRef;
 
 
-extern errno_t Interpreter_Create(ShellContextRef _Nonnull pContext, InterpreterRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Interpreter_Create(LineReaderRef _Nonnull lineReader, InterpreterRef _Nullable * _Nonnull pOutSelf);
 extern void Interpreter_Destroy(InterpreterRef _Nullable self);
 
 // Interprets 'pScript' and executes all its statements.
 extern errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script);
+
+//
+// For use by command callbacks
+//
+
+extern int Interpreter_GetHistoryCount(InterpreterRef _Nonnull self);
+extern const char* _Nonnull Interpreter_GetHistoryAt(InterpreterRef _Nonnull self, int idx);
 
 #endif  /* Interpreter_h */

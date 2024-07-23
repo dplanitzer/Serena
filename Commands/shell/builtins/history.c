@@ -12,18 +12,18 @@
 #include <string.h>
 
 
-int cmd_history(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
+int cmd_history(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
-    int count = ShellContext_GetHistoryCount(pContext);
+    int count = Interpreter_GetHistoryCount(ip);
 
     // We don't want to print the 'history' command if it is on top of the history
     // stack because this means that the user has just entered it to get the history.
-    if (count > 0 && !strncmp(ShellContext_GetHistoryAt(pContext, count - 1), "history", 7)) {
+    if (count > 0 && !strncmp(Interpreter_GetHistoryAt(ip, count - 1), "history", 7)) {
         count--;
     }
 
     for (int i = count - 1; i >= 0; i--) {
-        puts(ShellContext_GetHistoryAt(pContext, i));
+        puts(Interpreter_GetHistoryAt(ip, i));
     }
 
     return EXIT_SUCCESS;

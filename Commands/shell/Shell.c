@@ -24,9 +24,8 @@ errno_t Shell_Create(bool isInteractive, ShellRef _Nullable * _Nonnull pOutSelf)
     if (isInteractive) {
         try(LineReader_Create(79, 10, ">", &self->lineReader));
     }
-    try(ShellContext_Create(self->lineReader, &self->context));
     try(Parser_Create(&self->parser));
-    try(Interpreter_Create(self->context, &self->interpreter));
+    try(Interpreter_Create(self->lineReader, &self->interpreter));
 
     *pOutSelf = self;
     return EOK;
@@ -44,8 +43,6 @@ void Shell_Destroy(ShellRef _Nullable self)
         self->interpreter = NULL;
         Parser_Destroy(self->parser);
         self->parser = NULL;
-        ShellContext_Destroy(self->context);
-        self->context = NULL;
         LineReader_Destroy(self->lineReader);
         self->lineReader = NULL;
         free(self);

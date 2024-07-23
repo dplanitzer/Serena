@@ -88,7 +88,7 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_makedir(ShellContextRef _Nonnull pContext, int argc, char** argv, char** envp)
+int cmd_makedir(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     decl_try_err();
     FilePermissions permissions = FilePermissions_MakeFromOctal(0755);
