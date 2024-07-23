@@ -1,12 +1,12 @@
 //
-//  ConstantPool.c
+//  ConstantsPool.c
 //  sh
 //
 //  Created by Dietmar Planitzer on 7/22/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "ConstantPool.h"
+#include "ConstantsPool.h"
 #include "Utilities.h"
 #include <string.h>
 
@@ -43,20 +43,20 @@ static void Constant_Destroy(Constant* _Nullable self)
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// ConstantPool
+// ConstantsPool
 ////////////////////////////////////////////////////////////////////////////////
 
 #define INITIAL_HASHTABLE_CAPACITY  16
 
-static void _ConstantPool_DestroyHashtable(ConstantPool* _Nonnull self);
+static void _ConstantsPool_DestroyHashtable(ConstantsPool* _Nonnull self);
 
 
-errno_t ConstantPool_Create(ConstantPool* _Nullable * _Nonnull pOutSelf)
+errno_t ConstantsPool_Create(ConstantsPool* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    ConstantPool* self;
+    ConstantsPool* self;
 
-    try_null(self, calloc(1, sizeof(ConstantPool)), errno);
+    try_null(self, calloc(1, sizeof(ConstantsPool)), errno);
     try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Constant*)), errno);
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
 
@@ -64,20 +64,20 @@ errno_t ConstantPool_Create(ConstantPool* _Nullable * _Nonnull pOutSelf)
     return EOK;
 
 catch:
-    ConstantPool_Destroy(self);
+    ConstantsPool_Destroy(self);
     *pOutSelf = NULL;
     return err;
 }
 
-void ConstantPool_Destroy(ConstantPool* _Nullable self)
+void ConstantsPool_Destroy(ConstantsPool* _Nullable self)
 {
     if (self) {
-        _ConstantPool_DestroyHashtable(self);
+        _ConstantsPool_DestroyHashtable(self);
         free(self);
     }
 }
 
-static void _ConstantPool_DestroyHashtable(ConstantPool* _Nonnull self)
+static void _ConstantsPool_DestroyHashtable(ConstantsPool* _Nonnull self)
 {
     for (size_t i = 0; i < self->hashtableCapacity; i++) {
         Constant* cp = self->hashtable[i];
@@ -97,7 +97,7 @@ static void _ConstantPool_DestroyHashtable(ConstantPool* _Nonnull self)
     self->hashtableCapacity = 0;
 }
 
-errno_t ConstantPool_GetStringValue(ConstantPool* _Nonnull self, const char* _Nonnull str, size_t len, Value* _Nonnull pOutValue)
+errno_t ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _Nonnull str, size_t len, Value* _Nonnull pOutValue)
 {
     const size_t hashCode = hash_string(str, len);
     const size_t hashIndex = hashCode % self->hashtableCapacity;
