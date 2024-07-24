@@ -455,8 +455,13 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
             return OpStack_Push(self->opStack, &AS(expr, LiteralExpression)->value);
 
         case kExpression_CompoundString:
-        case kExpression_VarRef:
             return ENOTIMPL;
+
+        case kExpression_VarRef: {
+            VarRef* vref = AS(expr, VarRefExpression)->vref;
+            Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
+            return OpStack_Push(self->opStack, &varp->value);
+        }
             
         case kExpression_Command:
             return Interpreter_Command(self, AS(expr, CommandExpression));
