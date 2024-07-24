@@ -21,9 +21,10 @@
 #define ENOSCOPE        -7
 #define ETYPEMISMATCH   -8
 #define EDIVBYZERO      -9
+#define ENOTLVALUE      -10
 
 #define _EFIRST_SHELL   ESYNTAX
-#define _ELAST_SHELL    EDIVBYZERO
+#define _ELAST_SHELL    ENOTLVALUE
 
 extern const char *shell_strerror(int err_no);
 

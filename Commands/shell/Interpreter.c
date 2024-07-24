@@ -475,6 +475,31 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
     }
 }
 
+// Supported assignment forms:
+//  $VAR_NAME = expr
+static errno_t Interpreter_Assignment(InterpreterRef _Nonnull self, AssignmentStatement* _Nonnull stmt)
+{
+    if (stmt->lvalue->type != kExpression_VarRef) {
+        return ENOTLVALUE;
+    }
+
+    VarRef* lvref = AS(stmt->lvalue, VarRefExpression)->vref;
+    Variable* lvar = RunStack_GetVariable(self->runStack, lvref->scope, lvref->name);
+    if (lvar == NULL) {
+        return EUNDEFINED;
+    }
+
+    const errno_t err = Interpreter_Expression(self, stmt->rvalue);
+    if (err != EOK) {
+        return err;
+    }
+
+    lvar->value = *OpStack_GetTos(self->opStack);
+    OpStack_Pop(self->opStack, 1);
+
+    return EOK;
+}
+
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
     decl_try_err();
@@ -493,7 +518,7 @@ static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _N
             break;
 
         case kStatement_Assignment:
-            err = ENOTIMPL;
+            err = Interpreter_Assignment(self, AS(stmt, AssignmentStatement));
             break;
 
         case kStatement_VarDecl: {

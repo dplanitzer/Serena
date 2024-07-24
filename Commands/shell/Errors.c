@@ -13,6 +13,7 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
+        /*ENOTLVALUE*/      "Not an lvalue",
         /*EDIVBYZERO*/      "Division by zero",
         /*ETYPEMISMTACH*/   "Type mismatch",
         /*ENOSCOPE*/        "Unknown scope",
