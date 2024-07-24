@@ -473,19 +473,19 @@ static errno_t Parser_Literal(Parser* _Nonnull self, Expression* _Nullable * _No
 
     switch (t->id) {
         case kToken_False:
-            Value_InitBool(&v, false);
+            BoolValue_Init(&v, false);
             try(Expression_CreateValue(self->allocator, &v, pOutExpr));
             consume();
             break;
 
         case kToken_True:
-            Value_InitBool(&v, true);
+            BoolValue_Init(&v, true);
             try(Expression_CreateValue(self->allocator, &v, pOutExpr));
             consume();
             break;
             
         case kToken_Integer:
-            Value_InitInteger(&v, t->u.i32);
+            IntegerValue_Init(&v, t->u.i32);
             try(Expression_CreateValue(self->allocator, &v, pOutExpr));
             consume();
             break;

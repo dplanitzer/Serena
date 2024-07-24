@@ -121,7 +121,7 @@ errno_t ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _
         return EOK;
     }
     else {
-        Value_InitUndefined(pOutValue);
+        UndefinedValue_Init(pOutValue);
         return err;
     }
 }

@@ -16,6 +16,31 @@
 #define TUPLE_3(__1, __2, __3) ((__3) << 16) | ((__2) << 8) | (__1)
 
 
+errno_t StringValue_InitWithArrayOfValues(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues)
+{
+    size_t nchars = 0;
+
+    for (size_t i = 0; i < nValues; i++) {
+        nchars += Value_GetMaxStringLength(&values[i]);
+    }
+
+    char* str = malloc(nchars + 1);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    nchars = 0;
+    for (size_t i = 0; i < nValues; i++) {
+        nchars += Value_GetString(&values[i], __SIZE_MAX, &str[nchars]);
+    }
+    str[nchars] = '\0';
+
+    self->type = kValue_String;
+    self->u.string.characters = str;
+    self->u.string.length = nchars;
+    return EOK;
+}
+
 errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data)
 {
     decl_try_err();
@@ -304,31 +329,6 @@ size_t Value_GetString(const Value* _Nonnull self, size_t bufSize, char* _Nonnul
     memcpy(buf, src, nchars);
     buf[nchars] = '\0';
     return nchars;
-}
-
-errno_t Value_MakeString(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues)
-{
-    size_t nchars = 0;
-
-    for (size_t i = 0; i < nValues; i++) {
-        nchars += Value_GetMaxStringLength(&values[i]);
-    }
-
-    char* str = malloc(nchars + 1);
-    if (str == NULL) {
-        return ENOMEM;
-    }
-
-    nchars = 0;
-    for (size_t i = 0; i < nValues; i++) {
-        nchars += Value_GetString(&values[i], __SIZE_MAX, &str[nchars]);
-    }
-    str[nchars] = '\0';
-
-    self->type = kValue_String;
-    self->u.string.characters = str;
-    self->u.string.length = nchars;
-    return EOK;
 }
 
 errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream)

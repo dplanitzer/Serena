@@ -53,16 +53,21 @@ typedef union RawData {
 } RawData;
 
 
-#define Value_InitUndefined(__self) \
+#define UndefinedValue_Init(__self) \
     (__self)->type = kValue_Undefined;
 
-#define Value_InitBool(__self, __b) \
+#define BoolValue_Init(__self, __b) \
     (__self)->type = kValue_Bool; \
     (__self)->u.b = __b;
 
-#define Value_InitInteger(__self, __i32) \
+#define IntegerValue_Init(__self, __i32) \
     (__self)->type = kValue_Integer; \
     (__self)->u.i32 = __i32;
+
+#define StringValue_InitWithValue(__self, __value) \
+    StringValue_InitWithArrayOfValues(__self, __value, 1)
+
+extern errno_t StringValue_InitWithArrayOfValues(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues);
 
 extern errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data);
 extern void Value_Deinit(Value* _Nonnull self);
@@ -90,9 +95,6 @@ typedef enum BinaryOperation {
 } BinaryOperation;
 
 extern errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryOperation op);
-
-
-extern errno_t Value_MakeString(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues);
 
 extern errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream);
 
