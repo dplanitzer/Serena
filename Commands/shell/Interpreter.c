@@ -18,6 +18,7 @@
 
 static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self);
 static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self);
+static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -349,6 +350,24 @@ catch:
     return err;
 }
 
+static errno_t eval_bool_expr(InterpreterRef _Nonnull self, Expression* _Nonnull expr, Value* _Nullable * _Nullable pOutValue)
+{
+    decl_try_err();
+
+    err = Interpreter_Expression(self, expr);
+    if (err == EOK) {
+        Value* lhs_r = OpStack_GetTos(self->opStack);
+
+        if (lhs_r->type == kValue_Bool) {
+            if (pOutValue) *pOutValue = lhs_r;
+        } else {
+            if (pOutValue) *pOutValue = NULL;
+            err = ETYPEMISMATCH;
+        }
+    }
+    return err; 
+}
+
 static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
     decl_try_err();
@@ -361,20 +380,17 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
             bool lhsIsTrue = false, rhsIsTrue = false;
             Value* lhs_r;
 
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            lhs_r = OpStack_GetTos(self->opStack);
-            if (lhs_r->type != kValue_Bool) {
-                err = ETYPEMISMATCH;
-            }
-            lhsIsTrue = lhs_r->u.b;
+            err = eval_bool_expr(self, AS(expr, BinaryExpression)->lhs, &lhs_r);
+            if(err == EOK) {
+                lhsIsTrue = lhs_r->u.b;
 
-            if (err == EOK && !lhsIsTrue) {
-                Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-                if (OpStack_GetTos(self->opStack)->type != kValue_Bool) {
-                    err = ETYPEMISMATCH;
+                if (!lhsIsTrue) {
+                    err = eval_bool_expr(self, AS(expr, BinaryExpression)->rhs, NULL);
+                    if (err == EOK) {
+                        rhsIsTrue = OpStack_GetTos(self->opStack)->u.b;
+                        OpStack_Pop(self->opStack, 1);
+                    }
                 }
-                rhsIsTrue = OpStack_GetTos(self->opStack)->u.b;
-                OpStack_Pop(self->opStack, 1);
             }
 
             if (err == EOK) {
@@ -389,20 +405,17 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
             bool lhsIsTrue = false, rhsIsTrue = false;
             Value* lhs_r;
 
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            lhs_r = OpStack_GetTos(self->opStack);
-            if (lhs_r->type != kValue_Bool) {
-                err = ETYPEMISMATCH;
-            }
-            lhsIsTrue = lhs_r->u.b;
+            err = eval_bool_expr(self, AS(expr, BinaryExpression)->lhs, &lhs_r);
+            if (err == EOK) {
+                lhsIsTrue = lhs_r->u.b;
 
-            if (err == EOK && lhsIsTrue) {
-                Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-                if (OpStack_GetTos(self->opStack)->type != kValue_Bool) {
-                    err = ETYPEMISMATCH;
+                if (lhsIsTrue) {
+                    err = eval_bool_expr(self, AS(expr, BinaryExpression)->rhs, NULL);
+                    if (err == EOK) {
+                        rhsIsTrue = OpStack_GetTos(self->opStack)->u.b;
+                        OpStack_Pop(self->opStack, 1);
+                    }
                 }
-                rhsIsTrue = OpStack_GetTos(self->opStack)->u.b;
-                OpStack_Pop(self->opStack, 1);
             }
 
             if (err == EOK) {
