@@ -580,7 +580,7 @@ static errno_t Parser_PrefixUnaryExpression(Parser* _Nonnull self, Expression* _
         switch (t->id) {
             case kToken_Plus:   type = kExpression_Positive; break;
             case kToken_Minus:  type = kExpression_Negative; break;
-            case kToken_Bang:   type = kExpression_LogicalInverse; break;
+            case kToken_Bang:   type = kExpression_Not; break;
             default:            done = true; break;
         }
         if (done) {
@@ -721,10 +721,10 @@ static errno_t Parser_Comparison(Parser* _Nonnull self, Expression* _Nullable * 
         bool done = false;
 
         switch (t->id) {
-            case kToken_EqualEqual:     type = kExpression_Equal; break;
-            case kToken_NotEqual:       type = kExpression_NotEqual; break;
-            case kToken_LessEqual:      type = kExpression_LessEqual; break;
-            case kToken_GreaterEqual:   type = kExpression_GreaterEqual; break;
+            case kToken_EqualEqual:     type = kExpression_Equals; break;
+            case kToken_NotEqual:       type = kExpression_NotEquals; break;
+            case kToken_LessEqual:      type = kExpression_LessEquals; break;
+            case kToken_GreaterEqual:   type = kExpression_GreaterEquals; break;
             case kToken_Less:           type = kExpression_Less; break;
             case kToken_Greater:        type = kExpression_Greater; break;
             default:                    done = true; break;

@@ -347,9 +347,9 @@ void Atom_Print(Atom* _Nonnull self)
 
 errno_t Expression_CreateValue(StackAllocatorRef _Nonnull pAllocator, const Value* value, Expression* _Nullable * _Nonnull pOutSelf)
 {
-    ValueExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ValueExpression));
+    LiteralExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(LiteralExpression));
 
-    self->super.type = kExpression_Value;
+    self->super.type = kExpression_Literal;
     self->value = *value;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
@@ -464,10 +464,10 @@ void Expression_Print(Expression* _Nonnull self)
         case kExpression_Pipeline:
         case kExpression_Disjunction:
         case kExpression_Conjunction:
-        case kExpression_Equal:
-        case kExpression_NotEqual:
-        case kExpression_LessEqual:
-        case kExpression_GreaterEqual:
+        case kExpression_Equals:
+        case kExpression_NotEquals:
+        case kExpression_LessEquals:
+        case kExpression_GreaterEquals:
         case kExpression_Less:
         case kExpression_Greater:
         case kExpression_Addition:
@@ -481,7 +481,7 @@ void Expression_Print(Expression* _Nonnull self)
 
         case kExpression_Positive:
         case kExpression_Negative:
-        case kExpression_LogicalInverse:
+        case kExpression_Not:
             fputs(gPrefix[self->type - kExpression_Positive], stdout);
             Expression_Print(AS(self, UnaryExpression)->expr);
             break;
@@ -492,8 +492,8 @@ void Expression_Print(Expression* _Nonnull self)
             putchar(')');
             break;
 
-        case kExpression_Value:
-            Value_Write(&AS(self, ValueExpression)->value, stdout);
+        case kExpression_Literal:
+            Value_Write(&AS(self, LiteralExpression)->value, stdout);
             break;
 
         case kExpression_CompoundString:

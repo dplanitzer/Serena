@@ -359,92 +359,33 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
         case kExpression_Conjunction:
             return ENOTIMPL;
 
-        case kExpression_Equal:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_Equals(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
-        case kExpression_NotEqual:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_NotEquals(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
-        case kExpression_LessEqual:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_LessEquals(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
-        case kExpression_GreaterEqual:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_GreaterEquals(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
+        case kExpression_Equals:
+        case kExpression_NotEquals:
+        case kExpression_LessEquals:
+        case kExpression_GreaterEquals:
         case kExpression_Less:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_Less(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
         case kExpression_Greater:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_Greater(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
         case kExpression_Addition:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_Add(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
         case kExpression_Subtraction:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_Sub(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
         case kExpression_Multiplication:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_Mult(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
-            OpStack_Pop(self->opStack, 1);
-            return err;
-
         case kExpression_Division:
             Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
             Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_Div(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack));
+            err = Value_BinaryOp(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack), expr->type - kExpression_Equals);
             OpStack_Pop(self->opStack, 1);
             return err;
 
+        case kExpression_Parenthesized:
         case kExpression_Positive:
             return Interpreter_Expression(self, AS(expr, UnaryExpression)->expr);
 
         case kExpression_Negative:
+        case kExpression_Not:
             Interpreter_Expression(self, AS(expr, UnaryExpression)->expr);
-            return Value_Negate(OpStack_GetTos(self->opStack));
+            return Value_UnaryOp(OpStack_GetTos(self->opStack), expr->type - kExpression_Negative);
 
-        case kExpression_LogicalInverse:
-            Interpreter_Expression(self, AS(expr, UnaryExpression)->expr);
-            return Value_Not(OpStack_GetTos(self->opStack));
-
-        case kExpression_Parenthesized:
-            return Interpreter_Expression(self, AS(expr, UnaryExpression)->expr);
-
-        case kExpression_Value:
-            return OpStack_Push(self->opStack, &AS(expr, ValueExpression)->value);
+        case kExpression_Literal:
+            return OpStack_Push(self->opStack, &AS(expr, LiteralExpression)->value);
 
         case kExpression_CompoundString:
         case kExpression_VarRef:

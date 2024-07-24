@@ -123,21 +123,21 @@ typedef enum ExpressionType {
     kExpression_Pipeline,           // BinaryExpression
     kExpression_Disjunction,        // BinaryExpression
     kExpression_Conjunction,        // BinaryExpression
-    kExpression_Equal,              // BinaryExpression
-    kExpression_NotEqual,           // BinaryExpression
-    kExpression_LessEqual,          // BinaryExpression
-    kExpression_GreaterEqual,       // BinaryExpression
-    kExpression_Less,               // BinaryExpression
-    kExpression_Greater,            // BinaryExpression
-    kExpression_Addition,           // BinaryExpression
-    kExpression_Subtraction,        // BinaryExpression
-    kExpression_Multiplication,     // BinaryExpression
-    kExpression_Division,           // BinaryExpression
-    kExpression_Positive,           // UnaryExpression
-    kExpression_Negative,           // UnaryExpression
-    kExpression_LogicalInverse,     // UnaryExpression
+    kExpression_Equals,             // BinaryExpression     (kBinaryOp_Equals)
+    kExpression_NotEquals,          // BinaryExpression     .
+    kExpression_LessEquals,         // BinaryExpression     .
+    kExpression_GreaterEquals,      // BinaryExpression     .
+    kExpression_Less,               // BinaryExpression     .
+    kExpression_Greater,            // BinaryExpression     .
+    kExpression_Addition,           // BinaryExpression     .
+    kExpression_Subtraction,        // BinaryExpression     .
+    kExpression_Multiplication,     // BinaryExpression     .
+    kExpression_Division,           // BinaryExpression     (kBinaryOp_Division)
     kExpression_Parenthesized,      // UnaryExpression
-    kExpression_Value,              // ValueExpression
+    kExpression_Positive,           // UnaryExpression
+    kExpression_Negative,           // UnaryExpression      (kUnaryOp_Negative)
+    kExpression_Not,                // UnaryExpression      (kUnaryOp_Not)
+    kExpression_Literal,            // LiteralExpression
     kExpression_CompoundString,     // CompoundStringExpression
     kExpression_VarRef,             // VarRefExpression
     kExpression_Command,            // CommandExpression
@@ -149,10 +149,10 @@ typedef struct Expression {
     int8_t      type;
 } Expression;
 
-typedef struct ValueExpression {
+typedef struct LiteralExpression {
     Expression  super;
     Value       value;
-} ValueExpression;
+} LiteralExpression;
 
 typedef struct CompoundStringExpression {
     Expression      super;

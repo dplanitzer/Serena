@@ -67,20 +67,30 @@ typedef union RawData {
 extern errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data);
 extern void Value_Deinit(Value* _Nonnull self);
 
-extern errno_t Value_Not(Value* _Nonnull self);
 
-extern errno_t Value_Negate(Value* _Nonnull self);
-extern errno_t Value_Mult(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_Div(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_Add(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_Sub(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
+typedef enum UnaryOperation {
+    kUnaryOp_Negative,          // (kExpression_Negative)
+    kUnaryOp_Not,               // (kExpression_Not)
+} UnaryOperation;
 
-extern errno_t Value_Equals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_NotEquals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_Less(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_Greater(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_LessEquals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
-extern errno_t Value_GreaterEquals(Value* _Nonnull lhs_r, const Value* _Nonnull rhs);
+extern errno_t Value_UnaryOp(Value* _Nonnull self, UnaryOperation op);
+
+
+typedef enum BinaryOperation {
+    kBinaryOp_Equals,           // (kExpression_Equals)
+    kBinaryOp_NotEquals,        // .
+    kBinaryOp_LessEquals,       // .
+    kBinaryOp_GreaterEquals,    // .
+    kBinaryOp_Less,             // .
+    kBinaryOp_Greater,          // .
+    kBinaryOp_Addition,         // .
+    kBinaryOp_Subtraction,      // .
+    kBinaryOp_Multiplication,   // .
+    kBinaryOp_Division,         // (kExpression_Division)
+} BinaryOperation;
+
+extern errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryOperation op);
+
 
 extern errno_t Value_MakeString(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues);
 
