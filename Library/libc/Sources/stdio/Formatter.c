@@ -463,21 +463,24 @@ errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull for
 {
     decl_try_err();
     ConversionSpec spec;
-    char ch;
 
-    while ((ch = *format) != '\0') {
-        if (ch == '%') {
-            format = Formatter_ParseConversionSpec(self, ++format, &ap, &spec);
-            try(Formatter_FormatArgument(self, *format++, &spec, &ap));
+    do {
+        const char ch = *format++;
+
+        switch (ch) {
+            case '\0':
+                return 0;
+
+            case '%':
+                format = Formatter_ParseConversionSpec(self, format, &ap, &spec);
+                err = Formatter_FormatArgument(self, *format++, &spec, &ap);
+                break;
+
+            default:
+                err = Formatter_WriteChar(self, ch);
+                break;
         }
-        else {
-            try(Formatter_WriteChar(self, ch));
-            format++;
-        }
-    }
-
-    return 0;
-
-catch:
+    } while (err == EOK);
+    
     return err;
 }

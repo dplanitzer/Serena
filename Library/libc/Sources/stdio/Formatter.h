@@ -51,14 +51,12 @@ typedef struct Formatter {
 } Formatter;
 
 
-static inline void __Formatter_Init(FormatterRef _Nonnull self, FILE* _Nonnull pStream) {
-    self->stream = pStream;
-    self->charactersWritten = 0;
-}
+#define __Formatter_Init(__self, __s) \
+    (__self)->stream = __s; \
+    (__self)->charactersWritten = 0
 
-static inline void __Formatter_Deinit(FormatterRef _Nullable self) {
-    self->stream = NULL;
-}
+#define __Formatter_Deinit(__self) \
+    if (__self) (__self)->stream = NULL
 
 extern errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
 

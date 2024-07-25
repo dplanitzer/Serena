@@ -7,16 +7,13 @@
 //
 
 #include "Stream.h"
-#include <stdlib.h>
-#include <string.h>
-#include <System/System.h>
+
 
 // This a non-seekable stream that discards anything that is written to it and
 // returns EOF on read.
 // It's used ie by the printf() implementation in the case where the user just
 // wants to know how long the formatted string would be but they don't want the
 // actual data.
-
 
 static errno_t __null_read(void* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
@@ -42,20 +39,4 @@ static const FILE_Callbacks __FILE_null_callbacks = {
 errno_t __fopen_null_init(FILE* _Nonnull self, const char *mode)
 {
     return __fopen_init(self, true, NULL, &__FILE_null_callbacks, mode);
-}
-
-FILE *__fopen_null(const char *mode)
-{
-    decl_try_err();
-    FILE* self = NULL;
-
-    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(FILE)), ENOMEM);
-    try(__fopen_null_init(self, mode));
-
-    return self;
-
-catch:
-    free(self);
-    errno = err;
-    return NULL;
 }
