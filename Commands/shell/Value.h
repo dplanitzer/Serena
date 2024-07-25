@@ -64,10 +64,7 @@ typedef union RawData {
     (__self)->type = kValue_Integer; \
     (__self)->u.i32 = __i32;
 
-#define StringValue_InitWithValue(__self, __value) \
-    StringValue_InitWithArrayOfValues(__self, __value, 1)
-
-extern errno_t StringValue_InitWithArrayOfValues(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues);
+extern errno_t StringValue_Init(Value* _Nonnull self, const char* _Nonnull str, size_t len);
 
 extern errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data);
 extern void Value_Deinit(Value* _Nonnull self);
@@ -96,6 +93,15 @@ typedef enum BinaryOperation {
 
 extern errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryOperation op);
 
+// Converts the provided value to its string representation. Does nothing if the
+// value is already a string.
+extern errno_t Value_ToString(Value* _Nonnull self);
+
+// Converts the first value in the provided value array to a string that
+// represents the string value of all values in the provided array.
+extern errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues);
+
+// Writes the string representation of the given value to the given I/O stream.
 extern errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream);
 
 // Returns the max length of the string that represents the value of the Value.

@@ -16,29 +16,10 @@
 #define TUPLE_3(__1, __2, __3) ((__3) << 16) | ((__2) << 8) | (__1)
 
 
-errno_t StringValue_InitWithArrayOfValues(Value* _Nonnull self, const Value _Nonnull values[], size_t nValues)
+errno_t StringValue_Init(Value* _Nonnull self, const char* _Nonnull str, size_t len)
 {
-    size_t nchars = 0;
-
-    for (size_t i = 0; i < nValues; i++) {
-        nchars += Value_GetMaxStringLength(&values[i]);
-    }
-
-    char* str = malloc(nchars + 1);
-    if (str == NULL) {
-        return ENOMEM;
-    }
-
-    nchars = 0;
-    for (size_t i = 0; i < nValues; i++) {
-        nchars += Value_GetString(&values[i], __SIZE_MAX, &str[nchars]);
-    }
-    str[nchars] = '\0';
-
-    self->type = kValue_String;
-    self->u.string.characters = str;
-    self->u.string.length = nchars;
-    return EOK;
+    RawData d = {.string.characters = (char*)str, .string.length = len};
+    return Value_Init(self, kValue_String, d);
 }
 
 errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data)
@@ -269,6 +250,45 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         default:
             return ETYPEMISMATCH;
     }
+}
+
+// Converts the provided value to its string representation. Does nothing if the
+// value is already a string.
+errno_t Value_ToString(Value* _Nonnull self)
+{
+    return ValueArray_ToString(self, 1);
+}
+
+// Converts the first value in the provided value array to a string that
+// represents the string value of all values in the provided array.
+errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues)
+{
+    Value* self = &values[0];
+    size_t nchars = 0;
+
+    if (nValues == 1 && self->type == kValue_String) {
+        return EOK;
+    }
+
+    for (size_t i = 0; i < nValues; i++) {
+        nchars += Value_GetMaxStringLength(&values[i]);
+    }
+
+    char* str = malloc(nchars + 1);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    nchars = 0;
+    for (size_t i = 0; i < nValues; i++) {
+        nchars += Value_GetString(&values[i], __SIZE_MAX, &str[nchars]);
+    }
+    str[nchars] = '\0';
+
+    self->type = kValue_String;
+    self->u.string.characters = str;
+    self->u.string.length = nchars;
+    return EOK;
 }
 
 // Returns the max length of the string that represents the value of the Value.

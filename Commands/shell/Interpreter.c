@@ -145,6 +145,13 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
     return EOK;
 }
 
+static errno_t Interpreter_PushVariable(InterpreterRef _Nonnull self, VarRef* _Nonnull vref)
+{
+    Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
+    
+    return (varp) ? OpStack_Push(self->opStack, &varp->value) : EUNDEFINED;
+}
+
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     Name* np = NameTable_GetName(self->nameTable, argv[0]);
@@ -350,6 +357,54 @@ catch:
     return err;
 }
 
+static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str)
+{
+    decl_try_err();
+    StringAtom* atom = str->atoms;
+    size_t nComponents = 0;
+
+    while (atom && err == EOK) {
+        switch (atom->type) {
+            case kStringAtom_EscapeSequence:
+            case kStringAtom_Segment: {
+                // XXX change StringAtom to hold a value that is stored in the constants pool
+                Value v;
+                v.type = kValue_String;
+                v.u.string.characters = (char*)StringAtom_GetString(atom);
+                v.u.string.length = StringAtom_GetStringLength(atom);
+                err = OpStack_Push(self->opStack, &v);
+                break;
+            }
+
+            case kStringAtom_Expression:
+                err = Interpreter_Expression(self, atom->u.expr);
+                break;
+
+            case kStringAtom_VariableReference:
+                err = Interpreter_PushVariable(self, atom->u.vref);
+                break;
+
+            default:
+                err = ENOTIMPL;
+                break;
+        }
+        atom = atom->next;
+        nComponents++;
+    }
+
+    if (err == EOK) {
+        if (nComponents > 0) {
+            ValueArray_ToString(OpStack_GetNth(self->opStack, nComponents - 1), nComponents);
+            OpStack_Pop(self->opStack, nComponents - 1);
+        } else {
+            Value v;
+            StringValue_Init(&v, "", 0);
+            OpStack_Push(self->opStack, &v);
+        }
+    }
+    return err;
+}
+
 static errno_t eval_bool_expr(InterpreterRef _Nonnull self, Expression* _Nonnull expr, Value* _Nullable * _Nullable pOutValue)
 {
     decl_try_err();
@@ -455,13 +510,10 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
             return OpStack_Push(self->opStack, &AS(expr, LiteralExpression)->value);
 
         case kExpression_CompoundString:
-            return ENOTIMPL;
+            return Interpreter_CompoundString(self, AS(expr, CompoundStringExpression)->qstring);
 
-        case kExpression_VarRef: {
-            VarRef* vref = AS(expr, VarRefExpression)->vref;
-            Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
-            return OpStack_Push(self->opStack, &varp->value);
-        }
+        case kExpression_VarRef:
+            return Interpreter_PushVariable(self, AS(expr, VarRefExpression)->vref);
             
         case kExpression_Command:
             return Interpreter_Command(self, AS(expr, CommandExpression));
