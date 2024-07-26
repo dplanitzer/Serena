@@ -468,38 +468,39 @@ static errno_t Parser_Literal(Parser* _Nonnull self, Expression* _Nullable * _No
 {
     decl_try_err();
     const Token* t = Lexer_GetToken(&self->lexer);
+    const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
     Expression* expr = NULL;
     Value v;
 
     switch (t->id) {
         case kToken_False:
             BoolValue_Init(&v, false);
-            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
+            try(Expression_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
             consume();
             break;
 
         case kToken_True:
             BoolValue_Init(&v, true);
-            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
+            try(Expression_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
             consume();
             break;
             
         case kToken_Integer:
             IntegerValue_Init(&v, t->u.i32);
-            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
+            try(Expression_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
             consume();
             break;
 
         case kToken_SingleQuoteString:
             try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
-            try(Expression_CreateValue(self->allocator, &v, pOutExpr));
+            try(Expression_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
             consume();
             break;
 
         case kToken_DoubleQuote: {
             CompoundString* str = NULL;
             try(Parser_CompoundString(self, false, &str));
-            try(Expression_CreateCompoundString(self->allocator, str, pOutExpr));
+            try(Expression_CreateCompoundString(self->allocator, hasLeadingWhitespace, str, pOutExpr));
             break;
         }
 
@@ -526,20 +527,21 @@ static errno_t Parser_PrimaryExpression(Parser* _Nonnull self, Expression* _Null
 {
     decl_try_err();
     const Token* t = Lexer_GetToken(&self->lexer);
+    const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
     Expression* expr = NULL;
 
     switch (t->id) {
         case kToken_VariableName: {
             VarRef* vref = NULL;
             try(Parser_VarReference(self, &vref));
-            try(Expression_CreateVarRef(self->allocator, vref, pOutExpr));
+            try(Expression_CreateVarRef(self->allocator, hasLeadingWhitespace, vref, pOutExpr));
             break;
         }
 
         case kToken_OpeningParenthesis: {
             Expression* expr = NULL;
             try(Parser_ParenthesizedExpression(self, &expr));
-            try(Expression_CreateUnary(self->allocator, kExpression_Parenthesized, expr, pOutExpr));
+            try(Expression_CreateUnary(self->allocator, hasLeadingWhitespace, kExpression_Parenthesized, expr, pOutExpr));
             break;
         }
 
@@ -574,6 +576,7 @@ static errno_t Parser_PrefixUnaryExpression(Parser* _Nonnull self, Expression* _
     // Grab all prefix operators
     for (;;) {
         const Token* t = Lexer_GetToken(&self->lexer);
+        const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
         bool done = false;
         ExpressionType type;
 
@@ -588,7 +591,7 @@ static errno_t Parser_PrefixUnaryExpression(Parser* _Nonnull self, Expression* _
         }
 
         consume();
-        try(Expression_CreateUnary(self->allocator, type, NULL, &expr));
+        try(Expression_CreateUnary(self->allocator, hasLeadingWhitespace, type, NULL, &expr));
         if (curExpr) {
             AS(curExpr, UnaryExpression)->expr = expr;
             curExpr = expr;
@@ -633,6 +636,7 @@ static errno_t Parser_Multiplication(Parser* _Nonnull self, Expression* _Nullabl
 
     for (;;) {
         const Token* t = Lexer_GetToken(&self->lexer);
+        const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
         ExpressionType type;
         bool done = false;
 
@@ -647,7 +651,7 @@ static errno_t Parser_Multiplication(Parser* _Nonnull self, Expression* _Nullabl
 
         consume();
         try(Parser_PrefixUnaryExpression(self, &rhs));
-        try(Expression_CreateBinary(self->allocator, type, lhs, rhs, &expr));
+        try(Expression_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs, &expr));
         lhs = expr;
         expr = NULL;
     }
@@ -675,6 +679,7 @@ static errno_t Parser_Addition(Parser* _Nonnull self, Expression* _Nullable * _N
 
     for (;;) {
         const Token* t = Lexer_GetToken(&self->lexer);
+        const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
         ExpressionType type;
         bool done = false;
 
@@ -689,7 +694,7 @@ static errno_t Parser_Addition(Parser* _Nonnull self, Expression* _Nullable * _N
 
         consume();
         try(Parser_Multiplication(self, &rhs));
-        try(Expression_CreateBinary(self->allocator, type, lhs, rhs, &expr));
+        try(Expression_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs, &expr));
         lhs = expr;
         expr = NULL;
     }
@@ -717,6 +722,7 @@ static errno_t Parser_Comparison(Parser* _Nonnull self, Expression* _Nullable * 
 
     for (;;) {
         const Token* t = Lexer_GetToken(&self->lexer);
+        const bool hasLeadingWhitespace = t->hasLeadingWhitespace;
         ExpressionType type;
         bool done = false;
 
@@ -735,7 +741,7 @@ static errno_t Parser_Comparison(Parser* _Nonnull self, Expression* _Nullable * 
 
         consume();
         try(Parser_Addition(self, &rhs));
-        try(Expression_CreateBinary(self->allocator, type, lhs, rhs, &expr));
+        try(Expression_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs, &expr));
         lhs = expr;
         expr = NULL;
     }
@@ -762,9 +768,11 @@ static errno_t Parser_Conjunction(Parser* _Nonnull self, Expression* _Nullable *
     try(Parser_Comparison(self, &lhs));
 
     while (peek(kToken_Conjunction)) {
+        const bool hasLeadingWhitespace = Lexer_GetToken(&self->lexer)->hasLeadingWhitespace;
+
         consume();
         try(Parser_Comparison(self, &rhs));
-        try(Expression_CreateBinary(self->allocator, kExpression_Conjunction, lhs, rhs, &expr));
+        try(Expression_CreateBinary(self->allocator, hasLeadingWhitespace, kExpression_Conjunction, lhs, rhs, &expr));
         lhs = expr;
         expr = NULL;
     }
@@ -791,9 +799,11 @@ static errno_t Parser_Disjunction(Parser* _Nonnull self, Expression* _Nullable *
     try(Parser_Conjunction(self, &lhs));
 
     while (peek(kToken_Disjunction)) {
+        const bool hasLeadingWhitespace = Lexer_GetToken(&self->lexer)->hasLeadingWhitespace;
+
         consume();
         try(Parser_Conjunction(self, &rhs));
-        try(Expression_CreateBinary(self->allocator, kExpression_Disjunction, lhs, rhs, &expr));
+        try(Expression_CreateBinary(self->allocator, hasLeadingWhitespace, kExpression_Disjunction, lhs, rhs, &expr));
         lhs = expr;
         expr = NULL;
     }
@@ -835,9 +845,11 @@ static errno_t Parser_Expression(Parser* _Nonnull self, Expression* _Nullable * 
 
     // The rest is the tail of a pipeline if the rest exists 
     while (peek(kToken_Bar)) {
+        const bool hasLeadingWhitespace = Lexer_GetToken(&self->lexer)->hasLeadingWhitespace;
+
         consume();
         try(Parser_Command(self, &rhs));
-        try(Expression_CreateBinary(self->allocator, kExpression_Pipeline, lhs, rhs, &expr));
+        try(Expression_CreateBinary(self->allocator, hasLeadingWhitespace, kExpression_Pipeline, lhs, rhs, &expr));
         lhs = expr;
         expr = NULL;
     }

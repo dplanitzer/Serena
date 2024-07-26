@@ -345,62 +345,68 @@ void Atom_Print(Atom* _Nonnull self)
 // MARK: Expression
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Expression_CreateValue(StackAllocatorRef _Nonnull pAllocator, const Value* value, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value, Expression* _Nullable * _Nonnull pOutSelf)
 {
     LiteralExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(LiteralExpression));
 
     self->super.type = kExpression_Literal;
+    self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->value = *value;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf)
 {
     CompoundStringExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundStringExpression));
 
     self->super.type = kExpression_CompoundString;
+    self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->qstring = qstr;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf)
 {
     BinaryExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(BinaryExpression));
 
     self->super.type = type;
+    self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->lhs = lhs;
     self->rhs = rhs;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf)
 {
     UnaryExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(UnaryExpression));
 
     self->super.type = type;
+    self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->expr = expr;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf)
 {
     VarRefExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarRefExpression));
 
     self->super.type = kExpression_VarRef;
+    self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->vref = vref;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, Block* _Nonnull thenBlock, Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Expression* _Nonnull cond, Block* _Nonnull thenBlock, Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf)
 {
     IfExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(IfExpression));
 
     self->super.type = kExpression_If;
+    self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->cond = cond;
     self->thenBlock = thenBlock;
     self->elseBlock = elseBlock;
@@ -408,11 +414,12 @@ errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, Expressio
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Expression* _Nonnull cond, Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf)
 {
     WhileExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(WhileExpression));
 
     self->super.type = kExpression_While;
+    self->super.hasLeadingWhitespace = hasLeadingWhitespace;
     self->cond = cond;
     self->body = body;
     *pOutSelf = (Expression*)self;
@@ -424,6 +431,7 @@ errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Expressi
     CommandExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CommandExpression));
 
     self->super.type = kExpression_Command;
+    self->super.hasLeadingWhitespace = true;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }

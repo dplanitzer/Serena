@@ -147,6 +147,7 @@ typedef enum ExpressionType {
 
 typedef struct Expression {
     int8_t      type;
+    bool        hasLeadingWhitespace;
 } Expression;
 
 typedef struct LiteralExpression {
@@ -194,13 +195,13 @@ typedef struct WhileExpression {
     struct Block* _Nonnull  body;
 } WhileExpression;
 
-extern errno_t Expression_CreateValue(StackAllocatorRef _Nonnull pAllocator, const Value* value, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull cond, struct Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Expression* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Expression* _Nonnull cond, struct Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
 extern void CommandExpression_AddAtom(CommandExpression* _Nonnull self, Atom* _Nonnull atom);
 #ifdef SCRIPT_PRINTING
