@@ -7,13 +7,39 @@
 //
 
 #include <stdlib.h>
+#include <__stddef.h>
+#include <System/System.h>
 
-// Return 0 for "no command processor" (for now anyway)
+
 int system(const char *string)
 {
+    decl_try_err();
+    ProcessId shPid;
+    ProcessTerminationStatus pts;
+    SpawnOptions opts = {0};
+    const char* argv[4];
+
     if (string == NULL) {
-        return 0;
+        return -1;
     }
 
-    return EXIT_FAILURE;
+    argv[0] = "shell";
+    argv[1] = "-c";
+    argv[2] = string;
+    argv[3] = NULL;
+
+
+    err = Process_Spawn("/System/Commands/shell", argv, &opts, &shPid);
+    if (err != EOK) {
+        errno = err;
+        return -1;
+    }
+
+    err = Process_WaitForTerminationOfChild(shPid, &pts);
+    if (err != EOK) {
+        errno = err;
+        return -1;
+    }
+
+    return (err == EOK) ? 0 : pts.status;
 }
