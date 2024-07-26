@@ -58,86 +58,59 @@ void VarRef_Print(VarRef* _Nonnull self)
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: StringAtom
+// MARK: Segment
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t StringAtom_Create(StackAllocatorRef _Nonnull pAllocator, StringAtomType type, size_t nExtraBytes, StringAtom* _Nullable * _Nonnull pOutSelf)
+errno_t Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType type, const Value* _Nonnull value, Segment* _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    StringAtom* self = NULL;
-    
-    try_null(self, StackAllocator_ClearAlloc(pAllocator, sizeof(StringAtom) + nExtraBytes), ENOMEM);
-    self->type = type;
+    LiteralSegment* self = StackAllocator_ClearAlloc(pAllocator, sizeof(LiteralSegment));
 
-catch:
-    *pOutSelf = self;
-    return err;
+    self->super.type = type;
+    self->value = *value;
+    *pOutSelf = (Segment*)self;
+    return (self) ? EOK : ENOMEM;
 }
 
-errno_t StringAtom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, StringAtomType type, const char* _Nonnull str, size_t len, StringAtom* _Nullable * _Nonnull pOutSelf)
+errno_t Segment_CreateExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, Segment* _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    StringAtom* self = NULL;
+    ExpressionSegment* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ExpressionSegment));
 
-    try(StringAtom_Create(pAllocator, type, len + 1, &self));    
-    self->u.length = len;
-
-    char* dst = StringAtom_GetMutableString(self);
-    memcpy(dst, str, len);
-    dst[len] = '\0';
-
-catch:
-    *pOutSelf = self;
-    return err;
+    self->super.type = kSegment_Expression;
+    self->expr = expr;
+    *pOutSelf = (Segment*)self;
+    return (self) ? EOK : ENOMEM;
 }
 
-errno_t StringAtom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, StringAtom* _Nullable * _Nonnull pOutSelf)
+errno_t Segment_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Segment* _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    StringAtom* self = NULL;
+    VarRefSegment* self = StackAllocator_ClearAlloc(pAllocator, sizeof(VarRefSegment));
 
-    try(StringAtom_Create(pAllocator, kStringAtom_Expression, 0, &self));
-    self->u.expr = expr;
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-errno_t StringAtom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, StringAtom* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    StringAtom* self = NULL;
-
-    try(StringAtom_Create(pAllocator, kStringAtom_VariableReference, 0, &self));
-    self->u.vref = vref;
-
-catch:
-    *pOutSelf = self;
-    return err;
+    self->super.type = kSegment_VarRef;
+    self->vref = vref;
+    *pOutSelf = (Segment*)self;
+    return (self) ? EOK : ENOMEM;
 }
 
 #ifdef SCRIPT_PRINTING
-void StringAtom_Print(StringAtom* _Nonnull self)
+void Segment_Print(Segment* _Nonnull self)
 {
     switch (self->type) {
-        case kStringAtom_VariableReference:
-            VarRef_Print(self->u.vref);
+        case kSegment_VarRef:
+            VarRef_Print(AS(self, VarRefSegment)->vref);
             break;
 
-        case kStringAtom_Expression:
+        case kSegment_Expression:
             fputs("\\(", stdout);
-            Expression_Print(self->u.expr);
+            Expression_Print(AS(self, ExpressionSegment)->expr);
             putchar(')');
             break;
 
-        case kStringAtom_EscapeSequence:
+        case kSegment_EscapeSequence:
             putchar('\\');
-            fputs(Atom_GetString(self), stdout);
-            break;
+            // fall through
 
-        case kStringAtom_Segment:
-            fputs(Atom_GetString(self), stdout);
+        case kSegment_String:
+            Value_Write(&AS(self, LiteralSegment)->value, stdout);
             break;
 
         default:
@@ -161,25 +134,26 @@ errno_t CompoundString_Create(StackAllocatorRef _Nonnull pAllocator, CompoundStr
     return (self) ? EOK : ENOMEM;
 }
 
-void CompoundString_AddAtom(CompoundString* _Nonnull self, StringAtom* _Nonnull atom)
+void CompoundString_AddSegment(CompoundString* _Nonnull self, Segment* _Nonnull seg)
 {
-    if (self->lastAtom) {
-        (self->lastAtom)->next = atom;
+    if (self->lastSeg) {
+        (self->lastSeg)->next = seg;
     }
     else {
-        self->atoms = atom;
+        self->segs = seg;
     }
 
-    self->lastAtom = atom;
+    self->lastSeg = seg;
 }
 
 #ifdef SCRIPT_PRINTING
 void CompoundString_Print(CompoundString* _Nonnull self)
 {
-    StringAtom* atom = self->atoms;
-    while(atom) {
-        StringAtom_Print(atom);
-        atom = atom->next;
+    Segment* seg = self->segs;
+
+    while(seg) {
+        Segment_Print(seg);
+        seg = seg->next;
     }
 }
 #endif

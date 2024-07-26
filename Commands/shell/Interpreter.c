@@ -18,6 +18,7 @@
 
 static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self);
 static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self);
+static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str);
 static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr);
 
 
@@ -225,28 +226,14 @@ static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const
 static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str)
 {
     decl_try_err();
-    StringAtom* atom = str->atoms;
 
-    while (atom && err == EOK) {
-        switch (atom->type) {
-            case kStringAtom_EscapeSequence:
-            case kStringAtom_Segment:
-                err = ArgumentVector_AppendBytes(self->argumentVector, StringAtom_GetString(atom), StringAtom_GetStringLength(atom));
-                break;
-
-            case kStringAtom_Expression:
-                break;
-
-            case kStringAtom_VariableReference:
-                err = Interpreter_SerializeVariable(self, atom->u.vref);
-                break;
-
-            default:
-                err = ENOTIMPL;
-                break;
-        }
-        atom = atom->next;
+    err = Interpreter_CompoundString(self, str);
+    if (err == EOK) {
+        const Value* v = OpStack_GetTos(self->opStack);
+        err = ArgumentVector_AppendBytes(self->argumentVector, v->u.string.characters, v->u.string.length);
     }
+    OpStack_Pop(self->opStack, 1);
+    
     return err;
 }
 
@@ -360,35 +347,30 @@ catch:
 static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str)
 {
     decl_try_err();
-    StringAtom* atom = str->atoms;
+    Segment* seg = str->segs;
     size_t nComponents = 0;
 
-    while (atom && err == EOK) {
-        switch (atom->type) {
-            case kStringAtom_EscapeSequence:
-            case kStringAtom_Segment: {
-                // XXX change StringAtom to hold a value that is stored in the constants pool
-                Value v;
-                v.type = kValue_String;
-                v.u.string.characters = (char*)StringAtom_GetString(atom);
-                v.u.string.length = StringAtom_GetStringLength(atom);
-                err = OpStack_Push(self->opStack, &v);
-                break;
-            }
-
-            case kStringAtom_Expression:
-                err = Interpreter_Expression(self, atom->u.expr);
+    while (seg && err == EOK) {
+        switch (seg->type) {
+            case kSegment_EscapeSequence:
+            case kSegment_String:
+                err = OpStack_Push(self->opStack, &AS(seg, LiteralSegment)->value);
                 break;
 
-            case kStringAtom_VariableReference:
-                err = Interpreter_PushVariable(self, atom->u.vref);
+            case kSegment_Expression:
+                err = Interpreter_Expression(self, AS(seg, ExpressionSegment)->expr);
+                break;
+
+            case kSegment_VarRef:
+                err = Interpreter_PushVariable(self, AS(seg, VarRefSegment)->vref);
                 break;
 
             default:
                 err = ENOTIMPL;
                 break;
         }
-        atom = atom->next;
+
+        seg = seg->next;
         nComponents++;
     }
 

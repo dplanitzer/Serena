@@ -29,49 +29,55 @@ typedef struct VarRef {
 } VarRef;
 
 extern errno_t VarRef_Create(StackAllocatorRef _Nonnull pAllocator, const char* str, VarRef* _Nullable * _Nonnull pOutSelf);
-extern errno_t VarRef_Init(VarRef* _Nonnull self, const char* str);
 #ifdef SCRIPT_PRINTING
 extern void VarRef_Print(VarRef* _Nonnull self);
 #endif
 
 
 
-typedef enum StringAtomType {
-    kStringAtom_Segment,            // u.string
-    kStringAtom_EscapeSequence,     // u.string
-    kStringAtom_Expression,         // u.expr
-    kStringAtom_VariableReference   // u.vref
-} StringAtomType;
+typedef enum SegmentType {
+    kSegment_String,            // LiteralSegment
+    kSegment_EscapeSequence,    // LiteralSegment
+    kSegment_Expression,        // ExpressionSegment
+    kSegment_VarRef             // VarRefSegment
+} SegmentType;
 
-typedef struct StringAtom {
-    struct StringAtom* _Nullable    next;
-    int8_t                          type;
-    int8_t                          reserved[3];
-    union {
-        size_t                      length;     // nul-terminated string follows the atom structure
-        struct Expression* _Nonnull expr;
-        VarRef* _Nonnull            vref;
-    }                       u;
-} StringAtom;
+typedef struct Segment {
+    struct Segment* _Nullable   next;
+    int8_t                      type;
+} Segment;
 
-extern errno_t StringAtom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, StringAtomType type, const char* _Nonnull str, size_t len, StringAtom* _Nullable * _Nonnull pOutSelf);
-extern errno_t StringAtom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, StringAtom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
-extern errno_t StringAtom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, StringAtom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
-#define StringAtom_GetStringLength(__self) (__self)->u.length
-#define StringAtom_GetString(__self) (((const char*)__self) + sizeof(StringAtom))
-#define StringAtom_GetMutableString(__self) (((char*)__self) + sizeof(StringAtom))
+typedef struct LiteralSegment {
+    Segment super;
+    Value   value;
+} LiteralSegment;
+
+typedef struct ExpressionSegment {
+    Segment                     super;
+    struct Expression* _Nonnull expr;
+} ExpressionSegment;
+
+typedef struct VarRefSegment {
+    Segment             super;
+    VarRef* _Nonnull    vref;
+} VarRefSegment;
+
+extern errno_t Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType type, const Value* _Nonnull value, Segment* _Nullable * _Nonnull pOutSelf);
+extern errno_t Segment_CreateExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, Segment* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
+extern errno_t Segment_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Segment* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
 #ifdef SCRIPT_PRINTING
-extern void StringAtom_Print(StringAtom* _Nonnull self);
+extern void Segment_Print(Segment* _Nonnull self);
 #endif
 
 
+
 typedef struct CompoundString {
-    StringAtom* _Nonnull    atoms;
-    StringAtom* _Nonnull    lastAtom;
+    Segment* _Nonnull   segs;
+    Segment* _Nonnull   lastSeg;
 } CompoundString;
 
 extern errno_t CompoundString_Create(StackAllocatorRef _Nonnull pAllocator, CompoundString* _Nullable * _Nonnull pOutSelf);
-extern void CompoundString_AddAtom(CompoundString* _Nonnull self, StringAtom* _Nonnull atom);
+extern void CompoundString_AddSegment(CompoundString* _Nonnull self, Segment* _Nonnull seg);
 #ifdef SCRIPT_PRINTING
 extern void CompoundString_Print(CompoundString* _Nonnull self);
 #endif

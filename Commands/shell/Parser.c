@@ -94,9 +94,10 @@ static errno_t Parser_CompoundString(Parser* _Nonnull self, bool isBacktick, Com
 {
     decl_try_err();
     CompoundString* str = NULL;
-    StringAtom* atom = NULL;
+    Segment* seg = NULL;
     TokenId quoteToken = (isBacktick) ? kToken_DoubleBacktick : kToken_DoubleQuote;
     LexerMode lexerMode = (isBacktick) ? kLexerMode_DoubleBacktick : kLexerMode_DoubleQuote;
+    Value v;
     bool done = false;
 
     try(matchAndSwitchMode(quoteToken, lexerMode));
@@ -107,27 +108,29 @@ static errno_t Parser_CompoundString(Parser* _Nonnull self, bool isBacktick, Com
 
         switch (t->id) {
             case kToken_StringSegment:
-                try(StringAtom_CreateWithString(self->allocator, kStringAtom_Segment, t->u.string, t->length, &atom));
+                try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
+                try(Segment_CreateLiteral(self->allocator, kSegment_String, &v, &seg));
                 consume();
                 break;
 
             case kToken_EscapeSequence:
                 try(failOnIncomplete(t));
-                try(StringAtom_CreateWithString(self->allocator, kStringAtom_EscapeSequence, t->u.string, t->length, &atom));
+                try(ConstantsPool_GetStringValue(self->constantsPool, t->u.string, t->length, &v));
+                try(Segment_CreateLiteral(self->allocator, kSegment_EscapeSequence, &v, &seg));
                 consume();
                 break;
 
             case kToken_EscapedExpression: {
                 Expression* expr = NULL;
                 try(Parser_EscapedExpression(self, &expr));
-                try(StringAtom_CreateWithExpression(self->allocator, expr, &atom));
+                try(Segment_CreateExpression(self->allocator, expr, &seg));
                 break;
             }
 
             case kToken_VariableName: {
                 VarRef* vref = NULL;
                 try(Parser_VarReference(self, &vref));
-                try(StringAtom_CreateWithVarRef(self->allocator, vref, &atom));
+                try(Segment_CreateVarRef(self->allocator, vref, &seg));
                 break;
             }
 
@@ -140,9 +143,9 @@ static errno_t Parser_CompoundString(Parser* _Nonnull self, bool isBacktick, Com
                 break;
         }
 
-        if (atom) {
-            CompoundString_AddAtom(str, atom);
-            atom = NULL;
+        if (seg) {
+            CompoundString_AddSegment(str, seg);
+            seg = NULL;
         }
     }
     Lexer_SetMode(&self->lexer, kLexerMode_Default);
