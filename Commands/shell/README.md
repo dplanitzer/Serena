@@ -140,9 +140,13 @@ Prints the absolute path of the current working directory.
 
 Renames the file or directory at 'source_path' to 'destination_path'. If a file or directory exists at 'destination_path' then this file system object is atomically deleted and replaced with the source file or directory.
 
-#### SHELL [path ...]
+#### SHELL [-c | --command] [string]
 
-Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. You can exit the new shell with the "exit" command. The shell runs in interactive mode by default. You can pass one or more paths to shell scripts when you invoke a shell and the shell will then run in batch mode and execute one shell script after the other. Shell scripts are executed in the order in which they are passed to the shell executable.
+Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. Exit the new shell by issuing an "exit" command on the command line. The shell runs in interactive mode by default.
+
+If a string is provided as the last argument to the shell then this string is interpreted as the path to a shell script. The shell loads the script and executes it. The '--command' switch causes the shell to interpret the string as a shell command instead of a path to a script file. Multiple commands may be provided in a single string by separating them with a semicolon (';') character.
+
+
 
 #### TYPE [--hex] \<path>
 
