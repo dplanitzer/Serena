@@ -8,6 +8,7 @@
 
 #include "Shell.h"
 #include "Errors.h"
+#include "Utilities.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -87,35 +88,16 @@ catch:
     return err;
 }
 
-static errno_t read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText)
+errno_t Shell_RunContentsOfString(ShellRef _Nonnull self, const char* _Nonnull str)
 {
     decl_try_err();
-    FILE* fp = NULL;
-    char* text = NULL;
-
-    try_null(fp, fopen(path, "r"), errno);
-    fseek(fp, 0, SEEK_END);
-    const size_t fileSize = ftell(fp);
-    rewind(fp);
-
-    try_null(text, malloc(fileSize + 1), errno);
-    if (fileSize > 0ll) {
-        fread(text, fileSize, 1, fp);
-        if (ferror(fp)) {
-            throw(errno);
-        }
-    }
-    text[fileSize] = '\0';
-    fclose(fp);
-
-    *pOutText = text;
-    return EOK;
+    Script* script = NULL;
+ 
+    try(Script_Create(&script));
+    _Shell_ExecuteString(self, str, script, true);
 
 catch:
-    free(text);
-    fclose(fp);
-
-    *pOutText = NULL;
+    Script_Destroy(script);
     return err;
 }
 

@@ -64,3 +64,35 @@ size_t hash_string(const char* _Nonnull str, size_t len)
 
     return h;
 }
+
+errno_t read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText)
+{
+    decl_try_err();
+    FILE* fp = NULL;
+    char* text = NULL;
+
+    try_null(fp, fopen(path, "r"), errno);
+    fseek(fp, 0, SEEK_END);
+    const size_t fileSize = ftell(fp);
+    rewind(fp);
+
+    try_null(text, malloc(fileSize + 1), errno);
+    if (fileSize > 0ll) {
+        fread(text, fileSize, 1, fp);
+        if (ferror(fp)) {
+            throw(errno);
+        }
+    }
+    text[fileSize] = '\0';
+    fclose(fp);
+
+    *pOutText = text;
+    return EOK;
+
+catch:
+    free(text);
+    fclose(fp);
+
+    *pOutText = NULL;
+    return err;
+}
