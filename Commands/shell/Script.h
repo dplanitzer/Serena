@@ -157,7 +157,7 @@ typedef struct LiteralExpression {
 
 typedef struct CompoundStringExpression {
     Expression      super;
-    CompoundString* qstring;
+    CompoundString* string;
 } CompoundStringExpression;
 
 typedef struct BinaryExpression {
@@ -196,7 +196,7 @@ typedef struct WhileExpression {
 } WhileExpression;
 
 extern errno_t Expression_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf);

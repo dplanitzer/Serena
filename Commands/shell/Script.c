@@ -356,13 +356,13 @@ errno_t Expression_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool has
     return (self) ? EOK : ENOMEM;
 }
 
-errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull qstr, Expression* _Nullable * _Nonnull pOutSelf)
+errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str, Expression* _Nullable * _Nonnull pOutSelf)
 {
     CompoundStringExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(CompoundStringExpression));
 
     self->super.type = kExpression_CompoundString;
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
-    self->qstring = qstr;
+    self->string = str;
     *pOutSelf = (Expression*)self;
     return (self) ? EOK : ENOMEM;
 }
@@ -505,7 +505,7 @@ void Expression_Print(Expression* _Nonnull self)
             break;
 
         case kExpression_CompoundString:
-            CompoundString_Print(AS(self, CompoundStringExpression)->qstring);
+            CompoundString_Print(AS(self, CompoundStringExpression)->string);
             break;
 
         case kExpression_VarRef:

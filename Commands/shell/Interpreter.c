@@ -510,7 +510,7 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
             return OpStack_Push(self->opStack, &AS(expr, LiteralExpression)->value);
 
         case kExpression_CompoundString:
-            return Interpreter_CompoundString(self, AS(expr, CompoundStringExpression)->qstring);
+            return Interpreter_CompoundString(self, AS(expr, CompoundStringExpression)->string);
 
         case kExpression_VarRef:
             return Interpreter_PushVariable(self, AS(expr, VarRefExpression)->vref);

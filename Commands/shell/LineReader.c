@@ -101,6 +101,8 @@ static void LineReader_SaveLineIfDirty(LineReaderRef _Nonnull self)
 // does not mark the line reader input as dirty.
 static void LineReader_SetLine(LineReaderRef _Nonnull self, const char* _Nonnull pNewLine)
 {
+    memset(self->line, 0, self->lineCapacity);
+    
     strncpy(self->line, pNewLine, self->lineCapacity - 1);
     self->lineCount = strlen(pNewLine);
     if (self->lineCount >= self->lineCapacity) {
@@ -364,7 +366,7 @@ char* _Nonnull LineReader_ReadLine(LineReaderRef _Nonnull self)
 
     LineReader_PrintPrompt(self);
 
-    self->line[0] = '\0';
+    memset(self->line, 0, self->lineCapacity);
     self->lineCount = 0;
     self->x = 0;
     self->isDirty = false;
