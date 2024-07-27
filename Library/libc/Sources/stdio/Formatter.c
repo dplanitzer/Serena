@@ -9,6 +9,7 @@
 #include "Formatter.h"
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 static errno_t Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
@@ -22,31 +23,25 @@ static errno_t Formatter_WriteChar(FormatterRef _Nonnull self, char ch)
     return 0;
 }
 
-static errno_t Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str, size_t maxChars)
+static errno_t Formatter_WriteString(FormatterRef _Nonnull self, const char * _Nonnull str)
 {
-    if (maxChars == SIZE_MAX) {
-        const int r = fputs(str, self->stream);
+    const int r = fputs(str, self->stream);
 
-        if (r == EOF) {
-            return errno;
-        }
-        self->charactersWritten += r;
+    if (r == EOF) {
+        return errno;
     }
-    else {
-        while (maxChars-- > 0) {
-            const char ch = *str++;
-            
-            if (ch != 0) {
-                const int r = fputc(ch, self->stream);
-                if (r == EOF) {
-                    return errno;
-                }
-                self->charactersWritten++;
-            }
-            else {
-                break;
-            }
-        }
+    self->charactersWritten += r;
+
+    return 0;
+}
+
+static errno_t Formatter_WriteStringPrefix(FormatterRef _Nonnull self, const char * _Nonnull str, size_t maxChars)
+{
+    const size_t nWritten = fwrite(str, 1, maxChars, self->stream);
+
+    self->charactersWritten += nWritten;
+    if (nWritten < maxChars) {
+        return errno;
     }
 
     return 0;
@@ -174,25 +169,6 @@ static const char* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull 
     return Formatter_ParseLengthModifier(self, format, spec);
 }
 
-static errno_t Formatter_FormatStringField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull str, size_t slen)
-{
-    decl_try_err();
-    const size_t nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
-
-    if (nspaces > 0 && spec->flags.isLeftJustified) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
-    }
-
-    try(Formatter_WriteString(self, str, slen));
-
-    if (nspaces > 0 && !spec->flags.isLeftJustified) {
-        try(Formatter_WriteRepChar(self, ' ', nspaces));
-    }
-
-catch:
-    return err;
-}
-
 static errno_t Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
 {
     decl_try_err();
@@ -299,13 +275,49 @@ catch:
 
 static errno_t Formatter_FormatChar(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
+    decl_try_err();
     const char ch = (unsigned char) va_arg(*ap, int);
-    return Formatter_FormatStringField(self, spec, &ch, 1);
+    const size_t nspaces = (spec->minimumFieldWidth > 1) ? spec->minimumFieldWidth - 1 : 0;
+
+    if (nspaces > 0 && spec->flags.isLeftJustified) {
+        try(Formatter_WriteRepChar(self, ' ', nspaces));
+    }
+
+    try(Formatter_WriteChar(self, ch));
+
+    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+        try(Formatter_WriteRepChar(self, ' ', nspaces));
+    }
+
+catch:
+    return err;
 }
 
 static errno_t Formatter_FormatString(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
 {
-    return Formatter_FormatStringField(self, spec, va_arg(*ap, const char*), (spec->flags.hasPrecision) ? spec->precision : SIZE_MAX);
+    decl_try_err();
+    const char* str = va_arg(*ap, const char*);
+    const size_t slen = (spec->flags.hasPrecision || spec->minimumFieldWidth > 0) ? strlen(str) : 0;
+    const size_t adj_slen = (spec->flags.hasPrecision) ? __min(slen, spec->precision) : slen;
+    const size_t nspaces = (spec->minimumFieldWidth > adj_slen) ? spec->minimumFieldWidth - adj_slen : 0;
+
+    if (nspaces > 0 && spec->flags.isLeftJustified) {
+        try(Formatter_WriteRepChar(self, ' ', nspaces));
+    }
+
+    if (spec->flags.hasPrecision) {
+        try(Formatter_WriteStringPrefix(self, str, adj_slen));
+    }
+    else {
+        try(Formatter_WriteString(self, str));
+    }
+
+    if (nspaces > 0 && !spec->flags.isLeftJustified) {
+        try(Formatter_WriteRepChar(self, ' ', nspaces));
+    }
+
+catch:
+    return err;
 }
 
 static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
