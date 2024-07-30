@@ -85,7 +85,18 @@ void OpStack_PopAll(OpStack* _Nonnull self)
     self->count = 0;
 }
 
-errno_t OpStack_Pop(OpStack* _Nonnull self, size_t count)
+errno_t OpStack_Pop(OpStack* _Nonnull self)
+{
+    if (self->count > 0) {
+        self->count--;
+        return EOK;
+    }
+    else {
+        return EUNDERFLOW;
+    }
+}
+
+errno_t OpStack_PopMany(OpStack* _Nonnull self, size_t count)
 {
     if (self->count < count) {
         return EUNDERFLOW;

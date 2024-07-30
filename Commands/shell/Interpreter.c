@@ -260,7 +260,7 @@ static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self,
         const Value* v = OpStack_GetTos(self->opStack);
         err = ArgumentVector_AppendBytes(self->argumentVector, v->u.string.characters, v->u.string.length);
     }
-    OpStack_Pop(self->opStack, 1);
+    OpStack_Pop(self->opStack);
     
     return err;
 }
@@ -405,7 +405,7 @@ static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, Compound
     if (err == EOK) {
         if (nComponents > 0) {
             ValueArray_ToString(OpStack_GetNth(self->opStack, nComponents - 1), nComponents);
-            OpStack_Pop(self->opStack, nComponents - 1);
+            OpStack_PopMany(self->opStack, nComponents - 1);
         } else {
             Value v;
             StringValue_Init(&v, "", 0);
@@ -442,7 +442,7 @@ static errno_t Interpreter_Disjunction(InterpreterRef _Nonnull self, Expression*
             err = Interpreter_BoolExpression(self, AS(expr, BinaryExpression)->rhs, &rhs);
             if (err == EOK) {
                 lhs_r->u.b = rhs->u.b;
-                OpStack_Pop(self->opStack, 1);
+                OpStack_Pop(self->opStack);
             }
         }
     }
@@ -462,7 +462,7 @@ static errno_t Interpreter_Conjunction(InterpreterRef _Nonnull self, Expression*
             err = Interpreter_BoolExpression(self, AS(expr, BinaryExpression)->rhs, &rhs);
             if (err == EOK) {
                 lhs_r->u.b = rhs->u.b;
-                OpStack_Pop(self->opStack, 1);
+                OpStack_Pop(self->opStack);
             }
         }
     }
@@ -479,7 +479,7 @@ static errno_t Interpreter_BinaryOp(InterpreterRef _Nonnull self, Expression* _N
         err = Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
         if (err == EOK) {
             err = Value_BinaryOp(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack), expr->type - kExpression_Equals);
-            OpStack_Pop(self->opStack, 1);
+            OpStack_Pop(self->opStack);
         }
     }
     return err;
@@ -566,7 +566,7 @@ static errno_t Interpreter_Assignment(InterpreterRef _Nonnull self, AssignmentSt
     const errno_t err = Interpreter_Expression(self, stmt->rvalue);
     if (err == EOK) {
         lvar->value = *OpStack_GetTos(self->opStack);
-        OpStack_Pop(self->opStack, 1);
+        OpStack_Pop(self->opStack);
     }
 
     return err;
@@ -591,7 +591,7 @@ static errno_t Interpreter_ExpressionStatement(InterpreterRef _Nonnull self, Exp
                 break;
         }
 
-        OpStack_Pop(self->opStack, 1);
+        OpStack_Pop(self->opStack);
     }
 
     return err;
