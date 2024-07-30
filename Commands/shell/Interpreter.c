@@ -140,7 +140,7 @@ catch:
 static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self)
 {
     decl_try_err();
-    RawData vdat;
+    Value val;
     ProcessArguments* pargs = Process_GetArguments();
     char** envp = pargs->envp;
 
@@ -150,11 +150,12 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
         char* valp = (eqp) ? eqp + 1 : NULL;
 
         if (valp) {
-            vdat.string.characters = valp;
-            vdat.string.length = strlen(valp);
+            val.type = kValue_String;
+            val.u.string.characters = valp;
+            val.u.string.length = strlen(valp);
 
             *eqp = '\0';
-            err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public | kVarModifier_Mutable, "global", keyp, kValue_String, vdat);
+            err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public | kVarModifier_Mutable, "global", keyp, &val);
             *eqp = '=';
             // We ignore non-fatal errors here and simply drop the erroneous
             // environment variable because we don't want the shell to die over
@@ -599,9 +600,15 @@ static errno_t Interpreter_ExpressionStatement(InterpreterRef _Nonnull self, Exp
 
 static errno_t Interpreter_VarDeclStatement(InterpreterRef _Nonnull self, VarDeclStatement* _Nonnull decl)
 {
-    RawData vdat = {.string = {"Not yet", 7}};
+    decl_try_err();
     
-    return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, kValue_String, vdat);  // XXX
+    err = Interpreter_Expression(self, decl->expr);
+    if (err == EOK) {
+        err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, OpStack_GetTos(self->opStack));
+        OpStack_Pop(self->opStack);
+    }
+
+    return err;
 }
 
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)

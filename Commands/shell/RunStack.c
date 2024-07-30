@@ -16,14 +16,14 @@
 
 static void Variable_Destroy(Variable* _Nullable self);
 
-static errno_t Variable_Create(unsigned int modifiers, const char* _Nonnull name, ValueType type, RawData data, Variable* _Nullable * _Nonnull pOutSelf)
+static errno_t Variable_Create(unsigned int modifiers, const char* _Nonnull name, const Value* _Nonnull value, Variable* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Variable* self;
 
     try_null(self, calloc(1, sizeof(Variable)), errno);
     try_null(self->name, strdup(name), errno);
-    try(Value_Init(&self->value, type, data));
+    try(Value_InitCopy(&self->value, value));
     self->modifiers = modifiers;
 
     *pOutSelf = self;
@@ -149,7 +149,7 @@ static errno_t Scope_Iterate(Scope* _Nonnull self, RunStackIterator _Nonnull cb,
     return err;
 }
 
-static errno_t Scope_DeclareVariable(Scope* _Nonnull self, unsigned int modifiers, const char* _Nonnull name, ValueType type, RawData data)
+static errno_t Scope_DeclareVariable(Scope* _Nonnull self, unsigned int modifiers, const char* _Nonnull name, const Value* value)
 {
     decl_try_err();
     Variable* vp;
@@ -160,7 +160,7 @@ static errno_t Scope_DeclareVariable(Scope* _Nonnull self, unsigned int modifier
         throw(EREDEFINED);
     }
 
-    try(Variable_Create(modifiers, name, type, data, &vp));
+    try(Variable_Create(modifiers, name, value, &vp));
     vp->next = self->hashtable[hashIndex];
     self->hashtable[hashIndex] = vp;
 
@@ -345,7 +345,7 @@ errno_t RunStack_Iterate(RunStack* _Nonnull self, RunStackIterator _Nonnull cb, 
     return err;
 }
 
-errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nullable scopeName, const char* _Nonnull name, ValueType type, RawData data)
+errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers, const char* _Nullable scopeName, const char* _Nonnull name, const Value* _Nonnull value)
 {
     decl_try_err();
     Scope* scope = _RunStack_GetScopeForName(self, scopeName);
@@ -354,7 +354,7 @@ errno_t RunStack_DeclareVariable(RunStack* _Nonnull self, unsigned int modifiers
         return ENOSCOPE;
     }
 
-    err = Scope_DeclareVariable(self->currentScope, modifiers, name, type, data);
+    err = Scope_DeclareVariable(self->currentScope, modifiers, name, value);
     if (err == EOK && (modifiers & kVarModifier_Public) == kVarModifier_Public) {
         self->currentScope->publicVariablesCount++;
         self->generationOfPublicVariables++;

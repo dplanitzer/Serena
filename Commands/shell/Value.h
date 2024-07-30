@@ -71,6 +71,7 @@ typedef union RawData {
 extern errno_t StringValue_Init(Value* _Nonnull self, const char* _Nonnull str, size_t len);
 
 extern errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data);
+extern errno_t Value_InitCopy(Value* _Nonnull self, const Value* _Nonnull other);
 extern void Value_Deinit(Value* _Nonnull self);
 
 

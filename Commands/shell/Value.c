@@ -18,8 +18,14 @@
 
 errno_t StringValue_Init(Value* _Nonnull self, const char* _Nonnull str, size_t len)
 {
-    RawData d = {.string.characters = (char*)str, .string.length = len};
-    return Value_Init(self, kValue_String, d);
+    decl_try_err();
+
+    self->type = kValue_String;
+    try_null(self->u.string.characters, strdup(str), errno);
+    self->u.string.length = len;
+
+catch:
+    return err;
 }
 
 errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data)
@@ -43,6 +49,19 @@ errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data)
 
         default:
             break;
+    }
+
+catch:
+    return err;
+}
+
+errno_t Value_InitCopy(Value* _Nonnull self, const Value* _Nonnull other)
+{
+    decl_try_err();
+
+    *self = *other;
+    if (other->type == kValue_String) {
+        try_null(self->u.string.characters, strdup(other->u.string.characters), errno);
     }
 
 catch:
