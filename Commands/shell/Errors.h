@@ -22,9 +22,11 @@
 #define ETYPEMISMATCH   -8
 #define EDIVBYZERO      -9
 #define ENOTLVALUE      -10
+#define ENOASSIGN       -11
+#define EIMMUTABLE      -12
 
 #define _EFIRST_SHELL   ESYNTAX
-#define _ELAST_SHELL    ENOTLVALUE
+#define _ELAST_SHELL    EIMMUTABLE
 
 extern const char *shell_strerror(int err_no);
 

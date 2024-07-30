@@ -563,6 +563,9 @@ static errno_t Interpreter_Assignment(InterpreterRef _Nonnull self, AssignmentSt
     if (lvar == NULL) {
         return EUNDEFINED;
     }
+    if ((lvar->modifiers & kVarModifier_Mutable) == 0) {
+        return EIMMUTABLE;
+    }
 
     const errno_t err = Interpreter_Expression(self, stmt->rvalue);
     if (err == EOK) {
@@ -604,7 +607,13 @@ static errno_t Interpreter_VarDeclStatement(InterpreterRef _Nonnull self, VarDec
     
     err = Interpreter_Expression(self, decl->expr);
     if (err == EOK) {
-        err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, OpStack_GetTos(self->opStack));
+        const Value* vp = OpStack_GetTos(self->opStack);
+
+        if (vp->type == kValue_Void || vp->type == kValue_Undefined) {
+            return ENOASSIGN;
+        }
+
+        err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, vp);
         OpStack_Pop(self->opStack);
     }
 

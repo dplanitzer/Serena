@@ -13,6 +13,8 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
+        /*EIMMUTABLE*/      "Immutable variable",
+        /*ENOASSIGN*/       "Invalid type for assignment",
         /*ENOTLVALUE*/      "Not an lvalue",
         /*EDIVBYZERO*/      "Division by zero",
         /*ETYPEMISMTACH*/   "Type mismatch",
