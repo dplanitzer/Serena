@@ -26,6 +26,8 @@ extern void OpStack_Destroy(OpStack* _Nullable self);
 // Pushes the given value on top of the operand stack.
 extern errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value);
 
+extern errno_t OpStack_PushVoid(OpStack* _Nonnull self);
+
 // Pops all values from the stack.
 extern void OpStack_PopAll(OpStack* _Nonnull self);
 

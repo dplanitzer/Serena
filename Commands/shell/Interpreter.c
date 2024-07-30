@@ -16,6 +16,30 @@
 #include <string.h>
 #include <System/System.h>
 
+//
+// Notes:
+//
+// - Errors:
+//   An interpreter function returns an error to its caller when it detects some
+//   problem that stops it from being able to continue. It may leave the op-stack
+//   in an undetermined state in this case. Errors are propagated up the call
+//   chain to the next closest try-catch construct. The try-catch will clean up
+//   the op-stack by dropping everything that was pushed onto the stack since the
+//   try-catch invocation and it then continues with the catch block. Errors
+//   propagate all the way up to the interpreter entry point if there's no try-
+//   catch that wants to catch the error. The interpreter entry point drops
+//   everything from the op-stack. Note that once we detect an error, that we do
+//   not want to continue executing any more code because we do not want to
+//   trigger unexpected side-effects, i.e. by executing an external command that
+//   we should not execute because the invocation is lexically after the point
+//   at which we've detected the error.
+//
+// - Expressions:
+//   Every expression is expected to leave a single result value on the op-stack.
+//   This value will be consumed by the parent expression. The value of a top-level
+//   expression is printed to the console if the value is not Void.
+//
+
 static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self);
 static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self);
 static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str);
@@ -159,6 +183,7 @@ static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int
 
     if (np) {
         np->cb(self, argc, argv, envp);
+        OpStack_PushVoid(self->opStack);    // XXX for now
         return true;
     }
 
@@ -200,6 +225,9 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     // Wait for the command to complete its task
     ProcessTerminationStatus pts;
     Process_WaitForTerminationOfChild(childPid, &pts);
+
+    // XXX we always return Void for now (will change once we got value capture support)
+    OpStack_PushVoid(self->opStack);
 
 catch:
     return (err == ENOENT) ? ENOCMD : err;
@@ -387,81 +415,98 @@ static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, Compound
     return err;
 }
 
-static errno_t eval_bool_expr(InterpreterRef _Nonnull self, Expression* _Nonnull expr, Value* _Nullable * _Nullable pOutValue)
+static errno_t Interpreter_BoolExpression(InterpreterRef _Nonnull self, Expression* _Nonnull expr, Value* _Nullable * _Nonnull pOutValue)
 {
-    decl_try_err();
-
-    err = Interpreter_Expression(self, expr);
+    errno_t err = Interpreter_Expression(self, expr);
+    
     if (err == EOK) {
-        Value* lhs_r = OpStack_GetTos(self->opStack);
+        Value* vp = OpStack_GetTos(self->opStack);
 
-        if (lhs_r->type == kValue_Bool) {
-            if (pOutValue) *pOutValue = lhs_r;
-        } else {
-            if (pOutValue) *pOutValue = NULL;
+        *pOutValue = vp;
+        if (vp->type != kValue_Bool) {
             err = ETYPEMISMATCH;
         }
     }
     return err; 
 }
 
-static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
+static errno_t Interpreter_Disjunction(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
+{
+    decl_try_err();
+    Value* lhs_r;
+    Value* rhs;
+
+    err = Interpreter_BoolExpression(self, AS(expr, BinaryExpression)->lhs, &lhs_r);
+    if(err == EOK) {
+        if (!lhs_r->u.b) {
+            err = Interpreter_BoolExpression(self, AS(expr, BinaryExpression)->rhs, &rhs);
+            if (err == EOK) {
+                lhs_r->u.b = rhs->u.b;
+                OpStack_Pop(self->opStack, 1);
+            }
+        }
+    }
+
+    return err;
+}
+
+static errno_t Interpreter_Conjunction(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
+{
+    decl_try_err();
+    Value* lhs_r;
+    Value* rhs;
+
+    err = Interpreter_BoolExpression(self, AS(expr, BinaryExpression)->lhs, &lhs_r);
+    if (err == EOK) {
+        if (lhs_r->u.b) {
+            err = Interpreter_BoolExpression(self, AS(expr, BinaryExpression)->rhs, &rhs);
+            if (err == EOK) {
+                lhs_r->u.b = rhs->u.b;
+                OpStack_Pop(self->opStack, 1);
+            }
+        }
+    }
+
+    return err;
+}
+
+static errno_t Interpreter_BinaryOp(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
     decl_try_err();
 
+    err = Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
+    if (err == EOK) {
+        err = Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
+        if (err == EOK) {
+            err = Value_BinaryOp(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack), expr->type - kExpression_Equals);
+            OpStack_Pop(self->opStack, 1);
+        }
+    }
+    return err;
+}
+
+static errno_t Interpreter_UnaryOp(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
+{
+    decl_try_err();
+
+    err = Interpreter_Expression(self, AS(expr, UnaryExpression)->expr);
+    if (err == EOK) {
+        err = Value_UnaryOp(OpStack_GetTos(self->opStack), expr->type - kExpression_Negative);
+    }
+    return err;
+}
+
+static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
+{
     switch (expr->type) {
         case kExpression_Pipeline:
             return ENOTIMPL;
 
-        case kExpression_Disjunction: {
-            bool lhsIsTrue = false, rhsIsTrue = false;
-            Value* lhs_r;
+        case kExpression_Disjunction:
+            return Interpreter_Disjunction(self, expr);
 
-            err = eval_bool_expr(self, AS(expr, BinaryExpression)->lhs, &lhs_r);
-            if(err == EOK) {
-                lhsIsTrue = lhs_r->u.b;
-
-                if (!lhsIsTrue) {
-                    err = eval_bool_expr(self, AS(expr, BinaryExpression)->rhs, NULL);
-                    if (err == EOK) {
-                        rhsIsTrue = OpStack_GetTos(self->opStack)->u.b;
-                        OpStack_Pop(self->opStack, 1);
-                    }
-                }
-            }
-
-            if (err == EOK) {
-                lhs_r->u.b = lhsIsTrue || rhsIsTrue;
-            } else {
-                OpStack_Pop(self->opStack, 1);
-            }
-            return err;
-        }
-
-        case kExpression_Conjunction: {
-            bool lhsIsTrue = false, rhsIsTrue = false;
-            Value* lhs_r;
-
-            err = eval_bool_expr(self, AS(expr, BinaryExpression)->lhs, &lhs_r);
-            if (err == EOK) {
-                lhsIsTrue = lhs_r->u.b;
-
-                if (lhsIsTrue) {
-                    err = eval_bool_expr(self, AS(expr, BinaryExpression)->rhs, NULL);
-                    if (err == EOK) {
-                        rhsIsTrue = OpStack_GetTos(self->opStack)->u.b;
-                        OpStack_Pop(self->opStack, 1);
-                    }
-                }
-            }
-
-            if (err == EOK) {
-                lhs_r->u.b = lhsIsTrue && rhsIsTrue;
-            } else {
-                OpStack_Pop(self->opStack, 1);
-            }
-            return err;
-        }
+        case kExpression_Conjunction: 
+            return Interpreter_Conjunction(self, expr);
 
         case kExpression_Equals:
         case kExpression_NotEquals:
@@ -473,11 +518,7 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
         case kExpression_Subtraction:
         case kExpression_Multiplication:
         case kExpression_Division:
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->lhs);
-            Interpreter_Expression(self, AS(expr, BinaryExpression)->rhs);
-            err = Value_BinaryOp(OpStack_GetNth(self->opStack, 1), OpStack_GetTos(self->opStack), expr->type - kExpression_Equals);
-            OpStack_Pop(self->opStack, 1);
-            return err;
+            return Interpreter_BinaryOp(self, expr);
 
         case kExpression_Parenthesized:
         case kExpression_Positive:
@@ -485,8 +526,7 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
 
         case kExpression_Negative:
         case kExpression_Not:
-            Interpreter_Expression(self, AS(expr, UnaryExpression)->expr);
-            return Value_UnaryOp(OpStack_GetTos(self->opStack), expr->type - kExpression_Negative);
+            return Interpreter_UnaryOp(self, expr);
 
         case kExpression_Literal:
             return OpStack_Push(self->opStack, &AS(expr, LiteralExpression)->value);
@@ -524,49 +564,64 @@ static errno_t Interpreter_Assignment(InterpreterRef _Nonnull self, AssignmentSt
     }
 
     const errno_t err = Interpreter_Expression(self, stmt->rvalue);
-    if (err != EOK) {
-        return err;
+    if (err == EOK) {
+        lvar->value = *OpStack_GetTos(self->opStack);
+        OpStack_Pop(self->opStack, 1);
     }
 
-    lvar->value = *OpStack_GetTos(self->opStack);
-    OpStack_Pop(self->opStack, 1);
+    return err;
+}
 
-    return EOK;
+static errno_t Interpreter_ExpressionStatement(InterpreterRef _Nonnull self, ExpressionStatement* _Nonnull stmt)
+{
+    decl_try_err();
+
+    err = Interpreter_Expression(self, stmt->expr);
+    if (err == EOK) {
+        const Value* rp = OpStack_GetTos(self->opStack);
+
+        switch (rp->type) {
+            case kValue_Void:
+            case kValue_Undefined:
+                break;
+
+            default:
+                Value_Write(rp, stdout);
+                putchar('\n');
+                break;
+        }
+
+        OpStack_Pop(self->opStack, 1);
+    }
+
+    return err;
+}
+
+static errno_t Interpreter_VarDeclStatement(InterpreterRef _Nonnull self, VarDeclStatement* _Nonnull decl)
+{
+    RawData vdat = {.string = {"Not yet", 7}};
+    
+    return RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, kValue_String, vdat);  // XXX
 }
 
 static errno_t Interpreter_Statement(InterpreterRef _Nonnull self, Statement* _Nonnull stmt)
 {
-    decl_try_err();
-
     switch (stmt->type) {
         case kStatement_Null:
             return EOK;
 
         case kStatement_Expression:
-            err = Interpreter_Expression(self, AS(stmt, ExpressionStatement)->expr);
-            if (err == EOK && !OpStack_IsEmpty(self->opStack)) {
-                Value_Write(OpStack_GetTos(self->opStack), stdout);
-                putchar('\n');
-            }
-            OpStack_PopAll(self->opStack);
-            break;
+            return Interpreter_ExpressionStatement(self, AS(stmt, ExpressionStatement));
 
         case kStatement_Assignment:
-            err = Interpreter_Assignment(self, AS(stmt, AssignmentStatement));
-            break;
+            return Interpreter_Assignment(self, AS(stmt, AssignmentStatement));
 
-        case kStatement_VarDecl: {
-            VarDeclStatement* decl = AS(stmt, VarDeclStatement);
-            RawData vdat = {.string = {"Not yet", 7}};
-            err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, kValue_String, vdat);  // XXX
-            break;
-        }
+        case kStatement_VarDecl:
+            return Interpreter_VarDeclStatement(self, AS(stmt, VarDeclStatement));
 
         default:
-            err = ENOTIMPL;
-            break;
+            return ENOTIMPL;
     }
-    return err;
 }
 
 static errno_t Interpreter_StatementList(InterpreterRef _Nonnull self, StatementList* _Nonnull stmts)

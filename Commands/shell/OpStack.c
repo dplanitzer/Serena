@@ -39,22 +39,45 @@ void OpStack_Destroy(OpStack* _Nullable self)
     }
 }
 
-errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value)
+static Value* _Nullable _OpStack_Push(OpStack* _Nonnull self)
 {
     if (self->count == self->capacity) {
         const size_t newCapacity = self->capacity * 2;
         Value* newValues = realloc(self->values, sizeof(Value) * newCapacity);
 
         if (newValues == NULL) {
-            return ENOMEM;
+            return NULL;
         }
 
         self->values = newValues;
         self->capacity = newCapacity;
     }
 
-    self->values[self->count++] = *value;
-    return EOK;
+    return &self->values[self->count++];
+}
+
+errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value)
+{
+    Value* vp = _OpStack_Push(self);
+
+    if (vp) {
+        *vp = *value;
+        return EOK;
+    } else {
+        return ENOMEM;
+    }
+}
+
+errno_t OpStack_PushVoid(OpStack* _Nonnull self)
+{
+    Value* vp = _OpStack_Push(self);
+
+    if (vp) {
+        VoidValue_Init(vp);
+        return EOK;
+    } else {
+        return ENOMEM;
+    }
 }
 
 void OpStack_PopAll(OpStack* _Nonnull self)

@@ -17,6 +17,7 @@
 
 typedef enum ValueType {
     kValue_Undefined = 0,
+    kValue_Void,
     kValue_Bool,
     kValue_Integer,
     kValue_String,
@@ -55,6 +56,9 @@ typedef union RawData {
 
 #define UndefinedValue_Init(__self) \
     (__self)->type = kValue_Undefined;
+
+#define VoidValue_Init(__self) \
+    (__self)->type = kValue_Void;
 
 #define BoolValue_Init(__self, __b) \
     (__self)->type = kValue_Bool; \
