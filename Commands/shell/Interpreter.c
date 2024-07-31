@@ -274,6 +274,23 @@ static errno_t Interpreter_SerializeInteger(InterpreterRef _Nonnull self, int32_
     return ArgumentVector_AppendBytes(self->argumentVector, buf, strlen(buf));
 }
 
+static errno_t Interpreter_SerializeArithmeticExpression(InterpreterRef _Nonnull self, Arithmetic* _Nonnull expr)
+{
+    decl_try_err();
+
+    err = Interpreter_ArithmeticExpression(self, expr);
+    if (err == EOK) {
+        Value* vp = OpStack_GetTos(self->opStack);
+
+        err = Value_ToString(vp);
+        if (err == EOK) {
+            err = ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
+            OpStack_Pop(self->opStack);
+        }
+    }
+    return err;
+}
+
 static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self, Atom* _Nonnull atom)
 {
     switch (atom->type) {
@@ -293,7 +310,7 @@ static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self
             return Interpreter_SerializeVariable(self, atom->u.vref);
 
         case kAtom_ArithmeticExpression:
-            return ENOTIMPL;
+            return Interpreter_SerializeArithmeticExpression(self, atom->u.expr);
 
         default:
             return ENOTIMPL;

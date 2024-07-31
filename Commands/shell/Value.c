@@ -337,9 +337,9 @@ size_t Value_GetString(const Value* _Nonnull self, size_t bufSize, char* _Nonnul
 
     switch (self->type) {
         case kValue_Bool: {
-            const char* src = (self->u.b) ? "true" : "false";
             const size_t src_len = (self->u.b) ? 4 : 5;
 
+            src = (self->u.b) ? "true" : "false";
             nchars = __min(src_len, bufSize - 1);
             break;
         }
