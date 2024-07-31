@@ -42,12 +42,12 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
 
 
     if (fba < kSFSBlockPointersPerBlockCount) {
-        LogicalBlockAddress i0_lba = ino_bp[fba];
+        LogicalBlockAddress i0_lba = ino_bp[kSFSDirectBlockPointersCount];
 
         if (i0_lba == 0) {
             if (mode == kSFSBlockMode_Write) {
                 try(SerenaFS_AllocateBlock(self, &i0_lba));
-                ino_bp[fba] = i0_lba;
+                ino_bp[kSFSDirectBlockPointersCount] = i0_lba;
 
                 memset(self->tmpBlock, 0, kSFSBlockSize);
                 try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, i0_lba));
