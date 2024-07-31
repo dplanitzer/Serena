@@ -8,6 +8,36 @@ _Note:_ The current version of the shell only implements a small subset of the l
 
 These are the semantic rules of the language:
 
+* Expressions
+  * Everything is an expression
+  * An expression either succeeds and produces a value or it fails
+  * An expression that fails leads to the termination of the script
+  * The shell guarantees that no more side-effects will be produced after detecting an error and that the script will be immediately terminated
+  * The value of a block/expression list is the value of the last expression in the expression list
+  * A variable declaration produces a value of type Void
+  * An assignment expression produces a value of type Void
+  * A command whose stdout is captured produces a value of type String; a command whose stdout is not captured produces a value of type Void
+  * A pipeline whose stdout is captured produces a value of type String; a pipeline whose stdout is not captured produces a value of type Void
+
+* Commands:
+  * A command may take any number of parameters. How those parameters are interpreted is up to the command
+  * A command is expected to return a status. 0 means that the command was successful; A value != 0 indicates that the command has failed
+  * A command produces a result/value by writing data to stdout
+  * The result/value of a command is by default not captured by the language runtime. A command must either appear in a context that implicitly triggers value capture (i.e. assignment) or it must be enclosed by '(' and ')' to capture the result.
+  * The captured result/value of a command becomes the value of the command invocation expression
+  * The result/value of a command that appears on the left side of the pipe operator '|' is always captured
+  * A command must be enclosed in parenthesis if it should be used as a factor inside an expression. The reason for this requirement is that this way it is obvious how far the (parameter list) of the command extends. I.e. it is clear that 'foo + 1' is always the command 'foo' followed by the command parameters '+' and '1'
+
+* Pipelines
+  * A pipeline is a concatenation of commands where the output of the command to the left of the pipeline symbol '|' is captured and made available as the input to the command on the right side of the pipeline symbol
+  * The first command of a pipeline may be an arithmetic expression. The value of the arithmetic expression is calculated and fed as input to the next command in the pipeline
+
+* Values
+  * Every value has a type. The supported types are Int, String and Void
+  * A value of type Void can not be assigned to a variable
+  * A value of type Void does not support any operations and thus can not be used as an argument in an arithmetic expression
+  * A command and pipeline which does not capture a value (aka the stdout channel of the command/pipeline is not being recorded) produces a value of type Void
+
 * Scopes:
   * The bottom most scope is the global scope which is established when the shell starts up
   * Every shell script invocation is associated with a scope
@@ -19,23 +49,13 @@ These are the semantic rules of the language:
     * 'global': the global scope
     * 'script': the script scope
     * 'local': the local scope. This is the scope that is used if no scope selector is specified
+
 * Variables:
   * Are scoped. A variable is bound to a scope at definition time and it remains in this scope until the variable is destroyed because the scope ends.
-  * Are typed
+  * Are dynamically typed. The type of the variable is the type of the most recently assigned value
   * Have an access mode:
     * 'internal': the variable is only accessible to the currently executing script. This is the default access mode
     * 'public': the variable is accessible to the executing script and any of the processes the script runs. Public variables are made available to processes in the form of environment variables
-* Commands:
-  * A command may take any number of parameters. How those parameters are interpreted is up to the command
-  * A command is expected to return a status. 0 means that the command was successful; A value != 0 indicates that the command has failed
-  * A command produces a result/value by writing data to stdout
-  * The result/value of a command is by default not captured by the language runtime. A command must be enclosed by '(' and ')' to capture the result.
-  * The captured result/value of a command becomes the value of the command invocation expression
-  * The result/value of a command that appears on the left side of the pipe operator '|' is always captured
-  * A command must be enclosed in parenthesis if it should be used as a factor inside an expression. The reason for this requirement is that this way it is obvious how far the (parameter list) of the command extends. I.e. it is clear that 'foo + 1' is always the command 'foo' followed by the command parameters '+' and '1'
-* Pipelines
-  * A pipeline is a concatenation of commands where the output of the command to the left of the pipeline symbol '|' is captured and made available as the input to the command on the right side of the pipeline symbol
-  * The first command of a pipeline may be an expression. The value of the expression is calculated and fed as input to the next command in the pipeline
   
 ## Tokens
 
@@ -124,29 +144,33 @@ IDENTIFIER
 
 ```
 script
-    : statements EOF
+    : expressions EOF
     ;
 
-statements:
-    : statement*
+expressions:
+    : expression*
     ;
 
-statement
-    : (varDeclaration
-        | assignmentStatement
-        | expression)? statementTerminator
+expression
+    : (varDeclExpression
+        | assignmentExpression
+        | arithmeticExpression)? terminator
     ;
 
-statementTerminator
+terminator
     : NL | SEMICOLON | AMPERSAND
     ;
 
-varDeclaration
-    : (INTERNAL | PUBLIC)? (LET | VAR) VAR_NAME ASSIGNMENT expression
+varDeclExpression
+    : (INTERNAL | PUBLIC)? (LET | VAR) VAR_NAME ASSIGNMENT arithmeticExpression
     ;
 
-assignmentStatement
-    : expression ASSIGNMENT expression
+assignmentExpression
+    : assignableExpression ASSIGNMENT arithmeticExpression
+    ;
+
+assignableExpression
+    : VAR_NAME
     ;
 
 command
@@ -188,11 +212,17 @@ commandSecondaryFragment
     | SINGLE_BACKTICK_STRING
     | doubleBacktickString
     | literal
-    | parenthesizedExpression
+    | parenthesizedArithmeticExpression
     ;
 
-expression
-    : (disjunction | command) (BAR command)*
+pipeline
+    : (disjunction | command) BAR command (BAR command)*
+    ;
+
+arithmeticExpression
+    : disjunction
+    | command
+    | pipeline
     ;
 
 disjunction
@@ -226,7 +256,7 @@ additionOperator
     ;
 
 multiplication
-    : prefixUnaryExpression (multiplicationOperator prefixUnaryExpression)*
+    : prefixUnaryArithmetic (multiplicationOperator prefixUnaryArithmetic)*
     ;
 
 multiplicationOperator
@@ -240,20 +270,20 @@ prefixOperator:
     | BANG
     ;
 
-prefixUnaryExpression
+prefixUnaryArithmetic
     : prefixOperator* primaryExpression
     ;
 
 primaryExpression
     : literal
     | VAR_NAME
-    | parenthesizedExpression
+    | parenthesizedArithmeticExpression
     | conditionalExpression
     | loopExpression
     ;
 
-parenthesizedExpression
-    : OPEN_PARA expression CLOSE_PARA
+parenthesizedArithmeticExpression
+    : OPEN_PARA arithmeticExpression CLOSE_PARA
     ;
 
 conditionExpression
@@ -261,7 +291,7 @@ conditionExpression
     ;
 
 ifExpression
-    : IF expression block (ELSE block)?
+    : IF arithmeticExpression block (ELSE block)?
     ;
 
 loopExpression
@@ -269,7 +299,7 @@ loopExpression
     ;
 
 whileExpression
-    : WHILE expression block
+    : WHILE arithmeticExpression block
     ;
 
 block
@@ -288,7 +318,7 @@ doubleBacktickString
     : DOUBLE_BACKTICK
         ( STRING_SEGMENT(dbt_mode)
         | ESCAPE_SEQUENCE(dbt_mode)
-        | escapedExpression(dbt_mode)
+        | escapedArithmeticExpression(dbt_mode)
         | VAR_NAME(dbt_mode)
       )* DOUBLE_BACKTICK(dbt_mode)
     ;
@@ -297,13 +327,13 @@ doubleQuotedString
     : DOUBLE_QUOTE
         ( STRING_SEGMENT(dq_mode)
         | ESCAPE_SEQUENCE(dq_mode)
-        | escapedExpression(dq_mode)
+        | escapedArithmeticExpression(dq_mode)
         | VAR_NAME(dq_mode)
       )* DOUBLE_QUOTE(dq_mode)
     ;
 
-escapedExpression
-    : ESCAPED_EXPRESSION expression(default) CLOSE_PARA(default)
+escapedArithmeticExpression
+    : ESCAPED_EXPRESSION arithmeticExpression(default) CLOSE_PARA(default)
     ;
 ```
 

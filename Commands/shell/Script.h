@@ -18,7 +18,7 @@
 
 //#define SCRIPT_PRINTING 1
 struct Block;
-struct Expression;
+struct Arithmetic;
 
 #define AS(__self, __type) ((__type*)__self)
 
@@ -36,10 +36,10 @@ extern void VarRef_Print(VarRef* _Nonnull self);
 
 
 typedef enum SegmentType {
-    kSegment_String,            // LiteralSegment
-    kSegment_EscapeSequence,    // LiteralSegment
-    kSegment_Expression,        // ExpressionSegment
-    kSegment_VarRef             // VarRefSegment
+    kSegment_String,                // LiteralSegment
+    kSegment_EscapeSequence,        // LiteralSegment
+    kSegment_ArithmeticExpression,  // ArithmeticSegment
+    kSegment_VarRef                 // VarRefSegment
 } SegmentType;
 
 typedef struct Segment {
@@ -52,10 +52,10 @@ typedef struct LiteralSegment {
     Value   value;
 } LiteralSegment;
 
-typedef struct ExpressionSegment {
+typedef struct ArithmeticSegment {
     Segment                     super;
-    struct Expression* _Nonnull expr;
-} ExpressionSegment;
+    struct Arithmetic* _Nonnull expr;
+} ArithmeticSegment;
 
 typedef struct VarRefSegment {
     Segment             super;
@@ -63,7 +63,7 @@ typedef struct VarRefSegment {
 } VarRefSegment;
 
 extern errno_t Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType type, const Value* _Nonnull value, Segment* _Nullable * _Nonnull pOutSelf);
-extern errno_t Segment_CreateExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, Segment* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
+extern errno_t Segment_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, struct Arithmetic* _Nonnull expr, Segment* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the ArithmeticExpression
 extern errno_t Segment_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, Segment* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
 #ifdef SCRIPT_PRINTING
 extern void Segment_Print(Segment* _Nonnull self);
@@ -93,7 +93,7 @@ typedef enum AtomType {
     kAtom_DoubleBacktickString,     // u.qstring
     kAtom_DoubleQuoteString,        // u.qstring
     kAtom_VariableReference,        // u.vref
-    kAtom_Expression,               // u.expr
+    kAtom_ArithmeticExpression,     // u.expr
 } AtomType;
 
 typedef struct Atom {
@@ -104,7 +104,7 @@ typedef struct Atom {
     union {
         size_t                          stringLength;   // nul-terminated string follows the atom structure
         struct CompoundString* _Nonnull qstring;
-        struct Expression* _Nonnull     expr;
+        struct Arithmetic* _Nonnull     expr;
         VarRef* _Nonnull                vref;
         int32_t                         i32;
     }                       u;
@@ -113,7 +113,7 @@ typedef struct Atom {
 extern errno_t Atom_CreateWithCharacter(StackAllocatorRef _Nonnull pAllocator, AtomType type, char ch, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
 extern errno_t Atom_CreateWithString(StackAllocatorRef _Nonnull pAllocator, AtomType type, const char* _Nonnull str, size_t len, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
 extern errno_t Atom_CreateWithInteger(StackAllocatorRef _Nonnull pAllocator, int32_t i32, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);
-extern errno_t Atom_CreateWithExpression(StackAllocatorRef _Nonnull pAllocator, struct Expression* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the Expression
+extern errno_t Atom_CreateWithArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, struct Arithmetic* _Nonnull expr, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the ArithmeticExpression
 extern errno_t Atom_CreateWithVarRef(StackAllocatorRef _Nonnull pAllocator, VarRef* _Nonnull vref, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the VarRef
 extern errno_t Atom_CreateWithCompoundString(StackAllocatorRef _Nonnull pAllocator, AtomType type, struct CompoundString* _Nonnull str, bool hasLeadingWhitespace, Atom* _Nullable * _Nonnull pOutSelf);  // Takes ownership of the String
 #define Atom_GetStringLength(__self) (__self)->u.stringLength
@@ -125,153 +125,153 @@ extern void Atom_Print(Atom* _Nonnull self);
 
 
 
+typedef enum ArithmeticType {
+    kArithmetic_Pipeline,           // BinaryArithmetic
+    kArithmetic_Disjunction,        // BinaryArithmetic
+    kArithmetic_Conjunction,        // BinaryArithmetic
+    kArithmetic_Equals,             // BinaryArithmetic     (kBinaryOp_Equals)
+    kArithmetic_NotEquals,          // BinaryArithmetic     .
+    kArithmetic_LessEquals,         // BinaryArithmetic     .
+    kArithmetic_GreaterEquals,      // BinaryArithmetic     .
+    kArithmetic_Less,               // BinaryArithmetic     .
+    kArithmetic_Greater,            // BinaryArithmetic     .
+    kArithmetic_Addition,           // BinaryArithmetic     .
+    kArithmetic_Subtraction,        // BinaryArithmetic     .
+    kArithmetic_Multiplication,     // BinaryArithmetic     .
+    kArithmetic_Division,           // BinaryArithmetic     (kBinaryOp_Division)
+    kArithmetic_Parenthesized,      // UnaryArithmetic
+    kArithmetic_Positive,           // UnaryArithmetic
+    kArithmetic_Negative,           // UnaryArithmetic      (kUnaryOp_Negative)
+    kArithmetic_Not,                // UnaryArithmetic      (kUnaryOp_Not)
+    kArithmetic_Literal,            // LiteralArithmetic
+    kArithmetic_CompoundString,     // CompoundStringArithmetic
+    kArithmetic_VarRef,             // VarRefArithmetic
+    kArithmetic_Command,            // CommandArithmetic
+    kArithmetic_If,                 // IfArithmetic
+    kArithmetic_While,              // WhileArithmetic
+} ArithmeticType;
+
+typedef struct Arithmetic {
+    int8_t      type;
+    bool        hasLeadingWhitespace;
+} Arithmetic;
+
+typedef struct LiteralArithmetic {
+    Arithmetic  super;
+    Value       value;
+} LiteralArithmetic;
+
+typedef struct CompoundStringArithmetic {
+    Arithmetic      super;
+    CompoundString* string;
+} CompoundStringArithmetic;
+
+typedef struct BinaryArithmetic {
+    Arithmetic              super;
+    Arithmetic* _Nonnull    lhs;
+    Arithmetic* _Nonnull    rhs;
+} BinaryArithmetic;
+
+typedef struct UnaryArithmetic {
+    Arithmetic              super;
+    Arithmetic* _Nullable   expr;
+} UnaryArithmetic;
+
+typedef struct VarRefArithmetic {
+    Arithmetic          super;
+    VarRef* _Nonnull    vref;
+} VarRefArithmetic;
+
+typedef struct CommandArithmetic {
+    Arithmetic          super;
+    Atom* _Nonnull      atoms;
+    Atom* _Nonnull      lastAtom;
+} CommandArithmetic;
+
+typedef struct IfArithmetic {
+    Arithmetic              super;
+    Arithmetic* _Nonnull    cond;
+    struct Block* _Nonnull  thenBlock;
+    struct Block* _Nullable elseBlock;
+} IfArithmetic;
+
+typedef struct WhileArithmetic {
+    Arithmetic              super;
+    Arithmetic* _Nonnull    cond;
+    struct Block* _Nonnull  body;
+} WhileArithmetic;
+
+extern errno_t Arithmetic_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern errno_t Arithmetic_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern errno_t Arithmetic_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nonnull lhs, Arithmetic* _Nonnull rhs, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern errno_t Arithmetic_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ArithmeticType type, Arithmetic* _Nullable expr, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern errno_t Arithmetic_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern errno_t Arithmetic_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern errno_t Arithmetic_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Arithmetic* _Nonnull cond, struct Block* _Nonnull body, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern errno_t Arithmetic_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nullable * _Nonnull pOutSelf);
+extern void CommandArithmetic_AddAtom(CommandArithmetic* _Nonnull self, Atom* _Nonnull atom);
+#ifdef SCRIPT_PRINTING
+extern void Arithmetic_Print(Arithmetic* _Nonnull self);
+#endif
+
+
+
 typedef enum ExpressionType {
-    kExpression_Pipeline,           // BinaryExpression
-    kExpression_Disjunction,        // BinaryExpression
-    kExpression_Conjunction,        // BinaryExpression
-    kExpression_Equals,             // BinaryExpression     (kBinaryOp_Equals)
-    kExpression_NotEquals,          // BinaryExpression     .
-    kExpression_LessEquals,         // BinaryExpression     .
-    kExpression_GreaterEquals,      // BinaryExpression     .
-    kExpression_Less,               // BinaryExpression     .
-    kExpression_Greater,            // BinaryExpression     .
-    kExpression_Addition,           // BinaryExpression     .
-    kExpression_Subtraction,        // BinaryExpression     .
-    kExpression_Multiplication,     // BinaryExpression     .
-    kExpression_Division,           // BinaryExpression     (kBinaryOp_Division)
-    kExpression_Parenthesized,      // UnaryExpression
-    kExpression_Positive,           // UnaryExpression
-    kExpression_Negative,           // UnaryExpression      (kUnaryOp_Negative)
-    kExpression_Not,                // UnaryExpression      (kUnaryOp_Not)
-    kExpression_Literal,            // LiteralExpression
-    kExpression_CompoundString,     // CompoundStringExpression
-    kExpression_VarRef,             // VarRefExpression
-    kExpression_Command,            // CommandExpression
-    kExpression_If,                 // IfExpression
-    kExpression_While,              // WhileExpression
+    kExpression_Null,                   // Expression
+    kExpression_ArithmeticExpression,   // ArithmeticExpression
+    kExpression_Assignment,             // AssignmentExpression
+    kExpression_VarDecl,                // VarDeclExpression
 } ExpressionType;
 
 typedef struct Expression {
-    int8_t      type;
-    bool        hasLeadingWhitespace;
+    struct Expression* _Nullable    next;
+    int8_t                          type;
+    bool                            isAsync;    // '&' -> true and ';' | '\n' -> false
 } Expression;
 
-typedef struct LiteralExpression {
-    Expression  super;
-    Value       value;
-} LiteralExpression;
-
-typedef struct CompoundStringExpression {
-    Expression      super;
-    CompoundString* string;
-} CompoundStringExpression;
-
-typedef struct BinaryExpression {
+typedef struct ArithmeticExpression {
     Expression              super;
-    Expression* _Nonnull    lhs;
-    Expression* _Nonnull    rhs;
-} BinaryExpression;
+    Arithmetic* _Nonnull    expr;
+} ArithmeticExpression;
 
-typedef struct UnaryExpression {
+typedef struct AssignmentExpression {
     Expression              super;
-    Expression* _Nullable   expr;
-} UnaryExpression;
+    Arithmetic* _Nonnull    lvalue;
+    Arithmetic* _Nonnull    rvalue;
+} AssignmentExpression;
 
-typedef struct VarRefExpression {
-    Expression          super;
-    VarRef* _Nonnull    vref;
-} VarRefExpression;
-
-typedef struct CommandExpression {
-    Expression          super;
-    Atom* _Nonnull      atoms;
-    Atom* _Nonnull      lastAtom;
-} CommandExpression;
-
-typedef struct IfExpression {
+typedef struct VarDeclExpression {
     Expression              super;
-    Expression* _Nonnull    cond;
-    struct Block* _Nonnull  thenBlock;
-    struct Block* _Nullable elseBlock;
-} IfExpression;
+    VarRef* _Nonnull        vref;
+    Arithmetic* _Nonnull    expr;
+    unsigned int            modifiers;
+} VarDeclExpression;
 
-typedef struct WhileExpression {
-    Expression              super;
-    Expression* _Nonnull    cond;
-    struct Block* _Nonnull  body;
-} WhileExpression;
-
-extern errno_t Expression_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, const Value* value, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateCompoundString(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, CompoundString* _Nonnull str, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateBinary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nonnull lhs, Expression* _Nonnull rhs, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateUnary(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, ExpressionType type, Expression* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateVarRef(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, VarRef* _Nonnull vref, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateIfThen(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Expression* _Nonnull cond, struct Block* _Nonnull thenBlock, struct Block* _Nullable elseBlock, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateWhile(StackAllocatorRef _Nonnull pAllocator, bool hasLeadingWhitespace, Expression* _Nonnull cond, struct Block* _Nonnull body, Expression* _Nullable * _Nonnull pOutSelf);
-extern errno_t Expression_CreateCommand(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
-extern void CommandExpression_AddAtom(CommandExpression* _Nonnull self, Atom* _Nonnull atom);
+extern errno_t Expression_CreateNull(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull lvalue, Arithmetic* _Nonnull rvalue, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);
 #endif
 
 
 
-typedef enum StatementType {
-    kStatement_Null,            // Statement
-    kStatement_Expression,      // ExpressionStatement
-    kStatement_Assignment,      // AssignmentStatement
-    kStatement_VarDecl,         // VarDeclStatement
-} StatementType;
+typedef struct ExpressionList {
+    Expression* _Nullable   exprs;
+    Expression* _Nullable   lastExpr;
+} ExpressionList;
 
-typedef struct Statement {
-    struct Statement* _Nullable next;
-    int8_t                      type;
-    bool                        isAsync;    // '&' -> true and ';' | '\n' -> false
-} Statement;
-
-typedef struct ExpressionStatement {
-    Statement               super;
-    Expression* _Nonnull    expr;
-} ExpressionStatement;
-
-typedef struct AssignmentStatement {
-    Statement               super;
-    Expression* _Nonnull    lvalue;
-    Expression* _Nonnull    rvalue;
-} AssignmentStatement;
-
-typedef struct VarDeclStatement {
-    Statement                   super;
-    VarRef* _Nonnull            vref;
-    struct Expression* _Nonnull expr;
-    unsigned int                modifiers;
-} VarDeclStatement;
-
-extern errno_t Statement_CreateNull(StackAllocatorRef _Nonnull pAllocator, Statement* _Nullable * _Nonnull pOutSelf);
-extern errno_t Statement_CreateExpression(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull expr, Statement* _Nullable * _Nonnull pOutSelf);
-extern errno_t Statement_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Expression* _Nonnull lvalue, Expression* _Nonnull rvalue, Statement* _Nullable * _Nonnull pOutSelf);
-extern errno_t Statement_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Expression* _Nonnull expr, Statement* _Nullable * _Nonnull pOutSelf);
+extern void ExpressionList_Init(ExpressionList* _Nonnull self);
+extern void ExpressionList_AddExpression(ExpressionList* _Nonnull self, Expression* _Nonnull expr);
 #ifdef SCRIPT_PRINTING
-extern void Statement_Print(Statement* _Nonnull self);
-#endif
-
-
-
-typedef struct StatementList {
-    Statement* _Nullable    stmts;
-    Statement* _Nullable    lastStmt;
-} StatementList;
-
-extern void StatementList_Init(StatementList* _Nonnull self);
-extern void StatementList_AddStatement(StatementList* _Nonnull self, Statement* _Nonnull stmt);
-#ifdef SCRIPT_PRINTING
-extern void StatementList_Print(StatementList* _Nonnull self);
+extern void ExpressionList_Print(ExpressionList* _Nonnull self);
 #endif
 
 
 
 typedef struct Block {
-    StatementList   statements;
+    ExpressionList  exprs;
 } Block;
 
 extern errno_t Block_Create(StackAllocatorRef _Nonnull pAllocator, Block* _Nullable * _Nonnull pOutSelf);
@@ -282,7 +282,7 @@ extern void Block_Print(Block* _Nonnull self);
 
 
 typedef struct Script {
-    StatementList               statements;
+    ExpressionList              exprs;
     ConstantsPool* _Nonnull     constantsPool;
     StackAllocatorRef _Nonnull  allocator;
 } Script;

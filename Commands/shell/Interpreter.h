@@ -19,6 +19,12 @@
 #include "StackAllocator.h"
 
 
+typedef enum ExecuteOptions {
+    kExecute_PushScope = 1,     // Push a scope before running the script and pop it afterwards
+    kExecute_PrintResult = 2,   // Print the result of (the last expression of) the script
+} ExecuteOptions;
+
+
 typedef struct Interpreter {
     StackAllocatorRef _Nonnull  allocator;
     
@@ -36,7 +42,7 @@ extern errno_t Interpreter_Create(LineReaderRef _Nonnull lineReader, Interpreter
 extern void Interpreter_Destroy(InterpreterRef _Nullable self);
 
 // Interprets 'pScript' and executes all its statements.
-extern errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script, bool bPushScope);
+extern errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull script, ExecuteOptions options);
 
 //
 // For use by command callbacks

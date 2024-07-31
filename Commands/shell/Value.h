@@ -76,15 +76,15 @@ extern void Value_Deinit(Value* _Nonnull self);
 
 
 typedef enum UnaryOperation {
-    kUnaryOp_Negative,          // (kExpression_Negative)
-    kUnaryOp_Not,               // (kExpression_Not)
+    kUnaryOp_Negative,          // (kArithmetic_Negative)
+    kUnaryOp_Not,               // (kArithmetic_Not)
 } UnaryOperation;
 
 extern errno_t Value_UnaryOp(Value* _Nonnull self, UnaryOperation op);
 
 
 typedef enum BinaryOperation {
-    kBinaryOp_Equals,           // (kExpression_Equals)
+    kBinaryOp_Equals,           // (kArithmetic_Equals)
     kBinaryOp_NotEquals,        // .
     kBinaryOp_LessEquals,       // .
     kBinaryOp_GreaterEquals,    // .
@@ -93,7 +93,7 @@ typedef enum BinaryOperation {
     kBinaryOp_Addition,         // .
     kBinaryOp_Subtraction,      // .
     kBinaryOp_Multiplication,   // .
-    kBinaryOp_Division,         // (kExpression_Division)
+    kBinaryOp_Division,         // (kArithmetic_Division)
 } BinaryOperation;
 
 extern errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryOperation op);
