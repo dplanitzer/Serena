@@ -10,6 +10,27 @@
 #include <System/ByteOrder.h>
 
 
+static errno_t SerenaFS_ReadIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNumber ibn, SFSBlockNumber* _Nonnull bp)
+{
+    const errno_t err = DiskDriver_GetBlock(self->diskDriver, bp, ibn);
+    
+    if (err == EOK) {
+        for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
+            bp[i] = UInt32_BigToHost(bp[i]);
+        }
+    }
+    return err;
+}
+
+static errno_t SerenaFS_WriteIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNumber ibn, SFSBlockNumber* _Nonnull bp)
+{
+    for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
+        bp[i] = UInt32_HostToBig(bp[i]);
+    }
+    
+    return DiskDriver_PutBlock(self->diskDriver, bp, ibn);
+}
+
 // Looks up the absolute logical block address for the disk block that corresponds
 // to the file-specific logical block address 'fba'.
 // The first logical block is #0 at the very beginning of the file 'pNode'. Logical
@@ -57,16 +78,16 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
                 return EOK;
             }
         }
-        
-        try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, i0_lba));
 
         SFSBlockNumber* dat_bp = (SFSBlockNumber*)self->tmpBlock;
+        try(SerenaFS_ReadIndirectBlock(self, i0_lba, dat_bp));
         LogicalBlockAddress dat_lba = dat_bp[fba];
 
         if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
             try(SerenaFS_AllocateBlock(self, &dat_lba));
             dat_bp[fba] = dat_lba;
-            try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, i0_lba));
+
+            try(SerenaFS_WriteIndirectBlock(self, i0_lba, dat_bp));
         }
         
         *pOutLba = dat_lba;
@@ -275,8 +296,9 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     const LogicalBlockAddress i1_lba = ino_bp[kSFSDirectBlockPointersCount];
 
     if (i1_lba != 0) {
-        DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, i1_lba);
         SFSBlockNumber* i1_bp = (SFSBlockNumber*)self->tmpBlock;
+
+        SerenaFS_ReadIndirectBlock(self, i1_lba, i1_bp);
 
         for (SFSBlockNumber bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
             if (i1_bp[bn] != 0) {
@@ -291,7 +313,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
         }
         else {
             // We partially removed the i1 level
-            DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, i1_lba);
+            SerenaFS_WriteIndirectBlock(self, i1_lba, i1_bp);
         }
     }
 
