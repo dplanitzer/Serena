@@ -13,7 +13,7 @@
 #include <System/System.h>
 
 
-static char* _Nullable alloc_envar(const char* _Nonnull key, const char* _Nonnull value)
+static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull value)
 {
     const size_t keyLen = strlen(key);
     const size_t valLen = strlen(value);
@@ -21,9 +21,10 @@ static char* _Nullable alloc_envar(const char* _Nonnull key, const char* _Nonnul
     char* ep = malloc(kvLen + 1);
 
     if (ep) {
-        memcpy(&ep[0], key, keyLen);
+        memcpy(ep, key, keyLen);
         ep[keyLen] = '=';
         memcpy(&ep[keyLen + 1], value, valLen);
+        ep[kvLen] = '\0';
     }
     return ep;
 }
@@ -37,7 +38,8 @@ static errno_t run_shell(const char* _Nonnull shellPath, const char* _Nonnull ho
     char* argv[1] = { NULL };
     char* envp[2] = { NULL, NULL };
     
-    envp[0] = alloc_envar("HOME", homePath);
+    envp[0] = env_alloc("HOME", homePath);
+    envp[1] = NULL;
     opts.envp = envp;
 
 
