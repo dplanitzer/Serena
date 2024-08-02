@@ -15,9 +15,10 @@ int memcmp(const void *lhs, const void *rhs, size_t count)
     unsigned char *prhs = (unsigned char *)rhs;
     
     while (count-- > 0) {
-        if (*plhs++ != *prhs++) {
+        if (*plhs != *prhs) {
             return ((int)*plhs) - ((int)*prhs);
         }
+        plhs++; prhs++;
     }
 
     return 0;

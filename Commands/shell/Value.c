@@ -278,9 +278,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             const char* rhs_chars = Value_GetCharacters(rhs);
             const size_t lhs_len = Value_GetLength(lhs_r);
             const size_t rhs_len = Value_GetLength(rhs);
+            const bool r = (lhs_len == rhs_len && !memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
 
-            lhs_r->type = kValue_Bool;
-            lhs_r->u.b = (lhs_len == rhs_len && !memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
+            Value_Deinit(lhs_r);
+            Value_InitBool(lhs_r, r);
             return EOK;
         }
 
@@ -300,9 +301,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             const char* rhs_chars = Value_GetCharacters(rhs);
             const size_t lhs_len = Value_GetLength(lhs_r);
             const size_t rhs_len = Value_GetLength(rhs);
+            const bool r = (lhs_len != rhs_len || memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
 
-            lhs_r->type = kValue_Bool;
-            lhs_r->u.b = (lhs_len != rhs_len || memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
+            Value_Deinit(lhs_r);
+            Value_InitBool(lhs_r, r);
             return EOK;
         }
 
@@ -316,10 +318,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_LessEquals): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
+            const bool r = (strcmp(lhs_chars, rhs_chars) <= 0) ? true : false;
 
-            // lexicographical order
-            lhs_r->type = kValue_Bool;
-            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) <= 0) ? true : false;
+            Value_Deinit(lhs_r);
+            Value_InitBool(lhs_r, r);
             return EOK;
         }
 
@@ -333,10 +335,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_GreaterEquals): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
+            const bool r = (strcmp(lhs_chars, rhs_chars) >= 0) ? true : false;
 
-            // lexicographical order
-            lhs_r->type = kValue_Bool;
-            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) >= 0) ? true : false;
+            Value_Deinit(lhs_r);
+            Value_InitBool(lhs_r, r);
             return EOK;
         }
 
@@ -350,10 +352,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Less): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
+            const bool r = (strcmp(lhs_chars, rhs_chars) < 0) ? true : false;
 
-            // lexicographical order
-            lhs_r->type = kValue_Bool;
-            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) < 0) ? true : false;
+            Value_Deinit(lhs_r);
+            Value_InitBool(lhs_r, r);
             return EOK;
         }
 
@@ -367,10 +369,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Greater): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
+            const bool r = (strcmp(lhs_chars, rhs_chars) > 0) ? true : false;
 
-            // lexicographical order
-            lhs_r->type = kValue_Bool;
-            lhs_r->u.b = (strcmp(lhs_chars, rhs_chars) > 0) ? true : false;
+            Value_Deinit(lhs_r);
+            Value_InitBool(lhs_r, r);
             return EOK;
         }
 
@@ -398,12 +400,12 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
 
         // Division
         case TUPLE_3(kValue_Integer, kValue_Integer, kBinaryOp_Division):
-            if (rhs->u.i32 == 0) {
+            if (rhs->u.i32 != 0) {
+                lhs_r->u.i32 = lhs_r->u.i32 / rhs->u.i32;
+                return EOK;
+            } else {
                 return EDIVBYZERO;
             }
-
-            lhs_r->u.i32 = lhs_r->u.i32 / rhs->u.i32;
-            return EOK;
 
 
         // Others
