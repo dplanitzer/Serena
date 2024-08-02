@@ -16,6 +16,14 @@
 #define TUPLE_2(__1, __2) ((__2) << 8) | (__1)
 #define TUPLE_3(__1, __2, __3) ((__3) << 16) | ((__2) << 8) | (__1)
 
+// Note that non-trivial values (e.g. strings) use a copy-on-write strategy to
+// defer copying the backing store until really needed. The backing store is
+// reference counted. If a mutation should be done on a non-trivial value then
+// the reference count is checked whether it is > 1 before the mutation is
+// allowed. If the count is > 1, a copy of teh backing store is made and the
+// copy is assigned to the value that we want to mutate. Then the mutation can
+// proceed on the value.
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Reference Counted String
