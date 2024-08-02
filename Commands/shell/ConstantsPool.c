@@ -16,13 +16,13 @@
 
 static void Constant_Destroy(Constant* _Nullable self);
 
-static errno_t Constant_Create(ValueType type, RawData data, Constant* _Nullable * _Nonnull pOutSelf)
+static errno_t Constant_CreateString(const char* _Nonnull str, size_t len, Constant* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Constant* self;
 
     try_null(self, calloc(1, sizeof(Constant)), errno);
-    try(Value_Init(&self->value, type, data));
+    try(Value_InitString(&self->value, (char*)str, len, 0));
 
     *pOutSelf = self;
     return EOK;
@@ -104,24 +104,23 @@ errno_t ConstantsPool_GetStringValue(ConstantsPool* _Nonnull self, const char* _
     Constant* cp = self->hashtable[hashIndex];
 
     while (cp) {
-        if (cp->value.type == kValue_String && cp->value.u.string.length == len && !memcmp(cp->value.u.string.characters, str, len)) {
-            *pOutValue = cp->value;
+        if (cp->value.type == kValue_String && Value_GetLength(&cp->value) == len && !memcmp(Value_GetCharacters(&cp->value), str, len)) {
+            Value_InitCopy(pOutValue, &cp->value);
             return EOK;
         }
 
         cp = cp->next;
     }
 
-    RawData data = {.string.characters = (char*)str, .string.length = len};
-    const errno_t err = Constant_Create(kValue_String, data, &cp);
+    const errno_t err = Constant_CreateString(str, len, &cp);
     if (err == EOK) {
         cp->next = self->hashtable[hashIndex];
         self->hashtable[hashIndex] = cp;
-        *pOutValue = cp->value;
+        Value_InitCopy(pOutValue, &cp->value);
         return EOK;
     }
     else {
-        UndefinedValue_Init(pOutValue);
+        Value_InitUndefined(pOutValue);
         return err;
     }
 }

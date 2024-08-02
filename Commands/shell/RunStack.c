@@ -23,7 +23,7 @@ static errno_t Variable_Create(unsigned int modifiers, const char* _Nonnull name
 
     try_null(self, calloc(1, sizeof(Variable)), errno);
     try_null(self->name, strdup(name), errno);
-    try(Value_InitCopy(&self->value, value));
+    Value_InitCopy(&self->value, value);
     self->modifiers = modifiers;
 
     *pOutSelf = self;

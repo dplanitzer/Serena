@@ -24,54 +24,69 @@ typedef enum ValueType {
 } ValueType;
 
 
-typedef struct StringValue {
-    char* _Nonnull  characters;
-    size_t          length;
-} StringValue;
+typedef enum ValueFlags {
+    kValueFlag_NoCopy = 1,      // Set if the value does not own the string backing store (it's provided and owned by someone outside the VM)
+} ValueFlags;
+
+
+typedef struct RCString {
+    int32_t retainCount;
+    size_t  capacity;       // Includes the trailing nul
+    size_t  length;         // Excludes the trailing nul
+    char    characters[1];
+} RCString;
 
 
 // Internal value data representation
 typedef union ValueData {
-    StringValue string;
-    bool        b;
-    int32_t     i32;
+    struct NoCopyString {
+        const char* _Nonnull    characters;
+        size_t                  length;
+    }                   noCopyString;
+    RCString* _Nonnull  rcString;
+    bool                b;
+    int32_t             i32;
 } ValueData;
 
 
 // A typed value
 typedef struct Value {
-    int8_t      type;
-    int8_t      reserved[3];
+    uint8_t     type;
+    uint8_t     flags;
+    uint8_t     reserved[2];
     ValueData   u;
 } Value;
 
 
-// Data used to initialize a new value
-typedef union RawData {
-    StringValue string;
-    bool        b;
-    int32_t     i32;
-} RawData;
+#define Value_InitUndefined(__self) \
+    (__self)->type = kValue_Undefined; \
+    (__self)->flags = 0
 
+#define Value_InitVoid(__self) \
+    (__self)->type = kValue_Void; \
+    (__self)->flags = 0
 
-#define UndefinedValue_Init(__self) \
-    (__self)->type = kValue_Undefined;
-
-#define VoidValue_Init(__self) \
-    (__self)->type = kValue_Void;
-
-#define BoolValue_Init(__self, __b) \
+#define Value_InitBool(__self, __b) \
     (__self)->type = kValue_Bool; \
-    (__self)->u.b = __b;
+    (__self)->flags = 0; \
+    (__self)->u.b = (__b)
 
-#define IntegerValue_Init(__self, __i32) \
+#define Value_InitInteger(__self, __i32) \
     (__self)->type = kValue_Integer; \
-    (__self)->u.i32 = __i32;
+    (__self)->flags = 0; \
+    (__self)->u.i32 = (__i32)
 
-extern errno_t StringValue_Init(Value* _Nonnull self, const char* _Nonnull str, size_t len);
+#define Value_InitEmptyString(__self) \
+    Value_InitCString(__self, "", kValueFlag_NoCopy)
 
-extern errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data);
-extern errno_t Value_InitCopy(Value* _Nonnull self, const Value* _Nonnull other);
+extern errno_t Value_InitCString(Value* _Nonnull self, char* str, ValueFlags flags);
+extern errno_t Value_InitString(Value* _Nonnull self, char* buf, size_t nbytes, ValueFlags flags);
+
+// Creates an efficient copy of 'other'. The copy is in the sense efficient that
+// 'other' and 'self' will share the same backing store if 'other' is a string.
+// The backing store is only copied if either value is mutated later on.
+extern void Value_InitCopy(Value* _Nonnull self, const Value* _Nonnull other);
+
 extern void Value_Deinit(Value* _Nonnull self);
 
 
@@ -108,6 +123,24 @@ extern errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues);
 
 // Writes the string representation of the given value to the given I/O stream.
 extern errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream);
+
+// Returns the length of a string value; 0 is returned if the value is not a
+// string.
+extern size_t Value_GetLength(const Value* _Nonnull self);
+
+// Returns a pointer to the immutable characters of a string value; a pointer to
+// an empty string is returned if the value is not a string value.
+extern const char* _Nonnull Value_GetCharacters(const Value* _Nonnull self);
+
+// Returns a pointer to the mutable characters of a string value; a NULL pointer
+// is returned if this is not possible. Note that this function triggers a copy-
+// on-write operation if the string backing store is shared with some other
+// value.
+extern char* _Nullable Value_GetMutableCharacters(Value* _Nonnull self);
+
+// Assumes that the receiver and 'other' are strings and concatenates the string
+// values and assigns teh result to 'self'.
+extern errno_t Value_Appending(Value* _Nonnull self, const Value* _Nonnull other);
 
 // Returns the max length of the string that represents the value of the Value.
 // Note that the actual string returned by Value_GetString() may be shorter,

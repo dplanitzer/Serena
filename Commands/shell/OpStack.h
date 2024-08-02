@@ -27,6 +27,7 @@ extern void OpStack_Destroy(OpStack* _Nullable self);
 extern errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value);
 
 extern errno_t OpStack_PushVoid(OpStack* _Nonnull self);
+extern errno_t OpStack_PushEmptyString(OpStack* _Nonnull self);
 
 // Pops all values from the stack.
 extern void OpStack_PopAll(OpStack* _Nonnull self);
@@ -35,7 +36,7 @@ extern void OpStack_PopAll(OpStack* _Nonnull self);
 extern errno_t OpStack_Pop(OpStack* _Nonnull self);
 
 // Pops the top-most 'count' entries off the operand stack.
-extern errno_t OpStack_PopMany(OpStack* _Nonnull self, size_t count);
+extern errno_t OpStack_PopSome(OpStack* _Nonnull self, size_t count);
 
 // Returns true if the operand stack is empty
 #define OpStack_IsEmpty(__self) (((__self)->count == 0) ? true : false)

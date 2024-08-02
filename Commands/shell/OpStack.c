@@ -19,6 +19,7 @@ errno_t OpStack_Create(OpStack* _Nullable * _Nonnull pOutSelf)
     try_null(self, calloc(1, sizeof(OpStack)), errno);
     try_null(self->values, malloc(sizeof(Value) * INITIAL_STACK_SIZE), errno);
     self->capacity = INITIAL_STACK_SIZE;
+    self->count = 0;
     
     *pOutSelf = self;
     return EOK;
@@ -32,6 +33,8 @@ catch:
 void OpStack_Destroy(OpStack* _Nullable self)
 {
     if (self) {
+        OpStack_PopAll(self);
+
         free(self->values);
         self->values = NULL;
 
@@ -61,7 +64,7 @@ errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value)
     Value* vp = _OpStack_Push(self);
 
     if (vp) {
-        *vp = *value;
+        Value_InitCopy(vp, value);
         return EOK;
     } else {
         return ENOMEM;
@@ -73,7 +76,19 @@ errno_t OpStack_PushVoid(OpStack* _Nonnull self)
     Value* vp = _OpStack_Push(self);
 
     if (vp) {
-        VoidValue_Init(vp);
+        Value_InitVoid(vp);
+        return EOK;
+    } else {
+        return ENOMEM;
+    }
+}
+
+errno_t OpStack_PushEmptyString(OpStack* _Nonnull self)
+{
+    Value* vp = _OpStack_Push(self);
+
+    if (vp) {
+        Value_InitEmptyString(vp);
         return EOK;
     } else {
         return ENOMEM;
@@ -82,13 +97,16 @@ errno_t OpStack_PushVoid(OpStack* _Nonnull self)
 
 void OpStack_PopAll(OpStack* _Nonnull self)
 {
+    for (size_t i = 0; i < self->count; i++) {
+        Value_Deinit(&self->values[i]);
+    }
     self->count = 0;
 }
 
 errno_t OpStack_Pop(OpStack* _Nonnull self)
 {
     if (self->count > 0) {
-        self->count--;
+        Value_Deinit(&self->values[--self->count]);
         return EOK;
     }
     else {
@@ -96,13 +114,15 @@ errno_t OpStack_Pop(OpStack* _Nonnull self)
     }
 }
 
-errno_t OpStack_PopMany(OpStack* _Nonnull self, size_t count)
+errno_t OpStack_PopSome(OpStack* _Nonnull self, size_t count)
 {
     if (self->count < count) {
         return EUNDERFLOW;
     }
 
-    self->count -= count;
+    while (count-- > 0) {
+        Value_Deinit(&self->values[--self->count]);
+    }
     return EOK;
 }
 

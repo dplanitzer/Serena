@@ -8,6 +8,7 @@
 
 #include "Value.h"
 #include "Utilities.h"
+#include <assert.h>
 #include <string.h>
 #include <System/abi/_dmdef.h>
 #include <System/_math.h>
@@ -16,65 +17,134 @@
 #define TUPLE_3(__1, __2, __3) ((__3) << 16) | ((__2) << 8) | (__1)
 
 
-errno_t StringValue_Init(Value* _Nonnull self, const char* _Nonnull str, size_t len)
+////////////////////////////////////////////////////////////////////////////////
+// Reference Counted String
+////////////////////////////////////////////////////////////////////////////////
+
+static errno_t RCString_CreateWithCapacity(size_t capacity, RCString* _Nullable * _Nonnull pOutString)
 {
-    decl_try_err();
+    RCString* self = malloc(sizeof(RCString) + capacity);
 
-    self->type = kValue_String;
-    try_null(self->u.string.characters, strdup(str), errno);
-    self->u.string.length = len;
+    if (self) {
+        self->retainCount = 1;
+        self->capacity = capacity;
+        self->length = 0;
 
-catch:
+        *pOutString = self;
+        return EOK;
+    }
+    else {
+        *pOutString = NULL;
+        return ENOMEM;
+    }
+}
+
+static errno_t RCString_CreateMutableCopy(RCString* _Nonnull other, RCString* _Nullable * _Nonnull pOutString)
+{
+    RCString* self = NULL;
+    const errno_t err = RCString_CreateWithCapacity(other->length + 1, &self);
+
+    if (err == EOK) {
+        memcpy(self->characters, other->characters, other->length + 1);
+    }
+    *pOutString = self;
     return err;
 }
 
-errno_t Value_Init(Value* _Nonnull self, ValueType type, RawData data)
+static void RCString_SetCharacters(RCString* _Nonnull self, const char* _Nonnull buf, size_t nbytes)
 {
-    decl_try_err();
+    assert(self->capacity > nbytes);
 
-    self->type = type;
-    switch (type) {
-        case kValue_Bool:
-            self->u.b = data.b;
-            break;
+    memcpy(self->characters, buf, nbytes);
+    self->characters[nbytes] = '\0';
+    self->length = nbytes;
+}
 
-        case kValue_Integer:
-            self->u.i32 = data.i32;
-            break;
+static void RCString_Retain(RCString* _Nonnull self)
+{
+    self->retainCount++;
+}
 
+static void RCString_Release(RCString* _Nonnull self)
+{
+    self->retainCount--;
+    if (self->retainCount == 0) {
+        free(self);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Value
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t Value_InitCString(Value* _Nonnull self, char* str, ValueFlags flags)
+{
+    const size_t len = strlen(str);
+
+    self->type = kValue_String;
+    self->flags = flags;
+
+    if ((flags & kValueFlag_NoCopy) == kValueFlag_NoCopy) {
+        self->u.noCopyString.characters = str;
+        self->u.noCopyString.length = len;
+        return EOK;
+    }
+    else {
+        const errno_t err = RCString_CreateWithCapacity(len + 1, &self->u.rcString);
+
+        if (err == EOK) {
+            RCString_SetCharacters(self->u.rcString, str, len);
+        }
+        return err;
+    }
+}
+
+errno_t Value_InitString(Value* _Nonnull self, char* buf, size_t nbytes, ValueFlags flags)
+{
+    self->type = kValue_String;
+    self->flags = flags;
+
+    if ((flags & kValueFlag_NoCopy) == kValueFlag_NoCopy) {
+        self->u.noCopyString.characters = buf;
+        self->u.noCopyString.length = nbytes;
+        return EOK;
+    }
+    else {
+        const errno_t err = RCString_CreateWithCapacity(nbytes + 1, &self->u.rcString);
+
+        if (err == EOK) {
+            RCString_SetCharacters(self->u.rcString, buf, nbytes);
+        }
+        return err;
+    }
+}
+
+void Value_InitCopy(Value* _Nonnull self, const Value* _Nonnull other)
+{
+    *self = *other;
+
+    switch (self->type) {
         case kValue_String:
-            try_null(self->u.string.characters, strdup(data.string.characters), errno);
-            self->u.string.length = data.string.length;
+            if ((self->flags & kValueFlag_NoCopy) == 0) {
+                RCString_Retain(self->u.rcString);
+            }
             break;
 
         default:
             break;
     }
-
-catch:
-    return err;
 }
 
-errno_t Value_InitCopy(Value* _Nonnull self, const Value* _Nonnull other)
-{
-    decl_try_err();
-
-    *self = *other;
-    if (other->type == kValue_String) {
-        try_null(self->u.string.characters, strdup(other->u.string.characters), errno);
-    }
-
-catch:
-    return err;
-}
 
 void Value_Deinit(Value* _Nonnull self)
 {
     switch (self->type) {
         case kValue_String:
-            free(self->u.string.characters);
-            self->u.string.characters = NULL;
-            self->u.string.length = 0;
+            if ((self->flags & kValueFlag_NoCopy) == 0) {
+                RCString_Release(self->u.rcString);
+                self->u.rcString = NULL;
+            }
             break;
 
         default:
@@ -82,6 +152,83 @@ void Value_Deinit(Value* _Nonnull self)
     }
 
     self->type = kValue_Undefined;
+}
+
+size_t Value_GetLength(const Value* _Nonnull self)
+{
+    if (self->type == kValue_String) {
+        return ((self->flags & kValueFlag_NoCopy) == 0) ? self->u.rcString->length : self->u.noCopyString.length;
+    }
+    else {
+        return 0;
+    }
+}
+
+// Returns a pointer to the immutable characters of a string value; a pointer to
+// an empty string is returned if the value is not a string value.
+const char* _Nonnull Value_GetCharacters(const Value* _Nonnull self)
+{
+    if (self->type == kValue_String) {
+        return ((self->flags & kValueFlag_NoCopy) == 0) ? self->u.rcString->characters : self->u.noCopyString.characters;
+    }
+    else {
+        return "";
+    }
+}
+
+// Returns a pointer to the mutable characters of a string value; a pointer to
+// an empty string is returned if the value is not a string value.
+char* _Nullable Value_GetMutableCharacters(Value* _Nonnull self)
+{
+    if (self->type == kValue_String) {
+        if (self->u.rcString->retainCount > 1) {
+            const errno_t err = RCString_CreateMutableCopy(self->u.rcString, &self->u.rcString);
+
+            if (err != EOK) {
+                return NULL;
+            }
+        }
+
+        return ((self->flags & kValueFlag_NoCopy) == 0) ? self->u.rcString->characters : self->u.noCopyString.characters;
+    }
+    else {
+        return "";
+    }
+}
+
+errno_t Value_Appending(Value* _Nonnull self, const Value* _Nonnull other)
+{
+    assert(self->type == kValue_String && other->type == kValue_String);
+
+    decl_try_err();
+    const size_t lLen = Value_GetLength(self);
+    const size_t rLen = Value_GetLength(other);
+
+    if (rLen == 0) {
+        return EOK;
+    }
+
+    if (lLen == 0) {
+        Value_Deinit(self);
+        Value_InitCopy(self, other);
+        return EOK;
+    }
+
+    RCString* newString = NULL;
+    try(RCString_CreateWithCapacity(lLen + rLen + 1, &newString));
+
+    memcpy(newString->characters, self->u.rcString->characters, lLen);
+    memcpy(&newString->characters[lLen], other->u.rcString->characters, rLen);
+    newString->characters[lLen + rLen] = '\0';
+    newString->length = lLen + rLen;
+
+    Value_Deinit(self);
+    self->type = kValue_String;
+    self->flags = 0;
+    self->u.rcString = newString;
+
+catch:
+    return err;
 }
 
 errno_t Value_UnaryOp(Value* _Nonnull self, UnaryOperation op)
@@ -119,10 +266,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             return EOK;
 
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Equals): {
-            const char* lhs_chars = lhs_r->u.string.characters;
-            const char* rhs_chars = rhs->u.string.characters;
-            const size_t lhs_len = lhs_r->u.string.length;
-            const size_t rhs_len = rhs->u.string.length;
+            const char* lhs_chars = Value_GetCharacters(lhs_r);
+            const char* rhs_chars = Value_GetCharacters(rhs);
+            const size_t lhs_len = Value_GetLength(lhs_r);
+            const size_t rhs_len = Value_GetLength(rhs);
 
             lhs_r->type = kValue_Bool;
             lhs_r->u.b = (lhs_len == rhs_len && !memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
@@ -141,10 +288,10 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             return EOK;
 
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_NotEquals): {
-            const char* lhs_chars = lhs_r->u.string.characters;
-            const char* rhs_chars = rhs->u.string.characters;
-            const size_t lhs_len = lhs_r->u.string.length;
-            const size_t rhs_len = rhs->u.string.length;
+            const char* lhs_chars = Value_GetCharacters(lhs_r);
+            const char* rhs_chars = Value_GetCharacters(rhs);
+            const size_t lhs_len = Value_GetLength(lhs_r);
+            const size_t rhs_len = Value_GetLength(rhs);
 
             lhs_r->type = kValue_Bool;
             lhs_r->u.b = (lhs_len != rhs_len || memcmp(lhs_chars, rhs_chars, lhs_len)) ? true : false;
@@ -159,8 +306,8 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             return EOK;
 
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_LessEquals): {
-            const char* lhs_chars = lhs_r->u.string.characters;
-            const char* rhs_chars = rhs->u.string.characters;
+            const char* lhs_chars = Value_GetCharacters(lhs_r);
+            const char* rhs_chars = Value_GetCharacters(rhs);
 
             // lexicographical order
             lhs_r->type = kValue_Bool;
@@ -176,8 +323,8 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             return EOK;
 
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_GreaterEquals): {
-            const char* lhs_chars = lhs_r->u.string.characters;
-            const char* rhs_chars = rhs->u.string.characters;
+            const char* lhs_chars = Value_GetCharacters(lhs_r);
+            const char* rhs_chars = Value_GetCharacters(rhs);
 
             // lexicographical order
             lhs_r->type = kValue_Bool;
@@ -193,8 +340,8 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             return EOK;
 
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Less): {
-            const char* lhs_chars = lhs_r->u.string.characters;
-            const char* rhs_chars = rhs->u.string.characters;
+            const char* lhs_chars = Value_GetCharacters(lhs_r);
+            const char* rhs_chars = Value_GetCharacters(rhs);
 
             // lexicographical order
             lhs_r->type = kValue_Bool;
@@ -210,8 +357,8 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             return EOK;
 
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Greater): {
-            const char* lhs_chars = lhs_r->u.string.characters;
-            const char* rhs_chars = rhs->u.string.characters;
+            const char* lhs_chars = Value_GetCharacters(lhs_r);
+            const char* rhs_chars = Value_GetCharacters(rhs);
 
             // lexicographical order
             lhs_r->type = kValue_Bool;
@@ -225,22 +372,8 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             lhs_r->u.i32 = lhs_r->u.i32 + rhs->u.i32;
             return EOK;
 
-        case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Addition): {
-            const size_t lhs_len = lhs_r->u.string.length;
-            const size_t rhs_len = rhs->u.string.length;
-            const size_t len = lhs_len + rhs_len;
-            char* str = malloc(len + 1);
-            if (str == NULL) {
-                return ENOMEM;
-            }
-            memcpy(str, lhs_r->u.string.characters, lhs_len);
-            memcpy(&str[lhs_len], rhs->u.string.characters, rhs_len);
-            str[len] = '\0';
-
-            lhs_r->u.string.characters = str;
-            lhs_r->u.string.length = len;
-            return EOK;
-        }
+        case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Addition):
+            return Value_Appending(lhs_r, rhs);
 
 
         // Subtraction
@@ -282,6 +415,7 @@ errno_t Value_ToString(Value* _Nonnull self)
 // represents the string value of all values in the provided array.
 errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues)
 {
+    decl_try_err();
     Value* self = &values[0];
     size_t nchars = 0;
 
@@ -293,21 +427,23 @@ errno_t ValueArray_ToString(Value _Nonnull values[], size_t nValues)
         nchars += Value_GetMaxStringLength(&values[i]);
     }
 
-    char* str = malloc(nchars + 1);
-    if (str == NULL) {
-        return ENOMEM;
-    }
+    RCString* newString = NULL;
+    try(RCString_CreateWithCapacity(nchars + 1, &newString));
 
     nchars = 0;
     for (size_t i = 0; i < nValues; i++) {
-        nchars += Value_GetString(&values[i], __SIZE_MAX, &str[nchars]);
+        nchars += Value_GetString(&values[i], __SIZE_MAX, &newString->characters[nchars]);
     }
-    str[nchars] = '\0';
+    newString->characters[nchars] = '\0';
+    newString->length = nchars;
 
+    Value_Deinit(self);
     self->type = kValue_String;
-    self->u.string.characters = str;
-    self->u.string.length = nchars;
-    return EOK;
+    self->flags = 0;
+    self->u.rcString = newString;
+
+catch:
+    return err;
 }
 
 // Returns the max length of the string that represents the value of the Value.
@@ -318,7 +454,7 @@ size_t Value_GetMaxStringLength(const Value* _Nonnull self)
     switch (self->type) {
         case kValue_Bool:       return 5;   // 'true' or 'false'
         case kValue_Integer:    return __INT_MAX_BASE_10_DIGITS;    // assumes that we always generate a decimal digit strings
-        case kValue_String:     return self->u.string.length;
+        case kValue_String:     return Value_GetLength(self);
         default:                return 0;
     }
 }
@@ -355,8 +491,8 @@ size_t Value_GetString(const Value* _Nonnull self, size_t bufSize, char* _Nonnul
         }
 
         case kValue_String:
-            src = self->u.string.characters;
-            nchars = __min(self->u.string.length, bufSize - 1);
+            src = Value_GetCharacters(self);
+            nchars = __min(Value_GetLength(self), bufSize - 1);
             break;
 
         default:
@@ -385,7 +521,7 @@ errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream)
             break;
 
         case kValue_String:
-            fputs(self->u.string.characters, stream);
+            fputs(Value_GetCharacters(self), stream);
             break;
 
         default:

@@ -66,7 +66,7 @@ errno_t Segment_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, SegmentType
     LiteralSegment* self = StackAllocator_ClearAlloc(pAllocator, sizeof(LiteralSegment));
 
     self->super.type = type;
-    self->value = *value;
+    Value_InitCopy(&self->value, value);
     *pOutSelf = (Segment*)self;
     return (self) ? EOK : ENOMEM;
 }
@@ -325,7 +325,7 @@ errno_t Arithmetic_CreateLiteral(StackAllocatorRef _Nonnull pAllocator, bool has
 
     self->super.type = kArithmetic_Literal;
     self->super.hasLeadingWhitespace = hasLeadingWhitespace;
-    self->value = *value;
+    Value_InitCopy(&self->value, value);
     *pOutSelf = (Arithmetic*)self;
     return (self) ? EOK : ENOMEM;
 }

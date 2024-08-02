@@ -150,9 +150,7 @@ static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull s
         char* valp = (eqp) ? eqp + 1 : NULL;
 
         if (valp) {
-            val.type = kValue_String;
-            val.u.string.characters = valp;
-            val.u.string.length = strlen(valp);
+            Value_InitCString(&val, valp, kValueFlag_NoCopy);
 
             *eqp = '\0';
             err = RunStack_DeclareVariable(self->runStack, kVarModifier_Public | kVarModifier_Mutable, "global", keyp, &val);
@@ -238,7 +236,7 @@ static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Va
 {
     switch (vp->type) {
         case kValue_String:
-            return ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
+            return ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
 
         default:
             return ENOTIMPL;
@@ -258,8 +256,8 @@ static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self,
 
     err = Interpreter_CompoundString(self, str);
     if (err == EOK) {
-        const Value* v = OpStack_GetTos(self->opStack);
-        err = ArgumentVector_AppendBytes(self->argumentVector, v->u.string.characters, v->u.string.length);
+        const Value* vp = OpStack_GetTos(self->opStack);
+        err = ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
     }
     OpStack_Pop(self->opStack);
     
@@ -284,7 +282,7 @@ static errno_t Interpreter_SerializeArithmeticExpression(InterpreterRef _Nonnull
 
         err = Value_ToString(vp);
         if (err == EOK) {
-            err = ArgumentVector_AppendBytes(self->argumentVector, vp->u.string.characters, vp->u.string.length);
+            err = ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
             OpStack_Pop(self->opStack);
         }
     }
@@ -423,11 +421,9 @@ static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, Compound
     if (err == EOK) {
         if (nComponents > 0) {
             ValueArray_ToString(OpStack_GetNth(self->opStack, nComponents - 1), nComponents);
-            OpStack_PopMany(self->opStack, nComponents - 1);
+            OpStack_PopSome(self->opStack, nComponents - 1);
         } else {
-            Value v;
-            StringValue_Init(&v, "", 0);
-            OpStack_Push(self->opStack, &v);
+            err = OpStack_PushEmptyString(self->opStack);
         }
     }
     return err;

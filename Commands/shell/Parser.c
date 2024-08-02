@@ -477,19 +477,19 @@ static errno_t Parser_Literal(Parser* _Nonnull self, Arithmetic* _Nullable * _No
 
     switch (t->id) {
         case kToken_False:
-            BoolValue_Init(&v, false);
+            Value_InitBool(&v, false);
             try(Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
             consume();
             break;
 
         case kToken_True:
-            BoolValue_Init(&v, true);
+            Value_InitBool(&v, true);
             try(Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
             consume();
             break;
             
         case kToken_Integer:
-            IntegerValue_Init(&v, t->u.i32);
+            Value_InitInteger(&v, t->u.i32);
             try(Arithmetic_CreateLiteral(self->allocator, hasLeadingWhitespace, &v, pOutExpr));
             consume();
             break;
