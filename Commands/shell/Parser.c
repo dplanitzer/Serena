@@ -27,6 +27,7 @@ static errno_t Parser_VarReference(Parser* _Nonnull self, VarRef* _Nullable * _N
 static errno_t Parser_EscapedArithmeticExpression(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull pOutExpr);
 static errno_t Parser_ParenthesizedArithmeticExpression(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull pOutExpr);
 static errno_t Parser_ArithmeticExpression(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull _Nonnull pOutExpr);
+static errno_t Parser_Block(Parser* _Nonnull self, Block* _Nullable * _Nonnull pOutBlock);
 
 
 errno_t Parser_Create(Parser* _Nullable * _Nonnull pOutSelf)
@@ -519,6 +520,57 @@ catch:
 }
 
 //
+// ifExpression
+//    : IF arithmeticExpression block (ELSE block)?
+//    ;
+static errno_t Parser_IfExpression(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Arithmetic* condExpr = NULL;
+    Block* thenBlock = NULL;
+    Block* elseBlock = NULL;
+
+    try(match(kToken_If));
+    const bool hasLeadingWhitespace = Lexer_GetToken(&self->lexer)->hasLeadingWhitespace;
+
+    try(Parser_ArithmeticExpression(self, &condExpr));
+    try(Parser_Block(self, &thenBlock));
+    if (peek(kToken_Else)) {
+        consume();
+        try(Parser_Block(self, &elseBlock));
+    }
+
+    return Arithmetic_CreateIfThen(self->allocator, hasLeadingWhitespace, condExpr, thenBlock, elseBlock, pOutExpr);
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
+// whileExpression
+//     : WHILE arithmeticExpression block
+//     ;
+static errno_t Parser_WhileExpression(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Arithmetic* condExpr = NULL;
+    Block* bodyBlock = NULL;
+
+    try(match(kToken_While));
+    const bool hasLeadingWhitespace = Lexer_GetToken(&self->lexer)->hasLeadingWhitespace;
+
+    try(Parser_ArithmeticExpression(self, &condExpr));
+    try(Parser_Block(self, &bodyBlock));
+
+    return Arithmetic_CreateWhile(self->allocator, hasLeadingWhitespace, condExpr, bodyBlock, pOutExpr);
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
 // primaryExpression
 //     : literal
 //     | VAR_NAME
@@ -549,9 +601,11 @@ static errno_t Parser_PrimaryExpression(Parser* _Nonnull self, Arithmetic* _Null
         }
 
         case kToken_If:
+            try(Parser_IfExpression(self, pOutExpr));
+            break;
+
         case kToken_While:
-            // XXX implement me
-            throw(ESYNTAX);
+            try(Parser_WhileExpression(self, pOutExpr));
             break;
 
         default:

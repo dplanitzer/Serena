@@ -44,6 +44,7 @@ static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
 static errno_t Interpreter_DeclareEnvironmentVariables(InterpreterRef _Nonnull self);
 static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str);
 static errno_t Interpreter_ArithmeticExpression(InterpreterRef _Nonnull self, Arithmetic* _Nonnull expr);
+static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -510,6 +511,61 @@ static errno_t Interpreter_UnaryOp(InterpreterRef _Nonnull self, Arithmetic* _No
     return err;
 }
 
+static errno_t Interpreter_IfThen(InterpreterRef _Nonnull self, IfArithmetic* _Nonnull expr)
+{
+    decl_try_err();
+    Value* cond_r;
+
+    err = Interpreter_BoolExpression(self, AS(expr, BinaryArithmetic)->lhs, &cond_r);
+    if (err == EOK) {
+        const bool isTrue = cond_r->u.b;
+
+        OpStack_Pop(self->opStack);
+
+        if (isTrue) {
+            // Execute the then block
+            err = Interpreter_Block(self, expr->thenBlock);
+        }
+        else {
+            // Execute the else block if it exists and push Void otherwise
+            if (expr->elseBlock) {
+                err = Interpreter_Block(self, expr->elseBlock);
+            }
+            else {
+                OpStack_PushVoid(self->opStack);
+            }
+        }
+    }
+    return err;
+}
+
+static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* _Nonnull expr)
+{
+    decl_try_err();
+    Value* cond_r;
+
+    while (true) {
+        err = Interpreter_BoolExpression(self, AS(expr, BinaryArithmetic)->lhs, &cond_r);
+        if (err != EOK) {
+            break;
+        }
+
+        const bool isTrue = cond_r->u.b;
+        
+        OpStack_Pop(self->opStack);
+        if (!isTrue) {
+            break;
+        }
+
+        err = Interpreter_Block(self, expr->body);
+        if (err != EOK) {
+            break;
+        }
+    }
+    
+    return err;
+}
+
 static errno_t Interpreter_ArithmeticExpression(InterpreterRef _Nonnull self, Arithmetic* _Nonnull expr)
 {
     switch (expr->type) {
@@ -555,8 +611,10 @@ static errno_t Interpreter_ArithmeticExpression(InterpreterRef _Nonnull self, Ar
             return Interpreter_Command(self, AS(expr, CommandArithmetic));
 
         case kArithmetic_If:
+            return Interpreter_IfThen(self, AS(expr, IfArithmetic));
+
         case kArithmetic_While:
-            return ENOTIMPL;
+            return Interpreter_While(self, AS(expr, WhileArithmetic));
 
         default:
             return ENOTIMPL;
@@ -658,7 +716,7 @@ static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, Expressi
     return err;
 }
 
-static errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
+static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
 {
     return Interpreter_ExpressionList(self, &block->exprs);
 }
