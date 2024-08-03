@@ -16,8 +16,7 @@ int strcmp(const char *lhs, const char *rhs)
         if (*lhs == '\0') {
             return 0;
         }
-        lhs++;
-        rhs++;
+        lhs++; rhs++;
     }
 
     return (*((unsigned char*)lhs) < *((unsigned char*)rhs)) ? -1 : 1;

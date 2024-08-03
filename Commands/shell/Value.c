@@ -239,6 +239,27 @@ catch:
     return err;
 }
 
+static int xStrcmp(const char* _Nonnull lhs, size_t lhs_len, const char* _Nonnull rhs, size_t rhs_len)
+{
+    const size_t common_len = __min(lhs_len, rhs_len);
+    const int r = memcmp(lhs, rhs, common_len);
+
+    if (r != 0) {
+        return r;
+    }
+    else {
+        if (lhs_len < rhs_len) {
+            return -1;
+        }
+        else if (lhs_len > rhs_len) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+}
+
 errno_t Value_UnaryOp(Value* _Nonnull self, UnaryOperation op)
 {
     switch (TUPLE_2(self->type, op)) {
@@ -318,7 +339,9 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_LessEquals): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
-            const bool r = (strcmp(lhs_chars, rhs_chars) <= 0) ? true : false;
+            const size_t lhs_len = Value_GetLength(lhs_r);
+            const size_t rhs_len = Value_GetLength(rhs);
+            const bool r = (xStrcmp(lhs_chars, lhs_len, rhs_chars, rhs_len) <= 0) ? true : false;
 
             Value_Deinit(lhs_r);
             Value_InitBool(lhs_r, r);
@@ -335,7 +358,9 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_GreaterEquals): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
-            const bool r = (strcmp(lhs_chars, rhs_chars) >= 0) ? true : false;
+            const size_t lhs_len = Value_GetLength(lhs_r);
+            const size_t rhs_len = Value_GetLength(rhs);
+            const bool r = (xStrcmp(lhs_chars, lhs_len, rhs_chars, rhs_len) >= 0) ? true : false;
 
             Value_Deinit(lhs_r);
             Value_InitBool(lhs_r, r);
@@ -352,7 +377,9 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Less): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
-            const bool r = (strcmp(lhs_chars, rhs_chars) < 0) ? true : false;
+            const size_t lhs_len = Value_GetLength(lhs_r);
+            const size_t rhs_len = Value_GetLength(rhs);
+            const bool r = (xStrcmp(lhs_chars, lhs_len, rhs_chars, rhs_len) < 0) ? true : false;
 
             Value_Deinit(lhs_r);
             Value_InitBool(lhs_r, r);
@@ -369,7 +396,9 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
         case TUPLE_3(kValue_String, kValue_String, kBinaryOp_Greater): {
             const char* lhs_chars = Value_GetCharacters(lhs_r);
             const char* rhs_chars = Value_GetCharacters(rhs);
-            const bool r = (strcmp(lhs_chars, rhs_chars) > 0) ? true : false;
+            const size_t lhs_len = Value_GetLength(lhs_r);
+            const size_t rhs_len = Value_GetLength(rhs);
+            const bool r = (xStrcmp(lhs_chars, lhs_len, rhs_chars, rhs_len) > 0) ? true : false;
 
             Value_Deinit(lhs_r);
             Value_InitBool(lhs_r, r);

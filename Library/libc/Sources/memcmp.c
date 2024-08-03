@@ -16,7 +16,7 @@ int memcmp(const void *lhs, const void *rhs, size_t count)
     
     while (count-- > 0) {
         if (*plhs != *prhs) {
-            return ((int)*plhs) - ((int)*prhs);
+            return (*plhs < *prhs) ? -1 : 1;
         }
         plhs++; prhs++;
     }

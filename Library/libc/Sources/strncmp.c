@@ -16,9 +16,7 @@ int strncmp(const char *lhs, const char *rhs, size_t count)
         if (*lhs == '\0') {
             return 0;
         }
-        lhs++;
-        rhs++;
-        count--;
+        lhs++; rhs++; count--;
     }
 
     return (count == 0) ? 0 : (*((unsigned char*)lhs) < *((unsigned char*)rhs)) ? -1 : 1;
