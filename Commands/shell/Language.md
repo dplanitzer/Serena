@@ -342,6 +342,8 @@ escapedArithmeticExpression
 * Prefix operators must exhibit whitespace on the left side and no whitespace on the right side
 * Postfix operators must exhibit whitespace on the right side and no whitespace on the left side
 * Infix operators must either exhibit whitespace on both sides or on neither side
+* The last expression in a script file is accepted even if there is no '\n', ';' or '&' terminator
+* The last expression inside a block is accepted even if there is no '\n', ';' or '&' terminator
 * A character sequence enclosed by single or double backticks indicates that the character sequence names an external command
 * A command name is the longest sequence of a commandPrimaryFragment followed by 0 or more command SecondaryFragment instances which are not separated by whitespace
 * A single command parameter is the longest sequence of commandSecondaryFragment instances which are not separated by whitespace

@@ -969,7 +969,7 @@ catch:
 // terminator
 //     : NL | SEMICOLON | AMPERSAND
 //     ;
-static errno_t Parser_Terminator(Parser* _Nonnull self, bool isScriptLevel, bool* _Nonnull pOutIsAsync)
+static errno_t Parser_Terminator(Parser* _Nonnull self, bool isNested, bool* _Nonnull pOutIsAsync)
 {
     decl_try_err();
     const Token* t = Lexer_GetToken(&self->lexer);
@@ -988,8 +988,17 @@ static errno_t Parser_Terminator(Parser* _Nonnull self, bool isScriptLevel, bool
             }
             break;
 
+        case kToken_ClosingBrace:
+            if (isNested) {
+                // Accept '}' as an expression terminator if this is a nested
+                // expression (aka the expression is inside a block)
+                break;
+            }
+            err = ESYNTAX;
+            break;
+
         default:
-            if (isScriptLevel && t->id == kToken_Eof) {
+            if (!isNested && t->id == kToken_Eof) {
                 // Accept scripts where the last line is terminated by EOF
                 // since this is what we get in interactive mode anyway
                 break; 
@@ -1016,7 +1025,7 @@ static errno_t Parser_Terminator(Parser* _Nonnull self, bool isScriptLevel, bool
 // assignableExpression
 //     : VAR_NAME
 //     ;
-static errno_t Parser_Expression(Parser* _Nonnull self, bool isScriptLevel, Expression* _Nullable * _Nonnull pOutExpr)
+static errno_t Parser_Expression(Parser* _Nonnull self, bool isNested, Expression* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
     Expression* expr = NULL;
@@ -1058,7 +1067,7 @@ static errno_t Parser_Expression(Parser* _Nonnull self, bool isScriptLevel, Expr
     }
 
     // Required terminator
-    try(Parser_Terminator(self, isScriptLevel, &expr->isAsync));
+    try(Parser_Terminator(self, isNested, &expr->isAsync));
 
     *pOutExpr = expr;
     return EOK;
@@ -1072,13 +1081,13 @@ catch:
 // expressions:
 //     : expression*
 //     ;
-static errno_t Parser_ExpressionList(Parser* _Nonnull self, ExpressionList* _Nonnull exprList, int endToken, bool isScriptLevel)
+static errno_t Parser_ExpressionList(Parser* _Nonnull self, ExpressionList* _Nonnull exprList, int endToken, bool isNested)
 {
     decl_try_err();
     Expression* expr;
 
     while (!peek(endToken)) {
-        err = Parser_Expression(self, isScriptLevel, &expr);
+        err = Parser_Expression(self, isNested, &expr);
         if (err != EOK) {
             break;
         }
@@ -1101,7 +1110,7 @@ static errno_t Parser_Block(Parser* _Nonnull self, Block* _Nullable * _Nonnull p
     try(Block_Create(self->allocator, &block));
 
     try(match(kToken_OpeningBrace));
-    try(Parser_ExpressionList(self, &block->exprs, '}', false));
+    try(Parser_ExpressionList(self, &block->exprs, '}', true));
     try(match(kToken_ClosingBrace));
 
     *pOutBlock = block;
@@ -1120,7 +1129,7 @@ static errno_t Parser_Script(Parser* _Nonnull self, Script* _Nonnull script)
 {
     decl_try_err();
 
-    err = Parser_ExpressionList(self, &script->exprs, kToken_Eof, true);
+    err = Parser_ExpressionList(self, &script->exprs, kToken_Eof, false);
     if (err == EOK) {
         err = match(kToken_Eof);
     }
