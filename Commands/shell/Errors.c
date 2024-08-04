@@ -13,6 +13,7 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
+        /*EUNDEFVAL*/       "Undefined",
         /*EIMMUTABLE*/      "Immutable variable",
         /*ENOASSIGN*/       "Invalid type for assignment",
         /*ENOTLVALUE*/      "Not an lvalue",
@@ -21,8 +22,8 @@ const char *shell_strerror(int err_no)
         /*ENOSCOPE*/        "Unknown scope",
         /*ENOTIMPL*/        "Not implemented",
         /*ENOCMD*/          "Unknown command",
-        /*EREDEFINED*/      "Variable redefinition",
-        /*EUNDEFINED*/      "Undefined variable",
+        /*EREDEFVAR*/       "Variable redefinition",
+        /*EUNDEFVAR*/       "Undefined variable",
         /*EUNDERFLOW*/      "Stack underflow",
         /*ESYNTAX*/         "Syntax error",
     };

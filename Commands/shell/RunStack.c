@@ -157,7 +157,7 @@ static errno_t Scope_DeclareVariable(Scope* _Nonnull self, unsigned int modifier
     const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Scope_GetVariable(self, name, hashCode)) {
-        throw(EREDEFINED);
+        throw(EREDEFVAR);
     }
 
     try(Variable_Create(modifiers, name, value, &vp));
@@ -299,7 +299,7 @@ errno_t RunStack_SetVariablePublic(RunStack* _Nonnull self, const char* _Nullabl
     Variable* vp = _RunStack_GetVariable(self, scopeName, name, &scope);
 
     if (vp == NULL) {
-        return (scope) ? EUNDEFINED : ENOSCOPE;
+        return (scope) ? EUNDEFVAR : ENOSCOPE;
     }
 
     if (bPublic && (vp->modifiers & kVarModifier_Public) == 0) {

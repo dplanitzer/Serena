@@ -19,6 +19,14 @@ These are the semantic rules of the language:
   * A command whose stdout is captured produces a value of type String; a command whose stdout is not captured produces a value of type Void
   * A pipeline whose stdout is captured produces a value of type String; a pipeline whose stdout is not captured produces a value of type Void
 
+* Flow Control Expressions
+  * All flow control constructs may be used in an expression or statement context
+  * The result of a flow control expression that is used in a statement context is ignored
+  * The result of an if-then-else expression is the result of the then block if the condition evaluates to true and the result of the else block if the condition evaluates to false
+  * The result of an if-then expression is the result of the then block if the condition evaluates to true and Undefined if it evaluates to false
+  * The result of a while expression is the result of the last expression in the loop body if the loop body is executes at least once
+  * The result of a while expression that never executes its loop body is Undefined
+
 * Commands:
   * A command may take any number of parameters. How those parameters are interpreted is up to the command
   * A command is expected to return a status. 0 means that the command was successful; A value != 0 indicates that the command has failed
@@ -33,11 +41,19 @@ These are the semantic rules of the language:
   * The first command of a pipeline may be an arithmetic expression. The value of the arithmetic expression is calculated and fed as input to the next command in the pipeline
 
 * Values
-  * Every value has a type. The supported types are Int, String and Void
+  * Every value has a type
   * A value of type Void can not be assigned to a variable
   * A value of type Void does not support any operations and thus can not be used as an argument in an arithmetic expression
   * A command and pipeline which does not capture a value (aka the stdout channel of the command/pipeline is not being recorded) produces a value of type Void
 
+* Value Types
+  * String: a sequence of characters
+  * Int: a 32bit signed integer value
+  * Void: the unit type
+  * Undefined: the bottom type
+  * A Void value can not be assigned to a variable
+  * A Undefined value can be assigned to a variable, whoever any attempt to read/refer to the value will trigger a script termination
+  
 * Scopes:
   * The bottom most scope is the global scope which is established when the shell starts up
   * Every shell script invocation is associated with a scope

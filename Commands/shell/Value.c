@@ -277,7 +277,7 @@ errno_t Value_UnaryOp(Value* _Nonnull self, UnaryOperation op)
 
         // Others
         default:
-            return ETYPEMISMATCH;
+            return (self->type == kValue_Undefined) ? EUNDEFVAL : ETYPEMISMATCH;
     }
 }
 
@@ -439,7 +439,12 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
 
         // Others
         default:
-            return ETYPEMISMATCH;
+            if (lhs_r->type == kValue_Undefined || rhs->type == kValue_Undefined) {
+                return EUNDEFVAL;
+            }
+            else {
+                return ETYPEMISMATCH;
+            }
     }
 }
 

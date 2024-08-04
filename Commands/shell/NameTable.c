@@ -151,7 +151,7 @@ static errno_t Namespace_DeclareName(Namespace* _Nonnull self, const char* _Nonn
     const size_t hashIndex = hashCode % self->hashtableCapacity;
 
     if (_Namespace_GetName(self, name, hashCode)) {
-        throw(EREDEFINED);
+        throw(EREDEFVAR);
     }
 
     try(Name_Create(name, cb, &np));

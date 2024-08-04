@@ -174,7 +174,7 @@ static errno_t Interpreter_PushVariable(InterpreterRef _Nonnull self, VarRef* _N
 {
     Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
     
-    return (varp) ? OpStack_Push(self->opStack, &varp->value) : EUNDEFINED;
+    return (varp) ? OpStack_Push(self->opStack, &varp->value) : EUNDEFVAR;
 }
 
 static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
@@ -248,7 +248,7 @@ static errno_t Interpreter_SerializeVariable(InterpreterRef _Nonnull self, const
 {
     Variable* varp = RunStack_GetVariable(self->runStack, vref->scope, vref->name);
 
-    return (varp) ? Interpreter_SerializeValue(self, &varp->value) : EUNDEFINED;
+    return (varp) ? Interpreter_SerializeValue(self, &varp->value) : EUNDEFVAR;
 }
 
 static errno_t Interpreter_SerializeCompoundString(InterpreterRef _Nonnull self, CompoundString* _Nonnull str)
@@ -527,12 +527,12 @@ static errno_t Interpreter_IfThen(InterpreterRef _Nonnull self, IfArithmetic* _N
             err = Interpreter_Block(self, expr->thenBlock);
         }
         else {
-            // Execute the else block if it exists and push Void otherwise
+            // Execute the else block if it exists and push Undefined otherwise
             if (expr->elseBlock) {
                 err = Interpreter_Block(self, expr->elseBlock);
             }
             else {
-                OpStack_PushVoid(self->opStack);
+                OpStack_PushUndefined(self->opStack);
             }
         }
     }
@@ -543,6 +543,7 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
 {
     decl_try_err();
     Value* cond_r;
+    bool didLoopProduceValue = false;
 
     while (true) {
         err = Interpreter_BoolExpression(self, AS(expr, BinaryArithmetic)->lhs, &cond_r);
@@ -561,6 +562,11 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
         if (err != EOK) {
             break;
         }
+        didLoopProduceValue = true;
+    }
+    
+    if (!didLoopProduceValue) {
+        OpStack_PushUndefined(self->opStack);
     }
     
     return err;
@@ -632,7 +638,7 @@ static errno_t Interpreter_Assignment(InterpreterRef _Nonnull self, AssignmentEx
     VarRef* lvref = AS(stmt->lvalue, VarRefArithmetic)->vref;
     Variable* lvar = RunStack_GetVariable(self->runStack, lvref->scope, lvref->name);
     if (lvar == NULL) {
-        return EUNDEFINED;
+        return EUNDEFVAR;
     }
     if ((lvar->modifiers & kVarModifier_Mutable) == 0) {
         return EIMMUTABLE;
@@ -728,7 +734,10 @@ static void Interpreter_PrintResult(InterpreterRef _Nonnull self)
 
     switch (rp->type) {
         case kValue_Void:
+            break;
+
         case kValue_Undefined:
+            puts("Undefined");
             break;
 
         default:
