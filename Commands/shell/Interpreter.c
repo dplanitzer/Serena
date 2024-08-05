@@ -527,12 +527,12 @@ static errno_t Interpreter_IfThen(InterpreterRef _Nonnull self, IfArithmetic* _N
             err = Interpreter_Block(self, expr->thenBlock);
         }
         else {
-            // Execute the else block if it exists and push Undefined otherwise
+            // Execute the else block if it exists and push Void otherwise
             if (expr->elseBlock) {
                 err = Interpreter_Block(self, expr->elseBlock);
             }
             else {
-                OpStack_PushUndefined(self->opStack);
+                OpStack_PushVoid(self->opStack);
             }
         }
     }
@@ -579,7 +579,8 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
     self->loopNestingCount--;
 
     if (!didLoopProduceValue) {
-        err = OpStack_PushUndefined(self->opStack);
+        // The result of a loop that has never executed its loop body is Void
+        err = OpStack_PushVoid(self->opStack);
     }
 
     return err;
@@ -677,10 +678,6 @@ static errno_t Interpreter_VarDeclExpression(InterpreterRef _Nonnull self, VarDe
     if (err == EOK) {
         const Value* vp = OpStack_GetTos(self->opStack);
 
-        if (vp->type == kValue_Void || vp->type == kValue_Undefined) {
-            return ENOASSIGN;
-        }
-
         err = RunStack_DeclareVariable(self->runStack, decl->modifiers, decl->vref->scope, decl->vref->name, vp);
         if (err == EOK) {
             OpStack_Pop(self->opStack);
@@ -744,18 +741,23 @@ static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, Expressi
     decl_try_err();
     Expression* expr = exprList->exprs;
 
-    while (expr) {
-        err = Interpreter_Expression(self, expr);
-        if (err != EOK) {
-            break;
-        }
+    if (expr) {
+        while (expr) {
+            err = Interpreter_Expression(self, expr);
+            if (err != EOK) {
+                break;
+            }
 
-        expr = expr->next;
-        if (expr) {
-            // All results except the result of the last expression are implicitly
-            // removed from the op-stack
-            OpStack_Pop(self->opStack);
+            expr = expr->next;
+            if (expr) {
+                // Result of an expression list is the result of the last expression
+                OpStack_Pop(self->opStack);
+            }
         }
+    }
+    else {
+        // Result of an empty expression list is Void
+        err = OpStack_PushVoid(self->opStack);
     }
 
     return err;
@@ -775,8 +777,8 @@ static void Interpreter_PrintResult(InterpreterRef _Nonnull self)
         case kValue_Void:
             break;
 
-        case kValue_Undefined:
-            puts("Undefined");
+        case kValue_Never:
+            puts("No value");
             break;
 
         default:

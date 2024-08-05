@@ -71,18 +71,6 @@ errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value)
     }
 }
 
-errno_t OpStack_PushUndefined(OpStack* _Nonnull self)
-{
-    Value* vp = _OpStack_Push(self);
-
-    if (vp) {
-        Value_InitUndefined(vp);
-        return EOK;
-    } else {
-        return ENOMEM;
-    }
-}
-
 errno_t OpStack_PushVoid(OpStack* _Nonnull self)
 {
     Value* vp = _OpStack_Push(self);

@@ -23,9 +23,9 @@ These are the semantic rules of the language:
   * All flow control constructs may be used in an expression or statement context
   * The result of a flow control expression that is used in a statement context is ignored
   * The result of an if-then-else expression is the result of the then block if the condition evaluates to true and the result of the else block if the condition evaluates to false
-  * The result of an if-then expression is the result of the then block if the condition evaluates to true and Undefined if it evaluates to false
-  * The result of a while expression is the result of the last expression in the loop body if the loop body is executes at least once
-  * The result of a while expression that never executes its loop body is Undefined
+  * The result of an if-then expression is the result of the then block if the condition evaluates to true and Void if it evaluates to false
+  * The result of a while expression is the result of the last expression in the loop body if the loop body is executed at least once
+  * The result of a while expression that never executes its loop body is Void
   * The result of a break expression is the result of the associated arithmetic expression
   * The result of a break expression that does not come with an associated arithmetic expression, is Void
   * The result of a continue expression is Void
@@ -52,10 +52,10 @@ These are the semantic rules of the language:
 * Value Types
   * String: a sequence of characters
   * Int: a 32bit signed integer value
-  * Void: the unit type
-  * Undefined: the uninhabited bottom type
-  * A Void value can not be assigned to a variable
-  * A Undefined value can be assigned to a variable, whoever any attempt to read/refer to the value will trigger a script termination
+  * Void: the unit type which has exactly one value: void
+  * Never: the uninhabited bottom type (has no value at all)
+  * Note that the Void value can be assigned to a variable
+  * There is no way to produce a value for Never. The script is terminated if a value would have to be produced for it
 
 * Scopes:
   * The bottom most scope is the global scope which is established when the shell starts up

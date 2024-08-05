@@ -16,7 +16,7 @@ const char *shell_strerror(int err_no)
         /*ENOTLOOP*/        "Not inside a loop body",
         /*ECONTINUE*/       "Continue",
         /*EBREAK*/          "Break",
-        /*EUNDEFVAL*/       "Undefined",
+        /*ENOVAL*/          "No value",
         /*EIMMUTABLE*/      "Immutable variable",
         /*ENOASSIGN*/       "Invalid type for assignment",
         /*ENOTLVALUE*/      "Not an lvalue",

@@ -24,7 +24,7 @@
 #define ENOTLVALUE      -10
 #define ENOASSIGN       -11
 #define EIMMUTABLE      -12
-#define EUNDEFVAL       -13
+#define ENOVAL          -13
 #define EBREAK          -14
 #define ECONTINUE       -15
 #define ENOTLOOP        -16

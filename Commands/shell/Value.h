@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 typedef enum ValueType {
-    kValue_Undefined = 0,       // Bottom type (uninhabited)
+    kValue_Never = 0,           // Bottom type (uninhabited)
     //kValue_Any,                  Top type (default for variable without explicit type information)
     kValue_Void,
     kValue_Bool,
@@ -59,8 +59,8 @@ typedef struct Value {
 } Value;
 
 
-#define Value_InitUndefined(__self) \
-    (__self)->type = kValue_Undefined; \
+#define Value_InitNever(__self) \
+    (__self)->type = kValue_Never; \
     (__self)->flags = 0
 
 #define Value_InitVoid(__self) \

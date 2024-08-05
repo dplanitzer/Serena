@@ -159,7 +159,7 @@ void Value_Deinit(Value* _Nonnull self)
             break;
     }
 
-    self->type = kValue_Undefined;
+    self->type = kValue_Never;
 }
 
 size_t Value_GetLength(const Value* _Nonnull self)
@@ -277,7 +277,7 @@ errno_t Value_UnaryOp(Value* _Nonnull self, UnaryOperation op)
 
         // Others
         default:
-            return (self->type == kValue_Undefined) ? EUNDEFVAL : ETYPEMISMATCH;
+            return (self->type == kValue_Never) ? ENOVAL : ETYPEMISMATCH;
     }
 }
 
@@ -439,8 +439,8 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
 
         // Others
         default:
-            if (lhs_r->type == kValue_Undefined || rhs->type == kValue_Undefined) {
-                return EUNDEFVAL;
+            if (lhs_r->type == kValue_Never || rhs->type == kValue_Never) {
+                return ENOVAL;
             }
             else {
                 return ETYPEMISMATCH;
@@ -496,6 +496,7 @@ catch:
 size_t Value_GetMaxStringLength(const Value* _Nonnull self)
 {
     switch (self->type) {
+        case kValue_Void:       return 4;   // 'void'
         case kValue_Bool:       return 5;   // 'true' or 'false'
         case kValue_Integer:    return __INT_MAX_BASE_10_DIGITS;    // assumes that we always generate a decimal digit strings
         case kValue_String:     return Value_GetLength(self);
@@ -516,6 +517,11 @@ size_t Value_GetString(const Value* _Nonnull self, size_t bufSize, char* _Nonnul
     }
 
     switch (self->type) {
+        case kValue_Void:
+            src = "void";
+            nchars = 4;
+            break;
+
         case kValue_Bool: {
             const size_t src_len = (self->u.b) ? 4 : 5;
 
@@ -555,6 +561,10 @@ errno_t Value_Write(const Value* _Nonnull self, FILE* _Nonnull stream)
     char buf[__INT_MAX_BASE_10_DIGITS];
 
     switch (self->type) {
+        case kValue_Void:
+            fputs("void", stream);
+            break;
+            
         case kValue_Bool: 
             fputs((self->u.b) ? "true" : "false", stream);
             break;
