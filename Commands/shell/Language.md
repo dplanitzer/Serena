@@ -26,6 +26,9 @@ These are the semantic rules of the language:
   * The result of an if-then expression is the result of the then block if the condition evaluates to true and Undefined if it evaluates to false
   * The result of a while expression is the result of the last expression in the loop body if the loop body is executes at least once
   * The result of a while expression that never executes its loop body is Undefined
+  * The result of a break expression is the result of the associated arithmetic expression
+  * The result of a break expression that does not come with an associated arithmetic expression, is Void
+  * The result of a continue expression is Void
 
 * Commands:
   * A command may take any number of parameters. How those parameters are interpreted is up to the command
@@ -50,10 +53,10 @@ These are the semantic rules of the language:
   * String: a sequence of characters
   * Int: a 32bit signed integer value
   * Void: the unit type
-  * Undefined: the bottom type
+  * Undefined: the uninhabited bottom type
   * A Void value can not be assigned to a variable
   * A Undefined value can be assigned to a variable, whoever any attempt to read/refer to the value will trigger a script termination
-  
+
 * Scopes:
   * The bottom most scope is the global scope which is established when the shell starts up
   * Every shell script invocation is associated with a scope
@@ -170,7 +173,9 @@ expressions:
 expression
     : (varDeclExpression
         | assignmentExpression
-        | arithmeticExpression)? terminator
+        | arithmeticExpression
+        | breakExpression
+        | CONTINUE)? terminator
     ;
 
 terminator
@@ -187,6 +192,10 @@ assignmentExpression
 
 assignableExpression
     : VAR_NAME
+    ;
+
+breakExpression
+    : BREAK arithmeticExpression?
     ;
 
 command
@@ -360,6 +369,7 @@ escapedArithmeticExpression
 * Infix operators must either exhibit whitespace on both sides or on neither side
 * The last expression in a script file is accepted even if there is no '\n', ';' or '&' terminator
 * The last expression inside a block is accepted even if there is no '\n', ';' or '&' terminator
+* The 'break' and 'continue' keywords may only appear inside of a loop body
 * A character sequence enclosed by single or double backticks indicates that the character sequence names an external command
 * A command name is the longest sequence of a commandPrimaryFragment followed by 0 or more command SecondaryFragment instances which are not separated by whitespace
 * A single command parameter is the longest sequence of commandSecondaryFragment instances which are not separated by whitespace

@@ -545,6 +545,7 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
     Value* cond_r;
     bool didLoopProduceValue = false;
 
+    self->loopNestingCount++;
     while (true) {
         err = Interpreter_BoolExpression(self, AS(expr, BinaryArithmetic)->lhs, &cond_r);
         if (err != EOK) {
@@ -560,15 +561,27 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
 
         err = Interpreter_Block(self, expr->body);
         if (err != EOK) {
-            break;
+            if (err == ECONTINUE) {
+                continue;
+            }
+            else if (err == EBREAK) {
+                // The break expression already pushed a value on the op-stack
+                didLoopProduceValue = true;
+                err = EOK;
+                break;
+            }
+            else {
+                break;
+            }
         }
         didLoopProduceValue = true;
     }
-    
+    self->loopNestingCount--;
+
     if (!didLoopProduceValue) {
-        OpStack_PushUndefined(self->opStack);
+        err = OpStack_PushUndefined(self->opStack);
     }
-    
+
     return err;
 }
 
@@ -680,6 +693,24 @@ static errno_t Interpreter_VarDeclExpression(InterpreterRef _Nonnull self, VarDe
     return err;
 }
 
+static errno_t Interpreter_BreakExpression(InterpreterRef _Nonnull self, BreakExpression* _Nonnull expr)
+{
+    decl_try_err();
+
+    if (self->loopNestingCount == 0) {
+        return ENOTLOOP;
+    }
+
+    if (expr->expr) {
+        err = Interpreter_ArithmeticExpression(self, AS(expr->expr, Arithmetic));
+    }
+    else {
+        err = OpStack_PushVoid(self->opStack);
+    }
+
+    return (err == EOK) ? EBREAK : err;
+}
+
 static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* _Nonnull expr)
 {
     switch (expr->type) {
@@ -694,6 +725,14 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
 
         case kExpression_VarDecl:
             return Interpreter_VarDeclExpression(self, AS(expr, VarDeclExpression));
+
+        case kExpression_Continue:
+            // This op does not push a value on the op-stack. It will cause the
+            // enclosing loop to start the next iteration
+            return (self->loopNestingCount > 0) ? ECONTINUE : ENOTLOOP;
+
+        case kExpression_Break:
+            return Interpreter_BreakExpression(self, AS(expr, BreakExpression));
 
         default:
             return ENOTIMPL;

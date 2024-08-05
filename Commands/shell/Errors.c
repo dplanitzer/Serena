@@ -13,6 +13,9 @@
 const char *shell_strerror(int err_no)
 {
     static const char* gErrorDescs[] = {
+        /*ENOTLOOP*/        "Not inside a loop body",
+        /*ECONTINUE*/       "Continue",
+        /*EBREAK*/          "Break",
         /*EUNDEFVAL*/       "Undefined",
         /*EIMMUTABLE*/      "Immutable variable",
         /*ENOASSIGN*/       "Invalid type for assignment",

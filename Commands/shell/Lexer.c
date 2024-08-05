@@ -22,6 +22,8 @@ typedef struct Keyword {
 } Keyword;
 
 static const Keyword gKeywords[] = {
+    { "break",      kToken_Break },
+    { "continue",   kToken_Continue },
     { "else",       kToken_Else },
     { "false",      kToken_False },
     { "if",         kToken_If },

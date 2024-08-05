@@ -563,6 +563,25 @@ errno_t Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned
     return (self) ? EOK : ENOMEM;
 }
 
+errno_t Expression_CreateBreak(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    BreakExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(BreakExpression));
+
+    self->super.type = kExpression_Break;
+    self->expr = expr;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
+errno_t Expression_CreateContinue(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf)
+{
+    ContinueExpression* self = StackAllocator_ClearAlloc(pAllocator, sizeof(ContinueExpression));
+
+    self->super.type = kExpression_Continue;
+    *pOutSelf = (Expression*)self;
+    return (self) ? EOK : ENOMEM;
+}
+
 #ifdef SCRIPT_PRINTING
 void Expression_Print(Expression* _Nonnull self)
 {
@@ -590,7 +609,23 @@ void Expression_Print(Expression* _Nonnull self)
             Arithmetic_Print(decl->expr);
             break;
         }
-            
+        
+        case kExpression_Break: {
+            BreakExpression* be = AS(self, BreakExpression);
+
+            fputs("break");
+            if (be->expr) {
+                Arithmetic_Print(be->expr);
+            } else {
+                putchar('\n');
+            }
+            break;
+        }
+
+        case kExpression_Continue:
+            puts("continue");
+            break;
+
         default:
             abort();
             break;

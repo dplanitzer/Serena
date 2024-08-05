@@ -25,9 +25,12 @@
 #define ENOASSIGN       -11
 #define EIMMUTABLE      -12
 #define EUNDEFVAL       -13
+#define EBREAK          -14
+#define ECONTINUE       -15
+#define ENOTLOOP        -16
 
 #define _EFIRST_SHELL   ESYNTAX
-#define _ELAST_SHELL    EUNDEFVAL
+#define _ELAST_SHELL    ENOTLOOP
 
 extern const char *shell_strerror(int err_no);
 

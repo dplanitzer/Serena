@@ -966,6 +966,43 @@ catch:
 }
 
 //
+// breakExpression
+//     : BREAK arithmeticExpression?
+//     ;
+static errno_t Parser_BreakExpression(Parser* _Nonnull self, Expression* _Nullable * _Nonnull pOutExpr)
+{
+    decl_try_err();
+    Expression* expr = NULL;
+    Arithmetic* arithExpr = NULL;
+
+    try(match(kToken_Break));
+
+    switch (Lexer_GetToken(&self->lexer)->id) {
+        case kToken_Newline:
+        case kToken_Semicolon:
+        case kToken_Ampersand:
+        case kToken_ClosingBrace:
+        case kToken_Eof:
+            // This break has no arithmetic expression associated with it
+            break;
+
+        default:
+            // Arithmetic expression
+            try(Parser_ArithmeticExpression(self, &arithExpr));
+            break;
+    }
+
+    try(Expression_CreateBreak(self->allocator, arithExpr, &expr));
+
+    *pOutExpr = expr;
+    return EOK;
+
+catch:
+    *pOutExpr = NULL;
+    return err;
+}
+
+//
 // terminator
 //     : NL | SEMICOLON | AMPERSAND
 //     ;
@@ -1015,7 +1052,9 @@ static errno_t Parser_Terminator(Parser* _Nonnull self, bool isNested, bool* _No
 // expression
 //     : (varDeclExpression
 //         | assignmentExpression
-//         | arithmeticExpression)? terminator
+//         | arithmeticExpression
+//         | breakExpression
+//         | CONTINUE)? terminator
 //     ;
 //
 // assignmentExpression
@@ -1025,12 +1064,17 @@ static errno_t Parser_Terminator(Parser* _Nonnull self, bool isNested, bool* _No
 // assignableExpression
 //     : VAR_NAME
 //     ;
+//
+// breakExpression
+//     : BREAK arithmeticExpression?
+//     ;
 static errno_t Parser_Expression(Parser* _Nonnull self, bool isNested, Expression* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
+    const Token* t = Lexer_GetToken(&self->lexer);
     Expression* expr = NULL;
 
-    switch (Lexer_GetToken(&self->lexer)->id) {
+    switch (t->id) {
         case kToken_Newline:
         case kToken_Semicolon:
         case kToken_Ampersand:
@@ -1045,6 +1089,15 @@ static errno_t Parser_Expression(Parser* _Nonnull self, bool isNested, Expressio
         case kToken_Var:
             // Variable declaration
             try(Parser_VarDeclExpression(self, &expr));
+            break;
+
+        case kToken_Break:
+            try(Parser_BreakExpression(self, &expr));
+            break;
+
+        case kToken_Continue:
+            consume();
+            try(Expression_CreateContinue(self->allocator, &expr));
             break;
 
         default: {

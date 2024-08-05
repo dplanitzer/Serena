@@ -34,6 +34,8 @@ typedef struct Interpreter {
     RunStack* _Nonnull          runStack;
     EnvironCache* _Nonnull      environCache;
     ArgumentVector* _Nonnull    argumentVector;
+
+    int32_t                     loopNestingCount;
 } Interpreter;
 typedef Interpreter* InterpreterRef;
 

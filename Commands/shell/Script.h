@@ -221,6 +221,8 @@ typedef enum ExpressionType {
     kExpression_ArithmeticExpression,   // ArithmeticExpression
     kExpression_Assignment,             // AssignmentExpression
     kExpression_VarDecl,                // VarDeclExpression
+    kExpression_Break,                  // BreakExpression
+    kExpression_Continue,               // ContinueExpression
 } ExpressionType;
 
 typedef struct Expression {
@@ -247,10 +249,21 @@ typedef struct VarDeclExpression {
     unsigned int            modifiers;
 } VarDeclExpression;
 
+typedef struct BreakExpression {
+    Expression              super;
+    Arithmetic* _Nullable   expr;
+} BreakExpression;
+
+typedef struct ContinueExpression {
+    Expression  super;
+} ContinueExpression;
+
 extern errno_t Expression_CreateNull(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateArithmeticExpression(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateAssignment(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nonnull lvalue, Arithmetic* _Nonnull rvalue, Expression* _Nullable * _Nonnull pOutSelf);
 extern errno_t Expression_CreateVarDecl(StackAllocatorRef _Nonnull pAllocator, unsigned int modifiers, VarRef* _Nonnull vref, struct Arithmetic* _Nonnull expr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateBreak(StackAllocatorRef _Nonnull pAllocator, Arithmetic* _Nullable expr, Expression* _Nullable * _Nonnull pOutSelf);
+extern errno_t Expression_CreateContinue(StackAllocatorRef _Nonnull pAllocator, Expression* _Nullable * _Nonnull pOutSelf);
 #ifdef SCRIPT_PRINTING
 extern void Expression_Print(Expression* _Nonnull self);
 #endif

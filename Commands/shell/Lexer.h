@@ -58,6 +58,8 @@ typedef enum TokenId {
     kToken_While = 274,                 // u.string
     kToken_False = 275,                 // u.string
     kToken_True = 276,                  // u.string
+    kToken_Break = 277,                 // u.string
+    kToken_Continue = 278,              // u.string
     
     
     // DQ, DBT Mode

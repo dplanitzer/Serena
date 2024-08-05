@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 typedef enum ValueType {
-    kValue_Undefined = 0,       // Bottom type
+    kValue_Undefined = 0,       // Bottom type (uninhabited)
     //kValue_Any,                  Top type (default for variable without explicit type information)
     kValue_Void,
     kValue_Bool,
