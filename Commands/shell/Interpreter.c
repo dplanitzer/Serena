@@ -239,6 +239,26 @@ static errno_t Interpreter_SerializeValue(InterpreterRef _Nonnull self, const Va
         case kValue_String:
             return ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vp), Value_GetLength(vp));
 
+        case kValue_Bool:
+        case kValue_Integer:
+        case kValue_Void: {
+            errno_t err = OpStack_Push(self->opStack, vp);
+
+            if (err == EOK) {
+                Value* vtos = OpStack_GetTos(self->opStack);
+
+                err = Value_ToString(vtos);
+                if (err == EOK) {
+                    err = ArgumentVector_AppendBytes(self->argumentVector, Value_GetCharacters(vtos), Value_GetLength(vtos));
+                }
+                OpStack_Pop(self->opStack);
+            }
+            return err;
+        }
+
+        case kValue_Never:
+            return ENOVAL;
+
         default:
             return ENOTIMPL;
     }
