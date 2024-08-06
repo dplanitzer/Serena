@@ -54,9 +54,28 @@ inline TimeInterval TimeInterval_MakeMicroseconds(useconds_t micros) {
     return ti;
 }
 
+
+inline time_t TimeInterval_GetSeconds(TimeInterval ti) {
+    return ti.tv_sec;
+}
+
+inline mseconds_t TimeInterval_GetMillis(TimeInterval ti) {
+    return ti.tv_sec * 1000l + ti.tv_nsec / (1000l * 1000l);
+}
+
+inline useconds_t TimeInterval_GetMicros(TimeInterval ti) {
+    return ti.tv_sec * 1000l * 1000l + ti.tv_nsec / 1000l;
+}
+
+inline int64_t TimeInterval_GetNanos(TimeInterval ti) {
+    return (int64_t)ti.tv_sec * 1000ll * 1000ll * 1000ll + (int64_t)ti.tv_nsec;
+}
+
+
 inline bool TimeInterval_IsNegative(TimeInterval ti) {
     return ti.tv_sec < 0 || ti.tv_nsec < 0;
 }
+
 
 inline bool TimeInterval_Equals(TimeInterval t0, TimeInterval t1) {
     return t0.tv_nsec == t1.tv_nsec && t0.tv_sec == t1.tv_sec;

@@ -150,8 +150,10 @@ Starts a new shell instance as a child process of the current shell. The new she
 
 If a string is provided as the last argument to the shell then this string is interpreted as the path to a shell script. The shell loads the script and executes it. The '--command' switch causes the shell to interpret the string as a shell command instead of a path to a script file. Multiple commands may be provided in a single string by separating them with a semicolon (';') character.
 
-
-
 #### TYPE [--hex] \<path>
 
 Prints the contents of the file 'path' to the console. Pass the switch '--hex' to print the file contents as a series of hexadecimal numbers.
+
+#### UPTIME
+
+Prints the number of milliseconds that have elapsed since boot.
