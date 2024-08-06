@@ -128,6 +128,10 @@ Exits the current shell with the exit code 'exit_code'. The exit code is passed 
 
 Prints the contents of the shell history to standard out. Each history entry is printed as a separate line. The entries are printed in the order of newest to oldest.
 
+#### INPUT [prompt]
+
+Prints the prompt 'prompt' if provided and then allows the user to enter a line of text. Then prints the text that the user has entered to standard output.
+
 #### LIST [-a | --all] [paths ...]
 
 Lists the contents of one or more directories as indicated by the provided paths. Lists the contents of the current working directory if no path is provided. By default the list command does not list entries that start with a '.'. Pass the '--all' parameter to enable the output of all directory entries.
