@@ -16,6 +16,7 @@ struct Interpreter;
 extern int cmd_cd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_cls(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_delete(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_delay(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_echo(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_exit(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_history(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);

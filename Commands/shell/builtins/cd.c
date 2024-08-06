@@ -13,9 +13,9 @@
 #include <clap.h>
 
 
-const char* path;
+static const char* path;
 
-CLAP_DECL(params,
+static CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("cd <directory>"),

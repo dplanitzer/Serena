@@ -112,6 +112,10 @@ Clears the screen.
 
 Deletes one or more directories or files indicated by the provided path(s). A directory must be empty to be eligible for deleting.
 
+#### DELAY \<ms>
+
+Pauses execution for 'ms' milliseconds.
+
 #### ECHO [-n | --noline] [-s | --nospace] \<strings ...>
 
 Prints the given list of strings separated by single space characters to standard out. The list of strings is followed by a single newline character. The output of the final newline character may be suppressed by specifying the '--noline' option. Use the '--nospace' option to print multiple strings without a separating space character. All strings following a '--' parameter are printed verbatim and not interpreted as an option even if they start with '-' or '--' characters.
