@@ -111,7 +111,7 @@ static errno_t type_text(const char* _Nonnull path)
     try_null(fp, fopen(path, "r"), errno);
 
     while (!feof(fp)) {
-        const size_t r = fread(buf, sizeof(buf), 1, fp);
+        const size_t r = fread(buf, 1, sizeof(buf) - 1, fp);
 
         if (r == 0) {
             if (ferror(fp)) {
@@ -119,6 +119,7 @@ static errno_t type_text(const char* _Nonnull path)
             }
         }
 
+        buf[r] = '\0';
         fputs(buf, stdout);
 #if 0
     //XXX disabled for now because the Console I/O channel doesn't have a way yet

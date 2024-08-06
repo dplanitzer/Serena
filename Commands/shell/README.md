@@ -132,6 +132,10 @@ Prints the contents of the shell history to standard out. Each history entry is 
 
 Prints the prompt 'prompt' if provided and then allows the user to enter a line of text. Then prints the text that the user has entered to standard output.
 
+#### LOAD [--hex] \<path>
+
+Loads the contents of a text or binary file and prints it to standard output. This command is similar to the type command. However it is focused on loading data from files in the context of processing the data algorithmically whereas the type command is focused on showing the contents of a file in an interactive mode.
+
 #### LIST [-a | --all] [paths ...]
 
 Lists the contents of one or more directories as indicated by the provided paths. Lists the contents of the current working directory if no path is provided. By default the list command does not list entries that start with a '.'. Pass the '--all' parameter to enable the output of all directory entries.
@@ -153,6 +157,10 @@ Renames the file or directory at 'source_path' to 'destination_path'. If a file 
 Starts a new shell instance as a child process of the current shell. The new shell inherits all environment variables, the root directory and the current working directory of its parent shell. Exit the new shell by issuing an "exit" command on the command line. The shell runs in interactive mode by default.
 
 If a string is provided as the last argument to the shell then this string is interpreted as the path to a shell script. The shell loads the script and executes it. The '--command' switch causes the shell to interpret the string as a shell command instead of a path to a script file. Multiple commands may be provided in a single string by separating them with a semicolon (';') character.
+
+#### SAVE [-a | --append] [-r | --raw] <data> to \<path>
+
+Writes the provided data to a new file at location 'path'. Any existing data is by default overridden. The provided data is appended to the end of an existing file if the '--append' switch is provided.
 
 #### TYPE [--hex] \<path>
 
