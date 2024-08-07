@@ -120,6 +120,10 @@ Pauses execution for 'ms' milliseconds.
 
 Prints the given list of strings separated by single space characters to standard out. The list of strings is followed by a single newline character. The output of the final newline character may be suppressed by specifying the '--noline' option. Use the '--nospace' option to print multiple strings without a separating space character. All strings following a '--' parameter are printed verbatim and not interpreted as an option even if they start with '-' or '--' characters.
 
+#### EXISTS <path>
+
+Checks whether the file or directory at path 'path' exists and returns true if that is the case and false otherwise.
+
 #### EXIT [exit_code]
 
 Exits the current shell with the exit code 'exit_code'. The exit code is passed to the program that invoked the shell. An exit code of 0 is assumed if no exit code is provided.
@@ -130,7 +134,7 @@ Prints the contents of the shell history to standard out. Each history entry is 
 
 #### INPUT [prompt]
 
-Prints the prompt 'prompt' if provided and then allows the user to enter a line of text. Then prints the text that the user has entered to standard output.
+Prints the prompt 'prompt' if provided and then allows the user to enter a line of text. Then returns the text that the user has entered.
 
 #### LOAD [--hex] \<path>
 
@@ -146,7 +150,7 @@ Creates one or more empty directories at the file system locations designated by
 
 #### PWD
 
-Prints the absolute path of the current working directory.
+Returns the absolute path of the current working directory.
 
 #### RENAME \<source_path> \<destination_path>
 
@@ -168,4 +172,4 @@ Prints the contents of the file 'path' to the console. Pass the switch '--hex' t
 
 #### UPTIME
 
-Prints the number of milliseconds that have elapsed since boot.
+Returns the number of milliseconds that have elapsed since boot.

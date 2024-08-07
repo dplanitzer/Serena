@@ -223,7 +223,7 @@ SYSCALL_2(access, const char* _Nullable path, uint32_t mode)
         return EINVAL;
     }
 
-    return Process_CheckFileAccess(Process_GetCurrent(), pArgs->path, pArgs->mode);
+    return Process_CheckAccess(Process_GetCurrent(), pArgs->path, pArgs->mode);
 }
 
 SYSCALL_1(unlink, const char* _Nullable path)

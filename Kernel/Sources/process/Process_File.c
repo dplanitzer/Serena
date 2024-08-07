@@ -333,7 +333,7 @@ errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int ioc, Fi
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the
 // file exists at all is executed.
-errno_t Process_CheckFileAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, AccessMode mode)
+errno_t Process_CheckAccess(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, AccessMode mode)
 {
     decl_try_err();
     PathResolver pr;

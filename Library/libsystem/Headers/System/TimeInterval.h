@@ -11,6 +11,7 @@
 
 #include <System/_cmndef.h>
 #include <System/abi/_bool.h>
+#include <System/abi/_inttypes.h>
 #include <System/_time.h>
 
 

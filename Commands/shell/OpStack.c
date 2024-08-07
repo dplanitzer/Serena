@@ -83,6 +83,18 @@ errno_t OpStack_PushVoid(OpStack* _Nonnull self)
     }
 }
 
+errno_t OpStack_PushBool(OpStack* _Nonnull self, bool flag)
+{
+    Value* vp = _OpStack_Push(self);
+
+    if (vp) {
+        Value_InitBool(vp, flag);
+        return EOK;
+    } else {
+        return ENOMEM;
+    }
+}
+
 errno_t OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32)
 {
     Value* vp = _OpStack_Push(self);

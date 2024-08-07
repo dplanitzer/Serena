@@ -67,7 +67,7 @@ errno_t FileChannel_Truncate(int ioc, FileOffset length)
 
 errno_t File_CheckAccess(const char* _Nonnull path, AccessMode mode)
 {
-    return (errno_t)_syscall(SC_access, mode);
+    return (errno_t)_syscall(SC_access, path, mode);
 }
 
 errno_t File_Unlink(const char* _Nonnull path)
