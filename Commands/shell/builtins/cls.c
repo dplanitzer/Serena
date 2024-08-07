@@ -23,10 +23,16 @@ static CLAP_DECL(params,
 int cmd_cls(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
+    int exitCode;
+    
+    if (!clap_should_exit(status)) {
+        printf("\033[2J\033[H");
+        exitCode = EXIT_SUCCESS;
+    }
+    else {
+        exitCode = clap_exit_code(status);
     }    
 
-    printf("\033[2J\033[H");
-    return EXIT_SUCCESS;
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

@@ -26,19 +26,30 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_rename(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_rename(const char* _Nonnull oldPath, const char* _Nonnull newPath, const char* _Nonnull proc_name)
 {
     decl_try_err();
 
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }
-
-    err = File_Rename(old_path, new_path);
+    err = File_Rename(oldPath, newPath);
     if (err != EOK) {
-        print_error(argv[0], old_path, err);
+        print_error(proc_name, oldPath, err);
     }
 
-    return exit_code(err);
+    return err;
+}
+
+int cmd_rename(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_rename(old_path, new_path, argv[0]));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+    }
+
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

@@ -26,5 +26,7 @@ int cmd_history(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
         puts(Interpreter_GetHistoryAt(ip, i));
     }
 
+    // XXX should push an Array<String> 
+    OpStack_PushVoid(ip->opStack);
     return EXIT_SUCCESS;
 }

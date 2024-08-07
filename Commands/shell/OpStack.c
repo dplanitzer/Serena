@@ -83,13 +83,30 @@ errno_t OpStack_PushVoid(OpStack* _Nonnull self)
     }
 }
 
-errno_t OpStack_PushEmptyString(OpStack* _Nonnull self)
+errno_t OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32)
 {
     Value* vp = _OpStack_Push(self);
 
     if (vp) {
-        Value_InitEmptyString(vp);
+        Value_InitInteger(vp, i32);
         return EOK;
+    } else {
+        return ENOMEM;
+    }
+}
+
+errno_t OpStack_PushCString(OpStack* _Nonnull self, const char* str)
+{
+    Value* vp = _OpStack_Push(self);
+
+    if (vp) {
+        if (*str != '\0') {
+            return Value_InitCString(vp, str, 0);
+        }
+        else {
+            Value_InitEmptyString(vp);
+            return EOK;
+        }
     } else {
         return ENOMEM;
     }

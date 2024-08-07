@@ -53,7 +53,7 @@ void Shell_Destroy(ShellRef _Nullable self)
 static void _Shell_ExecuteString(ShellRef _Nonnull self, const char* _Nonnull str, Script* _Nonnull script, bool isInteractive)
 {
     decl_try_err();
-    const ExecuteOptions options = (isInteractive) ? kExecute_PrintResult : kExecute_PushScope;
+    const ExecuteOptions options = (isInteractive) ? kExecute_Interactive : kExecute_PushScope;
 
     Script_Reset(script);
 

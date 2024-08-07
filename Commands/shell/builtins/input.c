@@ -25,28 +25,40 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_input(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_input(InterpreterRef _Nonnull ip)
 {
     decl_try_err();
     LineReaderRef lineReader = NULL;
 
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }    
-    
     // XXX figure out what to do about the max length. I.e. should probably be controllable with an argument
-    try(LineReader_Create(40, 0, prompt, &lineReader));
-    char* line = LineReader_ReadLine(lineReader);
-
-    if (IOChannel_GetType(kIOChannel_Stdout) == kIOChannelType_Terminal) {
-        printf("\n%s\n", line);
+    err = LineReader_Create(40, 0, prompt, &lineReader);
+    if (err == EOK) {
+        err = OpStack_PushCString(ip->opStack, LineReader_ReadLine(lineReader));
+        
+        if (ip->isInteractive) {
+            putchar('\n');
+        }
     }
     else {
-        fputs(line, stdout);
+        err = OpStack_PushVoid(ip->opStack);
     }
 
-catch:
     LineReader_Destroy(lineReader);
-    return exit_code(err);
+    return err;
+}
+
+int cmd_input(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_input(ip));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+        OpStack_PushVoid(ip->opStack);
+    }
+    
+    return exitCode;
 }

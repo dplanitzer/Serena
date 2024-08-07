@@ -88,32 +88,47 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_makedir(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_makedir(clap_string_array_t* _Nonnull paths, bool shouldCreateParents, const char* _Nonnull proc_name)
 {
     decl_try_err();
     FilePermissions permissions = FilePermissions_MakeFromOctal(0755);
 
-    should_create_parents = false;
-
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }
-
-    for (size_t i = 0; i < paths.count; i++) {
-        char* path = (char*)paths.strings[i];
+    for (size_t i = 0; i < paths->count; i++) {
+        char* path = (char*)paths->strings[i];
 
         err = Directory_Create(path, permissions);
         if (err != EOK) {
-            if (err == ENOENT && should_create_parents) {
+            if (err == ENOENT && shouldCreateParents) {
                 err = create_directory_recursively(path, permissions);
             }
 
             if (err != EOK) {
-                print_error(argv[0], path, err);
+                print_error(proc_name, path, err);
             }
+        }
+
+        if (err != EOK) {
+            break;
         }
     }
 
-    return exit_code(err);
+    return err;
+}
+
+int cmd_makedir(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    should_create_parents = false;
+
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_makedir(&paths, should_create_parents, argv[0]));
+    }
+    else {        
+        exitCode = clap_exit_code(status);
+    }
+
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

@@ -156,18 +156,11 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_type(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_type(const char* _Nonnull path, bool isHex, const char* _Nonnull proc_name)
 {
     decl_try_err();
 
-    is_hex = false;
-    
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }
-
-    if (is_hex) {
+    if (isHex) {
         err = type_hex(path);
     }
     else {
@@ -175,8 +168,26 @@ int cmd_type(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     }
 
     if (err != EOK) {
-        print_error(argv[0], path, err);
+        print_error(proc_name, path, err);
     }
 
-    return exit_code(err);
+    return err;
+}
+
+int cmd_type(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    is_hex = false;
+    
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_type(path, is_hex, argv[0]));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+    }
+
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

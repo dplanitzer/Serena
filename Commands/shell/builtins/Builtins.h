@@ -13,6 +13,16 @@
 
 struct Interpreter;
 
+//
+// Input:
+// - serialized arguments
+// - serialized environment variables
+//
+// Output:
+// - one value on the op-stack (corresponding to a captured stdout)
+// - status
+//
+
 extern int cmd_cd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_cls(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_delete(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);

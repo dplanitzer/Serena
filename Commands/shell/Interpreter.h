@@ -21,7 +21,7 @@
 
 typedef enum ExecuteOptions {
     kExecute_PushScope = 1,     // Push a scope before running the script and pop it afterwards
-    kExecute_PrintResult = 2,   // Print the result of (the last expression of) the script
+    kExecute_Interactive = 2,   // Interactive mode. I.e. print the result of (the last expression of) the script
 } ExecuteOptions;
 
 
@@ -36,6 +36,7 @@ typedef struct Interpreter {
     ArgumentVector* _Nonnull    argumentVector;
 
     int32_t                     loopNestingCount;
+    bool                        isInteractive;
 } Interpreter;
 typedef Interpreter* InterpreterRef;
 

@@ -21,24 +21,38 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_pwd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_pwd(InterpreterRef _Nonnull ip, const char* _Nonnull proc_name)
 {
     decl_try_err();
-    char* buf = NULL;
+    char* buf = malloc(PATH_MAX);
 
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
+    if (buf) {
+        err = Process_GetWorkingDirectory(buf, PATH_MAX);
+        if (err == EOK) {
+            err = OpStack_PushCString(ip->opStack, buf);
+        }
+        else {
+            print_error(proc_name, NULL, err);
+        }
+
+        free(buf);
     }
 
-    try_null(buf, malloc(PATH_MAX), ENOMEM);
-    try(Process_GetWorkingDirectory(buf, PATH_MAX));
-    printf("%s\n", buf);
+    return err;
+}
 
-catch:
-    free(buf);
-    if (err != EOK) {
-        print_error(argv[0], NULL, err);
-    }    
-    return exit_code(err);
+int cmd_pwd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_pwd(ip, argv[0]));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+        OpStack_PushVoid(ip->opStack);
+    }
+
+    return exitCode;
 }

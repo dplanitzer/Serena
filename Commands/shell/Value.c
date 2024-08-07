@@ -86,7 +86,7 @@ static void RCString_Release(RCString* _Nonnull self)
 // Value
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t Value_InitCString(Value* _Nonnull self, char* str, ValueFlags flags)
+errno_t Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flags)
 {
     const size_t len = strlen(str);
 

@@ -24,19 +24,28 @@ static CLAP_DECL(params,
 );
 
 
+static errno_t do_cd(const char* path, const char* proc_name)
+{
+    const errno_t err = Process_SetWorkingDirectory(path);
+        
+    if (err != EOK) {
+        print_error(proc_name, path, err);
+    }
+    return err;
+}
+
 int cmd_cd(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
-    decl_try_err();
-
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }    
-    
-    err = Process_SetWorkingDirectory(path);
-    if (err != EOK) {
-        print_error(argv[0], path, err);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_cd(path, argv[0]));
+    }
+    else {
+        exitCode = clap_exit_code(status);
     }
 
-    return exit_code(err);
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

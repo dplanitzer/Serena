@@ -29,24 +29,10 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_save(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_save(const char* _Nonnull text, const char* _Nonnull path, const char* _Nonnull proc_name)
 {
     decl_try_err();
 
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }    
-    
-    // save "test" to my_file.txt
-    if (parts.count != 3 || strcmp(parts.strings[1], "to")) {
-        clap_error(argv[0], "expected 'save <text> to <path>");
-        return EXIT_FAILURE;
-    }
-
-
-    const char* path = parts.strings[2];
-    const char* text = parts.strings[0];
     const size_t textLen = strlen(text);
     char mode[3] = {'w', '\0', '\0'};
 
@@ -71,8 +57,31 @@ int cmd_save(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
     }
 
     if (err != EOK) {
-        print_error(argv[0], path, err);
+        print_error(proc_name, path, err);
     }
 
-    return exit_code(err);
+    return err;
+}
+
+int cmd_save(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        // save "test" to my_file.txt
+        if (parts.count != 3 || strcmp(parts.strings[1], "to")) {
+            clap_error(argv[0], "expected 'save <text> to <path>");
+            exitCode = EXIT_FAILURE;
+        }
+        else {
+            exitCode = exit_code(do_save(parts.strings[0], parts.strings[2], argv[0]));
+        }
+    }
+    else {
+        exitCode = clap_exit_code(status);
+    }    
+    
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

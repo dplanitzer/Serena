@@ -80,7 +80,7 @@ typedef struct Value {
 #define Value_InitEmptyString(__self) \
     Value_InitCString(__self, "", kValueFlag_NoCopy)
 
-extern errno_t Value_InitCString(Value* _Nonnull self, char* str, ValueFlags flags);
+extern errno_t Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flags);
 extern errno_t Value_InitString(Value* _Nonnull self, char* buf, size_t nbytes, ValueFlags flags);
 
 // Creates an efficient copy of 'other'. The copy is in the sense efficient that

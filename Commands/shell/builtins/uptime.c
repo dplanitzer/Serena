@@ -20,19 +20,23 @@ static CLAP_DECL(params,
 );
 
 
+static errno_t do_uptime(InterpreterRef _Nonnull ip)
+{
+    return OpStack_PushInteger(ip->opStack, TimeInterval_GetMillis(MonotonicClock_GetTime()));
+}
+
 int cmd_uptime(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
 {
-    decl_try_err();
-
     const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }    
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_uptime(ip));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+        OpStack_PushVoid(ip->opStack);
+    }
     
-
-    const TimeInterval ti = MonotonicClock_GetTime();
-    const mseconds_t ms = TimeInterval_GetMillis(ti);
-    printf("%ld\n", ms);
-
-    return EXIT_SUCCESS;
+    return exitCode;
 }

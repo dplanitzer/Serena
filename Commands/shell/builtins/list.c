@@ -175,47 +175,56 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_list(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, const char* _Nonnull proc_name)
 {
     decl_try_err();
+    errno_t firstErr = EOK;
     ListContext ctx = {0};
-    bool anyError = false;
 
-    paths.strings = default_path;
-    paths.count = 1;
-    is_print_all = false;
-
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }
-
-    ctx.flags.printAll = is_print_all;
-
-    
+    ctx.flags.printAll = isPrintAll;
     ctx.pathBuffer = malloc(PATH_MAX);
     if (ctx.pathBuffer == NULL) {
-        return EXIT_FAILURE;
+        return ENOMEM;
     }
 
-    for (size_t i = 0; i < paths.count; i++) {
-        const char* path = paths.strings[i];
+    for (size_t i = 0; i < paths->count; i++) {
+        const char* path = paths->strings[i];
 
-        if (paths.count > 1) {
+        if (paths->count > 1) {
             printf("%s:\n", path);
         }
 
         err = list_dir(&ctx, path);
         if (err != EOK) {
-            print_error(argv[0], path, err);
-            anyError = true;
+            firstErr = err;
+            print_error(proc_name, path, err);
         }
 
-        if (i < (argc - 1)) {
+        if (i < (paths->count - 1)) {
             putchar('\n');
         }
     }
     free(ctx.pathBuffer);
 
-    return (anyError) ? EXIT_FAILURE : EXIT_SUCCESS;
+    return firstErr;
+}
+
+int cmd_list(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    paths.strings = default_path;
+    paths.count = 1;
+    is_print_all = false;
+
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_list(&paths, is_print_all, argv[0]));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+    }
+
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

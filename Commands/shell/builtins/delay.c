@@ -24,20 +24,33 @@ static CLAP_DECL(params,
 );
 
 
-int cmd_delay(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+static errno_t do_delay(const char* _Nonnull spec)
 {
     decl_try_err();
-
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }    
-    
     const char* ep = NULL;
     const long ms = strtol(ms_str, &ep, 10);
+    
     if (*ep != '\0') {
-        return EXIT_FAILURE;
+        return EINVAL;
     }
 
-    return exit_code(Delay(TimeInterval_MakeMilliseconds(ms)));
+    return Delay(TimeInterval_MakeMilliseconds(ms));
+}
+
+int cmd_delay(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    ms_str = "";
+    
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_delay(ms_str));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+    }    
+    
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

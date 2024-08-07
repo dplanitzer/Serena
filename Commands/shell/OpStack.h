@@ -27,7 +27,8 @@ extern void OpStack_Destroy(OpStack* _Nullable self);
 extern errno_t OpStack_Push(OpStack* _Nonnull self, const Value* _Nonnull value);
 
 extern errno_t OpStack_PushVoid(OpStack* _Nonnull self);
-extern errno_t OpStack_PushEmptyString(OpStack* _Nonnull self);
+extern errno_t OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32);
+extern errno_t OpStack_PushCString(OpStack* _Nonnull self, const char* str);
 
 // Pops all values from the stack.
 extern void OpStack_PopAll(OpStack* _Nonnull self);

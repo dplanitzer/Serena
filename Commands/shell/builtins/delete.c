@@ -13,14 +13,6 @@
 #include <clap.h>
 
 
-static errno_t delete_obj(const char* _Nonnull path)
-{
-    return File_Unlink(path);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
 static clap_string_array_t paths = {NULL, 0};
 
 static CLAP_DECL(params,
@@ -31,24 +23,36 @@ static CLAP_DECL(params,
     CLAP_REQUIRED_VARARG(&paths, "expected paths of files to delete")
 );
 
-int cmd_delete(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+
+static errno_t do_delete_objs(clap_string_array_t* _Nonnull paths, const char* _Nonnull proc_name)
 {
     decl_try_err();
 
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    if (clap_should_exit(status)) {
-        return clap_exit_code(status);
-    }
+    for (size_t i = 0; i < paths->count; i++) {
+        const char* path = paths->strings[i];
 
-    for (size_t i = 0; i < paths.count; i++) {
-        const char* path = paths.strings[i];
-
-        err = delete_obj(path);
+        err = File_Unlink(path);
         if (err != EOK) {
-            print_error(argv[0], path, err);
+            print_error(proc_name, path, err);
             break;
         }
     }
 
-    return exit_code(err);
+    return err;
+}
+
+int cmd_delete(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+{
+    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
+    int exitCode;
+
+    if (!clap_should_exit(status)) {
+        exitCode = exit_code(do_delete_objs(&paths, argv[0]));
+    }
+    else {
+        exitCode = clap_exit_code(status);
+    }
+
+    OpStack_PushVoid(ip->opStack);
+    return exitCode;
 }

@@ -188,7 +188,6 @@ static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int
 
     if (np) {
         np->cb(self, argc, argv, envp);
-        OpStack_PushVoid(self->opStack);    // XXX for now
         return true;
     }
 
@@ -230,6 +229,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     // Wait for the command to complete its task
     ProcessTerminationStatus pts;
     Process_WaitForTerminationOfChild(childPid, &pts);
+
 
     // XXX we always return Void for now (will change once we got value capture support)
     OpStack_PushVoid(self->opStack);
@@ -449,7 +449,7 @@ static errno_t Interpreter_CompoundString(InterpreterRef _Nonnull self, Compound
             ValueArray_ToString(OpStack_GetNth(self->opStack, nComponents - 1), nComponents);
             OpStack_PopSome(self->opStack, nComponents - 1);
         } else {
-            err = OpStack_PushEmptyString(self->opStack);
+            err = OpStack_PushCString(self->opStack, "");
         }
     }
     return err;
@@ -820,7 +820,7 @@ errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull scrip
 {
     decl_try_err();
     const bool bPushScope = (options & kExecute_PushScope) == kExecute_PushScope;
-    const bool bPrintResult = (options & kExecute_PrintResult) == kExecute_PrintResult;
+    const bool bInteractive = (options & kExecute_Interactive) == kExecute_Interactive;
 
     //Script_Print(script);
     //putchar('\n');
@@ -832,8 +832,9 @@ errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull scrip
         }
     }
 
+    self->isInteractive = bInteractive;
     err = Interpreter_ExpressionList(self, &script->exprs);
-    if (err == EOK && bPrintResult) {
+    if (err == EOK && bInteractive) {
         Interpreter_PrintResult(self);
     }
 
