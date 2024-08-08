@@ -30,10 +30,10 @@ static CLAP_DECL(params,
 
 static errno_t do_echo(clap_string_array_t* _Nonnull strs, bool isNoSpace, bool isNoLine)
 {
-    for (int i = 0; i < (int)strs->count; i++) {
+    for (size_t i = 0; i < strs->count; i++) {
         fputs(strs->strings[i], stdout);
         
-        if (!isNoSpace && i < (strs->count - 2)) {
+        if (!isNoSpace && strs->count > 1 && i < (strs->count - 1)) {
             fputc(' ', stdout);
         }
     }
