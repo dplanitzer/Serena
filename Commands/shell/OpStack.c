@@ -181,3 +181,14 @@ Value* _Nullable OpStack_GetNth(OpStack* _Nonnull self, size_t idx)
 {
     return (self->count > idx) ? &self->values[self->count - (1 + idx)] : NULL;
 } 
+
+void OpStack_Print(OpStack* _Nonnull self)
+{
+    printf("op-stack(%d) {\n", (int)self->count);
+    for (int i = self->count - 1; i >= 0; i--) {
+        fputs("  ", stdout);
+        Value_Write(&self->values[i], stdout);
+        putchar('\n');
+    }
+    puts("}");
+}

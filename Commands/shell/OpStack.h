@@ -52,4 +52,6 @@ extern Value* _Nullable OpStack_GetTos(OpStack* _Nonnull self);
 // operand stack. NULL is returned on an underflow.
 extern Value* _Nullable OpStack_GetNth(OpStack* _Nonnull self, size_t idx);
 
+extern void OpStack_Print(OpStack* _Nonnull self);
+
 #endif  /* OpStack_h */

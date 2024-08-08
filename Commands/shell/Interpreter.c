@@ -572,7 +572,7 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
     bool didLoopProduceValue = false;
 
     self->loopNestingCount++;
-    while (true) {
+    while (true) {        
         err = Interpreter_BoolExpression(self, AS(expr, BinaryArithmetic)->lhs, &cond_r);
         if (err != EOK) {
             break;
@@ -583,6 +583,11 @@ static errno_t Interpreter_While(InterpreterRef _Nonnull self, WhileArithmetic* 
         OpStack_Pop(self->opStack);
         if (!isTrue) {
             break;
+        }
+
+        if (didLoopProduceValue) {
+            // Remove the result of the loop body from the previous iteration
+            OpStack_Pop(self->opStack);
         }
 
         err = Interpreter_Block(self, expr->body);
@@ -686,7 +691,8 @@ static errno_t Interpreter_Assignment(InterpreterRef _Nonnull self, AssignmentEx
 
     errno_t err = Interpreter_ArithmeticExpression(self, stmt->rvalue);
     if (err == EOK) {
-        lvar->value = *OpStack_GetTos(self->opStack);
+        Value_Deinit(&lvar->value);
+        Value_InitCopy(&lvar->value, OpStack_GetTos(self->opStack));
         OpStack_Pop(self->opStack);
 
         // Result is Void
