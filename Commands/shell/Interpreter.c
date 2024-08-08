@@ -762,7 +762,27 @@ static errno_t Interpreter_Expression(InterpreterRef _Nonnull self, Expression* 
     }
 }
 
-static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, ExpressionList* _Nonnull exprList)
+// Prints and pops the value on top of the op-stack
+static void Interpreter_PrintResult(InterpreterRef _Nonnull self)
+{
+    const Value* rp = OpStack_GetTos(self->opStack);
+
+    switch (rp->type) {
+        case kValue_Void:
+            break;
+
+        case kValue_Never:
+            puts("No value");
+            break;
+
+        default:
+            Value_Write(rp, stdout);
+            putchar('\n');
+            break;
+    }
+}
+
+static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, ExpressionList* _Nonnull exprList, bool bPrintResults)
 {
     decl_try_err();
     Expression* expr = exprList->exprs;
@@ -772,6 +792,10 @@ static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, Expressi
             err = Interpreter_Expression(self, expr);
             if (err != EOK) {
                 break;
+            }
+
+            if (bPrintResults) {
+                Interpreter_PrintResult(self);
             }
 
             expr = expr->next;
@@ -791,29 +815,7 @@ static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, Expressi
 
 static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
 {
-    return Interpreter_ExpressionList(self, &block->exprs);
-}
-
-// Prints and pops the value on top of the op-stack
-static void Interpreter_PrintResult(InterpreterRef _Nonnull self)
-{
-    const Value* rp = OpStack_GetTos(self->opStack);
-
-    switch (rp->type) {
-        case kValue_Void:
-            break;
-
-        case kValue_Never:
-            puts("No value");
-            break;
-
-        default:
-            Value_Write(rp, stdout);
-            putchar('\n');
-            break;
-    }
-
-    OpStack_Pop(self->opStack);
+    return Interpreter_ExpressionList(self, &block->exprs, false);
 }
 
 // Interprets 'script' and executes all its expressions.
@@ -834,10 +836,7 @@ errno_t Interpreter_Execute(InterpreterRef _Nonnull self, Script* _Nonnull scrip
     }
 
     self->isInteractive = bInteractive;
-    err = Interpreter_ExpressionList(self, &script->exprs);
-    if (err == EOK && bInteractive) {
-        Interpreter_PrintResult(self);
-    }
+    err = Interpreter_ExpressionList(self, &script->exprs, bInteractive);
 
     if (bPushScope) {
         RunStack_PopScope(self->runStack);
