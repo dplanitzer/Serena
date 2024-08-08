@@ -41,6 +41,9 @@ typedef struct RunStack {
     Scope* _Nonnull     globalScope;
     Scope* _Nullable    scriptScope;
     int                 generationOfPublicVariables;
+
+    Scope* _Nullable    cachedScopes;                   // Threaded through scope->parent
+    int                 cachedScopesCount;
 } RunStack;
 
 

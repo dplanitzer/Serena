@@ -56,9 +56,10 @@ static void Variable_Destroy(Variable* _Nullable self)
 
 static void Scope_Destroy(Scope* _Nullable self);
 static void _Scope_DestroyHashtable(Scope* _Nonnull self);
+static void Scope_UndeclareAllVariables(Scope* _Nonnull self);
 
 
-static errno_t Scope_Create(Scope* _Nullable parentScope, Scope* _Nullable * _Nonnull pOutSelf)
+static errno_t Scope_Create(Scope* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Scope* self;
@@ -66,8 +67,6 @@ static errno_t Scope_Create(Scope* _Nullable parentScope, Scope* _Nullable * _No
     try_null(self, calloc(1, sizeof(Scope)), errno);
     try_null(self->hashtable, calloc(INITIAL_HASHTABLE_CAPACITY, sizeof(Variable*)), errno);
     self->hashtableCapacity = INITIAL_HASHTABLE_CAPACITY;
-    self->parent = parentScope;
-    self->level = (parentScope) ? parentScope->level + 1 : 0;
 
     *pOutSelf = self;
     return EOK;
@@ -88,22 +87,17 @@ static void Scope_Destroy(Scope* _Nullable self)
 
 static void _Scope_DestroyHashtable(Scope* _Nonnull self)
 {
-    for (size_t i = 0; i < self->hashtableCapacity; i++) {
-        Variable* vp = self->hashtable[i];
-
-        while (vp) {
-            Variable* next_vp = vp->next;
-
-            Variable_Destroy(vp);
-            vp = next_vp;
-        }
-
-        self->hashtable[i] = NULL;
-    }
+    Scope_UndeclareAllVariables(self);
 
     free(self->hashtable);
     self->hashtable = NULL;
     self->hashtableCapacity = 0;
+}
+
+static void Scope_SetParent(Scope* _Nonnull self, Scope* _Nullable parent)
+{
+    self->parent = parent;
+    self->level = (parent) ? parent->level + 1 : 0;
 }
 
 static Variable* _Nullable _Scope_GetVariable(Scope* _Nonnull self, const char* _Nonnull name, size_t hashCode)
@@ -168,11 +162,33 @@ catch:
     return err;
 }
 
+// Removes all variables from the scope
+static void Scope_UndeclareAllVariables(Scope* _Nonnull self)
+{
+    for (size_t i = 0; i < self->hashtableCapacity; i++) {
+        Variable* vp = self->hashtable[i];
+
+        while (vp) {
+            Variable* next_vp = vp->next;
+
+            Variable_Destroy(vp);
+            vp = next_vp;
+        }
+
+        self->hashtable[i] = NULL;
+    }
+
+    self->publicVariablesCount = 0;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // RunStack
 ////////////////////////////////////////////////////////////////////////////////
+
+#define MAX_SCOPES_TO_CACHE 2
+
 
 errno_t RunStack_Create(RunStack* _Nullable * _Nonnull pOutSelf)
 {
@@ -196,13 +212,24 @@ void RunStack_Destroy(RunStack* _Nullable self)
     if (self) {
         Scope* scope = self->currentScope;
 
+        // Scope stack
         while (scope) {
-            Scope* next_scope = scope->parent;
+            Scope* ns = scope->parent;
 
             Scope_Destroy(scope);
-            scope = next_scope;
+            scope = ns;
         }
         self->currentScope = NULL;
+
+        // Cached scopes
+        scope = self->cachedScopes;
+        while (scope) {
+            Scope* ns = scope->parent;
+
+            Scope_Destroy(scope);
+            scope = ns;
+        }
+        self->cachedScopes = NULL;
 
         free(self);
     }
@@ -213,7 +240,22 @@ errno_t RunStack_PushScope(RunStack* _Nonnull self)
     decl_try_err();
     Scope* scope;
 
-    try(Scope_Create(self->currentScope, &scope));
+    // Reuse a cached scope if possible
+    if (self->cachedScopes) {
+        scope = self->cachedScopes;
+
+        self->cachedScopes = scope->parent;
+        scope->parent = NULL;
+        self->cachedScopesCount--;
+    }
+    else {
+        try(Scope_Create(&scope));
+    }
+
+
+    // Push the scope on the scope stack
+    Scope_SetParent(scope, self->currentScope);
+
     if (self->currentScope == NULL) {
         self->globalScope = scope;
     }
@@ -236,6 +278,8 @@ errno_t RunStack_PopScope(RunStack* _Nonnull self)
         self->generationOfPublicVariables++;
     }
 
+
+    // Pop the scope from the scope stack
     Scope* scope = self->currentScope;
     if (scope == self->scriptScope) {
         self->scriptScope = NULL;
@@ -244,8 +288,20 @@ errno_t RunStack_PopScope(RunStack* _Nonnull self)
         self->globalScope = NULL;
     }
     self->currentScope = scope->parent;
-    scope->parent = NULL;
-    Scope_Destroy(scope);
+    Scope_SetParent(scope, NULL);
+
+
+    // Cache the scope if possible
+    if (self->cachedScopesCount < MAX_SCOPES_TO_CACHE) {
+        Scope_UndeclareAllVariables(scope);
+
+        scope->parent = self->cachedScopes;
+        self->cachedScopes = scope;
+        self->cachedScopesCount++;
+    }
+    else {
+        Scope_Destroy(scope);
+    }
 
     return EOK;
 }
