@@ -124,6 +124,23 @@ errno_t OpStack_PushCString(OpStack* _Nonnull self, const char* str)
     }
 }
 
+errno_t OpStack_PushString(OpStack* _Nonnull self, const char* str, size_t len)
+{
+    Value* vp = _OpStack_Push(self);
+
+    if (vp) {
+        if (len > 0) {
+            return Value_InitString(vp, str, len, 0);
+        }
+        else {
+            Value_InitEmptyString(vp);
+            return EOK;
+        }
+    } else {
+        return ENOMEM;
+    }
+}
+
 void OpStack_PopAll(OpStack* _Nonnull self)
 {
     for (size_t i = 0; i < self->count; i++) {

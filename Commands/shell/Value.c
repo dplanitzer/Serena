@@ -108,7 +108,7 @@ errno_t Value_InitCString(Value* _Nonnull self, const char* str, ValueFlags flag
     }
 }
 
-errno_t Value_InitString(Value* _Nonnull self, char* buf, size_t nbytes, ValueFlags flags)
+errno_t Value_InitString(Value* _Nonnull self, const char* buf, size_t nbytes, ValueFlags flags)
 {
     self->type = kValue_String;
     self->flags = flags;

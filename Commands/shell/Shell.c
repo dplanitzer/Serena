@@ -109,7 +109,7 @@ errno_t Shell_RunContentsOfFile(ShellRef _Nonnull self, const char* _Nonnull pat
     char* text = NULL;
 
     try(Script_Create(&script));
-    try(read_contents_of_file(path, &text));
+    try(read_contents_of_file(path, &text, NULL));
     _Shell_ExecuteString(self, text, script, false);
 
 catch:

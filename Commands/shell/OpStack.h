@@ -30,6 +30,7 @@ extern errno_t OpStack_PushVoid(OpStack* _Nonnull self);
 extern errno_t OpStack_PushBool(OpStack* _Nonnull self, bool flag);
 extern errno_t OpStack_PushInteger(OpStack* _Nonnull self, int32_t i32);
 extern errno_t OpStack_PushCString(OpStack* _Nonnull self, const char* str);
+extern errno_t OpStack_PushString(OpStack* _Nonnull self, const char* str, size_t len);
 
 // Pops all values from the stack.
 extern void OpStack_PopAll(OpStack* _Nonnull self);

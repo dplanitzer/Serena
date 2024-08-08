@@ -65,7 +65,7 @@ size_t hash_string(const char* _Nonnull str, size_t len)
     return h;
 }
 
-errno_t read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText)
+errno_t read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonnull pOutText, size_t* _Nullable pOutLength)
 {
     decl_try_err();
     FILE* fp = NULL;
@@ -87,6 +87,9 @@ errno_t read_contents_of_file(const char* _Nonnull path, char* _Nullable * _Nonn
     fclose(fp);
 
     *pOutText = text;
+    if (pOutLength) {
+        *pOutLength = fileSize + 1;
+    }
     return EOK;
 
 catch:
@@ -94,5 +97,8 @@ catch:
     fclose(fp);
 
     *pOutText = NULL;
+    if (pOutLength) {
+        *pOutLength = 0;
+    }
     return err;
 }

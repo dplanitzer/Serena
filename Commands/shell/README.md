@@ -136,9 +136,9 @@ Prints the contents of the shell history to standard out. Each history entry is 
 
 Prints the prompt 'prompt' if provided and then allows the user to enter a line of text. Then returns the text that the user has entered.
 
-#### LOAD [--hex] \<path>
+#### LOAD \<path>
 
-Loads the contents of a text or binary file and prints it to standard output. This command is similar to the type command. However it is focused on loading data from files in the context of processing the data algorithmically whereas the type command is focused on showing the contents of a file in an interactive mode.
+Returns the contents of the file at path 'path'.
 
 #### LIST [-a | --all] [paths ...]
 

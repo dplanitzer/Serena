@@ -33,6 +33,7 @@ extern int cmd_exit(struct Interpreter* _Nonnull ip, int argc, char** argv, char
 extern int cmd_history(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_input(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_list(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_load(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_makedir(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_pwd(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_rename(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
