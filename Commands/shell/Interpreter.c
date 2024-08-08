@@ -821,7 +821,14 @@ static errno_t Interpreter_ExpressionList(InterpreterRef _Nonnull self, Expressi
 
 static inline errno_t Interpreter_Block(InterpreterRef _Nonnull self, Block* _Nonnull block)
 {
-    return Interpreter_ExpressionList(self, &block->exprs, false);
+    decl_try_err();
+
+    try(RunStack_PushScope(self->runStack));
+    try(Interpreter_ExpressionList(self, &block->exprs, false));
+    RunStack_PopScope(self->runStack);
+
+catch:
+    return err;
 }
 
 // Interprets 'script' and executes all its expressions.

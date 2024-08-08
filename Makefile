@@ -187,6 +187,7 @@ build-boot-disk: $(LOGIN_FILE) $(SH_FILE)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/Users/Administrator)
 	$(call copy,$(LOGIN_FILE),$(BOOT_DISK_DIR)/System/Commands/)
 	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
+	$(call copy,$(DEMOS_DIR)/fibonacci.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 	$(call copy,$(DEMOS_DIR)/helloworld.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 	$(call copy,$(DEMOS_DIR)/while.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 
