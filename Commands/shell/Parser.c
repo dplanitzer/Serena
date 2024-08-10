@@ -304,6 +304,7 @@ catch:
 //     | ASSIGNMENT
 //     | CONJUNCTION
 //     | DISJUNCTION
+//     | PERCENT
 //     | PLUS
 //     | MINUS
 //     | ASTERISK
@@ -335,6 +336,7 @@ static errno_t Parser_CommandSecondaryFragment(Parser* _Nonnull self, Atom* _Nul
         case kToken_Greater:
         case kToken_Less:
         case kToken_Minus:
+        case kToken_Percent:
         case kToken_Plus:
         case kToken_Slash:
             try(Atom_CreateWithCharacter(self->allocator, kAtom_Identifier, t->id, hasLeadingWhitespace, pOutAtom));
@@ -620,10 +622,10 @@ catch:
 }
 
 //
-// prefixUnaryArithmetic
+// prefixUnaryExpression
 //     : prefixOperator* primaryExpression
 //     ;
-static errno_t Parser_PrefixUnaryArithmetic(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull pOutExpr)
+static errno_t Parser_PrefixUnaryExpression(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull pOutExpr)
 {
     decl_try_err();
     Arithmetic* firstExpr = NULL;
@@ -680,7 +682,7 @@ catch:
 
 //
 // multiplication
-//     : prefixUnaryArithmetic (multiplicationOperator prefixUnaryArithmetic)*
+//     : prefixUnaryExpression (multiplicationOperator prefixUnaryExpression)*
 //     ;
 static errno_t Parser_Multiplication(Parser* _Nonnull self, Arithmetic* _Nullable * _Nonnull pOutExpr)
 {
@@ -689,7 +691,7 @@ static errno_t Parser_Multiplication(Parser* _Nonnull self, Arithmetic* _Nullabl
     Arithmetic* lhs = NULL;
     Arithmetic* rhs = NULL;
 
-    try(Parser_PrefixUnaryArithmetic(self, &lhs));
+    try(Parser_PrefixUnaryExpression(self, &lhs));
 
     for (;;) {
         const Token* t = Lexer_GetToken(&self->lexer);
@@ -700,6 +702,7 @@ static errno_t Parser_Multiplication(Parser* _Nonnull self, Arithmetic* _Nullabl
         switch (t->id) {
             case kToken_Asterisk:   type = kArithmetic_Multiplication; break;
             case kToken_Slash:      type = kArithmetic_Division; break;
+            case kToken_Percent:    type = kArithmetic_Modulo; break;
             default:                done = true; break;
         }
         if (done) {
@@ -707,7 +710,7 @@ static errno_t Parser_Multiplication(Parser* _Nonnull self, Arithmetic* _Nullabl
         }
 
         consume();
-        try(Parser_PrefixUnaryArithmetic(self, &rhs));
+        try(Parser_PrefixUnaryExpression(self, &rhs));
         try(Arithmetic_CreateBinary(self->allocator, hasLeadingWhitespace, type, lhs, rhs, &expr));
         lhs = expr;
         expr = NULL;

@@ -387,6 +387,7 @@ static bool isIdentifierTerminator(char ch)
         case '-':
         case '*':
         case '/':
+        case '%':
         case ';':
         case '$':
         case '"':
@@ -408,7 +409,7 @@ static bool isIdentifierTerminator(char ch)
 }
 
 // Scans an identifier of the form:
-// [^\0x20\0x09|&+-*/\;$"`'(){}<>=!_a-zA-Z0-9]+
+// [^\0x20\0x09|&+-*/%\;$"`'(){}<>=!_a-zA-Z0-9]+
 // 
 // Expects that the current input position is at the first character of the
 // identifier. This first character is accepted no matter what. Even if it would
@@ -571,6 +572,7 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
             case '-':
             case '*':
             case '/':
+            case '%':
             case '"':
             case ';':
                 self->sourceIndex++;

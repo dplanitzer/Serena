@@ -189,6 +189,7 @@ build-boot-disk: $(LOGIN_FILE) $(SH_FILE)
 	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
 	$(call copy,$(DEMOS_DIR)/fibonacci.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 	$(call copy,$(DEMOS_DIR)/helloworld.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
+	$(call copy,$(DEMOS_DIR)/prime.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 	$(call copy,$(DEMOS_DIR)/while.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 
 $(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)

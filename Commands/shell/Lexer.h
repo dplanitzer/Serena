@@ -21,6 +21,7 @@ typedef enum TokenId {
     kToken_Ampersand = '&',             // -
     kToken_Assignment = '=',            // -
     kToken_Asterisk = '*',              // -
+    kToken_Percent = '%',               // -
     kToken_Bang = '!',                  // -
     kToken_Bar = '|',                   // -
     kToken_ClosingBrace = '}',          // -

@@ -109,7 +109,8 @@ typedef enum BinaryOperation {
     kBinaryOp_Addition,         // .
     kBinaryOp_Subtraction,      // .
     kBinaryOp_Multiplication,   // .
-    kBinaryOp_Division,         // (kArithmetic_Division)
+    kBinaryOp_Division,         // .
+    kBinaryOp_Modulo,           // (kArithmetic_Modulo)
 } BinaryOperation;
 
 extern errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryOperation op);

@@ -437,6 +437,16 @@ errno_t Value_BinaryOp(Value* _Nonnull lhs_r, const Value* _Nonnull rhs, BinaryO
             }
 
 
+        // Modulo
+        case TUPLE_3(kValue_Integer, kValue_Integer, kBinaryOp_Modulo):
+            if (rhs->u.i32 != 0) {
+                lhs_r->u.i32 = lhs_r->u.i32 % rhs->u.i32;
+                return EOK;
+            } else {
+                return EDIVBYZERO;
+            }
+
+
         // Others
         default:
             if (lhs_r->type == kValue_Never || rhs->type == kValue_Never) {

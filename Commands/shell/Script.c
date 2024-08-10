@@ -456,6 +456,7 @@ void Arithmetic_Print(Arithmetic* _Nonnull self)
         case kArithmetic_Subtraction:
         case kArithmetic_Multiplication:
         case kArithmetic_Division:
+        case kArithmetic_Modulo:
             Arithmetic_Print(AS(self, BinaryArithmetic)->lhs);
             printf(" %s", gInfix[self->type - kArithmetic_Pipeline]);
             Arithmetic_Print(AS(self, BinaryArithmetic)->rhs);

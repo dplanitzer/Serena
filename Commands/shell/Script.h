@@ -138,7 +138,8 @@ typedef enum ArithmeticType {
     kArithmetic_Addition,           // BinaryArithmetic     .
     kArithmetic_Subtraction,        // BinaryArithmetic     .
     kArithmetic_Multiplication,     // BinaryArithmetic     .
-    kArithmetic_Division,           // BinaryArithmetic     (kBinaryOp_Division)
+    kArithmetic_Division,           // BinaryArithmetic     .
+    kArithmetic_Modulo,             // BinaryArithmetic     (kBinaryOp_Modulo)
     kArithmetic_Parenthesized,      // UnaryArithmetic
     kArithmetic_Positive,           // UnaryArithmetic
     kArithmetic_Negative,           // UnaryArithmetic      (kUnaryOp_Negative)

@@ -639,6 +639,7 @@ static errno_t Interpreter_ArithmeticExpression(InterpreterRef _Nonnull self, Ar
         case kArithmetic_Subtraction:
         case kArithmetic_Multiplication:
         case kArithmetic_Division:
+        case kArithmetic_Modulo:
             return Interpreter_BinaryOp(self, expr);
 
         case kArithmetic_Parenthesized:
