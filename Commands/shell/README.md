@@ -19,3 +19,4 @@ See the chapters below for more information about various shell topics.
 ## Commands
 
 * [Commands](docs/Commands.md)
+* [Operators](docs/Operators.md)
