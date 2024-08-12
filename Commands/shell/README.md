@@ -14,6 +14,7 @@ See the chapters below for more information about various shell topics.
 * [Language](docs/Language.md)
 * [Variables](docs/Variables.md)
 * [Control Flow](docs/ControlFlow.md)
+* [Scripts](docs/Scripts.md)
 
 ## Commands
 
