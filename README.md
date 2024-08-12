@@ -1,6 +1,6 @@
 # About The Project
 
-Serena is an experimental operating system based on modern design principles with support for pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It runs on Amiga 3000/4000 systems and Amiga 500/2000 with a 68030 or better CPU installed.
+Serena is an experimental operating system based on modern design principles with support for pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It runs on Amiga systems with a 68030 or better CPU installed.
 
 One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues somewhat similar to Apple's Grand Central Dispatch. There is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept where it dynamically manages a pool of virtual processors. The size of the pool is automatically adjusted based on the needs of the dispatch queues and virtual processors are assigned to processes as needed. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to dispatch queues. Work items are simply closures (a function with associated state) from the viewpoint of the user.
 

@@ -259,7 +259,7 @@ static void OnMain(void)
 
 
     // Boot message
-    print("\033[36mSerena OS v0.1.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+    print("\033[36mSerena OS v0.2.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
 
 
     // Debug printing
