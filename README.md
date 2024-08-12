@@ -1,28 +1,28 @@
 # About The Project
 
-Serena is an experimental operating system with an object-oriented kernel for Amiga 3000/4000 computers with support for pervasive preemptive concurrency and multiple users.
+Serena is an experimental operating system based on modern design principles with support for pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It runs on Amiga 3000/4000 systems and Amiga 500/2000 with a 68030 or better CPU installed.
 
-One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues similar to Apple's Grand Central Dispatch. There is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept and it dynamically manages a pool of virtual processors. The size of the pool is automatically adjusted based on the needs of the dispatch queues. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to dispatch queues. Work items are simply closures (a function with associated state) from the viewpoint of the user.
+One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues somewhat similar to Apple's Grand Central Dispatch. There is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept where it dynamically manages a pool of virtual processors. The size of the pool is automatically adjusted based on the needs of the dispatch queues and virtual processors are assigned to processes as needed. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to dispatch queues. Work items are simply closures (a function with associated state) from the viewpoint of the user.
 
-Another interesting aspect is interrupt handling. Code which wants to react to an interrupt can register a counting semaphore with the interrupt controller for the interrupt it wants to handle. The interrupt controller will then signal the semaphore when an interrupt occurs. The use of a counting semaphore ensures that the code which is interested in the interrupt does not miss the occurrence of an interrupt. The advantage of translating interrupts into signals on a semaphore is that the interrupt handling code executes in a well-defined context that is the same kind of context that any other kind of code runs in. It also gives the interrupt handling code more flexibility since it does not have to immediately react to an interrupt. The information that an interrupt has happened is never lost, whether the interrupt handler code happened to be busy with other things at the time of the interrupt or not.
+Another interesting aspect is interrupt handling. Code which wants to react to an interrupt can register a counting semaphore with the interrupt controller for the interrupt it wants to handle. The interrupt controller will then signal the semaphore every time the interrupt occurs. Use of a counting semaphore ensures that the code which is interested in the interrupt does not miss the occurrence of an interrupt. The advantage of translating interrupts into signals on a semaphore is that the interrupt handling code executes in a well-defined context that is the same kind of context that any other kind of code runs in. It also gives the interrupt handling code more flexibility since it does not have to immediately react to an interrupt. The information that an interrupt has happened is never lost, whether the interrupt handler code happened to be busy with other things at the time of the interrupt or not.
 
 The kernel is generally reentrant. This means that virtual processors continue to be scheduled and context switched preemptively even while the CPU is executing inside the kernel. Additionally a full compliment of counting semaphores, condition variables and lock APIs are available inside the kernel. The API of those objects closely resembles what you would find in a user space implementation of a traditional OS.
 
-Serena implements a hierarchical process system similar to POSIX. A process may spawn a number of child processes and it can pass a command line and environment variables to its children. A process accesses I/O resources via descriptors (similar to POSIX).
+Serena implements a hierarchical process structure similar to POSIX. A process may spawn a number of child processes and it may pass a command line and environment variables to its children. A process accesses I/O resources via I/O channels which are similar to file descriptors in POSIX.
 
 There are two notable differences between the POSIX style process model and the Serena model though: first instead of using fork() followed by exec() to spawn a new process, you use a single function in Serena called Process_Spawn(). This makes spawning a process much faster and significantly less error prone.
 
-Secondly a child process does not inherit the file descriptors of its parent by default. The only exception are the file descriptors 0, 1 and 2 which represent the terminal input and output streams. This model is much less error prone compared to the POSIX model where a process has to be careful to close file descriptors that it doesn't want to pass on to a child process before it forks and execs the child. Doing this was easy in the early days of Unix when applications were pretty much self contained and when there was no support for dynamic libraries. It's the opposite today because applications are far more complex and depend on many 3rd party libraries.
+Secondly, a child process does not inherit the file descriptors of its parent by default. The only exception are the file descriptors 0, 1 and 2 which represent the terminal input and output streams. This model is much less error prone compared to the POSIX model where a process has to be careful to close file descriptors that it doesn't want to pass on to a child process before it spawns a child. Doing this was easy in the early days of Unix when applications were pretty much self contained and when there was no support for dynamic libraries. It's the opposite today because applications are far more complex and depend on many 3rd party libraries.
 
 The executable file format at this time is the Atari ST GemDos file format which is a close relative to the aout executable format. This file format will be eventually replaced with a file format that will be able to support dynamic libraries. However for now it is good enough to get the job done.
 
-The kernel supports a hierarchical file systems with permissions and user and group information. A file system may be mounted on top of a directory located in another file system to expand the file namespace. All this works similar to how it works in POSIX systems. A process which wants to spawn a child process can specify that the child process should be confined to a sub-tree of the global file system namespace.
+The kernel implements SerenaFS which is a hierarchical file system with permissions and user and group information. A file system may be mounted on top of a directory located in another file system to expand the file namespace. All this works similar to how it works in POSIX systems. A process which wants to spawn a child process can specify that the child process should be confined to a sub-tree of the global file system namespace.
 
 The boot file system is currently RAM-based. The ROM contains a disk image which is created with the diskimage tool and which serves as a template for the RAM disk. This ROM disk image is copied to RAM at boot time.
 
-A simple shell exists at this point, which allows you to launch executables, navigate and list the content of directories in the file system. There is also a kernel unit test rig to test various kernel APIs and kernel functionality.
+User space has support for libc, libsystem, libclap and the very beginnings of libm. Libsystem is a library that implements the user space side of the kernel interface. Libclap is a library that implements argument parsing for command line interface programs.
 
-Finally, the beginnings of a system call library (libsystem) and a mostly complete implementation of a C99 standard C library exists plus the very beginnings of a standard C math library.
+Serena OS comes with a shell which implements a formally defined shell language. You can find the shell document [here](Commands/shell/README.md).
 
 ## Features
 
@@ -30,13 +30,14 @@ The following kernel services are implemented at this time:
 
 * Kernel and user space separation in the sense of code privilege separation (not memory space separation)
 * Dispatch queues with execution priorities
-* Virtual processors with priorities and preemptive scheduling
+* Virtual processors with priorities and pervasive preemptive scheduling
 * Interrupt handling with support for direct and semaphore-based interrupt handling
 * Simple memory management (no virtual memory support yet)
 * In-kernel object runtime system (used for drivers and file systems)
 * Hierarchical processes with support for command line arguments, environment variables and I/O resource descriptor inheritance
-* Hierarchical file systems with support for mounting/unmounting file systems
-* A RAM-based file system
+* Hierarchical file system structure with support for mounting/unmounting file systems
+* The SerenaFS file system
+* Support for ROM and RAM-based disks
 * Support for aout/GemDos executables
 * Support for pipes
 * Floppy disk driver
@@ -51,12 +52,13 @@ The following kernel services are implemented at this time:
 The following user space services are available at this time:
 
 * A system library with support for processes, dispatch queues, time and file I/O
-* A fairly complete implementation of a C99 compatible standard C library
-* The beginnings of a C99 compatible floating-point math library
+* C99 compatible libc
+* Beginnings of a C99 compatible libm
+* libclap command line interface argument parsing library
 
 The following user space programs are available at this time:
 
-* A simple [interactive shell](Commands/shell/README.md) with command line editing and history support
+* An [interactive shell](Commands/shell/README.md) with command line editing and history support
 
 The level of completeness and correctness of the various modules varies quite a bit at this time. Things are generically planned to improve over time :)
 
