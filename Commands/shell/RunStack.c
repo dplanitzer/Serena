@@ -317,9 +317,6 @@ static Scope* _Nullable _RunStack_GetScopeForName(RunStack* _Nonnull self, const
         else if (!strcmp(scopeName, "script")) {
             scope = self->scriptScope;
         }
-        else if (!strcmp(scopeName, "local")) {
-            scope = self->currentScope;
-        }
         else {
             scope = NULL;
         }
