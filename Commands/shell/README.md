@@ -12,11 +12,16 @@ See the chapters below for more information about various shell topics.
 ## The Language
 
 * [Language](docs/Language.md)
-* [Tokens](docs/Tokens.md)
-* [Grammar](docs/Grammar.md)
-* [Semantic](docs/Semantic.md)
+* [Variables](docs/Variables.md)
+* [Control Flow](docs/ControlFlow.md)
 
 ## Commands
 
 * [Commands](docs/Commands.md)
 * [Operators](docs/Operators.md)
+
+## Design Documentation
+
+* [Tokens](docs/Tokens.md)
+* [Grammar](docs/Grammar.md)
+* [Semantic](docs/Semantic.md)
