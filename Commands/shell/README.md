@@ -11,7 +11,8 @@ See the chapters below for more information about various shell topics.
 
 ## The Language
 
-* [Language](docs/Language.md)
+* [Introduction](docs/Language.md)
+* [Expressions](docs/Expressions.md)
 * [Variables](docs/Variables.md)
 * [Control Flow](docs/ControlFlow.md)
 * [Scripts](docs/Scripts.md)

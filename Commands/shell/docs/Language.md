@@ -1,4 +1,4 @@
-# The Serena Shell Language
+# Introduction
 
 The Serena shell language is a formally defined language which is fully expression based. It supports expressions, scoped variables, flow control, builtin commands and external commands. It is more similar in design to shell languages like PowerShell or NuShell than it is to bash or csh.
 
