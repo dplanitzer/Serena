@@ -8,6 +8,7 @@
 
 #include "ProcessPriv.h"
 #include "ProcessManager.h"
+#include "UDispatchQueue.h"
 
 
 errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable pOptions, ProcessId * _Nullable pOutChildPid)
@@ -16,10 +17,25 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     ProcessRef pChildProc = NULL;
     bool needsUnlock = false;
     SpawnOptions so = {0};
+    DispatchQueueRef terminationNotificationQueue = NULL;
 
     if (pOptions) {
         so = *pOptions;
     }
+
+
+    if (so.notificationQueue >= 0 && so.notificationClosure) {
+        UDispatchQueueRef pQueue;
+
+        if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, so.notificationQueue, UDispatchQueue, &pQueue)) == EOK) {
+            terminationNotificationQueue = Object_RetainAs(pQueue->dispatchQueue, DispatchQueue);
+            UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
+        }
+        else {
+            throw(err);
+        }
+    }
+
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
@@ -31,6 +47,14 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     // Note that we do not lock the child process although we're reaching directly
     // into its state. Locking isn't necessary because nobody outside this function
     // here can see the child process yet and thus call functions on it.
+
+    if (terminationNotificationQueue) {
+        pChildProc->terminationNotificationQueue = terminationNotificationQueue;
+        pChildProc->terminationNotificationClosure = so.notificationClosure;
+        pChildProc->terminationNotificationContext = so.notificationContext;
+
+        terminationNotificationQueue = NULL;
+    }
 
     IOChannelTable_CopyFrom(&pChildProc->ioChannelTable, &pProc->ioChannelTable);
 
@@ -64,6 +88,7 @@ catch:
     }
 
     Object_Release(pChildProc);
+    Object_Release(terminationNotificationQueue);
 
     if (pOutChildPid) {
         *pOutChildPid = 0;

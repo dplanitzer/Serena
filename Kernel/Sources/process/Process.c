@@ -126,6 +126,11 @@ void Process_deinit(ProcessRef _Nonnull pProc)
     Inode_Relinquish(pProc->rootDirectory);
     pProc->rootDirectory = NULL;
 
+    Object_Release(pProc->terminationNotificationQueue);
+    pProc->terminationNotificationQueue = NULL;
+    pProc->terminationNotificationClosure = NULL;
+    pProc->terminationNotificationContext = NULL;
+    
     Process_DestroyAllTombstones_Locked(pProc);
     ConditionVariable_Deinit(&pProc->tombstoneSignaler);
     IntArray_Deinit(&pProc->childPids);

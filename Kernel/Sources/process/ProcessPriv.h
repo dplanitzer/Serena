@@ -63,6 +63,9 @@ final_class_ivars(Process, Object,
     IntArray                        childPids;      // PIDs of all my child processes
     List                            tombstones;     // Tombstones of child processes that have terminated and have not yet been consumed by waitpid()
     ConditionVariable               tombstoneSignaler;
+    DispatchQueueRef _Nullable      terminationNotificationQueue;   // Post the terminationNotificationClosure to this queue on process death, if not NULL
+    Dispatch_Closure _Nullable      terminationNotificationClosure;
+    void* _Nullable                 terminationNotificationContext;
 );
 
 
@@ -75,8 +78,12 @@ extern void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull self);
 // Returns true if the process is the root process
 #define Process_IsRoot(__self) ((__self)->pid == 1)
 
+// Called by the given child process tp notify its parent about its death.
 // Creates a new tombstone for the given child process with the given exit status
-extern errno_t Process_OnChildDidTerminate(ProcessRef _Nonnull self, ProcessId childPid, int childExitCode);
+// and posts a termination notification closure if one was provided for the child
+// process. Expects that the child process state does not change while this function
+// is executing.
+extern errno_t Process_OnChildTermination(ProcessRef _Nonnull self, ProcessRef _Nonnull pChildProc);
 
 // Runs on the kernel main dispatch queue and terminates the given process.
 extern void _Process_DoTerminate(ProcessRef _Nonnull self);

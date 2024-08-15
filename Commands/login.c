@@ -12,6 +12,18 @@
 #include <string.h>
 #include <System/System.h>
 
+static void on_shell_termination(void* _Nullable ignore);
+
+
+static int gFailedCounter;
+
+
+static _Noreturn halt_machine(void)
+{
+    puts("Halting...");
+    while (1);
+    /* NOT REACHED */
+}
 
 static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull value)
 {
@@ -29,10 +41,9 @@ static char* _Nullable env_alloc(const char* _Nonnull key, const char* _Nonnull 
     return ep;
 }
 
-static errno_t run_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath, int* _Nonnull pOutShellStatus)
+static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull homePath)
 {
     decl_try_err();
-    ProcessId pid;
     ProcessTerminationStatus pts;
     SpawnOptions opts = {0};
     char* argv[1] = { NULL };
@@ -40,44 +51,90 @@ static errno_t run_shell(const char* _Nonnull shellPath, const char* _Nonnull ho
     
     envp[0] = env_alloc("HOME", homePath);
     envp[1] = NULL;
+
     opts.envp = envp;
+    opts.notificationQueue = kDispatchQueue_Main;
+    opts.notificationClosure = (Dispatch_Closure)on_shell_termination;
+    opts.notificationContext = NULL;
 
 
-    // Spawn the external command
-    try(Process_Spawn(shellPath, argv, &opts, &pid));
+    // Spawn the shell
+    try(Process_Spawn(shellPath, argv, &opts, NULL));
 
 
-    // Wait for the shell. The shell will not exit under normal circumstances
-    try(Process_WaitForTerminationOfChild(pid, &pts));
-    *pOutShellStatus = pts.status;
-    
     char** ep = envp;
     while (*ep) {
         free(*ep);
         ep++;
     }
-
+    
 catch:
     return err;
 }
 
-void main_closure(int argc, char *argv[])
+// Log the user in. This means:
+// - set the home directory to the user's directory
+// - set up the environment variables
+// - start the user's shell
+static void login_user(void)
 {
+    decl_try_err();
     const char* homePath = "/Users/Administrator";
     const char* shellPath = "/System/Commands/shell";
-    int shell_status = 0, failed_count = 0;
+
+    // Make the current directory the user's home directory
+    Process_SetWorkingDirectory(homePath);
+
+    err = start_shell(shellPath, homePath);
+    if (err != EOK) {
+        printf("Error: %s.\n", strerror(err));
+        halt_machine();
+    }
+}
+
+// Invoked by the kernel after the shell has terminated. We'll check whether the
+// shell terminated with a success or failure status. We'll simply restart it in
+// the first case and we'll halt the machine if the shell fails too often in a
+// row.
+static void on_shell_termination(void* _Nullable ignore)
+{
+    decl_try_err();
+    ProcessTerminationStatus pts;
+
+    err = Process_WaitForTerminationOfChild(-1, &pts);
+    if (err == EOK) {
+        if (pts.status != EXIT_SUCCESS) {
+            gFailedCounter++;
+        }
+
+        if (gFailedCounter == 2) {
+            printf("Error: unexpected shell termination with status: %d.\n", pts.status);
+            halt_machine();
+        }
+    }
+    else {
+        printf("Error: %s.\n", strerror(err));
+        halt_machine();
+    }
+
+    login_user();
+}
+
+// Invoked at app startup.
+void main_closure(int argc, char *argv[])
+{
     int fd;
 
 
-    // Just exit if the console channels already exists which means that someone
-    // invoked us after login
+    // Just exit if the console channels already exist, which means that the
+    // user is already logged in
     if (IOChannel_GetMode(kIOChannel_Stdin) != 0) {
         exit(EXIT_FAILURE);
         /* NOT REACHED */
     }
 
 
-    // Open the console and set up stdin, stdout and stderr
+    // Open the console and initialize stdin, stdout and stderr
     File_Open("/dev/console", kOpen_Read, &fd);
     File_Open("/dev/console", kOpen_Write, &fd);
     File_Open("/dev/console", kOpen_Write, &fd);
@@ -87,29 +144,8 @@ void main_closure(int argc, char *argv[])
     fdreopen(kIOChannel_Stderr, "w", stderr);
 
 
-    // Make the user's home directory the current directory
-    Process_SetWorkingDirectory(homePath);
-
-
-    // Run the user's shell
-    while (true) {
-        const errno_t err = run_shell(shellPath, homePath, &shell_status);
-
-        if (err == EOK) {
-            failed_count = (shell_status != EXIT_SUCCESS) ? failed_count + 1 : 0;
-
-            if (failed_count == 2) {
-                printf("Error: unexpected shell termination: %d. Halting...", shell_status);
-                while (1);
-                /* NOT REACHED */
-            }
-        }
-        else {
-            printf("Error: %s. Halting...", strerror(err));
-            while (1);
-            /* NOT REACHED */
-        }
-    }
-
-    /* NOT REACHED */
+    // Log the user in and then return from our closure. Our VP will be moved
+    // over to the shell and run the shell until it exits. Our 'on_shell_termination'
+    // closure will get invoked when the shell exits.
+    login_user();
 }

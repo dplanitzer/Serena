@@ -14,6 +14,7 @@
 #include <System/Error.h>
 #include <System/Types.h>
 #include <System/Urt.h>
+#include <System/DispatchQueue.h>
 
 __CPP_BEGIN
 
@@ -48,9 +49,12 @@ typedef struct ProcessArguments {
 // process receives an empty environment.
 typedef struct SpawnOptions {
     const char* _Nullable * _Nullable   envp;
-    const char* _Nullable               root_dir;       // Process root directory, if not NULL; otherwise inherited from the parent
-    const char* _Nullable               cw_dir;         // Process current working directory, if not NULL; otherwise inherited from the parent
-    FilePermissions                     umask;          // Override umask
+    const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
+    const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
+    FilePermissions                     umask;                  // Override umask
+    int                                 notificationQueue;      // If >= 0 then this queue will receive termination notifications
+    Dispatch_Closure _Nullable          notificationClosure;
+    void* _Nullable                     notificationContext;
     uint32_t                            options;
 } SpawnOptions;
 

@@ -23,14 +23,20 @@ void Process_DestroyAllTombstones_Locked(ProcessRef _Nonnull pProc)
     }
 }
 
+// Called by the given child process tp notify its parent about its death.
 // Creates a new tombstone for the given child process with the given exit status
-errno_t Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPid, int childExitCode)
+// and posts a termination notification closure if one was provided for the child
+// process. Expects that the child process state does not change while this function
+// is executing.
+errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnull pChildProc)
 {
     ProcessTombstone* pTombstone;
+    const ProcessId childPid = pChildProc->pid;
+    const int childExitCode = pChildProc->exitCode;
 
     if (Process_IsTerminating(pProc)) {
-        // We're terminating ourselves. Let the child know so that it can bother
-        // someone else (session leader) with it's tombstone request.
+        // We're terminating ourselves. Let the child know so that it should
+        // bother someone else (session leader) with it's tombstone request.
         return ESRCH;
     }
 
@@ -46,8 +52,14 @@ errno_t Process_OnChildDidTerminate(ProcessRef _Nonnull pProc, ProcessId childPi
     Lock_Lock(&pProc->lock);
     Process_AbandonChild_Locked(pProc, childPid);
     List_InsertAfterLast(&pProc->tombstones, &pTombstone->node);
+    
     ConditionVariable_BroadcastAndUnlock(&pProc->tombstoneSignaler, &pProc->lock);
     
+    if (pChildProc->terminationNotificationQueue) {
+        DispatchQueue_DispatchAsync(pChildProc->terminationNotificationQueue,
+            DispatchQueueClosure_MakeUser(pChildProc->terminationNotificationClosure, pChildProc->terminationNotificationContext));
+    }
+
     return EOK;
 }
 
@@ -223,12 +235,12 @@ void _Process_DoTerminate(ProcessRef _Nonnull pProc)
         ProcessRef pParentProc = ProcessManager_CopyProcessForPid(gProcessManager, pProc->ppid);
 
         if (pParentProc) {
-            if (Process_OnChildDidTerminate(pParentProc, pProc->pid, pProc->exitCode) == ESRCH) {
+            if (Process_OnChildTermination(pParentProc, pProc) == ESRCH) {
                 // XXXsession Try the session leader next. Give up if this fails too.
                 // XXXsession. Unconditionally falling back to the root process for now.
                 // Just drop the tombstone request if no one wants it.
                 ProcessRef pRootProc = ProcessManager_CopyRootProcess(gProcessManager);
-                Process_OnChildDidTerminate(pRootProc, pProc->pid, pProc->exitCode);
+                Process_OnChildTermination(pRootProc, pProc);
                 Object_Release(pRootProc);
             }
             Object_Release(pParentProc);
