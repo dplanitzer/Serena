@@ -258,8 +258,8 @@ typedef struct imaxdiv_t { intmax_t quot; intmax_t rem; } imaxdiv_t;
 extern intmax_t imaxabs(intmax_t n);
 extern imaxdiv_t imaxdiv(intmax_t x, intmax_t y);
 
-extern intmax_t strtoimax(const char *str, char **str_end, int base);
-extern uintmax_t strtoumax(const char *str, char **str_end, int base);
+extern intmax_t strtoimax(const char * _Restrict str, char ** _Restrict str_end, int base);
+extern uintmax_t strtoumax(const char * _Restrict str, char ** _Restrict str_end, int base);
 
 __CPP_END
 

@@ -72,7 +72,7 @@ char *strpbrk(const char *dst, const char *break_set)
     return __str_first_in(dst, break_set_opt);
 }
 
-char *strtok(char *str, const char *delim)
+char *strtok(char * _Restrict str, const char * _Restrict delim)
 {
     static char* prev_tok_end_p;
     char delim_set[256];

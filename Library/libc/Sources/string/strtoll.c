@@ -12,7 +12,7 @@
 #include <limits.h>
 
 
-long long strtoll(const char *str, char **str_end, int base)
+long long strtoll(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
 

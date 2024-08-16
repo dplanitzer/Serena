@@ -10,7 +10,7 @@
 #include <__stddef.h>
 
 
-char *strncat(char *dst, const char *src, size_t count)
+char *strncat(char * _Restrict dst, const char * _Restrict src, size_t count)
 {
     char *p = &dst[strlen(dst)];
 

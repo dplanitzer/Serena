@@ -1,5 +1,5 @@
 //
-//  strdup.c
+//  strndup.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -11,13 +11,14 @@
 #include <__stddef.h>
 
 
-char *strdup(const char *src)
+char *strndup(const char *src, size_t size)
 {
-    const size_t lenWithNul = strlen(src) + 1;
-    char* dst = malloc(lenWithNul);
+    const size_t len = __strnlen(src, size);
+    char* dst = malloc(len + 1);
 
     if (dst) {
-        memcpy(dst, src, lenWithNul);
+        memcpy(dst, src, len);
+        dst[len] = '\0';
     }
     return dst;
 }

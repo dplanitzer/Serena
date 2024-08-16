@@ -12,7 +12,7 @@
 #include <limits.h>
 
 
-unsigned long strtoul(const char *str, char **str_end, int base)
+unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
 

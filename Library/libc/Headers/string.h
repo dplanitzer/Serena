@@ -17,11 +17,11 @@ __CPP_BEGIN
 
 extern size_t strlen(const char *str);
 
-extern char *strcpy(char *dst, const char *src);
-extern char *strncpy(char *dst, const char *src, size_t count);
+extern char *strcpy(char * _Restrict dst, const char * _Restrict src);
+extern char *strncpy(char * _Restrict dst, const char * _Restrict src, size_t count);
 
-extern char *strcat(char *dst, const char *src);
-extern char *strncat(char *dst, const char *src, size_t count);
+extern char *strcat(char * _Restrict dst, const char * _Restrict src);
+extern char *strncat(char * _Restrict dst, const char * _Restrict src, size_t count);
 
 extern int strcmp(const char *lhs, const char *rhs);
 extern int strncmp(const char *lhs, const char *rhs, size_t count);
@@ -35,7 +35,7 @@ extern size_t strspn(const char *dst, const char *src);
 extern size_t strcspn(const char *dst, const char *src);
 
 extern char *strpbrk(const char *dst, const char *break_set);
-extern char *strtok(char *str, const char *delim);
+extern char *strtok(char * _Restrict str, const char * _Restrict delim);
 
 extern char *strdup(const char *src);
 extern char *strndup(const char *src, size_t size);

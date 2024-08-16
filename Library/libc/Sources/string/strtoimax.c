@@ -12,7 +12,7 @@
 #include <limits.h>
 
 
-intmax_t strtoimax(const char *str, char **str_end, int base)
+intmax_t strtoimax(const char * _Restrict str, char ** _Restrict str_end, int base)
 {
     long long r;
 

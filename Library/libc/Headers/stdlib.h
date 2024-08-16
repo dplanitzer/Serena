@@ -32,11 +32,11 @@ extern int atoi(const char *str);
 extern long atol(const char *str);
 extern long long atoll(const char *str);
 
-extern long strtol(const char *str, char **str_end, int base);
-extern long long strtoll(const char *str, char **str_end, int base);
+extern long strtol(const char * _Restrict str, char ** _Restrict str_end, int base);
+extern long long strtoll(const char * _Restrict str, char ** _Restrict str_end, int base);
 
-extern unsigned long strtoul(const char *str, char **str_end, int base);
-extern unsigned long long strtoull(const char *str, char **str_end, int base);
+extern unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int base);
+extern unsigned long long strtoull(const char * _Restrict str, char ** _Restrict str_end, int base);
 
 extern char *itoa(int val, char *buf, int radix);
 extern char *ltoa(long val, char *buf, int radix);

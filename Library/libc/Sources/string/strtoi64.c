@@ -13,7 +13,7 @@
 #include <limits.h>
 
 
-errno_t __strtoi64(const char * _Nonnull str, char **str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Nonnull result)
+errno_t __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result)
 {
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0ll;
