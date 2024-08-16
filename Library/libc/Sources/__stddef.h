@@ -57,4 +57,6 @@ extern char* _Nonnull __i64toa(int64_t val, int radix, bool isUppercase, char* _
 extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits);
 extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits);
 
+extern errno_t __strtoi64(const char * _Nonnull str, char **str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Nonnull result);
+
 #endif /* ___STDDEF_H */

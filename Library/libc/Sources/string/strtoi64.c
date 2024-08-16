@@ -1,6 +1,6 @@
 //
-//  atox.c
-//  libcs
+//  strtoi64.c
+//  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
@@ -13,7 +13,7 @@
 #include <limits.h>
 
 
-static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Nonnull result)
+errno_t __strtoi64(const char * _Nonnull str, char **str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Nonnull result)
 {
     if ((base < 2 && base != 0) || base > 36) {
         *result = 0ll;
@@ -85,87 +85,4 @@ static errno_t __strtoll(const char * _Nonnull str, char **str_end, int base, lo
     if (str_end) *str_end = (char*)&str[i];
     *result = (is_neg) ? -((long long)val) : (long long)val;
     return 0;
-}
-
-
-int atoi(const char *str)
-{
-    long long r;
-
-    if (__strtoll(str, NULL, 10, INT_MIN, INT_MAX, __INT_MAX_BASE_10_DIGITS, &r) == 0) {
-        return (int) r;
-    } else {
-        return 0;
-    }
-}
-
-long atol(const char *str)
-{
-    long long r;
-
-    if (__strtoll(str, NULL, 10, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r) == 0) {
-        return (long) r;
-    } else {
-        return 0;
-    }
-}
-
-long long atoll(const char *str)
-{
-    long long r;
-
-    if (__strtoll(str, NULL, 10, LLONG_MIN, LLONG_MAX, __LLONG_MAX_BASE_10_DIGITS, &r) == 0) {
-        return r;
-    } else {
-        return 0;
-    }
-}
-
-long strtol(const char *str, char **str_end, int base)
-{
-    long long r;
-
-    errno = __strtoll(str, str_end, base, LONG_MIN, LONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r);
-    return (long) r;
-}
-
-long long strtoll(const char *str, char **str_end, int base)
-{
-    long long r;
-
-    errno = __strtoll(str, str_end, base, LLONG_MIN, LLONG_MAX, __LLONG_MAX_BASE_10_DIGITS, &r);
-    return r;
-}
-
-intmax_t strtoimax(const char *str, char **str_end, int base)
-{
-    long long r;
-
-    errno = __strtoll(str, str_end, base, INTMAX_MIN, INTMAX_MAX, __INTMAX_MAX_BASE_10_DIGITS, &r);
-    return (intmax_t) r;
-}
-
-
-unsigned long strtoul(const char *str, char **str_end, int base)
-{
-    long long r;
-
-    errno = __strtoll(str, str_end, base, 0, ULONG_MAX, __LONG_MAX_BASE_10_DIGITS, &r);
-    return (unsigned long) r;
-}
-
-unsigned long long strtoull(const char *str, char **str_end, int base)
-{
-    long long r;
-
-    errno = __strtoll(str, str_end, base, 0, ULLONG_MAX, __LLONG_MAX_BASE_10_DIGITS, &r);
-    return (unsigned long long) r;
-}
-
-uintmax_t strtoumax(const char *str, char **str_end, int base)
-{
-    long long r;
-
-    errno = __strtoll(str, str_end, base, 0, UINTMAX_MAX, __UINTMAX_MAX_BASE_10_DIGITS, &r);
-    return (uintmax_t) r;
 }
