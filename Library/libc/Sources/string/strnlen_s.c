@@ -1,5 +1,5 @@
 //
-//  strnlen.c
+//  strnlen_s.c
 //  libc
 //
 //  Created by Dietmar Planitzer on 8/23/23.
@@ -7,10 +7,9 @@
 //
 
 #include <string.h>
-#include <__stddef.h>
 
 
-size_t __strnlen(const char *str, size_t strsz)
+size_t strnlen_s(const char *str, size_t strsz)
 {
     size_t len = 0;
 

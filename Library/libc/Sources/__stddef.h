@@ -39,7 +39,6 @@ extern void __stdio_exit(void);
 
 extern bool __is_pointer_NOT_freeable(void* ptr);
 
-extern size_t __strnlen(const char *str, size_t strsz);
 extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
 extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
 

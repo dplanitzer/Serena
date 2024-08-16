@@ -16,6 +16,9 @@
 __CPP_BEGIN
 
 extern size_t strlen(const char *str);
+#if __STDC_WANT_LIB_EXT1__ == 1
+extern size_t strnlen_s(const char *str, size_t strsz);
+#endif
 
 extern char *strcpy(char * _Restrict dst, const char * _Restrict src);
 extern char *strncpy(char * _Restrict dst, const char * _Restrict src, size_t count);
