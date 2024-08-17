@@ -356,9 +356,9 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
     }
 
     if (nbits == 64) {
-        pCanonDigits = __i64toa(v64, 10, false, self->digits);
+        pCanonDigits = __i64toa(v64, self->digits);
     } else {
-        pCanonDigits = __i32toa(v32, 10, false, self->digits);
+        pCanonDigits = __i32toa(v32, self->digits);
     }
 
     return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
