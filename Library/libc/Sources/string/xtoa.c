@@ -203,3 +203,53 @@ char *lltoa(long long val, char *buf, int radix)
     }
     return buf;
 }
+
+
+char *utoa(unsigned int val, char *buf, int radix)
+{
+    char t[DIGIT_BUFFER_CAPACITY];
+    char* p;
+
+    if (buf) {
+        switch (radix) {
+            case 8:
+            case 10:
+            case 16:
+                p = __ui32toa((uint32_t)val, radix, false, t);
+                break;
+
+            default:
+                errno = EINVAL;
+                return NULL;
+        }
+        copy_out(buf, p);
+    }
+    return buf;
+}
+
+char *ultoa(unsigned long val, char *buf, int radix)
+{
+    return utoa(val, buf, radix);
+}
+
+char *ulltoa(unsigned long long val, char *buf, int radix)
+{
+    char t[DIGIT_BUFFER_CAPACITY];
+    char* p;
+
+    if (buf) {
+        switch (radix) {
+            case 8:
+            case 10:
+            case 16:
+                p = __ui64toa((uint64_t)val, radix, false, t);
+                break;
+
+            default:
+                errno = EINVAL;
+                return NULL;
+        }
+        copy_out(buf, p);
+    }
+    return buf;
+}

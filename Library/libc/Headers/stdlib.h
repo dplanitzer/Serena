@@ -89,6 +89,10 @@ __CPP_BEGIN
 extern char *itoa(int val, char *buf, int radix);
 extern char *ltoa(long val, char *buf, int radix);
 extern char *lltoa(long long val, char *buf, int radix);
+
+extern char *utoa(unsigned int val, char *buf, int radix);
+extern char *ultoa(unsigned long val, char *buf, int radix);
+extern char *ulltoa(unsigned long long val, char *buf, int radix);
 #endif
 
 __CPP_END
