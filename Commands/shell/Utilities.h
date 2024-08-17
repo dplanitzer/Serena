@@ -10,6 +10,7 @@
 #define Utilities_h
 
 #include "Errors.h"
+#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <System/_math.h>
 

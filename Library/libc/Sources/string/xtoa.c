@@ -6,6 +6,7 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <__stddef.h>
 
@@ -165,6 +166,7 @@ char *itoa(int val, char *buf, int radix)
                 break;
 
             default:
+                errno = EINVAL;
                 return NULL;
         }
         copy_out(buf, p);
@@ -194,6 +196,7 @@ char *lltoa(long long val, char *buf, int radix)
                 break;
 
             default:
+                errno = EINVAL;
                 return NULL;
         }
         copy_out(buf, p);

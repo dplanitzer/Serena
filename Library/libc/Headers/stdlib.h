@@ -38,10 +38,6 @@ extern long long strtoll(const char * _Restrict str, char ** _Restrict str_end, 
 extern unsigned long strtoul(const char * _Restrict str, char ** _Restrict str_end, int base);
 extern unsigned long long strtoull(const char * _Restrict str, char ** _Restrict str_end, int base);
 
-extern char *itoa(int val, char *buf, int radix);
-extern char *ltoa(long val, char *buf, int radix);
-extern char *lltoa(long long val, char *buf, int radix);
-
 
 extern int abs(int n);
 extern long labs(long n);
@@ -82,3 +78,17 @@ extern int system(const char *string);
 __CPP_END
 
 #endif /* _STDLIB_H */
+
+
+// The following definitions depend on a switch that the includer sets before
+// including this file.
+
+__CPP_BEGIN
+
+#if defined(_OPEN_SYS_ITOA_EXT)
+extern char *itoa(int val, char *buf, int radix);
+extern char *ltoa(long val, char *buf, int radix);
+extern char *lltoa(long long val, char *buf, int radix);
+#endif
+
+__CPP_END

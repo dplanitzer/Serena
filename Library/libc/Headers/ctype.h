@@ -89,6 +89,15 @@ extern const unsigned short __gCharClasses[128];
 #define _toupper(ch) \
 ((((ch) & 0xffffff80) == 0 && ((__gCharClasses[ch] & __IS_LOWER) == __IS_LOWER)) ? (ch) - 32 : ch)
 
+__CPP_END
+
+#endif /* _CTYPE_H */
+
+
+// The following definitions depend on a switch that the includer sets before
+// including this file.
+
+__CPP_BEGIN
 
 #ifndef _CTYPE_NO_MACROS
 #define isalnum(ch) _isalnum(ch)
@@ -109,5 +118,3 @@ extern const unsigned short __gCharClasses[128];
 #endif /* _CTYPE_NO_MACROS */
 
 __CPP_END
-
-#endif /* _CTYPE_H */
