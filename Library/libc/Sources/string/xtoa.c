@@ -96,7 +96,7 @@ static const char* gLowerDigits = "0123456789abcdef";
 static const char* gUpperDigits = "0123456789ABCDEF";
 
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-// 'radix' must be 8, 10 or 16
+// 'radix' must be 2, 8, 10 or 16
 char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
     const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
@@ -105,6 +105,13 @@ char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnu
 
     *p-- = '\0';
     switch (radix) {
+        case 2:
+            do {
+                *p-- = ds[val & 0x1u];
+                val >>= 1u;
+            } while (val);
+            break;
+
         case 16:
             do {
                 *p-- = ds[val & 0x0fu];
@@ -127,7 +134,7 @@ char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnu
 }
 
 // 'digits' must be at least DIGIT_BUFFER_CAPACITY bytes big
-// 'radix' must be 8, 10 or 16
+// 'radix' must be 2, 8, 10 or 16
 char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
     const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
@@ -137,9 +144,16 @@ char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnu
 
     *p-- = '\0';
     switch (radix) {
+        case 2:
+            do {
+                *p-- = ds[(uint8_t)val & 0x1u];
+                val >>= 1ull;
+            } while (val);
+            break;
+
         case 16:
             do {
-                *p-- = ds[(uint8_t)val & 0x0f];
+                *p-- = ds[(uint8_t)val & 0x0fu];
                 val >>= 4ull;
             } while (val);
             break;
@@ -178,6 +192,7 @@ char *itoa(int val, char *buf, int radix)
                 p = __i32toa((int32_t)val, t);
                 break;
         
+            case 2:
             case 8:
             case 16:
                 p = __ui32toa((uint32_t)val, radix, false, t);
@@ -208,6 +223,7 @@ char *lltoa(long long val, char *buf, int radix)
                 p = __i64toa((int64_t)val, t);
                 break;
         
+            case 2:
             case 8:
             case 16:
                 p = __ui64toa((uint64_t)val, radix, false, t);
@@ -230,6 +246,7 @@ char *utoa(unsigned int val, char *buf, int radix)
 
     if (buf) {
         switch (radix) {
+            case 2:
             case 8:
             case 10:
             case 16:
@@ -257,6 +274,7 @@ char *ulltoa(unsigned long long val, char *buf, int radix)
 
     if (buf) {
         switch (radix) {
+            case 2:
             case 8:
             case 10:
             case 16:

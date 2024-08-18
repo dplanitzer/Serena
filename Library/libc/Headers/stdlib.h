@@ -86,6 +86,7 @@ __CPP_END
 __CPP_BEGIN
 
 #if defined(_OPEN_SYS_ITOA_EXT)
+// Valid values for 'radix' are: 2, 8, 10, 16
 extern char *itoa(int val, char *buf, int radix);
 extern char *ltoa(long val, char *buf, int radix);
 extern char *lltoa(long long val, char *buf, int radix);
