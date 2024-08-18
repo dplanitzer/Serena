@@ -47,7 +47,7 @@ typedef struct ConversionSpec {
 typedef struct Formatter {
     FILE* _Nonnull  stream;
     size_t          charactersWritten;
-    char            digits[DIGIT_BUFFER_CAPACITY];
+    i64a_t          i64a;
 } Formatter;
 
 

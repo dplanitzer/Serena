@@ -43,18 +43,34 @@ extern char *__strcpy(char * _Restrict dst, const char * _Restrict src);
 extern char *__strcat(char * _Restrict dst, const char * _Restrict src);
 
 
-// Required minimum size is (string length byte + sign byte + longest digit sequence + 1 NUL byte) -> 1 + 64 (binary 64bit) + 1 + 1 = 25 bytes
-// A digit string is generated in a canonical representation: string length, sign, digits ..., NUL
-#define DIGIT_BUFFER_CAPACITY 67
+// Max length of an i32a string: sign char + longest possible digit sequence + NUL character
+#define I32A_BUFFER_SIZE    (1 + 32 + 1)
 
-// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-extern char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits);
-extern char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits);
+// Max length of an i64a string: sign char + longest possible digit sequence + NUL character
+#define I64A_BUFFER_SIZE    (1 + 64 + 1)
 
-// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
+typedef struct i32a_t {
+    int8_t  length;     // Length of the generated string
+    int8_t  offset;     // where in 'buffer' the string starts
+    char    buffer[I32A_BUFFER_SIZE];      // Generated characters; right aligned
+} i32a_t;
+
+// The i64a_t data type is an extended version of the i32a_t data type that has
+// extra room for the required additional digits. So doing a cast of the form
+// (i32a_t*)&my_i64a_t_value is valid.
+typedef struct i64a_t {
+    int8_t  length;     // Length of the generated string
+    int8_t  offset;     // where in 'buffer' the string starts
+    char    buffer[I64A_BUFFER_SIZE];   // Generated characters; right aligned
+} i64a_t;
+
+
+extern char* _Nonnull __i32toa(int32_t val, i32a_t* _Nonnull out);
+extern char* _Nonnull __i64toa(int64_t val, i64a_t* _Nonnull out);
+
 // 'radix' must be 8, 10 or 16
-extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits);
-extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits);
+extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out);
+extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out);
 
 extern errno_t __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result);
 

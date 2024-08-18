@@ -169,14 +169,14 @@ static const char* _Nonnull Formatter_ParseConversionSpec(FormatterRef _Nonnull 
     return Formatter_ParseLengthModifier(self, format, spec);
 }
 
-static errno_t Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
+static errno_t Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, const char* _Nonnull buf, size_t len)
 {
     decl_try_err();
     int nSign = 1;
-    int nDigits = pCanonDigits[0] - 1;
+    int nDigits = len - 1;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
-    const char* pSign = &pCanonDigits[1];
-    const char* pDigits = &pCanonDigits[2];
+    const char* pSign = buf;
+    const char* pDigits = &buf[1];
     const bool isEmpty = spec->flags.hasPrecision && spec->precision == 0 && pDigits[0] == '0' && nDigits == 1;
 
     if (!spec->flags.alwaysShowSign && *pSign == '+') {
@@ -220,14 +220,14 @@ catch:
     return err;
 }
 
-static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, const char* _Nonnull pCanonDigits)
+static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, const char* _Nonnull buf, size_t len)
 {
     decl_try_err();
     int nRadixChars = 0;
-    int nDigits = pCanonDigits[0] - 1;
+    int nDigits = len - 1;
     int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
     const char* pRadixChars = "";
-    const char* pDigits = &pCanonDigits[2];
+    const char* pDigits = &buf[1];
     const bool isEmpty = spec->flags.hasPrecision && spec->precision == 0 && pDigits[0] == '0' && nDigits == 1;
 
     if (spec->flags.isAlternativeForm) {
@@ -356,12 +356,12 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
     }
 
     if (nbits == 64) {
-        pCanonDigits = __i64toa(v64, self->digits);
+        pCanonDigits = __i64toa(v64, &self->i64a);
     } else {
-        pCanonDigits = __i32toa(v32, self->digits);
+        pCanonDigits = __i32toa(v32, (i32a_t*)&self->i64a);
     }
 
-    return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits);
+    return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits, self->i64a.length);
 }
 
 static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int radix, bool isUppercase, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
@@ -400,12 +400,12 @@ static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int r
     }
 
     if (nbits == 64) {
-        pCanonDigits = __ui64toa(v64, radix, isUppercase, self->digits);
+        pCanonDigits = __ui64toa(v64, radix, isUppercase, &self->i64a);
     } else {
-        pCanonDigits = __ui32toa(v32, radix, isUppercase, self->digits);
+        pCanonDigits = __ui32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
     }
 
-    return Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits);
+    return Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits, self->i64a.length);
 }
 
 static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)
@@ -416,14 +416,14 @@ static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const Convers
     spec2.flags.padWithZeros = true;
 
 #if __INTPTR_WIDTH == 64
-    char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, self->digits);
+    char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
     spec2.precision = 16;
 #else
-    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, self->digits);
+    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
     spec2.precision = 8;
 #endif
 
-    return Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits);
+    return Formatter_FormatUnsignedIntegerField(self, 16, false, &spec2, pCanonDigits, self->i64a.length);
 }
 
 static errno_t Formatter_WriteNumberOfCharactersWritten(FormatterRef _Nonnull self, const ConversionSpec* _Nonnull spec, va_list* _Nonnull ap)

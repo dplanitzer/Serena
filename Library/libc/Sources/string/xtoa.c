@@ -8,26 +8,13 @@
 
 #define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
+#include <string.h>
 #include <__stddef.h>
 
-static char* _Nonnull copy_constant(char* _Nonnull digits, const char* cst)
+
+char* _Nonnull __i32toa(int32_t val, i32a_t* _Nonnull out)
 {
-    char* p = &digits[1];
-    int i = 0;
-
-    while (*cst != '\0') {
-        *p++ = *cst++;
-        i++;
-    }
-    digits[0] = i;
-    return digits;
-}
-
-
-// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
-char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
-{
-    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *ep = &out->buffer[I32A_BUFFER_SIZE - 1];
     char *p = ep;
     char sign;
 
@@ -40,8 +27,12 @@ char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
         // the same algorithm twice (with only diff being that we'd subtract the
         // remainder from '0' instead of adding it). Doing that would be stupid.
         if (val == INT32_MIN) {
-            return copy_constant(digits, "-2147483648");
+            out->length = 11;
+            out->offset = 0;
+            memcpy(out->buffer, "-2147483648", 12);
+            return out->buffer;
         }
+
         val = -val;
         sign = '-';
     } else {
@@ -52,26 +43,31 @@ char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
     do {
         *p-- = '0' + (char)(val % 10);
         val /= 10;
-    } while (val != 0);
+    } while (val);
 
-    *p-- = sign;
-    *p = ep - (p + 1);
+    *p = sign;
+
+    out->length = ep - p;
+    out->offset = p - out->buffer;
 
     return p;
 }
 
-// 'digits' must be at least DIGIT_BUFFER_CAPACITY bytes big
-char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
+char* _Nonnull __i64toa(int64_t val, i64a_t* _Nonnull out)
 {
-    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *ep = &out->buffer[I64A_BUFFER_SIZE - 1];
     char *p = ep;
     char sign;
     int64_t q, r;
 
     if (val < 0) {
         if (val == INT64_MIN) {
-            return copy_constant(digits, "-9223372036854775808");
+            out->length = 20;
+            out->offset = 0;
+            memcpy(out->buffer, "-9223372036854775808", 21);
+            return out->buffer;
         }
+
         val = -val;
         sign = '-';
     } else {
@@ -83,10 +79,12 @@ char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
         _divmods64(val, 10, &q, &r);
         *p-- = '0' + (char)r;
         val = q;
-    } while (val != 0);
+    } while (val);
     
-    *p-- = sign;
-    *p = ep - (p + 1);
+    *p = sign;
+
+    out->length = ep - p;
+    out->offset = p - out->buffer;
 
     return p;
 }
@@ -95,12 +93,11 @@ char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
 static const char* gLowerDigits = "0123456789abcdef";
 static const char* gUpperDigits = "0123456789ABCDEF";
 
-// 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
 // 'radix' must be 2, 8, 10 or 16
-char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits)
+char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out)
 {
     const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *ep = &out->buffer[I32A_BUFFER_SIZE - 1];
     char *p = ep;
 
     *p-- = '\0';
@@ -127,18 +124,19 @@ char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnu
             break;
     }
 
-    *p-- = '+';
-    *p = ep - (p + 1);
+    *p = '+';
+    
+    out->length = ep - p;
+    out->offset = p - out->buffer;
 
     return p;
 }
 
-// 'digits' must be at least DIGIT_BUFFER_CAPACITY bytes big
 // 'radix' must be 2, 8, 10 or 16
-char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits)
+char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out)
 {
     const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *ep = &out->buffer[I64A_BUFFER_SIZE - 1];
     char *p = ep;
     int64_t q, r;
 
@@ -167,15 +165,17 @@ char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnu
             break;
     }
     
-    *p-- = '+';
-    *p = ep - (p + 1);
+    *p = '+';
+
+    out->length = ep - p;
+    out->offset = p - out->buffer;
 
     return p;
 }
 
 static void copy_out(char* _Nonnull buf, const char* _Nonnull pCanonDigits)
 {
-    const char* p = (pCanonDigits[1] == '+') ? &pCanonDigits[2] : &pCanonDigits[1];
+    const char* p = (pCanonDigits[0] == '+') ? &pCanonDigits[1] : pCanonDigits;
 
     while (*p != '\0') { *buf++ = *p++; }
     *buf = '\0';
@@ -183,19 +183,19 @@ static void copy_out(char* _Nonnull buf, const char* _Nonnull pCanonDigits)
 
 char *itoa(int val, char *buf, int radix)
 {
-    char t[DIGIT_BUFFER_CAPACITY];
+    i32a_t i32a;
     char* p;
 
     if (buf) {
         switch (radix) {
             case 10:
-                p = __i32toa((int32_t)val, t);
+                p = __i32toa((int32_t)val, &i32a);
                 break;
         
             case 2:
             case 8:
             case 16:
-                p = __ui32toa((uint32_t)val, radix, false, t);
+                p = __ui32toa((uint32_t)val, radix, false, &i32a);
                 break;
 
             default:
@@ -214,19 +214,19 @@ char *ltoa(long val, char *buf, int radix)
 
 char *lltoa(long long val, char *buf, int radix)
 {
-    char t[DIGIT_BUFFER_CAPACITY];
+    i64a_t i64a;
     char* p;
 
     if (buf) {
         switch (radix) {
             case 10:
-                p = __i64toa((int64_t)val, t);
+                p = __i64toa((int64_t)val, &i64a);
                 break;
         
             case 2:
             case 8:
             case 16:
-                p = __ui64toa((uint64_t)val, radix, false, t);
+                p = __ui64toa((uint64_t)val, radix, false, &i64a);
                 break;
 
             default:
@@ -241,7 +241,7 @@ char *lltoa(long long val, char *buf, int radix)
 
 char *utoa(unsigned int val, char *buf, int radix)
 {
-    char t[DIGIT_BUFFER_CAPACITY];
+    i32a_t i32a;
     char* p;
 
     if (buf) {
@@ -250,7 +250,7 @@ char *utoa(unsigned int val, char *buf, int radix)
             case 8:
             case 10:
             case 16:
-                p = __ui32toa((uint32_t)val, radix, false, t);
+                p = __ui32toa((uint32_t)val, radix, false, &i32a);
                 break;
 
             default:
@@ -269,7 +269,7 @@ char *ultoa(unsigned long val, char *buf, int radix)
 
 char *ulltoa(unsigned long long val, char *buf, int radix)
 {
-    char t[DIGIT_BUFFER_CAPACITY];
+    i64a_t i64a;
     char* p;
 
     if (buf) {
@@ -278,7 +278,7 @@ char *ulltoa(unsigned long long val, char *buf, int radix)
             case 8:
             case 10:
             case 16:
-                p = __ui64toa((uint64_t)val, radix, false, t);
+                p = __ui64toa((uint64_t)val, radix, false, &i64a);
                 break;
 
             default:

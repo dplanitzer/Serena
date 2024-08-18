@@ -128,6 +128,27 @@
         },
 
         {
+            "label": "Clean Libc",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "clean-libc",
+                "-s",
+                "-R",
+                "--directory=${workspaceFolder}"
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal":"always"
+            },
+            "problemMatcher": []
+        },
+
+        {
             "label": "Clean Shell",
             "type": "shell",
             "command": "",
