@@ -27,9 +27,9 @@ static char* _Nonnull copy_constant(char* _Nonnull digits, const char* cst)
 // 'buf' must be at least DIGIT_BUFFER_CAPACITY bytes big
 char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
 {
-    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *p = ep;
     char sign;
-    int i = 1;
 
     if (val < 0) {
         // Check for the smallest possible negative value and handle it specially.
@@ -52,11 +52,10 @@ char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
     do {
         *p-- = '0' + (char)(val % 10);
         val /= 10;
-        i++;
     } while (val != 0);
 
     *p-- = sign;
-    *p = i;
+    *p = ep - (p + 1);
 
     return p;
 }
@@ -64,10 +63,10 @@ char* _Nonnull __i32toa(int32_t val, char* _Nonnull digits)
 // 'digits' must be at least DIGIT_BUFFER_CAPACITY bytes big
 char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
 {
-    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *p = ep;
     char sign;
     int64_t q, r;
-    int i = 1;
 
     if (val < 0) {
         if (val == INT64_MIN) {
@@ -84,11 +83,10 @@ char* _Nonnull __i64toa(int64_t val, char* _Nonnull digits)
         _divmods64(val, 10, &q, &r);
         *p-- = '0' + (char)r;
         val = q;
-        i++;
     } while (val != 0);
     
     *p-- = sign;
-    *p = i;
+    *p = ep - (p + 1);
 
     return p;
 }
@@ -102,18 +100,28 @@ static const char* gUpperDigits = "0123456789ABCDEF";
 char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
     const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
-    int i = 1;
+    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *p = ep;
 
     *p-- = '\0';
-    do {
-        *p-- = ds[val % radix];
-        val /= radix;
-        i++;
-    } while (val != 0);
+    switch (radix) {
+        case 16:
+            do {
+                *p-- = ds[val & 0x0fu];
+                val >>= 4u;
+            } while (val);
+            break;
+
+        default:
+            do {
+                *p-- = ds[val % radix];
+                val /= radix;
+            } while (val);
+            break;
+    }
 
     *p-- = '+';
-    *p = i;
+    *p = ep - (p + 1);
 
     return p;
 }
@@ -123,20 +131,30 @@ char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, char* _Nonnu
 char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, char* _Nonnull digits)
 {
     const char* ds = (isUppercase) ? gUpperDigits : gLowerDigits;
-    char *p = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *ep = &digits[DIGIT_BUFFER_CAPACITY - 1];
+    char *p = ep;
     int64_t q, r;
-    int i = 1;
 
     *p-- = '\0';
-    do {
-        _divmods64(val, radix, &q, &r);
-        *p-- = ds[r];
-        val = q;
-        i++;
-    } while (val != 0);
+    switch (radix) {
+        case 16:
+            do {
+                *p-- = ds[(uint8_t)val & 0x0f];
+                val >>= 4ull;
+            } while (val);
+            break;
+
+        default:
+            do {
+                _divmods64(val, radix, &q, &r);
+                *p-- = ds[r];
+                val = q;
+            } while (val);
+            break;
+    }
     
     *p-- = '+';
-    *p = i;
+    *p = ep - (p + 1);
 
     return p;
 }
