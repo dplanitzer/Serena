@@ -37,14 +37,16 @@ struct tm {
 
 
 extern clock_t clock(void);
-
-
-extern time_t mktime(struct tm *timeptr);
 extern time_t time(time_t *timer);
 
 
-extern struct tm *gmtime(const time_t *timer);
+extern time_t mktime(struct tm *timeptr);
+
 extern struct tm *localtime(const time_t *timer);
+extern struct tm *localtime_r(const time_t *timer, struct tm *buf);
+
+extern struct tm *gmtime(const time_t *timer);
+extern struct tm *gmtime_r(const time_t *timer, struct tm *buf);
 
 
 extern char *asctime(const struct tm *timeptr);

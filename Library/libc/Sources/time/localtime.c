@@ -9,8 +9,9 @@
 #include <time.h>
 
 
-// XXX implement me
+static struct tm gLocaltimeBuffer;
+
 struct tm *localtime(const time_t *timer)
 {
-    return NULL;
+    return localtime_r(timer, &gLocaltimeBuffer);
 }

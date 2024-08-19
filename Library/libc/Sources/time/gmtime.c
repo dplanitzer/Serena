@@ -9,8 +9,9 @@
 #include <time.h>
 
 
-// XXX implement me
+static struct tm gGmTimeBuffer;
+
 struct tm *gmtime(const time_t *timer)
 {
-    return NULL;
+    return gmtime_r(timer, &gGmTimeBuffer);
 }
