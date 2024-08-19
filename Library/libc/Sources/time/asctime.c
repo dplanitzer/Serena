@@ -26,10 +26,3 @@ char *asctime(const struct tm *timeptr)
                 1900 + timeptr->tm_year);
     return __gAscTimeBuffer;
 }
-
-char *ctime(const time_t *timer)
-{
-    struct tm* lt = localtime(timer);
-
-    return (lt) ? asctime(lt) : "";
-}
