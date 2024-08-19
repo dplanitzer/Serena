@@ -7,10 +7,16 @@
 //
 
 #include <time.h>
+#include <System/Clock.h>
 
 
-// XXX implement me
 time_t time(time_t *timer)
 {
-    return -1;
+    const TimeInterval ti = MonotonicClock_GetTime();
+
+    if (timer) {
+        *timer = ti.tv_sec;
+    }
+
+    return ti.tv_sec;
 }

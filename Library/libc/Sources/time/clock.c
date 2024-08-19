@@ -12,6 +12,7 @@
 
 clock_t clock(void)
 {
+    // XXX should actually return the time since process start
     const TimeInterval ti = MonotonicClock_GetTime();
 
     return ti.tv_sec * CLOCKS_PER_SEC + ti.tv_nsec / ((1000l * 1000l * 1000l) / CLOCKS_PER_SEC);
