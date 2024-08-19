@@ -76,8 +76,8 @@ extern char* _Nonnull __i32toa(int32_t val, ia_sign_format_t sign_mode, i32a_t* 
 extern char* _Nonnull __i64toa(int64_t val, ia_sign_format_t sign_mode, i64a_t* _Nonnull out);
 
 // 'radix' must be 8, 10 or 16
-extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out);
-extern char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out);
+extern char* _Nonnull __u32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out);
+extern char* _Nonnull __u64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Nonnull out);
 
 extern errno_t __strtoi64(const char * _Restrict _Nonnull str, char ** _Restrict str_end, int base, long long min_val, long long max_val, int max_digits, long long * _Restrict _Nonnull result);
 

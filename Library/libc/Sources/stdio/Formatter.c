@@ -394,9 +394,9 @@ static errno_t Formatter_FormatUnsignedInteger(FormatterRef _Nonnull self, int r
     }
 
     if (nbits == 64) {
-        pCanonDigits = __ui64toa(v64, radix, isUppercase, &self->i64a);
+        pCanonDigits = __u64toa(v64, radix, isUppercase, &self->i64a);
     } else {
-        pCanonDigits = __ui32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
+        pCanonDigits = __u32toa(v32, radix, isUppercase, (i32a_t*)&self->i64a);
     }
 
     return Formatter_FormatUnsignedIntegerField(self, radix, isUppercase, spec, pCanonDigits, self->i64a.length);
@@ -410,10 +410,10 @@ static errno_t Formatter_FormatPointer(FormatterRef _Nonnull self, const Convers
     spec2.flags.padWithZeros = true;
 
 #if __INTPTR_WIDTH == 64
-    char* pCanonDigits = __ui64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
+    char* pCanonDigits = __u64toa((uint64_t)va_arg(*ap, void*), 16, false, &self->i64a);
     spec2.precision = 16;
 #else
-    char* pCanonDigits = __ui32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
+    char* pCanonDigits = __u32toa((uint32_t)va_arg(*ap, void*), 16, false, (i32a_t*)&self->i64a);
     spec2.precision = 8;
 #endif
 
