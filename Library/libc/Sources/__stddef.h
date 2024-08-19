@@ -65,8 +65,15 @@ typedef struct i64a_t {
 } i64a_t;
 
 
-extern char* _Nonnull __i32toa(int32_t val, i32a_t* _Nonnull out);
-extern char* _Nonnull __i64toa(int64_t val, i64a_t* _Nonnull out);
+// Controls how the __i32toa and __i64toa functions format the sign
+typedef enum ia_sign_format_t {
+    ia_sign_minus_only = 0,
+    ia_sign_plus_minus
+} ia_sign_format_t;
+
+
+extern char* _Nonnull __i32toa(int32_t val, ia_sign_format_t sign_mode, i32a_t* _Nonnull out);
+extern char* _Nonnull __i64toa(int64_t val, ia_sign_format_t sign_mode, i64a_t* _Nonnull out);
 
 // 'radix' must be 8, 10 or 16
 extern char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Nonnull out);

@@ -207,9 +207,7 @@ static errno_t Formatter_FormatSignedIntegerField(FormatterRef _Nonnull self, co
         if (nLeadingZeros > 0) {
             try(Formatter_WriteRepChar(self, '0', nLeadingZeros));
         }
-        while(nDigits-- > 0) {
-            try(Formatter_WriteChar(self, *pDigits++));
-        }
+        try(Formatter_WriteString(self, pDigits));
     }
 
     if (nspaces > 0 && spec->flags.isLeftJustified) {
@@ -224,11 +222,9 @@ static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, 
 {
     decl_try_err();
     int nRadixChars = 0;
-    int nDigits = len - 1;
-    int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - nDigits, 0) : 0;
+    int nLeadingZeros = (spec->flags.hasPrecision) ? __max(spec->precision - len, 0) : 0;
     const char* pRadixChars = "";
-    const char* pDigits = &buf[1];
-    const bool isEmpty = spec->flags.hasPrecision && spec->precision == 0 && pDigits[0] == '0' && nDigits == 1;
+    const bool isEmpty = spec->flags.hasPrecision && spec->precision == 0 && buf[0] == '0' && len == 1;
 
     if (spec->flags.isAlternativeForm) {
         switch (radix) {
@@ -238,7 +234,7 @@ static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, 
         }
     }
 
-    const int slen = nRadixChars + nLeadingZeros + nDigits;
+    const int slen = nRadixChars + nLeadingZeros + len;
     int nspaces = (spec->minimumFieldWidth > slen) ? spec->minimumFieldWidth - slen : 0;
 
     if (spec->flags.padWithZeros && !spec->flags.hasPrecision && !spec->flags.isLeftJustified) {
@@ -257,9 +253,7 @@ static errno_t Formatter_FormatUnsignedIntegerField(FormatterRef _Nonnull self, 
         if (nLeadingZeros > 0) {
             try(Formatter_WriteRepChar(self, '0', nLeadingZeros));
         }
-        while(nDigits-- > 0) {
-            try(Formatter_WriteChar(self, *pDigits++));
-        }
+        try(Formatter_WriteString(self, buf));
     }
     else if (radix == 8) {
         try(Formatter_WriteChar(self, '0'));
@@ -356,9 +350,9 @@ static errno_t Formatter_FormatSignedInteger(FormatterRef _Nonnull self, const C
     }
 
     if (nbits == 64) {
-        pCanonDigits = __i64toa(v64, &self->i64a);
+        pCanonDigits = __i64toa(v64, ia_sign_plus_minus, &self->i64a);
     } else {
-        pCanonDigits = __i32toa(v32, (i32a_t*)&self->i64a);
+        pCanonDigits = __i32toa(v32, ia_sign_plus_minus, (i32a_t*)&self->i64a);
     }
 
     return Formatter_FormatSignedIntegerField(self, spec, pCanonDigits, self->i64a.length);

@@ -12,7 +12,7 @@
 #include <__stddef.h>
 
 
-char* _Nonnull __i32toa(int32_t val, i32a_t* _Nonnull out)
+char* _Nonnull __i32toa(int32_t val, ia_sign_format_t sign_mode, i32a_t* _Nonnull out)
 {
     char *ep = &out->buffer[I32A_BUFFER_SIZE - 1];
     char *p = ep;
@@ -36,7 +36,7 @@ char* _Nonnull __i32toa(int32_t val, i32a_t* _Nonnull out)
         val = -val;
         sign = '-';
     } else {
-        sign = '+';
+        sign = (sign_mode == ia_sign_plus_minus) ? '+' : '\0';
     }
 
     *p-- = '\0';
@@ -45,7 +45,11 @@ char* _Nonnull __i32toa(int32_t val, i32a_t* _Nonnull out)
         val /= 10;
     } while (val);
 
-    *p = sign;
+    if (sign) {
+        *p = sign;
+    } else {
+        p++;
+    }
 
     out->length = ep - p;
     out->offset = p - out->buffer;
@@ -53,7 +57,7 @@ char* _Nonnull __i32toa(int32_t val, i32a_t* _Nonnull out)
     return p;
 }
 
-char* _Nonnull __i64toa(int64_t val, i64a_t* _Nonnull out)
+char* _Nonnull __i64toa(int64_t val, ia_sign_format_t sign_mode, i64a_t* _Nonnull out)
 {
     char *ep = &out->buffer[I64A_BUFFER_SIZE - 1];
     char *p = ep;
@@ -71,7 +75,7 @@ char* _Nonnull __i64toa(int64_t val, i64a_t* _Nonnull out)
         val = -val;
         sign = '-';
     } else {
-        sign = '+';
+        sign = (sign_mode == ia_sign_plus_minus) ? '+' : '\0';
     }
 
     *p-- = '\0';
@@ -81,7 +85,11 @@ char* _Nonnull __i64toa(int64_t val, i64a_t* _Nonnull out)
         val = q;
     } while (val);
     
-    *p = sign;
+    if (sign) {
+        *p = sign;
+    } else {
+        p++;
+    }
 
     out->length = ep - p;
     out->offset = p - out->buffer;
@@ -123,9 +131,9 @@ char* _Nonnull __ui32toa(uint32_t val, int radix, bool isUppercase, i32a_t* _Non
             } while (val);
             break;
     }
-
-    *p = '+';
     
+    p++;
+
     out->length = ep - p;
     out->offset = p - out->buffer;
 
@@ -164,21 +172,13 @@ char* _Nonnull __ui64toa(uint64_t val, int radix, bool isUppercase, i64a_t* _Non
             } while (val);
             break;
     }
-    
-    *p = '+';
 
+    p++;
+    
     out->length = ep - p;
     out->offset = p - out->buffer;
 
     return p;
-}
-
-static void copy_out(char* _Nonnull buf, const char* _Nonnull pCanonDigits)
-{
-    const char* p = (pCanonDigits[0] == '+') ? &pCanonDigits[1] : pCanonDigits;
-
-    while (*p != '\0') { *buf++ = *p++; }
-    *buf = '\0';
 }
 
 char *itoa(int val, char *buf, int radix)
@@ -189,7 +189,7 @@ char *itoa(int val, char *buf, int radix)
     if (buf) {
         switch (radix) {
             case 10:
-                p = __i32toa((int32_t)val, &i32a);
+                p = __i32toa((int32_t)val, ia_sign_minus_only, &i32a);
                 break;
         
             case 2:
@@ -202,7 +202,7 @@ char *itoa(int val, char *buf, int radix)
                 errno = EINVAL;
                 return NULL;
         }
-        copy_out(buf, p);
+        memcpy(buf, p, i32a.length + 1);
     }
     return buf;
 }
@@ -220,7 +220,7 @@ char *lltoa(long long val, char *buf, int radix)
     if (buf) {
         switch (radix) {
             case 10:
-                p = __i64toa((int64_t)val, &i64a);
+                p = __i64toa((int64_t)val, ia_sign_minus_only, &i64a);
                 break;
         
             case 2:
@@ -233,7 +233,7 @@ char *lltoa(long long val, char *buf, int radix)
                 errno = EINVAL;
                 return NULL;
         }
-        copy_out(buf, p);
+        memcpy(buf, p, i64a.length + 1);
     }
     return buf;
 }
@@ -251,13 +251,13 @@ char *utoa(unsigned int val, char *buf, int radix)
             case 10:
             case 16:
                 p = __ui32toa((uint32_t)val, radix, false, &i32a);
+                memcpy(buf, p, i32a.length + 1);
                 break;
 
             default:
                 errno = EINVAL;
                 return NULL;
         }
-        copy_out(buf, p);
     }
     return buf;
 }
@@ -279,13 +279,13 @@ char *ulltoa(unsigned long long val, char *buf, int radix)
             case 10:
             case 16:
                 p = __ui64toa((uint64_t)val, radix, false, &i64a);
+                memcpy(buf, p, i64a.length + 1);
                 break;
 
             default:
                 errno = EINVAL;
                 return NULL;
         }
-        copy_out(buf, p);
     }
     return buf;
 }
