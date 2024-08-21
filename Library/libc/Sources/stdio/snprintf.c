@@ -49,8 +49,13 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
     if (err == EOK) {
         __Formatter_Init(&fmt, &file.super);
         err = __Formatter_vFormat(&fmt, format, ap);
-        if (hasBuffer) putc('\0', &file.super);
-        r = (err == EOK) ? ((fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten) : -err;
+        if (err == EOK) {
+            r = (fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten;
+            buffer[r] = '\0';
+        }
+        else {
+            r = -err;
+        }
         __Formatter_Deinit(&fmt);
         __fclose(&file.super);
     }
@@ -60,6 +65,7 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 
     if (r < 0) {
         errno = -r;
+        buffer[0] = '\0';
     }
 
     return r;
