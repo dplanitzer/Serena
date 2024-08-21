@@ -11,11 +11,11 @@
 
 char *gets(char *str)
 {
-    if (str == NULL) {
+    char* p = str;
+
+    if (p == NULL) {
         return NULL;
     }
-
-    char* p = str;
 
     while (true) {
         const int ch = getchar();
@@ -28,5 +28,5 @@ char *gets(char *str)
     }
     *p = '\0';
     
-    return str;
+    return ((p == str && feof(stdin)) || ferror(stdin)) ? NULL : str;
 }
