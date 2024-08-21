@@ -15,14 +15,16 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s)
         return 0;
     }
 
-    size_t nBytesToWrite = size * count;
+    const size_t nBytesToWrite = size * count;
     size_t nBytesWritten = 0;
-    while (nBytesToWrite-- > 0) {
-        const int r = fputc(((const unsigned char*)buffer)[nBytesWritten++], s);
+    
+    while (nBytesWritten < nBytesToWrite) {
+        const int r = fputc(((const unsigned char*)buffer)[nBytesWritten], s);
 
         if (r == EOF) {
             break;
         }
+        nBytesWritten++;
     }
 
     return nBytesWritten / size;

@@ -11,6 +11,10 @@
 
 int fputc(int ch, FILE *s)
 {
+    if (s->flags.hasError) {
+        return EOF;
+    }
+
     if ((s->flags.mode & __kStreamMode_Write) == 0) {
         s->flags.hasError = 1;
         errno = EBADF;

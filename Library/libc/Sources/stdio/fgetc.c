@@ -11,6 +11,10 @@
 
 int fgetc(FILE *s)
 {
+    if (s->flags.hasEof || s->flags.hasError) {
+        return EOF;
+    }
+    
     if ((s->flags.mode & __kStreamMode_Read) == 0) {
         s->flags.hasError = 1;
         errno = EBADF;
