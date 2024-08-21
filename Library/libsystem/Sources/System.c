@@ -10,7 +10,6 @@
 #include <System/Process.h>
 
 extern void __UrtInit(ProcessArguments* _Nonnull argsp);
-extern void __AllocatorInit(void);
 
 
 static bool __gIsSystemLibInitialized;
@@ -22,6 +21,5 @@ void System_Init(ProcessArguments* _Nonnull argsp)
     }
     
     __UrtInit(argsp);
-    __AllocatorInit();
     __gIsSystemLibInitialized = true;
 }

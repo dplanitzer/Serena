@@ -1,17 +1,19 @@
 //
 //  Allocator.c
-//  libsystem
+//  libc
 //
 //  Created by Dietmar Planitzer on 2/4/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <System/Allocator.h>
+#include "Allocator.h"
 #include <System/Error.h>
 #include <System/Lock.h>
 #include <System/Process.h>
 #include <System/_math.h>
-#include "Memory.h"
+#include <stdio.h>
+#include <string.h>
+
 
 #if __LP64__
 #define HEAP_ALIGNMENT  16
@@ -283,7 +285,7 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 // Allocates a new heap.
 // \param pOutAllocator receives the allocator reference
 // \return an error or EOK
-AllocatorRef _Nullable Allocator_Create(void)
+AllocatorRef _Nullable __Allocator_Create(void)
 {
     decl_try_err();
     MemoryDescriptor md;
@@ -347,7 +349,7 @@ static MemRegion* _Nullable __Allocator_GetMemRegionFor_Locked(AllocatorRef _Non
     return NULL;
 }
 
-bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+bool __Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
@@ -429,7 +431,7 @@ catch:
     return NULL;
 }
 
-void* _Nullable Allocator_Allocate(AllocatorRef _Nonnull pAllocator, size_t nbytes)
+void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull pAllocator, size_t nbytes)
 {
     Lock_Lock(&pAllocator->lock);
     void* p = __Allocator_Allocate_Locked(pAllocator, nbytes);
@@ -488,14 +490,14 @@ errno_t __Allocator_Deallocate_Locked(AllocatorRef _Nonnull pAllocator, void* _N
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-void Allocator_Deallocate(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+void __Allocator_Deallocate(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     Lock_Lock(&pAllocator->lock);
     __Allocator_Deallocate_Locked(pAllocator, ptr);
     Lock_Unlock(&pAllocator->lock);
 }
 
-void* _Nullable Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr, size_t new_size)
+void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr, size_t new_size)
 {
     void* np;
 
@@ -505,7 +507,7 @@ void* _Nullable Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr
     if (old_size != new_size) {
         np = __Allocator_Allocate_Locked(pAllocator, new_size);
 
-        __Memcpy(np, ptr, __min(old_size, new_size));
+        memcpy(np, ptr, __min(old_size, new_size));
         __Allocator_Deallocate_Locked(pAllocator, ptr);
     }
     else {
@@ -519,20 +521,12 @@ void* _Nullable Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
+size_t __Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
 {
     Lock_Lock(&pAllocator->lock);
     const size_t r = __Allocator_GetBlockSize_Locked(pAllocator, ptr);
     Lock_Unlock(&pAllocator->lock);
     return r;
-}
-
-
-AllocatorRef kAllocator_Main;
-
-void __AllocatorInit(void)
-{
-    kAllocator_Main = Allocator_Create();
 }
 
 #if 0

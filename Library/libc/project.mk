@@ -4,6 +4,9 @@
 
 LIBC_SOURCES_DIR := $(LIBC_PROJECT_DIR)/Sources
 
+MALLOC_SOURCES_DIR := $(LIBC_SOURCES_DIR)/malloc
+MALLOC_OBJS_DIR := $(LIBC_OBJS_DIR)/malloc
+
 STDIO_SOURCES_DIR := $(LIBC_SOURCES_DIR)/stdio
 STDIO_OBJS_DIR := $(LIBC_OBJS_DIR)/stdio
 
@@ -46,12 +49,13 @@ $(LIBC_OBJS_DIR):
 	$(call mkdir_if_needed,$(LIBC_OBJS_DIR))
 
 
+-include $(MALLOC_SOURCES_DIR)/package.mk
 -include $(STDIO_SOURCES_DIR)/package.mk
 -include $(STRING_SOURCES_DIR)/package.mk
 -include $(TIME_SOURCES_DIR)/package.mk
 
 
-$(LIBC_FILE): $(LIBC_OBJS) $(STDIO_OBJS) $(STRING_OBJS) $(TIME_OBJS)
+$(LIBC_FILE): $(LIBC_OBJS) $(MALLOC_OBJS) $(STDIO_OBJS) $(STRING_OBJS) $(TIME_OBJS)
 	@echo Making libc.a
 	$(LIBTOOL) create $@ $^
 

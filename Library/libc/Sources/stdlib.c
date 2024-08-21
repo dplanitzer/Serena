@@ -19,6 +19,7 @@ void __stdlibc_init(ProcessArguments* _Nonnull argsp)
     environ = argsp->envp;
 
     System_Init(argsp);
+    __malloc_init();
     __exit_init();
     __locale_init();
     __stdio_init();
