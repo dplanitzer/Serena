@@ -42,7 +42,7 @@ typedef _Errno_t errno_t;
 // code the function you call should never fail in actual reality.
 //XXX not yet
 //#define try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != EOK) { fatalError(__func__, __LINE__, (int) _err_); }}
-//#define try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != 0) { _Abort(__FILE__, __LINE__, __func__); }}
+//#define try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != 0) { __abort(__FILE__, __LINE__, __func__); }}
 
 // Set 'err' to the given error and go to the 'catch' label if the given pointer
 // is null. Otherwise fall through to the next statement.
