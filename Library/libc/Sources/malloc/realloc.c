@@ -13,10 +13,13 @@
 
 void *realloc(void *ptr, size_t new_size)
 {
-    void* np = __Allocator_Reallocate(__kAllocator_Main, ptr, new_size);
+    __malloc_lock();
+    void* np = __Allocator_Reallocate(__gMainAllocator, ptr, new_size);
 
     if (np == NULL) {
         errno = ENOMEM;
     }
+    __malloc_unlock();
+    
     return np;
 }

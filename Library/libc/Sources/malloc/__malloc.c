@@ -7,12 +7,26 @@
 //
 
 #include <stdlib.h>
+#include <System/Lock.h>
 #include "__malloc.h"
 
 
-AllocatorRef __kAllocator_Main;
+AllocatorRef    __gMainAllocator;
+static Lock     __gMallocLock;
+
 
 void __malloc_init(void)
 {
-    __kAllocator_Main = __Allocator_Create();
+    __gMainAllocator = __Allocator_Create();
+    Lock_Init(&__gMallocLock);
+}
+
+void __malloc_lock(void)
+{
+    Lock_Lock(&__gMallocLock);
+}
+
+void __malloc_unlock(void)
+{
+    Lock_Unlock(&__gMallocLock);
 }

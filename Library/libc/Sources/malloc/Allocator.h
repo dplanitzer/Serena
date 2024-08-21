@@ -9,9 +9,52 @@
 #ifndef _ALLOCATOR_H
 #define _ALLOCATOR_H 1
 
-#include <System/Types.h>
+#include <__stddef.h>
 
-struct Allocator;
+
+#if __LP64__
+#define HEAP_ALIGNMENT  16
+#elif __ILP32__
+#define HEAP_ALIGNMENT  8
+#else
+#error "don't know how to align heap blocks"
+#endif
+
+
+// A memory descriptor describes a contiguous range of RAM that should be managed
+// by the allocator.
+typedef struct MemoryDescriptor {
+    char* _Nonnull  lower;
+    char* _Nonnull  upper;
+} MemoryDescriptor;
+
+
+// A memory block structure describes a freed or allocated block of memory. The
+// structure is placed right in front of the memory block. Note that the block
+// size includes the header size.
+typedef struct MemBlock {
+    struct MemBlock* _Nullable  next;
+    size_t                      size;   // The size includes sizeof(MemBlock).
+} MemBlock;
+
+
+// A heap memory region is a region of contiguous memory which is managed by the
+// heap. Each such region has its own private list of free memory blocks.
+typedef struct MemRegion {
+    struct MemRegion* _Nullable next;
+    char* _Nonnull              lower;
+    char* _Nonnull              upper;
+    MemBlock* _Nullable         first_free_block;   // Every memory region has its own private free list. Note that the blocks on this list are ordered by increasing base address
+} MemRegion;
+
+
+// An allocator manages memory from a pool of memory contiguous regions.
+typedef struct Allocator {
+    MemRegion* _Nonnull     first_region;
+    MemRegion* _Nonnull     last_region;
+    MemBlock* _Nullable     first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
+} Allocator;
+
 typedef struct Allocator* AllocatorRef;
 
 
@@ -20,7 +63,7 @@ extern void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-extern void __Allocator_Deallocate(AllocatorRef _Nonnull self, void* _Nullable ptr);
+extern errno_t __Allocator_Deallocate(AllocatorRef _Nonnull self, void* _Nullable ptr);
 
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its

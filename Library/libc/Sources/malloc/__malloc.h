@@ -12,8 +12,11 @@
 #include "Allocator.h"
 
 // The allocator that represents the application heap
-extern AllocatorRef __kAllocator_Main;
+extern AllocatorRef __gMainAllocator;
 
 extern void __malloc_init(void);
+
+extern void __malloc_lock(void);
+extern void __malloc_unlock(void);
 
 #endif /* __MALLOC_H */

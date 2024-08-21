@@ -12,5 +12,7 @@
 
 void free(void *ptr)
 {
-    __Allocator_Deallocate(__kAllocator_Main, ptr);
+    __malloc_lock();
+    __Allocator_Deallocate(__gMainAllocator, ptr);
+    __malloc_unlock();
 }

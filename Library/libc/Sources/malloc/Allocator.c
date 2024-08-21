@@ -7,59 +7,9 @@
 //
 
 #include "Allocator.h"
-#include <System/Error.h>
-#include <System/Lock.h>
 #include <System/Process.h>
-#include <System/_math.h>
 #include <stdio.h>
 #include <string.h>
-
-
-#if __LP64__
-#define HEAP_ALIGNMENT  16
-#elif __ILP32__
-#define HEAP_ALIGNMENT  8
-#else
-#error "don't know how to align heap blocks"
-#endif
-
-#define CPU_PAGE_SIZE   4096
-
-
-// A memory descriptor describes a contiguous range of RAM that should be managed
-// by the allocator.
-typedef struct MemoryDescriptor {
-    char* _Nonnull  lower;
-    char* _Nonnull  upper;
-} MemoryDescriptor;
-
-
-// A memory block structure describes a freed or allocated block of memory. The
-// structure is placed right in front of the memory block. Note that the block
-// size includes the header size.
-typedef struct MemBlock {
-    struct MemBlock* _Nullable  next;
-    size_t                      size;   // The size includes sizeof(MemBlock).
-} MemBlock;
-
-
-// A heap memory region is a region of contiguous memory which is managed by the
-// heap. Each such region has its own private list of free memory blocks.
-typedef struct MemRegion {
-    struct MemRegion* _Nullable next;
-    char* _Nonnull              lower;
-    char* _Nonnull              upper;
-    MemBlock* _Nullable         first_free_block;   // Every memory region has its own private free list. Note that the blocks on this list are ordered by increasing base address
-} MemRegion;
-
-
-// An allocator manages memory from a pool of memory contiguous regions.
-typedef struct Allocator {
-    MemRegion* _Nonnull     first_region;
-    MemRegion* _Nonnull     last_region;
-    MemBlock* _Nullable     first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
-    Lock                    lock;
-} Allocator;
 
 
 
@@ -306,7 +256,6 @@ AllocatorRef _Nullable __Allocator_Create(void)
     pAllocator->first_region = NULL;
     pAllocator->last_region = NULL;
     pAllocator->first_allocated_block = NULL;
-    try(Lock_Init(&pAllocator->lock));
     
     MemRegion* pFirstRegion;
     try_null(pFirstRegion, MemRegion_Create(pFirstMemRegionBase, &md), ENOMEM);
@@ -316,25 +265,12 @@ AllocatorRef _Nullable __Allocator_Create(void)
     return pAllocator;
 
 catch:
-    if (pAllocator) {
-        Lock_Deinit(&pAllocator->lock);
-    }
     return NULL;
-}
-
-// Returns the size of the given memory block. This is the size minus the block
-// header and plus whatever additional memory the allocator added based on its
-// internal alignment constraints.
-static size_t __Allocator_GetBlockSize_Locked(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
-{
-    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
-
-    return pMemBlock->size - sizeof(MemBlock);
 }
 
 // Returns the MemRegion managing the given address. NULL is returned if this
 // allocator does not manage the given address.
-static MemRegion* _Nullable __Allocator_GetMemRegionFor_Locked(AllocatorRef _Nonnull pAllocator, void* _Nullable pAddress)
+static MemRegion* _Nullable __Allocator_GetMemRegionFor(AllocatorRef _Nonnull pAllocator, void* _Nullable pAddress)
 {
     MemRegion* pCurRegion = pAllocator->first_region;
 
@@ -357,10 +293,7 @@ bool __Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable pt
         return true;
     }
 
-    Lock_Lock(&pAllocator->lock);
-    const bool r = __Allocator_GetMemRegionFor_Locked(pAllocator, ptr) != NULL;
-    Lock_Unlock(&pAllocator->lock);
-    return r;
+    return __Allocator_GetMemRegionFor(pAllocator, ptr) != NULL;
 }
 
 static errno_t __Allocator_ExpandBackingStore(AllocatorRef _Nonnull pAllocator, size_t minByteCount)
@@ -385,7 +318,7 @@ catch:
     return err;
 }
 
-static void* _Nullable __Allocator_Allocate_Locked(AllocatorRef _Nonnull pAllocator, size_t nbytes)
+void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull pAllocator, size_t nbytes)
 {
     decl_try_err();
 
@@ -431,24 +364,16 @@ catch:
     return NULL;
 }
 
-void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull pAllocator, size_t nbytes)
-{
-    Lock_Lock(&pAllocator->lock);
-    void* p = __Allocator_Allocate_Locked(pAllocator, nbytes);
-    Lock_Unlock(&pAllocator->lock);
-    return p;
-}
-
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-errno_t __Allocator_Deallocate_Locked(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+errno_t __Allocator_Deallocate(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
 {
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         return EOK;
     }
     
     // Find out which memory region contains the block that we want to free
-    MemRegion* pMemRegion = __Allocator_GetMemRegionFor_Locked(pAllocator, ptr);
+    MemRegion* pMemRegion = __Allocator_GetMemRegionFor(pAllocator, ptr);
     if (pMemRegion == NULL) {
         // 'ptr' isn't managed by this allocator
         return ENOTBLK;
@@ -488,33 +413,22 @@ errno_t __Allocator_Deallocate_Locked(AllocatorRef _Nonnull pAllocator, void* _N
     return EOK;
 }
 
-// Attempts to deallocate the given memory block. Returns EOK on success and
-// ENOTBLK if the allocator does not manage the given memory block.
-void __Allocator_Deallocate(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
-{
-    Lock_Lock(&pAllocator->lock);
-    __Allocator_Deallocate_Locked(pAllocator, ptr);
-    Lock_Unlock(&pAllocator->lock);
-}
-
 void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr, size_t new_size)
 {
     void* np;
 
-    Lock_Lock(&pAllocator->lock);
-    const size_t old_size = (ptr) ? __Allocator_GetBlockSize_Locked(pAllocator, ptr) : 0;
+    const size_t old_size = (ptr) ? __Allocator_GetBlockSize(pAllocator, ptr) : 0;
     
     if (old_size != new_size) {
-        np = __Allocator_Allocate_Locked(pAllocator, new_size);
+        np = __Allocator_Allocate(pAllocator, new_size);
 
         memcpy(np, ptr, __min(old_size, new_size));
-        __Allocator_Deallocate_Locked(pAllocator, ptr);
+        __Allocator_Deallocate(pAllocator, ptr);
     }
     else {
         np = ptr;
     }
 
-    Lock_Unlock(&pAllocator->lock);
     return np;
 }
 
@@ -523,10 +437,9 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *p
 // internal alignment constraints.
 size_t __Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
 {
-    Lock_Lock(&pAllocator->lock);
-    const size_t r = __Allocator_GetBlockSize_Locked(pAllocator, ptr);
-    Lock_Unlock(&pAllocator->lock);
-    return r;
+    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
+
+    return pMemBlock->size - sizeof(MemBlock);
 }
 
 #if 0

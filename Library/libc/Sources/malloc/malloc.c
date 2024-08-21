@@ -13,10 +13,13 @@
 
 void *malloc(size_t size)
 {
-    void* ptr = __Allocator_Allocate(__kAllocator_Main, size);
+    __malloc_lock();
+    void* ptr = __Allocator_Allocate(__gMainAllocator, size);
     
     if (ptr == NULL) {
         errno = ENOMEM;
     }
+    __malloc_unlock();
+
     return ptr;
 }
