@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include <limits.h>
 #include "Formatter.h"
 #include "Stream.h"
 
@@ -25,11 +26,13 @@ int snprintf(char *buffer, size_t bufsiz, const char *format, ...)
 int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 {
     decl_try_err();
+    const bool hasBuffer = (buffer && bufsiz > 0) ? true : false;
     __Memory_FILE file;
     FILE_Memory mem;
     Formatter fmt;
+    int r = 0;
 
-    if (buffer && bufsiz > 0) {
+    if (hasBuffer) {
         mem.base = buffer;
         mem.initialCapacity = bufsiz - 1;
         mem.maximumCapacity = bufsiz - 1;
@@ -42,16 +45,22 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
         // Use a null stream to calculate the length of the formatted string
         err = __fopen_null_init(&file.super, "w");
     }
-    if (err != 0) {
-        return -err;
+
+    if (err == EOK) {
+        __Formatter_Init(&fmt, &file.super);
+        err = __Formatter_vFormat(&fmt, format, ap);
+        if (hasBuffer) putc('\0', &file.super);
+        r = (err == EOK) ? ((fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten) : -err;
+        __Formatter_Deinit(&fmt);
+        __fclose(&file.super);
+    }
+    else {
+        r = -err;
     }
 
-    __Formatter_Init(&fmt, &file.super);
-    err = __Formatter_vFormat(&fmt, format, ap);
-    const size_t nchars = fmt.charactersWritten;
-    __Formatter_Deinit(&fmt);
-    buffer[fmt.charactersWritten] = '\0';
-    __fclose(&file.super);
+    if (r < 0) {
+        errno = -r;
+    }
 
-    return (err == 0) ? nchars : -err;
+    return r;
 }

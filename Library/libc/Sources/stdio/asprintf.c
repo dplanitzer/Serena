@@ -30,6 +30,11 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
     FILE_Memory mem;
     FILE_MemoryQuery mq;
     Formatter fmt;
+    int r = 0;
+
+    if (str_ptr) {
+        *str_ptr = NULL;
+    }
 
     if (str_ptr) {
         *str_ptr = NULL;
@@ -45,28 +50,34 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
         // Use a null stream to calculate the length of the formatted string
         err = __fopen_null_init(&file.super, "w");
     }
-    if (err != 0) {
-        return -err;
+
+    if (err == EOK) {
+        __Formatter_Init(&fmt, &file.super);
+        err = __Formatter_vFormat(&fmt, format, ap);
+        putc('\0', &file.super);
+        r = (err == EOK) ? ((fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten) : -err;
+        __Formatter_Deinit(&fmt);
+        filemem(&file.super, &mq);
+        __fclose(&file.super);
+
+        if (str_ptr) {
+            if (r >= 0) {
+                *str_ptr = mq.base;
+            }
+            else {
+                // We told the stream to not free the memory block. Thus we need to free
+                // it if we encountered an error
+                free(mq.base);
+            }
+        }
+    }
+    else {
+        r = -err;
     }
 
-    __Formatter_Init(&fmt, &file.super);
-    err = __Formatter_vFormat(&fmt, format, ap);
-    const size_t nchars = fmt.charactersWritten;
-    const int r = (err == 0) ? fputc('\0', &file.super) : EOF; // write terminating NUL
-    __Formatter_Deinit(&fmt);
-    filemem(&file.super, &mq);
-    __fclose(&file.super);
-
-    if (r != EOF) {
-        if (str_ptr) *str_ptr = mq.base;
-        return nchars;
-     } else {
-        if (str_ptr) {
-            // we told the stream to not free the memory block, however we may have
-            // gotten a partially filled block. So free it manually.
-            free(mq.base);
-            *str_ptr = NULL;
-        }
-        return (err != 0) ? -err : -errno;
-     }
+    if (r < 0) {
+        errno = -r;
+    }
+    
+    return r;
 }

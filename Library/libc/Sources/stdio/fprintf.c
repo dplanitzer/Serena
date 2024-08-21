@@ -6,10 +6,10 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include <stdlib.h>
+#include <stdio.h>
 #include <errno.h>
+#include <limits.h>
 #include "Formatter.h"
-#include "Stream.h"
 
 
 int fprintf(FILE *s, const char *format, ...)
@@ -19,16 +19,25 @@ int fprintf(FILE *s, const char *format, ...)
     va_start(ap, format);
     const int r = vfprintf(s, format, ap);
     va_end(ap);
+
     return r;
 }
 
 int vfprintf(FILE *s, const char *format, va_list ap)
 {
     Formatter fmt;
+    int r;
 
     __Formatter_Init(&fmt, s);
     const errno_t err = __Formatter_vFormat(&fmt, format, ap);
-    const size_t nchars = fmt.charactersWritten;
+    if (err == EOK) {
+        r = (fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten;
+    }
+    else {
+        errno = err;
+        r = -err;
+    }
     __Formatter_Deinit(&fmt);
-    return (err == 0) ? nchars : -err;
+
+    return r;
 }
