@@ -26,17 +26,9 @@ int fprintf(FILE *s, const char *format, ...)
 int vfprintf(FILE *s, const char *format, va_list ap)
 {
     Formatter fmt;
-    int r;
 
     __Formatter_Init(&fmt, s);
-    const errno_t err = __Formatter_vFormat(&fmt, format, ap);
-    if (err == EOK) {
-        r = (fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten;
-    }
-    else {
-        errno = err;
-        r = -err;
-    }
+    const int r = __Formatter_vFormat(&fmt, format, ap);
     __Formatter_Deinit(&fmt);
 
     return r;

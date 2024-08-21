@@ -53,9 +53,8 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
 
     if (err == EOK) {
         __Formatter_Init(&fmt, &file.super);
-        err = __Formatter_vFormat(&fmt, format, ap);
+        r = __Formatter_vFormat(&fmt, format, ap);
         putc('\0', &file.super);
-        r = (err == EOK) ? ((fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten) : -err;
         __Formatter_Deinit(&fmt);
         filemem(&file.super, &mq);
         __fclose(&file.super);

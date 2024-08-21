@@ -58,6 +58,6 @@ typedef struct Formatter {
 #define __Formatter_Deinit(__self) \
     if (__self) (__self)->stream = NULL
 
-extern errno_t __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
+extern int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format, va_list ap);
 
 #endif  /* Formatter_h */

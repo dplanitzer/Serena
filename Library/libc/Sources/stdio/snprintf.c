@@ -48,13 +48,9 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
 
     if (err == EOK) {
         __Formatter_Init(&fmt, &file.super);
-        err = __Formatter_vFormat(&fmt, format, ap);
-        if (err == EOK) {
-            r = (fmt.charactersWritten > INT_MAX) ? INT_MAX : (int)fmt.charactersWritten;
+        r = __Formatter_vFormat(&fmt, format, ap);
+        if (r >= 0) {
             buffer[r] = '\0';
-        }
-        else {
-            r = -err;
         }
         __Formatter_Deinit(&fmt);
         __fclose(&file.super);
