@@ -7,7 +7,6 @@
 //
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <__stddef.h>
 
 typedef int (*compare_to_t)(const void*, const void*);
