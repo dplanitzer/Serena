@@ -11,6 +11,8 @@
 
 #include <__stddef.h>
 
+struct Allocator;
+
 
 #if __LP64__
 #define HEAP_ALIGNMENT  16
@@ -19,6 +21,10 @@
 #else
 #error "don't know how to align heap blocks"
 #endif
+
+
+// Callback that is invoked by the allocator if it needs more backing store
+typedef errno_t (*AllocatorGrowFunc)(struct Allocator* _Nonnull pAllocator, size_t minByteCount);
 
 
 // A memory descriptor describes a contiguous range of RAM that should be managed
@@ -50,13 +56,19 @@ typedef struct MemRegion {
 
 // An allocator manages memory from a pool of memory contiguous regions.
 typedef struct Allocator {
-    MemRegion* _Nonnull     first_region;
-    MemRegion* _Nonnull     last_region;
-    MemBlock* _Nullable     first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
+    MemRegion* _Nonnull         first_region;
+    MemRegion* _Nonnull         last_region;
+    MemBlock* _Nullable         first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
+    AllocatorGrowFunc _Nullable grow_func;
 } Allocator;
 
 typedef struct Allocator* AllocatorRef;
 
+
+extern AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc);
+
+// Adds the given memory region to the allocator's available memory pool.
+extern errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull md);
 
 extern void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes);
 extern void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, size_t new_size);
@@ -73,8 +85,5 @@ extern size_t __Allocator_GetBlockSize(AllocatorRef _Nonnull self, void* _Nonnul
 // Returns true if the given pointer is a base pointer of a memory block that
 // was allocated with the given allocator.
 extern bool __Allocator_IsManaging(AllocatorRef _Nonnull self, void* _Nullable ptr);
-
-
-extern AllocatorRef _Nullable __Allocator_Create(void);
 
 #endif /* _ALLOCATOR_H */

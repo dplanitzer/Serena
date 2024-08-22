@@ -228,44 +228,34 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 // MARK: -
 ////////////////////////////////////////////////////////////////////////////////
 
-#define INITIAL_HEAP_SIZE   __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
-#define EXPANSION_HEAP_SIZE __Ceil_PowerOf2(64*1024, CPU_PAGE_SIZE)
-
-
 // Allocates a new heap.
-// \param pOutAllocator receives the allocator reference
-// \return an error or EOK
-AllocatorRef _Nullable __Allocator_Create(void)
+AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc)
 {
-    decl_try_err();
-    MemoryDescriptor md;
-    char* ptr;
     AllocatorRef pAllocator = NULL;
 
-    // Get backing store for our initial memory region
-    try(Process_AllocateAddressSpace(INITIAL_HEAP_SIZE, (void**)&ptr));
-    md.lower = ptr;
-    md.upper = md.lower + INITIAL_HEAP_SIZE;
-
-
     // Reserve space for the allocator structure in the first memory region.
-    char* pAllocatorBase = __Ceil_Ptr_PowerOf2(md.lower, HEAP_ALIGNMENT);
+    char* pAllocatorBase = __Ceil_Ptr_PowerOf2(md->lower, HEAP_ALIGNMENT);
     char* pFirstMemRegionBase = pAllocatorBase + sizeof(Allocator);
+
+    if (pFirstMemRegionBase > md->upper) {
+        return NULL;
+    }
 
     pAllocator = (AllocatorRef)pAllocatorBase;
     pAllocator->first_region = NULL;
     pAllocator->last_region = NULL;
     pAllocator->first_allocated_block = NULL;
     
-    MemRegion* pFirstRegion;
-    try_null(pFirstRegion, MemRegion_Create(pFirstMemRegionBase, &md), ENOMEM);
+    MemRegion* pFirstRegion = MemRegion_Create(pFirstMemRegionBase, md);
+    if (pFirstRegion == NULL) {
+        return NULL;
+    }
+
     pAllocator->first_region = pFirstRegion;
     pAllocator->last_region = pFirstRegion;
+    pAllocator->grow_func = growFunc;
     
     return pAllocator;
-
-catch:
-    return NULL;
 }
 
 // Returns the MemRegion managing the given address. NULL is returned if this
@@ -296,25 +286,33 @@ bool __Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable pt
     return __Allocator_GetMemRegionFor(pAllocator, ptr) != NULL;
 }
 
-static errno_t __Allocator_ExpandBackingStore(AllocatorRef _Nonnull pAllocator, size_t minByteCount)
+// Adds the given memory region to the allocator's available memory pool.
+errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull md)
 {
     decl_try_err();
-    const size_t ceiledSize = __Ceil_PowerOf2(minByteCount, CPU_PAGE_SIZE);
-    const size_t nbytes = __min(ceiledSize, EXPANSION_HEAP_SIZE);
-    MemoryDescriptor md;
-    MemRegion* pMemRegion;
-    char* ptr;
-    
-    try(Process_AllocateAddressSpace(nbytes, (void**)&ptr));
-    md.lower = ptr;
-    md.upper = ptr + nbytes;
 
-    try_null(pMemRegion, MemRegion_Create(md.lower, &md), ENOMEM);
-    pAllocator->last_region->next = pMemRegion;
-    pAllocator->last_region = pMemRegion;
-    pMemRegion->next = NULL;
+    if (md->lower == NULL || md->upper == md->lower) {
+        return EINVAL;
+    }
 
-catch:
+    MemRegion* pMemRegion = MemRegion_Create(md->lower, md);
+    if (pMemRegion) {
+        pAllocator->last_region->next = pMemRegion;
+        pAllocator->last_region = pMemRegion;
+        pMemRegion->next = NULL;
+        return EOK;
+    }
+    return ENOMEM;
+}
+
+static errno_t __Allocator_TryExpandBackingStore(AllocatorRef _Nonnull pAllocator, size_t minByteCount)
+{
+    decl_try_err();
+
+    if (pAllocator->grow_func) {
+        err = pAllocator->grow_func(pAllocator, minByteCount);
+    }
+
     return err;
 }
 
@@ -348,7 +346,7 @@ void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull pAllocator, size_t nb
 
     // Try expanding the backing store if we've exhausted our existing memory regions
     if (pMemBlock == NULL) {
-        try(__Allocator_ExpandBackingStore(pAllocator, nBytesToAlloc));
+        try(__Allocator_TryExpandBackingStore(pAllocator, nBytesToAlloc));
         try_null(pMemBlock, MemRegion_AllocMemBlock(pAllocator->last_region, nBytesToAlloc), ENOMEM);
     }
 
