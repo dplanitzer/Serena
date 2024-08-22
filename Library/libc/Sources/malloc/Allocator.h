@@ -9,7 +9,11 @@
 #ifndef _ALLOCATOR_H
 #define _ALLOCATOR_H 1
 
-#include <__stddef.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <System/Error.h>
 
 struct Allocator;
 

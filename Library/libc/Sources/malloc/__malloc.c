@@ -7,6 +7,7 @@
 //
 
 #include <stdlib.h>
+#include <__stddef.h>
 #include <System/_math.h>
 #include <System/Lock.h>
 #include <System/Process.h>
@@ -58,7 +59,7 @@ void __malloc_init(void)
     if (__gMainAllocator == NULL) {
         abort();
     }
-    
+
     Lock_Init(&__gMallocLock);
 }
 
