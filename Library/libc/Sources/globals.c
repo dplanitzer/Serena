@@ -12,10 +12,6 @@
 
 // User visible globals
 char ** environ;
-FILE* _Stdin;
-FILE* _Stdout;
-FILE* _Stderr;
 
 // Private globals
 ProcessArguments* __gProcessArguments;
-SList __gAtExitQueue;

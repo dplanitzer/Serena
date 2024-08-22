@@ -36,7 +36,6 @@ extern void __malloc_init(void);
 extern void __locale_init(void);
 extern void __exit_init(void);
 extern void __stdio_init(void);
-extern void __stdio_exit(void);
 
 extern bool __is_pointer_NOT_freeable(void* ptr);
 

@@ -7,11 +7,24 @@
 //
 
 #include "Stream.h"
+#include <stdlib.h>
 #include <System/System.h>
 
 static __IOChannel_FILE _StdinObj;
 static __IOChannel_FILE _StdoutObj;
 static __IOChannel_FILE _StderrObj;
+
+FILE* _Stdin;
+FILE* _Stdout;
+FILE* _Stderr;
+
+
+static void __stdio_exit(void)
+{
+    fflush(NULL);
+    // All open I/O channels will be automatically closed by the kernel when the
+    // process terminates.
+}
 
 
 void __stdio_init(void)
@@ -40,11 +53,6 @@ void __stdio_init(void)
     else {
         __fopen_null_init((FILE*)&_StderrObj, "w");
     }
-}
 
-void __stdio_exit(void)
-{
-    fflush(NULL);
-    // All open I/O channels will be automatically closed by the kernel when the
-    // process terminates.
+    atexit(__stdio_exit);
 }

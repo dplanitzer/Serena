@@ -6,53 +6,61 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#include <stdbool.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <System/Lock.h>
 #include <System/Process.h>
-#include <__globals.h>
 #include <__stddef.h>
 
 
-typedef void (*AtExitFunc)(void);
+#define AT_EXIT_FUNCS_CAPACITY   32
+typedef void (*at_exit_func_t)(void);
 
-typedef struct AtExitEntry {
-    SListNode           node;
-    AtExitFunc _Nonnull func;
-} AtExitEntry;
+
+static Lock                     __gAtExitLock;
+static at_exit_func_t _Nullable __gAtExitFuncs[AT_EXIT_FUNCS_CAPACITY];
+static int                      __gAtExitFuncsCount;
+static volatile bool            __gAtExitEnabled;
 
 
 void __exit_init(void)
 {
     // XXX protect with a lock
-    SList_Init(&__gAtExitQueue);
+    __gAtExitFuncsCount = 0;
+    __gAtExitEnabled = true;
+    Lock_Init(&__gAtExitLock);
 }
 
-// Not very efficient and that's fine. The expectation is that this will be used
-// very rarely. So we rather keep the memory consumption very low for the majority
-// that doesn't use this.
 int atexit(void (*func)(void))
 {
-    AtExitEntry* p = (AtExitEntry*)malloc(sizeof(AtExitEntry));
+    int r = 0;
 
-    if (p == NULL) {
-        return ENOMEM;
+    Lock_Lock(&__gAtExitLock);
+    if (__gAtExitEnabled && __gAtExitFuncsCount < AT_EXIT_FUNCS_CAPACITY) {
+        __gAtExitFuncs[__gAtExitFuncsCount++] = func;
     }
+    else {
+        r = -1;
+    }
+    Lock_Unlock(&__gAtExitLock);
 
-    SListNode_Init(&p->node);
-    p->func = func;
-    SList_InsertBeforeFirst(&__gAtExitQueue, &p->node);
-
-    return 0;
+    return r;
 }
 
 _Noreturn exit(int exit_code)
 {
-    SList_ForEach(&__gAtExitQueue, AtExitEntry, {
-        pCurNode->func();
-    });
+    // Disable the registration of any new atexit handlers.
+    Lock_Lock(&__gAtExitLock);
+    __gAtExitEnabled = false;
+    Lock_Unlock(&__gAtExitLock);
 
-    __stdio_exit();
+
+    // It's safe now to access the atexit table without holding the lock
+    while (__gAtExitFuncsCount-- > 0) {
+        __gAtExitFuncs[__gAtExitFuncsCount]();
+    }
+
+
     _Exit(exit_code);
 }
 
