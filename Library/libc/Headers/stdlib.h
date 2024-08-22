@@ -59,8 +59,10 @@ extern void srand(unsigned int seed);
 extern int rand(void);
 
 
-extern void* bsearch(const void *key, const void *ptr, size_t count, size_t size,
-               int (*comp)(const void*, const void*));
+extern void* bsearch(const void *key, const void *values, size_t count, size_t size,
+                        int (*comp)(const void*, const void*));
+extern void qsort(void* values, size_t count, size_t size,
+                        int (*comp)(const void*, const void*));
 
 
 extern char *getenv(const char *name);
