@@ -8,19 +8,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <System/System.h>
-
-// Process
-extern void child_process_test(int argc, char *argv[]);
+#include <string.h>
 
 // Console
 extern void interactive_console_test(int argc, char *argv[]);
-
-// File
-extern void chdir_pwd_test(int argc, char *argv[]);
-extern void fileinfo_test(int argc, char *argv[]);
-extern void unlink_test(int argc, char *argv[]);
-extern void readdir_test(int argc, char *argv[]);
 
 // Pipe
 extern void pipe_test(int argc, char *argv[]);
@@ -30,20 +21,63 @@ extern void fopen_memory_fixed_size_test(int argc, char *argv[]);
 extern void fopen_memory_variable_size_test(int argc, char *argv[]);
 
 
-#define RUN_TEST(__test_name) \
-    puts("Test: "#__test_name"\n\n");\
-    __test_name(argc, argv)
+typedef void (*test_func_t)(int argc, char *argv[]);
+
+typedef struct test {
+    const char* name;
+    test_func_t func;
+} test_t;
+
+
+static const test_t gTests[] = {
+    {"console", interactive_console_test},
+    {"pipe", pipe_test},
+    {"stdio_mem_1", fopen_memory_fixed_size_test},
+    {"stdio_mem_2", fopen_memory_variable_size_test},
+    {"", NULL}
+};
 
 
 void main_closure(int argc, char *argv[])
 {
-    RUN_TEST(child_process_test);
-    //RUN_TEST(interactive_console_test);
-    //RUN_TEST(chdir_pwd_test);
-    //RUN_TEST(fileinfo_test);
-    //RUN_TEST(unlink_test);
-    //RUN_TEST(readdir_test);
-    //RUN_TEST(fopen_memory_fixed_size_test);
-    //RUN_TEST(fopen_memory_variable_size_test);
-    //RUN_TEST(pipe_test);
+    if (argc < 2) {
+        puts("Need a test name");
+        exit(1);
+    }
+
+    const char* name = argv[1];
+    const test_t* test = gTests;
+    const test_t* testToRun = NULL;
+
+
+    if (!strcmp(name, "list")) {
+        while(test->func) {
+            puts(test->name);
+            test++;
+        }
+
+        exit(0);
+    }
+
+
+    while (test->func) {
+        if (!strcmp(test->name, name)) {
+            testToRun = test;
+            break;
+        }
+        test++;
+    }
+
+    if (testToRun) {
+        fputs("Test: ", stdout);
+        puts(name);
+        testToRun->func(argc, argv);
+    }
+    else {
+        fputs("Unknown test '", stdout);
+        fputs(name, stdout);
+        fputs("'\n", stdout);
+    }
+
+    exit(0);
 }

@@ -196,6 +196,20 @@ static bool Interpreter_ExecuteInternalCommand(InterpreterRef _Nonnull self, int
     return false;
 }
 
+static bool should_use_search_path(const char* _Nonnull path)
+{
+    // Series of dots with at least one slash
+    while (*path == '.') {
+        path++;
+    }
+
+    if (*path == '/') {
+        return false;
+    }
+
+    return true;
+}
+
 static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, int argc, char** argv, char** envp)
 {
     static const char* gSearchPath = "/System/Commands/";
@@ -203,8 +217,8 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     decl_try_err();
     ProcessId childPid;
     char* cmdPath = NULL;
-    const bool isAbsPath = argv[0][0] == '/';
-    const size_t searchPathLen = (isAbsPath) ? 0 : strlen(gSearchPath);
+    const bool needsSearchPath = should_use_search_path(argv[0]);
+    const size_t searchPathLen = (needsSearchPath) ? strlen(gSearchPath) : 0;
     SpawnOptions opts = {0};
     
     const size_t cmdPathLen = searchPathLen + strlen(argv[0]);
@@ -213,7 +227,7 @@ static errno_t Interpreter_ExecuteExternalCommand(InterpreterRef _Nonnull self, 
     }
 
     try_null(cmdPath, StackAllocator_Alloc(self->allocator, sizeof(char*) * (cmdPathLen + 1)), ENOMEM);
-    if (!isAbsPath) {
+    if (needsSearchPath) {
         strcpy(cmdPath, gSearchPath);
         strcat(cmdPath, argv[0]);
     }
