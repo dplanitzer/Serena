@@ -25,6 +25,9 @@ extern void Assert(const char* _Nonnull pFuncname, int lineNum, const char* _Non
 #define assertOK(cond) if ((cond) != EOK) { Assert(__func__, __LINE__, #cond); }
 #define assertEquals(expected, actual) if ((expected) != (actual)) { Assert(__func__, __LINE__, #expected); }
 
+#define assertTrue(actual) if (!(actual)) { Assert(__func__, __LINE__, #actual); }
+#define assertFalse(actual) if (actual) { Assert(__func__, __LINE__, #actual); }
+
 __CPP_END
 
 #endif /* Asserts_h */

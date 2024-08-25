@@ -19,6 +19,9 @@ extern void dq_async_test(int argc, char *argv[]);
 extern void dq_async_after_test(int argc, char *argv[]);
 extern void dq_sync_test(int argc, char *argv[]);
 
+// Lock
+extern void lock_test(int argc, char *argv[]);
+
 // Pipe
 extern void pipe_test(int argc, char *argv[]);
 extern void pipe2_test(int argc, char *argv[]);
@@ -43,6 +46,8 @@ static const test_t gTests[] = {
     {"dq_async", dq_async_test, true},
     {"dq_async_after", dq_async_after_test, true},
     {"dq_sync", dq_sync_test, true},
+
+    {"lock", lock_test, true},
 
     {"pipe", pipe_test, false},
     {"pipe2", pipe2_test, true},
