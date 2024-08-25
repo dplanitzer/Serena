@@ -99,6 +99,11 @@ inline bool TimeInterval_GreaterEquals(TimeInterval t0, TimeInterval t1) {
 }
 
 
+extern TimeInterval TimeInterval_Add(TimeInterval t0, TimeInterval t1);
+
+extern TimeInterval TimeInterval_Subtract(TimeInterval t0, TimeInterval t1);
+
+
 extern const TimeInterval   kTimeInterval_Zero;
 extern const TimeInterval   kTimeInterval_Infinity;
 extern const TimeInterval   kTimeInterval_MinusInfinity;

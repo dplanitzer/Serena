@@ -6,38 +6,51 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include <assert.h>
+#include <Asserts.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <System/System.h>
 
-// XXX
-// XXX Port these to user space (was written for kernel space originally)
-// XXX
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: DispatchAsync/DispatchAsyncAfter
+// MARK: DispatchAsync
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
-static void OnPrintClosure(void* _Nonnull pValue)
+static void OnAsync(void* _Nonnull pValue)
 {
     int val = (int)pValue;
     
-    print("%d\n", val);
-    //VirtualProcessor_Sleep(TimeInterval_MakeSeconds(2));
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnPrintClosure, (void*)(val + 1));
-    //DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeMilliseconds(500)), OnPrintClosure, (void*)(val + 1));
+    printf("%d\n", val);
+    //Delay(TimeInterval_MakeSeconds(2));
+    assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnAsync, (void*)(val + 1)));
 }
 
-void DispatchQueue_RunTests(void)
+void dq_async_test(int argc, char *argv[])
 {
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnPrintClosure, (void*)0);
+    assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnAsync, (void*)0));
 }
-#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
+// MARK: DispatchAsyncAfter
+////////////////////////////////////////////////////////////////////////////////
+
+static void OnAsyncAfter(void* _Nonnull pValue)
+{
+    int val = (int)pValue;
+    
+    printf("%d\n", val);
+    assertOK(DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(MonotonicClock_GetTime(), TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1)));
+}
+
+void dq_async_after_test(int argc, char *argv[])
+{
+    assertOK(DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnAsyncAfter, (void*)0));
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -45,31 +58,32 @@ void DispatchQueue_RunTests(void)
 // MARK: DispatchSync
 ////////////////////////////////////////////////////////////////////////////////
 
-#if 0
-static void OnPrintClosure(void* _Nonnull pValue)
+static void OnSync(void* _Nonnull pValue)
 {
     int val = (int)pValue;
     
-    VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(500));
-    print("%d  (Queue: %p, VP: %p)\n", val, DispatchQueue_GetCurrent(), VirtualProcessor_GetCurrent());
+    Delay(TimeInterval_MakeMilliseconds(500));
+    printf("%d  (Queue: %d)\n", val, DispatchQueue_GetCurrent());
 }
 
 // XXX Note: you can not call this code from the main queue because it ends up
 // XXX blocking on itself. This is expected behavior.
-void DispatchQueue_RunTests(void)
+void dq_sync_test(int argc, char *argv[])
 {
-    DispatchQueueRef pQueue;
-    DispatchQueue_Create(0, 4, kDispatchQoS_Utility, 0, gVirtualProcessorPool, NULL, &pQueue);
-    int i = 0;
+    int queue, i = 0;
 
+    assertOK(DispatchQueue_Create(0, 4, kDispatchQoS_Utility, kDispatchPriority_Normal, &queue));
     while (true) {
-        DispatchQueue_DispatchSync(pQueue, DispatchQueueClosure_Make(OnPrintClosure, (void*) i));
-        print("--------\n");
+        DispatchQueue_DispatchSync(queue, OnSync, (void*) i);
+        puts("--------");
         i++;
     }
 }
-#endif
 
+
+// XXX
+// XXX Port these to user space (was written for kernel space originally)
+// XXX
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -254,62 +268,5 @@ static void OnMainClosure(void* _Nonnull pValue)
 void DispatchQueue_RunTests(void)
 {
     DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnMainClosure, NULL);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Pipe
-////////////////////////////////////////////////////////////////////////////////
-
-
-#if 0
-static void OnReadFromPipe(void* _Nonnull pValue)
-{
-    PipeRef pipe = (PipeRef) pValue;
-    char buf[16];
-    
-    const int nbytes = Pipe_GetNonBlockingReadableCount(pipe);
-    print("reader: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
-    while (true) {
-        //VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(200));
-        buf[0] = '\0';
-        const int nRead = Pipe_Read(pipe, buf, sizeof(buf), true, kTimeInterval_Infinity);
-        //nbytes = Pipe_GetNonBlockingReadableCount(pipe);
-        //print("\nmain: %d, read: %d", nbytes, nRead);
-        buf[nRead] = '\0';
-        print((const char*)buf);
-    }
-}
-
-static void OnWriteToPipe(void* _Nonnull pValue)
-{
-    PipeRef pipe = (PipeRef) pValue;
-    
-    const int nbytes = Pipe_GetNonBlockingWritableCount(pipe);
-    print("writer: %d, pid: %d\n", nbytes, VirtualProcessor_GetCurrent()->vpid);
-    
-    while (true) {
-        VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(20));
-        const int nWritten = Pipe_Write(pipe, "\nHello", 6, true, kTimeInterval_Infinity);
-        //nbytes = Pipe_GetNonBlockingWritableCount(pipe);
-        //print("\nbackground: %d, written: %d", nbytes, nWritten);
-    }
-}
-
-
-void DispatchQueue_RunTests(void)
-{
-    PipeRef pipe = NULL;
-
-//  try_bang(Pipe_Create(PIPE_DEFAULT_BUFFER_SIZE, &pipe));
-    try_bang(Pipe_Create(4, &pipe));
-    DispatchQueueRef pUtilityQueue;
-    DispatchQueue_Create(0, 4, kDispatchQoS_Utility, 0, gVirtualProcessorPool, NULL, &pUtilityQueue);
-
-    DispatchQueue_DispatchAsync(kDispatchQueue_Main, OnWriteToPipe, pipe);
-    DispatchQueue_DispatchAsync(pUtilityQueue, OnReadFromPipe, pipe);
-
 }
 #endif
