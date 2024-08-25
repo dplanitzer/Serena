@@ -129,6 +129,25 @@ void kfree(void* _Nullable ptr)
     Lock_Unlock(&gLock);
 }
 
+// Returns the gross size of the given memory block. The gross size may be a bit
+// bigger than what was originally requested, because of alignment constraints.
+size_t ksize(void* _Nullable ptr)
+{
+    decl_try_err();
+    size_t nbytes = 0;
+
+    Lock_Lock(&gLock);
+    err = Allocator_GetBlockSize(gUnifiedMemory, ptr, &nbytes);
+
+    if (err == ENOTBLK) {
+        err = Allocator_GetBlockSize(gCpuOnlyMemory, ptr, &nbytes);
+    }
+
+    Lock_Unlock(&gLock);
+
+    return nbytes;
+}
+
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.
 errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)

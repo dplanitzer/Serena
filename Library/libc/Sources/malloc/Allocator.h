@@ -84,7 +84,7 @@ extern errno_t __Allocator_Deallocate(AllocatorRef _Nonnull self, void* _Nullabl
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-extern size_t __Allocator_GetBlockSize(AllocatorRef _Nonnull self, void* _Nonnull ptr);
+extern errno_t __Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr, size_t* _Nonnull pOutSize);
 
 // Returns true if the given pointer is a base pointer of a memory block that
 // was allocated with the given allocator.

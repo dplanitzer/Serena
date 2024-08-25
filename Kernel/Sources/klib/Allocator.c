@@ -434,11 +434,18 @@ errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nulla
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
+errno_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr, size_t* _Nonnull pOutSize)
 {
-    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
+    // Make sure that we actually manage this memory block
+    if (Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) == NULL) {
+        // 'ptr' isn't managed by this allocator
+        return ENOTBLK;
+    }
 
-    return pMemBlock->size - sizeof(MemBlock);
+    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
+    *pOutSize = pMemBlock->size - sizeof(MemBlock);
+
+    return EOK;
 }
 
 void Allocator_Dump(AllocatorRef _Nonnull pAllocator)

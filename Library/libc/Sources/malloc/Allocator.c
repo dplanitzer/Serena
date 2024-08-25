@@ -411,11 +411,21 @@ errno_t __Allocator_Deallocate(AllocatorRef _Nonnull pAllocator, void* _Nullable
     return EOK;
 }
 
+// Returns the size of the given memory block. This is the size minus the block
+// header and plus whatever additional memory the allocator added based on its
+// internal alignment constraints.
+static size_t __MemBlock_GetSize(void* _Nonnull ptr)
+{
+    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
+
+    return pMemBlock->size - sizeof(MemBlock);
+}
+
 void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *ptr, size_t new_size)
 {
     void* np;
 
-    const size_t old_size = (ptr) ? __Allocator_GetBlockSize(pAllocator, ptr) : 0;
+    const size_t old_size = (ptr) ? __MemBlock_GetSize(ptr) : 0;
     
     if (old_size != new_size) {
         np = __Allocator_Allocate(pAllocator, new_size);
@@ -433,11 +443,17 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull pAllocator, void *p
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-size_t __Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr)
+errno_t __Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr, size_t* _Nonnull pOutSize)
 {
-    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
+    // Make sure that we actually manage this memory block
+    if (__Allocator_GetMemRegionFor(pAllocator, ptr) == NULL) {
+        // 'ptr' isn't managed by this allocator
+        return ENOTBLK;
+    }
 
-    return pMemBlock->size - sizeof(MemBlock);
+    *pOutSize = __MemBlock_GetSize(ptr);
+
+    return EOK;
 }
 
 #if 0

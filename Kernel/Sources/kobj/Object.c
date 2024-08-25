@@ -26,14 +26,11 @@ errno_t _Object_Create(Class* _Nonnull pClass, size_t extraByteCount, ObjectRef 
     decl_try_err();
     ObjectRef pObject;
 
-    if (extraByteCount > 0) {
-        extraByteCount--;   // Account for the byte defined in the IOChannel structure
-    }
-
     try(kalloc_cleared(pClass->instanceSize + extraByteCount, (void**) &pObject));
     pObject->super.clazz = pClass;
     pObject->retainCount = 1;
     *pOutObject = pObject;
+    
     return EOK;
 
 catch:

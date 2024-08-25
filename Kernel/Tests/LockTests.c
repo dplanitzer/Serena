@@ -15,7 +15,7 @@
 #include "Asserts.h"
 
 
-#define NUM_WORKERS     4
+#define NUM_WORKERS     16
 #define NUM_VPS         4
 #define NUM_PATTERNS    8
 
@@ -53,7 +53,7 @@ static void select_and_write_pattern(void)
         dst += nBytesToCopy;
         len -= nBytesToCopy;
 
-        assertOK(Delay(dl));
+       //assertOK(Delay(dl));
     }
 
     printf("W: '%s'\n", gCurrentPattern);

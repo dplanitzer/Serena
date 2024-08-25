@@ -43,6 +43,10 @@ kalloc_options(__nbytes, KALLOC_OPTION_UNIFIED, __pOutPtr)
 // Frees kernel memory allocated with the kalloc() function.
 extern void kfree(void* _Nullable ptr);
 
+// Returns the gross size of the given memory block. The gross size may be a bit
+// bigger than what was originally requested, because of alignment constraints.
+extern size_t ksize(void* _Nullable ptr);
+
 // Adds the given memory region as a CPU-only access memory region to the kalloc
 // heap.
 extern errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc);

@@ -28,7 +28,7 @@ extern errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t 
 // ENOTBLK if the allocator does not manage the given memory block.
 extern errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr);
 
-extern size_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr);
+extern errno_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr, size_t* _Nonnull pOutSize);
 
 extern void Allocator_Dump(AllocatorRef _Nonnull pAllocator);
 extern void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator);
