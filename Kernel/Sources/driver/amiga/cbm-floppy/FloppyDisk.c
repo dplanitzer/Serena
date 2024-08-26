@@ -583,10 +583,36 @@ catch:
 
 static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offset, int* _Nonnull pOutSectorsUntilGap)
 {
+    const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->trackBuffer[offset];
     ADF_SectorInfo info;
+    ADF_Checksum headerChecksum, dataChecksum, myChecksum;
+
+    // Decode the stored sector header checksum, calculate our checksum and make
+    // sure that they match. This is not a valid sector if they don't match.
+    // The header checksum is calculated based on:
+    // - 2 MFM info longwords
+    // - 8 MFM sector label longwords
+    mfm_decode_sector(&mfmSector->header_checksum.odd_bits, &headerChecksum, 1);
+    myChecksum = mfm_checksum(&mfmSector->info.odd_bits, 2 + 8);
+
+    if (headerChecksum != myChecksum) {
+        print("invalid sector checksum\n"); // XXX
+        return false;
+    }
+
+
+    // Validate the sector data
+    mfm_decode_sector(&mfmSector->data_checksum.odd_bits, &dataChecksum, 1);
+    myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
+
+    if (dataChecksum != myChecksum) {
+        print("invalid data checksum\n");   // XXX
+        return false;
+    }
+
 
     // MFM decode the sector info long word
-    mfm_decode_sector((const uint32_t*)&self->trackBuffer[offset], (uint32_t*)&info, 1);
+    mfm_decode_sector(&mfmSector->info.odd_bits, (uint32_t*)&info, 1);
 
 
     // Validate the sector info
@@ -595,12 +621,11 @@ static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offse
         && info.sector < self->sectorsPerTrack
         && info.sectors_until_gap <= self->sectorsPerTrack) {
         // Record the sector. Note that a sector may appear more than once because
-        // we may have read more data from the disk than fits in a single track. We
-        // keep the first occurrence of a sector.
+        // we may have read more data from the disk than fits in a single track.
+        // We keep the first occurrence of a sector.
         ADFSector* s = &self->sectors[info.sector];
 
         if ((s->flags & kSectorFlag_Exists) == 0) {
-            // XXX validate the header checksum
             s->info = info;
             s->offsetToHeader = offset;
             s->flags = s->flags | kSectorFlag_Exists | kSectorFlag_IsValid;
@@ -708,7 +733,7 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     
     // Get the sector
     ADFSector* s = &self->sectors[sector];
-    if ((s->flags & (kSectorFlag_Exists|kSectorFlag_IsValid) == 0) || !self->flags.isTrackBufferValid) {
+    if ((s->flags & (kSectorFlag_Exists|kSectorFlag_IsValid) != (kSectorFlag_Exists|kSectorFlag_IsValid)) || !self->flags.isTrackBufferValid) {
         self->readErrorCount++;
         return EIO;
     }

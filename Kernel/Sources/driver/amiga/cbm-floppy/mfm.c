@@ -29,7 +29,7 @@
 // \param input    MFM coded data buffer (size == 2*data_size)
 // \param output    decoded data buffer (size == data_size)
 // \param data_size size in long, 1 for header's info, 4 for header's sector label
-void mfm_decode_sector(const uint32_t* input, uint32_t* output, int data_size)
+void mfm_decode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, int data_size)
 {
 #define MASK 0x55555555    /* 01010101 ... 01010101 */
     uint32_t odd_bits, even_bits;
@@ -57,7 +57,7 @@ void mfm_decode_sector(const uint32_t* input, uint32_t* output, int data_size)
 
 
 // MFM encodes a sector
-void mfm_encode_sector(const uint32_t* input, uint32_t* output, int data_size)
+void mfm_encode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, int data_size)
 {
     uint32_t* output_odd = output;
     uint32_t* output_even = output + data_size;
@@ -102,4 +102,19 @@ void mfm_encode_sector(const uint32_t* input, uint32_t* output, int data_size)
         output_odd++;
         output_even++;
     }
+}
+
+// MFM decodes a sector.
+// See "Amiga Disk Drives Inside and Out" by Abraham, Grote Gelfand, page 180, 181
+// \param input    MFM coded data buffer (size == 2*data_size)
+// \param data_size size in long, 1 for header's info, 4 for header's sector label
+uint32_t mfm_checksum(const uint32_t* _Nonnull input, int data_size)
+{
+    uint32_t sum = 0;
+
+    while (data_size-- > 0) {
+        sum ^= *input++;
+    }
+    
+    return sum & 0x55555555;
 }
