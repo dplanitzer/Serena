@@ -119,8 +119,7 @@ static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
     self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
-    self->trackBufferWordCount = (self->sectorsPerTrack * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SECTOR_SIZE-2) / 2;
-
+    self->trackBufferWordCount = ADF_TRACK_BUFFER_SIZE(self->sectorsPerTrack) / 2;
     self->driveState = FloppyController_Reset(self->fdc, self->drive);
     
     self->flags.motorState = kMotor_Off;

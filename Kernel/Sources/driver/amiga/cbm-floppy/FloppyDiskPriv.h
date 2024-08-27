@@ -35,6 +35,13 @@ typedef struct ADFSector {
 } ADFSector;
 
 
+#define ADF_MAX_GAP_LENGTH 1660
+
+// Comes out to 13,628 bytes
+// AmigaDOS used a 14,716 bytes buffer
+#define ADF_TRACK_BUFFER_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MAX_GAP_LENGTH)
+
+
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
