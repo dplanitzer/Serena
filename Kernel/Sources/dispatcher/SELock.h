@@ -43,7 +43,7 @@ typedef struct SELock {
     Lock                lock;   // The management lock is not interruptible since it protects a very short code sequence and this keeps things simpler
     ConditionVariable   cv;     // The CV is always interruptible
     int                 exclusiveOwnerVpId;     // ID of the VP that is holding the lock in exclusive-mode; 0 if unlocked or locked in shared-mode
-    int32_t             ownerCount;             // Count of shared-mode lock owners or recursion count of teh exclusive-mode lock owner
+    int32_t             ownerCount;             // Count of shared-mode lock owners or recursion count of the exclusive-mode lock owner
     int32_t             state;
 } SELock;
 

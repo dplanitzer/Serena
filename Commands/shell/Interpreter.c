@@ -360,8 +360,8 @@ static errno_t Interpreter_SerializeCommandFragment(InterpreterRef _Nonnull self
 // XXX Serialization should grab the original text that appears in the input line.
 // XXX To make this work however, we first need source ranges in the intermediate
 // XXX representation. Once this is there we can fix problems like 'echo 32232323213213'
-// XXX which overflows teh i32 representation and thus the echo prints INT32_MAX
-// XXX instead of the expected integer. Once we got teh source ranges we can associate
+// XXX which overflows the i32 representation and thus the echo prints INT32_MAX
+// XXX instead of the expected integer. Once we got the source ranges we can associate
 // XXX the original too-big-number with the converted number and the serialization
 // XXX can then serialize the original number the way it was written. This will also
 // XXX then take care of subtle differences like Unicode chars were not normalized

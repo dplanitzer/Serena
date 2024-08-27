@@ -106,7 +106,7 @@ any_subclass_funcs(IOChannel,
     // Creates a copy of the receiver. Copying an I/O channel means that the new
     // channel should be equipped with an independent copy of the channel state.
     // However the underlying I/O resource should typically not be copied and
-    // instead it should be shared between teh channel. Ie copying a file channel
+    // instead it should be shared between the channel. Ie copying a file channel
     // means that the current file offset, channel open mode, etc is copied but
     // the original channel and the copied channel will share the underlying
     // file object.

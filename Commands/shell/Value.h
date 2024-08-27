@@ -141,7 +141,7 @@ extern const char* _Nonnull Value_GetCharacters(const Value* _Nonnull self);
 extern char* _Nullable Value_GetMutableCharacters(Value* _Nonnull self);
 
 // Assumes that the receiver and 'other' are strings and concatenates the string
-// values and assigns teh result to 'self'.
+// values and assigns the result to 'self'.
 extern errno_t Value_Appending(Value* _Nonnull self, const Value* _Nonnull other);
 
 // Returns the max length of the string that represents the value of the Value.

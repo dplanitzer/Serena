@@ -38,7 +38,7 @@ errno_t FileChannel_finalize(FileChannelRef _Nonnull self)
     return err;
 }
 
-// Creates an independent copy of teh receiver. The newly created file channel
+// Creates an independent copy of the receiver. The newly created file channel
 // receives its own independent strong file system and inode references.
 errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutFile)
 {

@@ -21,8 +21,8 @@ Sometimes we want to be able to decide at runtime what code to execute based on 
 let $r = if 1 < 2 { "That"s correct" } else { "That's not quite right" }
 ```
 
-This example shows that we are able to assign teh result of the then or the else block of an if-then-else, to a new variable. The 'let' instruction tells the shell that we want to create a new read-only variable. This is a variable that once assigned, can not be changed anymore. The 'if' instruction causes the shell to evaluate the conditional expression (which is 1 < 2 in this example). If the conditional expression evaluates to true then the then block is executed next; if however the conditional expression evaluates to false then the else block is evaluated next.
-The code area between the opening and closing braces is known as a 'code block'. All instructions inside a code block are executed sequentially from the first to teh last instruction. Note that the result of the code block is the result of the last instruction in the code block.
+This example shows that we are able to assign the result of the then or the else block of an if-then-else, to a new variable. The 'let' instruction tells the shell that we want to create a new read-only variable. This is a variable that once assigned, can not be changed anymore. The 'if' instruction causes the shell to evaluate the conditional expression (which is 1 < 2 in this example). If the conditional expression evaluates to true then the then block is executed next; if however the conditional expression evaluates to false then the else block is evaluated next.
+The code area between the opening and closing braces is known as a 'code block'. All instructions inside a code block are executed sequentially from the first to the last instruction. Note that the result of the code block is the result of the last instruction in the code block.
 
 Now sometimes we want to be able to execute a list of instructions more than once. We can do this with a while loop:
 
@@ -38,7 +38,7 @@ echo "Done!"
 ```
 
 Here we first create a new mutable variable called 'i'. Note that variable names always have to be prefixed with a '$' character. This is true whether you want to read or write the variable.
-The loop is implemented by the while instruction. It evaluates the conditional expression that follows and it then executes the loop body block as long as the conditional expression continues to evaluate to true. Once teh conditional expression evaluates to false the loop ends and execution continues with the first instruction that follows the end of the loop body.
+The loop is implemented by the while instruction. It evaluates the conditional expression that follows and it then executes the loop body block as long as the conditional expression continues to evaluate to true. Once the conditional expression evaluates to false the loop ends and execution continues with the first instruction that follows the end of the loop body.
 
 Finally the Serena shell allows you to invoke a large number of internal commands and external programs. Better yet, you can easily combine the power of expressions with commands:
 

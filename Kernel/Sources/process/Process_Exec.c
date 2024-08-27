@@ -134,7 +134,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
     assert(self->imageBase == NULL);
 
 
-    // Resolve the path to teh executable file
+    // Resolve the path to the executable file
     Process_MakePathResolver(self, &pr);
     try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, path, &r));
     pExecFile = r.inode;

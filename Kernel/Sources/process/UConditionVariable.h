@@ -31,7 +31,7 @@ ConditionVariable_WakeAndUnlock(&(__self)->cv, &(__pLock)->lock, __broadcast)
 
 // Blocks the caller until the condition variable has received a signal or the
 // wait has timed out. Automatically and atomically acquires the associated
-// lock on wakeup. An ETIMEOUT error is returned if teh condition variable is
+// lock on wakeup. An ETIMEOUT error is returned if the condition variable is
 // not signaled before 'deadline'.
 #define UConditionVariable_Wait(__self, __pLock, __deadline) \
 ConditionVariable_Wait(&(__self)->cv, &(__pLock)->lock, __deadline)

@@ -80,7 +80,7 @@ typedef enum CompatibilityMode {
 typedef enum CursorMovement {
     kCursorMovement_Clamp = 0,      // Insertion point movement is restricted to the screen area. No scrolling our auto-wrap is done.
     kCursorMovement_AutoWrap,       // Move the insertion point to the beginning of the next line if it moves past the right margin and scroll the screen content up a line if it moves past the bottom margin
-    kCursorMovement_AutoScroll      // Horizontal insertion pointer is clamped and vertical movement will scroll the screen up/down if the insertion pointer moves past teh bottom/top edge of the screen
+    kCursorMovement_AutoScroll      // Horizontal insertion pointer is clamped and vertical movement will scroll the screen up/down if the insertion pointer moves past the bottom/top edge of the screen
 } CursorMovement;
 
 
@@ -179,7 +179,7 @@ final_class_ivars(Console, Object,
     TimerRef _Nonnull           textCursorBlinker;
     CompatibilityMode           compatibilityMode;
     struct {
-        unsigned int    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past teh right margin
+        unsigned int    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past the right margin
         unsigned int    isInsertionMode: 1;     // true if insertion mode is active; false if replace mode is active
 
         unsigned int    isTextCursorBlinkerEnabled:1;   // true if the text cursor should blink. Visibility is a separate state

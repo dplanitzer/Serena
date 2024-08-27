@@ -20,7 +20,7 @@
 // defer copying the backing store until really needed. The backing store is
 // reference counted. If a mutation should be done on a non-trivial value then
 // the reference count is checked whether it is > 1 before the mutation is
-// allowed. If the count is > 1, a copy of teh backing store is made and the
+// allowed. If the count is > 1, a copy of the backing store is made and the
 // copy is assigned to the value that we want to mutate. Then the mutation can
 // proceed on the value.
 
