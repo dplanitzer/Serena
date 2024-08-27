@@ -26,6 +26,7 @@
 
 typedef struct ListContext {
     char*   pathBuffer;
+    char    digitBuffer[32];
 
     int     linkCountWidth;
     int     uidWidth;
@@ -41,7 +42,7 @@ typedef struct ListContext {
 typedef ListContext* ListContextRef;
 
 
-typedef errno_t (*DirectoryIteratorCallback)(ListContextRef _Nonnull self, const char* _Nonnull pDirPath, DirectoryEntry* _Nonnull pEntry);
+typedef errno_t (*DirectoryIteratorCallback)(ListContextRef _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName);
 
 
 static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
@@ -57,66 +58,74 @@ static void file_permissions_to_text(FilePermissions perms, char* _Nonnull buf)
     }
 }
 
-static errno_t calc_dir_entry_format(ListContextRef _Nonnull self, const char* _Nonnull pDirPath, DirectoryEntry* _Nonnull pEntry)
+static errno_t format_inode(ListContextRef _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    decl_try_err();
     FileInfo info;
-
-    strcpy(self->pathBuffer, pDirPath);
-    strcat(self->pathBuffer, "/");
-    strcat(self->pathBuffer, pEntry->name);
-
-    try(File_GetInfo(self->pathBuffer, &info));
-
-    itoa(info.linkCount, self->pathBuffer, 10);
-    self->linkCountWidth = __max(self->linkCountWidth, strlen(self->pathBuffer));
-    itoa(info.uid, self->pathBuffer, 10);
-    self->uidWidth = __max(self->uidWidth, strlen(self->pathBuffer));
-    itoa(info.gid, self->pathBuffer, 10);
-    self->gidWidth = __max(self->gidWidth, strlen(self->pathBuffer));
-    lltoa(info.size, self->pathBuffer, 10);
-    self->sizeWidth = __max(self->sizeWidth, strlen(self->pathBuffer));
-    itoa(info.inodeId, self->pathBuffer, 10);
-    self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->pathBuffer));
-
-catch:
+    const errno_t err = File_GetInfo(path, &info);
+    
+    if (err == EOK) {
+        itoa(info.linkCount, self->digitBuffer, 10);
+        self->linkCountWidth = __max(self->linkCountWidth, strlen(self->digitBuffer));
+        itoa(info.uid, self->digitBuffer, 10);
+        self->uidWidth = __max(self->uidWidth, strlen(self->digitBuffer));
+        itoa(info.gid, self->digitBuffer, 10);
+        self->gidWidth = __max(self->gidWidth, strlen(self->digitBuffer));
+        lltoa(info.size, self->digitBuffer, 10);
+        self->sizeWidth = __max(self->sizeWidth, strlen(self->digitBuffer));
+        itoa(info.inodeId, self->digitBuffer, 10);
+        self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->digitBuffer));
+    }
     return err;
 }
 
-static errno_t print_dir_entry(ListContextRef _Nonnull self, const char* _Nonnull pDirPath, DirectoryEntry* _Nonnull pEntry)
+static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull path, const char* _Nonnull entryName)
 {
-    decl_try_err();
     FileInfo info;
-
-    strcpy(self->pathBuffer, pDirPath);
-    strcat(self->pathBuffer, "/");
-    strcat(self->pathBuffer, pEntry->name);
-
-    try(File_GetInfo(self->pathBuffer, &info));
-
-    char tp[11];
-    for (int i = 0; i < sizeof(tp); i++) {
-        tp[i] = '-';
-    }
-    if (info.type == kFileType_Directory) {
-        tp[0] = 'd';
-    }
-    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &tp[1]);
-    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &tp[4]);
-    file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &tp[7]);
-    tp[10] = '\0';
-
-    printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
-        tp,
-        self->linkCountWidth, info.linkCount,
-        self->uidWidth, info.uid,
-        self->gidWidth, info.gid,
-        self->sizeWidth, info.size,
-        self->inodeIdWidth, info.inodeId,
-        pEntry->name);
+    const errno_t err = File_GetInfo(path, &info);
     
-catch:
+    if (err == EOK) {
+        char tp[11];
+
+        for (int i = 0; i < sizeof(tp); i++) {
+            tp[i] = '-';
+        }
+        if (info.type == kFileType_Directory) {
+            tp[0] = 'd';
+        }
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &tp[1]);
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &tp[4]);
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &tp[7]);
+        tp[10] = '\0';
+
+        printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
+            tp,
+            self->linkCountWidth, info.linkCount,
+            self->uidWidth, info.uid,
+            self->gidWidth, info.gid,
+            self->sizeWidth, info.size,
+            self->inodeIdWidth, info.inodeId,
+            entryName);
+    }
     return err;
+}
+
+
+static errno_t format_dir_entry(ListContextRef _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+{
+    strcpy(self->pathBuffer, dirPath);
+    strcat(self->pathBuffer, "/");
+    strcat(self->pathBuffer, entryName);
+
+    return format_inode(self, self->pathBuffer, entryName);
+}
+
+static errno_t print_dir_entry(ListContextRef _Nonnull self, const char* _Nonnull dirPath, const char* _Nonnull entryName)
+{
+    strcpy(self->pathBuffer, dirPath);
+    strcat(self->pathBuffer, "/");
+    strcat(self->pathBuffer, entryName);
+
+    return print_inode(self, self->pathBuffer, entryName);
 }
 
 static errno_t iterate_dir(ListContextRef _Nonnull self, int dp, const char* _Nonnull path, DirectoryIteratorCallback _Nonnull cb)
@@ -126,8 +135,8 @@ static errno_t iterate_dir(ListContextRef _Nonnull self, int dp, const char* _No
     ssize_t r;
 
     while (true) {
-        try(Directory_Read(dp, &dirent, 1, &r));
-        if (r == 0) {
+        err = Directory_Read(dp, &dirent, 1, &r);
+        if (err != EOK || r == 0) {
             break;
         }
 
@@ -135,10 +144,12 @@ static errno_t iterate_dir(ListContextRef _Nonnull self, int dp, const char* _No
             continue;
         }
 
-        try(cb(self, path, &dirent));
+        err = cb(self, path, dirent.name);
+        if (err != EOK) {
+            break;
+        }
     }
 
-catch:
     return err;
 }
 
@@ -148,13 +159,32 @@ static errno_t list_dir(ListContextRef _Nonnull self, const char* _Nonnull path)
     int dp;
 
     try(Directory_Open(path, &dp));
-    try(iterate_dir(self, dp, path, calc_dir_entry_format));
+    try(iterate_dir(self, dp, path, format_dir_entry));
     try(Directory_Rewind(dp));
     try(iterate_dir(self, dp, path, print_dir_entry));
 
 catch:
     IOChannel_Close(dp);
     return err;
+}
+
+static errno_t list_file(ListContextRef _Nonnull self, const char* _Nonnull path)
+{
+    decl_try_err();
+
+    err = format_inode(self, path, path);
+    if (err == EOK) {
+        err = print_inode(self, path, path);
+    }
+
+    return err;
+}
+
+static bool is_dir(const char* _Nonnull path)
+{
+    FileInfo info;
+
+    return (File_GetInfo(path, &info) == EOK && info.type == kFileType_Directory) ? true : false;
 }
 
 
@@ -193,7 +223,12 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
             printf("%s:\n", path);
         }
 
-        err = list_dir(&ctx, path);
+        if (is_dir(path)) {
+            err = list_dir(&ctx, path);
+        }
+        else {
+            err = list_file(&ctx, path);
+        }
         if (err != EOK) {
             firstErr = err;
             print_error(proc_name, path, err);
