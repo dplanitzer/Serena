@@ -25,9 +25,6 @@
 #endif
 
 typedef struct ListContext {
-    char*   pathBuffer;
-    char    digitBuffer[32];
-
     int     linkCountWidth;
     int     uidWidth;
     int     gidWidth;
@@ -38,6 +35,9 @@ typedef struct ListContext {
         unsigned int printAll:1;
         unsigned int reserved:31;
     }       flags;
+
+    char    digitBuffer[32];
+    char    pathBuffer[PATH_MAX];
 } ListContext;
 typedef ListContext* ListContextRef;
 
@@ -208,13 +208,13 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
 {
     decl_try_err();
     errno_t firstErr = EOK;
-    ListContext ctx = {0};
+    ListContext* ctx = calloc(1, sizeof(ListContext));
 
-    ctx.flags.printAll = isPrintAll;
-    ctx.pathBuffer = malloc(PATH_MAX);
-    if (ctx.pathBuffer == NULL) {
+    if (ctx == NULL) {
         return ENOMEM;
     }
+
+    ctx->flags.printAll = isPrintAll;
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* path = paths->strings[i];
@@ -224,10 +224,10 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
         }
 
         if (is_dir(path)) {
-            err = list_dir(&ctx, path);
+            err = list_dir(ctx, path);
         }
         else {
-            err = list_file(&ctx, path);
+            err = list_file(ctx, path);
         }
         if (err != EOK) {
             firstErr = err;
@@ -238,7 +238,7 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
             putchar('\n');
         }
     }
-    free(ctx.pathBuffer);
+    free(ctx);
 
     return firstErr;
 }
