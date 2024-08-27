@@ -24,8 +24,7 @@ enum {
 
 
 enum {
-    kSectorFlag_Exists = 1,     // Sector exists in the track
-    kSectorFlag_IsValid = 2,    // Sector is valid (has valid sector info and header checksum checks out)
+    kSectorFlag_IsValid = 2,    // Sector exists and checksums checked out
 };
 
 typedef struct ADFSector {

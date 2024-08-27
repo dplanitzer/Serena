@@ -549,10 +549,8 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
     // Wait until the motor has reached its target speed
     try(FloppyDisk_WaitForDiskReady(self));
 
-    return EOK;
-
 catch:
-    return FloppyDisk_OnFailedIO(self, err);
+    return err;
 }
 
 // Invoked at the end of a read/write operation to clean up and verify that the
@@ -573,10 +571,8 @@ static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self)
     // turn the motor off if no further I/O request arrives in the meantime
     FloppyDisk_StartIdleWatcher(self);
 
-    return EOK;
-
 catch:
-    return FloppyDisk_OnFailedIO(self, err);
+    return err;
 }
 
 
@@ -624,10 +620,10 @@ static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offse
         // We keep the first occurrence of a sector.
         ADFSector* s = &self->sectors[info.sector];
 
-        if ((s->flags & kSectorFlag_Exists) == 0) {
+        if ((s->flags & kSectorFlag_IsValid) == 0) {
             s->info = info;
             s->offsetToHeader = offset;
-            s->flags = s->flags | kSectorFlag_Exists | kSectorFlag_IsValid;
+            s->flags |= kSectorFlag_IsValid;
             *pOutSectorsUntilGap = info.sectors_until_gap;
             return true;
         }
@@ -649,27 +645,28 @@ static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
     const uint16_t* pg_start = NULL;
     const uint16_t* pg_end = NULL;
     int sectorsUntilGap = -1;
+    int8_t nSectorsRead = 0;
     ADF_SectorInfo info;
 
    // print("start: %p, limit: %p\n", pt, pt_limit);
-    while (pt < pt_limit) {
-        const uint16_t* ps_start = pt;
+    while (pt < pt_limit && nSectorsRead < self->sectorsPerTrack) {
 
         // Find the next MFM sync mark
         while (pt < pt_limit && *pt != ADF_MFM_SYNC) {
             pt++;
         }
-        pt++;
 
-        if (pt < pt_limit && *pt == ADF_MFM_SYNC) {
-            pt++;
+
+        // Pick up the end of the sector gap
+        if (pg_start && pg_end == NULL) {
+            pg_end = pt;
         }
 
 
-        // Pick up the sector gap
-        if (sectorsUntilGap == 1 && pg_start == NULL) {
-            pg_start = ps_start;
-            pg_end = pt - ADF_MFM_SYNC_SIZE/2;
+        // Skip over the 2 sync words.
+        pt++;
+        if (pt < pt_limit && *pt == ADF_MFM_SYNC) {
+            pt++;
         }
 
 
@@ -680,8 +677,16 @@ static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
 
 
         // Pick up the sector
-        FloppyDisk_RegisterSector(self, pt - pt_start, &sectorsUntilGap);
+        if (FloppyDisk_RegisterSector(self, pt - pt_start, &sectorsUntilGap)) {
+            nSectorsRead++;
+        }
         pt += ADF_MFM_SECTOR_SIZE/2;
+
+
+        // Pick up the start of the sector gap
+        if (sectorsUntilGap == 1 && pg_start == NULL) {
+            pg_start = pt;
+        }
     }
 
     self->gapSize = (pg_start && pg_end) ? pg_end - pg_start : 0;
@@ -716,6 +721,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
 
 catch:
     self->flags.isTrackBufferValid = 0;
+    FloppyDisk_OnFailedIO(self, err);
     return err;
 }
 
@@ -732,7 +738,7 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     
     // Get the sector
     ADFSector* s = &self->sectors[sector];
-    if ((s->flags & (kSectorFlag_Exists|kSectorFlag_IsValid) != (kSectorFlag_Exists|kSectorFlag_IsValid)) || !self->flags.isTrackBufferValid) {
+    if ((s->flags & kSectorFlag_IsValid) == 0 || !self->flags.isTrackBufferValid) {
         self->readErrorCount++;
         return EIO;
     }
@@ -756,7 +762,10 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     try(FloppyDisk_EndIO(self));
     try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200)));
 
+    return EOK;
+
 catch:
+    FloppyDisk_OnFailedIO(self, err);
     return err;
 }
 
