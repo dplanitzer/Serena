@@ -95,7 +95,6 @@ typedef struct Screen {
     PixelFormat                         pixelFormat;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
-    int8_t                              spritesInUseCount;
     bool                                isInterlaced;
     int16_t                             clutCapacity;       // how many entries the physical CLUT supports for this screen configuration
 } Screen;

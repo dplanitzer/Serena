@@ -254,7 +254,6 @@ static errno_t Screen_AcquireSprite(Screen* _Nonnull pScreen, const uint16_t* _N
     Sprite_SetPosition(pSprite, x, y, pConfig);
 
     pScreen->sprite[priority] = pSprite;
-    pScreen->spritesInUseCount++;
     *pOutSpriteId = priority;
 
     return EOK;
@@ -279,7 +278,6 @@ static errno_t Screen_RelinquishSprite(Screen* _Nonnull pScreen, SpriteID sprite
         // XXX yet because we need to ensure that the DMA is no longer accessing
         // XXX the data before it freeing it.
         pScreen->sprite[spriteId] = pScreen->nullSprite;
-        pScreen->spritesInUseCount--;
     }
     return EOK;
 

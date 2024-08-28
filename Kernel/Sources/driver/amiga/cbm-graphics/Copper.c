@@ -19,10 +19,10 @@ int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScr
 {
     Surface* pFramebuffer = pScreen->framebuffer;
 
-    return 3                                // BPLCONx
+    return 3                                // BPLCON0, BPLCON1, BPLCON2
             + 2                             // DIWSTART, DIWSTOP
-            + 2                             // DDFSTART, DDF_STOP
-            + 2                             // BPLxMOD
+            + 2                             // DDFSTART, DDFSTOP
+            + 2                             // BPL1MOD, BPL2MOD
             + 2 * pFramebuffer->planeCount  // BPLxPT[nplanes]
             + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
             + 1;                            // DMACON
@@ -65,16 +65,25 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
     }
 
     // SPRxPT
+    uint16_t dmaf_sprite = 0;
     for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
-        const Sprite* sprite = (pScreen->sprite[i]) ? pScreen->sprite[i] : pScreen->nullSprite;
-        const uint32_t sprpt = (uint32_t)sprite->data;
+        Sprite* sprite;
 
+        if (pScreen->sprite[i]) {
+            sprite = pScreen->sprite[i];
+            dmaf_sprite = DMACONF_SPREN;
+        }
+        else {
+            sprite = pScreen->nullSprite;
+        }
+
+
+        const uint32_t sprpt = (uint32_t)sprite->data;
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
 
     // DMACON
-    const uint16_t dmaf_sprite = (pScreen->spritesInUseCount > 0) ? DMACONF_SPREN : 0;
     *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | dmaf_sprite | DMACONF_DMAEN);
 
     return ip;
