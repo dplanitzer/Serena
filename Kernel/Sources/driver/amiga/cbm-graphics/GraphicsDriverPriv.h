@@ -12,6 +12,7 @@
 #include "GraphicsDriver.h"
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include <hal/Platform.h>
 #include "InterruptController.h"
 #include "MousePainter.h"
@@ -42,6 +43,7 @@ struct ScreenConfiguration {
 //
 
 typedef struct CopperProgram {
+    SListNode           node;
     CopperInstruction   entry[1];
 } CopperProgram;
 
@@ -59,7 +61,11 @@ typedef struct CopperScheduler {
     const CopperProgram* _Nullable  runningOddFieldProg;
     const CopperProgram* _Nullable  runningEvenFieldProg;
 
-    uint32_t                          flags;
+    uint32_t                        flags;
+
+    Semaphore                       retirementSignaler;
+    SList                           retiredProgs;
+    DispatchQueueRef _Nonnull       retiredProgsCollector;
 } CopperScheduler;
 
 extern void CopperScheduler_Init(CopperScheduler* _Nonnull pScheduler);

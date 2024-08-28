@@ -96,17 +96,18 @@ errno_t CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, bool isLight
     decl_try_err();
     const int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
     const int nInstructions = nFrameInstructions + 1;
-    CopperProgram* pProg;
+    CopperProgram* prog;
     
-    try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (void**) &pProg));
-    CopperInstruction* ip = pProg->entry;
+    try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (void**) &prog));
+    SListNode_Init(&prog->node);
+    CopperInstruction* ip = prog->entry;
 
     ip = CopperCompiler_CompileScreenRefreshProgram(ip, pScreen, isLightPenEnabled, isOddField);
 
     // end instructions
     *ip = COP_END();
     
-    *pOutProg = pProg;
+    *pOutProg = prog;
     return EOK;
     
 catch:
@@ -125,18 +126,28 @@ void CopperProgram_Destroy(CopperProgram* _Nullable pProg)
 // MARK: Copper Scheduler
 ////////////////////////////////////////////////////////////////////////////////
 
-void CopperScheduler_Init(CopperScheduler* _Nonnull pScheduler)
+static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonnull self);
+
+
+void CopperScheduler_Init(CopperScheduler* _Nonnull self)
 {
-    pScheduler->readyEvenFieldProg = NULL;
-    pScheduler->readyOddFieldProg = NULL;
-    pScheduler->runningEvenFieldProg = NULL;
-    pScheduler->runningOddFieldProg = NULL;
-    pScheduler->flags = 0;
+    self->readyEvenFieldProg = NULL;
+    self->readyOddFieldProg = NULL;
+    self->runningEvenFieldProg = NULL;
+    self->runningOddFieldProg = NULL;
+    self->flags = 0;
+    Semaphore_Init(&self->retirementSignaler, 0);
+    SList_Init(&self->retiredProgs);
+    try_bang(DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, &self->retiredProgsCollector));
+    try_bang(DispatchQueue_DispatchAsync(self->retiredProgsCollector, DispatchQueueClosure_Make((Closure1Arg_Func)CopperScheduler_GarbageCollectRetiredPrograms, self)));
 }
 
-void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler)
+void CopperScheduler_Deinit(CopperScheduler* _Nonnull self)
 {
-    // Nothing to do for now
+    Object_Release(self->retiredProgsCollector);
+    self->retiredProgsCollector = NULL;
+    Semaphore_Deinit(&self->retirementSignaler);
+    SList_Deinit(&self->retiredProgs);
 }
 
 // Schedules the given odd and even field Copper programs for execution. The
@@ -144,62 +155,103 @@ void CopperScheduler_Deinit(CopperScheduler* _Nonnull pScheduler)
 // an odd field program if the current video mode is non-interlaced and both
 // and odd and an even field program if the video mode is interlaced. The video
 // display is turned off if the odd field program is NULL.
-void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull pScheduler, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg)
+//
+// !! Note that the odd and even field programs must be two separate programs.
+// !! They can not be shared.
+void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull self, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg)
 {
     const int irs = cpu_disable_irqs();
-    pScheduler->readyEvenFieldProg = pEvenFieldProg;
-    pScheduler->readyOddFieldProg = pOddFieldProg;
-    pScheduler->flags |= COPF_CONTEXT_SWITCH_REQ;
+    self->readyEvenFieldProg = pEvenFieldProg;
+    self->readyOddFieldProg = pOddFieldProg;
+    self->flags |= COPF_CONTEXT_SWITCH_REQ;
     cpu_restore_irqs(irs);
+}
+
+static void CopperScheduler_GarbageCollectRetiredPrograms(CopperScheduler* _Nonnull self)
+{
+    while (true) {
+        int ignored;
+        SListNode* pCur;
+
+        Semaphore_AcquireAll(&self->retirementSignaler, kTimeInterval_Infinity, &ignored);
+
+        const int irs = cpu_disable_irqs();
+        pCur = self->retiredProgs.first;
+        self->retiredProgs.first = NULL;
+        self->retiredProgs.last = NULL;
+        cpu_restore_irqs(irs);
+
+        while (pCur) {
+            SListNode* pNext = pCur->next;
+
+            CopperProgram_Destroy((CopperProgram*)pCur);
+            pCur = pNext;
+        }
+    }
 }
 
 // Called when the Copper scheduler has received a request to switch to a new
 // Copper program. Updates the running program, retires the old program, updates
 // the Copper state and triggers the first run of the Copper program
-static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler)
+static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
+
+    // Retire the currently running program(s)
+    bool doSignal = false;
+    if (self->runningEvenFieldProg) {
+        SList_InsertBeforeFirst(&self->retiredProgs, &self->runningEvenFieldProg->node);
+        doSignal = true;
+    }
+    if (self->runningOddFieldProg) {
+        SList_InsertBeforeFirst(&self->retiredProgs, &self->runningOddFieldProg->node);
+        doSignal = true;
+    }
+    if (doSignal) {
+        Semaphore_RelinquishFromInterruptContext(&self->retirementSignaler);
+    }
+
 
     // Move the scheduled program to running state. But be sure to first
     // turn off the Copper and raster DMA. Then move the data. Then turn the
     // Copper DMA back on if we have a prog. The program is responsible for 
     // turning the raster DMA on.
     *CHIPSET_REG_16(cp, DMACON) = (DMACONF_COPEN | DMACONF_BPLEN | DMACONF_SPREN);
-    pScheduler->runningEvenFieldProg = pScheduler->readyEvenFieldProg;
-    pScheduler->runningOddFieldProg = pScheduler->readyOddFieldProg;
-    pScheduler->flags &= ~COPF_CONTEXT_SWITCH_REQ;
+    self->runningEvenFieldProg = self->readyEvenFieldProg;
+    self->runningOddFieldProg = self->readyOddFieldProg;
+    self->flags &= ~COPF_CONTEXT_SWITCH_REQ;
 
 
     // No odd field prog means that we should leave video turned off altogether
-    if (pScheduler->runningOddFieldProg == NULL) {
+    if (self->runningOddFieldProg == NULL) {
         return;
     }
 
 
     // Interlaced if we got an odd & even field program
-    if (pScheduler->runningEvenFieldProg) {
-        pScheduler->flags |= COPF_INTERLACED;
+    if (self->runningEvenFieldProg) {
+        self->flags |= COPF_INTERLACED;
     } else {
-        pScheduler->flags &= ~COPF_INTERLACED;
+        self->flags &= ~COPF_INTERLACED;
     }
 
 
     // Install the correct program in the Copper, re-enable DMA and trigger
     // a jump to the program
-    if ((pScheduler->flags & COPF_INTERLACED) != 0) {
+    if ((self->flags & COPF_INTERLACED) != 0) {
         // Handle interlaced (dual field) programs. Which program to activate depends
         // on whether the current field is the even or the odd one
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
         if (isLongFrame) {
             // Odd field
-            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningOddFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) self->runningOddFieldProg->entry;
         } else {
             // Even field
-            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningEvenFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) self->runningEvenFieldProg->entry;
         }
     } else {
-        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningOddFieldProg->entry;
+        *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) self->runningOddFieldProg->entry;
     }
 
     *CHIPSET_REG_16(cp, COPJMP1) = 0;
@@ -209,29 +261,29 @@ static void CopperScheduler_ContextSwitch(CopperScheduler* _Nonnull pScheduler)
 // Called at the vertical blank interrupt. Triggers the execution of the correct
 // Copper program (odd or even field as needed). Also makes a scheduled program
 // active / running if needed.
-void CopperScheduler_Run(CopperScheduler* _Nonnull pScheduler)
+void CopperScheduler_Run(CopperScheduler* _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
 
     // Check whether a new program is scheduled to run. If so move it to running
     // state
-    if ((pScheduler->flags & COPF_CONTEXT_SWITCH_REQ) != 0) {
-        CopperScheduler_ContextSwitch(pScheduler);
+    if ((self->flags & COPF_CONTEXT_SWITCH_REQ) != 0) {
+        CopperScheduler_ContextSwitch(self);
         return;
     }
 
     
     // Jump to the field dependent Copper program if we are in interlace mode.
     // Nothing to do if we are in non-interlaced mode
-    if ((pScheduler->flags & COPF_INTERLACED) != 0) {
+    if ((self->flags & COPF_INTERLACED) != 0) {
         const uint16_t isLongFrame = *CHIPSET_REG_16(cp, VPOSR) & 0x8000;
 
         if (isLongFrame) {
             // Odd field
-            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningOddFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) self->runningOddFieldProg->entry;
         } else {
             // Even field
-            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) pScheduler->runningEvenFieldProg->entry;
+            *CHIPSET_REG_32(cp, COP1LC) = (uint32_t) self->runningEvenFieldProg->entry;
         }
         *CHIPSET_REG_16(cp, COPJMP1) = 0;
     }
