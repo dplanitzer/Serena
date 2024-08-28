@@ -47,7 +47,7 @@ ifeq ($(BUILD_CONFIGURATION), release)
 	CC_GEN_DEBUG_INFO :=
 else
 	CC_OPT_SETTING := -O0
-	CC_KOPT_SETTING := -O0
+	CC_KOPT_SETTING := -O0 -use-framepointer
 	CC_GEN_DEBUG_INFO := -g
 endif
 

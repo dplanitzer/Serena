@@ -21,7 +21,17 @@ struct Allocator;
 #if __LP64__
 #define HEAP_ALIGNMENT  16
 #elif __ILP32__
-#define HEAP_ALIGNMENT  8
+// XXX Should be 8. This is a hack to work around a bug in the allocator where it
+// XXX fails to properly keep track of the number of bytes that we've allocated.
+// XXX Ie Allocate small blocks repeatedly until we have exhausted the available
+// XXX memory. The last block that the allocator allocates doesn't fully fit in
+// XXX the available memory. It should detect this and return ENOMEM, but it fails
+// XXX to detect this because the last free block has recorded too many bytes which
+// XXX makes it look bigger than it is.
+// The problem is with teh alignment. We fail to always take it properly into
+// account. Changing the alignment from 8 to 4 makes it work for now. We'll
+// replace the allocator soon anyway.
+#define HEAP_ALIGNMENT  4
 #else
 #error "don't know how to align heap blocks"
 #endif
