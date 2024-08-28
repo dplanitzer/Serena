@@ -24,7 +24,7 @@ int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScr
             + 2                             // DDFSTART, DDF_STOP
             + 2                             // BPLxMOD
             + 2 * pFramebuffer->planeCount  // BPLxPT[nplanes]
-            + 16                            // SPRxPT
+            + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
             + 1;                            // DMACON
 }
 
@@ -66,7 +66,8 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
 
     // SPRxPT
     for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
-        const uint32_t sprpt = (uint32_t)pScreen->sprite[i]->data;
+        const Sprite* sprite = (pScreen->sprite[i]) ? pScreen->sprite[i] : pScreen->nullSprite;
+        const uint32_t sprpt = (uint32_t)sprite->data;
 
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
