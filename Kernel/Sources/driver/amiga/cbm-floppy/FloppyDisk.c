@@ -185,6 +185,31 @@ static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
     }
 }
 
+static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self)
+{
+    // We go through all sectors in the track buffer and wipe out their sync words.
+    // We do this to ensure that we won't accidentally pick up a sector from a
+    // previous load operation if the DMA gets cut short and doesn't deliver a
+    // full track for some reason
+    for (int8_t i = 0; i < self->sectorsPerTrack; i++) {
+        ADFSector* sector = &self->sectors[i];
+
+        if ((sector->flags & kSectorFlag_IsValid) == kSectorFlag_IsValid) {
+            uint16_t* bp = self->trackBuffer;
+            uint16_t* dp = &bp[sector->offsetToHeader - 1];
+
+            if (dp >= bp) *dp = 0;
+            dp--;
+            if (dp >= bp) *dp = 0;
+        }
+
+        sector->offsetToHeader = 0;
+        sector->flags = 0;
+    }
+
+    self->flags.isTrackBufferValid = 0;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Motor Control
@@ -634,10 +659,6 @@ static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offse
 
 static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
 {
-    // Reset the sector table
-    memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
-
-
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
@@ -708,6 +729,8 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     if (self->flags.isTrackBufferValid && self->cylinder == cylinder && self->head == head) {
         return EOK;
     }
+
+    FloppyDisk_ResetTrackBuffer(self);
 
     try(FloppyDisk_BeginIO(self, cylinder, head));
     try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, false));
