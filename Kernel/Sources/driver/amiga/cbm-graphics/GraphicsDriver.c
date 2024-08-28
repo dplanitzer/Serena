@@ -678,7 +678,6 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull pDriver, Spr
 
     Lock_Lock(&pDriver->lock);
     try(Screen_SetSpritePosition(pDriver->screen, spriteId, x, y));
-    try (GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
     Lock_Unlock(&pDriver->lock);
 
     return EOK;
@@ -695,7 +694,6 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull pDriver, Spri
 
     Lock_Lock(&pDriver->lock);
     try(Screen_SetSpriteVisible(pDriver->screen, spriteId, isVisible));
-    try (GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
     Lock_Unlock(&pDriver->lock);
 
     return EOK;
