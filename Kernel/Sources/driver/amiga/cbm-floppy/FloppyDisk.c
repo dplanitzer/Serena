@@ -855,7 +855,18 @@ static void FloppyDisk_ReadBlock(DiskRequest* _Nonnull req)
     const int s = lba % self->sectorsPerTrack;
 
 //    print("lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
-    req->err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
+
+    for (int i = 0; i < 4; i++) {
+        req->err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
+        if (req->err != EIO) {
+            break;
+        }
+
+        // Reset the track buffer because the previous read may not have read all
+        // sectors successfully. We get rid of everything and start over from
+        // scratch.
+        FloppyDisk_ResetTrackBuffer(self);
+    }
 }
 
 errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
