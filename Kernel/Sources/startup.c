@@ -131,11 +131,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
-// Scans the ROM area following the end of the kernel for a embedded Serena disk
-// image with the root filesystem.
-static bool try_rootfs_from_rom(void)
+// Scans the ROM area following the end of the kernel looking for an embedded
+// Serena disk image with a root filesystem.
+static const SMG_Header* _Nullable find_rom_rootfs(void)
 {
-    decl_try_err();
     const size_t txt_size = &_etext - &_text;
     const size_t dat_size = &_edata - &_data;
     const char* ps = (const char*)(BOOT_ROM_BASE + txt_size + dat_size);
@@ -153,12 +152,14 @@ static bool try_rootfs_from_rom(void)
         p4++;
     }
 
-    if (smg_hdr == NULL) {
-        return false;
-    }
+    return smg_hdr;
+}
 
-
-    // Found an embedded disk image in the ROM. Boot from it
+// Scans the ROM area following the end of the kernel for a embedded Serena disk
+// image with the root filesystem.
+static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
+{
+    decl_try_err();
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
     DiskDriverRef disk;
     FilesystemRef fs;
@@ -190,46 +191,68 @@ catch:
 }
 
 // Tries to mount the root filesystem from a floppy disk in drive 0.
-static bool try_rootfs_from_fd0(void)
+static bool try_rootfs_from_fd0(bool hasFallback)
 {
     decl_try_err();
     FloppyDiskRef fd0;
     FilesystemRef fs;
+    bool shouldPromptForDisk = true;
 
     try_null(fd0, DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name), ENODEV);
     try(SerenaFS_Create((SerenaFSRef*)&fs));
 
     while (true) {
-        if (FloppyDisk_HasDisk(fd0)) {
-            if (FilesystemManager_Mount(gFilesystemManager, fs, (DiskDriverRef)fd0, NULL, 0, NULL) == EOK) {
-                break;
-            }
+        err = FilesystemManager_Mount(gFilesystemManager, fs, (DiskDriverRef)fd0, NULL, 0, NULL);
+
+        if (err == EOK) {
+            break;
+        }
+        else if (err == EDISKCHANGE) {
+            // This means that the user inserted a new disk and that the disk
+            // hardware isn't able to automatically pick this change up on its
+            // own. Just try mounting again. 2nd time around should work.
+            continue;
+        }
+        else if (err != ENOMEDIUM) {
+            print("Error: %d\n\n", err);
+            shouldPromptForDisk = true;
         }
 
-        print("Please insert a Serena boot disk...\n\n");
-        while (!FloppyDisk_HasDisk(fd0)) {
-            VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
+        if (hasFallback) {
+            // No disk or no mountable disk. We have a fallback though so bail
+            // out and let the caller try the fallback option.
+            return false;
         }
+
+        if (shouldPromptForDisk) {
+            print("Please insert a Serena boot disk...\n\n");
+            shouldPromptForDisk = false;
+        }
+
+        VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
     }
     print("Booting from fd0...\n\n");
 
     return true;
 
 catch:
-    print("Error: unable to mount FD0 root FS: %d\n", err);
+    print("Error: unable to load root fs from fd0: %d\n", err);
     return false;
 }
 
 // Locates the root filesystem and mounts it.
 static void init_root_filesystem(void)
 {
-    if (try_rootfs_from_rom()) {
+    const SMG_Header* rom_dmg = find_rom_rootfs();
+
+    if (try_rootfs_from_fd0(rom_dmg != NULL)) {
         return;
     }
 
-    if (try_rootfs_from_fd0()) {
+    if (try_rootfs_from_rom(rom_dmg)) {
         return;
     }
+
 
     print("Halting\n");
     while(true);

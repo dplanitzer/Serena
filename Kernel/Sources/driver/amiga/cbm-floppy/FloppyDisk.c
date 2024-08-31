@@ -131,13 +131,25 @@ static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self)
         self->flags.hasDisk = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
         if (!self->flags.hasDisk) {
-            FloppyDisk_ScheduleUpdateHasDiskState(self);
+            FloppyDisk_OnDiskRemoved(self);
         }
     }
     else {
+        FloppyDisk_OnHardwareLost(self);
+    }
+}
+
+// Called when we've detected that the disk has been removed from the drive
+static void FloppyDisk_OnDiskRemoved(FloppyDiskRef _Nonnull self)
+{
+    FloppyDisk_ScheduleUpdateHasDiskState(self);
+}
+
+// Called when we've detected a loss of the drive hardware
+static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self)
+{
         self->flags.isOnline = 0;
         self->flags.hasDisk = 0;
-    }
 }
 
 
@@ -505,15 +517,14 @@ static errno_t FloppyDisk_OnFailedIO(FloppyDiskRef _Nonnull self, errno_t err)
         // - no drive connected
         // - no disk in drive
         // - electro-mechanical problem
-        self->flags.isOnline = 0;
-        self->flags.hasDisk = 0;
+        FloppyDisk_OnHardwareLost(self);
         err = ENODEV;
     }
     else if (err == EDISKCHANGE) {
         FloppyDisk_UpdateHasDiskState(self);
 
         if (!self->flags.hasDisk) {
-            FloppyDisk_ScheduleUpdateHasDiskState(self);
+            FloppyDisk_OnDiskRemoved(self);
             err = ENOMEDIUM;
         }
         else {
@@ -709,6 +720,9 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
     if (self->flags.isTrackBufferValid && self->cylinder == cylinder && self->head == head) {
         return EOK;
     }
+    if (!self->flags.isOnline) {
+        return ENODEV;
+    }
 
     FloppyDisk_ResetTrackBuffer(self);
 
@@ -724,8 +738,7 @@ static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int c
 
 catch:
     self->flags.isTrackBufferValid = 0;
-    FloppyDisk_OnFailedIO(self, err);
-    return err;
+    return FloppyDisk_OnFailedIO(self, err);
 }
 
 static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, void* _Nonnull pBuffer)
@@ -759,7 +772,11 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     
     // There must be a valid track cache
     assert(self->flags.isTrackBufferValid);
-        
+
+    if (!self->flags.isOnline) {
+        return ENODEV;
+    }    
+
     try(FloppyDisk_BeginIO(self, cylinder, head));
     try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, true));
     try(FloppyDisk_EndIO(self));
@@ -768,8 +785,7 @@ static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int 
     return EOK;
 
 catch:
-    FloppyDisk_OnFailedIO(self, err);
-    return err;
+    return FloppyDisk_OnFailedIO(self, err);
 }
 
 static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, const void* pBuffer)

@@ -52,12 +52,9 @@ else
 endif
 
 # XXX comment out to build a system that boots from floppy disk
-BOOT_FROM_ROM := 1
+#BOOT_FROM_ROM := 1
 
 CC_PREPROC_DEFS := -DDEBUG=1 -DTARGET_CPU_68030=1 -D__SERENA__
-ifdef BOOT_FROM_ROM
-CC_PREPROC_DEFS += -D__BOOT_FROM_ROM__
-endif
 
 #XXX vbcc always defines -D__STDC_HOSTED__=1 and we can't override it for the kernel (which should define -D__STDC_HOSTED__=0)
 KERNEL_STDC_PREPROC_DEFS := -D__STDC_UTF_16__=1 -D__STDC_UTF_32__=1 -D__STDC_NO_ATOMICS__=1 -D__STDC_NO_COMPLEX__=1 -D__STDC_NO_THREADS__=1

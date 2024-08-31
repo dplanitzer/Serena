@@ -244,8 +244,6 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 
 
     // Floppy
-#ifndef __BOOT_FROM_ROM__
-    // XXX Stops A4000 (68040/68060) from completing the boot process, if enabled
     FloppyDiskRef fdx[MAX_FLOPPY_DISK_DRIVES];
     char fdx_name[4];
 
@@ -260,7 +258,6 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
             try(DriverManager_AddDriver_Locked(pManager, fdx_name, fdx[i]));
         }
     }
-#endif
 
 
     Lock_Unlock(&pManager->lock);

@@ -76,11 +76,10 @@ final_class_ivars(FloppyDisk, DiskDriver,
         unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    motorState:2;
+        unsigned int    shouldResetDiskChangeStepInward:1;  // tells the reset-disk-change function in which direction to step to trigger a reset of the disk change hardware bit
         unsigned int    isOnline:1;                         // true if a drive is connected
         unsigned int    hasDisk:1;                          // true if disk is in drive
-        unsigned int    isOndiStateCheckingActive:1;
-        unsigned int    shouldResetDiskChangeStepInward:1;  // tells the reset-disk-change function in which direction to step to trigger a reset of the disk change hardware bit
-        unsigned int    reserved:22;
+        unsigned int    reserved:23;
     }                           flags;
 );
 
@@ -96,6 +95,9 @@ typedef struct DiskRequest {
 
 static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_OnDiskRemoved(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self);
+
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
 
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
