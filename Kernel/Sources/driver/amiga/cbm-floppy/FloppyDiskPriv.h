@@ -44,14 +44,13 @@ typedef struct ADFSector {
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
-    Lock                        ioLock;                             // XXX tmp concurrency protection. Will be replaced with a dispatch queue once we've finalized the disk driver & disk cache design 
     DispatchQueueRef _Nonnull   dispatchQueue;
 
     FloppyController * _Nonnull fdc;
 
     // Flow control
-    TimerRef _Nullable          idleWatcher;
-    TimerRef _Nonnull           ondiStateChecker;
+    TimerRef _Nullable          delayedMotorOff;
+    TimerRef _Nullable          updateHasDiskState;
 
     // Buffer used to cache a read track
     ADFSector* _Nullable        sectors;                            // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
@@ -85,26 +84,32 @@ final_class_ivars(FloppyDisk, DiskDriver,
     }                           flags;
 );
 
+// XXX tmp
+typedef struct DiskRequest {
+    FloppyDiskRef _Nonnull  self;       // in
+    void* _Nonnull          pBuffer;    // in
+    LogicalBlockAddress     lba;        // in
 
-static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
-static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self);
+    errno_t                 err;        // out
+} DiskRequest;
+// XXX tmp
+
+static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
+static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
 
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self);
 
 static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, bool* _Nonnull pOutDidStep);
 static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head);
 
-static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_OnIdle(FloppyDiskRef _Nonnull self);
-
+static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_ScheduleOndiStateChecker(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_CancelOndiStateChecker(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_OnOndiStateCheck(FloppyDiskRef _Nonnull self);
 
 #endif /* FloppyDiskPriv_h */

@@ -36,10 +36,14 @@ errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_
     }
 
     for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        const errno_t err0 = FloppyDisk_Create(i, fdc, &pOutDrives[i]);
+        DriveState ds = FloppyController_Reset(fdc, i);
 
-        if (err0 != EOK && nDrivesOkay == 0) {
-            err = err0;
+        if (FloppyController_GetDriveType(fdc, &ds) == kDriveType_3_5) {
+            const errno_t err0 = FloppyDisk_Create(i, ds, fdc, &pOutDrives[i]);
+            
+            if (err0 != EOK && nDrivesOkay == 0) {
+                err = err0;
+            }
         }
     }
 
@@ -53,30 +57,41 @@ errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-static errno_t FloppyDisk_Create(int drive, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
+static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDisk* self;
     
     try(Object_Create(FloppyDisk, &self));
     
-    Lock_Init(&self->ioLock);
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
     self->fdc = pFdc;
     self->drive = drive;
+    self->driveState = ds;
+
+    // XXX hardcoded to DD for now
+    self->cylindersPerDisk = ADF_DD_CYLS_PER_DISK;
+    self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
+    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
+    self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
+    self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
+    self->trackBufferWordCount = ADF_TRACK_BUFFER_SIZE(self->sectorsPerTrack) / 2;
+
+    self->head = -1;
+    self->cylinder = -1;
+    self->readErrorCount = 0;
+
+    self->flags.motorState = kMotor_Off;
+    self->flags.isTrackBufferValid = 0;
+    self->flags.wasMostRecentSeekInward = 0;
+    self->flags.shouldResetDiskChangeStepInward = 0;
     self->flags.isOnline = 0;
     self->flags.hasDisk = 0;
 
-    Timer_Create(kTimeInterval_Zero, TimeInterval_MakeMilliseconds(2000), DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnOndiStateCheck, self), &self->ondiStateChecker);
 
-    self->driveState = FloppyController_Reset(self->fdc, self->drive);
+    DispatchQueue_DispatchAsync(self->dispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_EstablishInitialDriveState, self));
 
-    if (FloppyController_GetDriveType(self->fdc, &self->driveState) == kDriveType_3_5) {
-        FloppyDisk_ResetDrive(self);
-    }
-
-    FloppyDisk_ScheduleOndiStateChecker(self);
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 
     *pOutDisk = self;
@@ -90,46 +105,21 @@ catch:
 
 static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 {
-    FloppyDisk_CancelIdleWatcher(self);
-    FloppyDisk_CancelOndiStateChecker(self);
-    
-    Timer_Destroy(self->ondiStateChecker);
-    self->ondiStateChecker = NULL;
+    FloppyDisk_CancelDelayedMotorOff(self);
+    FloppyDisk_CancelUpdateHasDiskState(self);
 
     FloppyDisk_DisposeTrackBuffer(self);
     self->fdc = NULL;
 
     Object_Release(self->dispatchQueue);
     self->dispatchQueue = NULL;
-
-    Lock_Deinit(&self->ioLock);
 }
 
-// Resets the floppy drive. This function figures out whether there is an actual
-// physical floppy drive connected and whether it responds to commands and it then
-// moves the disk head to track #0.
-// Note that this function leaves the floppy motor turned on and that it implicitly
-// acknowledges any pending disk change.
-// Upper layer code should treat this function like a disk change.
-static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
+// Establishes the base state for a newly discovered drive. This means that we
+// move the disk head to track #0 and that we figure out whether a disk is loaded
+// or not.
+static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self)
 {
-    // XXX hardcoded to DD for now
-    self->cylindersPerDisk = ADF_DD_CYLS_PER_DISK;
-    self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
-    self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
-    self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
-    self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
-    self->trackBufferWordCount = ADF_TRACK_BUFFER_SIZE(self->sectorsPerTrack) / 2;
-    self->driveState = FloppyController_Reset(self->fdc, self->drive);
-    
-    self->flags.motorState = kMotor_Off;
-    self->flags.isTrackBufferValid = 0;
-    self->flags.wasMostRecentSeekInward = 0;
-    self->flags.shouldResetDiskChangeStepInward = 0;
-    self->head = -1;
-    self->cylinder = -1;
-    self->readErrorCount = 0;
-
     bool didStep;
     const errno_t err = FloppyDisk_SeekToTrack_0(self, &didStep);
     if (err == EOK) {
@@ -139,6 +129,10 @@ static void FloppyDisk_ResetDrive(FloppyDiskRef _Nonnull self)
 
         self->flags.isOnline = 1;
         self->flags.hasDisk = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
+
+        if (!self->flags.hasDisk) {
+            FloppyDisk_ScheduleUpdateHasDiskState(self);
+        }
     }
     else {
         self->flags.isOnline = 0;
@@ -222,6 +216,8 @@ static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
         FloppyController_SetMotor(self->fdc, &self->driveState, true);
         self->flags.motorState = kMotor_SpinningUp;
     }
+
+    FloppyDisk_CancelDelayedMotorOff(self);
 }
 
 // Turns the drive motor off.
@@ -233,7 +229,7 @@ static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
     FloppyController_SetMotor(self->fdc, &self->driveState, false);
     self->flags.motorState = kMotor_Off;
 
-    FloppyDisk_CancelIdleWatcher(self);
+    FloppyDisk_CancelDelayedMotorOff(self);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
@@ -269,6 +265,36 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
     }
     else if (self->flags.motorState == kMotor_Off) {
         return EIO;
+    }
+}
+
+// Called from a timer after the drive has been sitting idle for some time. Turn
+// the drive motor off. 
+static void FloppyDisk_OnDelayedMotorOff(FloppyDiskRef _Nonnull self)
+{
+    if (self->flags.isOnline) {
+        FloppyDisk_MotorOff(self);
+    }
+}
+
+static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self)
+{
+    FloppyDisk_CancelDelayedMotorOff(self);
+
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
+    Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnDelayedMotorOff, self), &self->delayedMotorOff);
+    if (self->delayedMotorOff) {
+        DispatchQueue_DispatchTimer(self->dispatchQueue, self->delayedMotorOff);
+    }
+}
+
+static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self)
+{
+    if (self->delayedMotorOff) {
+        DispatchQueue_RemoveTimer(self->dispatchQueue, self->delayedMotorOff);
+        Timer_Destroy(self->delayedMotorOff);
+        self->delayedMotorOff = NULL;
     }
 }
 
@@ -381,38 +407,8 @@ catch:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Drive Flow Control
+// Disk (Present) State
 ////////////////////////////////////////////////////////////////////////////////
-
-// Called from a timer after the drive has been sitting idle for some time. Turn
-// the drive motor off. 
-static void FloppyDisk_OnIdle(FloppyDiskRef _Nonnull self)
-{
-    Lock_Lock(&self->ioLock);
-    FloppyDisk_MotorOff(self);
-    Lock_Unlock(&self->ioLock);
-}
-
-static void FloppyDisk_StartIdleWatcher(FloppyDiskRef _Nonnull self)
-{
-    FloppyDisk_CancelIdleWatcher(self);
-
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeMilliseconds(4000));
-    Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnIdle, self), &self->idleWatcher);
-    if (self->idleWatcher) {
-        DispatchQueue_DispatchTimer(self->dispatchQueue, self->idleWatcher);
-    }
-}
-
-static void FloppyDisk_CancelIdleWatcher(FloppyDiskRef _Nonnull self)
-{
-    if (self->idleWatcher) {
-        DispatchQueue_RemoveTimer(self->dispatchQueue, self->idleWatcher);
-        Timer_Destroy(self->idleWatcher);
-        self->idleWatcher = NULL;
-    }
-}
 
 static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self)
 {
@@ -434,58 +430,6 @@ static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self)
 
     FloppyDisk_SeekTo(self, c, self->head);
     self->flags.shouldResetDiskChangeStepInward = !self->flags.shouldResetDiskChangeStepInward;
-}
-
-// Called from a timer as long as the drive is not connected or there's no disk
-// in the drive. 
-static void FloppyDisk_OnOndiStateCheck(FloppyDiskRef _Nonnull self)
-{
-    Lock_Lock(&self->ioLock);
-    
-    // Update the drive online state
-    if (!self->flags.isOnline) {
-        // Drive is offline
-        if (FloppyController_GetDriveType(self->fdc, &self->driveState) == kDriveType_3_5) {
-            self->flags.isOnline = 1;
-            FloppyDisk_ResetDrive(self);
-        }
-    }
-    else {
-        // Drive is online
-        // Only poll the drive type is the motor is off since the check forces
-        // the motor off... 
-        if (self->flags.motorState == kMotor_Off) {
-            if (FloppyController_GetDriveType(self->fdc, &self->driveState) != kDriveType_3_5) {
-                self->flags.isOnline = 0;
-                self->flags.hasDisk = 0;
-            }
-        }
-
-    }
-
-
-    // Update the drive has-disk state
-    if (self->flags.isOnline) {
-        FloppyDisk_UpdateHasDiskState(self);
-    }
-
-    Lock_Unlock(&self->ioLock);
-}
-
-static void FloppyDisk_ScheduleOndiStateChecker(FloppyDiskRef _Nonnull self)
-{
-    if (!self->flags.isOndiStateCheckingActive) {
-        self->flags.isOndiStateCheckingActive = 1;
-        DispatchQueue_DispatchTimer(self->dispatchQueue, self->ondiStateChecker);
-    }
-}
-
-static void FloppyDisk_CancelOndiStateChecker(FloppyDiskRef _Nonnull self)
-{
-    if (self->flags.isOndiStateCheckingActive) {
-        self->flags.isOndiStateCheckingActive = 0;
-        DispatchQueue_RemoveTimer(self->dispatchQueue, self->ondiStateChecker);
-    }
 }
 
 // Updates the drive's has-disk state
@@ -513,6 +457,40 @@ static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self)
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 }
 
+static void FloppyDisk_OnUpdateHasDiskStateCheck(FloppyDiskRef _Nonnull self)
+{
+    if (!self->flags.isOnline) {
+        return;
+    }
+
+    FloppyDisk_UpdateHasDiskState(self);
+
+    if (!self->flags.hasDisk) {
+        FloppyDisk_ScheduleUpdateHasDiskState(self);
+    }
+}
+
+static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
+{
+    FloppyDisk_CancelUpdateHasDiskState(self);
+
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(2));
+    Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnUpdateHasDiskStateCheck, self), &self->updateHasDiskState);
+    if (self->updateHasDiskState) {
+        DispatchQueue_DispatchTimer(self->dispatchQueue, self->updateHasDiskState);
+    }
+}
+
+static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self)
+{
+    if (self->updateHasDiskState) {
+        DispatchQueue_RemoveTimer(self->dispatchQueue, self->updateHasDiskState);
+        Timer_Destroy(self->updateHasDiskState);
+        self->updateHasDiskState = NULL;
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Disk I/O
@@ -535,7 +513,11 @@ static errno_t FloppyDisk_OnFailedIO(FloppyDiskRef _Nonnull self, errno_t err)
         FloppyDisk_UpdateHasDiskState(self);
 
         if (!self->flags.hasDisk) {
+            FloppyDisk_ScheduleUpdateHasDiskState(self);
             err = ENOMEDIUM;
+        }
+        else {
+            FloppyDisk_CancelUpdateHasDiskState(self);
         }
     }
     else {
@@ -594,7 +576,7 @@ static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self)
 
     // Instead of turning off the motor right away, let's wait some time and
     // turn the motor off if no further I/O request arrives in the meantime
-    FloppyDisk_StartIdleWatcher(self);
+    FloppyDisk_DelayedMotorOff(self);
 
 catch:
     return err;
@@ -616,7 +598,6 @@ static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offse
     myChecksum = mfm_checksum(&mfmSector->info.odd_bits, 2 + 8);
 
     if (headerChecksum != myChecksum) {
-        print("invalid sector checksum\n"); // XXX
         return false;
     }
 
@@ -626,7 +607,6 @@ static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offse
     myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
 
     if (dataChecksum != myChecksum) {
-        print("invalid data checksum\n");   // XXX
         return false;
     }
 
@@ -833,10 +813,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
 
 bool FloppyDisk_HasDisk(FloppyDiskRef _Nonnull self)
 {
-    Lock_Lock(&self->ioLock);
-    const bool r = (self->flags.isOnline && self->flags.hasDisk) ? true : false;
-    Lock_Unlock(&self->ioLock);
-    return r;
+    return (self->flags.isOnline && self->flags.hasDisk) ? true : false;
 }
 
 // Returns the size of a block.
@@ -862,22 +839,35 @@ bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static void FloppyDisk_ReadBlock(DiskRequest* _Nonnull req)
 {
+    FloppyDiskRef self = req->self;
+    void* pBuffer = req->pBuffer;
+    LogicalBlockAddress lba = req->lba;
+
     if (lba >= self->logicalBlockCapacity) {
-        return EIO;
+        req->err = EIO;
+        return;
     }
 
     const int c = lba / self->sectorsPerCylinder;
     const int h = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int s = lba % self->sectorsPerTrack;
 
-    Lock_Lock(&self->ioLock);
 //    print("lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
-    const errno_t err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
-    Lock_Unlock(&self->ioLock);
+    req->err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
+}
 
-    return err;
+errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+{
+    DiskRequest req;
+
+    req.self = self;
+    req.pBuffer = pBuffer;
+    req.lba = lba;
+
+    DispatchQueue_DispatchSync(self->dispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_ReadBlock, &req));
+    return req.err;
 }
 
 // Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
@@ -885,22 +875,35 @@ errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer,
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static void FloppyDisk_WriteBlock(DiskRequest* _Nonnull req)
 {
+    FloppyDiskRef self = req->self;
+    const void* pBuffer = req->pBuffer;
+    LogicalBlockAddress lba = req->lba;
+
     if (lba >= self->logicalBlockCapacity) {
-        return EIO;
+        req->err = EIO;
+        return;
     }
 
     const int c = lba / self->sectorsPerCylinder;
     const int h = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int s = lba % self->sectorsPerTrack;
 
-    Lock_Lock(&self->ioLock);
 //    print("WRITE: lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
-    const errno_t err = FloppyDisk_WriteSector(self, h, c, s, pBuffer);
-    Lock_Unlock(&self->ioLock);
+    req->err = FloppyDisk_WriteSector(self, h, c, s, pBuffer);
+}
 
-    return err;
+errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+{
+    DiskRequest req;
+
+    req.self = self;
+    req.pBuffer = (void*)pBuffer;
+    req.lba = lba;
+
+    DispatchQueue_DispatchSync(self->dispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_WriteBlock, &req));
+    return req.err;
 }
 
 
