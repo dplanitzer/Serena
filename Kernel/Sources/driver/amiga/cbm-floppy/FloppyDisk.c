@@ -64,7 +64,7 @@ static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _No
     
     try(Object_Create(FloppyDisk, &self));
     
-    try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
+    try(DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
     self->fdc = pFdc;
     self->drive = drive;
