@@ -29,16 +29,21 @@ enum {
 
 typedef struct ADFSector {
     ADF_SectorInfo  info;
-    int16_t         offsetToHeader;     // offset to first word past the sector sync words
+    int16_t         offsetToHeader;     // offset to first word past the sector sync words (ADF_MFMSector)
     uint16_t        flags;
 } ADFSector;
 
 
 #define ADF_MAX_GAP_LENGTH 1660
 
+// Size of a track buffer, big enough to hold all valid sectors in a track
+#define ADF_TRACK_BYTE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE))
+
+// Size of a track buffer, nig enough to hold all valid sectors in a track plus
+// the biggest possible gap size
 // Comes out to 13,628 bytes
 // AmigaDOS used a 14,716 bytes buffer
-#define ADF_TRACK_BUFFER_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MAX_GAP_LENGTH)
+#define ADF_TRACK_WITH_GAP_BYTE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MAX_GAP_LENGTH)
 
 
 // Stores the state of a single floppy drive.
@@ -57,6 +62,10 @@ final_class_ivars(FloppyDisk, DiskDriver,
     uint16_t* _Nullable         trackBuffer;                        // cached read track data (MFM encoded)
     int16_t                     trackBufferWordCount;               // cached read track buffer size in words
     int16_t                     gapSize;                            // track gap size
+
+    // Buffer used to compose a track for writing
+    uint16_t* _Nullable         trackCompositionBuffer;
+    int16_t                     writeTrackBufferWordCount;          // number of words to write to a track
 
     // Disk geometry
     LogicalBlockCount           logicalBlockCapacity;                   // disk size in terms of logical blocks
@@ -93,12 +102,27 @@ typedef struct DiskRequest {
 } DiskRequest;
 // XXX tmp
 
+
+typedef struct BuildSectorSource {
+    bool    isEncoded;
+    union {
+        const ADF_MFMSector*    encoded;        // take source sector data and checksum as is
+        const void*             raw;            // 512 raw bytes (not MFM encoded)
+    }       u;
+} BuildSectorSource;
+
+
 static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnDiskRemoved(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self);
 
+static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self);
+
+static errno_t FloppyDisk_EnsureTrackCompositionBuffer(FloppyDiskRef _Nonnull self);
+static void FloppyDisk_DisposeTrackCompositionBuffer(FloppyDiskRef _Nonnull self);
 
 static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
@@ -113,5 +137,9 @@ static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self);
+
+static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head);
+static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite);
+static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self, errno_t err);
 
 #endif /* FloppyDiskPriv_h */

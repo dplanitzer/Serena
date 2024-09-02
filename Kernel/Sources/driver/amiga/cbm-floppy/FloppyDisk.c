@@ -76,7 +76,8 @@ static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _No
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
     self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
-    self->trackBufferWordCount = ADF_TRACK_BUFFER_SIZE(self->sectorsPerTrack) / 2;
+    self->trackBufferWordCount = ADF_TRACK_WITH_GAP_BYTE_SIZE(self->sectorsPerTrack) / 2;
+    self->writeTrackBufferWordCount = ADF_TRACK_BYTE_SIZE(self->sectorsPerTrack) / 2;
 
     self->head = -1;
     self->cylinder = -1;
@@ -105,14 +106,20 @@ catch:
 
 static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 {
+    if (self->dispatchQueue) {
+        DispatchQueue_Terminate(self->dispatchQueue);
+        DispatchQueue_WaitForTerminationCompleted(self->dispatchQueue);
+        Object_Release(self->dispatchQueue);
+        self->dispatchQueue = NULL;
+    }
+
     FloppyDisk_CancelDelayedMotorOff(self);
     FloppyDisk_CancelUpdateHasDiskState(self);
 
     FloppyDisk_DisposeTrackBuffer(self);
-    self->fdc = NULL;
+    FloppyDisk_DisposeTrackCompositionBuffer(self);
 
-    Object_Release(self->dispatchQueue);
-    self->dispatchQueue = NULL;
+    self->fdc = NULL;
 }
 
 // Establishes the base state for a newly discovered drive. This means that we
@@ -214,6 +221,29 @@ static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self)
     }
 
     self->flags.isTrackBufferValid = 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Track Composition Buffer
+////////////////////////////////////////////////////////////////////////////////
+
+static errno_t FloppyDisk_EnsureTrackCompositionBuffer(FloppyDiskRef _Nonnull self)
+{
+    if (self->trackCompositionBuffer == NULL) {
+        return kalloc_options(sizeof(uint16_t) * self->writeTrackBufferWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackCompositionBuffer);
+    }
+    else {
+        return EOK;
+    }
+}
+
+static void FloppyDisk_DisposeTrackCompositionBuffer(FloppyDiskRef _Nonnull self)
+{
+    if (self->trackCompositionBuffer) {
+        kfree(self->trackCompositionBuffer);
+        self->trackCompositionBuffer = NULL;
+    }
 }
 
 
@@ -487,7 +517,7 @@ static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
     FloppyDisk_CancelUpdateHasDiskState(self);
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(2));
+    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(3));
     Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnUpdateHasDiskStateCheck, self), &self->updateHasDiskState);
     if (self->updateHasDiskState) {
         DispatchQueue_DispatchTimer(self->dispatchQueue, self->updateHasDiskState);
@@ -508,50 +538,24 @@ static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 // Disk I/O
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t FloppyDisk_OnFailedIO(FloppyDiskRef _Nonnull self, errno_t err)
-{
-    FloppyDisk_MotorOff(self);
-
-    if (err == ETIMEDOUT) {
-        // A timeout may be caused by:
-        // - no drive connected
-        // - no disk in drive
-        // - electro-mechanical problem
-        FloppyDisk_OnHardwareLost(self);
-        err = ENODEV;
-    }
-    else if (err == EDISKCHANGE) {
-        FloppyDisk_UpdateHasDiskState(self);
-
-        if (!self->flags.hasDisk) {
-            FloppyDisk_OnDiskRemoved(self);
-            err = ENOMEDIUM;
-        }
-        else {
-            FloppyDisk_CancelUpdateHasDiskState(self);
-        }
-    }
-    else {
-        err = EIO;
-    }
-
-    return err;
-}
-
 // Invoked at the beginning of a disk read/write operation to prepare the drive
 // state. Ie turn motor on, seek, switch disk head, detect drive status, etc. 
 static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
 
-    // Make sure that the motor is turned on
-    FloppyDisk_MotorOn(self);
-
-
-    // Make sure that the disk hasn't changed on us
+    // Make sure we still got the drive hardware and that the disk hasn't changed
+    // on us
+    if (!self->flags.isOnline) {
+        return ENODEV;
+    }
     if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
         throw(EDISKCHANGE);
     }
+
+
+    // Make sure that the motor is turned on
+    FloppyDisk_MotorOn(self);
 
 
     // Seek to the required cylinder and select the required head
@@ -571,30 +575,78 @@ catch:
     return err;
 }
 
-// Invoked at the end of a read/write operation to clean up and verify that the
-// drive state is still okay
-static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self)
+// Invoked to do the actual read/write operation. Also validates that the disk
+// hasn't been yanked out of the drive or changed on us while doing the I/O.
+// Expects that the track buffer is properly prepared for the I/O.
+static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
 {
     decl_try_err();
-    const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
-    if ((status & kDriveStatus_DiskReady) == 0) {
-        throw(ETIMEDOUT);
+    err = FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, bWrite);
+    if (err == EOK) {
+        const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
+
+        if ((status & kDriveStatus_DiskReady) == 0) {
+            err = ETIMEDOUT;
+        }
+        if ((status & kDriveStatus_DiskChanged) != 0) {
+            err = EDISKCHANGE;
+        }
     }
-    if ((status & kDriveStatus_DiskChanged) != 0) {
-        throw(EDISKCHANGE);
+    if (!bWrite) {
+        self->flags.isTrackBufferValid = (err == EOK) ? 1 : 0;
     }
 
-    // Instead of turning off the motor right away, let's wait some time and
-    // turn the motor off if no further I/O request arrives in the meantime
-    FloppyDisk_DelayedMotorOff(self);
+    return err;
+}
 
-catch:
+// Invoked at the end of a disk I/O operation. Potentially translates the provided
+// internal error code to an external one and kicks of disk-change related flow
+// control and initiates a delayed motor-off operation.
+static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self, errno_t err)
+{
+    switch (err) {
+        case ETIMEDOUT:
+            // A timeout may be caused by:
+            // - no drive connected
+            // - no disk in drive
+            // - electro-mechanical problem
+            FloppyDisk_OnHardwareLost(self);
+            err = ENODEV;
+            break;
+
+        case EDISKCHANGE:
+            FloppyDisk_UpdateHasDiskState(self);
+
+            if (!self->flags.hasDisk) {
+                FloppyDisk_OnDiskRemoved(self);
+                FloppyDisk_MotorOff(self);
+                err = ENOMEDIUM;
+            }
+            else {
+                FloppyDisk_CancelUpdateHasDiskState(self);
+            }
+            break;
+
+        case EOK:
+            break;
+
+        default:
+            err = EIO;
+            break;
+    }
+
+    if (!self->flags.isOnline && err != ENOMEDIUM) {
+        // Instead of turning off the motor right away, let's wait some time and
+        // turn the motor off if no further I/O request arrives in the meantime
+        FloppyDisk_DelayedMotorOff(self);
+    }
+
     return err;
 }
 
 
-static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offset, int* _Nonnull pOutSectorsUntilGap)
+static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offset, int* _Nonnull pOutSectorsUntilGap)
 {
     const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->trackBuffer[offset];
     ADF_SectorInfo info;
@@ -648,7 +700,7 @@ static bool FloppyDisk_RegisterSector(FloppyDiskRef _Nonnull self, int16_t offse
     return false;
 }
 
-static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
+static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
 {
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
@@ -689,7 +741,7 @@ static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
 
 
         // Pick up the sector
-        if (FloppyDisk_RegisterSector(self, pt - pt_start, &sectorsUntilGap)) {
+        if (FloppyDisk_RecognizeSector(self, pt - pt_start, &sectorsUntilGap)) {
             nSectorsRead++;
         }
         pt += ADF_MFM_SECTOR_SIZE/2;
@@ -713,113 +765,169 @@ static void FloppyDisk_SectorizeTrackBuffer(FloppyDiskRef _Nonnull self)
 #endif
 }
 
-static errno_t FloppyDisk_ReadTrack(FloppyDiskRef _Nonnull self, int head, int cylinder)
-{
-    decl_try_err();
-    
-    if (self->flags.isTrackBufferValid && self->cylinder == cylinder && self->head == head) {
-        return EOK;
-    }
-    if (!self->flags.isOnline) {
-        return ENODEV;
-    }
-
-    FloppyDisk_ResetTrackBuffer(self);
-
-    try(FloppyDisk_BeginIO(self, cylinder, head));
-    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, false));
-    
-    self->flags.isTrackBufferValid = 1;
-    FloppyDisk_SectorizeTrackBuffer(self);
-    
-    try(FloppyDisk_EndIO(self));
-
-    return EOK;
-
-catch:
-    self->flags.isTrackBufferValid = 0;
-    return FloppyDisk_OnFailedIO(self, err);
-}
-
 static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, void* _Nonnull pBuffer)
 {
     decl_try_err();
     
-    // Read the track
-    err = FloppyDisk_ReadTrack(self, head, cylinder);
-    if (err != EOK) {
-        return err;
+    // Make sure that we either already got the desired track cached or if not,
+    // that we read it in
+    if (!self->flags.isTrackBufferValid || self->cylinder != cylinder || self->head != head) {
+        err = FloppyDisk_BeginIO(self, cylinder, head);
+
+        if (err == EOK) {
+            for (int retry = 0; retry < 4; retry++) {
+                FloppyDisk_ResetTrackBuffer(self);
+
+                err = FloppyDisk_DoIO(self, false);
+                if (err == EOK) {
+                    FloppyDisk_ScanTrack(self);
+
+                    if ((self->sectors[sector].flags & kSectorFlag_IsValid) == 0) {
+                        self->readErrorCount++;
+                        err = EIO;
+                    }
+                }
+                if (err != EIO) {
+                    break;
+                }
+            }
+        }
+
+        err = FloppyDisk_EndIO(self, err);
     }
     
-    
-    // Get the sector
-    ADFSector* s = &self->sectors[sector];
-    if ((s->flags & kSectorFlag_IsValid) == 0 || !self->flags.isTrackBufferValid) {
-        self->readErrorCount++;
-        return EIO;
+    if (err == EOK) {
+        // MFM decode the sector data
+        const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[self->sectors[sector].offsetToHeader];
+        mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
     }
-    
-    
-    // MFM decode the sector data
-    const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
-    mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
-    return EOK;
+    else {
+        self->flags.isTrackBufferValid = 0;
+    }
+    return err;
 }
 
-static errno_t FloppyDisk_WriteTrack(FloppyDiskRef _Nonnull self, int head, int cylinder)
+static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, const BuildSectorSource* _Nonnull pSrc)
 {
-    decl_try_err();
-    
-    // There must be a valid track cache
-    assert(self->flags.isTrackBufferValid);
+    ADF_MFMSyncedSector* pt = (ADF_MFMSyncedSector*)self->trackCompositionBuffer;
+    ADF_MFMSyncedSector* dst = (ADF_MFMSyncedSector*)&pt[sector];
+    ADF_SectorInfo info;
+    uint32_t label[4] = {0,0,0,0};
+    uint32_t checksum;
 
-    if (!self->flags.isOnline) {
-        return ENODEV;
-    }    
+    // Sync marks
+    dst->sync[0] = ADF_MFM_PRESYNC;
+    dst->sync[1] = ADF_MFM_PRESYNC;
+    dst->sync[2] = ADF_MFM_SYNC;
+    dst->sync[3] = ADF_MFM_SYNC;
 
-    try(FloppyDisk_BeginIO(self, cylinder, head));
-    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, true));
-    try(FloppyDisk_EndIO(self));
-    try(VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200)));
 
-    return EOK;
+    // Sector info
+    info.format = ADF_FORMAT_V1;
+    info.track = 2*cylinder + head;
+    info.sector = sector;
+    info.sectors_until_gap = self->sectorsPerTrack - sector;
+    mfm_encode_sector((const uint32_t*)&info, &dst->payload.info.odd_bits, 1);
 
-catch:
-    return FloppyDisk_OnFailedIO(self, err);
+
+    // Sector label
+    mfm_encode_sector(label, dst->payload.label.odd_bits, 4);
+
+
+    // Header checksum
+    checksum = mfm_checksum(&dst->payload.info.odd_bits, 10);
+    mfm_encode_sector(&checksum, &dst->payload.header_checksum.odd_bits, 1);
+
+
+    // Data and data checksum
+    if (pSrc->isEncoded) {
+        memcpy(dst->payload.data.odd_bits, pSrc->u.encoded->data.odd_bits, ADF_SECTOR_DATA_SIZE);
+
+        dst->payload.data_checksum.odd_bits = pSrc->u.encoded->data_checksum.odd_bits;
+        dst->payload.data_checksum.even_bits = pSrc->u.encoded->data_checksum.even_bits;
+    }
+    else {
+        const int nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
+
+        mfm_encode_sector((const uint32_t*)pSrc->u.raw, dst->payload.data.odd_bits, nLongs);
+
+        checksum = mfm_checksum(dst->payload.data.odd_bits, nLongs);
+        mfm_encode_sector(&checksum, &dst->payload.data_checksum.odd_bits, 1);
+    }
 }
 
 static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, const void* pBuffer)
 {
-#if 0
     decl_try_err();
-    
-    // Make sure that we have the track in memory
-    err = FloppyDisk_ReadTrack(self, head, cylinder);
-    if (err != EOK) {
-        return err;
-    }
-    
-    
-    // Override the sector with the new data
-    ADFSector* s = &self->sectors[sector];
-    if ((s->flags & (kSectorFlag_Exists|kSectorFlag_IsValid) == 0) || !self->flags.isTrackBufferValid) {
-        return EIO;
-    }
-    
-    
-    // MFM encode the sector data
-    ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
-    mfm_encode_sector((const uint32_t*)pBuffer, (uint32_t*)mfms->data.odd_bits, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
-    
-    
-    // Write the track back out
-    // XXX should just mark the track buffer as dirty
-    // XXX the cache_invalidate() function should then write the cache back to disk before we seek / switch heads
-    // XXX there should be a floppy_is_cache_dirty() and floppy_flush_cache() which writes the cache to disk
-    return FloppyDisk_WriteTrack(self, head, cylinder);
-#else
+
+    // XXX tmp
     return EROFS;
-#endif
+
+    print("WriteSector(%d, %d, %d)\n", cylinder, head, sector);
+    try(FloppyDisk_BeginIO(self, cylinder, head));
+
+
+    // Make sure that we got the whole track in the track buffer
+    if (!self->flags.isTrackBufferValid) {
+        for (int retry = 0; retry < 4; retry++) {
+            FloppyDisk_ResetTrackBuffer(self);
+
+            err = FloppyDisk_DoIO(self, false);
+            if (err == EOK) {
+                FloppyDisk_ScanTrack(self);
+            }
+            if (err != EIO) {
+                break;
+            }
+        }
+    }
+    print("read track %d:%d\n", cylinder, head);
+
+    try(FloppyDisk_EnsureTrackCompositionBuffer(self));
+
+
+    // Layout:
+    // sector #1, ..., sector #11, gap
+    BuildSectorSource sec_src;
+
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        if (i != sector) {
+            const ADFSector* s = &self->sectors[sector];
+
+            if ((s->flags & kSectorFlag_IsValid) == kSectorFlag_IsValid) {
+                sec_src.isEncoded = true;
+                sec_src.u.encoded = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
+            }
+            else {
+                // A sector with a read error. Just put random data down
+                sec_src.isEncoded = false;
+                sec_src.u.raw = pBuffer;
+
+                print("oops at: %d\n", i);
+            }
+
+            FloppyDisk_BuildSector(self, head, cylinder, i, &sec_src);
+            print("build sector: %d\n", i);
+        }
+        else {
+            sec_src.isEncoded = false;
+            sec_src.u.raw = pBuffer;
+            FloppyDisk_BuildSector(self, head, cylinder, sector, &sec_src);
+            print("*** replaced sector: %d\n", i);
+        }
+    }
+
+    memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->writeTrackBufferWordCount);
+    self->flags.isTrackBufferValid = 1;
+
+
+    // Write the track back to disk
+    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->writeTrackBufferWordCount, true));
+    VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
+    print("+++ did io\n");
+
+catch:
+    return FloppyDisk_EndIO(self, err);
 }
 
 
@@ -872,17 +980,7 @@ static void FloppyDisk_ReadBlock(DiskRequest* _Nonnull req)
 
 //    print("lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
 
-    for (int i = 0; i < 4; i++) {
-        req->err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
-        if (req->err != EIO) {
-            break;
-        }
-
-        // Reset the track buffer because the previous read may not have read all
-        // sectors successfully. We get rid of everything and start over from
-        // scratch.
-        FloppyDisk_ResetTrackBuffer(self);
-    }
+    req->err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
 }
 
 errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
