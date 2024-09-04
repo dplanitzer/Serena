@@ -81,29 +81,31 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
     }
     if ((sm & __kStreamMode_Write) != 0) {
         options |= kOpen_Write;
-        if ((sm & __kStreamMode_Append) != 0) {
-            options |= kOpen_Append;
-        } else {
-            options |= kOpen_Truncate;
-        }
-        if ((sm & __kStreamMode_Exclusive) != 0) {
-            options |= kOpen_Exclusive;
-        }
+    }
+    if ((sm & __kStreamMode_Append) != 0) {
+        options |= kOpen_Append;
+    }
+    if ((sm & __kStreamMode_Truncate) != 0) {
+        options |= kOpen_Truncate;
+    }
+    if ((sm & __kStreamMode_Exclusive) != 0) {
+        options |= kOpen_Exclusive;
     }
 
     if ((options & kOpen_ReadWrite) == 0) {
         throw(EINVAL);
     }
+    if ((options & (kOpen_Append|kOpen_Truncate)) == (kOpen_Append|kOpen_Truncate)) {
+        throw(EINVAL);
+    }
 
 
     // Open/create the file
-    if ((sm & __kStreamMode_Write) == 0) {
-        // Read only
-        try(File_Open(filename, options, &ioc));
+    if ((sm & __kStreamMode_Create) == __kStreamMode_Create) {
+        try(File_Create(filename, options, 0666, &ioc));
     }
     else {
-        // Write only or read/write/append
-        try(File_Create(filename, options, 0666, &ioc));
+        try(File_Open(filename, options, &ioc));
     }
     
     self->v.ioc = ioc;

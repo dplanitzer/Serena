@@ -15,7 +15,19 @@
 static FILE*   gOpenFiles;
 
 
-// Parses the given mode string into a stream-mode value
+// Parses the given mode string into a stream-mode value. Supported modes:
+//
+// Mode                         Action                          File exists         File does not exist
+// -----------------------------------------------------------------------------------------------------
+// "r"      read                open for reading                read from start     error
+// "w"      write               create & open for writing       truncate file       create
+// "a"      append              append to file                  write to end        create
+// "r+" 	read extended       open for read/write             read from start     error
+// "w+" 	write extended      create & open for read/write    truncate file       create
+// "a+" 	append extended     open for read/write             write to end        create
+//
+// "x" may be used with "w" and "w+". It enables exclusive mode which means that open() will return with
+// an error if the file already exists.
 __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
 {
     __FILE_Mode sm = 0;
@@ -30,7 +42,7 @@ __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
             }
         }
         else if (*mode == 'w') {
-            sm |= __kStreamMode_Write;
+            sm |= (__kStreamMode_Write | __kStreamMode_Create | __kStreamMode_Truncate);
 
             if (*(mode + 1) == '+') {
                 sm |= __kStreamMode_Read;
@@ -42,7 +54,7 @@ __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
             }
         }
         else if (*mode == 'a') {
-            sm |= (__kStreamMode_Append | __kStreamMode_Write);
+            sm |= (__kStreamMode_Write | __kStreamMode_Create | __kStreamMode_Append);
 
             if (*(mode + 1) == '+') {
                 sm |= __kStreamMode_Read;
