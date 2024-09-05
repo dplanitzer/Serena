@@ -33,6 +33,14 @@ enum DriveStatus {
 };
 
 
+enum Precompensation {
+    kPrecompensation_None = 0,
+    kPrecompensation_140ns = 1,
+    kPrecompensation_280ns = 2,
+    kPrecompensation_560ns = 3
+};
+
+
 // The floppy controller. The Amiga has just one single floppy DMA channel
 // which is shared by all drives.
 typedef struct FloppyController {
@@ -59,6 +67,6 @@ extern void FloppyController_SetMotor(FloppyController* _Nonnull self, DriveStat
 extern void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _Nonnull cb, int head);
 extern void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, int delta);
 
-extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, uint16_t* _Nonnull pData, int nwords, bool bWrite);
+extern errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite);
 
 #endif /* FloppyController_h */

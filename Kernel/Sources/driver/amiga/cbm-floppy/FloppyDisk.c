@@ -580,7 +580,19 @@ catch:
 // Expects that the track buffer is properly prepared for the I/O.
 static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
 {
-    errno_t err = FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackReadWordCount, bWrite);
+    uint16_t precompensation;
+    int16_t nWords;
+
+    if (bWrite) {
+        precompensation = (self->cylinder < self->cylindersPerDisk/2) ? kPrecompensation_140ns : kPrecompensation_280ns;
+        nWords = self->trackWriteWordCount;
+    }
+    else {
+        precompensation = 0;
+        nWords = self->trackReadWordCount;
+    }
+
+    errno_t err = FloppyController_DoIO(self->fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
     const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
     if ((status & kDriveStatus_DiskReady) == 0) {
@@ -908,8 +920,8 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     // Override the start of the gap with a couple 0xAA (0) values. We do this
     // because the Amiga floppy controller hardware has a bug where it loses the
     // last 3 bits when writing to disk. Also, we want to minimize the chance
-    // that the new gap may coincidentally contain the start (sync mark) of a
-    // sector.  
+    // that the new gap may coincidentally contain the start (sync mark) of an
+    // old sector.
     memset(&self->trackCompositionBuffer[sizeof(ADF_MFMSyncedSector)/2 * self->sectorsPerTrack], 0xAA, ADF_MFM_SYNC_SIZE);
 
 
@@ -921,7 +933,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
 
 
     // Write the track back to disk
-    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackWriteWordCount, true));
+    try(FloppyDisk_DoIO(self, true));
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
 
 catch:

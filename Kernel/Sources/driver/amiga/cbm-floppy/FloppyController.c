@@ -207,10 +207,10 @@ void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, i
     Lock_Unlock(&self->lock);
 }
 
-// Synchronously reads 'nwords' 16bit words into the given word buffer. Blocks
+// Synchronously reads 'nWords' 16bit words into the given word buffer. Blocks
 // the caller until the DMA is available and all words have been transferred from
 // disk.
-errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, uint16_t* _Nonnull pData, int nwords, bool bWrite)
+errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
 {
     decl_try_err();
     CIAB_BASE_DECL(ciab);
@@ -237,7 +237,7 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     *CHIPSET_REG_32(cs, DSKPT) = (uint32_t)pData;
     *CHIPSET_REG_16(cs, ADKCON) = 0x7f00;
     if (bWrite) {
-        *CHIPSET_REG_16(cs, ADKCON) = 0xb100;
+        *CHIPSET_REG_16(cs, ADKCON) = 0x9100 | ((precompensation & 0x03) << 13);
     }
     else {
         *CHIPSET_REG_16(cs, ADKCON) = 0x9500;
@@ -246,7 +246,7 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
     *CHIPSET_REG_16(cs, DMACON) = 0x8210;
 
-    uint16_t dlen = 0x8000 | (nwords & 0x3fff);
+    uint16_t dlen = 0x8000 | (nWords & 0x3fff);
     if (bWrite) {
         dlen |= (1 << 14);
     }
