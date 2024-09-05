@@ -75,9 +75,9 @@ static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _No
     self->headsPerCylinder = ADF_DD_HEADS_PER_CYL;
     self->sectorsPerTrack = ADF_DD_SECS_PER_TRACK;
     self->sectorsPerCylinder = self->headsPerCylinder * self->sectorsPerTrack;
-    self->logicalBlockCapacity = self->sectorsPerCylinder * self->cylindersPerDisk;
-    self->trackBufferWordCount = ADF_TRACK_WITH_GAP_BYTE_SIZE(self->sectorsPerTrack) / 2;
-    self->writeTrackBufferWordCount = ADF_TRACK_BYTE_SIZE(self->sectorsPerTrack) / 2;
+    self->blocksPerDisk = self->sectorsPerCylinder * self->cylindersPerDisk;
+    self->trackReadWordCount = ADF_TRACK_READ_SIZE(self->sectorsPerTrack) / 2;
+    self->trackWriteWordCount = ADF_TRACK_WRITE_SIZE(self->sectorsPerTrack) / 2;
 
     self->head = -1;
     self->cylinder = -1;
@@ -173,7 +173,7 @@ static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
     }
     
     self->flags.isTrackBufferValid = 0;
-    err = kalloc_options(sizeof(uint16_t) * self->trackBufferWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    err = kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
     if (err == EOK) {
         err = kalloc_options(sizeof(ADFSector) * self->sectorsPerTrack, KALLOC_OPTION_CLEAR, (void**) &self->sectors);
         if (err == EOK) {
@@ -231,7 +231,7 @@ static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self)
 static errno_t FloppyDisk_EnsureTrackCompositionBuffer(FloppyDiskRef _Nonnull self)
 {
     if (self->trackCompositionBuffer == NULL) {
-        return kalloc_options(sizeof(uint16_t) * self->writeTrackBufferWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackCompositionBuffer);
+        return kalloc_options(sizeof(uint16_t) * self->trackWriteWordCount, 0, (void**) &self->trackCompositionBuffer);
     }
     else {
         return EOK;
@@ -582,7 +582,7 @@ static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
 {
     decl_try_err();
 
-    err = FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackBufferWordCount, bWrite);
+    err = FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackReadWordCount, bWrite);
     if (err == EOK) {
         const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
@@ -705,7 +705,7 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
-    const uint16_t* pt_limit = &self->trackBuffer[self->trackBufferWordCount];
+    const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount];
     const uint16_t* pg_start = NULL;
     const uint16_t* pg_end = NULL;
     int sectorsUntilGap = -1;
@@ -897,8 +897,6 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
                 // A sector with a read error. Just put random data down
                 sec_src.isEncoded = false;
                 sec_src.u.raw = pBuffer;
-
-                print("oops at: %d\n", i);
             }
 
             FloppyDisk_BuildSector(self, head, cylinder, i, &sec_src);
@@ -910,14 +908,24 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
         }
     }
 
-    memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->writeTrackBufferWordCount);
+
+    // Override the start of the gap with a couple 0xAA (0) values. We do this
+    // because the Amiga floppy controller hardware has a bug where it loses the
+    // last 3 bits when writing to disk. Also, we want to minimize the chance
+    // that the new gap may coincidentally contain the start (sync mark) of a
+    // sector.  
+    memset(&self->trackCompositionBuffer[sizeof(ADF_MFMSyncedSector)/2 * self->sectorsPerTrack], 0xAA, ADF_MFM_SYNC_SIZE);
+
+
+    // Move the newly composed track to the DMA buffer
+    memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->trackWriteWordCount);
     memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
     FloppyDisk_ScanTrack(self);
     self->flags.isTrackBufferValid = 1;
 
 
     // Write the track back to disk
-    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->writeTrackBufferWordCount, true));
+    try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackWriteWordCount, true));
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
 
 catch:
@@ -943,7 +951,7 @@ size_t FloppyDisk_getBlockSize(FloppyDiskRef _Nonnull self)
 // Returns the number of blocks that the disk is able to store.
 LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
 {
-    return self->logicalBlockCapacity;
+    return self->blocksPerDisk;
 }
 
 // Returns true if the disk if read-only.
@@ -963,7 +971,7 @@ static void FloppyDisk_ReadBlock(DiskRequest* _Nonnull req)
     void* pBuffer = req->pBuffer;
     LogicalBlockAddress lba = req->lba;
 
-    if (lba >= self->logicalBlockCapacity) {
+    if (lba >= self->blocksPerDisk) {
         req->err = EIO;
         return;
     }
@@ -1000,7 +1008,7 @@ static void FloppyDisk_WriteBlock(DiskRequest* _Nonnull req)
     const void* pBuffer = req->pBuffer;
     LogicalBlockAddress lba = req->lba;
 
-    if (lba >= self->logicalBlockCapacity) {
+    if (lba >= self->blocksPerDisk) {
         req->err = EIO;
         return;
     }

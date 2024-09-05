@@ -36,21 +36,20 @@ typedef struct ADFSector {
 
 #define ADF_MAX_GAP_LENGTH 1660
 
-// Size of a track buffer, big enough to hold all valid sectors in a track
-#define ADF_TRACK_BYTE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE))
-
-// Size of a track buffer, nig enough to hold all valid sectors in a track plus
+// Track size for reading. Big enough to hold all valid sectors in a track plus
 // the biggest possible gap size
 // Comes out to 13,628 bytes
 // AmigaDOS used a 14,716 bytes buffer
-#define ADF_TRACK_WITH_GAP_BYTE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MAX_GAP_LENGTH)
+#define ADF_TRACK_READ_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MAX_GAP_LENGTH)
+
+// Track size for writing 
+#define ADF_TRACK_WRITE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SYNC_SIZE)
 
 
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
     DispatchQueueRef _Nonnull   dispatchQueue;
-
     FloppyController * _Nonnull fdc;
 
     // Flow control
@@ -60,15 +59,15 @@ final_class_ivars(FloppyDisk, DiskDriver,
     // Buffer used to cache a read track
     ADFSector* _Nullable        sectors;                            // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
     uint16_t* _Nullable         trackBuffer;                        // cached read track data (MFM encoded)
-    int16_t                     trackBufferWordCount;               // cached read track buffer size in words
+    int16_t                     trackReadWordCount;                 // cached read track buffer size in words
     int16_t                     gapSize;                            // track gap size
 
     // Buffer used to compose a track for writing
     uint16_t* _Nullable         trackCompositionBuffer;
-    int16_t                     writeTrackBufferWordCount;          // number of words to write to a track
+    int16_t                     trackWriteWordCount;                // number of words to write to a track
 
     // Disk geometry
-    LogicalBlockCount           logicalBlockCapacity;                   // disk size in terms of logical blocks
+    LogicalBlockCount           blocksPerDisk;                      // disk size in terms of logical blocks
     int8_t                      sectorsPerCylinder;
     int8_t                      sectorsPerTrack;
     int8_t                      headsPerCylinder;
