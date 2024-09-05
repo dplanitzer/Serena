@@ -580,18 +580,14 @@ catch:
 // Expects that the track buffer is properly prepared for the I/O.
 static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
 {
-    decl_try_err();
+    errno_t err = FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackReadWordCount, bWrite);
+    const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
-    err = FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->trackReadWordCount, bWrite);
-    if (err == EOK) {
-        const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
-
-        if ((status & kDriveStatus_DiskReady) == 0) {
-            err = ETIMEDOUT;
-        }
-        if ((status & kDriveStatus_DiskChanged) != 0) {
-            err = EDISKCHANGE;
-        }
+    if ((status & kDriveStatus_DiskReady) == 0) {
+        err = ETIMEDOUT;
+    }
+    if ((status & kDriveStatus_DiskChanged) != 0) {
+        err = EDISKCHANGE;
     }
     if (!bWrite) {
         self->flags.isTrackBufferValid = (err == EOK) ? 1 : 0;

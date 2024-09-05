@@ -7,6 +7,7 @@
 //
 
 #include "FloppyController.h"
+#include <driver/MonotonicClock.h>
 #include <hal/Platform.h>
 
 extern void fdc_nano_delay(void);
@@ -222,11 +223,10 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     }
     if (err != EOK) {
         Lock_Unlock(&self->lock);
-        return err;
+        return EIO;
     }
 
     self->flags.inUse = 1;
-    //print("b, buffer: %p, nwords: %d\n", pData, nwords);
 
 
     // Select the drive
@@ -260,7 +260,9 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
 
 
     // Wait for the DMA to complete
-    err = Semaphore_Acquire(&self->done, kTimeInterval_Infinity);
+    const TimeInterval now = MonotonicClock_GetCurrentTime();
+    const TimeInterval deadline = TimeInterval_Add(now, TimeInterval_MakeMilliseconds(500));
+    err = Semaphore_Acquire(&self->done, deadline);
 
 
     Lock_Lock(&self->lock);
@@ -276,5 +278,5 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     self->flags.inUse = 0;
     ConditionVariable_BroadcastAndUnlock(&self->cv, &self->lock);
 
-    return (err == ETIMEDOUT) ? ENOMEDIUM : err;
+    return (err == EOK) ? EOK : EIO;
 }
