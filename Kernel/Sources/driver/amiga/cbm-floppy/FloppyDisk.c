@@ -841,7 +841,7 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, int head, int cy
 
     // Data and data checksum
     if (pSrc->isEncoded) {
-        memcpy(dst->payload.data.odd_bits, pSrc->u.encoded->data.odd_bits, ADF_SECTOR_DATA_SIZE);
+        memcpy(dst->payload.data.odd_bits, pSrc->u.encoded->data.odd_bits, sizeof(ADF_MFMData));
 
         dst->payload.data_checksum.odd_bits = pSrc->u.encoded->data_checksum.odd_bits;
         dst->payload.data_checksum.even_bits = pSrc->u.encoded->data_checksum.even_bits;
@@ -851,7 +851,7 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, int head, int cy
 
         mfm_encode_sector((const uint32_t*)pSrc->u.raw, dst->payload.data.odd_bits, nLongs);
 
-        checksum = mfm_checksum(dst->payload.data.odd_bits, nLongs);
+        checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs);
         mfm_encode_sector(&checksum, &dst->payload.data_checksum.odd_bits, 1);
     }
 }
@@ -860,10 +860,6 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
 {
     decl_try_err();
 
-    // XXX tmp
-    return EROFS;
-
-    print("WriteSector(%d, %d, %d)\n", cylinder, head, sector);
     try(FloppyDisk_BeginIO(self, cylinder, head));
 
 
@@ -881,7 +877,6 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
             }
         }
     }
-    print("read track %d:%d\n", cylinder, head);
 
     try(FloppyDisk_EnsureTrackCompositionBuffer(self));
 
@@ -892,7 +887,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
 
     for (int i = 0; i < self->sectorsPerTrack; i++) {
         if (i != sector) {
-            const ADFSector* s = &self->sectors[sector];
+            const ADFSector* s = &self->sectors[i];
 
             if ((s->flags & kSectorFlag_IsValid) == kSectorFlag_IsValid) {
                 sec_src.isEncoded = true;
@@ -907,24 +902,23 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
             }
 
             FloppyDisk_BuildSector(self, head, cylinder, i, &sec_src);
-            print("build sector: %d\n", i);
         }
         else {
             sec_src.isEncoded = false;
             sec_src.u.raw = pBuffer;
             FloppyDisk_BuildSector(self, head, cylinder, sector, &sec_src);
-            print("*** replaced sector: %d\n", i);
         }
     }
 
     memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->writeTrackBufferWordCount);
+    memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
+    FloppyDisk_ScanTrack(self);
     self->flags.isTrackBufferValid = 1;
 
 
     // Write the track back to disk
     try(FloppyController_DoIO(self->fdc, self->driveState, self->trackBuffer, self->writeTrackBufferWordCount, true));
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
-    print("+++ did io\n");
 
 catch:
     return FloppyDisk_EndIO(self, err);

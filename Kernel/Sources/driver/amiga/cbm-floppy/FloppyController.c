@@ -236,8 +236,13 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     // Prepare the DMA
     *CHIPSET_REG_32(cs, DSKPT) = (uint32_t)pData;
     *CHIPSET_REG_16(cs, ADKCON) = 0x7f00;
-    *CHIPSET_REG_16(cs, ADKCON) = 0x9500;
-    *CHIPSET_REG_16(cs, DSKSYNC) = 0x4489;
+    if (bWrite) {
+        *CHIPSET_REG_16(cs, ADKCON) = 0xb100;
+    }
+    else {
+        *CHIPSET_REG_16(cs, ADKCON) = 0x9500;
+        *CHIPSET_REG_16(cs, DSKSYNC) = 0x4489;
+    }
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
     *CHIPSET_REG_16(cs, DMACON) = 0x8210;
 
