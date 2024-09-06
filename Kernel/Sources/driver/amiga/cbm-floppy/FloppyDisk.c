@@ -172,8 +172,10 @@ static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
         return EOK;
     }
     
+    // The +3 is for the 0xAAAA, 0xAAAA, 0x4489 for the sync mark of the first
+    // read sector because the hardware doesn't deliver those bytes 
     self->flags.isTrackBufferValid = 0;
-    err = kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    err = kalloc_options(sizeof(uint16_t) * (self->trackReadWordCount + 3), KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
     if (err == EOK) {
         err = kalloc_options(sizeof(ADFSector) * self->sectorsPerTrack, KALLOC_OPTION_CLEAR, (void**) &self->sectors);
         if (err == EOK) {
@@ -580,19 +582,29 @@ catch:
 // Expects that the track buffer is properly prepared for the I/O.
 static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
 {
+    uint16_t* dmaBuffer;
     uint16_t precompensation;
     int16_t nWords;
 
     if (bWrite) {
         precompensation = (self->cylinder < self->cylindersPerDisk/2) ? kPrecompensation_140ns : kPrecompensation_280ns;
         nWords = self->trackWriteWordCount;
+        dmaBuffer = self->trackBuffer;
     }
     else {
+        FloppyDisk_ResetTrackBuffer(self);
+        // Note that the DMA does not deliver these words fpr the first read
+        // sector. Thus we put them into the DMA buffer ourselves.
+        self->trackBuffer[0] = ADF_MFM_PRESYNC;
+        self->trackBuffer[1] = ADF_MFM_PRESYNC;
+        self->trackBuffer[2] = ADF_MFM_SYNC;
+
         precompensation = 0;
         nWords = self->trackReadWordCount;
+        dmaBuffer = &self->trackBuffer[3];
     }
 
-    errno_t err = FloppyController_DoIO(self->fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
+    errno_t err = FloppyController_DoIO(self->fdc, self->driveState, precompensation, dmaBuffer, nWords, bWrite);
     const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
     if ((status & kDriveStatus_DiskReady) == 0) {
@@ -713,32 +725,31 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
-    const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount];
+    const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount + 3];
     const uint16_t* pg_start = NULL;
     const uint16_t* pg_end = NULL;
     int sectorsUntilGap = -1;
     int8_t nSectorsRead = 0;
     ADF_SectorInfo info;
 
-   // print("start: %p, limit: %p\n", pt, pt_limit);
     while (pt < pt_limit && nSectorsRead < self->sectorsPerTrack) {
 
         // Find the next MFM sync mark
-        while (pt < pt_limit && *pt != ADF_MFM_SYNC) {
+        // We don't verify the pre-sync words because at least WinUAE returns
+        // things like 0x2AAA in some cases instead of the expected 0xAAAA.
+        while (pt < pt_limit - 4) {
+            if (pt[2] == ADF_MFM_SYNC && pt[3] == ADF_MFM_SYNC) {
+                pt += 4;
+                break;
+            }
+
             pt++;
         }
 
 
         // Pick up the end of the sector gap
         if (pg_start && pg_end == NULL) {
-            pg_end = pt;
-        }
-
-
-        // Skip over the 2 sync words.
-        pt++;
-        if (pt < pt_limit && *pt == ADF_MFM_SYNC) {
-            pt++;
+            pg_end = pt - 4;
         }
 
 
@@ -764,11 +775,11 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
     self->gapSize = (pg_start && pg_end) ? pg_end - pg_start : 0;
 
 #if 0
-    print("c: %d, h: %d ----------\n", self->cylinder, self->head);
+    print("c: %d, h: %d ---------- tb: %p, limit: %p\n", self->cylinder, self->head, self->trackBuffer, pt_limit);
     for(int i = 0; i < self->sectorsPerTrack; i++) {
-        print(" s: %d, sug: %d, off: %d\n", self->sectors[i].info.sector, self->sectors[i].info.sectors_until_gap, self->sectors[i].offsetToHeader);
+        print(" s: %d, sug: %d, off: %d\n", self->sectors[i].info.sector, self->sectors[i].info.sectors_until_gap, self->sectors[i].offsetToHeader*2);
     }
-    print(" gap at: %d, gap size: %d\n", pg_start - pt_start, self->gapSize);
+    print(" gap at: %d, gap size: %d\n", (char*)pg_start - (char*)pt_start, 2*self->gapSize);
     print("\n");
 #endif
 }
@@ -784,9 +795,8 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
 
         if (err == EOK) {
             for (int retry = 0; retry < 4; retry++) {
-                FloppyDisk_ResetTrackBuffer(self);
-
                 err = FloppyDisk_DoIO(self, false);
+
                 if (err == EOK) {
                     FloppyDisk_ScanTrack(self);
 
@@ -874,9 +884,8 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     // Make sure that we got the whole track in the track buffer
     if (!self->flags.isTrackBufferValid) {
         for (int retry = 0; retry < 4; retry++) {
-            FloppyDisk_ResetTrackBuffer(self);
-
             err = FloppyDisk_DoIO(self, false);
+
             if (err == EOK) {
                 FloppyDisk_ScanTrack(self);
             }

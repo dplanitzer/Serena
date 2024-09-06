@@ -118,7 +118,6 @@ static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self);
 
 static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self);
 
 static errno_t FloppyDisk_EnsureTrackCompositionBuffer(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_DisposeTrackCompositionBuffer(FloppyDiskRef _Nonnull self);
