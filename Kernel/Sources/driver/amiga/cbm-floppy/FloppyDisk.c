@@ -863,7 +863,7 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, int head, int cy
         dst->payload.data_checksum.even_bits = pSrc->u.encoded->data_checksum.even_bits;
     }
     else {
-        const int nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
+        const size_t nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
 
         mfm_encode_sector((const uint32_t*)pSrc->u.raw, dst->payload.data.odd_bits, nLongs);
 

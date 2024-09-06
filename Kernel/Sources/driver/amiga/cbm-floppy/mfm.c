@@ -13,7 +13,7 @@
 // see http://lclevy.free.fr/adflib/adf_info.html
 //
 // The following copyright notice applies to the functions:
-// mfm_decode_sector(), mfm_encode_sector()
+// mfm_decode_sector()
 //
 //
 // This document is Copyright (C) 1997-1999 by Laurent Clévy, but may be freely distributed, provided the author name and addresses are included and no money is charged for this document.
@@ -25,22 +25,22 @@
 //
 
 
+#define MASK 0x55555555    /* 01010101 ... 01010101 */
+
 // MFM decodes a sector.
 // \param input    MFM coded data buffer (size == 2*data_size)
 // \param output    decoded data buffer (size == data_size)
 // \param data_size size in long, 1 for header's info, 4 for header's sector label
-void mfm_decode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, int data_size)
+void mfm_decode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size)
 {
-#define MASK 0x55555555    /* 01010101 ... 01010101 */
-    uint32_t odd_bits, even_bits;
-    uint32_t chksum = 0;
+    const uint32_t* in_even = input + data_size;
+    const uint32_t* in_odd = input;
     
     /* the decoding is made here long by long : with data_size/4 iterations */
-    for (int count = 0; count < data_size; count++) {
-        odd_bits = *input;                  /* longs with odd bits */
-        even_bits = *(input + data_size);   /* longs with even bits : located 'data_size' bytes farther */
-        chksum ^= odd_bits;
-        chksum ^= even_bits;
+    while (data_size-- > 0) {
+        const uint32_t odd_bits = *in_odd++;
+        const uint32_t even_bits = *in_even++;
+
         /*
          * MFM decoding, explained on one byte here (o and e will produce t) :
          * the MFM bytes 'abcdefgh' == o and 'ijklmnop' == e will become
@@ -48,59 +48,28 @@ void mfm_decode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output
          * ( o & 0x55U) << 1 = 'b0d0f0h0'
          * '0j0l0n0p' | 'b0d0f0h0' = 'bjdlfnhp' == t
          */
-        *output = (even_bits & MASK) | ((odd_bits & MASK) << 1);
-        input++;        /* next 'odd' long and 'even bits' long  */
-        output++;       /* next location of the future decoded long */
+        *output++ = (even_bits & MASK) | ((odd_bits & MASK) << 1u);
     }
-    chksum &= MASK;    /* must be 0 after decoding */
 }
 
 
 // MFM encodes a sector
-void mfm_encode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, int data_size)
+// Based on the sample code in Amiga-Magazin, 4/1989, p. 110ff
+void mfm_encode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size)
 {
-    uint32_t* output_odd = output;
-    uint32_t* output_even = output + data_size;
-    
-    for (int count = 0; count < data_size; count++) {
-        const uint32_t data = *input;
-        uint32_t odd_bits = 0;
-        uint32_t even_bits = 0;
-        uint32_t prev_odd_bit = 0;
-        uint32_t prev_even_bit = 0;
-        
-        //    user's data bit      MFM coded bits
-        //    ---------------      --------------
-        //    1                    01
-        //    0                    10 if following a 0 data bit
-        //    0                    00 if following a 1 data bit
-        for (int8_t i_even = 30; i_even >= 0; i_even -= 2) {
-            const int8_t i_odd = i_even + 1;
-            const uint32_t cur_odd_bit = data & (1 << i_odd);
-            const uint32_t cur_even_bit = data & (1 << i_even);
-            
-            if (cur_odd_bit) {
-                odd_bits |= (1 << i_even);
-            } else if (!cur_odd_bit && !prev_odd_bit) {
-                odd_bits |= (1 << i_odd);
-            }
-            
-            if (cur_even_bit) {
-                even_bits |= (1 << i_even);
-            } else if (!cur_even_bit && !prev_even_bit) {
-                even_bits |= (1 << i_odd);
-            }
-            
-            prev_odd_bit = cur_odd_bit;
-            prev_even_bit = cur_even_bit;
-        }
-        
-        *output_odd = odd_bits;
-        *output_even = even_bits;
-        
-        input++;
-        output_odd++;
-        output_even++;
+    uint32_t* out_even = output + data_size;
+    uint32_t* out_odd = output;
+
+    //    user's data bit      MFM coded bits
+    //    ---------------      --------------
+    //    1                    01
+    //    0                    10 if following a 0 data bit
+    //    0                    00 if following a 1 data bit
+    while (data_size-- > 0) {
+        const uint32_t in_bits = *input++;
+
+        *out_even++ = (in_bits & MASK);
+        *out_odd++ = ((in_bits >> 1u) & MASK);
     }
 }
 
@@ -108,7 +77,7 @@ void mfm_encode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output
 // See "Amiga Disk Drives Inside and Out" by Abraham, Grote Gelfand, page 180, 181
 // \param input    MFM coded data buffer (size == 2*data_size)
 // \param data_size size in long, 1 for header's info, 4 for header's sector label
-uint32_t mfm_checksum(const uint32_t* _Nonnull input, int data_size)
+uint32_t mfm_checksum(const uint32_t* _Nonnull input, size_t data_size)
 {
     uint32_t sum = 0;
 
@@ -116,5 +85,5 @@ uint32_t mfm_checksum(const uint32_t* _Nonnull input, int data_size)
         sum ^= *input++;
     }
     
-    return sum & 0x55555555;
+    return sum & MASK;
 }
