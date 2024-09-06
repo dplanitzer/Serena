@@ -100,9 +100,11 @@ uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, DriveSta
     uint8_t r = *cb;
     for (int bit = 31; bit >= 0; bit--) {
         *CIA_REG_8(ciab, CIA_PRB) = r;
+        fdc_nano_delay();
         const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
         const uint32_t rdy = (~(r >> CIAA_PRAB_DSKRDY)) & 1u;
         dt |= (rdy << (uint32_t)bit);
+        fdc_nano_delay();
         *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
     }
 
@@ -119,7 +121,9 @@ uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, DriveState c
 
     Lock_Lock(&self->lock);
     *CIA_REG_8(ciab, CIA_PRB) = cb;
+    fdc_nano_delay();
     const uint8_t r = *CIA_REG_8(ciaa, CIA_PRA);
+    fdc_nano_delay();
     *CIA_REG_8(ciab, CIA_PRB) = cb | CIAB_PRBF_DSKSELALL;
     Lock_Unlock(&self->lock);
 
@@ -145,6 +149,7 @@ static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, 
 
 
     // Deselect all drives
+    fdc_nano_delay();
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 }
 
@@ -170,6 +175,7 @@ void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _N
 
 
     // Deselect all drives
+    fdc_nano_delay();
     *CIA_REG_8(ciab, CIA_PRB) = r | CIAB_PRBF_DSKSELALL;
 
     Lock_Unlock(&self->lock);
@@ -199,6 +205,7 @@ void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, i
 
     r |= CIAB_PRBF_DSKSTEP;
     *CIA_REG_8(ciab, CIA_PRB) = r;
+    fdc_nano_delay();
 
 
     // Deselect all drives
@@ -231,6 +238,7 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
 
     // Select the drive
     *CIA_REG_8(ciab, CIA_PRB) = cb;
+    fdc_nano_delay();
 
 
     // Prepare the DMA

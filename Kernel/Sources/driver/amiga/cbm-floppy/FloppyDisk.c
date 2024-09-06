@@ -172,10 +172,8 @@ static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
         return EOK;
     }
     
-    // The +3 is for the 0xAAAA, 0xAAAA, 0x4489 for the sync mark of the first
-    // read sector because the hardware doesn't deliver those bytes 
     self->flags.isTrackBufferValid = 0;
-    err = kalloc_options(sizeof(uint16_t) * (self->trackReadWordCount + 3), KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
+    err = kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
     if (err == EOK) {
         err = kalloc_options(sizeof(ADFSector) * self->sectorsPerTrack, KALLOC_OPTION_CLEAR, (void**) &self->sectors);
         if (err == EOK) {
@@ -582,29 +580,21 @@ catch:
 // Expects that the track buffer is properly prepared for the I/O.
 static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
 {
-    uint16_t* dmaBuffer;
     uint16_t precompensation;
     int16_t nWords;
 
     if (bWrite) {
         precompensation = (self->cylinder < self->cylindersPerDisk/2) ? kPrecompensation_140ns : kPrecompensation_280ns;
         nWords = self->trackWriteWordCount;
-        dmaBuffer = self->trackBuffer;
     }
     else {
         FloppyDisk_ResetTrackBuffer(self);
-        // Note that the DMA does not deliver these words fpr the first read
-        // sector. Thus we put them into the DMA buffer ourselves.
-        self->trackBuffer[0] = ADF_MFM_PRESYNC;
-        self->trackBuffer[1] = ADF_MFM_PRESYNC;
-        self->trackBuffer[2] = ADF_MFM_SYNC;
 
         precompensation = 0;
         nWords = self->trackReadWordCount;
-        dmaBuffer = &self->trackBuffer[3];
     }
 
-    errno_t err = FloppyController_DoIO(self->fdc, self->driveState, precompensation, dmaBuffer, nWords, bWrite);
+    errno_t err = FloppyController_DoIO(self->fdc, self->driveState, precompensation, self->trackBuffer, nWords, bWrite);
     const uint8_t status = FloppyController_GetStatus(self->fdc, self->driveState);
 
     if ((status & kDriveStatus_DiskReady) == 0) {
@@ -725,7 +715,7 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
     const uint16_t* pt_start = pt;
-    const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount + 3];
+    const uint16_t* pt_limit = &self->trackBuffer[self->trackReadWordCount];
     const uint16_t* pg_start = NULL;
     const uint16_t* pg_end = NULL;
     int sectorsUntilGap = -1;
@@ -733,13 +723,21 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
     ADF_SectorInfo info;
 
     while (pt < pt_limit && nSectorsRead < self->sectorsPerTrack) {
+        int nSyncWords = 0;
 
         // Find the next MFM sync mark
         // We don't verify the pre-sync words because at least WinUAE returns
         // things like 0x2AAA in some cases instead of the expected 0xAAAA.
-        while (pt < pt_limit - 4) {
-            if (pt[2] == ADF_MFM_SYNC && pt[3] == ADF_MFM_SYNC) {
-                pt += 4;
+        // We don't mandate 2 0x4489 in a row because we sometimes get just one
+        // 0x4489. I.e. the first sector read in and the first sector following
+        // the track gap. However, with the track gap you sometimes get 2 0x4489
+        // and sometimes just one 0x4489... (this may be WinUAE specific too)
+        while (pt < pt_limit) {
+            if (*pt == ADF_MFM_SYNC) {
+                pt++; nSyncWords++;
+                if (*pt == ADF_MFM_SYNC) {
+                    pt++; nSyncWords++;
+                }
                 break;
             }
 
@@ -749,7 +747,7 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
 
         // Pick up the end of the sector gap
         if (pg_start && pg_end == NULL) {
-            pg_end = pt - 4;
+            pg_end = pt - nSyncWords;
         }
 
 
