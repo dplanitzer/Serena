@@ -78,13 +78,12 @@ final_class_ivars(FloppyDisk, DiskDriver,
     DriveState                  driveState;                             // current drive hardware state as maintained by the floppy controller
 
     struct __fdFlags {
-        unsigned int    isTrackBufferValid:1;
         unsigned int    wasMostRecentSeekInward:1;
         unsigned int    motorState:2;
         unsigned int    shouldResetDiskChangeStepInward:1;  // tells the reset-disk-change function in which direction to step to trigger a reset of the disk change hardware bit
         unsigned int    isOnline:1;                         // true if a drive is connected
         unsigned int    hasDisk:1;                          // true if disk is in drive
-        unsigned int    reserved:23;
+        unsigned int    reserved:24;
     }                           flags;
 );
 
@@ -143,5 +142,7 @@ static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self);
 static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head);
 static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite);
 static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self, errno_t err);
+
+#define FloppyDisk_TrackFromCylinderAndHead(__cylinder, __head) (2*__cylinder + __head)
 
 #endif /* FloppyDiskPriv_h */
