@@ -6,28 +6,23 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FloppyDisk.h"
+#include "mfm.h"
 
 
-// The MFM decoder/encoder code is based on:
+#define MASK 0x55555555
+
+// MFM decodes a sector.
+//
+// Based on:
 // see http://lclevy.free.fr/adflib/adf_info.html
 //
-// The following copyright notice applies to the functions:
-// mfm_decode_sector()
-//
-//
-// This document is Copyright (C) 1997-1999 by Laurent Clévy, but may be freely distributed, provided the author name and addresses are included and no money is charged for this document.
+// This function is Copyright (C) 1997-1999 by Laurent Clévy, but may be freely distributed, provided the author name and addresses are included and no money is charged for this document.
 //
 // This document is provided "as is". No warranties are made as to its correctness.
 //
 // Amiga and AmigaDOS are registered Trademarks of Gateway 2000.
 // Macintosh is a registered Trademark of Apple.
 //
-
-
-#define MASK 0x55555555    /* 01010101 ... 01010101 */
-
-// MFM decodes a sector.
 // \param input    MFM coded data buffer (size == 2*data_size)
 // \param output    decoded data buffer (size == data_size)
 // \param data_size size in long, 1 for header's info, 4 for header's sector label

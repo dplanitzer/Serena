@@ -23,14 +23,11 @@ enum {
 };
 
 
-enum {
-    kSectorFlag_IsValid = 2,    // Sector exists and checksums checked out
-};
-
 typedef struct ADFSector {
     ADF_SectorInfo  info;
-    int16_t         offsetToHeader;     // offset to first word past the sector sync words (ADF_MFMSector)
-    uint16_t        flags;
+    int16_t         offsetToHeader;     // Offset to first word past the sector sync words (ADF_MFMSector); only valid if 'isHeaderValid' is true
+    bool            isHeaderValid;      // Sector header checksum is okay and the info word values make sense
+    bool            isDataValid;        // Sector data checksum verification was successful; only true if 'isHeaderValid' is true
 } ADFSector;
 
 

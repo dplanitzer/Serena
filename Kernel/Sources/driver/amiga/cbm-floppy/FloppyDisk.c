@@ -207,7 +207,7 @@ static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self)
     for (int8_t i = 0; i < self->sectorsPerTrack; i++) {
         ADFSector* sector = &self->sectors[i];
 
-        if ((sector->flags & kSectorFlag_IsValid) == kSectorFlag_IsValid) {
+        if (sector->isHeaderValid) {
             uint16_t* bp = self->trackBuffer;
             uint16_t* dp = &bp[sector->offsetToHeader - 1];
 
@@ -215,11 +215,9 @@ static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self)
             dp--;
             if (dp >= bp) *dp = 0;
         }
-
-        sector->offsetToHeader = 0;
-        sector->flags = 0;
     }
 
+    memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
     self->flags.isTrackBufferValid = 0;
 }
 
@@ -660,26 +658,17 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
 {
     const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->trackBuffer[offset];
     ADF_SectorInfo info;
-    ADF_Checksum headerChecksum, dataChecksum, myChecksum;
+    ADF_Checksum diskChecksum, myChecksum;
 
     // Decode the stored sector header checksum, calculate our checksum and make
     // sure that they match. This is not a valid sector if they don't match.
     // The header checksum is calculated based on:
     // - 2 MFM info longwords
     // - 8 MFM sector label longwords
-    mfm_decode_sector(&mfmSector->header_checksum.odd_bits, &headerChecksum, 1);
+    mfm_decode_sector(&mfmSector->header_checksum.odd_bits, &diskChecksum, 1);
     myChecksum = mfm_checksum(&mfmSector->info.odd_bits, 2 + 8);
 
-    if (headerChecksum != myChecksum) {
-        return false;
-    }
-
-
-    // Validate the sector data
-    mfm_decode_sector(&mfmSector->data_checksum.odd_bits, &dataChecksum, 1);
-    myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
-
-    if (dataChecksum != myChecksum) {
+    if (diskChecksum != myChecksum) {
         return false;
     }
 
@@ -698,10 +687,16 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
         // We keep the first occurrence of a sector.
         ADFSector* s = &self->sectors[info.sector];
 
-        if ((s->flags & kSectorFlag_IsValid) == 0) {
+        if (!s->isHeaderValid) {
             s->info = info;
             s->offsetToHeader = offset;
-            s->flags |= kSectorFlag_IsValid;
+            s->isHeaderValid = true;
+
+            // Validate the sector data
+            mfm_decode_sector(&mfmSector->data_checksum.odd_bits, &diskChecksum, 1);
+            myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
+            s->isDataValid = (diskChecksum == myChecksum) ? true : false;
+
             *pOutSectorsUntilGap = info.sectors_until_gap;
             return true;
         }
@@ -710,7 +705,9 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
     return false;
 }
 
-static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
+// Returns true if all sectors in the track were discovered and no checksum errors
+// (header & data) have been found; false otherwise
+static bool FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
 {
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
@@ -780,11 +777,22 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self)
     print(" gap at: %d, gap size: %d\n", (char*)pg_start - (char*)pt_start, 2*self->gapSize);
     print("\n");
 #endif
+
+
+    int8_t nGoodSectors = 0;
+    for (int8_t i = 0; i < self->sectorsPerTrack; i++) {
+        if (self->sectors[i].isDataValid) {
+            nGoodSectors++;
+        }
+    }
+
+    return nGoodSectors == self->sectorsPerTrack;
 }
 
 static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, void* _Nonnull pBuffer)
 {
     decl_try_err();
+    const ADFSector* s = &self->sectors[sector];
     
     // Make sure that we either already got the desired track cached or if not,
     // that we read it in
@@ -796,11 +804,10 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
                 err = FloppyDisk_DoIO(self, false);
 
                 if (err == EOK) {
-                    FloppyDisk_ScanTrack(self);
-
-                    if ((self->sectors[sector].flags & kSectorFlag_IsValid) == 0) {
+                    if (!FloppyDisk_ScanTrack(self)) {
                         self->readErrorCount++;
                         err = EIO;
+                        print("*** a\n");
                     }
                 }
                 if (err != EIO) {
@@ -813,9 +820,16 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     }
     
     if (err == EOK) {
-        // MFM decode the sector data
-        const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[self->sectors[sector].offsetToHeader];
-        mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+        if (s->isDataValid) {
+            // MFM decode the sector data
+            const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
+            mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+        }
+        else {
+            print("*** b\n");
+            self->readErrorCount++;
+            err = EIO;
+        }
     }
     else {
         self->flags.isTrackBufferValid = 0;
@@ -885,7 +899,10 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
             err = FloppyDisk_DoIO(self, false);
 
             if (err == EOK) {
-                FloppyDisk_ScanTrack(self);
+                if (!FloppyDisk_ScanTrack(self)) {
+                    self->readErrorCount++;
+                    err = EIO;
+                }
             }
             if (err != EIO) {
                 break;
@@ -904,7 +921,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
         if (i != sector) {
             const ADFSector* s = &self->sectors[i];
 
-            if ((s->flags & kSectorFlag_IsValid) == kSectorFlag_IsValid) {
+            if (s->isHeaderValid) {
                 sec_src.isEncoded = true;
                 sec_src.u.encoded = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
             }
