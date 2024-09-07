@@ -7,6 +7,7 @@
 //
 
 #include "FloppyController.h"
+#include "AmigaDiskFormat.h"
 #include <driver/MonotonicClock.h>
 #include <hal/Platform.h>
 
@@ -249,7 +250,7 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     }
     else {
         *CHIPSET_REG_16(cs, ADKCON) = 0x9500;
-        *CHIPSET_REG_16(cs, DSKSYNC) = 0x4489;
+        *CHIPSET_REG_16(cs, DSKSYNC) = ADF_MFM_SYNC;
     }
     *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
     *CHIPSET_REG_16(cs, DMACON) = 0x8210;
