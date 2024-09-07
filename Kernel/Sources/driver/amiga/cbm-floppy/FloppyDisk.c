@@ -870,19 +870,33 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, int head, int cy
 
 
     // Data and data checksum
-    if (pSrc->isEncoded) {
-        memcpy(dst->payload.data.odd_bits, pSrc->u.encoded->data.odd_bits, sizeof(ADF_MFMData));
+    switch (pSrc->type) {
+        case kSectorSource_Encoded:
+            memcpy(dst->payload.data.odd_bits, pSrc->u.encoded->data.odd_bits, sizeof(ADF_MFMData));
 
-        dst->payload.data_checksum.odd_bits = pSrc->u.encoded->data_checksum.odd_bits;
-        dst->payload.data_checksum.even_bits = pSrc->u.encoded->data_checksum.even_bits;
-    }
-    else {
-        const size_t nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
+            dst->payload.data_checksum.odd_bits = pSrc->u.encoded->data_checksum.odd_bits;
+            dst->payload.data_checksum.even_bits = pSrc->u.encoded->data_checksum.even_bits;
+            break;
 
-        mfm_encode_sector((const uint32_t*)pSrc->u.raw, dst->payload.data.odd_bits, nLongs);
+        case kSectorSource_Raw: {
+            const size_t nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
 
-        checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs);
-        mfm_encode_sector(&checksum, &dst->payload.data_checksum.odd_bits, 1);
+            mfm_encode_sector((const uint32_t*)pSrc->u.raw, dst->payload.data.odd_bits, nLongs);
+
+            checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs);
+            mfm_encode_sector(&checksum, &dst->payload.data_checksum.odd_bits, 1);
+            break;
+        }
+
+        case kSectorSource_Fill:
+            memset(dst->payload.data.odd_bits, pSrc->u.encodedByte, sizeof(ADF_MFMData));
+            checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+            mfm_encode_sector(&checksum, &dst->payload.data_checksum.odd_bits, 1);
+            break;
+
+        default:
+            abort();
+            break;
     }
 }
 
@@ -909,6 +923,11 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
             }
         }
     }
+    if (err != EOK) {
+        self->flags.isTrackBufferValid = 0;
+        throw(err);
+    }
+
 
     try(FloppyDisk_EnsureTrackCompositionBuffer(self));
 
@@ -922,22 +941,22 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
             const ADFSector* s = &self->sectors[i];
 
             if (s->isHeaderValid) {
-                sec_src.isEncoded = true;
+                sec_src.type = kSectorSource_Encoded;
                 sec_src.u.encoded = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
             }
             else {
-                // A sector with a read error. Just put random data down
-                sec_src.isEncoded = false;
-                sec_src.u.raw = pBuffer;
+                // A sector with a read error. Just fill teh sector data with (raw) 0s
+                sec_src.type = kSectorSource_Fill;
+                sec_src.u.encodedByte = 0xAA;
             }
 
-            FloppyDisk_BuildSector(self, head, cylinder, i, &sec_src);
         }
         else {
-            sec_src.isEncoded = false;
+            sec_src.type = kSectorSource_Raw;
             sec_src.u.raw = pBuffer;
-            FloppyDisk_BuildSector(self, head, cylinder, sector, &sec_src);
         }
+
+        FloppyDisk_BuildSector(self, head, cylinder, i, &sec_src);
     }
 
 

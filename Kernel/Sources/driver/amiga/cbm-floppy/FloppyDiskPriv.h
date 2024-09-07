@@ -99,11 +99,18 @@ typedef struct DiskRequest {
 // XXX tmp
 
 
+enum BuildSectorSourceType {
+    kSectorSource_Encoded,      // Sector source data is MFM encoded sector data
+    kSectorSource_Raw,          // Sector source data is raw sector data
+    kSectorSource_Fill,         // Sector data should be filled with the provided MFM encoded byte
+};
+
 typedef struct BuildSectorSource {
-    bool    isEncoded;
+    int     type;
     union {
         const ADF_MFMSector*    encoded;        // take source sector data and checksum as is
         const void*             raw;            // 512 raw bytes (not MFM encoded)
+        int                     encodedByte;    // Fill the sector data with this MFM encoded byte
     }       u;
 } BuildSectorSource;
 
