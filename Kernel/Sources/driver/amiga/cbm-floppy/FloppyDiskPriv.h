@@ -62,6 +62,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     // Buffer used to compose a track for writing
     uint16_t* _Nullable         trackCompositionBuffer;
     int16_t                     trackWriteWordCount;                // number of words to write to a track
+    uint8_t                     sectorDataBuffer[ADF_SECTOR_DATA_SIZE];
 
     // Disk geometry
     LogicalBlockCount           blocksPerDisk;                      // disk size in terms of logical blocks
@@ -96,22 +97,6 @@ typedef struct DiskRequest {
     errno_t                 err;        // out
 } DiskRequest;
 // XXX tmp
-
-
-enum BuildSectorSourceType {
-    kSectorSource_Encoded,      // Sector source data is MFM encoded sector data
-    kSectorSource_Raw,          // Sector source data is raw sector data
-    kSectorSource_Fill,         // Sector data should be filled with the provided MFM encoded byte
-};
-
-typedef struct BuildSectorSource {
-    int     type;
-    union {
-        const ADF_MFMSector*    encoded;        // take source sector data and checksum as is
-        const void*             raw;            // 512 raw bytes (not MFM encoded)
-        int                     encodedByte;    // Fill the sector data with this MFM encoded byte
-    }       u;
-} BuildSectorSource;
 
 
 static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);

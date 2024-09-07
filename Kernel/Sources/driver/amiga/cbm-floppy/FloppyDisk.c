@@ -652,7 +652,7 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
     // The header checksum is calculated based on:
     // - 2 MFM info longwords
     // - 8 MFM sector label longwords
-    mfm_decode_sector(&mfmSector->header_checksum.odd_bits, &diskChecksum, 1);
+    mfm_decode_bits(&mfmSector->header_checksum.odd_bits, &diskChecksum, 1);
     myChecksum = mfm_checksum(&mfmSector->info.odd_bits, 2 + 8);
 
     if (diskChecksum != myChecksum) {
@@ -661,7 +661,7 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
 
 
     // MFM decode the sector info long word
-    mfm_decode_sector(&mfmSector->info.odd_bits, (uint32_t*)&info, 1);
+    mfm_decode_bits(&mfmSector->info.odd_bits, (uint32_t*)&info, 1);
 
 
     // Validate the sector info
@@ -680,7 +680,7 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
             s->isHeaderValid = true;
 
             // Validate the sector data
-            mfm_decode_sector(&mfmSector->data_checksum.odd_bits, &diskChecksum, 1);
+            mfm_decode_bits(&mfmSector->data_checksum.odd_bits, &diskChecksum, 1);
             myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
             s->isDataValid = (diskChecksum == myChecksum) ? true : false;
 
@@ -810,7 +810,7 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
         if (s->isDataValid) {
             // MFM decode the sector data
             const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
-            mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+            mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
         }
         else {
             self->readErrorCount++;
@@ -820,69 +820,6 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
 
 catch:
     return err;
-}
-
-static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTrack, int sector, const BuildSectorSource* _Nonnull pSrc)
-{
-    ADF_MFMSyncedSector* pt = (ADF_MFMSyncedSector*)self->trackCompositionBuffer;
-    ADF_MFMSyncedSector* dst = (ADF_MFMSyncedSector*)&pt[sector];
-    ADF_SectorInfo info;
-    uint32_t label[4] = {0,0,0,0};
-    uint32_t checksum;
-
-    // Sync marks
-    dst->sync[0] = ADF_MFM_PRESYNC;
-    dst->sync[1] = ADF_MFM_PRESYNC;
-    dst->sync[2] = ADF_MFM_SYNC;
-    dst->sync[3] = ADF_MFM_SYNC;
-
-
-    // Sector info
-    info.format = ADF_FORMAT_V1;
-    info.track = targetTrack;
-    info.sector = sector;
-    info.sectors_until_gap = self->sectorsPerTrack - sector;
-    mfm_encode_sector((const uint32_t*)&info, &dst->payload.info.odd_bits, 1);
-
-
-    // Sector label
-    mfm_encode_sector(label, dst->payload.label.odd_bits, 4);
-
-
-    // Header checksum
-    checksum = mfm_checksum(&dst->payload.info.odd_bits, 10);
-    mfm_encode_sector(&checksum, &dst->payload.header_checksum.odd_bits, 1);
-
-
-    // Data and data checksum
-    switch (pSrc->type) {
-        case kSectorSource_Encoded:
-            memcpy(dst->payload.data.odd_bits, pSrc->u.encoded->data.odd_bits, sizeof(ADF_MFMData));
-
-            dst->payload.data_checksum.odd_bits = pSrc->u.encoded->data_checksum.odd_bits;
-            dst->payload.data_checksum.even_bits = pSrc->u.encoded->data_checksum.even_bits;
-            break;
-
-        case kSectorSource_Raw: {
-            const size_t nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
-
-            mfm_encode_sector((const uint32_t*)pSrc->u.raw, dst->payload.data.odd_bits, nLongs);
-
-            checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs);
-            mfm_encode_sector(&checksum, &dst->payload.data_checksum.odd_bits, 1);
-            break;
-        }
-
-        case kSectorSource_Fill:
-            memset(dst->payload.data.odd_bits, pSrc->u.encodedByte, sizeof(ADF_MFMData));
-            checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
-            mfm_encode_sector(&checksum, &dst->payload.data_checksum.odd_bits, 1);
-            break;
-
-        default:
-            abort();
-            break;
-    }
 }
 
 // Checks whether the track that is stored in the track buffer is 'targetTrack'
@@ -904,6 +841,51 @@ static bool FloppyDisk_IsTrackGoodForWriting(FloppyDiskRef _Nonnull self, uint8_
     }
 
     return (nTargetTrack == self->sectorsPerTrack) && (nValidData == (self->sectorsPerTrack - 1)) ? true : false;
+}
+
+static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTrack, int sector, const void* _Nonnull s_dat)
+{
+    ADF_MFMSyncedSector* pt = (ADF_MFMSyncedSector*)self->trackCompositionBuffer;
+    ADF_MFMSyncedSector* dst = (ADF_MFMSyncedSector*)&pt[sector];
+    ADF_SectorInfo info;
+    uint32_t label[4] = {0,0,0,0};
+    uint32_t checksum;
+
+    // Sync marks
+    dst->sync[0] = ADF_MFM_PRESYNC;
+    dst->sync[1] = ADF_MFM_PRESYNC;
+    dst->sync[2] = ADF_MFM_SYNC;
+    dst->sync[3] = ADF_MFM_SYNC;
+
+
+    // Sector info
+    info.format = ADF_FORMAT_V1;
+    info.track = targetTrack;
+    info.sector = sector;
+    info.sectors_until_gap = self->sectorsPerTrack - sector;
+    mfm_encode_bits((const uint32_t*)&info, &dst->payload.info.odd_bits, 1);
+
+
+    // Sector label
+    mfm_encode_bits(label, dst->payload.label.odd_bits, 4);
+
+
+    // Header checksum
+    checksum = mfm_checksum(&dst->payload.info.odd_bits, 10);
+    mfm_encode_bits(&checksum, &dst->payload.header_checksum.odd_bits, 1);
+
+
+    // Data and data checksum
+    const size_t nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
+
+    mfm_encode_bits((const uint32_t*)s_dat, dst->payload.data.odd_bits, nLongs);
+
+    checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs);
+    mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
+
+
+    // Adjust the MFM clock bits for all bits in the sector (header + data)
+    mfm_adj_clock_bits((uint16_t*)&dst->payload, ADF_MFM_SECTOR_SIZE / 2);
 }
 
 static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, const void* pBuffer)
@@ -943,28 +925,28 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
 
     // Layout:
     // sector #1, ..., sector #11, gap
-    BuildSectorSource sec_src;
-
     for (int i = 0; i < self->sectorsPerTrack; i++) {
+        const void* s_dat;
+
         if (i != sector) {
             const ADFSector* s = &self->sectors[i];
 
             if (s->isHeaderValid) {
-                sec_src.type = kSectorSource_Encoded;
-                sec_src.u.encoded = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
+                const ADF_MFMSector* s_mfm_dat = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
+                mfm_decode_bits((const uint32_t*)s_mfm_dat->data.odd_bits, (uint32_t*)self->sectorDataBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+                s_dat = self->sectorDataBuffer;
             }
             else {
                 // A sector with a read error. Just fill the sector data with (raw) 0s
-                sec_src.type = kSectorSource_Fill;
-                sec_src.u.encodedByte = 0xAA;
+                memset(self->sectorDataBuffer, 0, ADF_SECTOR_DATA_SIZE);
+                s_dat = self->sectorDataBuffer;
             }
         }
         else {
-            sec_src.type = kSectorSource_Raw;
-            sec_src.u.raw = pBuffer;
+            s_dat = pBuffer;
         }
 
-        FloppyDisk_BuildSector(self, targetTrack, i, &sec_src);
+        FloppyDisk_BuildSector(self, targetTrack, i, s_dat);
     }
 
 

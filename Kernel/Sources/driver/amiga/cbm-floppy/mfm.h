@@ -11,8 +11,10 @@
 
 #include <klib/klib.h>
 
-extern void mfm_decode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size);
-extern void mfm_encode_sector(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size);
+extern void mfm_decode_bits(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size);
+extern void mfm_encode_bits(const uint32_t* _Nonnull input, uint32_t* _Nonnull output, size_t data_size);
+// Expects that there is one uint16_t in front of 'data'
+extern void mfm_adj_clock_bits(uint16_t* _Nonnull data, size_t data_size);
 
 extern uint32_t mfm_checksum(const uint32_t* _Nonnull input, size_t data_size);
 
