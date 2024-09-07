@@ -276,8 +276,9 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
     Lock_Lock(&self->lock);
 
     // Turn DMA off
-    *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;
-    *CHIPSET_REG_16(cs, DMACON) = 0x10;
+    *CHIPSET_REG_16(cs, DSKLEN) = 0x4000;   // Floppy DMA off
+    *CHIPSET_REG_16(cs, DMACON) = 0x10;     // Floppy DMA off
+    *CHIPSET_REG_16(cs, ADKCON) = 0x400;    // Sync detection off
 
 
     // Deselect all drives
