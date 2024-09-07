@@ -54,7 +54,7 @@ final_class_ivars(FloppyDisk, DiskDriver,
     TimerRef _Nullable          updateHasDiskState;
 
     // Buffer used to cache a read track
-    ADFSector* _Nullable        sectors;                            // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
+    ADFSector                   sectors[ADF_MAX_SECS_PER_TRACK];    // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
     uint16_t* _Nullable         trackBuffer;                        // cached read track data (MFM encoded)
     int16_t                     trackReadWordCount;                 // cached read track buffer size in words
     int16_t                     gapSize;                            // track gap size

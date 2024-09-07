@@ -167,19 +167,9 @@ static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
 {
     decl_try_err();
 
-    if (self->trackBuffer) {
-        return EOK;
+    if (self->trackBuffer == NULL) {
+        err = kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
     }
-    
-    err = kalloc_options(sizeof(uint16_t) * self->trackReadWordCount, KALLOC_OPTION_UNIFIED, (void**) &self->trackBuffer);
-    if (err == EOK) {
-        err = kalloc_options(sizeof(ADFSector) * self->sectorsPerTrack, KALLOC_OPTION_CLEAR, (void**) &self->sectors);
-        if (err == EOK) {
-            return EOK;
-        }
-    }
-
-    FloppyDisk_DisposeTrackBuffer(self);
     return err;
 }
 
@@ -188,10 +178,6 @@ static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
     if (self->trackBuffer) {
         kfree(self->trackBuffer);
         self->trackBuffer = NULL;
-    }
-    if (self->sectors) {
-        kfree(self->sectors);
-        self->sectors = NULL;
     }
 }
 
