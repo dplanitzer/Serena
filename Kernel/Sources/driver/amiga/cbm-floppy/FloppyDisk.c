@@ -843,7 +843,7 @@ static bool FloppyDisk_IsTrackGoodForWriting(FloppyDiskRef _Nonnull self, uint8_
     return (nTargetTrack == self->sectorsPerTrack) && (nValidData == (self->sectorsPerTrack - 1)) ? true : false;
 }
 
-static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTrack, int sector, const void* _Nonnull s_dat)
+static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTrack, int sector, const void* _Nonnull s_dat, bool isDataValid)
 {
     ADF_MFMSyncedSector* pt = (ADF_MFMSyncedSector*)self->trackCompositionBuffer;
     ADF_MFMSyncedSector* dst = (ADF_MFMSyncedSector*)&pt[sector];
@@ -875,12 +875,17 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTr
     mfm_encode_bits(&checksum, &dst->payload.header_checksum.odd_bits, 1);
 
 
-    // Data and data checksum
+    // Data and data checksum. Note that we generate an incorrect data checksum
+    // if the this sector is supposed to be a 'defective' sector. Aka a sector
+    // that was originally stored on the disk and where the data checksum didn't
+    // check out when we read it in. We do this to ensure that we do not
+    // accidentally 'resurrect' a defective sector. We want to make sure that it
+    // stays defective after we rewrote it to disk again.
     const size_t nLongs = ADF_SECTOR_DATA_SIZE / sizeof(uint32_t);
 
     mfm_encode_bits((const uint32_t*)s_dat, dst->payload.data.odd_bits, nLongs);
 
-    checksum = mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs);
+    checksum = (isDataValid) ? mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs) : 0;
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 
 
@@ -927,6 +932,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     // sector #1, ..., sector #11, gap
     for (int i = 0; i < self->sectorsPerTrack; i++) {
         const void* s_dat;
+        bool is_good;
 
         if (i != sector) {
             const ADFSector* s = &self->sectors[i];
@@ -935,18 +941,21 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
                 const ADF_MFMSector* s_mfm_dat = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
                 mfm_decode_bits((const uint32_t*)s_mfm_dat->data.odd_bits, (uint32_t*)self->sectorDataBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
                 s_dat = self->sectorDataBuffer;
+                is_good = s->isDataValid;
             }
             else {
                 // A sector with a read error. Just fill the sector data with (raw) 0s
                 memset(self->sectorDataBuffer, 0, ADF_SECTOR_DATA_SIZE);
                 s_dat = self->sectorDataBuffer;
+                is_good = false;
             }
         }
         else {
             s_dat = pBuffer;
+            is_good = true;
         }
 
-        FloppyDisk_BuildSector(self, targetTrack, i, s_dat);
+        FloppyDisk_BuildSector(self, targetTrack, i, s_dat, is_good);
     }
 
 
