@@ -556,10 +556,6 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
     }
 
 
-    // Make sure we got a track buffer
-    try(FloppyDisk_EnsureTrackBuffer(self));
-
-
     // Wait until the motor has reached its target speed
     try(FloppyDisk_WaitForDiskReady(self));
 
@@ -761,7 +757,14 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self, uint8_t targetTrac
 #if 0
     print("c: %d, h: %d ---------- tb: %p, limit: %p\n", self->cylinder, self->head, self->trackBuffer, pt_limit);
     for(int i = 0; i < self->sectorsPerTrack; i++) {
-        print(" s: %d, sug: %d, off: %d\n", self->sectors[i].info.sector, self->sectors[i].info.sectors_until_gap, self->sectors[i].offsetToHeader*2);
+        const ADFSector* s = &self->sectors[i];
+
+        print(" s: %*d, sug: %*d, off: %*d, v: %c%c, addr: %p\n",
+            2, s->info.sector,
+            2, s->info.sectors_until_gap,
+            5, s->offsetToHeader*2,
+            s->isHeaderValid ? 'H' : '-', s->isDataValid ? 'D' : '-',
+            s);
     }
     print(" gap at: %d, gap size: %d\n", (char*)pg_start - (char*)pt_start, 2*self->gapSize);
     print("\n");
@@ -772,8 +775,11 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
 {
     decl_try_err();
     const uint8_t targetTrack = FloppyDisk_TrackFromCylinderAndHead(cylinder, head);
-    const ADFSector* s = &self->sectors[sector];
     
+    try(FloppyDisk_EnsureTrackBuffer(self));
+    const ADFSector* s = &self->sectors[sector];
+
+
     // Check whether we got the desired sector already in the track buffer and
     // load it in if not.
     if (s->info.track != targetTrack || (s->info.track == targetTrack && !s->isDataValid)) {
@@ -789,7 +795,6 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
                     if (!s->isDataValid) {
                         self->readErrorCount++;
                         err = EIO;
-                        print("*** a\n");
                     }
                 }
                 if (err != EIO) {
@@ -808,12 +813,12 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
             mfm_decode_sector((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
         }
         else {
-            print("*** b\n");
             self->readErrorCount++;
             err = EIO;
         }
     }
 
+catch:
     return err;
 }
 
@@ -906,6 +911,8 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     decl_try_err();
     const uint8_t targetTrack = FloppyDisk_TrackFromCylinderAndHead(cylinder, head);
 
+    try(FloppyDisk_EnsureTrackBuffer(self));
+    try(FloppyDisk_EnsureTrackCompositionBuffer(self));
     try(FloppyDisk_BeginIO(self, cylinder, head));
 
 
@@ -932,9 +939,6 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     if (err != EOK) {
         throw(err);
     }
-
-
-    try(FloppyDisk_EnsureTrackCompositionBuffer(self));
 
 
     // Layout:
