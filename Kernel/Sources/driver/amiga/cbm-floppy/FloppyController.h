@@ -34,7 +34,7 @@ enum DriveStatus {
 
 
 enum Precompensation {
-    kPrecompensation_None = 0,
+    kPrecompensation_0ns = 0,
     kPrecompensation_140ns = 1,
     kPrecompensation_280ns = 2,
     kPrecompensation_560ns = 3

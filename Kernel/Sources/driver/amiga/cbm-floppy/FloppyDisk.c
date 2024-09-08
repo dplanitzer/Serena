@@ -558,13 +558,13 @@ static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
     int16_t nWords;
 
     if (bWrite) {
-        precompensation = (self->cylinder < self->cylindersPerDisk/2) ? kPrecompensation_140ns : kPrecompensation_280ns;
+        precompensation = (self->cylinder < self->cylindersPerDisk/2) ? kPrecompensation_0ns : kPrecompensation_140ns;
         nWords = self->trackWriteWordCount;
     }
     else {
         FloppyDisk_ResetTrackBuffer(self);
 
-        precompensation = 0;
+        precompensation = kPrecompensation_0ns;
         nWords = self->trackReadWordCount;
     }
 
