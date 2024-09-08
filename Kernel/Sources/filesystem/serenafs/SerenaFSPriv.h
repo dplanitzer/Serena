@@ -63,8 +63,9 @@ final_class_ivars(SerenaFS, Filesystem,
     struct {
         unsigned int    isMounted:1;    // true while mounted; false if not mounted
         unsigned int    isReadOnly:1;
-        unsigned int    reserved:30;
-    }                       flags;
+        unsigned int    isAccessUpdateOnReadEnabled:1;  // true if updates to the access-date on read operations are enabled
+        unsigned int    reserved:29;
+    }                       mountFlags; // Flags that remain constant as long as the FS is mounted
 
     DiskDriverRef _Nullable diskDriver;
 

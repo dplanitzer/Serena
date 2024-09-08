@@ -184,7 +184,7 @@ errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nulla
 
     err = SELock_LockShared(&self->seLock);
     if (err == EOK) {
-        if (self->flags.isMounted) {
+        if (self->mountFlags.isMounted) {
             err = Filesystem_AcquireNodeWithId((FilesystemRef)self, self->rootDirLba, pOutDir);
         }
         else {

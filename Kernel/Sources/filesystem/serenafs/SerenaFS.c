@@ -161,7 +161,7 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
         return err;
     }
 
-    if (self->flags.isMounted) {
+    if (self->mountFlags.isMounted) {
         throw(EIO);
     }
 
@@ -174,6 +174,13 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
         throw(EIO);
     }
 
+
+    // Establish the default mount settings
+    self->mountFlags.isAccessUpdateOnReadEnabled = 1;
+    self->mountFlags.isReadOnly = 0;
+
+
+    // Get the FS root block
     try(DiskDriver_GetBlock(pDriver, self->tmpBlock, 0));
     const SFSVolumeHeader* vhp = (const SFSVolumeHeader*)self->tmpBlock;
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
@@ -218,15 +225,18 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
     // Store the disk driver reference
     self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
-    self->flags.isMounted = 1;
+    self->mountFlags.isMounted = 1;
     // XXX should be drive->is_readonly || mount-params->is_readonly
     if (DiskDriver_IsReadOnly(pDriver)) {
-        self->flags.isReadOnly = 1;
-    }
-    else {
-        self->flags.isReadOnly = 0;
+        self->mountFlags.isReadOnly = 1;
     }
     
+#ifdef __SERENA__
+    // XXX disabled updates to the access dates for now as long as there's no
+    // XXX disk cache and no boot-from-HD support
+    self->mountFlags.isAccessUpdateOnReadEnabled = 0;
+#endif
+
 catch:
     SELock_Unlock(&self->seLock);
     return err;
@@ -239,7 +249,7 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
     if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
         return err;
     }
-    if (!self->flags.isMounted) {
+    if (!self->mountFlags.isMounted) {
         throw(EIO);
     }
     if (!Filesystem_CanUnmount((FilesystemRef)self)) {
@@ -255,8 +265,7 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
     
     Object_Release(self->diskDriver);
     self->diskDriver = NULL;
-    self->flags.isMounted = 0;
-    self->flags.isReadOnly = 0;
+    self->mountFlags.isMounted = 0;
 
 catch:
     SELock_Unlock(&self->seLock);
@@ -265,7 +274,7 @@ catch:
 
 bool SerenaFS_isReadOnly(SerenaFSRef _Nonnull self)
 {
-    return (self->flags.isReadOnly) ? true : false;
+    return (self->mountFlags.isReadOnly) ? true : false;
 }
 
 static errno_t SerenaFS_unlinkCore(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir)

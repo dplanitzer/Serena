@@ -150,7 +150,7 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
     }
 
     *pOutBytesRead = nBytesRead;
-    if (*pOutBytesRead > 0) {
+    if (*pOutBytesRead > 0 && self->mountFlags.isAccessUpdateOnReadEnabled) {
         Inode_SetModified(pNode, kInodeFlag_Accessed);
     }
     return err;
