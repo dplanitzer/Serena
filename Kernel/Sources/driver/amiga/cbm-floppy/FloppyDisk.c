@@ -657,18 +657,21 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
         && info.sectors_until_gap <= self->sectorsPerTrack) {
         // Record the sector. Note that a sector may appear more than once because
         // we may have read more data from the disk than fits in a single track.
-        // We keep the first occurrence of a sector.
+        // We keep the first occurrence of a sector and the second occurrence if
+        // the first one has incorrect data and the second one's data is correct.
         ADFSector* s = &self->sectors[info.sector];
 
-        if (!s->isHeaderValid) {
+        // Validate the sector data
+        mfm_decode_bits(&mfmSector->data_checksum.odd_bits, &diskChecksum, 1);
+        myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
+        const bool diskDataValid = (diskChecksum == myChecksum) ? true : false;
+
+        if (!s->isHeaderValid || (s->isHeaderValid && !s->isDataValid && diskDataValid)) {
             s->info = info;
             s->offsetToHeader = offset;
             s->isHeaderValid = true;
 
-            // Validate the sector data
-            mfm_decode_bits(&mfmSector->data_checksum.odd_bits, &diskChecksum, 1);
-            myChecksum = mfm_checksum(mfmSector->data.odd_bits, 256);
-            s->isDataValid = (diskChecksum == myChecksum) ? true : false;
+            s->isDataValid = diskDataValid;
 
             *pOutSectorsUntilGap = info.sectors_until_gap;
             return true;
