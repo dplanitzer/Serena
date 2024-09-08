@@ -838,8 +838,8 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTr
     uint32_t checksum;
 
     // Sync marks
-    dst->sync[0] = ADF_MFM_PRESYNC;
-    dst->sync[1] = ADF_MFM_PRESYNC;
+    dst->sync[0] = 0;
+    dst->sync[1] = 0;
     dst->sync[2] = ADF_MFM_SYNC;
     dst->sync[3] = ADF_MFM_SYNC;
 
@@ -873,10 +873,6 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTr
 
     checksum = (isDataValid) ? mfm_checksum(dst->payload.data.odd_bits, 2 * nLongs) : 0;
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
-
-
-    // Adjust the MFM clock bits for all bits in the sector (header + data)
-    mfm_adj_clock_bits((uint16_t*)&dst->payload, ADF_MFM_SECTOR_SIZE / 2);
 }
 
 static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, const void* pBuffer)
@@ -950,7 +946,25 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     // last 3 bits when writing to disk. Also, we want to minimize the chance
     // that the new gap may coincidentally contain the start (sync mark) of an
     // old sector.
-    memset(&self->trackCompositionBuffer[sizeof(ADF_MFMSyncedSector)/2 * self->sectorsPerTrack], 0xAA, ADF_MFM_SYNC_SIZE);
+    ADF_MFMSyncedSector* tcb = (ADF_MFMSyncedSector*)self->trackCompositionBuffer;
+    memset(&tcb[self->sectorsPerTrack], 0, ADF_MFM_SYNC_SIZE);
+
+
+    // Adjust the MFM clock bits in the header and data portions of every sector
+    // to make them compliant with the MFM spec. Note that we do this for the
+    // 1080 bytes of the sector + the word following the sector. The reason is
+    // that bit #0 of the last word in the sector data region may be 1 or 0 and
+    // depending on that, the MSB in the word following the sector has to be
+    // adjusted. So this word may come out as 0xAAAA or 0x2AAA.  
+    for (int i = 0; i < self->sectorsPerTrack; i++) {
+        const size_t trailerWordCount = (i < self->sectorsPerTrack - 1) ? 2 : ADF_MFM_SYNC_SIZE / 2;
+
+        mfm_adj_clock_bits((uint16_t*)&tcb[i].payload, ADF_MFM_SECTOR_SIZE / 2 + trailerWordCount);
+    }
+
+    // First sector MFM encoded pre-sync words
+    self->trackCompositionBuffer[0] = ADF_MFM_PRESYNC;
+    self->trackCompositionBuffer[1] = ADF_MFM_PRESYNC;
 
 
     // Move the newly composed track to the DMA buffer
