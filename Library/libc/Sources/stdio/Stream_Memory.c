@@ -44,7 +44,7 @@ static errno_t __mem_read(__Memory_FILE_Vars* _Nonnull mp, void* pBuffer, ssize_
     }
     *pOutBytesRead = nBytesRead;
 
-    return 0;
+    return EOK;
 }
 
 static errno_t __mem_write(__Memory_FILE_Vars* _Nonnull mp, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
@@ -94,41 +94,48 @@ static errno_t __mem_write(__Memory_FILE_Vars* _Nonnull mp, const void* pBytes, 
         mp->eofPosition = mp->currentPosition;
     }
 
-    return 0;
+    return EOK;
 }
 
-static errno_t __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, long long* _Nullable outOldOffset, int whence)
+static errno_t __mem_seek(__Memory_FILE_Vars* _Nonnull mp, long long offset, long long* _Nullable pOutOldOffset, int whence)
 {
-    size_t newPosition;
+    long long newOffset;
 
     switch (whence) {
         case SEEK_CUR:
-            newPosition = mp->currentPosition + offset;
+            newOffset = (long long)mp->currentPosition + offset;
             break;
 
         case SEEK_END:
-            newPosition = mp->eofPosition + offset;
+            newOffset = (long long)mp->eofPosition + offset;
             break;
 
         case SEEK_SET:
-            newPosition = offset;
+            newOffset = offset;
             break;
 
         default:
-            abort();
-            break;
+            return EINVAL;
     }
 
-    // XXX do overflow check
+    if (newOffset < 0 || newOffset > SIZE_MAX) {
+        return EOVERFLOW;
+    }
 
-    // Expand EOF out if we were told to seek past the current EOF
+    // Expand EOF out if we were told to seek past the current EOF. Note that
+    // the next __mem_read() and __mem_write() will take care of the range check
+    // and actual backing store expansion.
+    const size_t newPosition = (size_t)newOffset;
     if (newPosition > mp->eofPosition) {
         mp->eofPosition = newPosition;
     }
 
+    if (pOutOldOffset) {
+        *pOutOldOffset = mp->currentPosition;
+    }
     mp->currentPosition = newPosition;
 
-    return 0;
+    return EOK;
 }
 
 static errno_t __mem_close(__Memory_FILE_Vars* _Nonnull mp)
@@ -138,7 +145,7 @@ static errno_t __mem_close(__Memory_FILE_Vars* _Nonnull mp)
     }
     mp->store = NULL;
 
-    return 0;
+    return EOK;
 }
 
 static const FILE_Callbacks __FILE_mem_callbacks = {
@@ -170,7 +177,7 @@ errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, __FI
         mp->currentPosition = 0;
         mp->eofPosition = mem->initialEof;
     }
-    
+
     mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
     return __fopen_init((FILE*)self, true, mp, &__FILE_mem_callbacks, sm);
@@ -189,7 +196,7 @@ int filemem(FILE *s, FILE_MemoryQuery *query)
         query->base = mp->store;
         query->eof = mp->eofPosition;
         query->capacity = mp->currentCapacity;
-        return 0;
+        return EOK;
     }
     else {
         query->base = NULL;

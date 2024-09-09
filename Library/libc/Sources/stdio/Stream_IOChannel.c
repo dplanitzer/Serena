@@ -23,9 +23,9 @@ static errno_t __ioc_write(__IOChannel_FILE_Vars* _Nonnull self, const void* pBy
     return IOChannel_Write(self->ioc, pBytes, nBytesToWrite, pOutBytesWritten);
 }
 
-static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *outOldOffset, int whence)
+static errno_t __ioc_seek(__IOChannel_FILE_Vars* _Nonnull self, long long offset, long long *pOutOldOffset, int whence)
 {
-    return File_Seek(self->ioc, offset, outOldOffset, whence);
+    return File_Seek(self->ioc, offset, pOutOldOffset, whence);
 }
 
 static errno_t __ioc_close(__IOChannel_FILE_Vars* _Nonnull self)

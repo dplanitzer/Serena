@@ -18,13 +18,13 @@
 static errno_t __null_read(void* _Nonnull self, void* pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     *pOutBytesRead = 0;
-    return 0;
+    return EOK;
 }
 
 static errno_t __null_write(void* _Nonnull self, const void* pBytes, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     *pOutBytesWritten = nBytesToWrite;
-    return 0;
+    return EOK;
 }
 
 static const FILE_Callbacks __FILE_null_callbacks = {
