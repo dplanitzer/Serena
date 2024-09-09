@@ -834,8 +834,8 @@ static bool FloppyDisk_IsTrackGoodForWriting(FloppyDiskRef _Nonnull self, uint8_
 
 static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTrack, int sector, const void* _Nonnull s_dat, bool isDataValid)
 {
-    ADF_MFMSyncedSector* pt = (ADF_MFMSyncedSector*)self->trackCompositionBuffer;
-    ADF_MFMSyncedSector* dst = (ADF_MFMSyncedSector*)&pt[sector];
+    ADF_MFMPhysicalSector* pt = (ADF_MFMPhysicalSector*)self->trackCompositionBuffer;
+    ADF_MFMPhysicalSector* dst = (ADF_MFMPhysicalSector*)&pt[sector];
     ADF_SectorInfo info;
     uint32_t label[4] = {0,0,0,0};
     uint32_t checksum;
@@ -949,7 +949,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     // last 3 bits when writing to disk. Also, we want to minimize the chance
     // that the new gap may coincidentally contain the start (sync mark) of an
     // old sector.
-    ADF_MFMSyncedSector* tcb = (ADF_MFMSyncedSector*)self->trackCompositionBuffer;
+    ADF_MFMPhysicalSector* tcb = (ADF_MFMPhysicalSector*)self->trackCompositionBuffer;
     memset(&tcb[self->sectorsPerTrack], 0, ADF_MFM_SYNC_SIZE);
 
 

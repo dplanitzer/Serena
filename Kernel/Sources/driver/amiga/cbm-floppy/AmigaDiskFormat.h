@@ -76,11 +76,11 @@ typedef struct ADF_MFMSector {
 } ADF_MFMSector;
 
 
-// A MFM sector complete with sync mark
-typedef struct ADF_MFMSyncedSector {
+// A MFM sector and its sync mark
+typedef struct ADF_MFMPhysicalSector {
     ADF_MFMSync     sync;
     ADF_MFMSector   payload;
-} ADF_MFMSyncedSector;
+} ADF_MFMPhysicalSector;
 
 
 //
