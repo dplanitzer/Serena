@@ -42,14 +42,8 @@ static const FILE_Callbacks __FILE_ioc_callbacks = {
 
 
 
-errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, const char *mode)
+errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, __FILE_Mode sm)
 {
-    __FILE_Mode sm;
-    const errno_t err = __fopen_parse_mode(mode, &sm);
-    if (err != EOK) {
-        return err;
-    }
-
     // The I/O channel must be valid and open
     const int iocmode = IOChannel_GetMode(ioc);
     if (iocmode == 0) {
@@ -69,19 +63,15 @@ errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int io
     }
 
     self->v.ioc = ioc;
-    return __fopen_init((FILE*)self, false, &self->v, &__FILE_ioc_callbacks, mode);
+    return __fopen_init((FILE*)self, false, &self->v, &__FILE_ioc_callbacks, sm);
 }
 
 
-errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filename, const char *mode)
+errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filename, __FILE_Mode sm)
 {
     decl_try_err();
     int options = 0;
     int ioc = -1;
-    __FILE_Mode sm;
-
-
-    try(__fopen_parse_mode(mode, &sm));
 
     if ((sm & __kStreamMode_Read) != 0) {
         options |= kOpen_Read;
@@ -109,7 +99,7 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
     }
     
     self->v.ioc = ioc;
-    try(__fopen_init((FILE*)self, true, &self->v, &__FILE_ioc_callbacks, mode));
+    try(__fopen_init((FILE*)self, true, &self->v, &__FILE_ioc_callbacks, sm));
 
 
     // Make sure that the return value of ftell() issued before the first write

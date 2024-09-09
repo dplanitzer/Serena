@@ -26,6 +26,7 @@ int asprintf(char **str_ptr, const char *format, ...)
 int vasprintf(char **str_ptr, const char *format, va_list ap)
 {
     decl_try_err();
+    const __FILE_Mode sm = __kStreamMode_Write | __kStreamMode_Truncate | __kStreamMode_Create;
     __Memory_FILE file;
     FILE_Memory mem;
     FILE_MemoryQuery mq;
@@ -44,11 +45,11 @@ int vasprintf(char **str_ptr, const char *format, va_list ap)
         mem.initialEof = 0;
         mem.options = 0;
 
-        err = __fopen_memory_init(&file, &mem, "w");
+        err = __fopen_memory_init(&file, &mem, sm);
     }
     else {
         // Use a null stream to calculate the length of the formatted string
-        err = __fopen_null_init(&file.super, "w");
+        err = __fopen_null_init(&file.super, sm);
     }
 
     if (err == EOK) {

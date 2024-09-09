@@ -13,10 +13,12 @@
 FILE *__fopen_null(const char *mode)
 {
     decl_try_err();
+    __FILE_Mode sm;
     FILE* self = NULL;
 
+    try(__fopen_parse_mode(mode, &sm));
     try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(FILE)), ENOMEM);
-    try(__fopen_null_init(self, mode));
+    try(__fopen_null_init(self, sm));
 
     return self;
 

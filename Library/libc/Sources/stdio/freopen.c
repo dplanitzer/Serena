@@ -20,7 +20,7 @@ FILE *freopen(const char *filename, const char *mode, FILE *s)
 
     __fclose(s);
     isOldStreamClosed = true;
-    try(__fopen_filename_init((__IOChannel_FILE*)s, filename, mode));
+    try(__fopen_filename_init((__IOChannel_FILE*)s, filename, sm));
     return s;
 
 catch:

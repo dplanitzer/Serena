@@ -21,7 +21,7 @@ FILE *fdreopen(int ioc, const char *mode, FILE *s)
 
     __fclose(s);
     isOldStreamClosed = true;
-    try(__fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, mode));
+    try(__fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, sm));
     return s;
 
 catch:
