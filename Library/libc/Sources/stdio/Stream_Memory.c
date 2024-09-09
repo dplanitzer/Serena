@@ -157,8 +157,20 @@ errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, __FI
     mp->store = mem->base;
     mp->currentCapacity = mem->initialCapacity;
     mp->maximumCapacity = mem->maximumCapacity;
-    mp->eofPosition = mem->initialEof;
-    mp->currentPosition = ((sm & __kStreamMode_Append) == 0) ? 0 : mp->eofPosition;
+
+    if ((sm & __kStreamMode_Append) == __kStreamMode_Append) {
+        mp->currentPosition = mem->initialEof;
+        mp->eofPosition = mem->initialEof;
+    }
+    else if ((sm & __kStreamMode_Truncate) == __kStreamMode_Truncate) {
+        mp->currentPosition = 0;
+        mp->eofPosition = 0;
+    }
+    else {
+        mp->currentPosition = 0;
+        mp->eofPosition = mem->initialEof;
+    }
+    
     mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
     return __fopen_init((FILE*)self, true, mp, &__FILE_mem_callbacks, sm);

@@ -70,7 +70,7 @@ errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int io
 errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filename, __FILE_Mode sm)
 {
     decl_try_err();
-    int options = 0;
+    unsigned int options = 0;
     int ioc = -1;
 
     if ((sm & __kStreamMode_Read) != 0) {
