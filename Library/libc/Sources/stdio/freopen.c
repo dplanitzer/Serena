@@ -12,18 +12,21 @@
 
 FILE *freopen(const char *filename, const char *mode, FILE *s)
 {
-    if ((__fopen_parse_mode(mode) & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
-        fclose(s);
-        return NULL;
-    }
+    decl_try_err();
+    bool isOldStreamClosed = false;
+    __FILE_Mode sm;
+
+    try(__fopen_parse_mode(mode, &sm));
 
     __fclose(s);
-    const errno_t err = __fopen_filename_init((__IOChannel_FILE*)s, filename, mode);
-    if (err != 0) {
-        errno = err;
-        return NULL;
+    isOldStreamClosed = true;
+    try(__fopen_filename_init((__IOChannel_FILE*)s, filename, mode));
+    return s;
+
+catch:
+    if (!isOldStreamClosed) {
+        __fclose(s);
     }
-    else {
-        return s;
-    }
+    errno = err;
+    return NULL;
 }

@@ -12,20 +12,22 @@
 
 FILE *fdreopen(int ioc, const char *mode, FILE *s)
 {
+    decl_try_err();
     const bool isFreeOnClose = s->flags.shouldFreeOnClose;
-
-    if ((__fopen_parse_mode(mode) & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
-        fclose(s);
-        return NULL;
-    }
+    bool isOldStreamClosed = false;
+    __FILE_Mode sm;
+    
+    try(__fopen_parse_mode(mode, &sm));
 
     __fclose(s);
-    const errno_t err = __fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, mode);
-    if (err != 0) {
-        errno = err;
-        return NULL;
+    isOldStreamClosed = true;
+    try(__fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, mode));
+    return s;
+
+catch:
+    if (!isOldStreamClosed) {
+        __fclose(s);
     }
-    else {
-        return s;
-    }
+    errno = err;
+    return NULL;
 }

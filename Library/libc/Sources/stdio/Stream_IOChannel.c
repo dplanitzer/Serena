@@ -44,23 +44,27 @@ static const FILE_Callbacks __FILE_ioc_callbacks = {
 
 errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, const char *mode)
 {
-    const int sm = __fopen_parse_mode(mode);
-    const int iocmode = IOChannel_GetMode(ioc);
+    __FILE_Mode sm;
+    const errno_t err = __fopen_parse_mode(mode, &sm);
+    if (err != EOK) {
+        return err;
+    }
 
     // The I/O channel must be valid and open
+    const int iocmode = IOChannel_GetMode(ioc);
     if (iocmode == 0) {
         return EBADF;
     }
 
     // Make sure that 'mode' lines up with what the I/O channel can actually
     // do
-    if ((sm & __kStreamMode_Read) != 0 && (iocmode & kOpen_Read) == 0) {
+    if (((sm & __kStreamMode_Read) != 0) && ((iocmode & kOpen_Read) == 0)) {
         return EINVAL;
     }
-    if ((sm & __kStreamMode_Write) != 0 && (iocmode & kOpen_Write) == 0) {
+    if (((sm & __kStreamMode_Write) != 0) && ((iocmode & kOpen_Write) == 0)) {
         return EINVAL;
     }
-    if ((sm & __kStreamMode_Append) != 0 && (iocmode & kOpen_Append) == 0) {
+    if (((sm & __kStreamMode_Append) != 0) && ((iocmode & kOpen_Append) == 0)) {
         return EINVAL;
     }
 
@@ -74,7 +78,10 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
     decl_try_err();
     int options = 0;
     int ioc = -1;
-    const int sm = __fopen_parse_mode(mode);
+    __FILE_Mode sm;
+
+
+    try(__fopen_parse_mode(mode, &sm));
 
     if ((sm & __kStreamMode_Read) != 0) {
         options |= kOpen_Read;
@@ -90,13 +97,6 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
     }
     if ((sm & __kStreamMode_Exclusive) != 0) {
         options |= kOpen_Exclusive;
-    }
-
-    if ((options & kOpen_ReadWrite) == 0) {
-        throw(EINVAL);
-    }
-    if ((options & (kOpen_Append|kOpen_Truncate)) == (kOpen_Append|kOpen_Truncate)) {
-        throw(EINVAL);
     }
 
 
@@ -118,7 +118,7 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
         self->super.cb.seek(self->super.context, 0ll, NULL, SEEK_END);
     }
 
-    return 0;
+    return EOK;
 
 catch:
     if (ioc != -1) {

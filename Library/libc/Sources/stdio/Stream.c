@@ -28,8 +28,9 @@ static FILE*   gOpenFiles;
 //
 // "x" may be used with "w" and "w+". It enables exclusive mode which means that open() will return with
 // an error if the file already exists.
-__FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
+errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode)
 {
+    decl_try_err();
     __FILE_Mode sm = 0;
 
     while (*mode != '\0') {
@@ -65,7 +66,18 @@ __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode)
         mode++;
     }
 
-    return sm;
+    if ((sm & (__kStreamMode_Read|__kStreamMode_Write)) == 0) {
+        err = EINVAL;
+    }
+    if (((sm & __kStreamMode_Exclusive) == __kStreamMode_Exclusive) && ((sm & __kStreamMode_Write) == 0)) {
+        err = EINVAL;
+    }
+    if ((sm & (__kStreamMode_Append|__kStreamMode_Truncate)) == (__kStreamMode_Append|__kStreamMode_Truncate)) {
+        err = EINVAL;
+    }
+
+    *pOutMode = (err == EOK) ? sm : 0;
+    return err;
 }
 
 errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, const char* mode)
@@ -74,11 +86,12 @@ errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, cons
         return EINVAL;
     }
 
-    __FILE_Mode sm = __fopen_parse_mode(mode);
-
-    if (sm & (__kStreamMode_Read|__kStreamMode_Write) == 0) {
-        return EINVAL;
+    __FILE_Mode sm;
+    const errno_t err = __fopen_parse_mode(mode, &sm);
+    if (err != EOK) {
+        return err;
     }
+
     if ((sm & __kStreamMode_Read) != 0 && callbacks->read == NULL) {
         return EINVAL;
     }
@@ -101,7 +114,7 @@ errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, cons
         gOpenFiles = self;
     }
 
-    return 0;
+    return EOK;
 }
 
 // Shuts down the given stream but does not free the 's' memory block. 

@@ -153,12 +153,18 @@ static const FILE_Callbacks __FILE_mem_callbacks = {
 errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, const char *mode)
 {
     __Memory_FILE_Vars* mp = &self->v;
+    __FILE_Mode sm;
+
+    const errno_t err = __fopen_parse_mode(mode, &sm);
+    if (err != EOK) {
+        return err;
+    }
 
     mp->store = mem->base;
     mp->currentCapacity = mem->initialCapacity;
     mp->maximumCapacity = mem->maximumCapacity;
     mp->eofPosition = mem->initialEof;
-    mp->currentPosition = 0;
+    mp->currentPosition = ((sm & __kStreamMode_Append) == 0) ? 0 : mp->eofPosition;
     mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
     return __fopen_init((FILE*)self, true, mp, &__FILE_mem_callbacks, mode);

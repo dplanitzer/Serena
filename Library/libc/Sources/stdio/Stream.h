@@ -79,7 +79,7 @@ typedef struct __Memory_FILE {
 } __Memory_FILE;
 
 
-extern __FILE_Mode __fopen_parse_mode(const char* _Nonnull mode);
+extern errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnull pOutMode);
 
 extern errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, const char* mode);
 extern errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, const char *mode);
