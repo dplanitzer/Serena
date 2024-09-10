@@ -11,10 +11,7 @@
 
 #include <klib/klib.h>
 #include <kobj/Object.h>
-
-#ifndef FloppyDisk_h
-class_forward(FloppyDisk);
-#endif
+#include <driver/amiga/floppy/FloppyDisk.h>
 
 #define MAX_FLOPPY_DISK_DRIVES  4
 
