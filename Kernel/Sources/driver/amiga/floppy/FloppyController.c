@@ -8,21 +8,38 @@
 
 #include "FloppyController.h"
 #include "AmigaDiskFormat.h"
+#include <dispatcher/ConditionVariable.h>
+#include <dispatcher/Lock.h>
+#include <dispatcher/Semaphore.h>
+#include <driver/InterruptController.h>
 #include <driver/MonotonicClock.h>
 #include <hal/Platform.h>
 
+
+final_class_ivars(FloppyController, Object,
+    Lock                lock;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
+    ConditionVariable   cv;
+    Semaphore           done;       // Semaphore indicating whether the DMA is done
+    InterruptHandlerID  irqHandler;
+    struct __fdcFlags {
+        unsigned int        inUse:1;
+        unsigned int        reserved:31;
+    }                   flags;
+);
+
+
 extern void fdc_nano_delay(void);
-static void FloppyController_Destroy(FloppyController* _Nullable self);
-static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
+static void FloppyController_Destroy(FloppyControllerRef _Nullable self);
+static void _FloppyController_SetMotor(FloppyControllerRef _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff);
 
 
 // Creates the floppy controller
-errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutSelf)
+errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    FloppyController* self;
+    FloppyControllerRef self;
     
-    try(kalloc_cleared(sizeof(FloppyController), (void**) &self));
+    try(Object_Create(FloppyController, &self));
 
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->cv);
@@ -40,29 +57,25 @@ errno_t FloppyController_Create(FloppyController* _Nullable * _Nonnull pOutSelf)
     return EOK;
 
 catch:
-    FloppyController_Destroy(self);
+    Object_Release(self);
     *pOutSelf = NULL;
     return err;
 }
 
 // Destroys the floppy controller.
-static void FloppyController_Destroy(FloppyController* _Nullable self)
+static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
 {
-    if (self) {
-        if (self->irqHandler != 0) {
-            try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
-        }
-        self->irqHandler = 0;
-        
-        Semaphore_Deinit(&self->done);
-        ConditionVariable_Deinit(&self->cv);
-        Lock_Deinit(&self->lock);
-        
-        kfree(self);
+    if (self->irqHandler != 0) {
+        try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
     }
+    self->irqHandler = 0;
+        
+    Semaphore_Deinit(&self->done);
+    ConditionVariable_Deinit(&self->cv);
+    Lock_Deinit(&self->lock);
 }
 
-DriveState FloppyController_Reset(FloppyController* _Nonnull self, int drive)
+DriveState FloppyController_Reset(FloppyControllerRef _Nonnull self, int drive)
 {
     CIAB_BASE_DECL(ciab);
     uint8_t r;
@@ -84,7 +97,7 @@ DriveState FloppyController_Reset(FloppyController* _Nonnull self, int drive)
 }
 
 // Detects and returns the drive type
-uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, DriveState* _Nonnull cb)
+uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb)
 {
     CIAA_BASE_DECL(ciaa);
     CIAB_BASE_DECL(ciab);
@@ -115,7 +128,7 @@ uint32_t FloppyController_GetDriveType(FloppyController* _Nonnull self, DriveSta
 }
 
 // Returns the current drive status
-uint8_t FloppyController_GetStatus(FloppyController* _Nonnull self, DriveState cb)
+uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState cb)
 {
     CIAA_BASE_DECL(ciaa);
     CIAB_BASE_DECL(ciab);
@@ -156,14 +169,14 @@ static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, 
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
 // the motor to reach its final speed.
-void FloppyController_SetMotor(FloppyController* _Nonnull self, DriveState* _Nonnull cb, bool onoff)
+void FloppyController_SetMotor(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, bool onoff)
 {
     Lock_Lock(&self->lock);
     _FloppyController_SetMotor(self, cb, onoff);
     Lock_Unlock(&self->lock);
 }
 
-void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _Nonnull cb, int head)
+void FloppyController_SelectHead(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb, int head)
 {
     CIAB_BASE_DECL(ciab);
 
@@ -184,7 +197,7 @@ void FloppyController_SelectHead(FloppyController* _Nonnull self, DriveState* _N
 
 // Steps the drive head one cylinder towards the inside (+1) or the outside (-1)
 // of the drive.
-void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, int delta)
+void FloppyController_StepHead(FloppyControllerRef _Nonnull self, DriveState cb, int delta)
 {
     CIAB_BASE_DECL(ciab);
 
@@ -218,7 +231,7 @@ void FloppyController_StepHead(FloppyController* _Nonnull self, DriveState cb, i
 // Synchronously reads 'nWords' 16bit words into the given word buffer. Blocks
 // the caller until the DMA is available and all words have been transferred from
 // disk.
-errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
+errno_t FloppyController_DoIO(FloppyControllerRef _Nonnull self, DriveState cb, uint16_t precompensation, uint16_t* _Nonnull pData, int16_t nWords, bool bWrite)
 {
     decl_try_err();
     CIAB_BASE_DECL(ciab);
@@ -290,3 +303,8 @@ errno_t FloppyController_DoIO(FloppyController* _Nonnull self, DriveState cb, ui
 
     return (err == EOK) ? EOK : EIO;
 }
+
+
+class_func_defs(FloppyController, Object,
+override_func_def(deinit, FloppyController, Object)
+);

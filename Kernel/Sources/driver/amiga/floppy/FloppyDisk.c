@@ -22,7 +22,7 @@
 errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
 {
     decl_try_err();
-    FloppyController* fdc = NULL;
+    FloppyControllerRef fdc = NULL;
     int nDrivesOkay = 0;
 
     for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
@@ -57,7 +57,7 @@ errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
+static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull fdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDisk* self;
@@ -66,7 +66,7 @@ static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _No
     
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
-    self->fdc = pFdc;
+    self->fdc = fdc;
     self->drive = drive;
     self->driveState = ds;
 

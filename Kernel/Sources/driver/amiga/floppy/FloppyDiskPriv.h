@@ -46,8 +46,8 @@ typedef struct ADFSector {
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
-    DispatchQueueRef _Nonnull   dispatchQueue;
-    FloppyController * _Nonnull fdc;
+    DispatchQueueRef _Nonnull           dispatchQueue;
+    FloppyControllerRef _Nonnull _Weak  fdc;
 
     // Flow control
     TimerRef _Nullable          delayedMotorOff;
@@ -99,7 +99,7 @@ typedef struct DiskRequest {
 // XXX tmp
 
 
-static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyController* _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
+static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnDiskRemoved(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self);
