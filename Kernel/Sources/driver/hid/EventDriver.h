@@ -11,7 +11,7 @@
 
 #include <klib/klib.h>
 #include <kobj/Object.h>
-#include <driver/amiga/cbm-graphics/GraphicsDriver.h>
+#include <driver/amiga/graphics/GraphicsDriver.h>
 #include "HIDEvent.h"
 
 

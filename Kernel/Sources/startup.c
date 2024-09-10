@@ -16,7 +16,7 @@
 #include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
 #include <driver/RomDisk.h>
-#include <driver/amiga/cbm-floppy/FloppyDisk.h>
+#include <driver/amiga/floppy/FloppyDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/SerenaDiskImage.h>
