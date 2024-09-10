@@ -12,8 +12,9 @@
 #include <klib/klib.h>
 #include <kobj/Object.h>
 
-//class_forward(FloppyDisk);
-struct FloppyDisk;
+#ifndef FloppyDisk_h
+class_forward(FloppyDisk);
+#endif
 
 #define MAX_FLOPPY_DISK_DRIVES  4
 
@@ -25,6 +26,6 @@ final_class(FloppyController, Object);
 // Creates the floppy controller
 extern errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t FloppyController_DiscoverDrives(FloppyControllerRef _Nonnull self, struct FloppyDisk* _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES]);
+extern errno_t FloppyController_DiscoverDrives(FloppyControllerRef _Nonnull self, FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES]);
 
 #endif /* FloppyController_h */

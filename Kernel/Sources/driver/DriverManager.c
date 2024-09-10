@@ -245,7 +245,7 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 
     // Floppy
     FloppyControllerRef fdc = NULL;
-    struct FloppyDisk* fdx[MAX_FLOPPY_DISK_DRIVES];
+    FloppyDiskRef fdx[MAX_FLOPPY_DISK_DRIVES];
     char fdx_name[4];
 
     fdx_name[0] = 'f';

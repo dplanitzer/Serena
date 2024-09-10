@@ -6,8 +6,8 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include "FloppyDiskPriv.h"
 #include "FloppyControllerPkg.h"
-#include "adf.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
@@ -27,7 +27,6 @@ final_class_ivars(FloppyController, Object,
     }                   flags;
 );
 
-extern errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, struct FloppyDisk* _Nullable * _Nonnull pOutDisk);
 
 extern void fdc_nano_delay(void);
 static void FloppyController_Destroy(FloppyControllerRef _Nullable self);
@@ -76,7 +75,7 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-errno_t FloppyController_DiscoverDrives(FloppyControllerRef _Nonnull self, struct FloppyDisk* _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
+errno_t FloppyController_DiscoverDrives(FloppyControllerRef _Nonnull self, FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
 {
     decl_try_err();
     int nDrivesOkay = 0;
