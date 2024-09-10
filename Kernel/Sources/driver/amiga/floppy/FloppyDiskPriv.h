@@ -10,7 +10,7 @@
 #define FloppyDiskPriv_h
 
 #include "FloppyDisk.h"
-#include "FloppyController.h"
+#include "FloppyControllerPkg.h"
 #include "AmigaDiskFormat.h"
 #include <dispatchqueue/DispatchQueue.h>
 
@@ -99,7 +99,7 @@ typedef struct DiskRequest {
 // XXX tmp
 
 
-static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
+extern errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnDiskRemoved(FloppyDiskRef _Nonnull self);
 static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self);

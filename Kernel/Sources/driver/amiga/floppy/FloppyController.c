@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FloppyController.h"
+#include "FloppyControllerPkg.h"
 #include "AmigaDiskFormat.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
@@ -27,6 +27,7 @@ final_class_ivars(FloppyController, Object,
     }                   flags;
 );
 
+extern errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, struct FloppyDisk* _Nullable * _Nonnull pOutDisk);
 
 extern void fdc_nano_delay(void);
 static void FloppyController_Destroy(FloppyControllerRef _Nullable self);
@@ -73,6 +74,31 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     Semaphore_Deinit(&self->done);
     ConditionVariable_Deinit(&self->cv);
     Lock_Deinit(&self->lock);
+}
+
+errno_t FloppyController_DiscoverDrives(FloppyControllerRef _Nonnull self, struct FloppyDisk* _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
+{
+    decl_try_err();
+    int nDrivesOkay = 0;
+
+    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
+        pOutDrives[i] = NULL;
+    }
+
+
+    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
+        DriveState ds = FloppyController_Reset(self, i);
+
+        if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
+            const errno_t err0 = FloppyDisk_Create(i, ds, self, &pOutDrives[i]);
+            
+            if (err0 != EOK && nDrivesOkay == 0) {
+                err = err0;
+            }
+        }
+    }
+
+    return (nDrivesOkay > 0) ? EOK : err;
 }
 
 DriveState FloppyController_Reset(FloppyControllerRef _Nonnull self, int drive)

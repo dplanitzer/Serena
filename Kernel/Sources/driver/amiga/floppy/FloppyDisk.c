@@ -19,45 +19,9 @@
 #endif
 
 
-errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
-{
-    decl_try_err();
-    FloppyControllerRef fdc = NULL;
-    int nDrivesOkay = 0;
-
-    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        pOutDrives[i] = NULL;
-    }
-
-
-    err = FloppyController_Create(&fdc);
-    if (err != EOK) {
-        return err;
-    }
-
-    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        DriveState ds = FloppyController_Reset(fdc, i);
-
-        if (FloppyController_GetDriveType(fdc, &ds) == kDriveType_3_5) {
-            const errno_t err0 = FloppyDisk_Create(i, ds, fdc, &pOutDrives[i]);
-            
-            if (err0 != EOK && nDrivesOkay == 0) {
-                err = err0;
-            }
-        }
-    }
-
-    return (nDrivesOkay > 0) ? EOK : err;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-static errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull fdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
+errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull fdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
     FloppyDisk* self;

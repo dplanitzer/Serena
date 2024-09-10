@@ -12,8 +12,6 @@
 #include <klib/klib.h>
 #include <driver/DiskDriver.h>
 
-#define MAX_FLOPPY_DISK_DRIVES  4
-
 // Stores the state of a single floppy drive.
 // Note that:
 // - We detect at boot time which drives are actually connected and we create a
@@ -25,9 +23,6 @@
 //   It does not attempt to redetect the drive hardware.
 
 final_class(FloppyDisk, DiskDriver);
-
-
-extern errno_t FloppyDisk_DiscoverDrives(FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES]);
 
 extern bool FloppyDisk_HasDisk(FloppyDiskRef _Nonnull self);
 

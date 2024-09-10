@@ -9,7 +9,7 @@
 #include "DriverManager.h"
 #include <console/Console.h>
 #include <dispatcher/Lock.h>
-#include <driver/amiga/floppy/FloppyDisk.h>
+#include <driver/amiga/floppy/FloppyController.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/amiga/RealtimeClock.h>
 #include <driver/hid/EventDriver.h>
@@ -244,14 +244,17 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull pManager)
 
 
     // Floppy
-    FloppyDiskRef fdx[MAX_FLOPPY_DISK_DRIVES];
+    FloppyControllerRef fdc = NULL;
+    struct FloppyDisk* fdx[MAX_FLOPPY_DISK_DRIVES];
     char fdx_name[4];
 
     fdx_name[0] = 'f';
     fdx_name[1] = 'd';
+    fdx_name[2] = '\0';
     fdx_name[3] = '\0';
 
-    try(FloppyDisk_DiscoverDrives(fdx));
+    try(FloppyController_Create(&fdc));
+    try(FloppyController_DiscoverDrives(fdc, fdx));
     for(int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
         if (fdx[i]) {
             fdx_name[2] = '0' + i;
