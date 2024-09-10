@@ -7,7 +7,7 @@
 //
 
 #include "FloppyControllerPkg.h"
-#include "AmigaDiskFormat.h"
+#include "adf.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>

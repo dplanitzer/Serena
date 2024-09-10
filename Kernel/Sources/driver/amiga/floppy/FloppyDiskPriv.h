@@ -11,7 +11,7 @@
 
 #include "FloppyDisk.h"
 #include "FloppyControllerPkg.h"
-#include "AmigaDiskFormat.h"
+#include "adf.h"
 #include <dispatchqueue/DispatchQueue.h>
 
 

@@ -1,13 +1,13 @@
 //
-//  AmigaDiskFormat.h
+//  adf.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef AmigaDiskFormat_h
-#define AmigaDiskFormat_h
+#ifndef adf_h
+#define adf_h
 
 #include <klib/klib.h>
 
@@ -98,4 +98,4 @@ typedef struct ADF_SectorInfo
 typedef uint32_t    ADF_SectorLabel[4];
 typedef uint32_t    ADF_Checksum;
 
-#endif /* AmigaDiskFormat_h */
+#endif /* adf_h */
