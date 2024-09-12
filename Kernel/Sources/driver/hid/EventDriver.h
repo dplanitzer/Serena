@@ -10,12 +10,12 @@
 #define EventDriver_h
 
 #include <klib/klib.h>
-#include <kobj/Object.h>
+#include <driver/Driver.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include "HIDEvent.h"
 
 
-final_class(EventDriver, Object);
+final_class(EventDriver, Driver);
 
 
 // Input controller types

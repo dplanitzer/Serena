@@ -12,7 +12,7 @@
 
 
 // The realtime clock
-final_class_ivars(RealtimeClock, Object,
+final_class_ivars(RealtimeClock, Driver,
     int     type;
     Lock    lock;
     // XXX not fully implemented yet
@@ -141,6 +141,6 @@ catch:
 }
 
 
-class_func_defs(RealtimeClock, Object,
+class_func_defs(RealtimeClock, Driver,
 override_func_def(deinit, RealtimeClock, Object)
 );

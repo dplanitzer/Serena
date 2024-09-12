@@ -48,7 +48,7 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pB
 }
 
 
-class_func_defs(DiskDriver, Object,
+class_func_defs(DiskDriver, Driver,
 func_def(getBlockSize, DiskDriver)
 func_def(getBlockCount, DiskDriver)
 func_def(isReadOnly, DiskDriver)

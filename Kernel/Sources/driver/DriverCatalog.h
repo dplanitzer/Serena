@@ -9,8 +9,7 @@
 #ifndef DriverCatalog_h
 #define DriverCatalog_h
 
-#include <klib/klib.h>
-#include "Driver.h"
+#include <driver/Driver.h>
 
 struct DriverCatalog;
 typedef struct DriverCatalog* DriverCatalogRef;

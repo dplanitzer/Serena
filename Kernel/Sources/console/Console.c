@@ -633,6 +633,6 @@ errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssi
 }
 
 
-class_func_defs(Console, Object,
+class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
 );

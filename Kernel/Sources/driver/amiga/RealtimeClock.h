@@ -10,7 +10,7 @@
 #define RealtimeClock_h
 
 #include <klib/klib.h>
-#include <kobj/Object.h>
+#include <driver/Driver.h>
 #include <hal/SystemDescription.h>
 
 
@@ -32,7 +32,7 @@ extern const GregorianDate  GREGORIAN_DATE_EPOCH;
 extern bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* _Nonnull b);
 
 
-final_class(RealtimeClock, Object);
+final_class(RealtimeClock, Driver);
 
 
 extern errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver);

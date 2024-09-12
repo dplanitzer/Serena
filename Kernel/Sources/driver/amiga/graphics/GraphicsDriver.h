@@ -10,7 +10,7 @@
 #define GraphicsDriver_h
 
 #include <klib/klib.h>
-#include <kobj/Object.h>
+#include <driver/Driver.h>
 #include "Color.h"
 #include "Surface.h"
 
@@ -41,7 +41,7 @@ extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig
 extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
 
 
-final_class(GraphicsDriver, Object);
+final_class(GraphicsDriver, Driver);
 
 
 typedef int SpriteID;

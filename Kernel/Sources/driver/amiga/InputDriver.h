@@ -10,7 +10,7 @@
 #define InputDriver_h
 
 #include <klib/klib.h>
-#include <kobj/Object.h>
+#include <driver/Driver.h>
 #include <driver/hid/EventDriver.h>
 
 
@@ -18,7 +18,7 @@
 // Keyboard input driver
 //
 
-final_class(KeyboardDriver, Object);
+final_class(KeyboardDriver, Driver);
 
 extern errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -30,7 +30,7 @@ extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull pDriver
 // Mouse input driver
 //
 
-final_class(MouseDriver, Object);
+final_class(MouseDriver, Driver);
 
 extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, MouseDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -39,7 +39,7 @@ extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port
 // Digital Joystick input driver
 //
 
-final_class(DigitalJoystickDriver, Object);
+final_class(DigitalJoystickDriver, Driver);
 
 extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutDriver);
 
@@ -48,7 +48,7 @@ extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver
 // Analog Joystick (Paddles) input driver
 //
 
-final_class(AnalogJoystickDriver, Object);
+final_class(AnalogJoystickDriver, Driver);
 
 
 extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutDriver);
@@ -58,7 +58,7 @@ extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver,
 // Light Pen input driver
 //
 
-final_class(LightPenDriver, Object);
+final_class(LightPenDriver, Driver);
 
 extern errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, LightPenDriverRef _Nullable * _Nonnull pOutDriver);
 

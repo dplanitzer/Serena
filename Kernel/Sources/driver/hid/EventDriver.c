@@ -568,6 +568,6 @@ errno_t EventDriver_Read(EventDriverRef _Nonnull pDriver, void* _Nonnull pBuffer
 }
 
 
-class_func_defs(EventDriver, Object,
+class_func_defs(EventDriver, Driver,
 override_func_def(deinit, EventDriver, Object)
 );

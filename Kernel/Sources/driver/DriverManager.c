@@ -82,19 +82,19 @@ errno_t DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull self)
     
     GraphicsDriverRef pMainGDevice = NULL;
     try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &pMainGDevice));
-    try(DriverCatalog_RegisterDriver(self->catalog, kGraphicsDriverName, pMainGDevice));
+    try(DriverCatalog_RegisterDriver(self->catalog, kGraphicsDriverName, (DriverRef)pMainGDevice));
 
 
     // Event Driver
     EventDriverRef pEventDriver = NULL;
     try(EventDriver_Create(pMainGDevice, &pEventDriver));
-    try(DriverCatalog_RegisterDriver(self->catalog, kEventsDriverName, pEventDriver));
+    try(DriverCatalog_RegisterDriver(self->catalog, kEventsDriverName, (DriverRef)pEventDriver));
 
 
     // Initialize the console
     ConsoleRef pConsole = NULL;
     try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
-    try(DriverCatalog_RegisterDriver(self->catalog, kConsoleName, pConsole));
+    try(DriverCatalog_RegisterDriver(self->catalog, kConsoleName, (DriverRef)pConsole));
 
     Lock_Unlock(&self->lock);
     return EOK;
@@ -154,7 +154,7 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull self)
     // Realtime Clock
     RealtimeClockRef pRealtimeClock = NULL;
     try(RealtimeClock_Create(gSystemDescription, &pRealtimeClock));
-    try(DriverCatalog_RegisterDriver(self->catalog, kRealtimeClockName, pRealtimeClock));
+    try(DriverCatalog_RegisterDriver(self->catalog, kRealtimeClockName, (DriverRef)pRealtimeClock));
 
 
     // Floppy
@@ -172,7 +172,7 @@ errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull self)
     for(int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
         if (fdx[i]) {
             fdx_name[2] = '0' + i;
-            try(DriverCatalog_RegisterDriver(self->catalog, fdx_name, fdx[i]));
+            try(DriverCatalog_RegisterDriver(self->catalog, fdx_name, (DriverRef)fdx[i]));
         }
     }
 

@@ -31,7 +31,7 @@ static const uint8_t gUSBHIDKeycodes[128] = {
 };
 
 
-final_class_ivars(KeyboardDriver, Object,
+final_class_ivars(KeyboardDriver, Driver,
     const uint8_t* _Nonnull       keyCodeMap;
     EventDriverRef _Nonnull     eventDriver;
     HIDKeyRepeaterRef _Nonnull  keyRepeater;
@@ -136,7 +136,7 @@ void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull pDriver)
 }
 
 
-class_func_defs(KeyboardDriver, Object,
+class_func_defs(KeyboardDriver, Driver,
 override_func_def(deinit, KeyboardDriver, Object)
 );
 
@@ -146,7 +146,7 @@ override_func_def(deinit, KeyboardDriver, Object)
 // MARK: Mouse Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-final_class_ivars(MouseDriver, Object,
+final_class_ivars(MouseDriver, Driver,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -275,7 +275,7 @@ void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull pDriver)
 }
 
 
-class_func_defs(MouseDriver, Object,
+class_func_defs(MouseDriver, Driver,
 override_func_def(deinit, MouseDriver, Object)
 );
 
@@ -285,7 +285,7 @@ override_func_def(deinit, MouseDriver, Object)
 // MARK: Digital Joystick Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-final_class_ivars(DigitalJoystickDriver, Object,
+final_class_ivars(DigitalJoystickDriver, Driver,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -393,7 +393,7 @@ void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull pDriver
 }
 
 
-class_func_defs(DigitalJoystickDriver, Object,
+class_func_defs(DigitalJoystickDriver, Driver,
 override_func_def(deinit, DigitalJoystickDriver, Object)
 );
 
@@ -403,7 +403,7 @@ override_func_def(deinit, DigitalJoystickDriver, Object)
 // MARK: Analog Joystick (Paddles) Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-final_class_ivars(AnalogJoystickDriver, Object,
+final_class_ivars(AnalogJoystickDriver, Driver,
     EventDriverRef _Nonnull eventDriver;
     InterruptHandlerID      irqHandler;
     volatile uint16_t*        reg_joydat;
@@ -523,7 +523,7 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull pDriver)
 }
 
 
-class_func_defs(AnalogJoystickDriver, Object,
+class_func_defs(AnalogJoystickDriver, Driver,
 override_func_def(deinit, AnalogJoystickDriver, Object)
 );
 
@@ -533,7 +533,7 @@ override_func_def(deinit, AnalogJoystickDriver, Object)
 // MARK: Light Pen Driver
 ////////////////////////////////////////////////////////////////////////////////
 
-final_class_ivars(LightPenDriver, Object,
+final_class_ivars(LightPenDriver, Driver,
     EventDriverRef _Nonnull     eventDriver;
     GraphicsDriverRef _Nonnull  gdevice;
     InterruptHandlerID          irqHandler;
@@ -662,6 +662,6 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull pDriver)
 }
 
 
-class_func_defs(LightPenDriver, Object,
+class_func_defs(LightPenDriver, Driver,
 override_func_def(deinit, LightPenDriver, Object)
 );

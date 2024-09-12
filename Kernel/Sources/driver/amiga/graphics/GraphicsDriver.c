@@ -844,6 +844,6 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
 }
 
 
-class_func_defs(GraphicsDriver, Object,
+class_func_defs(GraphicsDriver, Driver,
 override_func_def(deinit, GraphicsDriver, Object)
 );

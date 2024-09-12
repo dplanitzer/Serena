@@ -194,7 +194,7 @@ catch:
 static bool try_rootfs_from_fd0(bool hasFallback)
 {
     decl_try_err();
-    FloppyDiskRef fd0;
+    DriverRef fd0;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 

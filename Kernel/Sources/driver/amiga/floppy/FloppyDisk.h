@@ -20,7 +20,7 @@
 //   when we detect the drive and when we do I/O operations on the drive
 // - loss of disk drive hardware is dynamically detected when we do I/O operations.
 //   However, once a drive loss is detected teh driver stays in drive lost mode.
-//   It does not attempt to redetect the drive hardware.
+//   It does not attempt to re-detect the drive hardware.
 
 final_class(FloppyDisk, DiskDriver);
 
