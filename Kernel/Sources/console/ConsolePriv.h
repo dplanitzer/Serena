@@ -97,7 +97,7 @@ typedef enum ClearScreenMode {
     kClearScreenMode_ToEnd = 0,             // Clear from the cursor position to the end of the screen
     kClearScreenMode_ToBeginning = 1,       // Clear from the cursor position to the beginning of the screen
     kClearScreenMode_Whole = 2,             // Clear the whole screen
-    kClearScreenMode_WhileAndScrollback = 3 // Clear the whole screen and the scrollback buffer
+    kClearScreenMode_WholeAndScrollback = 3 // Clear the whole screen and the scrollback buffer
 } ClearScreenMode;
 
 
@@ -108,14 +108,14 @@ typedef struct TabStops {
     int     capacity;
 } TabStops;
 
-errno_t TabStops_Init(TabStops* _Nonnull pStops, int nStops, int tabWidth);
-void TabStops_Deinit(TabStops* _Nonnull pStops);
-errno_t TabStops_InsertStop(TabStops* _Nonnull pStops, int xLoc);
-void TabStops_RemoveStop(TabStops* _Nonnull pStops, int xLoc);
-void TabStops_RemoveAllStops(TabStops* _Nonnull pStops);
-int TabStops_GetNextStop(TabStops* pStops, int xLoc, int xWidth);
-int TabStops_GetNextNthStop(TabStops* pStops, int xLoc, int nth, int xWidth);
-int TabStops_GetPreviousNthStop(TabStops* pStops, int xLoc, int nth);
+errno_t TabStops_Init(TabStops* _Nonnull self, int nStops, int tabWidth);
+void TabStops_Deinit(TabStops* _Nonnull self);
+errno_t TabStops_InsertStop(TabStops* _Nonnull self, int xLoc);
+void TabStops_RemoveStop(TabStops* _Nonnull self, int xLoc);
+void TabStops_RemoveAllStops(TabStops* _Nonnull self);
+int TabStops_GetNextStop(TabStops* self, int xLoc, int xWidth);
+int TabStops_GetNextNthStop(TabStops* self, int xLoc, int nth, int xWidth);
+int TabStops_GetPreviousNthStop(TabStops* self, int xLoc, int nth);
 
 
 // Character attributes/rendition state
@@ -194,8 +194,8 @@ final_class_ivars(Console, Driver,
 extern errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self);
 extern void Console_DeinitVideoOutput(ConsoleRef _Nonnull self);
 
-extern void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color);
-extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color);
+extern void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color);
+extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull self, Color color);
 
 #define Console_SetDefaultForegroundColor_Locked(__self) \
     Console_SetForegroundColor_Locked(__self, Color_MakeIndex(2)); /* Green */
@@ -203,43 +203,43 @@ extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Colo
 #define Console_SetDefaultBackgroundColor_Locked(__self) \
     Console_SetBackgroundColor_Locked(__self, Color_MakeIndex(0)); /* Black */
 
-extern void Console_SetCursorBlinkingEnabled_Locked(ConsoleRef _Nonnull pConsole, bool isEnabled);
-extern void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull pConsole, bool isVisible);
-extern void Console_OnTextCursorBlink(ConsoleRef _Nonnull pConsole);
-extern void Console_CursorDidMove_Locked(ConsoleRef _Nonnull pConsole);
+extern void Console_SetCursorBlinkingEnabled_Locked(ConsoleRef _Nonnull self, bool isEnabled);
+extern void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVisible);
+extern void Console_OnTextCursorBlink(ConsoleRef _Nonnull self);
+extern void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self);
 
 extern errno_t Console_BeginDrawing_Locked(ConsoleRef _Nonnull self);
 extern void Console_EndDrawing_Locked(ConsoleRef _Nonnull self);
 
-extern void Console_DrawGlyph_Locked(ConsoleRef _Nonnull pConsole, char glyph, int x, int y);
-extern void Console_CopyRect_Locked(ConsoleRef _Nonnull pConsole, Rect srcRect, Point dstLoc);
-extern void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, char ch);
+extern void Console_DrawGlyph_Locked(ConsoleRef _Nonnull self, char glyph, int x, int y);
+extern void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Point dstLoc);
+extern void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch);
 
 
-extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole);
+extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self);
+extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull self);
 
-extern void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreenMode mode);
-extern void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, int y, ClearLineMode mode);
-extern void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_MoveCursorTo_Locked(ConsoleRef _Nonnull pConsole, int x, int y);
-extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, int dx, int dy);
-extern void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
-extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_action_t action, unsigned char b);
-extern void Console_VT100_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt500parse_action_t action, unsigned char b);
+extern void Console_ClearScreen_Locked(ConsoleRef _Nonnull self, ClearScreenMode mode);
+extern void Console_ClearLine_Locked(ConsoleRef _Nonnull self, int y, ClearLineMode mode);
+extern void Console_SaveCursorState_Locked(ConsoleRef _Nonnull self);
+extern void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull self);
+extern void Console_MoveCursorTo_Locked(ConsoleRef _Nonnull self, int x, int y);
+extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull self, CursorMovement mode, int dx, int dy);
+extern void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull self, CompatibilityMode mode);
+extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull self, vt52parse_action_t action, unsigned char b);
+extern void Console_VT100_ParseByte_Locked(ConsoleRef _Nonnull self, vt500parse_action_t action, unsigned char b);
 
-extern void Console_PostReport_Locked(ConsoleRef _Nonnull pConsole, const char* msg);
+extern void Console_PostReport_Locked(ConsoleRef _Nonnull self, const char* msg);
 
-extern void Console_PrintByte_Locked(ConsoleRef _Nonnull pConsole, unsigned char ch);
-extern void Console_Execute_BEL_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_Execute_HT_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_Execute_LF_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_Execute_BS_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull pConsole, int nChars);
-extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull pConsole, int nLines);
-extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull pConsole, int nLines);
+extern void Console_PrintByte_Locked(ConsoleRef _Nonnull self, unsigned char ch);
+extern void Console_Execute_BEL_Locked(ConsoleRef _Nonnull self);
+extern void Console_Execute_HT_Locked(ConsoleRef _Nonnull self);
+extern void Console_Execute_LF_Locked(ConsoleRef _Nonnull self);
+extern void Console_Execute_BS_Locked(ConsoleRef _Nonnull self);
+extern void Console_Execute_DEL_Locked(ConsoleRef _Nonnull self);
+extern void Console_Execute_DCH_Locked(ConsoleRef _Nonnull self, int nChars);
+extern void Console_Execute_IL_Locked(ConsoleRef _Nonnull self, int nLines);
+extern void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines);
 
 
 //

@@ -72,86 +72,86 @@ void Console_DeinitVideoOutput(ConsoleRef _Nonnull self)
 
 
 // Sets the console's foreground color to the given color
-void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color)
+void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
 {
     assert(color.tag == kColorType_Index);
-    pConsole->foregroundColor = color;
+    self->foregroundColor = color;
 
     // Sync up the sprite color registers with the selected foreground color
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 17, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 18, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(pConsole->gdevice, 19, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(self->gdevice, 17, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(self->gdevice, 18, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(self->gdevice, 19, gANSIColors[color.u.index]);
 }
 
 // Sets the console's background color to the given color
-void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Color color)
+void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull self, Color color)
 {
     assert(color.tag == kColorType_Index);
-    pConsole->backgroundColor = color;
+    self->backgroundColor = color;
 }
 
 
-void Console_OnTextCursorBlink(ConsoleRef _Nonnull pConsole)
+void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
 {
-    Lock_Lock(&pConsole->lock);
+    Lock_Lock(&self->lock);
     
-    pConsole->flags.isTextCursorOn = !pConsole->flags.isTextCursorOn;
-    if (pConsole->flags.isTextCursorVisible) {
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, pConsole->flags.isTextCursorOn || pConsole->flags.isTextCursorSingleCycleOn);
+    self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
+    if (self->flags.isTextCursorVisible) {
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
     }
-    pConsole->flags.isTextCursorSingleCycleOn = false;
+    self->flags.isTextCursorSingleCycleOn = false;
 
-    Lock_Unlock(&pConsole->lock);
+    Lock_Unlock(&self->lock);
 }
 
-static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _Nonnull pConsole)
+static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _Nonnull self)
 {
-    if (pConsole->flags.isTextCursorVisible) {
+    if (self->flags.isTextCursorVisible) {
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, true);
-        pConsole->flags.isTextCursorOn = false;
-        pConsole->flags.isTextCursorSingleCycleOn = false;
+        DispatchQueue_RemoveTimer(gMainDispatchQueue, self->textCursorBlinker);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
+        self->flags.isTextCursorOn = false;
+        self->flags.isTextCursorSingleCycleOn = false;
 
-        if (pConsole->flags.isTextCursorBlinkerEnabled) {
-            try_bang(DispatchQueue_DispatchTimer(gMainDispatchQueue, pConsole->textCursorBlinker));
+        if (self->flags.isTextCursorBlinkerEnabled) {
+            try_bang(DispatchQueue_DispatchTimer(gMainDispatchQueue, self->textCursorBlinker));
         }
     } else {
         // Make sure that the text cursor and blinker are off
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, pConsole->textCursorBlinker);
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, false);
-        pConsole->flags.isTextCursorOn = false;
-        pConsole->flags.isTextCursorSingleCycleOn = false;
+        DispatchQueue_RemoveTimer(gMainDispatchQueue, self->textCursorBlinker);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, false);
+        self->flags.isTextCursorOn = false;
+        self->flags.isTextCursorSingleCycleOn = false;
     }
 }
 
-void Console_SetCursorBlinkingEnabled_Locked(ConsoleRef _Nonnull pConsole, bool isEnabled)
+void Console_SetCursorBlinkingEnabled_Locked(ConsoleRef _Nonnull self, bool isEnabled)
 {
-    if (pConsole->flags.isTextCursorBlinkerEnabled != isEnabled) {
-        pConsole->flags.isTextCursorBlinkerEnabled = isEnabled;
-        Console_UpdateCursorVisibilityAndRestartBlinking_Locked(pConsole);
+    if (self->flags.isTextCursorBlinkerEnabled != isEnabled) {
+        self->flags.isTextCursorBlinkerEnabled = isEnabled;
+        Console_UpdateCursorVisibilityAndRestartBlinking_Locked(self);
     }
 }
 
-void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull pConsole, bool isVisible)
+void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVisible)
 {
-    if (pConsole->flags.isTextCursorVisible != isVisible) {
-        pConsole->flags.isTextCursorVisible = isVisible;
-        Console_UpdateCursorVisibilityAndRestartBlinking_Locked(pConsole);
+    if (self->flags.isTextCursorVisible != isVisible) {
+        self->flags.isTextCursorVisible = isVisible;
+        Console_UpdateCursorVisibilityAndRestartBlinking_Locked(self);
     }
 }
 
-void Console_CursorDidMove_Locked(ConsoleRef _Nonnull pConsole)
+void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_SetSpritePosition(pConsole->gdevice, pConsole->textCursor, pConsole->x * pConsole->characterWidth, pConsole->y * pConsole->lineHeight);
+    GraphicsDriver_SetSpritePosition(self->gdevice, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
     // Temporarily force the cursor to be visible, but without changing the text
     // cursor visibility state officially. We just want to make sure that the
     // cursor is on when the user types a character. This however should not
     // change anything about the blinking phase and frequency.
-    if (!pConsole->flags.isTextCursorSingleCycleOn && !pConsole->flags.isTextCursorOn && pConsole->flags.isTextCursorBlinkerEnabled && pConsole->flags.isTextCursorVisible) {
-        pConsole->flags.isTextCursorSingleCycleOn = true;
-        GraphicsDriver_SetSpriteVisible(pConsole->gdevice, pConsole->textCursor, true);
+    if (!self->flags.isTextCursorSingleCycleOn && !self->flags.isTextCursorOn && self->flags.isTextCursorBlinkerEnabled && self->flags.isTextCursorVisible) {
+        self->flags.isTextCursorSingleCycleOn = true;
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
     }
 }
 

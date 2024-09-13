@@ -34,6 +34,6 @@ open_class_funcs(ConsoleChannel, IOChannel,
 );
 
 
-extern errno_t ConsoleChannel_Create(ObjectRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t ConsoleChannel_Create(ObjectRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* ConsoleChannel_h */

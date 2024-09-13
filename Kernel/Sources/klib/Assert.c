@@ -192,7 +192,7 @@ static void micro_console_blit_glyph(MicroConsole* _Nonnull pCon, char ch, int x
 }
 
 // Prints the given character to the console.
-// \param pConsole the console
+// \param pCon the console
 // \param ch the character
 static void micro_console_draw_char(MicroConsole* _Nonnull pCon, char ch)
 {

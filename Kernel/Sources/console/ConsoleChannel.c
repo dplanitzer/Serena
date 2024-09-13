@@ -14,7 +14,7 @@ extern errno_t Console_Read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull
 extern errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssize_t nBytesToWrite);
 
 
-errno_t ConsoleChannel_Create(ObjectRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t ConsoleChannel_Create(ObjectRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ConsoleChannelRef self;
@@ -23,7 +23,7 @@ errno_t ConsoleChannel_Create(ObjectRef _Nonnull pConsole, unsigned int mode, IO
     self->console = Object_Retain(pConsole);
 
 catch:
-    *pOutChannel = (IOChannelRef)self;
+    *pOutSelf = (IOChannelRef)self;
     return err;
 }
 
