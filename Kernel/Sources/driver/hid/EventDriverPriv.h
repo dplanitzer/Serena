@@ -92,7 +92,7 @@ final_class_ivars(EventDriver, Driver,
 );
 
 
-extern errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull pDriver, InputControllerType type, int portId);
-extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull pDriver, int portId);
+extern errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull self, InputControllerType type, int portId);
+extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull self, int portId);
 
 #endif /* EventDriverPriv_h */

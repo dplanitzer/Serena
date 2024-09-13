@@ -35,12 +35,12 @@ extern bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const Gregoria
 final_class(RealtimeClock, Driver);
 
 
-extern errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutDriver);
+extern errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutSelf);
 
-extern errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull pClock, GregorianDate* _Nonnull pDate);
-extern errno_t RealtimeClock_SetDate(RealtimeClockRef _Nonnull pClock, const GregorianDate* _Nonnull pDate);
+extern errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull self, GregorianDate* _Nonnull pDate);
+extern errno_t RealtimeClock_SetDate(RealtimeClockRef _Nonnull self, const GregorianDate* _Nonnull pDate);
 
-extern errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull pClock, void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead);
-extern errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull pClock, const void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten);
+extern errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull self, void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead);
+extern errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull self, const void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten);
 
 #endif /* RealtimeClock_h */

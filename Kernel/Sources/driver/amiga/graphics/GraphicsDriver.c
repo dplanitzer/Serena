@@ -366,95 +366,95 @@ static const ColorTable gDefaultColorTable = {
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
-errno_t GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver)
+errno_t GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    GraphicsDriverRef pDriver;
+    GraphicsDriverRef self;
     Screen* pScreen;
     
-    try(Object_Create(GraphicsDriver, &pDriver));
-    pDriver->isLightPenEnabled = false;
-    Lock_Init(&pDriver->lock);
+    try(Object_Create(GraphicsDriver, &self));
+    self->isLightPenEnabled = false;
+    Lock_Init(&self->lock);
     
 
     // Allocate the mouse painter
-    try(MousePainter_Init(&pDriver->mousePainter));
+    try(MousePainter_Init(&self->mousePainter));
 
 
     // Allocate the Copper tools
-    CopperScheduler_Init(&pDriver->copperScheduler);
+    CopperScheduler_Init(&self->copperScheduler);
 
 
     // Allocate the null sprite
     const uint16_t* nullSpritePlanes[2];
     nullSpritePlanes[0] = NULL;
     nullSpritePlanes[1] = NULL;
-    try(Sprite_Create(nullSpritePlanes, 0, &pDriver->nullSprite));
+    try(Sprite_Create(nullSpritePlanes, 0, &self->nullSprite));
 
 
     // Allocate a new screen
 //    pConfig = &kScreenConfig_NTSC_320_200_60;
 //    pConfig = &kScreenConfig_PAL_640_512_25;
-    try(Screen_Create(pConfig, pixelFormat, pDriver->nullSprite, &pScreen));
+    try(Screen_Create(pConfig, pixelFormat, self->nullSprite, &pScreen));
 
 
     // Initialize vblank tools
-    Semaphore_Init(&pDriver->vblank_sema, 0);
+    Semaphore_Init(&self->vblank_sema, 0);
     try(InterruptController_AddDirectInterruptHandler(
         gInterruptController,
         INTERRUPT_ID_VERTICAL_BLANK,
         INTERRUPT_HANDLER_PRIORITY_NORMAL,
         (InterruptHandler_Closure)GraphicsDriver_VerticalBlankInterruptHandler,
-        pDriver, &pDriver->vb_irq_handler)
+        self, &self->vb_irq_handler)
     );
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, 
-        pDriver->vb_irq_handler,
+        self->vb_irq_handler,
         true);
 
 
     // Initialize the video config related stuff
-    GraphicsDriver_SetCLUT(pDriver, &gDefaultColorTable);
+    GraphicsDriver_SetCLUT(self, &gDefaultColorTable);
 
 
     // Activate the screen
-    try(GraphicsDriver_SetCurrentScreen_Locked(pDriver, pScreen));
+    try(GraphicsDriver_SetCurrentScreen_Locked(self, pScreen));
 
-    *pOutDriver = pDriver;
+    *pOutSelf = self;
     return EOK;
 
 catch:
-    Object_Release(pDriver);
-    *pOutDriver = NULL;
+    Object_Release(self);
+    *pOutSelf = NULL;
     return err;
 }
 
 // Deallocates the given graphics driver.
-void GraphicsDriver_deinit(GraphicsDriverRef _Nonnull pDriver)
+void GraphicsDriver_deinit(GraphicsDriverRef _Nonnull self)
 {
-    GraphicsDriver_StopVideoRefresh_Locked(pDriver);
+    GraphicsDriver_StopVideoRefresh_Locked(self);
         
-    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, pDriver->vb_irq_handler));
-    pDriver->vb_irq_handler = 0;
+    try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->vb_irq_handler));
+    self->vb_irq_handler = 0;
         
-    Screen_Destroy(pDriver->screen);
-    pDriver->screen = NULL;
+    Screen_Destroy(self->screen);
+    self->screen = NULL;
 
-    Sprite_Destroy(pDriver->nullSprite);
-    pDriver->nullSprite = NULL;
+    Sprite_Destroy(self->nullSprite);
+    self->nullSprite = NULL;
 
-    Semaphore_Deinit(&pDriver->vblank_sema);
-    CopperScheduler_Deinit(&pDriver->copperScheduler);
+    Semaphore_Deinit(&self->vblank_sema);
+    CopperScheduler_Deinit(&self->copperScheduler);
 
-    MousePainter_Deinit(&pDriver->mousePainter);
+    MousePainter_Deinit(&self->mousePainter);
 
-    Lock_Deinit(&pDriver->lock);
+    Lock_Deinit(&self->lock);
 }
 
-void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver)
+void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
 {
-    CopperScheduler_Run(&pDriver->copperScheduler);
-    MousePainter_Paint_VerticalBlank(&pDriver->mousePainter);
-    Semaphore_RelinquishFromInterruptContext(&pDriver->vblank_sema);
+    CopperScheduler_Run(&self->copperScheduler);
+    MousePainter_Paint_VerticalBlank(&self->mousePainter);
+    Semaphore_RelinquishFromInterruptContext(&self->vblank_sema);
 }
 
 
@@ -463,16 +463,16 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDr
 // MARK: Properties
 ////////////////////////////////////////////////////////////////////////////////
 
-const ScreenConfiguration* _Nonnull GraphicsDriver_GetCurrentScreenConfiguration(GraphicsDriverRef _Nonnull pDriver)
+const ScreenConfiguration* _Nonnull GraphicsDriver_GetCurrentScreenConfiguration(GraphicsDriverRef _Nonnull self)
 {
-    Lock_Lock(&pDriver->lock);
-    const ScreenConfiguration* pConfig = pDriver->screen->screenConfig;
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    const ScreenConfiguration* pConfig = self->screen->screenConfig;
+    Lock_Unlock(&self->lock);
     return pConfig;
 }
 
 // Stops the video refresh circuitry
-void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver)
+void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull self)
 {
     CHIPSET_BASE_DECL(cp);
 
@@ -482,15 +482,15 @@ void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver)
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
 // that it will wait for some vblank to happen after this function has been invoked.
 // No vblank that occured before this function was called will make it return.
-static errno_t GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull pDriver)
+static errno_t GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull self)
 {
     decl_try_err();
 
     // First purge the vblank sema to ensure that we don't accidentaly pick up some
     // vblank that has happened before this function has been called. Then wait
     // for the actual vblank.
-    try(Semaphore_TryAcquire(&pDriver->vblank_sema));
-    try(Semaphore_Acquire(&pDriver->vblank_sema, kTimeInterval_Infinity));
+    try(Semaphore_TryAcquire(&self->vblank_sema));
+    try(Semaphore_Acquire(&self->vblank_sema, kTimeInterval_Infinity));
     return EOK;
 
 catch:
@@ -500,22 +500,22 @@ catch:
 // Compiles the Copper program(s) for the currently active screen and schedules
 // their execution by the Copper. Note that this function typically returns
 // before the Copper program has started running.
-static errno_t GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(GraphicsDriverRef _Nonnull pDriver)
+static errno_t GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(GraphicsDriverRef _Nonnull self)
 {
     decl_try_err();
-    Screen* pScreen = pDriver->screen;
+    Screen* pScreen = self->screen;
     CopperProgram* oddFieldProg;
     CopperProgram* evenFieldProg;
 
     if (pScreen->isInterlaced) {
-        try(CopperProgram_CreateScreenRefresh(pScreen, pDriver->isLightPenEnabled, true, &oddFieldProg));
-        try(CopperProgram_CreateScreenRefresh(pScreen, pDriver->isLightPenEnabled, false, &evenFieldProg));
+        try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
+        try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, false, &evenFieldProg));
     } else {
-        try(CopperProgram_CreateScreenRefresh(pScreen, pDriver->isLightPenEnabled, true, &oddFieldProg));
+        try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
         evenFieldProg = NULL;
     }
 
-    CopperScheduler_ScheduleProgram(&pDriver->copperScheduler, oddFieldProg, evenFieldProg);
+    CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
     return EOK;
 
 catch:
@@ -526,35 +526,35 @@ catch:
 // command apply to this new screen once this function has returned.
 // \param pNewScreen the new screen
 // \return the error code
-errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDriver, Screen* _Nonnull pNewScreen)
+errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull self, Screen* _Nonnull pNewScreen)
 {
     decl_try_err();
-    Screen* pOldScreen = pDriver->screen;
-    bool wasMouseCursorVisible = pDriver->mousePainter.flags.isVisible;
+    Screen* pOldScreen = self->screen;
+    bool wasMouseCursorVisible = self->mousePainter.flags.isVisible;
     bool hasSwitchedScreens = false;
 
     
     // Disassociate the mouse painter from the old screen (hides the mouse cursor)
-    MousePainter_SetSurface(&pDriver->mousePainter, NULL);
+    MousePainter_SetSurface(&self->mousePainter, NULL);
 
 
     // Update the graphics device state.
-    pDriver->screen = pNewScreen;
+    self->screen = pNewScreen;
     
 
     // Turn video refresh back on and point it to the new copper program
-    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
+    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
     hasSwitchedScreens = true;
     
 
     // Wait for the vblank. Once we got a vblank we know that the DMA is no longer
     // accessing the old framebuffer
-    try(GraphicsDriver_WaitForVerticalBlank_Locked(pDriver));
+    try(GraphicsDriver_WaitForVerticalBlank_Locked(self));
     
     
     // Associate the mouse painter with the new screen
-    MousePainter_SetSurface(&pDriver->mousePainter, pNewScreen->framebuffer);
-    MousePainter_SetVisible(&pDriver->mousePainter, wasMouseCursorVisible);
+    MousePainter_SetSurface(&self->mousePainter, pNewScreen->framebuffer);
+    MousePainter_SetVisible(&self->mousePainter, wasMouseCursorVisible);
 
 
     // Free the old screen
@@ -564,34 +564,34 @@ errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDrive
 
 catch:
     if (!hasSwitchedScreens) {
-        pDriver->screen = pOldScreen;
+        self->screen = pOldScreen;
     }
-    MousePainter_SetSurface(&pDriver->mousePainter, pOldScreen->framebuffer);
-    MousePainter_SetVisible(&pDriver->mousePainter, wasMouseCursorVisible);
+    MousePainter_SetSurface(&self->mousePainter, pOldScreen->framebuffer);
+    MousePainter_SetVisible(&self->mousePainter, wasMouseCursorVisible);
     return err;
 }
 
 // Enables / disables the h/v raster position latching triggered by a light pen.
-errno_t GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull pDriver, bool enabled)
+errno_t GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
 {
     decl_try_err();
 
-    Lock_Lock(&pDriver->lock);
-    if (pDriver->isLightPenEnabled != enabled) {
-        pDriver->isLightPenEnabled = enabled;
-        try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
+    Lock_Lock(&self->lock);
+    if (self->isLightPenEnabled != enabled) {
+        self->isLightPenEnabled = enabled;
+        try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
     }
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
 
     return EOK;
 
 catch:
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
     return err;
 }
 
 // Returns the current position of the light pen if the light pen triggered.
-bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
+bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
 {
     CHIPSET_BASE_DECL(cp);
     
@@ -635,69 +635,69 @@ bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull pDriver, int1
 ////////////////////////////////////////////////////////////////////////////////
 
 // Acquires a hardware sprite
-errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull pDriver, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
+errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
 {
     decl_try_err();
 
-    Lock_Lock(&pDriver->lock);
-    try(Screen_AcquireSprite(pDriver->screen, pPlanes, x, y, width, height, priority, pOutSpriteId));
-    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    try(Screen_AcquireSprite(self->screen, pPlanes, x, y, width, height, priority, pOutSpriteId));
+    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
+    Lock_Unlock(&self->lock);
 
     return EOK;
 
 catch:
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
     *pOutSpriteId = -1;
     return err;
 }
 
 // Relinquishes a hardware sprite
-errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId)
+errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, SpriteID spriteId)
 {
     decl_try_err();
 
-    Lock_Lock(&pDriver->lock);
-    try(Screen_RelinquishSprite(pDriver->screen, spriteId));
-    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(pDriver));
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    try(Screen_RelinquishSprite(self->screen, spriteId));
+    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
+    Lock_Unlock(&self->lock);
 
     return EOK;
 
 catch:
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
     return err; // XXX clarify whether that's a thing or not
 }
 
 // Updates the position of a hardware sprite.
-errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, int x, int y)
+errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, SpriteID spriteId, int x, int y)
 {
     decl_try_err();
 
-    Lock_Lock(&pDriver->lock);
-    try(Screen_SetSpritePosition(pDriver->screen, spriteId, x, y));
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    try(Screen_SetSpritePosition(self->screen, spriteId, x, y));
+    Lock_Unlock(&self->lock);
 
     return EOK;
 
 catch:
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
     return err;
 }
 
 // Updates the visibility of a hardware sprite.
-errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull pDriver, SpriteID spriteId, bool isVisible)
+errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, SpriteID spriteId, bool isVisible)
 {
     decl_try_err();
 
-    Lock_Lock(&pDriver->lock);
-    try(Screen_SetSpriteVisible(pDriver->screen, spriteId, isVisible));
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    try(Screen_SetSpriteVisible(self->screen, spriteId, isVisible));
+    Lock_Unlock(&self->lock);
 
     return EOK;
 
 catch:
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
     return err;
 }
 
@@ -707,37 +707,37 @@ catch:
 // MARK: Mouse Cursor
 ////////////////////////////////////////////////////////////////////////////////
 
-void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull pDriver, const void* pBitmap, const void* pMask)
+void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const void* pBitmap, const void* pMask)
 {
-    Lock_Lock(&pDriver->lock);
-    MousePainter_SetCursor(&pDriver->mousePainter, pBitmap, pMask);
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    MousePainter_SetCursor(&self->mousePainter, pBitmap, pMask);
+    Lock_Unlock(&self->lock);
 }
 
-void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull pDriver, bool isVisible)
+void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible)
 {
-    Lock_Lock(&pDriver->lock);
-    MousePainter_SetVisible(&pDriver->mousePainter, isVisible);
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    MousePainter_SetVisible(&self->mousePainter, isVisible);
+    Lock_Unlock(&self->lock);
 }
 
-void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull pDriver, bool flag)
+void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull self, bool flag)
 {
-    Lock_Lock(&pDriver->lock);
-    MousePainter_SetHiddenUntilMouseMoves(&pDriver->mousePainter, flag);
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    MousePainter_SetHiddenUntilMouseMoves(&self->mousePainter, flag);
+    Lock_Unlock(&self->lock);
 }
 
-void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull pDriver, Point loc)
+void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, Point loc)
 {
-    Lock_Lock(&pDriver->lock);
-    MousePainter_SetPosition(&pDriver->mousePainter, loc);
-    Lock_Unlock(&pDriver->lock);
+    Lock_Lock(&self->lock);
+    MousePainter_SetPosition(&self->mousePainter, loc);
+    Lock_Unlock(&self->lock);
 }
 
-void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull pDriver, int16_t x, int16_t y)
+void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t x, int16_t y)
 {
-    MousePainter_SetPosition_VerticalBlank(&pDriver->mousePainter, x, y);
+    MousePainter_SetPosition_VerticalBlank(&self->mousePainter, x, y);
 }
 
 
@@ -805,11 +805,11 @@ static uint16_t RGBColor12_Make(RGBColor32 clr)
 }
 
 // Writes the given RGB color to the color register at index idx
-errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx, RGBColor32 color)
+errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int idx, RGBColor32 color)
 {
     decl_try_err();
 
-    Lock_Lock(&pDriver->lock);
+    Lock_Lock(&self->lock);
 
     // Need to be able to access all CLUT entries in a screen even if the screen
     // supports < MAX_CLUT_ENTRIES (because of sprites).
@@ -821,18 +821,18 @@ errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull pDriver, int idx,
     *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = RGBColor12_Make(color);
 
 catch:
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
     return err;
 }
 
 // Sets the CLUT
-void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable* pCLUT)
+void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull self, const ColorTable* pCLUT)
 {
-    Lock_Lock(&pDriver->lock);
+    Lock_Lock(&self->lock);
 
     CHIPSET_BASE_DECL(cp);
 
-    int count = __min(pCLUT->entryCount, pDriver->screen->clutCapacity);
+    int count = __min(pCLUT->entryCount, self->screen->clutCapacity);
     for (int i = 0; i < count; i++) {
         const RGBColor32 color = pCLUT->entry[i];
         const uint16_t rgb12 = RGBColor12_Make(color);
@@ -840,7 +840,7 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull pDriver, const ColorTable
         *CHIPSET_REG_16(cp, COLOR_BASE + (i << 1)) = rgb12;
     }
 
-    Lock_Unlock(&pDriver->lock);
+    Lock_Unlock(&self->lock);
 }
 
 

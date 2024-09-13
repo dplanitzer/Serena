@@ -21,6 +21,6 @@ open_class_funcs(EventChannel, IOChannel,
 );
 
 
-extern errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* EventChannel_h */

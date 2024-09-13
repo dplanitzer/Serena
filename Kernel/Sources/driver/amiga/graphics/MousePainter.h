@@ -60,8 +60,8 @@ typedef struct MousePainter {
 
 // Initializes a new mouse painter. The mouse cursor is by default hidden. Set
 // a surface in the painter and then set the cursor visible.
-extern errno_t MousePainter_Init(MousePainter* _Nonnull pPainter);
-extern void MousePainter_Deinit(MousePainter* _Nonnull pPainter);
+extern errno_t MousePainter_Init(MousePainter* _Nonnull self);
+extern void MousePainter_Deinit(MousePainter* _Nonnull self);
 
 // Sets the surface that holds the background pixels over which the mouse cursor
 // should hover. This is typically the framebuffer. Note that the painter holds
@@ -72,7 +72,7 @@ extern void MousePainter_Deinit(MousePainter* _Nonnull pPainter);
 // Note that setting a new surface on the mouse painter implicitly hides the
 // mouse cursor and cancels the hide-until-mouse-moved state. You have to
 // explicitly turn the mouse cursor back on if so desired.
-extern void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _Nullable pSurface);
+extern void MousePainter_SetSurface(MousePainter* _Nonnull self, Surface* _Nullable pSurface);
 
 // Sets the mouse cursor image and mask. The bitmap must be 16 pixels wide and
 // 16 rows high. The mask must be of the same size. The origin of the bitmap and
@@ -82,12 +82,12 @@ extern void MousePainter_SetSurface(MousePainter* _Nonnull pPainter, Surface* _N
 // mask stores a 1 bit. The framebuffer image will appear in places where the
 // mask stores a 0 bit. Assumes that the bytes-per-row value of the bitmap and
 // mask are 2.
-extern void MousePainter_SetCursor(MousePainter* _Nonnull pPainter, const void* pBitmap, const void* pMask);
-extern void MousePainter_SetPosition(MousePainter* _Nonnull pPainter, Point pt);
-extern void MousePainter_SetVisible(MousePainter* _Nonnull pPainter, bool isVisible);
-extern void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull pPainter, bool flag);
+extern void MousePainter_SetCursor(MousePainter* _Nonnull self, const void* pBitmap, const void* pMask);
+extern void MousePainter_SetPosition(MousePainter* _Nonnull self, Point pt);
+extern void MousePainter_SetVisible(MousePainter* _Nonnull self, bool isVisible);
+extern void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull self, bool flag);
 
-extern Point MousePainter_GetPosition(MousePainter* _Nonnull pPainter);
+extern Point MousePainter_GetPosition(MousePainter* _Nonnull self);
 
 // Shields the mouse cursor if it intersects the given rectangle. Shielding means
 // that (a) the mouse cursor is immediately and synchronously hidden (rather than
@@ -95,14 +95,14 @@ extern Point MousePainter_GetPosition(MousePainter* _Nonnull pPainter);
 // mouse cursor stays hidden until it is unshielded. These two functions should
 // be used by drawing routines that draw into the framebuffer to ensure that their
 // drawing doesn't get mixed up incorrectly with the mouse cursor image.
-extern void MousePainter_ShieldCursor(MousePainter* _Nonnull pPainter, const Rect r);
-extern void MousePainter_UnshieldCursor(MousePainter* _Nonnull pPainter);
+extern void MousePainter_ShieldCursor(MousePainter* _Nonnull self, const Rect r);
+extern void MousePainter_UnshieldCursor(MousePainter* _Nonnull self);
 
 
 // The following APIs are designed to be called from the vertical blank interrupt
 // context
 
-extern void MousePainter_SetPosition_VerticalBlank(MousePainter* _Nonnull pPainter, int16_t x, int16_t y);
-extern void MousePainter_Paint_VerticalBlank(MousePainter* _Nonnull pPainter);
+extern void MousePainter_SetPosition_VerticalBlank(MousePainter* _Nonnull self, int16_t x, int16_t y);
+extern void MousePainter_Paint_VerticalBlank(MousePainter* _Nonnull self);
 
 #endif /* MousePainter_h */

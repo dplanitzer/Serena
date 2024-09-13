@@ -109,11 +109,9 @@ typedef struct Screen {
 
 
 //
-// Copper Compiler
+// Copper Program
 //
 
-extern int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen);
-extern CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField);
 extern errno_t CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg);
 extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
 
@@ -134,11 +132,11 @@ final_class_ivars(GraphicsDriver, Driver,
 );
 
 
-extern void _GraphicsDriver_Deinit(GraphicsDriverRef _Nonnull pDriver);
+extern void _GraphicsDriver_Deinit(GraphicsDriverRef _Nonnull self);
 
-extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull pDriver);
-extern void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull pDriver);
+extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
+extern void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull self);
 
-extern errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull pDriver, Screen* _Nonnull pScreen);
+extern errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull self, Screen* _Nonnull pScreen);
 
 #endif /* GraphicsDriverPriv_h */

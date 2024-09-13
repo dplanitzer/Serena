@@ -33,49 +33,49 @@ typedef struct HIDKeyRepeater {
 
 
 // Allocates a key repeater object.
-errno_t HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutRepeater)
+errno_t HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    HIDKeyRepeater* pRepeater;
+    HIDKeyRepeater* self;
     
-    try(kalloc_cleared(sizeof(HIDKeyRepeater), (void**) &pRepeater));
-    pRepeater->eventDriver = pEventDriver;
-    pRepeater->repeatersInUseCount = 0;
-    pRepeater->initialKeyRepeatDelay = TimeInterval_MakeMilliseconds(300);
-    pRepeater->keyRepeatDelay = TimeInterval_MakeMilliseconds(100);
-    pRepeater->state = kState_Idle;
+    try(kalloc_cleared(sizeof(HIDKeyRepeater), (void**) &self));
+    self->eventDriver = pEventDriver;
+    self->repeatersInUseCount = 0;
+    self->initialKeyRepeatDelay = TimeInterval_MakeMilliseconds(300);
+    self->keyRepeatDelay = TimeInterval_MakeMilliseconds(100);
+    self->state = kState_Idle;
 
-    *pOutRepeater = pRepeater;
+    *pOutSelf = self;
     return EOK;
 
 catch:
-    *pOutRepeater = NULL;
+    *pOutSelf = NULL;
     return err;
 }
 
 // Frees the key repeater.
-void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull pRepeater)
+void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull self)
 {
-    if (pRepeater) {
-        pRepeater->eventDriver = NULL;
-        kfree(pRepeater);
+    if (self) {
+        self->eventDriver = NULL;
+        kfree(self);
     }
 }
 
-void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull pRepeater, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
+void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
     if (pInitialDelay) {
-        *pInitialDelay = pRepeater->initialKeyRepeatDelay;
+        *pInitialDelay = self->initialKeyRepeatDelay;
     }
     if (pRepeatDelay) {
-        *pRepeatDelay = pRepeater->keyRepeatDelay;
+        *pRepeatDelay = self->keyRepeatDelay;
     }
 }
 
-void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull pRepeater, TimeInterval initialDelay, TimeInterval repeatDelay)
+void HIDKeyRepeater_SetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
 {
-    pRepeater->initialKeyRepeatDelay = initialDelay;
-    pRepeater->keyRepeatDelay = repeatDelay;
+    self->initialKeyRepeatDelay = initialDelay;
+    self->keyRepeatDelay = repeatDelay;
 }
 
 // Returns true if the given key should be auto-repeated
@@ -162,51 +162,51 @@ static bool shouldAutoRepeatKeyCode(HIDKeyCode keyCode)
 // Informs the key repeater that the user is now pressing down the key 'keyCode'.
 // This implicitly cancels an ongoing key repeat of a different key. Note that at
 // most one key can be repeated at any given time.
-void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull pRepeater, HIDKeyCode keyCode)
+void HIDKeyRepeater_KeyDown(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
 {
     if (shouldAutoRepeatKeyCode(keyCode)) {
-        pRepeater->state = kState_InitialDelaying;
-        pRepeater->keyCode = keyCode;
-        pRepeater->nextEventTime = TimeInterval_Add(MonotonicClock_GetCurrentTime(), pRepeater->initialKeyRepeatDelay);
+        self->state = kState_InitialDelaying;
+        self->keyCode = keyCode;
+        self->nextEventTime = TimeInterval_Add(MonotonicClock_GetCurrentTime(), self->initialKeyRepeatDelay);
     }
 }
 
 // Informs the key repeater that the user has just released the key 'keyCode'.
 // This cancels the key repeat for this key.
-void HIDKeyRepeater_KeyUp(HIDKeyRepeaterRef _Nonnull pRepeater, HIDKeyCode keyCode)
+void HIDKeyRepeater_KeyUp(HIDKeyRepeaterRef _Nonnull self, HIDKeyCode keyCode)
 {
-    if (pRepeater->state != kState_Idle && pRepeater->keyCode == keyCode) {
-        pRepeater->state = kState_Idle;
+    if (self->state != kState_Idle && self->keyCode == keyCode) {
+        self->state = kState_Idle;
     }
 }
 
 // Gives the key repeater a chance to update its internal state. The key repeater
 // generates and posts a new key down/repeat event if such an event is due.
-void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull pRepeater)
+void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
 {
     const TimeInterval now = MonotonicClock_GetCurrentTime();
 
-    switch (pRepeater->state) {
+    switch (self->state) {
         case kState_Idle:
             break;
 
         case kState_InitialDelaying:
-            if (TimeInterval_GreaterEquals(now, pRepeater->nextEventTime)) {
-                pRepeater->state = kState_Repeating;
-                EventDriver_ReportKeyboardDeviceChange(pRepeater->eventDriver, kHIDKeyState_Repeat, pRepeater->keyCode);
+            if (TimeInterval_GreaterEquals(now, self->nextEventTime)) {
+                self->state = kState_Repeating;
+                EventDriver_ReportKeyboardDeviceChange(self->eventDriver, kHIDKeyState_Repeat, self->keyCode);
                 
-                while (TimeInterval_Less(pRepeater->nextEventTime, now)) {
-                    pRepeater->nextEventTime = TimeInterval_Add(pRepeater->nextEventTime, pRepeater->keyRepeatDelay);
+                while (TimeInterval_Less(self->nextEventTime, now)) {
+                    self->nextEventTime = TimeInterval_Add(self->nextEventTime, self->keyRepeatDelay);
                 }
             }
             break;
 
         case kState_Repeating:
-            if (TimeInterval_GreaterEquals(now, pRepeater->nextEventTime)) {
-                EventDriver_ReportKeyboardDeviceChange(pRepeater->eventDriver, kHIDKeyState_Repeat, pRepeater->keyCode);
+            if (TimeInterval_GreaterEquals(now, self->nextEventTime)) {
+                EventDriver_ReportKeyboardDeviceChange(self->eventDriver, kHIDKeyState_Repeat, self->keyCode);
                 
-                while (TimeInterval_Less(pRepeater->nextEventTime, now)) {
-                    pRepeater->nextEventTime = TimeInterval_Add(pRepeater->nextEventTime, pRepeater->keyRepeatDelay);
+                while (TimeInterval_Less(self->nextEventTime, now)) {
+                    self->nextEventTime = TimeInterval_Add(self->nextEventTime, self->keyRepeatDelay);
                 }
             }
             break;

@@ -10,7 +10,7 @@
 #include "EventDriver.h"
 
 
-errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     EventChannelRef self;
@@ -20,7 +20,7 @@ errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, 
     self->timeout = kTimeInterval_Infinity;
 
 catch:
-    *pOutChannel = (IOChannelRef)self;
+    *pOutSelf = (IOChannelRef)self;
     return err;
 }
 

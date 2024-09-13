@@ -10,12 +10,12 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK:
-// MARK: Copper program compiler
+// MARK: Copper Program
 ////////////////////////////////////////////////////////////////////////////////
 
 // Computes the size of a Copper program. The size is given in terms of the
 // number of Copper instruction words.
-int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScreen)
+static size_t cop_screen_refresh_prog_size(Screen* _Nonnull pScreen)
 {
     Surface* pFramebuffer = pScreen->framebuffer;
 
@@ -31,7 +31,7 @@ int CopperCompiler_GetScreenRefreshProgramInstructionCount(Screen* _Nonnull pScr
 // Compiles a screen refresh Copper program into the given buffer (which must be
 // big enough to store the program).
 // \return a pointer to where the next instruction after the program would go 
-CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField)
+static CopperInstruction* _Nonnull cop_make_screen_refresh_prog(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField)
 {
     const ScreenConfiguration* pConfig = pScreen->screenConfig;
     const uint32_t firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
@@ -91,33 +91,34 @@ CopperInstruction* _Nonnull CopperCompiler_CompileScreenRefreshProgram(CopperIns
 
 // Compiles a Copper program to display a non-interlaced screen or a single
 // field of an interlaced screen.
-errno_t CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
+errno_t CopperProgram_CreateScreenRefresh(Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const int nFrameInstructions = CopperCompiler_GetScreenRefreshProgramInstructionCount(pScreen);
-    const int nInstructions = nFrameInstructions + 1;
-    CopperProgram* prog;
+    const size_t nFrameInstructions = cop_screen_refresh_prog_size(pScreen);
+    const size_t nInstructions = nFrameInstructions + 1;
+    CopperProgram* self;
     
-    try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (void**) &prog));
-    SListNode_Init(&prog->node);
-    CopperInstruction* ip = prog->entry;
+    try(kalloc_options(sizeof(CopperProgram) + (nInstructions - 1) * sizeof(CopperInstruction), KALLOC_OPTION_UNIFIED, (void**) &self));
+    SListNode_Init(&self->node);
+    CopperInstruction* ip = self->entry;
 
-    ip = CopperCompiler_CompileScreenRefreshProgram(ip, pScreen, isLightPenEnabled, isOddField);
+    ip = cop_make_screen_refresh_prog(ip, pScreen, isLightPenEnabled, isOddField);
 
     // end instructions
     *ip = COP_END();
     
-    *pOutProg = prog;
+    *pOutSelf = self;
     return EOK;
     
 catch:
+    *pOutSelf = NULL;
     return err;
 }
 
 // Frees the given Copper program.
-void CopperProgram_Destroy(CopperProgram* _Nullable pProg)
+void CopperProgram_Destroy(CopperProgram* _Nullable self)
 {
-    kfree(pProg);
+    kfree(self);
 }
 
 
