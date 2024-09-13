@@ -37,9 +37,9 @@ typedef struct CompletionSignaler {
 } CompletionSignaler;
 
 extern errno_t CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp);
-extern void CompletionSignaler_Init(CompletionSignaler* _Nonnull pItem);
-extern void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull pItem);
-extern void CompletionSignaler_Destroy(CompletionSignaler* _Nullable pItem);
+extern void CompletionSignaler_Init(CompletionSignaler* _Nonnull self);
+extern void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull self);
+extern void CompletionSignaler_Destroy(CompletionSignaler* _Nullable self);
 
 
 //
@@ -56,10 +56,10 @@ typedef struct WorkItem {
     int8_t                                  type;
 } WorkItem;
 
-extern errno_t WorkItem_Create_Internal(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutItem);
-extern void WorkItem_Init(WorkItemRef _Nonnull pItem, enum ItemType type, DispatchQueueClosure closure, bool isOwnedByQueue);
-extern void WorkItem_Deinit(WorkItemRef _Nonnull pItem);
-extern void WorkItem_SignalCompletion(WorkItemRef _Nonnull pItem, bool isInterrupted);
+extern errno_t WorkItem_Create_Internal(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutSelf);
+extern void WorkItem_Init(WorkItemRef _Nonnull self, enum ItemType type, DispatchQueueClosure closure, bool isOwnedByQueue);
+extern void WorkItem_Deinit(WorkItemRef _Nonnull self);
+extern void WorkItem_SignalCompletion(WorkItemRef _Nonnull self, bool isInterrupted);
 
 
 //
@@ -72,9 +72,9 @@ typedef struct Timer {
     TimeInterval    interval;
 } Timer;
 
-extern errno_t Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer);
-extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue);
-#define Timer_Deinit(__pTimer) WorkItem_Deinit((WorkItemRef) __pTimer)
+extern errno_t Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutSelf);
+extern void _Nullable Timer_Init(TimerRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue);
+#define Timer_Deinit(__self) WorkItem_Deinit((WorkItemRef) __self)
 
 
 //
@@ -125,12 +125,12 @@ final_class_ivars(DispatchQueue, Object,
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 );
 
-extern void DispatchQueue_deinit(DispatchQueueRef _Nonnull pQueue);
+extern void DispatchQueue_deinit(DispatchQueueRef _Nonnull self);
 
-extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
+extern void DispatchQueue_Run(DispatchQueueRef _Nonnull self);
 
-static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
-static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
-static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
+static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull self);
+static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItemRef _Nonnull pItem);
+static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull self, TimerRef _Nonnull pTimer);
 
 #endif /* DispatchQueuePriv_h */
