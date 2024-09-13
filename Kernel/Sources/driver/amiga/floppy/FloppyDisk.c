@@ -24,7 +24,7 @@
 errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull fdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
-    FloppyDisk* self;
+    FloppyDiskRef self;
     
     try(Object_Create(FloppyDisk, &self));
     

@@ -19,7 +19,7 @@
 errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutConsole)
 {
     decl_try_err();
-    Console* pConsole;
+    ConsoleRef pConsole;
 
     try(Object_Create(Console, &pConsole));
     
@@ -358,7 +358,7 @@ void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode
 // \param pConsole the console
 // \param x the X position
 // \param y the Y position
-void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, int x, int y)
+void Console_MoveCursorTo_Locked(ConsoleRef _Nonnull pConsole, int x, int y)
 {
     Console_MoveCursor_Locked(pConsole, kCursorMovement_Clamp, x - pConsole->x, y - pConsole->y);
 }

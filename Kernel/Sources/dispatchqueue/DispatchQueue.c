@@ -272,7 +272,7 @@ catch:
 // Relinquishes the given work item. A work item owned by the dispatch queue is
 // moved back to the item reuse cache if possible or freed if the cache is full.
 // Does nothing if the dispatch queue does not own the item.
-static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem)
+static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem)
 {
     if (!pItem->is_owned_by_queue) {
         return;
@@ -312,7 +312,7 @@ catch:
 // Relinquishes the given timer. A timer owned by the queue is moved back to the
 // timer reuse queue if possible or freed id the reuse cache is already full.
 // Does nothing if the queue does not own the timer.
-static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer)
+static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer)
 {
     if (!pTimer->item.is_owned_by_queue) {
         return;
@@ -351,7 +351,7 @@ catch:
 
 // Relinquishes the given completion signaler back to the completion signaler
 // cache if possible. The completion signaler is freed if the cache is at capacity.
-static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueue* _Nonnull pQueue, CompletionSignaler* _Nonnull pItem)
+static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueueRef _Nonnull pQueue, CompletionSignaler* _Nonnull pItem)
 {
     if (pQueue->completion_signaler_count < MAX_COMPLETION_SIGNALER_CACHE_COUNT) {
         CompletionSignaler_Deinit(pItem);

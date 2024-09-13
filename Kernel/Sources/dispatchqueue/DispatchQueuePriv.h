@@ -74,8 +74,7 @@ typedef struct Timer {
 
 extern errno_t Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutTimer);
 extern void _Nullable Timer_Init(TimerRef _Nonnull pTimer, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue);
-#define Timer_Deinit(__pTimer) \
-    WorkItem_Deinit((WorkItemRef) __pTimer)
+#define Timer_Deinit(__pTimer) WorkItem_Deinit((WorkItemRef) __pTimer)
 
 
 //
@@ -131,7 +130,7 @@ extern void DispatchQueue_deinit(DispatchQueueRef _Nonnull pQueue);
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull pQueue);
 
 static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull pQueue);
-static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueue* _Nonnull pQueue, WorkItemRef _Nonnull pItem);
-static void DispatchQueue_RelinquishTimer_Locked(DispatchQueue* _Nonnull pQueue, TimerRef _Nonnull pTimer);
+static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull pQueue, WorkItemRef _Nonnull pItem);
+static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull pQueue, TimerRef _Nonnull pTimer);
 
 #endif /* DispatchQueuePriv_h */

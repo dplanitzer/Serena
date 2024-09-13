@@ -17,7 +17,7 @@ errno_t UResourceTable_Init(UResourceTable* _Nonnull self)
 {
     decl_try_err();
 
-    try(kalloc_cleared(sizeof(UResource*) * kUResourceTable_PageSize, (void**)&self->table));
+    try(kalloc_cleared(sizeof(UResourceRef) * kUResourceTable_PageSize, (void**)&self->table));
     self->tableCapacity = kUResourceTable_PageSize;
     Lock_Init(&self->lock);
 

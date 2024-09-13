@@ -104,7 +104,7 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull pConsole)
     Lock_Unlock(&pConsole->lock);
 }
 
-static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _Nonnull pConsole)
+static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _Nonnull pConsole)
 {
     if (pConsole->flags.isTextCursorVisible) {
         // Changing the visibility to on should restart the blinking timer if
@@ -126,7 +126,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(Console* _No
     }
 }
 
-void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool isEnabled)
+void Console_SetCursorBlinkingEnabled_Locked(ConsoleRef _Nonnull pConsole, bool isEnabled)
 {
     if (pConsole->flags.isTextCursorBlinkerEnabled != isEnabled) {
         pConsole->flags.isTextCursorBlinkerEnabled = isEnabled;
@@ -134,7 +134,7 @@ void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool is
     }
 }
 
-void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible)
+void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull pConsole, bool isVisible)
 {
     if (pConsole->flags.isTextCursorVisible != isVisible) {
         pConsole->flags.isTextCursorVisible = isVisible;
@@ -142,7 +142,7 @@ void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible)
     }
 }
 
-void Console_CursorDidMove_Locked(Console* _Nonnull pConsole)
+void Console_CursorDidMove_Locked(ConsoleRef _Nonnull pConsole)
 {
     GraphicsDriver_SetSpritePosition(pConsole->gdevice, pConsole->textCursor, pConsole->x * pConsole->characterWidth, pConsole->y * pConsole->lineHeight);
     // Temporarily force the cursor to be visible, but without changing the text

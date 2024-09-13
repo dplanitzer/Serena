@@ -50,7 +50,7 @@ extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull pDriver);
 errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
-    KeyboardDriver* pDriver;
+    KeyboardDriverRef pDriver;
     
     try(Object_Create(KeyboardDriver, &pDriver));
     
@@ -168,7 +168,7 @@ errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Mouse
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
-    MouseDriver* pDriver = NULL;
+    MouseDriverRef pDriver = NULL;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
@@ -304,7 +304,7 @@ errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int p
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
     CIAA_BASE_DECL(ciaa);
-    DigitalJoystickDriver* pDriver = NULL;
+    DigitalJoystickDriverRef pDriver = NULL;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
@@ -425,7 +425,7 @@ errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int po
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
-    AnalogJoystickDriver* pDriver = NULL;
+    AnalogJoystickDriverRef pDriver = NULL;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);
@@ -558,7 +558,7 @@ errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Li
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
-    LightPenDriver* pDriver = NULL;
+    LightPenDriverRef pDriver = NULL;
 
     if (port < 0 || port > 1) {
         throw(ENODEV);

@@ -171,7 +171,7 @@ uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState
 
 // Turns the motor for drive 'drive' on or off. This function does not wait for
 // the motor to reach its final speed.
-static void _FloppyController_SetMotor(FloppyController* _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff)
+static void _FloppyController_SetMotor(FloppyControllerRef _Locked _Nonnull self, DriveState* _Nonnull cb, bool onoff)
 {
     CIAB_BASE_DECL(ciab);
 

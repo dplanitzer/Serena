@@ -369,7 +369,7 @@ static const ColorTable gDefaultColorTable = {
 errno_t GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
-    GraphicsDriver* pDriver;
+    GraphicsDriverRef pDriver;
     Screen* pScreen;
     
     try(Object_Create(GraphicsDriver, &pDriver));

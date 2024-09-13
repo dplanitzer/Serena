@@ -17,7 +17,7 @@ errno_t IOChannelTable_Init(IOChannelTable* _Nonnull self)
 {
     decl_try_err();
 
-    try(kalloc_cleared(sizeof(IOChannel*) * kIOChannelTable_PageSize, (void**)&self->table));
+    try(kalloc_cleared(sizeof(IOChannelRef) * kIOChannelTable_PageSize, (void**)&self->table));
     self->tableCapacity = kIOChannelTable_PageSize;
     Lock_Init(&self->lock);
 

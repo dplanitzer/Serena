@@ -24,34 +24,34 @@
 #define __CLASS_METHOD_DEFS(__name, __super, ...) \
 static struct __name##MethodTable g##__name##VTable; \
 static const struct MethodDecl g##__name##MDecls[] = { __VA_ARGS__ {NULL, 0} }; \
-Class _ClassSection k##__name##Class = {(MethodImpl*)&g##__name##VTable, __super, #__name, sizeof(__name), 0, (uint16_t) sizeof(struct __name##MethodTable)/sizeof(MethodImpl), g##__name##MDecls}
+Class _ClassSection k##__name##Class = {(MethodImpl*)&g##__name##VTable, __super, #__name, sizeof(struct __name), 0, (uint16_t) sizeof(struct __name##MethodTable)/sizeof(MethodImpl), g##__name##MDecls}
 
 #define __CLASS_METHOD_DECLS(__name, __super, __func_decls) \
-typedef struct __name##MethodTable { __super __func_decls } __name##MethodTable
+struct __name##MethodTable { __super __func_decls }
 
 #define __CLASS_IVARS_DECLS(__name, __super, __ivars_decls) \
 extern Class k##__name##Class; \
-typedef struct __name { __super __ivars_decls } __name
+struct __name { __super __ivars_decls }
 
 
 // Generates a forward declaration for the class named '__name'. Additionally
 // declares a reference type of the form '__nameRef'. This type can be used to
 // represent a pointer to an instance of the class.
 #define class_forward(__name) \
-struct __name; \
 typedef struct __name* __name##Ref
 
 
 // Used to declare the Any type.
 #define any_class(__name) \
 extern Class k##__name##Class; \
-typedef struct __name { Class* _Nonnull clazz; } __name
+struct __name { Class* _Nonnull clazz; }; \
+typedef struct __name* __name##Ref
 
 // Used to provide the definition of the Any type.
 #define any_class_def(__name) \
 static void* g##__name##VTable[1] = {(void*)0x5555}; \
 static const struct MethodDecl g##__name##MDecls[1] = { {NULL, 0} }; \
-Class _ClassSection k##__name##Class = {(MethodImpl*)g##__name##VTable, NULL, #__name, sizeof(__name), 0, 0, g##__name##MDecls}
+Class _ClassSection k##__name##Class = {(MethodImpl*)g##__name##VTable, NULL, #__name, sizeof(struct __name), 0, 0, g##__name##MDecls}
 
 
 // Declares the methods of a class that is a direct descendent of the Any class.
@@ -69,17 +69,17 @@ __CLASS_METHOD_DEFS(__name, NULL, __VA_ARGS__)
 // Declares an open class. An open class can be subclassed. Note that this variant
 // does not define the __nameRef type.
 #define open_class(__name, __super, __ivar_decls) \
-__CLASS_IVARS_DECLS(__name, __super super;, __ivar_decls)
+__CLASS_IVARS_DECLS(__name, struct __super super;, __ivar_decls)
 
 // Same as open_class but also defines a __nameRef type.
 #define open_class_with_ref(__name, __super, __ivar_decls) \
-__CLASS_IVARS_DECLS(__name, __super super;, __ivar_decls); \
+__CLASS_IVARS_DECLS(__name, struct __super super;, __ivar_decls); \
 typedef struct __name* __name##Ref
 
 // Defines the methods of a open class. This macro should be placed after the
 // open_class() macro.
 #define open_class_funcs(__name, __super, __func_decls) \
-__CLASS_METHOD_DECLS(__name, __super##MethodTable super;, __func_decls)
+__CLASS_METHOD_DECLS(__name, struct __super##MethodTable super;, __func_decls)
 
 
 // Defines a final class. A final class does not support subclassing. Additionally
@@ -90,12 +90,12 @@ __CLASS_METHOD_DECLS(__name, __super##MethodTable super;, __func_decls)
 extern Class k##__name##Class; \
 struct __name; \
 typedef struct __name* __name##Ref; \
-typedef struct __name##MethodTable { __superName##MethodTable super; } __name##MethodTable
+struct __name##MethodTable { struct __superName##MethodTable super; }
 
 // Defines the ivars of a final class. This macro should be placed either in
 // the class implementation file or a private class header file.
 #define final_class_ivars(__name, __super, __ivar_decls) \
-__CLASS_IVARS_DECLS(__name, __super super;, __ivar_decls)
+__CLASS_IVARS_DECLS(__name, struct __super super;, __ivar_decls)
 
 
 // Defines the method table of an open or final class. This macro expects a list

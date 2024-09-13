@@ -45,7 +45,7 @@ static const uint8_t gUSBHIDKeyFlags[256] = {
 errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutDriver)
 {
     decl_try_err();
-    EventDriver* pDriver;
+    EventDriverRef pDriver;
     
     try(Object_Create(EventDriver, &pDriver));
 

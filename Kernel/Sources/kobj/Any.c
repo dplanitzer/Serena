@@ -11,10 +11,10 @@
 
 any_class_def(Any);
 
-bool _instanceof(Any* _Nonnull pAny, Class* _Nonnull pTargetType)
+bool _instanceof(AnyRef _Nonnull self, Class* _Nonnull targetType)
 {
-    Class* curTargetType = pTargetType;
-    Class* anyType = classof(pAny);
+    Class* curTargetType = targetType;
+    Class* anyType = classof(self);
 
     while (curTargetType) {
         if (anyType == curTargetType) {
@@ -28,7 +28,7 @@ bool _instanceof(Any* _Nonnull pAny, Class* _Nonnull pTargetType)
 
 // Returns the class that defines the super implementation of the method identified
 // by the method offset 'methodOffset'.
-Class* _Nonnull _superimplclassof(Any* _Nonnull self, size_t methodOffset)
+Class* _Nonnull _superimplclassof(AnyRef _Nonnull self, size_t methodOffset)
 {
     Class* pPrevClass = classof(self);
     MethodImpl pPrevImpl = *(MethodImpl*)((char*)(pPrevClass->vtable) + methodOffset);

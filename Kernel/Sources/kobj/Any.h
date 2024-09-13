@@ -31,7 +31,7 @@ any_class(Any);
 
 // Returns the class of the given instance.
 #define classof(__self)\
-    ((Class*)(((Any*)(__self))->clazz))
+    ((Class*)(((AnyRef)(__self))->clazz))
 
 
 // Returns the superclass of the given instance.
@@ -42,7 +42,7 @@ any_class(Any);
 // Returns true if the given object is an instance of the given class or one of
 // the super classes.
 #define instanceof(__self, __className) \
-    _instanceof((Any*)__self, &k##__className##Class)
+    _instanceof((AnyRef)__self, &k##__className##Class)
 
 
 // Returns the implementation pointer of a method. You must cast this pointer to
@@ -70,15 +70,15 @@ any_class(Any);
 
 // Invokes a dynamically dispatched method with the given arguments on the superclass of the receiver.
 #define super_0(__func, __superClassName, __self) \
-    dispatch_0(__func, __superClassName, _superimplclassof((Any*)__self, offsetof(struct __superClassName##MethodTable, __func)), __self)
+    dispatch_0(__func, __superClassName, _superimplclassof((AnyRef)__self, offsetof(struct __superClassName##MethodTable, __func)), __self)
 
 #define super_n(__func, __superClassName, __self, ...) \
-    dispatch_n(__func, __superClassName, _superimplclassof((Any*)__self, offsetof(struct __superClassName##MethodTable, __func)), __self, __VA_ARGS__)
+    dispatch_n(__func, __superClassName, _superimplclassof((AnyRef)__self, offsetof(struct __superClassName##MethodTable, __func)), __self, __VA_ARGS__)
 
 
 
 // Do not call these functions directly. Use the macros defined above instead.
-extern bool _instanceof(Any* _Nonnull pObj, Class* _Nonnull pTargetType);
-extern Class* _Nonnull _superimplclassof(Any* _Nonnull pObj, size_t methodOffset);
+extern bool _instanceof(AnyRef _Nonnull self, Class* _Nonnull targetType);
+extern Class* _Nonnull _superimplclassof(AnyRef _Nonnull self, size_t methodOffset);
 
 #endif /* Any_h */

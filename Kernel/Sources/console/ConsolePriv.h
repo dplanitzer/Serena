@@ -203,10 +203,10 @@ extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull pConsole, Colo
 #define Console_SetDefaultBackgroundColor_Locked(__self) \
     Console_SetBackgroundColor_Locked(__self, Color_MakeIndex(0)); /* Black */
 
-extern void Console_SetCursorBlinkingEnabled_Locked(Console* _Nonnull pConsole, bool isEnabled);
-extern void Console_SetCursorVisible_Locked(Console* _Nonnull pConsole, bool isVisible);
-extern void Console_OnTextCursorBlink(Console* _Nonnull pConsole);
-extern void Console_CursorDidMove_Locked(Console* _Nonnull pConsole);
+extern void Console_SetCursorBlinkingEnabled_Locked(ConsoleRef _Nonnull pConsole, bool isEnabled);
+extern void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull pConsole, bool isVisible);
+extern void Console_OnTextCursorBlink(ConsoleRef _Nonnull pConsole);
+extern void Console_CursorDidMove_Locked(ConsoleRef _Nonnull pConsole);
 
 extern errno_t Console_BeginDrawing_Locked(ConsoleRef _Nonnull self);
 extern void Console_EndDrawing_Locked(ConsoleRef _Nonnull self);
@@ -219,11 +219,11 @@ extern void Console_FillRect_Locked(ConsoleRef _Nonnull pConsole, Rect rect, cha
 extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull pConsole);
 
-extern void Console_ClearScreen_Locked(Console* _Nonnull pConsole, ClearScreenMode mode);
+extern void Console_ClearScreen_Locked(ConsoleRef _Nonnull pConsole, ClearScreenMode mode);
 extern void Console_ClearLine_Locked(ConsoleRef _Nonnull pConsole, int y, ClearLineMode mode);
 extern void Console_SaveCursorState_Locked(ConsoleRef _Nonnull pConsole);
 extern void Console_RestoreCursorState_Locked(ConsoleRef _Nonnull pConsole);
-extern void Console_MoveCursorTo_Locked(Console* _Nonnull pConsole, int x, int y);
+extern void Console_MoveCursorTo_Locked(ConsoleRef _Nonnull pConsole, int x, int y);
 extern void Console_MoveCursor_Locked(ConsoleRef _Nonnull pConsole, CursorMovement mode, int dx, int dy);
 extern void Console_SetCompatibilityMode_Locked(ConsoleRef _Nonnull pConsole, CompatibilityMode mode);
 extern void Console_VT52_ParseByte_Locked(ConsoleRef _Nonnull pConsole, vt52parse_action_t action, unsigned char b);
