@@ -92,7 +92,7 @@ include $(WORKSPACE_DIR)/common.mk
 KERNEL_PROJECT_DIR := $(WORKSPACE_DIR)/Kernel
 KERNEL_TESTS_PROJECT_DIR := $(WORKSPACE_DIR)/Kernel/Tests
 KERNEL_OBJS_DIR := $(OBJS_DIR)/Kernel
-KERNEL_TESTS_OBJS_DIR := $(OBJS_DIR)/Kernel/Tests
+KERNEL_TESTS_OBJS_DIR := $(OBJS_DIR)/KernelTests
 KERNEL_FILE := $(KERNEL_OBJS_DIR)/Kernel.bin
 KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/test
 
@@ -213,7 +213,7 @@ ifdef BOOT_FROM_ROM
 clean-rom: clean-kernel clean-kernel-tests clean-cmds clean-sh clean-libc clean-libsystem
 	@echo Done
 else
-clean-rom: clean-kernel clean-kernel-tests
+clean-rom: clean-kernel
 	@echo Done
 endif
 
