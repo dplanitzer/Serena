@@ -16,7 +16,7 @@
 
 // The Object class is the top type of all reference objects which use a
 // standard reference counting memory management model.
-open_class_with_ref(Object, Any,
+open_class(Object, Any,
     AtomicInt   retainCount;
 );
 any_subclass_funcs(Object,

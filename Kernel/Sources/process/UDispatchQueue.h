@@ -13,7 +13,7 @@
 #include <dispatchqueue/DispatchQueue.h>
 
 
-open_class_with_ref(UDispatchQueue, UResource,
+open_class(UDispatchQueue, UResource,
     DispatchQueueRef    dispatchQueue;
 );
 open_class_funcs(UDispatchQueue, Object,

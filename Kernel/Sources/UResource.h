@@ -54,7 +54,7 @@
 //
 // Only mode (1) is supported by the resource class at this time. Support for
 // the other modes is planned for the future.
-open_class_with_ref(UResource, Any,
+open_class(UResource, Any,
     Lock        countLock;
     int32_t     useCount;
     uint32_t    flags;

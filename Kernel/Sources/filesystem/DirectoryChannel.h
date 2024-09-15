@@ -24,7 +24,7 @@
 //
 // Locking:
 // See FileChannel.
-open_class_with_ref(DirectoryChannel, IOChannel,
+open_class(DirectoryChannel, IOChannel,
     FileOffset          offset;
     InodeRef _Nonnull   inode;
     Lock                lock;

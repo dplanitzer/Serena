@@ -13,7 +13,7 @@
 #include <dispatcher/Lock.h>
 
 
-open_class_with_ref(ULock, UResource,
+open_class(ULock, UResource,
     Lock    lock;
 );
 open_class_funcs(ULock, UResource,

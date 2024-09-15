@@ -14,7 +14,19 @@
 // MARK: -
 ////////////////////////////////////////////////////////////////////////////////
 
+void Driver_onBind(DriverRef _Nonnull self, DriverCatalogRef _Nonnull catalog)
+{
+
+}
+
+void Driver_onUnbind(DriverRef _Nonnull self)
+{
+
+}
+
 class_func_defs(Driver, Object,
+    func_def(onBind, Driver)
+    func_def(onUnbind, Driver)
 );
 
 

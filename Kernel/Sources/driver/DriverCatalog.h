@@ -9,10 +9,7 @@
 #ifndef DriverCatalog_h
 #define DriverCatalog_h
 
-#include <driver/Driver.h>
-
-struct DriverCatalog;
-typedef struct DriverCatalog* DriverCatalogRef;
+#include <kobj/Object.h>
 
 
 extern errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf);

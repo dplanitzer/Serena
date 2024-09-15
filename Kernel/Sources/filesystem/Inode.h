@@ -15,8 +15,6 @@
 #include <System/Directory.h>
 #include <System/File.h>
 
-class_forward(Filesystem);
-
 // Inode flags
 enum {
     kInodeFlag_IsMountpoint = 0x01,     // [FilesystemManager lock]
@@ -47,7 +45,6 @@ typedef struct Inode {
     UserId                          uid;
     GroupId                         gid;
 } Inode;
-typedef struct Inode* InodeRef;
 
 
 //

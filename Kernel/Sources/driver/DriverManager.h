@@ -13,8 +13,6 @@
 #include <hal/Platform.h>
 #include "Driver.h"
 
-struct DriverManager;
-typedef struct DriverManager* DriverManagerRef;
 
 // The names of known drivers
 extern const char* const kGraphicsDriverName;

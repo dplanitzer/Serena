@@ -34,18 +34,16 @@ extern Class k##__name##Class; \
 struct __name { __super __ivars_decls }
 
 
-// Generates a forward declaration for the class named '__name'. Additionally
-// declares a reference type of the form '__nameRef'. This type can be used to
-// represent a pointer to an instance of the class.
-#define class_forward(__name) \
+// Generates a definition of the reference type of a class instance, __nameRef.
+// Add a class_ref() to kobj/ObectRefs for each class you define in the kernel. 
+#define class_ref(__name) \
 typedef struct __name* __name##Ref
 
 
 // Used to declare the Any type.
 #define any_class(__name) \
 extern Class k##__name##Class; \
-struct __name { Class* _Nonnull clazz; }; \
-typedef struct __name* __name##Ref
+struct __name { Class* _Nonnull clazz; }
 
 // Used to provide the definition of the Any type.
 #define any_class_def(__name) \
@@ -71,11 +69,6 @@ __CLASS_METHOD_DEFS(__name, NULL, __VA_ARGS__)
 #define open_class(__name, __super, __ivar_decls) \
 __CLASS_IVARS_DECLS(__name, struct __super super;, __ivar_decls)
 
-// Same as open_class but also defines a __nameRef type.
-#define open_class_with_ref(__name, __super, __ivar_decls) \
-__CLASS_IVARS_DECLS(__name, struct __super super;, __ivar_decls); \
-typedef struct __name* __name##Ref
-
 // Defines the methods of a open class. This macro should be placed after the
 // open_class() macro.
 #define open_class_funcs(__name, __super, __func_decls) \
@@ -89,7 +82,6 @@ __CLASS_METHOD_DECLS(__name, struct __super##MethodTable super;, __func_decls)
 #define final_class(__name, __superName) \
 extern Class k##__name##Class; \
 struct __name; \
-typedef struct __name* __name##Ref; \
 struct __name##MethodTable { struct __superName##MethodTable super; }
 
 // Defines the ivars of a final class. This macro should be placed either in
@@ -128,6 +120,8 @@ __CLASS_METHOD_DEFS(__name, &k##__super##Class, __VA_ARGS__)
 // 2.a add the implementation of dynamically dispatched methods
 // 2.b class_func_defs() with one func_def() or override_func_def() per dynamically dispatched method
 //
+// 3. In kobj/ObjectRefs.h add a class_ref() for the new class
+//
 //
 // Defining a final class which can not be subclassed:
 //
@@ -141,6 +135,8 @@ __CLASS_METHOD_DEFS(__name, &k##__super##Class, __VA_ARGS__)
 // 3. In the .c file:
 // 3.a add the implementation of dynamically dispatched methods
 // 3.b class_func_defs() with one func_def() or override_func_def() per dynamically dispatched method
+//
+// 4. In kobj/ObjectRefs.h add a class_ref() for the new class
 //
 
 typedef void (*MethodImpl)(void* _Nonnull self, ...);

@@ -14,7 +14,7 @@
 #include "ULock.h"
 
 
-open_class_with_ref(UConditionVariable, UResource,
+open_class(UConditionVariable, UResource,
     ConditionVariable   cv;
 );
 open_class_funcs(UConditionVariable, UResource,

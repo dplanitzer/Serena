@@ -13,7 +13,7 @@
 #include <dispatcher/Semaphore.h>
 
 
-open_class_with_ref(USemaphore, UResource,
+open_class(USemaphore, UResource,
     Semaphore    sema;
 );
 open_class_funcs(USemaphore, UResource,

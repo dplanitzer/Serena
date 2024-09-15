@@ -13,7 +13,7 @@
 #include <kobj/Object.h>
 
 
-open_class_with_ref(PipeChannel, IOChannel,
+open_class(PipeChannel, IOChannel,
     ObjectRef _Nonnull  pipe;
 );
 open_class_funcs(PipeChannel, IOChannel,

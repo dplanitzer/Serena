@@ -8,7 +8,6 @@
 
 #include "DriverCatalog.h"
 #include <dispatcher/Lock.h>
-#include <kobj/Object.h>
 
 #define MAX_DRIVER_NAME_LENGTH  10
 

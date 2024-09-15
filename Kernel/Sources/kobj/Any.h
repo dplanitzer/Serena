@@ -10,6 +10,7 @@
 #define Any_h
 
 #include <kobj/Class.h>
+#include <kobj/AnyRefs.h>
 
 
 // The Any type. This is the root type aka top type of the object type system.

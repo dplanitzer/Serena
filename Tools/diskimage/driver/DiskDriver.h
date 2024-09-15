@@ -20,7 +20,7 @@ typedef uint32_t    LogicalBlockAddress;
 typedef LogicalBlockAddress LogicalBlockCount;
 
 
-open_class_with_ref(DiskDriver, Object,
+open_class(DiskDriver, Object,
     uint8_t*                    diskImage;
     size_t                      blockSize;
     LogicalBlockCount           blockCount;

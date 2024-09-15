@@ -83,7 +83,7 @@
 //
 // Only mode (1) is supported by the I/O channel class at this time. Support for
 // the other modes is planned for the future.
-open_class_with_ref(IOChannel, Any,
+open_class(IOChannel, Any,
     Lock            countLock;
     int32_t         ownerCount;
     int32_t         useCount;
