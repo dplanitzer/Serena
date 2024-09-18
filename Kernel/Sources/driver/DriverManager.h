@@ -37,7 +37,4 @@ extern errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull self);
 
 extern DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull self, const char* name);
 
-extern int DriverManager_GetExpansionBoardCount(DriverManagerRef _Nonnull self);
-extern ExpansionBoard DriverManager_GetExpansionBoardAtIndex(DriverManagerRef _Nonnull self, int index);
-
 #endif /* DriverManager_h */

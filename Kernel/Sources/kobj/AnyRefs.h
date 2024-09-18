@@ -43,6 +43,7 @@ class_ref(LightPenDriver);
 class_ref(MouseDriver);
 class_ref(PipeChannel);
 class_ref(Pipe);
+class_ref(PlatformController);
 class_ref(Process);
 class_ref(RamDisk);
 class_ref(RealtimeClock);
