@@ -43,15 +43,16 @@ typedef struct ADFSector {
 #define ADF_TRACK_WRITE_SIZE(__sectorsPerTrack) ((__sectorsPerTrack) * (ADF_MFM_SYNC_SIZE + ADF_MFM_SECTOR_SIZE) + ADF_MFM_SYNC_SIZE)
 
 
+// Dispatch queue timer tags
+#define kDelayedMotorOffTag     ((uintptr_t)0x1000)
+#define kUpdateHasDiskStateTag  ((uintptr_t)0x1001)
+
+
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
     DispatchQueueRef _Nonnull           dispatchQueue;
     FloppyControllerRef _Nonnull _Weak  fdc;
-
-    // Flow control
-    TimerRef _Nullable          delayedMotorOff;
-    TimerRef _Nullable          updateHasDiskState;
 
     // Buffer used to cache a read track
     ADFSector                   sectors[ADF_MAX_SECS_PER_TRACK];    // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  

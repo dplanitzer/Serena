@@ -249,17 +249,17 @@ static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _No
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure, WorkItemRef _Nullable * _Nonnull pOutItem)
+static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure, uintptr_t tag, WorkItemRef _Nullable * _Nonnull pOutItem)
 {
     decl_try_err();
     WorkItemRef pItem = (WorkItemRef) SList_RemoveFirst(&self->item_cache_queue);
 
     if (pItem != NULL) {
-        WorkItem_Init(pItem, kItemType_Immediate, closure, true);
+        WorkItem_Init(pItem, kItemType_Immediate, closure, tag, true);
         self->item_cache_count--;
         *pOutItem = pItem;
     } else {
-        try(WorkItem_Create_Internal(closure, true, pOutItem));
+        try(WorkItem_Create(closure, true, pOutItem));
     }
     return EOK;
 
@@ -289,17 +289,17 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull se
 // Creates a timer for the given closure and closure context. Tries to reuse
 // an existing timer from the timer cache whenever possible. Expects that the
 // caller holds the dispatch queue lock.
-static errno_t DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, TimerRef _Nullable * _Nonnull pOutTimer)
+static errno_t DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag, TimerRef _Nullable * _Nonnull pOutTimer)
 {
     decl_try_err();
     TimerRef pTimer = (TimerRef) SList_RemoveFirst(&self->timer_cache_queue);
 
     if (pTimer != NULL) {
-        Timer_Init(pTimer, deadline, interval, closure, true);
+        Timer_Init(pTimer, deadline, interval, closure, tag, true);
         self->timer_cache_count--;
         *pOutTimer = pTimer;
     } else {
-        try(Timer_Create_Internal(deadline, interval, closure, true, pOutTimer));
+        try(Timer_Create(deadline, interval, closure, true, pOutTimer));
     }
     return EOK;
 
@@ -513,6 +513,31 @@ static void DispatchQueue_RemoveTimer_Locked(DispatchQueueRef _Nonnull self, Tim
     }
 }
 
+// Removes all queued instances of timer with the tag 'tag'.
+static bool DispatchQueue_RemoveTimer2_Locked(DispatchQueueRef _Nonnull self, uintptr_t tag)
+{
+    TimerRef curTimer = (TimerRef) self->timer_queue.first;
+    TimerRef prevTimer = NULL;
+    bool didRemove = false;
+
+    while (curTimer) {
+        TimerRef nextTimer = (TimerRef) curTimer->item.queue_entry.next;
+
+        if (curTimer->item.tag == tag) {
+            SList_Remove(&self->timer_queue, &prevTimer->item.queue_entry, &curTimer->item.queue_entry);
+            DispatchQueue_RelinquishTimer_Locked(self, curTimer);
+            didRemove = true;
+            // pPrevItem doesn't change here
+        }
+        else {
+            prevTimer = curTimer;
+        }
+        curTimer = nextTimer;
+    }
+
+    return didRemove;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -570,7 +595,7 @@ errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, DispatchQueue
         return EOK;
     }
 
-    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, &pItem));
+    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, 0, &pItem));
     try(DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(self, pItem));
     return EOK;
 
@@ -599,7 +624,7 @@ errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, DispatchQueu
         return EOK;
     }
 
-    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, &pItem));
+    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, 0, &pItem));
     try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(self, pItem));
     return EOK;
 
@@ -614,8 +639,17 @@ catch:
 }
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
-// queue will try to execute the closure as close to 'deadline' as possible.
-errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, DispatchQueueClosure closure)
+// queue will try to execute the closure as close to 'deadline' as possible. The
+// timer can be referenced with the tag 'tag'.
+errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, DispatchQueueClosure closure, uintptr_t tag)
+{
+    return DispatchQueue_DispatchAsyncPeriodically(self, deadline, kTimeInterval_Zero, closure, tag);
+}
+
+// Asynchronously executes the given closure every 'interval' seconds, on or
+// after 'deadline' until the timer is removed from the dispatch queue. The
+// timer can be referenced with the tag 'tag'.
+errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag)
 {
     decl_try_err();
     Timer* pTimer = NULL;
@@ -628,7 +662,7 @@ errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInt
         return EOK;
     }
 
-    try(DispatchQueue_AcquireTimer_Locked(self, deadline, kTimeInterval_Zero, closure, &pTimer));
+    try(DispatchQueue_AcquireTimer_Locked(self, deadline, interval, closure, tag, &pTimer));
     try(DispatchQueue_DispatchTimer_Locked(self, pTimer));
     return EOK;
 
@@ -643,127 +677,18 @@ catch:
 }
 
 
-// Synchronously executes the given work item. The work item is executed as
-// soon as possible and the caller remains blocked until the work item has
-// finished execution. This function returns with an EINTR if the queue is
-// flushed or terminated by calling DispatchQueue_Terminate().
-errno_t DispatchQueue_DispatchWorkItemSync(DispatchQueueRef _Nonnull self, WorkItemRef _Nonnull pItem)
-{
-    decl_try_err();
-    bool needsUnlock = false;
-
-    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
-        // Some other queue is already dispatching this work item
-        return EBUSY;
-    }
-
-    Lock_Lock(&self->lock);
-    needsUnlock = true;
-    if (self->state >= kQueueState_Terminating) {
-        Lock_Unlock(&self->lock);
-        return EOK;
-    }
-
-    try(DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(self, pItem));
-    return EOK;
-
-catch:
-    if (needsUnlock) {
-        Lock_Unlock(&self->lock);
-    }
-    return err;
-}
-
-// Asynchronously executes the given work item. The work item is executed as
-// soon as possible.
-errno_t DispatchQueue_DispatchWorkItemAsync(DispatchQueueRef _Nonnull self, WorkItemRef _Nonnull pItem)
-{
-    decl_try_err();
-    bool needsUnlock = false;
-
-    if (AtomicBool_Set(&pItem->is_being_dispatched, true)) {
-        // Some other queue is already dispatching this work item
-        return EBUSY;
-    }
-
-    Lock_Lock(&self->lock);
-    needsUnlock = true;
-    if (self->state >= kQueueState_Terminating) {
-        Lock_Unlock(&self->lock);
-        return EOK;
-    }
-
-    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(self, pItem));
-    return EOK;
-
-catch:
-    if (needsUnlock) {
-        Lock_Unlock(&self->lock);
-    }
-    return err;
-}
-
-// Removes all scheduled instances of the given work item from the dispatch queue.
-// Work items are compared by their pointer identity and all items with the same
-// pointer identity as 'pItem' are removed from the queue. Note that this
-// function does not cancel the item nor clear the cancel state of the item if
-// it is in cancelled state. If the closure of the work item is in the process
-// of executing when this function is called then the closure will continue to
-// execute undisturbed. If the work item however is still pending and has not
-// yet executed then it will be removed and it will not execute.
-// All outstanding DispatchWorkItemSync() calls on this item will return with an
-// EINTR error.
-void DispatchQueue_RemoveWorkItem(DispatchQueueRef _Nonnull self, WorkItemRef _Nonnull pItem)
+// Removes all scheduled instances of timers with tag 'tag' from the dispatch
+// queue. If the closure of the timer is in the process of executing when this
+// function is called then the closure will continue to execute uninterrupted.
+// If on the other side, the timer is still pending and has not executed yet
+// then it will be removed and it will not execute.
+bool DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull self, uintptr_t tag)
 {
     Lock_Lock(&self->lock);
-    // Queue terminating state isn't relevant here
-    DispatchQueue_RemoveWorkItem_Locked(self, pItem);
+    // Queue termination state isn't relevant here
+    const bool r = DispatchQueue_RemoveTimer2_Locked(self, tag);
     Lock_Unlock(&self->lock);
-}
-
-
-// Asynchronously executes the given timer when it comes due.
-errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimerRef _Nonnull pTimer)
-{
-    decl_try_err();
-    bool needsUnlock = false;
-
-    if (AtomicBool_Set(&pTimer->item.is_being_dispatched, true)) {
-        // Some other queue is already dispatching this timer
-        return EBUSY;
-    }
-
-    Lock_Lock(&self->lock);
-    needsUnlock = true;
-    if (self->state >= kQueueState_Terminating) {
-        Lock_Unlock(&self->lock);
-        return EOK;
-    }
-
-    try(DispatchQueue_DispatchTimer_Locked(self, pTimer));
-    return EOK;
-
-catch:
-    if (needsUnlock) {
-        Lock_Unlock(&self->lock);
-    }
-    return err;
-}
-
-// Removes all scheduled instances of the given timer from the dispatch queue.
-// Timers are compared by their pointer identity and all items with the same
-// pointer identity as 'pTimer' are removed from the queue. Note that this
-// function does not cancel the timer nor clear the cancel state of the timer if
-// it is in cancelled state. If the closure of the timer is in the process
-// of executing when this function is called then the closure will continue to
-// execute undisturbed. If the timer however is still pending and has not yet
-// executed then it will be removed and it will not execute.
-void DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull self, TimerRef _Nonnull pTimer)
-{
-    Lock_Lock(&self->lock);
-    // Queue terminating state isn't relevant here
-    DispatchQueue_RemoveTimer_Locked(self, pTimer);
-    Lock_Unlock(&self->lock);
+    return r;
 }
 
 
@@ -900,9 +825,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
             case kItemType_RepeatingTimer: {
                 Timer* pTimer = (TimerRef)pItem;
                 
-                if (pTimer->item.cancelled) {
-                    DispatchQueue_RelinquishTimer_Locked(self, pTimer);
-                } else if (self->state == kQueueState_Running) {
+                if (self->state == kQueueState_Running) {
                     DispatchQueue_RearmTimer_Locked(self, pTimer);
                 }
                 break;

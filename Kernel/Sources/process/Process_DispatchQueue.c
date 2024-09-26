@@ -70,7 +70,7 @@ errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od,
     UDispatchQueueRef pQueue;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-        err = DispatchQueue_DispatchAsyncAfter(pQueue->dispatchQueue, deadline, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+        err = DispatchQueue_DispatchAsyncAfter(pQueue->dispatchQueue, deadline, DispatchQueueClosure_MakeUser(pUserClosure, pContext), 0);
         UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;

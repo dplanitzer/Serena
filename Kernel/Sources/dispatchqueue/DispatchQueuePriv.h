@@ -50,14 +50,15 @@ typedef struct WorkItem {
     SListNode                               queue_entry;
     DispatchQueueClosure                    closure;
     CompletionSignaler * _Nullable _Weak    completion;
-    bool                                    is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligble to be moved to the work item cache
-    AtomicBool                              is_being_dispatched;    // shared between all dispatch queues (set to true while the work item is in the process of being dispatched by a queue; false if no queue is using it)
-    AtomicBool                              cancelled;              // shared between dispatch queue and queue user
+    uintptr_t                               tag;
     int8_t                                  type;
+    bool                                    is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligible to be moved to the work item cache
 } WorkItem;
+typedef struct WorkItem* WorkItemRef;
 
-extern errno_t WorkItem_Create_Internal(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutSelf);
-extern void WorkItem_Init(WorkItemRef _Nonnull self, enum ItemType type, DispatchQueueClosure closure, bool isOwnedByQueue);
+extern errno_t WorkItem_Create(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutSelf);
+extern void WorkItem_Init(WorkItemRef _Nonnull self, enum ItemType type, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue);
+extern void WorkItem_Destroy(WorkItemRef _Nullable self);
 extern void WorkItem_Deinit(WorkItemRef _Nonnull self);
 extern void WorkItem_SignalCompletion(WorkItemRef _Nonnull self, bool isInterrupted);
 
@@ -71,9 +72,11 @@ typedef struct Timer {
     TimeInterval    deadline;           // Time when the timer closure should be executed
     TimeInterval    interval;
 } Timer;
+typedef struct Timer* TimerRef;
 
-extern errno_t Timer_Create_Internal(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutSelf);
-extern void _Nullable Timer_Init(TimerRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue);
+extern errno_t Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutSelf);
+extern void _Nullable Timer_Init(TimerRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue);
+extern void Timer_Destroy(TimerRef _Nullable self);
 #define Timer_Deinit(__self) WorkItem_Deinit((WorkItemRef) __self)
 
 

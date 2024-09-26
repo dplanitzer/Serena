@@ -269,19 +269,15 @@ static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self)
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
-    Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnDelayedMotorOff, self), &self->delayedMotorOff);
-    if (self->delayedMotorOff) {
-        DispatchQueue_DispatchTimer(self->dispatchQueue, self->delayedMotorOff);
-    }
+    DispatchQueue_DispatchAsyncAfter(self->dispatchQueue,
+        deadline,
+        DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnDelayedMotorOff, self),
+        kDelayedMotorOffTag);
 }
 
 static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self)
 {
-    if (self->delayedMotorOff) {
-        DispatchQueue_RemoveTimer(self->dispatchQueue, self->delayedMotorOff);
-        Timer_Destroy(self->delayedMotorOff);
-        self->delayedMotorOff = NULL;
-    }
+    DispatchQueue_RemoveTimer(self->dispatchQueue, kDelayedMotorOffTag);
 }
 
 
@@ -460,19 +456,16 @@ static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(3));
-    Timer_Create(deadline, kTimeInterval_Zero, DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnUpdateHasDiskStateCheck, self), &self->updateHasDiskState);
-    if (self->updateHasDiskState) {
-        DispatchQueue_DispatchTimer(self->dispatchQueue, self->updateHasDiskState);
-    }
+    DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue,
+        deadline,
+        kTimeInterval_Zero,
+        DispatchQueueClosure_Make((Closure1Arg_Func)FloppyDisk_OnUpdateHasDiskStateCheck, self),
+        kUpdateHasDiskStateTag);
 }
 
 static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 {
-    if (self->updateHasDiskState) {
-        DispatchQueue_RemoveTimer(self->dispatchQueue, self->updateHasDiskState);
-        Timer_Destroy(self->updateHasDiskState);
-        self->updateHasDiskState = NULL;
-    }
+    DispatchQueue_RemoveTimer(self->dispatchQueue, kUpdateHasDiskStateTag);
 }
 
 
