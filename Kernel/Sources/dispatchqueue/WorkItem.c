@@ -12,8 +12,7 @@
 // MARK: -
 // MARK: Work Items
 
-
-void WorkItem_Init(WorkItemRef _Nonnull self, enum ItemType type, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue)
+void WorkItem_Init(WorkItem* _Nonnull self, enum ItemType type, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue)
 {
     SListNode_Init(&self->queue_entry);
     self->closure = closure;
@@ -24,33 +23,31 @@ void WorkItem_Init(WorkItemRef _Nonnull self, enum ItemType type, DispatchQueueC
 
 // Creates a work item which will invoke the given closure. Note that work items
 // are one-shot: they execute their closure and then the work item is destroyed.
-errno_t WorkItem_Create(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItemRef _Nullable * _Nonnull pOutSelf)
+errno_t WorkItem_Create(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItem* _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    WorkItemRef self;
-    
-    try(kalloc(sizeof(WorkItem), (void**) &self));
-    WorkItem_Init(self, kItemType_Immediate, closure, 0, isOwnedByQueue);
-    *pOutSelf = self;
-    return EOK;
+    WorkItem* self;
+    const errno_t err = kalloc(sizeof(WorkItem), (void**) &self);
 
-catch:
-    *pOutSelf = NULL;
+    if (err == EOK) {
+        WorkItem_Init(self, kItemType_Immediate, closure, 0, isOwnedByQueue);
+    }
+    *pOutSelf = self;
     return err;
 }
 
-void WorkItem_Deinit(WorkItemRef _Nonnull self)
+void WorkItem_Deinit(WorkItem* _Nonnull self)
 {
     SListNode_Deinit(&self->queue_entry);
     self->closure.func = NULL;
     self->closure.context = NULL;
     self->closure.isUser = false;
     self->completion = NULL;
+    self->tag = 0;
     // Leave is_owned_by_queue alone
 }
 
 // Deallocates the given work item.
-void WorkItem_Destroy(WorkItemRef _Nullable self)
+void WorkItem_Destroy(WorkItem* _Nullable self)
 {
     if (self) {
         WorkItem_Deinit(self);
@@ -61,7 +58,7 @@ void WorkItem_Destroy(WorkItemRef _Nullable self)
 // Signals the completion of a work item. State is protected by the dispatch
 // queue lock. The 'isInterrupted' parameter indicates whether the item should
 // be considered interrupted or finished.
-void WorkItem_SignalCompletion(WorkItemRef _Nonnull self, bool isInterrupted)
+void WorkItem_SignalCompletion(WorkItem* _Nonnull self, bool isInterrupted)
 {
     if (self->completion != NULL) {
         self->completion->isInterrupted = isInterrupted;
@@ -70,14 +67,14 @@ void WorkItem_SignalCompletion(WorkItemRef _Nonnull self, bool isInterrupted)
     }
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
 // MARK: Timers
 
-
-void _Nullable Timer_Init(TimerRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue)
+void _Nullable Timer_Init(Timer* _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue)
 {
-    enum ItemType type = TimeInterval_Greater(interval, kTimeInterval_Zero) ? kItemType_RepeatingTimer : kItemType_OneShotTimer;
+    enum ItemType type = (TimeInterval_Greater(interval, kTimeInterval_Zero) && !TimeInterval_Equals(interval, kTimeInterval_Infinity)) ? kItemType_RepeatingTimer : kItemType_OneShotTimer;
 
     WorkItem_Init((WorkItem*)self, type, closure, tag, isOwnedByQueue);
     self->deadline = deadline;
@@ -86,22 +83,19 @@ void _Nullable Timer_Init(TimerRef _Nonnull self, TimeInterval deadline, TimeInt
 
 // Creates a new timer. The timer will fire on or after 'deadline'. If 'interval'
 // is greater than 0 then the timer will repeat until removed.
-errno_t Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, TimerRef _Nullable * _Nonnull pOutSelf)
+errno_t Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, Timer* _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    TimerRef self;
-    
-    try(kalloc(sizeof(Timer), (void**) &self));
-    Timer_Init(self, deadline, interval, closure, 0, isOwnedByQueue);
-    *pOutSelf = self;
-    return EOK;
+    Timer* self;    
+    const errno_t err = kalloc(sizeof(Timer), (void**) &self);
 
-catch:
-    *pOutSelf = NULL;
+    if (err == EOK) {
+        Timer_Init(self, deadline, interval, closure, 0, isOwnedByQueue);
+    }
+    *pOutSelf = self;
     return err;
 }
 
-void Timer_Destroy(TimerRef _Nullable self)
+void Timer_Destroy(Timer* _Nullable self)
 {
     if (self) {
         Timer_Deinit(self);
@@ -114,7 +108,6 @@ void Timer_Destroy(TimerRef _Nullable self)
 // MARK: -
 // MARK: Completion Signalers
 
-
 void CompletionSignaler_Init(CompletionSignaler* _Nonnull self)
 {
     SListNode_Init(&self->queue_entry);
@@ -124,17 +117,14 @@ void CompletionSignaler_Init(CompletionSignaler* _Nonnull self)
 // Creates a completion signaler.
 errno_t CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp)
 {
-    decl_try_err();
     CompletionSignaler* self;
-    
-    try(kalloc(sizeof(CompletionSignaler), (void**) &self));
-    CompletionSignaler_Init(self);
-    Semaphore_Init(&self->semaphore, 0);
-    *pOutComp = self;
-    return EOK;
+    const errno_t err = kalloc(sizeof(CompletionSignaler), (void**) &self);
 
-catch:
-    *pOutComp = NULL;
+    if (err == EOK) {
+        CompletionSignaler_Init(self);
+        Semaphore_Init(&self->semaphore, 0);
+    }
+    *pOutComp = self;
     return err;
 }
 
