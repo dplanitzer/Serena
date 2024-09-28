@@ -17,13 +17,6 @@
 #include <driver/MonotonicClock.h>
 
 
-enum ItemType {
-    kItemType_Immediate = 0,    // Execute the item as soon as possible
-    kItemType_OneShotTimer,     // Execute the item once on or after its deadline
-    kItemType_RepeatingTimer,   // Execute the item on or after its deadline and then reschedule it for the next deadline
-};
-
-
 //
 // Completion Signaler
 //
@@ -36,10 +29,24 @@ typedef struct CompletionSignaler {
     bool        isInterrupted;
 } CompletionSignaler;
 
-extern errno_t CompletionSignaler_Create(CompletionSignaler* _Nullable * _Nonnull pOutComp);
 extern void CompletionSignaler_Init(CompletionSignaler* _Nonnull self);
 extern void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull self);
 extern void CompletionSignaler_Destroy(CompletionSignaler* _Nullable self);
+
+
+//
+// Timers
+//
+
+typedef struct Timer {
+    SListNode       queue_entry;
+    TimeInterval    deadline;           // Time when the timer closure should be executed
+    TimeInterval    interval;
+    bool            isRepeating;
+} Timer;
+
+extern void Timer_Destroy(Timer* _Nullable self);
+extern void Timer_Deinit(Timer* _Nonnull self);
 
 
 //
@@ -50,32 +57,13 @@ typedef struct WorkItem {
     SListNode                               queue_entry;
     DispatchQueueClosure                    closure;
     CompletionSignaler * _Nullable _Weak    completion;
+    Timer* _Nullable                        timer;
     uintptr_t                               tag;
-    int8_t                                  type;
-    bool                                    is_owned_by_queue;      // item was created and is owned by the dispatch queue and thus is eligible to be moved to the work item cache
 } WorkItem;
 
-extern errno_t WorkItem_Create(DispatchQueueClosure closure, bool isOwnedByQueue, WorkItem* _Nullable * _Nonnull pOutSelf);
-extern void WorkItem_Init(WorkItem* _Nonnull self, enum ItemType type, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue);
 extern void WorkItem_Destroy(WorkItem* _Nullable self);
 extern void WorkItem_Deinit(WorkItem* _Nonnull self);
 extern void WorkItem_SignalCompletion(WorkItem* _Nonnull self, bool isInterrupted);
-
-
-//
-// Timers
-//
-
-typedef struct Timer {
-    WorkItem        item;
-    TimeInterval    deadline;           // Time when the timer closure should be executed
-    TimeInterval    interval;
-} Timer;
-
-extern errno_t Timer_Create(TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, bool isOwnedByQueue, Timer* _Nullable * _Nonnull pOutSelf);
-extern void Timer_Init(Timer* _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag, bool isOwnedByQueue);
-extern void Timer_Destroy(Timer* _Nullable self);
-#define Timer_Deinit(__self) WorkItem_Deinit((WorkItem*) __self)
 
 
 //
@@ -102,11 +90,11 @@ enum QueueState {
 #define MAX_TIMER_CACHE_COUNT   8
 #define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
 final_class_ivars(DispatchQueue, Object,
-    SList                               item_queue;         // Queue of work items that should be executed as soon as possible
-    SList                               timer_queue;        // Queue of items that should be executed on or after their deadline
-    SList                               item_cache_queue;   // Cache of reusable work items
-    SList                               timer_cache_queue;  // Cache of reusable timers
-    SList                               completion_signaler_cache_queue;    // Cache of reusable completion signalers
+    SList                               item_queue;         // SList<WorkItem> Queue of work items that should be executed as soon as possible
+    SList                               timer_queue;        // SList<WorkItem> Queue of items that should be executed on or after their deadline
+    SList                               item_cache_queue;   // SList<WorkItem> Cache of reusable work items
+    SList                               timer_cache_queue;  // SList<Timer> Cache of reusable timers
+    SList                               completion_signaler_cache_queue;    // SList<CompletionSignaler> Cache of reusable completion signalers
     Lock                                lock;
     ConditionVariable                   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has been enqueued
     ConditionVariable                   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinquished itself because the queue is in the process of shutting down

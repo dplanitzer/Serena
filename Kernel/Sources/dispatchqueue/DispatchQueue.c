@@ -246,26 +246,87 @@ static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _No
     self->availableConcurrency--;
 }
 
+// Creates a timer for the given deadline and interval. Tries to reuse an existing
+// timer from the timer cache whenever possible. Expects that the caller holds the
+// dispatch queue lock.
+static errno_t DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, Timer* _Nullable * _Nonnull pOutTimer)
+{
+    Timer* pTimer = NULL;
+
+    if (self->timer_cache_queue.first != NULL) {
+        pTimer = (Timer*) SList_RemoveFirst(&self->timer_cache_queue);
+        self->timer_cache_count--;
+    }
+    else {
+        const errno_t err = kalloc(sizeof(Timer), (void**) &pTimer);
+
+        if (err != EOK) {
+            *pOutTimer = NULL;
+            return err;
+        }
+    }
+
+
+    // (Re-)Initialize the timer
+    SListNode_Init(&pTimer->queue_entry);
+    pTimer->deadline = deadline;
+    pTimer->interval = interval;
+
+    if (TimeInterval_Greater(interval, kTimeInterval_Zero) && !TimeInterval_Equals(interval, kTimeInterval_Infinity)) {
+        pTimer->isRepeating = true;
+    }
+    else {
+        pTimer->isRepeating = false;
+    }
+
+    *pOutTimer = pTimer;
+    return EOK;
+}
+
+// Relinquishes the given timer. A timer owned by the queue is moved back to the
+// timer reuse queue if possible or freed id the reuse cache is already full.
+// Does nothing if the queue does not own the timer.
+static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer)
+{
+    if (self->timer_cache_count < MAX_TIMER_CACHE_COUNT) {
+        Timer_Deinit(pTimer);
+        SList_InsertBeforeFirst(&self->timer_cache_queue, &pTimer->queue_entry);
+        self->timer_cache_count++;
+    } else {
+        Timer_Destroy(pTimer);
+    }
+}
+
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
 static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure, uintptr_t tag, WorkItem* _Nullable * _Nonnull pOutItem)
 {
-    decl_try_err();
-    WorkItem* pItem = (WorkItem*) SList_RemoveFirst(&self->item_cache_queue);
+    WorkItem* pItem = NULL;
 
-    if (pItem != NULL) {
-        WorkItem_Init(pItem, kItemType_Immediate, closure, tag, true);
+    if (self->item_cache_queue.first != NULL) {
+        pItem = (WorkItem*) SList_RemoveFirst(&self->item_cache_queue);
         self->item_cache_count--;
-        *pOutItem = pItem;
-    } else {
-        try(WorkItem_Create(closure, true, pOutItem));
     }
-    return EOK;
+    else {
+        const errno_t err = kalloc(sizeof(WorkItem), (void**) &pItem);
 
-catch:
-    *pOutItem = NULL;
-    return err;
+        if (err != EOK) {
+            *pOutItem = NULL;
+            return err;
+        }
+    }
+
+
+    // (Re-)Initialize the work item
+    SListNode_Init(&pItem->queue_entry);
+    pItem->closure = closure;
+    pItem->completion = NULL;
+    pItem->timer = NULL;
+    pItem->tag = tag;
+
+    *pOutItem = pItem;
+    return EOK;
 }
 
 // Relinquishes the given work item. A work item owned by the dispatch queue is
@@ -273,8 +334,9 @@ catch:
 // Does nothing if the dispatch queue does not own the item.
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
-    if (!pItem->is_owned_by_queue) {
-        return;
+    if (pItem->timer) {
+        DispatchQueue_RelinquishTimer_Locked(self, pItem->timer);
+        pItem->timer = NULL;
     }
 
     if (self->item_cache_count < MAX_ITEM_CACHE_COUNT) {
@@ -286,66 +348,34 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull se
     }
 }
 
-// Creates a timer for the given closure and closure context. Tries to reuse
-// an existing timer from the timer cache whenever possible. Expects that the
-// caller holds the dispatch queue lock.
-static errno_t DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag, Timer* _Nullable * _Nonnull pOutTimer)
-{
-    decl_try_err();
-    Timer* pTimer = (Timer*) SList_RemoveFirst(&self->timer_cache_queue);
-
-    if (pTimer != NULL) {
-        Timer_Init(pTimer, deadline, interval, closure, tag, true);
-        self->timer_cache_count--;
-        *pOutTimer = pTimer;
-    } else {
-        try(Timer_Create(deadline, interval, closure, true, pOutTimer));
-    }
-    return EOK;
-
-catch:
-    *pOutTimer = NULL;
-    return err;
-}
-
-// Relinquishes the given timer. A timer owned by the queue is moved back to the
-// timer reuse queue if possible or freed id the reuse cache is already full.
-// Does nothing if the queue does not own the timer.
-static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer)
-{
-    if (!pTimer->item.is_owned_by_queue) {
-        return;
-    }
-
-    if (self->timer_cache_count < MAX_TIMER_CACHE_COUNT) {
-        Timer_Deinit(pTimer);
-        SList_InsertBeforeFirst(&self->timer_cache_queue, &pTimer->item.queue_entry);
-        self->timer_cache_count++;
-    } else {
-        Timer_Destroy(pTimer);
-    }
-}
-
 // Creates a completion signaler. Tries to reuse an existing completion signaler
 // from the completion signaler cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
 static errno_t DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _Nonnull self, CompletionSignaler* _Nullable * _Nonnull pOutComp)
 {
-    decl_try_err();
-    CompletionSignaler* pItem = (CompletionSignaler*) SList_RemoveFirst(&self->completion_signaler_cache_queue);
+    CompletionSignaler* pComp = NULL;
 
-    if (pItem != NULL) {
-        CompletionSignaler_Init(pItem);
+    if (self->completion_signaler_cache_queue.first != NULL) {
+        pComp = (CompletionSignaler*) SList_RemoveFirst(&self->completion_signaler_cache_queue);
         self->completion_signaler_count--;
-        *pOutComp = pItem;
-    } else {
-        try(CompletionSignaler_Create(pOutComp));
     }
-    return EOK;
+    else {
+        const errno_t err = kalloc(sizeof(CompletionSignaler), (void**) &pComp);
 
-catch:
-    *pOutComp = NULL;
-    return err;
+        if (err != EOK) {
+            *pOutComp = NULL;
+            return err;
+        }
+        Semaphore_Init(&pComp->semaphore, 0);
+    }
+
+
+    // (Re-)Initialize the completion signaler
+    SListNode_Init(&pComp->queue_entry);
+    pComp->isInterrupted = false;
+
+    *pOutComp = pComp;
+    return EOK;
 }
 
 // Relinquishes the given completion signaler back to the completion signaler
@@ -387,19 +417,19 @@ catch:
 static errno_t DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
     decl_try_err();
-    CompletionSignaler* pCompSignaler = NULL;
+    CompletionSignaler* pComp = NULL;
     bool isLocked = true;
     bool wasInterrupted = false;
 
-    try(DispatchQueue_AcquireCompletionSignaler_Locked(self, &pCompSignaler));
+    try(DispatchQueue_AcquireCompletionSignaler_Locked(self, &pComp));
 
     // The work item maintains a weak reference to the cached completion semaphore
-    pItem->completion = pCompSignaler;
+    pItem->completion = pComp;
 
     try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(self, pItem));
     isLocked = false;
     // Queue is now unlocked
-    try(Semaphore_Acquire(&pCompSignaler->semaphore, kTimeInterval_Infinity));
+    try(Semaphore_Acquire(&pComp->semaphore, kTimeInterval_Infinity));
 
     Lock_Lock(&self->lock);
     isLocked = true;
@@ -409,20 +439,20 @@ static errno_t DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(DispatchQueueR
         // DispatchQueue_Terminate()
         wasInterrupted = true;
     } else {
-        wasInterrupted = pCompSignaler->isInterrupted;
+        wasInterrupted = pComp->isInterrupted;
     }
 
-    DispatchQueue_RelinquishCompletionSignaler_Locked(self, pCompSignaler);
+    DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
     Lock_Unlock(&self->lock);
 
     return (wasInterrupted) ? EINTR : EOK;
 
 catch:
-    if (pCompSignaler) {
+    if (pComp) {
         if (!isLocked) {
             Lock_Lock(&self->lock);
         }
-        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pCompSignaler);
+        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
         if (!isLocked) {
             Lock_Unlock(&self->lock);
         }
@@ -454,59 +484,45 @@ static void DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, 
     }
 }
 
-// Adds the given timer to the timer queue. Expects that the queue is already
+// Adds the given work item to the timer queue. Expects that the queue is already
 // locked. Does not wake up the queue.
-static void DispatchQueue_AddTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer)
+static void DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
-    Timer* pPrevTimer = NULL;
-    Timer* pCurTimer = (Timer*)self->timer_queue.first;
+    WorkItem* pPrevItem = NULL;
+    WorkItem* pCurItem = (WorkItem*)self->timer_queue.first;
     
-    while (pCurTimer) {
-        if (TimeInterval_Greater(pCurTimer->deadline, pTimer->deadline)) {
+    while (pCurItem) {
+        if (TimeInterval_Greater(pCurItem->timer->deadline, pItem->timer->deadline)) {
             break;
         }
         
-        pPrevTimer = pCurTimer;
-        pCurTimer = (Timer*)pCurTimer->item.queue_entry.next;
+        pPrevItem = pCurItem;
+        pCurItem = (WorkItem*)pCurItem->queue_entry.next;
     }
     
-    SList_InsertAfter(&self->timer_queue, &pTimer->item.queue_entry, &pPrevTimer->item.queue_entry);
-}
-
-// Asynchronously executes the given timer when it comes due. Expects that the
-// caller holds the dispatch queue lock.
-errno_t DispatchQueue_DispatchTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer)
-{
-    decl_try_err();
-
-    DispatchQueue_AddTimer_Locked(self, pTimer);
-    try(DispatchQueue_AcquireVirtualProcessor_Locked(self));
-    ConditionVariable_SignalAndUnlock(&self->work_available_signaler, &self->lock);
-
-catch:
-    return err;
+    SList_InsertAfter(&self->timer_queue, &pItem->queue_entry, &pPrevItem->queue_entry);
 }
 
 // Removes all queued instances of timer with the tag 'tag'.
-static bool DispatchQueue_RemoveTimer_Locked(DispatchQueueRef _Nonnull self, uintptr_t tag)
+static bool DispatchQueue_RemoveTimedItem_Locked(DispatchQueueRef _Nonnull self, uintptr_t tag)
 {
-    Timer* curTimer = (Timer*) self->timer_queue.first;
-    Timer* prevTimer = NULL;
+    WorkItem* pCurItem = (WorkItem*) self->timer_queue.first;
+    WorkItem* pPrevItem = NULL;
     bool didRemove = false;
 
-    while (curTimer) {
-        Timer* nextTimer = (Timer*) curTimer->item.queue_entry.next;
+    while (pCurItem) {
+        WorkItem* pNextItem = (WorkItem*) pCurItem->queue_entry.next;
 
-        if (curTimer->item.tag == tag) {
-            SList_Remove(&self->timer_queue, &prevTimer->item.queue_entry, &curTimer->item.queue_entry);
-            DispatchQueue_RelinquishTimer_Locked(self, curTimer);
+        if (pCurItem->tag == tag) {
+            SList_Remove(&self->timer_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
+            DispatchQueue_RelinquishWorkItem_Locked(self, pCurItem);
             didRemove = true;
             // pPrevItem doesn't change here
         }
         else {
-            prevTimer = curTimer;
+            pPrevItem = pCurItem;
         }
-        curTimer = nextTimer;
+        pCurItem = pNextItem;
     }
 
     return didRemove;
@@ -626,27 +642,29 @@ errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInt
 errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag)
 {
     decl_try_err();
-    Timer* pTimer = NULL;
-    bool needsUnlock = false;
+    WorkItem* pItem = NULL;
 
     Lock_Lock(&self->lock);
-    needsUnlock = true;
     if (self->state >= kQueueState_Terminating) {
         Lock_Unlock(&self->lock);
         return EOK;
     }
 
-    try(DispatchQueue_AcquireTimer_Locked(self, deadline, interval, closure, tag, &pTimer));
-    try(DispatchQueue_DispatchTimer_Locked(self, pTimer));
+    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, tag, &pItem));
+    try(DispatchQueue_AcquireTimer_Locked(self, deadline, interval, &pItem->timer));
+
+    DispatchQueue_AddTimedItem_Locked(self, pItem);
+    try(DispatchQueue_AcquireVirtualProcessor_Locked(self));
+    ConditionVariable_SignalAndUnlock(&self->work_available_signaler, &self->lock);
+
     return EOK;
 
 catch:
-    if (pTimer) {
-        DispatchQueue_RelinquishTimer_Locked(self, pTimer);
+    if (pItem) {
+        DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
-    if (needsUnlock) {
-        Lock_Unlock(&self->lock);
-    }
+    Lock_Unlock(&self->lock);
+
     return err;
 }
 
@@ -660,7 +678,7 @@ bool DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull self, uintptr_t tag)
 {
     Lock_Lock(&self->lock);
     // Queue termination state isn't relevant here
-    const bool r = DispatchQueue_RemoveTimer_Locked(self, tag);
+    const bool r = DispatchQueue_RemoveTimedItem_Locked(self, tag);
     Lock_Unlock(&self->lock);
     return r;
 }
@@ -680,17 +698,18 @@ void DispatchQueue_Flush(DispatchQueueRef _Nonnull self)
 // MARK: Queue Main Loop
 ////////////////////////////////////////////////////////////////////////////////
 
-static void DispatchQueue_RearmTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer)
+static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
     // Repeating timer: rearm it with the next fire date that's in
     // the future (the next fire date we haven't already missed).
+    Timer* pTimer = pItem->timer;
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
-                
+    
     do  {
         pTimer->deadline = TimeInterval_Add(pTimer->deadline, pTimer->interval);
     } while (TimeInterval_Less(pTimer->deadline, curTime));
     
-    DispatchQueue_AddTimer_Locked(self, pTimer);
+    DispatchQueue_AddTimedItem_Locked(self, pItem);
 }
 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
@@ -708,12 +727,14 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         
         // Wait for work items to arrive or for timers to fire
         while (true) {
+            const TimeInterval now = MonotonicClock_GetCurrentTime();
+
             // Grab the first timer that's due. We give preference to timers because
             // they are tied to a specific deadline time while immediate work items
             // do not guarantee that they will execute at a specific time. So it's
             // acceptable to push them back on the timeline.
-            Timer* pFirstTimer = (Timer*)self->timer_queue.first;
-            if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->deadline, MonotonicClock_GetCurrentTime())) {
+            WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
+            if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->timer->deadline, now)) {
                 pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
             }
 
@@ -739,9 +760,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
             TimeInterval deadline;
 
             if (self->timer_queue.first) {
-                deadline = ((Timer*)self->timer_queue.first)->deadline;
+                deadline = ((WorkItem*)self->timer_queue.first)->timer->deadline;
             } else {
-                deadline = TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(2));
+                deadline = TimeInterval_Add(now, TimeInterval_MakeSeconds(2));
             }
 
 
@@ -787,27 +808,11 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
 
         // Move the work item back to the item cache if possible or destroy it
-        switch (pItem->type) {
-            case kItemType_Immediate:
-                DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
-                break;
-                
-            case kItemType_OneShotTimer:
-                DispatchQueue_RelinquishTimer_Locked(self, (Timer*) pItem);
-                break;
-                
-            case kItemType_RepeatingTimer: {
-                Timer* pTimer = (Timer*)pItem;
-                
-                if (self->state == kQueueState_Running) {
-                    DispatchQueue_RearmTimer_Locked(self, pTimer);
-                }
-                break;
-            }
-                
-            default:
-                abort();
-                break;
+        if (pItem->timer && self->state == kQueueState_Running && pItem->timer->isRepeating) {
+            DispatchQueue_RearmTimedItem_Locked(self, pItem);
+        }
+        else {
+            DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
         }
     }
 
