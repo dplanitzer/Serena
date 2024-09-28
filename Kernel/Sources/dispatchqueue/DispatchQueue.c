@@ -45,6 +45,9 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     self->maxConcurrency = (int8_t)maxConcurrency;
     self->qos = qos;
     self->priority = priority;
+    self->item_cache_capacity = __max(MAX_ITEM_CACHE_COUNT, maxConcurrency);
+    self->timer_cache_capacity = MAX_TIMER_CACHE_COUNT;
+    self->completion_signaler_capacity = MAX_COMPLETION_SIGNALER_CACHE_COUNT;
 
     for (int i = 0; i < minConcurrency; i++) {
         try(DispatchQueue_AcquireVirtualProcessor_Locked(self));
@@ -62,18 +65,18 @@ catch:
 // Removes all queued work items, one-shot and repeatable timers from the queue.
 static void DispatchQueue_Flush_Locked(DispatchQueueRef _Nonnull self)
 {
-    // Flush the work item queue
     WorkItem* pItem;
+
+    // Flush the work item queue
     while ((pItem = (WorkItem*) SList_RemoveFirst(&self->item_queue)) != NULL) {
-        WorkItem_SignalCompletion(pItem, true);
+        DispatchQueue_SignalWorkItemCompletion(self, pItem, true);
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
 
 
-    // Flush the timers
-    Timer* pTimer;
-    while ((pTimer = (Timer*) SList_RemoveFirst(&self->timer_queue)) != NULL) {
-        DispatchQueue_RelinquishTimer_Locked(self, pTimer);
+    // Flush the timed items
+    while ((pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue)) != NULL) {
+        DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
 }
 
@@ -139,9 +142,8 @@ void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 // Deallocates the dispatch queue. Expects that the queue is in 'terminated' state.
 static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
 {
-    CompletionSignaler* pCompSignaler;
+    CompletionSignaler* pComp;
     WorkItem* pItem;
-    Timer* pTimer;
 
     assert(self->state == kQueueState_Terminated);
 
@@ -150,18 +152,21 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
     SList_Deinit(&self->item_queue);      // guaranteed to be empty at this point
     SList_Deinit(&self->timer_queue);     // guaranteed to be empty at this point
 
+    self->item_cache_capacity = 0;  // Force relinquish to deallocate
     while ((pItem = (WorkItem*) SList_RemoveFirst(&self->item_cache_queue)) != NULL) {
-        WorkItem_Destroy(pItem);
+        DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
     SList_Deinit(&self->item_cache_queue);
-        
-    while ((pTimer = (Timer*) SList_RemoveFirst(&self->timer_cache_queue)) != NULL) {
-        Timer_Destroy(pTimer);
+    
+    self->timer_cache_capacity = 0;
+    while ((pItem = (WorkItem*) SList_RemoveFirst(&self->timer_cache_queue)) != NULL) {
+        DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
     SList_Deinit(&self->timer_cache_queue);
 
-    while((pCompSignaler = (CompletionSignaler*) SList_RemoveFirst(&self->completion_signaler_cache_queue)) != NULL) {
-        CompletionSignaler_Destroy(pCompSignaler);
+    self->completion_signaler_capacity = 0;
+    while((pComp = (CompletionSignaler*) SList_RemoveFirst(&self->completion_signaler_cache_queue)) != NULL) {
+        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
     }
     SList_Deinit(&self->completion_signaler_cache_queue);
         
@@ -288,12 +293,14 @@ static errno_t DispatchQueue_AcquireTimer_Locked(DispatchQueueRef _Nonnull self,
 // Does nothing if the queue does not own the timer.
 static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer)
 {
-    if (self->timer_cache_count < MAX_TIMER_CACHE_COUNT) {
-        Timer_Deinit(pTimer);
+    SListNode_Deinit(&pTimer->queue_entry);
+
+    if (self->timer_cache_count < self->timer_cache_capacity) {
         SList_InsertBeforeFirst(&self->timer_cache_queue, &pTimer->queue_entry);
         self->timer_cache_count++;
-    } else {
-        Timer_Destroy(pTimer);
+    }
+    else {
+        kfree(pTimer);
     }
 }
 
@@ -339,12 +346,19 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull se
         pItem->timer = NULL;
     }
 
-    if (self->item_cache_count < MAX_ITEM_CACHE_COUNT) {
-        WorkItem_Deinit(pItem);
+    SListNode_Deinit(&pItem->queue_entry);
+    pItem->closure.func = NULL;
+    pItem->closure.context = NULL;
+    pItem->closure.isUser = false;
+    pItem->completion = NULL;
+    pItem->tag = 0;
+
+    if (self->item_cache_count < self->item_cache_capacity) {
         SList_InsertBeforeFirst(&self->item_cache_queue, &pItem->queue_entry);
         self->item_cache_count++;
-    } else {
-        WorkItem_Destroy(pItem);
+    }
+    else {
+        kfree(pItem);
     }
 }
 
@@ -380,14 +394,30 @@ static errno_t DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _
 
 // Relinquishes the given completion signaler back to the completion signaler
 // cache if possible. The completion signaler is freed if the cache is at capacity.
-static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueueRef _Nonnull self, CompletionSignaler* _Nonnull pItem)
+static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueueRef _Nonnull self, CompletionSignaler* _Nonnull pComp)
 {
-    if (self->completion_signaler_count < MAX_COMPLETION_SIGNALER_CACHE_COUNT) {
-        CompletionSignaler_Deinit(pItem);
-        SList_InsertBeforeFirst(&self->completion_signaler_cache_queue, &pItem->queue_entry);
+    SListNode_Deinit(&pComp->queue_entry);
+    pComp->isInterrupted = false;
+
+    if (self->completion_signaler_count < self->completion_signaler_capacity) {
+        SList_InsertBeforeFirst(&self->completion_signaler_cache_queue, &pComp->queue_entry);
         self->completion_signaler_count++;
-    } else {
-        CompletionSignaler_Destroy(pItem);
+    }
+    else {
+        Semaphore_Deinit(&pComp->semaphore);
+        kfree(pComp);
+    }
+}
+
+// Signals the completion of a work item. State is protected by the dispatch
+// queue lock. The 'isInterrupted' parameter indicates whether the item should
+// be considered interrupted or finished.
+static void DispatchQueue_SignalWorkItemCompletion(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem, bool isInterrupted)
+{
+    if (pItem->completion != NULL) {
+        pItem->completion->isInterrupted = isInterrupted;
+        Semaphore_Relinquish(&pItem->completion->semaphore);
+        pItem->completion = NULL;
     }
 }
 
@@ -471,7 +501,7 @@ static void DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, 
         WorkItem* pNextItem = (WorkItem*) pCurItem->queue_entry.next;
 
         if (pCurItem == pItem) {
-            WorkItem_SignalCompletion(pCurItem, true);
+            DispatchQueue_SignalWorkItemCompletion(self, pCurItem, true);
             SList_Remove(&self->item_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
             self->items_queued_count--;
             DispatchQueue_RelinquishWorkItem_Locked(self, pCurItem);
@@ -799,7 +829,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
         // Signal the work item's completion semaphore if needed
         if (pItem->completion != NULL) {
-            WorkItem_SignalCompletion(pItem, false);
+            DispatchQueue_SignalWorkItemCompletion(self, pItem, false);
         }
 
 

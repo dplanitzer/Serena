@@ -108,6 +108,9 @@ final_class_ivars(DispatchQueue, Object,
     int8_t                              availableConcurrency;       // Number of concurrency lanes we have acquired and are available for use
     int8_t                              qos;
     int8_t                              priority;
+    int8_t                              item_cache_capacity;
+    int8_t                              timer_cache_capacity;
+    int8_t                              completion_signaler_capacity;
     int8_t                              item_cache_count;
     int8_t                              timer_cache_count;
     int8_t                              completion_signaler_count;
@@ -119,7 +122,11 @@ extern void DispatchQueue_deinit(DispatchQueueRef _Nonnull self);
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull self);
 
 static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull self);
+
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem);
 static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer);
+static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueueRef _Nonnull self, CompletionSignaler* _Nonnull pComp);
+
+static void DispatchQueue_SignalWorkItemCompletion(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem, bool isInterrupted);
 
 #endif /* DispatchQueuePriv_h */
