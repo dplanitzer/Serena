@@ -123,7 +123,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Continue the kernel startup on the kernel main queue
-    DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func)OnMain, NULL));
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, (Closure1Arg_Func)OnMain, NULL);
 
     
     // The boot virtual processor now takes over the duties of running the

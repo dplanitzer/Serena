@@ -48,13 +48,13 @@ errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned 
 
     if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
         if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchSync(pQueue->dispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, pUserClosure, pContext, kDispatchOption_Sync|kDispatchOption_User, 0);
             UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
         }
     }
     else {
         if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchAsync(pQueue->dispatchQueue, DispatchQueueClosure_MakeUser(pUserClosure, pContext));
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, pUserClosure, pContext, kDispatchOption_User, 0);
             UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
         }
     }
@@ -70,7 +70,7 @@ errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od,
     UDispatchQueueRef pQueue;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-        err = DispatchQueue_DispatchAsyncAfter(pQueue->dispatchQueue, deadline, DispatchQueueClosure_MakeUser(pUserClosure, pContext), 0);
+        err = DispatchQueue_DispatchTimer(pQueue->dispatchQueue, deadline, kTimeInterval_Zero, pUserClosure, pContext, kDispatchOption_User, 0);
         UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;

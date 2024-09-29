@@ -57,7 +57,7 @@ errno_t Process_OnChildTermination(ProcessRef _Nonnull pProc, ProcessRef _Nonnul
     
     if (pChildProc->terminationNotificationQueue) {
         DispatchQueue_DispatchAsync(pChildProc->terminationNotificationQueue,
-            DispatchQueueClosure_MakeUser(pChildProc->terminationNotificationClosure, pChildProc->terminationNotificationContext));
+            pChildProc->terminationNotificationClosure, pChildProc->terminationNotificationContext);
     }
 
     return EOK;
@@ -290,7 +290,7 @@ void Process_Terminate(ProcessRef _Nonnull pProc, int exitCode)
 
     // Schedule the actual process termination and destruction on the kernel
     // main dispatch queue.
-    try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, DispatchQueueClosure_Make((Closure1Arg_Func) _Process_DoTerminate, pProc)));
+    try_bang(DispatchQueue_DispatchAsync(gMainDispatchQueue, (Closure1Arg_Func) _Process_DoTerminate, pProc));
 }
 
 bool Process_IsTerminating(ProcessRef _Nonnull pProc)

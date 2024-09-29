@@ -164,8 +164,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
 
 
     // Dispatch the invocation of the entry point
-    try(DispatchQueue_DispatchAsync(self->mainDispatchQueue,
-        DispatchQueueClosure_MakeUser((Closure1Arg_Func)pEntryPoint, self->argumentsBase)));
+    try(DispatchQueue_DispatchClosure(self->mainDispatchQueue, (Closure1Arg_Func)pEntryPoint, self->argumentsBase, kDispatchOption_User, 0));
 
 catch:
     //XXX free the executable image if an error occurred

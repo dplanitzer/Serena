@@ -553,16 +553,16 @@ int DispatchQueue_GetDescriptor(DispatchQueueRef _Nonnull self)
 // possible and the caller remains blocked until the closure has finished
 // execution. This function returns with an EINTR if the queue is flushed or
 // terminated by calling DispatchQueue_Terminate().
-errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure)
+errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context)
 {
-    return DispatchQueue_DispatchClosure(self, closure.func, closure.context, closure.isUser ? kDispatchOption_User|kDispatchOption_Sync : kDispatchOption_Sync, 0);
+    return DispatchQueue_DispatchClosure(self, func, context, kDispatchOption_Sync, 0);
 }
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
-errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure)
+errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context)
 {
-    return DispatchQueue_DispatchClosure(self, closure.func, closure.context, closure.isUser ? kDispatchOption_User : 0, 0);
+    return DispatchQueue_DispatchClosure(self, func, context, 0, 0);
 }
 
 // Dispatches 'func' on the dispatch queue. 'func' will be called with 'context'
@@ -669,17 +669,17 @@ bool DispatchQueue_RemoveClosure(DispatchQueueRef _Nonnull self, uintptr_t tag)
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, DispatchQueueClosure closure, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, Closure1Arg_Func _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return DispatchQueue_DispatchTimer(self, deadline, kTimeInterval_Zero, closure.func, closure.context, 0, tag);
+    return DispatchQueue_DispatchTimer(self, deadline, kTimeInterval_Zero, func, context, 0, tag);
 }
 
 // Asynchronously executes the given closure every 'interval' seconds, on or
 // after 'deadline' until the timer is removed from the dispatch queue. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return DispatchQueue_DispatchTimer(self, deadline, interval, closure.func, closure.context, 0, tag);
+    return DispatchQueue_DispatchTimer(self, deadline, interval, func, context, 0, tag);
 }
 
 // Similar to 'DispatchClosure'. However the function will execute on or after
