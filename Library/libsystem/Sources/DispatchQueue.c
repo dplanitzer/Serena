@@ -12,7 +12,7 @@
 
 errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext)
 {
-    return _syscall(SC_dispatch, od, (unsigned long)kDispatchOption_Sync, pClosure, pContext);
+    return _syscall(SC_dispatch, od, (unsigned long)__kDispatchOption_Sync, pClosure, pContext);
 }
 
 errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext)

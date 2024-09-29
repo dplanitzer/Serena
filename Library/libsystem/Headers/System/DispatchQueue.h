@@ -110,7 +110,7 @@ extern errno_t DispatchQueue_Destroy(int od);
 
 // Private
 enum {
-    kDispatchOption_Sync = 1
+    __kDispatchOption_Sync = 1
 };
 
 __CPP_END

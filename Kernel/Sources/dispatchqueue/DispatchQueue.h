@@ -39,6 +39,16 @@ typedef struct DispatchQueueClosure {
 
 
 //
+// Dispatch Options
+//
+
+enum {
+    kDispatchOption_Sync = 1,   // Dispatch and then wait for completion
+    kDispatchOption_User = 2,   // The provided function should be invoked in user space context rather than kernel context
+};
+
+
+//
 // Dispatch Queues
 //
 
@@ -110,6 +120,21 @@ extern errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, Dispat
 // possible.
 extern errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure);
 
+// Dispatches 'func' on the dispatch queue. 'func' will be called with 'context'
+// as the first argument. Use 'options to control whether the function should
+// be executed in kernel or user space and whether the caller should be blocked
+// until 'func' has finished executing. The function will execute as soon as
+// possible.
+extern errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag);
+
+// Removes all scheduled instances of non-timer-based closures with tag 'tag'
+// from the dispatch queue. If the closure is in the process of executing when
+// this function is called then the closure will continue to execute uninterrupted.
+// If on the other side, the closure is still pending and has not executed yet
+// then it will be removed and it will not execute.
+extern bool DispatchQueue_RemoveClosure(DispatchQueueRef _Nonnull self, uintptr_t tag);
+
+
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // timer can be referenced with the tag 'tag'.
@@ -120,6 +145,10 @@ extern errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, 
 // timer can be referenced with the tag 'tag'.
 extern errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag);
 
+// Similar to 'DispatchClosure'. However the function will execute on or after
+// 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
+// every 'interval' ticks until the timer is removed from the queue.
+extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag);
 
 // Removes all scheduled instances of timers with tag 'tag' from the dispatch
 // queue. If the closure of the timer is in the process of executing when this

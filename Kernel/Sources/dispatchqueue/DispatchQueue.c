@@ -307,7 +307,7 @@ static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull self,
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure, uintptr_t tag, WorkItem* _Nullable * _Nonnull pOutItem)
+static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint8_t options, uintptr_t tag, WorkItem* _Nullable * _Nonnull pOutItem)
 {
     WorkItem* pItem = NULL;
 
@@ -327,10 +327,12 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
 
     // (Re-)Initialize the work item
     SListNode_Init(&pItem->queue_entry);
-    pItem->closure = closure;
+    pItem->func = func;
+    pItem->context = context;
     pItem->completion = NULL;
     pItem->timer = NULL;
     pItem->tag = tag;
+    pItem->options = options;
 
     *pOutItem = pItem;
     return EOK;
@@ -347,11 +349,11 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull se
     }
 
     SListNode_Deinit(&pItem->queue_entry);
-    pItem->closure.func = NULL;
-    pItem->closure.context = NULL;
-    pItem->closure.isUser = false;
+    pItem->func = NULL;
+    pItem->context = NULL;
     pItem->completion = NULL;
     pItem->tag = 0;
+    pItem->options = 0;
 
     if (self->item_cache_count < self->item_cache_capacity) {
         SList_InsertBeforeFirst(&self->item_cache_queue, &pItem->queue_entry);
@@ -421,90 +423,35 @@ static void DispatchQueue_SignalWorkItemCompletion(DispatchQueueRef _Nonnull sel
     }
 }
 
-// Asynchronously executes the given work item. The work item is executed as
-// soon as possible. Expects to be called with the dispatch queue held. Returns
-// with the dispatch queue unlocked.
-static errno_t DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
+// Adds the given work item to the immediate work item queue. Returns the item
+// that comes before the newly inserted one.
+static WorkItem* _Nullable DispatchQueue_AddWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
-    decl_try_err();
+    WorkItem* pOldLastItem = (WorkItem*)self->item_queue.last;
 
     SList_InsertAfterLast(&self->item_queue, &pItem->queue_entry);
     self->items_queued_count++;
 
-    try(DispatchQueue_AcquireVirtualProcessor_Locked(self));
-    ConditionVariable_SignalAndUnlock(&self->work_available_signaler, &self->lock);
-    
-    return EOK;
-
-catch:
-    return err;
-}
-
-// Synchronously executes the given work item. The work item is executed as
-// soon as possible and the caller remains blocked until the work item has finished
-// execution. Expects that the caller holds the dispatch queue lock. Returns with
-// the dispatch queue unlocked.
-static errno_t DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
-{
-    decl_try_err();
-    CompletionSignaler* pComp = NULL;
-    bool isLocked = true;
-    bool wasInterrupted = false;
-
-    try(DispatchQueue_AcquireCompletionSignaler_Locked(self, &pComp));
-
-    // The work item maintains a weak reference to the cached completion semaphore
-    pItem->completion = pComp;
-
-    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(self, pItem));
-    isLocked = false;
-    // Queue is now unlocked
-    try(Semaphore_Acquire(&pComp->semaphore, kTimeInterval_Infinity));
-
-    Lock_Lock(&self->lock);
-    isLocked = true;
-
-    if (self->state >= kQueueState_Terminating) {
-        // We want to return EINTR if the DispatchSync was interrupted by a
-        // DispatchQueue_Terminate()
-        wasInterrupted = true;
-    } else {
-        wasInterrupted = pComp->isInterrupted;
-    }
-
-    DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
-    Lock_Unlock(&self->lock);
-
-    return (wasInterrupted) ? EINTR : EOK;
-
-catch:
-    if (pComp) {
-        if (!isLocked) {
-            Lock_Lock(&self->lock);
-        }
-        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
-        if (!isLocked) {
-            Lock_Unlock(&self->lock);
-        }
-    }
-    return err;
+    return pOldLastItem;
 }
 
 // Removes all scheduled instances of the given work item from the dispatch
 // queue.
-static void DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
+static bool DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, uintptr_t tag)
 {
     WorkItem* pCurItem = (WorkItem*) self->item_queue.first;
     WorkItem* pPrevItem = NULL;
+    bool didRemove = false;
 
     while (pCurItem) {
         WorkItem* pNextItem = (WorkItem*) pCurItem->queue_entry.next;
 
-        if (pCurItem == pItem) {
+        if (pCurItem->tag == tag) {
             DispatchQueue_SignalWorkItemCompletion(self, pCurItem, true);
             SList_Remove(&self->item_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
             self->items_queued_count--;
             DispatchQueue_RelinquishWorkItem_Locked(self, pCurItem);
+            didRemove = true;
             // pPrevItem doesn't change here
         }
         else {
@@ -512,11 +459,14 @@ static void DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, 
         }
         pCurItem = pNextItem;
     }
+
+    return didRemove;
 }
 
 // Adds the given work item to the timer queue. Expects that the queue is already
-// locked. Does not wake up the queue.
-static void DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
+// locked. Does not wake up the queue. Returns the item that comes before the
+// newly inserted one.
+static WorkItem* _Nullable DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
     WorkItem* pPrevItem = NULL;
     WorkItem* pCurItem = (WorkItem*)self->timer_queue.first;
@@ -531,6 +481,7 @@ static void DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _Nonnull self, Wo
     }
     
     SList_InsertAfter(&self->timer_queue, &pItem->queue_entry, &pPrevItem->queue_entry);
+    return pPrevItem;
 }
 
 // Removes all queued instances of timer with the tag 'tag'.
@@ -604,66 +555,123 @@ int DispatchQueue_GetDescriptor(DispatchQueueRef _Nonnull self)
 // terminated by calling DispatchQueue_Terminate().
 errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure)
 {
-    decl_try_err();
-    WorkItem* pItem = NULL;
-    bool needsUnlock = false;
-
-    Lock_Lock(&self->lock);
-    needsUnlock = true;
-    if (self->state >= kQueueState_Terminating) {
-        Lock_Unlock(&self->lock);
-        return EOK;
-    }
-
-    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, 0, &pItem));
-    try(DispatchQueue_DispatchWorkItemSyncAndUnlock_Locked(self, pItem));
-    return EOK;
-
-catch:
-    if (pItem) {
-        DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
-    }
-    if (needsUnlock) {
-        Lock_Unlock(&self->lock);
-    }
-    return err;
+    return DispatchQueue_DispatchClosure(self, closure.func, closure.context, closure.isUser ? kDispatchOption_User|kDispatchOption_Sync : kDispatchOption_Sync, 0);
 }
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
 errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, DispatchQueueClosure closure)
 {
+    return DispatchQueue_DispatchClosure(self, closure.func, closure.context, closure.isUser ? kDispatchOption_User : 0, 0);
+}
+
+// Dispatches 'func' on the dispatch queue. 'func' will be called with 'context'
+// as the first argument. Use 'options to control whether the function should
+// be executed in kernel or user space and whether the caller should be blocked
+// until 'func' has finished executing. The function will execute as soon as
+// possible.
+errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
+{
     decl_try_err();
     WorkItem* pItem = NULL;
-    bool needsUnlock = false;
+    CompletionSignaler* pComp = NULL;
+    const bool isSync = (options & kDispatchOption_Sync) == kDispatchOption_Sync;
+    bool isLocked = false;
 
     Lock_Lock(&self->lock);
-    needsUnlock = true;
+    isLocked = true;
     if (self->state >= kQueueState_Terminating) {
         Lock_Unlock(&self->lock);
         return EOK;
     }
 
-    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, 0, &pItem));
-    try(DispatchQueue_DispatchWorkItemAsyncAndUnlock_Locked(self, pItem));
-    return EOK;
+
+    uint8_t itemOptions = 0;
+    if ((options & kDispatchOption_User) == kDispatchOption_User) {
+        itemOptions |= kWorkItemOption_IsUser;
+    }
+    try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, itemOptions, tag, &pItem));
+
+
+    if (isSync) {
+        try(DispatchQueue_AcquireCompletionSignaler_Locked(self, &pComp));
+
+        // The work item maintains a weak reference to the cached completion semaphore
+        pItem->completion = pComp;
+    }
+
+
+    // Queue the work item and wake a VP
+    WorkItem* pOldLastItem = DispatchQueue_AddWorkItem_Locked(self, pItem);
+    err = DispatchQueue_AcquireVirtualProcessor_Locked(self);
+    if (err != EOK) {
+        SList_Remove(&self->item_queue, &pOldLastItem->queue_entry, &pItem->queue_entry);
+        throw(err);
+    }
+
+    ConditionVariable_SignalAndUnlock(&self->work_available_signaler, &self->lock);
+    isLocked = false;
+    // Queue is now unlocked
+
+
+    if (isSync) {
+        // Wait for the work item completion
+        err = Semaphore_Acquire(&pComp->semaphore, kTimeInterval_Infinity);
+
+        Lock_Lock(&self->lock);
+
+        if ((err == EOK && pComp->isInterrupted) || self->state >= kQueueState_Terminating) {
+            // We want to return EINTR if the sync dispatch was interrupted by a
+            // DispatchQueue_Terminate()
+            err = EINTR;
+        }
+
+        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
+        Lock_Unlock(&self->lock);
+    }
+
+    return err;
 
 catch:
+    if (!isLocked) {
+        Lock_Lock(&self->lock);
+        isLocked = true;
+    }
+    if (pComp) {
+        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
+    }
     if (pItem) {
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
     }
-    if (needsUnlock) {
+    if (isLocked) {
         Lock_Unlock(&self->lock);
     }
+
     return err;
 }
+
+// Removes all scheduled instances of non-timer-based closures with tag 'tag'
+// from the dispatch queue. If the closure is in the process of executing when
+// this function is called then the closure will continue to execute uninterrupted.
+// If on the other side, the closure is still pending and has not executed yet
+// then it will be removed and it will not execute.
+bool DispatchQueue_RemoveClosure(DispatchQueueRef _Nonnull self, uintptr_t tag)
+{
+    Lock_Lock(&self->lock);
+    // Queue termination state isn't relevant here
+    const bool r = DispatchQueue_RemoveWorkItem_Locked(self, tag);
+    Lock_Unlock(&self->lock);
+    return r;
+}
+
+
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // timer can be referenced with the tag 'tag'.
 errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, DispatchQueueClosure closure, uintptr_t tag)
 {
-    return DispatchQueue_DispatchAsyncPeriodically(self, deadline, kTimeInterval_Zero, closure, tag);
+    return DispatchQueue_DispatchTimer(self, deadline, kTimeInterval_Zero, closure.func, closure.context, 0, tag);
 }
 
 // Asynchronously executes the given closure every 'interval' seconds, on or
@@ -671,8 +679,20 @@ errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInt
 // timer can be referenced with the tag 'tag'.
 errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, DispatchQueueClosure closure, uintptr_t tag)
 {
+    return DispatchQueue_DispatchTimer(self, deadline, interval, closure.func, closure.context, 0, tag);
+}
+
+// Similar to 'DispatchClosure'. However the function will execute on or after
+// 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
+// every 'interval' ticks until the timer is removed from the queue.
+errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
+{
     decl_try_err();
     WorkItem* pItem = NULL;
+
+    if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
+        return EINVAL;
+    }
 
     Lock_Lock(&self->lock);
     if (self->state >= kQueueState_Terminating) {
@@ -680,11 +700,16 @@ errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, 
         return EOK;
     }
 
-    try(DispatchQueue_AcquireWorkItem_Locked(self, closure, tag, &pItem));
+    try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, 0, tag, &pItem));
     try(DispatchQueue_AcquireTimer_Locked(self, deadline, interval, &pItem->timer));
 
-    DispatchQueue_AddTimedItem_Locked(self, pItem);
-    try(DispatchQueue_AcquireVirtualProcessor_Locked(self));
+    WorkItem* pPrevItem = DispatchQueue_AddTimedItem_Locked(self, pItem);
+    err = DispatchQueue_AcquireVirtualProcessor_Locked(self);
+    if (err != EOK) {
+        SList_Remove(&self->timer_queue, &pPrevItem->queue_entry, &pItem->queue_entry);
+        throw(err);
+    }
+
     ConditionVariable_SignalAndUnlock(&self->work_available_signaler, &self->lock);
 
     return EOK;
@@ -821,10 +846,10 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
 
         // Execute the work item
-        if (pItem->closure.isUser) {
-            VirtualProcessor_CallAsUser(pVP, pItem->closure.func, pItem->closure.context);
+        if ((pItem->options & kWorkItemOption_IsUser) == kWorkItemOption_IsUser) {
+            VirtualProcessor_CallAsUser(pVP, pItem->func, pItem->context);
         } else {
-            pItem->closure.func(pItem->closure.context);
+            pItem->func(pItem->context);
         }
 
         // Signal the work item's completion semaphore if needed

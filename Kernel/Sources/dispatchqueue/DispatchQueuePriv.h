@@ -53,12 +53,19 @@ extern void Timer_Deinit(Timer* _Nonnull self);
 // Work Items
 //
 
+enum {
+    kWorkItemOption_IsUser = 1,     // Invoke the work item function in user space
+};
+
+
 typedef struct WorkItem {
     SListNode                               queue_entry;
-    DispatchQueueClosure                    closure;
+    Closure1Arg_Func _Nonnull               func;
+    void* _Nullable _Weak                   context;
     CompletionSignaler * _Nullable _Weak    completion;
     Timer* _Nullable                        timer;
     uintptr_t                               tag;
+    uint8_t                                 options;
 } WorkItem;
 
 extern void WorkItem_Destroy(WorkItem* _Nullable self);
