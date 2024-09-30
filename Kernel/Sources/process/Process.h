@@ -81,11 +81,11 @@ extern errno_t Process_DisposeUResource(ProcessRef _Nonnull pProc, int od);
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // with the given options. 
-extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned long options, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext);
+extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull func, void* _Nullable ctx, uint32_t options);
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // after the given deadline.
-extern errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext);
+extern errno_t Process_DispatchUserTimer(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable ctx);
 
 // Returns the dispatch queue associated with the virtual processor on which the
 // calling code is running. Note this function assumes that it will ALWAYS be

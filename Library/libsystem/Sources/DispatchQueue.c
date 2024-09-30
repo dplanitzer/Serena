@@ -10,19 +10,24 @@
 #include <System/_syscall.h>
 
 
-errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext)
+errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context)
 {
-    return _syscall(SC_dispatch, od, (unsigned long)__kDispatchOption_Sync, pClosure, pContext);
+    return _syscall(SC_dispatch, od, func, context, (unsigned long)__kDispatchOption_Sync);
 }
 
-errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext)
+errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context)
 {
-    return _syscall(SC_dispatch, od, (unsigned long)0, pClosure, pContext);
+    return _syscall(SC_dispatch, od, func, context, (unsigned long)0);
 }
 
-errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext)
+errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull func, void* _Nullable context)
 {
-    return _syscall(SC_dispatch_after, od, deadline, pClosure, pContext);
+    return _syscall(SC_dispatch_timer, od, deadline, kTimeInterval_Zero, func, context);
+}
+
+errno_t DispatchQueue_DispatchAsyncPeriodically(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable context)
+{
+    return _syscall(SC_dispatch_timer, od, deadline, interval, func, context);
 }
 
 int DispatchQueue_GetCurrent(void)

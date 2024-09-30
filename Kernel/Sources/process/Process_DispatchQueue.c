@@ -41,20 +41,20 @@ int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc)
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // with the given options. 
-errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned long options, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext)
+errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull func, void* _Nullable ctx, uint32_t options)
 {
     decl_try_err();
     UDispatchQueueRef pQueue;
 
     if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
         if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, pUserClosure, pContext, kDispatchOption_Sync|kDispatchOption_User, 0);
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, options | kDispatchOption_User, 0);
             UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
         }
     }
     else {
         if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, pUserClosure, pContext, kDispatchOption_User, 0);
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, kDispatchOption_User, 0);
             UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
         }
     }
@@ -64,13 +64,13 @@ errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, unsigned 
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // after the given deadline.
-errno_t Process_DispatchUserClosureAsyncAfter(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, Closure1Arg_Func _Nonnull pUserClosure, void* _Nullable pContext)
+errno_t Process_DispatchUserTimer(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable ctx)
 {
     decl_try_err();
     UDispatchQueueRef pQueue;
 
     if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-        err = DispatchQueue_DispatchTimer(pQueue->dispatchQueue, deadline, kTimeInterval_Zero, pUserClosure, pContext, kDispatchOption_User, 0);
+        err = DispatchQueue_DispatchTimer(pQueue->dispatchQueue, deadline, interval, func, ctx, kDispatchOption_User, 0);
         UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
     }
     return err;

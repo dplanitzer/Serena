@@ -42,7 +42,7 @@ SC_truncate                 equ 29
 SC_ftruncate                equ 30
 SC_mkfile                   equ 31
 SC_mkpipe                   equ 32
-SC_dispatch_after           equ 33
+SC_dispatch_timer           equ 33
 SC_dispatch_queue_create    equ 34
 SC_dispatch_queue_current   equ 35
 SC_dispose                  equ 36

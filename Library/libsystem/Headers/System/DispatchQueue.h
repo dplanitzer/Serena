@@ -48,7 +48,7 @@ typedef void (*Dispatch_Closure)(void* _Nullable arg);
 // execution. This function returns with an EINTR if the queue is flushed or
 // terminated by calling DispatchQueue_Terminate().
 // @Concurrency: Safe
-extern errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext);
+extern errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context);
 
 // Schedules the given closure for asynchronous execution on the given dispatch
 // queue. The 'pContext' argument will be passed to the callback. If the queue
@@ -57,12 +57,18 @@ extern errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull pClo
 // concurrent queue then the callback might start executing even while the
 // the currently executing closure is still running.
 // @Concurrency: Safe 
-extern errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext);
+extern errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 // @Concurrency: Safe
-extern errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull pClosure, void* _Nullable pContext);
+extern errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull func, void* _Nullable context);
+
+// Asynchronously executes the given closure on or after 'deadline'. The dispatch
+// queue will try to execute the closure as close to 'deadline' as possible. The
+// closure will be executed repeatedly every 'interval' duration until removed.
+// @Concurrency: Safe
+extern errno_t DispatchQueue_DispatchAsyncPeriodically(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable context);
 
 
 // Returns the dispatch queue that is associated with the virtual processor that

@@ -271,22 +271,22 @@ SYSCALL_1(get_monotonic_time, TimeInterval* _Nullable time)
     return EOK;
 }
 
-SYSCALL_4(dispatch, int od, unsigned long options, const Closure1Arg_Func _Nullable pUserClosure, void* _Nullable pContext)
+SYSCALL_4(dispatch, int od, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, unsigned long options)
 {
-    if (pArgs->pUserClosure == NULL) {
+    if (pArgs->func == NULL) {
         return EINVAL;
     }
 
-    return Process_DispatchUserClosure(Process_GetCurrent(), pArgs->od, pArgs->options, pArgs->pUserClosure, pArgs->pContext);
+    return Process_DispatchUserClosure(Process_GetCurrent(), pArgs->od, pArgs->func, pArgs->ctx, pArgs->options);
 }
 
-SYSCALL_4(dispatch_after, int od, TimeInterval deadline, const Closure1Arg_Func _Nullable pUserClosure, void* _Nullable pContext)
+SYSCALL_5(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const Closure1Arg_Func _Nullable func, void* _Nullable ctx)
 {
-    if (pArgs->pUserClosure == NULL) {
+    if (pArgs->func == NULL) {
         return EINVAL;
     }
 
-    return Process_DispatchUserClosureAsyncAfter(Process_GetCurrent(), pArgs->od, pArgs->deadline, pArgs->pUserClosure, pArgs->pContext);
+    return Process_DispatchUserTimer(Process_GetCurrent(), pArgs->od, pArgs->deadline, pArgs->interval, pArgs->func, pArgs->ctx);
 }
 
 SYSCALL_5(dispatch_queue_create, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutQueue)
@@ -488,7 +488,7 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(ftruncate),
     REF_SYSCALL(mkfile),
     REF_SYSCALL(mkpipe),
-    REF_SYSCALL(dispatch_after),
+    REF_SYSCALL(dispatch_timer),
     REF_SYSCALL(dispatch_queue_create),
     REF_SYSCALL(dispatch_queue_current),
     REF_SYSCALL(dispose),
