@@ -67,7 +67,7 @@ catch:
 void Console_DeinitVideoOutput(ConsoleRef _Nonnull self)
 {
     GraphicsDriver_RelinquishSprite(self->gdevice, self->textCursor);
-    DispatchQueue_RemoveTimer(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
+    DispatchQueue_RemoveByTag(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
 }
 
 
@@ -109,7 +109,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
     if (self->flags.isTextCursorVisible) {
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
+        DispatchQueue_RemoveByTag(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
         GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
@@ -124,7 +124,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
         }
     } else {
         // Make sure that the text cursor and blinker are off
-        DispatchQueue_RemoveTimer(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
+        DispatchQueue_RemoveByTag(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
         GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, false);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;

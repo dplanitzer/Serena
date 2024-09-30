@@ -109,13 +109,6 @@ extern errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, Closu
 // possible.
 extern errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag);
 
-// Removes all scheduled instances of non-timer-based closures with tag 'tag'
-// from the dispatch queue. If the closure is in the process of executing when
-// this function is called then the closure will continue to execute uninterrupted.
-// If on the other side, the closure is still pending and has not executed yet
-// then it will be removed and it will not execute.
-extern bool DispatchQueue_RemoveClosure(DispatchQueueRef _Nonnull self, uintptr_t tag);
-
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
@@ -132,13 +125,14 @@ extern errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull
 // every 'interval' ticks until the timer is removed from the queue.
 extern errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag);
 
-// Removes all scheduled instances of timers with tag 'tag' from the dispatch
-// queue. If the closure of the timer is in the process of executing when this
-// function is called then the closure will continue to execute uninterrupted.
-// If on the other side, the timer is still pending and has not executed yet
-// then it will be removed and it will not execute.
-// Returns true if a timer was removed; false otherwise.
-extern bool DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull self, uintptr_t tag);
+
+// Removes all scheduled instances of timers and immediate work items with tag
+// 'tag' from the dispatch queue. If the closure of the work item is in the
+// process of executing when this function is called then the closure will
+// continue to execute uninterrupted. If on the other side, the work item is
+// still pending and has not executed yet then it will be removed and it will
+// not execute.
+extern bool DispatchQueue_RemoveByTag(DispatchQueueRef _Nonnull self, uintptr_t tag);
 
 
 // Removes all queued work items, one-shot and repeatable timers from the queue.

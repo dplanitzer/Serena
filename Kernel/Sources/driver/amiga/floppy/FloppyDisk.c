@@ -278,7 +278,7 @@ static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self)
 
 static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self)
 {
-    DispatchQueue_RemoveTimer(self->dispatchQueue, kDelayedMotorOffTag);
+    DispatchQueue_RemoveByTag(self->dispatchQueue, kDelayedMotorOffTag);
 }
 
 
@@ -467,7 +467,7 @@ static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 
 static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 {
-    DispatchQueue_RemoveTimer(self->dispatchQueue, kUpdateHasDiskStateTag);
+    DispatchQueue_RemoveByTag(self->dispatchQueue, kUpdateHasDiskStateTag);
 }
 
 

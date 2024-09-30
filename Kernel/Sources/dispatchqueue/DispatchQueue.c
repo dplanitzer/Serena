@@ -435,11 +435,11 @@ static WorkItem* _Nullable DispatchQueue_AddWorkItem_Locked(DispatchQueueRef _No
     return pOldLastItem;
 }
 
-// Removes all scheduled instances of the given work item from the dispatch
+// Removes all scheduled instances of the given work item from the given item
 // queue.
-static bool DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, uintptr_t tag)
+static bool DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, SList* _Nonnull itemQueue, uintptr_t tag)
 {
-    WorkItem* pCurItem = (WorkItem*) self->item_queue.first;
+    WorkItem* pCurItem = (WorkItem*) itemQueue->first;
     WorkItem* pPrevItem = NULL;
     bool didRemove = false;
 
@@ -447,9 +447,13 @@ static bool DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, 
         WorkItem* pNextItem = (WorkItem*) pCurItem->queue_entry.next;
 
         if (pCurItem->tag == tag) {
-            DispatchQueue_SignalWorkItemCompletion(self, pCurItem, true);
-            SList_Remove(&self->item_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
+            if (pCurItem->completion) {
+                DispatchQueue_SignalWorkItemCompletion(self, pCurItem, true);
+            }
+
+            SList_Remove(itemQueue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
             self->items_queued_count--;
+
             DispatchQueue_RelinquishWorkItem_Locked(self, pCurItem);
             didRemove = true;
             // pPrevItem doesn't change here
@@ -481,32 +485,9 @@ static WorkItem* _Nullable DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _N
     }
     
     SList_InsertAfter(&self->timer_queue, &pItem->queue_entry, &pPrevItem->queue_entry);
+    self->items_queued_count++;
+
     return pPrevItem;
-}
-
-// Removes all queued instances of timer with the tag 'tag'.
-static bool DispatchQueue_RemoveTimedItem_Locked(DispatchQueueRef _Nonnull self, uintptr_t tag)
-{
-    WorkItem* pCurItem = (WorkItem*) self->timer_queue.first;
-    WorkItem* pPrevItem = NULL;
-    bool didRemove = false;
-
-    while (pCurItem) {
-        WorkItem* pNextItem = (WorkItem*) pCurItem->queue_entry.next;
-
-        if (pCurItem->tag == tag) {
-            SList_Remove(&self->timer_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
-            DispatchQueue_RelinquishWorkItem_Locked(self, pCurItem);
-            didRemove = true;
-            // pPrevItem doesn't change here
-        }
-        else {
-            pPrevItem = pCurItem;
-        }
-        pCurItem = pNextItem;
-    }
-
-    return didRemove;
 }
 
 
@@ -650,21 +631,6 @@ catch:
     return err;
 }
 
-// Removes all scheduled instances of non-timer-based closures with tag 'tag'
-// from the dispatch queue. If the closure is in the process of executing when
-// this function is called then the closure will continue to execute uninterrupted.
-// If on the other side, the closure is still pending and has not executed yet
-// then it will be removed and it will not execute.
-bool DispatchQueue_RemoveClosure(DispatchQueueRef _Nonnull self, uintptr_t tag)
-{
-    Lock_Lock(&self->lock);
-    // Queue termination state isn't relevant here
-    const bool r = DispatchQueue_RemoveWorkItem_Locked(self, tag);
-    Lock_Unlock(&self->lock);
-    return r;
-}
-
-
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
@@ -724,18 +690,20 @@ catch:
 }
 
 
-// Removes all scheduled instances of timers with tag 'tag' from the dispatch
-// queue. If the closure of the timer is in the process of executing when this
-// function is called then the closure will continue to execute uninterrupted.
-// If on the other side, the timer is still pending and has not executed yet
-// then it will be removed and it will not execute.
-bool DispatchQueue_RemoveTimer(DispatchQueueRef _Nonnull self, uintptr_t tag)
+// Removes all scheduled instances of timers and immediate work items with tag
+// 'tag' from the dispatch queue. If the closure of the work item is in the
+// process of executing when this function is called then the closure will
+// continue to execute uninterrupted. If on the other side, the work item is
+// still pending and has not executed yet then it will be removed and it will
+// not execute.
+bool DispatchQueue_RemoveByTag(DispatchQueueRef _Nonnull self, uintptr_t tag)
 {
     Lock_Lock(&self->lock);
     // Queue termination state isn't relevant here
-    const bool r = DispatchQueue_RemoveTimedItem_Locked(self, tag);
+    const bool r0 = DispatchQueue_RemoveWorkItem_Locked(self, &self->item_queue, tag);
+    const bool r1 = DispatchQueue_RemoveWorkItem_Locked(self, &self->timer_queue, tag);
     Lock_Unlock(&self->lock);
-    return r;
+    return (r0 || r1) ? true : false;
 }
 
 
@@ -791,6 +759,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
             WorkItem* pFirstTimer = (WorkItem*)self->timer_queue.first;
             if (pFirstTimer && TimeInterval_LessEquals(pFirstTimer->timer->deadline, now)) {
                 pItem = (WorkItem*) SList_RemoveFirst(&self->timer_queue);
+                self->items_queued_count--;
             }
 
 

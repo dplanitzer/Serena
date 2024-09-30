@@ -108,7 +108,7 @@ final_class_ivars(DispatchQueue, Object,
     ProcessRef _Nullable _Weak          owning_process;             // The process that owns this queue
     int                                 descriptor;                 // The user space descriptor of this queue
     VirtualProcessorPoolRef _Nonnull    virtual_processor_pool;     // Pool from which the queue should retrieve virtual processors
-    int                                 items_queued_count;         // Number of work items queued up (item_queue)
+    int                                 items_queued_count;         // Number of work items queued up (item_queue && timer_queue)
     int8_t                              state;                      // The current dispatch queue state
     int8_t                              minConcurrency;             // Minimum number of concurrency lanes that we are required to maintain. So we should not allow availableConcurrency to fall below this when we think we want to voluntarily relinquish a VP
     int8_t                              maxConcurrency;             // Maximum number of concurrency lanes we are allowed to allocate and use
