@@ -58,9 +58,10 @@ SC_sema_tryacquire          equ 45
 SC_cv_create                equ 46
 SC_cv_wake                  equ 47
 SC_cv_wait                  equ 48
+SC_dispatch_remove_by_tag   equ 49
 
 
-SC_numberOfCalls            equ 49
+SC_numberOfCalls            equ 50
 
 
 ; System call macro.

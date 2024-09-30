@@ -62,13 +62,22 @@ extern errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull fun
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible.
 // @Concurrency: Safe
-extern errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull func, void* _Nullable context);
+extern errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull func, void* _Nullable context, uintptr_t tag);
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // closure will be executed repeatedly every 'interval' duration until removed.
 // @Concurrency: Safe
-extern errno_t DispatchQueue_DispatchAsyncPeriodically(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable context);
+extern errno_t DispatchQueue_DispatchAsyncPeriodically(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable context, uintptr_t tag);
+
+
+// Removes all scheduled instances of timers and immediate work items with tag
+// 'tag' from the dispatch queue. If the closure of the work item is in the
+// process of executing when this function is called then the closure will
+// continue to execute uninterrupted. If on the other side, the work item is
+// still pending and has not executed yet then it will be removed and it will
+// not execute.
+extern errno_t DispatchQueue_RemoveByTag(int od, uintptr_t tag);
 
 
 // Returns the dispatch queue that is associated with the virtual processor that

@@ -18,7 +18,7 @@ enum {
     SC_read = 0,            // errno_t IOChannel_Read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
     SC_write,               // errno_t IOChannel_Write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
     SC_delay,               // errno_t Delay(TimeInterval ti)
-    SC_dispatch,            // errno_t _DispatchQueue_Dispatch(int od, Dispatch_Closure _Nonnull func, void* _Nullable ctx, unsigned long options)
+    SC_dispatch,            // errno_t _DispatchQueue_Dispatch(int od, Dispatch_Closure _Nonnull func, void* _Nullable ctx, unsigned long options, uintptr_t tag)
     SC_alloc_address_space, // errno_t Process_AllocateAddressSpace(int nbytes, void **pOutMem)
     SC_exit,                // _Noreturn Process_Exit(int status)
     SC_spawn_process,       // errno_t Process_Spawn(cost char* _Nonnull path, const char* _Nullable argv[], SpawnOptions * _Nullable options, ProcessId * _Nullable rpid)
@@ -48,7 +48,7 @@ enum {
     SC_ftruncate,           // errno_t FileChannel_Truncate(int fd, FileOffset length)
     SC_mkfile,              // errno_t File_Create(const char* _Nonnull path, int options, int permissions, int* _Nonnull fd)
     SC_mkpipe,              // errno_t Pipe_Create(int* _Nonnull rioc, int* _Nonnull wioc)
-    SC_dispatch_timer,      // errno_t DispatchQueue_DispatchTimer(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable ctx)
+    SC_dispatch_timer,      // errno_t DispatchQueue_DispatchTimer(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable ctx, uintptr_t tag)
     SC_dispatch_queue_create,   // errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nonnull pOutQueue)
     SC_dispatch_queue_current,  // int DispatchQueue_GetCurrent(void)
     SC_dispose,             // _Object_Dispose(int od)
@@ -63,7 +63,8 @@ enum {
     SC_sema_tryacquire,     // errno_t sema_tryacquire(int od, int npermits)
     SC_cv_create,           // errno_t cv_create(int* _Nonnull pOutOd)
     SC_cv_wake,             // errno_t cv_wake(int od, int dlock, unsigned int options)
-    sc_cv_wait,             // errno_t cv_wait(int od, int dlock, TimeInterval deadline)
+    SC_cv_wait,             // errno_t cv_wait(int od, int dlock, TimeInterval deadline)
+    SC_dispatch_remove_by_tag,  // bool dispatch_remove_by_tag(int od, uintptr_t tag)
 };
 
 

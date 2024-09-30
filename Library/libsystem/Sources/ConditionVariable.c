@@ -84,7 +84,7 @@ errno_t ConditionVariable_Wait(ConditionVariableRef _Nonnull cv, LockRef _Nonnul
     ULock* ulock = (ULock*)lock;
 
     if (self->signature == CV_SIGNATURE && ulock->signature == LOCK_SIGNATURE) {
-        return _syscall(sc_cv_wait, self->od, ulock->od, deadline);
+        return _syscall(SC_cv_wait, self->od, ulock->od, deadline);
     }
     else {
         return EINVAL;

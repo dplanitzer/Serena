@@ -68,6 +68,18 @@ typedef intptr_t (*SystemCall)(void* _Nonnull);
     }; \
     intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
 
+#define SYSCALL_6(__name, __p1, __p2, __p3, __p4, __p5, __p6) \
+    struct args_##__name { \
+        int scno; \
+        __p1; \
+        __p2; \
+        __p3; \
+        __p4; \
+        __p5; \
+        __p6; \
+    }; \
+    intptr_t _SYSCALL_##__name(const struct args_##__name* _Nonnull pArgs)
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -271,22 +283,22 @@ SYSCALL_1(get_monotonic_time, TimeInterval* _Nullable time)
     return EOK;
 }
 
-SYSCALL_4(dispatch, int od, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, unsigned long options)
+SYSCALL_5(dispatch, int od, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, unsigned long options, uintptr_t tag)
 {
     if (pArgs->func == NULL) {
         return EINVAL;
     }
 
-    return Process_DispatchUserClosure(Process_GetCurrent(), pArgs->od, pArgs->func, pArgs->ctx, pArgs->options);
+    return Process_DispatchUserClosure(Process_GetCurrent(), pArgs->od, pArgs->func, pArgs->ctx, pArgs->options, pArgs->tag);
 }
 
-SYSCALL_5(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const Closure1Arg_Func _Nullable func, void* _Nullable ctx)
+SYSCALL_6(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, uintptr_t tag)
 {
     if (pArgs->func == NULL) {
         return EINVAL;
     }
 
-    return Process_DispatchUserTimer(Process_GetCurrent(), pArgs->od, pArgs->deadline, pArgs->interval, pArgs->func, pArgs->ctx);
+    return Process_DispatchUserTimer(Process_GetCurrent(), pArgs->od, pArgs->deadline, pArgs->interval, pArgs->func, pArgs->ctx, pArgs->tag);
 }
 
 SYSCALL_5(dispatch_queue_create, int minConcurrency, int maxConcurrency, int qos, int priority, int* _Nullable pOutQueue)
@@ -296,6 +308,11 @@ SYSCALL_5(dispatch_queue_create, int minConcurrency, int maxConcurrency, int qos
     }
 
     return Process_CreateDispatchQueue(Process_GetCurrent(), pArgs->minConcurrency, pArgs->maxConcurrency, pArgs->qos, pArgs->priority, pArgs->pOutQueue);
+}
+
+SYSCALL_2(dispatch_remove_by_tag, int od, uintptr_t tag)
+{
+    return Process_DispatchRemoveByTag(Process_GetCurrent(), pArgs->od, pArgs->tag);
 }
 
 SYSCALL_0(dispatch_queue_current)

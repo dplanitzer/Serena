@@ -44,7 +44,7 @@ static void OnAsyncAfter(void* _Nonnull pValue)
     int val = (int)pValue;
     
     printf("%d\n", val);
-    assertOK(DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(MonotonicClock_GetTime(), TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1)));
+    assertOK(DispatchQueue_DispatchAsyncAfter(kDispatchQueue_Main, TimeInterval_Add(MonotonicClock_GetTime(), TimeInterval_MakeMilliseconds(500)), OnAsyncAfter, (void*)(val + 1), 0));
 }
 
 void dq_async_after_test(int argc, char *argv[])

@@ -12,22 +12,33 @@
 
 errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context)
 {
-    return _syscall(SC_dispatch, od, func, context, (unsigned long)__kDispatchOption_Sync);
+    return _syscall(SC_dispatch, od, func, context, (unsigned long)__kDispatchOption_Sync, 0);
 }
 
 errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context)
 {
-    return _syscall(SC_dispatch, od, func, context, (unsigned long)0);
+    return _syscall(SC_dispatch, od, func, context, (unsigned long)0, 0);
 }
 
-errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull func, void* _Nullable context)
+errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return _syscall(SC_dispatch_timer, od, deadline, kTimeInterval_Zero, func, context);
+    return _syscall(SC_dispatch_timer, od, deadline, kTimeInterval_Zero, func, context, tag);
 }
 
-errno_t DispatchQueue_DispatchAsyncPeriodically(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable context)
+errno_t DispatchQueue_DispatchAsyncPeriodically(int od, TimeInterval deadline, TimeInterval interval, Dispatch_Closure _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
-    return _syscall(SC_dispatch_timer, od, deadline, interval, func, context);
+    return _syscall(SC_dispatch_timer, od, deadline, interval, func, context, tag);
+}
+
+// Removes all scheduled instances of timers and immediate work items with tag
+// 'tag' from the dispatch queue. If the closure of the work item is in the
+// process of executing when this function is called then the closure will
+// continue to execute uninterrupted. If on the other side, the work item is
+// still pending and has not executed yet then it will be removed and it will
+// not execute.
+errno_t DispatchQueue_RemoveByTag(int od, uintptr_t tag)
+{
+    return _syscall(SC_dispatch_remove_by_tag, tag);
 }
 
 int DispatchQueue_GetCurrent(void)
