@@ -12,12 +12,12 @@
 
 errno_t DispatchQueue_DispatchSync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context)
 {
-    return _syscall(SC_dispatch, od, func, context, (unsigned long)__kDispatchOption_Sync, 0);
+    return _syscall(SC_dispatch, od, func, context, (uint32_t)kDispatchOption_Sync, 0);
 }
 
 errno_t DispatchQueue_DispatchAsync(int od, Dispatch_Closure _Nonnull func, void* _Nullable context)
 {
-    return _syscall(SC_dispatch, od, func, context, (unsigned long)0, 0);
+    return _syscall(SC_dispatch, od, func, context, (uint32_t)0, 0);
 }
 
 errno_t DispatchQueue_DispatchAsyncAfter(int od, TimeInterval deadline, Dispatch_Closure _Nonnull func, void* _Nullable context, uintptr_t tag)

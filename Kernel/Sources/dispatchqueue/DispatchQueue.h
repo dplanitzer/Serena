@@ -24,10 +24,14 @@ final_class(DispatchQueue, Object);
 // Dispatch Options
 //
 
+// This is a uint32_t which breaks into two parts:
+// Lower 16 bits: user space controllable options (defined in libsystem)
+// Upper 16 bits: kernel space controllable options (defined here)
 enum {
-    kDispatchOption_Sync = 1,   // Dispatch and then wait for completion
-    kDispatchOption_User = 2,   // The provided function should be invoked in user space context rather than kernel context
+    kDispatchOption_User = 0x10000,     // The provided function should be invoked in user space context rather than kernel context
 };
+#define kDispatchOptionMask_User    0x0000ffff
+#define kDispatchOptionMask_Kernel  0xffff0000
 
 
 //

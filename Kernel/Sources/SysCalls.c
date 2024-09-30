@@ -283,7 +283,7 @@ SYSCALL_1(get_monotonic_time, TimeInterval* _Nullable time)
     return EOK;
 }
 
-SYSCALL_5(dispatch, int od, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, unsigned long options, uintptr_t tag)
+SYSCALL_5(dispatch, int od, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
 {
     if (pArgs->func == NULL) {
         return EINVAL;

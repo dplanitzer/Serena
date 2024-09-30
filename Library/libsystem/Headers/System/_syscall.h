@@ -18,7 +18,7 @@ enum {
     SC_read = 0,            // errno_t IOChannel_Read(int fd, const char * _Nonnull buffer, size_t nBytesToRead, ssize_t* pOutBytesRead)
     SC_write,               // errno_t IOChannel_Write(int fd, const char * _Nonnull buffer, size_t nBytesToWrite, ssize_t* pOutBytesWritten)
     SC_delay,               // errno_t Delay(TimeInterval ti)
-    SC_dispatch,            // errno_t _DispatchQueue_Dispatch(int od, Dispatch_Closure _Nonnull func, void* _Nullable ctx, unsigned long options, uintptr_t tag)
+    SC_dispatch,            // errno_t _DispatchQueue_Dispatch(int od, Dispatch_Closure _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
     SC_alloc_address_space, // errno_t Process_AllocateAddressSpace(int nbytes, void **pOutMem)
     SC_exit,                // _Noreturn Process_Exit(int status)
     SC_spawn_process,       // errno_t Process_Spawn(cost char* _Nonnull path, const char* _Nullable argv[], SpawnOptions * _Nullable options, ProcessId * _Nullable rpid)

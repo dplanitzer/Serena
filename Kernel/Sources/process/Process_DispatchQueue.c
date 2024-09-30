@@ -41,20 +41,21 @@ int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc)
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // with the given options. 
-errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
+errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull func, void* _Nullable ctx, uint32_t userOptions, uintptr_t tag)
 {
     decl_try_err();
+    const uint32_t options = (userOptions & kDispatchOptionMask_User) | kDispatchOption_User;
     UDispatchQueueRef pQueue;
 
     if ((options & kDispatchOption_Sync) == kDispatchOption_Sync) {
         if ((err = UResourceTable_AcquireResourceAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, options | kDispatchOption_User, tag);
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, options, tag);
             UResourceTable_RelinquishResource(&pProc->uResourcesTable, pQueue);
         }
     }
     else {
         if ((err = UResourceTable_BeginDirectResourceAccessAs(&pProc->uResourcesTable, od, UDispatchQueue, &pQueue)) == EOK) {
-            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, kDispatchOption_User, tag);
+            err = DispatchQueue_DispatchClosure(pQueue->dispatchQueue, func, ctx, options, tag);
             UResourceTable_EndDirectResourceAccess(&pProc->uResourcesTable);
         }
     }
