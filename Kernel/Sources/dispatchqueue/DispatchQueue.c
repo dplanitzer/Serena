@@ -188,6 +188,7 @@ void DispatchQueue_deinit(DispatchQueueRef _Nonnull self)
     _DispatchQueue_Destroy(self);
 }
 
+
 // Makes sure that we have enough virtual processors attached to the dispatch queue
 // and acquires a virtual processor from the virtual processor pool if necessary.
 // The virtual processor is attached to the dispatch queue and remains attached
@@ -224,6 +225,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
 
         VirtualProcessor_SetDispatchQueue(pVP, self, conLaneIdx);
         self->concurrency_lanes[conLaneIdx].vp = pVP;
+        self->concurrency_lanes[conLaneIdx].active_item = NULL;
         self->availableConcurrency++;
 
         VirtualProcessor_Resume(pVP, false);
@@ -242,14 +244,16 @@ catch:
 // method that runs on the virtual processor to execute work items.
 static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _Nonnull self, VirtualProcessor* _Nonnull pVP)
 {
-    int conLaneIdx = pVP->dispatchQueueConcurrencyLaneIndex;
+    const int conLaneIdx = pVP->dispatchQueueConcurrencyLaneIndex;
 
     assert(conLaneIdx >= 0 && conLaneIdx < self->maxConcurrency);
 
     VirtualProcessor_SetDispatchQueue(pVP, NULL, -1);
     self->concurrency_lanes[conLaneIdx].vp = NULL;
+    self->concurrency_lanes[conLaneIdx].active_item = NULL;
     self->availableConcurrency--;
 }
+
 
 // Creates a timer for the given deadline and interval. Tries to reuse an existing
 // timer from the timer cache whenever possible. Expects that the caller holds the
@@ -490,6 +494,38 @@ static WorkItem* _Nullable DispatchQueue_AddTimedItem_Locked(DispatchQueueRef _N
     return pPrevItem;
 }
 
+// Returns true if an item (or timer) with the given tag is queued or currently
+// executing.
+static bool DispatchQueue_HasItemWithTag_Locked(DispatchQueueRef _Nonnull self, uintptr_t tag)
+{
+    // Check the currently executing items
+    for (int i = 0; i < self->maxConcurrency; i++) {
+        WorkItem* pItem = self->concurrency_lanes[i].active_item;
+
+        if (pItem && pItem->tag == tag) {
+            return true;
+        }
+    }
+
+
+    // Check immediate items
+    SList_ForEach(&self->item_queue, WorkItem,
+        if (pCurNode->tag == tag) {
+            return true;
+        }
+    );
+
+
+    // Check timers
+    SList_ForEach(&self->timer_queue, WorkItem,
+        if (pCurNode->tag == tag) {
+            return true;
+        }
+    );
+
+    return false;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -564,6 +600,14 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Ar
     if (self->state >= kQueueState_Terminating) {
         Lock_Unlock(&self->lock);
         return EOK;
+    }
+
+
+    if ((options & kDispatchOption_Coalesce) == kDispatchOption_Coalesce) {
+        if (DispatchQueue_HasItemWithTag_Locked(self, tag)) {
+            Lock_Unlock(&self->lock);
+            return EOK;
+        }
     }
 
 
@@ -666,6 +710,15 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval
         return EOK;
     }
 
+
+    if ((options & kDispatchOption_Coalesce) == kDispatchOption_Coalesce) {
+        if (DispatchQueue_HasItemWithTag_Locked(self, tag)) {
+            Lock_Unlock(&self->lock);
+            return EOK;
+        }
+    }
+
+
     try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, 0, tag, &pItem));
     try(DispatchQueue_AcquireTimer_Locked(self, deadline, interval, &pItem->timer));
 
@@ -738,6 +791,8 @@ static void DispatchQueue_RearmTimedItem_Locked(DispatchQueueRef _Nonnull self, 
 void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 {
     VirtualProcessor* pVP = VirtualProcessor_GetCurrent();
+    ConcurrencyLane* pConLane = &self->concurrency_lanes[pVP->dispatchQueueConcurrencyLaneIndex];
+
 
     // We hold the lock at all times except:
     // - while waiting for work
@@ -809,6 +864,10 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         }
 
 
+        // Make the item the active item
+        pConLane->active_item = pItem;
+
+
         // Drop the lock. We do not want to hold it while the closure is executing
         // and we are (if needed) signaling completion.
         Lock_Unlock(&self->lock);
@@ -829,6 +888,10 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
         // Reacquire the lock
         Lock_Lock(&self->lock);
+
+
+        // Deactivate the item
+        pConLane->active_item = NULL;
 
 
         // Move the work item back to the item cache if possible or destroy it

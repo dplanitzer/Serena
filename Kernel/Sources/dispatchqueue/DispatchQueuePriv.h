@@ -82,7 +82,8 @@ extern void WorkItem_SignalCompletion(WorkItem* _Nonnull self, bool isInterrupte
 // connection with this virtual processor. There's one concurrency lane per
 // dispatch queue concurrency level.
 typedef struct ConcurrencyLane {
-    VirtualProcessor* _Nullable  vp;     // The virtual processor assigned to this concurrency lane
+    VirtualProcessor* _Nullable vp;             // The virtual processor assigned to this concurrency lane
+    WorkItem* _Nullable         active_item;    // Item currently being executed by the VP
 } ConcurrencyLane;
 
 

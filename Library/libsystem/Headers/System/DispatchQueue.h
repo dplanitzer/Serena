@@ -125,7 +125,8 @@ extern errno_t DispatchQueue_Destroy(int od);
 
 // Private
 enum {
-    kDispatchOption_Sync = 1    // Dispatch and then wait for completion
+    kDispatchOption_Sync = 1,       // Dispatch and then wait for completion
+    kDispatchOption_Coalesce = 2,   // Do not dispatch this request if a request with the same tag is already queued or currently executing
 };
 
 __CPP_END
