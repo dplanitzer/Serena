@@ -29,24 +29,6 @@ typedef struct CompletionSignaler {
     bool        isInterrupted;
 } CompletionSignaler;
 
-extern void CompletionSignaler_Init(CompletionSignaler* _Nonnull self);
-extern void CompletionSignaler_Deinit(CompletionSignaler* _Nonnull self);
-extern void CompletionSignaler_Destroy(CompletionSignaler* _Nullable self);
-
-
-//
-// Timers
-//
-
-typedef struct Timer {
-    SListNode       queue_entry;
-    TimeInterval    deadline;           // Time when the timer closure should be executed
-    TimeInterval    interval;
-    bool            isRepeating;
-} Timer;
-
-extern void Timer_Destroy(Timer* _Nullable self);
-extern void Timer_Deinit(Timer* _Nonnull self);
 
 
 //
@@ -54,8 +36,16 @@ extern void Timer_Deinit(Timer* _Nonnull self);
 //
 
 enum {
-    kWorkItemOption_IsUser = 1,     // Invoke the work item function in user space
+    kWorkItemFlag_IsUser = 1,       // Invoke the work item function in user space
+    kWorkItemFlag_Timer = 2,        // Item is a timer
+    kWorkItemFlag_IsRepeating = 4,  // Item is a auto-repeating timer
 };
+
+
+typedef struct Timer {
+    TimeInterval    deadline;           // Time when the timer closure should be executed
+    TimeInterval    interval;
+} Timer;
 
 
 typedef struct WorkItem {
@@ -63,14 +53,12 @@ typedef struct WorkItem {
     Closure1Arg_Func _Nonnull               func;
     void* _Nullable _Weak                   context;
     CompletionSignaler * _Nullable _Weak    completion;
-    Timer* _Nullable                        timer;
+    union {
+        Timer                       timer;
+    }                                       u;
     uintptr_t                               tag;
-    uint8_t                                 options;
+    uint8_t                                 flags;
 } WorkItem;
-
-extern void WorkItem_Destroy(WorkItem* _Nullable self);
-extern void WorkItem_Deinit(WorkItem* _Nonnull self);
-extern void WorkItem_SignalCompletion(WorkItem* _Nonnull self, bool isInterrupted);
 
 
 //
@@ -95,13 +83,11 @@ enum QueueState {
 
 
 #define MAX_ITEM_CACHE_COUNT    8
-#define MAX_TIMER_CACHE_COUNT   8
 #define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
 final_class_ivars(DispatchQueue, Object,
     SList                               item_queue;         // SList<WorkItem> Queue of work items that should be executed as soon as possible
     SList                               timer_queue;        // SList<WorkItem> Queue of items that should be executed on or after their deadline
     SList                               item_cache_queue;   // SList<WorkItem> Cache of reusable work items
-    SList                               timer_cache_queue;  // SList<Timer> Cache of reusable timers
     SList                               completion_signaler_cache_queue;    // SList<CompletionSignaler> Cache of reusable completion signalers
     Lock                                lock;
     ConditionVariable                   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has been enqueued
@@ -117,10 +103,8 @@ final_class_ivars(DispatchQueue, Object,
     int8_t                              qos;
     int8_t                              priority;
     int8_t                              item_cache_capacity;
-    int8_t                              timer_cache_capacity;
     int8_t                              completion_signaler_capacity;
     int8_t                              item_cache_count;
-    int8_t                              timer_cache_count;
     int8_t                              completion_signaler_count;
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 );
