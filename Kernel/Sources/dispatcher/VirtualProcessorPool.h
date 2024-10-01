@@ -14,7 +14,7 @@
 
 
 typedef struct VirtualProcessorParameters {
-    Closure1Arg_Func _Nonnull   func;
+    VoidFunc_1 _Nonnull   func;
     void* _Nullable _Weak       context;
     size_t                      kernelStackSize;
     size_t                      userStackSize;

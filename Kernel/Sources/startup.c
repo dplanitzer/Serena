@@ -73,7 +73,7 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
 
     // Initialize the scheduler
-    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, &boot_alloc, (Closure1Arg_Func)OnStartup, pSysDesc);
+    VirtualProcessorScheduler_CreateForLocalCPU(pSysDesc, &boot_alloc, (VoidFunc_1)OnStartup, pSysDesc);
 
 
     // Don't need the boot allocator anymore
@@ -123,7 +123,7 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 
     
     // Continue the kernel startup on the kernel main queue
-    DispatchQueue_DispatchAsync(gMainDispatchQueue, (Closure1Arg_Func)OnMain, NULL);
+    DispatchQueue_DispatchAsync(gMainDispatchQueue, (VoidFunc_1)OnMain, NULL);
 
     
     // The boot virtual processor now takes over the duties of running the

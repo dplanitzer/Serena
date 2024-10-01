@@ -140,7 +140,7 @@ void CopperScheduler_Init(CopperScheduler* _Nonnull self)
     Semaphore_Init(&self->retirementSignaler, 0);
     SList_Init(&self->retiredProgs);
     try_bang(DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, &self->retiredProgsCollector));
-    try_bang(DispatchQueue_DispatchAsync(self->retiredProgsCollector, (Closure1Arg_Func)CopperScheduler_GarbageCollectRetiredPrograms, self));
+    try_bang(DispatchQueue_DispatchAsync(self->retiredProgsCollector, (VoidFunc_1)CopperScheduler_GarbageCollectRetiredPrograms, self));
 }
 
 void CopperScheduler_Deinit(CopperScheduler* _Nonnull self)

@@ -118,7 +118,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
             try_bang(DispatchQueue_DispatchAsyncPeriodically(gMainDispatchQueue, 
                 kTimeInterval_Zero,
                 TimeInterval_MakeMilliseconds(500),
-                (Closure1Arg_Func)Console_OnTextCursorBlink,
+                (VoidFunc_1)Console_OnTextCursorBlink,
                 self,
                 (uintptr_t)kCursorBlinkerTimerTag));
         }

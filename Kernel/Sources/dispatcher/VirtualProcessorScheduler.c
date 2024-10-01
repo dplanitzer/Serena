@@ -16,7 +16,7 @@ extern void VirtualProcessorScheduler_SwitchContext(void);
 
 static void VirtualProcessorScheduler_DumpReadyQueue_Locked(VirtualProcessorScheduler* _Nonnull pScheduler);
 
-static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext);
+static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, VoidFunc_1 _Nonnull pFunc, void* _Nullable _Weak pContext);
 static VirtualProcessor* _Nonnull IdleVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc);
 
 
@@ -30,7 +30,7 @@ VirtualProcessorScheduler*  gVirtualProcessorScheduler = &gVirtualProcessorSched
 // 'pContext' argument. The first context switch from the machine reset context
 // to the boot virtual processor context is triggered by calling the
 // VirtualProcessorScheduler_IncipientContextSwitch() function. 
-void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext)
+void VirtualProcessorScheduler_CreateForLocalCPU(SystemDescription* _Nonnull pSysDesc, BootAllocator* _Nonnull pBootAlloc, VoidFunc_1 _Nonnull pFunc, void* _Nullable _Weak pContext)
 {
     // Stored in the BSS. Thus starts out zeroed.
     VirtualProcessorScheduler* pScheduler = &gVirtualProcessorSchedulerStorage;
@@ -606,7 +606,7 @@ int VirtualProcessor_GetCurrentVpid(void)
 // duties for the scheduler.
 // \param pVP the boot virtual processor record
 // \param closure the closure that should be invoked by the virtual processor
-static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, Closure1Arg_Func _Nonnull pFunc, void* _Nullable _Weak pContext)
+static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _Nonnull pBootAlloc, VoidFunc_1 _Nonnull pFunc, void* _Nullable _Weak pContext)
 {
     // Stored in the BSS. Thus starts out zeroed.
     static VirtualProcessor gBootVirtualProcessorStorage;
@@ -620,7 +620,7 @@ static VirtualProcessor* _Nonnull BootVirtualProcessor_Create(BootAllocator* _No
 
     // Create the VP
     VirtualProcessor_CommonInit(pVP, VP_PRIORITY_HIGHEST);
-    try_bang(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((Closure1Arg_Func)pFunc, pContext, pKernelStackBase, kernelStackSize)));
+    try_bang(VirtualProcessor_SetClosure(pVP, VirtualProcessorClosure_MakeWithPreallocatedKernelStack((VoidFunc_1)pFunc, pContext, pKernelStackBase, kernelStackSize)));
     pVP->save_area.sr |= 0x0700;    // IRQs should be disabled by default
     pVP->suspension_count = 0;
     

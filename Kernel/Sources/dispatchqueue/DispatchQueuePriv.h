@@ -39,7 +39,7 @@ typedef struct Timer {
 
 typedef struct WorkItem {
     SListNode                   queue_entry;
-    Closure1Arg_Func _Nonnull   func;
+    VoidFunc_1 _Nonnull   func;
     void* _Nullable _Weak       context;
     union {
         Timer           timer;

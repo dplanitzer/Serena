@@ -203,7 +203,7 @@ static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _No
         VirtualProcessor* pVP = NULL;
         try(VirtualProcessorPool_AcquireVirtualProcessor(
                                             self->virtual_processor_pool,
-                                            VirtualProcessorParameters_Make((Closure1Arg_Func)DispatchQueue_Run, self, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
+                                            VirtualProcessorParameters_Make((VoidFunc_1)DispatchQueue_Run, self, VP_DEFAULT_KERNEL_STACK_SIZE, VP_DEFAULT_USER_STACK_SIZE, priority),
                                             &pVP));
 
         VirtualProcessor_SetDispatchQueue(pVP, self, conLaneIdx);
@@ -241,7 +241,7 @@ static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _No
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context, uintptr_t tag, WorkItem* _Nullable * _Nonnull pOutItem)
+static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag, WorkItem* _Nullable * _Nonnull pOutItem)
 {
     WorkItem* pItem = NULL;
 
@@ -451,14 +451,14 @@ int DispatchQueue_GetDescriptor(DispatchQueueRef _Nonnull self)
 // possible and the caller remains blocked until the closure has finished
 // execution. This function returns with an EINTR if the queue is flushed or
 // terminated by calling DispatchQueue_Terminate().
-errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context)
+errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context)
 {
     return DispatchQueue_DispatchClosure(self, func, context, kDispatchOption_Sync, 0);
 }
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
-errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context)
+errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context)
 {
     return DispatchQueue_DispatchClosure(self, func, context, 0, 0);
 }
@@ -468,7 +468,7 @@ errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, Closure1Arg_
 // be executed in kernel or user space and whether the caller should be blocked
 // until 'func' has finished executing. The function will execute as soon as
 // possible.
-errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
+errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
 {
     decl_try_err();
     WorkItem* pItem = NULL;
@@ -556,7 +556,7 @@ catch:
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch
 // queue will try to execute the closure as close to 'deadline' as possible. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, Closure1Arg_Func _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInterval deadline, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
     return DispatchQueue_DispatchTimer(self, deadline, kTimeInterval_Zero, func, context, 0, tag);
 }
@@ -564,7 +564,7 @@ errno_t DispatchQueue_DispatchAsyncAfter(DispatchQueueRef _Nonnull self, TimeInt
 // Asynchronously executes the given closure every 'interval' seconds, on or
 // after 'deadline' until the timer is removed from the dispatch queue. The
 // timer can be referenced with the tag 'tag'.
-errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable context, uintptr_t tag)
+errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag)
 {
     return DispatchQueue_DispatchTimer(self, deadline, interval, func, context, 0, tag);
 }
@@ -572,7 +572,7 @@ errno_t DispatchQueue_DispatchAsyncPeriodically(DispatchQueueRef _Nonnull self, 
 // Similar to 'DispatchClosure'. However the function will execute on or after
 // 'deadline'. If 'interval' is not 0 or infinity, then the function will execute
 // every 'interval' ticks until the timer is removed from the queue.
-errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
+errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval deadline, TimeInterval interval, VoidFunc_1 _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
 {
     decl_try_err();
     WorkItem* pItem = NULL;

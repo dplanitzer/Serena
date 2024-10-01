@@ -41,7 +41,7 @@ int Process_GetCurrentDispatchQueue(ProcessRef _Nonnull pProc)
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // with the given options. 
-errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, Closure1Arg_Func _Nonnull func, void* _Nullable ctx, uint32_t userOptions, uintptr_t tag)
+errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uint32_t userOptions, uintptr_t tag)
 {
     decl_try_err();
     const uint32_t options = (userOptions & kDispatchOptionMask_User) | kDispatchOption_User;
@@ -65,7 +65,7 @@ errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, Closure1A
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // after the given deadline.
-errno_t Process_DispatchUserTimer(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, TimeInterval interval, Closure1Arg_Func _Nonnull func, void* _Nullable ctx, uintptr_t tag)
+errno_t Process_DispatchUserTimer(ProcessRef _Nonnull pProc, int od, TimeInterval deadline, TimeInterval interval, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uintptr_t tag)
 {
     decl_try_err();
     UDispatchQueueRef pQueue;

@@ -28,8 +28,9 @@
 #define __SSizeByClampingSize(ub) (ssize_t)__min(ub, SSIZE_MAX)
 
 
-// A callback function that takes a single (context) pointer argument
-typedef void (* _Nonnull Closure1Arg_Func)(void* _Nullable pContext);
+// Function types 
+typedef void (*VoidFunc_1)(void*);
+typedef void (*VoidFunc_2)(void*, void*);
 
 
 // Minimum size for types

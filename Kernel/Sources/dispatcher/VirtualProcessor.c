@@ -230,7 +230,7 @@ catch:
 // Invokes the given closure in user space. Preserves the kernel integer register
 // state. Note however that this function does not preserve the floating point 
 // register state. Call-as-user invocations can not be nested.
-void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, Closure1Arg_Func _Nonnull pClosure, void* _Nullable pContext)
+void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, VoidFunc_1 _Nonnull pClosure, void* _Nullable pContext)
 {
     assert((pVP->flags & VP_FLAG_CAU_IN_PROGRESS) == 0);
 

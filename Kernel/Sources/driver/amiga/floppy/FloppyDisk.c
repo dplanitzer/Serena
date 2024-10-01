@@ -54,7 +54,7 @@ errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull
     self->flags.hasDisk = 0;
 
 
-    DispatchQueue_DispatchAsync(self->dispatchQueue, (Closure1Arg_Func)FloppyDisk_EstablishInitialDriveState, self);
+    DispatchQueue_DispatchAsync(self->dispatchQueue, (VoidFunc_1)FloppyDisk_EstablishInitialDriveState, self);
 
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 
@@ -271,7 +271,7 @@ static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self)
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
     DispatchQueue_DispatchAsyncAfter(self->dispatchQueue,
         deadline,
-        (Closure1Arg_Func)FloppyDisk_OnDelayedMotorOff,
+        (VoidFunc_1)FloppyDisk_OnDelayedMotorOff,
         self,
         kDelayedMotorOffTag);
 }
@@ -460,7 +460,7 @@ static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
     DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue,
         deadline,
         kTimeInterval_Zero,
-        (Closure1Arg_Func)FloppyDisk_OnUpdateHasDiskStateCheck,
+        (VoidFunc_1)FloppyDisk_OnUpdateHasDiskStateCheck,
         self,
         kUpdateHasDiskStateTag);
 }
@@ -1004,7 +1004,7 @@ errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer,
     req.pBuffer = pBuffer;
     req.lba = lba;
 
-    DispatchQueue_DispatchSync(self->dispatchQueue, (Closure1Arg_Func)FloppyDisk_ReadBlock, &req);
+    DispatchQueue_DispatchSync(self->dispatchQueue, (VoidFunc_1)FloppyDisk_ReadBlock, &req);
     return req.err;
 }
 
@@ -1040,7 +1040,7 @@ errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pB
     req.pBuffer = (void*)pBuffer;
     req.lba = lba;
 
-    DispatchQueue_DispatchSync(self->dispatchQueue, (Closure1Arg_Func)FloppyDisk_WriteBlock, &req);
+    DispatchQueue_DispatchSync(self->dispatchQueue, (VoidFunc_1)FloppyDisk_WriteBlock, &req);
     return req.err;
 }
 

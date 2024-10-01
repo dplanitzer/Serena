@@ -283,7 +283,7 @@ SYSCALL_1(get_monotonic_time, TimeInterval* _Nullable time)
     return EOK;
 }
 
-SYSCALL_5(dispatch, int od, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
+SYSCALL_5(dispatch, int od, const VoidFunc_1 _Nullable func, void* _Nullable ctx, uint32_t options, uintptr_t tag)
 {
     if (pArgs->func == NULL) {
         return EINVAL;
@@ -292,7 +292,7 @@ SYSCALL_5(dispatch, int od, const Closure1Arg_Func _Nullable func, void* _Nullab
     return Process_DispatchUserClosure(Process_GetCurrent(), pArgs->od, pArgs->func, pArgs->ctx, pArgs->options, pArgs->tag);
 }
 
-SYSCALL_6(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const Closure1Arg_Func _Nullable func, void* _Nullable ctx, uintptr_t tag)
+SYSCALL_6(dispatch_timer, int od, TimeInterval deadline, TimeInterval interval, const VoidFunc_1 _Nullable func, void* _Nullable ctx, uintptr_t tag)
 {
     if (pArgs->func == NULL) {
         return EINVAL;
