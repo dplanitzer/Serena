@@ -72,7 +72,6 @@ enum QueueState {
 
 
 #define MAX_ITEM_CACHE_COUNT    8
-#define MAX_COMPLETION_SIGNALER_CACHE_COUNT 8
 final_class_ivars(DispatchQueue, Object,
     SList                               item_queue;         // SList<WorkItem> Queue of work items that should be executed as soon as possible
     SList                               timer_queue;        // SList<WorkItem> Queue of items that should be executed on or after their deadline
