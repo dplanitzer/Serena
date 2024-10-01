@@ -18,27 +18,16 @@
 
 
 //
-// Completion Signaler
-//
-
-// Completion signalers are semaphores that are used to signal the completion of
-// a work item to DispatchQueue_DispatchSync()
-typedef struct CompletionSignaler {
-    SListNode   queue_entry;
-    Semaphore   semaphore;
-    bool        isInterrupted;
-} CompletionSignaler;
-
-
-
-//
 // Work Items
 //
 
 enum {
-    kWorkItemFlag_IsUser = 1,       // Invoke the work item function in user space
-    kWorkItemFlag_Timer = 2,        // Item is a timer
-    kWorkItemFlag_IsRepeating = 4,  // Item is a auto-repeating timer
+    kWorkItemFlag_IsUser = 1,               // Invoke the work item function in user space
+    kWorkItemFlag_Timer = 2,                // Item is a timer
+    kWorkItemFlag_IsRepeating = 4,          // Item is a auto-repeating timer
+    kWorkItemFlag_IsSync = 8,               // Set if dispatch() wants to wait for the completion of the item
+    kWorkItemFlag_IsInterrupted = 16,       // Set if the item's execution has been interrupted
+    kWorkItemFlag_AutoRelinquish = 32,      // Set if the VP that executes the item should relinquish the item after it's done executing 
 };
 
 
@@ -49,15 +38,15 @@ typedef struct Timer {
 
 
 typedef struct WorkItem {
-    SListNode                               queue_entry;
-    Closure1Arg_Func _Nonnull               func;
-    void* _Nullable _Weak                   context;
-    CompletionSignaler * _Nullable _Weak    completion;
+    SListNode                   queue_entry;
+    Closure1Arg_Func _Nonnull   func;
+    void* _Nullable _Weak       context;
     union {
-        Timer                       timer;
-    }                                       u;
-    uintptr_t                               tag;
-    uint8_t                                 flags;
+        Timer           timer;
+        Semaphore       completionSignaler;
+    }                           u;
+    uintptr_t                   tag;
+    uint8_t                     flags;
 } WorkItem;
 
 
@@ -88,7 +77,6 @@ final_class_ivars(DispatchQueue, Object,
     SList                               item_queue;         // SList<WorkItem> Queue of work items that should be executed as soon as possible
     SList                               timer_queue;        // SList<WorkItem> Queue of items that should be executed on or after their deadline
     SList                               item_cache_queue;   // SList<WorkItem> Cache of reusable work items
-    SList                               completion_signaler_cache_queue;    // SList<CompletionSignaler> Cache of reusable completion signalers
     Lock                                lock;
     ConditionVariable                   work_available_signaler;    // Used by the queue to indicate to its VPs that a new work item/timer has been enqueued
     ConditionVariable                   vp_shutdown_signaler;       // Used by a VP to indicate that it has relinquished itself because the queue is in the process of shutting down
@@ -103,9 +91,7 @@ final_class_ivars(DispatchQueue, Object,
     int8_t                              qos;
     int8_t                              priority;
     int8_t                              item_cache_capacity;
-    int8_t                              completion_signaler_capacity;
     int8_t                              item_cache_count;
-    int8_t                              completion_signaler_count;
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 );
 
@@ -116,9 +102,6 @@ extern void DispatchQueue_Run(DispatchQueueRef _Nonnull self);
 static errno_t DispatchQueue_AcquireVirtualProcessor_Locked(DispatchQueueRef _Nonnull self);
 
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem);
-static void DispatchQueue_RelinquishTimer_Locked(DispatchQueueRef _Nonnull self, Timer* _Nonnull pTimer);
-static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueueRef _Nonnull self, CompletionSignaler* _Nonnull pComp);
-
 static void DispatchQueue_SignalWorkItemCompletion(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem, bool isInterrupted);
 
 #endif /* DispatchQueuePriv_h */

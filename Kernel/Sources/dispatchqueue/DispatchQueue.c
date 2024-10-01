@@ -32,7 +32,6 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     SList_Init(&self->item_queue);
     SList_Init(&self->timer_queue);
     SList_Init(&self->item_cache_queue);
-    SList_Init(&self->completion_signaler_cache_queue);
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->work_available_signaler);
     ConditionVariable_Init(&self->vp_shutdown_signaler);
@@ -45,7 +44,6 @@ errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, in
     self->qos = qos;
     self->priority = priority;
     self->item_cache_capacity = __max(MAX_ITEM_CACHE_COUNT, maxConcurrency);
-    self->completion_signaler_capacity = MAX_COMPLETION_SIGNALER_CACHE_COUNT;
 
     for (int i = 0; i < minConcurrency; i++) {
         try(DispatchQueue_AcquireVirtualProcessor_Locked(self));
@@ -140,7 +138,6 @@ void DispatchQueue_WaitForTerminationCompleted(DispatchQueueRef _Nonnull self)
 // Deallocates the dispatch queue. Expects that the queue is in 'terminated' state.
 static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
 {
-    CompletionSignaler* pComp;
     WorkItem* pItem;
 
     assert(self->state == kQueueState_Terminated);
@@ -156,12 +153,6 @@ static void _DispatchQueue_Destroy(DispatchQueueRef _Nonnull self)
     }
     SList_Deinit(&self->item_cache_queue);
     
-    self->completion_signaler_capacity = 0;
-    while((pComp = (CompletionSignaler*) SList_RemoveFirst(&self->completion_signaler_cache_queue)) != NULL) {
-        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
-    }
-    SList_Deinit(&self->completion_signaler_cache_queue);
-        
     Lock_Deinit(&self->lock);
     ConditionVariable_Deinit(&self->work_available_signaler);
     ConditionVariable_Deinit(&self->vp_shutdown_signaler);
@@ -272,9 +263,8 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
     SListNode_Init(&pItem->queue_entry);
     pItem->func = func;
     pItem->context = context;
-    pItem->completion = NULL;
     pItem->tag = tag;
-    pItem->flags = 0;
+    pItem->flags = kWorkItemFlag_AutoRelinquish;
 
     *pOutItem = pItem;
     return EOK;
@@ -285,10 +275,13 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
 // Does nothing if the dispatch queue does not own the item.
 static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem)
 {
+    if ((pItem->flags & kWorkItemFlag_IsSync) == kWorkItemFlag_IsSync) {
+        Semaphore_Deinit(&pItem->u.completionSignaler);
+    }
+
     SListNode_Deinit(&pItem->queue_entry);
     pItem->func = NULL;
     pItem->context = NULL;
-    pItem->completion = NULL;
     pItem->tag = 0;
     pItem->flags = 0;
 
@@ -301,62 +294,19 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull se
     }
 }
 
-// Creates a completion signaler. Tries to reuse an existing completion signaler
-// from the completion signaler cache whenever possible. Expects that
-// the caller holds the dispatch queue lock.
-static errno_t DispatchQueue_AcquireCompletionSignaler_Locked(DispatchQueueRef _Nonnull self, CompletionSignaler* _Nullable * _Nonnull pOutComp)
-{
-    CompletionSignaler* pComp = NULL;
-
-    if (self->completion_signaler_cache_queue.first != NULL) {
-        pComp = (CompletionSignaler*) SList_RemoveFirst(&self->completion_signaler_cache_queue);
-        self->completion_signaler_count--;
-    }
-    else {
-        const errno_t err = kalloc(sizeof(CompletionSignaler), (void**) &pComp);
-
-        if (err != EOK) {
-            *pOutComp = NULL;
-            return err;
-        }
-        Semaphore_Init(&pComp->semaphore, 0);
-    }
-
-
-    // (Re-)Initialize the completion signaler
-    SListNode_Init(&pComp->queue_entry);
-    pComp->isInterrupted = false;
-
-    *pOutComp = pComp;
-    return EOK;
-}
-
-// Relinquishes the given completion signaler back to the completion signaler
-// cache if possible. The completion signaler is freed if the cache is at capacity.
-static void DispatchQueue_RelinquishCompletionSignaler_Locked(DispatchQueueRef _Nonnull self, CompletionSignaler* _Nonnull pComp)
-{
-    SListNode_Deinit(&pComp->queue_entry);
-    pComp->isInterrupted = false;
-
-    if (self->completion_signaler_count < self->completion_signaler_capacity) {
-        SList_InsertBeforeFirst(&self->completion_signaler_cache_queue, &pComp->queue_entry);
-        self->completion_signaler_count++;
-    }
-    else {
-        Semaphore_Deinit(&pComp->semaphore);
-        kfree(pComp);
-    }
-}
-
 // Signals the completion of a work item. State is protected by the dispatch
 // queue lock. The 'isInterrupted' parameter indicates whether the item should
 // be considered interrupted or finished.
 static void DispatchQueue_SignalWorkItemCompletion(DispatchQueueRef _Nonnull self, WorkItem* _Nonnull pItem, bool isInterrupted)
 {
-    if (pItem->completion != NULL) {
-        pItem->completion->isInterrupted = isInterrupted;
-        Semaphore_Relinquish(&pItem->completion->semaphore);
-        pItem->completion = NULL;
+    if ((pItem->flags & kWorkItemFlag_IsSync) == kWorkItemFlag_IsSync) {
+        if (isInterrupted) {
+            pItem->flags |= kWorkItemFlag_IsInterrupted;
+        }
+        else {
+            pItem->flags &= ~kWorkItemFlag_IsInterrupted;
+        }
+        Semaphore_Relinquish(&pItem->u.completionSignaler);
     }
 }
 
@@ -384,9 +334,7 @@ static bool DispatchQueue_RemoveWorkItem_Locked(DispatchQueueRef _Nonnull self, 
         WorkItem* pNextItem = (WorkItem*) pCurItem->queue_entry.next;
 
         if (pCurItem->tag == tag) {
-            if (pCurItem->completion) {
-                DispatchQueue_SignalWorkItemCompletion(self, pCurItem, true);
-            }
+            DispatchQueue_SignalWorkItemCompletion(self, pCurItem, true);
 
             SList_Remove(itemQueue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
             self->items_queued_count--;
@@ -524,7 +472,6 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Ar
 {
     decl_try_err();
     WorkItem* pItem = NULL;
-    CompletionSignaler* pComp = NULL;
     const bool isSync = (options & kDispatchOption_Sync) == kDispatchOption_Sync;
     bool isLocked = false;
 
@@ -551,10 +498,11 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Ar
 
 
     if (isSync) {
-        try(DispatchQueue_AcquireCompletionSignaler_Locked(self, &pComp));
-
-        // The work item maintains a weak reference to the cached completion semaphore
-        pItem->completion = pComp;
+        // We tell the executing VP to NOT relinquish the item because we will
+        // do it here once the item has signaled completion
+        Semaphore_Init(&pItem->u.completionSignaler, 0);
+        pItem->flags |= kWorkItemFlag_IsSync;
+        pItem->flags &= ~kWorkItemFlag_AutoRelinquish;
     }
 
 
@@ -573,17 +521,17 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, Closure1Ar
 
     if (isSync) {
         // Wait for the work item completion
-        err = Semaphore_Acquire(&pComp->semaphore, kTimeInterval_Infinity);
+        err = Semaphore_Acquire(&pItem->u.completionSignaler, kTimeInterval_Infinity);
 
         Lock_Lock(&self->lock);
 
-        if ((err == EOK && pComp->isInterrupted) || self->state >= kQueueState_Terminating) {
+        if ((err == EOK && (pItem->flags & kWorkItemFlag_IsInterrupted) == kWorkItemFlag_IsInterrupted) || self->state >= kQueueState_Terminating) {
             // We want to return EINTR if the sync dispatch was interrupted by a
             // DispatchQueue_Terminate()
             err = EINTR;
         }
 
-        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
+        DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
         Lock_Unlock(&self->lock);
     }
 
@@ -593,9 +541,6 @@ catch:
     if (!isLocked) {
         Lock_Lock(&self->lock);
         isLocked = true;
-    }
-    if (pComp) {
-        DispatchQueue_RelinquishCompletionSignaler_Locked(self, pComp);
     }
     if (pItem) {
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
@@ -823,7 +768,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         }
 
         // Signal the work item's completion semaphore if needed
-        if (pItem->completion != NULL) {
+        if ((pItem->flags & kWorkItemFlag_IsSync) == kWorkItemFlag_IsSync) {
             DispatchQueue_SignalWorkItemCompletion(self, pItem, false);
         }
 
@@ -836,12 +781,14 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         pConLane->active_item = NULL;
 
 
-        // Move the work item back to the item cache if possible or destroy it
-        if ((pItem->flags & kWorkItemFlag_IsRepeating) == kWorkItemFlag_IsRepeating && self->state == kQueueState_Running) {
-            DispatchQueue_RearmTimedItem_Locked(self, pItem);
-        }
-        else {
-            DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
+        if ((pItem->flags & kWorkItemFlag_AutoRelinquish) == kWorkItemFlag_AutoRelinquish) {
+            // Move the work item back to the item cache if possible or destroy it
+            if ((pItem->flags & kWorkItemFlag_IsRepeating) == kWorkItemFlag_IsRepeating && self->state == kQueueState_Running) {
+                DispatchQueue_RearmTimedItem_Locked(self, pItem);
+            }
+            else {
+                DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
+            }
         }
     }
 
