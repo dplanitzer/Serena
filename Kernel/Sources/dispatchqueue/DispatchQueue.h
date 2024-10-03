@@ -102,16 +102,24 @@ extern DispatchQueueRef _Nullable DispatchQueue_GetCurrent(void);
 // terminated by calling DispatchQueue_Terminate().
 extern errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context);
 
+// Same as above but takes additional arguments of 'nArgBytes' size (in bytes).
+extern errno_t DispatchQueue_DispatchSyncArgs(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes);
+
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
 extern errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context);
 
+// Same as above but takes additional arguments of 'nArgBytes' size (in bytes).
+extern errno_t DispatchQueue_DispatchAsyncArgs(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes);
+
 // Dispatches 'func' on the dispatch queue. 'func' will be called with 'context'
-// as the first argument. Use 'options to control whether the function should
-// be executed in kernel or user space and whether the caller should be blocked
-// until 'func' has finished executing. The function will execute as soon as
-// possible.
-extern errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag);
+// as the first argument and a pointer to the arguments as the second argument.
+// The argument pointer will be exactly 'args' if 'nArgBytes' is 0 and otherwise
+// it will point to a copy of the arguments that 'args' pointed to.
+// Use 'options to control whether the function should be executed in kernel or
+// user space and whether the caller should be blocked until 'func' has finished
+// executing. The function will execute as soon as possible.
+extern errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag);
 
 
 // Asynchronously executes the given closure on or after 'deadline'. The dispatch

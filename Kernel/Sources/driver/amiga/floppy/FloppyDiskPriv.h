@@ -91,7 +91,6 @@ final_class_ivars(FloppyDisk, DiskDriver,
 
 // XXX tmp
 typedef struct DiskRequest {
-    FloppyDiskRef _Nonnull  self;       // in
     void* _Nonnull          pBuffer;    // in
     LogicalBlockAddress     lba;        // in
 

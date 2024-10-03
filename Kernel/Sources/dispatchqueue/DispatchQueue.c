@@ -241,16 +241,26 @@ static void DispatchQueue_RelinquishVirtualProcessor_Locked(DispatchQueueRef _No
 // Creates a work item for the given closure and closure context. Tries to reuse
 // an existing work item from the work item cache whenever possible. Expects that
 // the caller holds the dispatch queue lock.
-static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context, uintptr_t tag, WorkItem* _Nullable * _Nonnull pOutItem)
+static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uintptr_t tag, WorkItem* _Nullable * _Nonnull pOutItem)
 {
     WorkItem* pItem = NULL;
+    WorkItem* pPrevItem = NULL;
+    WorkItem* pCurItem = (WorkItem*) self->item_cache_queue.first;
 
-    if (self->item_cache_queue.first != NULL) {
-        pItem = (WorkItem*) SList_RemoveFirst(&self->item_cache_queue);
-        self->item_cache_count--;
+    while (pCurItem) {
+        if (pItem->args_byte_size >= nArgBytes) {
+            SList_Remove(&self->item_cache_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
+            self->item_cache_count--;
+            pItem = pCurItem;
+            break;
+        }
+        pPrevItem = pCurItem;
+        pCurItem = (WorkItem*) pCurItem->queue_entry.next;
     }
-    else {
-        const errno_t err = kalloc(sizeof(WorkItem), (void**) &pItem);
+
+    if (pItem == NULL) {
+        const size_t itemSize = (nArgBytes == 0) ? sizeof(WorkItem) : __Ceil_PowerOf2(sizeof(WorkItem), ARG_WORD_SIZE) + __Ceil_PowerOf2(nArgBytes, ARG_WORD_SIZE);
+        const errno_t err = kalloc(itemSize, (void**) &pItem);
 
         if (err != EOK) {
             *pOutItem = NULL;
@@ -263,8 +273,14 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
     SListNode_Init(&pItem->queue_entry);
     pItem->func = func;
     pItem->context = context;
+    pItem->arg = (nArgBytes == 0) ? args : (void*)((uintptr_t)pItem + __Ceil_PowerOf2(sizeof(WorkItem), ARG_WORD_SIZE));
     pItem->tag = tag;
+    pItem->args_byte_size = __Ceil_PowerOf2(nArgBytes, ARG_WORD_SIZE);
     pItem->flags = kWorkItemFlag_AutoRelinquish;
+
+    if (nArgBytes > 0) {
+        memcpy(pItem->arg, args, nArgBytes);
+    }
 
     *pOutItem = pItem;
     return EOK;
@@ -453,27 +469,47 @@ int DispatchQueue_GetDescriptor(DispatchQueueRef _Nonnull self)
 // terminated by calling DispatchQueue_Terminate().
 errno_t DispatchQueue_DispatchSync(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context)
 {
-    return DispatchQueue_DispatchClosure(self, func, context, kDispatchOption_Sync, 0);
+    return DispatchQueue_DispatchClosure(self, (VoidFunc_2)func, context, NULL, 0, kDispatchOption_Sync, 0);
+}
+
+// Same as above but takes additional arguments of 'nArgBytes' size (in bytes).
+errno_t DispatchQueue_DispatchSyncArgs(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes)
+{
+    return DispatchQueue_DispatchClosure(self, func, context, args, nArgBytes, kDispatchOption_Sync, 0);
 }
 
 // Asynchronously executes the given closure. The closure is executed as soon as
 // possible.
 errno_t DispatchQueue_DispatchAsync(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context)
 {
-    return DispatchQueue_DispatchClosure(self, func, context, 0, 0);
+    return DispatchQueue_DispatchClosure(self, (VoidFunc_2)func, context, NULL, 0, 0, 0);
+}
+
+// Same as above but takes additional arguments of 'nArgBytes' size (in bytes).
+errno_t DispatchQueue_DispatchAsyncArgs(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes)
+{
+    return DispatchQueue_DispatchClosure(self, func, context, args, nArgBytes, 0, 0);
 }
 
 // Dispatches 'func' on the dispatch queue. 'func' will be called with 'context'
-// as the first argument. Use 'options to control whether the function should
-// be executed in kernel or user space and whether the caller should be blocked
-// until 'func' has finished executing. The function will execute as soon as
-// possible.
-errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_1 _Nonnull func, void* _Nullable context, uint32_t options, uintptr_t tag)
+// as the first argument and a pointer to the arguments as the second argument.
+// The argument pointer will be exactly 'args' if 'nArgBytes' is 0 and otherwise
+// it will point to a copy of the arguments that 'args' pointed to.
+// Use 'options to control whether the function should be executed in kernel or
+// user space and whether the caller should be blocked until 'func' has finished
+// executing. The function will execute as soon as possible.
+errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable args, size_t nArgBytes, uint32_t options, uintptr_t tag)
 {
     decl_try_err();
     WorkItem* pItem = NULL;
+    const bool isUser = (options & kDispatchOption_User) == kDispatchOption_User;
     const bool isSync = (options & kDispatchOption_Sync) == kDispatchOption_Sync;
     bool isLocked = false;
+
+    if ((isUser && nArgBytes > 0) || (nArgBytes > MAX_ARG_BYTES)) {
+        return EINVAL;
+    }
+
 
     Lock_Lock(&self->lock);
     isLocked = true;
@@ -491,8 +527,8 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_1
     }
 
 
-    try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, tag, &pItem));
-    if ((options & kDispatchOption_User) == kDispatchOption_User) {
+    try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, args, nArgBytes, tag, &pItem));
+    if (isUser) {
         pItem->flags |= kWorkItemFlag_IsUser;
     }
 
@@ -596,7 +632,7 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval
     }
 
 
-    try(DispatchQueue_AcquireWorkItem_Locked(self, func, context, tag, &pItem));
+    try(DispatchQueue_AcquireWorkItem_Locked(self, (VoidFunc_2)func, context, NULL, 0, tag, &pItem));
 
     pItem->u.timer.deadline = deadline;
     pItem->u.timer.interval = interval;
@@ -762,9 +798,9 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
 
         // Execute the work item
         if ((pItem->flags & kWorkItemFlag_IsUser) == kWorkItemFlag_IsUser) {
-            VirtualProcessor_CallAsUser(pVP, pItem->func, pItem->context);
+            VirtualProcessor_CallAsUser(pVP, pItem->func, pItem->context, pItem->arg);
         } else {
-            pItem->func(pItem->context);
+            pItem->func(pItem->context, pItem->arg);
         }
 
         // Signal the work item's completion semaphore if needed

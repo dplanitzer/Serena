@@ -719,9 +719,20 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self, uint8_t targetTrac
 #endif
 }
 
-static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, void* _Nonnull pBuffer)
+static void FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
+    const LogicalBlockAddress lba = req->lba;
+
+    if (lba >= self->blocksPerDisk) {
+        req->err = EIO;
+        return;
+    }
+
+    void* pBuffer = req->pBuffer;
+    const int cylinder = lba / self->sectorsPerCylinder;
+    const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
+    const int sector = lba % self->sectorsPerTrack;
     const uint8_t targetTrack = FloppyDisk_TrackFromCylinderAndHead(cylinder, head);
     
     try(FloppyDisk_EnsureTrackBuffer(self));
@@ -767,7 +778,7 @@ static errno_t FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, int head, int 
     }
 
 catch:
-    return err;
+    req->err = err;
 }
 
 // Checks whether the track that is stored in the track buffer is 'targetTrack'
@@ -837,9 +848,20 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTr
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int cylinder, int sector, const void* pBuffer)
+static void FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, DiskRequest* _Nonnull req)
 {
     decl_try_err();
+    const LogicalBlockAddress lba = req->lba;
+
+    if (lba >= self->blocksPerDisk) {
+        req->err = EIO;
+        return;
+    }
+
+    const void* pBuffer = req->pBuffer;
+    const int cylinder = lba / self->sectorsPerCylinder;
+    const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
+    const int sector = lba % self->sectorsPerTrack;
     const uint8_t targetTrack = FloppyDisk_TrackFromCylinderAndHead(cylinder, head);
 
     try(FloppyDisk_EnsureTrackBuffer(self));
@@ -940,7 +962,7 @@ static errno_t FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, int head, int
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
 
 catch:
-    return FloppyDisk_EndIO(self, err);
+    req->err = FloppyDisk_EndIO(self, err);
 }
 
 
@@ -976,35 +998,15 @@ bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-static void FloppyDisk_ReadBlock(DiskRequest* _Nonnull req)
-{
-    FloppyDiskRef self = req->self;
-    void* pBuffer = req->pBuffer;
-    LogicalBlockAddress lba = req->lba;
-
-    if (lba >= self->blocksPerDisk) {
-        req->err = EIO;
-        return;
-    }
-
-    const int c = lba / self->sectorsPerCylinder;
-    const int h = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
-    const int s = lba % self->sectorsPerTrack;
-
-//    print("lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
-
-    req->err = FloppyDisk_ReadSector(self, h, c, s, pBuffer);
-}
-
 errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     DiskRequest req;
 
-    req.self = self;
     req.pBuffer = pBuffer;
     req.lba = lba;
+    req.err = EOK;
 
-    DispatchQueue_DispatchSync(self->dispatchQueue, (VoidFunc_1)FloppyDisk_ReadBlock, &req);
+    DispatchQueue_DispatchSyncArgs(self->dispatchQueue, (VoidFunc_2)FloppyDisk_ReadSector, self, &req, sizeof(req));
     return req.err;
 }
 
@@ -1013,34 +1015,15 @@ errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer,
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-static void FloppyDisk_WriteBlock(DiskRequest* _Nonnull req)
-{
-    FloppyDiskRef self = req->self;
-    const void* pBuffer = req->pBuffer;
-    LogicalBlockAddress lba = req->lba;
-
-    if (lba >= self->blocksPerDisk) {
-        req->err = EIO;
-        return;
-    }
-
-    const int c = lba / self->sectorsPerCylinder;
-    const int h = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
-    const int s = lba % self->sectorsPerTrack;
-
-//    print("WRITE: lba: %d, c: %d, h: %d, s: %d\n", (int)lba, (int)c, (int)h, (int)s);
-    req->err = FloppyDisk_WriteSector(self, h, c, s, pBuffer);
-}
-
 errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     DiskRequest req;
 
-    req.self = self;
     req.pBuffer = (void*)pBuffer;
     req.lba = lba;
+    req.err = EOK;
 
-    DispatchQueue_DispatchSync(self->dispatchQueue, (VoidFunc_1)FloppyDisk_WriteBlock, &req);
+    DispatchQueue_DispatchSyncArgs(self->dispatchQueue, (VoidFunc_2)FloppyDisk_WriteSector, self, &req, sizeof(req));
     return req.err;
 }
 

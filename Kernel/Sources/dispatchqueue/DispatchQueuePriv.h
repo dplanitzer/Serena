@@ -38,16 +38,33 @@ typedef struct Timer {
 
 
 typedef struct WorkItem {
-    SListNode                   queue_entry;
-    VoidFunc_1 _Nonnull   func;
-    void* _Nullable _Weak       context;
+    SListNode           queue_entry;
+    VoidFunc_2 _Nonnull func;
+    void* _Nullable     context;
+    void* _Nullable     arg;
+    uintptr_t           tag;
     union {
-        Timer           timer;
-        Semaphore       completionSignaler;
-    }                           u;
-    uintptr_t                   tag;
-    uint8_t                     flags;
+        Timer       timer;
+        Semaphore   completionSignaler;
+    }                   u;
+    uint16_t            args_byte_size;
+    uint8_t             flags;
+    uint8_t             reserved;
+    // __align(ARG_WORD_SIZE)   ARG_WORD    args_area[n]
 } WorkItem;
+
+// The work item argument area follows the WorkItem data structure. The argument
+// area is aligned to ARG_WORD_SIZE and it is always multiple of ARG_WORD_SIZE
+// in size.
+#define MAX_ARG_BYTES   256
+
+#if defined(__ILP32__)
+#define ARG_WORD_SIZE   4
+#elif defined(__LLP64__)
+#define ARG_WORD_SIZE   8
+#else
+#error "unknown machine model"
+#endif
 
 
 //

@@ -81,7 +81,7 @@ extern errno_t Process_DisposeUResource(ProcessRef _Nonnull pProc, int od);
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // with the given options. 
-extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, VoidFunc_1 _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag);
+extern errno_t Process_DispatchUserClosure(ProcessRef _Nonnull pProc, int od, VoidFunc_2 _Nonnull func, void* _Nullable ctx, uint32_t options, uintptr_t tag);
 
 // Dispatches the execution of the given user closure on the given dispatch queue
 // after the given deadline.

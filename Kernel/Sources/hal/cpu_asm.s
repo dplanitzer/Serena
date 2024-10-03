@@ -407,22 +407,23 @@ _cpu_sleep:
 
 
 ;-----------------------------------------------------------------------
-; void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, void* _Nullable pContext)
+; void cpu_call_as_user(Cpu_UserClosure _Nonnull func, void* _Nullable context, void* _Nullable arg)
 ; Invokes the given closure in user space. Preserves the kernel integer register
 ; state. Note however that this function does not preserve the floating point 
 ; register state.
 _cpu_call_as_user:
     inline
-    cargs cau_closure_ptr.l, cau_context_ptr.l
-        move.l  cau_closure_ptr(sp), a0
+    cargs cau_func_ptr.l, cau_context_ptr.l, cau_arg_ptr.l
+        move.l  cau_func_ptr(sp), a0
         move.l  cau_context_ptr(sp), a1
+        move.l  cau_arg_ptr(sp), d0
+
         movem.l d2 - d7 / a2 - a6, -(sp)
 
         ; zero out all integer registers to ensure that we do not leak kernel
-        ; state into user space. We do not need to zero a0 and a1 because they
-        ; hold the closure and context pointers which the userspace knows about
-        ; anyway.
-        moveq.l #0, d0
+        ; state into user space. We do not need to zero a0, a1 and d0 because
+        ; they hold the closure and context pointers which the user space knows
+        ; about anyway.
         moveq.l #0, d1
         moveq.l #0, d2
         moveq.l #0, d3
@@ -430,19 +431,20 @@ _cpu_call_as_user:
         moveq.l #0, d5
         moveq.l #0, d6
         moveq.l #0, d7
-        move.l  d0, a2
-        move.l  d0, a3
-        move.l  d0, a4
-        move.l  d0, a5
-        move.l  d0, a6
+        move.l  d1, a2
+        move.l  d1, a3
+        move.l  d1, a4
+        move.l  d1, a5
+        move.l  d1, a6
 
         ; switch to user mode by dropping bit #13 in the SR register
         and.w   #$dfff, sr
         
         ; we are now in user mode
+        move.l  d0, -(sp)
         move.l  a1, -(sp)
         jsr     (a0)
-        addq.l  #4, sp
+        addq.l  #8, sp
 
         ; go back to superuser mode
         trap    #1

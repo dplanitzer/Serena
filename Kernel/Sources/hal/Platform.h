@@ -159,7 +159,7 @@ typedef struct ExceptionStackFrame {
 #pragma pack()
 
 
-typedef void (* _Nonnull Cpu_UserClosure)(void* _Nullable pContext);
+typedef void (*Cpu_UserClosure)(void* _Nullable context, void* _Nullable arg);
 
 
 extern void cpu_enable_irqs(void);
@@ -175,7 +175,7 @@ extern int cpu_guarded_write(void* _Nonnull dst, const void* _Nonnull buffer, in
 
 extern void cpu_sleep(int cpu_type);
 
-extern void cpu_call_as_user(Cpu_UserClosure _Nonnull pClosure, void* _Nullable pContext);
+extern void cpu_call_as_user(Cpu_UserClosure _Nonnull func, void* _Nullable context, void* _Nullable arg);
 extern void cpu_abort_call_as_user(void);
 
 extern _Noreturn cpu_non_recoverable_error(void);

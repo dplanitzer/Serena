@@ -220,7 +220,7 @@ extern errno_t VirtualProcessor_SetClosure(VirtualProcessor*_Nonnull pVP, Virtua
 // Invokes the given closure in user space. Preserves the kernel integer register
 // state. Note however that this function does not preserve the floating point 
 // register state. Call-as-user invocations can not be nested.
-extern void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, VoidFunc_1 _Nonnull pClosure, void* _Nullable pContext);
+extern void VirtualProcessor_CallAsUser(VirtualProcessor* _Nonnull pVP, VoidFunc_2 _Nonnull func, void* _Nullable context, void* _Nullable arg);
 
 // Aborts an on-going call-as-user invocation and causes the
 // VirtualProcessor_CallAsUser() call to return. Does nothing if the VP is not
