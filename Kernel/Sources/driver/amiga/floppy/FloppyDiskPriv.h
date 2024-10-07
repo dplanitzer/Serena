@@ -51,7 +51,6 @@ typedef struct ADFSector {
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDisk, DiskDriver,
 
-    DispatchQueueRef _Nonnull           dispatchQueue;
     FloppyControllerRef _Nonnull _Weak  fdc;
 
     // Buffer used to cache a read track

@@ -121,6 +121,7 @@ errno_t AmigaController_autoConfigure(struct AmigaController* _Nonnull self, Dri
     try(FloppyController_DiscoverDrives(fdc, fdx));
     for(int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
         if (fdx[i]) {
+            try(Driver_Start((DriverRef)fdx[i]));
             fdx_name[2] = '0' + i;
             try(DriverCatalog_RegisterDriver(catalog, fdx_name, (DriverRef)fdx[i]));
         }

@@ -38,8 +38,6 @@ typedef struct IOControlRequest {
     errno_t     outStatus;
 } IOControlRequest;
 
-// XXX sort out locking
-
 
 errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, unsigned int options, DriverRef _Nullable * _Nonnull pOutDriver)
 {
@@ -82,33 +80,31 @@ static void Driver_deinit(DriverRef _Nonnull self)
 
 
 
-static void Driver_onStart(DriverRef _Nonnull self, errno_t* _Nonnull pOutError)
+static void Driver_onStart(DriverRef _Nonnull self)
 {
-    *pOutError = invoke_0(start, Driver, self);
+    invoke_0(start, Driver, self);
 }
 
 // Starts the driver. A driver may only be started once. It can not be restarted
-// after it has been stopped. A driver is started after teh hardware has been
-// detected and the driver instance has been created. The driver should reset
-// the hardware and bring it to an idle state.
+// after it has been stopped. A driver is started after the hardware has been
+// detected and the driver instance created. The driver should reset the hardware
+// and bring it to an idle state. If the driver detects an error while resetting
+// the hardware, it should record this error internally and return it from the
+// first action method (read, write, etc) that is invoked.
+// Note that the actual start code is always executed asynchronously.
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
     decl_try_err();
 
-    if (AtomicBool_Set(&self->isStopped, false)) {
+    if (!AtomicBool_Set(&self->isStopped, false)) {
         return EOK;
     }
 
     if (self->dispatchQueue) {
-        errno_t status;
-
-        err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)Driver_onStart, self, &status, 0, kDispatchOption_Sync, 0);
-        if (err == EOK) {
-            err = status;
-        }
+        err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)Driver_onStart, self, NULL, 0, 0, 0);
     }
     else {
-        err = invoke_0(start, Driver, self);
+        invoke_0(start, Driver, self);
     }
 
     return err;
@@ -127,7 +123,9 @@ static void Driver_onStop(DriverRef _Nonnull self)
 }
 
 // Stops an active driver. Once stopped, a driver does not access its hardware
-// anymore.
+// anymore. The actual stop function is always executed asynchronously. However
+// the caller of Driver_Stop() is blocked until the driver has truly stopped if
+// 'waitForCompletion' is true.
 void Driver_Stop(DriverRef _Nonnull self, bool waitForCompletion)
 {
     if (AtomicBool_Set(&self->isStopped, true)) {

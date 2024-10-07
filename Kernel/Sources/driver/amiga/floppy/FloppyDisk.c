@@ -26,9 +26,7 @@ errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull
     decl_try_err();
     FloppyDiskRef self;
     
-    try(Object_Create(FloppyDisk, &self));
-    
-    try(DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
+    try(Driver_Create(FloppyDisk, kDriverModel_Async, 0, &self));
 
     self->fdc = fdc;
     self->drive = drive;
@@ -53,9 +51,6 @@ errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull
     self->flags.isOnline = 0;
     self->flags.hasDisk = 0;
 
-
-    DispatchQueue_DispatchAsync(self->dispatchQueue, (VoidFunc_1)FloppyDisk_EstablishInitialDriveState, self);
-
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 
     *pOutDisk = self;
@@ -69,13 +64,6 @@ catch:
 
 static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 {
-    if (self->dispatchQueue) {
-        DispatchQueue_Terminate(self->dispatchQueue);
-        DispatchQueue_WaitForTerminationCompleted(self->dispatchQueue);
-        Object_Release(self->dispatchQueue);
-        self->dispatchQueue = NULL;
-    }
-
     FloppyDisk_CancelDelayedMotorOff(self);
     FloppyDisk_CancelUpdateHasDiskState(self);
 
@@ -88,7 +76,7 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
 // Establishes the base state for a newly discovered drive. This means that we
 // move the disk head to track #0 and that we figure out whether a disk is loaded
 // or not.
-static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self)
+static void FloppyDisk_start(FloppyDiskRef _Nonnull self)
 {
     bool didStep;
     const errno_t err = FloppyDisk_SeekToTrack_0(self, &didStep);
@@ -269,7 +257,7 @@ static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self)
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
-    DispatchQueue_DispatchAsyncAfter(self->dispatchQueue,
+    DispatchQueue_DispatchAsyncAfter(Driver_GetDispatchQueue(self),
         deadline,
         (VoidFunc_1)FloppyDisk_OnDelayedMotorOff,
         self,
@@ -278,7 +266,7 @@ static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self)
 
 static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self)
 {
-    DispatchQueue_RemoveByTag(self->dispatchQueue, kDelayedMotorOffTag);
+    DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kDelayedMotorOffTag);
 }
 
 
@@ -457,7 +445,7 @@ static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(3));
-    DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue,
+    DispatchQueue_DispatchAsyncPeriodically(Driver_GetDispatchQueue(self),
         deadline,
         kTimeInterval_Zero,
         (VoidFunc_1)FloppyDisk_OnUpdateHasDiskStateCheck,
@@ -467,7 +455,7 @@ static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 
 static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 {
-    DispatchQueue_RemoveByTag(self->dispatchQueue, kUpdateHasDiskStateTag);
+    DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kUpdateHasDiskStateTag);
 }
 
 
@@ -1006,7 +994,7 @@ errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer,
     req.lba = lba;
     req.err = EOK;
 
-    DispatchQueue_DispatchSyncArgs(self->dispatchQueue, (VoidFunc_2)FloppyDisk_ReadSector, self, &req, sizeof(req));
+    DispatchQueue_DispatchSyncArgs(Driver_GetDispatchQueue(self), (VoidFunc_2)FloppyDisk_ReadSector, self, &req, sizeof(req));
     return req.err;
 }
 
@@ -1023,7 +1011,7 @@ errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pB
     req.lba = lba;
     req.err = EOK;
 
-    DispatchQueue_DispatchSyncArgs(self->dispatchQueue, (VoidFunc_2)FloppyDisk_WriteSector, self, &req, sizeof(req));
+    DispatchQueue_DispatchSyncArgs(Driver_GetDispatchQueue(self), (VoidFunc_2)FloppyDisk_WriteSector, self, &req, sizeof(req));
     return req.err;
 }
 
@@ -1036,4 +1024,5 @@ override_func_def(getBlockCount, FloppyDisk, DiskDriver)
 override_func_def(isReadOnly, FloppyDisk, DiskDriver)
 override_func_def(getBlock, FloppyDisk, DiskDriver)
 override_func_def(putBlock, FloppyDisk, DiskDriver)
+override_func_def(start, FloppyDisk, Driver)
 );
