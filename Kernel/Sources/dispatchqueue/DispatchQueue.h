@@ -13,7 +13,6 @@
 #include <kobj/Object.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <hal/SystemDescription.h>
-#include <process/Process.h>
 #include <System/DispatchQueue.h>
 
 final_class(DispatchQueue, Object);

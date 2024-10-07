@@ -40,7 +40,4 @@ extern errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, 
 extern errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull self, GregorianDate* _Nonnull pDate);
 extern errno_t RealtimeClock_SetDate(RealtimeClockRef _Nonnull self, const GregorianDate* _Nonnull pDate);
 
-extern errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull self, void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead);
-extern errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull self, const void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten);
-
 #endif /* RealtimeClock_h */

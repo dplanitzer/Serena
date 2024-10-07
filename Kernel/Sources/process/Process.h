@@ -11,9 +11,8 @@
 
 #include <klib/klib.h>
 #include <kobj/Object.h>
-#include <filesystem/Filesystem.h>
+#include <System/File.h>
 #include <System/Process.h>
-#include <IOChannel.h>
 #include <User.h>
 
 final_class(Process, Object);
@@ -197,11 +196,11 @@ extern FilePermissions Process_GetFileCreationMask(ProcessRef _Nonnull pProc);
 extern void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask);
 
 // Creates a file in the given filesystem location.
-extern errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, FilePermissions permissions, int* _Nonnull pOutDescriptor);
+extern errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int mode, FilePermissions permissions, int* _Nonnull pOutDescriptor);
 
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
-extern errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutDescriptor);
+extern errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int mode, int* _Nonnull pOutDescriptor);
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).

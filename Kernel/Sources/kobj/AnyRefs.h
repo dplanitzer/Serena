@@ -26,6 +26,7 @@ class_ref(DirectoryChannel);
 class_ref(DiskDriver);
 class_ref(DispatchQueue);
 class_ref(Driver);
+class_ref(DriverChannel);
 class_ref(DriverCatalog);
 class_ref(DriverController);
 class_ref(DriverManager);

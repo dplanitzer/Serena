@@ -37,7 +37,7 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull pProc, FilePermissions mask
 }
 
 // Creates a file in the given filesystem location.
-errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, FilePermissions permissions, int* _Nonnull pOutIoc)
+errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int mode, FilePermissions permissions, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     PathResolver pr;
@@ -70,13 +70,13 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
     if (err == EOK) {
         // File exists - reject the operation in exclusive mode and open the
         // file otherwise
-        if ((options & kOpen_Exclusive) == kOpen_Exclusive) {
+        if ((mode & kOpen_Exclusive) == kOpen_Exclusive) {
             // Exclusive mode: File already exists -> throw an error
             throw(EEXIST);
         }
         else {
             Inode_Lock(pInode);
-            err = Filesystem_OpenFile(pFS, pInode, options, pr.user);
+            err = Filesystem_OpenFile(pFS, pInode, mode, pr.user);
             Inode_Unlock(pInode);
             throw_iferr(err);
         }
@@ -87,13 +87,13 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
 
 
         // The user provided read/write mode must match up with the provided (user) permissions
-        if ((options & kOpen_ReadWrite) == 0) {
+        if ((mode & kOpen_ReadWrite) == 0) {
             throw(EACCESS);
         }
-        if ((options & kOpen_Read) == kOpen_Read && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Read)) {
+        if ((mode & kOpen_Read) == kOpen_Read && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Read)) {
             throw(EACCESS);
         }
-        if ((options & kOpen_Write) == kOpen_Write && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Write)) {
+        if ((mode & kOpen_Write) == kOpen_Write && !FilePermissions_Has(filePerms, kFilePermissionsClass_User, kFilePermission_Write)) {
             throw(EACCESS);
         }
 
@@ -110,7 +110,7 @@ errno_t Process_CreateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath
 
 
     // Note that the file channel takes ownership of the inode reference
-    try(FileChannel_Create(pInode, options, &pFile));
+    try(FileChannel_Create(pInode, mode, &pFile));
     pInode = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
     pFile = NULL;
@@ -135,7 +135,7 @@ catch:
 
 // Opens the given file or named resource. Opening directories is handled by the
 // Process_OpenDirectory() function.
-errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int options, int* _Nonnull pOutIoc)
+errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, unsigned int mode, int* _Nonnull pOutIoc)
 {
     decl_try_err();
     PathResolver pr;
@@ -149,7 +149,7 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
         ConsoleRef pConsole;
 
         try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-        try(ConsoleChannel_Create((ObjectRef)pConsole, options, &pFile));
+        try(ConsoleChannel_Create((ObjectRef)pConsole, mode, &pFile));
         try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
         pFile = NULL;
         Lock_Unlock(&pProc->lock);
@@ -161,12 +161,12 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
     try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, pPath, &r));
 
     Inode_Lock(r.inode);
-    err = Filesystem_OpenFile(Inode_GetFilesystem(r.inode), r.inode, options, pr.user);
+    err = Filesystem_OpenFile(Inode_GetFilesystem(r.inode), r.inode, mode, pr.user);
     Inode_Unlock(r.inode);
     throw_iferr(err);
 
     // Note that this call takes ownership of the inode reference
-    try(FileChannel_Create(r.inode, options, &pFile));
+    try(FileChannel_Create(r.inode, mode, &pFile));
     r.inode = NULL;
     try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
     pFile = NULL;

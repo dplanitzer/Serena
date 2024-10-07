@@ -7,6 +7,7 @@
 //
 
 #include "EventDriverPriv.h"
+#include "EventChannel.h"
 
 //extern const uint16_t gArrow_Bits[];
 //extern const uint16_t gArrow_Mask[];
@@ -47,7 +48,7 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
     decl_try_err();
     EventDriverRef self;
     
-    try(Object_Create(EventDriver, &self));
+    try(Driver_Create(EventDriver, kDriverModel_Sync, 0, &self));
 
     Lock_Init(&self->lock);
     self->gdevice = Object_RetainAs(gdevice, GraphicsDriver);
@@ -74,6 +75,7 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
 
     // Open the keyboard driver
     try(KeyboardDriver_Create(self, &self->keyboardDriver));
+    try(Driver_Start((DriverRef)self->keyboardDriver));
 
 
     // Open the mouse/joystick/light pen driver
@@ -118,6 +120,11 @@ void EventDriver_deinit(EventDriverRef _Nonnull self)
 // MARK: -
 // MARK: Input Driver API
 ////////////////////////////////////////////////////////////////////////////////
+
+errno_t EventDriver_open(EventDriverRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    return EventChannel_Create(self, mode, pOutChannel);
+}
 
 GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull self)
 {
@@ -352,8 +359,8 @@ errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull self, I
             abort();
     }
     
+    try(Driver_Start((DriverRef)self->port[portId].driver));
     self->port[portId].type = type;
-    return EOK;
 
 catch:
     return err;
@@ -363,9 +370,12 @@ catch:
 // specific driver and all associated state
 void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull self, int portId)
 {
-    Object_Release(self->port[portId].driver);
-    self->port[portId].driver = NULL;
-    self->port[portId].type = kInputControllerType_None;
+    if (self->port[portId].driver) {
+        Driver_Stop((DriverRef) self->port[portId].driver, true);
+        Object_Release(self->port[portId].driver);
+        self->port[portId].driver = NULL;
+        self->port[portId].type = kInputControllerType_None;
+    }
 }
 
 InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull self, int portId)
@@ -542,14 +552,14 @@ uint32_t EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull self)
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t EventDriver_Read(EventDriverRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, TimeInterval timeout, ssize_t* _Nonnull nOutBytesRead)
+errno_t EventDriver_read(EventDriverRef _Nonnull self, EventChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
     ssize_t nBytesRead = 0;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        const errno_t e1 = HIDEventQueue_Get(self->eventQueue, pEvent, timeout);
+        const errno_t e1 = HIDEventQueue_Get(self->eventQueue, pEvent, pChannel->timeout);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at
@@ -570,4 +580,6 @@ errno_t EventDriver_Read(EventDriverRef _Nonnull self, void* _Nonnull pBuffer, s
 
 class_func_defs(EventDriver, Driver,
 override_func_def(deinit, EventDriver, Object)
+override_func_def(open, EventDriver, Driver)
+override_func_def(read, EventDriver, Driver)
 );

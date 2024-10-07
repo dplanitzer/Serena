@@ -13,7 +13,6 @@
 
 // The realtime clock
 final_class_ivars(RealtimeClock, Driver,
-    int     type;
     Lock    lock;
     // XXX not fully implemented yet
 );
@@ -49,7 +48,7 @@ errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, Realtim
     decl_try_err();
     RealtimeClockRef self;
     
-    try(Object_Create(RealtimeClock, &self));
+    try(Driver_Create(RealtimeClock, kDriverModel_Sync, 0, &self));
     Lock_Init(&self->lock);
     
     *pOutSelf = self;
@@ -81,10 +80,8 @@ errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull self, GregorianDate* _No
     pDate->year = 2022;
     // XXX do the real thing
     Lock_Unlock(&self->lock);
-    return EOK;
 
-catch:
-    return err;
+    return EOK;
 }
 
 // Sets the current Gregorian date & time and makes sure that the clock is
@@ -96,14 +93,12 @@ errno_t RealtimeClock_SetDate(RealtimeClockRef _Nonnull self, const GregorianDat
     Lock_Lock(&self->lock);
     // XXX not yet
     Lock_Unlock(&self->lock);
-    return EOK;
 
-catch:
-    return err;
+    return EOK;
 }
 
 // Reads up to 'nBytes' from NVRAM. Returns the actual amount of bytes read.
-errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull self, void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesRead)
+errno_t RealtimeClock_read(RealtimeClockRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     int nBytesRead;
@@ -113,16 +108,16 @@ errno_t RealtimeClock_ReadNonVolatileData(RealtimeClockRef _Nonnull self, void* 
     nBytesRead = 0;
     Lock_Unlock(&self->lock);
 
-    *pOutNumBytesRead = nBytesRead;
+    *nOutBytesRead = nBytesRead;
     return EOK;
 
 catch:
-    *pOutNumBytesRead = 0;
+    *nOutBytesRead = 0;
     return err;
 }
 
 // Writes up to 'nBytes' to NVRAM. Returns the actual amount of data written.
-errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull self, const void* _Nonnull pBuffer, int nBytes, int* _Nonnull pOutNumBytesWritten)
+errno_t RealtimeClock_write(RealtimeClockRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
     int nBytesWritten;
@@ -132,15 +127,17 @@ errno_t RealtimeClock_WriteNonVolatileData(RealtimeClockRef _Nonnull self, const
     nBytesWritten = 0;
     Lock_Unlock(&self->lock);
     
-    *pOutNumBytesWritten = nBytesWritten;
+    *nOutBytesWritten = nBytesWritten;
     return EOK;
 
 catch:
-    *pOutNumBytesWritten = 0;
+    *nOutBytesWritten = 0;
     return err;
 }
 
 
 class_func_defs(RealtimeClock, Driver,
 override_func_def(deinit, RealtimeClock, Object)
+override_func_def(read, RealtimeClock, Driver)
+override_func_def(write, RealtimeClock, Driver)
 );

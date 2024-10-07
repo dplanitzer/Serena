@@ -40,12 +40,14 @@ errno_t AmigaController_autoConfigureForConsole(struct AmigaController* _Nonnull
     
     GraphicsDriverRef pMainGDevice = NULL;
     try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &pMainGDevice));
+    try(Driver_Start((DriverRef)pMainGDevice));
     try(DriverCatalog_RegisterDriver(catalog, kGraphicsDriverName, (DriverRef)pMainGDevice));
 
 
     // Event Driver
     EventDriverRef pEventDriver = NULL;
     try(EventDriver_Create(pMainGDevice, &pEventDriver));
+    try(Driver_Start((DriverRef)pEventDriver));
     try(DriverCatalog_RegisterDriver(catalog, kEventsDriverName, (DriverRef)pEventDriver));
 
 
@@ -101,6 +103,7 @@ errno_t AmigaController_autoConfigure(struct AmigaController* _Nonnull self, Dri
     // Realtime Clock
     RealtimeClockRef pRealtimeClock = NULL;
     try(RealtimeClock_Create(gSystemDescription, &pRealtimeClock));
+    try(Driver_Start((DriverRef)pRealtimeClock));
     try(DriverCatalog_RegisterDriver(catalog, kRealtimeClockName, (DriverRef)pRealtimeClock));
 
 

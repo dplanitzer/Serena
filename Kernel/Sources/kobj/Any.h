@@ -49,7 +49,7 @@ any_class(Any);
 // Returns the implementation pointer of a method. You must cast this pointer to
 // the correct method signature in order to invoke it correctly.
 #define implementationof(__func, __className, __class) \
-    ((struct __className##MethodTable*)((__class)->vtable))->__func
+    (MethodImpl)((struct __className##MethodTable*)((__class)->vtable))->__func
 
 
 // Non-resilient, inline method dispatcher

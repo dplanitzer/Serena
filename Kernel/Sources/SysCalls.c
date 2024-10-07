@@ -83,22 +83,22 @@ typedef intptr_t (*SystemCall)(void* _Nonnull);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-SYSCALL_4(mkfile, const char* _Nullable path, unsigned options, uint32_t permissions, int* _Nullable pOutIoc)
+SYSCALL_4(mkfile, const char* _Nullable path, unsigned int mode, uint32_t permissions, int* _Nullable pOutIoc)
 {
     if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
         return EINVAL;
     }
 
-    return Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->options, (FilePermissions)pArgs->permissions, pArgs->pOutIoc);
+    return Process_CreateFile(Process_GetCurrent(), pArgs->path, pArgs->mode, (FilePermissions)pArgs->permissions, pArgs->pOutIoc);
 }
 
-SYSCALL_3(open, const char* _Nullable path, unsigned int options, int* _Nullable pOutIoc)
+SYSCALL_3(open, const char* _Nullable path, unsigned int mode, int* _Nullable pOutIoc)
 {
     if (pArgs->path == NULL || pArgs->pOutIoc == NULL) {
         return EINVAL;
     }
 
-    return Process_OpenFile(Process_GetCurrent(), pArgs->path, pArgs->options, pArgs->pOutIoc);
+    return Process_OpenFile(Process_GetCurrent(), pArgs->path, pArgs->mode, pArgs->pOutIoc);
 }
 
 SYSCALL_2(opendir, const char* _Nullable path, int* _Nullable pOutIoc)

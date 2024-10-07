@@ -9,18 +9,16 @@
 #ifndef EventChannel_h
 #define EventChannel_h
 
-#include <IOChannel.h>
-#include <kobj/Object.h>
+#include <driver/DriverChannel.h>
 
 
-open_class(EventChannel, IOChannel,
-    ObjectRef _Nonnull  eventDriver;
-    TimeInterval        timeout;
+open_class(EventChannel, DriverChannel,
+    TimeInterval    timeout;
 );
-open_class_funcs(EventChannel, IOChannel,
+open_class_funcs(EventChannel, DriverChannel,
 );
 
 
-extern errno_t EventChannel_Create(ObjectRef _Nonnull pEventDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
+extern errno_t EventChannel_Create(EventDriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* EventChannel_h */
