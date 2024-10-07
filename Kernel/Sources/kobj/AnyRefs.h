@@ -28,7 +28,6 @@ class_ref(DispatchQueue);
 class_ref(Driver);
 class_ref(DriverChannel);
 class_ref(DriverCatalog);
-class_ref(DriverController);
 class_ref(DriverManager);
 class_ref(EventChannel);
 class_ref(EventDriver);

@@ -37,7 +37,8 @@ errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutSelf)
     try(kalloc_cleared(sizeof(DriverManager), (void**) &self));
     Lock_Init(&self->lock);
     try(DriverCatalog_Create(&self->catalog));
-    try(Object_Create(AmigaController, &self->platformController));
+    try(AmigaController_Create(&self->platformController));
+    try(Driver_Start((DriverRef)self->platformController));
 
     *pOutSelf = self;
     return EOK;

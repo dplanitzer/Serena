@@ -17,7 +17,7 @@
 
 // The floppy controller. The Amiga has just one single floppy DMA channel
 // which is shared by all drives.
-final_class(FloppyController, DriverController);
+final_class(FloppyController, Driver);
 
 
 // Creates the floppy controller

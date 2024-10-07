@@ -16,7 +16,7 @@
 #include <hal/Platform.h>
 
 
-final_class_ivars(FloppyController, DriverController,
+final_class_ivars(FloppyController, Driver,
     Lock                lock;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
     ConditionVariable   cv;
     Semaphore           done;       // Semaphore indicating whether the DMA is done
@@ -39,7 +39,7 @@ errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSel
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Object_Create(FloppyController, &self));
+    try(Driver_Create(FloppyController, kDriverModel_Sync, 0, &self));
 
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->cv);
@@ -330,6 +330,6 @@ errno_t FloppyController_DoIO(FloppyControllerRef _Nonnull self, DriveState cb, 
 }
 
 
-class_func_defs(FloppyController, DriverController,
+class_func_defs(FloppyController, Driver,
 override_func_def(deinit, FloppyController, Object)
 );

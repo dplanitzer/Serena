@@ -9,16 +9,17 @@
 #ifndef PlatformController_h
 #define PlatformController_h
 
-#include <kobj/Object.h>
+#include <Driver.h>
 
 
-// A platform controller is responsible for setting up the root drivers of a
-// platform. The root drivers are typically drivers who are managing motherboard
-// components. I.e. built-in floppy disks, graphic chips, sound chips, expansion
-// boards like Zorro, PCI, ISA, EISA, etc.
-open_class(PlatformController, Object,
+// A platform controller is the root driver of a platform. All other drivers are
+// direct or indirect children of the platform controller. It represents the
+// motherboard hardware in that sense and it kicks off the detection of hardware
+// that is part of the motherboard.
+// A platform controller is expected to implement the synchronous driver model.
+open_class(PlatformController, Driver,
 );
-open_class_funcs(PlatformController, Object,
+open_class_funcs(PlatformController, Driver,
     errno_t (*autoConfigureForConsole)(PlatformControllerRef _Nonnull self, DriverCatalogRef _Nonnull catalog);
     errno_t (*autoConfigure)(PlatformControllerRef _Nonnull self, DriverCatalogRef _Nonnull catalog);
 );

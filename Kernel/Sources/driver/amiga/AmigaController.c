@@ -23,6 +23,11 @@ final_class_ivars(AmigaController, PlatformController,
 );
 
 
+errno_t AmigaController_Create(PlatformControllerRef _Nullable * _Nonnull pOutSelf)
+{
+    return Driver_Create(AmigaController, kDriverModel_Sync, 0, (DriverRef*)pOutSelf);
+}
+
 errno_t AmigaController_autoConfigureForConsole(struct AmigaController* _Nonnull self, DriverCatalogRef _Nonnull catalog)
 {
     decl_try_err();
@@ -118,6 +123,7 @@ errno_t AmigaController_autoConfigure(struct AmigaController* _Nonnull self, Dri
     fdx_name[3] = '\0';
 
     try(FloppyController_Create(&fdc));
+    try(Driver_Start((DriverRef)fdc));
     try(FloppyController_DiscoverDrives(fdc, fdx));
     for(int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
         if (fdx[i]) {

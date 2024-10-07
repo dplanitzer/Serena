@@ -14,4 +14,6 @@
 
 final_class(AmigaController, PlatformController);
 
+extern errno_t AmigaController_Create(PlatformControllerRef _Nullable * _Nonnull pOutSelf);
+
 #endif /* AmigaController_h */

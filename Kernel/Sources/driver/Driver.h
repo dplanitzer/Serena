@@ -107,14 +107,4 @@ extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, unsigned 
 // Do not call directly. Use the Driver_Create() macro instead
 extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, unsigned int options, DriverRef _Nullable * _Nonnull pOutDriver);
 
-
-// A driver controller is a driver that binds to some kind of bus and manages this
-// bus and the driver objects managing hardware that is connected to the bus. In
-// the device tree, all inner nodes of the tree are represented by driver
-// controllers.
-open_class(DriverController, Driver,
-);
-open_class_funcs(DriverController, Driver,
-);
-
 #endif /* Driver_h */

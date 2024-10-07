@@ -19,7 +19,7 @@ errno_t PlatformController_autoConfigure(PlatformControllerRef _Nonnull self, Dr
     return ENODEV;
 }
 
-class_func_defs(PlatformController, Object,
+class_func_defs(PlatformController, Driver,
     func_def(autoConfigureForConsole, PlatformController)
     func_def(autoConfigure, PlatformController)
 );
