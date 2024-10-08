@@ -21,7 +21,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     decl_try_err();
     ConsoleRef self;
 
-    try(Object_Create(Console, &self));
+    try(Driver_Create(Console, kDriverModel_Sync, 0, &self));
     
     Lock_Init(&self->lock);
 
@@ -469,6 +469,12 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
     Console_FillRect_Locked(self, Rect_Make(0, self->bounds.bottom - nLines, self->bounds.right, self->bounds.bottom), ' ');
 }
 
+
+errno_t Console_open(ConsoleRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    return ConsoleChannel_Create(self, mode, pOutChannel);
+}
+
 static void Console_ReadReports_NonBlocking_Locked(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, char* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     ssize_t nBytesRead = 0;
@@ -563,7 +569,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
 // data, no terminal reports and no events are available. It tries to do a
 // non-blocking read as hard as possible even if it can't fully fill the user
 // provided buffer. 
-errno_t Console_Read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t Console_read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     char* pChars = pBuffer;
@@ -612,10 +618,10 @@ errno_t Console_Read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChann
 // \param pBytes the byte sequence
 // \param nBytes the number of bytes to write
 // \return the number of bytes written; a negative error code if an error was encountered
-errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssize_t nBytesToWrite)
+errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
-    const unsigned char* pChars = pBytes;
+    const unsigned char* pChars = pBuffer;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
 
     Lock_Lock(&self->lock);
@@ -629,11 +635,16 @@ errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssi
 
         Console_EndDrawing_Locked(self);
     }
+    *nOutBytesWritten = (err == EOK) ? nBytesToWrite : 0;
     Lock_Unlock(&self->lock);
+
     return err;
 }
 
 
 class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
+override_func_def(open, Console, Driver)
+override_func_def(read, Console, Driver)
+override_func_def(write, Console, Driver)
 );

@@ -10,17 +10,13 @@
 #include "ConsolePriv.h"
 
 
-extern errno_t Console_Read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-extern errno_t Console_Write(ConsoleRef _Nonnull self, const void* _Nonnull pBytes, ssize_t nBytesToWrite);
-
-
-errno_t ConsoleChannel_Create(ObjectRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
+errno_t ConsoleChannel_Create(ConsoleRef _Nonnull pConsole, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ConsoleChannelRef self;
 
     try(IOChannel_AbstractCreate(&kConsoleChannelClass, mode, (IOChannelRef*)&self));
-    self->console = Object_Retain(pConsole);
+    self->console = Object_RetainAs(pConsole, Console);
 
 catch:
     *pOutSelf = (IOChannelRef)self;
@@ -41,7 +37,7 @@ errno_t ConsoleChannel_copy(ConsoleChannelRef _Nonnull self, IOChannelRef _Nulla
     ConsoleChannelRef pNewChannel;
 
     try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
-    pNewChannel->console = Object_Retain(self->console);
+    pNewChannel->console = Object_RetainAs(self->console, Console);
 
 catch:
     *pOutChannel = (IOChannelRef)pNewChannel;
@@ -62,14 +58,12 @@ errno_t ConsoleChannel_ioctl(ConsoleChannelRef _Nonnull self, int cmd, va_list a
 
 errno_t ConsoleChannel_read(ConsoleChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    return Console_Read((ConsoleRef)self->console, self, pBuffer, nBytesToRead, nOutBytesRead);
+    return Driver_Read((DriverRef)self->console, (IOChannelRef)self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
 errno_t ConsoleChannel_write(ConsoleChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    const errno_t err = Console_Write((ConsoleRef)self->console, pBuffer, nBytesToWrite);
-    *nOutBytesWritten = (err == EOK) ? nBytesToWrite : 0;
-    return err;
+    return Driver_Write((DriverRef)self->console, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
 

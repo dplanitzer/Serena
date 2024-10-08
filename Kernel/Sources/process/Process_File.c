@@ -149,7 +149,7 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
         ConsoleRef pConsole;
 
         try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
-        try(ConsoleChannel_Create((ObjectRef)pConsole, mode, &pFile));
+        try(Driver_Open((DriverRef)pConsole, pPath, mode, &pFile));
         try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
         pFile = NULL;
         Lock_Unlock(&pProc->lock);

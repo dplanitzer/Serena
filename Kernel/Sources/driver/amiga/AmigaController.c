@@ -59,6 +59,7 @@ errno_t AmigaController_autoConfigureForConsole(struct AmigaController* _Nonnull
     // Initialize the console
     ConsoleRef pConsole = NULL;
     try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
+    try(Driver_Start((DriverRef)pConsole));
     try(DriverCatalog_RegisterDriver(catalog, kConsoleName, (DriverRef)pConsole));
 
 catch:
