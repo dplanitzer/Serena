@@ -67,7 +67,7 @@ errno_t FileChannel_ioctl(FileChannelRef _Nonnull self, int cmd, va_list ap)
             return EOK;
 
         default:
-            return super_n(ioctl, IOChannel, self, cmd, ap);
+            return super_n(ioctl, IOChannel, FileChannel, self, cmd, ap);
     }
 }
 

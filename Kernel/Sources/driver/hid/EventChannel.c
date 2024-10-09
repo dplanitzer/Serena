@@ -28,7 +28,7 @@ errno_t EventChannel_copy(EventChannelRef _Nonnull self, IOChannelRef _Nullable 
     decl_try_err();
     EventChannelRef pNewChannel;
 
-    if ((err = super_n(copy, IOChannel, self, (IOChannelRef*)&pNewChannel)) == EOK) {
+    if ((err = super_n(copy, IOChannel, EventChannel, self, (IOChannelRef*)&pNewChannel)) == EOK) {
         pNewChannel->timeout = self->timeout;
     }
 

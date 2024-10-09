@@ -67,7 +67,7 @@ errno_t DirectoryChannel_ioctl(DirectoryChannelRef _Nonnull self, int cmd, va_li
             return EOK;
 
         default:
-            return super_n(ioctl, IOChannel, self, cmd, ap);
+            return super_n(ioctl, IOChannel, DirectoryChannel, self, cmd, ap);
     }
 }
 

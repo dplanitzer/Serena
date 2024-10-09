@@ -27,10 +27,10 @@ bool _instanceof(AnyRef _Nonnull self, Class* _Nonnull targetType)
 }
 
 // Returns the class that defines the super implementation of the method identified
-// by the method offset 'methodOffset'.
-Class* _Nonnull _superimplclassof(AnyRef _Nonnull self, size_t methodOffset)
+// by the method offset 'methodOffset', defined by the static type 'staticType'.
+Class* _Nonnull _superimplementationof(Class* _Nonnull staticType, size_t methodOffset)
 {
-    Class* pPrevClass = classof(self);
+    Class* pPrevClass = staticType;
     MethodImpl pPrevImpl = *(MethodImpl*)((char*)(pPrevClass->vtable) + methodOffset);
 
     for(;;) {

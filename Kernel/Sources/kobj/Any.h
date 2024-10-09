@@ -70,16 +70,20 @@ any_class(Any);
 
 
 // Invokes a dynamically dispatched method with the given arguments on the superclass of the receiver.
-#define super_0(__func, __superClassName, __self) \
-    dispatch_0(__func, __superClassName, _superimplclassof((AnyRef)__self, offsetof(struct __superClassName##MethodTable, __func)), __self)
+// '__func' is the function to invoke
+// '__funcClassName' is the name of the class that introduces (contains the first definition) of '__func'
+// '__className' is the static type of the instance (the name of the class in which the super() call appears)
+// '__self' is the instance on which to invoke the function
+#define super_0(__func, __funcClassName, __className, __self) \
+    dispatch_0(__func, __funcClassName, _superimplementationof((Class*)&k##__className##Class, offsetof(struct __funcClassName##MethodTable, __func)), __self)
 
-#define super_n(__func, __superClassName, __self, ...) \
-    dispatch_n(__func, __superClassName, _superimplclassof((AnyRef)__self, offsetof(struct __superClassName##MethodTable, __func)), __self, __VA_ARGS__)
+#define super_n(__func, __funcClassName, __className, __self, ...) \
+    dispatch_n(__func, __funcClassName, _superimplementationof((Class*)&k##__className##Class, offsetof(struct __funcClassName##MethodTable, __func)), __self, __VA_ARGS__)
 
 
 
 // Do not call these functions directly. Use the macros defined above instead.
 extern bool _instanceof(AnyRef _Nonnull self, Class* _Nonnull targetType);
-extern Class* _Nonnull _superimplclassof(AnyRef _Nonnull self, size_t methodOffset);
+extern Class* _Nonnull _superimplementationof(Class* _Nonnull staticType, size_t methodOffset);
 
 #endif /* Any_h */

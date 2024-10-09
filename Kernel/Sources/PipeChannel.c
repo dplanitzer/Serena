@@ -56,7 +56,7 @@ errno_t PipeChannel_ioctl(PipeChannelRef _Nonnull self, int cmd, va_list ap)
             return EOK;
 
         default:
-            return super_n(ioctl, IOChannel, self, cmd, ap);
+            return super_n(ioctl, IOChannel, PipeChannel, self, cmd, ap);
     }
 }
 
