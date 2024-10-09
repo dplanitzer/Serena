@@ -13,10 +13,10 @@
 // Should be invoked by the platform specific subclass to inform the kernel that
 // the console is available now. Initializes the kernel logging services and 
 // prints the boot banner.
-void PlatformController_NoteConsoleAvailable(PlatformControllerRef _Nonnull self)
+void PlatformController_NoteConsoleAvailable(PlatformControllerRef _Nonnull self, ConsoleRef _Nonnull pConsole)
 {
     // Initialize the kernel print services
-    print_init();
+    print_init(pConsole);
 
 
     // Boot message

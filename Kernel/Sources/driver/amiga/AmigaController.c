@@ -87,7 +87,7 @@ void AmigaController_start(struct AmigaController* _Nonnull self)
 
 
     // Let the kernel know that the console is now available
-    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self);
+    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self, pConsole);
 
 
     // Auto configure the expansion board bus

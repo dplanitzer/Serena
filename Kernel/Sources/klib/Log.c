@@ -10,7 +10,6 @@
 #include <console/Console.h>
 #include <console/ConsoleChannel.h>
 #include <dispatcher/Lock.h>
-#include <driver/DriverManager.h>
 #include <User.h>
 #include "Formatter.h"
 
@@ -30,11 +29,11 @@ static errno_t printv_console_sink_locked(FormatterRef _Nonnull self, const char
 }
 
 // Initializes the print subsystem.
-void print_init(void)
+void print_init(void* _Nonnull pConsole)
 {
     Lock_Init(&gLock);
     Formatter_Init(&gFormatter, printv_console_sink_locked, NULL, gPrintBuffer, PRINT_BUFFER_CAPACITY);
-    gConsole = (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName);
+    gConsole = (ConsoleRef) pConsole;
     assert(gConsole != NULL);
     try_bang(Driver_Open((DriverRef)gConsole, "", kOpen_Write, &gConsoleChannel));
 }
