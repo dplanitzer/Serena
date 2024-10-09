@@ -63,11 +63,11 @@ errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int io
     }
 
     self->v.ioc = ioc;
-    return __fopen_init((FILE*)self, false, &self->v, &__FILE_ioc_callbacks, sm);
+    return __fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_ioc_callbacks, sm);
 }
 
 
-errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filename, __FILE_Mode sm)
+errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, const char *filename, __FILE_Mode sm)
 {
     decl_try_err();
     unsigned int options = 0;
@@ -99,7 +99,7 @@ errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filen
     }
     
     self->v.ioc = ioc;
-    try(__fopen_init((FILE*)self, true, &self->v, &__FILE_ioc_callbacks, sm));
+    try(__fopen_init((FILE*)self, bFreeOnClose, &self->v, &__FILE_ioc_callbacks, sm));
 
 
     // Make sure that the return value of ftell() issued before the first write

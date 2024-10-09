@@ -40,11 +40,11 @@ int vsnprintf(char *buffer, size_t bufsiz, const char *format, va_list ap)
         mem.initialEof = 0;
         mem.options = 0;
 
-        err = __fopen_memory_init(&file, &mem, sm);
+        err = __fopen_memory_init(&file, false, &mem, sm);
     }
     else {
         // Use a null stream to calculate the length of the formatted string
-        err = __fopen_null_init(&file.super, sm);
+        err = __fopen_null_init(&file.super, false, sm);
     }
 
     if (err == EOK) {

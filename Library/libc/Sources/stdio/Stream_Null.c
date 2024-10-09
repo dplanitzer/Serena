@@ -36,7 +36,7 @@ static const FILE_Callbacks __FILE_null_callbacks = {
 
 
 
-errno_t __fopen_null_init(FILE* _Nonnull self, __FILE_Mode sm)
+errno_t __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm)
 {
-    return __fopen_init(self, true, NULL, &__FILE_null_callbacks, sm);
+    return __fopen_init(self, bFreeOnClose, NULL, &__FILE_null_callbacks, sm);
 }

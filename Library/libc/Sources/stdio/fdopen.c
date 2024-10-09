@@ -14,15 +14,21 @@ FILE *fdopen(int ioc, const char *mode)
 {
     decl_try_err();
     __FILE_Mode sm;
-    __IOChannel_FILE* self = NULL;
 
-    try(__fopen_parse_mode(mode, &sm));
-    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(__IOChannel_FILE)), ENOMEM);
-    try(__fdopen_init(self, true, ioc, sm));
-    return (FILE*)self;
+    if ((err = __fopen_parse_mode(mode, &sm)) == EOK) {
+        __IOChannel_FILE* self;
 
-catch:
-    free(self);
+        if ((self = malloc(SIZE_OF_FILE_SUBCLASS(__IOChannel_FILE))) == NULL) {
+            return NULL;
+        }
+
+        if ((err = __fdopen_init(self, true, ioc, sm)) == EOK) {
+            return (FILE*)self;
+        }
+
+        free(self);
+    }
+
     errno = err;
     return NULL;
 }

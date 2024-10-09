@@ -14,20 +14,16 @@ FILE *fdreopen(int ioc, const char *mode, FILE *s)
 {
     decl_try_err();
     const bool isFreeOnClose = s->flags.shouldFreeOnClose;
-    bool isOldStreamClosed = false;
     __FILE_Mode sm;
     
-    try(__fopen_parse_mode(mode, &sm));
-
-    __fclose(s);
-    isOldStreamClosed = true;
-    try(__fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, sm));
-    return s;
-
-catch:
-    if (!isOldStreamClosed) {
+    if ((err = __fopen_parse_mode(mode, &sm)) == EOK) {
         __fclose(s);
+
+        if ((err = __fdopen_init((__IOChannel_FILE*)s, isFreeOnClose, ioc, sm)) == EOK) {
+            return s;
+        }
     }
+
     errno = err;
     return NULL;
 }

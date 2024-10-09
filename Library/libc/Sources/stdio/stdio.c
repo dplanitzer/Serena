@@ -37,21 +37,21 @@ void __stdio_init(void)
         __fdopen_init(&_StdinObj, false, kIOChannel_Stdin, __kStreamMode_Read);
     }
     else {
-        __fopen_null_init((FILE*)&_StdinObj, __kStreamMode_Read);
+        __fopen_null_init((FILE*)&_StdinObj, false, __kStreamMode_Read);
     }
 
     if (IOChannel_GetMode(kIOChannel_Stdout) != 0) {
         __fdopen_init(&_StdoutObj, false, kIOChannel_Stdout, __kStreamMode_Write);
     }
     else {
-        __fopen_null_init((FILE*)&_StdoutObj, __kStreamMode_Write);
+        __fopen_null_init((FILE*)&_StdoutObj, false, __kStreamMode_Write);
     }
 
     if (IOChannel_GetMode(kIOChannel_Stderr) != 0) {
         __fdopen_init(&_StderrObj, false, kIOChannel_Stderr, __kStreamMode_Write);
     }
     else {
-        __fopen_null_init((FILE*)&_StderrObj, __kStreamMode_Write);
+        __fopen_null_init((FILE*)&_StderrObj, false, __kStreamMode_Write);
     }
 
     atexit(__stdio_exit);

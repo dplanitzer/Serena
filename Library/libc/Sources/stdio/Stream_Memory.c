@@ -157,7 +157,7 @@ static const FILE_Callbacks __FILE_mem_callbacks = {
 
 
 
-errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, __FILE_Mode sm)
+errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Memory *mem, __FILE_Mode sm)
 {
     __Memory_FILE_Vars* mp = &self->v;
 
@@ -180,7 +180,7 @@ errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, __FI
 
     mp->flags.freeOnClose = ((mem->options & _IOM_FREE_ON_CLOSE) != 0) ? 1 : 0;
 
-    return __fopen_init((FILE*)self, true, mp, &__FILE_mem_callbacks, sm);
+    return __fopen_init((FILE*)self, bFreeOnClose, mp, &__FILE_mem_callbacks, sm);
 }
 
 int filemem(FILE *s, FILE_MemoryQuery *query)

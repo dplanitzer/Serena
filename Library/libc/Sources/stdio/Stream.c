@@ -98,7 +98,7 @@ errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, cons
     self->context = context;
     self->flags.mode = sm;
     self->flags.mostRecentDirection = __kStreamDirection_None;
-    self->flags.shouldFreeOnClose = bFreeOnClose;
+    self->flags.shouldFreeOnClose = bFreeOnClose ? 1 : 0;
 
     if (gOpenFiles) {
         self->next = gOpenFiles;

@@ -13,20 +13,17 @@
 FILE *freopen(const char *filename, const char *mode, FILE *s)
 {
     decl_try_err();
-    bool isOldStreamClosed = false;
+    const bool isFreeOnClose = s->flags.shouldFreeOnClose;
     __FILE_Mode sm;
 
-    try(__fopen_parse_mode(mode, &sm));
-
-    __fclose(s);
-    isOldStreamClosed = true;
-    try(__fopen_filename_init((__IOChannel_FILE*)s, filename, sm));
-    return s;
-
-catch:
-    if (!isOldStreamClosed) {
+    if ((err = __fopen_parse_mode(mode, &sm)) == EOK) {
         __fclose(s);
+
+        if ((err = __fopen_filename_init((__IOChannel_FILE*)s, isFreeOnClose, filename, sm)) == EOK) {
+            return s;
+        }
     }
+
     errno = err;
     return NULL;
 }

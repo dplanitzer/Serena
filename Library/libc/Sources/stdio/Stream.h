@@ -83,9 +83,9 @@ extern errno_t __fopen_parse_mode(const char* _Nonnull mode, __FILE_Mode* _Nonnu
 
 extern errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, const FILE_Callbacks* callbacks, __FILE_Mode sm);
 extern errno_t __fdopen_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, int ioc, __FILE_Mode sm);
-extern errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, const char *filename, __FILE_Mode sm);
-extern errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, FILE_Memory *mem, __FILE_Mode sm);
-extern errno_t __fopen_null_init(FILE* _Nonnull self, __FILE_Mode sm);
+extern errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFreeOnClose, const char *filename, __FILE_Mode sm);
+extern errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Memory *mem, __FILE_Mode sm);
+extern errno_t __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm);
 
 extern FILE *__fopen_null(const char *mode);
 

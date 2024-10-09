@@ -14,15 +14,21 @@ FILE *fopen_callbacks(void* context, const FILE_Callbacks* callbacks, const char
 {
     decl_try_err();
     __FILE_Mode sm;
-    FILE* self = NULL;
 
-    try(__fopen_parse_mode(mode, &sm));
-    try_null(self, malloc(SIZE_OF_FILE_SUBCLASS(FILE)), ENOMEM);
-    try(__fopen_init(self, true, context, callbacks, sm));
-    return self;
+    if ((err = __fopen_parse_mode(mode, &sm)) == EOK) {
+        FILE* self;
 
-catch:
-    free(self);
+        if ((self = malloc(SIZE_OF_FILE_SUBCLASS(FILE))) == NULL) {
+            return NULL;
+        }
+
+        if ((err = __fopen_init(self, true, context, callbacks, sm)) == EOK) {
+            return self;
+        }
+
+        free(self);
+    }
+
     errno = err;
     return NULL;
 }
