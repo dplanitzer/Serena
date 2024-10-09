@@ -29,6 +29,8 @@ static void __stdio_exit(void)
 
 void __stdio_init(void)
 {
+    __init_open_files_lock();
+    
     _Stdin = (FILE*)&_StdinObj;
     _Stdout = (FILE*)&_StdoutObj;
     _Stderr = (FILE*)&_StderrObj;

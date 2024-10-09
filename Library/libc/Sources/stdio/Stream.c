@@ -9,10 +9,91 @@
 #include "Stream.h"
 #include <stdlib.h>
 #include <string.h>
-#include <System/System.h>
+#include <System/Lock.h>
 
 
-static FILE*   gOpenFiles;
+static FILE*    __gOpenFiles;
+static Lock     __gOpenFilesLock;
+
+
+void __init_open_files_lock(void)
+{
+    Lock_Init(&__gOpenFilesLock);
+}
+
+static void __open_files_lock(void)
+{
+    Lock_Lock(&__gOpenFilesLock);
+}
+
+static void __open_files_unlock(void)
+{
+    Lock_Unlock(&__gOpenFilesLock);
+}
+
+static void __register_open_file(FILE* _Nonnull s)
+{
+    __open_files_lock();
+
+    if (__gOpenFiles) {
+        s->prev = NULL;
+        s->next = __gOpenFiles;
+        __gOpenFiles->prev = s;
+        __gOpenFiles = s;
+    } else {
+        __gOpenFiles = s;
+        s->prev = NULL;
+        s->next = NULL;
+    }
+
+    __open_files_unlock();
+}
+
+static void __deregister_open_file(FILE* _Nonnull s)
+{
+    __open_files_lock();
+
+    if (__gOpenFiles == s) {
+        __gOpenFiles = s->next;
+    }
+
+    if (s->next) {
+        (s->next)->prev = s->prev;
+    }
+    if (s->prev) {
+        (s->prev)->next = s->next;
+    }
+
+    s->prev = NULL;
+    s->next = NULL;
+
+    __open_files_unlock();
+}
+
+// Iterates through all registered files and invokes 'f' on each one. Note that
+// this function holds the file registration lock while invoking 'f'. 
+int __iterate_open_files(__file_func_t _Nonnull f)
+{
+    int r = 0;
+    FILE* pCurFile;
+    
+    __open_files_lock();
+
+    pCurFile = __gOpenFiles;
+    while (pCurFile) {
+        const int rx = f(pCurFile);
+
+        if (r == 0) {
+            r = rx;
+        }
+        pCurFile = pCurFile->next;
+    }
+
+    __open_files_unlock();
+
+    return r;
+}
+
 
 
 // Parses the given mode string into a stream-mode value. Supported modes:
@@ -100,13 +181,7 @@ errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, cons
     self->flags.mostRecentDirection = __kStreamDirection_None;
     self->flags.shouldFreeOnClose = bFreeOnClose ? 1 : 0;
 
-    if (gOpenFiles) {
-        self->next = gOpenFiles;
-        gOpenFiles->prev = self;
-        gOpenFiles = self;
-    } else {
-        gOpenFiles = self;
-    }
+    __register_open_file(self);
 
     return EOK;
 }
@@ -114,7 +189,7 @@ errno_t __fopen_init(FILE* _Nonnull self, bool bFreeOnClose, void* context, cons
 // Shuts down the given stream but does not free the 's' memory block. 
 int __fclose(FILE * _Nonnull s)
 {
-    int r = fflush(s);
+    int r = __fflush(s);
         
     const errno_t err = (s->cb.close) ? s->cb.close((void*)s->context) : 0;
     if (r == 0 && err != 0) {
@@ -122,39 +197,14 @@ int __fclose(FILE * _Nonnull s)
         r = EOF;
     }
 
-    if (gOpenFiles == s) {
-        (s->next)->prev = NULL;
-        gOpenFiles = s->next;
-    } else {
-        (s->next)->prev = s->prev;
-        (s->prev)->next = s->next;
-    }
-    s->prev = NULL;
-    s->next = NULL;
-    
+    __deregister_open_file(s);
+
     return r;
 }
 
-int fflush(FILE *s)
+// Flushes the buffered data in stream 's'.
+int __fflush(FILE * _Nonnull s)
 {
-    int r = 0;
-
-    if (s) {
-        // XXX
-    }
-    else {
-        FILE* pCurFile = gOpenFiles;
-        
-        while (pCurFile) {
-            if (pCurFile->flags.mostRecentDirection == __kStreamDirection_Write) {
-                const int rx = fflush(pCurFile);
-
-                if (r == 0) {
-                    r = rx;
-                }
-            }
-            pCurFile = pCurFile->next;
-        }
-    }
-    return r;
+    // XXX implement me
+    return 0;
 }

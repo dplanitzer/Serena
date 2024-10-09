@@ -87,9 +87,15 @@ extern errno_t __fopen_filename_init(__IOChannel_FILE* _Nonnull self, bool bFree
 extern errno_t __fopen_memory_init(__Memory_FILE* _Nonnull self, bool bFreeOnClose, FILE_Memory *mem, __FILE_Mode sm);
 extern errno_t __fopen_null_init(FILE* _Nonnull self, bool bFreeOnClose, __FILE_Mode sm);
 
-extern FILE *__fopen_null(const char *mode);
+extern FILE *__fopen_null(const char* mode);
 
-extern int __fclose(FILE * _Nonnull s);
+extern int __fflush(FILE* _Nonnull s);
+extern int __fclose(FILE* _Nonnull s);
+
+extern void __init_open_files_lock(void);
+
+typedef int (*__file_func_t)(FILE* _Nonnull s);
+extern int __iterate_open_files(__file_func_t _Nonnull f);
 
 __CPP_END
 
