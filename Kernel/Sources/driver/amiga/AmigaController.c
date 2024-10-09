@@ -19,61 +19,17 @@
 
 final_class_ivars(AmigaController, PlatformController,
     ExpansionBus    zorroBus;
-    bool            isZorroBusConfigured;
 );
 
 
 errno_t AmigaController_Create(PlatformControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(AmigaController, kDriverModel_Sync, 0, (DriverRef*)pOutSelf);
-}
-
-errno_t AmigaController_autoConfigureForConsole(struct AmigaController* _Nonnull self, DriverCatalogRef _Nonnull catalog)
-{
-    decl_try_err();
-
-
-    // Graphics Driver
-    const ScreenConfiguration* pVideoConfig;
-    if (chipset_is_ntsc()) {
-        pVideoConfig = &kScreenConfig_NTSC_640_200_60;
-        //pVideoConfig = &kScreenConfig_NTSC_640_400_30;
-    } else {
-        pVideoConfig = &kScreenConfig_PAL_640_256_50;
-        //pVideoConfig = &kScreenConfig_PAL_640_512_25;
-    }
-    
-    GraphicsDriverRef pMainGDevice = NULL;
-    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &pMainGDevice));
-    try(Driver_Start((DriverRef)pMainGDevice));
-    try(DriverCatalog_RegisterDriver(catalog, kGraphicsDriverName, (DriverRef)pMainGDevice));
-
-
-    // Event Driver
-    EventDriverRef pEventDriver = NULL;
-    try(EventDriver_Create(pMainGDevice, &pEventDriver));
-    try(Driver_Start((DriverRef)pEventDriver));
-    try(DriverCatalog_RegisterDriver(catalog, kEventsDriverName, (DriverRef)pEventDriver));
-
-
-    // Initialize the console
-    ConsoleRef pConsole = NULL;
-    try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
-    try(Driver_Start((DriverRef)pConsole));
-    try(DriverCatalog_RegisterDriver(catalog, kConsoleName, (DriverRef)pConsole));
-
-catch:
-    return err;
+    return Driver_Create(AmigaController, kDriverModel_Sync, (DriverRef*)pOutSelf);
 }
 
 // Auto configures the expansion board bus.
 static errno_t AmigaController_AutoConfigureExpansionBoardBus(struct AmigaController* _Nonnull self)
 {
-    if (self->isZorroBusConfigured) {
-        return EOK;
-    }
-
-
     // Auto config the Zorro bus
     zorro_auto_config(&self->zorroBus);
 
@@ -92,15 +48,47 @@ static errno_t AmigaController_AutoConfigureExpansionBoardBus(struct AmigaContro
         }
     }
 
-
-    // Done
-    self->isZorroBusConfigured = true;
     return EOK;
 }
 
-errno_t AmigaController_autoConfigure(struct AmigaController* _Nonnull self, DriverCatalogRef _Nonnull catalog)
+void AmigaController_start(struct AmigaController* _Nonnull self)
 {
     decl_try_err();
+
+
+    // Graphics Driver
+    const ScreenConfiguration* pVideoConfig;
+    if (chipset_is_ntsc()) {
+        pVideoConfig = &kScreenConfig_NTSC_640_200_60;
+        //pVideoConfig = &kScreenConfig_NTSC_640_400_30;
+    } else {
+        pVideoConfig = &kScreenConfig_PAL_640_256_50;
+        //pVideoConfig = &kScreenConfig_PAL_640_512_25;
+    }
+    
+    GraphicsDriverRef pMainGDevice = NULL;
+    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &pMainGDevice));
+    try(Driver_Start((DriverRef)pMainGDevice));
+    try(DriverCatalog_RegisterDriver(gDriverCatalog, kGraphicsDriverName, (DriverRef)pMainGDevice));
+
+
+    // Event Driver
+    EventDriverRef pEventDriver = NULL;
+    try(EventDriver_Create(pMainGDevice, &pEventDriver));
+    try(Driver_Start((DriverRef)pEventDriver));
+    try(DriverCatalog_RegisterDriver(gDriverCatalog, kEventsDriverName, (DriverRef)pEventDriver));
+
+
+    // Initialize the console
+    ConsoleRef pConsole = NULL;
+    try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
+    try(Driver_Start((DriverRef)pConsole));
+    try(DriverCatalog_RegisterDriver(gDriverCatalog, kConsoleName, (DriverRef)pConsole));
+
+
+    // Let the kernel know that the console is now available
+    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self);
+
 
     // Auto configure the expansion board bus
     try(AmigaController_AutoConfigureExpansionBoardBus(self));
@@ -110,7 +98,7 @@ errno_t AmigaController_autoConfigure(struct AmigaController* _Nonnull self, Dri
     RealtimeClockRef pRealtimeClock = NULL;
     try(RealtimeClock_Create(gSystemDescription, &pRealtimeClock));
     try(Driver_Start((DriverRef)pRealtimeClock));
-    try(DriverCatalog_RegisterDriver(catalog, kRealtimeClockName, (DriverRef)pRealtimeClock));
+    try(DriverCatalog_RegisterDriver(gDriverCatalog, kRealtimeClockName, (DriverRef)pRealtimeClock));
 
 
     // Floppy
@@ -130,15 +118,15 @@ errno_t AmigaController_autoConfigure(struct AmigaController* _Nonnull self, Dri
         if (fdx[i]) {
             try(Driver_Start((DriverRef)fdx[i]));
             fdx_name[2] = '0' + i;
-            try(DriverCatalog_RegisterDriver(catalog, fdx_name, (DriverRef)fdx[i]));
+            try(DriverCatalog_RegisterDriver(gDriverCatalog, fdx_name, (DriverRef)fdx[i]));
         }
     }
+    return;
 
 catch:
-    return err;
+    abort();
 }
 
 class_func_defs(AmigaController, PlatformController,
-    override_func_def(autoConfigureForConsole, AmigaController, PlatformController)
-    override_func_def(autoConfigure, AmigaController, PlatformController)
+    override_func_def(start, AmigaController, Driver)
 );

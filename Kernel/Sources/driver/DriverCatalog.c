@@ -69,6 +69,8 @@ catch:
 // MARK: DriverCatalog
 ////////////////////////////////////////////////////////////////////////////////
 
+DriverCatalogRef _Nonnull  gDriverCatalog;
+
 errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();

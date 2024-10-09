@@ -11,6 +11,7 @@
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <driver/DriverCatalog.h>
 #include <driver/DriverManager.h>
 #include <driver/InterruptController.h>
 #include <driver/MonotonicClock.h>
@@ -268,30 +269,15 @@ static void OnMain(void)
 {
     decl_try_err();
 
+    // Create the driver catalog
+    try_bang(DriverCatalog_Create(&gDriverCatalog));
+
     // Create the driver manager
     try_bang(DriverManager_Create(&gDriverManager));
 
 
-    // Initialize enough of the driver infrastructure so that we can start
-    // printing to the console
-    try_bang(DriverManager_AutoConfigureForConsole(gDriverManager));
-
-
-    // Initialize the kernel print services
-    print_init();
-
-
-    // Boot message
-    print("\033[36mSerena OS v0.2.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
-
-
-    // Debug printing
-    //PrintClasses();
-
-
-    // Initialize all other drivers
-    print("Detecting devices...\n");
-    try(DriverManager_AutoConfigure(gDriverManager));
+    // Initialize the drivers
+    try_bang(DriverManager_Start(gDriverManager));
 
 
     // Initialize the Kernel Runtime Services so that we can make it available

@@ -22,7 +22,6 @@ typedef enum DriverModel {
 // the tree.
 open_class(Driver, Object,
     DispatchQueueRef _Nullable  dispatchQueue;
-    uint16_t                    options;
     AtomicBool                  isStopped;
 );
 open_class_funcs(Driver, Object,
@@ -32,7 +31,7 @@ open_class_funcs(Driver, Object,
     // all components are in an idle state.
     // Override: Optional
     // Default Behavior: Returns EOK and does nothing
-    errno_t (*start)(void* _Nonnull self);
+    void (*start)(void* _Nonnull self);
 
     // Invoked as the result of calling Driver_Stop(). A driver subclass should
     // override this method and configure the hardware such that it is in an
@@ -92,19 +91,18 @@ extern errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, va_list ap);
 // specific serial dispatch queue and it supports plug & play hardware. A driver
 // which implements the kDriverModel_Sync model executes all operations
 // synchronously and it does not support plug & play hardware. 
-#define Driver_Create(__className, __model, __options, __pOutDriver) \
-    _Driver_Create(&k##__className##Class, __model, __options, (DriverRef*)__pOutDriver)
+#define Driver_Create(__className, __model, __pOutDriver) \
+    _Driver_Create(&k##__className##Class, __model, (DriverRef*)__pOutDriver)
 
 // Initializes a driver instance.
-extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, unsigned int options);
+extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model);
 
 // Returns the driver's serial dispatch queue. Only call this if the driver is
 // an asynchronous driver.
 #define Driver_GetDispatchQueue(__self) \
     ((DriverRef)__self)->dispatchQueue
-    
 
 // Do not call directly. Use the Driver_Create() macro instead
-extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, unsigned int options, DriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverRef _Nullable * _Nonnull pOutDriver);
 
 #endif /* Driver_h */

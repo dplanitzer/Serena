@@ -12,6 +12,8 @@
 #include <kobj/Object.h>
 
 
+extern DriverCatalogRef _Nonnull  gDriverCatalog;
+
 extern errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf);
 extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 

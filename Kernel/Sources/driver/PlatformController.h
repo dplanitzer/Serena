@@ -20,14 +20,12 @@
 open_class(PlatformController, Driver,
 );
 open_class_funcs(PlatformController, Driver,
-    errno_t (*autoConfigureForConsole)(PlatformControllerRef _Nonnull self, DriverCatalogRef _Nonnull catalog);
-    errno_t (*autoConfigure)(PlatformControllerRef _Nonnull self, DriverCatalogRef _Nonnull catalog);
 );
 
-#define PlatformController_AutoConfigureForConsole(__self, __catalog) \
-invoke_n(autoConfigureForConsole, PlatformController, __self, __catalog)
 
-#define PlatformController_AutoConfigure(__self, __catalog) \
-invoke_n(autoConfigure, PlatformController, __self, __catalog)
+// Should be invoked by the platform specific subclass to inform the kernel that
+// the console is available now. Initializes the kernel logging services and 
+// prints the boot banner.
+extern void PlatformController_NoteConsoleAvailable(PlatformControllerRef _Nonnull self);
 
 #endif /* PlatformController_h */

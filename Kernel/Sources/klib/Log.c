@@ -20,7 +20,7 @@ static Lock         gLock;
 static ConsoleRef   gConsole;
 static IOChannelRef gConsoleChannel;
 static Formatter    gFormatter;
-static char    gPrintBuffer[PRINT_BUFFER_CAPACITY];
+static char         gPrintBuffer[PRINT_BUFFER_CAPACITY];
 
 
 static errno_t printv_console_sink_locked(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, ssize_t nBytes)

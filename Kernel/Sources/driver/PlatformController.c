@@ -7,19 +7,26 @@
 //
 
 #include "PlatformController.h"
+#include <klib/Log.h>
 
 
-errno_t PlatformController_autoConfigureForConsole(PlatformControllerRef _Nonnull self, DriverCatalogRef _Nonnull catalog)
+// Should be invoked by the platform specific subclass to inform the kernel that
+// the console is available now. Initializes the kernel logging services and 
+// prints the boot banner.
+void PlatformController_NoteConsoleAvailable(PlatformControllerRef _Nonnull self)
 {
-    return ENODEV;
+    // Initialize the kernel print services
+    print_init();
+
+
+    // Boot message
+    print("\033[36mSerena OS v0.2.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n");
+
+
+    // Debug printing
+    //PrintClasses();
 }
 
-errno_t PlatformController_autoConfigure(PlatformControllerRef _Nonnull self, DriverCatalogRef _Nonnull catalog)
-{
-    return ENODEV;
-}
 
 class_func_defs(PlatformController, Driver,
-    func_def(autoConfigureForConsole, PlatformController)
-    func_def(autoConfigure, PlatformController)
 );

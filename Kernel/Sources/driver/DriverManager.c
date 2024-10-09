@@ -14,7 +14,6 @@
 
 typedef struct DriverManager {
     Lock                            lock;
-    DriverCatalogRef _Nonnull       catalog;
     PlatformControllerRef _Nonnull  platformController;
 } DriverManager;
 
@@ -36,7 +35,6 @@ errno_t DriverManager_Create(DriverManagerRef _Nullable * _Nonnull pOutSelf)
     
     try(kalloc_cleared(sizeof(DriverManager), (void**) &self));
     Lock_Init(&self->lock);
-    try(DriverCatalog_Create(&self->catalog));
     try(AmigaController_Create(&self->platformController));
     try(Driver_Start((DriverRef)self->platformController));
 
@@ -52,8 +50,6 @@ catch:
 void DriverManager_Destroy(DriverManagerRef _Nullable self)
 {
     if (self) {
-        DriverCatalog_Destroy(self->catalog);
-        self->catalog = NULL;
         Object_Release(self->platformController);
         self->platformController = NULL;
 
@@ -62,23 +58,15 @@ void DriverManager_Destroy(DriverManagerRef _Nullable self)
     }
 }
 
-errno_t DriverManager_AutoConfigureForConsole(DriverManagerRef _Nonnull self)
+errno_t DriverManager_Start(DriverManagerRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
-    const errno_t err = PlatformController_AutoConfigureForConsole(self->platformController, self->catalog);
-    Lock_Unlock(&self->lock);
-    return err;
-}
-
-errno_t DriverManager_AutoConfigure(DriverManagerRef _Nonnull self)
-{
-    Lock_Lock(&self->lock);
-    const errno_t err = PlatformController_AutoConfigure(self->platformController, self->catalog);
+    const errno_t err = Driver_Start((DriverRef)self->platformController);
     Lock_Unlock(&self->lock);
     return err;
 }
 
 DriverRef DriverManager_GetDriverForName(DriverManagerRef _Nonnull self, const char* name)
 {
-    return DriverCatalog_GetDriverForName(self->catalog, name);
+    return DriverCatalog_GetDriverForName(gDriverCatalog, name);
 }

@@ -372,7 +372,7 @@ errno_t GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, Pixel
     GraphicsDriverRef self;
     Screen* pScreen;
     
-    try(Driver_Create(GraphicsDriver, kDriverModel_Sync, 0, &self));
+    try(Driver_Create(GraphicsDriver, kDriverModel_Sync, &self));
     self->isLightPenEnabled = false;
     Lock_Init(&self->lock);
     

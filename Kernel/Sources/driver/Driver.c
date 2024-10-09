@@ -34,12 +34,12 @@ typedef struct IOControlRequest {
 } IOControlRequest;
 
 
-errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, unsigned int options, DriverRef _Nullable * _Nonnull pOutDriver)
+errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverRef _Nullable * _Nonnull pOutDriver)
 {
     errno_t err = _Object_Create(pClass, 0, (ObjectRef*)pOutDriver);
 
     if (err == EOK) {
-        err = Driver_Init(*pOutDriver, model, options);
+        err = Driver_Init(*pOutDriver, model);
     }
     else {
         Object_Release(*pOutDriver);
@@ -48,12 +48,11 @@ errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, unsigned int o
     return err;
 }
 
-errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, unsigned int options)
+errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model)
 {
     decl_try_err();
 
     self->dispatchQueue = NULL;
-    self->options = (uint16_t)options;
     self->isStopped = true;
 
     if (model == kDriverModel_Async) {
@@ -105,9 +104,8 @@ errno_t Driver_Start(DriverRef _Nonnull self)
     return err;
 }
 
-errno_t Driver_start(DriverRef _Nonnull self)
+void Driver_start(DriverRef _Nonnull self)
 {
-    return EOK;
 }
 
 

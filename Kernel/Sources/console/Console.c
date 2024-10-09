@@ -21,7 +21,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     decl_try_err();
     ConsoleRef self;
 
-    try(Driver_Create(Console, kDriverModel_Sync, 0, &self));
+    try(Driver_Create(Console, kDriverModel_Sync, &self));
     
     Lock_Init(&self->lock);
 
