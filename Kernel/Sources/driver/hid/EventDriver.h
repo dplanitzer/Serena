@@ -14,6 +14,8 @@
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include "HIDEvent.h"
 
+extern const char* const kEventsDriverName;
+
 
 final_class(EventDriver, Driver);
 

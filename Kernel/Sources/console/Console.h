@@ -21,6 +21,8 @@
 // DEC VT100                                        <https://vt100.net/docs/vt100-ug/contents.html>
 // DEC VT102 (ANSI X3.41-1977 & ANSI X3.64-1979)    <https://vt100.net/docs/vt102-ug/contents.html>
 //
+extern const char* const kConsoleName;
+
 final_class(Console, Driver);
 
 extern errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf);

@@ -13,7 +13,7 @@
 // XXX tmp
 #include <console/Console.h>
 #include <console/ConsoleChannel.h>
-#include <driver/DriverManager.h>
+#include <driver/DriverCatalog.h>
 // XXX tmp
 
 
@@ -148,7 +148,7 @@ errno_t Process_OpenFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, 
     if (String_Equals(pPath, "/dev/console")) {
         ConsoleRef pConsole;
 
-        try_null(pConsole, (ConsoleRef) DriverManager_GetDriverForName(gDriverManager, kConsoleName), ENODEV);
+        try_null(pConsole, (ConsoleRef) DriverCatalog_GetDriverForName(gDriverCatalog, kConsoleName), ENODEV);
         try(Driver_Open((DriverRef)pConsole, pPath, mode, &pFile));
         try(IOChannelTable_AdoptChannel(&pProc->ioChannelTable, pFile, pOutIoc));
         pFile = NULL;

@@ -14,7 +14,6 @@
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/amiga/RealtimeClock.h>
 #include <driver/hid/EventDriver.h>
-#include <driver/DriverManager.h>
 
 
 final_class_ivars(AmigaController, PlatformController,

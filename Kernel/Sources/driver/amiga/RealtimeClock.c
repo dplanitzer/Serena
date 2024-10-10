@@ -10,6 +10,8 @@
 #include <dispatcher/Lock.h>
 #include <hal/Platform.h>
 
+const char* const kRealtimeClockName = "rtc";
+
 
 // The realtime clock
 final_class_ivars(RealtimeClock, Driver,

@@ -9,7 +9,7 @@
 #ifndef PlatformController_h
 #define PlatformController_h
 
-#include <Driver.h>
+#include <driver/Driver.h>
 
 
 // A platform controller is the root driver of a platform. All other drivers are

@@ -12,11 +12,11 @@
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
-#include <driver/DriverManager.h>
 #include <driver/InterruptController.h>
 #include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
 #include <driver/RomDisk.h>
+#include <driver/amiga/AmigaController.h>
 #include <driver/amiga/floppy/FloppyDisk.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
@@ -132,6 +132,21 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
 }
 
+// Creates and starts the platform controller which in turn discovers all platform
+// specific drivers and gets them up and running.
+static errno_t init_platform_controller(void)
+{
+    static PlatformControllerRef gPlatformController;
+    decl_try_err();
+
+    err = AmigaController_Create(&gPlatformController);
+
+    if (err == EOK) {
+        err = Driver_Start((DriverRef)gPlatformController);
+    }
+    return err;
+}
+
 // Scans the ROM area following the end of the kernel looking for an embedded
 // Serena disk image with a root filesystem.
 static const SMG_Header* _Nullable find_rom_rootfs(void)
@@ -199,7 +214,7 @@ static bool try_rootfs_from_fd0(bool hasFallback)
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 
-    try_null(fd0, DriverManager_GetDriverForName(gDriverManager, kFloppyDrive0Name), ENODEV);
+    try_null(fd0, DriverCatalog_GetDriverForName(gDriverCatalog, kFloppyDrive0Name), ENODEV);
     try(SerenaFS_Create((SerenaFSRef*)&fs));
 
     while (true) {
@@ -272,12 +287,8 @@ static void OnMain(void)
     // Create the driver catalog
     try_bang(DriverCatalog_Create(&gDriverCatalog));
 
-    // Create the driver manager
-    try_bang(DriverManager_Create(&gDriverManager));
-
-
-    // Initialize the drivers
-    try_bang(DriverManager_Start(gDriverManager));
+    // Create the platform controller
+    try_bang(init_platform_controller());
 
 
     // Initialize the Kernel Runtime Services so that we can make it available

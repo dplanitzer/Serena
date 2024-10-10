@@ -9,6 +9,8 @@
 #include "EventDriverPriv.h"
 #include "EventChannel.h"
 
+const char* const kEventsDriverName = "events";
+
 //extern const uint16_t gArrow_Bits[];
 //extern const uint16_t gArrow_Mask[];
 
