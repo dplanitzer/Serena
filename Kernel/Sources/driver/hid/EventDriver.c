@@ -373,7 +373,7 @@ catch:
 void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull self, int portId)
 {
     if (self->port[portId].driver) {
-        Driver_Stop((DriverRef) self->port[portId].driver, true);
+        Driver_Stop((DriverRef) self->port[portId].driver);
         Object_Release(self->port[portId].driver);
         self->port[portId].driver = NULL;
         self->port[portId].type = kInputControllerType_None;

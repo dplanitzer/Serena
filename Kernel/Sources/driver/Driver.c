@@ -11,29 +11,6 @@
 #include <dispatchqueue/DispatchQueue.h>
 
 
-typedef struct IOReadRequest {
-    IOChannelRef _Nonnull   channel;
-    char* _Nonnull          inBuffer;
-    ssize_t                 inByteCount;
-    ssize_t                 outByteCount;
-    errno_t                 outStatus;
-} IOReadRequest;
-
-typedef struct IOWriteRequest {
-    IOChannelRef _Nonnull   channel;
-    const char* _Nonnull    outBuffer;
-    ssize_t                 inByteCount;
-    ssize_t                 outByteCount;
-    errno_t                 outStatus;
-} IOWriteRequest;
-
-typedef struct IOControlRequest {
-    int         inCmd;
-    va_list     inAp;
-    errno_t     outStatus;
-} IOControlRequest;
-
-
 errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverRef _Nullable * _Nonnull pOutDriver)
 {
     errno_t err = _Object_Create(pClass, 0, (ObjectRef*)pOutDriver);
@@ -74,11 +51,6 @@ static void Driver_deinit(DriverRef _Nonnull self)
 
 
 
-static void Driver_onStart(DriverRef _Nonnull self)
-{
-    invoke_0(start, Driver, self);
-}
-
 // Starts the driver. A driver may only be started once. It can not be restarted
 // after it has been stopped. A driver is started after the hardware has been
 // detected and the driver instance created. The driver should reset the hardware
@@ -88,49 +60,29 @@ static void Driver_onStart(DriverRef _Nonnull self)
 // Note that the actual start code is always executed asynchronously.
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
-    decl_try_err();
-
     if (!AtomicBool_Set(&self->isStopped, false)) {
         return EOK;
     }
 
-    if (self->dispatchQueue) {
-        err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)Driver_onStart, self, NULL, 0, 0, 0);
-    }
-    else {
-        invoke_0(start, Driver, self);
-    }
-
-    return err;
+    return invoke_0(start, Driver, self);
 }
 
-void Driver_start(DriverRef _Nonnull self)
+errno_t Driver_start(DriverRef _Nonnull self)
 {
+    return EOK;
 }
 
 
-
-static void Driver_onStop(DriverRef _Nonnull self)
-{
-    invoke_0(stop, Driver, self);
-}
 
 // Stops an active driver. Once stopped, a driver does not access its hardware
-// anymore. The actual stop function is always executed asynchronously. However
-// the caller of Driver_Stop() is blocked until the driver has truly stopped if
-// 'waitForCompletion' is true.
-void Driver_Stop(DriverRef _Nonnull self, bool waitForCompletion)
+// anymore.
+void Driver_Stop(DriverRef _Nonnull self)
 {
     if (AtomicBool_Set(&self->isStopped, true)) {
         return;
     }
 
-    if (self->dispatchQueue) {
-        DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)Driver_onStop, self, NULL, 0, (waitForCompletion) ? kDispatchOption_Sync : 0, 0);
-    }
-    else {
-        invoke_0(stop, Driver, self);
-    }
+    invoke_0(stop, Driver, self);
 }
 
 void Driver_stop(DriverRef _Nonnull self)
@@ -166,44 +118,14 @@ errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 }
 
 
-static void Driver_onRead(DriverRef _Nonnull self, IOReadRequest* _Nonnull request)
-{
-    if (!self->isStopped) {
-        request->outStatus = invoke_n(read, Driver, self, request->channel, request->inBuffer, request->inByteCount, &request->outByteCount);
-    }
-    else {
-        request->outByteCount = 0;
-        request->outStatus = ENODEV;
-    }
-}
-
 errno_t Driver_Read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
-    decl_try_err();
-    IOReadRequest r;
-
-    if (self->isStopped) {
-        err = ENODEV;
-    }
-    else if (self->dispatchQueue) {
-        r.channel = pChannel;
-        r.inBuffer = pBuffer;
-        r.inByteCount = nBytesToRead;
-
-        err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)Driver_onRead, self, &r, 0, kDispatchOption_Sync, 0);
-        if (err == EOK) {
-            *nOutBytesRead = r.outByteCount;
-            err = r.outStatus;
-        }
-        else {
-            *nOutBytesRead = 0;
-        }
+    if (!self->isStopped) {
+        return invoke_n(read, Driver, self, pChannel, pBuffer, nBytesToRead, nOutBytesRead);
     }
     else {
-        err = invoke_n(read, Driver, self, pChannel, pBuffer, nBytesToRead, nOutBytesRead);
+        return ENODEV;
     }
-
-    return err;
 }
 
 errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -213,44 +135,14 @@ errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, voi
 
 
 
-static void Driver_onWrite(DriverRef _Nonnull self, IOWriteRequest* _Nonnull request)
-{
-    if (!self->isStopped) {
-        request->outStatus = invoke_n(write, Driver, self, request->channel, request->outBuffer, request->inByteCount, &request->outByteCount);
-    }
-    else {
-        request->outByteCount = 0;
-        request->outStatus = ENODEV;
-    }
-}
-
 errno_t Driver_Write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    decl_try_err();
-    IOWriteRequest r;
-
-    if (self->isStopped) {
-        err = ENODEV;
-    }
-    else if (self->dispatchQueue) {
-        r.channel = pChannel;
-        r.outBuffer = pBuffer;
-        r.inByteCount = nBytesToWrite;
-
-        err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)Driver_onWrite, self, &r, 0, kDispatchOption_Sync, 0);
-        if (err == EOK) {
-            *nOutBytesWritten = r.outByteCount;
-            err = r.outStatus;
-        }
-        else {
-            *nOutBytesWritten = 0;
-        }
+    if (!self->isStopped) {
+        return invoke_n(write, Driver, self, pChannel, pBuffer, nBytesToWrite, nOutBytesWritten);
     }
     else {
-        err = invoke_n(write, Driver, self, pChannel, pBuffer, nBytesToWrite, nOutBytesWritten);
+        return ENODEV;
     }
-
-    return err;
 }
 
 errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
@@ -260,38 +152,16 @@ errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, co
 
 
 
-static void Driver_onIoctl(DriverRef _Nonnull self, IOControlRequest* _Nonnull request)
-{
-    if (!self->isStopped) {
-        request->outStatus = invoke_n(ioctl, Driver, self, request->inCmd, request->inAp);
-    }
-    else {
-        request->outStatus = ENODEV;
-    }
-}
-
 errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
     decl_try_err();
-    IOControlRequest r;
 
-    if (self->isStopped) {
-        err = ENODEV;
-    }
-    else if (self->dispatchQueue) {
-        r.inCmd = cmd;
-        r.inAp = ap;
-
-        err = DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)Driver_onIoctl, self, &r, 0, kDispatchOption_Sync, 0);
-        if (err == EOK) {
-            err = r.outStatus;
-        }
+    if (!self->isStopped) {
+        return invoke_n(ioctl, Driver, self, cmd, ap);
     }
     else {
-        err = invoke_n(ioctl, Driver, self, cmd, ap);
+        return ENODEV;
     }
-
-    return err;
 }
 
 errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)

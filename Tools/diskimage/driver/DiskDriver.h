@@ -10,6 +10,7 @@
 #define di_DiskDriver_h
 
 #include <kobj/Object.h>
+#include <System/Disk.h>
 #include "DiskImageFormat.h"
 
 
@@ -34,17 +35,9 @@ open_class_funcs(DiskDriver, Object,
 extern errno_t DiskDriver_Create(const DiskImageFormat* _Nonnull pFormat, DiskDriverRef _Nullable * _Nonnull pOutSelf);
 extern void DiskDriver_Destroy(DiskDriverRef _Nullable self);
 
-// Returns the size of a block.
-// The abstract implementation returns 0.
-extern size_t DiskDriver_GetBlockSize(DiskDriverRef _Nonnull self);
-
-// Returns the number of blocks that the disk is able to store.
-// The abstract implementation returns 0.
-extern LogicalBlockCount DiskDriver_GetBlockCount(DiskDriverRef _Nonnull self);
-
-// Returns true if the disk if read-only.
-// The abstract implementation returns true.
-extern bool DiskDriver_IsReadOnly(DiskDriverRef _Nonnull self);
+// Returns information about the disk drive and the media loaded into the
+// drive.
+extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
 // Reads the contents of the block at index 'lba'. 'buffer' must be big
 // enough to hold the data of a block. Blocks the caller until the read

@@ -50,7 +50,7 @@ static errno_t AmigaController_AutoConfigureExpansionBoardBus(struct AmigaContro
     return EOK;
 }
 
-void AmigaController_start(struct AmigaController* _Nonnull self)
+errno_t AmigaController_start(struct AmigaController* _Nonnull self)
 {
     decl_try_err();
 
@@ -120,10 +120,9 @@ void AmigaController_start(struct AmigaController* _Nonnull self)
             try(DriverCatalog_RegisterDriver(gDriverCatalog, fdx_name, (DriverRef)fdx[i]));
         }
     }
-    return;
 
 catch:
-    abort();
+    return err;
 }
 
 class_func_defs(AmigaController, PlatformController,

@@ -31,7 +31,7 @@ open_class_funcs(Driver, Object,
     // all components are in an idle state.
     // Override: Optional
     // Default Behavior: Returns EOK and does nothing
-    void (*start)(void* _Nonnull self);
+    errno_t (*start)(void* _Nonnull self);
 
     // Invoked as the result of calling Driver_Stop(). A driver subclass should
     // override this method and configure the hardware such that it is in an
@@ -73,7 +73,7 @@ open_class_funcs(Driver, Object,
 );
 
 extern errno_t Driver_Start(DriverRef _Nonnull self);
-extern void Driver_Stop(DriverRef _Nonnull self, bool waitForCompletion);
+extern void Driver_Stop(DriverRef _Nonnull self);
 
 extern errno_t Driver_Open(DriverRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel);

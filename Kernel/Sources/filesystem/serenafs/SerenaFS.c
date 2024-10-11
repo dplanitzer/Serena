@@ -16,15 +16,18 @@
 errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePermissions permissions)
 {
     decl_try_err();
-    const size_t diskBlockSize = DiskDriver_GetBlockSize(pDriver);
-    const LogicalBlockCount diskBlockCount = DiskDriver_GetBlockCount(pDriver);
+    DiskInfo diskInfo;
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
 
+    if ((err = DiskDriver_GetInfo(pDriver, &diskInfo)) != EOK) {
+        return err;
+    }
+
     // Make sure that the  disk is compatible with our FS
-    if (diskBlockSize != kSFSBlockSize) {
+    if (diskInfo.blockSize != kSFSBlockSize) {
         return EINVAL;
     }
-    if (diskBlockCount < kSFSVolume_MinBlockCount) {
+    if (diskInfo.blockCount < kSFSVolume_MinBlockCount) {
         return ENOSPC;
     }
 
@@ -40,17 +43,17 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     // Nab+3    Unused
     // .        ...
     // Figure out the size and location of the allocation bitmap and root directory
-    const uint32_t allocationBitmapByteSize = (diskBlockCount + 7) >> 3;
-    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (diskBlockSize - 1)) / diskBlockSize;
+    const uint32_t allocationBitmapByteSize = (diskInfo.blockCount + 7) >> 3;
+    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (diskInfo.blockSize - 1)) / diskInfo.blockSize;
     const LogicalBlockAddress rootDirInodeLba = allocBitmapBlockCount + 1;
     const LogicalBlockAddress rootDirContentLba = rootDirInodeLba + 1;
 
     uint8_t* p = NULL;
-    try(kalloc(diskBlockSize, (void**)&p));
+    try(kalloc(diskInfo.blockSize, (void**)&p));
 
 
     // Write the volume header
-    memset(p, 0, diskBlockSize);
+    memset(p, 0, diskInfo.blockSize);
     SFSVolumeHeader* vhp = (SFSVolumeHeader*)p;
     vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
     vhp->version = UInt32_HostToBig(kSFSVersion_Current);
@@ -59,8 +62,8 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     vhp->creationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     vhp->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     vhp->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    vhp->blockSize = UInt32_HostToBig(diskBlockSize);
-    vhp->volumeBlockCount = UInt32_HostToBig(diskBlockCount);
+    vhp->blockSize = UInt32_HostToBig(diskInfo.blockSize);
+    vhp->volumeBlockCount = UInt32_HostToBig(diskInfo.blockCount);
     vhp->allocationBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
     vhp->rootDirectoryLba = UInt32_HostToBig(rootDirInodeLba);
     vhp->allocationBitmapLba = UInt32_HostToBig(1);
@@ -69,12 +72,12 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
 
     // Write the allocation bitmap
     // Note that we mark the blocks that we already know are in use as in-use
-    const size_t nAllocationBitsPerBlock = diskBlockSize << 3;
+    const size_t nAllocationBitsPerBlock = diskInfo.blockSize << 3;
     const LogicalBlockAddress nBlocksToAllocate = 1 + allocBitmapBlockCount + 1 + 1; // volume header + alloc bitmap + root dir inode + root dir content
     LogicalBlockAddress nBlocksAllocated = 0;
 
     for (LogicalBlockAddress i = 0; i < allocBitmapBlockCount; i++) {
-        memset(p, 0, diskBlockSize);
+        memset(p, 0, diskInfo.blockSize);
 
         LogicalBlockAddress bitNo = 0;
         while (nBlocksAllocated < __min(nBlocksToAllocate, nAllocationBitsPerBlock)) {
@@ -88,7 +91,7 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
 
 
     // Write the root directory inode
-    memset(p, 0, diskBlockSize);
+    memset(p, 0, diskInfo.blockSize);
     SFSInode* ip = (SFSInode*)p;
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
@@ -108,7 +111,7 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
 
     // Write the root directory content. This is just the entries '.' and '..'
     // which both point back to the root directory.
-    memset(p, 0, diskBlockSize);
+    memset(p, 0, diskInfo.blockSize);
     SFSDirectoryEntry* dep = (SFSDirectoryEntry*)p;
     dep[0].id = UInt32_HostToBig(rootDirInodeLba);
     dep[0].filename[0] = '.';
@@ -156,6 +159,7 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
+    DiskInfo diskInfo;
 
     if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
         return err;
@@ -167,10 +171,12 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
     // Make sure that the disk partition actually contains a SerenaFS that we
     // know how to handle.
-    if (DiskDriver_GetBlockCount(pDriver) < kSFSVolume_MinBlockCount) {
+    try(DiskDriver_GetInfo(pDriver, &diskInfo));
+
+    if (diskInfo.blockCount < kSFSVolume_MinBlockCount) {
         throw(EIO);
     }
-    if (DiskDriver_GetBlockSize(pDriver) != kSFSBlockSize) {
+    if (diskInfo.blockSize != kSFSBlockSize) {
         throw(EIO);
     }
 
@@ -227,7 +233,7 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
     self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
     self->mountFlags.isMounted = 1;
     // XXX should be drive->is_readonly || mount-params->is_readonly
-    if (DiskDriver_IsReadOnly(pDriver)) {
+    if (diskInfo.isReadOnly) {
         self->mountFlags.isReadOnly = 1;
     }
     

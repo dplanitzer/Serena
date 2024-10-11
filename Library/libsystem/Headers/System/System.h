@@ -17,6 +17,7 @@
 #include <System/DispatchQueue.h>
 #include <System/Error.h>
 #include <System/Directory.h>
+#include <System/Disk.h>
 #include <System/File.h>
 #include <System/FilePermissions.h>
 #include <System/IOChannel.h>

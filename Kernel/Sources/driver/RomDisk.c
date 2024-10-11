@@ -23,7 +23,7 @@ errno_t RomDisk_Create(const void* _Nonnull pDiskImage, size_t nBlockSize, Logic
     RomDiskRef self;
 
     assert(pDiskImage != NULL);
-    try(Object_Create(RomDisk, &self));
+    try(Driver_Create(RomDisk, kDriverModel_Async, &self));
     self->diskImage = pDiskImage;
     self->blockCount = nBlockCount;
     self->blockSize = nBlockSize;
@@ -45,16 +45,16 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
     }
 }
 
-// Returns the size of a block.
-size_t RomDisk_getBlockSize(RomDiskRef _Nonnull self)
+// Returns information about the disk drive and the media loaded into the
+// drive.
+errno_t RomDisk_getInfoAsync(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    return self->blockSize;
-}
+    pOutInfo->blockSize = self->blockSize;
+    pOutInfo->blockCount = self->blockCount;
+    pOutInfo->isReadOnly = true;
+    pOutInfo->isMediaLoaded = true;
 
-// Returns the number of blocks that the disk is able to store.
-LogicalBlockCount RomDisk_getBlockCount(RomDiskRef _Nonnull self)
-{
-    return self->blockCount;
+    return EOK;
 }
 
 // Reads the contents of the block at index 'lba'. 'buffer' must be big
@@ -62,7 +62,7 @@ LogicalBlockCount RomDisk_getBlockCount(RomDiskRef _Nonnull self)
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RomDisk_getBlockAsync(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba < self->blockCount) {
         memcpy(pBuffer, self->diskImage + lba * self->blockSize, self->blockSize);
@@ -76,7 +76,6 @@ errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, Logic
 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
-override_func_def(getBlockSize, RomDisk, DiskDriver)
-override_func_def(getBlockCount, RomDisk, DiskDriver)
-override_func_def(getBlock, RomDisk, DiskDriver)
+override_func_def(getInfoAsync, RomDisk, DiskDriver)
+override_func_def(getBlockAsync, RomDisk, DiskDriver)
 );

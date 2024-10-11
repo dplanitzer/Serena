@@ -42,22 +42,16 @@ void DiskDriver_deinit(DiskDriverRef _Nonnull self)
     self->diskImage = NULL;
 }
 
-// Returns the size of a block.
-size_t DiskDriver_GetBlockSize(DiskDriverRef _Nonnull self)
+// Returns information about the disk drive and the media loaded into the
+// drive.
+errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    return self->blockSize;
-}
+    pOutInfo->blockSize = self->blockSize;
+    pOutInfo->blockCount = self->blockCount;
+    pOutInfo->isReadOnly = false;
+    pOutInfo->isMediaLoaded = true;
 
-// Returns the number of blocks that the disk is able to store.
-LogicalBlockCount DiskDriver_GetBlockCount(DiskDriverRef _Nonnull self)
-{
-    return self->blockCount;
-}
-
-// Returns true if the disk if read-only.
-bool DiskDriver_IsReadOnly(DiskDriverRef _Nonnull self)
-{
-    return false;
+    return EOK;
 }
 
 // Reads the contents of the block at index 'lba'. 'buffer' must be big

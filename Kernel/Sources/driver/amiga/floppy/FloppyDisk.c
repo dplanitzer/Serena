@@ -8,6 +8,7 @@
 
 #include "FloppyDiskPriv.h"
 #include <dispatcher/VirtualProcessor.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include <hal/Platform.h>
 #include "mfm.h"
 
@@ -75,13 +76,26 @@ static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
     self->fdc = NULL;
 }
 
+// Returns information about the disk drive and the media loaded into the
+// drive.
+errno_t FloppyDisk_getInfoAsync(FloppyDiskRef _Nonnull self, DiskInfo* pOutInfo)
+{
+    pOutInfo->blockSize = ADF_SECTOR_DATA_SIZE;
+    pOutInfo->blockCount = self->blocksPerDisk;
+    pOutInfo->isReadOnly = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
+    pOutInfo->isMediaLoaded = (self->flags.isOnline && self->flags.hasDisk) ? true : false;
+
+    return EOK;
+}
+
 // Establishes the base state for a newly discovered drive. This means that we
 // move the disk head to track #0 and that we figure out whether a disk is loaded
 // or not.
-static void FloppyDisk_start(FloppyDiskRef _Nonnull self)
+static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self)
 {
     bool didStep;
     const errno_t err = FloppyDisk_SeekToTrack_0(self, &didStep);
+
     if (err == EOK) {
         if (!didStep) {
             FloppyDisk_ResetDriveDiskChange(self);
@@ -97,6 +111,14 @@ static void FloppyDisk_start(FloppyDiskRef _Nonnull self)
     else {
         FloppyDisk_OnHardwareLost(self);
     }
+}
+
+static errno_t FloppyDisk_start(FloppyDiskRef _Nonnull self)
+{
+    return DispatchQueue_DispatchAsync(
+        Driver_GetDispatchQueue(self),
+        (VoidFunc_1)FloppyDisk_EstablishInitialDriveState,
+        self);
 }
 
 // Called when we've detected that the disk has been removed from the drive
@@ -709,17 +731,14 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self, uint8_t targetTrac
 #endif
 }
 
-static void FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, DiskRequest* _Nonnull req)
+static errno_t FloppyDisk_getBlockAsync(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = req->lba;
 
     if (lba >= self->blocksPerDisk) {
-        req->err = EIO;
-        return;
+        return EIO;
     }
 
-    void* pBuffer = req->pBuffer;
     const int cylinder = lba / self->sectorsPerCylinder;
     const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int sector = lba % self->sectorsPerTrack;
@@ -768,7 +787,7 @@ static void FloppyDisk_ReadSector(FloppyDiskRef _Nonnull self, DiskRequest* _Non
     }
 
 catch:
-    req->err = err;
+    return err;
 }
 
 // Checks whether the track that is stored in the track buffer is 'targetTrack'
@@ -838,17 +857,14 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTr
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-static void FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, DiskRequest* _Nonnull req)
+static errno_t FloppyDisk_putBlockAsync(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = req->lba;
 
     if (lba >= self->blocksPerDisk) {
-        req->err = EIO;
-        return;
+        return EIO;
     }
 
-    const void* pBuffer = req->pBuffer;
     const int cylinder = lba / self->sectorsPerCylinder;
     const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int sector = lba % self->sectorsPerTrack;
@@ -952,79 +968,14 @@ static void FloppyDisk_WriteSector(FloppyDiskRef _Nonnull self, DiskRequest* _No
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
 
 catch:
-    req->err = FloppyDisk_EndIO(self, err);
+    return FloppyDisk_EndIO(self, err);
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-// DiskDriver overrides
-////////////////////////////////////////////////////////////////////////////////
-
-bool FloppyDisk_HasDisk(FloppyDiskRef _Nonnull self)
-{
-    return (self->flags.isOnline && self->flags.hasDisk) ? true : false;
-}
-
-// Returns the size of a block.
-size_t FloppyDisk_getBlockSize(FloppyDiskRef _Nonnull self)
-{
-    return ADF_SECTOR_DATA_SIZE;
-}
-
-// Returns the number of blocks that the disk is able to store.
-LogicalBlockCount FloppyDisk_getBlockCount(FloppyDiskRef _Nonnull self)
-{
-    return self->blocksPerDisk;
-}
-
-// Returns true if the disk if read-only.
-bool FloppyDisk_isReadOnly(FloppyDiskRef _Nonnull self)
-{
-    return ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
-}
-
-// Reads the contents of the block at index 'lba'. 'buffer' must be big
-// enough to hold the data of a block. Blocks the caller until the read
-// operation has completed. Note that this function will never return a
-// partially read block. Either it succeeds and the full block data is
-// returned, or it fails and no block data is returned.
-errno_t FloppyDisk_getBlock(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
-{
-    DiskRequest req;
-
-    req.pBuffer = pBuffer;
-    req.lba = lba;
-    req.err = EOK;
-
-    DispatchQueue_DispatchSyncArgs(Driver_GetDispatchQueue(self), (VoidFunc_2)FloppyDisk_ReadSector, self, &req, sizeof(req));
-    return req.err;
-}
-
-// Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
-// must be big enough to hold a full block. Blocks the caller until the
-// write has completed. The contents of the block on disk is left in an
-// indeterminate state of the write fails in the middle of the write. The
-// block may contain a mix of old and new data.
-errno_t FloppyDisk_putBlock(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
-{
-    DiskRequest req;
-
-    req.pBuffer = (void*)pBuffer;
-    req.lba = lba;
-    req.err = EOK;
-
-    DispatchQueue_DispatchSyncArgs(Driver_GetDispatchQueue(self), (VoidFunc_2)FloppyDisk_WriteSector, self, &req, sizeof(req));
-    return req.err;
-}
-
 
 
 class_func_defs(FloppyDisk, DiskDriver,
 override_func_def(deinit, FloppyDisk, Object)
-override_func_def(getBlockSize, FloppyDisk, DiskDriver)
-override_func_def(getBlockCount, FloppyDisk, DiskDriver)
-override_func_def(isReadOnly, FloppyDisk, DiskDriver)
-override_func_def(getBlock, FloppyDisk, DiskDriver)
-override_func_def(putBlock, FloppyDisk, DiskDriver)
+override_func_def(getInfoAsync, FloppyDisk, DiskDriver)
 override_func_def(start, FloppyDisk, Driver)
+override_func_def(getBlockAsync, FloppyDisk, DiskDriver)
+override_func_def(putBlockAsync, FloppyDisk, DiskDriver)
 );

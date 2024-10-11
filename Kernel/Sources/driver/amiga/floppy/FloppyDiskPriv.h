@@ -12,7 +12,6 @@
 #include "FloppyDisk.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
-#include <dispatchqueue/DispatchQueue.h>
 
 
 // Floppy motor state
@@ -87,15 +86,6 @@ final_class_ivars(FloppyDisk, DiskDriver,
         unsigned int    reserved:24;
     }                           flags;
 );
-
-// XXX tmp
-typedef struct DiskRequest {
-    void* _Nonnull          pBuffer;    // in
-    LogicalBlockAddress     lba;        // in
-
-    errno_t                 err;        // out
-} DiskRequest;
-// XXX tmp
 
 
 extern errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);

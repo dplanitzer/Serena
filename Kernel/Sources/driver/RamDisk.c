@@ -7,7 +7,6 @@
 //
 
 #include "RamDisk.h"
-#include <dispatcher/Lock.h>
 
 
 typedef struct DiskExtent {
@@ -17,12 +16,12 @@ typedef struct DiskExtent {
 } DiskExtent;
 
 
+// All ivars are protected by the dispatch queue
 final_class_ivars(RamDisk, DiskDriver,
     SList               extents;            // Sorted ascending by 'firstBlockIndex'
     LogicalBlockCount   extentBlockCount;   // How many blocks an extent stores
     LogicalBlockCount   blockCount;
     size_t              blockSize;
-    Lock                lock;               // Protects extent allocation and lookup
 );
 
 
@@ -31,12 +30,11 @@ errno_t RamDisk_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, Logical
     decl_try_err();
     RamDiskRef self;
 
-    try(Object_Create(RamDisk, &self));
+    try(Driver_Create(RamDisk, kDriverModel_Async, &self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(nExtentBlockCount, nBlockCount);
     self->blockCount = nBlockCount;
     self->blockSize = nBlockSize;
-    Lock_Init(&self->lock);
 
     *pOutSelf = self;
     return EOK;
@@ -55,22 +53,16 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
     SList_Deinit(&self->extents);
 }
 
-// Returns the size of a block.
-size_t RamDisk_getBlockSize(RamDiskRef _Nonnull self)
+// Returns information about the disk drive and the media loaded into the
+// drive.
+errno_t RamDisk_getInfoAsync(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    return self->blockSize;
-}
+    pOutInfo->blockSize = self->blockSize;
+    pOutInfo->blockCount = self->blockCount;
+    pOutInfo->isReadOnly = false;
+    pOutInfo->isMediaLoaded = true;
 
-// Returns the number of blocks that the disk is able to store.
-LogicalBlockCount RamDisk_getBlockCount(RamDiskRef _Nonnull self)
-{
-    return self->blockCount;
-}
-
-// Returns true if the disk if read-only.
-bool RamDisk_isReadOnly(RamDiskRef _Nonnull self)
-{
-    return false;
+    return EOK;
 }
 
 // Tries to find the disk extent that contains the given block index. This disk
@@ -108,14 +100,12 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RamDisk_getBlockAsync(RamDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba >= self->blockCount) {
         return EIO;
     }
 
-
-    Lock_Lock(&self->lock);
 
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, NULL);
     if (pExtent) {
@@ -126,8 +116,6 @@ errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, void* _Nonnull pBuffer, Logic
         // Request for a block that hasn't been written to yet -> return zeros
         memset(pBuffer, 0, self->blockSize);
     }
-
-    Lock_Unlock(&self->lock);
 
     return EOK;
 }
@@ -156,15 +144,13 @@ catch:
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RamDisk_putBlockAsync(RamDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     decl_try_err();
 
     if (lba >= self->blockCount) {
         return EIO;
     }
-
-    Lock_Lock(&self->lock);
 
     DiskExtent* pPrevExtent;
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, &pPrevExtent);
@@ -178,17 +164,13 @@ errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, const void* _Nonnull pBuffer,
     }
 
 catch:
-    Lock_Unlock(&self->lock);
-
     return err;
 }
 
 
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
-override_func_def(getBlockSize, RamDisk, DiskDriver)
-override_func_def(getBlockCount, RamDisk, DiskDriver)
-override_func_def(isReadOnly, RamDisk, DiskDriver)
-override_func_def(getBlock, RamDisk, DiskDriver)
-override_func_def(putBlock, RamDisk, DiskDriver)
+override_func_def(getInfoAsync, RamDisk, DiskDriver)
+override_func_def(getBlockAsync, RamDisk, DiskDriver)
+override_func_def(putBlockAsync, RamDisk, DiskDriver)
 );

@@ -11,13 +11,7 @@
 
 #include <klib/klib.h>
 #include <driver/Driver.h>
-
-
-// Represents a logical block address in the range 0..<DiskDriver.blockCount
-typedef uint32_t    LogicalBlockAddress;
-
-// Type to represent the number of blocks on a disk
-typedef LogicalBlockAddress LogicalBlockCount;
+#include <System/Disk.h>
 
 
 // A disk driver manages the data stored on a disk. It provides read and write
@@ -28,17 +22,9 @@ open_class(DiskDriver, Driver,
 );
 open_class_funcs(DiskDriver, Driver,
 
-    // Returns the size of a block.
-    // The abstract implementation returns 0.
-    size_t (*getBlockSize)(void* _Nonnull self);
-
-    // Returns the number of blocks that the disk is able to store.
-    // The abstract implementation returns 0.
-    LogicalBlockCount (*getBlockCount)(void* _Nonnull self);
-
-    // Returns true if the disk if read-only.
-    // The abstract implementation returns true.
-    bool (*isReadOnly)(void* _Nonnull self);
+    // Returns information about the disk drive and the media loaded into the
+    // drive.
+    errno_t (*getInfo)(void* _Nonnull self, DiskInfo* pOutInfo);
 
     // Reads the contents of the block at index 'lba'. 'buffer' must be big
     // enough to hold the data of a block. Blocks the caller until the read
@@ -55,6 +41,27 @@ open_class_funcs(DiskDriver, Driver,
     // block may contain a mix of old and new data.
     // The abstract implementation returns EIO.
     errno_t (*putBlock)(void* _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba);
+
+
+    // Returns information about the disk drive and the media loaded into the
+    // drive.
+    errno_t (*getInfoAsync)(void* _Nonnull self, DiskInfo* pOutInfo);
+
+    // Reads the contents of the block at index 'lba'. 'buffer' must be big
+    // enough to hold the data of a block. Blocks the caller until the read
+    // operation has completed. Note that this function will never return a
+    // partially read block. Either it succeeds and the full block data is
+    // returned, or it fails and no block data is returned.
+    // The abstract implementation returns EIO.
+    errno_t (*getBlockAsync)(void* _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba);
+
+    // Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
+    // must be big enough to hold a full block. Blocks the caller until the
+    // write has completed. The contents of the block on disk is left in an
+    // indeterminate state of the write fails in the middle of the write. The
+    // block may contain a mix of old and new data.
+    // The abstract implementation returns EIO.
+    errno_t (*putBlockAsync)(void* _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba);
 );
 
 
@@ -62,14 +69,8 @@ open_class_funcs(DiskDriver, Driver,
 // Methods for use by disk driver users.
 //
 
-#define DiskDriver_GetBlockSize(__self) \
-invoke_0(getBlockSize, DiskDriver, __self)
-
-#define DiskDriver_GetBlockCount(__self) \
-invoke_0(getBlockCount, DiskDriver, __self)
-
-#define DiskDriver_IsReadOnly(__self) \
-invoke_0(isReadOnly, DiskDriver, __self)
+#define DiskDriver_GetInfo(__self, __pOutInfo) \
+invoke_n(getInfo, DiskDriver, __self, __pOutInfo)
 
 #define DiskDriver_GetBlock(__self, __pBuffer, __lba) \
 invoke_n(getBlock, DiskDriver, __self, __pBuffer, __lba)
