@@ -125,6 +125,17 @@ errno_t DiskDriver_putBlockAsync(DiskDriverRef _Nonnull self, const void* _Nonnu
     return EIO;
 }
 
+errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kIODiskCommand_GetInfo:
+            return DiskDriver_GetInfo(self, va_arg(ap, DiskInfo*));
+            
+        default:
+            return super_n(ioctl, Driver, DiskDriver, self, cmd, ap);
+    }
+}
+
 
 class_func_defs(DiskDriver, Driver,
 func_def(getInfo, DiskDriver)
@@ -133,4 +144,5 @@ func_def(putBlock, DiskDriver)
 func_def(getInfoAsync, DiskDriver)
 func_def(getBlockAsync, DiskDriver)
 func_def(putBlockAsync, DiskDriver)
+override_func_def(ioctl, DiskDriver, Driver)
 );
