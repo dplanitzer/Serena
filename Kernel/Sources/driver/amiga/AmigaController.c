@@ -100,31 +100,15 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
     try(DriverCatalog_RegisterDriver(gDriverCatalog, kRealtimeClockName, (DriverRef)pRealtimeClock));
 
 
-    // Floppy
+    // Floppy Bus
     FloppyControllerRef fdc = NULL;
-    FloppyDiskRef fdx[MAX_FLOPPY_DISK_DRIVES];
-    char fdx_name[4];
-
-    fdx_name[0] = 'f';
-    fdx_name[1] = 'd';
-    fdx_name[2] = '\0';
-    fdx_name[3] = '\0';
-
     try(FloppyController_Create(&fdc));
     try(Driver_Start((DriverRef)fdc));
-    try(FloppyController_DiscoverDrives(fdc, fdx));
-    for(int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        if (fdx[i]) {
-            try(Driver_Start((DriverRef)fdx[i]));
-            fdx_name[2] = '0' + i;
-            try(DriverCatalog_RegisterDriver(gDriverCatalog, fdx_name, (DriverRef)fdx[i]));
-        }
-    }
 
 catch:
     return err;
 }
 
 class_func_defs(AmigaController, PlatformController,
-    override_func_def(start, AmigaController, Driver)
+override_func_def(start, AmigaController, Driver)
 );

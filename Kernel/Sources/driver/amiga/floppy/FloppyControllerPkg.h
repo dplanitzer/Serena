@@ -37,7 +37,7 @@ enum Precompensation {
 };
 
 
-extern DriveState FloppyController_Reset(FloppyControllerRef _Nonnull self, int drive);
+extern DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive);
 
 extern uint32_t FloppyController_GetDriveType(FloppyControllerRef _Nonnull self, DriveState* _Nonnull cb);
 extern uint8_t FloppyController_GetStatus(FloppyControllerRef _Nonnull self, DriveState cb);

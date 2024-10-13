@@ -11,10 +11,13 @@
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
+#include <driver/DriverCatalog.h>
 #include <driver/InterruptController.h>
 #include <driver/MonotonicClock.h>
 #include <hal/Platform.h>
 
+
+#define MAX_FLOPPY_DISK_DRIVES  4
 
 final_class_ivars(FloppyController, Driver,
     Lock                lock;       // Used to ensure that we issue commands to the hardware atomically since all drives share the same CIA and DMA register set
@@ -75,32 +78,41 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-errno_t FloppyController_DiscoverDrives(FloppyControllerRef _Nonnull self, FloppyDiskRef _Nullable pOutDrives[MAX_FLOPPY_DISK_DRIVES])
+errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
 {
     decl_try_err();
-    int nDrivesOkay = 0;
+    char fdx_name[4];
 
+    fdx_name[0] = 'f';
+    fdx_name[1] = 'd';
+    fdx_name[2] = '\0';
+    fdx_name[3] = '\0';
+
+    // Discover as many floppy drives as possible. We ignore drives that generate
+    // an error while trying to initialize them.
     for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        pOutDrives[i] = NULL;
-    }
-
-
-    for (int i = 0; i < MAX_FLOPPY_DISK_DRIVES; i++) {
-        DriveState ds = FloppyController_Reset(self, i);
+        DriveState ds = FloppyController_ResetDrive(self, i);
 
         if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
-            const errno_t err0 = FloppyDisk_Create(i, ds, self, &pOutDrives[i]);
+            FloppyDiskRef drive;
             
-            if (err0 != EOK && nDrivesOkay == 0) {
-                err = err0;
+            err = FloppyDisk_Create(i, ds, self, &drive);
+            if (err == EOK) {
+                if ((err = Driver_Start((DriverRef)drive)) == EOK) {
+                    fdx_name[2] = '0' + i;
+                    err = DriverCatalog_RegisterDriver(gDriverCatalog, fdx_name, (DriverRef)drive);
+                }
+                if (err != EOK) {
+                    Object_Release(drive);
+                }
             }
         }
     }
 
-    return (nDrivesOkay > 0) ? EOK : err;
+    return EOK;
 }
 
-DriveState FloppyController_Reset(FloppyControllerRef _Nonnull self, int drive)
+DriveState FloppyController_ResetDrive(FloppyControllerRef _Nonnull self, int drive)
 {
     CIAB_BASE_DECL(ciab);
     uint8_t r;
@@ -332,4 +344,5 @@ errno_t FloppyController_DoIO(FloppyControllerRef _Nonnull self, DriveState cb, 
 
 class_func_defs(FloppyController, Driver,
 override_func_def(deinit, FloppyController, Object)
+override_func_def(start, FloppyController, Driver)
 );
