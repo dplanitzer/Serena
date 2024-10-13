@@ -17,7 +17,7 @@ errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pDir, IOChannelRef 
     decl_try_err();
     DirectoryChannelRef self;
 
-    try(IOChannel_AbstractCreate(&kDirectoryChannelClass, kOpen_Read, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kDirectoryChannelClass, kIOChannelType_Directory, kOpen_Read, (IOChannelRef*)&self));
     Lock_Init(&self->lock);
     self->inode = pDir;
     self->offset = 0ll;
@@ -45,7 +45,7 @@ ssize_t DirectoryChannel_copy(DirectoryChannelRef _Nonnull self, IOChannelRef _N
     decl_try_err();
     DirectoryChannelRef pNewDir = NULL;
 
-    try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
+    try(IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
     Lock_Init(&pNewDir->lock);
     pNewDir->inode = Inode_Reacquire(self->inode);
     
@@ -57,18 +57,6 @@ catch:
     *pOutDir = (IOChannelRef)pNewDir;
 
     return err;
-}
-
-errno_t DirectoryChannel_ioctl(DirectoryChannelRef _Nonnull self, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_Directory;
-            return EOK;
-
-        default:
-            return super_n(ioctl, IOChannel, DirectoryChannel, self, cmd, ap);
-    }
 }
 
 errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -127,7 +115,6 @@ errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, M
 class_func_defs(DirectoryChannel, IOChannel,
 override_func_def(finalize, DirectoryChannel, IOChannel)
 override_func_def(copy, DirectoryChannel, IOChannel)
-override_func_def(ioctl, DirectoryChannel, IOChannel)
 override_func_def(read, DirectoryChannel, IOChannel)
 override_func_def(seek, DirectoryChannel, IOChannel)
 );

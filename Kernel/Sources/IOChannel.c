@@ -14,7 +14,7 @@ typedef errno_t (*IOChannel_Finalize_Impl)(void* _Nonnull self);
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef self;
@@ -25,6 +25,7 @@ errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOCh
     self->ownerCount = 1;
     self->useCount = 0;
     self->mode = mode & (kOpen_ReadWrite | kOpen_Append);
+    self->channelType = channelType;
 
 catch:
     *pOutChannel = self;
@@ -132,6 +133,10 @@ errno_t IOChannel_copy(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Non
 errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
+        case kIOChannelCommand_GetType:
+            *((int*) va_arg(ap, int*)) = self->channelType;
+            return EOK;
+
         case kIOChannelCommand_GetMode:
             *((unsigned int*) va_arg(ap, unsigned int*)) = self->mode;
             return EOK;

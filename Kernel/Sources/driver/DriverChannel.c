@@ -10,12 +10,12 @@
 #include "Driver.h"
 
 
-errno_t DriverChannel_Create(Class* _Nonnull pClass, DriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
+errno_t DriverChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, DriverRef _Nonnull pDriver, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverChannelRef self = NULL;
 
-    if ((err = IOChannel_AbstractCreate(pClass, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = IOChannel_Create(pClass, kIOChannelType_Driver, mode, (IOChannelRef*)&self)) == EOK) {
         self->driver = Object_RetainAs(pDriver, Driver);
     }
 
@@ -36,7 +36,7 @@ errno_t DriverChannel_copy(DriverChannelRef _Nonnull self, IOChannelRef _Nullabl
     decl_try_err();
     DriverChannelRef pNewChannel = NULL;
 
-    if ((err = IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel)) == EOK) {
+    if ((err = IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel)) == EOK) {
         pNewChannel->driver = Object_RetainAs(self->driver, Driver);
     }
 
@@ -46,18 +46,11 @@ errno_t DriverChannel_copy(DriverChannelRef _Nonnull self, IOChannelRef _Nullabl
 
 errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
 {
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_Driver;
-            return EOK;
-
-        default:
-            if (IsIOChannelCommand(cmd)) {
-                return super_n(ioctl, IOChannel, DriverChannel, self, cmd, ap);
-            }
-            else {
-                return Driver_Ioctl(self->driver, cmd, ap);
-            }
+    if (IsIOChannelCommand(cmd)) {
+        return super_n(ioctl, IOChannel, DriverChannel, self, cmd, ap);
+    }
+    else {
+        return Driver_Ioctl(self->driver, cmd, ap);
     }
 }
 

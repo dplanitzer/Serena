@@ -17,7 +17,7 @@ errno_t FileChannel_Create(InodeRef _Consuming _Nonnull pNode, unsigned int mode
     decl_try_err();
     FileChannelRef self;
 
-    try(IOChannel_AbstractCreate(&kFileChannelClass, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kFileChannelClass, kIOChannelType_File, mode, (IOChannelRef*)&self));
     Lock_Init(&self->lock);
     self->inode = pNode;
     self->offset = 0ll;
@@ -45,7 +45,7 @@ errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * 
     decl_try_err();
     FileChannelRef pNewFile = NULL;
 
-    try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
+    try(IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
     Lock_Init(&pNewFile->lock);
     pNewFile->inode = Inode_Reacquire(self->inode);
         
@@ -57,18 +57,6 @@ catch:
     *pOutFile = (IOChannelRef)pNewFile;
 
     return err;
-}
-
-errno_t FileChannel_ioctl(FileChannelRef _Nonnull self, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_File;
-            return EOK;
-
-        default:
-            return super_n(ioctl, IOChannel, FileChannel, self, cmd, ap);
-    }
 }
 
 errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -196,7 +184,6 @@ errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset
 class_func_defs(FileChannel, IOChannel,
 override_func_def(finalize, FileChannel, IOChannel)
 override_func_def(copy, FileChannel, IOChannel)
-override_func_def(ioctl, FileChannel, IOChannel)
 override_func_def(read, FileChannel, IOChannel)
 override_func_def(write, FileChannel, IOChannel)
 override_func_def(seek, FileChannel, IOChannel)

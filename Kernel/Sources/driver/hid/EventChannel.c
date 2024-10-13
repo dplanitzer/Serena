@@ -15,7 +15,7 @@ errno_t EventChannel_Create(EventDriverRef _Nonnull pDriver, unsigned int mode, 
     decl_try_err();
     EventChannelRef self = NULL;
     
-    if ((err = DriverChannel_Create(&kEventChannelClass, (DriverRef)pDriver, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = DriverChannel_Create(&kEventChannelClass, kIOChannelType_Driver, mode, (DriverRef)pDriver, (IOChannelRef*)&self)) == EOK) {
         self->timeout = kTimeInterval_Infinity;
     }
 

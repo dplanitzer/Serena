@@ -17,7 +17,7 @@ errno_t PipeChannel_Create(ObjectRef _Nonnull pPipe, unsigned int mode, IOChanne
 
     assert((mode & kOpen_ReadWrite) == kOpen_Read || (mode & kOpen_ReadWrite) == kOpen_Write);
 
-    try(IOChannel_AbstractCreate(&kPipeChannelClass, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kPipeChannelClass, kIOChannelType_Pipe, mode, (IOChannelRef*)&self));
     self->pipe = Object_Retain(pPipe);
 
 catch:
@@ -40,24 +40,12 @@ errno_t PipeChannel_copy(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * 
     decl_try_err();
     PipeChannelRef pNewChannel;
 
-    try(IOChannel_AbstractCreate(classof(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
+    try(IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
     pNewChannel->pipe = Object_Retain(self->pipe);
 
 catch:
     *pOutChannel = (IOChannelRef)pNewChannel;
     return err;
-}
-
-errno_t PipeChannel_ioctl(PipeChannelRef _Nonnull self, int cmd, va_list ap)
-{
-    switch (cmd) {
-        case kIOChannelCommand_GetType:
-            *((int*) va_arg(ap, int*)) = kIOChannelType_Pipe;
-            return EOK;
-
-        default:
-            return super_n(ioctl, IOChannel, PipeChannel, self, cmd, ap);
-    }
 }
 
 errno_t PipeChannel_read(PipeChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -74,7 +62,6 @@ errno_t PipeChannel_write(PipeChannelRef _Nonnull self, const void* _Nonnull pBu
 class_func_defs(PipeChannel, IOChannel,
 override_func_def(finalize, PipeChannel, IOChannel)
 override_func_def(copy, PipeChannel, IOChannel)
-override_func_def(ioctl, PipeChannel, IOChannel)
 override_func_def(read, PipeChannel, IOChannel)
 override_func_def(write, PipeChannel, IOChannel)
 );

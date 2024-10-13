@@ -19,6 +19,6 @@ open_class_funcs(DriverChannel, IOChannel,
 );
 
 
-extern errno_t DriverChannel_Create(Class* _Nonnull pClass, DriverRef _Nonnull pDriver, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DriverChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, DriverRef _Nonnull pDriver, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DriverChannel_h */

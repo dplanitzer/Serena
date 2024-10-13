@@ -87,7 +87,8 @@ open_class(IOChannel, Any,
     Lock            countLock;
     int32_t         ownerCount;
     int32_t         useCount;
-    unsigned int    mode;       // Constant over the lifetime of a channel
+    uint16_t        mode;           // Constant over the lifetime of a channel
+    int16_t         channelType;    // Constant over the lifetime of a channel
 );
 any_subclass_funcs(IOChannel,
     // Called once an I/O channel is ready to be deallocated for good. Overrides
@@ -161,11 +162,15 @@ invoke_n(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t IOChannel_AbstractCreate(Class* _Nonnull pClass, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+// Returns the I/O channel type.
+#define IOChannel_GetChannelType(__self) \
+    ((int)((IOChannelRef)__self)->channelType)
 
 // Returns the I/O channel mode.
 #define IOChannel_GetMode(__self) \
-    ((IOChannelRef)__self)->mode
+    ((unsigned int)((IOChannelRef)__self)->mode)
 
 
 // I/O channel functions for use by IOChannelTable
