@@ -162,7 +162,7 @@ extern errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, FileOffse
 
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
-extern errno_t Process_vIOControl(ProcessRef _Nonnull pProc, int fd, int cmd, va_list ap);
+extern errno_t Process_Ioctl(ProcessRef _Nonnull pProc, int fd, int cmd, va_list ap);
 
 
 //
