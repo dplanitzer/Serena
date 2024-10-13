@@ -130,7 +130,7 @@ static Mountpoint* _Nullable FilesystemManager_GetMountpointForFilesystem_Locked
 // Internal mount function. Mounts the given filesystem at the given place. If
 // 'pDirNodeToMountAt' is NULL then 'pFileSysToMount' is mounted as the root
 // filesystem.
-static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNodeToMountAt)
+static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSysToMount, const void* _Nonnull pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNodeToMountAt)
 {
     const Mountpoint* pDirNodeMount = NULL;
     decl_try_err();
@@ -162,8 +162,8 @@ static errno_t FilesystemManager_Mount_Locked(FilesystemManagerRef _Nonnull self
     try(kalloc_cleared(sizeof(Mountpoint), (void**) &pMount));
 
 
-    // Notify the filesystem that we are mounting it
-    try(Filesystem_OnMount(pFileSysToMount, pDriver, pParams, paramsSize));
+    // Start the filesystem
+    try(Filesystem_Start(pFileSysToMount, pParams, paramsSize));
 
 
     // Update our mount table
@@ -203,7 +203,7 @@ static errno_t FilesystemManager_Unmount_Locked(FilesystemManagerRef _Nonnull se
     // outstanding (XXX in the future we'll allow force unmounting by removing the
     // FS from the file hierarchy but deferring the unmount until all inodes have
     // been relinquished)
-    err = Filesystem_OnUnmount(pMount->mountedFilesystem);
+    err = Filesystem_Stop(pMount->mountedFilesystem);
     if (err == EBUSY) {
         throw(EBUSY);
     }
@@ -320,13 +320,13 @@ FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Filesystem
 // and attaches it at the given node. The node must be a directory node. A
 // filesystem instance may be mounted at at most one directory. If the node is
 // NULL then the given filesystem is mounted as the root filesystem.
-errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, DiskDriverRef _Nonnull pDriver, const void* _Nullable pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNode)
+errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull self, FilesystemRef _Nonnull pFileSys, const void* _Nullable pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNode)
 {
     uint32_t dummyParam = 0;
     const void* ppParams = (pParams) ? pParams : &dummyParam;
 
     Lock_Lock(&self->lock);
-    const errno_t err = FilesystemManager_Mount_Locked(self, pFileSys, pDriver, ppParams, paramsSize, pDirNode);
+    const errno_t err = FilesystemManager_Mount_Locked(self, pFileSys, ppParams, paramsSize, pDirNode);
     Lock_Unlock(&self->lock);
     return err;
 }

@@ -15,7 +15,7 @@
 #include <System/Error.h>
 #include <System/FilePermissions.h>
 #include <System/Types.h>
-#include "driver/DiskImageFormat.h"
+#include "DiskImageFormat.h"
 
 typedef struct di_direntry {
     const char*     name;

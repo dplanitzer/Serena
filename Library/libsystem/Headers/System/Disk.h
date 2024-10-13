@@ -13,13 +13,6 @@
 
 __CPP_BEGIN
 
-// Represents a logical block address in the range 0..<DiskDriver.blockCount
-typedef uint32_t    LogicalBlockAddress;
-
-// Type to represent the number of blocks on a disk
-typedef LogicalBlockAddress LogicalBlockCount;
-
-
 // Returns information about a disk drive.
 #define kIODiskCommand_GetInfo  IOResourceCommand(0)
 

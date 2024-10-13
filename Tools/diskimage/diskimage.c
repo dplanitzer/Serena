@@ -7,6 +7,7 @@
 //
 
 #include "diskimage.h"
+#include "RamFSContainer.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -43,9 +44,9 @@ static void fatal(const char* fmt, ...)
 }
 
 
-static errno_t formatDiskImage(DiskDriverRef _Nonnull pDisk)
+static errno_t formatDiskImage(RamFSContainerRef _Nonnull pContainer)
 {
-    return SerenaFS_FormatDrive(pDisk, gDefaultUser, gDefaultDirPermissions);
+    return SerenaFS_FormatDrive((FSContainerRef)pContainer, gDefaultUser, gDefaultDirPermissions);
 }
 
 static errno_t beginDirectory(FilesystemRef _Nonnull pFS, const char* _Nonnull pBasePath, const di_direntry* _Nonnull pEntry, InodeRef _Nonnull pParentNode, InodeRef* pOutDirInode)
@@ -118,25 +119,25 @@ catch:
     return err;
 }
 
-static errno_t createADFDiskDriver(const DiskImageFormat* diskImageFormat, DiskDriverRef *pOutDriver)
+static errno_t createADFDiskContainer(const DiskImageFormat* diskImageFormat, RamFSContainerRef *pOutContainer)
 {
-    return DiskDriver_Create(diskImageFormat, pOutDriver);
+    return RamFSContainer_Create(diskImageFormat, pOutContainer);
 }
 
 static void createDiskImage(const char* pRootPath, const char* pDstPath, const DiskImageFormat* diskImageFormat)
 {
     decl_try_err();
-    DiskDriverRef pDisk = NULL;
+    RamFSContainerRef pContainer = NULL;
     FilesystemRef pFS = NULL;
     InodeRef pRootDir = NULL;
     uint32_t dummyParam = 0;
 
-    try(createADFDiskDriver(diskImageFormat, &pDisk));
+    try(createADFDiskContainer(diskImageFormat, &pContainer));
     
-    try(formatDiskImage(pDisk));
+    try(formatDiskImage(pContainer));
 
-    try(SerenaFS_Create((SerenaFSRef*)&pFS));
-    try(Filesystem_OnMount(pFS, pDisk, &dummyParam, 0));
+    try(SerenaFS_Create((FSContainerRef)pContainer, (SerenaFSRef*)&pFS));
+    try(Filesystem_Start(pFS, &dummyParam, 0));
 
     di_iterate_directory_callbacks cb;
     cb.context = pFS;
@@ -147,12 +148,12 @@ static void createDiskImage(const char* pRootPath, const char* pDstPath, const D
     try(Filesystem_AcquireRootDirectory(pFS, &pRootDir));
     try(di_iterate_directory(pRootPath, &cb, pRootDir));
     Filesystem_RelinquishNode(pFS, pRootDir);
-    try(Filesystem_OnUnmount(pFS));
+    try(Filesystem_Stop(pFS));
 
-    try(DiskDriver_WriteToPath(pDisk, pDstPath));
+    try(RamFSContainer_WriteToPath(pContainer, pDstPath));
     
     Object_Release(pFS);
-    Object_Release(pDisk);
+    Object_Release(pContainer);
     return;
 
 catch:
@@ -269,8 +270,10 @@ static void init(void)
 {
     _RegisterClass(&kAnyClass);
     _RegisterClass(&kObjectClass);
-    _RegisterClass(&kDiskDriverClass);
+    _RegisterClass(&kFSContainerClass);
+    _RegisterClass(&kRamFSContainerClass);
     _RegisterClass(&kFilesystemClass);
+    _RegisterClass(&kContainerFilesystemClass);
     _RegisterClass(&kSerenaFSClass);
 
 

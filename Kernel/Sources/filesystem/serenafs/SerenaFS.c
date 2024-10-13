@@ -13,21 +13,21 @@
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePermissions permissions)
+errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, FilePermissions permissions)
 {
     decl_try_err();
-    DiskInfo diskInfo;
+    FSContainerInfo fscInfo;
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
 
-    if ((err = DiskDriver_GetInfo(pDriver, &diskInfo)) != EOK) {
+    if ((err = FSContainer_GetInfo(pContainer, &fscInfo)) != EOK) {
         return err;
     }
 
     // Make sure that the  disk is compatible with our FS
-    if (diskInfo.blockSize != kSFSBlockSize) {
+    if (fscInfo.blockSize != kSFSBlockSize) {
         return EINVAL;
     }
-    if (diskInfo.blockCount < kSFSVolume_MinBlockCount) {
+    if (fscInfo.blockCount < kSFSVolume_MinBlockCount) {
         return ENOSPC;
     }
 
@@ -43,17 +43,17 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     // Nab+3    Unused
     // .        ...
     // Figure out the size and location of the allocation bitmap and root directory
-    const uint32_t allocationBitmapByteSize = (diskInfo.blockCount + 7) >> 3;
-    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (diskInfo.blockSize - 1)) / diskInfo.blockSize;
+    const uint32_t allocationBitmapByteSize = (fscInfo.blockCount + 7) >> 3;
+    const LogicalBlockCount allocBitmapBlockCount = (allocationBitmapByteSize + (fscInfo.blockSize - 1)) / fscInfo.blockSize;
     const LogicalBlockAddress rootDirInodeLba = allocBitmapBlockCount + 1;
     const LogicalBlockAddress rootDirContentLba = rootDirInodeLba + 1;
 
     uint8_t* p = NULL;
-    try(kalloc(diskInfo.blockSize, (void**)&p));
+    try(kalloc(fscInfo.blockSize, (void**)&p));
 
 
     // Write the volume header
-    memset(p, 0, diskInfo.blockSize);
+    memset(p, 0, fscInfo.blockSize);
     SFSVolumeHeader* vhp = (SFSVolumeHeader*)p;
     vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
     vhp->version = UInt32_HostToBig(kSFSVersion_Current);
@@ -62,22 +62,22 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     vhp->creationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     vhp->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     vhp->modificationTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
-    vhp->blockSize = UInt32_HostToBig(diskInfo.blockSize);
-    vhp->volumeBlockCount = UInt32_HostToBig(diskInfo.blockCount);
+    vhp->blockSize = UInt32_HostToBig(fscInfo.blockSize);
+    vhp->volumeBlockCount = UInt32_HostToBig(fscInfo.blockCount);
     vhp->allocationBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
     vhp->rootDirectoryLba = UInt32_HostToBig(rootDirInodeLba);
     vhp->allocationBitmapLba = UInt32_HostToBig(1);
-    try(DiskDriver_PutBlock(pDriver, vhp, 0));
+    try(FSContainer_PutBlock(pContainer, vhp, 0));
 
 
     // Write the allocation bitmap
     // Note that we mark the blocks that we already know are in use as in-use
-    const size_t nAllocationBitsPerBlock = diskInfo.blockSize << 3;
+    const size_t nAllocationBitsPerBlock = fscInfo.blockSize << 3;
     const LogicalBlockAddress nBlocksToAllocate = 1 + allocBitmapBlockCount + 1 + 1; // volume header + alloc bitmap + root dir inode + root dir content
     LogicalBlockAddress nBlocksAllocated = 0;
 
     for (LogicalBlockAddress i = 0; i < allocBitmapBlockCount; i++) {
-        memset(p, 0, diskInfo.blockSize);
+        memset(p, 0, fscInfo.blockSize);
 
         LogicalBlockAddress bitNo = 0;
         while (nBlocksAllocated < __min(nBlocksToAllocate, nAllocationBitsPerBlock)) {
@@ -86,12 +86,12 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
             bitNo++;
         }
 
-        try(DiskDriver_PutBlock(pDriver, p, 1 + i));
+        try(FSContainer_PutBlock(pContainer, p, 1 + i));
     }
 
 
     // Write the root directory inode
-    memset(p, 0, diskInfo.blockSize);
+    memset(p, 0, fscInfo.blockSize);
     SFSInode* ip = (SFSInode*)p;
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
@@ -106,28 +106,27 @@ errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePerm
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;
     ip->bp[0] = UInt32_HostToBig(rootDirContentLba);
-    try(DiskDriver_PutBlock(pDriver, ip, rootDirInodeLba));
+    try(FSContainer_PutBlock(pContainer, ip, rootDirInodeLba));
 
 
     // Write the root directory content. This is just the entries '.' and '..'
     // which both point back to the root directory.
-    memset(p, 0, diskInfo.blockSize);
+    memset(p, 0, fscInfo.blockSize);
     SFSDirectoryEntry* dep = (SFSDirectoryEntry*)p;
     dep[0].id = UInt32_HostToBig(rootDirInodeLba);
     dep[0].filename[0] = '.';
     dep[1].id = UInt32_HostToBig(rootDirInodeLba);
     dep[1].filename[0] = '.';
     dep[1].filename[1] = '.';
-    try(DiskDriver_PutBlock(pDriver, dep, rootDirContentLba));
+    try(FSContainer_PutBlock(pContainer, dep, rootDirContentLba));
 
 catch:
     kfree(p);
     return err;
 }
 
-// Creates an instance of SerenaFS. SerenaFS is a volatile file system that does not
-// survive system restarts.
-errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
+// Creates an instance of SerenaFS.
+errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     SerenaFSRef self;
@@ -136,7 +135,7 @@ errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf)
     assert(sizeof(SFSInode) <= kSFSBlockSize);
     assert(sizeof(SFSDirectoryEntry) * kSFSDirectoryEntriesPerBlock == kSFSBlockSize);
     
-    try(Filesystem_Create(&kSerenaFSClass, (FilesystemRef*)&self));
+    try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
     Lock_Init(&self->allocationLock);
     SELock_Init(&self->seLock);
     Lock_Init(&self->moveLock);
@@ -156,10 +155,11 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
     Lock_Deinit(&self->allocationLock);
 }
 
-errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize)
+errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
 {
     decl_try_err();
-    DiskInfo diskInfo;
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    FSContainerInfo fscInfo;
 
     if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
         return err;
@@ -171,12 +171,12 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
     // Make sure that the disk partition actually contains a SerenaFS that we
     // know how to handle.
-    try(DiskDriver_GetInfo(pDriver, &diskInfo));
+    try(FSContainer_GetInfo(fsContainer, &fscInfo));
 
-    if (diskInfo.blockCount < kSFSVolume_MinBlockCount) {
+    if (fscInfo.blockCount < kSFSVolume_MinBlockCount) {
         throw(EIO);
     }
-    if (diskInfo.blockSize != kSFSBlockSize) {
+    if (fscInfo.blockSize != kSFSBlockSize) {
         throw(EIO);
     }
 
@@ -187,7 +187,7 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
 
 
     // Get the FS root block
-    try(DiskDriver_GetBlock(pDriver, self->tmpBlock, 0));
+    try(FSContainer_GetBlock(fsContainer, self->tmpBlock, 0));
     const SFSVolumeHeader* vhp = (const SFSVolumeHeader*)self->tmpBlock;
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
     const uint32_t version = UInt32_BigToHost(vhp->version);
@@ -222,18 +222,16 @@ errno_t SerenaFS_onMount(SerenaFSRef _Nonnull self, DiskDriverRef _Nonnull pDriv
     for (LogicalBlockAddress lba = 0; lba < self->allocationBitmapBlockCount; lba++) {
         const size_t nBytesToCopy = __min(kSFSBlockSize, allocBitmapByteSize);
 
-        try(DiskDriver_GetBlock(pDriver, self->tmpBlock, self->allocationBitmapLba + lba));
+        try(FSContainer_GetBlock(fsContainer, self->tmpBlock, self->allocationBitmapLba + lba));
         memcpy(pAllocBitmap, self->tmpBlock, nBytesToCopy);
         allocBitmapByteSize -= nBytesToCopy;
         pAllocBitmap += diskBlockSize;
     }
 
 
-    // Store the disk driver reference
-    self->diskDriver = Object_RetainAs(pDriver, DiskDriver);
     self->mountFlags.isMounted = 1;
     // XXX should be drive->is_readonly || mount-params->is_readonly
-    if (diskInfo.isReadOnly) {
+    if (fscInfo.isReadOnly) {
         self->mountFlags.isReadOnly = 1;
     }
     
@@ -248,7 +246,7 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
+errno_t SerenaFS_stop(SerenaFSRef _Nonnull self)
 {
     decl_try_err();
 
@@ -269,8 +267,6 @@ errno_t SerenaFS_onUnmount(SerenaFSRef _Nonnull self)
 
     // XXX clear rootDirLba
     
-    Object_Release(self->diskDriver);
-    self->diskDriver = NULL;
     self->mountFlags.isMounted = 0;
 
 catch:
@@ -390,6 +386,7 @@ catch:
 errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const bool isMovingDir = Inode_IsDirectory(pSrcNode);
 
     // The 'moveLock' ensures that there can be only one operation active at any
@@ -420,12 +417,12 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
         q.u.pc = &kPathComponent_Parent;
         try(SerenaFS_GetDirectoryEntry(self, pSrcNode, &q, NULL, &mp, NULL, NULL));
 
-        try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, mp.lba));
+        try(FSContainer_GetBlock(fsContainer, self->tmpBlock, mp.lba));
 
         SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.blockOffset);
         dep->id = Inode_GetId(pDstDir);
 
-        try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, mp.lba));
+        try(FSContainer_PutBlock(fsContainer, self->tmpBlock, mp.lba));
 
         // Our parent receives a +1 on the link count because of our .. entry
         Inode_Link(pDstDir);
@@ -439,6 +436,7 @@ catch:
 errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, User user)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     SFSDirectoryEntryPointer mp;
     SFSDirectoryQuery q;
 
@@ -450,13 +448,13 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     q.u.id = Inode_GetId(pSrcNode);
     try(SerenaFS_GetDirectoryEntry(self, pSrcDir, &q, NULL, &mp, NULL, NULL));
 
-    try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, mp.lba));
+    try(FSContainer_GetBlock(fsContainer, self->tmpBlock, mp.lba));
 
     SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.blockOffset);
     char* p = String_CopyUpTo(dep->filename, pNewName->name, pNewName->count);
     while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
 
-    try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, mp.lba));
+    try(FSContainer_PutBlock(fsContainer, self->tmpBlock, mp.lba));
 
     return EOK;
 
@@ -465,13 +463,13 @@ catch:
 }
 
 
-class_func_defs(SerenaFS, Filesystem,
+class_func_defs(SerenaFS, ContainerFilesystem,
 override_func_def(deinit, SerenaFS, Object)
 override_func_def(onReadNodeFromDisk, SerenaFS, Filesystem)
 override_func_def(onWriteNodeToDisk, SerenaFS, Filesystem)
 override_func_def(onRemoveNodeFromDisk, SerenaFS, Filesystem)
-override_func_def(onMount, SerenaFS, Filesystem)
-override_func_def(onUnmount, SerenaFS, Filesystem)
+override_func_def(start, SerenaFS, Filesystem)
+override_func_def(stop, SerenaFS, Filesystem)
 override_func_def(isReadOnly, SerenaFS, Filesystem)
 override_func_def(acquireRootDirectory, SerenaFS, Filesystem)
 override_func_def(acquireNodeForName, SerenaFS, Filesystem)

@@ -57,7 +57,7 @@ typedef struct SFSDirectoryEntryPointer {
 //
 // seLock:         provides exclusion for mount, unmount and acquire-root-node
 // allocationLock: implements atomic block allocation and deallocation
-final_class_ivars(SerenaFS, Filesystem,
+final_class_ivars(SerenaFS, ContainerFilesystem,
     SELock                  seLock;
     Lock                    moveLock;   // To make the move operation atomic
     struct {
@@ -66,8 +66,6 @@ final_class_ivars(SerenaFS, Filesystem,
         unsigned int    isAccessUpdateOnReadEnabled:1;  // true if updates to the access-date on read operations are enabled
         unsigned int    reserved:29;
     }                       mountFlags; // Flags that remain constant as long as the FS is mounted
-
-    DiskDriverRef _Nullable diskDriver;
 
     Lock                    allocationLock;                 // Protects all block allocation related state    
     LogicalBlockAddress     allocationBitmapLba;            // Info for writing the allocation bitmap back to disk

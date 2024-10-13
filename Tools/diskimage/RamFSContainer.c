@@ -1,12 +1,12 @@
 //
-//  DiskDriver.c
+//  RamFSContainer.c
 //  diskimage
 //
-//  Created by Dietmar Planitzer on 3/10/24.
+//  Created by Dietmar Planitzer on 10/12/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "DiskDriver.h"
+#include "RamFSContainer.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,12 +15,12 @@
 #include <System/ByteOrder.h>
 
 
-errno_t DiskDriver_Create(const DiskImageFormat* _Nonnull pFormat, DiskDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSContainerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DiskDriverRef self;
+    RamFSContainerRef self;
 
-    try(Object_Create(DiskDriver, &self));
+    try(Object_Create(RamFSContainer, &self));
     self->diskImage = calloc(pFormat->blocksPerDisk, pFormat->blockSize);
     self->blockSize = pFormat->blockSize;
     self->blockCount = pFormat->blocksPerDisk;
@@ -36,7 +36,7 @@ catch:
     return err;
 }
 
-void DiskDriver_deinit(DiskDriverRef _Nonnull self)
+void RamFSContainer_deinit(RamFSContainerRef _Nonnull self)
 {
     free(self->diskImage);
     self->diskImage = NULL;
@@ -44,7 +44,7 @@ void DiskDriver_deinit(DiskDriverRef _Nonnull self)
 
 // Returns information about the disk drive and the media loaded into the
 // drive.
-errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
+errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo* pOutInfo)
 {
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;
@@ -59,7 +59,7 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-errno_t DiskDriver_GetBlock(DiskDriverRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RamFSContainer_getBlock(RamFSContainerRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba >= self->blockCount) {
         return EIO;
@@ -74,7 +74,7 @@ errno_t DiskDriver_GetBlock(DiskDriverRef _Nonnull self, void* _Nonnull pBuffer,
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t DiskDriver_PutBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RamFSContainer_putBlock(RamFSContainerRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba >= self->blockCount) {
         return EIO;
@@ -89,7 +89,7 @@ errno_t DiskDriver_PutBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pB
 }
 
 // Writes the contents of the disk to the given path as a regular file.
-errno_t DiskDriver_WriteToPath(DiskDriverRef _Nonnull self, const char* pPath)
+errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* pPath)
 {
     decl_try_err();
     FILE* fp;
@@ -129,6 +129,9 @@ catch:
 }
 
 
-class_func_defs(DiskDriver, Object,
-override_func_def(deinit, DiskDriver, Object)
+class_func_defs(RamFSContainer, FSContainer,
+override_func_def(deinit, RamFSContainer, Object)
+override_func_def(getInfo, RamFSContainer, FSContainer)
+override_func_def(getBlock, RamFSContainer, FSContainer)
+override_func_def(putBlock, RamFSContainer, FSContainer)
 );

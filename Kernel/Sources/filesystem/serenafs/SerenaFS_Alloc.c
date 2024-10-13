@@ -36,10 +36,11 @@ static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull sel
     const LogicalBlockAddress idxOfAllocBitmapBlockModified = (lba >> 3) / kSFSBlockSize;
     const uint8_t* pBlock = &self->allocationBitmap[idxOfAllocBitmapBlockModified * kSFSBlockSize];
     const LogicalBlockAddress allocationBitmapBlockLba = self->allocationBitmapLba + idxOfAllocBitmapBlockModified;
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
     memset(self->tmpBlock2, 0, kSFSBlockSize);
     memcpy(self->tmpBlock2, pBlock, &self->allocationBitmap[self->allocationBitmapByteSize] - pBlock);
-    return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock2, allocationBitmapBlockLba);
+    return FSContainer_PutBlock(fsContainer, self->tmpBlock2, allocationBitmapBlockLba);
 }
 
 errno_t SerenaFS_AllocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)

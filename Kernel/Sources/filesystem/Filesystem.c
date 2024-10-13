@@ -162,12 +162,12 @@ void Filesystem_onRemoveNodeFromDisk(FilesystemRef _Nonnull self, InodeRef _Nonn
 }
 
 
-errno_t Filesystem_onMount(FilesystemRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize)
+errno_t Filesystem_start(FilesystemRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
 {
-    return EIO;
+    return EOK;
 }
 
-errno_t Filesystem_onUnmount(FilesystemRef _Nonnull self)
+errno_t Filesystem_stop(FilesystemRef _Nonnull self)
 {
     return EOK;
 }
@@ -386,8 +386,8 @@ override_func_def(deinit, Filesystem, Object)
 func_def(onReadNodeFromDisk, Filesystem)
 func_def(onWriteNodeToDisk, Filesystem)
 func_def(onRemoveNodeFromDisk, Filesystem)
-func_def(onMount, Filesystem)
-func_def(onUnmount, Filesystem)
+func_def(start, Filesystem)
+func_def(stop, Filesystem)
 func_def(acquireRootDirectory, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)

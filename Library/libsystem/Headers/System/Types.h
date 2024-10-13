@@ -32,6 +32,13 @@ typedef uint64_t    InodeId;
 #error "Unknown data model"
 #endif
 
+// Represents a logical block address in the range 0..<DiskDriver.blockCount
+typedef uint32_t    LogicalBlockAddress;
+
+// Type to represent the number of blocks on a disk
+typedef LogicalBlockAddress LogicalBlockCount;
+
+
 typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
 typedef int64_t     FileOffset;
@@ -41,6 +48,7 @@ typedef uint32_t    GroupId;
 
 #define kFileOffset_Min 0ll
 #define kFileOffset_Max INT64_MAX
+
 
 #ifndef SSIZE_MIN
 #define SSIZE_MIN  __SSIZE_MIN

@@ -18,6 +18,7 @@
 #include <driver/RomDisk.h>
 #include <driver/amiga/AmigaController.h>
 #include <driver/amiga/floppy/FloppyDisk.h>
+#include <filesystem/DiskFSContainer.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/SerenaDiskImage.h>
@@ -178,6 +179,7 @@ static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
     decl_try_err();
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
     DiskDriverRef disk;
+    FSContainerRef fsContainer;
     FilesystemRef fs;
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
@@ -196,8 +198,9 @@ static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
 
     // Create a SerenaFS instance and mount it as the root filesystem on the RAM
     // disk
-    try(SerenaFS_Create((SerenaFSRef*)&fs));
-    try(FilesystemManager_Mount(gFilesystemManager, fs, disk, NULL, 0, NULL));
+    try(DiskFSContainer_Create(disk, &fsContainer));
+    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
+    try(FilesystemManager_Mount(gFilesystemManager, fs, NULL, 0, NULL));
 
     return true;
 
@@ -210,15 +213,17 @@ catch:
 static bool try_rootfs_from_fd0(bool hasFallback)
 {
     decl_try_err();
-    DriverRef fd0;
+    DiskDriverRef fd0;
+    FSContainerRef fsContainer;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 
-    try_null(fd0, DriverCatalog_GetDriverForName(gDriverCatalog, kFloppyDrive0Name), ENODEV);
-    try(SerenaFS_Create((SerenaFSRef*)&fs));
+    try_null(fd0, (DiskDriverRef)DriverCatalog_GetDriverForName(gDriverCatalog, kFloppyDrive0Name), ENODEV);
+    try(DiskFSContainer_Create(fd0, &fsContainer));
+    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
 
     while (true) {
-        err = FilesystemManager_Mount(gFilesystemManager, fs, (DiskDriverRef)fd0, NULL, 0, NULL);
+        err = FilesystemManager_Mount(gFilesystemManager, fs, NULL, 0, NULL);
 
         if (err == EOK) {
             break;

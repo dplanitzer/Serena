@@ -48,7 +48,7 @@ extern FilesystemRef _Nullable FilesystemManager_CopyFilesystemMountedAtNode(Fil
 // and attaches it at the given node. The node must be a directory node. A
 // filesystem instance may be mounted at at most one directory. If the node is
 // NULL then the given filesystem is mounted as the root filesystem.
-extern errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, DiskDriverRef _Nonnull pDriver, const void* _Nullable pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNode);
+extern errno_t FilesystemManager_Mount(FilesystemManagerRef _Nonnull pManager, FilesystemRef _Nonnull pFileSys, const void* _Nullable pParams, ssize_t paramsSize, InodeRef _Nullable _Locked pDirNode);
 
 // Unmounts the given filesystem from the directory it is currently mounted on.
 // Remember that one filesystem instance can be mounted at most once at any given

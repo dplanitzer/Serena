@@ -9,20 +9,19 @@
 #ifndef SerenaFS_h
 #define SerenaFS_h
 
-#include <filesystem/Filesystem.h>
+#include <filesystem/ContainerFilesystem.h>
 
 
-final_class(SerenaFS, Filesystem);
+final_class(SerenaFS, ContainerFilesystem);
 
 
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-extern errno_t SerenaFS_FormatDrive(DiskDriverRef _Nonnull pDriver, User user, FilePermissions permissions);
+extern errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, FilePermissions permissions);
 
 
-// Creates an instance of SerenaFS. SerenaFS is a volatile file system that does not
-// survive system restarts.
-errno_t SerenaFS_Create(SerenaFSRef _Nullable * _Nonnull pOutSelf);
+// Creates an instance of SerenaFS.
+errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* SerenaFS_h */

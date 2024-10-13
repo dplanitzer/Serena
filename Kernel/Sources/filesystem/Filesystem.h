@@ -9,7 +9,6 @@
 #ifndef Filesystem_h
 #define Filesystem_h
 
-#include <driver/DiskDriver.h>
 #include "Inode.h"
 #include "PathComponent.h"
 #include "User.h"
@@ -32,6 +31,19 @@ typedef struct DirectoryEntryInsertionHint {
 // the filesystem to write inode metadata changes back to the underlying storage
 // device.
 //
+// The underlying medium
+//
+// Every filesystem sits on top of some medium and it is responsible for managing
+// the data of this medium. A medium can be anything as far as the abstract
+// Filesystem base class is concerned: it may be a physical disk, a tape or maybe
+// some kind of object that only exists in memory and does not even persist across
+// reboot.
+// The ContainerFilesystem subclass is a specialization of Filesystem which builds
+// on top of a FSContainer. A FSContainer represents a logical disk which may map
+// 1:1 to a single physical disk or an array of physical disks. Concrete filesystem
+// implementations which are meant to implement a traditional disk-based filesystem
+// should derive from ContainerFilesystem instead of Filesystem directly.
+//
 //
 // Filesystem and inode lifetimes:
 //
@@ -44,16 +56,15 @@ typedef struct DirectoryEntryInsertionHint {
 // that the filesystem stays alive.
 //
 //
-// Mounting/unmounting a filesystem:
+// Starting/stopping a filesystem:
 //
-// A filesystem must be mounted before it can be used and any inodes can be
+// A filesystem must be started before it can be used and any inodes can be
 // acquired. Conversely all acquired inodes must have been relinquished before
-// the filesystem can be unmounted and destroyed. However a filesystem may be
-// force-unmounted which means that the filesystem is removed from the file
+// the filesystem can be stopped and destroyed. However a filesystem may be
+// force-stopped which means that the filesystem is removed from the file
 // hierarchy (and thus is no longer accessible by any process) and the actual
-// unmount and destruction action is deferred until the last acquired inode is
-// relinquished.
-// Note that a particular filesystem instance can be mounted at most once at any
+// destruction action is deferred until the last acquired inode is relinquished.
+// Note that a particular filesystem instance can be started at most once at any
 // given time.
 //
 //
@@ -115,21 +126,26 @@ open_class_funcs(Filesystem, Object,
     // Mounting/Unmounting
     //
 
-    // Invoked when an instance of this file system is mounted. Note that the
-    // kernel guarantees that no operations will be issued to the filesystem
-    // before onMount() has returned with EOK.
-    // Override: Advised
-    // Default Behavior: Returns EIO
-    errno_t (*onMount)(void* _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nonnull pParams, ssize_t paramsSize);
-
-    // Invoked when a mounted instance of this file system is unmounted. A file
-    // system may return an error. Note however that this error is purely advisory
-    // and the file system implementation is required to do everything it can to
-    // successfully unmount. Unmount errors are ignored and the file system manager
-    // will complete the unmount in any case.
+    // Invoked when an instance of this file system is mounted. Overrides of this
+    // method should read the root information off the underlying medium and
+    // prepare the filesystem for use. Ie it must be possible to read the root
+    // directory information once this method successfully returns. Note that the
+    // underlying medium is passed to the filesystem when it is created. Note
+    // that the kernel guarantees that no operations will be issued to the
+    // filesystem before start() has returned with EOK.
     // Override: Optional
     // Default Behavior: Returns EOK
-    errno_t (*onUnmount)(void* _Nonnull self);
+    errno_t (*start)(void* _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize);
+
+    // Invoked when a started (mounted) instance of this file system is stopped
+    // (unmounted). A file system may return an error. Note however that this
+    // error is purely informational and the file system implementation is
+    // required to do everything it can to successfully stop. Errors returned by
+    // this method are ignored and the file system manager will complete the
+    // unmount operation in any case.
+    // Override: Optional
+    // Default Behavior: Returns EOK
+    errno_t (*stop)(void* _Nonnull self);
 
 
     //
@@ -317,11 +333,11 @@ extern errno_t Filesystem_Create(Class* pClass, FilesystemRef _Nullable * _Nonnu
 #define Filesystem_GetId(__fs) \
     ((FilesystemRef)(__fs))->fsid
 
-#define Filesystem_OnMount(__self, __pDriver, __pParams, __paramsSize) \
-invoke_n(onMount, Filesystem, __self, __pDriver, __pParams, __paramsSize)
+#define Filesystem_Start(__self, __pParams, __paramsSize) \
+invoke_n(start, Filesystem, __self, __pParams, __paramsSize)
 
-#define Filesystem_OnUnmount(__self) \
-invoke_0(onUnmount, Filesystem, __self)
+#define Filesystem_Stop(__self) \
+invoke_0(stop, Filesystem, __self)
 
 
 #define Filesystem_AcquireRootDirectory(__self, __pOutDir) \

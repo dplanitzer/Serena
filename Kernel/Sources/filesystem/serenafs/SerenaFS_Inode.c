@@ -13,6 +13,7 @@
 errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     InodeId parentInodeId = Inode_GetId(pDir);
     LogicalBlockAddress inodeLba = 0;
@@ -48,7 +49,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
         dep[1].id = UInt32_HostToBig(parentInodeId);
         dep[1].filename[0] = '.';
         dep[1].filename[1] = '.';
-        try(DiskDriver_PutBlock(self->diskDriver, dep, dirContLba));
+        try(FSContainer_PutBlock(fsContainer, dep, dirContLba));
 
         bp[0] = dirContLba;
         fileSize = 2 * sizeof(SFSDirectoryEntry);
@@ -112,11 +113,12 @@ catch:
 errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
     SFSBlockNumber* bp = NULL;
 
     try(kalloc(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bp));
-    try(DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba));
+    try(FSContainer_GetBlock(fsContainer, self->tmpBlock, lba));
     const SFSInode* ip = (const SFSInode*)self->tmpBlock;
 
     for (int i = 0; i < kSFSInodeBlockPointersCount; i++) {
@@ -146,6 +148,7 @@ catch:
 
 errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     const SFSBlockNumber* bp = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
@@ -174,15 +177,16 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
         ip->bp[i] = UInt32_HostToBig(bp[i]);
     }
 
-    return DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
+    return FSContainer_PutBlock(fsContainer, self->tmpBlock, lba);
 }
 
 static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const SFSBlockNumber* l0_bp = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
 
     if (l0_bp[kSFSDirectBlockPointersCount] != 0) {
-        DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, l0_bp[kSFSDirectBlockPointersCount]);
+        FSContainer_GetBlock(fsContainer, self->tmpBlock, l0_bp[kSFSDirectBlockPointersCount]);
 
         SFSBlockNumber* l1_bp = (SFSBlockNumber*)self->tmpBlock;
         for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {

@@ -12,7 +12,8 @@
 
 static errno_t SerenaFS_ReadIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNumber ibn, SFSBlockNumber* _Nonnull bp)
 {
-    const errno_t err = DiskDriver_GetBlock(self->diskDriver, bp, ibn);
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    const errno_t err = FSContainer_GetBlock(fsContainer, bp, ibn);
     
     if (err == EOK) {
         for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
@@ -24,11 +25,13 @@ static errno_t SerenaFS_ReadIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNum
 
 static errno_t SerenaFS_WriteIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNumber ibn, SFSBlockNumber* _Nonnull bp)
 {
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+
     for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
         bp[i] = UInt32_HostToBig(bp[i]);
     }
     
-    return DiskDriver_PutBlock(self->diskDriver, bp, ibn);
+    return FSContainer_PutBlock(fsContainer, bp, ibn);
 }
 
 // Looks up the absolute logical block address for the disk block that corresponds
@@ -42,6 +45,7 @@ static errno_t SerenaFS_WriteIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNu
 errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     SFSBlockNumber* ino_bp = Inode_GetBlockMap(pNode);
 
     if (fba < 0) {
@@ -71,7 +75,7 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
                 ino_bp[kSFSDirectBlockPointersCount] = i0_lba;
 
                 memset(self->tmpBlock, 0, kSFSBlockSize);
-                try(DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, i0_lba));
+                try(FSContainer_PutBlock(fsContainer, self->tmpBlock, i0_lba));
             }
             else {
                 *pOutLba = 0;
@@ -105,6 +109,7 @@ catch:
 errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const FileOffset fileSize = Inode_GetFileSize(pNode);
     ssize_t nBytesRead = 0;
 
@@ -135,7 +140,7 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
                 memset(self->tmpBlock, 0, kSFSBlockSize);
             }
             else {
-                e1 = DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba);
+                e1 = FSContainer_GetBlock(fsContainer, self->tmpBlock, lba);
             }
         }
         if (e1 != EOK) {
@@ -160,6 +165,7 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
 errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset offset, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     ssize_t nBytesWritten = 0;
 
     if (nBytesToWrite > 0) {
@@ -189,7 +195,7 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
                 memset(self->tmpBlock, 0, kSFSBlockSize);
             }
             else {
-                e1 = DiskDriver_GetBlock(self->diskDriver, self->tmpBlock, lba);
+                e1 = FSContainer_GetBlock(fsContainer, self->tmpBlock, lba);
             }
         }
         if (e1 != EOK) {
@@ -198,7 +204,7 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         }
         
         memcpy(self->tmpBlock + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
-        e1 = DiskDriver_PutBlock(self->diskDriver, self->tmpBlock, lba);
+        e1 = FSContainer_PutBlock(fsContainer, self->tmpBlock, lba);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
             break;
