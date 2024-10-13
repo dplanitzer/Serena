@@ -909,42 +909,4 @@ extern int32_t chipset_get_quantum_timer_elapsed_ns(void);
 
 extern uint32_t chipset_get_hsync_counter(void);
 
-
-//
-// Zorro Bus
-//
-
-// Supported max number of expansion boards
-#define EXPANSION_BOARDS_CAPACITY    16
-
-// Expanion board types
-#define EXPANSION_TYPE_RAM  0
-#define EXPANSION_TYPE_IO   1
-
-// Expansion bus types
-#define EXPANSION_BUS_ZORRO_2   0
-#define EXPANSION_BUS_ZORRO_3   1
-
-// An expansion board
-typedef struct ExpansionBoard {
-    uint8_t* _Nonnull   start;          // base address
-    size_t              physical_size;  // size of memory space reserved for this board
-    size_t              logical_size;   // size of memory space actually occupied by the board
-    int8_t              type;
-    int8_t              bus;
-    int8_t              slot;
-    int8_t              reserved;
-    uint16_t            manufacturer;
-    uint16_t            product;
-    uint32_t            serial_number;
-    // Update lowmem.i if you add a new property here
-} ExpansionBoard;
-
-typedef struct ExpansionBus {
-    int                 board_count;
-    ExpansionBoard      board[EXPANSION_BOARDS_CAPACITY];
-} ExpansionBus;
-
-extern void zorro_auto_config(ExpansionBus* pExpansionBus);
-
 #endif /* Platform_h */

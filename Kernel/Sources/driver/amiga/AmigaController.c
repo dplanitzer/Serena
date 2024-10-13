@@ -13,41 +13,17 @@
 #include <driver/amiga/floppy/FloppyController.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/amiga/RealtimeClock.h>
+#include <driver/amiga/zorro/ZorroController.h>
 #include <driver/hid/EventDriver.h>
 
 
 final_class_ivars(AmigaController, PlatformController,
-    ExpansionBus    zorroBus;
 );
 
 
 errno_t AmigaController_Create(PlatformControllerRef _Nullable * _Nonnull pOutSelf)
 {
     return Driver_Create(AmigaController, kDriverModel_Sync, (DriverRef*)pOutSelf);
-}
-
-// Auto configures the expansion board bus.
-static errno_t AmigaController_AutoConfigureExpansionBoardBus(struct AmigaController* _Nonnull self)
-{
-    // Auto config the Zorro bus
-    zorro_auto_config(&self->zorroBus);
-
-
-    // Find all RAM expansion boards and add them to the kalloc package
-    for (int i = 0; i < self->zorroBus.board_count; i++) {
-        const ExpansionBoard* board = &self->zorroBus.board[i];
-       
-        if (board->type == EXPANSION_TYPE_RAM && board->start != NULL && board->logical_size > 0) {
-            MemoryDescriptor md = {0};
-
-            md.lower = board->start;
-            md.upper = board->start + board->logical_size;
-            md.type = MEM_TYPE_MEMORY;
-            (void) kalloc_add_memory_region(&md);
-        }
-    }
-
-    return EOK;
 }
 
 errno_t AmigaController_start(struct AmigaController* _Nonnull self)
@@ -89,8 +65,10 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
     PlatformController_NoteConsoleAvailable((PlatformControllerRef)self, pConsole);
 
 
-    // Auto configure the expansion board bus
-    try(AmigaController_AutoConfigureExpansionBoardBus(self));
+    // Floppy Bus
+    FloppyControllerRef fdc = NULL;
+    try(FloppyController_Create(&fdc));
+    try(Driver_Start((DriverRef)fdc));
 
 
     // Realtime Clock
@@ -100,10 +78,10 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
     try(DriverCatalog_RegisterDriver(gDriverCatalog, kRealtimeClockName, (DriverRef)pRealtimeClock));
 
 
-    // Floppy Bus
-    FloppyControllerRef fdc = NULL;
-    try(FloppyController_Create(&fdc));
-    try(Driver_Start((DriverRef)fdc));
+    // Zorro Bus
+    ZorroControllerRef zorroController = NULL;
+    try(ZorroController_Create(&zorroController));
+    try(Driver_Start((DriverRef)zorroController));
 
 catch:
     return err;

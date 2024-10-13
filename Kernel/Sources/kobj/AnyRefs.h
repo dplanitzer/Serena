@@ -55,5 +55,6 @@ class_ref(UDispatchQueue);
 class_ref(ULock);
 class_ref(UResource);
 class_ref(USemaphore);
+class_ref(ZorroController);
 
 #endif /* AnyRefs_h */
