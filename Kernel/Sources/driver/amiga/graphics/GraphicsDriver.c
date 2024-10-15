@@ -459,6 +459,11 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
     Semaphore_RelinquishFromInterruptContext(&self->vblank_sema);
 }
 
+static errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull self)
+{
+    return Driver_Publish((DriverRef)self, kGraphicsDriverName);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -848,4 +853,5 @@ void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull self, const ColorTable* p
 
 class_func_defs(GraphicsDriver, Driver,
 override_func_def(deinit, GraphicsDriver, Object)
+override_func_def(start, GraphicsDriver, Driver)
 );

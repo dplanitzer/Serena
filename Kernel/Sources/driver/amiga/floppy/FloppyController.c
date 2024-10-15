@@ -81,12 +81,6 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
 errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
 {
     decl_try_err();
-    char fdx_name[4];
-
-    fdx_name[0] = 'f';
-    fdx_name[1] = 'd';
-    fdx_name[2] = '\0';
-    fdx_name[3] = '\0';
 
     // Discover as many floppy drives as possible. We ignore drives that generate
     // an error while trying to initialize them.
@@ -96,12 +90,8 @@ errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
         if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
             FloppyDiskRef drive;
             
-            err = FloppyDisk_Create(i, ds, self, &drive);
-            if (err == EOK) {
-                if ((err = Driver_Start((DriverRef)drive)) == EOK) {
-                    fdx_name[2] = '0' + i;
-                    err = DriverCatalog_RegisterDriver(gDriverCatalog, fdx_name, (DriverRef)drive);
-                }
+            if ((err = FloppyDisk_Create(i, ds, self, &drive)) == EOK) {
+                err = Driver_Start((DriverRef)drive);
                 if (err != EOK) {
                     Object_Release(drive);
                 }

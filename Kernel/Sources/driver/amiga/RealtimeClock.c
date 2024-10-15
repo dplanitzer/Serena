@@ -67,6 +67,11 @@ static void RealtimeClock_deinit(RealtimeClockRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
+static errno_t RealtimeClock_start(RealtimeClockRef _Nonnull self)
+{
+    return Driver_Publish((DriverRef)self, kRealtimeClockName);
+}
+
 // Returns the current Gregorian date & time.
 errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull self, GregorianDate* _Nonnull pDate)
 {
@@ -140,6 +145,7 @@ catch:
 
 class_func_defs(RealtimeClock, Driver,
 override_func_def(deinit, RealtimeClock, Object)
+override_func_def(start, RealtimeClock, Driver)
 override_func_def(read, RealtimeClock, Driver)
 override_func_def(write, RealtimeClock, Driver)
 );

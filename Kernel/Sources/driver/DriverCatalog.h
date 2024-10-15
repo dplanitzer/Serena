@@ -18,7 +18,7 @@ extern errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSe
 extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 
 extern errno_t DriverCatalog_RegisterDriver(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Consuming _Nonnull driver);
-extern void DriverCatalog_UnregisterDriver(DriverCatalogRef _Nonnull self, const char* _Nonnull name);
+extern void DriverCatalog_UnregisterDriver(DriverCatalogRef _Nonnull self, DriverRef _Nonnull pDriver);
 
 extern DriverRef DriverCatalog_GetDriverForName(DriverCatalogRef _Nonnull self, const char* pName);
 

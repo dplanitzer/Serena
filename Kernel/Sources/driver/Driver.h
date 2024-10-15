@@ -27,9 +27,10 @@ open_class(Driver, Object,
 open_class_funcs(Driver, Object,
 
     // Invoked as the result of calling Driver_Start(). A driver subclass should
-    // override this method to reset the hardware and to configure it such that
-    // all components are in an idle state.
-    // Override: Optional
+    // override this method to reset the hardware, configure it such that
+    // all components are in an idle state and to publish the driver to the
+    // driver catalog.
+    // Override: Recommended
     // Default Behavior: Returns EOK and does nothing
     errno_t (*start)(void* _Nonnull self);
 
@@ -37,7 +38,7 @@ open_class_funcs(Driver, Object,
     // override this method and configure the hardware such that it is in an
     // idle and powered-down state.
     // Override: Optional
-    // Default Behavior: Does nothing
+    // Default Behavior: Unpublishes the driver
     void (*stop)(void* _Nonnull self);
 
     // Invoked as the result of calling Driver_Open(). A driver subclass may
@@ -101,6 +102,13 @@ extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model);
 // an asynchronous driver.
 #define Driver_GetDispatchQueue(__self) \
     ((DriverRef)__self)->dispatchQueue
+
+// Publishes the driver instance to the driver catalog with the given name.
+extern errno_t Driver_Publish(DriverRef _Nonnull self, const char* name);
+
+// Removes the driver instance from the driver catalog.
+extern void Driver_Unpublish(DriverRef _Nonnull self);
+
 
 // Do not call directly. Use the Driver_Create() macro instead
 extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverRef _Nullable * _Nonnull pOutDriver);

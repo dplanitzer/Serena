@@ -497,7 +497,7 @@ static void Console_VT100_ESC_Locked(ConsoleRef _Nonnull self, unsigned char ch)
             break;
 
         case 'c':   // ANSI: RIS
-            Console_ResetState_Locked(self);
+            Console_ResetState_Locked(self, true);
             break;
 
         default:

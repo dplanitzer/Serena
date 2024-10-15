@@ -215,7 +215,7 @@ extern void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Poin
 extern void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch);
 
 
-extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self);
+extern errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking);
 extern void Console_ResetCharacterAttributes_Locked(ConsoleRef _Nonnull self);
 
 extern void Console_ClearScreen_Locked(ConsoleRef _Nonnull self, ClearScreenMode mode);

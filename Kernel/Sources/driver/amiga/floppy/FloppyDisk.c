@@ -115,10 +115,19 @@ static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self)
 
 static errno_t FloppyDisk_start(FloppyDiskRef _Nonnull self)
 {
-    return DispatchQueue_DispatchAsync(
-        Driver_GetDispatchQueue(self),
-        (VoidFunc_1)FloppyDisk_EstablishInitialDriveState,
-        self);
+    decl_try_err();
+    char name[4];
+
+    if ((err = DispatchQueue_DispatchAsync(Driver_GetDispatchQueue(self), (VoidFunc_1)FloppyDisk_EstablishInitialDriveState, self)) == EOK) {
+        name[0] = 'f';
+        name[1] = 'd';
+        name[2] = '0' + self->drive;
+        name[3] = '\0';
+
+        err = Driver_Publish((DriverRef)self, name);
+    }
+
+    return err;
 }
 
 // Called when we've detected that the disk has been removed from the drive

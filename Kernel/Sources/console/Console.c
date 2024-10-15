@@ -48,13 +48,8 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
 
 
     // Reset the console to the default configuration
-    try(Console_ResetState_Locked(self));
+    try(Console_ResetState_Locked(self, false));
 
-
-    // Clear the console screen
-    Console_BeginDrawing_Locked(self);
-    Console_ClearScreen_Locked(self, kClearScreenMode_WholeAndScrollback);
-    Console_EndDrawing_Locked(self);
 
     *pOutSelf = self;
     return EOK;
@@ -90,7 +85,21 @@ void Console_deinit(ConsoleRef _Nonnull self)
     self->eventDriver = NULL;
 }
 
-errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self)
+static errno_t Console_start(ConsoleRef _Nonnull self)
+{
+    // Clear the console screen
+    Console_BeginDrawing_Locked(self);
+    Console_ClearScreen_Locked(self, kClearScreenMode_WholeAndScrollback);
+    Console_EndDrawing_Locked(self);
+
+
+    // Start cursor blinking
+    Console_SetCursorBlinkingEnabled_Locked(self, true);
+
+    return Driver_Publish((DriverRef)self, kConsoleName);
+}
+
+errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
 {
     decl_try_err();
     
@@ -105,7 +114,7 @@ errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self)
 
     Console_MoveCursorTo_Locked(self, 0, 0);
     Console_SetCursorVisible_Locked(self, true);
-    Console_SetCursorBlinkingEnabled_Locked(self, true);
+    Console_SetCursorBlinkingEnabled_Locked(self, shouldStartCursorBlinking);
     self->flags.isAutoWrapEnabled = true;
     self->flags.isInsertionMode = false;
 
@@ -646,6 +655,7 @@ errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChan
 
 class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
+override_func_def(start, Console, Driver)
 override_func_def(open, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)

@@ -107,13 +107,33 @@ void DriverCatalog_Destroy(DriverCatalogRef _Nullable self)
     }
 }
 
-static DriverEntry* _Nullable _DriverCatalog_GetDriverEntry(DriverCatalogRef _Locked _Nonnull self, const char* _Nonnull name, DriverEntry* _Nullable * _Nullable pOutPrevEntry)
+static DriverEntry* _Nullable _DriverCatalog_GetEntryByName(DriverCatalogRef _Locked _Nonnull self, const char* _Nonnull name, DriverEntry* _Nullable * _Nullable pOutPrevEntry)
 {
     DriverEntry* prevEntry = NULL;
     DriverEntry* theEntry = NULL;
 
     SList_ForEach(&self->drivers, DriverEntry, {
         if (String_Equals(pCurNode->name, name)) {
+            theEntry = pCurNode;
+            break;
+        }
+
+        prevEntry = pCurNode;
+    })
+
+    if (pOutPrevEntry) {
+        *pOutPrevEntry = prevEntry;
+    }
+    return theEntry;
+}
+
+static DriverEntry* _Nullable _DriverCatalog_GetEntryByDriver(DriverCatalogRef _Locked _Nonnull self, DriverRef _Nonnull pDriver, DriverEntry* _Nullable * _Nullable pOutPrevEntry)
+{
+    DriverEntry* prevEntry = NULL;
+    DriverEntry* theEntry = NULL;
+
+    SList_ForEach(&self->drivers, DriverEntry, {
+        if (pCurNode->instance == pDriver) {
             theEntry = pCurNode;
             break;
         }
@@ -142,13 +162,13 @@ errno_t DriverCatalog_RegisterDriver(DriverCatalogRef _Nonnull self, const char*
     return err;
 }
 
-void DriverCatalog_UnregisterDriver(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
+void DriverCatalog_UnregisterDriver(DriverCatalogRef _Nonnull self, DriverRef _Nonnull pDriver)
 {
     DriverEntry* prevEntry = NULL;
     DriverEntry* entry = NULL;
 
     Lock_Lock(&self->lock);
-    entry = _DriverCatalog_GetDriverEntry(self, name, &prevEntry);
+    entry = _DriverCatalog_GetEntryByDriver(self, pDriver, &prevEntry);
     if (entry) {
         SList_Remove(&self->drivers, &prevEntry->node, &entry->node);
     }
@@ -158,7 +178,7 @@ void DriverCatalog_UnregisterDriver(DriverCatalogRef _Nonnull self, const char* 
 DriverRef DriverCatalog_GetDriverForName(DriverCatalogRef _Nonnull self, const char* name)
 {
     Lock_Lock(&self->lock);
-    DriverEntry* entry = _DriverCatalog_GetDriverEntry(self, name, NULL);
+    DriverEntry* entry = _DriverCatalog_GetEntryByName(self, name, NULL);
     Lock_Unlock(&self->lock);
 
     return (entry) ? entry->instance : NULL;

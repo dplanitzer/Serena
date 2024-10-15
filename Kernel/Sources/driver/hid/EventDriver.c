@@ -9,7 +9,7 @@
 #include "EventDriverPriv.h"
 #include "EventChannel.h"
 
-const char* const kEventsDriverName = "events";
+const char* const kEventDriverName = "events";
 
 //extern const uint16_t gArrow_Bits[];
 //extern const uint16_t gArrow_Mask[];
@@ -117,6 +117,12 @@ void EventDriver_deinit(EventDriverRef _Nonnull self)
 
     Lock_Deinit(&self->lock);
 }
+
+static errno_t EventDriver_start(EventDriverRef _Nonnull self)
+{
+    return Driver_Publish((DriverRef)self, kEventDriverName);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
@@ -582,6 +588,7 @@ errno_t EventDriver_read(EventDriverRef _Nonnull self, EventChannelRef _Nonnull 
 
 class_func_defs(EventDriver, Driver,
 override_func_def(deinit, EventDriver, Object)
+override_func_def(start, EventDriver, Driver)
 override_func_def(open, EventDriver, Driver)
 override_func_def(read, EventDriver, Driver)
 );

@@ -8,6 +8,7 @@
 
 #include "Driver.h"
 #include "DriverChannel.h"
+#include "DriverCatalog.h"
 #include <dispatchqueue/DispatchQueue.h>
 
 
@@ -87,6 +88,7 @@ void Driver_Stop(DriverRef _Nonnull self)
 
 void Driver_stop(DriverRef _Nonnull self)
 {
+    Driver_Unpublish(self);
 }
 
 
@@ -167,6 +169,20 @@ errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;
+}
+
+
+
+// Publishes the driver instance to the driver catalog with the given name.
+errno_t Driver_Publish(DriverRef _Nonnull self, const char* name)
+{
+    return DriverCatalog_RegisterDriver(gDriverCatalog, name, self);
+}
+
+// Removes the driver instance from the driver catalog.
+void Driver_Unpublish(DriverRef _Nonnull self)
+{
+    DriverCatalog_UnregisterDriver(gDriverCatalog, self);
 }
 
 

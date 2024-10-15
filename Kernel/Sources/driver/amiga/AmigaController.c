@@ -44,21 +44,18 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
     GraphicsDriverRef pMainGDevice = NULL;
     try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &pMainGDevice));
     try(Driver_Start((DriverRef)pMainGDevice));
-    try(DriverCatalog_RegisterDriver(gDriverCatalog, kGraphicsDriverName, (DriverRef)pMainGDevice));
 
 
     // Event Driver
     EventDriverRef pEventDriver = NULL;
     try(EventDriver_Create(pMainGDevice, &pEventDriver));
     try(Driver_Start((DriverRef)pEventDriver));
-    try(DriverCatalog_RegisterDriver(gDriverCatalog, kEventsDriverName, (DriverRef)pEventDriver));
 
 
     // Initialize the console
     ConsoleRef pConsole = NULL;
     try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
     try(Driver_Start((DriverRef)pConsole));
-    try(DriverCatalog_RegisterDriver(gDriverCatalog, kConsoleName, (DriverRef)pConsole));
 
 
     // Let the kernel know that the console is now available
@@ -75,7 +72,6 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
     RealtimeClockRef pRealtimeClock = NULL;
     try(RealtimeClock_Create(gSystemDescription, &pRealtimeClock));
     try(Driver_Start((DriverRef)pRealtimeClock));
-    try(DriverCatalog_RegisterDriver(gDriverCatalog, kRealtimeClockName, (DriverRef)pRealtimeClock));
 
 
     // Zorro Bus
