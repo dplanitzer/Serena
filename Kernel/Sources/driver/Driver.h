@@ -9,6 +9,7 @@
 #ifndef Driver_h
 #define Driver_h
 
+#include <klib/List.h>
 #include <kobj/Object.h>
 
 typedef enum DriverModel {
@@ -16,13 +17,21 @@ typedef enum DriverModel {
     kDriverModel_Async
 } DriverModel;
 
+typedef enum DriverState {
+    kDriverState_Stopped = 0,
+    kDriverState_Running,
+    kDriverState_Terminated
+} DriverState;
+
 
 // A driver object binds to and manages a device. A device is a piece of hardware
 // that does some work. In the device tree, all driver objects are leaf nodes in
 // the tree.
 open_class(Driver, Object,
+    ListNode                    childNode;
+    List                        children;
     DispatchQueueRef _Nullable  dispatchQueue;
-    AtomicBool                  isStopped;
+    int                         state;
 );
 open_class_funcs(Driver, Object,
 
@@ -74,7 +83,7 @@ open_class_funcs(Driver, Object,
 );
 
 extern errno_t Driver_Start(DriverRef _Nonnull self);
-extern void Driver_Stop(DriverRef _Nonnull self);
+extern void Driver_Terminate(DriverRef _Nonnull self);
 
 extern errno_t Driver_Open(DriverRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel);
@@ -103,11 +112,25 @@ extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model);
 #define Driver_GetDispatchQueue(__self) \
     ((DriverRef)__self)->dispatchQueue
 
+
 // Publishes the driver instance to the driver catalog with the given name.
 extern errno_t Driver_Publish(DriverRef _Nonnull self, const char* name);
 
 // Removes the driver instance from the driver catalog.
 extern void Driver_Unpublish(DriverRef _Nonnull self);
+
+
+// Adds the given driver as a child to the receiver.
+extern void Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild);
+
+// Adds the given driver to the receiver as a child. Consumes the provided strong
+// reference.
+extern void Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming pChild);
+
+// Removes the given driver from teh receiver. The given driver has to be a child
+// of the receiver.
+extern void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild);
+
 
 
 // Do not call directly. Use the Driver_Create() macro instead

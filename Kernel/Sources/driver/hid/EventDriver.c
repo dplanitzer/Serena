@@ -78,6 +78,7 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
     // Open the keyboard driver
     try(KeyboardDriver_Create(self, &self->keyboardDriver));
     try(Driver_Start((DriverRef)self->keyboardDriver));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)self->keyboardDriver);
 
 
     // Open the mouse/joystick/light pen driver
@@ -107,9 +108,6 @@ void EventDriver_deinit(EventDriverRef _Nonnull self)
         EventDriver_DestroyInputControllerForPort(self, i);
     }
     
-    Object_Release(self->keyboardDriver);
-    self->keyboardDriver = NULL;
-
     HIDEventQueue_Destroy(self->eventQueue);
 
     Object_Release(self->gdevice);
@@ -368,6 +366,7 @@ errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull self, I
     }
     
     try(Driver_Start((DriverRef)self->port[portId].driver));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)self->port[portId].driver);
     self->port[portId].type = type;
 
 catch:
@@ -379,8 +378,8 @@ catch:
 void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull self, int portId)
 {
     if (self->port[portId].driver) {
-        Driver_Stop((DriverRef) self->port[portId].driver);
-        Object_Release(self->port[portId].driver);
+        Driver_Terminate((DriverRef) self->port[portId].driver);
+        Driver_RemoveChild((DriverRef)self, (DriverRef) self->port[portId].driver);
         self->port[portId].driver = NULL;
         self->port[portId].type = kInputControllerType_None;
     }

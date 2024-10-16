@@ -91,7 +91,9 @@ errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
             FloppyDiskRef drive;
             
             if ((err = FloppyDisk_Create(i, ds, self, &drive)) == EOK) {
-                err = Driver_Start((DriverRef)drive);
+                if ((err = Driver_Start((DriverRef)drive)) == EOK) {
+                    Driver_AdoptChild((DriverRef)self, (DriverRef)drive);
+                }
                 if (err != EOK) {
                     Object_Release(drive);
                 }

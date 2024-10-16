@@ -41,43 +41,49 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
         //pVideoConfig = &kScreenConfig_PAL_640_512_25;
     }
     
-    GraphicsDriverRef pMainGDevice = NULL;
-    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &pMainGDevice));
-    try(Driver_Start((DriverRef)pMainGDevice));
+    GraphicsDriverRef graphDriver = NULL;
+    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &graphDriver));
+    try(Driver_Start((DriverRef)graphDriver));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)graphDriver);
 
 
     // Event Driver
-    EventDriverRef pEventDriver = NULL;
-    try(EventDriver_Create(pMainGDevice, &pEventDriver));
-    try(Driver_Start((DriverRef)pEventDriver));
+    EventDriverRef eventDriver = NULL;
+    try(EventDriver_Create(graphDriver, &eventDriver));
+    try(Driver_Start((DriverRef)eventDriver));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)eventDriver);
 
 
     // Initialize the console
-    ConsoleRef pConsole = NULL;
-    try(Console_Create(pEventDriver, pMainGDevice, &pConsole));
-    try(Driver_Start((DriverRef)pConsole));
+    ConsoleRef console = NULL;
+    try(Console_Create(eventDriver, graphDriver, &console));
+    try(Driver_Start((DriverRef)console));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)console);
 
 
     // Let the kernel know that the console is now available
-    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self, pConsole);
+    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self, console);
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create(&fdc));
     try(Driver_Start((DriverRef)fdc));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)fdc);
 
 
     // Realtime Clock
-    RealtimeClockRef pRealtimeClock = NULL;
-    try(RealtimeClock_Create(gSystemDescription, &pRealtimeClock));
-    try(Driver_Start((DriverRef)pRealtimeClock));
+    RealtimeClockRef rtcDriver = NULL;
+    try(RealtimeClock_Create(gSystemDescription, &rtcDriver));
+    try(Driver_Start((DriverRef)rtcDriver));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)rtcDriver);
 
 
     // Zorro Bus
     ZorroControllerRef zorroController = NULL;
     try(ZorroController_Create(&zorroController));
     try(Driver_Start((DriverRef)zorroController));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)zorroController);
 
 catch:
     return err;
