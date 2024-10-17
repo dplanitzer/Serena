@@ -23,7 +23,7 @@ errno_t RomDisk_Create(const void* _Nonnull pDiskImage, size_t nBlockSize, Logic
     RomDiskRef self;
 
     assert(pDiskImage != NULL);
-    try(Driver_Create(RomDisk, kDriverModel_Async, &self));
+    try(DiskDriver_Create(RomDisk, &self));
     self->diskImage = pDiskImage;
     self->blockCount = nBlockCount;
     self->blockSize = nBlockSize;

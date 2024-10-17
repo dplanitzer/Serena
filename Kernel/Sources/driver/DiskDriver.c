@@ -36,7 +36,7 @@ static void DiskDriver_getInfoStub(DiskDriverRef _Nonnull self, struct IOGetInfo
 
 // Returns information about the disk drive and the media loaded into the
 // drive.
-errno_t DiskDriver_getInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
+errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
     struct IOGetInfoRequest rq;
 
@@ -70,7 +70,7 @@ static void DiskDriver_getBlockStub(DiskDriverRef _Nonnull self, struct IOReadRe
 // operation has completed. Note that this function will never return a
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
-errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t DiskDriver_GetBlock(DiskDriverRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     struct IOReadRequest rq;
 
@@ -103,7 +103,7 @@ static void DiskDriver_putBlockStub(DiskDriverRef _Nonnull self, struct IOWriteR
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t DiskDriver_PutBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     struct IOWriteRequest rq;
 
@@ -138,9 +138,6 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 
 
 class_func_defs(DiskDriver, Driver,
-func_def(getInfo, DiskDriver)
-func_def(getBlock, DiskDriver)
-func_def(putBlock, DiskDriver)
 func_def(getInfoAsync, DiskDriver)
 func_def(getBlockAsync, DiskDriver)
 func_def(putBlockAsync, DiskDriver)

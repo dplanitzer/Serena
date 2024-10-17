@@ -30,7 +30,7 @@ errno_t RamDisk_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, Logical
     decl_try_err();
     RamDiskRef self;
 
-    try(Driver_Create(RamDisk, kDriverModel_Async, &self));
+    try(DiskDriver_Create(RamDisk, &self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(nExtentBlockCount, nBlockCount);
     self->blockCount = nBlockCount;

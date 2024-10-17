@@ -29,7 +29,7 @@ errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull
     decl_try_err();
     FloppyDiskRef self;
     
-    try(Driver_Create(FloppyDisk, kDriverModel_Async, &self));
+    try(DiskDriver_Create(FloppyDisk, &self));
 
     self->fdc = fdc;
     self->drive = drive;
