@@ -1,13 +1,13 @@
 //
-//  FloppyDisk.h
+//  FloppyDriver.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef FloppyDisk_h
-#define FloppyDisk_h
+#ifndef FloppyDriver_h
+#define FloppyDriver_h
 
 #include <klib/klib.h>
 #include <driver/DiskDriver.h>
@@ -24,8 +24,8 @@
 extern const char* const kFloppyDrive0Name;
 
 
-final_class(FloppyDisk, DiskDriver);
+final_class(FloppyDriver, DiskDriver);
 
-extern bool FloppyDisk_HasDisk(FloppyDiskRef _Nonnull self);
+extern bool FloppyDriver_HasDisk(FloppyDriverRef _Nonnull self);
 
-#endif /* FloppyDisk_h */
+#endif /* FloppyDriver_h */

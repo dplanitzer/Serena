@@ -1,15 +1,15 @@
 //
-//  FloppyDiskPriv.h
+//  FloppyDriverPriv.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 6/17/24.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef FloppyDiskPriv_h
-#define FloppyDiskPriv_h
+#ifndef FloppyDriverPriv_h
+#define FloppyDriverPriv_h
 
-#include "FloppyDisk.h"
+#include "FloppyDriver.h"
 #include "FloppyControllerPkg.h"
 #include "adf.h"
 
@@ -48,7 +48,7 @@ typedef struct ADFSector {
 
 
 // Stores the state of a single floppy drive.
-final_class_ivars(FloppyDisk, DiskDriver,
+final_class_ivars(FloppyDriver, DiskDriver,
 
     FloppyControllerRef _Nonnull _Weak  fdc;
 
@@ -72,8 +72,8 @@ final_class_ivars(FloppyDisk, DiskDriver,
 
     int                         readErrorCount;                         // Number of read errors since last disk driver reset / disk change
 
-    int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDisk_ResetDrive()
-    int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDisk_ResetDrive()
+    int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDriver_ResetDrive()
+    int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDriver_ResetDrive()
     int8_t                      drive;                                  // drive number that this fd object represents
     DriveState                  driveState;                             // current drive hardware state as maintained by the floppy controller
 
@@ -88,35 +88,35 @@ final_class_ivars(FloppyDisk, DiskDriver,
 );
 
 
-extern errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk);
-static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_OnDiskRemoved(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self);
+extern errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
+static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_OnDiskRemoved(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_DisposeTrackBuffer(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDisk_EnsureTrackCompositionBuffer(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_DisposeTrackCompositionBuffer(FloppyDiskRef _Nonnull self);
+static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_DisposeTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
 
-static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self);
-static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self);
+static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self);
+static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_DelayedMotorOff(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, bool* _Nonnull pOutDidStep);
-static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head);
+static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _Nonnull pOutDidStep);
+static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head);
 
-static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self);
-static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self);
+static void FloppyDriver_ScheduleUpdateHasDiskState(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head);
-static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite);
-static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self, errno_t err);
+static errno_t FloppyDriver_BeginIO(FloppyDriverRef _Nonnull self, int cylinder, int head);
+static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite);
+static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err);
 
-#define FloppyDisk_TrackFromCylinderAndHead(__cylinder, __head) (2*__cylinder + __head)
+#define FloppyDriver_TrackFromCylinderAndHead(__cylinder, __head) (2*__cylinder + __head)
 
-#endif /* FloppyDiskPriv_h */
+#endif /* FloppyDriverPriv_h */

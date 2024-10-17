@@ -6,7 +6,7 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FloppyDiskPriv.h"
+#include "FloppyDriverPriv.h"
 #include "FloppyControllerPkg.h"
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
@@ -88,9 +88,9 @@ errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
         DriveState ds = FloppyController_ResetDrive(self, i);
 
         if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
-            FloppyDiskRef drive;
+            FloppyDriverRef drive;
             
-            if ((err = FloppyDisk_Create(i, ds, self, &drive)) == EOK) {
+            if ((err = FloppyDriver_Create(i, ds, self, &drive)) == EOK) {
                 if ((err = Driver_Start((DriverRef)drive)) == EOK) {
                     Driver_AdoptChild((DriverRef)self, (DriverRef)drive);
                 }

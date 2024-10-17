@@ -34,7 +34,7 @@ class_ref(EventDriver);
 class_ref(FileChannel);
 class_ref(Filesystem);
 class_ref(FloppyController);
-class_ref(FloppyDisk);
+class_ref(FloppyDriver);
 class_ref(FSContainer);
 class_ref(GraphicsDriver);
 class_ref(Inode);

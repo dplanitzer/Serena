@@ -11,7 +11,7 @@
 
 #include <klib/klib.h>
 #include <driver/Driver.h>
-#include <driver/amiga/floppy/FloppyDisk.h>
+#include <driver/amiga/floppy/FloppyDriver.h>
 
 
 // The floppy controller. The Amiga has just one single floppy DMA channel

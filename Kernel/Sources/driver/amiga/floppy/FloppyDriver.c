@@ -1,12 +1,12 @@
 //
-//  FloppyDisk.c
+//  FloppyDriver.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/12/21.
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#include "FloppyDiskPriv.h"
+#include "FloppyDriverPriv.h"
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <hal/Platform.h>
@@ -24,12 +24,12 @@ const char* const kFloppyDrive0Name = "fd0";
 
 // Allocates a floppy disk object. The object is set up to manage the physical
 // floppy drive 'drive'.
-errno_t FloppyDisk_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull fdc, FloppyDiskRef _Nullable * _Nonnull pOutDisk)
+errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull fdc, FloppyDriverRef _Nullable * _Nonnull pOutDisk)
 {
     decl_try_err();
-    FloppyDiskRef self;
+    FloppyDriverRef self;
     
-    try(DiskDriver_Create(FloppyDisk, &self));
+    try(DiskDriver_Create(FloppyDriver, &self));
 
     self->fdc = fdc;
     self->drive = drive;
@@ -65,20 +65,20 @@ catch:
     return err;
 }
 
-static void FloppyDisk_deinit(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 {
-    FloppyDisk_CancelDelayedMotorOff(self);
-    FloppyDisk_CancelUpdateHasDiskState(self);
+    FloppyDriver_CancelDelayedMotorOff(self);
+    FloppyDriver_CancelUpdateHasDiskState(self);
 
-    FloppyDisk_DisposeTrackBuffer(self);
-    FloppyDisk_DisposeTrackCompositionBuffer(self);
+    FloppyDriver_DisposeTrackBuffer(self);
+    FloppyDriver_DisposeTrackCompositionBuffer(self);
 
     self->fdc = NULL;
 }
 
 // Returns information about the disk drive and the media loaded into the
 // drive.
-errno_t FloppyDisk_getInfoAsync(FloppyDiskRef _Nonnull self, DiskInfo* pOutInfo)
+errno_t FloppyDriver_getInfoAsync(FloppyDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->blockSize = ADF_SECTOR_DATA_SIZE;
     pOutInfo->blockCount = self->blocksPerDisk;
@@ -91,34 +91,34 @@ errno_t FloppyDisk_getInfoAsync(FloppyDiskRef _Nonnull self, DiskInfo* pOutInfo)
 // Establishes the base state for a newly discovered drive. This means that we
 // move the disk head to track #0 and that we figure out whether a disk is loaded
 // or not.
-static void FloppyDisk_EstablishInitialDriveState(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self)
 {
     bool didStep;
-    const errno_t err = FloppyDisk_SeekToTrack_0(self, &didStep);
+    const errno_t err = FloppyDriver_SeekToTrack_0(self, &didStep);
 
     if (err == EOK) {
         if (!didStep) {
-            FloppyDisk_ResetDriveDiskChange(self);
+            FloppyDriver_ResetDriveDiskChange(self);
         }
 
         self->flags.isOnline = 1;
         self->flags.hasDisk = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
         if (!self->flags.hasDisk) {
-            FloppyDisk_OnDiskRemoved(self);
+            FloppyDriver_OnDiskRemoved(self);
         }
     }
     else {
-        FloppyDisk_OnHardwareLost(self);
+        FloppyDriver_OnHardwareLost(self);
     }
 }
 
-static errno_t FloppyDisk_start(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
 {
     decl_try_err();
     char name[4];
 
-    if ((err = DispatchQueue_DispatchAsync(Driver_GetDispatchQueue(self), (VoidFunc_1)FloppyDisk_EstablishInitialDriveState, self)) == EOK) {
+    if ((err = DispatchQueue_DispatchAsync(Driver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_EstablishInitialDriveState, self)) == EOK) {
         name[0] = 'f';
         name[1] = 'd';
         name[2] = '0' + self->drive;
@@ -131,13 +131,13 @@ static errno_t FloppyDisk_start(FloppyDiskRef _Nonnull self)
 }
 
 // Called when we've detected that the disk has been removed from the drive
-static void FloppyDisk_OnDiskRemoved(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_OnDiskRemoved(FloppyDriverRef _Nonnull self)
 {
-    FloppyDisk_ScheduleUpdateHasDiskState(self);
+    FloppyDriver_ScheduleUpdateHasDiskState(self);
 }
 
 // Called when we've detected a loss of the drive hardware
-static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
         self->flags.isOnline = 0;
         self->flags.hasDisk = 0;
@@ -148,7 +148,7 @@ static void FloppyDisk_OnHardwareLost(FloppyDiskRef _Nonnull self)
 // Track Buffer
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self)
 {
     decl_try_err();
 
@@ -158,7 +158,7 @@ static errno_t FloppyDisk_EnsureTrackBuffer(FloppyDiskRef _Nonnull self)
     return err;
 }
 
-static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_DisposeTrackBuffer(FloppyDriverRef _Nonnull self)
 {
     if (self->trackBuffer) {
         kfree(self->trackBuffer);
@@ -166,7 +166,7 @@ static void FloppyDisk_DisposeTrackBuffer(FloppyDiskRef _Nonnull self)
     }
 }
 
-static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_ResetTrackBuffer(FloppyDriverRef _Nonnull self)
 {
     // We go through all sectors in the track buffer and wipe out their sync words.
     // We do this to ensure that we won't accidentally pick up a sector from a
@@ -193,7 +193,7 @@ static void FloppyDisk_ResetTrackBuffer(FloppyDiskRef _Nonnull self)
 // Track Composition Buffer
 ////////////////////////////////////////////////////////////////////////////////
 
-static errno_t FloppyDisk_EnsureTrackCompositionBuffer(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self)
 {
     if (self->trackCompositionBuffer == NULL) {
         return kalloc_options(sizeof(uint16_t) * self->trackWriteWordCount, 0, (void**) &self->trackCompositionBuffer);
@@ -203,7 +203,7 @@ static errno_t FloppyDisk_EnsureTrackCompositionBuffer(FloppyDiskRef _Nonnull se
     }
 }
 
-static void FloppyDisk_DisposeTrackCompositionBuffer(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_DisposeTrackCompositionBuffer(FloppyDriverRef _Nonnull self)
 {
     if (self->trackCompositionBuffer) {
         kfree(self->trackCompositionBuffer);
@@ -217,18 +217,18 @@ static void FloppyDisk_DisposeTrackCompositionBuffer(FloppyDiskRef _Nonnull self
 ////////////////////////////////////////////////////////////////////////////////
 
 // Turns the drive motor on and blocks the caller until the disk is ready.
-static void FloppyDisk_MotorOn(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self)
 {
     if (self->flags.motorState == kMotor_Off) {
         FloppyController_SetMotor(self->fdc, &self->driveState, true);
         self->flags.motorState = kMotor_SpinningUp;
     }
 
-    FloppyDisk_CancelDelayedMotorOff(self);
+    FloppyDriver_CancelDelayedMotorOff(self);
 }
 
 // Turns the drive motor off.
-static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self)
 {
     // Note: may be called if the motor when off on us without our doing. We call
     // this function in this case to resync out software state with the hardware
@@ -236,14 +236,14 @@ static void FloppyDisk_MotorOff(FloppyDiskRef _Nonnull self)
     FloppyController_SetMotor(self->fdc, &self->driveState, false);
     self->flags.motorState = kMotor_Off;
 
-    FloppyDisk_CancelDelayedMotorOff(self);
+    FloppyDriver_CancelDelayedMotorOff(self);
 }
 
 // Waits until the drive is ready (motor is spinning at full speed). This function
 // waits for at most 500ms for the disk to become ready.
 // Returns EOK if the drive is ready; ETIMEDOUT if the drive failed to become
 // ready in time.
-static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
+static errno_t FloppyDriver_WaitForDiskReady(FloppyDriverRef _Nonnull self)
 {
     if (self->flags.motorState == kMotor_AtTargetSpeed) {
         return EOK;
@@ -267,7 +267,7 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 
         // Timed out. Turn the motor off for now so that another I/O request can
         // try spinning the motor up to its target speed again.
-        FloppyDisk_MotorOff(self);
+        FloppyDriver_MotorOff(self);
         return ETIMEDOUT;
     }
     else if (self->flags.motorState == kMotor_Off) {
@@ -277,27 +277,27 @@ static errno_t FloppyDisk_WaitForDiskReady(FloppyDiskRef _Nonnull self)
 
 // Called from a timer after the drive has been sitting idle for some time. Turn
 // the drive motor off. 
-static void FloppyDisk_OnDelayedMotorOff(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_OnDelayedMotorOff(FloppyDriverRef _Nonnull self)
 {
     if (self->flags.isOnline) {
-        FloppyDisk_MotorOff(self);
+        FloppyDriver_MotorOff(self);
     }
 }
 
-static void FloppyDisk_DelayedMotorOff(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_DelayedMotorOff(FloppyDriverRef _Nonnull self)
 {
-    FloppyDisk_CancelDelayedMotorOff(self);
+    FloppyDriver_CancelDelayedMotorOff(self);
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(4));
     DispatchQueue_DispatchAsyncAfter(Driver_GetDispatchQueue(self),
         deadline,
-        (VoidFunc_1)FloppyDisk_OnDelayedMotorOff,
+        (VoidFunc_1)FloppyDriver_OnDelayedMotorOff,
         self,
         kDelayedMotorOffTag);
 }
 
-static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_CancelDelayedMotorOff(FloppyDriverRef _Nonnull self)
 {
     DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kDelayedMotorOffTag);
 }
@@ -309,7 +309,7 @@ static void FloppyDisk_CancelDelayedMotorOff(FloppyDiskRef _Nonnull self)
 
 // Seeks to track #0 and selects head #0. Returns ETIMEDOUT if the seek failed
 // because there's probably no drive connected.
-static errno_t FloppyDisk_SeekToTrack_0(FloppyDiskRef _Nonnull self, bool* _Nonnull pOutDidStep)
+static errno_t FloppyDriver_SeekToTrack_0(FloppyDriverRef _Nonnull self, bool* _Nonnull pOutDidStep)
 {
     decl_try_err();
     int steps = 0;
@@ -348,7 +348,7 @@ catch:
 
 // Seeks to the specified cylinder and selects the specified drive head.
 // (0: outermost, 79: innermost, +: inward, -: outward).
-static errno_t FloppyDisk_SeekTo(FloppyDiskRef _Nonnull self, int cylinder, int head)
+static errno_t FloppyDriver_SeekTo(FloppyDriverRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
     const int diff = cylinder - self->cylinder;
@@ -412,7 +412,7 @@ catch:
 // Disk (Present) State
 ////////////////////////////////////////////////////////////////////////////////
 
-static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
 {
     // We have to step the disk head to trigger a reset of the disk change bit.
     // We do this in a smart way in the sense that we step back and forth while
@@ -430,17 +430,17 @@ static void FloppyDisk_ResetDriveDiskChange(FloppyDiskRef _Nonnull self)
         self->flags.shouldResetDiskChangeStepInward = 1;
     }
 
-    FloppyDisk_SeekTo(self, c, self->head);
+    FloppyDriver_SeekTo(self, c, self->head);
     self->flags.shouldResetDiskChangeStepInward = !self->flags.shouldResetDiskChangeStepInward;
 }
 
 // Updates the drive's has-disk state
-static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self)
 {
     int newHasDisk = 0;
 
     if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
-        FloppyDisk_ResetDriveDiskChange(self);
+        FloppyDriver_ResetDriveDiskChange(self);
 
         if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
             newHasDisk = 0;
@@ -459,34 +459,34 @@ static void FloppyDisk_UpdateHasDiskState(FloppyDiskRef _Nonnull self)
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 }
 
-static void FloppyDisk_OnUpdateHasDiskStateCheck(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_OnUpdateHasDiskStateCheck(FloppyDriverRef _Nonnull self)
 {
     if (!self->flags.isOnline) {
         return;
     }
 
-    FloppyDisk_UpdateHasDiskState(self);
+    FloppyDriver_UpdateHasDiskState(self);
 
     if (!self->flags.hasDisk) {
-        FloppyDisk_ScheduleUpdateHasDiskState(self);
+        FloppyDriver_ScheduleUpdateHasDiskState(self);
     }
 }
 
-static void FloppyDisk_ScheduleUpdateHasDiskState(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_ScheduleUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 {
-    FloppyDisk_CancelUpdateHasDiskState(self);
+    FloppyDriver_CancelUpdateHasDiskState(self);
 
     const TimeInterval curTime = MonotonicClock_GetCurrentTime();
     const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(3));
     DispatchQueue_DispatchAsyncPeriodically(Driver_GetDispatchQueue(self),
         deadline,
         kTimeInterval_Zero,
-        (VoidFunc_1)FloppyDisk_OnUpdateHasDiskStateCheck,
+        (VoidFunc_1)FloppyDriver_OnUpdateHasDiskStateCheck,
         self,
         kUpdateHasDiskStateTag);
 }
 
-static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self)
+static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 {
     DispatchQueue_RemoveByTag(Driver_GetDispatchQueue(self), kUpdateHasDiskStateTag);
 }
@@ -498,7 +498,7 @@ static void FloppyDisk_CancelUpdateHasDiskState(FloppyDiskRef _Nonnull self)
 
 // Invoked at the beginning of a disk read/write operation to prepare the drive
 // state. Ie turn motor on, seek, switch disk head, detect drive status, etc. 
-static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int head)
+static errno_t FloppyDriver_BeginIO(FloppyDriverRef _Nonnull self, int cylinder, int head)
 {
     decl_try_err();
 
@@ -513,17 +513,17 @@ static errno_t FloppyDisk_BeginIO(FloppyDiskRef _Nonnull self, int cylinder, int
 
 
     // Make sure that the motor is turned on
-    FloppyDisk_MotorOn(self);
+    FloppyDriver_MotorOn(self);
 
 
     // Seek to the required cylinder and select the required head
     if (self->cylinder != cylinder || self->head != head) {
-        try(FloppyDisk_SeekTo(self, cylinder, head));
+        try(FloppyDriver_SeekTo(self, cylinder, head));
     }
 
 
     // Wait until the motor has reached its target speed
-    try(FloppyDisk_WaitForDiskReady(self));
+    try(FloppyDriver_WaitForDiskReady(self));
 
 catch:
     return err;
@@ -532,7 +532,7 @@ catch:
 // Invoked to do the actual read/write operation. Also validates that the disk
 // hasn't been yanked out of the drive or changed on us while doing the I/O.
 // Expects that the track buffer is properly prepared for the I/O.
-static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
+static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite)
 {
     uint16_t precompensation;
     int16_t nWords;
@@ -542,7 +542,7 @@ static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
         nWords = self->trackWriteWordCount;
     }
     else {
-        FloppyDisk_ResetTrackBuffer(self);
+        FloppyDriver_ResetTrackBuffer(self);
 
         precompensation = kPrecompensation_0ns;
         nWords = self->trackReadWordCount;
@@ -564,7 +564,7 @@ static errno_t FloppyDisk_DoIO(FloppyDiskRef _Nonnull self, bool bWrite)
 // Invoked at the end of a disk I/O operation. Potentially translates the provided
 // internal error code to an external one and kicks of disk-change related flow
 // control and initiates a delayed motor-off operation.
-static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self, errno_t err)
+static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err)
 {
     switch (err) {
         case ETIMEDOUT:
@@ -572,20 +572,20 @@ static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self, errno_t err)
             // - no drive connected
             // - no disk in drive
             // - electro-mechanical problem
-            FloppyDisk_OnHardwareLost(self);
+            FloppyDriver_OnHardwareLost(self);
             err = ENODEV;
             break;
 
         case EDISKCHANGE:
-            FloppyDisk_UpdateHasDiskState(self);
+            FloppyDriver_UpdateHasDiskState(self);
 
             if (!self->flags.hasDisk) {
-                FloppyDisk_OnDiskRemoved(self);
-                FloppyDisk_MotorOff(self);
+                FloppyDriver_OnDiskRemoved(self);
+                FloppyDriver_MotorOff(self);
                 err = ENOMEDIUM;
             }
             else {
-                FloppyDisk_CancelUpdateHasDiskState(self);
+                FloppyDriver_CancelUpdateHasDiskState(self);
             }
             break;
 
@@ -600,14 +600,14 @@ static errno_t FloppyDisk_EndIO(FloppyDiskRef _Nonnull self, errno_t err)
     if (!self->flags.isOnline && err != ENOMEDIUM) {
         // Instead of turning off the motor right away, let's wait some time and
         // turn the motor off if no further I/O request arrives in the meantime
-        FloppyDisk_DelayedMotorOff(self);
+        FloppyDriver_DelayedMotorOff(self);
     }
 
     return err;
 }
 
 
-static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offset, uint8_t targetTrack, int* _Nonnull pOutSectorsUntilGap)
+static bool FloppyDriver_RecognizeSector(FloppyDriverRef _Nonnull self, int16_t offset, uint8_t targetTrack, int* _Nonnull pOutSectorsUntilGap)
 {
     const ADF_MFMSector* mfmSector = (const ADF_MFMSector*)&self->trackBuffer[offset];
     ADF_SectorInfo info;
@@ -661,7 +661,7 @@ static bool FloppyDisk_RecognizeSector(FloppyDiskRef _Nonnull self, int16_t offs
     return false;
 }
 
-static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self, uint8_t targetTrack)
+static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t targetTrack)
 {
     // Build the sector table
     const uint16_t* pt = self->trackBuffer;
@@ -709,7 +709,7 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self, uint8_t targetTrac
 
 
         // Pick up the sector
-        if (FloppyDisk_RecognizeSector(self, pt - pt_start, targetTrack, &sectorsUntilGap)) {
+        if (FloppyDriver_RecognizeSector(self, pt - pt_start, targetTrack, &sectorsUntilGap)) {
             nSectorsRead++;
         }
         pt += ADF_MFM_SECTOR_SIZE/2;
@@ -740,7 +740,7 @@ static void FloppyDisk_ScanTrack(FloppyDiskRef _Nonnull self, uint8_t targetTrac
 #endif
 }
 
-static errno_t FloppyDisk_getBlockAsync(FloppyDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t FloppyDriver_getBlockAsync(FloppyDriverRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     decl_try_err();
 
@@ -751,23 +751,23 @@ static errno_t FloppyDisk_getBlockAsync(FloppyDiskRef _Nonnull self, void* _Nonn
     const int cylinder = lba / self->sectorsPerCylinder;
     const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int sector = lba % self->sectorsPerTrack;
-    const uint8_t targetTrack = FloppyDisk_TrackFromCylinderAndHead(cylinder, head);
+    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
     
-    try(FloppyDisk_EnsureTrackBuffer(self));
+    try(FloppyDriver_EnsureTrackBuffer(self));
     const ADFSector* s = &self->sectors[sector];
 
 
     // Check whether we got the desired sector already in the track buffer and
     // load it in if not.
     if (s->info.track != targetTrack || (s->info.track == targetTrack && !s->isDataValid)) {
-        err = FloppyDisk_BeginIO(self, cylinder, head);
+        err = FloppyDriver_BeginIO(self, cylinder, head);
 
         if (err == EOK) {
             for (int retry = 0; retry < 4; retry++) {
-                err = FloppyDisk_DoIO(self, false);
+                err = FloppyDriver_DoIO(self, false);
 
                 if (err == EOK) {
-                    FloppyDisk_ScanTrack(self, targetTrack);
+                    FloppyDriver_ScanTrack(self, targetTrack);
 
                     if (!s->isDataValid) {
                         self->readErrorCount++;
@@ -780,7 +780,7 @@ static errno_t FloppyDisk_getBlockAsync(FloppyDiskRef _Nonnull self, void* _Nonn
             }
         }
 
-        err = FloppyDisk_EndIO(self, err);
+        err = FloppyDriver_EndIO(self, err);
     }
     
     if (err == EOK) {
@@ -801,7 +801,7 @@ catch:
 
 // Checks whether the track that is stored in the track buffer is 'targetTrack'
 // and whether all sectors are good except 'targetSector'.
-static bool FloppyDisk_IsTrackGoodForWriting(FloppyDiskRef _Nonnull self, uint8_t targetTrack, uint8_t targetSector)
+static bool FloppyDriver_IsTrackGoodForWriting(FloppyDriverRef _Nonnull self, uint8_t targetTrack, uint8_t targetSector)
 {
     uint8_t nTargetTrack = 0;
     uint8_t nValidData = 0;
@@ -820,7 +820,7 @@ static bool FloppyDisk_IsTrackGoodForWriting(FloppyDiskRef _Nonnull self, uint8_
     return (nTargetTrack == self->sectorsPerTrack) && (nValidData == (self->sectorsPerTrack - 1)) ? true : false;
 }
 
-static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTrack, int sector, const void* _Nonnull s_dat, bool isDataValid)
+static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targetTrack, int sector, const void* _Nonnull s_dat, bool isDataValid)
 {
     ADF_MFMPhysicalSector* pt = (ADF_MFMPhysicalSector*)self->trackCompositionBuffer;
     ADF_MFMPhysicalSector* dst = (ADF_MFMPhysicalSector*)&pt[sector];
@@ -866,7 +866,7 @@ static void FloppyDisk_BuildSector(FloppyDiskRef _Nonnull self, uint8_t targetTr
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-static errno_t FloppyDisk_putBlockAsync(FloppyDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t FloppyDriver_putBlockAsync(FloppyDriverRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     decl_try_err();
 
@@ -877,24 +877,24 @@ static errno_t FloppyDisk_putBlockAsync(FloppyDiskRef _Nonnull self, const void*
     const int cylinder = lba / self->sectorsPerCylinder;
     const int head = (lba / self->sectorsPerTrack) % self->headsPerCylinder;
     const int sector = lba % self->sectorsPerTrack;
-    const uint8_t targetTrack = FloppyDisk_TrackFromCylinderAndHead(cylinder, head);
+    const uint8_t targetTrack = FloppyDriver_TrackFromCylinderAndHead(cylinder, head);
 
-    try(FloppyDisk_EnsureTrackBuffer(self));
-    try(FloppyDisk_EnsureTrackCompositionBuffer(self));
-    try(FloppyDisk_BeginIO(self, cylinder, head));
+    try(FloppyDriver_EnsureTrackBuffer(self));
+    try(FloppyDriver_EnsureTrackCompositionBuffer(self));
+    try(FloppyDriver_BeginIO(self, cylinder, head));
 
 
     // Make sure that we goo all the sectors of the target track in our track buffer
     // in a good state. Well we don't care if the sector that we want to write is
     // defective in the buffer because we're going to override it anyway.
-    if (!FloppyDisk_IsTrackGoodForWriting(self, targetTrack, sector)) {
+    if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, sector)) {
         for (int retry = 0; retry < 4; retry++) {
-            err = FloppyDisk_DoIO(self, false);
+            err = FloppyDriver_DoIO(self, false);
 
             if (err == EOK) {
-                FloppyDisk_ScanTrack(self, targetTrack);
+                FloppyDriver_ScanTrack(self, targetTrack);
 
-                if (!FloppyDisk_IsTrackGoodForWriting(self, targetTrack, sector)) {
+                if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, sector)) {
                     self->readErrorCount++;
                     err = EIO;
                 }
@@ -936,7 +936,7 @@ static errno_t FloppyDisk_putBlockAsync(FloppyDiskRef _Nonnull self, const void*
             is_good = true;
         }
 
-        FloppyDisk_BuildSector(self, targetTrack, i, s_dat, is_good);
+        FloppyDriver_BuildSector(self, targetTrack, i, s_dat, is_good);
     }
 
 
@@ -969,22 +969,22 @@ static errno_t FloppyDisk_putBlockAsync(FloppyDiskRef _Nonnull self, const void*
     // Move the newly composed track to the DMA buffer
     memcpy(self->trackBuffer, self->trackCompositionBuffer, sizeof(uint16_t) * self->trackWriteWordCount);
     memset(self->sectors, 0, sizeof(ADFSector) * self->sectorsPerTrack);
-    FloppyDisk_ScanTrack(self, targetTrack);
+    FloppyDriver_ScanTrack(self, targetTrack);
 
 
     // Write the track back to disk
-    try(FloppyDisk_DoIO(self, true));
+    try(FloppyDriver_DoIO(self, true));
     VirtualProcessor_Sleep(TimeInterval_MakeMicroseconds(1200));
 
 catch:
-    return FloppyDisk_EndIO(self, err);
+    return FloppyDriver_EndIO(self, err);
 }
 
 
-class_func_defs(FloppyDisk, DiskDriver,
-override_func_def(deinit, FloppyDisk, Object)
-override_func_def(getInfoAsync, FloppyDisk, DiskDriver)
-override_func_def(start, FloppyDisk, Driver)
-override_func_def(getBlockAsync, FloppyDisk, DiskDriver)
-override_func_def(putBlockAsync, FloppyDisk, DiskDriver)
+class_func_defs(FloppyDriver, DiskDriver,
+override_func_def(deinit, FloppyDriver, Object)
+override_func_def(getInfoAsync, FloppyDriver, DiskDriver)
+override_func_def(start, FloppyDriver, Driver)
+override_func_def(getBlockAsync, FloppyDriver, DiskDriver)
+override_func_def(putBlockAsync, FloppyDriver, DiskDriver)
 );

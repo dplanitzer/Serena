@@ -17,7 +17,7 @@
 #include <driver/RamDisk.h>
 #include <driver/RomDisk.h>
 #include <driver/amiga/AmigaController.h>
-#include <driver/amiga/floppy/FloppyDisk.h>
+#include <driver/amiga/floppy/FloppyDriver.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
