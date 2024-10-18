@@ -6,19 +6,22 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "Interpreter.h"
-#include "Utilities.h"
 #include <clap.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <System/Error.h>
+#include <System/Types.h>
 
 #if SIZE_WIDTH == 32
 #define ADDR_FMT "%.8zx"
-#else
+#elif SIZE_WIDTH == 64
 #define ADDR_FMT "%.16zx"
+#else
+#error "unknown SIZE_WIDTH"
 #endif
 
 
@@ -143,10 +146,10 @@ catch:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static const char* path;
-static bool is_hex = false;
+const char* path;
+bool is_hex = false;
 
-static CLAP_DECL(params,
+CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
     CLAP_USAGE("type [--hex] <path>"),
@@ -168,26 +171,17 @@ static errno_t do_type(const char* _Nonnull path, bool isHex, const char* _Nonnu
     }
 
     if (err != EOK) {
-        print_error(proc_name, path, err);
+        clap_error(proc_name, "%s: %s", path, strerror(err));
     }
 
     return err;
 }
 
-int cmd_type(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp)
+int main(int argc, char* argv[])
 {
     is_hex = false;
     
-    const int status = clap_parse(clap_option_no_exit, params, argc, argv);
-    int exitCode;
-
-    if (!clap_should_exit(status)) {
-        exitCode = exit_code(do_type(path, is_hex, argv[0]));
-    }
-    else {
-        exitCode = clap_exit_code(status);
-    }
-
-    OpStack_PushVoid(ip->opStack);
-    return exitCode;
+    clap_parse(0, params, argc, argv);
+    
+    return do_type(path, is_hex, argv[0]) == EOK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

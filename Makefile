@@ -119,6 +119,7 @@ SH_FILE := $(SH_OBJS_DIR)/shell
 CMDS_PROJECT_DIR := $(WORKSPACE_DIR)/Commands
 CMDS_OBJS_DIR := $(OBJS_DIR)/Commands
 LOGIN_FILE := $(CMDS_OBJS_DIR)/login
+TYPE_FILE := $(CMDS_OBJS_DIR)/type
 
 
 LIBSYSTEM_PROJECT_DIR := $(WORKSPACE_DIR)/Library/libsystem
@@ -178,12 +179,13 @@ build-rom: $(ROM_FILE)
 
 build-boot-dmg: $(BOOT_DMG_FILE)
 
-build-boot-disk: $(LOGIN_FILE) $(SH_FILE) $(KERNEL_TESTS_FILE)
+build-boot-disk: $(LOGIN_FILE) $(SH_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR))
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/System/Commands)
 	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/Users/Administrator)
 	$(call copy,$(LOGIN_FILE),$(BOOT_DISK_DIR)/System/Commands/)
 	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
+	$(call copy,$(TYPE_FILE),$(BOOT_DISK_DIR)/System/Commands/)
 	$(call copy,$(KERNEL_TESTS_FILE),$(BOOT_DISK_DIR)/Users/Administrator/)
 	$(call copy,$(DEMOS_DIR)/fibonacci.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
 	$(call copy,$(DEMOS_DIR)/helloworld.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
