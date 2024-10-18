@@ -14,7 +14,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval curTime = FSGetCurrentTime();
     InodeId parentInodeId = Inode_GetId(pDir);
     LogicalBlockAddress inodeLba = 0;
     LogicalBlockAddress dirContLba = 0;
@@ -97,7 +97,7 @@ catch:
     } else {
         Inode_Destroy(pNode);
     }
-    kfree(bp);
+    FSDeallocate(bp);
 
     if (dirContLba != 0) {
         SerenaFS_DeallocateBlock(self, dirContLba);
@@ -117,7 +117,7 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
     SFSBlockNumber* bp = NULL;
 
-    try(kalloc(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bp));
+    try(FSAllocate(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bp));
     try(FSContainer_GetBlock(fsContainer, self->tmpBlock, lba));
     const SFSInode* ip = (const SFSInode*)self->tmpBlock;
 
@@ -141,7 +141,7 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
         pOutNode);
 
 catch:
-    kfree(bp);
+    FSDeallocate(bp);
     *pOutNode = NULL;
     return err;
 }
@@ -151,7 +151,7 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     const SFSBlockNumber* bp = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval curTime = FSGetCurrentTime();
     SFSInode* ip = (SFSInode*)self->tmpBlock;
 
     memset(ip, 0, kSFSBlockSize);

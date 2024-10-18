@@ -8,14 +8,14 @@
 
 #include "Inode.h"
 #include "FilesystemManager.h"
-#include <driver/MonotonicClock.h>
+#include "FSUtilities.h"
 
 errno_t Inode_Create(FilesystemRef _Nonnull pFS, InodeId id, FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     InodeRef self;
 
-    try(kalloc_cleared(sizeof(Inode), (void**) &self));
+    try(FSAllocateCleared(sizeof(Inode), (void**) &self));
     self->accessTime = accessTime;
     self->modificationTime = modTime;
     self->statusChangeTime = statusChangeTime;
@@ -46,7 +46,7 @@ void Inode_Destroy(InodeRef _Nullable self)
         self->filesystem = NULL;
         self->refcon = NULL;
         Lock_Deinit(&self->lock);
-        kfree(self);
+        FSDeallocate(self);
     }
 }
 

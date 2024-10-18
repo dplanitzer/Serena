@@ -17,7 +17,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, File
 {
     decl_try_err();
     FSContainerInfo fscInfo;
-    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval curTime = FSGetCurrentTime();
 
     if ((err = FSContainer_GetInfo(pContainer, &fscInfo)) != EOK) {
         return err;
@@ -49,7 +49,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, File
     const LogicalBlockAddress rootDirContentLba = rootDirInodeLba + 1;
 
     uint8_t* p = NULL;
-    try(kalloc(fscInfo.blockSize, (void**)&p));
+    try(FSAllocate(fscInfo.blockSize, (void**)&p));
 
 
     // Write the volume header
@@ -121,7 +121,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, File
     try(FSContainer_PutBlock(pContainer, dep, rootDirContentLba));
 
 catch:
-    kfree(p);
+    FSDeallocate(p);
     return err;
 }
 
@@ -216,7 +216,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
     self->allocationBitmapByteSize = allocBitmapByteSize;
     self->volumeBlockCount = volumeBlockCount;
 
-    try(kalloc(allocBitmapByteSize, (void**)&self->allocationBitmap));
+    try(FSAllocate(allocBitmapByteSize, (void**)&self->allocationBitmap));
     uint8_t* pAllocBitmap = self->allocationBitmap;
 
     for (LogicalBlockAddress lba = 0; lba < self->allocationBitmapBlockCount; lba++) {

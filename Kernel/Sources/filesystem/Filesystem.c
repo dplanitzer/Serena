@@ -7,8 +7,8 @@
 //
 
 #include "Filesystem.h"
+#include "FSUtilities.h"
 #include <System/IOChannel.h>
-#include <driver/MonotonicClock.h>
 
 
 // Returns the next available FSID.
@@ -203,7 +203,7 @@ errno_t Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     TimeInterval curTime;
 
     if (Inode_IsModified(pNode)) {
-        curTime = MonotonicClock_GetCurrentTime();
+        curTime = FSGetCurrentTime();
     }
 
     if (Inode_IsAccessed(pNode)) {

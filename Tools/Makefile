@@ -105,7 +105,7 @@ $(TOOLS_DIR)/makerom: $(MAKEROM_SRCS) $(OBJS_DIR)/clap.lib
 #
 
 DISKIMAGE_SRCS := diskimage/klib/klib.c diskimage/dispatcher/dispatcher.c
-DISKIMAGE_SRCS += diskimage/driver/driver.c diskimage/RamFSContainer.c
+DISKIMAGE_SRCS += diskimage/FSUtilities_win32.c diskimage/RamFSContainer.c
 DISKIMAGE_SRCS += ../Kernel/Sources/klib/Array.c ../Kernel/Sources/klib/List.c
 DISKIMAGE_SRCS += ../Kernel/Sources/kobj/Class.c ../Kernel/Sources/kobj/Any.c ../Kernel/Sources/kobj/Object.c ../Kernel/Sources/kobj/ObjectArray.c
 DISKIMAGE_SRCS += ../Kernel/Sources/User.c
