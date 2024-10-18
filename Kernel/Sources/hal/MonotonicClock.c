@@ -7,7 +7,7 @@
 //
 
 #include "MonotonicClock.h"
-#include <driver/InterruptController.h>
+#include "InterruptController.h"
 #include <hal/Platform.h>
 
 static void MonotonicClock_OnInterrupt(MonotonicClock* _Nonnull pClock);

@@ -12,7 +12,7 @@
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
 #include <driver/DriverCatalog.h>
-#include <driver/InterruptController.h>
+#include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 

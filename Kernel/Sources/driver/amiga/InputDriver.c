@@ -7,8 +7,8 @@
 //
 
 #include "InputDriver.h"
-#include <driver/InterruptController.h>
 #include <driver/hid/HIDKeyRepeater.h>
+#include <hal/InterruptController.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
