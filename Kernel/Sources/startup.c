@@ -12,10 +12,10 @@
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
-#include <driver/RamDisk.h>
-#include <driver/RomDisk.h>
 #include <driver/amiga/AmigaController.h>
 #include <driver/amiga/floppy/FloppyDriver.h>
+#include <driver/disk/RamDisk.h>
+#include <driver/disk/RomDisk.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>

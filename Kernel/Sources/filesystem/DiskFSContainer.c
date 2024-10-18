@@ -7,7 +7,7 @@
 //
 
 #include "DiskFSContainer.h"
-#include <driver/DiskDriver.h>
+#include <driver/disk/DiskDriver.h>
 
 
 final_class_ivars(DiskFSContainer, FSContainer,

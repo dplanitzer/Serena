@@ -10,7 +10,7 @@
 #define FloppyDriver_h
 
 #include <klib/klib.h>
-#include <driver/DiskDriver.h>
+#include <driver/disk/DiskDriver.h>
 
 // Stores the state of a single floppy drive.
 // Note that:
