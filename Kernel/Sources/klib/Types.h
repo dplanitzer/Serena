@@ -21,6 +21,9 @@
 #include <System/_varargs.h>
 #include <System/Types.h>
 
+typedef int32_t Quantums;             // Time unit of the scheduler clock which increments monotonically and once per quantum interrupt
+
+
 #define CHAR_PTR_MAX    ((char*)__UINTPTR_MAX)
 
 

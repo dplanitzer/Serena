@@ -8,6 +8,7 @@
 
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <hal/MonotonicClock.h>
 #include <process/Process.h>
 #include "IOChannel.h"
 #include "User.h"

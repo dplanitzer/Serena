@@ -9,6 +9,7 @@
 #include "VirtualProcessor.h"
 #include "VirtualProcessorPool.h"
 #include "VirtualProcessorScheduler.h"
+#include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 
 

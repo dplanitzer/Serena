@@ -13,8 +13,6 @@
 #include <hal/SystemDescription.h>
 
 
-typedef int32_t Quantums;             // Time unit of the scheduler clock which increments monotonically and once per quantum interrupt
-
 // Note: Keep in sync with lowmem.i
 typedef struct MonotonicClock {
     volatile TimeInterval   current_time;

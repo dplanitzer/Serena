@@ -7,10 +7,7 @@
 //
 
 #include "DispatchQueuePriv.h"
-
-class_func_defs(DispatchQueue, Object,
-override_func_def(deinit, DispatchQueue, Object)
-);
+#include <hal/MonotonicClock.h>
 
 
 DispatchQueueRef    gMainDispatchQueue;
@@ -836,3 +833,8 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         Lock_Unlock(&self->lock);
     }
 }
+
+
+class_func_defs(DispatchQueue, Object,
+override_func_def(deinit, DispatchQueue, Object)
+);

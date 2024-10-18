@@ -14,7 +14,6 @@
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
-#include <driver/MonotonicClock.h>
 
 
 //
@@ -111,7 +110,6 @@ final_class_ivars(DispatchQueue, Object,
     ConcurrencyLane                     concurrency_lanes[1];       // Up to 'maxConcurrency' concurrency lanes
 );
 
-extern void DispatchQueue_deinit(DispatchQueueRef _Nonnull self);
 
 extern void DispatchQueue_Run(DispatchQueueRef _Nonnull self);
 

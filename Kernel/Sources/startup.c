@@ -13,7 +13,6 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
 #include <driver/InterruptController.h>
-#include <driver/MonotonicClock.h>
 #include <driver/RamDisk.h>
 #include <driver/RomDisk.h>
 #include <driver/amiga/AmigaController.h>
@@ -22,6 +21,7 @@
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/SerenaDiskImage.h>
+#include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>

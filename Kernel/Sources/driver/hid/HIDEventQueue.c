@@ -8,7 +8,8 @@
 
 #include "HIDEventQueue.h"
 #include <dispatcher/Semaphore.h>
-#include "MonotonicClock.h"
+#include <hal/MonotonicClock.h>
+
 
 // The event queue stores events in a ring buffer with a size that is a
 // power-of-2 number.
