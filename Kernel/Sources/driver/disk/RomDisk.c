@@ -51,8 +51,8 @@ errno_t RomDisk_getInfoAsync(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;
+    pOutInfo->mediaId = 1;
     pOutInfo->isReadOnly = true;
-    pOutInfo->isMediaLoaded = true;
 
     return EOK;
 }

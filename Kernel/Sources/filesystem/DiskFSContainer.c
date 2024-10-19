@@ -41,8 +41,8 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
 
     pOutInfo->blockSize = di.blockSize;
     pOutInfo->blockCount = di.blockCount;
+    pOutInfo->mediaId = di.mediaId;
     pOutInfo->isReadOnly = di.isReadOnly;
-    pOutInfo->isMediaLoaded = di.isMediaLoaded;
 
     return err;
 }

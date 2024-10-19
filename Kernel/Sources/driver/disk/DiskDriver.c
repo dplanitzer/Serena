@@ -53,8 +53,8 @@ errno_t DiskDriver_getInfoAsync(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->blockSize = 512;
     pOutInfo->blockCount = 0;
+    pOutInfo->mediaId = 0;
     pOutInfo->isReadOnly = true;
-    pOutInfo->isMediaLoaded = false;
 
     return EOK;
 }

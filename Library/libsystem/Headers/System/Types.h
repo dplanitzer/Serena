@@ -39,6 +39,11 @@ typedef uint32_t    LogicalBlockAddress;
 typedef LogicalBlockAddress LogicalBlockCount;
 
 
+// Unique disk media ID. A value of 0 indicates that no media is loaded in the
+// drive.
+typedef uint32_t    MediaId;
+
+
 typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
 typedef int64_t     FileOffset;

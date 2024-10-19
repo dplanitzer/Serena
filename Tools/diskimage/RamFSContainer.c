@@ -48,8 +48,8 @@ errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo*
 {
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;
+    pOutInfo->mediaId = 1;
     pOutInfo->isReadOnly = false;
-    pOutInfo->isMediaLoaded = true;
 
     return EOK;
 }

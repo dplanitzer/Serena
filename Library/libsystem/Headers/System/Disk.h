@@ -19,8 +19,8 @@ __CPP_BEGIN
 typedef struct DiskInfo {
     size_t              blockSize;          // byte size of a single disk block. This is the data portion only without any header information
     LogicalBlockCount   blockCount;         // overall number of addressable blocks on the disk
+    MediaId             mediaId;            // Id of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded 
     bool                isReadOnly;         // true if the data on the disk is hardware write protected 
-    bool                isMediaLoaded;      // true if a disk is in the drive
 } DiskInfo;
 
 __CPP_END

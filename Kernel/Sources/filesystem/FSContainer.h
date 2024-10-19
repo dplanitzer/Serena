@@ -16,8 +16,8 @@
 typedef struct FSContainerInfo {
     size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
     LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
+    MediaId             mediaId;            // Id of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded 
     bool                isReadOnly;         // true if all the data in the FSContainer is hardware write protected 
-    bool                isMediaLoaded;      // true if if all the underlying mediums of the FSContainer are physically loaded in their disk drives 
 } FSContainerInfo;
 
 

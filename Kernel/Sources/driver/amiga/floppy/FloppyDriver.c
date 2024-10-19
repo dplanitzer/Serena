@@ -49,13 +49,14 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnu
     self->cylinder = -1;
     self->readErrorCount = 0;
 
+    self->currentMediaId = 0;
+    self->nextMediaId = 1;
+
     self->flags.motorState = kMotor_Off;
     self->flags.wasMostRecentSeekInward = 0;
     self->flags.shouldResetDiskChangeStepInward = 0;
     self->flags.isOnline = 0;
     self->flags.hasDisk = 0;
-
-    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 
     *pOutDisk = self;
     return EOK;
@@ -83,8 +84,8 @@ errno_t FloppyDriver_getInfoAsync(FloppyDriverRef _Nonnull self, DiskInfo* pOutI
 {
     pOutInfo->blockSize = ADF_SECTOR_DATA_SIZE;
     pOutInfo->blockCount = self->blocksPerDisk;
+    pOutInfo->mediaId = self->currentMediaId;
     pOutInfo->isReadOnly = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
-    pOutInfo->isMediaLoaded = (self->flags.isOnline && self->flags.hasDisk) ? true : false;
 
     return EOK;
 }
@@ -105,13 +106,13 @@ static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull sel
         self->flags.isOnline = 1;
         self->flags.hasDisk = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
 
-        if (!self->flags.hasDisk) {
-            FloppyDriver_OnDiskRemoved(self);
-        }
+        FloppyDriver_OnMediaChanged(self);
     }
     else {
         FloppyDriver_OnHardwareLost(self);
     }
+
+    LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 }
 
 static errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
@@ -131,10 +132,18 @@ static errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
     return err;
 }
 
-// Called when we've detected that the disk has been removed from the drive
-static void FloppyDriver_OnDiskRemoved(FloppyDriverRef _Nonnull self)
+// Called when we've detected that a new disk has been inserted or the disk has been removed
+static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
 {
-    FloppyDriver_ScheduleUpdateHasDiskState(self);
+    if (!self->flags.hasDisk) {
+        self->currentMediaId = 0;
+        FloppyDriver_ScheduleUpdateHasDiskState(self);
+    }
+    else {
+        self->currentMediaId = self->nextMediaId;
+        self->nextMediaId++;
+        FloppyDriver_CancelUpdateHasDiskState(self);
+    }
 }
 
 // Called when we've detected a loss of the drive hardware
@@ -142,6 +151,8 @@ static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self)
 {
         self->flags.isOnline = 0;
         self->flags.hasDisk = 0;
+
+        FloppyDriver_OnMediaChanged(self);
 }
 
 
@@ -438,24 +449,11 @@ static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self)
 // Updates the drive's has-disk state
 static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self)
 {
-    int newHasDisk = 0;
-
     if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
         FloppyDriver_ResetDriveDiskChange(self);
 
-        if ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) != 0) {
-            newHasDisk = 0;
-        }
-        else {
-            newHasDisk = 1;
-        }
+        self->flags.hasDisk = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
     }
-    else {
-        newHasDisk = self->flags.hasDisk;
-    }
-
-
-    self->flags.hasDisk = newHasDisk;
 
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 }
@@ -581,13 +579,10 @@ static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err)
             FloppyDriver_UpdateHasDiskState(self);
 
             if (!self->flags.hasDisk) {
-                FloppyDriver_OnDiskRemoved(self);
                 FloppyDriver_MotorOff(self);
                 err = ENOMEDIUM;
             }
-            else {
-                FloppyDriver_CancelUpdateHasDiskState(self);
-            }
+            FloppyDriver_OnMediaChanged(self);
             break;
 
         case EOK:

@@ -72,6 +72,9 @@ final_class_ivars(FloppyDriver, DiskDriver,
 
     int                         readErrorCount;                         // Number of read errors since last disk driver reset / disk change
 
+    MediaId                     currentMediaId;
+    MediaId                     nextMediaId;
+
     int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDriver_ResetDrive()
     int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDriver_ResetDrive()
     int8_t                      drive;                                  // drive number that this fd object represents
@@ -90,7 +93,7 @@ final_class_ivars(FloppyDriver, DiskDriver,
 
 extern errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self);
-static void FloppyDriver_OnDiskRemoved(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_EnsureTrackBuffer(FloppyDriverRef _Nonnull self);
