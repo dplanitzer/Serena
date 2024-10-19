@@ -142,6 +142,10 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
     else {
         self->currentMediaId = self->nextMediaId;
         self->nextMediaId++;
+        if (self->nextMediaId == 0) {
+            // 0 means no media. So increment to 1 if we wrapped around
+            self->nextMediaId++;
+        }
         FloppyDriver_CancelUpdateHasDiskState(self);
     }
 }
