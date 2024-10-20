@@ -218,9 +218,10 @@ static bool try_rootfs_from_fd0(bool hasFallback)
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 
-    try_null(fd0, (DiskDriverRef)DriverCatalog_GetDriverForName(gDriverCatalog, kFloppyDrive0Name), ENODEV);
+    try_null(fd0, (DiskDriverRef)DriverCatalog_CopyDriverForName(gDriverCatalog, kFloppyDrive0Name), ENODEV);
     try(DiskFSContainer_Create(fd0, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
+    Object_Release(fd0);
 
     while (true) {
         err = FilesystemManager_Mount(gFilesystemManager, fs, NULL, 0, NULL);

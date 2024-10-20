@@ -195,13 +195,13 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 // Publishes the driver instance to the driver catalog with the given name.
 errno_t Driver_Publish(DriverRef _Nonnull self, const char* name)
 {
-    return DriverCatalog_RegisterDriver(gDriverCatalog, name, self);
+    return DriverCatalog_Publish(gDriverCatalog, name, self);
 }
 
 // Removes the driver instance from the driver catalog.
 void Driver_Unpublish(DriverRef _Nonnull self)
 {
-    DriverCatalog_UnregisterDriver(gDriverCatalog, self);
+    DriverCatalog_Unpublish(gDriverCatalog, self);
 }
 
 

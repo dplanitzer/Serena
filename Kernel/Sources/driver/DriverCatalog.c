@@ -147,7 +147,7 @@ static DriverEntry* _Nullable _DriverCatalog_GetEntryByDriver(DriverCatalogRef _
     return theEntry;
 }
 
-errno_t DriverCatalog_RegisterDriver(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Consuming _Nonnull driver)
+errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Consuming _Nonnull driver)
 {
     decl_try_err();
     DriverEntry* entry = NULL;
@@ -162,7 +162,7 @@ errno_t DriverCatalog_RegisterDriver(DriverCatalogRef _Nonnull self, const char*
     return err;
 }
 
-void DriverCatalog_UnregisterDriver(DriverCatalogRef _Nonnull self, DriverRef _Nonnull pDriver)
+void DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverRef _Nonnull pDriver)
 {
     DriverEntry* prevEntry = NULL;
     DriverEntry* entry = NULL;
@@ -175,11 +175,12 @@ void DriverCatalog_UnregisterDriver(DriverCatalogRef _Nonnull self, DriverRef _N
     Lock_Unlock(&self->lock);
 }
 
-DriverRef DriverCatalog_GetDriverForName(DriverCatalogRef _Nonnull self, const char* name)
+DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* name)
 {
     Lock_Lock(&self->lock);
     DriverEntry* entry = _DriverCatalog_GetEntryByName(self, name, NULL);
+    DriverRef driver = (entry) ? Object_RetainAs(entry->instance, Driver) : NULL;
     Lock_Unlock(&self->lock);
 
-    return (entry) ? entry->instance : NULL;
+    return driver;
 }
