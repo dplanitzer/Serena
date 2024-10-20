@@ -39,6 +39,8 @@ errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model)
         err = DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue);
     }
 
+    self->driverId = GetNewDriverId();
+
     return err;
 }
 
@@ -195,13 +197,13 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 // Publishes the driver instance to the driver catalog with the given name.
 errno_t Driver_Publish(DriverRef _Nonnull self, const char* name)
 {
-    return DriverCatalog_Publish(gDriverCatalog, name, self);
+    return DriverCatalog_Publish(gDriverCatalog, name, self->driverId, self);
 }
 
 // Removes the driver instance from the driver catalog.
 void Driver_Unpublish(DriverRef _Nonnull self)
 {
-    DriverCatalog_Unpublish(gDriverCatalog, self);
+    DriverCatalog_Unpublish(gDriverCatalog, self->driverId);
 }
 
 

@@ -22,7 +22,11 @@ __CPP_BEGIN
 
 // Various Kernel API types
 typedef int         ProcessId;
-typedef int32_t     FilesystemId;
+typedef uint32_t    FilesystemId;
+
+// The non-persistent, globally unique ID of a driver. This ID does not survive
+// a system reboot.
+typedef uint32_t    DriverId;
 
 #if defined(__ILP32__)
 typedef uint32_t    InodeId;

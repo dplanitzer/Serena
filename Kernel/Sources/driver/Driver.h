@@ -32,6 +32,7 @@ open_class(Driver, Object,
     List                        children;
     DispatchQueueRef _Nullable  dispatchQueue;
     int                         state;
+    DriverId                    driverId;
 );
 open_class_funcs(Driver, Object,
 
@@ -91,6 +92,15 @@ extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChan
 extern errno_t Driver_Read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 extern errno_t Driver_Write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 extern errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, va_list ap);
+
+// Returns the driver's non-persistent driver ID. Note that this ID does not
+// survive a system reboot. This ID is generated and assigned to the driver on
+// the first start and remains stable after that until the system shuts down
+// even if the driver goes through multiple publish/unpublish cycles in the
+// meantime.
+#define Driver_GetDriverId(__self) \
+    ((DriverRef)__self)->driverId
+
 
 //
 // Subclassers
