@@ -26,7 +26,6 @@ enum {
     kWorkItemFlag_IsRepeating = 4,          // Item is a auto-repeating timer
     kWorkItemFlag_IsSync = 8,               // Set if dispatch() wants to wait for the completion of the item
     kWorkItemFlag_IsInterrupted = 16,       // Set if the item's execution has been interrupted
-    kWorkItemFlag_AutoRelinquish = 32,      // Set if the VP that executes the item should relinquish the item after it's done executing 
 };
 
 

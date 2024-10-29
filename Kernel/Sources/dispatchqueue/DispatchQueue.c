@@ -273,7 +273,7 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
     pItem->arg = (nArgBytes == 0) ? args : (void*)((uintptr_t)pItem + __Ceil_PowerOf2(sizeof(WorkItem), ARG_WORD_SIZE));
     pItem->tag = tag;
     pItem->args_byte_size = __Ceil_PowerOf2(nArgBytes, ARG_WORD_SIZE);
-    pItem->flags = kWorkItemFlag_AutoRelinquish;
+    pItem->flags = 0;
 
     if (nArgBytes > 0) {
         memcpy(pItem->arg, args, nArgBytes);
@@ -295,6 +295,7 @@ static void DispatchQueue_RelinquishWorkItem_Locked(DispatchQueueRef _Nonnull se
     SListNode_Deinit(&pItem->queue_entry);
     pItem->func = NULL;
     pItem->context = NULL;
+    pItem->arg = NULL;
     pItem->tag = 0;
     pItem->flags = 0;
 
@@ -535,7 +536,6 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
         // do it here once the item has signaled completion
         Semaphore_Init(&pItem->u.completionSignaler, 0);
         pItem->flags |= kWorkItemFlag_IsSync;
-        pItem->flags &= ~kWorkItemFlag_AutoRelinquish;
     }
 
 
@@ -800,9 +800,13 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
             pItem->func(pItem->context, pItem->arg);
         }
 
-        // Signal the work item's completion semaphore if needed
+        // Signal the work item's completion semaphore if needed. Note that we
+        // have to set pItem to NULL because the waiter for the sync item will
+        // take care of relinquishing it and thus we don't want to relinquish
+        // the item down below.
         if ((pItem->flags & kWorkItemFlag_IsSync) == kWorkItemFlag_IsSync) {
             DispatchQueue_SignalWorkItemCompletion(self, pItem, false);
+            pItem = NULL;
         }
 
 
@@ -814,7 +818,7 @@ void DispatchQueue_Run(DispatchQueueRef _Nonnull self)
         pConLane->active_item = NULL;
 
 
-        if ((pItem->flags & kWorkItemFlag_AutoRelinquish) == kWorkItemFlag_AutoRelinquish) {
+        if (pItem) {
             // Move the work item back to the item cache if possible or destroy it
             if ((pItem->flags & kWorkItemFlag_IsRepeating) == kWorkItemFlag_IsRepeating && self->state == kQueueState_Running) {
                 DispatchQueue_RearmTimedItem_Locked(self, pItem);
