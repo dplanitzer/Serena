@@ -13,6 +13,10 @@
 
 __CPP_BEGIN
 
+// No media/empty drive
+#define kMediaId_None   0
+
+
 // Returns information about a disk drive.
 #define kIODiskCommand_GetInfo  IOResourceCommand(0)
 

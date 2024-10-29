@@ -186,6 +186,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnu
     if (err == EOK) {
         err = kalloc_cleared(sizeof(DriverIdHashEntry), (void**)&driverIdEntry);
         if (err == EOK) {
+            driverIdEntry->entry = entry;
             List_InsertBeforeFirst(&self->driversByDriverId[driver_id_hash(driverId)], &driverIdEntry->node);
             List_InsertBeforeFirst(&self->drivers, &entry->node);
         }
@@ -207,7 +208,17 @@ void DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId)
     Lock_Unlock(&self->lock);
 }
 
-DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* name)
+DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
+{
+    Lock_Lock(&self->lock);
+    DriverEntry* entry = _DriverCatalog_GetEntryByName(self, name);
+    DriverId driverId = (entry) ? entry->driverId : kDriverId_None;
+    Lock_Unlock(&self->lock);
+
+    return driverId;
+}
+
+DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
 {
     Lock_Lock(&self->lock);
     DriverEntry* entry = _DriverCatalog_GetEntryByName(self, name);
@@ -231,6 +242,6 @@ DriverRef DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, Dr
 // Generates a new and unique driver ID that should be used to publish a driver.
 DriverId GetNewDriverId(void)
 {
-    static volatile AtomicInt gNextAvailableId = 0;
+    static volatile AtomicInt gNextAvailableId = 1;
     return (DriverId) AtomicInt_Increment(&gNextAvailableId);
 }

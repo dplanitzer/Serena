@@ -11,6 +11,8 @@
 
 #include <kobj/Object.h>
 
+// Means no driver
+#define kDriverId_None   0
 
 extern DriverCatalogRef _Nonnull  gDriverCatalog;
 
@@ -20,7 +22,9 @@ extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverId driverId, DriverRef _Consuming _Nonnull driver);
 extern void DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId);
 
-extern DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* pName);
+extern DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name);
+
+extern DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull pName);
 extern DriverRef DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId);
 
 
