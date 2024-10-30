@@ -151,27 +151,40 @@ void init_root_filesystem(void)
 {
     decl_try_err();
     const SMG_Header* rom_dmg = find_rom_rootfs();
-    DriverId diskId;
+    int state = 0;
+    DriverId diskId = kDriverId_None;
+    bool shouldRetry = false;
 
-    // Boot from floppy disk
-    diskId = get_boot_floppy_disk_id();
-    if (diskId != kDriverId_None) {
-        err = boot_from_disk(diskId, rom_dmg == NULL);
-        if (err == EOK) {
-            return;
+    while (true) {
+        switch (state) {
+            case 0:
+                // Boot floppy disk
+                diskId = get_boot_floppy_disk_id();
+                shouldRetry = (rom_dmg == NULL);
+                break;
+
+            case 1:
+                // ROM disk image, if it exists
+                diskId = (rom_dmg) ? get_boot_mem_disk_id(rom_dmg) : kDriverId_None;
+                shouldRetry = false;
+                break;
+
+            default:
+                state = -1;
+                break;
         }
-    }
+        if (state < 0) {
+            break;
+        }
 
-
-    // Boot from ROM if a ROM disk image exists
-    if (rom_dmg) {
-        diskId = get_boot_mem_disk_id(rom_dmg);
         if (diskId != kDriverId_None) {
-            err = boot_from_disk(diskId, false);
+            err = boot_from_disk(diskId, shouldRetry);
             if (err == EOK) {
                 return;
             }
         }
+
+        state++;
     }
 
 
