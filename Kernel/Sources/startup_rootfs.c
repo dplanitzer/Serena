@@ -96,6 +96,7 @@ static DriverId get_boot_floppy_disk_id(void)
 static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
 {
     decl_try_err();
+    errno_t lastError = EOK;
     FSContainerRef fsContainer;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
@@ -113,10 +114,12 @@ static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
             // This means that the user inserted a new disk and that the disk
             // hardware isn't able to automatically pick this change up on its
             // own. Just try mounting again. 2nd time around should work.
+            lastError = err;
             continue;
         }
-        else if (err != ENOMEDIUM) {
+        else if (err != ENOMEDIUM && err != lastError) {
             print("Error: %d\n\n", err);
+            lastError = err;
             shouldPromptForDisk = true;
         }
 
