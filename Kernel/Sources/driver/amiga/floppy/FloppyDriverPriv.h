@@ -101,6 +101,7 @@ static void FloppyDriver_DisposeTrackBuffer(FloppyDriverRef _Nonnull self);
 
 static errno_t FloppyDriver_EnsureTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_DisposeTrackCompositionBuffer(FloppyDriverRef _Nonnull self);
+static void FloppyDriver_ResetTrackBuffer(FloppyDriverRef _Nonnull self);
 
 static void FloppyDriver_MotorOn(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_MotorOff(FloppyDriverRef _Nonnull self);
@@ -116,7 +117,7 @@ static void FloppyDriver_CancelUpdateHasDiskState(FloppyDriverRef _Nonnull self)
 static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_ResetDriveDiskChange(FloppyDriverRef _Nonnull self);
 
-static errno_t FloppyDriver_BeginIO(FloppyDriverRef _Nonnull self, int cylinder, int head);
+static errno_t FloppyDriver_BeginIO(FloppyDriverRef _Nonnull self, int cylinder, int head, bool prepMotorAndHead);
 static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite);
 static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err);
 
