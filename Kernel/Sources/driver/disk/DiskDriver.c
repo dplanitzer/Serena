@@ -43,7 +43,7 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
     rq.pInfo = pOutInfo;
     rq.err = EOK;
 
-    DispatchQueue_DispatchSyncArgs(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_getInfoStub, self, &rq, sizeof(rq));
+    DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_getInfoStub, self, &rq, 0, kDispatchOption_Sync, 0);
     return rq.err;
 }
 
@@ -78,7 +78,7 @@ errno_t DiskDriver_GetBlock(DiskDriverRef _Nonnull self, void* _Nonnull pBuffer,
     rq.lba = lba;
     rq.err = EOK;
 
-    DispatchQueue_DispatchSyncArgs(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_getBlockStub, self, &rq, sizeof(rq));
+    DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_getBlockStub, self, &rq, 0, kDispatchOption_Sync, 0);
     return rq.err;
 }
 
@@ -111,7 +111,7 @@ errno_t DiskDriver_PutBlock(DiskDriverRef _Nonnull self, const void* _Nonnull pB
     rq.lba = lba;
     rq.err = EOK;
 
-    DispatchQueue_DispatchSyncArgs(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_putBlockStub, self, &rq, sizeof(rq));
+    DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_putBlockStub, self, &rq, 0, kDispatchOption_Sync, 0);
     return rq.err;
 }
 
