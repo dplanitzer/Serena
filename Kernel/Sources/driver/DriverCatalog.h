@@ -23,9 +23,10 @@ extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char*
 extern void DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId);
 
 extern DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name);
+extern void DriverCatalog_CopyNameForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId, char* buf, size_t bufSize);
 
-extern DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull pName);
-extern DriverRef DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId);
+extern DriverRef _Nullable DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull pName);
+extern DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId);
 
 
 // Generates a new and unique driver ID that should be used to publish a driver.

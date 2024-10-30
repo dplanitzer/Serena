@@ -218,7 +218,24 @@ DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const 
     return driverId;
 }
 
-DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
+void DriverCatalog_CopyNameForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId, char* buf, size_t bufSize)
+{
+    if (bufSize < 1) {
+        return;
+    }
+
+    Lock_Lock(&self->lock);
+    DriverIdHashEntry* hashEntry = _DriverCatalog_GetHashIdEntryByDriverId(self, driverId);
+    if (hashEntry) {
+        String_CopyUpTo(buf, hashEntry->entry->name, bufSize);
+    }
+    else {
+        buf[0] = '\0';
+    }
+    Lock_Unlock(&self->lock);
+}
+
+DriverRef _Nullable DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
 {
     Lock_Lock(&self->lock);
     DriverEntry* entry = _DriverCatalog_GetEntryByName(self, name);
@@ -228,8 +245,12 @@ DriverRef DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const 
     return driver;
 }
 
-DriverRef DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId)
+DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId)
 {
+    if (driverId == kDriverId_None) {
+        return NULL;
+    }
+
     Lock_Lock(&self->lock);
     DriverIdHashEntry* hashEntry = _DriverCatalog_GetHashIdEntryByDriverId(self, driverId);
     DriverRef driver = (hashEntry) ? Object_RetainAs(hashEntry->entry->instance, Driver) : NULL;

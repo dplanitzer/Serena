@@ -8,8 +8,7 @@
 
 #include <krt/krt.h>
 #include <klib/klib.h>
-#include <dispatcher/VirtualProcessorPool.h>
-#include <dispatchqueue/DispatchQueue.h>
+#include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/floppy/FloppyDriver.h>
 #include <driver/disk/RamDisk.h>
@@ -18,10 +17,9 @@
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <filesystem/SerenaDiskImage.h>
-#include <hal/MonotonicClock.h>
-#include <hal/Platform.h>
 #include <System/ByteOrder.h>
-#include "BootAllocator.h"
+
+#define MAX_NAME_LENGTH 16
 
 extern char _text, _etext, _data, _edata;
 
@@ -52,7 +50,7 @@ static const SMG_Header* _Nullable find_rom_rootfs(void)
 
 // Scans the ROM area following the end of the kernel for a embedded Serena disk
 // image with the root filesystem.
-static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
+static DriverId get_boot_mem_disk_id(const SMG_Header* _Nonnull smg_hdr)
 {
     decl_try_err();
     const char* romDiskName = "rom";
@@ -60,12 +58,9 @@ static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
     const char* diskName = NULL;
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
     DiskDriverRef disk;
-    FSContainerRef fsContainer;
-    FilesystemRef fs;
 
     // Create a RAM disk and copy the ROM disk image into it. We assume for now
     // that the disk image is exactly 64k in size.
-    print("Booting from ROM...\n\n");
     if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
         try(RomDisk_Create(romDiskName, dmg, smg_hdr->blockSize, smg_hdr->physicalBlockCount, false, (RomDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
@@ -84,30 +79,26 @@ static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
 
     // Create a SerenaFS instance and mount it as the root filesystem on the RAM
     // disk
-    const DriverId diskId = DriverCatalog_GetDriverIdForName(gDriverCatalog, diskName);
-    try(DiskFSContainer_Create(diskId, &fsContainer));
-    try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    try(FilesystemManager_Mount(gFilesystemManager, fs, NULL, 0, NULL));
-
-    return true;
+    return DriverCatalog_GetDriverIdForName(gDriverCatalog, diskName);
 
 catch:
-    print("Error: unable to mount ROM root FS: %d\n", err);
-    return false;
+    return kDriverId_None;
 }
 
 // Tries to mount the root filesystem from a floppy disk in drive 0.
-static bool try_rootfs_from_fd0(bool hasFallback)
+static DriverId get_boot_floppy_disk_id(void)
+{
+    return DriverCatalog_GetDriverIdForName(gDriverCatalog, kFloppyDrive0Name);
+}
+
+
+// Tries to mount the root filesystem from a floppy disk in drive 0.
+static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
 {
     decl_try_err();
     FSContainerRef fsContainer;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
-    const DriverId diskId = DriverCatalog_GetDriverIdForName(gDriverCatalog, kFloppyDrive0Name);
-
-    if (diskId == kDriverId_None) {
-        throw(ENODEV);
-    }
 
     try(DiskFSContainer_Create(diskId, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
@@ -129,10 +120,10 @@ static bool try_rootfs_from_fd0(bool hasFallback)
             shouldPromptForDisk = true;
         }
 
-        if (hasFallback) {
+        if (!shouldRetry) {
             // No disk or no mountable disk. We have a fallback though so bail
-            // out and let the caller try the fallback option.
-            return false;
+            // out and let the caller try another option.
+            return err;
         }
 
         if (shouldPromptForDisk) {
@@ -142,30 +133,50 @@ static bool try_rootfs_from_fd0(bool hasFallback)
 
         VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
     }
-    print("Booting from fd0...\n\n");
 
-    return true;
+    char buf[MAX_NAME_LENGTH+1];
+    DriverCatalog_CopyNameForDriverId(gDriverCatalog, diskId, buf, MAX_NAME_LENGTH);
+    print("Booting from ");
+    print(buf);
+    print("...\n\n");
+
+    return EOK;
 
 catch:
-    print("Error: unable to load root fs from fd0: %d\n", err);
-    return false;
+    return err;
 }
 
 // Locates the root filesystem and mounts it.
 void init_root_filesystem(void)
 {
+    decl_try_err();
     const SMG_Header* rom_dmg = find_rom_rootfs();
+    DriverId diskId;
 
-    if (try_rootfs_from_fd0(rom_dmg != NULL)) {
-        return;
+    // Boot from floppy disk
+    diskId = get_boot_floppy_disk_id();
+    if (diskId != kDriverId_None) {
+        err = boot_from_disk(diskId, rom_dmg == NULL);
+        if (err == EOK) {
+            return;
+        }
     }
 
-    if (try_rootfs_from_rom(rom_dmg)) {
-        return;
+
+    // Boot from ROM if a ROM disk image exists
+    if (rom_dmg) {
+        diskId = get_boot_mem_disk_id(rom_dmg);
+        if (diskId != kDriverId_None) {
+            err = boot_from_disk(diskId, false);
+            if (err == EOK) {
+                return;
+            }
+        }
     }
 
 
-    print("Halting\n");
+    // No luck, give up
+    print("No boot device found.\nHalting...\n");
     while(true);
     /* NOT REACHED */
 }
