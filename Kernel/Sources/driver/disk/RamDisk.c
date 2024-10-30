@@ -16,31 +16,32 @@ typedef struct DiskExtent {
 } DiskExtent;
 
 
+#define MAX_NAME_LENGTH 8
+
 // All ivars are protected by the dispatch queue
 final_class_ivars(RamDisk, DiskDriver,
     SList               extents;            // Sorted ascending by 'firstBlockIndex'
     LogicalBlockCount   extentBlockCount;   // How many blocks an extent stores
     LogicalBlockCount   blockCount;
     size_t              blockSize;
+    char                name[MAX_NAME_LENGTH];
 );
 
 
-errno_t RamDisk_Create(size_t nBlockSize, LogicalBlockCount nBlockCount, LogicalBlockCount nExtentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RamDisk_Create(const char* _Nonnull name, size_t blockSize, LogicalBlockCount blockCount, LogicalBlockCount extentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    RamDiskRef self;
+    RamDiskRef self = NULL;
 
     try(DiskDriver_Create(RamDisk, &self));
     SList_Init(&self->extents);
-    self->extentBlockCount = __min(nExtentBlockCount, nBlockCount);
-    self->blockCount = nBlockCount;
-    self->blockSize = nBlockSize;
-
-    *pOutSelf = self;
-    return EOK;
+    self->extentBlockCount = __min(extentBlockCount, blockCount);
+    self->blockCount = blockCount;
+    self->blockSize = blockSize;
+    String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
 catch:
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -51,6 +52,11 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
     });
 
     SList_Deinit(&self->extents);
+}
+
+errno_t RamDisk_start(RamDiskRef _Nonnull self)
+{
+    return Driver_Publish((DriverRef)self, self->name);
 }
 
 // Returns information about the disk drive and the media loaded into the
@@ -170,6 +176,7 @@ catch:
 
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
+override_func_def(start, RamDisk, Driver)
 override_func_def(getInfoAsync, RamDisk, DiskDriver)
 override_func_def(getBlockAsync, RamDisk, DiskDriver)
 override_func_def(putBlockAsync, RamDisk, DiskDriver)

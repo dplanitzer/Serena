@@ -9,31 +9,32 @@
 #include "RomDisk.h"
 
 
+#define MAX_NAME_LENGTH 8
+
 final_class_ivars(RomDisk, DiskDriver,
     const char* _Nonnull    diskImage;
     LogicalBlockCount       blockCount;
     size_t                  blockSize;
     bool                    freeDiskImageOnClose;
+    char                    name[MAX_NAME_LENGTH + 1];
 );
 
 
-errno_t RomDisk_Create(const void* _Nonnull pDiskImage, size_t nBlockSize, LogicalBlockCount nBlockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, size_t blockSize, LogicalBlockCount blockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    RomDiskRef self;
+    RomDiskRef self = NULL;
 
-    assert(pDiskImage != NULL);
+    assert(pImage != NULL);
     try(DiskDriver_Create(RomDisk, &self));
-    self->diskImage = pDiskImage;
-    self->blockCount = nBlockCount;
-    self->blockSize = nBlockSize;
+    self->diskImage = pImage;
+    self->blockCount = blockCount;
+    self->blockSize = blockSize;
     self->freeDiskImageOnClose = freeOnClose;
-
-    *pOutSelf = self;
-    return EOK;
+    String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
 
 catch:
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 
@@ -43,6 +44,11 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
         kfree(self->diskImage);
         self->diskImage = NULL;
     }
+}
+
+errno_t RomDisk_start(RomDiskRef _Nonnull self)
+{
+    return Driver_Publish((DriverRef)self, self->name);
 }
 
 // Returns information about the disk drive and the media loaded into the
@@ -76,6 +82,7 @@ errno_t RomDisk_getBlockAsync(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, 
 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
+override_func_def(start, RomDisk, Driver)
 override_func_def(getInfoAsync, RomDisk, DiskDriver)
 override_func_def(getBlockAsync, RomDisk, DiskDriver)
 );

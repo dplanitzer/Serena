@@ -177,6 +177,9 @@ static const SMG_Header* _Nullable find_rom_rootfs(void)
 static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
 {
     decl_try_err();
+    const char* romDiskName = "rom";
+    const char* ramDiskName = "ram0";
+    const char* diskName = NULL;
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
     DiskDriverRef disk;
     FSContainerRef fsContainer;
@@ -186,10 +189,15 @@ static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
     // that the disk image is exactly 64k in size.
     print("Booting from ROM...\n\n");
     if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
-        try(RomDisk_Create(dmg, smg_hdr->blockSize, smg_hdr->physicalBlockCount, false, (RomDiskRef*)&disk));
+        try(RomDisk_Create(romDiskName, dmg, smg_hdr->blockSize, smg_hdr->physicalBlockCount, false, (RomDiskRef*)&disk));
+        try(Driver_Start((DriverRef)disk));
+        diskName = romDiskName;
     }
     else {
-        try(RamDisk_Create(smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
+        try(RamDisk_Create(ramDiskName, smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
+        try(Driver_Start((DriverRef)disk));
+        diskName = ramDiskName;
+
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             try(DiskDriver_PutBlock(disk, &dmg[lba * smg_hdr->blockSize], lba));
         }
@@ -198,7 +206,8 @@ static bool try_rootfs_from_rom(const SMG_Header* _Nonnull smg_hdr)
 
     // Create a SerenaFS instance and mount it as the root filesystem on the RAM
     // disk
-    try(DiskFSContainer_Create(disk, &fsContainer));
+    const DriverId diskId = DriverCatalog_GetDriverIdForName(gDriverCatalog, diskName);
+    try(DiskFSContainer_Create(diskId, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
     try(FilesystemManager_Mount(gFilesystemManager, fs, NULL, 0, NULL));
 
@@ -213,15 +222,17 @@ catch:
 static bool try_rootfs_from_fd0(bool hasFallback)
 {
     decl_try_err();
-    DiskDriverRef fd0;
     FSContainerRef fsContainer;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
+    const DriverId diskId = DriverCatalog_GetDriverIdForName(gDriverCatalog, kFloppyDrive0Name);
 
-    try_null(fd0, (DiskDriverRef)DriverCatalog_CopyDriverForName(gDriverCatalog, kFloppyDrive0Name), ENODEV);
-    try(DiskFSContainer_Create(fd0, &fsContainer));
+    if (diskId == kDriverId_None) {
+        throw(ENODEV);
+    }
+
+    try(DiskFSContainer_Create(diskId, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
-    Object_Release(fd0);
 
     while (true) {
         err = FilesystemManager_Mount(gFilesystemManager, fs, NULL, 0, NULL);
