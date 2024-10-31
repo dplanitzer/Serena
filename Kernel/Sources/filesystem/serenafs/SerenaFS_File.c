@@ -10,30 +10,6 @@
 #include <System/ByteOrder.h>
 
 
-static errno_t SerenaFS_ReadIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNumber ibn, SFSBlockNumber* _Nonnull bp)
-{
-    FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const errno_t err = FSContainer_GetBlock(fsContainer, bp, ibn);
-    
-    if (err == EOK) {
-        for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
-            bp[i] = UInt32_BigToHost(bp[i]);
-        }
-    }
-    return err;
-}
-
-static errno_t SerenaFS_WriteIndirectBlock(SerenaFSRef _Nonnull self, SFSBlockNumber ibn, SFSBlockNumber* _Nonnull bp)
-{
-    FSContainerRef fsContainer = Filesystem_GetContainer(self);
-
-    for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
-        bp[i] = UInt32_HostToBig(bp[i]);
-    }
-    
-    return FSContainer_PutBlock(fsContainer, bp, ibn);
-}
-
 // Looks up the absolute logical block address for the disk block that corresponds
 // to the file-specific logical block address 'fba'.
 // The first logical block is #0 at the very beginning of the file 'pNode'. Logical
@@ -84,14 +60,14 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
         }
 
         SFSBlockNumber* dat_bp = (SFSBlockNumber*)self->tmpBlock;
-        try(SerenaFS_ReadIndirectBlock(self, i0_lba, dat_bp));
-        LogicalBlockAddress dat_lba = dat_bp[fba];
+        try(FSContainer_GetBlock(fsContainer, dat_bp, i0_lba));
+        LogicalBlockAddress dat_lba = UInt32_BigToHost(dat_bp[fba]);
 
         if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
             try(SerenaFS_AllocateBlock(self, &dat_lba));
-            dat_bp[fba] = dat_lba;
+            dat_bp[fba] = UInt32_HostToBig(dat_lba);
 
-            try(SerenaFS_WriteIndirectBlock(self, i0_lba, dat_bp));
+            try(FSContainer_PutBlock(fsContainer, dat_bp, i0_lba));
         }
         
         *pOutLba = dat_lba;
@@ -283,6 +259,7 @@ errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked 
 // smaller size 'length'. Does not support increasing the size of a file.
 void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset newLength)
 {
+    decl_try_err();
     const FileOffset oldLength = Inode_GetFileSize(pNode);
     SFSBlockNumber* ino_bp = Inode_GetBlockMap(pNode);
     const SFSBlockNumber bn_nlen = (SFSBlockNumber)(newLength >> (FileOffset)kSFSBlockSizeShift);   //XXX should be 64bit
@@ -302,24 +279,26 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     const LogicalBlockAddress i1_lba = ino_bp[kSFSDirectBlockPointersCount];
 
     if (i1_lba != 0) {
+        FSContainerRef fsContainer = Filesystem_GetContainer(self);
         SFSBlockNumber* i1_bp = (SFSBlockNumber*)self->tmpBlock;
 
-        SerenaFS_ReadIndirectBlock(self, i1_lba, i1_bp);
-
-        for (SFSBlockNumber bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
-            if (i1_bp[bn] != 0) {
-                SerenaFS_DeallocateBlock(self, i1_bp[bn]);
-                i1_bp[bn] = 0;
+        err = FSContainer_GetBlock(fsContainer, i1_bp, i1_lba);
+        if (err == EOK) {
+            for (SFSBlockNumber bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
+                if (i1_bp[bn] != 0) {
+                    SerenaFS_DeallocateBlock(self, UInt32_BigToHost(i1_bp[bn]));
+                    i1_bp[bn] = 0;
+                }
             }
-        }
 
-        if (bn_first_i1_to_discard == 0) {
-            // We removed the whole i1 level
-            ino_bp[kSFSDirectBlockPointersCount] = 0;
-        }
-        else {
-            // We partially removed the i1 level
-            SerenaFS_WriteIndirectBlock(self, i1_lba, i1_bp);
+            if (bn_first_i1_to_discard == 0) {
+                // We removed the whole i1 level
+                ino_bp[kSFSDirectBlockPointersCount] = 0;
+            }
+            else {
+                // We partially removed the i1 level
+                FSContainer_PutBlock(fsContainer, i1_bp, i1_lba);
+            }
         }
     }
 
