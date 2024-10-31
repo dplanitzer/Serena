@@ -130,49 +130,43 @@ errno_t SerenaFS_GetDirectoryEntry(
         }
 
         try(SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba));
-        if (lba == 0) {
-            memset(self->tmpBlock, 0, kSFSBlockSize);
-        }
-        else {
+        if (lba > 0) {
             try(FSContainer_GetBlock(fsContainer, self->tmpBlock, lba));
-        }
 
-        const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
-        hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
-        if (pEmptyEntry) {
-            pOutEmptyPtr->lba = lba;
-            pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
-            pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;
-        }
-        if (hasMatch) {
-            break;
+            const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
+            hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
+            if (pEmptyEntry) {
+                pOutEmptyPtr->lba = lba;
+                pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
+                pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;
+            }
+            if (hasMatch) {
+                if (pOutEntryPtr) {
+                    pOutEntryPtr->lba = lba;
+                    pOutEntryPtr->blockOffset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
+                    pOutEntryPtr->fileOffset = offset + pOutEntryPtr->blockOffset;
+                }
+                if (pOutId) {
+                    *pOutId = UInt32_BigToHost(pMatchingEntry->id);
+                }
+                if (pOutFilename) {
+                    const ssize_t len = String_LengthUpTo(pMatchingEntry->filename, kSFSMaxFilenameLength);
+                    if (len > pOutFilename->capacity) {
+                        throw(ERANGE);
+                    }
+
+                    String_CopyUpTo(pOutFilename->name, pMatchingEntry->filename, len);
+                    pOutFilename->count = len;
+                }
+                break;
+            }
         }
 
         offset += (FileOffset)nBytesAvailable;
     }
 
-    if (hasMatch) {
-        if (pOutEntryPtr) {
-            pOutEntryPtr->lba = lba;
-            pOutEntryPtr->blockOffset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
-            pOutEntryPtr->fileOffset = offset + pOutEntryPtr->blockOffset;
-        }
-        if (pOutId) {
-            *pOutId = UInt32_BigToHost(pMatchingEntry->id);
-        }
-        if (pOutFilename) {
-            const ssize_t len = String_LengthUpTo(pMatchingEntry->filename, kSFSMaxFilenameLength);
-            if (len > pOutFilename->capacity) {
-                throw(ERANGE);
-            }
-
-            String_CopyUpTo(pOutFilename->name, pMatchingEntry->filename, len);
-            pOutFilename->count = len;
-        }
-        return EOK;
-    }
-    else {
-        return ENOENT;
+    if (!hasMatch) {
+        err = ENOENT;
     }
 
 catch:

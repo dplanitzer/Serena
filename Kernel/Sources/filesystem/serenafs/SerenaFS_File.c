@@ -111,6 +111,7 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const FileOffset fileSize = Inode_GetFileSize(pNode);
+    uint8_t* dp = pBuffer;
     ssize_t nBytesRead = 0;
 
     if (nBytesToRead > 0) {
@@ -136,11 +137,14 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
 
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba);
         if (e1 == EOK) {
-            if (lba == 0) {
-                memset(self->tmpBlock, 0, kSFSBlockSize);
+            if (lba > 0) {
+                e1 = FSContainer_GetBlock(fsContainer, self->tmpBlock, lba);
+                if (e1 == EOK) {
+                    memcpy(dp, self->tmpBlock + blockOffset, nBytesToReadInCurrentBlock);
+                }
             }
             else {
-                e1 = FSContainer_GetBlock(fsContainer, self->tmpBlock, lba);
+                memset(dp, 0, nBytesToReadInCurrentBlock);
             }
         }
         if (e1 != EOK) {
@@ -148,10 +152,10 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
             break;
         }
 
-        memcpy(((uint8_t*)pBuffer) + nBytesRead, self->tmpBlock + blockOffset, nBytesToReadInCurrentBlock);
         nBytesToRead -= nBytesToReadInCurrentBlock;
         nBytesRead += nBytesToReadInCurrentBlock;
         offset += (FileOffset)nBytesToReadInCurrentBlock;
+        dp += nBytesToReadInCurrentBlock;
     }
 
     *pOutBytesRead = nBytesRead;
@@ -191,12 +195,8 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
 
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Write, &lba);
         if (e1 == EOK) {
-            if (lba == 0) {
-                memset(self->tmpBlock, 0, kSFSBlockSize);
-            }
-            else {
-                e1 = FSContainer_GetBlock(fsContainer, self->tmpBlock, lba);
-            }
+            assert(lba > 0);
+            e1 = FSContainer_GetBlock(fsContainer, self->tmpBlock, lba);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
