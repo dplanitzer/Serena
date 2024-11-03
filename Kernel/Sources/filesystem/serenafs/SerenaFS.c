@@ -45,6 +45,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     FSContainerInfo fscInfo;
+    DiskBlockRef pRootBlock = NULL;
 
     if ((err = SELock_LockExclusive(&self->seLock)) != EOK) {
         return err;
@@ -72,8 +73,8 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 
 
     // Get the FS root block
-    try(FSContainer_GetBlock(fsContainer, self->tmpBlock, 0));
-    const SFSVolumeHeader* vhp = (const SFSVolumeHeader*)self->tmpBlock;
+    try(FSContainer_AcquireBlock(fsContainer, 0, kDiskBlockAcquire_ReadOnly, &pRootBlock));
+    const SFSVolumeHeader* vhp = (const SFSVolumeHeader*)DiskBlock_GetData(pRootBlock);
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
     const uint32_t version = UInt32_BigToHost(vhp->version);
     const uint32_t blockSize = UInt32_BigToHost(vhp->blockSize);
@@ -106,9 +107,13 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 
     for (LogicalBlockAddress lba = 0; lba < self->allocationBitmapBlockCount; lba++) {
         const size_t nBytesToCopy = __min(kSFSBlockSize, allocBitmapByteSize);
+        DiskBlockRef pBlock;
 
-        try(FSContainer_GetBlock(fsContainer, self->tmpBlock, self->allocationBitmapLba + lba));
-        memcpy(pAllocBitmap, self->tmpBlock, nBytesToCopy);
+        try(FSContainer_AcquireBlock(fsContainer, self->allocationBitmapLba + lba, kDiskBlockAcquire_ReadOnly, &pBlock));
+        memcpy(pAllocBitmap, DiskBlock_GetData(pBlock), nBytesToCopy);
+        FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_None);
+        pBlock = NULL;
+
         allocBitmapByteSize -= nBytesToCopy;
         pAllocBitmap += diskBlockSize;
     }
@@ -127,6 +132,8 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 #endif
 
 catch:
+    FSContainer_RelinquishBlock(fsContainer, pRootBlock, kDiskBlockWriteBack_None);
+
     SELock_Unlock(&self->seLock);
     return err;
 }
@@ -297,17 +304,19 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
     if (isMovingDir) {
         SFSDirectoryEntryPointer mp;
         SFSDirectoryQuery q;
+        DiskBlockRef pBlock;
 
         q.kind = kSFSDirectoryQuery_PathComponent;
         q.u.pc = &kPathComponent_Parent;
         try(SerenaFS_GetDirectoryEntry(self, pSrcNode, &q, NULL, &mp, NULL, NULL));
 
-        try(FSContainer_GetBlock(fsContainer, self->tmpBlock, mp.lba));
+        try(FSContainer_AcquireBlock(fsContainer, mp.lba, kDiskBlockAcquire_Update, &pBlock));
 
-        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.blockOffset);
+        uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(bp + mp.blockOffset);
         dep->id = Inode_GetId(pDstDir);
 
-        try(FSContainer_PutBlock(fsContainer, self->tmpBlock, mp.lba));
+        FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
 
         // Our parent receives a +1 on the link count because of our .. entry
         Inode_Link(pDstDir);
@@ -324,6 +333,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     SFSDirectoryEntryPointer mp;
     SFSDirectoryQuery q;
+    DiskBlockRef pBlock;
 
     if (pNewName->count > kSFSMaxFilenameLength) {
         throw(ENAMETOOLONG);
@@ -333,13 +343,14 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     q.u.id = Inode_GetId(pSrcNode);
     try(SerenaFS_GetDirectoryEntry(self, pSrcDir, &q, NULL, &mp, NULL, NULL));
 
-    try(FSContainer_GetBlock(fsContainer, self->tmpBlock, mp.lba));
+    try(FSContainer_AcquireBlock(fsContainer, mp.lba, kDiskBlockAcquire_Update, &pBlock));
 
-    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.blockOffset);
+    uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(bp + mp.blockOffset);
     char* p = String_CopyUpTo(dep->filename, pNewName->name, pNewName->count);
     while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
 
-    try(FSContainer_PutBlock(fsContainer, self->tmpBlock, mp.lba));
+    FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
 
     return EOK;
 

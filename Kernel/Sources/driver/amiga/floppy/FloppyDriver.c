@@ -744,9 +744,10 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 #endif
 }
 
-static errno_t FloppyDriver_getBlockAsync(FloppyDriverRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t FloppyDriver_getBlockAsync(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
+    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
 
     if (lba >= self->blocksPerDisk) {
         return EIO;
@@ -791,7 +792,7 @@ static errno_t FloppyDriver_getBlockAsync(FloppyDriverRef _Nonnull self, void* _
         if (s->isDataValid) {
             // MFM decode the sector data
             const ADF_MFMSector* mfms = (const ADF_MFMSector*)&self->trackBuffer[s->offsetToHeader];
-            mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, (uint32_t*)pBuffer, ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
+            mfm_decode_bits((const uint32_t*)mfms->data.odd_bits, DiskBlock_GetMutableData(pBlock), ADF_SECTOR_DATA_SIZE / sizeof(uint32_t));
         }
         else {
             self->readErrorCount++;
@@ -870,9 +871,10 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-static errno_t FloppyDriver_putBlockAsync(FloppyDriverRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t FloppyDriver_putBlockAsync(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
+    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
 
     if (lba >= self->blocksPerDisk) {
         return EIO;
@@ -936,7 +938,7 @@ static errno_t FloppyDriver_putBlockAsync(FloppyDriverRef _Nonnull self, const v
             }
         }
         else {
-            s_dat = pBuffer;
+            s_dat = DiskBlock_GetData(pBlock);
             is_good = true;
         }
 

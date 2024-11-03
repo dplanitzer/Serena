@@ -51,8 +51,6 @@ errno_t RomDisk_start(RomDiskRef _Nonnull self)
     return Driver_Publish((DriverRef)self, self->name);
 }
 
-// Returns information about the disk drive and the media loaded into the
-// drive.
 errno_t RomDisk_getInfoAsync(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->blockSize = self->blockSize;
@@ -63,15 +61,12 @@ errno_t RomDisk_getInfoAsync(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
     return EOK;
 }
 
-// Reads the contents of the block at index 'lba'. 'buffer' must be big
-// enough to hold the data of a block. Blocks the caller until the read
-// operation has completed. Note that this function will never return a
-// partially read block. Either it succeeds and the full block data is
-// returned, or it fails and no block data is returned.
-errno_t RomDisk_getBlockAsync(RomDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RomDisk_getBlockAsync(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
+    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
+
     if (lba < self->blockCount) {
-        memcpy(pBuffer, self->diskImage + lba * self->blockSize, self->blockSize);
+        memcpy(DiskBlock_GetMutableData(pBlock), self->diskImage + lba * self->blockSize, self->blockSize);
         return EOK;
     }
     else {

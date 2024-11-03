@@ -109,6 +109,7 @@ DISKIMAGE_SRCS += diskimage/FSUtilities_win32.c diskimage/RamFSContainer.c
 DISKIMAGE_SRCS += ../Kernel/Sources/klib/Array.c ../Kernel/Sources/klib/List.c
 DISKIMAGE_SRCS += ../Kernel/Sources/kobj/Class.c ../Kernel/Sources/kobj/Any.c ../Kernel/Sources/kobj/Object.c ../Kernel/Sources/kobj/ObjectArray.c
 DISKIMAGE_SRCS += ../Kernel/Sources/User.c
+DISKIMAGE_SRCS += ../Kernel/Sources/disk/DiskBlock.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/FSContainer.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/ContainerFilesystem.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Filesystem.c

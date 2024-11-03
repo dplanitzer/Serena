@@ -13,13 +13,14 @@
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, FilePermissions permissions)
+errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, User user, FilePermissions permissions)
 {
     decl_try_err();
+    DiskBlockRef pBlock;
     FSContainerInfo fscInfo;
     const TimeInterval curTime = FSGetCurrentTime();
 
-    if ((err = FSContainer_GetInfo(pContainer, &fscInfo)) != EOK) {
+    if ((err = FSContainer_GetInfo(fsContainer, &fscInfo)) != EOK) {
         return err;
     }
 
@@ -48,13 +49,11 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, File
     const LogicalBlockAddress rootDirInodeLba = allocBitmapBlockCount + 1;
     const LogicalBlockAddress rootDirContentLba = rootDirInodeLba + 1;
 
-    uint8_t* p = NULL;
-    try(FSAllocate(fscInfo.blockSize, (void**)&p));
-
 
     // Write the volume header
-    memset(p, 0, fscInfo.blockSize);
-    SFSVolumeHeader* vhp = (SFSVolumeHeader*)p;
+    try(FSContainer_AcquireBlock(fsContainer, 0, kDiskBlockAcquire_Replace, &pBlock));
+    SFSVolumeHeader* vhp = (SFSVolumeHeader*)DiskBlock_GetMutableData(pBlock);
+    memset(vhp, 0, fscInfo.blockSize);
     vhp->signature = UInt32_HostToBig(kSFSSignature_SerenaFS);
     vhp->version = UInt32_HostToBig(kSFSVersion_Current);
     vhp->attributes = UInt32_HostToBig(0);
@@ -67,7 +66,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, File
     vhp->allocationBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
     vhp->rootDirectoryLba = UInt32_HostToBig(rootDirInodeLba);
     vhp->allocationBitmapLba = UInt32_HostToBig(1);
-    try(FSContainer_PutBlock(pContainer, vhp, 0));
+    try(FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync));
 
 
     // Write the allocation bitmap
@@ -77,22 +76,26 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, File
     LogicalBlockAddress nBlocksAllocated = 0;
 
     for (LogicalBlockAddress i = 0; i < allocBitmapBlockCount; i++) {
-        memset(p, 0, fscInfo.blockSize);
+        try(FSContainer_AcquireBlock(fsContainer, 1 + i, kDiskBlockAcquire_Replace, &pBlock));
+        uint8_t* bbp = DiskBlock_GetMutableData(pBlock);
+
+        memset(bbp, 0, fscInfo.blockSize);
 
         LogicalBlockAddress bitNo = 0;
         while (nBlocksAllocated < __min(nBlocksToAllocate, nAllocationBitsPerBlock)) {
-            AllocationBitmap_SetBlockInUse(p, bitNo, true);
+            AllocationBitmap_SetBlockInUse(bbp, bitNo, true);
             nBlocksAllocated++;
             bitNo++;
         }
 
-        try(FSContainer_PutBlock(pContainer, p, 1 + i));
+        try(FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync));
     }
 
 
     // Write the root directory inode
-    memset(p, 0, fscInfo.blockSize);
-    SFSInode* ip = (SFSInode*)p;
+    try(FSContainer_AcquireBlock(fsContainer, rootDirInodeLba, kDiskBlockAcquire_Replace, &pBlock));
+    SFSInode* ip = (SFSInode*)DiskBlock_GetMutableData(pBlock);
+    memset(ip, 0, fscInfo.blockSize);
     ip->accessTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->accessTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->modificationTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
@@ -106,21 +109,21 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User user, File
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;
     ip->bp[0] = UInt32_HostToBig(rootDirContentLba);
-    try(FSContainer_PutBlock(pContainer, ip, rootDirInodeLba));
+    try(FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync));
 
 
     // Write the root directory content. This is just the entries '.' and '..'
     // which both point back to the root directory.
-    memset(p, 0, fscInfo.blockSize);
-    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)p;
+    try(FSContainer_AcquireBlock(fsContainer, rootDirContentLba, kDiskBlockAcquire_Replace, &pBlock));
+    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)DiskBlock_GetMutableData(pBlock);
+    memset(dep, 0, fscInfo.blockSize);
     dep[0].id = UInt32_HostToBig(rootDirInodeLba);
     dep[0].filename[0] = '.';
     dep[1].id = UInt32_HostToBig(rootDirInodeLba);
     dep[1].filename[0] = '.';
     dep[1].filename[1] = '.';
-    try(FSContainer_PutBlock(pContainer, dep, rootDirContentLba));
+    try(FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync));
 
 catch:
-    FSDeallocate(p);
     return err;
 }

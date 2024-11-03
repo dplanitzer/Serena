@@ -54,12 +54,7 @@ errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo*
     return EOK;
 }
 
-// Reads the contents of the block at index 'lba'. 'buffer' must be big
-// enough to hold the data of a block. Blocks the caller until the read
-// operation has completed. Note that this function will never return a
-// partially read block. Either it succeeds and the full block data is
-// returned, or it fails and no block data is returned.
-errno_t RamFSContainer_getBlock(RamFSContainerRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba >= self->blockCount) {
         return EIO;
@@ -69,12 +64,41 @@ errno_t RamFSContainer_getBlock(RamFSContainerRef _Nonnull self, void* _Nonnull 
     return EOK;
 }
 
+// Acquires the disk block with the block address 'lba'. The acquisition is
+// done according to the acquisition mode 'mode'. An error is returned if
+// the disk block needed to be loaded and loading failed for some reason.
+// Once done with the block, it must be relinquished by calling the
+// relinquishBlock() method.
+errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, DiskBlockAcquire mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    decl_try_err();
+    DiskBlockRef pBlock = NULL;
+
+    err = DiskBlock_Create(1, 1, lba, &pBlock);
+    if (err == EOK) {
+        switch (mode) {
+            case kDiskBlockAcquire_ReadOnly:
+            case kDiskBlockAcquire_Update:
+                err = RamFSContainer_GetBlock(self, DiskBlock_GetMutableData(pBlock), DiskBlock_GetLba(pBlock));
+                break;
+
+            case kDiskBlockAcquire_Replace:
+                memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
+                break; 
+
+        }
+    }
+    *pOutBlock = pBlock;
+
+    return err;
+}
+
 // Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
 // must be big enough to hold a full block. Blocks the caller until the
 // write has completed. The contents of the block on disk is left in an
 // indeterminate state of the write fails in the middle of the write. The
 // block may contain a mix of old and new data.
-errno_t RamFSContainer_putBlock(RamFSContainerRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
 {
     if (lba >= self->blockCount) {
         return EIO;
@@ -86,6 +110,32 @@ errno_t RamFSContainer_putBlock(RamFSContainerRef _Nonnull self, const void* _No
     }
 
     return EOK;
+}
+
+// Relinquishes the disk block 'pBlock' and writes the disk block back to
+// disk according to the write back mode 'mode'.
+errno_t RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, DiskBlockWriteBack mode)
+{
+    decl_try_err();
+
+    if (pBlock) {
+        switch (mode) {
+            case kDiskBlockWriteBack_None:
+                break;
+
+            case kDiskBlockWriteBack_Sync:
+                err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), DiskBlock_GetLba(pBlock));
+                break;
+
+            case kDiskBlockWriteBack_Async:
+            case kDiskBlockWriteBack_Deferred:
+                abort();
+                break;
+        }
+        DiskBlock_Destroy(pBlock);
+    }
+
+    return err;
 }
 
 // Writes the contents of the disk to the given path as a regular file.
@@ -132,6 +182,6 @@ catch:
 class_func_defs(RamFSContainer, FSContainer,
 override_func_def(deinit, RamFSContainer, Object)
 override_func_def(getInfo, RamFSContainer, FSContainer)
-override_func_def(getBlock, RamFSContainer, FSContainer)
-override_func_def(putBlock, RamFSContainer, FSContainer)
+override_func_def(acquireBlock, RamFSContainer, FSContainer)
+override_func_def(relinquishBlock, RamFSContainer, FSContainer)
 );

@@ -51,33 +51,71 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
     return err;
 }
 
-errno_t DiskFSContainer_getBlock(struct DiskFSContainer* _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+// Acquires the disk block with the block address 'lba'. The acquisition is
+// done according to the acquisition mode 'mode'. An error is returned if
+// the disk block needed to be loaded and loading failed for some reason.
+// Once done with the block, it must be relinquished by calling the
+// relinquishBlock() method.
+errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, DiskBlockAcquire mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskDriverRef pDriver;
+    DiskBlockRef pBlock = NULL;
 
     if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->driverId)) != NULL) {
-        err = DiskDriver_GetBlock(pDriver, pBuffer, lba);
+        err = DiskBlock_Create(self->driverId, 1, lba, &pBlock);
+        if (err == EOK) {
+            switch (mode) {
+                case kDiskBlockAcquire_ReadOnly:
+                case kDiskBlockAcquire_Update:
+                    err = DiskDriver_GetBlock(pDriver, pBlock);
+                    break;
+
+                case kDiskBlockAcquire_Replace:
+                    memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
+                    break; 
+
+            }
+        }
         Object_Release(pDriver);
     }
     else {
         err = ENODEV;
     }
+    *pOutBlock = pBlock;
 
     return err;
 }
 
-errno_t DiskFSContainer_putBlock(struct DiskFSContainer* _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+// Relinquishes the disk block 'pBlock' and writes the disk block back to
+// disk according to the write back mode 'mode'.
+errno_t DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, DiskBlockWriteBack mode)
 {
-        decl_try_err();
+    decl_try_err();
     DiskDriverRef pDriver;
 
-    if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->driverId)) != NULL) {
-        err = DiskDriver_PutBlock(pDriver, pBuffer, lba);
-        Object_Release(pDriver);
-    }
-    else {
-        err = ENODEV;
+    if (pBlock) {
+        if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->driverId)) != NULL) {
+            switch (mode) {
+                case kDiskBlockWriteBack_None:
+                    break;
+
+                case kDiskBlockWriteBack_Sync:
+                    err = DiskDriver_PutBlock(pDriver, pBlock);
+                    break;
+
+                case kDiskBlockWriteBack_Async:
+                case kDiskBlockWriteBack_Deferred:
+                    abort();
+                    break;
+            }
+            Object_Release(pDriver);
+        }
+        else {
+            err = ENODEV;
+        }
+
+        DiskBlock_Destroy(pBlock);
     }
 
     return err;
@@ -86,6 +124,6 @@ errno_t DiskFSContainer_putBlock(struct DiskFSContainer* _Nonnull self, const vo
 
 class_func_defs(DiskFSContainer, Object,
 override_func_def(getInfo, DiskFSContainer, FSContainer)
-override_func_def(getBlock, DiskFSContainer, FSContainer)
-override_func_def(putBlock, DiskFSContainer, FSContainer)
+override_func_def(acquireBlock, DiskFSContainer, FSContainer)
+override_func_def(relinquishBlock, DiskFSContainer, FSContainer)
 );

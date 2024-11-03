@@ -59,8 +59,6 @@ errno_t RamDisk_start(RamDiskRef _Nonnull self)
     return Driver_Publish((DriverRef)self, self->name);
 }
 
-// Returns information about the disk drive and the media loaded into the
-// drive.
 errno_t RamDisk_getInfoAsync(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->blockSize = self->blockSize;
@@ -101,13 +99,11 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
     return pExtent;
 }
 
-// Reads the contents of the block at index 'lba'. 'buffer' must be big
-// enough to hold the data of a block. Blocks the caller until the read
-// operation has completed. Note that this function will never return a
-// partially read block. Either it succeeds and the full block data is
-// returned, or it fails and no block data is returned.
-errno_t RamDisk_getBlockAsync(RamDiskRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RamDisk_getBlockAsync(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
+    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
+    void* dp = DiskBlock_GetMutableData(pBlock);
+
     if (lba >= self->blockCount) {
         return EIO;
     }
@@ -116,11 +112,11 @@ errno_t RamDisk_getBlockAsync(RamDiskRef _Nonnull self, void* _Nonnull pBuffer, 
     DiskExtent* pExtent = RamDisk_GetDiskExtentForBlockIndex_Locked(self, lba, NULL);
     if (pExtent) {
         // Request for a block that was previously written to -> return the block
-        memcpy(pBuffer, &pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], self->blockSize);
+        memcpy(dp, &pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], self->blockSize);
     }
     else {
         // Request for a block that hasn't been written to yet -> return zeros
-        memset(pBuffer, 0, self->blockSize);
+        memset(dp, 0, self->blockSize);
     }
 
     return EOK;
@@ -145,14 +141,11 @@ catch:
     return err;
 }
 
-// Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
-// must be big enough to hold a full block. Blocks the caller until the
-// write has completed. The contents of the block on disk is left in an
-// indeterminate state of the write fails in the middle of the write. The
-// block may contain a mix of old and new data.
-errno_t RamDisk_putBlockAsync(RamDiskRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+errno_t RamDisk_putBlockAsync(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
+    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
+    const void* sp = DiskBlock_GetData(pBlock);
 
     if (lba >= self->blockCount) {
         return EIO;
@@ -166,7 +159,7 @@ errno_t RamDisk_putBlockAsync(RamDiskRef _Nonnull self, const void* _Nonnull pBu
         try(RamDisk_AddExtentAfter_Locked(self, (lba / self->extentBlockCount) * self->extentBlockCount, pPrevExtent, &pExtent));
     }
     if (pExtent) {
-        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], pBuffer, self->blockSize);
+        memcpy(&pExtent->data[(lba - pExtent->firstBlockIndex) * self->blockSize], sp, self->blockSize);
     }
 
 catch:

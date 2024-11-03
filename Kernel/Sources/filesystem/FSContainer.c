@@ -21,22 +21,19 @@ errno_t FSContainer_getInfo(FSContainerRef _Nonnull self, FSContainerInfo* pOutI
     return EOK;
 }
 
-// Reads the contents of the block at index 'lba'. 'buffer' must be big
-// enough to hold the data of a block. Blocks the caller until the read
-// operation has completed. Note that this function will never return a
-// partially read block. Either it succeeds and the full block data is
-// returned, or it fails and no block data is returned.
-errno_t FSContainer_getBlock(FSContainerRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)
+// Acquires the disk block with the block address 'lba'. The acquisition is
+// done according to the acquisition mode 'mode'. An error is returned if
+// the disk block needed to be loaded and loading failed for some reason.
+// Once done with the block, it must be relinquished by calling the
+// relinquishBlock() method.
+errno_t FSContainer_acquireBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, DiskBlockAcquire mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     return EIO;
 }
 
-// Writes the contents of 'pBuffer' to the block at index 'lba'. 'pBuffer'
-// must be big enough to hold a full block. Blocks the caller until the
-// write has completed. The contents of the block on disk is left in an
-// indeterminate state of the write fails in the middle of the write. The
-// block may contain a mix of old and new data.
-errno_t FSContainer_putBlock(FSContainerRef _Nonnull self, const void* _Nonnull pBuffer, LogicalBlockAddress lba)
+// Relinquishes the disk block 'pBlock' and writes the disk block back to
+// disk according to the write back mode 'mode'.
+errno_t FSContainer_relinquishBlock(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock, DiskBlockWriteBack mode)
 {
     return EIO;
 }
@@ -44,6 +41,6 @@ errno_t FSContainer_putBlock(FSContainerRef _Nonnull self, const void* _Nonnull 
 
 class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
-func_def(getBlock, FSContainer)
-func_def(putBlock, FSContainer)
+func_def(acquireBlock, FSContainer)
+func_def(relinquishBlock, FSContainer)
 );

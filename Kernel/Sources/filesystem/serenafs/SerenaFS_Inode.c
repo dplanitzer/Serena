@@ -40,16 +40,19 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
     if (type == kFileType_Directory) {
         // Write the initial directory content. These are just the '.' and '..'
         // entries
+        DiskBlockRef pBlock;
+
         try(SerenaFS_AllocateBlock(self, &dirContLba));
 
-        memset(self->tmpBlock, 0, kSFSBlockSize);
-        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)self->tmpBlock;
+        try(FSContainer_AcquireBlock(fsContainer, dirContLba, kDiskBlockAcquire_Replace, &pBlock));
+        SFSDirectoryEntry* dep = DiskBlock_GetMutableData(pBlock);
+        memset(dep, 0, kSFSBlockSize);
         dep[0].id = UInt32_HostToBig(inodeLba);
         dep[0].filename[0] = '.';
         dep[1].id = UInt32_HostToBig(parentInodeId);
         dep[1].filename[0] = '.';
         dep[1].filename[1] = '.';
-        try(FSContainer_PutBlock(fsContainer, dep, dirContLba));
+        FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
 
         bp[0] = dirContLba;
         fileSize = 2 * sizeof(SFSDirectoryEntry);
@@ -114,18 +117,19 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    DiskBlockRef pBlock;
     const LogicalBlockAddress lba = (LogicalBlockAddress)id;
-    SFSBlockNumber* bp = NULL;
+    SFSBlockNumber* bmap = NULL;
 
-    try(FSAllocate(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bp));
-    try(FSContainer_GetBlock(fsContainer, self->tmpBlock, lba));
-    const SFSInode* ip = (const SFSInode*)self->tmpBlock;
+    try(FSAllocate(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bmap));
+    try(FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_ReadOnly, &pBlock));
+    const SFSInode* ip = (const SFSInode*)DiskBlock_GetData(pBlock);
 
     for (int i = 0; i < kSFSInodeBlockPointersCount; i++) {
-        bp[i] = UInt32_BigToHost(ip->bp[i]);
+        bmap[i] = UInt32_BigToHost(ip->bp[i]);
     }
 
-    return Inode_Create(
+    err = Inode_Create(
         (FilesystemRef)self,
         id,
         ip->type,
@@ -137,23 +141,29 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
         TimeInterval_Make(UInt32_BigToHost(ip->accessTime.tv_sec), UInt32_BigToHost(ip->accessTime.tv_nsec)),
         TimeInterval_Make(UInt32_BigToHost(ip->modificationTime.tv_sec), UInt32_BigToHost(ip->modificationTime.tv_nsec)),
         TimeInterval_Make(UInt32_BigToHost(ip->statusChangeTime.tv_sec), UInt32_BigToHost(ip->statusChangeTime.tv_nsec)),
-        bp,
+        bmap,
         pOutNode);
 
+    FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_None);
+    return err;
+
 catch:
-    FSDeallocate(bp);
+    FSDeallocate(bmap);
     *pOutNode = NULL;
     return err;
 }
 
 errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode)
 {
+    decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    DiskBlockRef pBlock;
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
     const SFSBlockNumber* bp = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
     const TimeInterval curTime = FSGetCurrentTime();
-    SFSInode* ip = (SFSInode*)self->tmpBlock;
 
+    try(FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_Replace, &pBlock));
+    SFSInode* ip = (SFSInode*)DiskBlock_GetMutableData(pBlock);
     memset(ip, 0, kSFSBlockSize);
 
     const TimeInterval accTime = (Inode_IsAccessed(pNode)) ? curTime : Inode_GetAccessTime(pNode);
@@ -177,22 +187,30 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
         ip->bp[i] = UInt32_HostToBig(bp[i]);
     }
 
-    return FSContainer_PutBlock(fsContainer, self->tmpBlock, lba);
+    FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
+
+catch:
+    return err;
 }
 
 static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
+    decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    DiskBlockRef pBlock;
     const SFSBlockNumber* l0_bp = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
 
     if (l0_bp[kSFSDirectBlockPointersCount] != 0) {
-        FSContainer_GetBlock(fsContainer, self->tmpBlock, l0_bp[kSFSDirectBlockPointersCount]);
+        if ((err = FSContainer_AcquireBlock(fsContainer, l0_bp[kSFSDirectBlockPointersCount], kDiskBlockAcquire_ReadOnly, &pBlock)) == EOK) {
+            SFSBlockNumber* l1_bp = (SFSBlockNumber*)DiskBlock_GetData(pBlock);
 
-        SFSBlockNumber* l1_bp = (SFSBlockNumber*)self->tmpBlock;
-        for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
-            if (l1_bp[i] != 0) {
-                SerenaFS_DeallocateBlock(self, l1_bp[i]);
+            for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
+                if (l1_bp[i] != 0) {
+                    SerenaFS_DeallocateBlock(self, l1_bp[i]);
+                }
             }
+
+            FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
         }
         SerenaFS_DeallocateBlock(self, l0_bp[kSFSDirectBlockPointersCount]);
     }

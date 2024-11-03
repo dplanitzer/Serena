@@ -75,9 +75,6 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
     uint32_t                volumeBlockCount;
 
     LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
-
-    uint8_t                 tmpBlock[kSFSBlockSize];
-    uint8_t                 tmpBlock2[kSFSBlockSize];
 );
 
 typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);

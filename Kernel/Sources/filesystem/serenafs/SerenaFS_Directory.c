@@ -81,7 +81,6 @@ errno_t SerenaFS_GetDirectoryEntry(
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
-    const SFSDirectoryEntry* pDirBuffer = (const SFSDirectoryEntry*)self->tmpBlock;
     const FileOffset fileSize = Inode_GetFileSize(pNode);
     FileOffset offset = 0ll;
     LogicalBlockAddress lba = 0;
@@ -124,6 +123,7 @@ errno_t SerenaFS_GetDirectoryEntry(
     while (true) {
         const int blockIdx = offset >> (FileOffset)kSFSBlockSizeShift;
         const ssize_t nBytesAvailable = (ssize_t)__min((FileOffset)kSFSBlockSize, fileSize - offset);
+        DiskBlockRef pBlock;
 
         if (nBytesAvailable <= 0) {
             break;
@@ -131,8 +131,9 @@ errno_t SerenaFS_GetDirectoryEntry(
 
         try(SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba));
         if (lba > 0) {
-            try(FSContainer_GetBlock(fsContainer, self->tmpBlock, lba));
+            try(FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_ReadOnly, &pBlock));
 
+            const SFSDirectoryEntry* pDirBuffer = (const SFSDirectoryEntry*)DiskBlock_GetData(pBlock);
             const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
             hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
             if (pEmptyEntry) {
@@ -160,6 +161,13 @@ errno_t SerenaFS_GetDirectoryEntry(
                 }
                 break;
             }
+
+            FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_None);
+            pBlock = NULL;
+        }
+
+        if (hasMatch) {
+            break;
         }
 
         offset += (FileOffset)nBytesAvailable;
@@ -234,15 +242,17 @@ errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     SFSDirectoryEntryPointer mp;
     SFSDirectoryQuery q;
+    DiskBlockRef pBlock;
 
     q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = idToRemove;
     try(SerenaFS_GetDirectoryEntry(self, pDirNode, &q, NULL, &mp, NULL, NULL));
 
-    try(FSContainer_GetBlock(fsContainer, self->tmpBlock, mp.lba));
-    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + mp.blockOffset);
+    try(FSContainer_AcquireBlock(fsContainer, mp.lba, kDiskBlockAcquire_Update, &pBlock));
+    uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+    SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(bp + mp.blockOffset);
     memset(dep, 0, sizeof(SFSDirectoryEntry));
-    try(FSContainer_PutBlock(fsContainer, self->tmpBlock, mp.lba));
+    FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
 
     if (Inode_GetFileSize(pDirNode) - (FileOffset)sizeof(SFSDirectoryEntry) == mp.fileOffset) {
         Inode_DecrementFileSize(pDirNode, sizeof(SFSDirectoryEntry));
@@ -264,6 +274,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self); 
+    DiskBlockRef pBlock;
 
     if (pName->count > kSFSMaxFilenameLength) {
         return ENAMETOOLONG;
@@ -271,14 +282,15 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
 
     if (pEmptyPtr && pEmptyPtr->lba > 0) {
         // Reuse an empty entry
-        try(FSContainer_GetBlock(fsContainer, self->tmpBlock, pEmptyPtr->lba));
-        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(self->tmpBlock + pEmptyPtr->blockOffset);
+        try(FSContainer_AcquireBlock(fsContainer, pEmptyPtr->lba, kDiskBlockAcquire_Update, &pBlock));
+        uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+        SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(bp + pEmptyPtr->blockOffset);
 
         char* p = String_CopyUpTo(dep->filename, pName->name, pName->count);
         while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
         dep->id = UInt32_HostToBig(id);
 
-        try(FSContainer_PutBlock(fsContainer, self->tmpBlock, pEmptyPtr->lba));
+        FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
     }
     else {
         // Append a new entry
@@ -293,8 +305,9 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
             idx = size / kSFSBlockSize;
             lba = ino_bp[idx];
 
-            try(FSContainer_GetBlock(fsContainer, self->tmpBlock, lba));
-            dep = (SFSDirectoryEntry*)(self->tmpBlock + remainder);
+            try(FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_Update, &pBlock));
+            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+            dep = (SFSDirectoryEntry*)(bp + remainder);
         }
         else {
             for (int i = 0; i < kSFSDirectBlockPointersCount; i++) {
@@ -308,13 +321,15 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
             }
 
             try(SerenaFS_AllocateBlock(self, &lba));
-            memset(self->tmpBlock, 0, kSFSBlockSize);
-            dep = (SFSDirectoryEntry*)self->tmpBlock;
+            try(FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_Replace, &pBlock));
+            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+            memset(bp, 0, kSFSBlockSize);
+            dep = (SFSDirectoryEntry*)bp;
         }
 
         String_CopyUpTo(dep->filename, pName->name, pName->count);
         dep->id = UInt32_HostToBig(id);
-        try(FSContainer_PutBlock(fsContainer, self->tmpBlock, lba));
+        FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
         ino_bp[idx] = lba;
 
         Inode_IncrementFileSize(pDirNode, sizeof(SFSDirectoryEntry));
