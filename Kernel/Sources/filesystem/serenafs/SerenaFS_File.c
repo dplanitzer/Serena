@@ -18,16 +18,21 @@
 // must be substituted by an empty block. 0 is returned if no absolute logical
 // block address exists for 'fba'.
 // XXX 'fba' should be LogicalBlockAddress. However we want to be able to detect overflows
-errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, SFSBlockMode mode, LogicalBlockAddress* _Nonnull pOutLba)
+errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, SFSBlockMode mode, bool* _Nullable pDidAlloc, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     SFSBlockNumber* ino_bp = Inode_GetBlockMap(pNode);
     DiskBlockRef pBlock;
+    bool dummyFlag;
 
     if (fba < 0) {
         return EFBIG;
     }
+    if (pDidAlloc == NULL) {
+        pDidAlloc = &dummyFlag;
+    }
+    *pDidAlloc = false;
 
     if (fba < kSFSDirectBlockPointersCount) {
         LogicalBlockAddress dat_lba = ino_bp[fba];
@@ -35,6 +40,7 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
         if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
             try(SerenaFS_AllocateBlock(self, &dat_lba));
             ino_bp[fba] = dat_lba;
+            *pDidAlloc = true;
         }
 
         *pOutLba = dat_lba;
@@ -48,6 +54,7 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
 
         if (i0_lba == 0) {
             if (mode == kSFSBlockMode_Write) {
+                // Allocate a new indirect block and clear it out
                 try(SerenaFS_AllocateBlock(self, &i0_lba));
                 ino_bp[kSFSDirectBlockPointersCount] = i0_lba;
 
@@ -68,8 +75,9 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
         if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
             try(SerenaFS_AllocateBlock(self, &dat_lba));
             dat_bp[fba] = UInt32_HostToBig(dat_lba);
+            *pDidAlloc = true;
+
             wbMode = kWriteBlock_Sync;
-            // XXX clear the just allocated block?
         }
         
         FSContainer_RelinquishBlock(fsContainer, pBlock, wbMode);
@@ -116,7 +124,7 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
         DiskBlockRef pBlock;
         LogicalBlockAddress lba;
 
-        errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba);
+        errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, NULL, &lba);
         if (e1 == EOK) {
             if (lba > 0) {
                 e1 = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock);
@@ -176,11 +184,13 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         const size_t nBytesToWriteInCurrentBlock = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
         DiskBlockRef pBlock;
         LogicalBlockAddress lba;
+        bool isAlloc;
 
-        errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Write, &lba);
+        errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Write, &isAlloc, &lba);
         if (e1 == EOK) {
             assert(lba > 0);
-            e1 = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Update, &pBlock); // XXX Update vs Replace
+            AcquireBlock aqcMode = (isAlloc) ? kAcquireBlock_Cleared : ((nBytesToWriteInCurrentBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update);
+            e1 = FSContainer_AcquireBlock(fsContainer, lba, aqcMode, &pBlock);
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;

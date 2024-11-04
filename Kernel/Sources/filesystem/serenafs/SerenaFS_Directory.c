@@ -129,7 +129,7 @@ errno_t SerenaFS_GetDirectoryEntry(
             break;
         }
 
-        try(SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba));
+        try(SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, NULL, &lba));
         if (lba > 0) {
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock));
 
