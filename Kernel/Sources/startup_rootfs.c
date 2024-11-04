@@ -77,9 +77,9 @@ static DriverId get_boot_mem_disk_id(const SMG_Header* _Nonnull smg_hdr)
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             DiskBlockRef pb;
 
-            try(FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_Replace, &pb));
+            try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Replace, &pb));
             memcpy(DiskBlock_GetMutableData(pb), &dmg[lba * smg_hdr->blockSize], DiskBlock_GetByteSize(pb));
-            try(FSContainer_RelinquishBlock(fsContainer, pb, kDiskBlockWriteBack_Sync));
+            try(FSContainer_RelinquishBlock(fsContainer, pb, kWriteBlock_Sync));
         }
         Object_Release(fsContainer);
     }

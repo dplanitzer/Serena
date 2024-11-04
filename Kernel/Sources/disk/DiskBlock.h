@@ -13,19 +13,20 @@
 #include <klib/List.h>
 
 
-typedef enum DiskBlockAcquire {
-    kDiskBlockAcquire_ReadOnly,
-    kDiskBlockAcquire_Update,
-    kDiskBlockAcquire_Replace  
-} DiskBlockAcquire;
+typedef enum AcquireBlock {
+    kAcquireBlock_ReadOnly,     // Acquire the disk block for reading only with no write back
+    kAcquireBlock_Update,       // Acquire the disk block for a partial update and write back
+    kAcquireBlock_Replace,      // Acquire the disk block for a full update where every byte will get replaced and written back
+    kAcquireBlock_Cleared       // Acquire the disk block with every byte cleared, potential additional full or partial updates and write back
+} AcquireBlock;
 
 
-typedef enum DiskBlockWriteBack {
-    kDiskBlockWriteBack_None,
-    kDiskBlockWriteBack_Async,
-    kDiskBlockWriteBack_Sync,
-    kDiskBlockWriteBack_Deferred
-} DiskBlockWriteBack;
+typedef enum WriteBlock {
+    kWriteBlock_None,
+    kWriteBlock_Async,
+    kWriteBlock_Sync,
+    kWriteBlock_Deferred
+} WriteBlock;
 
 
 typedef enum DiskBlockOp {

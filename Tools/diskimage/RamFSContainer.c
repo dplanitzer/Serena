@@ -69,7 +69,7 @@ static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _N
 // the disk block needed to be loaded and loading failed for some reason.
 // Once done with the block, it must be relinquished by calling the
 // relinquishBlock() method.
-errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, DiskBlockAcquire mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -77,12 +77,16 @@ errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, Logica
     err = DiskBlock_Create(1, 1, lba, &pBlock);
     if (err == EOK) {
         switch (mode) {
-            case kDiskBlockAcquire_ReadOnly:
-            case kDiskBlockAcquire_Update:
+            case kAcquireBlock_ReadOnly:
+            case kAcquireBlock_Update:
                 err = RamFSContainer_GetBlock(self, DiskBlock_GetMutableData(pBlock), DiskBlock_GetLba(pBlock));
                 break;
 
-            case kDiskBlockAcquire_Replace:
+            case kAcquireBlock_Replace:
+                // Caller will replace every byte in the block
+                break;
+
+            case kAcquireBlock_Cleared:
                 memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
                 break; 
 
@@ -114,21 +118,21 @@ static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const vo
 
 // Relinquishes the disk block 'pBlock' and writes the disk block back to
 // disk according to the write back mode 'mode'.
-errno_t RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, DiskBlockWriteBack mode)
+errno_t RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
     decl_try_err();
 
     if (pBlock) {
         switch (mode) {
-            case kDiskBlockWriteBack_None:
+            case kWriteBlock_None:
                 break;
 
-            case kDiskBlockWriteBack_Sync:
+            case kWriteBlock_Sync:
                 err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), DiskBlock_GetLba(pBlock));
                 break;
 
-            case kDiskBlockWriteBack_Async:
-            case kDiskBlockWriteBack_Deferred:
+            case kWriteBlock_Async:
+            case kWriteBlock_Deferred:
                 abort();
                 break;
         }

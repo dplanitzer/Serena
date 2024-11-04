@@ -38,11 +38,11 @@ open_class_funcs(FSContainer, Object,
     // the disk block needed to be loaded and loading failed for some reason.
     // Once done with the block, it must be relinquished by calling the
     // relinquishBlock() method.
-    errno_t (*acquireBlock)(void* _Nonnull self, LogicalBlockAddress lba, DiskBlockAcquire mode, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+    errno_t (*acquireBlock)(void* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock);
 
     // Relinquishes the disk block 'pBlock' and writes the disk block back to
     // disk according to the write back mode 'mode'.
-    errno_t (*relinquishBlock)(void* _Nonnull self, DiskBlockRef _Nullable pBlock, DiskBlockWriteBack mode);
+    errno_t (*relinquishBlock)(void* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode);
 );
 
 

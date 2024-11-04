@@ -51,9 +51,8 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
                 try(SerenaFS_AllocateBlock(self, &i0_lba));
                 ino_bp[kSFSDirectBlockPointersCount] = i0_lba;
 
-                try(FSContainer_AcquireBlock(fsContainer, i0_lba, kDiskBlockAcquire_Replace, &pBlock));
-                memset(DiskBlock_GetMutableData(pBlock), 0, kSFSBlockSize);
-                FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
+                try(FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Cleared, &pBlock));
+                FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
             }
             else {
                 *pOutLba = 0;
@@ -61,15 +60,15 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
             }
         }
 
-        try(FSContainer_AcquireBlock(fsContainer, i0_lba, kDiskBlockAcquire_Update, &pBlock));
+        try(FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Update, &pBlock));
         SFSBlockNumber* dat_bp = DiskBlock_GetMutableData(pBlock);
         LogicalBlockAddress dat_lba = UInt32_BigToHost(dat_bp[fba]);
-        DiskBlockWriteBack wbMode = kDiskBlockWriteBack_None;
+        WriteBlock wbMode = kWriteBlock_None;
 
         if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
             try(SerenaFS_AllocateBlock(self, &dat_lba));
             dat_bp[fba] = UInt32_HostToBig(dat_lba);
-            wbMode = kDiskBlockWriteBack_Sync;
+            wbMode = kWriteBlock_Sync;
             // XXX clear the just allocated block?
         }
         
@@ -120,11 +119,11 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, &lba);
         if (e1 == EOK) {
             if (lba > 0) {
-                e1 = FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_ReadOnly, &pBlock);
+                e1 = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock);
                 if (e1 == EOK) {
                     const uint8_t* bp = DiskBlock_GetData(pBlock);
                     memcpy(dp, bp + blockOffset, nBytesToReadInCurrentBlock);
-                    FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_None);
+                    FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_None);
                 }
             }
             else {
@@ -181,7 +180,7 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Write, &lba);
         if (e1 == EOK) {
             assert(lba > 0);
-            e1 = FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_Update, &pBlock); // XXX Update vs Replace
+            e1 = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Update, &pBlock); // XXX Update vs Replace
         }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
@@ -191,7 +190,7 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         uint8_t* bp = DiskBlock_GetMutableData(pBlock);
         memcpy(bp + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
 
-        e1 = FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
+        e1 = FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
             break;
@@ -293,10 +292,10 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
         FSContainerRef fsContainer = Filesystem_GetContainer(self);
         DiskBlockRef pBlock;
 
-        err = FSContainer_AcquireBlock(fsContainer, i1_lba, kDiskBlockAcquire_Update, &pBlock);
+        err = FSContainer_AcquireBlock(fsContainer, i1_lba, kAcquireBlock_Update, &pBlock);
         if (err == EOK) {
             SFSBlockNumber* i1_bp = (SFSBlockNumber*)DiskBlock_GetMutableData(pBlock);
-            DiskBlockWriteBack wbMode = kDiskBlockWriteBack_Sync;
+            WriteBlock wbMode = kWriteBlock_Sync;
 
             for (SFSBlockNumber bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
                 if (i1_bp[bn] != 0) {
@@ -312,7 +311,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
             }
             else {
                 // We partially removed the i1 level
-                wbMode = kDiskBlockWriteBack_Sync;
+                wbMode = kWriteBlock_Sync;
             }
 
             FSContainer_RelinquishBlock(fsContainer, pBlock, wbMode);

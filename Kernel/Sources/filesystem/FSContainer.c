@@ -26,14 +26,14 @@ errno_t FSContainer_getInfo(FSContainerRef _Nonnull self, FSContainerInfo* pOutI
 // the disk block needed to be loaded and loading failed for some reason.
 // Once done with the block, it must be relinquished by calling the
 // relinquishBlock() method.
-errno_t FSContainer_acquireBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, DiskBlockAcquire mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+errno_t FSContainer_acquireBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     return EIO;
 }
 
 // Relinquishes the disk block 'pBlock' and writes the disk block back to
 // disk according to the write back mode 'mode'.
-errno_t FSContainer_relinquishBlock(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock, DiskBlockWriteBack mode)
+errno_t FSContainer_relinquishBlock(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
     return EIO;
 }

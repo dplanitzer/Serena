@@ -40,12 +40,9 @@ static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull sel
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     DiskBlockRef pBlock;
 
-    if ((err = FSContainer_AcquireBlock(fsContainer, allocationBitmapBlockLba, kDiskBlockAcquire_Replace, &pBlock)) == EOK) {
-        void* bp = DiskBlock_GetMutableData(pBlock);
-
-        memset(bp, 0, kSFSBlockSize);
-        memcpy(bp, pBitmapData, &self->allocationBitmap[self->allocationBitmapByteSize] - pBitmapData);
-        FSContainer_RelinquishBlock(fsContainer, pBlock, kDiskBlockWriteBack_Sync);
+    if ((err = FSContainer_AcquireBlock(fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &pBlock)) == EOK) {
+        memcpy(DiskBlock_GetMutableData(pBlock), pBitmapData, &self->allocationBitmap[self->allocationBitmapByteSize] - pBitmapData);
+        FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
     }
     return err;
 }
