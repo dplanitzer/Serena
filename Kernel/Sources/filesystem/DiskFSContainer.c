@@ -91,9 +91,17 @@ errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, Logi
     return err;
 }
 
+// Relinquishes the disk block 'pBlock' without writing it back to disk.
+void DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
+{
+    if (pBlock) {
+        DiskBlock_Destroy(pBlock);
+    }
+}
+
 // Relinquishes the disk block 'pBlock' and writes the disk block back to
 // disk according to the write back mode 'mode'.
-errno_t DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
+errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
     decl_try_err();
     DiskDriverRef pDriver;
@@ -101,9 +109,6 @@ errno_t DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, D
     if (pBlock) {
         if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->driverId)) != NULL) {
             switch (mode) {
-                case kWriteBlock_None:
-                    break;
-
                 case kWriteBlock_Sync:
                     err = DiskDriver_PutBlock(pDriver, pBlock);
                     break;
@@ -130,4 +135,5 @@ class_func_defs(DiskFSContainer, Object,
 override_func_def(getInfo, DiskFSContainer, FSContainer)
 override_func_def(acquireBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlock, DiskFSContainer, FSContainer)
+override_func_def(relinquishBlockWriting, DiskFSContainer, FSContainer)
 );

@@ -51,7 +51,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
         dep[1].id = UInt32_HostToBig(parentInodeId);
         dep[1].filename[0] = '.';
         dep[1].filename[1] = '.';
-        FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
         bp[0] = dirContLba;
         fileSize = 2 * sizeof(SFSDirectoryEntry);
@@ -143,7 +143,7 @@ errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, Inode
         bmap,
         pOutNode);
 
-    FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_None);
+    FSContainer_RelinquishBlock(fsContainer, pBlock);
     return err;
 
 catch:
@@ -184,7 +184,7 @@ errno_t SerenaFS_onWriteNodeToDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
         ip->bp[i] = UInt32_HostToBig(bp[i]);
     }
 
-    FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
 catch:
     return err;
@@ -207,7 +207,7 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, Inod
                 }
             }
 
-            FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+            FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
         }
         SerenaFS_DeallocateBlock(self, l0_bp[kSFSDirectBlockPointersCount]);
     }

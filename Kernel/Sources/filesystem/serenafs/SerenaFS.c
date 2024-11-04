@@ -111,7 +111,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 
         try(FSContainer_AcquireBlock(fsContainer, self->allocationBitmapLba + lba, kAcquireBlock_ReadOnly, &pBlock));
         memcpy(pAllocBitmap, DiskBlock_GetData(pBlock), nBytesToCopy);
-        FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_None);
+        FSContainer_RelinquishBlock(fsContainer, pBlock);
         pBlock = NULL;
 
         allocBitmapByteSize -= nBytesToCopy;
@@ -132,7 +132,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 #endif
 
 catch:
-    FSContainer_RelinquishBlock(fsContainer, pRootBlock, kWriteBlock_None);
+    FSContainer_RelinquishBlock(fsContainer, pRootBlock);
 
     SELock_Unlock(&self->seLock);
     return err;
@@ -316,7 +316,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
         SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(bp + mp.blockOffset);
         dep->id = Inode_GetId(pDstDir);
 
-        FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
         // Our parent receives a +1 on the link count because of our .. entry
         Inode_Link(pDstDir);
@@ -350,7 +350,7 @@ errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSr
     char* p = String_CopyUpTo(dep->filename, pNewName->name, pNewName->count);
     while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
 
-    FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
     return EOK;
 

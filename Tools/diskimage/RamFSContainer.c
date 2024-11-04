@@ -118,28 +118,33 @@ static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const vo
 
 // Relinquishes the disk block 'pBlock' and writes the disk block back to
 // disk according to the write back mode 'mode'.
-errno_t RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
+errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
     decl_try_err();
 
     if (pBlock) {
         switch (mode) {
-            case kWriteBlock_None:
-                break;
-
             case kWriteBlock_Sync:
+            case kWriteBlock_Async:
+            case kWriteBlock_Deferred:
                 err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), DiskBlock_GetLba(pBlock));
                 break;
 
-            case kWriteBlock_Async:
-            case kWriteBlock_Deferred:
+            default:
                 abort();
-                break;
         }
         DiskBlock_Destroy(pBlock);
     }
 
     return err;
+}
+
+// Relinquishes the disk block 'pBlock' without writing it back to disk.
+void RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
+{
+    if (pBlock) {
+        DiskBlock_Destroy(pBlock);
+    }
 }
 
 // Writes the contents of the disk to the given path as a regular file.
@@ -187,5 +192,6 @@ class_func_defs(RamFSContainer, FSContainer,
 override_func_def(deinit, RamFSContainer, Object)
 override_func_def(getInfo, RamFSContainer, FSContainer)
 override_func_def(acquireBlock, RamFSContainer, FSContainer)
+override_func_def(relinquishBlockWriting, RamFSContainer, FSContainer)
 override_func_def(relinquishBlock, RamFSContainer, FSContainer)
 );

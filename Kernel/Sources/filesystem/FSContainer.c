@@ -31,9 +31,14 @@ errno_t FSContainer_acquireBlock(FSContainerRef _Nonnull self, LogicalBlockAddre
     return EIO;
 }
 
+// Relinquishes the disk block 'pBlock' without writing it back to disk.
+void FSContainer_relinquishBlock(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock)
+{
+}
+
 // Relinquishes the disk block 'pBlock' and writes the disk block back to
 // disk according to the write back mode 'mode'.
-errno_t FSContainer_relinquishBlock(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
+errno_t FSContainer_relinquishBlockWriting(FSContainerRef _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
     return EIO;
 }
@@ -43,4 +48,5 @@ class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
 func_def(acquireBlock, FSContainer)
 func_def(relinquishBlock, FSContainer)
+func_def(relinquishBlockWriting, FSContainer)
 );

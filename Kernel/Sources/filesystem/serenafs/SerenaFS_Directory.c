@@ -162,7 +162,7 @@ errno_t SerenaFS_GetDirectoryEntry(
                 break;
             }
 
-            FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_None);
+            FSContainer_RelinquishBlock(fsContainer, pBlock);
             pBlock = NULL;
         }
 
@@ -252,7 +252,7 @@ errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
     uint8_t* bp = DiskBlock_GetMutableData(pBlock);
     SFSDirectoryEntry* dep = (SFSDirectoryEntry*)(bp + mp.blockOffset);
     memset(dep, 0, sizeof(SFSDirectoryEntry));
-    FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+    FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
     if (Inode_GetFileSize(pDirNode) - (FileOffset)sizeof(SFSDirectoryEntry) == mp.fileOffset) {
         Inode_DecrementFileSize(pDirNode, sizeof(SFSDirectoryEntry));
@@ -290,7 +290,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
         while (p < &dep->filename[kSFSMaxFilenameLength]) *p++ = '\0';
         dep->id = UInt32_HostToBig(id);
 
-        FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
     }
     else {
         // Append a new entry
@@ -327,7 +327,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
 
         String_CopyUpTo(dep->filename, pName->name, pName->count);
         dep->id = UInt32_HostToBig(id);
-        FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync);
+        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
         ino_bp[idx] = lba;
 
         Inode_IncrementFileSize(pDirNode, sizeof(SFSDirectoryEntry));

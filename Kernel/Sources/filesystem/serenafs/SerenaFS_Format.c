@@ -65,7 +65,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, User user, Fil
     vhp->allocationBitmapByteSize = UInt32_HostToBig(allocationBitmapByteSize);
     vhp->rootDirectoryLba = UInt32_HostToBig(rootDirInodeLba);
     vhp->allocationBitmapLba = UInt32_HostToBig(1);
-    try(FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync));
+    try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
 
 
     // Write the allocation bitmap
@@ -85,7 +85,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, User user, Fil
             bitNo++;
         }
 
-        try(FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync));
+        try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
     }
 
 
@@ -105,7 +105,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, User user, Fil
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;
     ip->bp[0] = UInt32_HostToBig(rootDirContentLba);
-    try(FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync));
+    try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
 
 
     // Write the root directory content. This is just the entries '.' and '..'
@@ -117,7 +117,7 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, User user, Fil
     dep[1].id = UInt32_HostToBig(rootDirInodeLba);
     dep[1].filename[0] = '.';
     dep[1].filename[1] = '.';
-    try(FSContainer_RelinquishBlock(fsContainer, pBlock, kWriteBlock_Sync));
+    try(FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync));
 
 catch:
     return err;
