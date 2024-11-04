@@ -67,18 +67,21 @@ static DriverId get_boot_mem_disk_id(const SMG_Header* _Nonnull smg_hdr)
         diskName = romDiskName;
     }
     else {
-#if 1
-    // XXX for now since we removed DiskDriver_PutBlock(). Need to get disk block objects and use them to do the copy
-    abort();
-#else
+        FSContainerRef fsContainer = NULL;
+
         try(RamDisk_Create(ramDiskName, smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
         diskName = ramDiskName;
 
+        try(DiskFSContainer_Create(Driver_GetDriverId(disk), &fsContainer));
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
-            try(DiskDriver_PutBlock(disk, &dmg[lba * smg_hdr->blockSize], lba));
+            DiskBlockRef pb;
+
+            try(FSContainer_AcquireBlock(fsContainer, lba, kDiskBlockAcquire_Replace, &pb));
+            memcpy(DiskBlock_GetMutableData(pb), &dmg[lba * smg_hdr->blockSize], DiskBlock_GetByteSize(pb));
+            try(FSContainer_RelinquishBlock(fsContainer, pb, kDiskBlockWriteBack_Sync));
         }
-#endif
+        Object_Release(fsContainer);
     }
 
 
