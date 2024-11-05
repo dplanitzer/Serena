@@ -83,7 +83,6 @@ errno_t SerenaFS_GetDirectoryEntry(
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const FileOffset fileSize = Inode_GetFileSize(pNode);
     FileOffset offset = 0ll;
-    LogicalBlockAddress lba = 0;
     SFSDirectoryEntry* pEmptyEntry = NULL;
     SFSDirectoryEntry* pMatchingEntry = NULL;
     SFSDirectoryQuery swappedQuery;
@@ -129,42 +128,39 @@ errno_t SerenaFS_GetDirectoryEntry(
             break;
         }
 
-        try(SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, NULL, &lba));
-        if (lba > 0) {
-            try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock));
+        try(SerenaFS_AcquireFileBlock(self, pNode, blockIdx, kAcquireBlock_ReadOnly, &pBlock));
 
-            const SFSDirectoryEntry* pDirBuffer = (const SFSDirectoryEntry*)DiskBlock_GetData(pBlock);
-            const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
-            hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
-            if (pEmptyEntry) {
-                pOutEmptyPtr->lba = lba;
-                pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
-                pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;
-            }
-            if (hasMatch) {
-                if (pOutEntryPtr) {
-                    pOutEntryPtr->lba = lba;
-                    pOutEntryPtr->blockOffset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
-                    pOutEntryPtr->fileOffset = offset + pOutEntryPtr->blockOffset;
-                }
-                if (pOutId) {
-                    *pOutId = UInt32_BigToHost(pMatchingEntry->id);
-                }
-                if (pOutFilename) {
-                    const ssize_t len = String_LengthUpTo(pMatchingEntry->filename, kSFSMaxFilenameLength);
-                    if (len > pOutFilename->capacity) {
-                        throw(ERANGE);
-                    }
-
-                    String_CopyUpTo(pOutFilename->name, pMatchingEntry->filename, len);
-                    pOutFilename->count = len;
-                }
-                break;
-            }
-
-            FSContainer_RelinquishBlock(fsContainer, pBlock);
-            pBlock = NULL;
+        const SFSDirectoryEntry* pDirBuffer = (const SFSDirectoryEntry*)DiskBlock_GetData(pBlock);
+        const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
+        hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
+        if (pEmptyEntry && DiskBlock_GetDriverId(pBlock) != 0/*kDriver_None*/) {
+            pOutEmptyPtr->lba = DiskBlock_GetLba(pBlock);
+            pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
+            pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;
         }
+        if (hasMatch) {
+            if (pOutEntryPtr) {
+                pOutEntryPtr->lba = DiskBlock_GetLba(pBlock);
+                pOutEntryPtr->blockOffset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
+                pOutEntryPtr->fileOffset = offset + pOutEntryPtr->blockOffset;
+            }
+            if (pOutId) {
+                *pOutId = UInt32_BigToHost(pMatchingEntry->id);
+            }
+            if (pOutFilename) {
+                const ssize_t len = String_LengthUpTo(pMatchingEntry->filename, kSFSMaxFilenameLength);
+                if (len > pOutFilename->capacity) {
+                    throw(ERANGE);
+                }
+
+                String_CopyUpTo(pOutFilename->name, pMatchingEntry->filename, len);
+                pOutFilename->count = len;
+            }
+            break;
+        }
+
+        FSContainer_RelinquishBlock(fsContainer, pBlock);
+        pBlock = NULL;
 
         if (hasMatch) {
             break;

@@ -13,6 +13,7 @@
 #include <string.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <System/ByteOrder.h>
+#include <System/Disk.h>
 
 
 errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSContainerRef _Nullable * _Nonnull pOutSelf)
@@ -52,6 +53,20 @@ errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo*
     pOutInfo->isReadOnly = false;
 
     return EOK;
+}
+
+// Acquires an empty block, filled with zero bytes. This block is not attached
+// to any disk address and thus may not be written back to disk.
+errno_t RamFSContainer_acquireEmptyBlock(RamFSContainerRef self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    DiskBlockRef pBlock;
+    const errno_t err = DiskBlock_Create(0 /*kDriverId_None*/, kMediaId_None, 0, &pBlock);
+
+    if (err == EOK) {
+        memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
+    }
+    *pOutBlock = pBlock;
+    return err;
 }
 
 static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _Nonnull pBuffer, LogicalBlockAddress lba)

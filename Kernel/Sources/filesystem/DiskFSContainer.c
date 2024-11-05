@@ -51,6 +51,20 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
     return err;
 }
 
+// Acquires an empty block, filled with zero bytes. This block is not attached
+// to any disk address and thus may not be written back to disk.
+errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    DiskBlockRef pBlock;
+    const errno_t err = DiskBlock_Create(kDriverId_None, kMediaId_None, 0, &pBlock);
+
+    if (err == EOK) {
+        memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
+    }
+    *pOutBlock = pBlock;
+    return err;
+}
+
 // Acquires the disk block with the block address 'lba'. The acquisition is
 // done according to the acquisition mode 'mode'. An error is returned if
 // the disk block needed to be loaded and loading failed for some reason.
@@ -133,6 +147,7 @@ errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull 
 
 class_func_defs(DiskFSContainer, Object,
 override_func_def(getInfo, DiskFSContainer, FSContainer)
+override_func_def(acquireEmptyBlock, DiskFSContainer, FSContainer)
 override_func_def(acquireBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlockWriting, DiskFSContainer, FSContainer)

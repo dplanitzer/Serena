@@ -33,6 +33,10 @@ open_class_funcs(FSContainer, Object,
     // medium(s).
     errno_t (*getInfo)(void* _Nonnull self, FSContainerInfo* pOutInfo);
 
+    // Acquires an empty block, filled with zero bytes. This block is not attached
+    // to any disk address and thus may not be written back to disk.
+    errno_t (*acquireEmptyBlock)(void* _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock);
+
     // Acquires the disk block with the block address 'lba'. The acquisition is
     // done according to the acquisition mode 'mode'. An error is returned if
     // the disk block needed to be loaded and loading failed for some reason.
@@ -55,6 +59,9 @@ open_class_funcs(FSContainer, Object,
 
 #define FSContainer_GetInfo(__self, __pOutInfo) \
 invoke_n(getInfo, FSContainer, __self, __pOutInfo)
+
+#define FSContainer_AcquireEmptyBlock(__self, __pOutBlock) \
+invoke_n(acquireEmptyBlock, FSContainer, __self, __pOutBlock)
 
 #define FSContainer_AcquireBlock(__self, __lba, __mode, __pOutBlock) \
 invoke_n(acquireBlock, FSContainer, __self, __lba, __mode, __pOutBlock)

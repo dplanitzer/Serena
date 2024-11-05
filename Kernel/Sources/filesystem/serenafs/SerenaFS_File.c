@@ -10,41 +10,37 @@
 #include <System/ByteOrder.h>
 
 
-// Looks up the absolute logical block address for the disk block that corresponds
-// to the file-specific logical block address 'fba'.
-// The first logical block is #0 at the very beginning of the file 'pNode'. Logical
-// block addresses increment by one until the end of the file. Note that not every
-// logical block address may be backed by an actual disk block. A missing disk block
-// must be substituted by an empty block. 0 is returned if no absolute logical
-// block address exists for 'fba'.
+// Acquires the file block 'fba' in the file 'pInode'.
 // XXX 'fba' should be LogicalBlockAddress. However we want to be able to detect overflows
-errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, SFSBlockMode mode, bool* _Nullable pDidAlloc, LogicalBlockAddress* _Nonnull pOutLba)
+errno_t SerenaFS_AcquireFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     SFSBlockNumber* ino_bp = Inode_GetBlockMap(pNode);
     DiskBlockRef pBlock;
-    bool dummyFlag;
 
     if (fba < 0) {
-        return EFBIG;
+        throw(EFBIG);
     }
-    if (pDidAlloc == NULL) {
-        pDidAlloc = &dummyFlag;
-    }
-    *pDidAlloc = false;
 
     if (fba < kSFSDirectBlockPointersCount) {
         LogicalBlockAddress dat_lba = ino_bp[fba];
 
-        if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
-            try(SerenaFS_AllocateBlock(self, &dat_lba));
-            ino_bp[fba] = dat_lba;
-            *pDidAlloc = true;
+        if (dat_lba > 0) {
+            err = FSContainer_AcquireBlock(fsContainer, dat_lba, mode, pOutBlock);
+        }
+        else {
+            if (mode == kAcquireBlock_ReadOnly) {
+                err = FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
+            }
+            else {
+                try(SerenaFS_AllocateBlock(self, &dat_lba));
+                ino_bp[fba] = dat_lba;
+                err = FSContainer_AcquireBlock(fsContainer, dat_lba, kAcquireBlock_Cleared, pOutBlock);
+            }
         }
 
-        *pOutLba = dat_lba;
-        return EOK;
+        return err;
     }
     fba -= kSFSDirectBlockPointersCount;
 
@@ -52,31 +48,40 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
     if (fba < kSFSBlockPointersPerBlockCount) {
         LogicalBlockAddress i0_lba = ino_bp[kSFSDirectBlockPointersCount];
 
-        if (i0_lba == 0) {
-            if (mode == kSFSBlockMode_Write) {
+        if (i0_lba > 0) {
+            try(FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Update, &pBlock));
+        }
+        else {
+            if (mode == kAcquireBlock_ReadOnly) {
+                return FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
+            }
+            else {
                 // Allocate a new indirect block and clear it out
                 try(SerenaFS_AllocateBlock(self, &i0_lba));
                 ino_bp[kSFSDirectBlockPointersCount] = i0_lba;
-
                 try(FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Cleared, &pBlock));
-                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
-            }
-            else {
-                *pOutLba = 0;
-                return EOK;
             }
         }
 
-        try(FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Update, &pBlock));
+
+        // Indirect block exists at this point, the data block may not exist
         SFSBlockNumber* dat_bp = DiskBlock_GetMutableData(pBlock);
         LogicalBlockAddress dat_lba = UInt32_BigToHost(dat_bp[fba]);
         bool needsWriteBack = false;
 
-        if (dat_lba == 0 && mode == kSFSBlockMode_Write) {
-            try(SerenaFS_AllocateBlock(self, &dat_lba));
-            dat_bp[fba] = UInt32_HostToBig(dat_lba);
-            *pDidAlloc = true;
-            needsWriteBack = true;
+        if (dat_lba > 0) {
+            err = FSContainer_AcquireBlock(fsContainer, dat_lba, mode, pOutBlock);
+        }
+        else {
+            if (mode == kAcquireBlock_ReadOnly) {
+                err = FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
+            }
+            else {
+                try(SerenaFS_AllocateBlock(self, &dat_lba));
+                dat_bp[fba] = UInt32_HostToBig(dat_lba);
+                err = FSContainer_AcquireBlock(fsContainer, dat_lba, kAcquireBlock_Cleared, pOutBlock);
+                needsWriteBack = true;
+            }
         }
         
         if (needsWriteBack) {
@@ -86,14 +91,13 @@ errno_t SerenaFS_GetLogicalBlockAddressForFileBlockAddress(SerenaFSRef _Nonnull 
             FSContainer_RelinquishBlock(fsContainer, pBlock);
         }
 
-        *pOutLba = dat_lba;
-        return EOK;
+        return err;
     }
 
     throw(EFBIG);
 
 catch:
-    *pOutLba = 0;
+    *pOutBlock = NULL;
     return err;
 }
 
@@ -126,21 +130,13 @@ errno_t SerenaFS_xRead(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNod
         const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
         const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(kSFSBlockSize - blockOffset), __min(fileSize - offset, (FileOffset)nBytesToRead));
         DiskBlockRef pBlock;
-        LogicalBlockAddress lba;
 
-        errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Read, NULL, &lba);
+        errno_t e1 = SerenaFS_AcquireFileBlock(self, pNode, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
         if (e1 == EOK) {
-            if (lba > 0) {
-                e1 = FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_ReadOnly, &pBlock);
-                if (e1 == EOK) {
-                    const uint8_t* bp = DiskBlock_GetData(pBlock);
-                    memcpy(dp, bp + blockOffset, nBytesToReadInCurrentBlock);
-                    FSContainer_RelinquishBlock(fsContainer, pBlock);
-                }
-            }
-            else {
-                memset(dp, 0, nBytesToReadInCurrentBlock);
-            }
+            const uint8_t* bp = DiskBlock_GetData(pBlock);
+            
+            memcpy(dp, bp + blockOffset, nBytesToReadInCurrentBlock);
+            FSContainer_RelinquishBlock(fsContainer, pBlock);
         }
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
@@ -186,25 +182,16 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         const int blockIdx = (int)(offset >> (FileOffset)kSFSBlockSizeShift);   //XXX blockIdx should be 64bit
         const size_t blockOffset = offset & (FileOffset)kSFSBlockSizeMask;
         const size_t nBytesToWriteInCurrentBlock = __min(kSFSBlockSize - blockOffset, nBytesToWrite);
+        AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         DiskBlockRef pBlock;
-        LogicalBlockAddress lba;
-        bool isAlloc;
 
-        errno_t e1 = SerenaFS_GetLogicalBlockAddressForFileBlockAddress(self, pNode, blockIdx, kSFSBlockMode_Write, &isAlloc, &lba);
+        errno_t e1 = SerenaFS_AcquireFileBlock(self, pNode, blockIdx, acquireMode, &pBlock);
         if (e1 == EOK) {
-            assert(lba > 0);
-            AcquireBlock aqcMode = (isAlloc) ? kAcquireBlock_Cleared : ((nBytesToWriteInCurrentBlock == kSFSBlockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update);
-            e1 = FSContainer_AcquireBlock(fsContainer, lba, aqcMode, &pBlock);
-        }
-        if (e1 != EOK) {
-            err = (nBytesWritten == 0) ? e1 : EOK;
-            break;
-        }
+            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
         
-        uint8_t* bp = DiskBlock_GetMutableData(pBlock);
-        memcpy(bp + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
-
-        e1 = FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+            memcpy(bp + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
+            e1 = FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+        }
         if (e1 != EOK) {
             err = (nBytesWritten == 0) ? e1 : EOK;
             break;

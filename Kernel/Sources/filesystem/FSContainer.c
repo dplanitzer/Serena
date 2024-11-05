@@ -21,6 +21,13 @@ errno_t FSContainer_getInfo(FSContainerRef _Nonnull self, FSContainerInfo* pOutI
     return EOK;
 }
 
+// Acquires an empty block, filled with zero bytes. This block is not attached
+// to any disk address and thus may not be written back to disk.
+errno_t FSContainer_acquireEmptyBlock(FSContainerRef self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    return EIO;
+}
+
 // Acquires the disk block with the block address 'lba'. The acquisition is
 // done according to the acquisition mode 'mode'. An error is returned if
 // the disk block needed to be loaded and loading failed for some reason.
@@ -46,6 +53,7 @@ errno_t FSContainer_relinquishBlockWriting(FSContainerRef _Nonnull self, DiskBlo
 
 class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
+func_def(acquireEmptyBlock, FSContainer)
 func_def(acquireBlock, FSContainer)
 func_def(relinquishBlock, FSContainer)
 func_def(relinquishBlockWriting, FSContainer)
