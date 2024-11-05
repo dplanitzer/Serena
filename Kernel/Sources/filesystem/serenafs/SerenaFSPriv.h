@@ -80,11 +80,6 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
 typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
 typedef void (*SFSWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
 
-typedef enum SFSBlockMode {
-    kSFSBlockMode_Read = 0,
-    kSFSBlockMode_Write
-} SFSBlockMode;
-
 
 extern void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bool inUse);
 extern errno_t SerenaFS_AllocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba);
