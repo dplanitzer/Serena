@@ -10,6 +10,38 @@
 #include <System/ByteOrder.h>
 
 
+// Acquires the disk block 'lba' if lba is > 0; otherwise allocates a new block.
+// The new block is for read-only if read-only 'mode' is requested and it is
+// suitable for writing back to disk if 'mode' is a replace/update mode.
+static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, SFSBlockNumber* _Nonnull pOutLba, bool* _Nonnull pOutIsAlloc, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+
+    *pOutIsAlloc = false;
+
+    if (lba > 0) {
+        err = FSContainer_AcquireBlock(fsContainer, lba, mode, pOutBlock);
+    }
+    else {
+        if (mode == kAcquireBlock_ReadOnly) {
+            err = FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
+        }
+        else {
+            LogicalBlockAddress new_lba;
+
+            if((err = SerenaFS_AllocateBlock(self, &new_lba)) == EOK) {
+                *pOutLba = UInt32_HostToBig(new_lba);
+                *pOutIsAlloc = true;
+
+                err = FSContainer_AcquireBlock(fsContainer, new_lba, kAcquireBlock_Cleared, pOutBlock);
+            }
+        }
+    }
+
+    return err;
+}
+
 // Acquires the file block 'fba' in the file 'pInode'.
 // XXX 'fba' should be LogicalBlockAddress. However we want to be able to detect overflows
 errno_t SerenaFS_AcquireFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
@@ -17,7 +49,7 @@ errno_t SerenaFS_AcquireFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
     SFSBlockNumber* ino_bmap = Inode_GetBlockMap(pNode);
-    DiskBlockRef pBlock;
+    bool isAlloc;
 
     if (fba < 0) {
         throw(EFBIG);
@@ -26,69 +58,30 @@ errno_t SerenaFS_AcquireFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _
     if (fba < kSFSDirectBlockPointersCount) {
         LogicalBlockAddress dat_lba = UInt32_BigToHost(ino_bmap[fba]);
 
-        if (dat_lba > 0) {
-            err = FSContainer_AcquireBlock(fsContainer, dat_lba, mode, pOutBlock);
-        }
-        else {
-            if (mode == kAcquireBlock_ReadOnly) {
-                err = FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
-            }
-            else {
-                try(SerenaFS_AllocateBlock(self, &dat_lba));
-                ino_bmap[fba] = UInt32_HostToBig(dat_lba);
-                err = FSContainer_AcquireBlock(fsContainer, dat_lba, kAcquireBlock_Cleared, pOutBlock);
-            }
-        }
-
-        return err;
+        return acquire_disk_block(self, dat_lba, mode, &ino_bmap[fba], &isAlloc, pOutBlock);
     }
     fba -= kSFSDirectBlockPointersCount;
 
 
     if (fba < kSFSBlockPointersPerBlockCount) {
+        DiskBlockRef i0_block;
         LogicalBlockAddress i0_lba = UInt32_BigToHost(ino_bmap[kSFSDirectBlockPointersCount]);
 
-        if (i0_lba > 0) {
-            try(FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Update, &pBlock));
-        }
-        else {
-            if (mode == kAcquireBlock_ReadOnly) {
-                return FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
-            }
-            else {
-                // Allocate a new indirect block and clear it out
-                try(SerenaFS_AllocateBlock(self, &i0_lba));
-                ino_bmap[kSFSDirectBlockPointersCount] = UInt32_HostToBig(i0_lba);
-                try(FSContainer_AcquireBlock(fsContainer, i0_lba, kAcquireBlock_Cleared, &pBlock));
-            }
-        }
+        // Get the indirect block
+        try(acquire_disk_block(self, i0_lba, kAcquireBlock_Update, &ino_bmap[kSFSDirectBlockPointersCount], &isAlloc, &i0_block));
 
 
-        // Indirect block exists at this point, the data block may not exist
-        SFSBlockNumber* dat_bmap = DiskBlock_GetMutableData(pBlock);
-        LogicalBlockAddress dat_lba = UInt32_BigToHost(dat_bmap[fba]);
-        bool needsWriteBack = false;
+        // Get the data block
+        SFSBlockNumber* i0_bmap = DiskBlock_GetMutableData(i0_block);
+        LogicalBlockAddress dat_lba = UInt32_BigToHost(i0_bmap[fba]);
 
-        if (dat_lba > 0) {
-            err = FSContainer_AcquireBlock(fsContainer, dat_lba, mode, pOutBlock);
-        }
-        else {
-            if (mode == kAcquireBlock_ReadOnly) {
-                err = FSContainer_AcquireEmptyBlock(fsContainer, pOutBlock);
-            }
-            else {
-                try(SerenaFS_AllocateBlock(self, &dat_lba));
-                dat_bmap[fba] = UInt32_HostToBig(dat_lba);
-                err = FSContainer_AcquireBlock(fsContainer, dat_lba, kAcquireBlock_Cleared, pOutBlock);
-                needsWriteBack = true;
-            }
-        }
+        err = acquire_disk_block(self, dat_lba, mode, &i0_bmap[fba], &isAlloc, pOutBlock);
         
-        if (needsWriteBack) {
-            FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+        if (isAlloc) {
+            FSContainer_RelinquishBlockWriting(fsContainer, i0_block, kWriteBlock_Sync);
         }
         else {
-            FSContainer_RelinquishBlock(fsContainer, pBlock);
+            FSContainer_RelinquishBlock(fsContainer, i0_block);
         }
 
         return err;
