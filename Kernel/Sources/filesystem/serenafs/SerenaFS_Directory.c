@@ -156,7 +156,6 @@ errno_t SerenaFS_GetDirectoryEntry(
                 String_CopyUpTo(pOutFilename->name, pMatchingEntry->filename, len);
                 pOutFilename->count = len;
             }
-            break;
         }
 
         FSContainer_RelinquishBlock(fsContainer, pBlock);

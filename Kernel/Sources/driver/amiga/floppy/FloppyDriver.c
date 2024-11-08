@@ -80,7 +80,7 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 
 // Returns information about the disk drive and the media loaded into the
 // drive.
-errno_t FloppyDriver_getInfoAsync(FloppyDriverRef _Nonnull self, DiskInfo* pOutInfo)
+errno_t FloppyDriver_getInfo_async(FloppyDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->blockSize = ADF_SECTOR_DATA_SIZE;
     pOutInfo->blockCount = self->blocksPerDisk;
@@ -744,7 +744,7 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 #endif
 }
 
-static errno_t FloppyDriver_getBlockAsync(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
     const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
@@ -871,7 +871,7 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-static errno_t FloppyDriver_putBlockAsync(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
     const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
@@ -989,8 +989,8 @@ catch:
 
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
-override_func_def(getInfoAsync, FloppyDriver, DiskDriver)
+override_func_def(getInfo_async, FloppyDriver, DiskDriver)
 override_func_def(start, FloppyDriver, Driver)
-override_func_def(getBlockAsync, FloppyDriver, DiskDriver)
-override_func_def(putBlockAsync, FloppyDriver, DiskDriver)
+override_func_def(getBlock, FloppyDriver, DiskDriver)
+override_func_def(putBlock, FloppyDriver, DiskDriver)
 );

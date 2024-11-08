@@ -26,21 +26,37 @@ open_class_funcs(DiskDriver, Driver,
 
     // Returns information about the disk drive and the media loaded into the
     // drive.
-    errno_t (*getInfoAsync)(void* _Nonnull self, DiskInfo* pOutInfo);
+    // Default Behavior: returns info for an empty disk
+    errno_t (*getInfo_async)(void* _Nonnull self, DiskInfo* pOutInfo);
+
+    // Starts an I/O operation on the given block. Calls getBlock() if the block
+    // should be read and putBlock() if it should be written. It then invokes
+    // endIO() to notify the system about the completed I/O operation. This
+    // function assumes that getBlock()/putBlock() will only return once the
+    // I/O operation is done or an error has been encountered.
+    // Default Behavior: Calls getBlock/putBlock
+    void (*beginIO_async)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
 
     // Reads the contents of the given block. Blocks the caller until the read
     // operation has completed. Note that this function will never return a
     // partially read block. Either it succeeds and the full block data is
     // returned, or it fails and no block data is returned.
-    // The abstract implementation returns EIO.
-    errno_t (*getBlockAsync)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
+    // Default Behavior: returns EIO
+    errno_t (*getBlock)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
 
     // Writes the contents of 'pBlock' to the corresponding disk block. Blocks
     // the caller until the write has completed. The contents of the block on
     // disk is left in an indeterminate state of the write fails in the middle
     // of the write. The block may contain a mix of old and new data.
     // The abstract implementation returns EIO.
-    errno_t (*putBlockAsync)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
+    // Default Behavior: returns EIO
+    errno_t (*putBlock)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
+
+    // Notifies the system that the I/O operation on the given block has finished
+    // and that all data has been read in and stored in the block (if reading) or
+    // committed to disk (if writing).
+    // Default Behavior: Notifies the disk cache
+    void (*endIO)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status);
 );
 
 
@@ -49,8 +65,21 @@ open_class_funcs(DiskDriver, Driver,
 //
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
-extern errno_t DiskDriver_GetBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock);
-extern errno_t DiskDriver_PutBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock);
+
+extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock);
+
+//
+// Subclassers
+//
+
+#define DiskDriver_GetBlock(__self, __pBlock) \
+invoke_n(getBlock, DiskDriver, __self, __pBlock)
+
+#define DiskDriver_PutBlock(__self, __pBlock) \
+invoke_n(putBlock, DiskDriver, __self, __pBlock)
+
+#define DiskDriver_EndIO(__self, __pBlock, __status) \
+invoke_n(endIO, DiskDriver, __self, __pBlock, __status)
 
 #define DiskDriver_Create(__className, __pOutDriver) \
     _Driver_Create(&k##__className##Class, kDriverModel_Async, (DriverRef*)__pOutDriver)

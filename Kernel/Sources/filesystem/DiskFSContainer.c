@@ -7,6 +7,7 @@
 //
 
 #include "DiskFSContainer.h"
+#include <disk/DiskCache.h>
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
 
@@ -55,14 +56,7 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
 // to any disk address and thus may not be written back to disk.
 errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    DiskBlockRef pBlock;
-    const errno_t err = DiskBlock_Create(kDriverId_None, kMediaId_None, 0, &pBlock);
-
-    if (err == EOK) {
-        memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
-    }
-    *pOutBlock = pBlock;
-    return err;
+    return DiskCache_AcquireEmptyBlock(gDiskCache, pOutBlock);
 }
 
 // Acquires the disk block with the block address 'lba'. The acquisition is
@@ -72,76 +66,20 @@ errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBloc
 // relinquishBlock() method.
 errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    decl_try_err();
-    DiskDriverRef pDriver;
-    DiskBlockRef pBlock = NULL;
-
-    if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->driverId)) != NULL) {
-        err = DiskBlock_Create(self->driverId, 1, lba, &pBlock);
-        if (err == EOK) {
-            switch (mode) {
-                case kAcquireBlock_ReadOnly:
-                case kAcquireBlock_Update:
-                    err = DiskDriver_GetBlock(pDriver, pBlock);
-                    break;
-
-                case kAcquireBlock_Replace:
-                    // Caller will overwrite all data cached in the block
-                    break;
-
-                case kAcquireBlock_Cleared:
-                    memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
-                    break; 
-
-            }
-        }
-        Object_Release(pDriver);
-    }
-    else {
-        err = ENODEV;
-    }
-    *pOutBlock = pBlock;
-
-    return err;
+    return DiskCache_AcquireBlock(gDiskCache, self->driverId, 0/*XXX*/, lba, mode, pOutBlock);
 }
 
 // Relinquishes the disk block 'pBlock' without writing it back to disk.
 void DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
 {
-    if (pBlock) {
-        DiskBlock_Destroy(pBlock);
-    }
+    DiskCache_RelinquishBlock(gDiskCache, pBlock);
 }
 
 // Relinquishes the disk block 'pBlock' and writes the disk block back to
 // disk according to the write back mode 'mode'.
 errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
-    decl_try_err();
-    DiskDriverRef pDriver;
-
-    if (pBlock) {
-        if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->driverId)) != NULL) {
-            switch (mode) {
-                case kWriteBlock_Sync:
-                    err = DiskDriver_PutBlock(pDriver, pBlock);
-                    break;
-
-                case kWriteBlock_Async:
-                case kWriteBlock_Deferred:
-                    abort();
-                    break;
-            }
-            Object_Release(pDriver);
-        }
-        else {
-            err = ENODEV;
-        }
-
-        DiskBlock_Destroy(pBlock);
-    }
-
-    return err;
+    return DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, mode);
 }
 
 

@@ -24,6 +24,7 @@ class_ref(Console);
 class_ref(DigitalJoystickDriver);
 class_ref(DirectoryChannel);
 class_ref(DiskBlock);
+class_ref(DiskCache);
 class_ref(DiskDriver);
 class_ref(DispatchQueue);
 class_ref(Driver);

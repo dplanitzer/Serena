@@ -59,7 +59,7 @@ errno_t RamDisk_start(RamDiskRef _Nonnull self)
     return Driver_Publish((DriverRef)self, self->name);
 }
 
-errno_t RamDisk_getInfoAsync(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
+errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;
@@ -99,7 +99,7 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
     return pExtent;
 }
 
-errno_t RamDisk_getBlockAsync(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
     void* dp = DiskBlock_GetMutableData(pBlock);
@@ -141,7 +141,7 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putBlockAsync(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
     const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
@@ -170,7 +170,7 @@ catch:
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
 override_func_def(start, RamDisk, Driver)
-override_func_def(getInfoAsync, RamDisk, DiskDriver)
-override_func_def(getBlockAsync, RamDisk, DiskDriver)
-override_func_def(putBlockAsync, RamDisk, DiskDriver)
+override_func_def(getInfo_async, RamDisk, DiskDriver)
+override_func_def(getBlock, RamDisk, DiskDriver)
+override_func_def(putBlock, RamDisk, DiskDriver)
 );

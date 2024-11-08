@@ -46,8 +46,9 @@ typedef struct DiskBlock {
         unsigned int        byteSize:16;
         unsigned int        acquired:1;
         unsigned int        hasData:1;
+        unsigned int        isCached:1;
         unsigned int        op:2;
-        unsigned int        reserved:11;
+        unsigned int        reserved:10;
     }                   flags;
     errno_t             status;
     uint8_t             data[1];
@@ -86,6 +87,12 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_IsEqual(__self, __other) \
     DiskBlock_IsEqualKey(__self, (__other)->driverId, (__other)->mediaId, (__other)->lba)
+
+#define DiskBlock_SetTarget(__self, __driverId, __mediaId, __lba)\
+    (__self)->driverId = __driverId;\
+    (__self)->mediaId = __mediaId;\
+    (__self)->lba = __lba;\
+    (__self)->flags.hasData = 0
 
 
 #define DiskBlock_HashKey(__driverId, __mediaId, __lba) \

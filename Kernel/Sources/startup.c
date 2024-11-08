@@ -8,6 +8,7 @@
 
 #include <krt/krt.h>
 #include <klib/klib.h>
+#include <disk/DiskCache.h>
 #include <dispatcher/VirtualProcessorScheduler.h>
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
@@ -162,6 +163,9 @@ static void OnMain(void)
     // to userspace in the form of the Userspace Runtime Services.
     krt_init();
     
+
+    // Create the disk cache
+    try(DiskCache_Create(&gDiskCache));
 
     // Initialize the filesystem manager
     try(FilesystemManager_Create(&gFilesystemManager));
