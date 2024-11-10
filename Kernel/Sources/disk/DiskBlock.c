@@ -23,6 +23,7 @@ errno_t DiskBlock_Create(DriverId driverId, MediaId mediaId, LogicalBlockAddress
     self->driverId = driverId;
     self->mediaId = mediaId;
     self->lba = lba;
+    self->useCount = 1;
     self->flags.byteSize = BLOCK_SIZE;
 
     *pOutSelf = self;

@@ -71,6 +71,8 @@ static void _DiskCache_DeregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskB
     List_Remove(chain, &pBlock->hashNode);
 }
 
+// Looks up the disk block registered for the disk address (driverId, mediaId, lba)
+// and returns it with a use_count + 1. Returns NULL if no such block is found. 
 static DiskBlock* _Nullable _DiskCache_FindBlock(DiskCacheRef _Nonnull _Locked self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
 {
     const size_t idx = DiskBlock_HashKey(driverId, mediaId, lba) & DISK_BLOCK_HASH_CHAIN_MASK;
@@ -78,6 +80,7 @@ static DiskBlock* _Nullable _DiskCache_FindBlock(DiskCacheRef _Nonnull _Locked s
     
     List_ForEach(chain, DiskBlock,
         if (DiskBlock_IsEqualKey(pCurNode, driverId, mediaId, lba)) {
+            pCurNode->useCount++;
             return pCurNode;
         }
     );
@@ -117,31 +120,7 @@ static DiskBlockRef _Nullable _DiskCache_AcquireOldestCachedBlock(DiskCacheRef _
 
 errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    decl_try_err();
-    DiskBlockRef pBlock;
-
-    Lock_Lock(&self->lock);
-
-    pBlock = _DiskCache_AcquireOldestCachedBlock(self);
-    if (pBlock) {
-        DiskBlock_SetTarget(pBlock, kDriverId_None, kMediaId_None, 0);
-    }
-    else {
-        err = DiskBlock_Create(kDriverId_None, kMediaId_None, 0, &pBlock);
-    }
-
-    if (err == EOK) {
-        memset(pBlock->data, 0, pBlock->flags.byteSize);
-        pBlock->flags.hasData = 1;
-        pBlock->flags.acquired = 1;
-        pBlock->useCount++;
-    }
-    *pOutBlock = pBlock;
-
-    Lock_Unlock(&self->lock);
-
-    return err;
-}
+    return DiskCache_AcquireBlock(self, kDriverId_None, kMediaId_None, 0, kAcquireBlock_Cleared, pOutBlock);}
 
 errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
@@ -241,7 +220,6 @@ static _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     }
 
     pBlock->flags.acquired = 1;
-    pBlock->useCount++;
 
     return EOK;
 }
@@ -250,7 +228,6 @@ static _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock, bool doCache)
 {
     pBlock->flags.acquired = 0;
-    pBlock->useCount--;
 
     if (doCache) {
         _DiskCache_CacheBlock(self, pBlock);
@@ -263,7 +240,8 @@ void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullabl
 {
     if (pBlock) {
         Lock_Lock(&self->lock);
-        _DiskCache_RelinquishBlock(self, pBlock, false);    //XXX caching???
+        _DiskCache_RelinquishBlock(self, pBlock, true);
+        pBlock->useCount--;
         Lock_Unlock(&self->lock);
     }
 }
@@ -299,6 +277,7 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
     }
 
     _DiskCache_RelinquishBlock(self, pBlock, doCache);
+    pBlock->useCount--;
 
     Lock_Unlock(&self->lock);
 
