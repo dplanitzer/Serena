@@ -21,12 +21,14 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 
 
 #define DISK_BLOCK_HASH_CHAIN_COUNT     8
-#define DISK_BLOCK_HASH_CHAIN_MASK      ~(DISK_BLOCK_HASH_CHAIN_COUNT - 1)
+#define DISK_BLOCK_HASH_CHAIN_MASK      (DISK_BLOCK_HASH_CHAIN_COUNT - 1)
 
 typedef struct DiskCache {
     Lock                lock;
     ConditionVariable   condition;
     List                cache;          // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
+    size_t              cacheCount;     // Number of disk blocks owned and managed by the disk cache
+    size_t              cacheCapacity;  // Maximum number of disk blocks that may exist at any given time
     List                hash[DISK_BLOCK_HASH_CHAIN_COUNT];  // disk block hash table
 } DiskCache;
 
@@ -43,6 +45,8 @@ errno_t DiskCache_Create(DiskCacheRef _Nullable * _Nonnull pOutSelf)
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->cache);
+    self->cacheCount = 0;
+    self->cacheCapacity = 256;
     for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_Init(&self->hash[i]);
     }
@@ -88,6 +92,17 @@ static DiskBlock* _Nullable _DiskCache_FindBlock(DiskCacheRef _Nonnull _Locked s
     return NULL;
 }
 
+static void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
+{
+    print("{");
+    for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
+        List_ForEach(&self->hash[i], DiskBlock,
+            print("%u [%u], ", pCurNode->lba, i);
+        );
+    }
+    print("}");
+}
+
 
 #define DiskBlockFromCachePointer(__ptr) \
 (DiskBlockRef) (((uint8_t*)__ptr) - offsetof(struct DiskBlock, lruNode))
@@ -117,10 +132,24 @@ static DiskBlockRef _Nullable _DiskCache_AcquireOldestCachedBlock(DiskCacheRef _
     return pBlock;
 }
 
+static void _DiskCache_PrintCached(DiskCacheRef _Nonnull _Locked self)
+{
+    print("{");
+    List_ForEach(&self->cache, ListNode,
+        DiskBlockRef pb = DiskBlockFromCachePointer(pCurNode);
+        print("%u", pb->lba);
+        if (pCurNode->next) {
+            print(", ");
+        }
+    );
+    print("}");
+}
+
 
 errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    return DiskCache_AcquireBlock(self, kDriverId_None, kMediaId_None, 0, kAcquireBlock_Cleared, pOutBlock);}
+    return DiskCache_AcquireBlock(self, kDriverId_None, kMediaId_None, 0, kAcquireBlock_Cleared, pOutBlock);
+}
 
 errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
@@ -132,13 +161,23 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     // Find the block or create a new one if it isn't already in-core
     pBlock = _DiskCache_FindBlock(self, driverId, mediaId, lba);
     if (pBlock == NULL) {
-        try(DiskBlock_Create(driverId, mediaId, lba, &pBlock));
-        _DiskCache_RegisterBlock(self, pBlock);
+        if (self->cacheCount < self->cacheCapacity) {
+            try(DiskBlock_Create(driverId, mediaId, lba, &pBlock));
+            _DiskCache_RegisterBlock(self, pBlock);
+            self->cacheCount++;
+        }
+        else if (self->cache.last) {
+            pBlock = DiskBlockFromCachePointer(self->cache.last);
+            _DiskCache_UncacheBlock(self, pBlock);
+            _DiskCache_DeregisterBlock(self, pBlock);
+            DiskBlock_SetTarget(pBlock, driverId, mediaId, lba);
+            _DiskCache_RegisterBlock(self, pBlock);
+        }
+        else {
+            abort();
+        }
     }
-
-
-    // Remove the block from the cache, if it is there
-    if (pBlock->flags.isCached) {
+    else if (pBlock->flags.isCached) {
         _DiskCache_UncacheBlock(self, pBlock);
     }
 
