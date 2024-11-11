@@ -34,4 +34,7 @@ typedef struct SystemDescription {
 // Returns a reference to the shared system description.
 extern SystemDescription* _Nonnull gSystemDescription;
 
+// Returns the amount of physical RAM in the machine.
+extern size_t SystemDescription_GetRamSize(const SystemDescription* _Nonnull self);
+
 #endif /* SystemDescription_h */

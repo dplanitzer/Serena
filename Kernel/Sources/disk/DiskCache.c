@@ -36,7 +36,7 @@ typedef struct DiskCache {
 
 DiskCacheRef _Nonnull  gDiskCache;
 
-errno_t DiskCache_Create(DiskCacheRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskCache* self;
@@ -46,7 +46,8 @@ errno_t DiskCache_Create(DiskCacheRef _Nullable * _Nonnull pOutSelf)
     ConditionVariable_Init(&self->condition);
     List_Init(&self->cache);
     self->cacheCount = 0;
-    self->cacheCapacity = 256;
+    self->cacheCapacity = SystemDescription_GetRamSize(pSysDesc) >> 5;
+    assert(self->cacheCapacity > 0);
     for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_Init(&self->hash[i]);
     }

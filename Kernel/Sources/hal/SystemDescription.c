@@ -265,3 +265,15 @@ void SystemDescription_Init(SystemDescription* _Nonnull pSysDesc, char* _Nullabl
         ramsey_configure(pSysDesc);
     }
 }
+
+// Returns the amount of physical RAM in the machine.
+size_t SystemDescription_GetRamSize(const SystemDescription* _Nonnull self)
+{
+    size_t size = 0;
+
+    for (int i = 0; i < self->motherboard_ram.descriptor_count; i++) {
+        size += (self->motherboard_ram.descriptor[i].upper - self->motherboard_ram.descriptor[i].lower);
+    }
+
+    return size;
+}

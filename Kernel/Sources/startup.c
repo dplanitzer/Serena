@@ -165,7 +165,7 @@ static void OnMain(void)
     
 
     // Create the disk cache
-    try(DiskCache_Create(&gDiskCache));
+    try(DiskCache_Create(gSystemDescription, &gDiskCache));
 
     // Initialize the filesystem manager
     try(FilesystemManager_Create(&gFilesystemManager));
