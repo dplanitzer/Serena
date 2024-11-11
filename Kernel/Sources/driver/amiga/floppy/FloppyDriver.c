@@ -90,6 +90,11 @@ errno_t FloppyDriver_getInfo_async(FloppyDriverRef _Nonnull self, DiskInfo* pOut
     return EOK;
 }
 
+MediaId FloppyDriver_getCurrentMediaId(FloppyDriverRef _Nonnull self)
+{
+    return self->currentMediaId;
+}
+
 // Establishes the base state for a newly discovered drive. This means that we
 // move the disk head to track #0 and that we figure out whether a disk is loaded
 // or not.
@@ -990,6 +995,7 @@ catch:
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(getInfo_async, FloppyDriver, DiskDriver)
+override_func_def(getCurrentMediaId, FloppyDriver, DiskDriver)
 override_func_def(start, FloppyDriver, Driver)
 override_func_def(getBlock, FloppyDriver, DiskDriver)
 override_func_def(putBlock, FloppyDriver, DiskDriver)

@@ -61,6 +61,11 @@ errno_t RomDisk_getInfo_async(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
     return EOK;
 }
 
+MediaId RomDisk_getCurrentMediaId(RomDiskRef _Nonnull self)
+{
+    return 1;
+}
+
 errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
@@ -79,5 +84,6 @@ class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
 override_func_def(start, RomDisk, Driver)
 override_func_def(getInfo_async, RomDisk, DiskDriver)
+override_func_def(getCurrentMediaId, RomDisk, DiskDriver)
 override_func_def(getBlock, RomDisk, DiskDriver)
 );

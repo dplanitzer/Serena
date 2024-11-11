@@ -38,11 +38,18 @@ errno_t DiskDriver_getInfo_async(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo
 {
     pOutInfo->blockSize = 512;
     pOutInfo->blockCount = 0;
-    pOutInfo->mediaId = 0;
+    pOutInfo->mediaId = kMediaId_None;
     pOutInfo->isReadOnly = true;
 
     return EOK;
 }
+
+
+MediaId DiskDriver_getCurrentMediaId(DiskDriverRef _Nonnull self)
+{
+    return kMediaId_None;
+}
+
 
 static void DiskDriver_beginIOStub(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
@@ -58,22 +65,28 @@ void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull
 {
     decl_try_err();
 
-    switch (DiskBlock_GetOp(pBlock)) {
-        case kDiskBlockOp_Read:
-            err = DiskDriver_GetBlock(self, pBlock);
-            break;
+    if (DiskBlock_GetMediaId(pBlock) == DiskDriver_GetCurrentMediaId(self)) {
+        switch (DiskBlock_GetOp(pBlock)) {
+            case kDiskBlockOp_Read:
+                err = DiskDriver_GetBlock(self, pBlock);
+                break;
 
-        case kDiskBlockOp_Write:
-            err = DiskDriver_PutBlock(self, pBlock);
-            break;
+            case kDiskBlockOp_Write:
+                err = DiskDriver_PutBlock(self, pBlock);
+                break;
 
-        default:
-            err = EIO;
-            break;
+            default:
+                err = EIO;
+                break;
+        }
+    }
+    else {
+        err = EDISKCHANGE;
     }
 
     DiskDriver_EndIO(self, pBlock, err);
 }
+
 
 // Reads the contents of the given block. Blocks the caller until the read
 // operation has completed. Note that this function will never return a
@@ -85,6 +98,7 @@ errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull p
     return EIO;
 }
 
+
 // Writes the contents of 'pBlock' to the corresponding disk block. Blocks
 // the caller until the write has completed. The contents of the block on
 // disk is left in an indeterminate state of the write fails in the middle
@@ -94,6 +108,7 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull p
 {
     return EIO;
 }
+
 
 void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status)
 {
@@ -115,6 +130,7 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 
 class_func_defs(DiskDriver, Driver,
 func_def(getInfo_async, DiskDriver)
+func_def(getCurrentMediaId, DiskDriver)
 func_def(beginIO_async, DiskDriver)
 func_def(getBlock, DiskDriver)
 func_def(putBlock, DiskDriver)

@@ -29,6 +29,11 @@ open_class_funcs(DiskDriver, Driver,
     // Default Behavior: returns info for an empty disk
     errno_t (*getInfo_async)(void* _Nonnull self, DiskInfo* pOutInfo);
 
+    // Returns the media ID associated with the currently inserted disk.
+    // kMedia_None is returned if no media is inserted.
+    // Default behavior: returns kMedia_None
+    MediaId (*getCurrentMediaId)(void* _Nonnull self);
+
     // Starts an I/O operation on the given block. Calls getBlock() if the block
     // should be read and putBlock() if it should be written. It then invokes
     // endIO() to notify the system about the completed I/O operation. This
@@ -71,6 +76,9 @@ extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Non
 //
 // Subclassers
 //
+
+#define DiskDriver_GetCurrentMediaId(__self) \
+invoke_0(getCurrentMediaId, DiskDriver, __self)
 
 #define DiskDriver_GetBlock(__self, __pBlock) \
 invoke_n(getBlock, DiskDriver, __self, __pBlock)

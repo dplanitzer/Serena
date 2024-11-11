@@ -69,6 +69,11 @@ errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
     return EOK;
 }
 
+MediaId RamDisk_getCurrentMediaId(RamDiskRef _Nonnull self)
+{
+    return kMediaId_None;
+}
+
 // Tries to find the disk extent that contains the given block index. This disk
 // extent is returned if it exists. Also returns the disk extent that exists and
 // is closest to the given block index and whose 'firstBlockIndex' is <= the
@@ -171,6 +176,7 @@ class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
 override_func_def(start, RamDisk, Driver)
 override_func_def(getInfo_async, RamDisk, DiskDriver)
+override_func_def(getCurrentMediaId, RamDisk, DiskDriver)
 override_func_def(getBlock, RamDisk, DiskDriver)
 override_func_def(putBlock, RamDisk, DiskDriver)
 );
