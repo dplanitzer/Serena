@@ -14,16 +14,19 @@
 
 final_class_ivars(DiskFSContainer, FSContainer,
     DriverId    driverId;
+    MediaId     mediaId;
 );
 
 
-errno_t DiskFSContainer_Create(DriverId driverId, FSContainerRef _Nullable * _Nonnull pOutContainer)
+errno_t DiskFSContainer_Create(DriverId driverId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
 {
     decl_try_err();
     struct DiskFSContainer* self = NULL;
+    FSContainerInfo info;
 
     if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
         self->driverId = driverId;
+        self->mediaId = mediaId;
     }
 
     *pOutContainer = (FSContainerRef)self;
@@ -66,7 +69,7 @@ errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBloc
 // relinquishBlock() method.
 errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    return DiskCache_AcquireBlock(gDiskCache, self->driverId, 0/*XXX*/, lba, mode, pOutBlock);
+    return DiskCache_AcquireBlock(gDiskCache, self->driverId, self->mediaId, lba, mode, pOutBlock);
 }
 
 // Relinquishes the disk block 'pBlock' without writing it back to disk.

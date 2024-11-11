@@ -14,7 +14,7 @@
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
 
-static errno_t _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, AcquireBlock mode);
+static errno_t _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock);
 static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock, bool doCache);
 static errno_t _DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, WriteBlock mode);
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
@@ -149,7 +149,15 @@ static void _DiskCache_PrintCached(DiskCacheRef _Nonnull _Locked self)
 
 errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    return DiskCache_AcquireBlock(self, kDriverId_None, kMediaId_None, 0, kAcquireBlock_Cleared, pOutBlock);
+    decl_try_err();
+    DiskBlockRef pBlock;
+
+    Lock_Lock(&self->lock);
+    err = _DiskCache_AcquireBlock(self, kDriverId_None, kMediaId_None, 0, kAcquireBlock_Cleared, &pBlock);
+    Lock_Unlock(&self->lock);
+    *pOutBlock = pBlock;
+
+    return err;
 }
 
 errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
@@ -157,35 +165,17 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     decl_try_err();
     DiskBlockRef pBlock = NULL;
 
+    // Can not address blocks on a disk or media that doesn't exist
+    if (driverId == kDriverId_None || mediaId == kMediaId_None) {
+        return EIO;
+    }
+
+
     Lock_Lock(&self->lock);
-
-    // Find the block or create a new one if it isn't already in-core
-    pBlock = _DiskCache_FindBlock(self, driverId, mediaId, lba);
-    if (pBlock == NULL) {
-        if (self->cacheCount < self->cacheCapacity) {
-            try(DiskBlock_Create(driverId, mediaId, lba, &pBlock));
-            _DiskCache_RegisterBlock(self, pBlock);
-            self->cacheCount++;
-        }
-        else if (self->cache.last) {
-            pBlock = DiskBlockFromCachePointer(self->cache.last);
-            _DiskCache_UncacheBlock(self, pBlock);
-            _DiskCache_DeregisterBlock(self, pBlock);
-            DiskBlock_SetTarget(pBlock, driverId, mediaId, lba);
-            _DiskCache_RegisterBlock(self, pBlock);
-        }
-        else {
-            abort();
-        }
-    }
-    else if (pBlock->flags.isCached) {
-        _DiskCache_UncacheBlock(self, pBlock);
-    }
-
 
     // Acquire the block. This waits until a read/write that's currently in
     // progress has finished and until no-one else is using this block
-    try(_DiskCache_AcquireBlock(self, pBlock, mode));
+    try(_DiskCache_AcquireBlock(self, driverId, mediaId, lba, mode, &pBlock));
 
 
     // States:
@@ -245,23 +235,48 @@ catch:
 // Waits until the given block can be acquired for mode 'mode'. Returns EOK on
 // success and a suitable error code otherwise. The block is acquired if this
 // function returns EOK.
-static _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock, AcquireBlock mode)
+static errno_t _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
+    DiskBlockRef pBlock = NULL;
 
+    // Find the block or create a new one if it isn't already in-core
+    pBlock = _DiskCache_FindBlock(self, driverId, mediaId, lba);
+    if (pBlock == NULL) {
+        if (self->cacheCount < self->cacheCapacity) {
+            try(DiskBlock_Create(driverId, mediaId, lba, &pBlock));
+            _DiskCache_RegisterBlock(self, pBlock);
+            self->cacheCount++;
+        }
+        else if (self->cache.last) {
+            pBlock = DiskBlockFromCachePointer(self->cache.last);
+            _DiskCache_UncacheBlock(self, pBlock);
+            _DiskCache_DeregisterBlock(self, pBlock);
+            DiskBlock_SetTarget(pBlock, driverId, mediaId, lba);
+            _DiskCache_RegisterBlock(self, pBlock);
+        }
+        else {
+            abort();
+        }
+    }
+    else if (pBlock->flags.isCached) {
+        _DiskCache_UncacheBlock(self, pBlock);
+    }
+
+
+    // Wait for the block to be idle
     while (pBlock->flags.acquired
             || (pBlock->flags.op == kDiskBlockOp_Read)
             || (pBlock->flags.op == kDiskBlockOp_Write && mode != kAcquireBlock_ReadOnly)) {
 
-        err = ConditionVariable_Wait(&self->condition, &self->lock, kTimeInterval_Infinity);
-        if (err != EOK) {
-            return err;
-        }
+        try(ConditionVariable_Wait(&self->condition, &self->lock, kTimeInterval_Infinity));
     }
 
     pBlock->flags.acquired = 1;
 
-    return EOK;
+catch:
+    *pOutBlock = pBlock;
+    return err;
 }
 
 

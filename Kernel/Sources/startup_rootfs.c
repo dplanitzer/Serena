@@ -68,12 +68,14 @@ static DriverId get_boot_mem_disk_id(const SMG_Header* _Nonnull smg_hdr)
     }
     else {
         FSContainerRef fsContainer = NULL;
+        DiskInfo info;
 
         try(RamDisk_Create(ramDiskName, smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
+        try(DiskDriver_GetInfo(disk, &info));
         diskName = ramDiskName;
 
-        try(DiskFSContainer_Create(Driver_GetDriverId(disk), &fsContainer));
+        try(DiskFSContainer_Create(Driver_GetDriverId(disk), info.mediaId, &fsContainer));
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             DiskBlockRef pb;
 
@@ -105,11 +107,15 @@ static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
 {
     decl_try_err();
     errno_t lastError = EOK;
+    DiskDriverRef driver;
+    DiskInfo info;
     FSContainerRef fsContainer;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 
-    try(DiskFSContainer_Create(diskId, &fsContainer));
+    try_null(driver, (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, diskId), ENODEV);
+    try(DiskDriver_GetInfo(driver, &info));
+    try(DiskFSContainer_Create(diskId, info.mediaId, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
 
     while (true) {
@@ -151,9 +157,8 @@ static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
     print(buf);
     print("...\n\n");
 
-    return EOK;
-
 catch:
+    Object_Release(driver);
     return err;
 }
 

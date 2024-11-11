@@ -16,6 +16,6 @@
 final_class(DiskFSContainer, FSContainer);
 
 
-extern errno_t DiskFSContainer_Create(DriverId driverId, FSContainerRef _Nullable * _Nonnull pOutContainer);
+extern errno_t DiskFSContainer_Create(DriverId driverId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer);
 
 #endif /* DiskFSContainer_h */
