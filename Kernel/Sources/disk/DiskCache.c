@@ -22,7 +22,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 #define DISK_BLOCK_HASH_CHAIN_MASK      (DISK_BLOCK_HASH_CHAIN_COUNT - 1)
 
 typedef struct DiskCache {
-    Lock                lock;
+    Lock                interlock;
     ConditionVariable   condition;
     DiskBlockRef        emptyBlock;     // Single, shared empty block (for read only access)
     List                cache;          // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
@@ -42,7 +42,7 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
     try(DiskBlock_Create(kDriverId_None, kMediaId_None, 0, &self->emptyBlock));
-    Lock_Init(&self->lock);
+    Lock_Init(&self->interlock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->cache);
     self->cacheCount = 0;
@@ -94,7 +94,7 @@ static errno_t _DiskCache_LockBlock(DiskCacheRef _Nonnull _Locked self, DiskBloc
                 break;
         }
 
-        err = ConditionVariable_Wait(&self->condition, &self->lock, kTimeInterval_Infinity);
+        err = ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity);
         if (err != EOK) {
             break;
         }
@@ -120,6 +120,8 @@ static void _DiskCache_UnlockBlock(DiskCacheRef _Nonnull _Locked self, DiskBlock
     else {
         abort();
     }
+
+    ConditionVariable_Broadcast(&self->condition);
 }
 
 // Downgrades the given block from exclusive lock mode to shared lock mode.
@@ -131,6 +133,11 @@ static void _DiskCache_DowngradeBlockLock(DiskCacheRef _Nonnull _Locked self, Di
 
     pBlock->flags.exclusive = 0;
     pBlock->shareCount++;
+
+    // Purposefully do not give other clients who are waiting to be able to lock
+    // this block exclusively a chance to do so. First, we want to do the
+    // exclusive -> shared transition atomically and second none else would be
+    // able to lock exclusively anyway since we now own the lock shared
 }
 
 
@@ -265,9 +272,9 @@ errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nu
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    Lock_Lock(&self->interlock);
     err = _DiskCache_LockBlock(self, self->emptyBlock, kLockMode_Shared);
-    Lock_Unlock(&self->lock);
+    Lock_Unlock(&self->interlock);
     *pOutBlock = self->emptyBlock;
 
     return err;
@@ -284,7 +291,7 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     }
 
 
-    Lock_Lock(&self->lock);
+    Lock_Lock(&self->interlock);
 
     // Get the block
     try(_DiskCache_GetBlock(self, driverId, mediaId, lba, &pBlock));
@@ -348,7 +355,7 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     }
 
 catch:
-    Lock_Unlock(&self->lock);
+    Lock_Unlock(&self->interlock);
     *pOutBlock = (err == EOK) ? pBlock : NULL;
 
     return err;
@@ -362,16 +369,14 @@ static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskB
     if (allowCaching) {
         _DiskCache_CacheBlock(self, pBlock);
     }
-
-    ConditionVariable_Broadcast(&self->condition);
 }
 
 void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock)
 {
     if (pBlock) {
-        Lock_Lock(&self->lock);
+        Lock_Lock(&self->interlock);
         _DiskCache_RelinquishBlock(self, pBlock, true);
-        Lock_Unlock(&self->lock);
+        Lock_Unlock(&self->interlock);
     }
 }
 
@@ -388,7 +393,7 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
         abort();
     }
 
-    Lock_Lock(&self->lock);
+    Lock_Lock(&self->interlock);
 
     switch (mode) {
         case kWriteBlock_Sync:
@@ -413,7 +418,7 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
 
     _DiskCache_RelinquishBlock(self, pBlock, doCache);
 
-    Lock_Unlock(&self->lock);
+    Lock_Unlock(&self->interlock);
 
     return err;
 }
@@ -426,7 +431,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
     decl_try_err();
 
     while (pBlock->flags.op == op) {
-        err = ConditionVariable_Wait(&self->condition, &self->lock, kTimeInterval_Infinity);
+        err = ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity);
         if (err != EOK) {
             return err;
         }
@@ -470,7 +475,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 // Must be called by the disk driver when it's done with the block
 void DiskCache_OnDiskBlockEndedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnull _Locked pBlock, errno_t status)
 {
-    Lock_Lock(&self->lock);
+    Lock_Lock(&self->interlock);
 
     if (pBlock->flags.op == kDiskBlockOp_Read && status == EOK) {
         pBlock->flags.hasData = 1;
@@ -478,7 +483,7 @@ void DiskCache_OnDiskBlockEndedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonn
     pBlock->flags.op = kDiskBlockOp_Idle;
     pBlock->status = status;
 
-    ConditionVariable_BroadcastAndUnlock(&self->condition, &self->lock);
+    ConditionVariable_BroadcastAndUnlock(&self->condition, &self->interlock);
 }
 
 
