@@ -41,22 +41,19 @@ typedef struct DiskBlock {
     DriverId            driverId;
     MediaId             mediaId;
     LogicalBlockAddress lba;
+    int                 useCount;
     int                 shareCount;
     struct __Flags {
         unsigned int        byteSize:16;
         unsigned int        exclusive:1;
         unsigned int        hasData:1;
-        unsigned int        isCached:1;
         unsigned int        op:2;
-        unsigned int        reserved:10;
+        unsigned int        reserved:11;
     }                   flags;
     errno_t             status;
     uint8_t             data[1];
 } DiskBlock;
 
-
-extern errno_t DiskBlock_Create(DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
-extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_GetData(__self) \
     (const void*)(&(__self)->data[0])
@@ -81,6 +78,23 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_GetOp(__self) \
     (DiskBlockOp)(__self)->flags.op
+
+
+//
+// Kernel internal functions
+//
+
+extern errno_t DiskBlock_Create(DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
+extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
+
+#define DiskBlock_BeginUse(__self) \
+    (__self)->useCount++
+
+#define DiskBlock_EndUse(__self) \
+    (__self)->useCount--
+
+#define DiskBlock_InUse(__self) \
+    ((__self)->useCount > 0)
 
 #define DiskBlock_Hash(__self) \
     DiskBlock_HashKey((__self)->driverId, (__self)->mediaId, (__self)->lba)
