@@ -26,8 +26,8 @@ typedef struct DiskCache {
     ConditionVariable   condition;
     DiskBlockRef        emptyBlock;     // Single, shared empty block (for read only access)
     List                cache;          // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
-    size_t              cacheCount;     // Number of disk blocks owned and managed by the disk cache
-    size_t              cacheCapacity;  // Maximum number of disk blocks that may exist at any given time
+    size_t              blockCount;     // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
+    size_t              blockCapacity;  // Maximum number of disk blocks that may exist at any given time
     List                hash[DISK_BLOCK_HASH_CHAIN_COUNT];  // disk block hash table
 } DiskCache;
 
@@ -45,9 +45,9 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     Lock_Init(&self->interlock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->cache);
-    self->cacheCount = 0;
-    self->cacheCapacity = SystemDescription_GetRamSize(pSysDesc) >> 5;
-    assert(self->cacheCapacity > 0);
+    self->blockCount = 0;
+    self->blockCapacity = SystemDescription_GetRamSize(pSysDesc) >> 5;
+    assert(self->blockCapacity > 0);
     for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_Init(&self->hash[i]);
     }
@@ -195,6 +195,7 @@ static void _DiskCache_CacheBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockR
     pBlock->flags.isCached = 1;
     pBlock->flags.op = kDiskBlockOp_Idle;
     List_InsertBeforeFirst(&self->cache, &pBlock->lruNode);
+    ConditionVariable_Broadcast(&self->condition);
 }
 
 static void _DiskCache_UncacheBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
@@ -239,14 +240,17 @@ static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DriverId 
     DiskBlockRef pBlock = NULL;
 
     // Find the block or create a new one if it isn't already in-core
+retry:
     pBlock = _DiskCache_FindBlock(self, driverId, mediaId, lba);
     if (pBlock == NULL) {
-        if (self->cacheCount < self->cacheCapacity) {
+        if (self->blockCount < self->blockCapacity) {
+            // We can still grow the disk block list
             try(DiskBlock_Create(driverId, mediaId, lba, &pBlock));
             _DiskCache_RegisterBlock(self, pBlock);
-            self->cacheCount++;
+            self->blockCount++;
         }
         else if (self->cache.last) {
+            // Reuse the oldest cached block
             pBlock = DiskBlockFromCachePointer(self->cache.last);
             _DiskCache_UncacheBlock(self, pBlock);
             _DiskCache_DeregisterBlock(self, pBlock);
@@ -254,7 +258,10 @@ static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DriverId 
             _DiskCache_RegisterBlock(self, pBlock);
         }
         else {
-            abort();
+            // The cache lru chain is empty -> all blocks are apparently in use.
+            // Wait until a block becomes available
+            try(ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity));
+            goto retry;
         }
     }
     else if (pBlock->flags.isCached) {
