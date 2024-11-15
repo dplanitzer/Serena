@@ -14,9 +14,7 @@
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
 
-static errno_t _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock);
-static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock, bool doCache);
-static errno_t _DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, WriteBlock mode);
+static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock, bool allowCaching);
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
 
 
@@ -26,6 +24,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 typedef struct DiskCache {
     Lock                lock;
     ConditionVariable   condition;
+    DiskBlockRef        emptyBlock;     // Single, shared empty block (for read only access)
     List                cache;          // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
     size_t              cacheCount;     // Number of disk blocks owned and managed by the disk cache
     size_t              cacheCapacity;  // Maximum number of disk blocks that may exist at any given time
@@ -42,6 +41,7 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     DiskCache* self;
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
+    try(DiskBlock_Create(kDriverId_None, kMediaId_None, 0, &self->emptyBlock));
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->cache);
@@ -59,6 +59,82 @@ catch:
     *pOutSelf = NULL;
     return err;
 }
+
+typedef enum LockMode {
+    kLockMode_Shared,
+    kLockMode_Exclusive
+} LockMode;
+
+// Locks the given block in shared or exclusive mode. Multiple clients may lock
+// a block in shared mode but at most one client can lock a block in exclusive
+// mode. A block is only lockable in exclusive mode if no other client is locking
+// it in shared or exclusive mode.
+static errno_t _DiskCache_LockBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, LockMode mode)
+{
+    decl_try_err();
+
+    for (;;) {
+        switch (mode) {
+            case kLockMode_Shared:
+                if (pBlock->flags.exclusive == 0) {
+                    pBlock->shareCount++;
+                    return EOK;
+                }
+                break;
+
+            case kLockMode_Exclusive:
+                if ((pBlock->flags.exclusive == 0) && (pBlock->shareCount == 0)) {
+                    pBlock->flags.exclusive = 1;
+                    return EOK;
+                }
+                break;
+
+            default:
+                abort();
+                break;
+        }
+
+        err = ConditionVariable_Wait(&self->condition, &self->lock, kTimeInterval_Infinity);
+        if (err != EOK) {
+            break;
+        }
+    }
+
+    return err;
+}
+
+// Unlock the given block. This function assumes that if the block is currently
+// locked exclusively, that the caller is indeed the owner of the block since
+// there can only be a single exclusive locker. If the block is locked in shared
+// mode instead, then the caller is assumed to be one of the shared block owners.
+static void _DiskCache_UnlockBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+{
+    if (pBlock->flags.exclusive) {
+        // The lock is being held exclusively - we assume that we are holding it. Unlock it
+        pBlock->flags.exclusive = 0;
+    }
+    else if (pBlock->shareCount > 0) {
+        // The lock is being held in shared mode. Unlock it
+        pBlock->shareCount--;
+    }
+    else {
+        abort();
+    }
+}
+
+// Downgrades the given block from exclusive lock mode to shared lock mode.
+static void _DiskCache_DowngradeBlockLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+{
+    if (pBlock->flags.exclusive == 0) {
+        abort();
+    }
+
+    pBlock->flags.exclusive = 0;
+    pBlock->shareCount++;
+}
+
+
+
 
 static void _DiskCache_RegisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
@@ -85,7 +161,6 @@ static DiskBlock* _Nullable _DiskCache_FindBlock(DiskCacheRef _Nonnull _Locked s
     
     List_ForEach(chain, DiskBlock,
         if (DiskBlock_IsEqualKey(pCurNode, driverId, mediaId, lba)) {
-            pCurNode->useCount++;
             return pCurNode;
         }
     );
@@ -147,15 +222,53 @@ static void _DiskCache_PrintCached(DiskCacheRef _Nonnull _Locked self)
 }
 
 
+// Returns the block that corresponds to the disk address (driverId, mediaId, lba).
+// A new block is created if needed or an existing block is retrieved from the
+// cached list of blocks. The caller must lock the block before doing anything
+// with it.
+static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    decl_try_err();
+    DiskBlockRef pBlock = NULL;
+
+    // Find the block or create a new one if it isn't already in-core
+    pBlock = _DiskCache_FindBlock(self, driverId, mediaId, lba);
+    if (pBlock == NULL) {
+        if (self->cacheCount < self->cacheCapacity) {
+            try(DiskBlock_Create(driverId, mediaId, lba, &pBlock));
+            _DiskCache_RegisterBlock(self, pBlock);
+            self->cacheCount++;
+        }
+        else if (self->cache.last) {
+            pBlock = DiskBlockFromCachePointer(self->cache.last);
+            _DiskCache_UncacheBlock(self, pBlock);
+            _DiskCache_DeregisterBlock(self, pBlock);
+            DiskBlock_SetTarget(pBlock, driverId, mediaId, lba);
+            _DiskCache_RegisterBlock(self, pBlock);
+        }
+        else {
+            abort();
+        }
+    }
+    else if (pBlock->flags.isCached) {
+        _DiskCache_UncacheBlock(self, pBlock);
+    }
+
+catch:
+    *pOutBlock = pBlock;
+    return err;
+}
+
+
+// Returns an empty block (all data is zero) for read-only operations.
 errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
-    DiskBlockRef pBlock;
 
     Lock_Lock(&self->lock);
-    err = _DiskCache_AcquireBlock(self, kDriverId_None, kMediaId_None, 0, kAcquireBlock_Cleared, &pBlock);
+    err = _DiskCache_LockBlock(self, self->emptyBlock, kLockMode_Shared);
     Lock_Unlock(&self->lock);
-    *pOutBlock = pBlock;
+    *pOutBlock = self->emptyBlock;
 
     return err;
 }
@@ -173,9 +286,15 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
 
     Lock_Lock(&self->lock);
 
-    // Acquire the block. This waits until a read/write that's currently in
-    // progress has finished and until no-one else is using this block
-    try(_DiskCache_AcquireBlock(self, driverId, mediaId, lba, mode, &pBlock));
+    // Get the block
+    try(_DiskCache_GetBlock(self, driverId, mediaId, lba, &pBlock));
+
+
+    // Lock the block. Lock mode depends on whether the block already has data
+    // or not and whether the acquisition mode indicates that the caller wants
+    // to modify the block contents or not.
+    const LockMode lockMode = (mode == kAcquireBlock_ReadOnly && pBlock->flags.hasData) ? kLockMode_Shared : kLockMode_Exclusive;
+    _DiskCache_LockBlock(self, pBlock, lockMode);
 
 
     // States:
@@ -217,6 +336,9 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
                 if (err != EOK) {
                     _DiskCache_RelinquishBlock(self, pBlock, true);
                 }
+                if (mode == kAcquireBlock_ReadOnly) {
+                    _DiskCache_DowngradeBlockLock(self, pBlock);
+                }
             }
             break;
 
@@ -232,59 +354,12 @@ catch:
     return err;
 }
 
-// Waits until the given block can be acquired for mode 'mode'. Returns EOK on
-// success and a suitable error code otherwise. The block is acquired if this
-// function returns EOK.
-static errno_t _DiskCache_AcquireBlock(DiskCacheRef _Nonnull _Locked self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+
+static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock, bool allowCaching)
 {
-    decl_try_err();
-    DiskBlockRef pBlock = NULL;
+    _DiskCache_UnlockBlock(self, pBlock);
 
-    // Find the block or create a new one if it isn't already in-core
-    pBlock = _DiskCache_FindBlock(self, driverId, mediaId, lba);
-    if (pBlock == NULL) {
-        if (self->cacheCount < self->cacheCapacity) {
-            try(DiskBlock_Create(driverId, mediaId, lba, &pBlock));
-            _DiskCache_RegisterBlock(self, pBlock);
-            self->cacheCount++;
-        }
-        else if (self->cache.last) {
-            pBlock = DiskBlockFromCachePointer(self->cache.last);
-            _DiskCache_UncacheBlock(self, pBlock);
-            _DiskCache_DeregisterBlock(self, pBlock);
-            DiskBlock_SetTarget(pBlock, driverId, mediaId, lba);
-            _DiskCache_RegisterBlock(self, pBlock);
-        }
-        else {
-            abort();
-        }
-    }
-    else if (pBlock->flags.isCached) {
-        _DiskCache_UncacheBlock(self, pBlock);
-    }
-
-
-    // Wait for the block to be idle
-    while (pBlock->flags.acquired
-            || (pBlock->flags.op == kDiskBlockOp_Read)
-            || (pBlock->flags.op == kDiskBlockOp_Write && mode != kAcquireBlock_ReadOnly)) {
-
-        try(ConditionVariable_Wait(&self->condition, &self->lock, kTimeInterval_Infinity));
-    }
-
-    pBlock->flags.acquired = 1;
-
-catch:
-    *pOutBlock = pBlock;
-    return err;
-}
-
-
-static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock, bool doCache)
-{
-    pBlock->flags.acquired = 0;
-
-    if (doCache) {
+    if (allowCaching) {
         _DiskCache_CacheBlock(self, pBlock);
     }
 
@@ -296,7 +371,6 @@ void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullabl
     if (pBlock) {
         Lock_Lock(&self->lock);
         _DiskCache_RelinquishBlock(self, pBlock, true);
-        pBlock->useCount--;
         Lock_Unlock(&self->lock);
     }
 }
@@ -309,17 +383,23 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
     if (pBlock == NULL) {
         return EOK;
     }
+    if (pBlock == self->emptyBlock) {
+        // The empty block is for reading only
+        abort();
+    }
 
     Lock_Lock(&self->lock);
 
     switch (mode) {
         case kWriteBlock_Sync:
+            _DiskCache_DowngradeBlockLock(self, pBlock);
             err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
             doCache = true;
             break;
 
         case kWriteBlock_Async:
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, false);
+            abort();
+            //XXX not yet err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, false);
             break;
 
         case kWriteBlock_Deferred:
@@ -332,7 +412,6 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
     }
 
     _DiskCache_RelinquishBlock(self, pBlock, doCache);
-    pBlock->useCount--;
 
     Lock_Unlock(&self->lock);
 
@@ -369,7 +448,6 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
         return ENODEV;
     }
 
-    pBlock->useCount++; // Will be balanced by EndIO()
     pBlock->flags.op = op;
     pBlock->status = EOK;
 
@@ -393,17 +471,14 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 void DiskCache_OnDiskBlockEndedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnull _Locked pBlock, errno_t status)
 {
     Lock_Lock(&self->lock);
-    pBlock->status = status;
 
     if (pBlock->flags.op == kDiskBlockOp_Read && status == EOK) {
         pBlock->flags.hasData = 1;
     }
     pBlock->flags.op = kDiskBlockOp_Idle;
+    pBlock->status = status;
 
-    ConditionVariable_Broadcast(&self->condition);
-    pBlock->useCount--;
-    Lock_Unlock(&self->lock);
-    //ConditionVariable_BroadcastAndUnlock(&self->condition, &self->lock);
+    ConditionVariable_BroadcastAndUnlock(&self->condition, &self->lock);
 }
 
 

@@ -41,10 +41,10 @@ typedef struct DiskBlock {
     DriverId            driverId;
     MediaId             mediaId;
     LogicalBlockAddress lba;
-    int                 useCount;
+    int                 shareCount;
     struct __Flags {
         unsigned int        byteSize:16;
-        unsigned int        acquired:1;
+        unsigned int        exclusive:1;
         unsigned int        hasData:1;
         unsigned int        isCached:1;
         unsigned int        op:2;
