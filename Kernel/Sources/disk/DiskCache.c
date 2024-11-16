@@ -358,6 +358,40 @@ static void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef
 }
 
 
+// Triggers an asynchronous loading of the disk block data at the address
+// (driverId, mediaId, lba)
+errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
+{
+    decl_try_err();
+    DiskBlockRef pBlock = NULL;
+
+    // Can not address blocks on a disk or media that doesn't exist
+    if (driverId == kDriverId_None || mediaId == kMediaId_None) {
+        return EIO;
+    }
+
+
+    Lock_Lock(&self->interlock);
+
+    // Get the block
+    err = _DiskCache_GetBlock(self, driverId, mediaId, lba, &pBlock);
+
+
+    // Trigger an async read if the block has no data
+    if (err == EOK && !pBlock->flags.hasData) {
+        _DiskCache_LockBlock(self, pBlock, kLockMode_Exclusive);
+
+        err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, false);
+        if (err != EOK) {
+            _DiskCache_RelinquishBlock(self, pBlock);
+        }
+    }
+
+    Lock_Unlock(&self->interlock);
+
+    return err;
+}
+
 // Returns an empty block (all data is zero) for read-only operations.
 errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
@@ -494,8 +528,7 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
             break;
 
         case kWriteBlock_Async:
-            abort();
-            //XXX not yet err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, false);
+            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, false);
             break;
 
         case kWriteBlock_Deferred:
@@ -531,11 +564,8 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
     return pBlock->status;
 }
 
-// Starts a read operation and waits for it to complete. Note that this function
-// leaves the disk block state in whatever state it was when this function was
-// called, if the read can not be successfully started. Typically this means that
-// the disk block will stay in NoData state. A future acquisition will then trigger
-// another read attempt.
+// Starts a synchronous read/write operation on the given block and waits for
+// its completion.
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
@@ -548,10 +578,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     // Just join an already ongoing I/O operation if one is active (and of the
     // same type as 'op')
     if (pBlock->flags.op == op) {
-        if (isSync) {
-            err = _DiskCache_WaitIO(self, pBlock, op);
-        }
-        return err;
+        return (isSync) ? _DiskCache_WaitIO(self, pBlock, op) : EOK;
     }
 
 
@@ -562,33 +589,45 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     }
 
     pBlock->flags.op = op;
+    pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->status = EOK;
 
     err = DiskDriver_BeginIO(pDriver, pBlock);
-
-    // Wait for I/O to complete, if necessary
-    if (err == EOK && isSync) {
-        err = _DiskCache_WaitIO(self, pBlock, op);
-    }
-
-    Object_Release(pDriver);
+    err = (err == EOK && isSync) ? _DiskCache_WaitIO(self, pBlock, op) : err;
 
     return err;
 }
 
 
 // Must be called by the disk driver when it's done with the block
-void DiskCache_OnDiskBlockEndedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnull _Locked pBlock, errno_t status)
+void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriver, DiskBlockRef _Nonnull pBlock, errno_t status)
 {
     Lock_Lock(&self->interlock);
+    const bool isAsync = pBlock->flags.async ? true : false;
 
     if (pBlock->flags.op == kDiskBlockOp_Read && status == EOK) {
         pBlock->flags.hasData = 1;
     }
+
     pBlock->flags.op = kDiskBlockOp_Idle;
+    pBlock->flags.async = 0;
     pBlock->status = status;
 
-    ConditionVariable_BroadcastAndUnlock(&self->condition, &self->interlock);
+    if (isAsync) {
+        // Drop exclusive lock if this is a read op
+        // Drop shared lock if this is a write op
+        _DiskCache_UnlockBlock(self, pBlock);
+        _DiskCache_PutBlock(self, pBlock);
+    }
+    else {
+        // Wake up WaitIO()
+        ConditionVariable_Broadcast(&self->condition);
+    }
+
+    Lock_Unlock(&self->interlock);
+
+    // Balance the retain from DoIO()
+    Object_Release(pDriver);
 }
 
 

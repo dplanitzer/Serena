@@ -17,6 +17,8 @@ extern DiskCacheRef _Nonnull  gDiskCache;
 
 extern errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRef _Nullable * _Nonnull pOutSelf);
 
+extern errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba);
+
 extern errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock);
 extern errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock);
 
@@ -25,6 +27,6 @@ extern errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, Disk
 
 extern errno_t DiskCache_Flush(DiskCacheRef _Nonnull self);
 
-extern void DiskCache_OnDiskBlockEndedIO(DiskCacheRef _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status);
+extern void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriver, DiskBlockRef _Nonnull pBlock, errno_t status);
 
 #endif /* DiskCache_h */

@@ -48,7 +48,8 @@ typedef struct DiskBlock {
         unsigned int        exclusive:1;
         unsigned int        hasData:1;
         unsigned int        op:2;
-        unsigned int        reserved:11;
+        unsigned int        async:1;
+        unsigned int        reserved:10;
     }                   flags;
     errno_t             status;
     uint8_t             data[1];

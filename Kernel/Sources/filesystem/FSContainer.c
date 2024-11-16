@@ -21,6 +21,15 @@ errno_t FSContainer_getInfo(FSContainerRef _Nonnull self, FSContainerInfo* pOutI
     return EOK;
 }
 
+// Prefetches a block and stores it in the disk cache if possible. The prefetch
+// is executed asynchronously. An error is returned if the prefetch could not
+// be successfully started. Note that the returned error does not indicate
+// whether the read operation as such was successful or not.
+errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
+{
+    return EIO;
+}
+
 // Acquires an empty block, filled with zero bytes. This block is not attached
 // to any disk address and thus may not be written back to disk.
 errno_t FSContainer_acquireEmptyBlock(FSContainerRef self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
@@ -53,6 +62,7 @@ errno_t FSContainer_relinquishBlockWriting(FSContainerRef _Nonnull self, DiskBlo
 
 class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
+func_def(prefetchBlock, FSContainer)
 func_def(acquireEmptyBlock, FSContainer)
 func_def(acquireBlock, FSContainer)
 func_def(relinquishBlock, FSContainer)

@@ -112,7 +112,7 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull p
 
 void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status)
 {
-    DiskCache_OnDiskBlockEndedIO(gDiskCache, pBlock, status);
+    DiskCache_OnBlockFinishedIO(gDiskCache, self, pBlock, status);
 }
 
 

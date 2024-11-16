@@ -33,6 +33,12 @@ open_class_funcs(FSContainer, Object,
     // medium(s).
     errno_t (*getInfo)(void* _Nonnull self, FSContainerInfo* pOutInfo);
 
+    // Prefetches a block and stores it in the disk cache if possible. The prefetch
+    // is executed asynchronously. An error is returned if the prefetch could not
+    // be successfully started. Note that the returned error does not indicate
+    // whether the read operation as such was successful or not.
+    errno_t (*prefetchBlock)(void* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba);
+
     // Acquires an empty block, filled with zero bytes. This block is not attached
     // to any disk address and thus may not be written back to disk.
     errno_t (*acquireEmptyBlock)(void* _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock);
@@ -59,6 +65,9 @@ open_class_funcs(FSContainer, Object,
 
 #define FSContainer_GetInfo(__self, __pOutInfo) \
 invoke_n(getInfo, FSContainer, __self, __pOutInfo)
+
+#define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
+invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
 #define FSContainer_AcquireEmptyBlock(__self, __pOutBlock) \
 invoke_n(acquireEmptyBlock, FSContainer, __self, __pOutBlock)

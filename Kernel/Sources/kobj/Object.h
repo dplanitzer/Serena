@@ -63,6 +63,10 @@ any_subclass_funcs(Object,
     _Object_Release((ObjectRef) __self)
 
 
+// For debugging purposes only: returns the current retain count.
+#define Object_GetRetainCount(__self) \
+    ((ObjectRef) __self)->retainCount
+
 
 // Do not call these functions directly. Use the macros defined above instead.
 extern errno_t _Object_Create(Class* _Nonnull pClass, size_t extraByteCount, ObjectRef _Nullable * _Nonnull pOutObject);
