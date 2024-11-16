@@ -60,7 +60,19 @@
 //   (however, the block is initially locked exclusive if the data must be
 //   retrieved first. The lock is downgraded to shared once the data is available)
 // * acquiring a block for modifications requires that it is locked exclusively
-//
+// * it is not possible for two block read operations to happen at the same time
+//   for the same block since a block read requires exclusive locking
+// * it is not possible for a block read and block write to happen at the same
+//   time for the same block since block reads require exclusive locking
+// * it is theoretically possible for a second write to get triggered while a
+//   write is already happening on a block. The second write simply joins the
+//   already ongoing write in this case and no new disk write is triggered. This
+//   is safe since the block data can not have been changed between those two
+//   writes since modifying the bloc is only possible if locking the block
+//   exclusively. However locking the block exclusively is only possible after
+//   all shared lock holders have dropped their lock and no other exclusive lock
+//   holder exists
+// 
 
 static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock);
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
@@ -516,7 +528,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
         }
     }
 
-    return EOK;
+    return pBlock->status;
 }
 
 // Starts a read operation and waits for it to complete. Note that this function
@@ -527,6 +539,23 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, DiskBlockOp op, bool isSync)
 {
     decl_try_err();
+
+    // Assert that if there is a I/O operation currently ongoing, that it is of
+    // the same kind as 'op'. See the requirements at the top of this file.
+    assert(pBlock->flags.op == kDiskBlockOp_Idle || pBlock->flags.op == op);
+
+
+    // Just join an already ongoing I/O operation if one is active (and of the
+    // same type as 'op')
+    if (pBlock->flags.op == op) {
+        if (isSync) {
+            err = _DiskCache_WaitIO(self, pBlock, op);
+        }
+        return err;
+    }
+
+
+    // Start a new I/O operation
     DiskDriverRef pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, pBlock->driverId);
     if (pDriver == NULL) {
         return ENODEV;
@@ -535,14 +564,11 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     pBlock->flags.op = op;
     pBlock->status = EOK;
 
-    if ((err = DiskDriver_BeginIO(pDriver, pBlock)) == EOK) {
-        // Wait for I/O to complete, if necessary
-        if (isSync) {
-            err = _DiskCache_WaitIO(self, pBlock, op);
-            if (err == EOK) {
-                err = pBlock->status;
-            }
-        }
+    err = DiskDriver_BeginIO(pDriver, pBlock);
+
+    // Wait for I/O to complete, if necessary
+    if (err == EOK && isSync) {
+        err = _DiskCache_WaitIO(self, pBlock, op);
     }
 
     Object_Release(pDriver);
