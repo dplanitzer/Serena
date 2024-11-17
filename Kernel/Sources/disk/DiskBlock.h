@@ -36,24 +36,24 @@ typedef enum DiskBlockOp {
 
 
 typedef struct DiskBlock {
-    ListNode            hashNode;
-    ListNode            lruNode;
-    DriverId            driverId;
-    MediaId             mediaId;
-    LogicalBlockAddress lba;
-    int                 useCount;
-    int                 shareCount;
+    ListNode            hashNode;           // Protected by Interlock
+    ListNode            lruNode;            // Protected by Interlock
+    DriverId            driverId;           // Protected by Interlock
+    MediaId             mediaId;            // Protected by Interlock
+    LogicalBlockAddress lba;                // Protected by Interlock
+    int                 useCount;           // Protected by Interlock
+    int                 shareCount;         // Protected by Interlock
     struct __Flags {
-        unsigned int        byteSize:16;
-        unsigned int        exclusive:1;
+        unsigned int        byteSize:16;    // Constant value
+        unsigned int        exclusive:1;    // Protected by Interlock
         unsigned int        hasData:1;      // Read: shared lock; Modify: exclusive lock
         unsigned int        isDirty:1;      // Read: shared lock; Modify: exclusive lock
-        unsigned int        op:2;           // Read/Modify: shared lock
-        unsigned int        async:1;        // Read/Modify: shared lock
+        unsigned int        op:2;           // Read: shared lock; Modify: exclusive lock
+        unsigned int        async:1;        // Read: shared lock; Modify: exclusive lock
         unsigned int        reserved:10;
     }                   flags;
-    errno_t             status;
-    uint8_t             data[1];
+    errno_t             status;             // Read: shared lock; Modify: exclusive lock
+    uint8_t             data[1];            // Read: shared lock; Modify: exclusive lock
 } DiskBlock;
 
 
