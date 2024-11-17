@@ -98,6 +98,7 @@ typedef struct DiskCache {
     List                lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
     size_t              blockCount;             // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
     size_t              blockCapacity;          // Maximum number of disk blocks that may exist at any given time
+    size_t              dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
     List                diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
 } DiskCache;
 
@@ -460,9 +461,6 @@ static errno_t _DiskCache_FlushBlock(DiskCacheRef _Nonnull _Locked self, DiskBlo
         err = _DiskCache_UpgradeBlockLock(self, pBlock);
         if (err == EOK) {
             err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
-            if (err == EOK) {
-                pBlock->flags.isDirty = 0;
-            }
         }
         _DiskCache_UnlockBlock(self, pBlock);
     }
@@ -651,8 +649,11 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
             break;
 
         case kWriteBlock_Deferred:
-            pBlock->flags.isDirty = 1;
-            // Block data will be written out when needed
+            if (pBlock->flags.isDirty == 0) {
+                pBlock->flags.isDirty = 1;
+                self->dirtyBlockCount++;
+                // Block data will be written out when needed
+            }
             break;
 
         default:
@@ -727,6 +728,10 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriv
     if (pBlock->flags.op == kDiskBlockOp_Read && status == EOK) {
         pBlock->flags.hasData = 1;
     }
+    else if (pBlock->flags.op == kDiskBlockOp_Write && status == EOK && pBlock->flags.isDirty) {
+        pBlock->flags.isDirty = 0;
+        self->dirtyBlockCount--;
+    }
 
     pBlock->flags.op = kDiskBlockOp_Idle;
     pBlock->flags.async = 0;
@@ -754,30 +759,32 @@ errno_t DiskCache_Flush(DiskCacheRef _Nonnull self)
     decl_try_err();
 
     Lock_Lock(&self->interlock);
-    size_t myLruChainGeneration = self->lruChainGeneration;
-    bool loop = true;
+    if (self->dirtyBlockCount > 0) {
+        size_t myLruChainGeneration = self->lruChainGeneration;
+        bool loop = true;
 
-    // We push dirty blocks to the disk, starting at the block that has been
-    // sitting dirty in memory for the longest time. Note that we drop the
-    // interlock while writing the block to the disk. This is why we need to
-    // check here whether the LRU chain has changed on us while we were unlocked.
-    // If so, we restart the iteration.
-    while (loop) {
-        List_ForEachReversed(&self->lruChain, ListNode, 
-            DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
+        // We push dirty blocks to the disk, starting at the block that has been
+        // sitting dirty in memory for the longest time. Note that we drop the
+        // interlock while writing the block to the disk. This is why we need to
+        // check here whether the LRU chain has changed on us while we were unlocked.
+        // If so, we restart the iteration.
+        while (loop) {
+            List_ForEachReversed(&self->lruChain, ListNode, 
+                DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
-            DiskBlock_BeginUse(pBlock);
-            _DiskCache_FlushBlock(self, pBlock);
-            DiskBlock_EndUse(pBlock);
+                DiskBlock_BeginUse(pBlock);
+                _DiskCache_FlushBlock(self, pBlock);
+                DiskBlock_EndUse(pBlock);
 
-            if (myLruChainGeneration != self->lruChainGeneration) {
-                loop = true;
-                break;
-            }
-            else {
-                loop = false;
-            }
-        );
+                if (myLruChainGeneration != self->lruChainGeneration) {
+                    loop = true;
+                    break;
+                }
+                else {
+                    loop = false;
+                }
+            );
+        }
     }
     Lock_Unlock(&self->interlock);
 
