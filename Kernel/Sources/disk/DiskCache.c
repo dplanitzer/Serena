@@ -74,7 +74,6 @@
 //   holder exists
 // 
 
-static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock);
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
 
 
@@ -187,7 +186,27 @@ static void _DiskCache_UnlockBlock(DiskCacheRef _Nonnull _Locked self, DiskBlock
     ConditionVariable_Broadcast(&self->condition);
 }
 
+// Upgrades the given block lock from being locked shared to locked exclusive.
+// Expects that the caller is holding a shared lock on the block
+static errno_t _DiskCache_UpgradeBlockLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+{
+    decl_try_err();
+
+    while (pBlock->shareCount > 1 && pBlock->flags.exclusive) {
+        err = ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity);
+        if (err != EOK) {
+            return err;
+        }
+    }
+
+    pBlock->shareCount--;
+    pBlock->flags.exclusive = 1;
+
+    return EOK;
+}
+
 // Downgrades the given block from exclusive lock mode to shared lock mode.
+// Expects that the caller is holding an exclusive lock on the block.
 static void _DiskCache_DowngradeBlockLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
     if (pBlock->flags.exclusive == 0) {
@@ -357,6 +376,36 @@ static void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef
     }
 }
 
+// Same as _DiskCache_GetBlock() but also locks the block with the requested
+// mode. The block is returned locked.
+static errno_t _DiskCache_GetAndLockBlock(DiskCacheRef _Nonnull _Locked self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, LockMode mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
+{
+    decl_try_err();
+    DiskBlockRef pBlock = NULL;
+
+    err = _DiskCache_GetBlock(self, driverId, mediaId, lba, &pBlock);
+    if (err == EOK) {
+        err = _DiskCache_LockBlock(self, pBlock, mode);
+        if (err != EOK) {
+            _DiskCache_PutBlock(self, pBlock);
+            pBlock = NULL;
+        }
+    }
+
+    *pOutBlock = pBlock;
+    return err;
+}
+
+static void _DiskCache_UnlockAndPutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock)
+{
+    _DiskCache_UnlockBlock(self, pBlock);
+    _DiskCache_PutBlock(self, pBlock);
+}
+
+
+//
+// API
+//
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (driverId, mediaId, lba)
@@ -374,17 +423,17 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DriverId driverId, M
     Lock_Lock(&self->interlock);
 
     // Get the block
-    err = _DiskCache_GetBlock(self, driverId, mediaId, lba, &pBlock);
-
-
-    // Trigger an async read if the block has no data
+    err = _DiskCache_GetAndLockBlock(self, driverId, mediaId, lba, kLockMode_Shared, &pBlock);
     if (err == EOK && !pBlock->flags.hasData) {
-        _DiskCache_LockBlock(self, pBlock, kLockMode_Exclusive);
-
-        err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, false);
-        if (err != EOK) {
-            _DiskCache_RelinquishBlock(self, pBlock);
+        // Upgrade the lock to exclusive and trigger an async read since this
+        // block has no data
+        err = _DiskCache_UpgradeBlockLock(self, pBlock);
+        if (err == EOK) {
+            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, false);
         }
+    }
+    if (err != EOK && pBlock) {
+        _DiskCache_UnlockAndPutBlock(self, pBlock);
     }
 
     Lock_Unlock(&self->interlock);
@@ -423,15 +472,11 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
 
     Lock_Lock(&self->interlock);
 
-    // Get the block
-    try(_DiskCache_GetBlock(self, driverId, mediaId, lba, &pBlock));
-
-
-    // Lock the block. Lock mode depends on whether the block already has data
-    // or not and whether the acquisition mode indicates that the caller wants
-    // to modify the block contents or not.
+    // Get and lock the block. Lock mode depends on whether the block already
+    // has data or not and whether the acquisition mode indicates that the
+    // caller wants to modify the block contents or not.
     const LockMode lockMode = (mode == kAcquireBlock_ReadOnly && pBlock->flags.hasData) ? kLockMode_Shared : kLockMode_Exclusive;
-    _DiskCache_LockBlock(self, pBlock, lockMode);
+    try(_DiskCache_GetAndLockBlock(self, driverId, mediaId, lba, lockMode, &pBlock));
 
 
     // States:
@@ -471,7 +516,7 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
             if (!pBlock->flags.hasData) {
                 err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true);
                 if (err != EOK) {
-                    _DiskCache_RelinquishBlock(self, pBlock);
+                    _DiskCache_UnlockAndPutBlock(self, pBlock);
                 }
                 if (mode == kAcquireBlock_ReadOnly) {
                     _DiskCache_DowngradeBlockLock(self, pBlock);
@@ -492,17 +537,11 @@ catch:
 }
 
 
-static void _DiskCache_RelinquishBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nullable pBlock)
-{
-    _DiskCache_UnlockBlock(self, pBlock);
-    _DiskCache_PutBlock(self, pBlock);
-}
-
 void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock)
 {
     if (pBlock) {
         Lock_Lock(&self->interlock);
-        _DiskCache_RelinquishBlock(self, pBlock);
+        _DiskCache_UnlockAndPutBlock(self, pBlock);
         Lock_Unlock(&self->interlock);
     }
 }
@@ -540,7 +579,7 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
             abort(); break;
     }
 
-    _DiskCache_RelinquishBlock(self, pBlock);
+    _DiskCache_UnlockAndPutBlock(self, pBlock);
 
     Lock_Unlock(&self->interlock);
 
