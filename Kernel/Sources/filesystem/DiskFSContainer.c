@@ -64,6 +64,13 @@ errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, Dri
     return DiskCache_PrefetchBlock(gDiskCache, driverId, mediaId, lba);
 }
 
+// Flushes the block at disk address (driverId, mediaId, lba) to disk if it
+// contains unwritten (dirty) data. Does nothing if the block is clean.
+errno_t DiskFSContainer_flushBlock(struct DiskFSContainer* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
+{
+    return DiskCache_FlushBlock(gDiskCache, driverId, mediaId, lba);
+}
+
 // Acquires an empty block, filled with zero bytes. This block is not attached
 // to any disk address and thus may not be written back to disk.
 errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
@@ -98,6 +105,7 @@ errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull 
 class_func_defs(DiskFSContainer, Object,
 override_func_def(getInfo, DiskFSContainer, FSContainer)
 override_func_def(prefetchBlock, DiskFSContainer, FSContainer)
+override_func_def(flushBlock, DiskFSContainer, FSContainer)
 override_func_def(acquireEmptyBlock, DiskFSContainer, FSContainer)
 override_func_def(acquireBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlock, DiskFSContainer, FSContainer)

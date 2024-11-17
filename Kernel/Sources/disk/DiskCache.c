@@ -75,6 +75,7 @@
 //   exclusively. However locking the block exclusively is only possible after
 //   all shared lock holders have dropped their lock and no other exclusive lock
 //   holder exists
+// * a blocks's isDirty can not be true if hasData is false 
 // 
 
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
@@ -92,10 +93,11 @@ typedef enum LockMode {
 typedef struct DiskCache {
     Lock                interlock;
     ConditionVariable   condition;
-    DiskBlockRef        emptyBlock;     // Single, shared empty block (for read only access)
-    List                lruChain;       // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
-    size_t              blockCount;     // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
-    size_t              blockCapacity;  // Maximum number of disk blocks that may exist at any given time
+    DiskBlockRef        emptyBlock;             // Single, shared empty block (for read only access)
+    size_t              lruChainGeneration;     // Incremented every time the LRU chain is modified
+    List                lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
+    size_t              blockCount;             // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
+    size_t              blockCapacity;          // Maximum number of disk blocks that may exist at any given time
     List                diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
 } DiskCache;
 
@@ -226,7 +228,7 @@ static void _DiskCache_DowngradeBlockLock(DiskCacheRef _Nonnull _Locked self, Di
 }
 
 
-#define DiskBlockFromCachePointer(__ptr) \
+#define DiskBlockFromLruChainPointer(__ptr) \
 (DiskBlockRef) (((uint8_t*)__ptr) - offsetof(struct DiskBlock, lruNode))
 
 static void _DiskCache_RegisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
@@ -236,6 +238,7 @@ static void _DiskCache_RegisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlo
 
     List_InsertBeforeFirst(chain, &pBlock->hashNode);
     List_InsertBeforeFirst(&self->lruChain, &pBlock->lruNode);
+    self->lruChainGeneration++;
 }
 
 static void _DiskCache_UnregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
@@ -245,6 +248,7 @@ static void _DiskCache_UnregisterBlock(DiskCacheRef _Nonnull _Locked self, DiskB
 
     List_Remove(chain, &pBlock->hashNode);
     List_Remove(&self->lruChain, &pBlock->lruNode);
+    self->lruChainGeneration++;
 }
 
 // Looks up the disk block registered for the disk address (driverId, mediaId, lba)
@@ -278,7 +282,7 @@ static void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
 {
     print("{");
     List_ForEach(&self->lruChain, ListNode,
-        DiskBlockRef pb = DiskBlockFromCachePointer(pCurNode);
+        DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
         print("%u", pb->lba);
         if (pCurNode->next) {
             print(", ");
@@ -309,7 +313,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
     DiskBlockRef pBlock = NULL;
 
     List_ForEachReversed(&self->lruChain, ListNode, 
-        DiskBlockRef pb = DiskBlockFromCachePointer(pCurNode);
+        DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
         if (!DiskBlock_InUse(pb)) {
             pBlock = pb;
@@ -357,6 +361,7 @@ retry:
     DiskBlock_BeginUse(pBlock);
     List_Remove(&self->lruChain, &pBlock->lruNode);
     List_InsertBeforeFirst(&self->lruChain, &pBlock->lruNode);
+    self->lruChainGeneration++;
 
 catch:
     *pOutBlock = pBlock;
@@ -444,6 +449,52 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DriverId driverId, M
     return err;
 }
 
+// Check whether the given block has dirty data and write it synchronously to
+// disk, if so.
+static errno_t _DiskCache_FlushBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock)
+{
+    decl_try_err();
+
+    err = _DiskCache_LockBlock(self, pBlock, kLockMode_Shared);
+    if (err == EOK && pBlock->flags.isDirty) {
+        err = _DiskCache_UpgradeBlockLock(self, pBlock);
+        if (err == EOK) {
+            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
+            if (err == EOK) {
+                pBlock->flags.isDirty = 0;
+            }
+        }
+        _DiskCache_UnlockBlock(self, pBlock);
+    }
+
+    return err;
+}
+
+errno_t DiskCache_FlushBlock(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
+{
+    decl_try_err();
+    DiskBlockRef pBlock = NULL;
+
+    // Can not address blocks on a disk or media that doesn't exist
+    if (driverId == kDriverId_None || mediaId == kMediaId_None) {
+        return EIO;
+    }
+
+
+    Lock_Lock(&self->interlock);
+
+    // Get the block
+    err = _DiskCache_GetAndLockBlock(self, driverId, mediaId, lba, kLockMode_Shared, &pBlock);
+    if (err == EOK) {
+        err = _DiskCache_FlushBlock(self, pBlock);
+        _DiskCache_PutBlock(self, pBlock);
+    }
+
+    Lock_Unlock(&self->interlock);
+
+    return err;
+}
+
 // Returns an empty block (all data is zero) for read-only operations.
 errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
@@ -480,6 +531,14 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     // caller wants to modify the block contents or not.
     const LockMode lockMode = (mode == kAcquireBlock_ReadOnly) ? kLockMode_Shared : kLockMode_Exclusive;
     try(_DiskCache_GetAndLockBlock(self, driverId, mediaId, lba, lockMode, &pBlock));
+
+
+    // Check whether we want to modify the block contents and whether the block
+    // is dirty. If so, write the current block data to the disk first. We do
+    // this synchronously.
+    if (lockMode == kLockMode_Exclusive && pBlock->flags.isDirty) {
+        try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true));
+    }
 
 
     // States:
@@ -578,6 +637,9 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
 
     Lock_Lock(&self->interlock);
 
+    // We must be holding the exclusive lock here
+    assert(pBlock->flags.exclusive == 1);
+
     switch (mode) {
         case kWriteBlock_Sync:
             _DiskCache_DowngradeBlockLock(self, pBlock);
@@ -589,8 +651,8 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
             break;
 
         case kWriteBlock_Deferred:
-            // XXX mark the block as dirty
-            abort();
+            pBlock->flags.isDirty = 1;
+            // Block data will be written out when needed
             break;
 
         default:
@@ -691,6 +753,33 @@ errno_t DiskCache_Flush(DiskCacheRef _Nonnull self)
 {
     decl_try_err();
 
-    //XXX
+    Lock_Lock(&self->interlock);
+    size_t myLruChainGeneration = self->lruChainGeneration;
+    bool loop = true;
+
+    // We push dirty blocks to the disk, starting at the block that has been
+    // sitting dirty in memory for the longest time. Note that we drop the
+    // interlock while writing the block to the disk. This is why we need to
+    // check here whether the LRU chain has changed on us while we were unlocked.
+    // If so, we restart the iteration.
+    while (loop) {
+        List_ForEachReversed(&self->lruChain, ListNode, 
+            DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
+
+            DiskBlock_BeginUse(pBlock);
+            _DiskCache_FlushBlock(self, pBlock);
+            DiskBlock_EndUse(pBlock);
+
+            if (myLruChainGeneration != self->lruChainGeneration) {
+                loop = true;
+                break;
+            }
+            else {
+                loop = false;
+            }
+        );
+    }
+    Lock_Unlock(&self->interlock);
+
     return err;
 }

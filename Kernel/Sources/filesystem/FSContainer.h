@@ -39,6 +39,10 @@ open_class_funcs(FSContainer, Object,
     // whether the read operation as such was successful or not.
     errno_t (*prefetchBlock)(void* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba);
 
+    // Flushes the block at disk address (driverId, mediaId, lba) to disk if it
+    // contains unwritten (dirty) data. Does nothing if the block is clean.
+    errno_t (*flushBlock)(void* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba);
+
     // Acquires an empty block, filled with zero bytes. This block is not attached
     // to any disk address and thus may not be written back to disk.
     errno_t (*acquireEmptyBlock)(void* _Nonnull self, DiskBlockRef _Nullable * _Nonnull pOutBlock);
@@ -68,6 +72,9 @@ invoke_n(getInfo, FSContainer, __self, __pOutInfo)
 
 #define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
 invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
+
+#define FSContainer_FlushBlock(__self, __driverId, __mediaId, __lba) \
+invoke_n(flushBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
 #define FSContainer_AcquireEmptyBlock(__self, __pOutBlock) \
 invoke_n(acquireEmptyBlock, FSContainer, __self, __pOutBlock)

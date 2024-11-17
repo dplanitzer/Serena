@@ -47,6 +47,7 @@ typedef struct DiskBlock {
         unsigned int        byteSize:16;
         unsigned int        exclusive:1;
         unsigned int        hasData:1;      // Read: shared lock; Modify: exclusive lock
+        unsigned int        isDirty:1;      // Read: shared lock; Modify: exclusive lock
         unsigned int        op:2;           // Read/Modify: shared lock
         unsigned int        async:1;        // Read/Modify: shared lock
         unsigned int        reserved:10;
