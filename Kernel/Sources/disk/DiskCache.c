@@ -14,6 +14,9 @@
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
 
+// Define to force all writes to be synchronous
+//#define __FORCE_WRITES_SYNC 1
+
 //
 // This is a massively concurrent disk cache implementation. Meaning, an important
 // goal here is to allow as much parallism as possible:
@@ -192,6 +195,8 @@ static errno_t _DiskCache_UpgradeBlockLock(DiskCacheRef _Nonnull _Locked self, D
 {
     decl_try_err();
 
+    assert(pBlock->shareCount > 0);
+
     while (pBlock->shareCount > 1 && pBlock->flags.exclusive) {
         err = ConditionVariable_Wait(&self->condition, &self->interlock, kTimeInterval_Infinity);
         if (err != EOK) {
@@ -209,9 +214,7 @@ static errno_t _DiskCache_UpgradeBlockLock(DiskCacheRef _Nonnull _Locked self, D
 // Expects that the caller is holding an exclusive lock on the block.
 static void _DiskCache_DowngradeBlockLock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
-    if (pBlock->flags.exclusive == 0) {
-        abort();
-    }
+    assert(pBlock->flags.exclusive == 1);
 
     pBlock->flags.exclusive = 0;
     pBlock->shareCount++;
@@ -475,7 +478,7 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     // Get and lock the block. Lock mode depends on whether the block already
     // has data or not and whether the acquisition mode indicates that the
     // caller wants to modify the block contents or not.
-    const LockMode lockMode = (mode == kAcquireBlock_ReadOnly && pBlock->flags.hasData) ? kLockMode_Shared : kLockMode_Exclusive;
+    const LockMode lockMode = (mode == kAcquireBlock_ReadOnly) ? kLockMode_Shared : kLockMode_Exclusive;
     try(_DiskCache_GetAndLockBlock(self, driverId, mediaId, lba, lockMode, &pBlock));
 
 
@@ -501,26 +504,33 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     //  replace:    wait for write to completes
     switch (mode) {
         case kAcquireBlock_Cleared:
+            // We always clear the block data because we don't know whether the
+            // data is all zero or not
+            try(_DiskCache_UpgradeBlockLock(self, pBlock));
             memset(pBlock->data, 0, pBlock->flags.byteSize);
             pBlock->flags.hasData = 1;
+            _DiskCache_DowngradeBlockLock(self, pBlock);
             break;
 
         case kAcquireBlock_Replace:
             // Caller accepts whatever is currently in the buffer since it's
             // going to replace every byte anyway.
+            try(_DiskCache_UpgradeBlockLock(self, pBlock));
             pBlock->flags.hasData = 1;
+            _DiskCache_DowngradeBlockLock(self, pBlock);
+            break;
+
+        case kAcquireBlock_Update:
+            if (!pBlock->flags.hasData) {
+                try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true));
+            }
             break;
 
         case kAcquireBlock_ReadOnly:
-        case kAcquireBlock_Update:
             if (!pBlock->flags.hasData) {
-                err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true);
-                if (err != EOK) {
-                    _DiskCache_UnlockAndPutBlock(self, pBlock);
-                }
-                if (mode == kAcquireBlock_ReadOnly) {
-                    _DiskCache_DowngradeBlockLock(self, pBlock);
-                }
+                try(_DiskCache_UpgradeBlockLock(self, pBlock));
+                try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true));
+                _DiskCache_DowngradeBlockLock(self, pBlock);
             }
             break;
 
@@ -530,8 +540,13 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
     }
 
 catch:
+    if (err != EOK && pBlock) {
+        _DiskCache_UnlockAndPutBlock(self, pBlock);
+        pBlock = NULL;
+    }
+
     Lock_Unlock(&self->interlock);
-    *pOutBlock = (err == EOK) ? pBlock : NULL;
+    *pOutBlock = pBlock;
 
     return err;
 }
@@ -557,6 +572,9 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
         // The empty block is for reading only
         abort();
     }
+#if defined(__FORCE_WRITES_SYNC)
+    mode = kWriteBlock_Sync;
+#endif
 
     Lock_Lock(&self->interlock);
 
@@ -653,10 +671,9 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriv
     pBlock->status = status;
 
     if (isAsync) {
-        // Drop exclusive lock if this is a read op
-        // Drop shared lock if this is a write op
-        _DiskCache_UnlockBlock(self, pBlock);
-        _DiskCache_PutBlock(self, pBlock);
+        // Drops exclusive lock if this is a read op
+        // Drops shared lock if this is a write op
+        _DiskCache_UnlockAndPutBlock(self, pBlock);
     }
     else {
         // Wake up WaitIO()
