@@ -60,6 +60,10 @@ open_class_funcs(FSContainer, Object,
     // Relinquishes the disk block 'pBlock' and writes the disk block back to
     // disk according to the write back mode 'mode'.
     errno_t (*relinquishBlockWriting)(void* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode);
+
+    // Flushes all cached and unwritten blocks belonging to this FS container
+    // to disk(s).
+    errno_t (*flush)(void* _Nonnull self);
 );
 
 
@@ -87,5 +91,8 @@ invoke_n(relinquishBlock, FSContainer, __self, __pBlock)
 
 #define FSContainer_RelinquishBlockWriting(__self, __pBlock, __mode) \
 invoke_n(relinquishBlockWriting, FSContainer, __self, __pBlock, __mode)
+
+#define FSContainer_Flush(__self) \
+invoke_0(flush, FSContainer, __self)
 
 #endif /* FSContainer_h */

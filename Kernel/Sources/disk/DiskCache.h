@@ -26,7 +26,7 @@ extern errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId drive
 extern void DiskCache_RelinquishBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock);
 extern errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode);
 
-extern errno_t DiskCache_Flush(DiskCacheRef _Nonnull self);
+extern errno_t DiskCache_Flush(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId);
 
 extern void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriver, DiskBlockRef _Nonnull pBlock, errno_t status);
 

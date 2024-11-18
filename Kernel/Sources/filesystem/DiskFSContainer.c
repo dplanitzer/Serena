@@ -101,6 +101,13 @@ errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull 
     return DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, mode);
 }
 
+// Flushes all cached and unwritten blocks belonging to this FS container to
+// disk(s).
+errno_t DiskFSContainer_flush(struct DiskFSContainer* _Nonnull self)
+{
+    return DiskCache_Flush(gDiskCache, self->driverId, self->mediaId);
+}
+
 
 class_func_defs(DiskFSContainer, Object,
 override_func_def(getInfo, DiskFSContainer, FSContainer)
@@ -110,4 +117,5 @@ override_func_def(acquireEmptyBlock, DiskFSContainer, FSContainer)
 override_func_def(acquireBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlockWriting, DiskFSContainer, FSContainer)
+override_func_def(flush, DiskFSContainer, FSContainer)
 );

@@ -816,9 +816,15 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriv
 }
 
 
-errno_t DiskCache_Flush(DiskCacheRef _Nonnull self)
+// Synchronously flushes all cached and unwritten disk block for drive 'driverId'
+// and media 'mediaId', to disk. Does nothing if either value is kXXX_None. 
+errno_t DiskCache_Flush(DiskCacheRef _Nonnull self, DriverId driverId, MediaId mediaId)
 {
     decl_try_err();
+
+    if (driverId == kDriverId_None || mediaId == kMediaId_None) {
+        return EOK;
+    }
 
     Lock_Lock(&self->interlock);
     if (self->dirtyBlockCount > 0) {
@@ -835,7 +841,14 @@ errno_t DiskCache_Flush(DiskCacheRef _Nonnull self)
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
                 DiskBlock_BeginUse(pBlock);
-                _DiskCache_FlushBlock(self, pBlock);
+                if (pBlock->driverId == driverId && pBlock->mediaId == mediaId) {
+                    const errno_t err1 = _DiskCache_FlushBlock(self, pBlock);
+                    if (err == EOK) {
+                        // Return the first error that we encountered. However,
+                        // we continue flushing as many blocks as we can
+                        err = err1;
+                    }
+                }
                 DiskBlock_EndUse(pBlock);
 
                 if (myLruChainGeneration != self->lruChainGeneration) {
@@ -849,6 +862,4 @@ errno_t DiskCache_Flush(DiskCacheRef _Nonnull self)
         }
     }
     Lock_Unlock(&self->interlock);
-
-    return err;
 }

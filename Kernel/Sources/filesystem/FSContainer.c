@@ -34,7 +34,7 @@ errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, DriverId driverI
 // contains unwritten (dirty) data. Does nothing if the block is clean.
 errno_t FSContainer_flushBlock(FSContainerRef _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
 {
-    return EIO;
+    return EOK;
 }
 
 // Acquires an empty block, filled with zero bytes. This block is not attached
@@ -66,6 +66,13 @@ errno_t FSContainer_relinquishBlockWriting(FSContainerRef _Nonnull self, DiskBlo
     return EIO;
 }
 
+// Flushes all cached and unwritten blocks belonging to this FS container to
+// disk(s).
+errno_t FSContainer_flush(FSContainerRef _Nonnull self)
+{
+    return EOK;
+}
+
 
 class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
@@ -75,4 +82,5 @@ func_def(acquireEmptyBlock, FSContainer)
 func_def(acquireBlock, FSContainer)
 func_def(relinquishBlock, FSContainer)
 func_def(relinquishBlockWriting, FSContainer)
+func_def(flush, FSContainer)
 );
