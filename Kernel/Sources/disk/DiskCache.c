@@ -741,8 +741,19 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->status = EOK;
 
+    if (op == kDiskBlockOp_Write) {
+        _DiskCache_DowngradeBlockLock(self, pBlock);
+    }
+
     err = DiskDriver_BeginIO(pDriver, pBlock);
-    err = (err == EOK && isSync) ? _DiskCache_WaitIO(self, pBlock, op) : err;
+    if (err == EOK && isSync) {
+        err = _DiskCache_WaitIO(self, pBlock, op);
+        // The lock is now held in exclusive mode again, if succeeded
+    }
+    if (err != EOK && op == kDiskBlockOp_Write) {
+        try_bang(_DiskCache_UpgradeBlockLock(self, pBlock));
+    }
+
 
     // Return with the lock held exclusively if this is a synchronous I/O op
 #if DEBUG
