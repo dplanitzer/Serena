@@ -11,91 +11,27 @@
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/floppy/FloppyDriver.h>
-#include <driver/disk/RamDisk.h>
-#include <driver/disk/RomDisk.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
-#include <filesystem/SerenaDiskImage.h>
-#include <System/ByteOrder.h>
 
 #define MAX_NAME_LENGTH 16
 
-extern char _text, _etext, _data, _edata;
 
-
-// Scans the ROM area following the end of the kernel looking for an embedded
-// Serena disk image with a root filesystem.
-static const SMG_Header* _Nullable find_rom_rootfs(void)
+// Finds a RAM or ROM disk to boot from. Returns kDriver_None if drive found.
+static DriverId get_boot_mem_disk_id(void)
 {
-    const size_t txt_size = &_etext - &_text;
-    const size_t dat_size = &_edata - &_data;
-    const char* ps = (const char*)(BOOT_ROM_BASE + txt_size + dat_size);
-    const uint32_t* pe4 = (const uint32_t*)__min((const char*)(BOOT_ROM_BASE + BOOT_ROM_SIZE), ps + CPU_PAGE_SIZE);
-    const uint32_t* p4 = (const uint32_t*)__Ceil_Ptr_PowerOf2(ps, 4);
-    const SMG_Header* smg_hdr = NULL;
-    const uint32_t smg_sig = UInt32_HostToBig(SMG_SIGNATURE);
+    DriverId driverId = DriverCatalog_GetDriverIdForName(gDriverCatalog, "ram");
 
-    while (p4 < pe4) {
-        if (*p4 == smg_sig) {
-            smg_hdr = (const SMG_Header*)p4;
-            break;
-        }
-
-        p4++;
+    if (driverId == kDriverId_None) {
+        driverId = DriverCatalog_GetDriverIdForName(gDriverCatalog, "rom");
     }
 
-    return smg_hdr;
+    return driverId;
 }
 
-// Scans the ROM area following the end of the kernel for a embedded Serena disk
-// image with the root filesystem.
-static DriverId get_boot_mem_disk_id(const SMG_Header* _Nonnull smg_hdr)
-{
-    decl_try_err();
-    const char* romDiskName = "rom";
-    const char* ramDiskName = "ram0";
-    const char* diskName = NULL;
-    const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
-    DiskDriverRef disk;
-
-    // Create a RAM disk and copy the ROM disk image into it. We assume for now
-    // that the disk image is exactly 64k in size.
-    if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
-        try(RomDisk_Create(romDiskName, dmg, smg_hdr->blockSize, smg_hdr->physicalBlockCount, false, (RomDiskRef*)&disk));
-        try(Driver_Start((DriverRef)disk));
-        diskName = romDiskName;
-    }
-    else {
-        FSContainerRef fsContainer = NULL;
-        DiskInfo info;
-
-        try(RamDisk_Create(ramDiskName, smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
-        try(Driver_Start((DriverRef)disk));
-        try(DiskDriver_GetInfo(disk, &info));
-        diskName = ramDiskName;
-
-        try(DiskFSContainer_Create(Driver_GetDriverId(disk), info.mediaId, &fsContainer));
-        for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
-            DiskBlockRef pb;
-
-            try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Replace, &pb));
-            memcpy(DiskBlock_GetMutableData(pb), &dmg[lba * smg_hdr->blockSize], DiskBlock_GetByteSize(pb));
-            try(FSContainer_RelinquishBlockWriting(fsContainer, pb, kWriteBlock_Sync));
-        }
-        Object_Release(fsContainer);
-    }
-
-
-    // Create a SerenaFS instance and mount it as the root filesystem on the RAM
-    // disk
-    return DriverCatalog_GetDriverIdForName(gDriverCatalog, diskName);
-
-catch:
-    return kDriverId_None;
-}
-
-// Tries to mount the root filesystem from a floppy disk in drive 0.
+// Finds a floppy disk to boot from. Returns kDriver_None if no bootable floppy
+// drive found.
 static DriverId get_boot_floppy_disk_id(void)
 {
     return DriverCatalog_GetDriverIdForName(gDriverCatalog, kFloppyDrive0Name);
@@ -166,8 +102,8 @@ catch:
 void init_root_filesystem(void)
 {
     decl_try_err();
-    const SMG_Header* rom_dmg = find_rom_rootfs();
     int state = 0;
+    const DriverId memDiskId = get_boot_mem_disk_id();
     DriverId diskId = kDriverId_None;
     bool shouldRetry = false;
 
@@ -176,12 +112,12 @@ void init_root_filesystem(void)
             case 0:
                 // Boot floppy disk
                 diskId = get_boot_floppy_disk_id();
-                shouldRetry = (rom_dmg == NULL);
+                shouldRetry = (memDiskId == kDriverId_None);
                 break;
 
             case 1:
                 // ROM disk image, if it exists
-                diskId = (rom_dmg) ? get_boot_mem_disk_id(rom_dmg) : kDriverId_None;
+                diskId = memDiskId;
                 shouldRetry = false;
                 break;
 
