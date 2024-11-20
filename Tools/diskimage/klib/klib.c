@@ -11,21 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
-void fatal(const char* _Nonnull format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-
-    vprintf(format, ap);
-    va_end(ap);
-
-    exit(EXIT_FAILURE);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
 #include "Atomic.h"
 
 // Atomically assign 'newValue' to the atomic bool stored in the given memory

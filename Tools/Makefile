@@ -118,7 +118,7 @@ DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/PathComponent.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Alloc.c ../Kernel/Sources/filesystem/serenafs/SerenaFS_Inode.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Directory.c ../Kernel/Sources/filesystem/serenafs/SerenaFS_File.c
 DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Format.c ../Kernel/Sources/filesystem/serenafs/SerenaFS.c
-DISKIMAGE_SRCS += diskimage/diskimage.c diskimage/diskimage_win32.c
+DISKIMAGE_SRCS += diskimage/diskimage.c diskimage/diskimage_cmds.c diskimage/diskimage_win32.c
 
 $(TOOLS_DIR)/diskimage: $(DISKIMAGE_SRCS) $(OBJS_DIR)/clap.lib
 	cl /I diskimage\ /I $(LIBSYSTEM_HEADERS_DIR) /I $(LIBCLAP_HEADERS_DIR) /I ..\Kernel\Sources\ /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^

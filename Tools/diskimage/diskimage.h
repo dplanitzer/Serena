@@ -9,6 +9,7 @@
 #ifndef diskimage_h
 #define diskimage_h
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -16,6 +17,12 @@
 #include <System/FilePermissions.h>
 #include <System/Types.h>
 #include "DiskImageFormat.h"
+
+extern void vfatal(const char* fmt, va_list ap);
+extern void fatal(const char* fmt, ...);
+
+extern void cmd_createDiskImage(const char* pRootPath, const char* pDstPath, const DiskImageFormat* diskImageFormat);
+
 
 typedef struct di_direntry {
     const char*     name;
@@ -36,7 +43,6 @@ typedef struct di_iterate_directory_callbacks {
 } di_iterate_directory_callbacks;
 
 extern errno_t di_iterate_directory(const char* _Nonnull rootPath, const di_iterate_directory_callbacks* _Nonnull cb, void* _Nullable pInitialToken);
-
 extern errno_t di_concat_path(const char* _Nonnull basePath, const char* _Nonnull fileName, char* _Nonnull buffer, size_t nBufferSize);
 
 #endif /* diskimage_h */

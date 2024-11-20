@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <System/_cmndef.h>
 
+// defined in diskimage.c
 extern void fatal(const char* _Nonnull format, ...);
 
 #endif /* klib_Assert_h */
