@@ -152,9 +152,9 @@ bool is_hex = false;
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
-    CLAP_USAGE("type [--hex] <path>"),
+    CLAP_USAGE("type [-x | --hex] <path>"),
 
-    CLAP_BOOL('\0', "hex", &is_hex, "Type the file contents as columns of hexadecimal numbers"),
+    CLAP_BOOL('x', "hex", &is_hex, "Type the file contents as columns of hexadecimal numbers"),
     CLAP_REQUIRED_POSITIONAL_STRING(&path, "expected a file to type")
 );
 

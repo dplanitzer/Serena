@@ -50,7 +50,7 @@ The generated ROM image is 256KB in size and it includes the necessary IRQ auto-
 
 ## Diskimage
 
-The diskimage tool allows you to create a disk image. It currently supports the creation of Amiga DD and Amiga HD ADF disk images plus Serena disk images. It creates an Amiga DD disk image by default. Use the `--disk` option to select the disk image format (one of `adf-dd`, `adf-hd` or `smg`). Use the `--size` option to specify the size for a Serena disk image.
+The diskimage tool supports the creation of a disk image from a directory stored in the local file system and it supports a number of commands to work with disk images. The current version allows you to create Amiga DD and HD ADF disk images, plus Serena disk images. It creates Amiga DD disk images by default. Use the `--disk` option to select the disk image format (one of `adf-dd`, `adf-hd` or `smg`). Use the `--size` option to specify the size for a Serena disk image.
 
 The diskimage tool expects a path to a directory on the host system as input. The directory at this path represents the root folder of the disk image that should be created. Diskimage first creates an empty disk image file, formats it with SerenaFS and then recursively copies all directories and files from the host file system to the SerenaFS disk image. However, hidden files, special files and system files are not copied.
 
@@ -61,6 +61,32 @@ diskimage create path/to/host_directory path/to/dmg
 ```
 
 Where the first argument tells diskimage that it should create a new disk image file. The second argument is the path to the directory in the host file system that represents the SerenaFS root directory and the third argument is the path to where the disk image file should be written.
+
+Use the describe command to print information about a disk image:
+
+```
+diskimage describe path/to/dmg
+```
+
+This prints the type of the disk image, the geometry of the disk and the sector and disk size to the console.
+
+Use the get command to read a single sector or track from a disk image:
+
+```
+diskimage get --sector=c:h:s path/to/dmg
+```
+
+Where 'c' is the cylinder number, 'h' is the head number and 's' is the sector number of the sector you want to read from the disk image. Note that the cylinder and head numbers are 0-based while the sector number is 1-based. The contents of the sector is written to the console as a hex dump. Use the `--binary` switch to output the raw binary data.
+
+Another way to address a sector is to use a logical block address like this: `--sector=lba` where 'lba' is a 0-based integer.
+
+The contents of a whole track can be read by issuing this kind of command:
+
+```
+diskimage get --track=c:h path/to/dmg
+```
+
+Where 'c' is the cylinder and 'h' is the head number of the first sector in the track.
 
 ## Keymap
 

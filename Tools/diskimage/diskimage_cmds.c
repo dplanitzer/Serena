@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <klib/klib.h>
+#include <driver/amiga/floppy/adf.h>
 #include <filesystem/serenafs/SerenaFS.h>
 
 
@@ -122,7 +123,7 @@ static void initDefaultPermissionsAndUser(void)
     gDefaultUser = kUser_Root;
 }
 
-void cmd_createDiskImage(const char* pRootPath, const char* pDstPath, const DiskImageFormat* diskImageFormat)
+errno_t cmd_createDiskImage(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat)
 {
     decl_try_err();
     RamFSContainerRef pContainer = NULL;
@@ -146,16 +147,155 @@ void cmd_createDiskImage(const char* pRootPath, const char* pDstPath, const Disk
     cb.file = (di_file_callback)copyFile;
 
     try(Filesystem_AcquireRootDirectory(pFS, &pRootDir));
-    try(di_iterate_directory(pRootPath, &cb, pRootDir));
+    try(di_iterate_directory(rootPath, &cb, pRootDir));
     Filesystem_RelinquishNode(pFS, pRootDir);
     try(Filesystem_Stop(pFS));
 
-    try(RamFSContainer_WriteToPath(pContainer, pDstPath));
+    try(RamFSContainer_WriteToPath(pContainer, dmgPath));
     
     Object_Release(pFS);
     Object_Release(pContainer);
-    return;
 
 catch:
-    fatal(strerror(err));
+    return err;
+}
+
+
+//
+// diskimage describe
+//
+
+errno_t cmd_describeDiskImage(const DiskImage* _Nonnull info)
+{
+    const char* formatName;
+
+    switch (info->format) {
+        case kDiskImage_Amiga_DD_Floppy:    formatName = "Amiga DD Floppy"; break;
+        case kDiskImage_Amiga_HD_Floppy:    formatName = "Amiga HD Floppy"; break;
+        case kDiskImage_Serena:             formatName = "Serena Disk Image"; break;
+        default:                            abort(); break;
+    }
+
+    printf("Type: %s\n\n", formatName);
+
+    if (info->format == kDiskImage_Serena) {
+        printf("Logical Size: %zi Blocks\n", info->cylindersPerDisk);
+        printf("Physical Size: %zi Blocks\n\n", info->physicalSize / info->bytesPerSector);
+        printf("Sector Size: %ziB\n", info->bytesPerSector);
+        printf("Disk Size:   %ziKB\n", info->physicalSize / 1024);
+    }
+    else {
+        printf("Cylinders: %zi\n", info->cylindersPerDisk);
+        printf("Heads:     %zi\n", info->headsPerCylinder);
+        printf("Sectors:   %zi\n\n", info->sectorsPerTrack);
+        printf("Sector Size: %ziB\n", info->bytesPerSector);
+        printf("Disk Size:   %ziKB\n", info->physicalSize / 1024);
+    }
+
+    return EOK;
+}
+
+
+//
+// diskimage get --sector=c:h:s
+//
+
+#define ADDR_FMT "%.8zx"
+
+static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_t ncolumns)
+{
+    printf(ADDR_FMT"   ", addr);
+
+    for (size_t i = 0; i < nbytes; i++) {
+        printf("%.2hhx ", buf[i]);
+    }
+    for (size_t i = nbytes; i < ncolumns; i++) {
+        fputs("   ", stdout);
+    }
+    
+    fputs("  ", stdout);
+    for (size_t i = 0; i < nbytes; i++) {
+        const int ch = (isprint(buf[i])) ? buf[i] : '.';
+
+        fputc(ch, stdout);
+    }
+    for (size_t i = nbytes; i < ncolumns; i++) {
+        fputc(' ', stdout);
+    }
+}
+
+static void print_hex_buffer(const char* _Nonnull buf, size_t bufSize)
+{
+    const size_t ncolumns = 16;
+    size_t addr = 0;
+    
+    while (addr < bufSize) {
+        const size_t nleft = bufSize - addr;
+        const size_t nbytes = (nleft >= ncolumns) ? ncolumns : nleft;
+
+        print_hex_line(addr, buf, nbytes, ncolumns);
+        addr += ncolumns;
+        buf += ncolumns;
+        fputc('\n', stdout);
+    }
+}
+
+static void print_binary_buffer(const char* _Nonnull buf, size_t bufSize)
+{
+    fwrite(buf, bufSize, 1, stdout);
+}
+
+static errno_t print_disk_slice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_addr_t* _Nonnull addr, size_t sectorCount, bool isHex)
+{
+    decl_try_err();
+    FILE* fp = NULL;
+    char* buf = NULL;
+    size_t lba;
+
+    try(di_lba_from_disk_addr(&lba, info, addr));
+    try_null(fp, fopen(dmgPath, "rb"), errno);
+    try_null(buf, malloc(info->bytesPerSector * sectorCount), ENOMEM);
+    fseek(fp, info->physicalOffset + info->bytesPerSector * lba, SEEK_SET);
+
+    if (fread(buf, info->bytesPerSector, sectorCount, fp) < 1) {
+        throw(EIO);
+    }
+
+    if (isHex) {
+        print_hex_buffer(buf, info->bytesPerSector * sectorCount);
+    }
+    else {
+        print_binary_buffer(buf, info->bytesPerSector * sectorCount);
+    }
+
+catch:
+    if (fp) {
+        fclose(fp);
+    }
+    free(buf);
+
+    return err;
+}
+
+errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice, bool isHex)
+{
+    size_t sectorCount;
+    
+    switch (slice->type) {
+        case di_slice_type_empty:
+            break;
+
+        case di_slice_type_sector:
+            sectorCount = 1;
+            break;
+
+        case di_slice_type_track:
+            sectorCount = info->sectorsPerTrack;
+            break;
+
+        default:
+            abort();
+    }
+
+    return print_disk_slice(dmgPath, info, &slice->start, sectorCount, isHex);
 }

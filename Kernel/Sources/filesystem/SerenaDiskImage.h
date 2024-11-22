@@ -27,6 +27,7 @@
 
 // Serena disk image (smg)
 // Data is stored big endian (network byte order)
+// The disk image data follows the header
 typedef struct SMG_Header {
     uint32_t    signature;
     uint32_t    headerSize;         // Size including the signature

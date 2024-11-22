@@ -18,10 +18,46 @@
 #include <System/Types.h>
 #include "DiskImageFormat.h"
 
+typedef enum di_slice_type {
+    di_slice_type_empty,
+    di_slice_type_sector,
+    di_slice_type_track
+} di_slice_type;
+
+typedef enum di_addr_type {
+    di_addr_type_lba,
+    di_addr_type_chs
+} di_addr_type;
+
+typedef struct di_chs {
+    size_t  cylinder;
+    size_t  head;
+    size_t  sector;
+} di_chs_t;
+
+typedef struct di_addr {
+    di_addr_type    type;
+    union {
+        size_t      lba;
+        di_chs_t    chs;
+    }               u;
+} di_addr_t;
+
+typedef struct di_slice {
+    di_slice_type   type;
+    di_addr_t       start;
+} di_slice_t;
+
+
 extern void vfatal(const char* fmt, va_list ap);
 extern void fatal(const char* fmt, ...);
 
-extern void cmd_createDiskImage(const char* pRootPath, const char* pDstPath, const DiskImageFormat* diskImageFormat);
+extern errno_t cmd_createDiskImage(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
+extern errno_t cmd_describeDiskImage(const DiskImage* _Nonnull info);
+extern errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice, bool isHex);
+
+extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
+extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);
 
 
 typedef struct di_direntry {
