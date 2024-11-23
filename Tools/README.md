@@ -70,6 +70,14 @@ diskimage describe path/to/dmg
 
 This prints the type of the disk image, the geometry of the disk and the sector and disk size to the console.
 
+The diff command can be used to compare two disk images to see which sectors differ:
+
+```
+diskimage diff path/to/dmg1 path/to/dmg1
+```
+
+This command lists the LBA and CHS address of every sector that is different between the two disk image files. Note that both disk image files must be of the same type.
+
 Use the get command to read a single sector or track from a disk image:
 
 ```

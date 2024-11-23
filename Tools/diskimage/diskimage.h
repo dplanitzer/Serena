@@ -53,12 +53,14 @@ extern void vfatal(const char* fmt, va_list ap);
 extern void fatal(const char* fmt, ...);
 
 extern errno_t cmd_createDiskImage(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
-extern errno_t cmd_describeDiskImage(const DiskImage* _Nonnull info);
-extern errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice, bool isHex);
-extern errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice);
+extern errno_t cmd_describeDiskImage(const char* _Nonnull dmgPath);
+extern errno_t cmd_diffDiskImages(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2);
+extern errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex);
+extern errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice);
 
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);
+extern void di_chs_from_lba(size_t* _Nonnull pOutCylinder, size_t* _Nonnull pOutHead, size_t* _Nonnull pOutSector, const DiskImage* _Nonnull info, size_t lba);
 
 
 typedef struct di_direntry {

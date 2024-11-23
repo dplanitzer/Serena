@@ -127,6 +127,13 @@ errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnul
     return err;
 }
 
+// Converts a LBA-style disk address to a CHS-style disk address.
+void di_chs_from_lba(size_t* _Nonnull pOutCylinder, size_t* _Nonnull pOutHead, size_t* _Nonnull pOutSector, const DiskImage* _Nonnull info, size_t lba)
+{
+    *pOutCylinder = lba / (info->headsPerCylinder * info->sectorsPerTrack);
+    *pOutHead = (lba / info->sectorsPerTrack) % info->headsPerCylinder;
+    *pOutSector = (lba % info->sectorsPerTrack) + 1;
+} 
 
 //
 // CLI parameter parsing
@@ -340,6 +347,9 @@ CLAP_DECL(params,
     CLAP_REQUIRED_COMMAND("describe", &cmd_id, "<dimg_path>", "Prints information about the disk image at path 'dimg_path'."),
         CLAP_VARARG(&paths),
 
+    CLAP_REQUIRED_COMMAND("diff", &cmd_id, "<dimg1_path> <dimg2_path>", "Compares disk images 'dimg1_path' and 'dimg2_path' and prints a list of the sectors with differing contents."),
+        CLAP_VARARG(&paths),
+
     CLAP_REQUIRED_COMMAND("get", &cmd_id, "<dimg_path>", "Reads a sector from the ADF disk image 'dimg_path' and writes it to stdout."),
         CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to read. Accepts a logical block address or a cylinder:head:sector style address"),
         CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to read. Accepts a logical block address or a cylinder:head style address"),
@@ -368,7 +378,6 @@ static void init(void)
 int main(int argc, char* argv[])
 {
     decl_try_err();
-    DiskImage info;
 
     gArgv_Zero = argv[0];
     clap_parse(0, params, argc, argv);
@@ -379,7 +388,7 @@ int main(int argc, char* argv[])
         // diskimage create
         if (paths.count != 2) {
             fatal("expected a disk image and root path");
-            return EXIT_FAILURE;
+            /* NOT REACHED */
         }
 
 
@@ -400,24 +409,30 @@ int main(int argc, char* argv[])
         // diskimage describe
         assert_has_disk_image_path(&paths);
 
-        try(di_describe_diskimage(paths.strings[0], &info));
-        try(cmd_describeDiskImage(&info));
+        try(cmd_describeDiskImage(paths.strings[0]));
+    }
+    else if (!strcmp(argv[1], "diff")) {
+        // diskimage get
+        if (paths.count != 2) {
+            fatal("expected two disk mage paths");
+            /* NOT REACHED */
+        }
+
+        try(cmd_diffDiskImages(paths.strings[0], paths.strings[1]));
     }
     else if (!strcmp(argv[1], "get")) {
         // diskimage get
         assert_has_disk_image_path(&paths);
         assert_has_slice_type(&disk_slice);
 
-        try(di_describe_diskimage(paths.strings[0], &info));
-        try(cmd_getDiskSlice(paths.strings[0], &info, &disk_slice, is_hex));
+        try(cmd_getDiskSlice(paths.strings[0], &disk_slice, is_hex));
     }
     else if (!strcmp(argv[1], "put")) {
         // diskimage put
         assert_has_disk_image_path(&paths);
         assert_has_slice_type(&disk_slice);
 
-        try(di_describe_diskimage(paths.strings[0], &info));
-        try(cmd_putDiskSlice(paths.strings[0], &info, &disk_slice));
+        try(cmd_putDiskSlice(paths.strings[0], &disk_slice));
     }
     
 

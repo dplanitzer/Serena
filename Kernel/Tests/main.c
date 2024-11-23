@@ -19,6 +19,9 @@ extern void dq_async_test(int argc, char *argv[]);
 extern void dq_async_after_test(int argc, char *argv[]);
 extern void dq_sync_test(int argc, char *argv[]);
 
+// File
+extern void overwrite_file_test(int argc, char *argv[]);
+
 // Lock
 extern void lock_test(int argc, char *argv[]);
 
@@ -42,6 +45,8 @@ typedef struct test {
 
 static const test_t gTests[] = {
     {"console", interactive_console_test, false},
+
+    {"file", overwrite_file_test, false},
 
     {"dq_async", dq_async_test, true},
     {"dq_async_after", dq_async_after_test, true},

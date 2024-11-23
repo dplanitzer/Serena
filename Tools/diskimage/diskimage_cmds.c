@@ -165,11 +165,18 @@ catch:
 // diskimage describe
 //
 
-errno_t cmd_describeDiskImage(const DiskImage* _Nonnull info)
+errno_t cmd_describeDiskImage(const char* _Nonnull dmgPath)
 {
+    decl_try_err();
+    DiskImage info;
     const char* formatName;
 
-    switch (info->format) {
+    err = di_describe_diskimage(dmgPath, &info);
+    if (err != EOK) {
+        return err;
+    }
+
+    switch (info.format) {
         case kDiskImage_Amiga_DD_Floppy:    formatName = "Amiga DD Floppy"; break;
         case kDiskImage_Amiga_HD_Floppy:    formatName = "Amiga HD Floppy"; break;
         case kDiskImage_Serena:             formatName = "Serena Disk Image"; break;
@@ -178,21 +185,93 @@ errno_t cmd_describeDiskImage(const DiskImage* _Nonnull info)
 
     printf("Type: %s\n\n", formatName);
 
-    if (info->format == kDiskImage_Serena) {
-        printf("Logical Size: %zi Blocks\n", info->cylindersPerDisk);
-        printf("Physical Size: %zi Blocks\n\n", info->physicalSize / info->bytesPerSector);
-        printf("Sector Size: %ziB\n", info->bytesPerSector);
-        printf("Disk Size:   %ziKB\n", info->physicalSize / 1024);
+    if (info.format == kDiskImage_Serena) {
+        printf("Logical Size: %zi Blocks\n", info.cylindersPerDisk);
+        printf("Physical Size: %zi Blocks\n\n", info.physicalSize / info.bytesPerSector);
+        printf("Sector Size: %ziB\n", info.bytesPerSector);
+        printf("Disk Size:   %ziKB\n", info.physicalSize / 1024);
     }
     else {
-        printf("Cylinders: %zi\n", info->cylindersPerDisk);
-        printf("Heads:     %zi\n", info->headsPerCylinder);
-        printf("Sectors:   %zi\n\n", info->sectorsPerTrack);
-        printf("Sector Size: %ziB\n", info->bytesPerSector);
-        printf("Disk Size:   %ziKB\n", info->physicalSize / 1024);
+        printf("Cylinders: %zi\n", info.cylindersPerDisk);
+        printf("Heads:     %zi\n", info.headsPerCylinder);
+        printf("Sectors:   %zi\n\n", info.sectorsPerTrack);
+        printf("Sector Size: %ziB\n", info.bytesPerSector);
+        printf("Disk Size:   %ziKB\n", info.physicalSize / 1024);
     }
 
     return EOK;
+}
+
+
+//
+// diskimage diff <dmgPath1> <dmgPath2>
+//
+
+errno_t cmd_diffDiskImages(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2)
+{
+    decl_try_err();
+    DiskImage info1, info2;
+    FILE* fp1 = NULL;
+    FILE* fp2 = NULL;
+    char* buf1 = NULL;
+    char* buf2 = NULL;
+    size_t sectorCount = 0;
+
+    err = di_describe_diskimage(dmgPath1, &info1);
+    if (err != EOK) {
+        return err;
+    }
+
+    err = di_describe_diskimage(dmgPath2, &info2);
+    if (err != EOK) {
+        return err;
+    }
+
+    if (info1.format != info2.format) {
+        printf("Disk image types differ\n");
+        return EOK;
+    }
+
+    if (info1.bytesPerSector != info2.bytesPerSector || info1.physicalSize != info2.physicalSize) {
+        printf("Disk image sizes differ\n");
+        return EOK;
+    }
+
+    try_null(fp1, fopen(dmgPath1, "rb"), errno);
+    try_null(fp2, fopen(dmgPath2, "rb"), errno);
+
+    try_null(buf1, malloc(info1.bytesPerSector), ENOMEM);
+    try_null(buf2, malloc(info2.bytesPerSector), ENOMEM);
+
+    sectorCount = info1.cylindersPerDisk * info1.headsPerCylinder * info1.sectorsPerTrack;
+    for (size_t lba = 0; lba < sectorCount; lba++) {
+        if (fread(buf1, info1.bytesPerSector, 1, fp1) < 1) {
+            throw(EIO);
+        }
+        if (fread(buf2, info2.bytesPerSector, 1, fp2) < 1) {
+            throw(EIO);
+        }
+
+        if (memcmp(buf1, buf2, info1.bytesPerSector)) {
+            size_t c, h, s;
+
+            di_chs_from_lba(&c, &h, &s, &info1, lba);
+            printf("%zi - %zi:%zi:%zi\n", lba, c, h, s);
+        }
+    }
+
+catch:
+    if (fp1) {
+        fclose(fp1);
+    }
+    free(buf1);
+
+    if (fp2) {
+        fclose(fp2);
+    }
+    free(buf2);
+
+    return err;
 }
 
 
@@ -277,27 +356,34 @@ catch:
     return err;
 }
 
-errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice, bool isHex)
+errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex)
 {
+    decl_try_err();
+    DiskImage info;
     size_t sectorCount;
     
-    switch (slice->type) {
-        case di_slice_type_empty:
-            break;
+    err = di_describe_diskimage(dmgPath, &info);
+    if (err == EOK) { 
+        switch (slice->type) {
+            case di_slice_type_empty:
+                break;
 
-        case di_slice_type_sector:
-            sectorCount = 1;
-            break;
+            case di_slice_type_sector:
+                sectorCount = 1;
+                break;
 
-        case di_slice_type_track:
-            sectorCount = info->sectorsPerTrack;
-            break;
+            case di_slice_type_track:
+                sectorCount = info.sectorsPerTrack;
+                break;
 
-        default:
-            abort();
+            default:
+                abort();
+                break;
+        }
+
+        err = print_disk_slice(dmgPath, &info, &slice->start, sectorCount, isHex);
     }
-
-    return print_disk_slice(dmgPath, info, &slice->start, sectorCount, isHex);
+    return err;
 }
 
 
@@ -337,25 +423,32 @@ catch:
     return err;
 }
 
-errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice)
+errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice)
 {
+    decl_try_err();
+    DiskImage info;
     size_t sectorCount;
     
-    switch (slice->type) {
-        case di_slice_type_empty:
-            break;
+    err = di_describe_diskimage(dmgPath, &info);
+    if (err == EOK) {
+        switch (slice->type) {
+            case di_slice_type_empty:
+                break;
 
-        case di_slice_type_sector:
-            sectorCount = 1;
-            break;
+            case di_slice_type_sector:
+                sectorCount = 1;
+                break;
 
-        case di_slice_type_track:
-            sectorCount = info->sectorsPerTrack;
-            break;
+            case di_slice_type_track:
+                sectorCount = info.sectorsPerTrack;
+                break;
 
-        default:
-            abort();
+            default:
+                abort();
+                break;
+        }
+
+        err = replace_disk_slice(dmgPath, &info, &slice->start, sectorCount);
     }
-
-    return replace_disk_slice(dmgPath, info, &slice->start, sectorCount);
+    return err;
 }
