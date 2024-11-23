@@ -11,5 +11,10 @@
 
 int fflush(FILE *s)
 {
-    return __iterate_open_files(__fflush);
+    if (s) {
+        return __fflush(s);
+    }
+    else {
+        return __iterate_open_files(__fflush);
+    }
 }
