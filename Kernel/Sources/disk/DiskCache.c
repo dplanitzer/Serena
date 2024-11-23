@@ -456,6 +456,7 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DriverId driverId, M
     if (err == EOK && !pBlock->flags.hasData) {
         // Upgrade the lock to exclusive and trigger an async read since this
         // block has no data
+        ASSERT_LOCKED_SHARED(pBlock);
         err = _DiskCache_UpgradeBlockLock(self, pBlock);
         if (err == EOK) {
             // Trigger the async read. Note that endIO() will unlock-and-put the
@@ -480,6 +481,7 @@ static errno_t _DiskCache_FlushBlock(DiskCacheRef _Nonnull _Locked self, DiskBlo
 
     err = _DiskCache_LockBlock(self, pBlock, kLockMode_Shared);
     if (err == EOK && pBlock->flags.isDirty) {
+        ASSERT_LOCKED_SHARED(pBlock);
         err = _DiskCache_UpgradeBlockLock(self, pBlock);
         if (err == EOK) {
             err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
@@ -585,21 +587,20 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
         case kAcquireBlock_Cleared:
             // We always clear the block data because we don't know whether the
             // data is all zero or not
-            try(_DiskCache_UpgradeBlockLock(self, pBlock));
+            ASSERT_LOCKED_EXCLUSIVE(pBlock);
             memset(pBlock->data, 0, pBlock->flags.byteSize);
             pBlock->flags.hasData = 1;
-            _DiskCache_DowngradeBlockLock(self, pBlock);
             break;
 
         case kAcquireBlock_Replace:
             // Caller accepts whatever is currently in the buffer since it's
             // going to replace every byte anyway.
-            try(_DiskCache_UpgradeBlockLock(self, pBlock));
+            ASSERT_LOCKED_EXCLUSIVE(pBlock);
             pBlock->flags.hasData = 1;
-            _DiskCache_DowngradeBlockLock(self, pBlock);
             break;
 
         case kAcquireBlock_Update:
+            ASSERT_LOCKED_EXCLUSIVE(pBlock);
             if (!pBlock->flags.hasData) {
                 try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true));
             }
@@ -607,6 +608,7 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DriverId driverId, Me
 
         case kAcquireBlock_ReadOnly:
             if (!pBlock->flags.hasData) {
+                ASSERT_LOCKED_SHARED(pBlock);
                 try(_DiskCache_UpgradeBlockLock(self, pBlock));
                 try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true));
                 _DiskCache_DowngradeBlockLock(self, pBlock);
@@ -662,7 +664,6 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
 
     switch (mode) {
         case kWriteBlock_Sync:
-            _DiskCache_DowngradeBlockLock(self, pBlock);
             err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
             break;
 
@@ -751,6 +752,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
         // The lock is now held in exclusive mode again, if succeeded
     }
     if (err != EOK && op == kDiskBlockOp_Write) {
+        ASSERT_LOCKED_SHARED(pBlock);
         try_bang(_DiskCache_UpgradeBlockLock(self, pBlock));
     }
 
