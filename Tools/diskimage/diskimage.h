@@ -55,6 +55,7 @@ extern void fatal(const char* fmt, ...);
 extern errno_t cmd_createDiskImage(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
 extern errno_t cmd_describeDiskImage(const DiskImage* _Nonnull info);
 extern errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice, bool isHex);
+extern errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice);
 
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);

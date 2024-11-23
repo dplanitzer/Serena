@@ -295,6 +295,26 @@ static int parseTrackSlice(const char* _Nonnull proc_name, const struct clap_par
     }
 }
 
+static void assert_has_slice_type(const di_slice_t* _Nonnull slice)
+{
+    switch (slice->type) {
+        case di_slice_type_sector:
+        case di_slice_type_track:
+            break;
+
+        default:
+            fatal("expected a disk address");
+            break;
+    }
+}
+
+static void assert_has_disk_image_path(const clap_string_array_t* _Nonnull paths)
+{
+    if (paths->count != 1) {
+        fatal("expected a disk image path");
+    }
+}
+
 
 clap_string_array_t paths = {NULL, 0};
 const char* cmd_id = "";
@@ -305,7 +325,7 @@ size_t disk_size = 0;       // disk size as specified by user; 0 by default -> u
 
 // diskimage get
 di_slice_t disk_slice = {0};
-bool is_binary = false;
+bool is_hex = false;
 
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
@@ -323,8 +343,14 @@ CLAP_DECL(params,
     CLAP_REQUIRED_COMMAND("get", &cmd_id, "<dimg_path>", "Reads a sector from the ADF disk image 'dimg_path' and writes it to stdout."),
         CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to read. Accepts a logical block address or a cylinder:head:sector style address"),
         CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to read. Accepts a logical block address or a cylinder:head style address"),
-        CLAP_BOOL('b', "binary", &is_binary, "Output the disk contents in binary"),
+        CLAP_BOOL('x', "hex", &is_hex, "Output the disk contents as a hex dump instead of binary data"),
+        CLAP_VARARG(&paths),
+
+    CLAP_REQUIRED_COMMAND("put", &cmd_id, "<dimg_path>", "Replaces a sector in the ADF disk image 'dimg_path' with bytes from stdin."),
+        CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to replace. Accepts a logical block address or a cylinder:head:sector style address"),
+        CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to replace. Accepts a logical block address or a cylinder:head style address"),
         CLAP_VARARG(&paths)
+
 );
 
 
@@ -372,33 +398,26 @@ int main(int argc, char* argv[])
     }
     else if (!strcmp(argv[1], "describe")) {
         // diskimage describe
-        if (paths.count != 1) {
-            fatal("expected a disk image path");
-            return EXIT_FAILURE;
-        }
+        assert_has_disk_image_path(&paths);
 
         try(di_describe_diskimage(paths.strings[0], &info));
         try(cmd_describeDiskImage(&info));
     }
     else if (!strcmp(argv[1], "get")) {
         // diskimage get
-        if (paths.count != 1) {
-            fatal("expected a disk image path");
-            return EXIT_FAILURE;
-        }
-
-        switch (disk_slice.type) {
-            case di_slice_type_sector:
-            case di_slice_type_track:
-                break;
-
-            default:
-                fatal("expected a disk address");
-                return EXIT_FAILURE;
-        }
+        assert_has_disk_image_path(&paths);
+        assert_has_slice_type(&disk_slice);
 
         try(di_describe_diskimage(paths.strings[0], &info));
-        try(cmd_getDiskSlice(paths.strings[0], &info, &disk_slice, !is_binary));
+        try(cmd_getDiskSlice(paths.strings[0], &info, &disk_slice, is_hex));
+    }
+    else if (!strcmp(argv[1], "put")) {
+        // diskimage put
+        assert_has_disk_image_path(&paths);
+        assert_has_slice_type(&disk_slice);
+
+        try(di_describe_diskimage(paths.strings[0], &info));
+        try(cmd_putDiskSlice(paths.strings[0], &info, &disk_slice));
     }
     
 

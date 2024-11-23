@@ -73,10 +73,10 @@ This prints the type of the disk image, the geometry of the disk and the sector 
 Use the get command to read a single sector or track from a disk image:
 
 ```
-diskimage get --sector=c:h:s path/to/dmg
+diskimage get --sector=c:h:s --hex path/to/dmg
 ```
 
-Where 'c' is the cylinder number, 'h' is the head number and 's' is the sector number of the sector you want to read from the disk image. Note that the cylinder and head numbers are 0-based while the sector number is 1-based. The contents of the sector is written to the console as a hex dump. Use the `--binary` switch to output the raw binary data.
+Where 'c' is the cylinder number, 'h' is the head number and 's' is the sector number of the sector you want to read from the disk image. Note that the cylinder and head numbers are 0-based while the sector number is 1-based. The contents of the sector is written to the console as a hex dump. Invoke the command without the `--hex` switch to output the raw binary data.
 
 Another way to address a sector is to use a logical block address like this: `--sector=lba` where 'lba' is a 0-based integer.
 
@@ -87,6 +87,14 @@ diskimage get --track=c:h path/to/dmg
 ```
 
 Where 'c' is the cylinder and 'h' is the head number of the first sector in the track.
+
+Use the put command to replace the contents of a sector or track with new data:
+
+```
+diskimage put --sector=c:h:s path/to/dmg
+```
+
+The new sector/track data is read from stdin. The data must be in raw binary form.
 
 ## Keymap
 

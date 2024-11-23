@@ -299,3 +299,63 @@ errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull
 
     return print_disk_slice(dmgPath, info, &slice->start, sectorCount, isHex);
 }
+
+
+//
+// diskimage put --sector=c:h:s
+//
+
+static errno_t replace_disk_slice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_addr_t* _Nonnull addr, size_t sectorCount)
+{
+    decl_try_err();
+    FILE* fp = NULL;
+    char* buf = NULL;
+    size_t lba;
+
+    try(di_lba_from_disk_addr(&lba, info, addr));
+    try_null(fp, fopen(dmgPath, "rb"), errno);
+    try_null(buf, malloc(info->bytesPerSector * sectorCount), ENOMEM);
+    fseek(fp, info->physicalOffset + info->bytesPerSector * lba, SEEK_SET);
+
+    if (fread(buf, info->bytesPerSector, sectorCount, stdin) < 1) {
+        throw(EIO);
+    }
+
+    if (fwrite(buf, info->bytesPerSector, sectorCount, fp)) {
+        throw(EIO);
+    }
+    if (fflush(fp) != 0) {
+        throw(EIO);
+    }
+
+catch:
+    if (fp) {
+        fclose(fp);
+    }
+    free(buf);
+
+    return err;
+}
+
+errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_slice_t* _Nonnull slice)
+{
+    size_t sectorCount;
+    
+    switch (slice->type) {
+        case di_slice_type_empty:
+            break;
+
+        case di_slice_type_sector:
+            sectorCount = 1;
+            break;
+
+        case di_slice_type_track:
+            sectorCount = info->sectorsPerTrack;
+            break;
+
+        default:
+            abort();
+    }
+
+    return replace_disk_slice(dmgPath, info, &slice->start, sectorCount);
+}
