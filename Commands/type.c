@@ -28,16 +28,21 @@
 
 static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_t ncolumns)
 {
+    static const char* digits = "0123456789abcdef";
+    char tmp[3] = "00 ";
+
     printf(ADDR_FMT"   ", addr);
 
     for (size_t i = 0; i < nbytes; i++) {
-        printf("%.2hhx ", buf[i]);
+        tmp[0] = digits[buf[i] >> 4];
+        tmp[1] = digits[buf[i] & 0x0f];
+        fwrite(tmp, 1, 3, stdout);
     }
     for (size_t i = nbytes; i < ncolumns; i++) {
-        fputs("   ", stdout);
+        fwrite("   ", 1, 3, stdout);
     }
     
-    fputs("  ", stdout);
+    fwrite("  ", 1, 2, stdout);
     for (size_t i = 0; i < nbytes; i++) {
         fputc(isprint(buf[i]) ? buf[i] : '.', stdout);
     }
