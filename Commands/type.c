@@ -73,15 +73,13 @@ static errno_t type_hex(const char* _Nonnull path)
     size_t addr = 0;
     uint8_t buf[16];
     
+    errno = 0;
     try_null(fp, fopen(path, "rb"), errno);
 
-    while (!feof(fp)) {
+    for (;;) {
         const size_t r = fread(buf, 1, sizeof(buf), fp);
-
-        if (r == 0) {
-            if (ferror(fp)) {
-                throw(EIO);
-            }
+        if (feof(fp) || ferror(fp)) {
+            break;
         }
 
         print_hex_line(addr, buf, r, sizeof(buf));
@@ -95,7 +93,11 @@ static errno_t type_hex(const char* _Nonnull path)
         }
 #endif
         fputc('\n', stdout);
+        if (feof(stdout) || ferror(stdout)) {
+            break;
+        }
     }
+    err = errno;
 
 catch:
     if (fp) {
@@ -105,25 +107,28 @@ catch:
     return err;
 }
 
+#define TEXT_BUF_SIZE   512
 static errno_t type_text(const char* _Nonnull path)
 {
     decl_try_err();
     FILE* fp = NULL;
-    uint8_t buf[128];
+    uint8_t* buf = NULL;
     
+    errno = 0;
+    try_null(buf, malloc(TEXT_BUF_SIZE), ENOMEM);
     try_null(fp, fopen(path, "r"), errno);
 
-    while (!feof(fp)) {
-        const size_t r = fread(buf, 1, sizeof(buf) - 1, fp);
-
-        if (r == 0) {
-            if (ferror(fp)) {
-                throw(EIO);
-            }
+    for (;;) {
+        const size_t nBytesRead = fread(buf, 1, TEXT_BUF_SIZE, fp);
+        if (feof(fp) || ferror(fp)) {
+            break;
         }
 
-        buf[r] = '\0';
-        fputs(buf, stdout);
+        const size_t r = fwrite(buf, 1, nBytesRead, stdout);
+        if (feof(stdout) || ferror(stdout)) {
+            break;
+        }
+
 #if 0
     //XXX disabled for now because the Console I/O channel doesn't have a way yet
     //XXX to switch from blocking to non-blocking mode 
@@ -134,11 +139,13 @@ static errno_t type_text(const char* _Nonnull path)
 #endif
     }
     fputc('\n', stdout);
+    err = errno;
 
 catch:
     if (fp) {
         fclose(fp);
     }
+    free(buf);
 
     return err;
 }

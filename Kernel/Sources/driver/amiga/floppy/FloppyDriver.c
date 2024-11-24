@@ -895,7 +895,7 @@ errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnu
     try(FloppyDriver_BeginIO(self, cylinder, head, true));
 
 
-    // Make sure that we goo all the sectors of the target track in our track buffer
+    // Make sure that we got all the sectors of the target track in our track buffer
     // in a good state. Well we don't care if the sector that we want to write is
     // defective in the buffer because we're going to override it anyway.
     if (!FloppyDriver_IsTrackGoodForWriting(self, targetTrack, sector)) {

@@ -15,36 +15,34 @@ size_t fwrite(const void *buffer, size_t size, size_t count, FILE *s)
         return 0;
     }
 
+    if (s->flags.hasError) {
+        return EOF;
+    }
+
+    if ((s->flags.mode & __kStreamMode_Write) == 0) {
+        s->flags.hasError = 1;
+        errno = EBADF;
+        return EOF;
+    }
+
     const size_t nBytesToWrite = size * count;
-    size_t nBytesWritten = 0;
-    
-    while (nBytesWritten < nBytesToWrite) {
-        const int r = fputc(((const unsigned char*)buffer)[nBytesWritten], s);
+    ssize_t nBytesWritten;
+    size_t r;
+    const errno_t err = s->cb.write((void*)s->context, buffer, nBytesToWrite, &nBytesWritten);
 
-        if (r == EOF) {
-            break;
+    if (err == 0) {
+        if (nBytesWritten > 0) {
+            s->flags.hasEof = 0;
+            r = nBytesWritten / size;
+        } else {
+            s->flags.hasEof = 1;
+            r = EOF;
         }
-        nBytesWritten++;
+    } else {
+        s->flags.hasError = 1;
+        errno = err;
+        r = EOF;
     }
 
-    return nBytesWritten / size;
+    return r;
 }
-
-#if 0
-//XXX general approach of bulk writing
-static errno_t __IOChannel_Write(const char* _Nonnull pBuffer, size_t nBytes)
-{
-    ssize_t nBytesWritten = 0;
-
-    while (nBytesWritten < nBytes) {
-        const ssize_t r = IOChannel_Write(kIOChannel_Stdout, pBuffer, nBytes);
-        
-        if (r < 0) {
-            return (errno_t) -r;
-        }
-        nBytesWritten += nBytes;
-    }
-
-    return 0;
-}
-#endif

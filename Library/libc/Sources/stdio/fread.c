@@ -15,17 +15,34 @@ size_t fread(void *buffer, size_t size, size_t count, FILE *s)
         return 0;
     }
 
-    size_t nBytesToRead = size * count;
-    size_t nBytesRead = 0;
-    while (nBytesToRead-- > 0) {
-        const int ch = fgetc(s);
-
-        if (ch == EOF) {
-            break;
-        }
-
-        ((unsigned char*)buffer)[nBytesRead++] = (unsigned char)ch;
+    if (s->flags.hasEof || s->flags.hasError) {
+        return EOF;
+    }
+    
+    if ((s->flags.mode & __kStreamMode_Read) == 0) {
+        s->flags.hasError = 1;
+        errno = EBADF;
+        return EOF;
     }
 
-    return nBytesRead / size;
+    const size_t nBytesToRead = size * count;
+    size_t r;
+    ssize_t nBytesRead;
+    const errno_t err = s->cb.read((void*)s->context, buffer, nBytesToRead, &nBytesRead);
+
+    if (err == 0) {
+        if (nBytesRead > 0) {
+            s->flags.hasEof = 0;
+            r = nBytesRead / size;
+        } else {
+            s->flags.hasEof = 1;
+            r = EOF;
+        }
+    } else {
+        s->flags.hasError = 1;
+        errno = err;
+        r = EOF;
+    }
+
+    return r;
 }

@@ -21,7 +21,7 @@ void overwrite_file_test(int argc, char *argv[])
 
     printf("overwrite: /Users/Administrator/while.sh\n");
 
-    fp = fopen("/Users/Administrator/while.sh", "br+");
+    fp = fopen("/Users/Administrator/while.sh", "rb+");
     assertNotNULL(fp);
     
     setvbuf(fp, NULL, _IONBF, 0);
