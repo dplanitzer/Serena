@@ -294,9 +294,7 @@ static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_
     
     fputs("  ", stdout);
     for (size_t i = 0; i < nbytes; i++) {
-        const int ch = (isprint(buf[i])) ? buf[i] : '.';
-
-        fputc(ch, stdout);
+        fputc(isprint(buf[i]) ? buf[i] : '.', stdout);
     }
     for (size_t i = nbytes; i < ncolumns; i++) {
         fputc(' ', stdout);
@@ -321,7 +319,7 @@ static void print_hex_buffer(const char* _Nonnull buf, size_t bufSize)
 
 static void print_binary_buffer(const char* _Nonnull buf, size_t bufSize)
 {
-    fwrite(buf, bufSize, 1, stdout);
+    fwrite(buf, 1, bufSize, stdout);
 }
 
 static errno_t print_disk_slice(const char* _Nonnull dmgPath, const DiskImage* _Nonnull info, di_addr_t* _Nonnull addr, size_t sectorCount, bool isHex)
@@ -336,7 +334,7 @@ static errno_t print_disk_slice(const char* _Nonnull dmgPath, const DiskImage* _
     try_null(buf, malloc(info->bytesPerSector * sectorCount), ENOMEM);
     fseek(fp, info->physicalOffset + info->bytesPerSector * lba, SEEK_SET);
 
-    if (fread(buf, info->bytesPerSector, sectorCount, fp) < 1) {
+    if (fread(buf, info->bytesPerSector, sectorCount, fp) != sectorCount) {
         throw(EIO);
     }
 
@@ -403,11 +401,11 @@ static errno_t replace_disk_slice(const char* _Nonnull dmgPath, const DiskImage*
     try_null(buf, malloc(info->bytesPerSector * sectorCount), ENOMEM);
     fseek(fp, info->physicalOffset + info->bytesPerSector * lba, SEEK_SET);
 
-    if (fread(buf, info->bytesPerSector, sectorCount, stdin) < 1) {
+    if (fread(buf, info->bytesPerSector, sectorCount, stdin) != sectorCount) {
         throw(EIO);
     }
 
-    if (fwrite(buf, info->bytesPerSector, sectorCount, fp)) {
+    if (fwrite(buf, info->bytesPerSector, sectorCount, fp) != sectorCount) {
         throw(EIO);
     }
     if (fflush(fp) != 0) {
