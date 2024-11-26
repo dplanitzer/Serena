@@ -11,45 +11,21 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
+#define _OPEN_SYS_ITOA_EXT
 #include <stdlib.h>
 #include <string.h>
 #include <System/Error.h>
 #include <System/Types.h>
 
 #if SIZE_WIDTH == 32
-#define ADDR_FMT "%.8zx"
+#define ADDR_WIDTH  8
 #elif SIZE_WIDTH == 64
-#define ADDR_FMT "%.16zx"
+#define ADDR_WIDTH  16
 #else
 #error "unknown SIZE_WIDTH"
 #endif
 
 
-
-static void print_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_t ncolumns)
-{
-    static const char* digits = "0123456789abcdef";
-    char tmp[3] = "00 ";
-
-    printf(ADDR_FMT"   ", addr);
-
-    for (size_t i = 0; i < nbytes; i++) {
-        tmp[0] = digits[buf[i] >> 4];
-        tmp[1] = digits[buf[i] & 0x0f];
-        fwrite(tmp, 1, 3, stdout);
-    }
-    for (size_t i = nbytes; i < ncolumns; i++) {
-        fwrite("   ", 1, 3, stdout);
-    }
-    
-    fwrite("  ", 1, 2, stdout);
-    for (size_t i = 0; i < nbytes; i++) {
-        fputc(isprint(buf[i]) ? buf[i] : '.', stdout);
-    }
-    for (size_t i = nbytes; i < ncolumns; i++) {
-        fputc(' ', stdout);
-    }
-}
 
 static bool should_quit(void)
 {
@@ -69,24 +45,81 @@ static bool should_quit(void)
     return false;
 }
 
+static void format_hex_line(size_t addr, const uint8_t* buf, size_t nbytes, size_t ncolumns, char* line)
+{
+    static const char* digits = "0123456789abcdef";
+
+#if ADDR_WIDTH == 8
+    char* p = ultoa(addr, &line[8], 16);
+#else
+    char* p = ulltoa(addr, &line[16], 16);
+#endif
+    const size_t addrLen = strlen(p);
+
+    for (size_t i = 0; i < ADDR_WIDTH - addrLen; i++) {
+        *line++ = '0';
+    }
+    for (size_t i = 0; i < addrLen; i++) {
+        *line++ = *p++;
+    }
+
+    *line++ = ' ';
+    *line++ = ' ';
+    *line++ = ' ';
+
+    for (size_t i = 0; i < nbytes; i++) {
+        *line++ = digits[buf[i] >> 4];
+        *line++ = digits[buf[i] & 0x0f];
+        *line++ = ' ';
+    }
+    for (size_t i = nbytes; i < ncolumns; i++) {
+        *line++ = ' ';
+        *line++ = ' ';
+        *line++ = ' ';
+    }
+    
+    *line++ = ' ';
+    *line++ = ' ';
+    for (size_t i = 0; i < nbytes; i++) {
+        *line++ = isprint(buf[i]) ? buf[i] : '.';
+    }
+    for (size_t i = nbytes; i < ncolumns; i++) {
+        *line++ = ' ';
+    }
+
+    *line++ = '\n';
+    *line   = '\0';
+}
+
+#define HEX_COLUMNS 16
 static errno_t type_hex(const char* _Nonnull path)
 {
     decl_try_err();
     FILE* fp = NULL;
+    uint8_t* buf = NULL;
+    char* line = NULL;
+    const size_t bufSize = HEX_COLUMNS;
+    const size_t lineLength = ADDR_WIDTH + 3 + 3*HEX_COLUMNS + 2 + HEX_COLUMNS + 1 + 1;
     size_t addr = 0;
-    uint8_t buf[16];
     
     errno = 0;
+    try_null(buf, malloc(bufSize), ENOMEM);
+    try_null(line, malloc(lineLength), ENOMEM);
     try_null(fp, fopen(path, "rb"), errno);
 
     for (;;) {
-        const size_t r = fread(buf, 1, sizeof(buf), fp);
+        const size_t nBytesRead = fread(buf, 1, bufSize, fp);
         if (feof(fp) || ferror(fp)) {
             break;
         }
 
-        print_hex_line(addr, buf, r, sizeof(buf));
-        addr += sizeof(buf);
+        format_hex_line(addr, buf, nBytesRead, bufSize, line);
+        fwrite(line, lineLength, 1, stdout);
+        if (feof(stdout) || ferror(stdout)) {
+            break;
+        }
+
+        addr += bufSize;
 #if 0
     //XXX disabled for now because the Console I/O channel doesn't have a way yet
     //XXX to switch from blocking to non-blocking mode 
@@ -95,10 +128,6 @@ static errno_t type_hex(const char* _Nonnull path)
             break;
         }
 #endif
-        fputc('\n', stdout);
-        if (feof(stdout) || ferror(stdout)) {
-            break;
-        }
     }
     err = errno;
 
@@ -106,6 +135,8 @@ catch:
     if (fp) {
         fclose(fp);
     }
+    free(line);
+    free(buf);
 
     return err;
 }
