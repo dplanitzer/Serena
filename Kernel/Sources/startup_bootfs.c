@@ -1,5 +1,5 @@
 //
-//  startup.c
+//  startup_bootfs.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/21.
@@ -12,7 +12,6 @@
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/floppy/FloppyDriver.h>
 #include <filesystem/DiskFSContainer.h>
-#include <filesystem/FilesystemManager.h>
 #include <filesystem/serenafs/SerenaFS.h>
 
 #define MAX_NAME_LENGTH 16
@@ -39,7 +38,7 @@ static DriverId get_boot_floppy_disk_id(void)
 
 
 // Tries to mount the root filesystem from a floppy disk in drive 0.
-static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
+static errno_t boot_from_disk(DriverId diskId, bool shouldRetry, FilesystemRef _Nullable * _Nonnull pOutFS)
 {
     decl_try_err();
     errno_t lastError = EOK;
@@ -55,7 +54,7 @@ static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
 
     while (true) {
-        err = FilesystemManager_Mount(gFilesystemManager, fs, NULL, 0, NULL);
+        err = Filesystem_Start(fs, NULL, 0);
 
         if (err == EOK) {
             break;
@@ -93,16 +92,23 @@ static errno_t boot_from_disk(DriverId diskId, bool shouldRetry)
     print(buf);
     print("...\n\n");
 
+    Object_Release(driver);
+    *pOutFS = fs;
+    return EOK;
+
 catch:
     Object_Release(driver);
+    Object_Release(fs);
+    *pOutFS = NULL;
     return err;
 }
 
 // Locates the root filesystem and mounts it.
-void init_root_filesystem(void)
+FilesystemRef _Nonnull create_boot_filesystem(void)
 {
     decl_try_err();
     int state = 0;
+    FilesystemRef fs = NULL;
     const DriverId memDiskId = get_boot_mem_disk_id();
     DriverId diskId = kDriverId_None;
     bool shouldRetry = false;
@@ -130,9 +136,9 @@ void init_root_filesystem(void)
         }
 
         if (diskId != kDriverId_None) {
-            err = boot_from_disk(diskId, shouldRetry);
+            err = boot_from_disk(diskId, shouldRetry, &fs);
             if (err == EOK) {
-                return;
+                return fs;
             }
         }
 

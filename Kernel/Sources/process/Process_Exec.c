@@ -116,11 +116,10 @@ static errno_t load_gemdos_executable(ProcessRef _Nonnull self, InodeRef _Locked
 errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
-    PathResolver pr;
-    PathResolverResult r;
-    InodeRef pExecFile = NULL;
-    void* pImageBase = NULL;
-    void* pEntryPoint = NULL;
+    ResolvedPath r;
+    InodeRef execFile = NULL;
+    void* imageBase = NULL;
+    void* entryPoint = NULL;
     const char* null_sptr[1] = {NULL};
 
     if (argv == NULL) {
@@ -135,21 +134,20 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
 
 
     // Resolve the path to the executable file
-    Process_MakePathResolver(self, &pr);
-    try(PathResolver_AcquireNodeForPath(&pr, kPathResolverMode_Target, path, &r));
-    pExecFile = r.inode;
+    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
+    execFile = r.inode;
     r.inode = NULL;
 
 
-    Inode_Lock(pExecFile); 
+    Inode_Lock(execFile); 
 
 
     // Make sure that the executable is a regular file and that it has the correct
     // access mode
-    if (!Inode_IsRegularFile(pExecFile)) {
+    if (!Inode_IsRegularFile(execFile)) {
         throw(EACCESS);
     }
-    try(Filesystem_CheckAccess(Inode_GetFilesystem(pExecFile), pExecFile, self->realUser, kAccess_Readable | kAccess_Executable));
+    try(Filesystem_CheckAccess(Inode_GetFilesystem(execFile), execFile, self->realUser, kAccess_Readable | kAccess_Executable));
 
 
     // Copy the process arguments into the process address space
@@ -157,19 +155,19 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
 
 
     // Load the executable
-    try(load_gemdos_executable(self, pExecFile, &pImageBase, &pEntryPoint));
+    try(load_gemdos_executable(self, execFile, &imageBase, &entryPoint));
 
-    self->imageBase = pImageBase;
+    self->imageBase = imageBase;
     ((ProcessArguments*) self->argumentsBase)->image_base = self->imageBase;
 
 
     // Dispatch the invocation of the entry point
-    try(DispatchQueue_DispatchClosure(self->mainDispatchQueue, (VoidFunc_2)pEntryPoint, self->argumentsBase, NULL, 0, kDispatchOption_User, 0));
+    try(DispatchQueue_DispatchClosure(self->mainDispatchQueue, (VoidFunc_2)entryPoint, self->argumentsBase, NULL, 0, kDispatchOption_User, 0));
 
 catch:
     //XXX free the executable image if an error occurred
-    Inode_UnlockRelinquish(pExecFile);
-    PathResolverResult_Deinit(&r);
-    PathResolver_Deinit(&pr);
+    Inode_UnlockRelinquish(execFile);
+    ResolvedPath_Deinit(&r);
+
     return err;
 }

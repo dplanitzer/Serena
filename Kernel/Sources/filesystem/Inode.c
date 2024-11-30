@@ -7,7 +7,7 @@
 //
 
 #include "Inode.h"
-#include "FilesystemManager.h"
+#include "Filesystem.h"
 #include "FSUtilities.h"
 
 errno_t Inode_Create(FilesystemRef _Nonnull pFS, InodeId id, FileType type, int linkCount, UserId uid, GroupId gid, FilePermissions permissions, FileOffset size, TimeInterval accessTime, TimeInterval modTime, TimeInterval statusChangeTime, void* refcon, InodeRef _Nullable * _Nonnull pOutNode)

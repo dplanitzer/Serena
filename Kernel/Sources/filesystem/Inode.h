@@ -17,7 +17,6 @@
 
 // Inode flags
 enum {
-    kInodeFlag_IsMountpoint = 0x01,     // [FilesystemManager lock]
     kInodeFlag_Accessed = 0x04,         // [Inode lock] access date needs update
     kInodeFlag_Updated = 0x02,          // [Inode lock] mod date needs update
     kInodeFlag_StatusChanged = 0x08,    // [Inode lock] status changed date needs update
@@ -178,18 +177,6 @@ void Inode_Unlink(InodeRef _Nonnull self);
 
 
 
-//
-// Only the FilesystemManager should call the following functions. The filesystem
-// manager must hold the inode lock while calling these functions.
-//
-
-#define Inode_IsMountpoint(__self) \
-    ((__self)->flags & kInodeFlag_IsMountpoint) != 0
-
-#define Inode_SetMountpoint(__self, __flag) \
-    if(__flag) {(__self)->flags |= kInodeFlag_IsMountpoint;} else {(__self)->flags &= ~kInodeFlag_IsMountpoint;}
-
-    
 //
 // The following functions may be used by filesystem implementations and code
 // that lives outside of a filesystem. The caller does not have to hold the inode

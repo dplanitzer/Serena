@@ -14,7 +14,7 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/AmigaController.h>
-#include <filesystem/FilesystemManager.h>
+#include <filesystem/Filesystem.h>
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
@@ -27,7 +27,7 @@ static char* gInitialHeapBottom;
 static char* gInitialHeapTop;
 
 
-extern void init_root_filesystem(void);
+extern FilesystemRef _Nonnull create_boot_filesystem(void);
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 static void OnMain(void);
 
@@ -167,17 +167,15 @@ static void OnMain(void)
     // Create the disk cache
     try(DiskCache_Create(gSystemDescription, &gDiskCache));
 
-    // Initialize the filesystem manager
-    try(FilesystemManager_Create(&gFilesystemManager));
-
 
     // Find and mount a root filesystem.
-    init_root_filesystem();
+    FilesystemRef bootFS = create_boot_filesystem();
 
 
     // Create the root process
     ProcessRef pRootProc;
-    try(RootProcess_Create(&pRootProc));
+    try(RootProcess_Create(bootFS, &pRootProc));
+    Object_Release(bootFS);
 
 
     // Create the process manager

@@ -8,7 +8,6 @@
 
 #include "ProcessPriv.h"
 #include "UDispatchQueue.h"
-#include <filesystem/FilesystemManager.h>
 
 
 class_func_defs(Process, Object,
@@ -34,24 +33,21 @@ ProcessRef _Nullable Process_GetCurrent(void)
 }
 
 
-errno_t RootProcess_Create(ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t RootProcess_Create(FilesystemRef _Nonnull pBootFS, ProcessRef _Nullable * _Nonnull pOutProc)
 {
     decl_try_err();
-    FilesystemRef pFS = FilesystemManager_CopyRootFilesystem(gFilesystemManager);
-    InodeRef pRootDir = NULL;
+    FileHierarchyRef fileHierarchy = NULL;
+    InodeRef rootDir = NULL;
+    ProcessRef rootProc = NULL;
 
-    assert(pFS != NULL);
-    try(Filesystem_AcquireRootDirectory(pFS, &pRootDir));
-    try(Process_Create(1, kUser_Root, pRootDir, pRootDir, FilePermissions_MakeFromOctal(0022), pOutProc));
-    Inode_Relinquish(pRootDir);
-    Object_Release(pFS);
-
-    return EOK;
+    try(FileHierarchy_Create(pBootFS, &fileHierarchy));
+    try(Filesystem_AcquireRootDirectory(pBootFS, &rootDir));
+    try(Process_Create(1, fileHierarchy, kUser_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0022), &rootProc));
 
 catch:
-    Inode_Relinquish(pRootDir);
-    Object_Release(pFS);
-    *pOutProc = NULL;
+    *pOutProc = rootProc;
+    Inode_Relinquish(rootDir);
+    Object_Release(fileHierarchy);
     return err;
 }
 
@@ -71,123 +67,121 @@ errno_t RootProcess_Exec(ProcessRef _Nonnull pProc, const char* _Nonnull pExecPa
 
 
 
-errno_t Process_Create(int ppid, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    ProcessRef pProc;
+    ProcessRef self;
     UDispatchQueueRef pMainQueue = NULL;
     int mainQueueDesc = -1;
     
-    try(Object_Create(Process, &pProc));
+    try(Object_Create(Process, &self));
 
-    Lock_Init(&pProc->lock);
+    Lock_Init(&self->lock);
 
-    pProc->ppid = ppid;
-    pProc->pid = Process_GetNextAvailablePID();
+    self->ppid = ppid;
+    self->pid = Process_GetNextAvailablePID();
 
-    try(IOChannelTable_Init(&pProc->ioChannelTable));
-    try(UResourceTable_Init(&pProc->uResourcesTable));
-    try(IntArray_Init(&pProc->childPids, 0));
+    try(IOChannelTable_Init(&self->ioChannelTable));
+    try(UResourceTable_Init(&self->uResourcesTable));
+    try(IntArray_Init(&self->childPids, 0));
 
-    pProc->rootDirectory = Inode_Reacquire(pRootDir);
-    pProc->workingDirectory = Inode_Reacquire(pWorkingDir);
-    pProc->fileCreationMask = fileCreationMask;
-    pProc->realUser = user;
+    self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);
+    self->rootDirectory = Inode_Reacquire(pRootDir);
+    self->workingDirectory = Inode_Reacquire(pWorkingDir);
+    self->fileCreationMask = fileCreationMask;
+    self->realUser = user;
 
-    List_Init(&pProc->tombstones);
-    ConditionVariable_Init(&pProc->tombstoneSignaler);
+    List_Init(&self->tombstones);
+    ConditionVariable_Init(&self->tombstoneSignaler);
 
-    try(UDispatchQueue_Create(0, 1, kDispatchQoS_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, pProc, &pMainQueue));
-    pProc->mainDispatchQueue = pMainQueue->dispatchQueue;
-    try(UResourceTable_AdoptResource(&pProc->uResourcesTable, (UResourceRef) pMainQueue, &mainQueueDesc));
-    DispatchQueue_SetDescriptor(pProc->mainDispatchQueue, mainQueueDesc);
+    try(UDispatchQueue_Create(0, 1, kDispatchQoS_Interactive, kDispatchPriority_Normal, gVirtualProcessorPool, self, &pMainQueue));
+    self->mainDispatchQueue = pMainQueue->dispatchQueue;
+    try(UResourceTable_AdoptResource(&self->uResourcesTable, (UResourceRef) pMainQueue, &mainQueueDesc));
+    DispatchQueue_SetDescriptor(self->mainDispatchQueue, mainQueueDesc);
     assert(mainQueueDesc == 0);
 
-    try(AddressSpace_Create(&pProc->addressSpace));
+    try(AddressSpace_Create(&self->addressSpace));
 
-    *pOutProc = pProc;
+    *pOutSelf = self;
     return EOK;
 
 catch:
     UResource_Dispose(pMainQueue);
-    pProc->mainDispatchQueue = NULL;
-    Object_Release(pProc);
-    *pOutProc = NULL;
+    self->mainDispatchQueue = NULL;
+    Object_Release(self);
+    *pOutSelf = NULL;
     return err;
 }
 
-void Process_deinit(ProcessRef _Nonnull pProc)
+void Process_deinit(ProcessRef _Nonnull self)
 {
-    IOChannelTable_Deinit(&pProc->ioChannelTable);
-    UResourceTable_Deinit(&pProc->uResourcesTable);
+    IOChannelTable_Deinit(&self->ioChannelTable);
+    UResourceTable_Deinit(&self->uResourcesTable);
 
-    Inode_Relinquish(pProc->workingDirectory);
-    pProc->workingDirectory = NULL;
-    Inode_Relinquish(pProc->rootDirectory);
-    pProc->rootDirectory = NULL;
+    Inode_Relinquish(self->workingDirectory);
+    self->workingDirectory = NULL;
+    Inode_Relinquish(self->rootDirectory);
+    self->rootDirectory = NULL;
+    Object_Release(self->fileHierarchy);
+    self->fileHierarchy = NULL;
 
-    Object_Release(pProc->terminationNotificationQueue);
-    pProc->terminationNotificationQueue = NULL;
-    pProc->terminationNotificationClosure = NULL;
-    pProc->terminationNotificationContext = NULL;
+    Object_Release(self->terminationNotificationQueue);
+    self->terminationNotificationQueue = NULL;
+    self->terminationNotificationClosure = NULL;
+    self->terminationNotificationContext = NULL;
     
-    Process_DestroyAllTombstones_Locked(pProc);
-    ConditionVariable_Deinit(&pProc->tombstoneSignaler);
-    IntArray_Deinit(&pProc->childPids);
+    Process_DestroyAllTombstones_Locked(self);
+    ConditionVariable_Deinit(&self->tombstoneSignaler);
+    IntArray_Deinit(&self->childPids);
 
-    AddressSpace_Destroy(pProc->addressSpace);
-    pProc->addressSpace = NULL;
-    pProc->imageBase = NULL;
-    pProc->argumentsBase = NULL;
-    pProc->mainDispatchQueue = NULL;
+    AddressSpace_Destroy(self->addressSpace);
+    self->addressSpace = NULL;
+    self->imageBase = NULL;
+    self->argumentsBase = NULL;
+    self->mainDispatchQueue = NULL;
 
-    pProc->pid = 0;
-    pProc->ppid = 0;
+    self->pid = 0;
+    self->ppid = 0;
 
-    Lock_Deinit(&pProc->lock);
+    Lock_Deinit(&self->lock);
 }
 
-ProcessId Process_GetId(ProcessRef _Nonnull pProc)
+ProcessId Process_GetId(ProcessRef _Nonnull self)
 {
     // The PID is constant over the lifetime of the process. No need to lock here
-    return pProc->pid;
+    return self->pid;
 }
 
-ProcessId Process_GetParentId(ProcessRef _Nonnull pProc)
+ProcessId Process_GetParentId(ProcessRef _Nonnull self)
 {
-    Lock_Lock(&pProc->lock);
-    const ProcessId ppid = pProc->ppid;
-    Lock_Unlock(&pProc->lock);
+    Lock_Lock(&self->lock);
+    const ProcessId ppid = self->ppid;
+    Lock_Unlock(&self->lock);
 
     return ppid;
 }
 
-UserId Process_GetRealUserId(ProcessRef _Nonnull pProc)
+UserId Process_GetRealUserId(ProcessRef _Nonnull self)
 {
-    Lock_Lock(&pProc->lock);
-    const UserId uid = pProc->realUser.uid;
-    Lock_Unlock(&pProc->lock);
+    Lock_Lock(&self->lock);
+    const UserId uid = self->realUser.uid;
+    Lock_Unlock(&self->lock);
 
     return uid;
 }
 
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
-void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull pProc)
+void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull self)
 {
-    Lock_Lock(&pProc->lock);
-    void* ptr = pProc->argumentsBase;
-    Lock_Unlock(&pProc->lock);
+    Lock_Lock(&self->lock);
+    void* ptr = self->argumentsBase;
+    Lock_Unlock(&self->lock);
     return ptr;
 }
 
 // Allocates more (user) address space to the given process.
-errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull pProc, ssize_t count, void* _Nullable * _Nonnull pOutMem)
+errno_t Process_AllocateAddressSpace(ProcessRef _Nonnull self, ssize_t count, void* _Nullable * _Nonnull pOutMem)
 {
-    return AddressSpace_Allocate(pProc->addressSpace, count, pOutMem);
-}
-
-void Process_MakePathResolver(ProcessRef _Nonnull self, PathResolverRef _Nonnull pResolver)
-{
-    PathResolver_Init(pResolver, self->rootDirectory, self->workingDirectory, self->realUser);
+    return AddressSpace_Allocate(self->addressSpace, count, pOutMem);
 }
