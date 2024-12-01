@@ -192,6 +192,19 @@ static FSLink* _Nullable _FileHierarchy_GetFSLink(FileHierarchyRef _Nonnull _Loc
     return NULL;
 }
 
+static bool _FileHierarchy_KnowsFilesystemId(FileHierarchyRef _Nonnull _Locked self, FilesystemId fsid)
+{
+    for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
+        List_ForEach(&self->hashChain[i], FSLink, 
+            if (pCurNode->fsid == fsid) {
+                return true;
+            }
+        );
+    }
+
+    return false;
+}
+
 // Attaches the root directory of the filesystem 'fs' to the directory 'atDir'. 'atDir'
 // must be a member of this file hierarchy and may not already have another filesystem
 // attached to it.
@@ -206,14 +219,20 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
         return ENOTDIR;
     }
 
+    try_bang(SELock_LockExclusive(&self->lock));
+
     Object_Retain(fs);
     try(Filesystem_AcquireRootDirectory(fs, &fsRootDir));
 
+    // Make sure that the filesystem that owns 'atDir' exists in our file hierarchy
+    if (!_FileHierarchy_KnowsFilesystemId(self, Inode_GetFilesystemId(atDir))) {
+        throw(EINVAL);
+    }
 
-    try_bang(SELock_LockExclusive(&self->lock));
-
-    // XXX check that 'atDir' filesystem is in our hierarchy
-    // XXX check that 'atDir' isn't already a mountpoint in our hierarchy
+    // Make sure that 'atDir' doesn't already serve as a mount point in our file hierarchy
+    if (_FileHierarchy_GetFSLink(self, atDir, kDirection_Down) != NULL) {
+        throw(EBUSY);
+    }
 
     try(_FileHierarchy_InsertFSLink(self, Filesystem_GetId(fs), Inode_GetId(fsRootDir), Inode_GetFilesystem(atDir), atDir, kDirection_Up));
     try(_FileHierarchy_InsertFSLink(self, Inode_GetFilesystemId(atDir), Inode_GetId(atDir), fs, fsRootDir, kDirection_Down));
@@ -225,10 +244,11 @@ catch:
     _FileHierarchy_DeleteFSLink(self, downlink);
     _FileHierarchy_DeleteFSLink(self, uplink);
 
-    try_bang(SELock_Unlock(&self->lock));
-
     Inode_Relinquish(fsRootDir);
     Object_Release(fs);
+
+    try_bang(SELock_Unlock(&self->lock));
+
     return err;
 }
 
