@@ -153,13 +153,22 @@ static errno_t _FileHierarchy_InsertFSLink(FileHierarchyRef _Nonnull _Locked sel
     return err;
 }
 
+static void destroy_fslink(FSLink* _Nonnull link)
+{
+    if (link->direction == kDirection_Down) {
+        Inode_Relinquish(link->targetDirectory);
+        Object_Release(link->targetFS);
+    }
+    FSDeallocate(link);
+}
+
 static void _FileHierarchy_DeleteFSLink(FileHierarchyRef _Nonnull _Locked self, FSLink* _Nullable link)
 {
     if (link) {
         const size_t hashIdx = HASH_INDEX(link->direction, link->fsid, link->inid);
 
         List_Remove(&self->hashChain[hashIdx], &link->node);
-        FSDeallocate(link);
+        destroy_fslink(link);
     }
 }
 
@@ -171,7 +180,7 @@ static void _FileHierarchy_DeleteAllFSLinks(FileHierarchyRef _Nonnull self)
         while (curLink) {
             FSLink* nextLink = (FSLink*)curLink->node.next;
 
-            FSDeallocate(curLink);
+            destroy_fslink(curLink);
             curLink = nextLink;
         }
     }
@@ -194,9 +203,26 @@ static FSLink* _Nullable _FileHierarchy_GetFSLink(FileHierarchyRef _Nonnull _Loc
 
 static bool _FileHierarchy_KnowsFilesystemId(FileHierarchyRef _Nonnull _Locked self, FilesystemId fsid)
 {
+    // Need to check up and down links because the leaf entries in the tree have
+    // no downlinks. So their uplinks are the only links that name leaf filesystems
     for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
         List_ForEach(&self->hashChain[i], FSLink, 
             if (pCurNode->fsid == fsid) {
+                return true;
+            }
+        );
+    }
+
+    return false;
+}
+
+// Returns true if the given fs is known to this hierarchy and has at least one
+// other filesystem attached to it.
+static bool _FileHierarchy_HasFilesystemsAttached(FileHierarchyRef _Nonnull _Locked self, FilesystemId fsid)
+{
+    for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
+        List_ForEach(&self->hashChain[i], FSLink, 
+            if (pCurNode->direction == kDirection_Down && pCurNode->fsid == fsid) {
                 return true;
             }
         );
@@ -241,22 +267,48 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
     return EOK;
 
 catch:
+    if (downlink == NULL) {
+        Inode_Relinquish(fsRootDir);
+        Object_Release(fs);
+    }
+
     _FileHierarchy_DeleteFSLink(self, downlink);
     _FileHierarchy_DeleteFSLink(self, uplink);
-
-    Inode_Relinquish(fsRootDir);
-    Object_Release(fs);
 
     try_bang(SELock_Unlock(&self->lock));
 
     return err;
 }
 
-errno_t FileHierarchy_DetachFilesystem(FileHierarchyRef _Nonnull self, FilesystemRef _Nonnull fs)
+// Detaches the filesystem attached to directory 'dir'
+errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir)
 {
     decl_try_err();
 
-    // XXX implement me
+    try_bang(SELock_LockExclusive(&self->lock));
+
+    // Make sure that 'dir' is a attachment point
+    FSLink* downlink = _FileHierarchy_GetFSLink(self, dir, kDirection_Down);
+    if (downlink == NULL) {
+        throw(EINVAL);
+    }
+
+    // Make sure that the FS that we want to detach doesn't have other FSs attached
+    // to it.
+    // XXX fix this: should be able to unmount an FS that still has other FSs mounted
+    // XXX           on it (via a force option)
+    if (_FileHierarchy_HasFilesystemsAttached(self, Filesystem_GetId(downlink->targetFS))) {
+        throw(EBUSY);
+    }
+
+    FSLink* uplink = _FileHierarchy_GetFSLink(self, downlink->targetDirectory, kDirection_Up);
+    assert(uplink != NULL);
+
+    _FileHierarchy_DeleteFSLink(self, downlink);
+    _FileHierarchy_DeleteFSLink(self, uplink);
+
+catch:
+    try_bang(SELock_Unlock(&self->lock));
     return err;
 }
 

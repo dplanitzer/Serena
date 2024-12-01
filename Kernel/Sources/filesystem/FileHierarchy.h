@@ -63,7 +63,8 @@ extern InodeRef _Nonnull FileHierarchy_AcquireRootDirectory(FileHierarchyRef _No
 // attached to it.
 extern errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, FilesystemRef _Nonnull fs, InodeRef _Nonnull atDir);
 
-extern errno_t FileHierarchy_DetachFilesystem(FileHierarchyRef _Nonnull self, FilesystemRef _Nonnull fs);
+// Detaches the filesystem attached to directory 'dir'
+extern errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir);
 
 // Returns true if the given (directory) inode is an attachment point for another
 // filesystem.
