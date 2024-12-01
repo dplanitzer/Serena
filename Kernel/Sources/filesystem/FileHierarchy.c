@@ -11,48 +11,59 @@
 #include <dispatcher/SELock.h>
 
 
-typedef enum FSLinkDirection {
-    kDirection_Up,
-    kDirection_Down         // Use this to check whether the file hierarchy knows a particular fsid, inid
-} FSLinkDirection;
+// Represents a filesystem and lists all the directories in this filesystem that
+// serve as attachments points for other filesystems.
+typedef struct FsNode {
+    FilesystemRef _Nonnull  filesystem;
+    List                    attachmentPoints;   // List<AtNode>
+} FsNode;
 
-typedef struct FSLink {
-    ListNode                node;
-    
-    // Uplink:   Child FS and directory
-    // Downlink: Parent FS and directory
-    FilesystemId            fsid;
-    InodeId                 inid;
+// Represents a single attachment point in a filesystem. Names the directory and
+// its filesystem that are attached at a directory in the parent filesystem.
+typedef struct AtNode {
+    ListNode                sibling;
 
-    // Uplink:   Parent FS and directory (both are unowned)
-    // Downlink: Child FS and directory (both are owned)
-    FilesystemRef _Nonnull  targetFS;
-    InodeRef _Nonnull       targetDirectory;
+    InodeRef _Nonnull       attachingDirectory;     // Owning
+    FsNode* _Nonnull _Weak  attachingFsNode;
 
-    FSLinkDirection         direction;
-} FSLink;
+    InodeRef _Nonnull       attachedDirectory;      // Owning
+    FsNode* _Nonnull        attachedFsNode;         // Owning
+} AtNode;
+
+typedef enum FHKeyType {
+    kKeyType_Uplink,
+    kKeyType_Downlink       // Use this to check whether the file hierarchy knows a particular fsid, inid
+} FHKeyType;
+
+// Hashtable entry that maps the (fsid, inid, type) of a directory to the
+// corresponding attachment point (AtNode). There is an entry for the attachment
+// and the attaching directory. Both point to the same AtNode.
+typedef struct FHKey {
+    ListNode            sibling;
+
+    AtNode* _Nonnull    at;
+
+    FilesystemId        fsid;
+    InodeId             inid;
+    FHKeyType           type;
+} FHKey;
+
 
 #define HASH_CHAINS_COUNT   8
 #define HASH_CHAINS_MASK    (HASH_CHAINS_COUNT - 1)
 
-#define HASH_CODE(__direction, __fsid, __inid) \
-    (((size_t)__direction) + ((size_t)__fsid) + ((size_t)__inid))
+#define HASH_CODE(__type, __fsid, __inid) \
+    (((size_t)__type) + ((size_t)__fsid) + ((size_t)__inid))
 
 #define HASH_INDEX(__direction, __fsid, __inid) \
     (HASH_CODE(__direction, __fsid, __inid) & HASH_CHAINS_MASK)
 
 final_class_ivars(FileHierarchy, Object,
-    FilesystemRef   rootFilesystem;     // constant over the hierarchy lifetime
-    InodeRef        rootDir;            // constant over the hierarchy lifetime
-    FilesystemId    rootFsId;
-    InodeId         rootInId;
-
-    SELock          lock;
-    List            hashChain[HASH_CHAINS_COUNT];   // Chains of FSLinks
+    SELock              lock;
+    FsNode* _Nonnull    root;
+    InodeRef _Nonnull   rootDirectory;
+    List                hashChain[HASH_CHAINS_COUNT];   // Chains of FHKey
 );
-
-static void _FileHierarchy_DeleteAllFSLinks(FileHierarchyRef _Nonnull self);
-static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeRef _Nullable * _Nonnull pOutParentDir);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -81,6 +92,94 @@ void ResolvedPath_Deinit(ResolvedPath* _Nonnull self)
 // MARK: FileHierarchy
 ////////////////////////////////////////////////////////////////////////////////
 
+static void destroy_atnode(AtNode* _Nullable self);
+static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self);
+static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeRef _Nullable * _Nonnull pOutParentDir);
+
+
+static void destroy_fsnode(FsNode* _Nullable self)
+{
+    if (self) {
+        List_ForEach(&self->attachmentPoints, AtNode,
+            destroy_atnode(pCurNode);
+        );
+
+        Object_Release(self->filesystem);
+        self->filesystem = NULL;
+        FSDeallocate(self);
+    }
+}
+
+static errno_t create_fsnode(FilesystemRef _Nonnull fs, FsNode* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    FsNode* self = NULL;
+
+    if ((err = FSAllocateCleared(sizeof(FsNode), (void**)&self)) == EOK) {
+        self->filesystem = Object_RetainAs(fs, Filesystem);
+    }
+    *pOutSelf = self;
+    return err;
+}
+
+static void destroy_atnode(AtNode* _Nullable self)
+{
+    if (self) {
+        Inode_Relinquish(self->attachingDirectory);
+        Inode_Reacquire(self->attachedDirectory);
+        destroy_fsnode(self->attachedFsNode);
+        FSDeallocate(self);
+    }
+}
+
+static errno_t create_atnode(FsNode* _Nonnull atFsNode, InodeRef _Nonnull atDir, FilesystemRef _Nonnull fs, AtNode* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    AtNode* self = NULL;
+    FsNode* fsNode = NULL;
+    InodeRef rootDir = NULL;
+
+    try(create_fsnode(fs, &fsNode));
+    try(Filesystem_AcquireRootDirectory(fs, &rootDir));
+    try(FSAllocateCleared(sizeof(AtNode), (void**)&self));
+    self->attachingDirectory = Inode_Reacquire(atDir);
+    self->attachingFsNode = atFsNode;
+    self->attachedDirectory = rootDir;
+    self->attachedFsNode = fsNode;
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    *pOutSelf = NULL;
+    Filesystem_RelinquishNode(fs, rootDir);
+    destroy_fsnode(fsNode);
+    return err;
+}
+
+static errno_t create_key(FilesystemId fsid, InodeId inid, FHKeyType type, AtNode* _Nonnull node, FHKey* _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    FHKey* self = NULL;
+
+    if ((err = FSAllocate(sizeof(FHKey), (void**)&self)) == EOK) {
+        self->at = node;
+        self->fsid = fsid;
+        self->inid = inid;
+        self->type = type;
+    }
+    *pOutSelf = self;
+    return err;
+}
+
+static void destroy_key(FHKey* _Nullable self)
+{
+    if (self) {
+        self->at = NULL;
+        FSDeallocate(self);
+    }
+}
+
+
 errno_t FileHierarchy_Create(FilesystemRef _Nonnull rootFS, FileHierarchyRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
@@ -93,10 +192,8 @@ errno_t FileHierarchy_Create(FilesystemRef _Nonnull rootFS, FileHierarchyRef _Nu
         List_Init(&self->hashChain[i]);
     }
 
-    self->rootFilesystem = Object_RetainAs(rootFS, Filesystem);
-    try(Filesystem_AcquireRootDirectory(rootFS, &self->rootDir));
-    self->rootFsId = Filesystem_GetId(self->rootFilesystem);
-    self->rootInId = Inode_GetId(self->rootDir);
+    try(Filesystem_AcquireRootDirectory(rootFS, &self->rootDirectory));
+    try(create_fsnode(rootFS, &self->root));
 
     *pOutSelf = self;
     return EOK;
@@ -109,91 +206,67 @@ catch:
 
 void FileHierarchy_deinit(FileHierarchyRef _Nullable self)
 {
-    if (self->rootDir) {
-        Inode_Relinquish(self->rootDir);
-        self->rootDir = NULL;
+    _FileHierarchy_DestroyAllKeys(self);
+    if (self->rootDirectory) {
+        Inode_Relinquish(self->rootDirectory);
+        self->rootDirectory = NULL;
     }
-    if (self->rootFilesystem) {
-        Object_Release(self->rootFilesystem);
-        self->rootFilesystem = NULL;
+    if (self->root) {
+        destroy_fsnode(self->root);
+        self->root = NULL;
     }
-
-    _FileHierarchy_DeleteAllFSLinks(self);
 
     SELock_Deinit(&self->lock);
 }
 
+
+static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self)
+{
+    for (size_t i = 0; i < HASH_CHAINS_COUNT; i++) {
+        List_ForEach(&self->hashChain[i], FHKey,
+            destroy_key(pCurNode);
+        )
+    }
+}
+
+
+
 // Returns a strong reference to the root filesystem of the given file hierarchy.
 FilesystemRef FileHierarchy_CopyRootFilesystem(FileHierarchyRef _Nonnull self)
 {
-    return Object_RetainAs(self->rootFilesystem, Filesystem);
+    return Object_RetainAs(self->root->filesystem, Filesystem);
 }
 
 // Returns the root directory of the given file hierarchy.
 InodeRef _Nonnull FileHierarchy_AcquireRootDirectory(FileHierarchyRef _Nonnull self)
 {
-    return Filesystem_ReacquireNode(self->rootFilesystem, self->rootDir);
+    return Filesystem_ReacquireNode(self->root->filesystem, self->rootDirectory);
 }
 
-static errno_t _FileHierarchy_InsertFSLink(FileHierarchyRef _Nonnull _Locked self, FilesystemId fsid, InodeId inid, FilesystemRef _Nonnull targetFs, InodeRef _Nonnull targetDir, FSLinkDirection direction)
+static void _FileHierarchy_InsertKey(FileHierarchyRef _Nonnull _Locked self, FHKey* _Nonnull key)
 {
-    decl_try_err();
-    FSLink* link = NULL;
+    const size_t hashIdx = HASH_INDEX(key->type, key->fsid, key->inid);
 
-    if ((err = FSAllocateCleared(sizeof(FSLink), (void**)&link)) == EOK) {
-        link->fsid = fsid;
-        link->inid = inid;
-        link->targetFS = targetFs;
-        link->targetDirectory = targetDir;
-        link->direction = direction;
-
-        const size_t hashIdx = HASH_INDEX(direction, fsid, inid);
-        List_InsertBeforeFirst(&self->hashChain[hashIdx], &link->node);
-    }
-    return err;
+    List_InsertBeforeFirst(&self->hashChain[hashIdx], &key->sibling);
 }
 
-static void destroy_fslink(FSLink* _Nonnull link)
+static void _FileHierarchy_RemoveKey(FileHierarchyRef _Nonnull _Locked self, FHKey* _Nullable key)
 {
-    if (link->direction == kDirection_Down) {
-        Inode_Relinquish(link->targetDirectory);
-        Object_Release(link->targetFS);
-    }
-    FSDeallocate(link);
-}
+    if (key) {
+        const size_t hashIdx = HASH_INDEX(key->type, key->fsid, key->inid);
 
-static void _FileHierarchy_DeleteFSLink(FileHierarchyRef _Nonnull _Locked self, FSLink* _Nullable link)
-{
-    if (link) {
-        const size_t hashIdx = HASH_INDEX(link->direction, link->fsid, link->inid);
-
-        List_Remove(&self->hashChain[hashIdx], &link->node);
-        destroy_fslink(link);
+        List_Remove(&self->hashChain[hashIdx], &key->sibling);
     }
 }
 
-static void _FileHierarchy_DeleteAllFSLinks(FileHierarchyRef _Nonnull self)
-{
-    for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
-        FSLink* curLink = (FSLink*)self->hashChain[i].first;
-
-        while (curLink) {
-            FSLink* nextLink = (FSLink*)curLink->node.next;
-
-            destroy_fslink(curLink);
-            curLink = nextLink;
-        }
-    }
-}
-
-static FSLink* _Nullable _FileHierarchy_GetFSLink(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull inode, FSLinkDirection direction)
+static FHKey* _Nullable _FileHierarchy_GetKey(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull inode, FHKeyType type)
 {
     const FilesystemId fsid = Inode_GetFilesystemId(inode);
     const InodeId inid = Inode_GetId(inode);
-    const size_t hashIdx = HASH_INDEX(direction, fsid, inid);
+    const size_t hashIdx = HASH_INDEX(type, fsid, inid);
 
-    List_ForEach(&self->hashChain[hashIdx], FSLink,
-        if (pCurNode->direction == direction && pCurNode->fsid == fsid && pCurNode->inid == inid) {
+    List_ForEach(&self->hashChain[hashIdx], FHKey,
+        if (pCurNode->type == type && pCurNode->fsid == fsid && pCurNode->inid == inid) {
             return pCurNode;
         }
     );
@@ -201,34 +274,33 @@ static FSLink* _Nullable _FileHierarchy_GetFSLink(FileHierarchyRef _Nonnull _Loc
     return NULL;
 }
 
-static bool _FileHierarchy_KnowsFilesystemId(FileHierarchyRef _Nonnull _Locked self, FilesystemId fsid)
+static AtNode* _Nullable _FileHierarchy_GetAtNode(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull inode, FHKeyType type)
 {
-    // Need to check up and down links because the leaf entries in the tree have
-    // no downlinks. So their uplinks are the only links that name leaf filesystems
-    for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
-        List_ForEach(&self->hashChain[i], FSLink, 
-            if (pCurNode->fsid == fsid) {
-                return true;
-            }
-        );
-    }
+    FHKey* key = _FileHierarchy_GetKey(self, inode, type);
 
-    return false;
+    return (key) ? key->at : NULL;
 }
 
-// Returns true if the given fs is known to this hierarchy and has at least one
-// other filesystem attached to it.
-static bool _FileHierarchy_HasFilesystemsAttached(FileHierarchyRef _Nonnull _Locked self, FilesystemId fsid)
+static FsNode* _Nullable find_fsnode_rec(FsNode* _Nonnull self, FilesystemId fsid)
 {
-    for (int i = 0; i < HASH_CHAINS_COUNT; i++) {
-        List_ForEach(&self->hashChain[i], FSLink, 
-            if (pCurNode->direction == kDirection_Down && pCurNode->fsid == fsid) {
-                return true;
-            }
-        );
+    if (Filesystem_GetId(self->filesystem) == fsid) {
+        return self;
     }
 
-    return false;
+    List_ForEach(&self->attachmentPoints, AtNode, 
+        FsNode* foundNode = find_fsnode_rec(pCurNode->attachedFsNode, fsid);
+
+        if (foundNode) {
+            return foundNode;
+        }
+    );
+
+    return NULL;
+}
+
+static FsNode* _Nullable _FileHierarchy_GetFsNode(FileHierarchyRef _Nonnull _Locked self, FilesystemId fsid)
+{
+    return find_fsnode_rec(self->root, fsid);
 }
 
 // Attaches the root directory of the filesystem 'fs' to the directory 'atDir'. 'atDir'
@@ -237,8 +309,10 @@ static bool _FileHierarchy_HasFilesystemsAttached(FileHierarchyRef _Nonnull _Loc
 errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, FilesystemRef _Nonnull fs, InodeRef _Nonnull atDir)
 {
     decl_try_err();
-    FSLink* uplink = NULL;
-    FSLink* downlink = NULL;
+    FsNode* atFsNode = NULL;
+    AtNode* atNode = NULL;
+    FHKey* upKey = NULL;
+    FHKey* downKey = NULL;
     InodeRef fsRootDir = NULL;
 
     if (!Inode_IsDirectory(atDir)) {
@@ -247,68 +321,97 @@ errno_t FileHierarchy_AttachFilesystem(FileHierarchyRef _Nonnull self, Filesyste
 
     try_bang(SELock_LockExclusive(&self->lock));
 
-    Object_Retain(fs);
-    try(Filesystem_AcquireRootDirectory(fs, &fsRootDir));
-
     // Make sure that the filesystem that owns 'atDir' exists in our file hierarchy
-    if (!_FileHierarchy_KnowsFilesystemId(self, Inode_GetFilesystemId(atDir))) {
+    atFsNode = _FileHierarchy_GetFsNode(self, Inode_GetFilesystemId(atDir));
+    if (atFsNode == NULL) {
         throw(EINVAL);
     }
 
     // Make sure that 'atDir' doesn't already serve as a mount point in our file hierarchy
-    if (_FileHierarchy_GetFSLink(self, atDir, kDirection_Down) != NULL) {
+    if (_FileHierarchy_GetAtNode(self, atDir, kKeyType_Downlink) != NULL) {
         throw(EBUSY);
     }
 
-    try(_FileHierarchy_InsertFSLink(self, Filesystem_GetId(fs), Inode_GetId(fsRootDir), Inode_GetFilesystem(atDir), atDir, kDirection_Up));
-    try(_FileHierarchy_InsertFSLink(self, Inode_GetFilesystemId(atDir), Inode_GetId(atDir), fs, fsRootDir, kDirection_Down));
+    try(create_atnode(atFsNode, atDir, fs, &atNode));
+    try(create_key(Filesystem_GetId(fs), Inode_GetId(atNode->attachedDirectory), kKeyType_Uplink, atNode, &upKey));
+    try(create_key(Inode_GetFilesystemId(atDir), Inode_GetId(atDir), kKeyType_Downlink, atNode, &downKey));
+
+    _FileHierarchy_InsertKey(self, upKey);
+    _FileHierarchy_InsertKey(self, downKey);
+
+    List_InsertAfterLast(&atFsNode->attachmentPoints, &atNode->sibling);
 
     try_bang(SELock_Unlock(&self->lock));
     return EOK;
 
 catch:
-    if (downlink == NULL) {
-        Inode_Relinquish(fsRootDir);
-        Object_Release(fs);
-    }
-
-    _FileHierarchy_DeleteFSLink(self, downlink);
-    _FileHierarchy_DeleteFSLink(self, uplink);
+    destroy_key(upKey);
+    destroy_key(downKey);
+    destroy_atnode(atNode);
 
     try_bang(SELock_Unlock(&self->lock));
 
     return err;
 }
 
-// Detaches the filesystem attached to directory 'dir'
-errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir)
+static void _FileHierarchy_CollectKeysForAtNode(FileHierarchyRef _Nonnull _Locked self, AtNode* _Nonnull atNode, List* _Nonnull keys)
+{
+    for (size_t i = 0; i < HASH_CHAINS_COUNT; i++) {
+        List_ForEach(&self->hashChain[i], FHKey,
+            if (pCurNode->at == atNode) {
+                List_Remove(&self->hashChain[i], &pCurNode->sibling);
+                List_InsertBeforeFirst(keys, &pCurNode->sibling);
+            }
+        );
+    }
+}
+
+static void destroy_key_collection(List* _Nonnull keys)
+{
+    FHKey* curKey = (FHKey*)keys->first;
+
+    while (curKey) {
+        FHKey* nextKey = (FHKey*)curKey->sibling.next;
+
+        destroy_key(curKey);
+        curKey = nextKey;
+    }
+}
+
+// Detaches the filesystem attached to directory 'dir'. The detachment will fail
+// if the filesystem which is attached to 'dir' hosts other attached filesystems.
+// However, the detachment will be recursively applied if 'force' is true.
+errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, bool force)
 {
     decl_try_err();
+    List keys;
+
+    List_Init(&keys);
 
     try_bang(SELock_LockExclusive(&self->lock));
 
     // Make sure that 'dir' is a attachment point
-    FSLink* downlink = _FileHierarchy_GetFSLink(self, dir, kDirection_Down);
-    if (downlink == NULL) {
+    FHKey* downKey = _FileHierarchy_GetKey(self, dir, kKeyType_Downlink);
+    if (downKey == NULL) {
         throw(EINVAL);
     }
 
     // Make sure that the FS that we want to detach doesn't have other FSs attached
     // to it.
-    // XXX fix this: should be able to unmount an FS that still has other FSs mounted
-    // XXX           on it (via a force option)
-    if (_FileHierarchy_HasFilesystemsAttached(self, Filesystem_GetId(downlink->targetFS))) {
+    AtNode* atNode = downKey->at;
+    if (!force && !List_IsEmpty(&atNode->attachedFsNode->attachmentPoints)) {
         throw(EBUSY);
     }
 
-    FSLink* uplink = _FileHierarchy_GetFSLink(self, downlink->targetDirectory, kDirection_Up);
-    assert(uplink != NULL);
-
-    _FileHierarchy_DeleteFSLink(self, downlink);
-    _FileHierarchy_DeleteFSLink(self, uplink);
+    FsNode* atFsNode = atNode->attachingFsNode;
+    List_Remove(&atFsNode->attachmentPoints, &atNode->sibling);
+    _FileHierarchy_CollectKeysForAtNode(self, atNode, &keys);
 
 catch:
     try_bang(SELock_Unlock(&self->lock));
+    destroy_key_collection(&keys);
+    destroy_atnode(atNode);
+
     return err;
 }
 
@@ -317,7 +420,7 @@ catch:
 bool FileHierarchy_IsAttachmentPoint(FileHierarchyRef _Nonnull self, InodeRef _Nonnull inode)
 {
     SELock_LockShared(&self->lock);
-    const bool r = (_FileHierarchy_GetFSLink(self, inode, kDirection_Down) != NULL) ? true : false;
+    const bool r = (_FileHierarchy_GetAtNode(self, inode, kKeyType_Downlink) != NULL) ? true : false;
     SELock_Unlock(&self->lock);
     return r;
 }
@@ -329,13 +432,13 @@ bool FileHierarchy_IsAttachmentPoint(FileHierarchyRef _Nonnull self, InodeRef _N
 // EOK and NULL are returned if 'dir' is the root directory of the hierarchy.
 static errno_t _FileHierarchy_AcquireDirectoryMountingDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull dir, InodeRef _Nullable _Locked * _Nonnull pOutMountingDir)
 {
-    FSLink* link = _FileHierarchy_GetFSLink(self, dir, kDirection_Up);
+    AtNode* node = _FileHierarchy_GetAtNode(self, dir, kKeyType_Uplink);
 
-    if (link) {
-        *pOutMountingDir = Inode_Reacquire(link->targetDirectory);
+    if (node) {
+        *pOutMountingDir = Inode_Reacquire(node->attachingDirectory);
         return EOK;
     }
-    else if (self->rootFsId == Inode_GetFilesystemId(dir) && self->rootInId == Inode_GetId(dir)) {
+    else if (Filesystem_GetId(self->root->filesystem) == Inode_GetFilesystemId(dir) && Inode_GetId(self->rootDirectory) == Inode_GetId(dir)) {
         *pOutMountingDir = NULL;
         return EOK;
     }
@@ -350,9 +453,9 @@ static errno_t _FileHierarchy_AcquireDirectoryMountingDirectory(FileHierarchyRef
 // returns NULL.
 static InodeRef _Nullable _FileHierarchy_AcquireDirectoryMountedAtDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull dir)
 {
-    FSLink* link = _FileHierarchy_GetFSLink(self, dir, kDirection_Down);
+    AtNode* node = _FileHierarchy_GetAtNode(self, dir, kKeyType_Downlink);
 
-    return (link) ? Filesystem_ReacquireNode(link->targetFS, link->targetDirectory) : NULL;
+    return (node) ? Inode_Reacquire(node->attachedDirectory) : NULL;
 }
 
 
