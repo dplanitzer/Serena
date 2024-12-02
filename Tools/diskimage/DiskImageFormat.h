@@ -1,13 +1,13 @@
 //
-//  di_DiskImageFormat.h
+//  DiskImageFormat.h
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 6/29/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef di_DiskImageFormat_h
-#define di_DiskImageFormat_h
+#ifndef DiskImageFormat_h
+#define DiskImageFormat_h
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -41,4 +41,4 @@ typedef struct DiskImage {
     size_t                      physicalSize;       // Size in bytes, of the medium inside the disk image file
 } DiskImage;
 
-#endif /* di_DiskImageFormat_h */
+#endif /* DiskImageFormat_h */

@@ -6,8 +6,8 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef di_RamFSContainer_h
-#define di_RamFSContainer_h
+#ifndef RamFSContainer_h
+#define RamFSContainer_h
 
 #include <filesystem/FSContainer.h>
 #include "DiskImageFormat.h"
@@ -31,4 +31,4 @@ extern void RamFSContainer_Destroy(RamFSContainerRef _Nullable self);
 // Writes the contents of the disk to the given path as a regular file.
 extern errno_t RamFSContainer_WriteToPath(RamFSContainerRef _Nonnull self, const char* pPath);
 
-#endif /* di_RamFSContainer_h */
+#endif /* RamFSContainer_h */
