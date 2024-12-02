@@ -1,7 +1,10 @@
 # --------------------------------------------------------------------------
 # Builds:
+#   diskimage
 #	libtool
 #	keymap
+#   makerom
+#   libclap
 #
 # and puts them inside the build/tools folder.
 #
@@ -11,10 +14,14 @@
 # Common Directories
 #
 
-TOOLS_DIR := ../build/tools
-OBJS_DIR := ../build/tools-objs
-LIBSYSTEM_HEADERS_DIR := ..\Library\libsystem\Headers
-LIBCLAP_HEADERS_DIR := ..\Library\libclap\Headers
+BUILD_DIR := ../build
+TOOLS_DIR := $(BUILD_DIR)/tools
+OBJS_DIR := $(BUILD_DIR)/tools-objs
+LIBS_DIR := ../Library
+LIBSYSTEM_HEADERS_DIR := $(LIBS_DIR)/libsystem/Headers
+LIBCLAP_DIR := $(LIBS_DIR)/libclap
+LIBCLAP_HEADERS_DIR := $(LIBCLAP_DIR)/Headers
+LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
 
 
 # --------------------------------------------------------------------------
@@ -42,12 +49,15 @@ include ../common.mk
 
 default: all
 
-all: $(OBJS_DIR) $(TOOLS_DIR) $(TOOLS_DIR)/libtool $(TOOLS_DIR)/keymap $(TOOLS_DIR)/makerom $(TOOLS_DIR)/diskimage
-diskimage: $(OBJS_DIR) $(TOOLS_DIR) $(TOOLS_DIR)/diskimage
-keymap: $(OBJS_DIR) $(TOOLS_DIR) $(TOOLS_DIR)/keymap
-libtool: $(OBJS_DIR) $(TOOLS_DIR) $(TOOLS_DIR)/libtool
-makerom: $(OBJS_DIR) $(TOOLS_DIR) $(TOOLS_DIR)/makerom
-libclap: $(OBJS_DIR) $(OBJS_DIR)/clap.lib
+all: libclap makerom libtool keymap diskimage
+diskimage: $(TOOLS_DIR)/diskimage
+keymap: $(TOOLS_DIR)/keymap
+libtool: $(TOOLS_DIR)/libtool
+makerom: $(TOOLS_DIR)/makerom
+libclap: $(OBJS_DIR)/clap.lib
+
+clean:
+	$(call rm_if_exists,$(OBJS_DIR))
 
 
 $(TOOLS_DIR):
@@ -61,68 +71,68 @@ $(OBJS_DIR):
 # libclap
 #
 
-LIBCLAP_DIR := ../Library/libclap
-LIBCLAP_SOURCES_DIR := $(LIBCLAP_DIR)/Sources
-LIBCLAP_SRCS := $(LIBCLAP_SOURCES_DIR)/clap.c $(LIBCLAP_SOURCES_DIR)/clap_error.c $(LIBCLAP_SOURCES_DIR)/clap_help.c
+LIBCLAP_H_SOURCES := $(wildcard $(LIBCLAP_SOURCES_DIR)/*.h)
+LIBCLAP_C_SOURCES := $(wildcard $(LIBCLAP_SOURCES_DIR)/*.c)
+LIBCLAP_OBJS := $(patsubst $(LIBCLAP_SOURCES_DIR)/%.c, $(OBJS_DIR)/%.obj, $(LIBCLAP_C_SOURCES))
 
-$(OBJS_DIR)/clap.lib: $(LIBCLAP_SRCS) $(LIBCLAP_HEADERS_DIR)/clap.h $(LIBCLAP_SOURCES_DIR)/clap_priv.h
+$(OBJS_DIR)/clap.lib: $(LIBCLAP_C_SOURCES) $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
 	cl /c /I $(LIBCLAP_HEADERS_DIR) /I $(LIBCLAP_SOURCES_DIR) $(DEBUG_FLAGS) /Fo:"$(OBJS_DIR)/" $(filter %.c,$^)
-	link /lib /out:"$@" $(OBJS_DIR)\clap_error.obj $(OBJS_DIR)\clap_help.obj $(OBJS_DIR)\clap.obj
-
-
-# --------------------------------------------------------------------------
-# libtool
-#
-
-LIBTOOL_SRCS := libtool.c
-
-$(TOOLS_DIR)/libtool: $(LIBTOOL_SRCS) $(OBJS_DIR)/clap.lib
-	cl "/D_CRT_SECURE_NO_WARNINGS" "/D_CRT_NONSTDC_NO_WARNINGS" /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
-
-
-# --------------------------------------------------------------------------
-# keymap
-#
-
-KEYMAP_SRCS := keymap.c
-
-$(TOOLS_DIR)/keymap: $(KEYMAP_SRCS) $(OBJS_DIR)/clap.lib
-	cl /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
-
-
-# --------------------------------------------------------------------------
-# makerom
-#
-
-MAKEROM_SRCS := makerom.c
-
-$(TOOLS_DIR)/makerom: $(MAKEROM_SRCS) $(OBJS_DIR)/clap.lib
-	cl /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+	link /lib /out:"$@" $(LIBCLAP_OBJS)
 
 
 # --------------------------------------------------------------------------
 # diskimage
 #
 
-DISKIMAGE_SRCS := diskimage/klib/klib.c diskimage/dispatcher/dispatcher.c
-DISKIMAGE_SRCS += diskimage/FSUtilities_win32.c diskimage/RamFSContainer.c
-DISKIMAGE_SRCS += ../Kernel/Sources/klib/Array.c ../Kernel/Sources/klib/List.c
-DISKIMAGE_SRCS += ../Kernel/Sources/kobj/Class.c ../Kernel/Sources/kobj/Any.c ../Kernel/Sources/kobj/Object.c ../Kernel/Sources/kobj/ObjectArray.c
-DISKIMAGE_SRCS += ../Kernel/Sources/User.c
-DISKIMAGE_SRCS += ../Kernel/Sources/disk/DiskBlock.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/FSContainer.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/ContainerFilesystem.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Filesystem.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/Inode.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/PathComponent.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Alloc.c ../Kernel/Sources/filesystem/serenafs/SerenaFS_Inode.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Directory.c ../Kernel/Sources/filesystem/serenafs/SerenaFS_File.c
-DISKIMAGE_SRCS += ../Kernel/Sources/filesystem/serenafs/SerenaFS_Format.c ../Kernel/Sources/filesystem/serenafs/SerenaFS.c
-DISKIMAGE_SRCS += diskimage/diskimage.c diskimage/diskimage_cmds.c diskimage/diskimage_win32.c
+KERNEL_DIR := ../Kernel/Sources
+KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/Array.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/List.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/User.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/disk/DiskBlock.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/FSContainer.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/ContainerFilesystem.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Filesystem.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Inode.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/PathComponent.c
 
-$(TOOLS_DIR)/diskimage: $(DISKIMAGE_SRCS) $(OBJS_DIR)/clap.lib
-	cl /I diskimage\ /I $(LIBSYSTEM_HEADERS_DIR) /I $(LIBCLAP_HEADERS_DIR) /I ..\Kernel\Sources\ /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+KOBJ_C_SOURCES := $(wildcard $(KERNEL_DIR)/kobj/*.c)
+SERENAFS_C_SOURCES := $(wildcard $(KERNEL_DIR)/filesystem/serenafs/*.c)
+
+DISKIMAGE_C_SOURCES := $(wildcard diskimage/*.c)
+DISKIMAGE_DISPATCHER_C_SOURCES := $(wildcard diskimage/dispatcher/*.c)
+DISKIMAGE_KLIB_C_SOURCES := $(wildcard diskimage/klib/*.c)
+
+ALL_DISKIMAGE_C_SOURCES := $(KERNEL_C_SOURCES) $(KOBJ_C_SOURCES) $(SERENAFS_C_SOURCES) $(DISKIMAGE_C_SOURCES) $(DISKIMAGE_DISPATCHER_C_SOURCES) $(DISKIMAGE_KLIB_C_SOURCES)
+
+$(TOOLS_DIR)/diskimage: $(ALL_DISKIMAGE_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
+	cl /I diskimage /I $(LIBSYSTEM_HEADERS_DIR) /I $(LIBCLAP_HEADERS_DIR) /I $(KERNEL_DIR) /D__SYSTEM_SHIM__=1 /D__KERNEL__=1 /D__DISKIMAGE__=1 $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
 
 
-clean:
-	$(call rm_if_exists,$(OBJS_DIR))
+# --------------------------------------------------------------------------
+# keymap
+#
+
+KEYMAP_C_SOURCES := keymap.c
+
+$(TOOLS_DIR)/keymap: $(KEYMAP_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
+	cl /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+
+
+# --------------------------------------------------------------------------
+# libtool
+#
+
+LIBTOOL_C_SOURCES := libtool.c
+
+$(TOOLS_DIR)/libtool: $(LIBTOOL_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
+	cl "/D_CRT_SECURE_NO_WARNINGS" "/D_CRT_NONSTDC_NO_WARNINGS" /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
+
+
+# --------------------------------------------------------------------------
+# makerom
+#
+
+MAKEROM_C_SOURCES := makerom.c
+
+$(TOOLS_DIR)/makerom: $(MAKEROM_C_SOURCES) $(OBJS_DIR)/clap.lib | $(OBJS_DIR) $(TOOLS_DIR)
+	cl /I $(LIBCLAP_HEADERS_DIR) $(DEBUG_FLAGS) /Fe:"$@" /Fo:"$(OBJS_DIR)/" $^
