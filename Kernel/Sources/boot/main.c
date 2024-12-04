@@ -1,5 +1,5 @@
 //
-//  startup.c
+//  main.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/21.

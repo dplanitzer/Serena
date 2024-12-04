@@ -5,6 +5,9 @@
 KERNEL_SOURCES_DIR := $(KERNEL_PROJECT_DIR)/Sources
 
 
+BOOT_SOURCES_DIR := $(KERNEL_SOURCES_DIR)/boot
+BOOT_OBJS_DIR := $(KERNEL_OBJS_DIR)/boot
+
 CONSOLE_SOURCES_DIR := $(KERNEL_SOURCES_DIR)/console
 CONSOLE_OBJS_DIR := $(KERNEL_OBJS_DIR)/console
 
@@ -94,9 +97,7 @@ $(KERNEL_OBJS_DIR):
 	$(call mkdir_if_needed,$(KERNEL_OBJS_DIR))
 
 
--include $(KRT_SOURCES_DIR)/package.mk
--include $(KOBJ_SOURCES_DIR)/package.mk
--include $(KLIB_SOURCES_DIR)/package.mk
+-include $(BOOT_SOURCES_DIR)/package.mk
 -include $(CONSOLE_SOURCES_DIR)/package.mk
 -include $(DISK_SOURCES_DIR)/package.mk
 -include $(DISPATCHER_SOURCES_DIR)/package.mk
@@ -111,10 +112,14 @@ $(KERNEL_OBJS_DIR):
 -include $(FILESYSTEM_SOURCES_DIR)/package.mk
 -include $(FILESYSTEM_SERENAFS_SOURCES_DIR)/package.mk
 -include $(HAL_SOURCES_DIR)/package.mk
+-include $(KRT_SOURCES_DIR)/package.mk
+-include $(KOBJ_SOURCES_DIR)/package.mk
+-include $(KLIB_SOURCES_DIR)/package.mk
 -include $(PROCESS_SOURCES_DIR)/package.mk
 
 
-$(KERNEL_FILE): $(KRT_OBJS) $(KOBJ_OBJS) $(KLIB_OBJS) $(CONSOLE_OBJS) \
+$(KERNEL_FILE):	$(BOOT_OBJS) \
+				$(KRT_OBJS) $(KOBJ_OBJS) $(KLIB_OBJS) $(CONSOLE_OBJS) \
 				$(DISK_OBJS) $(DISPATCHER_OBJS) $(DISPATCHQUEUE_OBJS) \
 				$(DRIVER_AMIGA_OBJS) \
 				$(DRIVER_AMIGA_FLOPPY_OBJS) $(DRIVER_AMIGA_GRAPHICS_OBJS) \

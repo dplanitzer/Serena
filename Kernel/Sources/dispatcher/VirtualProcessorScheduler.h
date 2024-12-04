@@ -10,8 +10,8 @@
 #define VirtualProcessorScheduler_h
 
 #include <klib/klib.h>
+#include <boot/BootAllocator.h>
 #include <hal/SystemDescription.h>
-#include "BootAllocator.h"
 #include "VirtualProcessor.h"
 
 

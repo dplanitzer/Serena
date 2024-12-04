@@ -1,5 +1,5 @@
 //
-//  startup_bootfs.c
+//  bootfs.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 2/4/21.
