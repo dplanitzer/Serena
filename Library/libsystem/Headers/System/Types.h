@@ -20,14 +20,24 @@
 
 __CPP_BEGIN
 
-// Various Kernel API types
-typedef int         ProcessId;
-typedef uint32_t    FilesystemId;
-
 // The non-persistent, globally unique ID of a driver. This ID does not survive
-// a system reboot.
+// a system reboot. Id 0 represents a device that does not exist.
 typedef uint32_t    DriverId;
 
+// Means no driver
+#define kDriverId_None   0
+
+
+// Various Kernel API types
+typedef int         ProcessId;
+
+// The non-persistent, globally unique ID of a filesystem. This ID does not survive
+// a system reboot. Id 0 represents a filesystem that does not exist.
+typedef uint32_t    FilesystemId;
+
+
+// The persistent, filesystem unique ID of a filesystem inode. This ID is only
+// unique with respect to the filesystem to which it belongs.
 #if defined(__ILP32__)
 typedef uint32_t    InodeId;
 #elif defined(__LP64__) || defined(__LLP64__)
@@ -36,8 +46,15 @@ typedef uint64_t    InodeId;
 #error "Unknown data model"
 #endif
 
+
 // Represents a logical block address in the range 0..<DiskDriver.blockCount
+#if defined(__ILP32__)
 typedef uint32_t    LogicalBlockAddress;
+#elif defined(__LP64__) || defined(__LLP64__)
+typedef uint64_t    LogicalBlockAddress;
+#else
+#error "Unknown data model"
+#endif
 
 // Type to represent the number of blocks on a disk
 typedef LogicalBlockAddress LogicalBlockCount;

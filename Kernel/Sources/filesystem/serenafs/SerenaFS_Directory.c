@@ -231,7 +231,7 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDirNode, InodeId idToRemove)
+errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId idToRemove)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -241,7 +241,7 @@ errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
 
     q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = idToRemove;
-    try(SerenaFS_GetDirectoryEntry(self, pDirNode, &q, NULL, &mp, NULL, NULL));
+    try(SerenaFS_GetDirectoryEntry(self, pDir, &q, NULL, &mp, NULL, NULL));
 
     try(FSContainer_AcquireBlock(fsContainer, mp.lba, kAcquireBlock_Update, &pBlock));
     uint8_t* bp = DiskBlock_GetMutableData(pBlock);
@@ -249,11 +249,9 @@ errno_t SerenaFS_RemoveDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
     memset(dep, 0, sizeof(SFSDirectoryEntry));
     FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
 
-    if (Inode_GetFileSize(pDirNode) - (FileOffset)sizeof(SFSDirectoryEntry) == mp.fileOffset) {
-        Inode_DecrementFileSize(pDirNode, sizeof(SFSDirectoryEntry));
+    if (Inode_GetFileSize(pDir) - (FileOffset)sizeof(SFSDirectoryEntry) == mp.fileOffset) {
+        Inode_DecrementFileSize(pDir, sizeof(SFSDirectoryEntry));
     }
-
-    return EOK;
 
 catch:
     return err;

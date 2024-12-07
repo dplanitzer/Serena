@@ -28,7 +28,7 @@ extern ProcessRef _Nullable Process_GetCurrent(void);
 
 
 // Creates the root process which is the first process of the OS.
-extern errno_t RootProcess_Create(FilesystemRef _Nonnull pBootFS, ProcessRef _Nullable * _Nonnull pOutProc);
+extern errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutProc);
 
 // Loads an executable from the given executable file into the process address
 // space. This is only meant to get the root process going.

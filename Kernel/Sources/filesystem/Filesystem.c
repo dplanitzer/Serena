@@ -101,7 +101,7 @@ InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, 
     return pNode;
 }
 
-errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable _Locked pNode)
+errno_t Filesystem_RelinquishNode(FilesystemRef _Nonnull self, InodeRef _Nullable pNode)
 {
     decl_try_err();
 

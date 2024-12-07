@@ -27,7 +27,7 @@ static char* gInitialHeapBottom;
 static char* gInitialHeapTop;
 
 
-extern FilesystemRef _Nonnull create_boot_filesystem(void);
+extern FileHierarchyRef _Nonnull create_root_file_hierarchy(void);
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc);
 static void OnMain(void);
 
@@ -168,14 +168,14 @@ static void OnMain(void)
     try(DiskCache_Create(gSystemDescription, &gDiskCache));
 
 
-    // Find and mount a root filesystem.
-    FilesystemRef bootFS = create_boot_filesystem();
+    // Create the root file hierarchy.
+    FileHierarchyRef pRootFh = create_root_file_hierarchy();
 
 
     // Create the root process
     ProcessRef pRootProc;
-    try(RootProcess_Create(bootFS, &pRootProc));
-    Object_Release(bootFS);
+    try(RootProcess_Create(pRootFh, &pRootProc));
+    Object_Release(pRootFh);
 
 
     // Create the process manager

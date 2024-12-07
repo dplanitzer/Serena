@@ -33,21 +33,12 @@ ProcessRef _Nullable Process_GetCurrent(void)
 }
 
 
-errno_t RootProcess_Create(FilesystemRef _Nonnull pBootFS, ProcessRef _Nullable * _Nonnull pOutProc)
+errno_t RootProcess_Create(FileHierarchyRef _Nonnull pRootFh, ProcessRef _Nullable * _Nonnull pOutProc)
 {
-    decl_try_err();
-    FileHierarchyRef fileHierarchy = NULL;
-    InodeRef rootDir = NULL;
-    ProcessRef rootProc = NULL;
+    InodeRef rootDir = FileHierarchy_AcquireRootDirectory(pRootFh);
+    const errno_t err = Process_Create(1, pRootFh, kUser_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0022), pOutProc);
 
-    try(FileHierarchy_Create(pBootFS, &fileHierarchy));
-    try(Filesystem_AcquireRootDirectory(pBootFS, &rootDir));
-    try(Process_Create(1, fileHierarchy, kUser_Root, rootDir, rootDir, FilePermissions_MakeFromOctal(0022), &rootProc));
-
-catch:
-    *pOutProc = rootProc;
     Inode_Relinquish(rootDir);
-    Object_Release(fileHierarchy);
     return err;
 }
 

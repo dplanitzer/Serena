@@ -205,7 +205,7 @@ errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
 {
     decl_try_err();
 
-    // We must have write permissions for 'pParentNode'
+    // We must have write permissions for 'pDir'
     try(Filesystem_CheckAccess(self, pDir, user, kAccess_Writable));
 
 
@@ -261,15 +261,13 @@ catch:
     return r;
 }
 
-static errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
 
     try(SerenaFS_InsertDirectoryEntry(self, pDstDir, pName, Inode_GetId(pSrcNode), (SFSDirectoryEntryPointer*)pDirInstHint->data));
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
-
-    return EOK;
 
 catch:
     return err;

@@ -103,8 +103,9 @@ catch:
     return err;
 }
 
-// Locates the root filesystem and mounts it.
-FilesystemRef _Nonnull create_boot_filesystem(void)
+// Locates the boot device and creates the boot filesystem. Halts the machine if
+// a boot device/filesystem can not be found.
+FilesystemRef _Nullable create_boot_filesystem(void)
 {
     decl_try_err();
     int state = 0;
@@ -145,9 +146,6 @@ FilesystemRef _Nonnull create_boot_filesystem(void)
         state++;
     }
 
-
     // No luck, give up
-    print("No boot device found.\nHalting...\n");
-    while(true);
-    /* NOT REACHED */
+    return NULL;
 }

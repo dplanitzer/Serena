@@ -8,10 +8,11 @@
 
 #include "DriverCatalog.h"
 #include <dispatcher/Lock.h>
+#include <filesystem/devfs/DevFS.h>
 
 #define MAX_DRIVER_NAME_LENGTH      10
 #define DRIVER_ID_HASH_CHAINS_COUNT 8
-#define driver_id_hash(__id)        (~(DRIVER_ID_HASH_CHAINS_COUNT-1) & (__id))
+#define driver_id_hash(__id)        ((DRIVER_ID_HASH_CHAINS_COUNT-1) & (__id))
 
 
 typedef struct DriverEntry {
@@ -29,9 +30,10 @@ typedef struct DriverIdHashEntry {
 
 
 typedef struct DriverCatalog {
-    Lock    lock;
-    List    drivers;
-    List    driversByDriverId[DRIVER_ID_HASH_CHAINS_COUNT];
+    Lock                lock;
+    DevFSRef _Nonnull   devfs;
+    List                drivers;
+    List                driversByDriverId[DRIVER_ID_HASH_CHAINS_COUNT];
 } DriverCatalog;
 
 
@@ -93,6 +95,10 @@ errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
     DriverCatalog* self;
     
     try(kalloc_cleared(sizeof(DriverCatalog), (void**) &self));
+    
+    try(DevFS_Create(&self->devfs));
+    try(Filesystem_Start(self->devfs, NULL, 0));
+
     Lock_Init(&self->lock);
     List_Init(&self->drivers);
     for (size_t i = 0; i < DRIVER_ID_HASH_CHAINS_COUNT; i++) {
@@ -113,6 +119,10 @@ void DriverCatalog_Destroy(DriverCatalogRef _Nullable self)
     if (self) {
         _DriverCatalog_DestroyDriverIdHashTable(self);
         _DriverCatalog_DestroyDriverTable(self);
+
+        Filesystem_Stop(self->devfs);
+        Object_Release(self->devfs);
+        self->devfs = NULL;
 
         Lock_Deinit(&self->lock);
         kfree(self);
@@ -173,6 +183,11 @@ static DriverIdHashEntry* _Nullable _DriverCatalog_GetHashIdEntryByDriverId(Driv
     })
 
     return NULL;
+}
+
+DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self)
+{
+    return self->devfs;
 }
 
 errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverId driverId, DriverRef _Consuming _Nonnull driver)
@@ -263,6 +278,6 @@ DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnul
 // Generates a new and unique driver ID that should be used to publish a driver.
 DriverId GetNewDriverId(void)
 {
-    static volatile AtomicInt gNextAvailableId = 1;
+    static volatile AtomicInt gNextAvailableId = 0;
     return (DriverId) AtomicInt_Increment(&gNextAvailableId);
 }
