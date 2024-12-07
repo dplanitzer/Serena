@@ -188,6 +188,8 @@ errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUn
 {
     decl_try_err();
 
+    try_bang(SELock_LockExclusive(&self->seLock));
+
     // We must have write permissions for 'pDir'
     try(Filesystem_CheckAccess(self, pDir, user, kAccess_Writable));
 
@@ -201,6 +203,7 @@ errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUn
     try(DevFS_unlinkCore(self, pNodeToUnlink, pDir));
 
 catch:
+    SELock_Unlock(&self->seLock);
     return err;
 }
 
@@ -208,11 +211,13 @@ errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, I
 {
     decl_try_err();
 
+    try_bang(SELock_LockExclusive(&self->seLock));
     try(DevFS_InsertDirectoryEntry(self, pDstDir, Inode_GetId(pSrcNode), pName));
     Inode_Link(pSrcNode);
     Inode_SetModified(pSrcNode, kInodeFlag_StatusChanged);
 
 catch:
+    SELock_Unlock(&self->seLock);
     return err;
 }
 

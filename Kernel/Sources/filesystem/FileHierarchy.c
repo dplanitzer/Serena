@@ -94,7 +94,7 @@ void ResolvedPath_Deinit(ResolvedPath* _Nonnull self)
 
 static void destroy_atnode(AtNode* _Nullable self);
 static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self);
-static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeRef _Nullable * _Nonnull pOutParentDir);
+static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeId* _Nullable pInOutMountingDirId, InodeRef _Nullable * _Nonnull pOutParentDir);
 
 
 static void destroy_fsnode(FsNode* _Nullable self)
@@ -495,10 +495,10 @@ errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, InodeRef 
     *p = '\0';
 
     while (!Inode_Equals(pCurDir, rootDir)) {
-        const InodeId childInodeIdToLookup = Inode_GetId(pCurDir);
+        InodeId childInodeIdToLookup = Inode_GetId(pCurDir);
         InodeRef pParentDir = NULL;
 
-        try(FileHierarchy_AcquireParentDirectory(self, pCurDir, rootDir, user, &pParentDir));
+        try(FileHierarchy_AcquireParentDirectory(self, pCurDir, rootDir, user, &childInodeIdToLookup, &pParentDir));
         Inode_Relinquish(pCurDir);
         pCurDir = pParentDir; pParentDir = NULL;
 
@@ -540,7 +540,7 @@ catch:
 // if that inode is the path resolver's root directory. Returns a suitable error
 // code and leaves the iterator unchanged if an error (eg access denied) occurs.
 // Walking up means resolving a path component of the form '..'.
-static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeRef _Nullable * _Nonnull pOutParentDir)
+static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeId* _Nullable pInOutMountingDirId, InodeRef _Nullable * _Nonnull pOutParentDir)
 {
     decl_try_err();
     InodeRef pParentDir = NULL;
@@ -575,6 +575,10 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
         // is (because you can not mount a file system on the root node of another
         // file system).
         try(_FileHierarchy_AcquireDirectoryMountingDirectory(self, pDir, &pMountingDir));
+
+        if (pInOutMountingDirId) {
+            *pInOutMountingDirId = Inode_GetId(pMountingDir);
+        }
 
         Inode_Lock(pMountingDir);
         err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pMountingDir), pMountingDir, &kPathComponent_Parent, user, NULL, &pParentOfMountingDir);
@@ -732,7 +736,7 @@ errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathRes
             continue;
         }
         else if (pc.count == 2 && pc.name[0] == '.' && pc.name[1] == '.') {
-            try(FileHierarchy_AcquireParentDirectory(self, pCurNode, rootDir, user, &pNextNode));
+            try(FileHierarchy_AcquireParentDirectory(self, pCurNode, rootDir, user, NULL, &pNextNode));
         }
         else {
             try(FileHierarchy_AcquireChildNode(self, pCurNode, &pc, user, &pNextNode));
