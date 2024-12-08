@@ -28,7 +28,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     Lock_Init(&self->lock);
 
     self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(Driver_Open((DriverRef)pEventDriver, "", kOpen_Read, &self->eventDriverChannel));
+    try(Driver_Open((DriverRef)pEventDriver, kOpen_Read, &self->eventDriverChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     self->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
@@ -481,7 +481,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_open(ConsoleRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return ConsoleChannel_Create(self, mode, pOutChannel);
 }

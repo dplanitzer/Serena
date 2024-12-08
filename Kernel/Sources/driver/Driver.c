@@ -114,16 +114,16 @@ void Driver_stop(DriverRef _Nonnull self)
 
 
 
-errno_t Driver_Open(DriverRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     if (self->state != kDriverState_Running) {
         return ENODEV;
     }
 
-    return invoke_n(open, Driver, self, path, mode, pOutChannel);
+    return invoke_n(open, Driver, self, mode, pOutChannel);
 }
 
-errno_t Driver_open(DriverRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return EIO;
 }

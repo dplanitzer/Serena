@@ -127,7 +127,7 @@ static errno_t EventDriver_start(EventDriverRef _Nonnull self)
 // MARK: Input Driver API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t EventDriver_open(EventDriverRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t EventDriver_open(EventDriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return EventChannel_Create(self, mode, pOutChannel);
 }

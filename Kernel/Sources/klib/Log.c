@@ -35,7 +35,7 @@ void print_init(void* _Nonnull pConsole)
     Formatter_Init(&gFormatter, printv_console_sink_locked, NULL, gPrintBuffer, PRINT_BUFFER_CAPACITY);
     gConsole = (ConsoleRef) pConsole;
     assert(gConsole != NULL);
-    try_bang(Driver_Open((DriverRef)gConsole, "", kOpen_Write, &gConsoleChannel));
+    try_bang(Driver_Open((DriverRef)gConsole, kOpen_Write, &gConsoleChannel));
 }
 
 // Print formatted

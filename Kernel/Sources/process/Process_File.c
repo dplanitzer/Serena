@@ -143,7 +143,7 @@ errno_t Process_OpenFile(ProcessRef _Nonnull self, const char* _Nonnull path, un
         ConsoleRef pConsole;
 
         try_null(pConsole, (ConsoleRef) DriverCatalog_CopyDriverForName(gDriverCatalog, kConsoleName), ENODEV);
-        try(Driver_Open((DriverRef)pConsole, path, mode, &fileChannel));
+        try(Driver_Open((DriverRef)pConsole, mode, &fileChannel));
         try(IOChannelTable_AdoptChannel(&self->ioChannelTable, fileChannel, pOutIoc));
         Object_Release(pConsole);
         fileChannel = NULL;
@@ -160,7 +160,7 @@ errno_t Process_OpenFile(ProcessRef _Nonnull self, const char* _Nonnull path, un
     throw_iferr(err);
 
     // Note that this call takes ownership of the inode reference
-    try(FileChannel_Create(r.inode, mode, &fileChannel));
+    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, mode, &fileChannel));
     r.inode = NULL;
     try(IOChannelTable_AdoptChannel(&self->ioChannelTable, fileChannel, pOutIoc));
     fileChannel = NULL;

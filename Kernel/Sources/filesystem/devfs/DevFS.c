@@ -7,6 +7,8 @@
 //
 
 #include "DevFSPriv.h"
+#include <driver/Driver.h>
+#include <filesystem/DirectoryChannel.h>
 
 
 // Creates an instance of DevFS.
@@ -135,6 +137,26 @@ bool DevFS_isReadOnly(DevFSRef _Nonnull self)
     return false;
 }
 
+errno_t DevFS_createChannel(DevFSRef _Nonnull self, InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    decl_try_err();
+
+    switch (Inode_GetFileType(pNode)) {
+        case kFileType_Directory:
+            return DirectoryChannel_Create(pNode, pOutChannel);
+
+        case kFileType_Device:
+            if ((err = Driver_Open(((DfsDriverItem*)Inode_GetDfsDriverItem(pNode))->instance, mode, pOutChannel)) == EOK) {
+                Inode_Relinquish(pNode);
+            }
+            return err;
+
+        default:
+            *pOutChannel = NULL;
+            return EPERM;
+    }
+}
+
 errno_t DevFS_openFile(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode, User user)
 {
     return EPERM;
@@ -243,6 +265,7 @@ override_func_def(isReadOnly, DevFS, Filesystem)
 override_func_def(acquireRootDirectory, DevFS, Filesystem)
 override_func_def(acquireNodeForName, DevFS, Filesystem)
 override_func_def(getNameOfNode, DevFS, Filesystem)
+override_func_def(createChannel, DevFS, Filesystem)
 override_func_def(createNode, DevFS, Filesystem)
 override_func_def(openFile, DevFS, Filesystem)
 override_func_def(readFile, DevFS, Filesystem)

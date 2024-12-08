@@ -8,7 +8,8 @@
 
 #include "Filesystem.h"
 #include "FSUtilities.h"
-#include <System/IOChannel.h>
+#include "DirectoryChannel.h"
+#include "FileChannel.h"
 
 
 // Returns the next available FSID.
@@ -196,6 +197,21 @@ errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull 
 {
     pName->count = 0;
     return EIO;
+}
+
+errno_t Filesystem_createChannel(FilesystemRef _Nonnull self, InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    switch (Inode_GetFileType(pNode)) {
+        case kFileType_Directory:
+            return DirectoryChannel_Create(pNode, pOutChannel);
+
+        case kFileType_RegularFile:
+            return FileChannel_Create(pNode, mode, pOutChannel);
+
+        default:
+            *pOutChannel = NULL;
+            return EPERM;
+    }
 }
 
 errno_t Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileInfo* _Nonnull pOutInfo)
@@ -391,6 +407,7 @@ func_def(stop, Filesystem)
 func_def(acquireRootDirectory, Filesystem)
 func_def(acquireNodeForName, Filesystem)
 func_def(getNameOfNode, Filesystem)
+func_def(createChannel, Filesystem)
 func_def(getFileInfo, Filesystem)
 func_def(setFileInfo, Filesystem)
 func_def(createNode, Filesystem)

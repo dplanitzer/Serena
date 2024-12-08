@@ -191,6 +191,16 @@ open_class_funcs(Filesystem, Object,
 
 
     //
+    // I/O Channels
+    //
+
+    // Creates and returns an I/O channel that is suitable for reading/writing
+    // data on the given node. Note that this I/O channel adopts the provided
+    // node reference.
+    errno_t (*createChannel)(void* _Nonnull self, InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+
+
+    //
     // Get/Set Inode Attributes
     //
 
@@ -348,6 +358,10 @@ invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __user, __pDir
 
 #define Filesystem_GetNameOfNode(__self, __pDir, __id, __user, __pName) \
 invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __user, __pName)
+
+
+#define Filesystem_CreateChannel(__self, __pNode, __mode, __pOutChannel) \
+invoke_n(createChannel, Filesystem, __self, __pNode, __mode, __pOutChannel)
 
 
 #define Filesystem_CreateNode(__self, __type, __user, __permissions, __pDir, __pName, __pDirInsertionHint, __pOutNode) \

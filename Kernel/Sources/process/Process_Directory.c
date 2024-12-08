@@ -142,7 +142,7 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull self, const char* _Nonnull pat
     throw_iferr(err);
     
     // Note that this method takes ownership of the inode reference
-    try(DirectoryChannel_Create(r.inode, &dir));
+    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, kOpen_Read, &dir));
     r.inode = NULL;
     
     try(IOChannelTable_AdoptChannel(&self->ioChannelTable, dir, pOutIoc));

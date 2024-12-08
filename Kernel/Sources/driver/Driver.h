@@ -57,7 +57,7 @@ open_class_funcs(Driver, Object,
     // read, write, ioctl operations.
     // Override: Optional
     // Default Behavior: Creates a DriverChannel instance
-    errno_t (*open)(void* _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    errno_t (*open)(void* _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Invoked as the result of calling Driver_Close().
     // Override: Optional
@@ -86,7 +86,7 @@ open_class_funcs(Driver, Object,
 extern errno_t Driver_Start(DriverRef _Nonnull self);
 extern void Driver_Terminate(DriverRef _Nonnull self);
 
-extern errno_t Driver_Open(DriverRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel);
 
 extern errno_t Driver_Read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
