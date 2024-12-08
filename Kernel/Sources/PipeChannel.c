@@ -10,7 +10,7 @@
 #include "Pipe.h"
 
 
-errno_t PipeChannel_Create(ObjectRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t PipeChannel_Create(PipeRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     PipeChannelRef self;
@@ -18,10 +18,10 @@ errno_t PipeChannel_Create(ObjectRef _Nonnull pPipe, unsigned int mode, IOChanne
     assert((mode & kOpen_ReadWrite) == kOpen_Read || (mode & kOpen_ReadWrite) == kOpen_Write);
 
     try(IOChannel_Create(&kPipeChannelClass, kIOChannelType_Pipe, mode, (IOChannelRef*)&self));
-    self->pipe = Object_Retain(pPipe);
+    self->pipe = Object_RetainAs(pPipe, Pipe);
 
 catch:
-    *pOutChannel = (IOChannelRef)self;
+    *pOutSelf = (IOChannelRef)self;
     return err;
 }
 
@@ -41,7 +41,7 @@ errno_t PipeChannel_copy(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * 
     PipeChannelRef pNewChannel;
 
     try(IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
-    pNewChannel->pipe = Object_Retain(self->pipe);
+    pNewChannel->pipe = Object_RetainAs(self->pipe, Pipe);
 
 catch:
     *pOutChannel = (IOChannelRef)pNewChannel;

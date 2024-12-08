@@ -9,7 +9,7 @@
 #ifndef DriverChannel_h
 #define DriverChannel_h
 
-#include <IOChannel.h>
+#include <filesystem/IOChannel.h>
 
 
 open_class(DriverChannel, IOChannel,

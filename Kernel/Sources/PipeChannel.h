@@ -9,17 +9,17 @@
 #ifndef PipeChannel_h
 #define PipeChannel_h
 
-#include <IOChannel.h>
+#include <filesystem/IOChannel.h>
 #include <kobj/Object.h>
 
 
 open_class(PipeChannel, IOChannel,
-    ObjectRef _Nonnull  pipe;
+    PipeRef _Nonnull  pipe;
 );
 open_class_funcs(PipeChannel, IOChannel,
 );
 
 
-extern errno_t PipeChannel_Create(ObjectRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t PipeChannel_Create(PipeRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* PipeChannel_h */

@@ -9,8 +9,8 @@
 #ifndef FileChannel_h
 #define FileChannel_h
 
-#include "IOChannel.h"
-#include "Inode.h"
+#include <filesystem/IOChannel.h>
+#include <filesystem/Inode.h>
 #include <User.h>
 #include <dispatcher/Lock.h>
 

@@ -21,8 +21,8 @@ errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutReadChan
     bool needsUnlock = false;
 
     try(Pipe_Create(kPipe_DefaultBufferSize, &pPipe));
-    try(PipeChannel_Create((ObjectRef)pPipe, kOpen_Read, &rdChannel));
-    try(PipeChannel_Create((ObjectRef)pPipe, kOpen_Write, &wrChannel));
+    try(PipeChannel_Create(pPipe, kOpen_Read, &rdChannel));
+    try(PipeChannel_Create(pPipe, kOpen_Write, &wrChannel));
 
     Lock_Lock(&pProc->lock);
     needsUnlock = true;

@@ -10,7 +10,7 @@
 #define IOChannelTable_h
 
 #include <dispatcher/Lock.h>
-#include <IOChannel.h>
+#include <filesystem/IOChannel.h>
 
 
 typedef struct IOChannelTable {
