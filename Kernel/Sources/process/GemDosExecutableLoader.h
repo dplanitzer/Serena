@@ -11,7 +11,6 @@
 
 #include <klib/klib.h>
 #include <filesystem/Inode.h>
-#include <User.h>
 #include "AddressSpace.h"
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
@@ -31,13 +30,11 @@ typedef struct GemDosExecutableHeader {
 
 typedef struct GemDosExecutableLoader {
     AddressSpaceRef _Nonnull    addressSpace;
-    User                        user;
 } GemDosExecutableLoader;
 
 
-#define GemDosExecutableLoader_Init(__self, __pTargetAddressSpace, __user) \
-(__self)->addressSpace = __pTargetAddressSpace; \
-(__self)->user = __user
+#define GemDosExecutableLoader_Init(__self, __pTargetAddressSpace) \
+(__self)->addressSpace = __pTargetAddressSpace;
 
 #define GemDosExecutableLoader_Deinit(__self) \
 (__self)->addressSpace = NULL

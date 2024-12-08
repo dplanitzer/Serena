@@ -69,7 +69,6 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Inode
 
 
     // Read the executable header
-    try(Filesystem_OpenFile(Inode_GetFilesystem(pNode), pNode, kOpen_Read, self->user));
     fileOffset = 0ll;
     try(Filesystem_ReadFile(Inode_GetFilesystem(pNode), pNode, &hdr, sizeof(hdr), &fileOffset, &nBytesRead));
 
