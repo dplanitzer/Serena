@@ -138,7 +138,7 @@ errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid,
         entry->sibling.prev = NULL;
         entry->inid = inid;
         char* p = String_CopyUpTo(entry->name, pc->name, pc->count);
-        while (p < &entry->name[MAX_NAME_LENGTH]) *p++ = '\0';
+        while (p <= &entry->name[MAX_NAME_LENGTH]) *p++ = '\0';
 
         List_InsertAfterLast(&self->entries, &entry->sibling);
     }
@@ -174,18 +174,15 @@ errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId in
 errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, DfsDriverItem* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DfsDriverItem* self;
+    DfsDriverItem* self = NULL;
 
     try(FSAllocateCleared(sizeof(DfsDriverItem), (void**)&self));
     DfsItem_Init(&self->super, inid, kFileType_Device, permissions, uid, gid);
     self->super.size = sizeof(DfsDriverItem);
     self->instance = Object_RetainAs(pDriver, Driver);
 
-    *pOutSelf = self;
-    return EOK;
-
 catch:
-    *pOutSelf = NULL;
+    *pOutSelf = self;
     return err;
 }
 

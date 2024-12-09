@@ -22,6 +22,6 @@ extern errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull pContainer, User use
 
 
 // Creates an instance of SerenaFS.
-errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullable * _Nonnull pOutSelf);
+extern errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* SerenaFS_h */

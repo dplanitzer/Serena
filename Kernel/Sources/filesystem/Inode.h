@@ -132,7 +132,7 @@ void Inode_Unlink(InodeRef _Nonnull self);
 // Associate/disassociate filesystem specific information with the node. The
 // inode will not free this pointer.
 #define Inode_GetRefConAs(__self, __type) \
-    (__type)((__self)->refcon)
+    ((__type)((__self)->refcon))
 
 #define Inode_SetRefCon(__self, __ptr) \
     (__self)->refcon = (__ptr)

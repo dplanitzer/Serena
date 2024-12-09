@@ -6,104 +6,27 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
+
 #include "DriverCatalog.h"
-#include <dispatcher/Lock.h>
 #include <filesystem/devfs/DevFS.h>
-
-#define MAX_DRIVER_NAME_LENGTH      10
-#define DRIVER_ID_HASH_CHAINS_COUNT 8
-#define driver_id_hash(__id)        ((DRIVER_ID_HASH_CHAINS_COUNT-1) & (__id))
-
-
-typedef struct DriverEntry {
-    ListNode            node;
-    DriverRef _Nonnull  instance;
-    DriverId            driverId;
-    char                name[MAX_DRIVER_NAME_LENGTH + 1];
-} DriverEntry;
-
-
-typedef struct DriverIdHashEntry {
-    ListNode                        node;
-    struct DriverEntry* _Nonnull    entry;
-} DriverIdHashEntry;
 
 
 typedef struct DriverCatalog {
-    Lock                lock;
     DevFSRef _Nonnull   devfs;
-    List                drivers;
-    List                driversByDriverId[DRIVER_ID_HASH_CHAINS_COUNT];
 } DriverCatalog;
 
-
-static void _DriverCatalog_DestroyDriverTable(DriverCatalogRef _Nonnull self);
-static void _DriverCatalog_DestroyDriverIdHashTable(DriverCatalogRef _Nonnull self);
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: DriverEntry
-////////////////////////////////////////////////////////////////////////////////
-
-static void DriverEntry_Destroy(DriverEntry* _Nullable self)
-{
-    if (self) {
-        Object_Release(self->instance);
-        self->instance = NULL;
-
-        ListNode_Deinit(&self->node);
-        
-        kfree(self);
-    }
-}
-
-// Adopts the given driver. Meaning that this initializer does not take out an
-// extra strong reference to the driver. It assumes that it should take ownership
-// of the provided strong reference.
-static errno_t DriverEntry_Create(const char* _Nonnull name, DriverId driverId, DriverRef _Consuming _Nonnull driver, DriverEntry* _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    struct DriverEntry* self = NULL;
-
-    try(kalloc_cleared(sizeof(DriverEntry), (void**) &self));
-    ListNode_Init(&self->node);
-    self->instance = driver;
-    self->driverId = driverId;
-    String_CopyUpTo(self->name, name, MAX_DRIVER_NAME_LENGTH);
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    DriverEntry_Destroy(self);
-    *pOutSelf = NULL;
-    return err;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: DriverCatalog
-////////////////////////////////////////////////////////////////////////////////
 
 DriverCatalogRef _Nonnull  gDriverCatalog;
 
 errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DriverCatalog* self;
+    DriverCatalogRef self;
     
     try(kalloc_cleared(sizeof(DriverCatalog), (void**) &self));
     
     try(DevFS_Create(&self->devfs));
     try(Filesystem_Start(self->devfs, NULL, 0));
-
-    Lock_Init(&self->lock);
-    List_Init(&self->drivers);
-    for (size_t i = 0; i < DRIVER_ID_HASH_CHAINS_COUNT; i++) {
-        List_Init(&self->driversByDriverId[i]);
-    }
 
     *pOutSelf = self;
     return EOK;
@@ -117,72 +40,12 @@ catch:
 void DriverCatalog_Destroy(DriverCatalogRef _Nullable self)
 {
     if (self) {
-        _DriverCatalog_DestroyDriverIdHashTable(self);
-        _DriverCatalog_DestroyDriverTable(self);
-
         Filesystem_Stop(self->devfs);
         Object_Release(self->devfs);
         self->devfs = NULL;
 
-        Lock_Deinit(&self->lock);
         kfree(self);
     }
-}
-
-static void _DriverCatalog_DestroyDriverTable(DriverCatalogRef _Nonnull self)
-{
-    ListNode* pCurEntry = self->drivers.first;
-
-    while (pCurEntry != NULL) {
-        ListNode* pNextEntry = pCurEntry->next;
-
-        DriverEntry_Destroy((DriverEntry*)pCurEntry);
-        pCurEntry = pNextEntry;
-    }
-        
-    List_Deinit(&self->drivers);
-}
-
-static void _DriverCatalog_DestroyDriverIdHashTable(DriverCatalogRef _Nonnull self)
-{
-    for (size_t i = 0; i < DRIVER_ID_HASH_CHAINS_COUNT; i++) {
-        ListNode* pCurEntry = self->driversByDriverId[i].first;
-        
-        while (pCurEntry != NULL) {
-            ListNode* pNextEntry = pCurEntry->next;
-
-            kfree(pCurEntry);
-            pCurEntry = pNextEntry;
-        }
-    }
-    
-    for (size_t i = 0; i < DRIVER_ID_HASH_CHAINS_COUNT; i++) {
-        List_Deinit(&self->driversByDriverId[i]);
-    }
-}
-
-static DriverEntry* _Nullable _DriverCatalog_GetEntryByName(DriverCatalogRef _Locked _Nonnull self, const char* _Nonnull name)
-{
-    List_ForEach(&self->drivers, DriverEntry, {
-        if (String_Equals(pCurNode->name, name)) {
-            return pCurNode;
-        }
-    })
-
-    return NULL;
-}
-
-static DriverIdHashEntry* _Nullable _DriverCatalog_GetHashIdEntryByDriverId(DriverCatalogRef _Locked _Nonnull self, DriverId driverId)
-{
-    List* chain = &self->driversByDriverId[driver_id_hash(driverId)];
-
-    List_ForEach(chain,  DriverIdHashEntry, {
-        if (pCurNode->entry->driverId == driverId) {
-            return pCurNode;
-        }
-    })
-
-    return NULL;
 }
 
 DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self)
@@ -190,94 +53,129 @@ DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull s
     return self->devfs;
 }
 
-errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverId driverId, DriverRef _Consuming _Nonnull driver)
+errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, DriverId* _Nonnull pOutDriverId)
 {
     decl_try_err();
-    DriverEntry* entry = NULL;
-    DriverIdHashEntry* driverIdEntry = NULL;
+    InodeRef rootDir = NULL;
+    InodeRef pNode = NULL;
+    PathComponent pc;
 
-    Lock_Lock(&self->lock);
-    err = DriverEntry_Create(name, driverId, driver, &entry);
-    if (err == EOK) {
-        err = kalloc_cleared(sizeof(DriverIdHashEntry), (void**)&driverIdEntry);
-        if (err == EOK) {
-            driverIdEntry->entry = entry;
-            List_InsertBeforeFirst(&self->driversByDriverId[driver_id_hash(driverId)], &driverIdEntry->node);
-            List_InsertBeforeFirst(&self->drivers, &entry->node);
-        }
-    }
-    Lock_Unlock(&self->lock);
+    *pOutDriverId = kDriverId_None;
+
+    pc.name = name;
+    pc.count = String_Length(name);
+
+    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write;
+    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Write;
+    const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
+
+    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
+    try(DevFS_CreateDevice(self->devfs, kUser_Root, permissions, rootDir, &pc, driver, &pNode));
+    *pOutDriverId = (DriverId)Inode_GetId(pNode);
+
+catch:
+    Inode_Relinquish(pNode);
+    Inode_Relinquish(rootDir);
 
     return err;
 }
 
-void DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId)
+errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId)
 {
-    Lock_Lock(&self->lock);
-    DriverIdHashEntry* hashEntry = _DriverCatalog_GetHashIdEntryByDriverId(self, driverId);
+    decl_try_err();
+    InodeRef rootDir = NULL;
+    InodeRef pNode = NULL;
 
-    if (hashEntry) {
-        List_Remove(&self->driversByDriverId[driver_id_hash(driverId)], &hashEntry->node);
-        List_Remove(&self->drivers, &hashEntry->entry->node);
-    }
-    Lock_Unlock(&self->lock);
+    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverId, &pNode));
+    try(Filesystem_Unlink(self->devfs, pNode, rootDir, kUser_Root));
+
+catch:
+    Inode_Relinquish(pNode);
+    Inode_Relinquish(rootDir);
+
+    return err;
 }
 
 DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
 {
-    Lock_Lock(&self->lock);
-    DriverEntry* entry = _DriverCatalog_GetEntryByName(self, name);
-    DriverId driverId = (entry) ? entry->driverId : kDriverId_None;
-    Lock_Unlock(&self->lock);
+    decl_try_err();
+    DriverId r = kDriverId_None;
+    InodeRef rootDir = NULL;
+    InodeRef pNode = NULL;
+    PathComponent pc;
 
-    return driverId;
+    pc.name = name;
+    pc.count = String_Length(name);
+
+    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
+    try(Filesystem_AcquireNodeForName(self->devfs, rootDir, &pc, kUser_Root, NULL, &pNode));
+    r = Inode_GetId(pNode);
+
+catch:
+    Inode_Relinquish(pNode);
+    Inode_Relinquish(rootDir);
+
+    return r;
 }
 
 void DriverCatalog_CopyNameForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId, char* buf, size_t bufSize)
 {
+    decl_try_err();
+    InodeRef rootDir = NULL;
+    InodeRef pNode = NULL;
+    MutablePathComponent pc;
+
     if (bufSize < 1) {
         return;
     }
 
-    Lock_Lock(&self->lock);
-    DriverIdHashEntry* hashEntry = _DriverCatalog_GetHashIdEntryByDriverId(self, driverId);
-    if (hashEntry) {
-        String_CopyUpTo(buf, hashEntry->entry->name, bufSize);
-    }
-    else {
-        buf[0] = '\0';
-    }
-    Lock_Unlock(&self->lock);
+    buf[0] = '\0';
+    pc.name = buf;
+    pc.capacity = bufSize;
+    pc.count = 0;
+
+    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
+    try(Filesystem_GetNameOfNode(self->devfs, rootDir, driverId, kUser_Root, &pc));
+
+catch:
+    Inode_Relinquish(pNode);
+    Inode_Relinquish(rootDir);
 }
 
 DriverRef _Nullable DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
 {
-    Lock_Lock(&self->lock);
-    DriverEntry* entry = _DriverCatalog_GetEntryByName(self, name);
-    DriverRef driver = (entry) ? Object_RetainAs(entry->instance, Driver) : NULL;
-    Lock_Unlock(&self->lock);
+    decl_try_err();
+    DriverRef r = NULL;
+    InodeRef rootDir = NULL;
+    InodeRef pNode = NULL;
+    PathComponent pc;
 
-    return driver;
+    pc.name = name;
+    pc.count = String_Length(name);
+
+    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
+    try(Filesystem_AcquireNodeForName(self->devfs, rootDir, &pc, kUser_Root, NULL, &pNode));
+    r = DevFS_CopyDriverForNode(self->devfs, pNode);
+
+catch:
+    Inode_Relinquish(pNode);
+    Inode_Relinquish(rootDir);
+
+    return r;
 }
 
 DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId)
 {
-    if (driverId == kDriverId_None) {
-        return NULL;
-    }
+    decl_try_err();
+    DriverRef r = NULL;
+    InodeRef pNode = NULL;
 
-    Lock_Lock(&self->lock);
-    DriverIdHashEntry* hashEntry = _DriverCatalog_GetHashIdEntryByDriverId(self, driverId);
-    DriverRef driver = (hashEntry) ? Object_RetainAs(hashEntry->entry->instance, Driver) : NULL;
-    Lock_Unlock(&self->lock);
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverId, &pNode));
+    r = DevFS_CopyDriverForNode(self->devfs, pNode);
 
-    return driver;
-}
+catch:
+    Inode_Relinquish(pNode);
 
-
-// Generates a new and unique driver ID that should be used to publish a driver.
-DriverId GetNewDriverId(void)
-{
-    static volatile AtomicInt gNextAvailableId = 0;
-    return (DriverId) AtomicInt_Increment(&gNextAvailableId);
+    return r;
 }

@@ -146,7 +146,7 @@ errno_t DevFS_createChannel(DevFSRef _Nonnull self, InodeRef _Consuming _Nonnull
             return DirectoryChannel_Create(pNode, pOutChannel);
 
         case kFileType_Device:
-            if ((err = Driver_Open(((DfsDriverItem*)Inode_GetDfsDriverItem(pNode))->instance, mode, pOutChannel)) == EOK) {
+            if ((err = Driver_Open(Inode_GetDfsDriverItem(pNode)->instance, mode, pOutChannel)) == EOK) {
                 Inode_Relinquish(pNode);
             }
             return err;

@@ -9,7 +9,19 @@
 #include "DevFSPriv.h"
 
 
-errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
+// Returns a strong reference to the driver backing the given driver node.
+// Returns NULL if the given node is not a driver node.
+DriverRef _Nullable DevFS_CopyDriverForNode(DevFSRef _Nonnull self, InodeRef _Nonnull pNode)
+{
+    if (Inode_GetFileType(pNode) == kFileType_Device) {
+        return Object_RetainAs(Inode_GetDfsDriverItem(pNode)->instance, Driver);
+    }
+    else {
+        return NULL;
+    }
+}
+
+static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable pExtra, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
@@ -33,9 +45,7 @@ errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, User user, FileP
             break;
 
         case kFileType_Device:
-            abort();
-            // XXX fix me I guess or so or not (publish)
-            //try(DfsDriverItem_Create(DevFS_GetNextAvailableInodeId(self), permissions, user.uid, user.gid, pDriver, (DfsDriverItem**)&pItem));
+            try(DfsDriverItem_Create(DevFS_GetNextAvailableInodeId(self), permissions, user.uid, user.gid, (DriverRef)pExtra, (DfsDriverItem**)&pItem));
             break;
 
         default:
@@ -73,17 +83,27 @@ catch:
     return err;
 }
 
+// Creates a new device node in the file system.
+errno_t DevFS_CreateDevice(DevFSRef _Nonnull self, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull pDriverInstance, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    return _DevFS_createNode(self, kFileType_Device, user, permissions, dir, name, pDriverInstance, pOutNode);
+}
+
+errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
+{
+    return _DevFS_createNode(self, type, user, permissions, dir, name, dirInsertionHint, pOutNode);
+}
+
 errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, InodeId inid, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
-//print("onReadNodeFromDisk(%d)", inid);
+
     DfsItem* ip = DevFS_GetItem(self, inid);
     if (ip == NULL) {
-//        print(" -> failed\n");
         *pOutNode = NULL;
         return EIO;
     }
-//print(" -> ok\n");
+
     return Inode_Create(
         (FilesystemRef)self,
         inid,

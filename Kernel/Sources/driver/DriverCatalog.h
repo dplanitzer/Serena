@@ -18,17 +18,13 @@ extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 
 extern DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self);
 
-extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverId driverId, DriverRef _Consuming _Nonnull driver);
-extern void DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId);
+extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, DriverId* _Nonnull pOutDriverId);
+extern errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId);
 
 extern DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name);
 extern void DriverCatalog_CopyNameForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId, char* buf, size_t bufSize);
 
 extern DriverRef _Nullable DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull pName);
 extern DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId);
-
-
-// Generates a new and unique driver ID that should be used to publish a driver.
-extern DriverId GetNewDriverId(void);
 
 #endif /* DriverCatalog_h */
