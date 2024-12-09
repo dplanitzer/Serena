@@ -10,7 +10,7 @@
 #include "ConsoleChannel.h"
 #include <driver/hid/EventChannel.h>
 
-const char* const kConsoleName = "con";
+const char* const kConsoleName = "console";
 
 
 // Creates a new console object. This console will display its output on the

@@ -159,7 +159,27 @@ errno_t DevFS_createChannel(DevFSRef _Nonnull self, InodeRef _Consuming _Nonnull
 
 errno_t DevFS_openFile(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode, User user)
 {
-    return EPERM;
+    decl_try_err();
+    AccessMode accessMode = 0;
+
+    if (Inode_IsDirectory(pFile)) {
+        throw(EISDIR);
+    }
+
+    if ((mode & kOpen_ReadWrite) == 0) {
+        throw(EACCESS);
+    }
+    if ((mode & kOpen_Read) == kOpen_Read) {
+        accessMode |= kAccess_Readable;
+    }
+    if ((mode & kOpen_Write) == kOpen_Write || (mode & kOpen_Truncate) == kOpen_Truncate) {
+        accessMode |= kAccess_Writable;
+    }
+
+    try(Filesystem_CheckAccess(self, pFile, user, accessMode));
+    
+catch:
+    return err;
 }
 
 errno_t DevFS_readFile(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)

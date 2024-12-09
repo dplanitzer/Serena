@@ -9,11 +9,6 @@
 #include "ProcessPriv.h"
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FileChannel.h>
-// XXX tmp
-#include <console/Console.h>
-#include <console/ConsoleChannel.h>
-#include <driver/DriverCatalog.h>
-// XXX tmp
 
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask
@@ -134,24 +129,9 @@ errno_t Process_OpenFile(ProcessRef _Nonnull self, const char* _Nonnull path, un
 {
     decl_try_err();
     ResolvedPath r;
-    IOChannelRef fileChannel = NULL;
+    IOChannelRef chan = NULL;
 
     Lock_Lock(&self->lock);
-
-    // XXX tmp
-    if (String_Equals(path, "/dev/console")) {
-        ConsoleRef pConsole;
-
-        try_null(pConsole, (ConsoleRef) DriverCatalog_CopyDriverForName(gDriverCatalog, kConsoleName), ENODEV);
-        try(Driver_Open((DriverRef)pConsole, mode, &fileChannel));
-        try(IOChannelTable_AdoptChannel(&self->ioChannelTable, fileChannel, pOutIoc));
-        Object_Release(pConsole);
-        fileChannel = NULL;
-        Lock_Unlock(&self->lock);
-        return EOK;
-    }
-    // XXX tmp
-
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
     Inode_Lock(r.inode);
@@ -160,17 +140,17 @@ errno_t Process_OpenFile(ProcessRef _Nonnull self, const char* _Nonnull path, un
     throw_iferr(err);
 
     // Note that this call takes ownership of the inode reference
-    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, mode, &fileChannel));
+    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, mode, &chan));
     r.inode = NULL;
-    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, fileChannel, pOutIoc));
-    fileChannel = NULL;
+    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, chan, pOutIoc));
+    chan = NULL;
 
 catch:
     ResolvedPath_Deinit(&r);
     Lock_Unlock(&self->lock);
 
     if (err != EOK) {
-        IOChannel_Release(fileChannel);
+        IOChannel_Release(chan);
         *pOutIoc = -1;
     }
 

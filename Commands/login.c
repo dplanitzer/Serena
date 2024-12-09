@@ -135,9 +135,9 @@ void main_closure(int argc, char *argv[])
 
 
     // Open the console and initialize stdin, stdout and stderr
-    File_Open("/dev/console", kOpen_Read, &fd);
-    File_Open("/dev/console", kOpen_Write, &fd);
-    File_Open("/dev/console", kOpen_Write, &fd);
+    File_Open("/System/Devices/console", kOpen_Read, &fd);
+    File_Open("/System/Devices/console", kOpen_Write, &fd);
+    File_Open("/System/Devices/console", kOpen_Write, &fd);
 
     fdreopen(kIOChannel_Stdin, "r", stdin);
     fdreopen(kIOChannel_Stdout, "w", stdout);
