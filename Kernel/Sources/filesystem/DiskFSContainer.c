@@ -13,24 +13,32 @@
 
 
 final_class_ivars(DiskFSContainer, FSContainer,
-    DriverId    driverId;
-    MediaId     mediaId;
+    DiskDriverRef _Nonnull  driver;
+    DriverId                diskId;
+    MediaId                 mediaId;
 );
 
 
-errno_t DiskFSContainer_Create(DriverId driverId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
+errno_t DiskFSContainer_Create(DiskDriverRef _Nonnull pDriver, DriverId diskId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
 {
     decl_try_err();
     struct DiskFSContainer* self = NULL;
     FSContainerInfo info;
 
     if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
-        self->driverId = driverId;
+        self->driver = Object_RetainAs(pDriver, DiskDriver);
+        self->diskId = diskId;
         self->mediaId = mediaId;
     }
 
     *pOutContainer = (FSContainerRef)self;
     return err;
+}
+
+void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
+{
+    Object_Release(self->driver);
+    self->driver = NULL;
 }
 
 errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContainerInfo* pOutInfo)
@@ -39,7 +47,7 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
     DiskDriverRef pDriver;
     DiskInfo di;
 
-    if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->driverId)) != NULL) {
+    if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->diskId)) != NULL) {
         if ((err = DiskDriver_GetInfo(pDriver, &di)) == EOK) {
             pOutInfo->blockSize = di.blockSize;
             pOutInfo->blockCount = di.blockCount;
@@ -85,7 +93,7 @@ errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBloc
 // relinquishBlock() method.
 errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
-    return DiskCache_AcquireBlock(gDiskCache, self->driverId, self->mediaId, lba, mode, pOutBlock);
+    return DiskCache_AcquireBlock(gDiskCache, self->diskId, self->mediaId, lba, mode, pOutBlock);
 }
 
 // Relinquishes the disk block 'pBlock' without writing it back to disk.
@@ -105,11 +113,12 @@ errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull 
 // disk(s).
 errno_t DiskFSContainer_flush(struct DiskFSContainer* _Nonnull self)
 {
-    return DiskCache_Flush(gDiskCache, self->driverId, self->mediaId);
+    return DiskCache_Flush(gDiskCache, self->diskId, self->mediaId);
 }
 
 
 class_func_defs(DiskFSContainer, Object,
+override_func_def(deinit, DiskFSContainer, Object)
 override_func_def(getInfo, DiskFSContainer, FSContainer)
 override_func_def(prefetchBlock, DiskFSContainer, FSContainer)
 override_func_def(flushBlock, DiskFSContainer, FSContainer)

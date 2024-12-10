@@ -86,7 +86,7 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
         try(Driver_Start((DriverRef)disk));
         try(DiskDriver_GetInfo(disk, &info));
 
-        try(DiskFSContainer_Create(Driver_GetDriverId(disk), info.mediaId, &fsContainer));
+        try(DiskFSContainer_Create(disk, Driver_GetDriverId(disk), info.mediaId, &fsContainer));
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             DiskBlockRef pb;
 

@@ -18,39 +18,38 @@
 
 
 // Finds a RAM or ROM disk to boot from. Returns kDriver_None if drive found.
-static DriverId get_boot_mem_disk_id(void)
+static DiskDriverRef _Nullable copy_boot_mem_driver(void)
 {
-    DriverId driverId = DriverCatalog_GetDriverIdForName(gDriverCatalog, "ram");
+    DriverRef drv = DriverCatalog_CopyDriverForName(gDriverCatalog, "ram");
 
-    if (driverId == kDriverId_None) {
-        driverId = DriverCatalog_GetDriverIdForName(gDriverCatalog, "rom");
+    if (drv == NULL) {
+        drv = DriverCatalog_CopyDriverForName(gDriverCatalog, "rom");
     }
 
-    return driverId;
+    return (DiskDriverRef)drv;
 }
 
 // Finds a floppy disk to boot from. Returns kDriver_None if no bootable floppy
 // drive found.
-static DriverId get_boot_floppy_disk_id(void)
+static DiskDriverRef _Nullable copy_boot_floppy_driver(void)
 {
-    return DriverCatalog_GetDriverIdForName(gDriverCatalog, kFloppyDrive0Name);
+    return (DiskDriverRef)DriverCatalog_CopyDriverForName(gDriverCatalog, kFloppyDrive0Name);
 }
 
 
-// Tries to mount the root filesystem from a floppy disk in drive 0.
-static errno_t boot_from_disk(DriverId diskId, bool shouldRetry, FilesystemRef _Nullable * _Nonnull pOutFS)
+// Tries to mount the root filesystem stored on the mass storage device
+// represented by 'pDriver'.
+static errno_t boot_from_disk(DiskDriverRef _Nonnull pDriver, bool shouldRetry, FilesystemRef _Nullable * _Nonnull pOutFS)
 {
     decl_try_err();
     errno_t lastError = EOK;
-    DiskDriverRef driver;
     DiskInfo info;
     FSContainerRef fsContainer;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 
-    try_null(driver, (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, diskId), ENODEV);
-    try(DiskDriver_GetInfo(driver, &info));
-    try(DiskFSContainer_Create(diskId, info.mediaId, &fsContainer));
+    try(DiskDriver_GetInfo(pDriver, &info));
+    try(DiskFSContainer_Create(pDriver, Driver_GetDriverId(pDriver), info.mediaId, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
 
     while (true) {
@@ -87,17 +86,15 @@ static errno_t boot_from_disk(DriverId diskId, bool shouldRetry, FilesystemRef _
     }
 
     char buf[MAX_NAME_LENGTH+1];
-    DriverCatalog_CopyNameForDriverId(gDriverCatalog, diskId, buf, MAX_NAME_LENGTH);
+    DriverCatalog_CopyNameForDriverId(gDriverCatalog, Driver_GetDriverId(pDriver), buf, MAX_NAME_LENGTH);
     print("Booting from ");
     print(buf);
     print("...\n\n");
 
-    Object_Release(driver);
     *pOutFS = fs;
     return EOK;
 
 catch:
-    Object_Release(driver);
     Object_Release(fs);
     *pOutFS = NULL;
     return err;
@@ -110,21 +107,21 @@ FilesystemRef _Nullable create_boot_filesystem(void)
     decl_try_err();
     int state = 0;
     FilesystemRef fs = NULL;
-    const DriverId memDiskId = get_boot_mem_disk_id();
-    DriverId diskId = kDriverId_None;
+    DiskDriverRef pMemDriver = copy_boot_mem_driver();
+    DiskDriverRef pDriver = NULL;
     bool shouldRetry = false;
 
     while (true) {
         switch (state) {
             case 0:
                 // Boot floppy disk
-                diskId = get_boot_floppy_disk_id();
-                shouldRetry = (memDiskId == kDriverId_None);
+                pDriver = copy_boot_floppy_driver();
+                shouldRetry = (pMemDriver == NULL) ? true : false;
                 break;
 
             case 1:
                 // ROM disk image, if it exists
-                diskId = memDiskId;
+                pDriver = Object_RetainAs(pMemDriver, DiskDriver);
                 shouldRetry = false;
                 break;
 
@@ -136,16 +133,18 @@ FilesystemRef _Nullable create_boot_filesystem(void)
             break;
         }
 
-        if (diskId != kDriverId_None) {
-            err = boot_from_disk(diskId, shouldRetry, &fs);
+        if (pDriver) {
+            err = boot_from_disk(pDriver, shouldRetry, &fs);
+            Object_Release(pDriver);
+
             if (err == EOK) {
-                return fs;
+                break;
             }
         }
 
         state++;
     }
 
-    // No luck, give up
-    return NULL;
+    Object_Release(pMemDriver);
+    return fs;
 }

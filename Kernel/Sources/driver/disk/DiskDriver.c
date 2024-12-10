@@ -9,6 +9,7 @@
 #include "DiskDriver.h"
 #include <disk/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <driver/DriverChannel.h>
 
 struct IOGetInfoRequest {
     DiskInfo* _Nonnull      pInfo;      // out
@@ -116,6 +117,21 @@ void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock,
 }
 
 
+//
+// MARK: -
+// I/O Channel API
+//
+
+errno_t DiskDriver_open(DiskDriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, (DriverRef)self, pOutChannel);
+}
+
+errno_t DiskDriver_close(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
+{
+    return EOK;
+}
+
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -135,5 +151,7 @@ func_def(beginIO_async, DiskDriver)
 func_def(getBlock, DiskDriver)
 func_def(putBlock, DiskDriver)
 func_def(endIO, DiskDriver)
+override_func_def(open, DiskDriver, Driver)
+override_func_def(close, DiskDriver, Driver)
 override_func_def(ioctl, DiskDriver, Driver)
 );
