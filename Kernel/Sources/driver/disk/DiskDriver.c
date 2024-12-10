@@ -124,11 +124,33 @@ void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock,
 
 errno_t DiskDriver_open(DiskDriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, (DriverRef)self, pOutChannel);
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if (!self->isOpen) {
+        err = DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, (DriverRef)self, pOutChannel);
+        
+        if (err == EOK) {
+            self->isOpen = true;
+        }
+        else {
+            *pOutChannel = NULL;
+        }
+    }
+    else {
+        err = EBUSY;
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
 }
 
 errno_t DiskDriver_close(DiskDriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
+    Lock_Lock(&self->lock);
+    self->isOpen = false;
+    Lock_Unlock(&self->lock);
+
     return EOK;
 }
 

@@ -18,6 +18,7 @@
 #include <driver/disk/RomDisk.h>
 #include <driver/hid/EventDriver.h>
 #include <filesystem/DiskFSContainer.h>
+#include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <System/ByteOrder.h>
 
@@ -63,6 +64,7 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
 {
     decl_try_err();
     const SMG_Header* _Nonnull smg_hdr = find_rom_rootfs();
+    IOChannelRef chan = NULL;
 
     if (smg_hdr == NULL) {
         return EOK;
@@ -86,7 +88,8 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
         try(Driver_Start((DriverRef)disk));
         try(DiskDriver_GetInfo(disk, &info));
 
-        try(DiskFSContainer_Create(disk, Driver_GetDriverId(disk), info.mediaId, &fsContainer));
+        try(Driver_Open((DriverRef)disk, kOpen_ReadWrite, &chan));
+        try(DiskFSContainer_Create(chan, Driver_GetDriverId(disk), info.mediaId, &fsContainer));
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             DiskBlockRef pb;
 
@@ -95,6 +98,7 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
             try(FSContainer_RelinquishBlockWriting(fsContainer, pb, kWriteBlock_Sync));
         }
         Object_Release(fsContainer);
+        IOChannel_Release(chan);
     }
 
     Driver_AdoptChild((DriverRef)self, (DriverRef)disk);
@@ -102,6 +106,9 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
 
 catch:
     if (disk) {
+        if (chan) {
+            Driver_Close((DriverRef)disk, chan);
+        }
         Driver_Terminate((DriverRef)disk);
         Object_Release(disk);
     }

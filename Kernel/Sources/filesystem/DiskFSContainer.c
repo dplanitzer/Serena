@@ -10,23 +10,24 @@
 #include <disk/DiskCache.h>
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
+#include <filesystem/IOChannel.h>
 
 
 final_class_ivars(DiskFSContainer, FSContainer,
-    DiskDriverRef _Nonnull  driver;
+    IOChannelRef _Nonnull   channel;
     DriverId                diskId;
     MediaId                 mediaId;
 );
 
 
-errno_t DiskFSContainer_Create(DiskDriverRef _Nonnull pDriver, DriverId diskId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
+errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, DriverId diskId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
 {
     decl_try_err();
     struct DiskFSContainer* self = NULL;
     FSContainerInfo info;
 
     if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
-        self->driver = Object_RetainAs(pDriver, DiskDriver);
+        self->channel = IOChannel_Retain(pChannel);
         self->diskId = diskId;
         self->mediaId = mediaId;
     }
@@ -37,8 +38,8 @@ errno_t DiskFSContainer_Create(DiskDriverRef _Nonnull pDriver, DriverId diskId, 
 
 void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 {
-    Object_Release(self->driver);
-    self->driver = NULL;
+    IOChannel_Release(self->channel);
+    self->channel = NULL;
 }
 
 errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContainerInfo* pOutInfo)

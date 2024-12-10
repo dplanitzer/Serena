@@ -164,6 +164,11 @@ invoke_n(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
 // properties. 
 extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
+extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);
+#define IOChannel_RetainAs(__pChannel, __type) \
+    ((__type)IOChannel_Retain((IOChannelRef)__pChannel))
+extern errno_t IOChannel_Release(IOChannelRef _Nullable self);
+
 // Returns the I/O channel type.
 #define IOChannel_GetChannelType(__self) \
     ((int)((IOChannelRef)__self)->channelType)
@@ -174,9 +179,6 @@ extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigne
 
 
 // I/O channel functions for use by IOChannelTable
-
-extern void IOChannel_Retain(IOChannelRef _Nonnull self);
-extern errno_t IOChannel_Release(IOChannelRef _Nullable self);
 
 extern void IOChannel_BeginOperation(IOChannelRef _Nonnull self);
 extern void IOChannel_EndOperation(IOChannelRef _Nonnull self);

@@ -12,6 +12,7 @@
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/floppy/FloppyDriver.h>
 #include <filesystem/DiskFSContainer.h>
+#include <filesystem/IOChannel.h>
 #include <filesystem/serenafs/SerenaFS.h>
 
 #define MAX_NAME_LENGTH 16
@@ -44,12 +45,14 @@ static errno_t boot_from_disk(DiskDriverRef _Nonnull pDriver, bool shouldRetry, 
     decl_try_err();
     errno_t lastError = EOK;
     DiskInfo info;
+    IOChannelRef chan = NULL;
     FSContainerRef fsContainer;
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 
     try(DiskDriver_GetInfo(pDriver, &info));
-    try(DiskFSContainer_Create(pDriver, Driver_GetDriverId(pDriver), info.mediaId, &fsContainer));
+    try(Driver_Open((DriverRef)pDriver, kOpen_ReadWrite, &chan));
+    try(DiskFSContainer_Create(chan, Driver_GetDriverId(pDriver), info.mediaId, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
 
     while (true) {
@@ -84,6 +87,7 @@ static errno_t boot_from_disk(DiskDriverRef _Nonnull pDriver, bool shouldRetry, 
 
         VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
     }
+    IOChannel_Release(chan);
 
     char buf[MAX_NAME_LENGTH+1];
     DriverCatalog_CopyNameForDriverId(gDriverCatalog, Driver_GetDriverId(pDriver), buf, MAX_NAME_LENGTH);
@@ -95,6 +99,9 @@ static errno_t boot_from_disk(DiskDriverRef _Nonnull pDriver, bool shouldRetry, 
     return EOK;
 
 catch:
+    if (chan) {
+        Driver_Close((DriverRef)pDriver, chan);
+    }
     Object_Release(fs);
     *pOutFS = NULL;
     return err;

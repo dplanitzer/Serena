@@ -61,11 +61,13 @@ static errno_t _IOChannel_Finalize(IOChannelRef _Nonnull self)
     return err;
 }
 
-void IOChannel_Retain(IOChannelRef _Nonnull self)
+IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self)
 {
     Lock_Lock(&self->countLock);
     self->ownerCount++;
     Lock_Unlock(&self->countLock);
+
+    return self;
 }
 
 errno_t IOChannel_Release(IOChannelRef _Nullable self)
