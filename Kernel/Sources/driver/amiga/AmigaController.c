@@ -162,10 +162,13 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
 
 
     // Realtime Clock
+    #if 0
+    // XXX not yet
     RealtimeClockRef rtcDriver = NULL;
     try(RealtimeClock_Create(gSystemDescription, &rtcDriver));
     try(Driver_Start((DriverRef)rtcDriver));
     Driver_AdoptChild((DriverRef)self, (DriverRef)rtcDriver);
+    #endif
 
 
     // Zorro Bus
