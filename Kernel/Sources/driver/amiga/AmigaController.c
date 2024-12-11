@@ -17,6 +17,7 @@
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
 #include <driver/hid/EventDriver.h>
+#include <driver/NullDriver.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
@@ -152,6 +153,13 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
 
     // Let the kernel know that the console is now available
     PlatformController_NoteConsoleAvailable((PlatformControllerRef)self, console);
+
+
+    // Null driver
+    DriverRef nd = NULL;
+    try(NullDriver_Create(&nd));
+    try(Driver_Start(nd));
+    Driver_AdoptChild((DriverRef)self, nd);
 
 
     // Floppy Bus
