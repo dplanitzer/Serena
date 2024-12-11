@@ -62,9 +62,10 @@
 #define EMLINK          37
 #define EMFILE          38
 #define EXDEV           39
+#define ETERMINATED     40
 
 #define __EFIRST    1
-#define __ELAST     39
+#define __ELAST     40
 
 #endif  /* __SYSTEM_SHIM__ */
 

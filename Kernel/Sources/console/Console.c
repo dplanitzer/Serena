@@ -23,7 +23,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     decl_try_err();
     ConsoleRef self;
 
-    try(Driver_Create(Console, kDriverModel_Sync, &self));
+    try(Driver_Create(Console, kDriverModel_Sync, 0, &self));
     
     Lock_Init(&self->lock);
 
@@ -481,7 +481,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_open(ConsoleRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_createChannel(ConsoleRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return ConsoleChannel_Create(self, mode, pOutChannel);
 }
@@ -656,7 +656,7 @@ errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChan
 class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
 override_func_def(start, Console, Driver)
-override_func_def(open, Console, Driver)
+override_func_def(createChannel, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)
 );

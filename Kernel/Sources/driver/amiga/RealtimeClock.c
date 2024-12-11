@@ -50,7 +50,7 @@ errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, Realtim
     decl_try_err();
     RealtimeClockRef self;
     
-    try(Driver_Create(RealtimeClock, kDriverModel_Sync, &self));
+    try(Driver_Create(RealtimeClock, kDriverModel_Sync, 0, &self));
     Lock_Init(&self->lock);
     
     *pOutSelf = self;

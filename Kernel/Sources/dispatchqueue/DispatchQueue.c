@@ -513,7 +513,7 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
     isLocked = true;
     if (self->state >= kQueueState_Terminating) {
         Lock_Unlock(&self->lock);
-        return EOK;
+        return ETERMINATED;
     }
 
 
@@ -558,10 +558,13 @@ errno_t DispatchQueue_DispatchClosure(DispatchQueueRef _Nonnull self, VoidFunc_2
 
         Lock_Lock(&self->lock);
 
-        if ((err == EOK && (pItem->flags & kWorkItemFlag_IsInterrupted) == kWorkItemFlag_IsInterrupted) || self->state >= kQueueState_Terminating) {
-            // We want to return EINTR if the sync dispatch was interrupted by a
-            // DispatchQueue_Terminate()
-            err = EINTR;
+        if (err == EOK) {
+            if ((pItem->flags & kWorkItemFlag_IsInterrupted) == kWorkItemFlag_IsInterrupted) {
+                err = EINTR;
+            }
+            else if (self->state >= kQueueState_Terminating) {
+                err = ETERMINATED;
+            }
         }
 
         DispatchQueue_RelinquishWorkItem_Locked(self, pItem);
@@ -617,7 +620,7 @@ errno_t DispatchQueue_DispatchTimer(DispatchQueueRef _Nonnull self, TimeInterval
     Lock_Lock(&self->lock);
     if (self->state >= kQueueState_Terminating) {
         Lock_Unlock(&self->lock);
-        return EOK;
+        return ETERMINATED;
     }
 
 

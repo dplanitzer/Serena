@@ -11,7 +11,6 @@
 
 #include <klib/klib.h>
 #include <disk/DiskBlock.h>
-#include <dispatcher/Lock.h>
 #include <driver/Driver.h>
 #include <System/Disk.h>
 
@@ -22,8 +21,6 @@
 // [0, BlockCount]. Note that a disk driver always implements the asynchronous
 // driver model.
 open_class(DiskDriver, Driver,
-    Lock    lock;
-    bool    isOpen;
 );
 open_class_funcs(DiskDriver, Driver,
 
@@ -93,6 +90,6 @@ invoke_n(putBlock, DiskDriver, __self, __pBlock)
 invoke_n(endIO, DiskDriver, __self, __pBlock, __status)
 
 #define DiskDriver_Create(__className, __pOutDriver) \
-    _Driver_Create(&k##__className##Class, kDriverModel_Async, (DriverRef*)__pOutDriver)
+    _Driver_Create(&k##__className##Class, kDriverModel_Async, kDriverOption_Exclusive, (DriverRef*)__pOutDriver)
 
 #endif /* DiskDriver_h */

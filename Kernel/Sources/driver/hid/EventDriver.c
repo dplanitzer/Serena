@@ -50,7 +50,7 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
     decl_try_err();
     EventDriverRef self;
     
-    try(Driver_Create(EventDriver, kDriverModel_Sync, &self));
+    try(Driver_Create(EventDriver, kDriverModel_Sync, 0, &self));
 
     Lock_Init(&self->lock);
     self->gdevice = Object_RetainAs(gdevice, GraphicsDriver);
@@ -127,7 +127,7 @@ static errno_t EventDriver_start(EventDriverRef _Nonnull self)
 // MARK: Input Driver API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t EventDriver_open(EventDriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t EventDriver_createChannel(EventDriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return EventChannel_Create(self, mode, pOutChannel);
 }
@@ -588,6 +588,6 @@ errno_t EventDriver_read(EventDriverRef _Nonnull self, EventChannelRef _Nonnull 
 class_func_defs(EventDriver, Driver,
 override_func_def(deinit, EventDriver, Object)
 override_func_def(start, EventDriver, Driver)
-override_func_def(open, EventDriver, Driver)
+override_func_def(createChannel, EventDriver, Driver)
 override_func_def(read, EventDriver, Driver)
 );

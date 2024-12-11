@@ -19,7 +19,7 @@ final_class_ivars(ZorroController, Driver,
 
 errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(ZorroController, kDriverModel_Sync, (DriverRef*)pOutSelf);
+    return Driver_Create(ZorroController, kDriverModel_Sync, 0, (DriverRef*)pOutSelf);
 }
 
 errno_t ZorroController_start(ZorroControllerRef _Nonnull self)

@@ -49,8 +49,9 @@ EILSEQ          equ 36
 EMLINK          equ 37
 EMFILE          equ 38
 EXDEV           equ 39
+ETERMINATED     equ 40
 
 __EFIRST    equ 1
-__ELAST     equ 39
+__ELAST     equ 40
 
         endif   ; __ABI_ERRNO_I

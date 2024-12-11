@@ -11,13 +11,23 @@
 #include "DriverCatalog.h"
 #include <dispatchqueue/DispatchQueue.h>
 
+typedef enum DriverState {
+    kDriverState_Stopped = 0,
+    kDriverState_Running,
+    kDriverState_Terminated
+} DriverState;
 
-errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverRef _Nullable * _Nonnull pOutDriver)
+enum {
+    kDriverFlag_IsOpen = 2
+};
+
+
+errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions options, DriverRef _Nullable * _Nonnull pOutDriver)
 {
     errno_t err = _Object_Create(pClass, 0, (ObjectRef*)pOutDriver);
 
     if (err == EOK) {
-        err = Driver_Init(*pOutDriver, model);
+        err = Driver_Init(*pOutDriver, model, options);
     }
     else {
         Object_Release(*pOutDriver);
@@ -26,17 +36,21 @@ errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverRef _Nul
     return err;
 }
 
-errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model)
+errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOptions options)
 {
     decl_try_err();
 
     self->dispatchQueue = NULL;
+    Lock_Init(&self->lock);
     List_Init(&self->children);
     ListNode_Init(&self->childNode);
     self->state = kDriverState_Stopped;
+    self->model = model;
+    self->options = options;
+    self->flags = 0;
 
     if (model == kDriverModel_Async) {
-        err = DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue);
+        err = invoke_n(createDispatchQueue, Driver, self, &self->dispatchQueue);
     }
 
     return err;
@@ -44,11 +58,17 @@ errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model)
 
 static void Driver_deinit(DriverRef _Nonnull self)
 {
-    Object_Release(self->dispatchQueue);
-    self->dispatchQueue = NULL;
+    if (self->dispatchQueue) {
+        Object_Release(self->dispatchQueue);
+        self->dispatchQueue = NULL;
+    }
 }
 
 
+errno_t Driver_createDispatchQueue(DriverRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+{
+    return DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, pOutQueue);
+}
 
 // Starts the driver. A driver may only be started once. It can not be restarted
 // after it has been stopped. A driver is started after the hardware has been
@@ -59,10 +79,21 @@ static void Driver_deinit(DriverRef _Nonnull self)
 // Note that the actual start code is always executed asynchronously.
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
-    if (self->state != kDriverState_Stopped) {
-        return EOK;
+    Lock_Lock(&self->lock);
+    switch (self->state) {
+        case kDriverState_Running:
+            Lock_Unlock(&self->lock);
+            return EBUSY;
+
+        case kDriverState_Terminated:
+            Lock_Unlock(&self->lock);
+            return ETERMINATED;
+
+        default:
+            self->state = kDriverState_Running;
+            break;
     }
-    self->state = kDriverState_Running;
+    Lock_Unlock(&self->lock);
 
     return invoke_0(start, Driver, self);
 }
@@ -79,7 +110,14 @@ errno_t Driver_start(DriverRef _Nonnull self)
 // driver has been terminated, it can not be restarted anymore.
 void Driver_Terminate(DriverRef _Nonnull self)
 {
+    bool doTerminate = true;
+
+    Lock_Lock(&self->lock);
     if (self->state == kDriverState_Terminated) {
+        doTerminate = false;
+    }
+    Lock_Unlock(&self->lock);
+    if (!doTerminate) {
         return;
     }
 
@@ -102,7 +140,9 @@ void Driver_Terminate(DriverRef _Nonnull self)
 
 
     // And mark myself as terminated
+    Lock_Lock(&self->lock);
     self->state = kDriverState_Terminated;
+    Lock_Unlock(&self->lock);
 }
 
 void Driver_stop(DriverRef _Nonnull self)
@@ -112,41 +152,53 @@ void Driver_stop(DriverRef _Nonnull self)
 
 
 
-errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    if (self->state != kDriverState_Running) {
-        return ENODEV;
-    }
-
-    return invoke_n(open, Driver, self, mode, pOutChannel);
-}
-
 errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return EIO;
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+    if (self->state == kDriverState_Running) {
+        if ((self->options & kDriverOption_Exclusive) == kDriverOption_Exclusive) {
+            if ((self->flags & kDriverFlag_IsOpen) == 0) {
+                err = invoke_n(createChannel, Driver, self, mode, pOutChannel);
+        
+                if (err == EOK) {
+                    self->flags |= kDriverFlag_IsOpen;
+                }
+                else {
+                    *pOutChannel = NULL;
+                }
+            }
+            else {
+                err = EBUSY;
+            }
+        }
+        else {
+            err = invoke_n(createChannel, Driver, self, mode, pOutChannel);
+        }
+    }
+    else {
+        err = ENODEV;
+    }
+    Lock_Unlock(&self->lock);
+
+    return err;
 }
 
-
-
-errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
+errno_t Driver_createChannel(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return invoke_n(close, Driver, self, pChannel);
+    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, self, pOutChannel);
 }
 
 errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
+    if ((self->options & kDriverOption_Exclusive) == kDriverOption_Exclusive) {
+        Lock_Lock(&self->lock);
+        self->flags &= ~kDriverFlag_IsOpen;
+        Lock_Unlock(&self->lock);
+    }
+
     return EOK;
-}
-
-
-errno_t Driver_Read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    if (self->state == kDriverState_Running) {
-        return invoke_n(read, Driver, self, pChannel, pBuffer, nBytesToRead, nOutBytesRead);
-    }
-    else {
-        return ENODEV;
-    }
 }
 
 errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
@@ -154,35 +206,9 @@ errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, voi
     return EBADF;
 }
 
-
-
-errno_t Driver_Write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    if (self->state == kDriverState_Running) {
-        return invoke_n(write, Driver, self, pChannel, pBuffer, nBytesToWrite, nOutBytesWritten);
-    }
-    else {
-        return ENODEV;
-    }
-}
-
 errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EBADF;
-}
-
-
-
-errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
-{
-    decl_try_err();
-
-    if (self->state == kDriverState_Running) {
-        return invoke_n(ioctl, Driver, self, cmd, ap);
-    }
-    else {
-        return ENODEV;
-    }
 }
 
 errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
@@ -239,12 +265,14 @@ void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild)
 
 
 class_func_defs(Driver, Object,
-    override_func_def(deinit, Driver, Object)
-    func_def(start, Driver)
-    func_def(stop, Driver)
-    func_def(open, Driver)
-    func_def(close, Driver)
-    func_def(read, Driver)
-    func_def(write, Driver)
-    func_def(ioctl, Driver)
+override_func_def(deinit, Driver, Object)
+func_def(createDispatchQueue, Driver)
+func_def(start, Driver)
+func_def(stop, Driver)
+func_def(open, Driver)
+func_def(createChannel, Driver)
+func_def(close, Driver)
+func_def(read, Driver)
+func_def(write, Driver)
+func_def(ioctl, Driver)
 );

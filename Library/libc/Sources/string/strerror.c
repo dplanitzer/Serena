@@ -51,7 +51,8 @@ char *strerror(int err_no)
         /*EILSEQ*/          "Invalid multibyte sequence",
         /*EMLINK*/          "Too many links",
         /*EMFILE*/          "Too many open I/O channels",
-        /*EXDEV*/           "Cross-device link not permitted"
+        /*EXDEV*/           "Cross-device link not permitted",
+        /*ETERMINATED*/     "Terminated"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {
