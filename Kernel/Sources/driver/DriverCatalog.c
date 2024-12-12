@@ -137,6 +137,7 @@ void DriverCatalog_CopyNameForDriverId(DriverCatalogRef _Nonnull self, DriverId 
 
     try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
     try(Filesystem_GetNameOfNode(self->devfs, rootDir, driverId, kUser_Root, &pc));
+    buf[pc.count] = '\0';
 
 catch:
     Inode_Relinquish(pNode);
