@@ -15,12 +15,12 @@
 
 final_class_ivars(DiskFSContainer, FSContainer,
     IOChannelRef _Nonnull   channel;
-    DriverId                diskId;
+    DiskId                  diskId;
     MediaId                 mediaId;
 );
 
 
-errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, DriverId diskId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
+errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, DiskId diskId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
 {
     decl_try_err();
     struct DiskFSContainer* self = NULL;
@@ -64,54 +64,36 @@ errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContain
     return err;
 }
 
-// Prefetches a block and stores it in the disk cache if possible. The prefetch
-// is executed asynchronously. An error is returned if the prefetch could not
-// be successfully started. Note that the returned error does not indicate
-// whether the read operation as such was successful or not.
-errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
+errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_PrefetchBlock(gDiskCache, driverId, mediaId, lba);
+    return DiskCache_PrefetchBlock(gDiskCache, self->diskId, self->mediaId, lba);
 }
 
-// Flushes the block at disk address (driverId, mediaId, lba) to disk if it
-// contains unwritten (dirty) data. Does nothing if the block is clean.
-errno_t DiskFSContainer_flushBlock(struct DiskFSContainer* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba)
+errno_t DiskFSContainer_flushBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_FlushBlock(gDiskCache, driverId, mediaId, lba);
+    return DiskCache_FlushBlock(gDiskCache, self->diskId, self->mediaId, lba);
 }
 
-// Acquires an empty block, filled with zero bytes. This block is not attached
-// to any disk address and thus may not be written back to disk.
 errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     return DiskCache_AcquireEmptyBlock(gDiskCache, pOutBlock);
 }
 
-// Acquires the disk block with the block address 'lba'. The acquisition is
-// done according to the acquisition mode 'mode'. An error is returned if
-// the disk block needed to be loaded and loading failed for some reason.
-// Once done with the block, it must be relinquished by calling the
-// relinquishBlock() method.
 errno_t DiskFSContainer_acquireBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     return DiskCache_AcquireBlock(gDiskCache, self->diskId, self->mediaId, lba, mode, pOutBlock);
 }
 
-// Relinquishes the disk block 'pBlock' without writing it back to disk.
 void DiskFSContainer_relinquishBlock(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
 {
     DiskCache_RelinquishBlock(gDiskCache, pBlock);
 }
 
-// Relinquishes the disk block 'pBlock' and writes the disk block back to
-// disk according to the write back mode 'mode'.
 errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
     return DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, mode);
 }
 
-// Flushes all cached and unwritten blocks belonging to this FS container to
-// disk(s).
 errno_t DiskFSContainer_flush(struct DiskFSContainer* _Nonnull self)
 {
     return DiskCache_Flush(gDiskCache, self->diskId, self->mediaId);

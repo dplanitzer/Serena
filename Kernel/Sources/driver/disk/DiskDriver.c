@@ -12,8 +12,8 @@
 #include <driver/DriverChannel.h>
 
 struct IOGetInfoRequest {
-    DiskInfo* _Nonnull      pInfo;      // out
-    errno_t                 err;        // out
+    DiskInfo* _Nonnull  pInfo;      // out
+    errno_t             err;        // out
 };
 
 
@@ -37,10 +37,14 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 // drive.
 errno_t DiskDriver_getInfo_async(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    pOutInfo->blockSize = 512;
-    pOutInfo->blockCount = 0;
+    pOutInfo->diskId = Driver_GetDriverId((DriverRef)self);
     pOutInfo->mediaId = kMediaId_None;
     pOutInfo->isReadOnly = true;
+    pOutInfo->reserved[0] = 0;
+    pOutInfo->reserved[1] = 0;
+    pOutInfo->reserved[2] = 0;
+    pOutInfo->blockSize = 512;
+    pOutInfo->blockCount = 0;
 
     return EOK;
 }

@@ -38,7 +38,7 @@ typedef enum DiskBlockOp {
 typedef struct DiskBlock {
     ListNode            hashNode;           // Protected by Interlock
     ListNode            lruNode;            // Protected by Interlock
-    DriverId            driverId;           // Protected by Interlock
+    DiskId              diskId;             // Protected by Interlock
     MediaId             mediaId;            // Protected by Interlock
     LogicalBlockAddress lba;                // Protected by Interlock
     int                 useCount;           // Protected by Interlock
@@ -69,8 +69,8 @@ typedef struct DiskBlock {
 #define DiskBlock_GetStatus(__self) \
     (__self)->status
 
-#define DiskBlock_GetDriverId(__self) \
-    (__self)->driverId
+#define DiskBlock_GetDiskId(__self) \
+    (__self)->diskId
 
 #define DiskBlock_GetMediaId(__self) \
     (__self)->mediaId
@@ -86,7 +86,7 @@ typedef struct DiskBlock {
 // Kernel internal functions
 //
 
-extern errno_t DiskBlock_Create(DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DiskBlock_Create(DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
 extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
 #define DiskBlock_BeginUse(__self) \
@@ -99,22 +99,22 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
     ((__self)->useCount > 0)
 
 #define DiskBlock_Hash(__self) \
-    DiskBlock_HashKey((__self)->driverId, (__self)->mediaId, (__self)->lba)
+    DiskBlock_HashKey((__self)->diskId, (__self)->mediaId, (__self)->lba)
 
 #define DiskBlock_IsEqual(__self, __other) \
-    DiskBlock_IsEqualKey(__self, (__other)->driverId, (__other)->mediaId, (__other)->lba)
+    DiskBlock_IsEqualKey(__self, (__other)->diskId, (__other)->mediaId, (__other)->lba)
 
-#define DiskBlock_SetTarget(__self, __driverId, __mediaId, __lba)\
-    (__self)->driverId = __driverId;\
+#define DiskBlock_SetTarget(__self, __diskId, __mediaId, __lba)\
+    (__self)->diskId = diskId;\
     (__self)->mediaId = __mediaId;\
     (__self)->lba = __lba;\
     (__self)->flags.hasData = 0
 
 
-#define DiskBlock_HashKey(__driverId, __mediaId, __lba) \
-    (size_t)((__driverId) + (__mediaId) + (__lba))
+#define DiskBlock_HashKey(__diskId, __mediaId, __lba) \
+    (size_t)((__diskId) + (__mediaId) + (__lba))
 
-#define DiskBlock_IsEqualKey(__self, __driverId, __mediaId, __lba) \
-    (((__self)->driverId == (__driverId) && (__self)->mediaId == (__mediaId) && (__self)->lba == (__lba)) ? true : false)
+#define DiskBlock_IsEqualKey(__self, __diskId, __mediaId, __lba) \
+    (((__self)->diskId == (__diskId) && (__self)->mediaId == (__mediaId) && (__self)->lba == (__lba)) ? true : false)
 
 #endif /* DiskBlock_h */

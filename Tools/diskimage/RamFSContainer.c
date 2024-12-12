@@ -43,8 +43,6 @@ void RamFSContainer_deinit(RamFSContainerRef _Nonnull self)
     self->diskImage = NULL;
 }
 
-// Returns information about the disk drive and the media loaded into the
-// drive.
 errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo* pOutInfo)
 {
     pOutInfo->blockSize = self->blockSize;
@@ -55,12 +53,10 @@ errno_t RamFSContainer_getInfo(RamFSContainerRef _Nonnull self, FSContainerInfo*
     return EOK;
 }
 
-// Acquires an empty block, filled with zero bytes. This block is not attached
-// to any disk address and thus may not be written back to disk.
 errno_t RamFSContainer_acquireEmptyBlock(RamFSContainerRef self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     DiskBlockRef pBlock;
-    const errno_t err = DiskBlock_Create(0 /*kDriverId_None*/, kMediaId_None, 0, &pBlock);
+    const errno_t err = DiskBlock_Create(kDiskId_None, kMediaId_None, 0, &pBlock);
 
     if (err == EOK) {
         memset(DiskBlock_GetMutableData(pBlock), 0, DiskBlock_GetByteSize(pBlock));
@@ -79,11 +75,6 @@ static errno_t RamFSContainer_GetBlock(RamFSContainerRef _Nonnull self, void* _N
     return EOK;
 }
 
-// Acquires the disk block with the block address 'lba'. The acquisition is
-// done according to the acquisition mode 'mode'. An error is returned if
-// the disk block needed to be loaded and loading failed for some reason.
-// Once done with the block, it must be relinquished by calling the
-// relinquishBlock() method.
 errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, LogicalBlockAddress lba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
@@ -131,8 +122,6 @@ static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const vo
     return EOK;
 }
 
-// Relinquishes the disk block 'pBlock' and writes the disk block back to
-// disk according to the write back mode 'mode'.
 errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode)
 {
     decl_try_err();
@@ -154,7 +143,6 @@ errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull se
     return err;
 }
 
-// Relinquishes the disk block 'pBlock' without writing it back to disk.
 void RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBlockRef _Nullable pBlock)
 {
     if (pBlock) {

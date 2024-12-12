@@ -37,11 +37,11 @@ open_class_funcs(FSContainer, Object,
     // is executed asynchronously. An error is returned if the prefetch could not
     // be successfully started. Note that the returned error does not indicate
     // whether the read operation as such was successful or not.
-    errno_t (*prefetchBlock)(void* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba);
+    errno_t (*prefetchBlock)(void* _Nonnull self, LogicalBlockAddress lba);
 
-    // Flushes the block at disk address (driverId, mediaId, lba) to disk if it
+    // Flushes the block at the logical block address 'lba' to disk if it
     // contains unwritten (dirty) data. Does nothing if the block is clean.
-    errno_t (*flushBlock)(void* _Nonnull self, DriverId driverId, MediaId mediaId, LogicalBlockAddress lba);
+    errno_t (*flushBlock)(void* _Nonnull self, LogicalBlockAddress lba);
 
     // Acquires an empty block, filled with zero bytes. This block is not attached
     // to any disk address and thus may not be written back to disk.

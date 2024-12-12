@@ -65,6 +65,13 @@ typedef LogicalBlockAddress LogicalBlockCount;
 typedef uint32_t    MediaId;
 
 
+// Unique disk drive ID. A value of 0 represents the "does not exist" disk drive.
+typedef uint32_t    DiskId;
+
+// Means no disk drive
+#define kDiskId_None   0
+
+
 typedef uint16_t    FilePermissions;
 typedef int8_t      FileType;
 typedef int64_t     FileOffset;

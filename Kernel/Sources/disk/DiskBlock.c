@@ -12,7 +12,7 @@
 #define BLOCK_SIZE  512
 
 
-errno_t DiskBlock_Create(DriverId driverId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
+errno_t DiskBlock_Create(DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskBlock* self;
@@ -20,7 +20,7 @@ errno_t DiskBlock_Create(DriverId driverId, MediaId mediaId, LogicalBlockAddress
     try(kalloc_cleared(sizeof(DiskBlock) + BLOCK_SIZE - 1, (void**) &self));
     ListNode_Init(&self->hashNode);
     ListNode_Init(&self->lruNode);
-    self->driverId = driverId;
+    self->diskId = diskId;
     self->mediaId = mediaId;
     self->lba = lba;
     self->flags.byteSize = BLOCK_SIZE;

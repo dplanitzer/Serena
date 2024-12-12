@@ -133,7 +133,7 @@ errno_t SerenaFS_GetDirectoryEntry(
         const SFSDirectoryEntry* pDirBuffer = (const SFSDirectoryEntry*)DiskBlock_GetData(pBlock);
         const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
         hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
-        if (pEmptyEntry && DiskBlock_GetDriverId(pBlock) != 0/*kDriver_None*/) {
+        if (pEmptyEntry && DiskBlock_GetDiskId(pBlock) != kDiskId_None) {
             pOutEmptyPtr->lba = DiskBlock_GetLba(pBlock);
             pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
             pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;

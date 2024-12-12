@@ -21,10 +21,12 @@ __CPP_BEGIN
 #define kIODiskCommand_GetInfo  IOResourceCommand(0)
 
 typedef struct DiskInfo {
+    DiskId              diskId;             // Globally unique, non-persistent disk drive ID
+    MediaId             mediaId;            // ID of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded 
+    bool                isReadOnly;         // true if the data on the disk is hardware write protected
+    char                reserved[3];
     size_t              blockSize;          // byte size of a single disk block. This is the data portion only without any header information
     LogicalBlockCount   blockCount;         // overall number of addressable blocks on the disk
-    MediaId             mediaId;            // Id of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded 
-    bool                isReadOnly;         // true if the data on the disk is hardware write protected 
 } DiskInfo;
 
 __CPP_END
