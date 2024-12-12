@@ -61,10 +61,14 @@ errno_t RamDisk_start(RamDiskRef _Nonnull self)
 
 errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    pOutInfo->blockSize = self->blockSize;
-    pOutInfo->blockCount = self->blockCount;
+    pOutInfo->diskId = Driver_GetDriverId((DriverRef)self);
     pOutInfo->mediaId = 1;
     pOutInfo->isReadOnly = false;
+    pOutInfo->reserved[0] = 0;
+    pOutInfo->reserved[1] = 0;
+    pOutInfo->reserved[2] = 0;
+    pOutInfo->blockSize = self->blockSize;
+    pOutInfo->blockCount = self->blockCount;
 
     return EOK;
 }

@@ -146,7 +146,9 @@ any_subclass_funcs(IOChannel,
 #define IOChannel_Copy(__self, __pOutChannel) \
 invoke_n(copy, IOChannel, __self, __pOutChannel)
 
-#define IOChannel_Ioctl(__self, __cmd, __ap) \
+extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
+
+#define IOChannel_vIoctl(__self, __cmd, __ap) \
 invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
 
 extern errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);

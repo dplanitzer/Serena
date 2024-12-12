@@ -17,19 +17,27 @@ final_class_ivars(DiskFSContainer, FSContainer,
     IOChannelRef _Nonnull   channel;
     DiskId                  diskId;
     MediaId                 mediaId;
+    size_t                  blockSize;
+    LogicalBlockAddress     blockCount;
+    bool                    isReadOnly;
 );
 
 
-errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, DiskId diskId, MediaId mediaId, FSContainerRef _Nullable * _Nonnull pOutContainer)
+errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutContainer)
 {
     decl_try_err();
     struct DiskFSContainer* self = NULL;
-    FSContainerInfo info;
+    DiskInfo info;
 
-    if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
-        self->channel = IOChannel_Retain(pChannel);
-        self->diskId = diskId;
-        self->mediaId = mediaId;
+    if ((err = IOChannel_Ioctl(pChannel, kIODiskCommand_GetInfo, &info)) == EOK) {
+        if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
+            self->channel = IOChannel_Retain(pChannel);
+            self->diskId = info.diskId;
+            self->mediaId = info.mediaId;
+            self->blockSize = info.blockSize;
+            self->blockCount = info.blockCount;
+            self->isReadOnly = info.isReadOnly;
+        }
     }
 
     *pOutContainer = (FSContainerRef)self;
@@ -44,24 +52,12 @@ void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 
 errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContainerInfo* pOutInfo)
 {
-    decl_try_err();
-    DiskDriverRef pDriver;
-    DiskInfo di;
-
-    if ((pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, self->diskId)) != NULL) {
-        if ((err = DiskDriver_GetInfo(pDriver, &di)) == EOK) {
-            pOutInfo->blockSize = di.blockSize;
-            pOutInfo->blockCount = di.blockCount;
-            pOutInfo->mediaId = di.mediaId;
-            pOutInfo->isReadOnly = di.isReadOnly;
-        }
-        Object_Release(pDriver);
-    }
-    else {
-        err = ENODEV;
-    }
-
-    return err;
+    pOutInfo->mediaId = self->mediaId;
+    pOutInfo->isReadOnly = self->isReadOnly;
+    pOutInfo->blockSize = self->blockSize;
+    pOutInfo->blockCount = self->blockCount;
+    
+    return EOK;
 }
 
 errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)

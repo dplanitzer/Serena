@@ -53,10 +53,14 @@ errno_t RomDisk_start(RomDiskRef _Nonnull self)
 
 errno_t RomDisk_getInfo_async(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    pOutInfo->blockSize = self->blockSize;
-    pOutInfo->blockCount = self->blockCount;
+    pOutInfo->diskId = Driver_GetDriverId((DriverRef)self);
     pOutInfo->mediaId = 1;
     pOutInfo->isReadOnly = true;
+    pOutInfo->reserved[0] = 0;
+    pOutInfo->reserved[1] = 0;
+    pOutInfo->reserved[2] = 0;
+    pOutInfo->blockSize = self->blockSize;
+    pOutInfo->blockCount = self->blockCount;
 
     return EOK;
 }

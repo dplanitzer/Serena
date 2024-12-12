@@ -132,6 +132,18 @@ errno_t IOChannel_copy(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Non
     return EBADF;
 }
 
+errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
+{
+    decl_try_err();
+
+    va_list ap;
+    va_start(ap, cmd);
+    err = IOChannel_vIoctl(self, cmd, ap);
+    va_end(ap);
+
+    return err;
+}
+
 errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {

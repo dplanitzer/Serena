@@ -211,6 +211,18 @@ errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, co
     return EBADF;
 }
 
+errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...)
+{
+    decl_try_err();
+
+    va_list ap;
+    va_start(ap, cmd);
+    err = Driver_vIoctl(self, cmd, ap);
+    va_end(ap);
+
+    return err;
+}
+
 errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 {
     return ENOTIOCTLCMD;

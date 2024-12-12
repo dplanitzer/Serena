@@ -50,7 +50,7 @@ errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
         return super_n(ioctl, IOChannel, DriverChannel, self, cmd, ap);
     }
     else {
-        return Driver_Ioctl(self->driver, cmd, ap);
+        return Driver_vIoctl(self->driver, cmd, ap);
     }
 }
 

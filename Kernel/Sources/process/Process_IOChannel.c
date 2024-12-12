@@ -52,13 +52,13 @@ errno_t Process_SeekChannel(ProcessRef _Nonnull pProc, int ioc, FileOffset offse
 
 // Sends a I/O Channel or I/O Resource defined command to the I/O Channel or
 // resource identified by the given descriptor.
-errno_t Process_Ioctl(ProcessRef _Nonnull pProc, int ioc, int cmd, va_list ap)
+errno_t Process_vIoctl(ProcessRef _Nonnull pProc, int ioc, int cmd, va_list ap)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
     if ((err = IOChannelTable_AcquireChannel(&pProc->ioChannelTable, ioc, &pChannel)) == EOK) {
-        err = IOChannel_Ioctl(pChannel, cmd, ap);
+        err = IOChannel_vIoctl(pChannel, cmd, ap);
         IOChannelTable_RelinquishChannel(&pProc->ioChannelTable, pChannel);
     }
     return err;
