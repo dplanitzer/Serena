@@ -7,16 +7,14 @@
 //
 
 #include <klib/klib.h>
-#include <console/Console.h>
-#include <console/ConsoleChannel.h>
 #include <dispatcher/Lock.h>
-#include <User.h>
+#include <driver/DriverCatalog.h>
+#include <filesystem/IOChannel.h>
 #include "Formatter.h"
 
 #define PRINT_BUFFER_CAPACITY   80
 
 static Lock         gLock;
-static ConsoleRef   gConsole;
 static IOChannelRef gConsoleChannel;
 static Formatter    gFormatter;
 static char         gPrintBuffer[PRINT_BUFFER_CAPACITY];
@@ -29,13 +27,11 @@ static errno_t printv_console_sink_locked(FormatterRef _Nonnull self, const char
 }
 
 // Initializes the print subsystem.
-void print_init(void* _Nonnull pConsole)
+void print_init(void)
 {
     Lock_Init(&gLock);
     Formatter_Init(&gFormatter, printv_console_sink_locked, NULL, gPrintBuffer, PRINT_BUFFER_CAPACITY);
-    gConsole = (ConsoleRef) pConsole;
-    assert(gConsole != NULL);
-    try_bang(Driver_Open((DriverRef)gConsole, kOpen_Write, &gConsoleChannel));
+    try_bang(DriverCatalog_OpenDriver(gDriverCatalog, "/console", kOpen_Write, &gConsoleChannel));
 }
 
 // Print formatted

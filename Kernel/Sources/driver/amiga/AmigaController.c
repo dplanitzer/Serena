@@ -149,7 +149,7 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
 
 
     // Let the kernel know that the console is now available
-    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self, console);
+    PlatformController_NoteConsoleAvailable((PlatformControllerRef)self);
 
 
     // Null driver

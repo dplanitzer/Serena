@@ -11,7 +11,7 @@
 
 #include <klib/Types.h>
 
-extern void print_init(void* _Nonnull pConsole);
+extern void print_init(void);
 extern void print(const char* _Nonnull format, ...);
 extern void printv(const char* _Nonnull format, va_list ap);
 
