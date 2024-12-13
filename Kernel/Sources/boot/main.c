@@ -15,6 +15,7 @@
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/AmigaController.h>
 #include <filesystem/Filesystem.h>
+#include <filesystem/FilesystemManager.h>
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>
@@ -168,6 +169,10 @@ static void OnMain(void)
     try(DiskCache_Create(gSystemDescription, &gDiskCache));
 
 
+    // Create the filesystem manager
+    try(FilesystemManager_Create(&gFilesystemManager));
+
+    
     // Create the root file hierarchy.
     FileHierarchyRef pRootFh = create_root_file_hierarchy();
 

@@ -37,6 +37,7 @@ class_ref(EventDriver);
 class_ref(FileChannel);
 class_ref(FileHierarchy);
 class_ref(Filesystem);
+class_ref(FilesystemManager);
 class_ref(FloppyController);
 class_ref(FloppyDriver);
 class_ref(FSContainer);
