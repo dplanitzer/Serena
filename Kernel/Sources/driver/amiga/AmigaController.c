@@ -17,6 +17,7 @@
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
 #include <driver/hid/EventDriver.h>
+#include <driver/DriverCatalog.h>
 #include <driver/NullDriver.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/IOChannel.h>
@@ -87,7 +88,7 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
         try(RamDisk_Create("ram", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
 
-        try(Driver_Open((DriverRef)disk, kOpen_ReadWrite, &chan));
+        try(DriverCatalog_OpenDriver(gDriverCatalog, "/ram", kOpen_ReadWrite, &chan));
         try(DiskFSContainer_Create(chan, &fsContainer));
         for (LogicalBlockAddress lba = 0; lba < smg_hdr->physicalBlockCount; lba++) {
             DiskBlockRef pb;
