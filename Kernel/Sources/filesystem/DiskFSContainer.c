@@ -52,7 +52,6 @@ void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 
 errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContainerInfo* pOutInfo)
 {
-    pOutInfo->mediaId = self->mediaId;
     pOutInfo->isReadOnly = self->isReadOnly;
     pOutInfo->blockSize = self->blockSize;
     pOutInfo->blockCount = self->blockCount;

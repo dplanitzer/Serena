@@ -13,7 +13,6 @@ errno_t FSContainer_getInfo(FSContainerRef _Nonnull self, FSContainerInfo* pOutI
 {
     pOutInfo->blockSize = 512;
     pOutInfo->blockCount = 0;
-    pOutInfo->mediaId = 0;
     pOutInfo->isReadOnly = true;
 
     return EOK;

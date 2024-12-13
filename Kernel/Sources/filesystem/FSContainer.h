@@ -17,14 +17,13 @@
 typedef struct FSContainerInfo {
     size_t              blockSize;          // byte size of a logical disk block. A single logical disk block may map to multiple physical blocks. The FSContainer transparently takes care of the mapping
     LogicalBlockCount   blockCount;         // overall number of addressable blocks in this FSContainer
-    MediaId             mediaId;            // Id of the currently loaded media; changes with every media eject and insertion; 0 means no media is loaded 
     bool                isReadOnly;         // true if all the data in the FSContainer is hardware write protected 
 } FSContainerInfo;
 
 
-// A filesystem container represents the logical disk that holds the contents of
-// a filesystem. A container may span multiple physical disks/partitions or it
-// may just represent a single physical disk/partition.
+// A filesystem container provides access to the data on a mass storage device
+// or a collection of distinct mass storage devices under the assumption that
+// this data represents the persistent state of a filesystem.
 open_class(FSContainer, Object,
 );
 open_class_funcs(FSContainer, Object,
