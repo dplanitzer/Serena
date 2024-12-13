@@ -17,9 +17,9 @@ extern FilesystemManagerRef _Nonnull gFilesystemManager;
 
 extern errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnull pOutSelf);
 
-// Auto-discovers the filesystem stored in the mass storage device 'pDriver',
-// instantiates and starts it. Passes 'params' as the start parameters to this
-// filesystem.
+// Auto-discovers the filesystem stored in the mass storage device at the
+// in-kernel path 'driverPath', instantiates and starts it. Passes 'params' as
+// the start parameters to this filesystem.
 extern errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnull self, const char* _Nonnull driverPath, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs);
 
 #endif /* FilesystemManager_h */
