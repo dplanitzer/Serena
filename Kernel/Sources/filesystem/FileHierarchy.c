@@ -390,11 +390,18 @@ errno_t FileHierarchy_DetachFilesystemAt(FileHierarchyRef _Nonnull self, InodeRe
 
     try_bang(SELock_LockExclusive(&self->lock));
 
+    // Make sure that the FS that we want to detach, isn't the root FS
+    if (Inode_Equals(self->rootDirectory, dir)) {
+        throw(EBUSY);
+    }
+
+
     // Make sure that 'dir' is a attachment point
     FHKey* downKey = _FileHierarchy_GetKey(self, dir, kKeyType_Downlink);
     if (downKey == NULL) {
         throw(EINVAL);
-    }
+    }   
+
 
     // Make sure that the FS that we want to detach doesn't have other FSs attached
     // to it.
