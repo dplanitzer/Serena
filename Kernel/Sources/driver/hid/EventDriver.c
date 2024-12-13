@@ -118,7 +118,7 @@ void EventDriver_deinit(EventDriverRef _Nonnull self)
 
 static errno_t EventDriver_start(EventDriverRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, kEventDriverName);
+    return Driver_Publish((DriverRef)self, kEventDriverName, 0);
 }
 
 
@@ -127,7 +127,7 @@ static errno_t EventDriver_start(EventDriverRef _Nonnull self)
 // MARK: Input Driver API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t EventDriver_createChannel(EventDriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t EventDriver_createChannel(EventDriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return EventChannel_Create(self, mode, pOutChannel);
 }

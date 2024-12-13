@@ -51,6 +51,7 @@ typedef struct DfsDirectoryItem {
 typedef struct DfsDriverItem {
     DfsItem             super;
     DriverRef _Nonnull  instance;
+    intptr_t            arg;
 } DfsDriverItem;
 
 
@@ -123,7 +124,7 @@ extern errno_t DfsDirectoryItem_GetEntryForId(DfsDirectoryItem* _Nonnull self, I
 extern errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid, const PathComponent* _Nonnull pc);
 extern errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId inid);
 
-extern errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, DfsDriverItem* _Nullable * _Nonnull pOutSelf);
+extern errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDriverItem* _Nullable * _Nonnull pOutSelf);
 extern void DfsDriverItem_Destroy(DfsDriverItem* _Nullable self);
 
 #endif /* DevFSPriv_h */

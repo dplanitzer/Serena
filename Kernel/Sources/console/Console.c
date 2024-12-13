@@ -91,7 +91,7 @@ static errno_t Console_start(ConsoleRef _Nonnull self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    return Driver_Publish((DriverRef)self, kConsoleName);
+    return Driver_Publish((DriverRef)self, kConsoleName, 0);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
@@ -476,7 +476,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_createChannel(ConsoleRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_createChannel(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return ConsoleChannel_Create(self, mode, pOutChannel);
 }

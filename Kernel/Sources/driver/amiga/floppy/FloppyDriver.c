@@ -135,7 +135,7 @@ static errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
         name[2] = '0' + self->drive;
         name[3] = '\0';
 
-        err = Driver_Publish((DriverRef)self, name);
+        err = Driver_Publish((DriverRef)self, name, 0);
     }
 
     return err;

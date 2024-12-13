@@ -171,7 +171,7 @@ errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId in
 // DriverItem
 //
 
-errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, DfsDriverItem* _Nullable * _Nonnull pOutSelf)
+errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId uid, GroupId gid, DriverRef _Nonnull pDriver, intptr_t arg, DfsDriverItem* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DfsDriverItem* self = NULL;
@@ -180,6 +180,7 @@ errno_t DfsDriverItem_Create(InodeId inid, FilePermissions permissions, UserId u
     DfsItem_Init(&self->super, inid, kFileType_Device, permissions, uid, gid);
     self->super.size = sizeof(DfsDriverItem);
     self->instance = Object_RetainAs(pDriver, Driver);
+    self->arg = arg;
 
 catch:
     *pOutSelf = self;

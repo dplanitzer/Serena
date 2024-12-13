@@ -64,7 +64,7 @@ DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull s
     return self->devfs;
 }
 
-errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, DriverId* _Nonnull pOutDriverId)
+errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverId* _Nonnull pOutDriverId)
 {
     decl_try_err();
     InodeRef rootDir = NULL;
@@ -81,7 +81,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnu
     const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
     try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(DevFS_CreateDevice(self->devfs, kUser_Root, permissions, rootDir, &pc, driver, &pNode));
+    try(DevFS_CreateDevice(self->devfs, kUser_Root, permissions, rootDir, &pc, driver, arg, &pNode));
     *pOutDriverId = (DriverId)Inode_GetId(pNode);
 
 catch:

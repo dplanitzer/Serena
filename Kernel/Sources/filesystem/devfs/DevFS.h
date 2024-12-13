@@ -23,6 +23,6 @@ extern errno_t DevFS_Create(DevFSRef _Nullable * _Nonnull pOutSelf);
 extern DriverRef _Nullable DevFS_CopyDriverForNode(DevFSRef _Nonnull self, InodeRef _Nonnull pNode);
 
 // Creates a new device node in the file system.
-extern errno_t DevFS_CreateDevice(DevFSRef _Nonnull self, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull pDriverInstance, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t DevFS_CreateDevice(DevFSRef _Nonnull self, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull pDriverInstance, intptr_t arg, InodeRef _Nullable * _Nonnull pOutNode);
 
 #endif /* DevFS_h */

@@ -461,7 +461,7 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
 
 static errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, kGraphicsDriverName);
+    return Driver_Publish((DriverRef)self, kGraphicsDriverName, 0);
 }
 
 

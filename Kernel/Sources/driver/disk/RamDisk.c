@@ -56,7 +56,7 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
 
 errno_t RamDisk_start(RamDiskRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, self->name);
+    return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
 errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)

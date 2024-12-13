@@ -152,7 +152,7 @@ void Driver_stop(DriverRef _Nonnull self)
 
 
 
-errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
@@ -160,7 +160,7 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nu
     if (self->state == kDriverState_Running) {
         if ((self->options & kDriverOption_Exclusive) == kDriverOption_Exclusive) {
             if ((self->flags & kDriverFlag_IsOpen) == 0) {
-                err = invoke_n(createChannel, Driver, self, mode, pOutChannel);
+                err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
         
                 if (err == EOK) {
                     self->flags |= kDriverFlag_IsOpen;
@@ -174,7 +174,7 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nu
             }
         }
         else {
-            err = invoke_n(createChannel, Driver, self, mode, pOutChannel);
+            err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
         }
     }
     else {
@@ -185,7 +185,7 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nu
     return err;
 }
 
-errno_t Driver_createChannel(DriverRef _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_createChannel(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, self, pOutChannel);
 }
@@ -231,9 +231,9 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 
 
 // Publishes the driver instance to the driver catalog with the given name.
-errno_t Driver_Publish(DriverRef _Nonnull self, const char* name)
+errno_t Driver_Publish(DriverRef _Nonnull self, const char* name, intptr_t arg)
 {
-    return DriverCatalog_Publish(gDriverCatalog, name, self, &self->driverId);
+    return DriverCatalog_Publish(gDriverCatalog, name, self, arg, &self->driverId);
 }
 
 // Removes the driver instance from the driver catalog.

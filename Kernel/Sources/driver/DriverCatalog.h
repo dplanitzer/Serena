@@ -18,7 +18,7 @@ extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 
 extern DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self);
 
-extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, DriverId* _Nonnull pOutDriverId);
+extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverId* _Nonnull pOutDriverId);
 extern errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId);
 
 extern DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId);

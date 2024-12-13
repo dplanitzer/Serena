@@ -107,13 +107,13 @@ open_class_funcs(Driver, Object,
     // read, write, ioctl operations.
     // Override: Optional
     // Default Behavior: Creates a DriverChannel instance
-    errno_t (*open)(void* _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Invoked by the open() function to create the driver channel that should
     // be returned to the caller.
     // Override: Optional
     // Default Behavior: returns a DriverChannel instance
-    errno_t (*createChannel)(void* _Nonnull self, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    errno_t (*createChannel)(void* _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Invoked as the result of calling Driver_Close().
     // Override: Optional
@@ -156,8 +156,8 @@ extern void Driver_Terminate(DriverRef _Nonnull self);
 // Opens an I/O channel to the driver with the mode 'mode'. EOK and the channel
 // is returned in 'pOutChannel' on success and a suitable error code is returned
 // otherwise.
-#define Driver_Open(__self, __mode, __pOutChannel) \
-invoke_n(open, Driver, __self, __mode, __pOutChannel)
+#define Driver_Open(__self, __mode, __arg, __pOutChannel) \
+invoke_n(open, Driver, __self, __mode, __arg, __pOutChannel)
 
 // Closes the given driver channel.
 #define Driver_Close(__self, __pChannel) \
@@ -206,7 +206,7 @@ extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOpt
 
 
 // Publishes the driver instance to the driver catalog with the given name.
-extern errno_t Driver_Publish(DriverRef _Nonnull self, const char* name);
+extern errno_t Driver_Publish(DriverRef _Nonnull self, const char* name, intptr_t arg);
 
 // Removes the driver instance from the driver catalog.
 extern void Driver_Unpublish(DriverRef _Nonnull self);

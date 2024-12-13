@@ -48,7 +48,7 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
 
 errno_t RomDisk_start(RomDiskRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, self->name);
+    return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
 errno_t RomDisk_getInfo_async(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)

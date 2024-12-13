@@ -19,7 +19,7 @@ errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 
 errno_t NullDriver_start(DriverRef _Nonnull self)
 {
-    return Driver_Publish(self, "null");
+    return Driver_Publish(self, "null", 0);
 }
 
 errno_t NullDriver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
