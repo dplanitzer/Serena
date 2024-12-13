@@ -143,7 +143,7 @@ errno_t AmigaController_start(struct AmigaController* _Nonnull self)
 
     // Initialize the console
     ConsoleRef console = NULL;
-    try(Console_Create(eventDriver, graphDriver, &console));
+    try(Console_Create("/events", graphDriver, &console));
     try(Driver_Start((DriverRef)console));
     Driver_AdoptChild((DriverRef)self, (DriverRef)console);
 

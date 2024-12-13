@@ -12,6 +12,7 @@
 #include "Console.h"
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
+#include <driver/amiga/graphics/GraphicsDriver.h>
 #include "KeyMap.h"
 #include "vtparser.h"
 
@@ -158,7 +159,6 @@ typedef struct GraphicsContext {
 // The console object.
 final_class_ivars(Console, Driver,
     Lock                        lock;
-    EventDriverRef _Nonnull     eventDriver;
     IOChannelRef _Nonnull       eventDriverChannel;
     GraphicsDriverRef _Nonnull  gdevice;
     const KeyMap* _Nonnull      keyMap;

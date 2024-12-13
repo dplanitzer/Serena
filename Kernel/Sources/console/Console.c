@@ -8,6 +8,7 @@
 
 #include "ConsolePriv.h"
 #include "ConsoleChannel.h"
+#include <driver/DriverCatalog.h>
 #include <driver/hid/EventChannel.h>
 
 const char* const kConsoleName = "console";
@@ -18,7 +19,7 @@ const char* const kConsoleName = "console";
 // \param pEventDriver the event driver to provide keyboard input
 // \param pGDevice the graphics device
 // \return the console; NULL on failure
-errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf)
+errno_t Console_Create(const char* _Nonnull eventDriverPath, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ConsoleRef self;
@@ -27,8 +28,7 @@ errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _
     
     Lock_Init(&self->lock);
 
-    self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(Driver_Open((DriverRef)pEventDriver, kOpen_Read, &self->eventDriverChannel));
+    try(DriverCatalog_OpenDriver(gDriverCatalog, eventDriverPath, kOpen_Read, &self->eventDriverChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     self->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
@@ -78,9 +78,6 @@ void Console_deinit(ConsoleRef _Nonnull self)
 
     IOChannel_Release(self->eventDriverChannel);
     self->eventDriverChannel = NULL;
-    
-    Object_Release(self->eventDriver);
-    self->eventDriver = NULL;
 }
 
 static errno_t Console_start(ConsoleRef _Nonnull self)

@@ -11,8 +11,6 @@
 
 #include <klib/klib.h>
 #include <driver/Driver.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
-#include <driver/hid/EventDriver.h>
 
 //
 // The console implements support for the following standards:
@@ -25,6 +23,6 @@ extern const char* const kConsoleName;
 
 final_class(Console, Driver);
 
-extern errno_t Console_Create(EventDriverRef _Nonnull pEventDriver, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Console_Create(const char* _Nonnull eventDriverPath, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* Console_h */
