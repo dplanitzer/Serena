@@ -10,6 +10,7 @@
 #include "DiskFSContainer.h"
 #include "IOChannel.h"
 #include "serenafs/SerenaFS.h"
+#include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
 
 typedef struct FilesystemManager {
@@ -31,14 +32,14 @@ catch:
     return err;
 }
 
-errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnull self, DiskDriverRef _Nonnull pDriver, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
+errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnull self, const char* _Nonnull driverPath, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
 {
     decl_try_err();
     IOChannelRef chan = NULL;
     FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
 
-    try(Driver_Open((DriverRef)pDriver, kOpen_ReadWrite, &chan));
+    try(DriverCatalog_OpenDriver(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan));
     try(DiskFSContainer_Create(chan, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
     try(Filesystem_Start(fs, params, paramsSize));

@@ -10,35 +10,63 @@
 #include <klib/klib.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
-#include <driver/amiga/floppy/FloppyDriver.h>
 #include <filesystem/FilesystemManager.h>
 
-#define MAX_NAME_LENGTH 16
 
-
-// Finds a RAM or ROM disk to boot from. Returns kDriver_None if drive found.
-static DiskDriverRef _Nullable copy_boot_mem_driver(void)
+// Finds a RAM or ROM disk to boot from and returns the in-kernel path to the
+// driver if found; NULL otherwise.
+static const char* _Nullable get_boot_mem_driver_path(void)
 {
-    DriverRef drv = DriverCatalog_CopyDriverForName(gDriverCatalog, "ram");
+    static const char* gMemDriverTable[] = {
+        "/ram",
+        "/rom",
+        NULL
+    };
 
-    if (drv == NULL) {
-        drv = DriverCatalog_CopyDriverForName(gDriverCatalog, "rom");
+    int i = 0;
+    const char* path;
+
+    while ((path = gMemDriverTable[i++]) != NULL) {
+        const errno_t err = DriverCatalog_IsDriverPublished(gDriverCatalog, path);
+        
+        if (err == EOK) {
+            return path;
+        }
     }
 
-    return (DiskDriverRef)drv;
+    return NULL;
 }
 
-// Finds a floppy disk to boot from. Returns kDriver_None if no bootable floppy
-// drive found.
-static DiskDriverRef _Nullable copy_boot_floppy_driver(void)
+// Finds a floppy disk to boot from and returns the in-kernel path to it if it
+// exists; NULL otherwise.
+static const char* _Nullable get_boot_floppy_driver_path(void)
 {
-    return (DiskDriverRef)DriverCatalog_CopyDriverForName(gDriverCatalog, kFloppyDrive0Name);
+    static const char* gFloppyDriverTable[] = {
+        "/fd0",
+        "/fd1",
+        "/fd2",
+        "/fd3",
+        NULL
+    };
+
+    int i = 0;
+    const char* path;
+
+    while ((path = gFloppyDriverTable[i++]) != NULL) {
+        const errno_t err = DriverCatalog_IsDriverPublished(gDriverCatalog, path);
+        
+        if (err == EOK) {
+            return path;
+        }
+    }
+
+    return NULL;
 }
 
 
 // Tries to mount the root filesystem stored on the mass storage device
 // represented by 'pDriver'.
-static errno_t boot_from_disk(DiskDriverRef _Nonnull pDriver, bool shouldRetry, FilesystemRef _Nullable * _Nonnull pOutFS)
+static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry, FilesystemRef _Nullable * _Nonnull pOutFS)
 {
     decl_try_err();
     errno_t lastError = EOK;
@@ -47,7 +75,7 @@ static errno_t boot_from_disk(DiskDriverRef _Nonnull pDriver, bool shouldRetry, 
 
     while (true) {
         fs = NULL;
-        err = FilesystemManager_DiscoverAndStartFilesystem(gFilesystemManager, pDriver, NULL, 0, &fs);
+        err = FilesystemManager_DiscoverAndStartFilesystem(gFilesystemManager, driverPath, NULL, 0, &fs);
 
         if (err == EOK) {
             break;
@@ -79,11 +107,7 @@ static errno_t boot_from_disk(DiskDriverRef _Nonnull pDriver, bool shouldRetry, 
         VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
     }
 
-    char buf[MAX_NAME_LENGTH+1];
-    DriverCatalog_CopyNameForDriverId(gDriverCatalog, Driver_GetDriverId(pDriver), buf, MAX_NAME_LENGTH);
-    print("Booting from ");
-    print(buf);
-    print("...\n\n");
+    print("Booting from %s...\n\n", driverPath);
 
     *pOutFS = fs;
     return EOK;
@@ -101,21 +125,21 @@ FilesystemRef _Nullable create_boot_filesystem(void)
     decl_try_err();
     int state = 0;
     FilesystemRef fs = NULL;
-    DiskDriverRef pMemDriver = copy_boot_mem_driver();
-    DiskDriverRef pDriver = NULL;
+    const char* memDriverPath = get_boot_mem_driver_path();
+    const char* driverPath = NULL;
     bool shouldRetry = false;
 
     while (true) {
         switch (state) {
             case 0:
                 // Boot floppy disk
-                pDriver = copy_boot_floppy_driver();
-                shouldRetry = (pMemDriver == NULL) ? true : false;
+                driverPath = get_boot_floppy_driver_path();
+                shouldRetry = (memDriverPath == NULL) ? true : false;
                 break;
 
             case 1:
                 // ROM disk image, if it exists
-                pDriver = Object_RetainAs(pMemDriver, DiskDriver);
+                driverPath = memDriverPath;
                 shouldRetry = false;
                 break;
 
@@ -127,10 +151,8 @@ FilesystemRef _Nullable create_boot_filesystem(void)
             break;
         }
 
-        if (pDriver) {
-            err = boot_from_disk(pDriver, shouldRetry, &fs);
-            Object_Release(pDriver);
-
+        if (driverPath) {
+            err = boot_from_disk(driverPath, shouldRetry, &fs);
             if (err == EOK) {
                 break;
             }
@@ -139,6 +161,5 @@ FilesystemRef _Nullable create_boot_filesystem(void)
         state++;
     }
 
-    Object_Release(pMemDriver);
     return fs;
 }

@@ -21,10 +21,15 @@ extern DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _No
 extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, DriverId* _Nonnull pOutDriverId);
 extern errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId);
 
-extern DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name);
-extern void DriverCatalog_CopyNameForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId, char* buf, size_t bufSize);
-
-extern DriverRef _Nullable DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull pName);
 extern DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId);
+
+// Returns EOK if a driver is published at the in-kernel path 'path'. Otherwise
+// ENOENT is returned.
+extern errno_t DriverCatalog_IsDriverPublished(DriverCatalogRef _Nonnull self, const char* _Nonnull path);
+
+// Opens the driver at the in-kernel path 'path' with mode 'mode' and returns the
+// resulting channel in 'pOutChannel'. The in-kernel path of a driver is of the
+// form '/driver-name'.
+extern errno_t DriverCatalog_OpenDriver(DriverCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 #endif /* DriverCatalog_h */

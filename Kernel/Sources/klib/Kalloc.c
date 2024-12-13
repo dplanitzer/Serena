@@ -122,9 +122,7 @@ void kfree(void* _Nullable ptr)
     err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);
 
     if (err == ENOTBLK) {
-        //try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));
-        // XXX Early boot code (kfree() in InterruptController_AddInterruptHandler, called from the KeyboardDriver_Start) calls kfree with what appears to be an invalid pointer that triggers a ENOTBLK
-        Allocator_DeallocateBytes(gCpuOnlyMemory, ptr);
+        try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));
     } else if (err != EOK) {
         abort();
     }

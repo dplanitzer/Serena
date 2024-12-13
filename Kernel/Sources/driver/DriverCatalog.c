@@ -8,11 +8,14 @@
 
 
 #include "DriverCatalog.h"
+#include <filesystem/FileHierarchy.h>
 #include <filesystem/devfs/DevFS.h>
 
 
 typedef struct DriverCatalog {
-    DevFSRef _Nonnull   devfs;
+    DevFSRef _Nonnull           devfs;
+    FileHierarchyRef _Nonnull   fh;
+    InodeRef _Nonnull           rootDirectory;
 } DriverCatalog;
 
 
@@ -27,6 +30,8 @@ errno_t DriverCatalog_Create(DriverCatalogRef _Nullable * _Nonnull pOutSelf)
     
     try(DevFS_Create(&self->devfs));
     try(Filesystem_Start(self->devfs, NULL, 0));
+    try(FileHierarchy_Create((FilesystemRef)self->devfs, &self->fh));
+    try(Filesystem_AcquireRootDirectory(self->devfs, &self->rootDirectory));
 
     *pOutSelf = self;
     return EOK;
@@ -40,6 +45,12 @@ catch:
 void DriverCatalog_Destroy(DriverCatalogRef _Nullable self)
 {
     if (self) {
+        Inode_Relinquish(self->rootDirectory);
+        self->rootDirectory = NULL;
+
+        Object_Release(self->fh);
+        self->fh = NULL;
+
         Filesystem_Stop(self->devfs);
         Object_Release(self->devfs);
         self->devfs = NULL;
@@ -97,75 +108,6 @@ catch:
     return err;
 }
 
-DriverId DriverCatalog_GetDriverIdForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
-{
-    decl_try_err();
-    DriverId r = kDriverId_None;
-    InodeRef rootDir = NULL;
-    InodeRef pNode = NULL;
-    PathComponent pc;
-
-    pc.name = name;
-    pc.count = String_Length(name);
-
-    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(Filesystem_AcquireNodeForName(self->devfs, rootDir, &pc, kUser_Root, NULL, &pNode));
-    r = Inode_GetId(pNode);
-
-catch:
-    Inode_Relinquish(pNode);
-    Inode_Relinquish(rootDir);
-
-    return r;
-}
-
-void DriverCatalog_CopyNameForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId, char* buf, size_t bufSize)
-{
-    decl_try_err();
-    InodeRef rootDir = NULL;
-    InodeRef pNode = NULL;
-    MutablePathComponent pc;
-
-    if (bufSize < 1) {
-        return;
-    }
-
-    buf[0] = '\0';
-    pc.name = buf;
-    pc.capacity = bufSize;
-    pc.count = 0;
-
-    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(Filesystem_GetNameOfNode(self->devfs, rootDir, driverId, kUser_Root, &pc));
-    buf[pc.count] = '\0';
-
-catch:
-    Inode_Relinquish(pNode);
-    Inode_Relinquish(rootDir);
-}
-
-DriverRef _Nullable DriverCatalog_CopyDriverForName(DriverCatalogRef _Nonnull self, const char* _Nonnull name)
-{
-    decl_try_err();
-    DriverRef r = NULL;
-    InodeRef rootDir = NULL;
-    InodeRef pNode = NULL;
-    PathComponent pc;
-
-    pc.name = name;
-    pc.count = String_Length(name);
-
-    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(Filesystem_AcquireNodeForName(self->devfs, rootDir, &pc, kUser_Root, NULL, &pNode));
-    r = DevFS_CopyDriverForNode(self->devfs, pNode);
-
-catch:
-    Inode_Relinquish(pNode);
-    Inode_Relinquish(rootDir);
-
-    return r;
-}
-
 DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId)
 {
     decl_try_err();
@@ -179,4 +121,29 @@ catch:
     Inode_Relinquish(pNode);
 
     return r;
+}
+
+errno_t DriverCatalog_IsDriverPublished(DriverCatalogRef _Nonnull self, const char* _Nonnull path)
+{
+    decl_try_err();
+    ResolvedPath rp;
+
+    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUser_Root, &rp);
+    ResolvedPath_Deinit(&rp);
+
+    return err;
+}
+
+errno_t DriverCatalog_OpenDriver(DriverCatalogRef _Nonnull self, const char* _Nonnull path, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    decl_try_err();
+    ResolvedPath rp;
+
+    try(FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUser_Root, &rp));
+    try(Filesystem_CreateChannel(self->devfs, rp.inode, mode, pOutChannel));
+    rp.inode = NULL;    // Consumed by CreateChannel()
+
+catch:
+    ResolvedPath_Deinit(&rp);
+    return err;
 }
