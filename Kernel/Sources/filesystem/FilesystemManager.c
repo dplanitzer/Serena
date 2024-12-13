@@ -51,11 +51,7 @@ errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnu
 catch:
     Object_Release(fs);
     Object_Release(fsContainer);
-    
-    if (chan) {
-        Driver_Close((DriverRef)pDriver, chan);
-        IOChannel_Release(chan);
-    }
+    IOChannel_Release(chan);
 
     return err;
 }

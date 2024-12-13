@@ -25,8 +25,12 @@ errno_t DriverChannel_Create(Class* _Nonnull pClass, int channelType, unsigned i
 
 errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
 {
-    Object_Release(self->driver);
-    self->driver = NULL;
+    if (self->driver) {
+        Driver_Close(self->driver, (IOChannelRef)self);
+        
+        Object_Release(self->driver);
+        self->driver = NULL;
+    }
 
     return EOK;
 }

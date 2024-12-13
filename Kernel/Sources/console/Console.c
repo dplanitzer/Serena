@@ -76,11 +76,9 @@ void Console_deinit(ConsoleRef _Nonnull self)
     Object_Release(self->gdevice);
     self->gdevice = NULL;
 
-    if (self->eventDriverChannel) {
-        Driver_Close((DriverRef)self->eventDriver, self->eventDriverChannel);
-        IOChannel_Release(self->eventDriverChannel);
-        self->eventDriverChannel = NULL;
-    }
+    IOChannel_Release(self->eventDriverChannel);
+    self->eventDriverChannel = NULL;
+    
     Object_Release(self->eventDriver);
     self->eventDriver = NULL;
 }

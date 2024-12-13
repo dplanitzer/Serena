@@ -105,9 +105,7 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
 
 catch:
     if (disk) {
-        if (chan) {
-            Driver_Close((DriverRef)disk, chan);
-        }
+        IOChannel_Release(chan);
         Driver_Terminate((DriverRef)disk);
         Object_Release(disk);
     }
