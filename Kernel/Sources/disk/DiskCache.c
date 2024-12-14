@@ -186,7 +186,7 @@ static void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
     print("{");
     for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->diskAddrHash[i], DiskBlock,
-            print("%u [%u], ", pCurNode->lba, i);
+            print("%u [%u], ", pCurNode->address.lba, i);
         );
     }
     print("}");
@@ -197,7 +197,7 @@ static void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
     print("{");
     List_ForEach(&self->lruChain, ListNode,
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
-        print("%u", pb->lba);
+        print("%u", pb->address.lba);
         if (pCurNode->next) {
             print(", ");
         }
@@ -360,7 +360,7 @@ static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskId diskId, Me
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
         DiskBlock_BeginUse(pb);
-        if (pb->diskId == diskId && (mediaId == kMediaId_None || mediaId == pb->mediaId)) {
+        if (pb->address.diskId == diskId && (mediaId == kMediaId_None || mediaId == pb->address.mediaId)) {
             // XXX do something about blocks that are currently doing I/O (cancel I/O)
             assert(pb->flags.op == kDiskBlockOp_Idle);
             DiskBlock_Purge(pb);
@@ -749,7 +749,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 
 
     // Start a new I/O operation
-    DiskDriverRef pDriver = _DiskCache_CopyDriverForDiskId(self, pBlock->diskId);
+    DiskDriverRef pDriver = _DiskCache_CopyDriverForDiskId(self, pBlock->address.diskId);
     if (pDriver == NULL) {
         return ENODEV;
     }
@@ -873,7 +873,7 @@ errno_t DiskCache_Flush(DiskCacheRef _Nonnull self, DiskId diskId, MediaId media
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
                 DiskBlock_BeginUse(pBlock);
-                if (pBlock->diskId == diskId && pBlock->mediaId == mediaId) {
+                if (pBlock->address.diskId == diskId && pBlock->address.mediaId == mediaId) {
                     const errno_t err1 = _DiskCache_FlushBlock(self, pBlock);
                     if (err == EOK) {
                         // Return the first error that we encountered. However,

@@ -11,8 +11,8 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
 
-struct IOGetInfoRequest {
-    DiskInfo* _Nonnull  pInfo;      // out
+struct GetInfoReq {
+    DiskInfo* _Nonnull  info;       // out
     errno_t             err;        // out
 };
 
@@ -41,16 +41,16 @@ void DiskDriver_unpublish(DiskDriverRef _Nonnull self)
     super_0(unpublish, Driver, DiskDriver, self);
 }
 
-static void DiskDriver_getInfoStub(DiskDriverRef _Nonnull self, struct IOGetInfoRequest* _Nonnull rq)
+static void DiskDriver_getInfoStub(DiskDriverRef _Nonnull self, struct GetInfoReq* _Nonnull rq)
 {
-    rq->err = invoke_n(getInfo_async, DiskDriver, self, rq->pInfo);
+    rq->err = invoke_n(getInfo_async, DiskDriver, self, rq->info);
 }
 
 errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    struct IOGetInfoRequest rq;
+    struct GetInfoReq rq;
 
-    rq.pInfo = pOutInfo;
+    rq.info = pOutInfo;
     rq.err = EOK;
 
     DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_getInfoStub, self, &rq, 0, kDispatchOption_Sync, 0);

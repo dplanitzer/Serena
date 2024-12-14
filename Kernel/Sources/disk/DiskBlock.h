@@ -35,12 +35,17 @@ typedef enum DiskBlockOp {
 } DiskBlockOp;
 
 
+typedef struct DiskAddress {
+    DiskId              diskId;
+    MediaId             mediaId;
+    LogicalBlockAddress lba;
+} DiskAddress;
+
+
 typedef struct DiskBlock {
     ListNode            hashNode;           // Protected by Interlock
     ListNode            lruNode;            // Protected by Interlock
-    DiskId              diskId;             // Protected by Interlock
-    MediaId             mediaId;            // Protected by Interlock
-    LogicalBlockAddress lba;                // Protected by Interlock
+    DiskAddress         address;            // Protected by Interlock
     int                 useCount;           // Protected by Interlock
     int                 shareCount;         // Protected by Interlock
     struct __Flags {
@@ -69,14 +74,17 @@ typedef struct DiskBlock {
 #define DiskBlock_GetStatus(__self) \
     (__self)->status
 
+#define DiskBlock_GetDiskAddress(__self) \
+    (__self)->address
+    
 #define DiskBlock_GetDiskId(__self) \
-    (__self)->diskId
+    (__self)->address.diskId
 
 #define DiskBlock_GetMediaId(__self) \
-    (__self)->mediaId
+    (__self)->address.mediaId
 
 #define DiskBlock_GetLba(__self) \
-    (__self)->lba
+    (__self)->address.lba
 
 #define DiskBlock_GetOp(__self) \
     (DiskBlockOp)(__self)->flags.op
@@ -99,18 +107,18 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
     ((__self)->useCount > 0)
 
 #define DiskBlock_Hash(__self) \
-    DiskBlock_HashKey((__self)->diskId, (__self)->mediaId, (__self)->lba)
+    DiskBlock_HashKey((__self)->address.diskId, (__self)->address.mediaId, (__self)->address.lba)
 
 #define DiskBlock_IsEqual(__self, __other) \
-    DiskBlock_IsEqualKey(__self, (__other)->diskId, (__other)->mediaId, (__other)->lba)
+    DiskBlock_IsEqualKey(__self, (__other)->address.diskId, (__other)->address.mediaId, (__other)->address.lba)
 
 #define DiskBlock_Purge(__self) \
     (__self)->flags.hasData = 0
 
 #define DiskBlock_SetTarget(__self, __diskId, __mediaId, __lba)\
-    (__self)->diskId = diskId;\
-    (__self)->mediaId = __mediaId;\
-    (__self)->lba = __lba;\
+    (__self)->address.diskId = diskId;\
+    (__self)->address.mediaId = __mediaId;\
+    (__self)->address.lba = __lba;\
     DiskBlock_Purge(__self)
 
 
@@ -118,6 +126,6 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
     (size_t)((__diskId) + (__mediaId) + (__lba))
 
 #define DiskBlock_IsEqualKey(__self, __diskId, __mediaId, __lba) \
-    (((__self)->diskId == (__diskId) && (__self)->mediaId == (__mediaId) && (__self)->lba == (__lba)) ? true : false)
+    (((__self)->address.diskId == (__diskId) && (__self)->address.mediaId == (__mediaId) && (__self)->address.lba == (__lba)) ? true : false)
 
 #endif /* DiskBlock_h */
