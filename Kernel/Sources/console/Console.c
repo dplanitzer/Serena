@@ -91,7 +91,7 @@ static errno_t Console_start(ConsoleRef _Nonnull self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    return Driver_Publish((DriverRef)self, kConsoleName, 0);
+    return Driver_Publish(self, kConsoleName, 0);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)

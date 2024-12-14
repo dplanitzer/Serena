@@ -56,12 +56,12 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
 
 errno_t RamDisk_start(RamDiskRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, self->name, 0);
+    return Driver_Publish(self, self->name, 0);
 }
 
 errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    pOutInfo->diskId = Driver_GetDriverId((DriverRef)self);
+    pOutInfo->diskId = DiskDriver_GetDiskId(self);
     pOutInfo->mediaId = 1;
     pOutInfo->isReadOnly = false;
     pOutInfo->reserved[0] = 0;
@@ -75,7 +75,7 @@ errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
 
 MediaId RamDisk_getCurrentMediaId(RamDiskRef _Nonnull self)
 {
-    return kMediaId_None;
+    return 1;
 }
 
 // Tries to find the disk extent that contains the given block index. This disk

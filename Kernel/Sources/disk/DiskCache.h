@@ -30,4 +30,7 @@ extern errno_t DiskCache_Flush(DiskCacheRef _Nonnull self, DiskId diskId, MediaI
 
 extern void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriver, DiskBlockRef _Nonnull pBlock, errno_t status);
 
+extern errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull pDriver, DiskId* _Nonnull pOutDiskId);
+extern void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskId diskId);
+
 #endif /* DiskCache_h */

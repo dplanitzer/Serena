@@ -64,14 +64,14 @@ DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull s
     return self->devfs;
 }
 
-errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverId* _Nonnull pOutDriverId)
+errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId)
 {
     decl_try_err();
     InodeRef rootDir = NULL;
     InodeRef pNode = NULL;
     PathComponent pc;
 
-    *pOutDriverId = kDriverId_None;
+    *pOutDriverCatalogId = kDriverCatalogId_None;
 
     pc.name = name;
     pc.count = String_Length(name);
@@ -82,7 +82,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnu
 
     try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
     try(DevFS_CreateDevice(self->devfs, kUser_Root, permissions, rootDir, &pc, driver, arg, &pNode));
-    *pOutDriverId = (DriverId)Inode_GetId(pNode);
+    *pOutDriverCatalogId = (DriverCatalogId)Inode_GetId(pNode);
 
 catch:
     Inode_Relinquish(pNode);
@@ -91,14 +91,18 @@ catch:
     return err;
 }
 
-errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId)
+errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId driverCatalogId)
 {
     decl_try_err();
     InodeRef rootDir = NULL;
     InodeRef pNode = NULL;
 
+    if (driverCatalogId == kDriverCatalogId_None) {
+        return EOK;
+    }
+    
     try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverId, &pNode));
+    try(Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverCatalogId, &pNode));
     try(Filesystem_Unlink(self->devfs, pNode, rootDir, kUser_Root));
 
 catch:
@@ -106,21 +110,6 @@ catch:
     Inode_Relinquish(rootDir);
 
     return err;
-}
-
-DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId)
-{
-    decl_try_err();
-    DriverRef r = NULL;
-    InodeRef pNode = NULL;
-
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverId, &pNode));
-    r = DevFS_CopyDriverForNode(self->devfs, pNode);
-
-catch:
-    Inode_Relinquish(pNode);
-
-    return r;
 }
 
 errno_t DriverCatalog_IsDriverPublished(DriverCatalogRef _Nonnull self, const char* _Nonnull path)

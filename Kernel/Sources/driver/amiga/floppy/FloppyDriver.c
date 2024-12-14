@@ -82,7 +82,7 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
 // drive.
 errno_t FloppyDriver_getInfo_async(FloppyDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    pOutInfo->diskId = Driver_GetDriverId((DriverRef)self);
+    pOutInfo->diskId = DiskDriver_GetDiskId(self);
     pOutInfo->mediaId = self->currentMediaId;
     pOutInfo->isReadOnly = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
     pOutInfo->reserved[0] = 0;
@@ -135,7 +135,7 @@ static errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
         name[2] = '0' + self->drive;
         name[3] = '\0';
 
-        err = Driver_Publish((DriverRef)self, name, 0);
+        err = Driver_Publish(self, name, 0);
     }
 
     return err;

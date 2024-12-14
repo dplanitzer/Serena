@@ -20,12 +20,13 @@
 
 __CPP_BEGIN
 
-// The non-persistent, globally unique ID of a driver. This ID does not survive
-// a system reboot. Id 0 represents a device that does not exist.
-typedef uint32_t    DriverId;
+// The non-persistent, globally unique ID of a published driver catalog entry.
+// This ID does not survive a system reboot. Id 0 represents a driver catalog
+// entry that does not exist.
+typedef uint32_t    DriverCatalogId;
 
-// Means no driver
-#define kDriverId_None   0
+// Means no driver catalog entry
+#define kDriverCatalogId_None   0
 
 
 // Various Kernel API types

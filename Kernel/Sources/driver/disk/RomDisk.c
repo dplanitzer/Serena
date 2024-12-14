@@ -48,12 +48,12 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
 
 errno_t RomDisk_start(RomDiskRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, self->name, 0);
+    return Driver_Publish(self, self->name, 0);
 }
 
 errno_t RomDisk_getInfo_async(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    pOutInfo->diskId = Driver_GetDriverId((DriverRef)self);
+    pOutInfo->diskId = DiskDriver_GetDiskId(self);
     pOutInfo->mediaId = 1;
     pOutInfo->isReadOnly = true;
     pOutInfo->reserved[0] = 0;

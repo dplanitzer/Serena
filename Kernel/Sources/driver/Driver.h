@@ -74,7 +74,7 @@ open_class(Driver, Object,
     int8_t                      model;
     uint8_t                     options;
     uint8_t                     flags;
-    DriverId                    driverId;
+    DriverCatalogId             driverCatalogId;
 );
 open_class_funcs(Driver, Object,
 
@@ -99,6 +99,19 @@ open_class_funcs(Driver, Object,
     // Override: Optional
     // Default Behavior: Unpublishes the driver
     void (*stop)(void* _Nonnull self);
+
+
+    // Publish the driver to the driver catalog. This method should be called
+    // from start().
+    // Override: Optional
+    // Default behavior: publish to the driver catalog
+    errno_t (*publish)(void* _Nonnull self, const char* name, intptr_t arg);
+
+    // unpublish the driver from the driver catalog. This method should be called
+    // from stop().
+    // Override: Optional
+    // Default behavior: unpublish from the driver catalog
+    void (*unpublish)(void* _Nonnull self);
 
    
     // Invoked as the result of calling Driver_Open(). A driver subclass may
@@ -175,15 +188,6 @@ extern errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...);
 invoke_n(ioctl, Driver, __self, __cmd, __ap)
 
 
-// Returns the driver's non-persistent driver ID. Note that this ID does not
-// survive a system reboot. This ID is generated and assigned to the driver on
-// the first start and remains stable after that until the system shuts down
-// even if the driver goes through multiple publish/unpublish cycles in the
-// meantime.
-#define Driver_GetDriverId(__self) \
-    ((DriverRef)__self)->driverId
-
-
 //
 // Subclassers
 //
@@ -206,10 +210,12 @@ extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOpt
 
 
 // Publishes the driver instance to the driver catalog with the given name.
-extern errno_t Driver_Publish(DriverRef _Nonnull self, const char* name, intptr_t arg);
+#define Driver_Publish(__self, __name, __arg) \
+invoke_n(publish, Driver, __self, __name, __arg)
 
 // Removes the driver instance from the driver catalog.
-extern void Driver_Unpublish(DriverRef _Nonnull self);
+#define Driver_Unpublish(__self) \
+invoke_0(unpublish, Driver, __self)
 
 
 // Adds the given driver as a child to the receiver.

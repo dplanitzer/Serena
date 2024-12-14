@@ -156,6 +156,11 @@ static void OnMain(void)
     // Create the driver catalog
     try_bang(DriverCatalog_Create(&gDriverCatalog));
 
+
+    // Create the disk cache
+    try(DiskCache_Create(gSystemDescription, &gDiskCache));
+
+
     // Create the platform controller
     try_bang(init_platform_controller());
 
@@ -164,10 +169,6 @@ static void OnMain(void)
     // to userspace in the form of the Userspace Runtime Services.
     krt_init();
     
-
-    // Create the disk cache
-    try(DiskCache_Create(gSystemDescription, &gDiskCache));
-
 
     // Create the filesystem manager
     try(FilesystemManager_Create(&gFilesystemManager));

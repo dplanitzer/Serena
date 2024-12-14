@@ -17,6 +17,30 @@ struct IOGetInfoRequest {
 };
 
 
+// Publishes the driver instance to the driver catalog with the given name.
+errno_t DiskDriver_publish(DiskDriverRef _Nonnull self, const char* name, intptr_t arg)
+{
+    decl_try_err();
+
+    if ((err = super_n(publish, Driver, DiskDriver, self, name, arg)) == EOK) {
+        if ((err = DiskCache_RegisterDisk(gDiskCache, self, &self->diskId)) != EOK) {
+            Driver_Unpublish(self);
+        }
+    }
+    return err;
+}
+
+// Removes the driver instance from the driver catalog.
+void DiskDriver_unpublish(DiskDriverRef _Nonnull self)
+{
+    if (self->diskId != kDiskId_None) {
+        DiskCache_UnregisterDisk(gDiskCache, self->diskId);
+        self->diskId = kDiskId_None;
+    }
+
+    super_0(unpublish, Driver, DiskDriver, self);
+}
+
 static void DiskDriver_getInfoStub(DiskDriverRef _Nonnull self, struct IOGetInfoRequest* _Nonnull rq)
 {
     rq->err = invoke_n(getInfo_async, DiskDriver, self, rq->pInfo);
@@ -37,7 +61,7 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 // drive.
 errno_t DiskDriver_getInfo_async(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    pOutInfo->diskId = Driver_GetDriverId((DriverRef)self);
+    pOutInfo->diskId = DiskDriver_GetDiskId(self);
     pOutInfo->mediaId = kMediaId_None;
     pOutInfo->isReadOnly = true;
     pOutInfo->reserved[0] = 0;
@@ -139,6 +163,8 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 
 
 class_func_defs(DiskDriver, Driver,
+override_func_def(publish, DiskDriver, Driver)
+override_func_def(unpublish, DiskDriver, Driver)
 func_def(getInfo_async, DiskDriver)
 func_def(getCurrentMediaId, DiskDriver)
 func_def(beginIO_async, DiskDriver)

@@ -118,7 +118,7 @@ void EventDriver_deinit(EventDriverRef _Nonnull self)
 
 static errno_t EventDriver_start(EventDriverRef _Nonnull self)
 {
-    return Driver_Publish((DriverRef)self, kEventDriverName, 0);
+    return Driver_Publish(self, kEventDriverName, 0);
 }
 
 

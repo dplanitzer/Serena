@@ -231,15 +231,15 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 
 
 // Publishes the driver instance to the driver catalog with the given name.
-errno_t Driver_Publish(DriverRef _Nonnull self, const char* name, intptr_t arg)
+errno_t Driver_publish(DriverRef _Nonnull self, const char* name, intptr_t arg)
 {
-    return DriverCatalog_Publish(gDriverCatalog, name, self, arg, &self->driverId);
+    return DriverCatalog_Publish(gDriverCatalog, name, self, arg, &self->driverCatalogId);
 }
 
 // Removes the driver instance from the driver catalog.
-void Driver_Unpublish(DriverRef _Nonnull self)
+void Driver_unpublish(DriverRef _Nonnull self)
 {
-    DriverCatalog_Unpublish(gDriverCatalog, self->driverId);
+    DriverCatalog_Unpublish(gDriverCatalog, self->driverCatalogId);
 }
 
 
@@ -281,6 +281,8 @@ override_func_def(deinit, Driver, Object)
 func_def(createDispatchQueue, Driver)
 func_def(start, Driver)
 func_def(stop, Driver)
+func_def(publish, Driver)
+func_def(unpublish, Driver)
 func_def(open, Driver)
 func_def(createChannel, Driver)
 func_def(close, Driver)

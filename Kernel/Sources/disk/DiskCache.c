@@ -6,118 +6,10 @@
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
 
-#include "DiskCache.h"
-#include "DiskBlock.h"
-#include <klib/List.h>
-#include <dispatcher/ConditionVariable.h>
-#include <dispatcher/Lock.h>
-#include <driver/DriverCatalog.h>
-#include <driver/disk/DiskDriver.h>
+#include "DiskCachePriv.h"
 
 // Define to force all writes to be synchronous
 //#define __FORCE_WRITES_SYNC 1
-
-//
-// This is a massively concurrent disk cache implementation. Meaning, an important
-// goal here is to allow as much parallism as possible:
-//
-// * multiple processes should be able to read from a cached block at the same
-//   time
-// * a process should be able to read from a block that is in the process of
-//   being written to disk
-//
-//
-// Assumptions, rules, etc:
-//
-// * a block has a use count. A block is in use as long as the use count > 0
-// * a block that's sitting passively in the cache has a use count == 0
-// * a block may not be reused while it is in use
-// * conversely, a block may be reused for another disk address while its use
-//   count == 0
-// * a block may be locked for shared or exclusive operations as long as its
-//   use count > 0
-// * conversely, a block may not be locked exclusive or shared while its use
-//   count is == 0
-// * you have to increment the use count on a block if you want to use it
-// * you have to decrement the user count when you are done with the block
-// * using a block means:
-//    - you want to acquire it
-//    - it should be read from disk
-//    - its data should be initialized to 0
-//    - it should be written to disk
-// * every disk block is on the 'disk address hash chain'. This is a hash table
-//   that organizes disk blocks by their disk address
-// * a disk address is the tuple (driver-id, media-id, lba)
-// * every disk block is additionally on a LRU chain
-// * doing a _DiskCache_GetBlock() marks the block for use and moves it to the
-//   front of the LRU chain
-// * doing a _DiskCache_PutBlock() ends the use of a block. It does not change
-//   its position in the LRU chain
-// * disk blocks are reused beginning from the end of the LRU chain
-//
-// * at most one client is able to lock a disk block for exclusive use. No-one
-//   else can lock exclusively or shared while this client is holding the
-//   exclusive lock
-// * multiple clients can lock a block for shared use. No client can lock for
-//   exclusive use as long as there is at least one shared lock on the block
-// * a disk read operation requires exclusive locking throughout
-// * a disk write operation:
-//     - requires exclusive locking to kick it off (modifying state to start write)
-//     - is changed to shared locking while the actual disk write is happening
-//     - is changed back to exclusive locking to update the block state at the
-//       end of the I/O
-// * acquiring a block for read-only requires that the block is locked shared
-//   (however, the block is initially locked exclusive if the data must be
-//   retrieved first. The lock is downgraded to shared once the data is available)
-// * acquiring a block for modifications requires that it is locked exclusively
-// * it is not possible for two block read operations to happen at the same time
-//   for the same block since a block read requires exclusive locking
-// * it is not possible for a block read and block write to happen at the same
-//   time for the same block since block reads require exclusive locking
-// * it is theoretically possible for a second write to get triggered while a
-//   write is already happening on a block. The second write simply joins the
-//   already ongoing write in this case and no new disk write is triggered. This
-//   is safe since the block data can not have been changed between those two
-//   writes since modifying the bloc is only possible if locking the block
-//   exclusively. However locking the block exclusively is only possible after
-//   all shared lock holders have dropped their lock and no other exclusive lock
-//   holder exists
-// * a blocks's isDirty can not be true if hasData is false 
-// 
-
-#if DEBUG
-#define ASSERT_LOCKED_EXCLUSIVE(__block) assert((__block)->flags.exclusive == 1)
-#define ASSERT_LOCKED_SHARED(__block) assert((__block)->shareCount > 0 && (__block)->flags.exclusive == 0)
-#else
-#define REQUIRE_LOCKED_EXCLUSIVE(__block)
-#define ASSERT_LOCKED_SHARED(__block)
-#endif
-
-static errno_t _DiskCache_FlushBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock);
-static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
-
-
-typedef enum LockMode {
-    kLockMode_Shared,
-    kLockMode_Exclusive
-} LockMode;
-
-
-#define DISK_BLOCK_HASH_CHAIN_COUNT     8
-#define DISK_BLOCK_HASH_CHAIN_MASK      (DISK_BLOCK_HASH_CHAIN_COUNT - 1)
-
-typedef struct DiskCache {
-    Lock                interlock;
-    ConditionVariable   condition;
-    DiskBlockRef        emptyBlock;             // Single, shared empty block (for read only access)
-    size_t              lruChainGeneration;     // Incremented every time the LRU chain is modified
-    List                lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
-    size_t              blockCount;             // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
-    size_t              blockCapacity;          // Maximum number of disk blocks that may exist at any given time
-    size_t              dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
-    List                diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
-} DiskCache;
-
 
 
 DiskCacheRef _Nonnull  gDiskCache;
@@ -140,6 +32,11 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     for (int i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_Init(&self->diskAddrHash[i]);
     }
+    for (int i = 0; i < DISK_DRIVER_HASH_CHAIN_COUNT; i++) {
+        List_Init(&self->driverHash[i]);
+    }
+
+    self->nextProposedDiskId = 1;
 
     *pOutSelf = self;
     return EOK;
@@ -431,10 +328,120 @@ static void _DiskCache_UnlockAndPutBlock(DiskCacheRef _Nonnull _Locked self, Dis
     _DiskCache_PutBlock(self, pBlock);
 }
 
+static DiskEntry* _Nullable _DiskCache_GetDiskEntryForDiskId(DiskCacheRef _Nonnull _Locked self, DiskId diskId)
+{
+    const size_t hashIdx = DISK_DRIVER_HASH_INDEX(diskId);
+
+    List_ForEach(&self->driverHash[hashIdx], DiskEntry,
+        if (pCurNode->diskId == diskId) {
+            return pCurNode;
+        }
+    );
+
+    return NULL;
+}
+
+static DiskDriverRef _Nullable _DiskCache_CopyDriverForDiskId(DiskCacheRef _Nonnull _Locked self, DiskId diskId)
+{
+    DiskEntry* pEntry = _DiskCache_GetDiskEntryForDiskId(self, diskId);
+
+    return (pEntry) ? Object_RetainAs(pEntry->driver, DiskDriver) : NULL;
+}
+
+// Purges all cached blocks of the disk drive 'diskId' and media 'mediaId'. The
+// media ID may be kMedia_None which means that all blocks of the driver 'diskId'
+// should be purged no matter for which media they hold data.
+// Purging a block means that the block is reset back to a state where it is forced
+// to read its data in again from the disk, next time data is requested.
+static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId)
+{
+    // XXX optimize this
+    List_ForEach(&self->lruChain, DiskBlock, 
+        DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
+
+        DiskBlock_BeginUse(pb);
+        if (pb->diskId == diskId && (mediaId == kMediaId_None || mediaId == pb->mediaId)) {
+            // XXX do something about blocks that are currently doing I/O (cancel I/O)
+            assert(pb->flags.op == kDiskBlockOp_Idle);
+            DiskBlock_Purge(pb);
+        }
+        DiskBlock_EndUse(pb);
+    );
+}
+
 
 //
 // API
 //
+
+errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnull pDriver, DiskId* _Nonnull pOutDiskId)
+{
+    decl_try_err();
+    DiskId diskId;
+    bool isUnique = false;
+    DiskEntry* pEntry;
+
+    Lock_Lock(&self->interlock);
+
+    // Get a unique disk ID
+    while (!isUnique) {
+        diskId = self->nextProposedDiskId++;
+        isUnique = true;
+
+        for (size_t i = 0; i < DISK_DRIVER_HASH_CHAIN_COUNT; i++) {
+            List_ForEach(&self->driverHash[i], DiskEntry,
+                if (pCurNode->diskId == diskId) {
+                    isUnique = false;
+                    break;
+                }
+            );
+        }
+    }
+
+    // Register the drive
+    if ((err = kalloc_cleared(sizeof(DiskEntry), (void**)&pEntry)) == EOK) {
+        pEntry->diskId = diskId;
+        pEntry->driver = Object_RetainAs(pDriver, DiskDriver);
+
+        List_InsertAfterLast(&self->driverHash[DISK_DRIVER_HASH_INDEX(diskId)], &pEntry->chain);
+    }
+    else {
+        diskId = kDiskId_None;
+    }
+
+    Lock_Unlock(&self->interlock);
+
+    *pOutDiskId = diskId;
+    return err;
+}
+
+void DiskCache_UnregisterDisk(DiskCacheRef _Nonnull self, DiskId diskId)
+{
+    DiskEntry* pEntry;
+
+    if (diskId == kDiskId_None) {
+        return;
+    }
+
+    // Remove the driver from the hash table
+    Lock_Lock(&self->interlock);
+    pEntry = _DiskCache_GetDiskEntryForDiskId(self, diskId);
+    if (pEntry) {
+        List_Remove(&self->driverHash[DISK_DRIVER_HASH_INDEX(diskId)], &pEntry->chain);
+
+        _DiskCache_PurgeBlocks(self, diskId, kMediaId_None);
+    }
+    Lock_Unlock(&self->interlock);
+
+
+    // Free the disk entry
+    if (pEntry) {
+        Object_Release(pEntry->driver);
+        pEntry->driver = NULL;
+
+        kfree(pEntry);
+    }
+}
 
 // Triggers an asynchronous loading of the disk block data at the address
 // (diskId, mediaId, lba)
@@ -742,7 +749,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 
 
     // Start a new I/O operation
-    DiskDriverRef pDriver = (DiskDriverRef) DriverCatalog_CopyDriverForDriverId(gDriverCatalog, pBlock->diskId);
+    DiskDriverRef pDriver = _DiskCache_CopyDriverForDiskId(self, pBlock->diskId);
     if (pDriver == NULL) {
         return ENODEV;
     }

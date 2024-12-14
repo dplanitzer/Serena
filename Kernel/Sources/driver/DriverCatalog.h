@@ -18,10 +18,14 @@ extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 
 extern DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self);
 
-extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverId* _Nonnull pOutDriverId);
-extern errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverId driverId);
+// Publish the driver instance 'driver' with the name 'name' in the driver
+// catalog. Returns a suitable error if another entry with the same name already
+// exists. 'arg' is an optional argument that will be passed to the Driver_Open()
+// method when the driver needs to be opened.
+extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId);
 
-extern DriverRef _Nullable DriverCatalog_CopyDriverForDriverId(DriverCatalogRef _Nonnull self, DriverId driverId);
+// Removes a published driver entry from the driver catalog.
+extern errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId driverCatalogId);
 
 // Returns EOK if a driver is published at the in-kernel path 'path'. Otherwise
 // ENOENT is returned.

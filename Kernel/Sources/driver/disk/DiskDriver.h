@@ -21,6 +21,7 @@
 // [0, BlockCount]. Note that a disk driver always implements the asynchronous
 // driver model.
 open_class(DiskDriver, Driver,
+    DiskId      diskId;
 );
 open_class_funcs(DiskDriver, Driver,
 
@@ -77,6 +78,15 @@ extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Non
 // Subclassers
 //
 
+// The globally unique, non-persistent disk ID of this disk driver. Note that
+// this ID is only valid between the end of start() and the beginning of stop().
+#define DiskDriver_GetDiskId(__self) \
+(((DiskDriverRef)__self)->diskId)
+
+// The ID of the current media in the disk driver. kMediaId_None means that no
+// disk is in the drive. This ID is only good enough to detect whether the media
+// has changed or is still the same. It is not good enough to identify a
+// particular media after it has been removed from the drive and re-inserted.
 #define DiskDriver_GetCurrentMediaId(__self) \
 invoke_0(getCurrentMediaId, DiskDriver, __self)
 
