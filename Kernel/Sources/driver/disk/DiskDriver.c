@@ -67,7 +67,7 @@ errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 errno_t DiskDriver_getInfo_async(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
     pOutInfo->diskId = DiskDriver_GetDiskId(self);
-    pOutInfo->mediaId = kMediaId_None;
+    pOutInfo->mediaId = DiskDriver_GetCurrentMediaId(self);
     pOutInfo->isReadOnly = true;
     pOutInfo->reserved[0] = 0;
     pOutInfo->reserved[1] = 0;

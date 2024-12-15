@@ -17,9 +17,21 @@
 
 // A disk driver manages the data stored on a disk. It provides read and write
 // access to the disk data. Data on a disk is organized in blocks. All blocks
-// are of the same size. Blocks are addresses with an index in the range
-// [0, BlockCount]. Note that a disk driver always implements the asynchronous
+// are of the same size. Blocks are addressed with an index in the range
+// [0, BlockCount). Note that a disk driver always implements the asynchronous
 // driver model.
+//
+// A disk driver may either directly control a physical mass storage device or
+// it may implement a logical mass storage device which delegates the actual data
+// storage to another disk driver. To support the later use case, the DiskDriver
+// class supports disk block address virtualization.
+//
+// The beginIO() method receives the cached disk block that should be read or
+// written plus a separate target address that indicates the physical disk block
+// that should be read or written. A logical disk driver may map the target
+// address that it has received to a new address suitable for another disk driver
+// and it then invokes the beginIO() method with the new target address on this
+// other driver.
 open_class(DiskDriver, Driver,
     DiskId      diskId;
 );
@@ -35,22 +47,24 @@ open_class_funcs(DiskDriver, Driver,
     // Default behavior: returns kMedia_None
     MediaId (*getCurrentMediaId)(void* _Nonnull self);
 
-    // Starts an I/O operation on the given block. Calls getBlock() if the block
-    // should be read and putBlock() if it should be written. It then invokes
-    // endIO() to notify the system about the completed I/O operation. This
-    // function assumes that getBlock()/putBlock() will only return once the
-    // I/O operation is done or an error has been encountered.
+    // Starts an I/O operation on the given block and disk block address
+    // 'targetAddr'. Calls getBlock() if the block should be read and putBlock()
+    // if it should be written. It then invokes endIO() to notify the system
+    // about the completed I/O operation. This function assumes that getBlock()/
+    // putBlock() will only return once the I/O operation is done or an error
+    // has been encountered.
     // Default Behavior: Calls getBlock/putBlock
     void (*beginIO_async)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr);
 
-    // Reads the contents of the given block. Blocks the caller until the read
-    // operation has completed. Note that this function will never return a
-    // partially read block. Either it succeeds and the full block data is
-    // returned, or it fails and no block data is returned.
+    // Reads the contents of the bloc at the disk address 'targetAddr' into the
+    // in-memory block 'pBlock'. Blocks the caller until the read operation has
+    // completed. Note that this function will never return a partially read
+    // block. Either it succeeds and the full block data is returned, or it
+    // fails and no block data is returned.
     // Default Behavior: returns EIO
     errno_t (*getBlock)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr);
 
-    // Writes the contents of 'pBlock' to the corresponding disk block. Blocks
+    // Writes the contents of 'pBlock' to the disk block 'targetAddr'. Blocks
     // the caller until the write has completed. The contents of the block on
     // disk is left in an indeterminate state of the write fails in the middle
     // of the write. The block may contain a mix of old and new data.
