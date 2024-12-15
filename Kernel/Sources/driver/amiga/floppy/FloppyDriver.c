@@ -753,10 +753,10 @@ static void FloppyDriver_ScanTrack(FloppyDriverRef _Nonnull self, uint8_t target
 #endif
 }
 
-errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t FloppyDriver_getBlock(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
+    const LogicalBlockAddress lba = targetAddr->lba;
 
     if (lba >= self->blocksPerDisk) {
         return EIO;
@@ -880,10 +880,10 @@ static void FloppyDriver_BuildSector(FloppyDriverRef _Nonnull self, uint8_t targ
     mfm_encode_bits(&checksum, &dst->payload.data_checksum.odd_bits, 1);
 }
 
-errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t FloppyDriver_putBlock(FloppyDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
+    const LogicalBlockAddress lba = targetAddr->lba;
 
     if (lba >= self->blocksPerDisk) {
         return EIO;

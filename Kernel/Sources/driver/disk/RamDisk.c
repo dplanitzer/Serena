@@ -108,9 +108,9 @@ static DiskExtent* _Nullable RamDisk_GetDiskExtentForBlockIndex_Locked(RamDiskRe
     return pExtent;
 }
 
-errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t RamDisk_getBlock(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
-    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
+    const LogicalBlockAddress lba = targetAddr->lba;
     void* dp = DiskBlock_GetMutableData(pBlock);
 
     if (lba >= self->blockCount) {
@@ -150,10 +150,10 @@ catch:
     return err;
 }
 
-errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t RamDisk_putBlock(RamDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
     decl_try_err();
-    const LogicalBlockAddress lba = DiskBlock_GetLba(pBlock);
+    const LogicalBlockAddress lba = targetAddr->lba;
     const void* sp = DiskBlock_GetData(pBlock);
 
     if (lba >= self->blockCount) {

@@ -762,7 +762,8 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
         _DiskCache_DowngradeBlockLock(self, pBlock);
     }
 
-    err = DiskDriver_BeginIO(pDriver, pBlock);
+    DiskAddress dAddr = DiskBlock_GetDiskAddress(pBlock);
+    err = DiskDriver_BeginIO(pDriver, pBlock, &dAddr);
     if (err == EOK && isSync) {
         err = _DiskCache_WaitIO(self, pBlock, op);
         // The lock is now held in exclusive mode again, if succeeded

@@ -16,6 +16,11 @@ struct GetInfoReq {
     errno_t             err;        // out
 };
 
+struct BeginIOReq {
+    DiskBlockRef _Nonnull   block;
+    DiskAddress             addr;
+};
+
 
 // Publishes the driver instance to the driver catalog with the given name.
 errno_t DiskDriver_publish(DiskDriverRef _Nonnull self, const char* name, intptr_t arg)
@@ -80,28 +85,33 @@ MediaId DiskDriver_getCurrentMediaId(DiskDriverRef _Nonnull self)
 }
 
 
-static void DiskDriver_beginIOStub(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+static void DiskDriver_beginIOStub(DiskDriverRef _Nonnull self, struct BeginIOReq* _Nonnull rq)
 {
-    invoke_n(beginIO_async, DiskDriver, self, pBlock);
+    invoke_n(beginIO_async, DiskDriver, self, rq->block, &rq->addr);
 }
 
-errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
-    return DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_beginIOStub, self, pBlock, 0, 0, 0);
+    struct BeginIOReq rq;
+
+    rq.block = pBlock;
+    rq.addr = *targetAddr;
+
+    return DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_beginIOStub, self, &rq, sizeof(struct BeginIOReq), 0, 0);
 }
 
-void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
     decl_try_err();
 
-    if (DiskBlock_GetMediaId(pBlock) == DiskDriver_GetCurrentMediaId(self)) {
+    if (targetAddr->mediaId == DiskDriver_GetCurrentMediaId(self)) {
         switch (DiskBlock_GetOp(pBlock)) {
             case kDiskBlockOp_Read:
-                err = DiskDriver_GetBlock(self, pBlock);
+                err = DiskDriver_GetBlock(self, pBlock, targetAddr);
                 break;
 
             case kDiskBlockOp_Write:
-                err = DiskDriver_PutBlock(self, pBlock);
+                err = DiskDriver_PutBlock(self, pBlock, targetAddr);
                 break;
 
             default:
@@ -122,7 +132,7 @@ void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
 // The abstract implementation returns EIO.
-errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
     return EIO;
 }
@@ -133,7 +143,7 @@ errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull p
 // disk is left in an indeterminate state of the write fails in the middle
 // of the write. The block may contain a mix of old and new data.
 // The abstract implementation returns EIO.
-errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
 {
     return EIO;
 }
