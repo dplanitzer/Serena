@@ -41,7 +41,7 @@ void main_closure(int argc, char *argv[])
             // XXX disabled insertion mode for now because the line reader doesn't support
             // XXX it properly yet
             //printf("\033[4h");  // Switch the console to insert mode
-            fputs("\n\033[36mSerena Shell v0.2.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
+            fputs("\n\033[36mSerena Shell v0.3.0-alpha\033[0m\nCopyright 2023, Dietmar Planitzer.\n\n", stdout);
 
             err = Shell_Run(sh);
         }
