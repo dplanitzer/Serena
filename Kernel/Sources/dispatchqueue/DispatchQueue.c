@@ -245,7 +245,7 @@ static errno_t DispatchQueue_AcquireWorkItem_Locked(DispatchQueueRef _Nonnull se
     WorkItem* pCurItem = (WorkItem*) self->item_cache_queue.first;
 
     while (pCurItem) {
-        if (pItem->args_byte_size >= nArgBytes) {
+        if (pCurItem->args_byte_size >= nArgBytes) {
             SList_Remove(&self->item_cache_queue, &pPrevItem->queue_entry, &pCurItem->queue_entry);
             self->item_cache_count--;
             pItem = pCurItem;
