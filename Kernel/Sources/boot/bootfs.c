@@ -100,7 +100,7 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
         VirtualProcessor_Sleep(TimeInterval_MakeSeconds(1));
     }
 
-    print("Booting from %s...\n\n", driverPath);
+    print("Booting from %s...\n\n", &driverPath[1]);
 
     *pOutFS = fs;
     return EOK;
