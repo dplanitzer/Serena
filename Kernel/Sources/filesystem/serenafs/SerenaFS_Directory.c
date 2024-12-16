@@ -41,7 +41,7 @@ static bool xHasMatchingDirectoryEntry(const SFSDirectoryQuery* _Nonnull pQuery,
         if (pEntry->id > 0) {
             switch (pQuery->kind) {
                 case kSFSDirectoryQuery_PathComponent:
-                    if (PathComponent_EqualsString(pQuery->u.pc, pEntry->filename)) {
+                    if (PathComponent_EqualsCString(pQuery->u.pc, pEntry->filename)) {
                         *pOutEntryPtr = (SFSDirectoryEntry*)pEntry;
                         return true;
                     }

@@ -38,7 +38,8 @@ typedef struct DfsItem {
 typedef struct DfsDirectoryEntry {
     ListNode    sibling;
     InodeId     inid;
-    char        name[MAX_NAME_LENGTH + 1];
+    int8_t      nameLength;
+    char        name[MAX_NAME_LENGTH];
 } DfsDirectoryEntry;
 
 // A directory of drivers and child directories
@@ -120,7 +121,7 @@ extern errno_t DfsDirectoryItem_Create(InodeId inid, FilePermissions permissions
 extern void DfsDirectoryItem_Destroy(DfsDirectoryItem* _Nullable self);
 extern bool DfsDirectoryItem_IsEmpty(DfsDirectoryItem* _Nonnull self);
 extern errno_t _Nullable DfsDirectoryItem_GetEntryForName(DfsDirectoryItem* _Nonnull self, const PathComponent* _Nonnull pc, DfsDirectoryEntry* _Nullable * _Nonnull pOutEntry);
-extern errno_t DfsDirectoryItem_GetEntryForId(DfsDirectoryItem* _Nonnull self, InodeId inid, DfsDirectoryEntry* _Nullable * _Nonnull pOutEntry);
+extern errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, InodeId inid, MutablePathComponent* _Nonnull mpc);
 extern errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid, const PathComponent* _Nonnull pc);
 extern errno_t DfsDirectoryItem_RemoveEntry(DfsDirectoryItem* _Nonnull self, InodeId inid);
 

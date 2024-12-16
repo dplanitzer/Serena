@@ -33,7 +33,11 @@ extern PathComponent PathComponent_MakeFromCString(const char* _Nonnull pCString
 
 // Returns true if the given path component is equal to the given nul-terminated
 // string.
-extern bool PathComponent_EqualsString(const PathComponent* pc, const char* rhs);
+extern bool PathComponent_EqualsCString(const PathComponent* pc, const char* rhs);
+
+// Returns true if the given path component is equal to the given string with
+// the given length.
+extern bool PathComponent_EqualsString(const PathComponent* pc, const char* rhs, size_t rhsLength);
 
 
 // Mutable version of PathComponent. 'count' must be set on return to the actual
@@ -47,7 +51,12 @@ typedef struct MutablePathComponent {
 
 // Returns true if the given path component is equal to the given nul-terminated
 // string.
-#define MutablePathComponent_EqualsString(__pc, __rhs) \
-    PathComponent_EqualsString((const PathComponent*)(__pc), __rhs)
+#define MutablePathComponent_EqualsCString(__pc, __rhs) \
+    PathComponent_EqualsCString((const PathComponent*)(__pc), __rhs)
+
+// Returns true if the given path component is equal to the given string with
+// the given length.
+#define MutablePathComponent_EqualsString(__pc, __rhs, __rhsLength) \
+    PathComponent_EqualsString((const PathComponent*)(__pc), __rhs, __rhsLength)
 
 #endif /* PathComponent_h */

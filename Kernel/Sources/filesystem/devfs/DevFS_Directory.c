@@ -79,20 +79,10 @@ catch:
 errno_t DevFS_getNameOfNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, User user, MutablePathComponent* _Nonnull pName)
 {
     decl_try_err();
-    DfsDirectoryEntry* entry;
 
     try_bang(SELock_LockShared(&self->seLock));
     try(Filesystem_CheckAccess(self, pDir, user, kAccess_Readable | kAccess_Searchable));
-    try(DfsDirectoryItem_GetEntryForId(Inode_GetDfsDirectoryItem(pDir), id, &entry));
-
-    const ssize_t len = String_LengthUpTo(entry->name, MAX_NAME_LENGTH);
-    if (len > pName->capacity) {
-        throw(ERANGE);
-    }
-
-    String_CopyUpTo(pName->name, entry->name, len);
-    pName->count = len;
-
+    try(DfsDirectoryItem_GetNameOfEntryWithId(Inode_GetDfsDirectoryItem(pDir), id, pName));
     SELock_Unlock(&self->seLock);
     return EOK;
 
@@ -130,7 +120,8 @@ errno_t DevFS_readDirectory(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pD
     // Read as many entries as we can fit into 'nBytesToRead'
     while (curEntry && nBytesToRead >= sizeof(DirectoryEntry)) {
         pOutEntry->inodeId = curEntry->inid;
-        String_CopyUpTo(pOutEntry->name, curEntry->name, MAX_NAME_LENGTH);
+        memcpy(pOutEntry->name, curEntry->name, curEntry->nameLength);
+        pOutEntry->name[curEntry->nameLength] = '\0';
 
         nBytesRead += sizeof(DirectoryEntry);
         nBytesToRead -= sizeof(DirectoryEntry);

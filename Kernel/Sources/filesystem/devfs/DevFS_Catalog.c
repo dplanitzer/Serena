@@ -102,7 +102,7 @@ errno_t _Nullable DfsDirectoryItem_GetEntryForName(DfsDirectoryItem* _Nonnull se
     }
 
     List_ForEach(&self->entries, DfsDirectoryEntry,
-        if (PathComponent_EqualsString(pc, pCurNode->name)) {
+        if (PathComponent_EqualsString(pc, pCurNode->name, pCurNode->nameLength)) {
             *pOutEntry = pCurNode;
             return EOK;
         }
@@ -111,17 +111,28 @@ errno_t _Nullable DfsDirectoryItem_GetEntryForName(DfsDirectoryItem* _Nonnull se
     return ENOENT;
 }
 
-errno_t DfsDirectoryItem_GetEntryForId(DfsDirectoryItem* _Nonnull self, InodeId inid, DfsDirectoryEntry* _Nullable * _Nonnull pOutEntry)
+errno_t DfsDirectoryItem_GetNameOfEntryWithId(DfsDirectoryItem* _Nonnull self, InodeId inid, MutablePathComponent* _Nonnull mpc)
 {
+    DfsDirectoryEntry* entry = NULL;
+
     List_ForEach(&self->entries, DfsDirectoryEntry,
         if (pCurNode->inid == inid) {
-            *pOutEntry = pCurNode;
-            return EOK;
+            entry = pCurNode;
+            break;
         }
     )
 
-    *pOutEntry = NULL;
-    return ENOENT;
+    if (entry == NULL) {
+        return ENOENT;
+    }
+    if (entry->nameLength > mpc->capacity) {
+        return ERANGE;
+    }
+
+    mpc->count = entry->nameLength;
+    memcpy(mpc->name, entry->name, entry->nameLength);
+    
+    return EOK;
 }
 
 errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid, const PathComponent* _Nonnull pc)
@@ -137,8 +148,8 @@ errno_t DfsDirectoryItem_AddEntry(DfsDirectoryItem* _Nonnull self, InodeId inid,
         entry->sibling.next = NULL;
         entry->sibling.prev = NULL;
         entry->inid = inid;
-        char* p = String_CopyUpTo(entry->name, pc->name, pc->count);
-        while (p <= &entry->name[MAX_NAME_LENGTH]) *p++ = '\0';
+        entry->nameLength = pc->count;
+        memcpy(entry->name, pc->name, pc->count);
 
         List_InsertAfterLast(&self->entries, &entry->sibling);
     }
