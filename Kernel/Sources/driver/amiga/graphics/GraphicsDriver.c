@@ -8,7 +8,7 @@
 
 #include "GraphicsDriverPriv.h"
 
-const char* const kGraphicsDriverName = "graphics";
+const char* const kFramebufferName = "fb";
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -461,7 +461,7 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
 
 static errno_t GraphicsDriver_start(GraphicsDriverRef _Nonnull self)
 {
-    return Driver_Publish(self, kGraphicsDriverName, 0);
+    return Driver_Publish(self, kFramebufferName, 0);
 }
 
 

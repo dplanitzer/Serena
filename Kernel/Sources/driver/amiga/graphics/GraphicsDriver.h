@@ -40,7 +40,7 @@ extern int ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* pConfig
 extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig);
 extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
 
-extern const char* const kGraphicsDriverName;
+extern const char* const kFramebufferName;
 
 
 final_class(GraphicsDriver, Driver);
