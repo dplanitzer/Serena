@@ -36,23 +36,32 @@ errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnu
 {
     decl_try_err();
     IOChannelRef chan = NULL;
+
+    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
+        err = FilesystemManager_DiscoverAndStartFilesystemWithChannel(self, chan, params, paramsSize, pOutFs);
+    } 
+    IOChannel_Release(chan);
+    
+    return err;
+}
+
+errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(FilesystemManagerRef _Nonnull self, IOChannelRef _Nonnull driverChannel, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs)
+{
+    decl_try_err();
     FSContainerRef fsContainer = NULL;
     FilesystemRef fs = NULL;
 
-    try(DriverCatalog_OpenDriver(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan));
-    try(DiskFSContainer_Create(chan, &fsContainer));
+    try(DiskFSContainer_Create(driverChannel, &fsContainer));
     try(SerenaFS_Create(fsContainer, (SerenaFSRef*)&fs));
     try(Filesystem_Start(fs, params, paramsSize));
- 
-    IOChannel_Release(chan);
-    *pOutFs = fs;
 
+    Object_Release(fsContainer);
+    *pOutFs = fs;
     return EOK;
 
 catch:
     Object_Release(fs);
     Object_Release(fsContainer);
-    IOChannel_Release(chan);
 
     return err;
 }

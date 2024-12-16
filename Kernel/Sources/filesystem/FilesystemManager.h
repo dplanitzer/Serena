@@ -22,4 +22,8 @@ extern errno_t FilesystemManager_Create(FilesystemManagerRef _Nullable * _Nonnul
 // the start parameters to this filesystem.
 extern errno_t FilesystemManager_DiscoverAndStartFilesystem(FilesystemManagerRef _Nonnull self, const char* _Nonnull driverPath, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs);
 
+// Same as above but mounts the filesystem stored in the device identified by
+// the given driver channel.
+extern errno_t FilesystemManager_DiscoverAndStartFilesystemWithChannel(FilesystemManagerRef _Nonnull self, IOChannelRef _Nonnull driverChannel, const void* _Nullable params, size_t paramsSize, FilesystemRef _Nullable * _Nonnull pOutFs);
+
 #endif /* FilesystemManager_h */

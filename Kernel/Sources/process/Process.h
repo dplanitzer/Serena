@@ -243,4 +243,13 @@ extern errno_t Process_Unlink(ProcessRef _Nonnull pProc, const char* _Nonnull pP
 // Renames the file or directory at 'pOldPath' to the new location 'pNewPath'.
 extern errno_t Process_Rename(ProcessRef _Nonnull pProc, const char* pOldPath, const char* pNewPath);
 
+
+//
+// Filesystems
+//
+
+extern errno_t Process_Mount(ProcessRef _Nonnull self, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
+
+extern errno_t Process_Unmount(ProcessRef _Nonnull self, const char* _Nonnull atDirPath, uint32_t options);
+
 #endif /* Process_h */

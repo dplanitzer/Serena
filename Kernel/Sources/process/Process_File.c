@@ -1,5 +1,5 @@
 //
-//  Process_Filesystem.c
+//  Process_File.c
 //  kernel
 //
 //  Created by Dietmar Planitzer on 7/12/23.
@@ -318,7 +318,7 @@ errno_t Process_CheckAccess(ProcessRef _Nonnull self, const char* _Nonnull path,
     return err;
 }
 
-// Unlinks the inode at the path 'pPath'.
+// Unlinks the inode at the path 'path'.
 errno_t Process_Unlink(ProcessRef _Nonnull self, const char* _Nonnull path)
 {
     decl_try_err();

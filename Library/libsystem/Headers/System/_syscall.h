@@ -65,6 +65,8 @@ enum {
     SC_cv_wake,             // errno_t cv_wake(int od, int dlock, unsigned int options)
     SC_cv_wait,             // errno_t cv_wait(int od, int dlock, TimeInterval deadline)
     SC_dispatch_remove_by_tag,  // bool dispatch_remove_by_tag(int od, uintptr_t tag)
+    SC_mount,               // errno_t mount(const char* _Nonnull objName, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize)
+    SC_unmount,             // errno_t unmount(const char* _Nonnull atDirPath, uint32_t options)
 };
 
 

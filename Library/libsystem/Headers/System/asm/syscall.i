@@ -59,9 +59,11 @@ SC_cv_create                equ 46
 SC_cv_wake                  equ 47
 SC_cv_wait                  equ 48
 SC_dispatch_remove_by_tag   equ 49
+SC_mount                    equ 50
+SC_unmount                  equ 51
 
 
-SC_numberOfCalls            equ 50
+SC_numberOfCalls            equ 52
 
 
 ; System call macro.

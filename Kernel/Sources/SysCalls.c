@@ -471,6 +471,24 @@ SYSCALL_2(waitpid, ProcessId pid, ProcessTerminationStatus* _Nullable pOutStatus
     return Process_WaitForTerminationOfChild(Process_GetCurrent(), pArgs->pid, pArgs->pOutStatus);
 }
 
+SYSCALL_4(mount, const char* _Nullable containerPath, const char* _Nullable atDirPath, const void* _Nullable params, size_t paramsSize)
+{
+    if (pArgs->containerPath == NULL || pArgs->atDirPath == NULL) {
+        return EINVAL;
+    }
+
+    return Process_Mount(Process_GetCurrent(), pArgs->containerPath, pArgs->atDirPath, pArgs->params, pArgs->paramsSize);
+}
+
+SYSCALL_2(unmount, const char* _Nullable atDirPath, uint32_t options)
+{
+    if (pArgs->atDirPath == NULL) {
+        return EINVAL;
+    }
+
+    return Process_Unmount(Process_GetCurrent(), pArgs->atDirPath, pArgs->options);
+}
+
 
 SystemCall gSystemCallTable[] = {
     REF_SYSCALL(read),
@@ -522,4 +540,6 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(cv_create),
     REF_SYSCALL(cv_wake),
     REF_SYSCALL(cv_wait),
+    REF_SYSCALL(mount),
+    REF_SYSCALL(unmount),
 };
