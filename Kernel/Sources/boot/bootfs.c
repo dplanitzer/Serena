@@ -41,23 +41,16 @@ static const char* _Nullable get_boot_mem_driver_path(void)
 // exists; NULL otherwise.
 static const char* _Nullable get_boot_floppy_driver_path(void)
 {
-    static const char* gFloppyDriverTable[] = {
-        "/fd0",
-        "/fd1",
-        "/fd2",
-        "/fd3",
-        NULL
-    };
+    static char* gBootFloppyName = "/fd0";
 
-    int i = 0;
-    const char* path;
-
-    while ((path = gFloppyDriverTable[i++]) != NULL) {
-        const errno_t err = DriverCatalog_IsDriverPublished(gDriverCatalog, path);
+    for (int i = 0; i < 4; i++) {
+        const errno_t err = DriverCatalog_IsDriverPublished(gDriverCatalog, gBootFloppyName);
         
         if (err == EOK) {
-            return path;
+            return gBootFloppyName;
         }
+
+        gBootFloppyName[3] = '0' + i;
     }
 
     return NULL;
