@@ -94,14 +94,6 @@ errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBu
     return err;
 }
 
-static FileOffset get_file_size(InodeRef _Nonnull pNode)
-{
-    Inode_Lock(pNode);
-    const FileOffset size = Inode_GetFileSize(pNode);
-    Inode_Unlock(pNode);
-    return size;
-}
-
 errno_t FileChannel_seek(FileChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
 {
     decl_try_err();
@@ -124,7 +116,7 @@ errno_t FileChannel_seek(FileChannelRef _Nonnull self, FileOffset offset, FileOf
             break;
 
         case kSeek_End: {
-            const FileOffset fileSize = get_file_size(self->inode);
+            const FileOffset fileSize = FileChannel_GetFileSize(self);
             if (offset < 0ll && -offset > fileSize) {
                 throw(EINVAL);
             }
@@ -149,6 +141,14 @@ catch:
     Lock_Unlock(&self->lock);
 
     return err;
+}
+
+FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self)
+{
+    Inode_Lock(self->inode);
+    const FileOffset size = Inode_GetFileSize(self->inode);
+    Inode_Unlock(self->inode);
+    return size;
 }
 
 errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)

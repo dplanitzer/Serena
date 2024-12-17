@@ -10,7 +10,7 @@
 #define GemDosExecutableLoader_h
 
 #include <klib/klib.h>
-#include <filesystem/Inode.h>
+#include <filesystem/FileChannel.h>
 #include "AddressSpace.h"
 
 // <http://toshyp.atari.org/en/005005.html> and Atari GEMDOS Reference Manual
@@ -44,6 +44,6 @@ typedef struct GemDosExecutableLoader {
 // into a newly allocated memory area in the address space for which this loader
 // was created. Returns the base address of the in-core executable image and the
 // entry address of the executable.
-extern errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, InodeRef _Nonnull pNode, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint);
+extern errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull pLoader, FileChannelRef _Nonnull chan, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint);
 
 #endif /* GemDosExecutableLoader_h */

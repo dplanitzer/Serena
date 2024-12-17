@@ -121,8 +121,8 @@ catch:
     return err;
 }
 
-// Opens an executable file and leaves it locked.
-errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _Nonnull path, InodeRef _Nullable * _Nonnull pOutInode)
+// Opens an executable file.
+errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _Nonnull path, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     ResolvedPath r;
@@ -139,29 +139,32 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
     r.inode = NULL;
 
 
-    Inode_Lock(execFile); 
-
-
     // Make sure that the executable is a regular file and that it has the correct
     // access mode
-    if (!Inode_IsRegularFile(execFile)) {
-        throw(EACCESS);
+    Inode_Lock(execFile); 
+    if (Inode_IsRegularFile(execFile)) {
+        err = Filesystem_CheckAccess(fs, execFile, self->realUser, kAccess_Readable | kAccess_Executable);
+        if (err == EOK) {
+            // Open the executable file
+            err = Filesystem_OpenFile(fs, execFile, kOpen_Read, self->realUser);
+        }
     }
-    try(Filesystem_CheckAccess(fs, execFile, self->realUser, kAccess_Readable | kAccess_Executable));
+    else {
+        err = EACCESS;
+    }
+    Inode_Unlock(execFile);
+    throw_iferr(err);
 
 
-    // Open the executable file
-    try(Filesystem_OpenFile(fs, execFile, kOpen_Read, self->realUser));
+    // Note that this call takes ownership of the inode reference
+    try(Filesystem_CreateChannel(Inode_GetFilesystem(execFile), execFile, kOpen_Read, pOutChannel));
 
-
-    // XXX create a channel and return it
 
     ResolvedPath_Deinit(&r);
-    *pOutInode = execFile;
     return EOK;
 
 catch:
-    Inode_UnlockRelinquish(execFile);
+    Inode_Relinquish(execFile);
     ResolvedPath_Deinit(&r);
 
     return err;

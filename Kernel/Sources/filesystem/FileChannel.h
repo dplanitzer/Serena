@@ -27,6 +27,8 @@ open_class_funcs(FileChannel, IOChannel,
 // Creates a file object.
 extern errno_t FileChannel_Create(InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile);
 
+extern FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self);
+
 extern errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
 extern errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
 

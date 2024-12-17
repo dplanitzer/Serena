@@ -8,6 +8,7 @@
 
 #include "GemDosExecutableLoader.h"
 #include <filesystem/Filesystem.h>
+#include <filesystem/FileChannel.h>
 
 
 static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _Nonnull self, uint8_t* _Nonnull pRelocBase, uint8_t* pTextBase)
@@ -47,10 +48,10 @@ static errno_t GemDosExecutableLoader_RelocExecutable(GemDosExecutableLoader* _N
     return EOK;
 }
 
-errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, InodeRef _Nonnull pNode, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
+errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileChannelRef _Nonnull chan, void* _Nullable * _Nonnull pOutImageBase, void* _Nullable * _Nonnull pOutEntryPoint)
 {
     decl_try_err();
-    FileOffset fileSize = Inode_GetFileSize(pNode);
+    FileOffset fileSize = FileChannel_GetFileSize(chan);
     FileOffset fileOffset;
     GemDosExecutableHeader hdr;
     ssize_t nBytesRead;
@@ -69,8 +70,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Inode
 
 
     // Read the executable header
-    fileOffset = 0ll;
-    try(Filesystem_ReadFile(Inode_GetFilesystem(pNode), pNode, &hdr, sizeof(hdr), &fileOffset, &nBytesRead));
+    try(IOChannel_Read((IOChannelRef)chan, &hdr, sizeof(hdr), &nBytesRead));
 
 //    print("magic: %hx\n", hdr.magic);
 //    print("text: %d\n", hdr.text_size);
@@ -112,8 +112,8 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Inode
 
 
     // Read the executable header, text and data segments into memory
-    fileOffset = 0ll;
-    try(Filesystem_ReadFile(Inode_GetFilesystem(pNode), pNode, pImageBase, nbytes_to_read, &fileOffset, &nBytesRead));
+    IOChannel_Seek(chan, 0ll, NULL, kSeek_Set);
+    try(IOChannel_Read((IOChannelRef)chan, pImageBase, nbytes_to_read, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
     }
@@ -121,8 +121,8 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, Inode
 
     // Read the relocation information into memory
     uint8_t* pRelocBase = pImageBase + nbytes_to_read;
-    fileOffset = fileOffset_to_reloc;
-    try(Filesystem_ReadFile(Inode_GetFilesystem(pNode), pNode, pRelocBase, reloc_size, &fileOffset, &nBytesRead));
+    IOChannel_Seek(chan, fileOffset_to_reloc, NULL, kSeek_Set);
+    try(IOChannel_Read((IOChannelRef)chan, pRelocBase, reloc_size, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);
     }

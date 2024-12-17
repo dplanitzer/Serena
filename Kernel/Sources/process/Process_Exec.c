@@ -97,13 +97,13 @@ catch:
 
 // Loads an executable from the given executable file into the process address
 // space.
-static errno_t load_gemdos_executable(ProcessRef _Nonnull self, InodeRef _Locked inode, void** pImageBase, void** pEntryPoint)
+static errno_t load_gemdos_executable(ProcessRef _Nonnull self, FileChannelRef _Locked chan, void** pImageBase, void** pEntryPoint)
 {
     decl_try_err();
     GemDosExecutableLoader loader;
 
     GemDosExecutableLoader_Init(&loader, self->addressSpace);
-    err = GemDosExecutableLoader_Load(&loader, inode, pImageBase, pEntryPoint);
+    err = GemDosExecutableLoader_Load(&loader, chan, pImageBase, pEntryPoint);
     GemDosExecutableLoader_Deinit(&loader);
 
     return err;
@@ -116,7 +116,7 @@ static errno_t load_gemdos_executable(ProcessRef _Nonnull self, InodeRef _Locked
 errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
-    InodeRef execFile = NULL;
+    IOChannelRef chan = NULL;
     void* imageBase = NULL;
     void* entryPoint = NULL;
     const char* null_sptr[1] = {NULL};
@@ -133,14 +133,14 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
 
 
     // Open the executable file and lock it
-    try(FileManager_OpenExecutable(&self->fm, path, &execFile));
+    try(FileManager_OpenExecutable(&self->fm, path, &chan));
 
     // Copy the process arguments into the process address space
     try(Process_CopyInProcessArguments_Locked(self, argv, env));
 
 
     // Load the executable
-    try(load_gemdos_executable(self, execFile, &imageBase, &entryPoint));
+    try(load_gemdos_executable(self, (FileChannelRef)chan, &imageBase, &entryPoint));
 
     self->imageBase = imageBase;
     ((ProcessArguments*) self->argumentsBase)->image_base = self->imageBase;
@@ -151,7 +151,7 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
 
 catch:
     //XXX free the executable image if an error occurred
-    Inode_UnlockRelinquish(execFile);
+    IOChannel_Release(chan);
 
     return err;
 }

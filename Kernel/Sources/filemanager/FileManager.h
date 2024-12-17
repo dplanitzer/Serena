@@ -77,8 +77,8 @@ extern errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* 
 // Process_OpenDirectory() function.
 extern errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-// Opens an executable file and leaves it locked.
-extern errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _Nonnull path, InodeRef _Nullable * _Nonnull pOutInode);
+// Opens an executable file.
+extern errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _Nonnull path, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Creates a new directory. 'permissions' are the file permissions that should be
 // assigned to the new directory (modulo the file creation mask).
