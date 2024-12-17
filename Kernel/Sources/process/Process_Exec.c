@@ -116,9 +116,7 @@ static errno_t load_gemdos_executable(ProcessRef _Nonnull self, InodeRef _Locked
 errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path, const char* _Nullable argv[], const char* _Nullable env[])
 {
     decl_try_err();
-    ResolvedPath r;
     InodeRef execFile = NULL;
-    FilesystemRef fs = NULL;
     void* imageBase = NULL;
     void* entryPoint = NULL;
     const char* null_sptr[1] = {NULL};
@@ -134,27 +132,8 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
     assert(self->imageBase == NULL);
 
 
-    // Resolve the path to the executable file
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
-    execFile = r.inode;
-    fs = Inode_GetFilesystem(execFile);
-    r.inode = NULL;
-
-
-    Inode_Lock(execFile); 
-
-
-    // Make sure that the executable is a regular file and that it has the correct
-    // access mode
-    if (!Inode_IsRegularFile(execFile)) {
-        throw(EACCESS);
-    }
-    try(Filesystem_CheckAccess(fs, execFile, self->realUser, kAccess_Readable | kAccess_Executable));
-
-
-    // Open the executable file
-    try(Filesystem_OpenFile(fs, execFile, kOpen_Read, self->realUser));
-
+    // Open the executable file and lock it
+    try(FileManager_OpenExecutable(&self->fm, path, &execFile));
 
     // Copy the process arguments into the process address space
     try(Process_CopyInProcessArguments_Locked(self, argv, env));
@@ -173,7 +152,6 @@ errno_t Process_Exec_Locked(ProcessRef _Nonnull self, const char* _Nonnull path,
 catch:
     //XXX free the executable image if an error occurred
     Inode_UnlockRelinquish(execFile);
-    ResolvedPath_Deinit(&r);
 
     return err;
 }

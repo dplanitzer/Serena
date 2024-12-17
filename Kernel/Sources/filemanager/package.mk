@@ -1,0 +1,29 @@
+# --------------------------------------------------------------------------
+# Build variables
+#
+
+FILEMANAGER_C_SOURCES := $(wildcard $(FILEMANAGER_SOURCES_DIR)/*.c)
+
+FILEMANAGER_OBJS := $(patsubst $(FILEMANAGER_SOURCES_DIR)/%.c,$(FILEMANAGER_OBJS_DIR)/%.o,$(FILEMANAGER_C_SOURCES))
+FILEMANAGER_DEPS := $(FILEMANAGER_OBJS:.o=.d)
+
+FILEMANAGER_C_INCLUDES := -I$(LIBSYSTEM_HEADERS_DIR) -I$(KERNEL_SOURCES_DIR) -I$(FILEMANAGER_SOURCES_DIR)
+
+#FILEMANAGER_GENERATE_DEPS = -deps -depfile=$(patsubst $(FILEMANAGER_OBJS_DIR)/%.o,$(FILEMANAGER_OBJS_DIR)/%.d,$@)
+FILEMANAGER_GENERATE_DEPS := 
+
+
+# --------------------------------------------------------------------------
+# Build rules
+#
+
+$(FILEMANAGER_OBJS): | $(FILEMANAGER_OBJS_DIR)
+
+$(FILEMANAGER_OBJS_DIR):
+	$(call mkdir_if_needed,$(FILEMANAGER_OBJS_DIR))
+
+-include $(FILEMANAGER_DEPS)
+
+$(FILEMANAGER_OBJS_DIR)/%.o : $(FILEMANAGER_SOURCES_DIR)/%.c
+	@echo $<
+	@$(CC) $(KERNEL_CC_CONFIG) $(CC_KOPT_SETTING) $(CC_GEN_DEBUG_INFO) $(KERNEL_CC_PREPROC_DEFS) $(FILEMANAGER_C_INCLUDES) $(KERNEL_CC_DONTWARN) $(FILEMANAGER_GENERATE_DEPS) -o $@ $<

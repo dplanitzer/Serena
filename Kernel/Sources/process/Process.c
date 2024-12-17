@@ -76,11 +76,7 @@ errno_t Process_Create(int ppid, FileHierarchyRef _Nonnull pFileHierarchy, User 
     try(UResourceTable_Init(&self->uResourcesTable));
     try(IntArray_Init(&self->childPids, 0));
 
-    self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);
-    self->rootDirectory = Inode_Reacquire(pRootDir);
-    self->workingDirectory = Inode_Reacquire(pWorkingDir);
-    self->fileCreationMask = fileCreationMask;
-    self->realUser = user;
+    FileManager_Init(&self->fm, pFileHierarchy, user, pRootDir, pWorkingDir, fileCreationMask);
 
     List_Init(&self->tombstones);
     ConditionVariable_Init(&self->tombstoneSignaler);
@@ -109,12 +105,7 @@ void Process_deinit(ProcessRef _Nonnull self)
     IOChannelTable_Deinit(&self->ioChannelTable);
     UResourceTable_Deinit(&self->uResourcesTable);
 
-    Inode_Relinquish(self->workingDirectory);
-    self->workingDirectory = NULL;
-    Inode_Relinquish(self->rootDirectory);
-    self->rootDirectory = NULL;
-    Object_Release(self->fileHierarchy);
-    self->fileHierarchy = NULL;
+    FileManager_Deinit(&self->fm);
 
     Object_Release(self->terminationNotificationQueue);
     self->terminationNotificationQueue = NULL;
@@ -155,7 +146,7 @@ ProcessId Process_GetParentId(ProcessRef _Nonnull self)
 UserId Process_GetRealUserId(ProcessRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
-    const UserId uid = self->realUser.uid;
+    const UserId uid = FileManager_GetRealUserId(&self->fm);
     Lock_Unlock(&self->lock);
 
     return uid;

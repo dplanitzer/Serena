@@ -17,6 +17,7 @@
 #include <dispatcher/Lock.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filesystem/FileHierarchy.h>
+#include <filemanager/FileManager.h>
 
 
 // A process tombstone is created by a process that voluntarily or involuntarily
@@ -45,12 +46,8 @@ final_class_ivars(Process, Object,
     IOChannelTable                  ioChannelTable;     // I/O channels (aka sharable resources)
     UResourceTable                  uResourcesTable;    // Process private resources (aka non-sharable resources)
 
-    // Filesystem
-    FileHierarchyRef _Nonnull       fileHierarchy;
-    InodeRef _Nonnull               rootDirectory;
-    InodeRef _Nonnull               workingDirectory;
-    FilePermissions                 fileCreationMask;   // Mask of file permissions that should be filtered out from user supplied permissions when creating a file system object
-    User                            realUser;           // User identity inherited from the parent process / set at spawn time
+    // File manager
+    FileManager                     fm;
     
     // Process image
     char* _Nullable _Weak           imageBase;      // Base address to the contiguous memory region holding exec header, text, data and bss segments

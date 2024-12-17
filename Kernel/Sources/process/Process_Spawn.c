@@ -40,8 +40,8 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    const FilePermissions childUMask = ((so.options & kSpawn_OverrideUserMask) != 0) ? (so.umask & 0777) : pProc->fileCreationMask;
-    try(Process_Create(pProc->pid, pProc->fileHierarchy, pProc->realUser, pProc->rootDirectory, pProc->workingDirectory, pProc->fileCreationMask, &pChildProc));
+    const FilePermissions childUMask = ((so.options & kSpawn_OverrideUserMask) != 0) ? (so.umask & 0777) : FileManager_GetFileCreationMask(&pProc->fm);
+    try(Process_Create(pProc->pid, pProc->fm.fileHierarchy, pProc->fm.realUser, pProc->fm.rootDirectory, pProc->fm.workingDirectory, pProc->fm.fileCreationMask, &pChildProc));
 
 
     // Note that we do not lock the child process although we're reaching directly
