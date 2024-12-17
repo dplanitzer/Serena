@@ -7,11 +7,12 @@
 //
 
 #include "FilesystemManager.h"
-#include "DiskFSContainer.h"
-#include "IOChannel.h"
-#include "serenafs/SerenaFS.h"
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
+#include <filesystem/DiskFSContainer.h>
+#include <filesystem/IOChannel.h>
+#include <filesystem/serenafs/SerenaFS.h>
+
 
 typedef struct FilesystemManager {
     int dummy;

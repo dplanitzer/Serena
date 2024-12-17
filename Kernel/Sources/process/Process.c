@@ -8,6 +8,7 @@
 
 #include "ProcessPriv.h"
 #include "UDispatchQueue.h"
+#include <filemanager/FileHierarchy.h>
 
 
 class_func_defs(Process, Object,

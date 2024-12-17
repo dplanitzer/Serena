@@ -7,9 +7,9 @@
 //
 
 #include "FileManager.h"
+#include "FileHierarchy.h"
 #include <filesystem/DirectoryChannel.h>
 #include <filesystem/FileChannel.h>
-#include <filesystem/FileHierarchy.h>
 
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask

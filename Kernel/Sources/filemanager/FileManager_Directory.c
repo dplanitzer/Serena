@@ -7,8 +7,8 @@
 //
 
 #include "FileManager.h"
+#include "FileHierarchy.h"
 #include <filesystem/DirectoryChannel.h>
-#include <filesystem/FileHierarchy.h>
 
 
 static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const char* _Nonnull path, InodeRef _Nonnull * _Nonnull pDirToAssign)

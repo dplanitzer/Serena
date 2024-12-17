@@ -7,9 +7,9 @@
 //
 
 #include "FileManager.h"
-#include <filesystem/FileHierarchy.h>
+#include "FileHierarchy.h"
+#include "FilesystemManager.h"
 #include <filesystem/Filesystem.h>
-#include <filesystem/FilesystemManager.h>
 #include <filesystem/IOChannel.h>
 #include <System/Filesystem.h>
 

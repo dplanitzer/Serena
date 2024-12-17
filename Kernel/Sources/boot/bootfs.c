@@ -10,7 +10,7 @@
 #include <klib/klib.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
-#include <filesystem/FilesystemManager.h>
+#include <filemanager/FilesystemManager.h>
 
 
 // Finds a RAM or ROM disk to boot from and returns the in-kernel path to the

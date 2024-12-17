@@ -7,8 +7,8 @@
 //
 
 #include "FileHierarchy.h"
-#include "FSUtilities.h"
 #include <dispatcher/SELock.h>
+#include <filesystem/FSUtilities.h>
 
 
 // Represents a filesystem and lists all the directories in this filesystem that

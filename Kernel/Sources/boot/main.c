@@ -14,8 +14,8 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/AmigaController.h>
+#include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
-#include <filesystem/FilesystemManager.h>
 #include <hal/InterruptController.h>
 #include <hal/MonotonicClock.h>
 #include <hal/Platform.h>

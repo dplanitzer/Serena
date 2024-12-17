@@ -8,7 +8,7 @@
 
 #include <klib/klib.h>
 #include <driver/DriverCatalog.h>
-#include <filesystem/FileHierarchy.h>
+#include <filemanager/FileHierarchy.h>
 
 extern FilesystemRef _Nullable create_boot_filesystem(void);
 

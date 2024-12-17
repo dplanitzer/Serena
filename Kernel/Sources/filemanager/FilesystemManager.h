@@ -9,7 +9,7 @@
 #ifndef FilesystemManager_h
 #define FilesystemManager_h
 
-#include <filesystem/FileHierarchy.h>
+#include <filemanager/FileHierarchy.h>
 #include <filesystem/Filesystem.h>
 
 
