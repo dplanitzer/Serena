@@ -14,4 +14,10 @@
 #include <errno.h>
 #include <System/Error.h>
 
+#define _Try_bang(f)         { const errno_t _err_ = (f);  if (_err_ != 0) { printf("%s:%d:%s\n", __FILE__, __LINE__, __func__); abort(); }}
+
+#ifndef __cplusplus
+#define try_bang(f)  _Try_bang(f)
+#endif  /* __cplusplus */
+
 #endif /* klib_Error_h */

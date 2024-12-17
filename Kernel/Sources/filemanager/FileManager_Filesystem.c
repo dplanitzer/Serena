@@ -5,6 +5,7 @@
 //  Created by Dietmar Planitzer on 12/16/24.
 //  Copyright © 2024 Dietmar Planitzer. All rights reserved.
 //
+#ifndef __DISKIMAGE__
 
 #include "FileManager.h"
 #include "FileHierarchy.h"
@@ -85,3 +86,5 @@ catch:
 
     return err;
 }
+
+#endif  /* __DISKIMAGE__ */

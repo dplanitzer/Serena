@@ -26,6 +26,11 @@ typedef struct FileManager {
 } FileManager;
 
 
+#ifdef __DISKIMAGE__
+extern errno_t FileManager_Create(FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, FileManagerRef _Nullable * _Nonnull pOutSelf);
+extern void FileManager_Destroy(FileManagerRef _Nullable self);
+#endif
+
 extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask);
 extern void FileManager_Deinit(FileManagerRef _Nonnull self);
 
@@ -122,9 +127,10 @@ extern errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* pOld
 //
 // Filesystems
 //
-
+#ifndef __DISKIMAGE__
 extern errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull containerPath, const char* _Nonnull atDirPath, const void* _Nullable params, size_t paramsSize);
 
 extern errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, uint32_t options);
+#endif  /* __DISKIMAGE__ */
 
 #endif /* FileManager_h */
