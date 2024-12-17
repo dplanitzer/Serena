@@ -12,20 +12,6 @@
 #include <filesystem/FileChannel.h>
 
 
-// Returns the file creation mask of the receiver. Bits cleared in this mask
-// should be removed from the file permissions that user space sent to create a
-// file system object (note that this is the compliment of umask).
-FilePermissions FileManager_GetFileCreationMask(FileManagerRef _Nonnull self)
-{
-    return self->fileCreationMask;
-}
-
-// Sets the file creation mask of the receiver.
-void FileManager_SetFileCreationMask(FileManagerRef _Nonnull self, FilePermissions mask)
-{
-    self->fileCreationMask = mask & 0777;
-}
-
 // Creates a file in the given filesystem location.
 errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, FilePermissions permissions, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
