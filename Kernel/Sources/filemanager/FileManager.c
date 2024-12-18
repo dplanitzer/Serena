@@ -11,31 +11,6 @@
 #include <filesystem/FSUtilities.h>
 
 
-#ifdef __DISKIMAGE__
-
-errno_t FileManager_Create(FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, FileManagerRef _Nullable * _Nonnull pOutSelf)
-{
-    decl_try_err();
-    FileManagerRef self;
-
-    try(FSAllocateCleared(sizeof(FileManager), (void**)&self));
-    FileManager_Init(self, pFileHierarchy, user, pRootDir, pWorkingDir, fileCreationMask);
-
-catch:
-    *pOutSelf = self;
-    return err;
-}
-
-void FileManager_Destroy(FileManagerRef _Nullable self)
-{
-    if (self) {
-        FileManager_Deinit(self);
-        FSDeallocate(self);
-    }
-}
-
-#endif
-
 void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask)
 {
     self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);

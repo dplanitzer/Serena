@@ -7,6 +7,7 @@
 //
 
 #include "RamFSContainer.h"
+#include "diskimage.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +33,40 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSCont
     return EOK;
 
 catch:
+    Object_Release(self);
+    *pOutSelf = NULL;
+    return err;
+}
+
+errno_t RamFSContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamFSContainerRef _Nullable * _Nonnull pOutSelf)
+{
+    decl_try_err();
+    FILE* fp = NULL;
+    RamFSContainerRef self;
+    DiskImageFormat dif;
+    DiskImage fmt;
+
+    try(di_describe_diskimage(path, &fmt));
+    dif.name = "";
+    dif.blockSize = fmt.bytesPerSector;
+    dif.blocksPerDisk = fmt.sectorsPerTrack * fmt.headsPerCylinder * fmt.cylindersPerDisk;
+    dif.format = fmt.format;
+
+    try(RamFSContainer_Create(&dif, &self));
+
+    try_null(fp, fopen(path, "rb"), errno);
+    if (fread(self->diskImage, self->blockSize, self->blockCount, fp) != self->blockCount) {
+        throw(EIO);
+    }
+    fclose(fp);
+
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    if (fp) {
+        fclose(fp);
+    }
     Object_Release(self);
     *pOutSelf = NULL;
     return err;

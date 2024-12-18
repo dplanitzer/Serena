@@ -16,6 +16,9 @@
 #include <string.h>
 #include <klib/klib.h>
 #include <driver/amiga/floppy/adf.h>
+#include <filemanager/FileHierarchy.h>
+#include <filesystem/DirectoryChannel.h>
+#include <filesystem/FileChannel.h>
 #include <filesystem/SerenaDiskImage.h>
 #include <filesystem/serenafs/SerenaFS.h>
 #include <clap.h>
@@ -339,6 +342,10 @@ CLAP_DECL(params,
     CLAP_HELP(),
     CLAP_USAGE("diskimage <command> ..."),
 
+    //
+    // block-level commands
+    //
+
     CLAP_REQUIRED_COMMAND("create", &cmd_id, "<root_path> <dimg_path>", "Creates an ADF disk image formatted with SerenaFS and which stores a copy of the files and directories rooted at 'root_path' in the local filesystem."),
         CLAP_VALUE('d', "disk", &disk_format, parseDiskFormat, "Specify the format of the generated disk image (default: Amiga DD)"),
         CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the disk image (default: depends on the disk image format)"),
@@ -359,8 +366,15 @@ CLAP_DECL(params,
     CLAP_REQUIRED_COMMAND("put", &cmd_id, "<dimg_path>", "Replaces a sector in the ADF disk image 'dimg_path' with bytes from stdin."),
         CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to replace. Accepts a logical block address or a cylinder:head:sector style address"),
         CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to replace. Accepts a logical block address or a cylinder:head style address"),
-        CLAP_VARARG(&paths)
+        CLAP_VARARG(&paths),
 
+
+    //
+    // filesystem-level commands
+    //
+
+    CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path> <dimg_path>", "Lists the contents of the directory 'path' in the disk image 'dimg_path'."),
+        CLAP_VARARG(&paths)
 );
 
 
@@ -373,6 +387,10 @@ static void init(void)
     _RegisterClass(&kFilesystemClass);
     _RegisterClass(&kContainerFilesystemClass);
     _RegisterClass(&kSerenaFSClass);
+    _RegisterClass(&kIOChannelClass);
+    _RegisterClass(&kFileChannelClass);
+    _RegisterClass(&kDirectoryChannelClass);
+    _RegisterClass(&kFileHierarchyClass);
 }
 
 int main(int argc, char* argv[])
@@ -403,36 +421,45 @@ int main(int argc, char* argv[])
             }
         }
 
-        try(cmd_createDiskImage(paths.strings[0], paths.strings[1], disk_format));
+        try(cmd_create_disk(paths.strings[0], paths.strings[1], disk_format));
     }
     else if (!strcmp(argv[1], "describe")) {
         // diskimage describe
         assert_has_disk_image_path(&paths);
 
-        try(cmd_describeDiskImage(paths.strings[0]));
+        try(cmd_describe_disk(paths.strings[0]));
     }
     else if (!strcmp(argv[1], "diff")) {
         // diskimage get
         if (paths.count != 2) {
-            fatal("expected two disk mage paths");
+            fatal("expected two disk image paths");
             /* NOT REACHED */
         }
 
-        try(cmd_diffDiskImages(paths.strings[0], paths.strings[1]));
+        try(cmd_diff_disks(paths.strings[0], paths.strings[1]));
     }
     else if (!strcmp(argv[1], "get")) {
         // diskimage get
         assert_has_disk_image_path(&paths);
         assert_has_slice_type(&disk_slice);
 
-        try(cmd_getDiskSlice(paths.strings[0], &disk_slice, is_hex));
+        try(cmd_get_disk_slice(paths.strings[0], &disk_slice, is_hex));
     }
     else if (!strcmp(argv[1], "put")) {
         // diskimage put
         assert_has_disk_image_path(&paths);
         assert_has_slice_type(&disk_slice);
 
-        try(cmd_putDiskSlice(paths.strings[0], &disk_slice));
+        try(cmd_put_disk_slice(paths.strings[0], &disk_slice));
+    }
+    else if (!strcmp(argv[1], "list")) {
+        // diskimage list
+        if (paths.count != 2) {
+            fatal("expected two disk image paths");
+            /* NOT REACHED */
+        }
+
+        try(cmd_list(paths.strings[0], paths.strings[1]));
     }
     
 

@@ -123,7 +123,7 @@ static void initDefaultPermissionsAndUser(void)
     gDefaultUser = kUser_Root;
 }
 
-errno_t cmd_createDiskImage(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat)
+errno_t cmd_create_disk(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat)
 {
     decl_try_err();
     RamFSContainerRef pContainer = NULL;
@@ -165,7 +165,7 @@ catch:
 // diskimage describe
 //
 
-errno_t cmd_describeDiskImage(const char* _Nonnull dmgPath)
+errno_t cmd_describe_disk(const char* _Nonnull dmgPath)
 {
     decl_try_err();
     DiskImage info;
@@ -207,7 +207,7 @@ errno_t cmd_describeDiskImage(const char* _Nonnull dmgPath)
 // diskimage diff <dmgPath1> <dmgPath2>
 //
 
-errno_t cmd_diffDiskImages(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2)
+errno_t cmd_diff_disks(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2)
 {
     decl_try_err();
     DiskImage info1, info2;
@@ -359,7 +359,7 @@ catch:
     return err;
 }
 
-errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex)
+errno_t cmd_get_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex)
 {
     decl_try_err();
     DiskImage info;
@@ -426,7 +426,7 @@ catch:
     return err;
 }
 
-errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice)
+errno_t cmd_put_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice)
 {
     decl_try_err();
     DiskImage info;

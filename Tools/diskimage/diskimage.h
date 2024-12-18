@@ -52,11 +52,12 @@ typedef struct di_slice {
 extern void vfatal(const char* fmt, va_list ap);
 extern void fatal(const char* fmt, ...);
 
-extern errno_t cmd_createDiskImage(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
-extern errno_t cmd_describeDiskImage(const char* _Nonnull dmgPath);
-extern errno_t cmd_diffDiskImages(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2);
-extern errno_t cmd_getDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex);
-extern errno_t cmd_putDiskSlice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice);
+extern errno_t cmd_create_disk(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
+extern errno_t cmd_describe_disk(const char* _Nonnull dmgPath);
+extern errno_t cmd_diff_disks(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2);
+extern errno_t cmd_get_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice, bool isHex);
+extern errno_t cmd_put_disk_slice(const char* _Nonnull dmgPath, di_slice_t* _Nonnull slice);
+extern errno_t cmd_list(const char* _Nonnull path, const char* _Nonnull dmgPath);
 
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);

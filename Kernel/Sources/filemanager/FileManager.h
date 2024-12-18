@@ -26,11 +26,6 @@ typedef struct FileManager {
 } FileManager;
 
 
-#ifdef __DISKIMAGE__
-extern errno_t FileManager_Create(FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, FileManagerRef _Nullable * _Nonnull pOutSelf);
-extern void FileManager_Destroy(FileManagerRef _Nullable self);
-#endif
-
 extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask);
 extern void FileManager_Deinit(FileManagerRef _Nonnull self);
 

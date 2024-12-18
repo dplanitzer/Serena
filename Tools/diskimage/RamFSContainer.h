@@ -26,6 +26,8 @@ class_ref(RamFSContainer);
 
 
 extern errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSContainerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RamFSContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamFSContainerRef _Nullable * _Nonnull pOutSelf);
+
 extern void RamFSContainer_Destroy(RamFSContainerRef _Nullable self);
 
 // Writes the contents of the disk to the given path as a regular file.

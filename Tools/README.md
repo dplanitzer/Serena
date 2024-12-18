@@ -104,6 +104,15 @@ diskimage put --sector=c:h:s path/to/dmg
 
 The new sector/track data is read from stdin. The data must be in raw binary form.
 
+You can list the contents of a SeFS formatted disk image with the list command:
+
+```
+diskimage list /path/to/directory path/to/dmg
+```
+
+Where the first path specifies the directory in the filesystem whose contents you want to list and the second path specifies the disk image.
+
+
 ## Keymap
 
 You use the keymap tool to create key maps for the Serena HID (human interface devices) system. A key map maps a USB standard key code to the character or string that should be delivered on a key press. Key maps allow you to specify separate mappings for key presses without a key modifier active and key presses with one or more modifier keys pressed at the same time.
