@@ -72,26 +72,26 @@ IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self)
 
 errno_t IOChannel_Release(IOChannelRef _Nullable self)
 {
-    bool doFinalize = false;
+    if (self) {
+        bool doFinalize = false;
 
-    Lock_Lock(&self->countLock);
-    if (self->ownerCount >= 1) {
-        self->ownerCount--;
-        if (self->ownerCount == 0 && self->useCount == 0) {
-            self->ownerCount = -1;  // Acts as a signal that we triggered finalization
-            doFinalize = true;
+        Lock_Lock(&self->countLock);
+        if (self->ownerCount >= 1) {
+            self->ownerCount--;
+            if (self->ownerCount == 0 && self->useCount == 0) {
+                self->ownerCount = -1;  // Acts as a signal that we triggered finalization
+                doFinalize = true;
+            }
+        }
+        Lock_Unlock(&self->countLock);
+
+        if (doFinalize) {
+            // Can be triggered at most once. Thus no need to hold the lock while
+            // running finalization
+            return _IOChannel_Finalize(self);
         }
     }
-    Lock_Unlock(&self->countLock);
-
-    if (doFinalize) {
-        // Can be triggered at most once. Thus no need to hold the lock while
-        // running finalization
-        return _IOChannel_Finalize(self);
-    }
-    else {
-        return EOK;
-    }
+    return EOK;
 }
 
 void IOChannel_BeginOperation(IOChannelRef _Nonnull self)
