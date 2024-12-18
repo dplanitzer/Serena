@@ -337,6 +337,10 @@ size_t disk_size = 0;       // disk size as specified by user; 0 by default -> u
 di_slice_t disk_slice = {0};
 bool is_hex = false;
 
+// diskimage makedir
+static bool should_create_parents = false;
+
+
 CLAP_DECL(params,
     CLAP_VERSION("1.0"),
     CLAP_HELP(),
@@ -374,6 +378,13 @@ CLAP_DECL(params,
     //
 
     CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path> <dimg_path>", "Lists the contents of the directory 'path' in the disk image 'dimg_path'."),
+        CLAP_VARARG(&paths),
+
+    CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path> <dimg_path>", "Creates a new directory at 'path' in the disk image 'dimg_path'."),
+        CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
+        CLAP_VARARG(&paths),
+
+    CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
         CLAP_VARARG(&paths)
 );
 
@@ -460,6 +471,24 @@ int main(int argc, char* argv[])
         }
 
         try(cmd_list(paths.strings[0], paths.strings[1]));
+    }
+    else if (!strcmp(argv[1], "makedir")) {
+        // diskimage makedir
+        if (paths.count != 2) {
+            fatal("expected two disk image paths");
+            /* NOT REACHED */
+        }
+
+        try(cmd_makedir(should_create_parents, paths.strings[0], paths.strings[1]));
+    }
+    else if (!strcmp(argv[1], "delete")) {
+        // diskimage delete
+        if (paths.count != 2) {
+            fatal("expected two disk image paths");
+            /* NOT REACHED */
+        }
+
+        try(cmd_delete(paths.strings[0], paths.strings[1]));
     }
     
 

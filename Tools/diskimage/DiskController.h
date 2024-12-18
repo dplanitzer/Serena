@@ -26,4 +26,6 @@ typedef DiskController* DiskControllerRef;
 extern errno_t DiskController_CreateWithContentsOfPath(const char* _Nonnull path, DiskControllerRef _Nullable * _Nonnull pOutSelf);
 extern void DiskController_Destroy(DiskControllerRef _Nullable self);
 
+extern errno_t DiskController_WriteToPath(DiskControllerRef _Nonnull self, const char* _Nonnull path);
+
 #endif /* DiskController_h */

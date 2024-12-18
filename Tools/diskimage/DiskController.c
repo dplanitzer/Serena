@@ -58,3 +58,8 @@ void DiskController_Destroy(DiskControllerRef _Nullable self)
         free(self);
     }
 }
+
+errno_t DiskController_WriteToPath(DiskControllerRef _Nonnull self, const char* _Nonnull path)
+{
+    return RamFSContainer_WriteToPath(self->fsContainer, path);
+}

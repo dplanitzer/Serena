@@ -59,59 +59,57 @@ You create a disk image by executing the following command:
 ```
 diskimage create path/to/host_directory path/to/dmg
 ```
-
 Where the first argument tells diskimage that it should create a new disk image file. The second argument is the path to the directory in the host file system that represents the SerenaFS root directory and the third argument is the path to where the disk image file should be written.
 
 Use the describe command to print information about a disk image:
-
 ```
 diskimage describe path/to/dmg
 ```
-
 This prints the type of the disk image, the geometry of the disk and the sector and disk size to the console.
 
 The diff command can be used to compare two disk images to see which sectors differ:
-
 ```
 diskimage diff path/to/dmg1 path/to/dmg1
 ```
-
 This command lists the LBA and CHS address of every sector that is different between the two disk image files. Note that both disk image files must be of the same type.
 
 Use the get command to read a single sector or track from a disk image:
-
 ```
 diskimage get --sector=c:h:s --hex path/to/dmg
 ```
-
 Where 'c' is the cylinder number, 'h' is the head number and 's' is the sector number of the sector you want to read from the disk image. Note that the cylinder and head numbers are 0-based while the sector number is 1-based. The contents of the sector is written to the console as a hex dump. Invoke the command without the `--hex` switch to output the raw binary data.
 
 Another way to address a sector is to use a logical block address like this: `--sector=lba` where 'lba' is a 0-based integer.
 
 The contents of a whole track can be read by issuing this kind of command:
-
 ```
 diskimage get --track=c:h path/to/dmg
 ```
-
 Where 'c' is the cylinder and 'h' is the head number of the first sector in the track.
 
 Use the put command to replace the contents of a sector or track with new data:
-
 ```
 diskimage put --sector=c:h:s path/to/dmg
 ```
-
 The new sector/track data is read from stdin. The data must be in raw binary form.
 
 You can list the contents of a SeFS formatted disk image with the list command:
-
 ```
 diskimage list /path/to/directory path/to/dmg
 ```
-
 Where the first path specifies the directory in the filesystem whose contents you want to list and the second path specifies the disk image.
 
+Use the delete command to delete a file or directory in a disk image:
+```
+diskimage delete /path/to/object path/to/dmg
+```
+The first path argument specifies the directory or file that should be delete and the second path argument specifies the disk image.
+
+You can create a new directory with the help of the makedir command:
+```
+diskimage makedir /path/to/directory path/to/dmg
+```
+The first path argument is the path and the name of the new directory and the second path argument specifies the disk image. Add the `-p` switch if the diskimage too should automatically create all missing parent directories.
 
 ## Keymap
 
