@@ -1,5 +1,5 @@
 //
-//  delete.c
+//  cmd_delete.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 12/17/24.

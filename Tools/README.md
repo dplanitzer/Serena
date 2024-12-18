@@ -111,6 +111,12 @@ diskimage makedir /path/to/directory path/to/dmg
 ```
 The first path argument is the path and the name of the new directory and the second path argument specifies the disk image. Add the `-p` switch if the diskimage too should automatically create all missing parent directories.
 
+The pull command allows you to copy a file from a disk image to the local filesystem:
+```
+diskimage pull /path/to/file /path/to/local path/to/dmg
+```
+The first path argument specifies the file that should be copied from the disk image. The second path argument is the path to the location in the local filesystem where the copy should be placed and the third path argument specifies the disk image.
+
 ## Keymap
 
 You use the keymap tool to create key maps for the Serena HID (human interface devices) system. A key map maps a USB standard key code to the character or string that should be delivered on a key press. Key maps allow you to specify separate mappings for key presses without a key modifier active and key presses with one or more modifier keys pressed at the same time.

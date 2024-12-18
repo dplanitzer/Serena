@@ -1,5 +1,5 @@
 //
-//  diskimage_cmds.c
+//  cmd_disk.c
 //  diskimage
 //
 //  Created by Dietmar Planitzer on 3/10/24.

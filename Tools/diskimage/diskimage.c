@@ -385,6 +385,9 @@ CLAP_DECL(params,
         CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
+        CLAP_VARARG(&paths),
+
+    CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' on the host system."),
         CLAP_VARARG(&paths)
 );
 
@@ -466,7 +469,7 @@ int main(int argc, char* argv[])
     else if (!strcmp(argv[1], "list")) {
         // diskimage list
         if (paths.count != 2) {
-            fatal("expected two disk image paths");
+            fatal("expected two paths");
             /* NOT REACHED */
         }
 
@@ -475,7 +478,7 @@ int main(int argc, char* argv[])
     else if (!strcmp(argv[1], "makedir")) {
         // diskimage makedir
         if (paths.count != 2) {
-            fatal("expected two disk image paths");
+            fatal("expected two paths");
             /* NOT REACHED */
         }
 
@@ -484,11 +487,20 @@ int main(int argc, char* argv[])
     else if (!strcmp(argv[1], "delete")) {
         // diskimage delete
         if (paths.count != 2) {
-            fatal("expected two disk image paths");
+            fatal("expected two paths");
             /* NOT REACHED */
         }
 
         try(cmd_delete(paths.strings[0], paths.strings[1]));
+    }
+    else if (!strcmp(argv[1], "pull")) {
+        // diskimage pull
+        if (paths.count != 3) {
+            fatal("expected three paths");
+            /* NOT REACHED */
+        }
+
+        try(cmd_pull(paths.strings[0], paths.strings[1], paths.strings[2]));
     }
     
 
