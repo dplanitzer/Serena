@@ -387,7 +387,10 @@ CLAP_DECL(params,
     CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
         CLAP_VARARG(&paths),
 
-    CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' on the host system."),
+    CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' in the local filesystem."),
+        CLAP_VARARG(&paths),
+
+    CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path> <dimg_path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image 'dimg_path'."),
         CLAP_VARARG(&paths)
 );
 
@@ -502,7 +505,16 @@ int main(int argc, char* argv[])
 
         try(cmd_pull(paths.strings[0], paths.strings[1], paths.strings[2]));
     }
-    
+    else if (!strcmp(argv[1], "push")) {
+        // diskimage push
+        if (paths.count != 3) {
+            fatal("expected three paths");
+            /* NOT REACHED */
+        }
+
+        try(cmd_push(paths.strings[0], paths.strings[1], paths.strings[2]));
+    }
+
 
     return EXIT_SUCCESS;
 

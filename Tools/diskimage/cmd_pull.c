@@ -35,7 +35,12 @@ errno_t cmd_pull(const char* _Nonnull path, const char* _Nonnull dstPath, const 
         }
 
         fwrite(buf, 1, nBytesRead, fp);
-        if (feof(fp) || ferror(fp)) {
+        if (ferror(fp)) {
+            err = errno;
+            break;
+        }
+        else if (feof(fp)) {
+            err = EIO;
             break;
         }
     }

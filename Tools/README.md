@@ -117,6 +117,12 @@ diskimage pull /path/to/file /path/to/local path/to/dmg
 ```
 The first path argument specifies the file that should be copied from the disk image. The second path argument is the path to the location in the local filesystem where the copy should be placed and the third path argument specifies the disk image.
 
+Use the push command to copy a file from the local filesystem to a disk image:
+```
+diskimage push /path/to/local /path/to/file path/to/dmg
+```
+The first path argument specifies the location of the file to copy from the local filesystem. The second path argument specifies the location inside the disk image where the copied file should be placed and the third path argument specifies the path to the disk image.
+
 ## Keymap
 
 You use the keymap tool to create key maps for the Serena HID (human interface devices) system. A key map maps a USB standard key code to the character or string that should be delivered on a key press. Key maps allow you to specify separate mappings for key presses without a key modifier active and key presses with one or more modifier keys pressed at the same time.
