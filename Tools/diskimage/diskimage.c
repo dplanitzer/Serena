@@ -337,6 +337,9 @@ size_t disk_size = 0;       // disk size as specified by user; 0 by default -> u
 di_slice_t disk_slice = {0};
 bool is_hex = false;
 
+// diskimage format
+static bool should_quick_format = false;
+
 // diskimage makedir
 static bool should_create_parents = false;
 
@@ -377,14 +380,18 @@ CLAP_DECL(params,
     // filesystem-level commands
     //
 
+    CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
+        CLAP_VARARG(&paths),
+
+    CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type> <dimg_path>", "Formats the disk image 'dimg_path' with teh filesystem <fs_type> (SeFS)."),
+        CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
+        CLAP_VARARG(&paths),
+
     CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path> <dimg_path>", "Lists the contents of the directory 'path' in the disk image 'dimg_path'."),
         CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path> <dimg_path>", "Creates a new directory at 'path' in the disk image 'dimg_path'."),
         CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
-        CLAP_VARARG(&paths),
-
-    CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
         CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' in the local filesystem."),
@@ -469,6 +476,24 @@ int main(int argc, char* argv[])
 
         try(cmd_put_disk_slice(paths.strings[0], &disk_slice));
     }
+    else if (!strcmp(argv[1], "delete")) {
+        // diskimage delete
+        if (paths.count != 2) {
+            fatal("expected two paths");
+            /* NOT REACHED */
+        }
+
+        try(cmd_delete(paths.strings[0], paths.strings[1]));
+    }
+    else if (!strcmp(argv[1], "format")) {
+        // diskimage format
+        if (paths.count != 2) {
+            fatal("expected a filesystem type and a disk image path");
+            /* NOT REACHED */
+        }
+
+        try(cmd_format(should_quick_format, paths.strings[0], paths.strings[1]));
+    }
     else if (!strcmp(argv[1], "list")) {
         // diskimage list
         if (paths.count != 2) {
@@ -486,15 +511,6 @@ int main(int argc, char* argv[])
         }
 
         try(cmd_makedir(should_create_parents, paths.strings[0], paths.strings[1]));
-    }
-    else if (!strcmp(argv[1], "delete")) {
-        // diskimage delete
-        if (paths.count != 2) {
-            fatal("expected two paths");
-            /* NOT REACHED */
-        }
-
-        try(cmd_delete(paths.strings[0], paths.strings[1]));
     }
     else if (!strcmp(argv[1], "pull")) {
         // diskimage pull

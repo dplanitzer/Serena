@@ -93,17 +93,23 @@ diskimage put --sector=c:h:s path/to/dmg
 ```
 The new sector/track data is read from stdin. The data must be in raw binary form.
 
-You can list the contents of a SeFS formatted disk image with the list command:
-```
-diskimage list /path/to/directory path/to/dmg
-```
-Where the first path specifies the directory in the filesystem whose contents you want to list and the second path specifies the disk image.
-
 Use the delete command to delete a file or directory in a disk image:
 ```
 diskimage delete /path/to/object path/to/dmg
 ```
 The first path argument specifies the directory or file that should be delete and the second path argument specifies the disk image.
+
+Format a disk image by issuing a format command like this:
+```
+diskimage format fs_type path/to/dmg
+```
+Where the fs_type parameter specifies the desired filesystem type. The only filesystem type supported at this time is 'sefs' (Serena FS). The path argument specifies the path to the disk image. Use the `-q` switch to select quick formatting. Quick formatting does not wipe the disk image clean. Instead it only writes a new and empty root directory to the disk image.
+
+You can list the contents of a SeFS formatted disk image with the list command:
+```
+diskimage list /path/to/directory path/to/dmg
+```
+Where the first path specifies the directory in the filesystem whose contents you want to list and the second path specifies the disk image.
 
 You can create a new directory with the help of the makedir command:
 ```

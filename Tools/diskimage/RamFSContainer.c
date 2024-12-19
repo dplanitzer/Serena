@@ -26,6 +26,7 @@ errno_t RamFSContainer_Create(const DiskImageFormat* _Nonnull pFormat, RamFSCont
     self->diskImage = calloc(pFormat->blocksPerDisk, pFormat->blockSize);
     self->blockSize = pFormat->blockSize;
     self->blockCount = pFormat->blocksPerDisk;
+    self->lowestWrittenToLba = ~0;
     self->highestWrittenToLba = 0;
     self->format = pFormat->format;
 
@@ -149,6 +150,9 @@ static errno_t RamFSContainer_PutBlock(RamFSContainerRef _Nonnull self, const vo
     }
 
     memcpy(&self->diskImage[lba * self->blockSize], pBuffer, self->blockSize);
+    if (lba < self->lowestWrittenToLba) {
+        self->lowestWrittenToLba = lba;
+    }
     if (lba > self->highestWrittenToLba) {
         self->highestWrittenToLba = lba;
     }
@@ -182,6 +186,14 @@ void RamFSContainer_relinquishBlock(struct RamFSContainer* _Nonnull self, DiskBl
     if (pBlock) {
         DiskBlock_Destroy(pBlock);
     }
+}
+
+void RamFSContainer_WipeDisk(RamFSContainerRef _Nonnull self)
+{
+    memset(self->diskImage, 0, self->blockCount * self->blockSize);
+    
+    self->lowestWrittenToLba = 0;
+    self->highestWrittenToLba = self->blockCount - 1;
 }
 
 // Writes the contents of the disk to the given path as a regular file.
