@@ -11,19 +11,15 @@
 #include <string.h>
 
 
-errno_t cmd_format(bool bQuick, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
+errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, User rootDirOwner, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     DiskControllerRef self;
-    const FilePermissions dirOwnerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
-    const FilePermissions dirOtherPerms = kFilePermission_Read | kFilePermission_Execute;
-    const FilePermissions rootDirPerms = FilePermissions_Make(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
-    const User rootDirOwner = kUser_Root;
 
     if (strcmp(fsType, "sefs")) {
         throw(EINVAL);
     }
-    
+
     try(DiskController_CreateWithContentsOfPath(dmgPath, &self));
     
     if (!bQuick) {

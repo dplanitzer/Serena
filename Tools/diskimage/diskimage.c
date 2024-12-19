@@ -277,13 +277,14 @@ catch:
     return false;
 }
 
+// c:h:s
 static int parseSectorSlice(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
 {
     di_slice_t* slice = (di_slice_t*)param->value;
 
     slice->type = di_slice_type_sector;
     if (!parseDiskAddress(&slice->start, arg, di_slice_type_sector)) {
-        clap_param_error(proc_name, param, eo, "invalid disk address '%s", arg);
+        clap_param_error(proc_name, param, eo, "invalid disk address '%s'", arg);
         return EXIT_FAILURE;
     }
     else {
@@ -291,19 +292,109 @@ static int parseSectorSlice(const char* _Nonnull proc_name, const struct clap_pa
     }
 }
 
+// c:h
 static int parseTrackSlice(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
 {
     di_slice_t* slice = (di_slice_t*)param->value;
 
     slice->type = di_slice_type_track;
     if (!parseDiskAddress(&slice->start, arg, di_slice_type_track)) {
-        clap_param_error(proc_name, param, eo, "invalid disk address '%s", arg);
+        clap_param_error(proc_name, param, eo, "invalid disk address '%s'", arg);
         return EXIT_FAILURE;
     }
     else {
         return EXIT_SUCCESS;
     }
 }
+
+// -p=rwxrwxrwx | -p=777
+static int parsePermissions(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
+{
+    di_permissions_spec_t* out_perms = (di_permissions_spec_t*)param->value;
+
+    if (isdigit(*arg)) {
+        char* ep;
+        unsigned long bits = strtoul(arg, &ep, 8);
+
+        if (*ep != '\0' || bits == 0 || (bits == ULONG_MAX && errno != 0)) {
+            clap_param_error(proc_name, param, eo, "invalid permissions: '%s'", arg);
+            return EXIT_FAILURE;
+        }
+
+        out_perms->p = FilePermissions_MakeFromOctal(bits & 0777);
+        out_perms->isValid = true;
+    }
+    else if (*arg != '\0') {
+        FilePermissions perms[3] = {0, 0, 0};
+        const char* str = arg;
+
+        for (int i = 0; i < 3; i++) {
+            FilePermissions t = 0;
+
+            for (int j = 0; j < 3; j++) {
+                switch (*str++) {
+                    case 'r': t |= kFilePermission_Read; break;
+                    case 'w': t |= kFilePermission_Write; break;
+                    case 'x': t |= kFilePermission_Execute; break;
+                    case '-': break;
+                    case '_': break;
+                    default:
+                        clap_param_error(proc_name, param, eo, "invalid permissions: '%s'", arg);
+                        return EXIT_FAILURE;
+                }
+            }
+
+            perms[i] = t;
+        }
+
+        if (*str != '\0') {
+            clap_param_error(proc_name, param, eo, "invalid permissions: '%s'", arg);
+            return EXIT_FAILURE;
+        }
+
+        out_perms->p = FilePermissions_Make(perms[0], perms[1], perms[2]);
+        out_perms->isValid = true;
+    }
+    else {
+        clap_param_error(proc_name, param, eo, "expected permissions");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+// -o=uid:gid
+static int parseOwnerId(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
+{
+    di_owner_spec_t* owner = (di_owner_spec_t*)param->value;
+
+    decl_try_err();
+    char* p = (char*)arg;
+    size_t uid, gid;
+
+    try(parse_required_ulong(p, &p, &uid));
+    if (*p == '\0') {
+        owner->u.uid = (UserId)uid;
+        owner->isValid = true;
+        return EXIT_SUCCESS;
+    }
+
+    if (*p == ':') {
+        try(parse_required_ulong(p + 1, &p, &gid));
+
+        if (*p == '\0') {
+            owner->u.uid = (UserId)uid;
+            owner->u.gid = (GroupId)gid;
+            owner->isValid = true;
+            return EXIT_SUCCESS;
+        }
+    }
+
+catch:
+    clap_param_error(proc_name, param, eo, "invalid ownership specification: '%s'", arg);
+    return EXIT_FAILURE;
+}
+
 
 static void assert_has_slice_type(const di_slice_t* _Nonnull slice)
 {
@@ -326,16 +417,18 @@ static void assert_has_disk_image_path(const clap_string_array_t* _Nonnull paths
 }
 
 
-clap_string_array_t paths = {NULL, 0};
-const char* cmd_id = "";
+static di_permissions_spec_t permissions = {0, false};
+static di_owner_spec_t owner = {{0, 0}, false};
+static clap_string_array_t paths = {NULL, 0};
+static const char* cmd_id = "";
 
 // diskimage create
-DiskImageFormat* disk_format = NULL;
-size_t disk_size = 0;       // disk size as specified by user; 0 by default -> use the disk format defined size
+static DiskImageFormat* disk_format = NULL;
+static size_t disk_size = 0;       // disk size as specified by user; 0 by default -> use the disk format defined size
 
 // diskimage get
-di_slice_t disk_slice = {0};
-bool is_hex = false;
+static di_slice_t disk_slice = {0};
+static bool is_hex = false;
 
 // diskimage format
 static bool should_quick_format = false;
@@ -385,6 +478,8 @@ CLAP_DECL(params,
 
     CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type> <dimg_path>", "Formats the disk image 'dimg_path' with teh filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
+        CLAP_VALUE('x', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
+        CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path> <dimg_path>", "Lists the contents of the directory 'path' in the disk image 'dimg_path'."),
@@ -392,12 +487,16 @@ CLAP_DECL(params,
 
     CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path> <dimg_path>", "Creates a new directory at 'path' in the disk image 'dimg_path'."),
         CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
+        CLAP_VALUE('x', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
+        CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' in the local filesystem."),
         CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path> <dimg_path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image 'dimg_path'."),
+        CLAP_VALUE('x', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
+        CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_VARARG(&paths)
 );
 
@@ -492,7 +591,13 @@ int main(int argc, char* argv[])
             /* NOT REACHED */
         }
 
-        try(cmd_format(should_quick_format, paths.strings[0], paths.strings[1]));
+        if (!permissions.isValid) {
+            permissions.p = FilePermissions_MakeFromOctal(0755);
+        }
+        if (!owner.isValid) {
+            owner.u = kUser_Root;
+        }
+        try(cmd_format(should_quick_format, permissions.p, owner.u, paths.strings[0], paths.strings[1]));
     }
     else if (!strcmp(argv[1], "list")) {
         // diskimage list
@@ -510,7 +615,13 @@ int main(int argc, char* argv[])
             /* NOT REACHED */
         }
 
-        try(cmd_makedir(should_create_parents, paths.strings[0], paths.strings[1]));
+        if (!permissions.isValid) {
+            permissions.p = FilePermissions_MakeFromOctal(0755);
+        }
+        if (!owner.isValid) {
+            owner.u = kUser_Root;
+        }
+        try(cmd_makedir(should_create_parents, permissions.p, owner.u, paths.strings[0], paths.strings[1]));
     }
     else if (!strcmp(argv[1], "pull")) {
         // diskimage pull
@@ -528,7 +639,13 @@ int main(int argc, char* argv[])
             /* NOT REACHED */
         }
 
-        try(cmd_push(paths.strings[0], paths.strings[1], paths.strings[2]));
+        if (!permissions.isValid) {
+            permissions.p = FilePermissions_MakeFromOctal(0644);
+        }
+        if (!owner.isValid) {
+            owner.u = kUser_Root;
+        }
+        try(cmd_push(permissions.p, owner.u, paths.strings[0], paths.strings[1], paths.strings[2]));
     }
 
 

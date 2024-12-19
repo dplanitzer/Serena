@@ -103,7 +103,7 @@ Format a disk image by issuing a format command like this:
 ```
 diskimage format fs_type path/to/dmg
 ```
-Where the fs_type parameter specifies the desired filesystem type. The only filesystem type supported at this time is 'sefs' (Serena FS). The path argument specifies the path to the disk image. Use the `-q` switch to select quick formatting. Quick formatting does not wipe the disk image clean. Instead it only writes a new and empty root directory to the disk image.
+Where the fs_type parameter specifies the desired filesystem type. The only filesystem type supported at this time is 'sefs' (Serena FS). The path argument specifies the path to the disk image. Use the `-q` switch to select quick formatting. Quick formatting does not wipe the disk image clean. Instead it only writes a new and empty root directory to the disk image. Use the `-o` option to specify the root directory user and group id and the `-x` option to specify the root directory permissions.
 
 You can list the contents of a SeFS formatted disk image with the list command:
 ```
@@ -115,7 +115,7 @@ You can create a new directory with the help of the makedir command:
 ```
 diskimage makedir /path/to/directory path/to/dmg
 ```
-The first path argument is the path and the name of the new directory and the second path argument specifies the disk image. Add the `-p` switch if the diskimage too should automatically create all missing parent directories.
+The first path argument is the path and the name of the new directory and the second path argument specifies the disk image. Add the `-p` switch if the diskimage too should automatically create all missing parent directories Use the `-o` option to specify the directory user and group id and the `-x` option to specify the directory permissions.
 
 The pull command allows you to copy a file from a disk image to the local filesystem:
 ```
@@ -127,7 +127,7 @@ Use the push command to copy a file from the local filesystem to a disk image:
 ```
 diskimage push /path/to/local /path/to/file path/to/dmg
 ```
-The first path argument specifies the location of the file to copy from the local filesystem. The second path argument specifies the location inside the disk image where the copied file should be placed and the third path argument specifies the path to the disk image.
+The first path argument specifies the location of the file to copy from the local filesystem. The second path argument specifies the location inside the disk image where the copied file should be placed and the third path argument specifies the path to the disk image. Use the `-o` option to specify the file user and group id and the `-x` option to specify the file permissions.
 
 ## Keymap
 
