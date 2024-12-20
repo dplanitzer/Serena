@@ -16,7 +16,7 @@
 typedef enum AcquireBlock {
     kAcquireBlock_ReadOnly,     // Acquire the disk block for reading only with no write back
     kAcquireBlock_Update,       // Acquire the disk block for a partial update and write back
-    kAcquireBlock_Replace,      // Acquire the disk block for a full update where every byte will get replaced and written back
+    kAcquireBlock_Replace,      // Acquire the disk block for a full update where every byte will be replaced and written back
     kAcquireBlock_Cleared       // Acquire the disk block with every byte cleared, potential additional full or partial updates and write back
 } AcquireBlock;
 

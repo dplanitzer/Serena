@@ -13,7 +13,7 @@
 #include <filesystem/FSContainer.h>
 
 
-// A filesystem which is stored inside of a FSContainer.
+// A filesystem which is stored inside an FSContainer.
 open_class(ContainerFilesystem, Filesystem,
     FSContainerRef _Nonnull fsContainer;
 );

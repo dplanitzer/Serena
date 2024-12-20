@@ -81,7 +81,6 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
             continue;
         }
         else if (err != ENOMEDIUM && err != lastError) {
-            print("Error: %d\n\n", err);
             lastError = err;
             shouldPromptForDisk = true;
         }
