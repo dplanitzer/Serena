@@ -18,7 +18,7 @@
 errno_t DiskController_CreateWithContentsOfPath(const char* _Nonnull path, DiskControllerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    DiskControllerRef self;
+    DiskControllerRef self = NULL;
     FilesystemRef fs = NULL;
     InodeRef rootDir = NULL;
     FileHierarchyRef fh = NULL;

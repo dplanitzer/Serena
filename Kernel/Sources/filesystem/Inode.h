@@ -55,10 +55,8 @@ typedef struct Inode {
 #define Inode_Reacquire(__self) \
     Filesystem_ReacquireNode((__self)->filesystem, __self)
 
-#define Inode_Relinquish(__self) \
-    Filesystem_RelinquishNode((__self)->filesystem, __self)
-
-extern void Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
+extern errno_t Inode_Relinquish(InodeRef _Nullable self);
+extern errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self);
 
 
 //

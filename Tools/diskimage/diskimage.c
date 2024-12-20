@@ -149,7 +149,7 @@ DiskImageFormat gDiskImageFormats[] = {
     {NULL, 0, 0, 0}
 };
 
-static int parseDiskFormat(const char* _Nonnull proc_name, const struct clap_param_t* _Nonnull param, unsigned int eo, const char* _Nonnull arg)
+static errno_t parseDiskFormat(const char* _Nonnull proc_name, const char* _Nonnull arg, DiskImageFormat* _Nonnull pOutFormat)
 {
     long long size = 0ll;
     char* pptr = NULL;
@@ -157,15 +157,15 @@ static int parseDiskFormat(const char* _Nonnull proc_name, const struct clap_par
 
     while (de->name) {
         if (!strcmp(arg, de->name)) {
-            *(DiskImageFormat**)param->value = de;
-            return EXIT_SUCCESS;
+            *pOutFormat = *de;
+            return EOK;
         }
         de++;
     }
 
-    clap_param_error(proc_name, param, eo, "unknown disk image type '%s", arg);
+    clap_error(proc_name, "unknown disk image type '%s", arg);
 
-    return EXIT_FAILURE;
+    return EINVAL;
 }
 
 // One of:
@@ -423,7 +423,6 @@ static clap_string_array_t paths = {NULL, 0};
 static const char* cmd_id = "";
 
 // diskimage create
-static DiskImageFormat* disk_format = NULL;
 static size_t disk_size = 0;       // disk size as specified by user; 0 by default -> use the disk format defined size
 
 // diskimage get
@@ -447,7 +446,6 @@ CLAP_DECL(params,
     //
 
     CLAP_REQUIRED_COMMAND("create", &cmd_id, "<root_path> <dimg_path>", "Creates an ADF disk image formatted with SerenaFS and which stores a copy of the files and directories rooted at 'root_path' in the local filesystem."),
-        CLAP_VALUE('d', "disk", &disk_format, parseDiskFormat, "Specify the format of the generated disk image (default: Amiga DD)"),
         CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the disk image (default: depends on the disk image format)"),
         CLAP_VARARG(&paths),
 
@@ -478,7 +476,7 @@ CLAP_DECL(params,
 
     CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type> <dimg_path>", "Formats the disk image 'dimg_path' with teh filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
-        CLAP_VALUE('x', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
+        CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_VARARG(&paths),
 
@@ -487,7 +485,7 @@ CLAP_DECL(params,
 
     CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path> <dimg_path>", "Creates a new directory at 'path' in the disk image 'dimg_path'."),
         CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
-        CLAP_VALUE('x', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
+        CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_VARARG(&paths),
 
@@ -495,7 +493,7 @@ CLAP_DECL(params,
         CLAP_VARARG(&paths),
 
     CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path> <dimg_path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image 'dimg_path'."),
-        CLAP_VALUE('x', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
+        CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
         CLAP_VARARG(&paths)
 );
@@ -528,23 +526,22 @@ int main(int argc, char* argv[])
     if (!strcmp(argv[1], "create")) {
         // diskimage create
         if (paths.count != 2) {
-            fatal("expected a disk image and root path");
+            fatal("expected a disk image format specifier and a disk image path");
             /* NOT REACHED */
         }
 
 
-        if (disk_format == NULL) {
-            disk_format = &gDiskImageFormats[0];
-        }
+        DiskImageFormat fmt;
+        try(parseDiskFormat(gArgv_Zero, paths.strings[0], &fmt));
         
-        if (disk_size > 0 && disk_format->format == kDiskImage_Serena) {
-            disk_format->blocksPerDisk = disk_size / disk_format->blockSize;
-            if (disk_format->blocksPerDisk * disk_format->blockSize < disk_size) {
-                disk_format->blocksPerDisk++;
+        if (disk_size > 0 && fmt.format == kDiskImage_Serena) {
+            fmt.blocksPerDisk = disk_size / fmt.blockSize;
+            if (fmt.blocksPerDisk * fmt.blockSize < disk_size) {
+                fmt.blocksPerDisk++;
             }
         }
 
-        try(cmd_create_disk(paths.strings[0], paths.strings[1], disk_format));
+        try(cmd_create(&fmt, paths.strings[1]));
     }
     else if (!strcmp(argv[1], "describe")) {
         // diskimage describe

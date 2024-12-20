@@ -64,10 +64,23 @@ bool Inode_Equals(InodeRef _Nonnull self, InodeRef _Nonnull pOther)
         && Filesystem_GetId(self->filesystem) == Filesystem_GetId(pOther->filesystem);
 }
 
-void Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
+errno_t Inode_Relinquish(InodeRef _Nullable self)
 {
+    decl_try_err();
+
+    if (self) {
+        err = Filesystem_RelinquishNode(self->filesystem, self);
+    }
+    return err;
+}
+
+errno_t Inode_UnlockRelinquish(InodeRef _Nullable _Locked self)
+{
+    decl_try_err();
+
     if (self) {
         Inode_Unlock(self);
-        Inode_Relinquish(self);
+        err = Filesystem_RelinquishNode(self->filesystem, self);
     }
+    return err;
 }

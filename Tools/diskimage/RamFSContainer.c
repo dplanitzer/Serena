@@ -43,7 +43,7 @@ errno_t RamFSContainer_CreateWithContentsOfPath(const char* _Nonnull path, RamFS
 {
     decl_try_err();
     FILE* fp = NULL;
-    RamFSContainerRef self;
+    RamFSContainerRef self = NULL;
     DiskImageFormat dif;
     DiskImage fmt;
 

@@ -99,14 +99,13 @@ KERNEL_TESTS_FILE := $(KERNEL_TESTS_OBJS_DIR)/test
 
 ROM_FILE := $(PRODUCT_DIR)/Serena.rom
 
-BOOT_DISK_DIR := $(BUILD_DIR)/bootdisk
 ifdef BOOT_FROM_ROM
 BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.smg
-BOOT_DMG_CONFIG := --disk=smg --size=256k
+BOOT_DMG_CONFIG := --size=256k smg
 BOOT_DMG_FILE_FOR_ROM := $(BOOT_DMG_FILE)
 else
 BOOT_DMG_FILE := $(PRODUCT_DIR)/boot_disk.adf
-BOOT_DMG_CONFIG := --disk=adf-dd
+BOOT_DMG_CONFIG := adf-dd
 BOOT_DMG_FILE_FOR_ROM :=
 endif
 
@@ -179,23 +178,21 @@ build-rom: $(ROM_FILE)
 
 build-boot-dmg: $(BOOT_DMG_FILE)
 
-build-boot-disk: $(LOGIN_FILE) $(SH_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE)
-	$(call mkdir_if_needed,$(BOOT_DISK_DIR))
-	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/System/Commands)
-	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/System/Devices)
-	$(call mkdir_if_needed,$(BOOT_DISK_DIR)/Users/Administrator)
-	$(call copy,$(LOGIN_FILE),$(BOOT_DISK_DIR)/System/Commands/)
-	$(call copy,$(SH_FILE),$(BOOT_DISK_DIR)/System/Commands/)
-	$(call copy,$(TYPE_FILE),$(BOOT_DISK_DIR)/System/Commands/)
-	$(call copy,$(KERNEL_TESTS_FILE),$(BOOT_DISK_DIR)/Users/Administrator/)
-	$(call copy,$(DEMOS_DIR)/fibonacci.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
-	$(call copy,$(DEMOS_DIR)/helloworld.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
-	$(call copy,$(DEMOS_DIR)/prime.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
-	$(call copy,$(DEMOS_DIR)/while.sh,$(BOOT_DISK_DIR)/Users/Administrator/)
-
-$(BOOT_DMG_FILE): build-boot-disk | $(PRODUCT_DIR)
+$(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
-	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DISK_DIR) $(BOOT_DMG_FILE)
+	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
+	$(DISKIMAGE) format sefs $(BOOT_DMG_FILE)
+	$(DISKIMAGE) makedir -p /System/Commands $(BOOT_DMG_FILE)
+	$(DISKIMAGE) makedir -p /System/Devices $(BOOT_DMG_FILE)
+	$(DISKIMAGE) makedir -p /Users/Administrator $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/login $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/shell $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/type $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-- $(KERNEL_TESTS_FILE) /Users/Administrator/test $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/fibonacci.sh /Users/Administrator/fibonacci.sh $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/helloworld.sh /Users/Administrator/helloworld.sh $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/prime.sh /Users/Administrator/prime.sh $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/while.sh /Users/Administrator/while.sh $(BOOT_DMG_FILE)
 
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM) | $(PRODUCT_DIR)
 	@echo Making ROM
@@ -209,7 +206,6 @@ clean:
 	@echo Cleaning...
 	$(call rm_if_exists,$(OBJS_DIR))
 	$(call rm_if_exists,$(PRODUCT_DIR))
-	$(call rm_if_exists,$(BOOT_DISK_DIR))
 	@echo Done
 
 ifdef BOOT_FROM_ROM
@@ -221,6 +217,5 @@ clean-rom: clean-kernel
 endif
 
 clean-boot-disk:
-	$(call rm_if_exists,$(BOOT_DISK_DIR))
 	$(call rm_if_exists,$(BOOT_DMG_FILE))
 	@echo Done

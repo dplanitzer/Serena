@@ -54,12 +54,12 @@ The diskimage tool supports the creation of a disk image from a directory stored
 
 The diskimage tool expects a path to a directory on the host system as input. The directory at this path represents the root folder of the disk image that should be created. Diskimage first creates an empty disk image file, formats it with SerenaFS and then recursively copies all directories and files from the host file system to the SerenaFS disk image. However, hidden files, special files and system files are not copied.
 
-You create a disk image by executing the following command:
+You create an empty disk image by executing the following command:
 
 ```
-diskimage create path/to/host_directory path/to/dmg
+diskimage create disk_type path/to/dmg
 ```
-Where the first argument tells diskimage that it should create a new disk image file. The second argument is the path to the directory in the host file system that represents the SerenaFS root directory and the third argument is the path to where the disk image file should be written.
+Where the first argument tells diskimage what kind of disk image file it should create. The currently supported disk image formats are `adf-dd`, `adf-hd` and `smg`. The second argument tells diskimage where in the local filesystem the disk image file should be created. Note that the created disk image is empty. You must format the disk with the `format` command before you can use it to store files on it.
 
 Use the describe command to print information about a disk image:
 ```

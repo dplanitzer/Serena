@@ -63,6 +63,7 @@ typedef struct di_owner_spec {
 extern void vfatal(const char* fmt, va_list ap);
 extern void fatal(const char* fmt, ...);
 
+extern errno_t cmd_create(const DiskImageFormat* _Nonnull diskImageFormat, const char* _Nonnull dmgPath);
 extern errno_t cmd_create_disk(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);
 extern errno_t cmd_describe_disk(const char* _Nonnull dmgPath);
 extern errno_t cmd_diff_disks(const char* _Nonnull dmgPath1, const char* _Nonnull dmgPath2);
@@ -79,27 +80,5 @@ extern errno_t cmd_push(FilePermissions filePerms, User owner, const char* _Nonn
 extern errno_t di_describe_diskimage(const char* _Nonnull dmgPath, DiskImage* _Nonnull pOutInfo);
 extern errno_t di_lba_from_disk_addr(size_t* _Nonnull pOutLba, const DiskImage* _Nonnull info, const di_addr_t* _Nonnull addr);
 extern void di_chs_from_lba(size_t* _Nonnull pOutCylinder, size_t* _Nonnull pOutHead, size_t* _Nonnull pOutSector, const DiskImage* _Nonnull info, size_t lba);
-
-
-typedef struct di_direntry {
-    const char*     name;
-    uint64_t        fileSize;
-    FilePermissions permissions;
-} di_direntry;
-
-typedef errno_t (*di_begin_directory_callback)(void* _Nullable ctx, const char* _Nonnull pPbasePath, const di_direntry* _Nonnull entry, void* pToken, void** pOutToken);
-typedef errno_t (*di_end_directory_callback)(void* _Nullable ctx, void* pToken);
-typedef errno_t (*di_file_callback)(void* _Nullable ctx, const char* _Nonnull pPbasePath, const di_direntry* _Nonnull entry, void* pToken);
-
-typedef struct di_iterate_directory_callbacks {
-    void * _Nullable context;
-    
-    di_begin_directory_callback beginDirectory;
-    di_end_directory_callback   endDirectory;
-    di_file_callback            file;
-} di_iterate_directory_callbacks;
-
-extern errno_t di_iterate_directory(const char* _Nonnull rootPath, const di_iterate_directory_callbacks* _Nonnull cb, void* _Nullable pInitialToken);
-extern errno_t di_concat_path(const char* _Nonnull basePath, const char* _Nonnull fileName, char* _Nonnull buffer, size_t nBufferSize);
 
 #endif /* diskimage_h */

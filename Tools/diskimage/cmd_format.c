@@ -7,29 +7,29 @@
 //
 
 #include "diskimage.h"
-#include "DiskController.h"
+#include "RamFSContainer.h"
 #include <string.h>
 
 
 errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, User rootDirOwner, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
 {
     decl_try_err();
-    DiskControllerRef self;
+    RamFSContainerRef fsContainer = NULL;
 
     if (strcmp(fsType, "sefs")) {
         throw(EINVAL);
     }
 
-    try(DiskController_CreateWithContentsOfPath(dmgPath, &self));
+    try(RamFSContainer_CreateWithContentsOfPath(dmgPath, &fsContainer));
     
     if (!bQuick) {
-        RamFSContainer_WipeDisk(self->fsContainer);
+        RamFSContainer_WipeDisk(fsContainer);
     }
 
-    try(SerenaFS_FormatDrive((FSContainerRef)self->fsContainer, rootDirOwner, rootDirPerms));
-    err = DiskController_WriteToPath(self, dmgPath);
+    try(SerenaFS_FormatDrive((FSContainerRef)fsContainer, rootDirOwner, rootDirPerms));
+    err = RamFSContainer_WriteToPath(fsContainer, dmgPath);
 
 catch:
-    DiskController_Destroy(self);
+    Object_Release(fsContainer);
     return err;
 }
