@@ -70,7 +70,7 @@ extern void InterruptController_OnInterrupt(struct InterruptHandlerArray* _Nonnu
 // Returns the number of uninitialized interrupts that have happened since boot.
 // An uninitialized interrupt is an interrupt request from a peripheral that does
 // not have a IRQ vector number set up for the interrupt.
-extern int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController);
+extern int InterruptController_GetUninitializedInterruptCount(InterruptControllerRef _Nonnull pController);
 
 // Returns the number of spurious interrupts that have happened since boot. A
 // spurious interrupt is an interrupt request that was not acknowledged by the

@@ -310,7 +310,7 @@ void InterruptController_Dump(InterruptControllerRef _Nonnull pController)
 // Returns the number of uninitialized interrupts that have happened since boot.
 // An uninitialized interrupt is an interrupt request from a peripheral that does
 // not have a IRQ vector number set up for the interrupt.
-int InterruptController_GetUniniatializedInterruptCount(InterruptControllerRef _Nonnull pController)
+int InterruptController_GetUninitializedInterruptCount(InterruptControllerRef _Nonnull pController)
 {
     return pController->uninitializedInterruptCount;
 }
