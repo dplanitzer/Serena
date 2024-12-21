@@ -149,7 +149,7 @@ DiskImageFormat gDiskImageFormats[] = {
     {NULL, 0, 0, 0}
 };
 
-static errno_t parseDiskFormat(const char* _Nonnull proc_name, const char* _Nonnull arg, DiskImageFormat* _Nonnull pOutFormat)
+static bool parseDiskFormat(const char* _Nonnull proc_name, const char* _Nonnull arg, DiskImageFormat* _Nonnull pOutFormat)
 {
     long long size = 0ll;
     char* pptr = NULL;
@@ -158,14 +158,14 @@ static errno_t parseDiskFormat(const char* _Nonnull proc_name, const char* _Nonn
     while (de->name) {
         if (!strcmp(arg, de->name)) {
             *pOutFormat = *de;
-            return EOK;
+            return true;
         }
         de++;
     }
 
     clap_error(proc_name, "unknown disk image type '%s", arg);
 
-    return EINVAL;
+    return false;
 }
 
 // One of:
@@ -409,13 +409,6 @@ static void assert_has_slice_type(const di_slice_t* _Nonnull slice)
     }
 }
 
-static void assert_has_disk_image_path(const clap_string_array_t* _Nonnull paths)
-{
-    if (paths->count != 1) {
-        fatal("expected a disk image path");
-    }
-}
-
 
 static di_permissions_spec_t permissions = {0, false};
 static di_owner_spec_t owner = {{0, 0}, false};
@@ -424,16 +417,31 @@ static const char* cmd_id = "";
 
 // diskimage create
 static size_t disk_size = 0;       // disk size as specified by user; 0 by default -> use the disk format defined size
+static char* disk_type = "";
+static char* dmg_path = "";
+
+// diskimage diff
+static char* dmg_path2 = "";
 
 // diskimage get
 static di_slice_t disk_slice = {0};
 static bool is_hex = false;
 
+// diskimage delete
+static char* path = "";
+
 // diskimage format
 static bool should_quick_format = false;
+static char* fs_type = "";
 
 // diskimage makedir
 static bool should_create_parents = false;
+
+// diskimage pull
+static char* dst_path = "";
+
+// diskimage push
+static char* src_path = "";
 
 
 CLAP_DECL(params,
@@ -445,26 +453,28 @@ CLAP_DECL(params,
     // block-level commands
     //
 
-    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<root_path> <dimg_path>", "Creates an ADF disk image formatted with SerenaFS and which stores a copy of the files and directories rooted at 'root_path' in the local filesystem."),
+    CLAP_REQUIRED_COMMAND("create", &cmd_id, "<disk_type> <dimg_path>", "Creates an empty disk image file of format 'disk_type' and stores it in the location 'dimg_path'."),
         CLAP_VALUE('s', "size", &disk_size, parseDiskSize, "Set the size of the disk image (default: depends on the disk image format)"),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&disk_type),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("describe", &cmd_id, "<dimg_path>", "Prints information about the disk image at path 'dimg_path'."),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("diff", &cmd_id, "<dimg1_path> <dimg2_path>", "Compares disk images 'dimg1_path' and 'dimg2_path' and prints a list of the sectors with differing contents."),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&dmg_path),
+        CLAP_POSITIONAL_STRING(&dmg_path2),
 
     CLAP_REQUIRED_COMMAND("get", &cmd_id, "<dimg_path>", "Reads a sector from the ADF disk image 'dimg_path' and writes it to stdout."),
         CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to read. Accepts a logical block address or a cylinder:head:sector style address"),
         CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to read. Accepts a logical block address or a cylinder:head style address"),
         CLAP_BOOL('x', "hex", &is_hex, "Output the disk contents as a hex dump instead of binary data"),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("put", &cmd_id, "<dimg_path>", "Replaces a sector in the ADF disk image 'dimg_path' with bytes from stdin."),
         CLAP_VALUE('s', "sector", &disk_slice, parseSectorSlice, "Specify a sector to replace. Accepts a logical block address or a cylinder:head:sector style address"),
         CLAP_VALUE('t', "track", &disk_slice, parseTrackSlice, "Specify a track to replace. Accepts a logical block address or a cylinder:head style address"),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
 
     //
@@ -472,30 +482,38 @@ CLAP_DECL(params,
     //
 
     CLAP_REQUIRED_COMMAND("delete", &cmd_id, "<path> <dimg_path>", "Deletes the file or directory at 'path' in the disk image 'dimg_path'."),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&path),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("format", &cmd_id, "<fs_type> <dimg_path>", "Formats the disk image 'dimg_path' with teh filesystem <fs_type> (SeFS)."),
         CLAP_BOOL('q', "quick", &should_quick_format, "Do a quick format"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&fs_type),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("list", &cmd_id, "<path> <dimg_path>", "Lists the contents of the directory 'path' in the disk image 'dimg_path'."),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&path),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("makedir", &cmd_id, "<path> <dimg_path>", "Creates a new directory at 'path' in the disk image 'dimg_path'."),
         CLAP_BOOL('p', "parents", &should_create_parents, "Create missing parent directories"),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&path),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("pull", &cmd_id, "<path> <dst_path> <dimg_path>", "Copies the file at 'path' in the disk image 'dimg_path' to the location 'dst_path' in the local filesystem."),
-        CLAP_VARARG(&paths),
+        CLAP_POSITIONAL_STRING(&path),
+        CLAP_POSITIONAL_STRING(&dst_path),
+        CLAP_POSITIONAL_STRING(&dmg_path),
 
     CLAP_REQUIRED_COMMAND("push", &cmd_id, "<src_path> <path> <dimg_path>", "Copies the file at 'src_path' stored in the local filesystem to the location 'path' in the disk image 'dimg_path'."),
         CLAP_VALUE('m', "permissions", &permissions, parsePermissions, "Specify file/directory permissions as an octal number or a combination of 'rwx' characters"),
         CLAP_VALUE('o', "owner", &owner, parseOwnerId, "Specify the file/directory owner user and group id"),
-        CLAP_VARARG(&paths)
+        CLAP_POSITIONAL_STRING(&src_path),
+        CLAP_POSITIONAL_STRING(&path),
+        CLAP_POSITIONAL_STRING(&dmg_path)
 );
 
 
@@ -525,14 +543,10 @@ int main(int argc, char* argv[])
 
     if (!strcmp(argv[1], "create")) {
         // diskimage create
-        if (paths.count != 2) {
-            fatal("expected a disk image format specifier and a disk image path");
-            /* NOT REACHED */
-        }
-
-
         DiskImageFormat fmt;
-        try(parseDiskFormat(gArgv_Zero, paths.strings[0], &fmt));
+        if (!parseDiskFormat(gArgv_Zero, disk_type, &fmt)) {
+            return EXIT_FAILURE;
+        }
         
         if (disk_size > 0 && fmt.format == kDiskImage_Serena) {
             fmt.blocksPerDisk = disk_size / fmt.blockSize;
@@ -541,108 +555,69 @@ int main(int argc, char* argv[])
             }
         }
 
-        try(cmd_create(&fmt, paths.strings[1]));
+        try(cmd_create(&fmt, dmg_path));
     }
     else if (!strcmp(argv[1], "describe")) {
         // diskimage describe
-        assert_has_disk_image_path(&paths);
-
-        try(cmd_describe_disk(paths.strings[0]));
+        try(cmd_describe_disk(dmg_path));
     }
     else if (!strcmp(argv[1], "diff")) {
         // diskimage get
-        if (paths.count != 2) {
-            fatal("expected two disk image paths");
-            /* NOT REACHED */
-        }
-
-        try(cmd_diff_disks(paths.strings[0], paths.strings[1]));
+        try(cmd_diff_disks(dmg_path, dmg_path2));
     }
     else if (!strcmp(argv[1], "get")) {
         // diskimage get
-        assert_has_disk_image_path(&paths);
         assert_has_slice_type(&disk_slice);
 
-        try(cmd_get_disk_slice(paths.strings[0], &disk_slice, is_hex));
+        try(cmd_get_disk_slice(dmg_path, &disk_slice, is_hex));
     }
     else if (!strcmp(argv[1], "put")) {
         // diskimage put
-        assert_has_disk_image_path(&paths);
         assert_has_slice_type(&disk_slice);
 
-        try(cmd_put_disk_slice(paths.strings[0], &disk_slice));
+        try(cmd_put_disk_slice(dmg_path, &disk_slice));
     }
     else if (!strcmp(argv[1], "delete")) {
         // diskimage delete
-        if (paths.count != 2) {
-            fatal("expected two paths");
-            /* NOT REACHED */
-        }
-
-        try(cmd_delete(paths.strings[0], paths.strings[1]));
+        try(cmd_delete(path, dmg_path));
     }
     else if (!strcmp(argv[1], "format")) {
         // diskimage format
-        if (paths.count != 2) {
-            fatal("expected a filesystem type and a disk image path");
-            /* NOT REACHED */
-        }
-
         if (!permissions.isValid) {
             permissions.p = FilePermissions_MakeFromOctal(0755);
         }
         if (!owner.isValid) {
             owner.u = kUser_Root;
         }
-        try(cmd_format(should_quick_format, permissions.p, owner.u, paths.strings[0], paths.strings[1]));
+        try(cmd_format(should_quick_format, permissions.p, owner.u, fs_type, dmg_path));
     }
     else if (!strcmp(argv[1], "list")) {
         // diskimage list
-        if (paths.count != 2) {
-            fatal("expected two paths");
-            /* NOT REACHED */
-        }
-
-        try(cmd_list(paths.strings[0], paths.strings[1]));
+        try(cmd_list(path, dmg_path));
     }
     else if (!strcmp(argv[1], "makedir")) {
         // diskimage makedir
-        if (paths.count != 2) {
-            fatal("expected two paths");
-            /* NOT REACHED */
-        }
-
         if (!permissions.isValid) {
             permissions.p = FilePermissions_MakeFromOctal(0755);
         }
         if (!owner.isValid) {
             owner.u = kUser_Root;
         }
-        try(cmd_makedir(should_create_parents, permissions.p, owner.u, paths.strings[0], paths.strings[1]));
+        try(cmd_makedir(should_create_parents, permissions.p, owner.u, path, dmg_path));
     }
     else if (!strcmp(argv[1], "pull")) {
         // diskimage pull
-        if (paths.count != 3) {
-            fatal("expected three paths");
-            /* NOT REACHED */
-        }
-
-        try(cmd_pull(paths.strings[0], paths.strings[1], paths.strings[2]));
+        try(cmd_pull(path, dst_path, dmg_path));
     }
     else if (!strcmp(argv[1], "push")) {
         // diskimage push
-        if (paths.count != 3) {
-            fatal("expected three paths");
-            /* NOT REACHED */
-        }
-
         if (!permissions.isValid) {
             permissions.p = FilePermissions_MakeFromOctal(0644);
         }
         if (!owner.isValid) {
             owner.u = kUser_Root;
         }
-        try(cmd_push(permissions.p, owner.u, paths.strings[0], paths.strings[1], paths.strings[2]));
+        try(cmd_push(permissions.p, owner.u, src_path, path, dmg_path));
     }
 
 
