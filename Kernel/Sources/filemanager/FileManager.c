@@ -36,6 +36,11 @@ UserId FileManager_GetRealUserId(FileManagerRef _Nonnull self)
     return self->realUser.uid;
 }
 
+GroupId FileManager_GetRealGroupId(FileManagerRef _Nonnull self)
+{
+    return self->realUser.gid;
+}
+
 // Returns the file creation mask of the receiver. Bits cleared in this mask
 // should be removed from the file permissions that user space sent to create a
 // file system object (note that this is the compliment of umask).

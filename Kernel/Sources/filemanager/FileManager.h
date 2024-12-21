@@ -30,6 +30,7 @@ extern void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Non
 extern void FileManager_Deinit(FileManagerRef _Nonnull self);
 
 extern UserId FileManager_GetRealUserId(FileManagerRef _Nonnull self);
+extern GroupId FileManager_GetRealGroupId(FileManagerRef _Nonnull self);
 
 
 //

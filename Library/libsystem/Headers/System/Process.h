@@ -41,6 +41,15 @@ typedef struct ProcessArguments {
 // umask field of the parent process.
 #define kSpawn_OverrideUserMask     0x0001
 
+// The new process should use the provided user id rather than the parent process
+// user id. Parent process must be the superuser (XXX for now).
+#define kSpawn_OverrideUserId       0x0002
+
+// The new process should use the provided group id rather than the parent process
+// group id. Parent process must be the superuser (XXX for now).
+#define kSpawn_OverrideGroupId       0x0004
+
+
 // The 'envp' pointer points to a table of nul-terminated strings of the form
 // 'key=value'. The last entry in the table has to be NULL. All these strings
 // are the enviornment variables that should be passed to the new process.
@@ -52,6 +61,8 @@ typedef struct SpawnOptions {
     const char* _Nullable               root_dir;               // Process root directory, if not NULL; otherwise inherited from the parent
     const char* _Nullable               cw_dir;                 // Process current working directory, if not NULL; otherwise inherited from the parent
     FilePermissions                     umask;                  // Override umask
+    UserId                              uid;                    // Override user ID
+    GroupId                             gid;                    // Override group ID
     int                                 notificationQueue;      // If >= 0 then this queue will receive termination notifications
     Dispatch_Closure _Nullable          notificationClosure;
     void* _Nullable                     notificationContext;
@@ -84,6 +95,7 @@ extern ProcessId Process_GetParentId(void);
 
 
 extern UserId Process_GetUserId(void);
+extern GroupId Process_GetGroupId(void);
 
 
 extern errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, ProcessId* _Nullable rpid);

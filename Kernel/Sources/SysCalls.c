@@ -461,6 +461,12 @@ SYSCALL_0(getuid)
     return Process_GetRealUserId(Process_GetCurrent());
 }
 
+SYSCALL_0(getgid)
+{
+    return Process_GetRealGroupId(Process_GetCurrent());
+}
+
+
 SYSCALL_0(getpargs)
 {
     return (intptr_t) Process_GetArgumentsBaseAddress(Process_GetCurrent());
@@ -540,6 +546,8 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(cv_create),
     REF_SYSCALL(cv_wake),
     REF_SYSCALL(cv_wait),
+    REF_SYSCALL(dispatch_remove_by_tag),
     REF_SYSCALL(mount),
     REF_SYSCALL(unmount),
+    REF_SYSCALL(getgid),
 };

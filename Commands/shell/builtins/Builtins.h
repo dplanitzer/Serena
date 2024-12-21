@@ -31,6 +31,7 @@ extern int cmd_echo(struct Interpreter* _Nonnull ip, int argc, char** argv, char
 extern int cmd_exists(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_exit(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_history(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
+extern int cmd_id(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_input(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_list(struct Interpreter* _Nonnull ip, int argc, char** argv, char** envp);
 extern int cmd_load(InterpreterRef _Nonnull ip, int argc, char** argv, char** envp);

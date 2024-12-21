@@ -62,6 +62,7 @@ extern int Process_GetId(ProcessRef _Nonnull pProc);
 extern int Process_GetParentId(ProcessRef _Nonnull pProc);
 
 extern UserId Process_GetRealUserId(ProcessRef _Nonnull pProc);
+extern GroupId Process_GetRealGroupId(ProcessRef _Nonnull pProc);
 
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.

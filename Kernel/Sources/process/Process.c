@@ -153,6 +153,15 @@ UserId Process_GetRealUserId(ProcessRef _Nonnull self)
     return uid;
 }
 
+GroupId Process_GetRealGroupId(ProcessRef _Nonnull self)
+{
+    Lock_Lock(&self->lock);
+    const GroupId gid = FileManager_GetRealGroupId(&self->fm);
+    Lock_Unlock(&self->lock);
+
+    return gid;
+}
+
 // Returns the base address of the process arguments area. The address is
 // relative to the process address space.
 void* _Nonnull Process_GetArgumentsBaseAddress(ProcessRef _Nonnull self)

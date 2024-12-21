@@ -131,6 +131,7 @@ static errno_t Interpreter_DeclareInternalCommands(InterpreterRef _Nonnull self)
     try(NameTable_DeclareName(self->nameTable, "exists", cmd_exists));
     try(NameTable_DeclareName(self->nameTable, "exit", cmd_exit));
     try(NameTable_DeclareName(self->nameTable, "history", cmd_history));
+    try(NameTable_DeclareName(self->nameTable, "id", cmd_id));
     try(NameTable_DeclareName(self->nameTable, "input", cmd_input));
     try(NameTable_DeclareName(self->nameTable, "list", cmd_list));
     try(NameTable_DeclareName(self->nameTable, "load", cmd_load));

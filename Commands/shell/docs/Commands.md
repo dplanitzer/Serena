@@ -119,6 +119,14 @@ Prints the contents of the shell history to standard out. Each history entry is 
 
 `history`
 
+## `id`
+
+Prints the real user and group id of the logged in user.
+
+### Signature
+
+`id`
+
 ## `if`
 
 Causes the shell to evaluate the provided conditional expression to decide whether execution should continue with the provided then or else block. The else block is optional and execution continues with the first expression following the end of the then block if the conditional expression evaluates to false and there is no else block.

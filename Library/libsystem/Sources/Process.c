@@ -51,6 +51,11 @@ UserId Process_GetUserId(void)
     return _syscall(SC_getuid);
 }
 
+GroupId Process_GetGroupId(void)
+{
+    return _syscall(SC_getgid);
+}
+
 errno_t Process_Spawn(const char* _Nonnull path, const char* _Nullable argv[], const SpawnOptions* _Nullable options, ProcessId* _Nullable rpid)
 {
     return _syscall(SC_spawn_process, path, argv, options, rpid);
