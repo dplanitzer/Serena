@@ -193,12 +193,12 @@ $(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 
-	$(DISKIMAGE) makedir -m=rwxr-xr-- -o=1000:1000 -p /Users/Administrator $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-- -o=1000:1000 $(KERNEL_TESTS_FILE) /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/while.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) makedir -m=rwxr-x--- -o=1000:1000 -p /Users/Administrator $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-x--- -o=1000:1000 $(KERNEL_TESTS_FILE) /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r----- -o=1000:1000 $(DEMOS_DIR)/while.sh /Users/Administrator/ $(BOOT_DMG_FILE)
 
 
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM) | $(PRODUCT_DIR)
