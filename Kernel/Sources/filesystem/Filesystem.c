@@ -344,6 +344,12 @@ errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
     FilePermissions reqPerms = 0;
 
+    // XXX probably temporary until we're getting around to designing a full permission model
+    if (user.uid == 0) {
+        return EOK;
+    }
+    // XXX
+    
     if ((mode & kAccess_Readable) == kAccess_Readable) {
         reqPerms |= kFilePermission_Read;
     }

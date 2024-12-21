@@ -174,29 +174,37 @@ include $(CMDS_PROJECT_DIR)/project.mk
 all: build-rom build-boot-dmg
 	@echo Done (Configuration: $(BUILD_CONFIGURATION))
 
+
 build-rom: $(ROM_FILE)
 
+
 build-boot-dmg: $(BOOT_DMG_FILE)
+
 
 $(BOOT_DMG_FILE): $(LOGIN_FILE) $(SH_FILE) $(TYPE_FILE) $(KERNEL_TESTS_FILE) | $(PRODUCT_DIR)
 	@echo Making boot_disk.adf
 	$(DISKIMAGE) create $(BOOT_DMG_CONFIG) $(BOOT_DMG_FILE)
 	$(DISKIMAGE) format sefs $(BOOT_DMG_FILE)
+
+	$(DISKIMAGE) makedir -p /Users $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -p /System/Commands $(BOOT_DMG_FILE)
 	$(DISKIMAGE) makedir -p /System/Devices $(BOOT_DMG_FILE)
-	$(DISKIMAGE) makedir -p /Users/Administrator $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(LOGIN_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(SH_FILE) /System/Commands/ $(BOOT_DMG_FILE)
 	$(DISKIMAGE) push -m=rwxr-xr-x $(TYPE_FILE) /System/Commands/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rwxr-xr-- $(KERNEL_TESTS_FILE) /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/fibonacci.sh /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/helloworld.sh /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/prime.sh /Users/Administrator/ $(BOOT_DMG_FILE)
-	$(DISKIMAGE) push -m=rw-r--r-- $(DEMOS_DIR)/while.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+
+	$(DISKIMAGE) makedir -m=rwxr-xr-- -o=1000:1000 -p /Users/Administrator $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rwxr-xr-- -o=1000:1000 $(KERNEL_TESTS_FILE) /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/fibonacci.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/helloworld.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/prime.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+	$(DISKIMAGE) push -m=rw-r--r-- -o=1000:1000 $(DEMOS_DIR)/while.sh /Users/Administrator/ $(BOOT_DMG_FILE)
+
 
 $(ROM_FILE): $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM) | $(PRODUCT_DIR)
 	@echo Making ROM
 	$(MAKEROM) $(ROM_FILE) $(KERNEL_FILE) $(BOOT_DMG_FILE_FOR_ROM)
+
 
 $(PRODUCT_DIR):
 	$(call mkdir_if_needed,$(PRODUCT_DIR))

@@ -53,9 +53,13 @@ static errno_t start_shell(const char* _Nonnull shellPath, const char* _Nonnull 
     envp[1] = NULL;
 
     opts.envp = envp;
+    opts.umask = 0022;  // XXX hardcoded for now
+    opts.uid = 1000;    // XXX hardcoded for now
+    opts.gid = 1000;    // XXX hardcoded for now
     opts.notificationQueue = kDispatchQueue_Main;
     opts.notificationClosure = (Dispatch_Closure)on_shell_termination;
     opts.notificationContext = NULL;
+    opts.options = kSpawn_OverrideUserId | kSpawn_OverrideGroupId | kSpawn_OverrideUserMask;
 
 
     // Spawn the shell
