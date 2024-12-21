@@ -13,17 +13,20 @@
 
 #define BLOCK_SIZE  4096
 
-errno_t cmd_pull(const char* _Nonnull path, const char* _Nonnull dstPath, const char* _Nonnull dmgPath)
+errno_t cmd_pull(const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     DiskControllerRef self;
     IOChannelRef chan = NULL;
     FILE* fp = NULL;
     char* buf = NULL;
+    char* dstPath = NULL;
 
     try(DiskController_CreateWithContentsOfPath(dmgPath, &self));
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
-    try(FileManager_OpenFile(&self->fm, path, kOpen_Read, &chan));
+    try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
+
+    try(FileManager_OpenFile(&self->fm, srcPath, kOpen_Read, &chan));
     try_null(fp, fopen(dstPath, "wb"), errno);
 
     while (true) {
@@ -50,6 +53,7 @@ catch:
         fclose(fp);
     }
     IOChannel_Release(chan);
+    free(dstPath);
     free(buf);
     DiskController_Destroy(self);
     return err;

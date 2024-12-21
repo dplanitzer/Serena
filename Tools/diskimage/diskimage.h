@@ -60,8 +60,10 @@ typedef struct di_owner_spec {
 } di_owner_spec_t;
 
 
-extern void vfatal(const char* fmt, va_list ap);
-extern void fatal(const char* fmt, ...);
+extern void vfatal(const char* _Nonnull fmt, va_list ap);
+extern void fatal(const char* _Nonnull fmt, ...);
+
+extern char* _Nullable create_dst_path(const char* _Nonnull srcPath, const char* _Nonnull path);
 
 extern errno_t cmd_create(const DiskImageFormat* _Nonnull diskImageFormat, const char* _Nonnull dmgPath);
 extern errno_t cmd_create_disk(const char* _Nonnull rootPath, const char* _Nonnull dmgPath, const DiskImageFormat* _Nonnull diskImageFormat);

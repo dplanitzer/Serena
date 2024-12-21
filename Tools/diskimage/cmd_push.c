@@ -52,11 +52,13 @@ errno_t cmd_push(FilePermissions filePerms, User owner, const char* _Nonnull src
     IOChannelRef chan = NULL;
     FILE* fp = NULL;
     char* buf = NULL;
+    char* dstPath = NULL;
 
     try(DiskController_CreateWithContentsOfPath(dmgPath, &self));
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
+    try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
 
-    try(_create_file(&self->fm, path, filePerms, owner, &chan));
+    try(_create_file(&self->fm, dstPath, filePerms, owner, &chan));
     try_null(fp, fopen(srcPath, "rb"), errno);
 
     while (true) {
@@ -89,6 +91,7 @@ catch:
         fclose(fp);
     }
     IOChannel_Release(chan);
+    free(dstPath);
     free(buf);
     DiskController_Destroy(self);
     return err;
