@@ -10,20 +10,18 @@
 #include <System/ByteOrder.h>
 
 
-void BlockAllocator_Init(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer)
+void BlockAllocator_Init(BlockAllocator* _Nonnull self)
 {
     memset(self, 0, sizeof(BlockAllocator));
     Lock_Init(&self->lock);
-    self->fsContainer = fsContainer;
 }
 
 void BlockAllocator_Deinit(BlockAllocator* _Nonnull self)
 {
-    self->fsContainer = NULL;
     Lock_Deinit(&self->lock);
 }
 
-errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize)
+errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize)
 {
     decl_try_err();
     const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volumeBlockCount);
@@ -37,20 +35,21 @@ errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, const SFSVolumeHeade
     self->bitmapLba = UInt32_BigToHost(vhp->allocationBitmapLba);
     self->bitmapBlockCount = (allocBitmapByteSize + (blockSize - 1)) / blockSize;
     self->bitmapByteSize = allocBitmapByteSize;
+    self->blockSize = blockSize;
     self->volumeBlockCount = volumeBlockCount;
 
-
+    try(FSAllocateCleared((self->bitmapBlockCount + 7) >> 3, (void**)&self->dirtyBitmapBlocks));
     try(FSAllocate(allocBitmapByteSize, (void**)&self->bitmap));
     uint8_t* pAllocBitmap = self->bitmap;
 
 
     for (LogicalBlockAddress lba = 0; lba < self->bitmapBlockCount; lba++) {
-        const size_t nBytesToCopy = __min(kSFSBlockSize, allocBitmapByteSize);
+        const size_t nBytesToCopy = __min(blockSize, allocBitmapByteSize);
         DiskBlockRef pBlock;
 
-        try(FSContainer_AcquireBlock(self->fsContainer, self->bitmapLba + lba, kAcquireBlock_ReadOnly, &pBlock));
+        try(FSContainer_AcquireBlock(fsContainer, self->bitmapLba + lba, kAcquireBlock_ReadOnly, &pBlock));
         memcpy(pAllocBitmap, DiskBlock_GetData(pBlock), nBytesToCopy);
-        FSContainer_RelinquishBlock(self->fsContainer, pBlock);
+        FSContainer_RelinquishBlock(fsContainer, pBlock);
         pBlock = NULL;
 
         allocBitmapByteSize -= nBytesToCopy;
@@ -63,6 +62,9 @@ catch:
 
 void BlockAllocator_Stop(BlockAllocator* _Nonnull self)
 {
+    FSDeallocate(self->dirtyBitmapBlocks);
+    self->dirtyBitmapBlocks = NULL;
+
     FSDeallocate(self->bitmap);
     self->bitmap = NULL;
 
@@ -92,22 +94,6 @@ void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bo
     }
 }
 
-
-static errno_t SerenaFS_WriteBackAllocationBitmapForLba(BlockAllocator* _Nonnull self, LogicalBlockAddress lba)
-{
-    decl_try_err();
-    const LogicalBlockAddress idxOfAllocBitmapBlockModified = (lba >> 3) / kSFSBlockSize;
-    const uint8_t* pBitmapData = &self->bitmap[idxOfAllocBitmapBlockModified * kSFSBlockSize];
-    const LogicalBlockAddress allocationBitmapBlockLba = self->bitmapLba + idxOfAllocBitmapBlockModified;
-    DiskBlockRef pBlock;
-
-    if ((err = FSContainer_AcquireBlock(self->fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &pBlock)) == EOK) {
-        memcpy(DiskBlock_GetMutableData(pBlock), pBitmapData, self->bitmapByteSize);
-        FSContainer_RelinquishBlockWriting(self->fsContainer, pBlock, kWriteBlock_Sync);
-    }
-    return err;
-}
-
 errno_t BlockAllocator_Allocate(BlockAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
@@ -126,7 +112,7 @@ errno_t BlockAllocator_Allocate(BlockAllocator* _Nonnull self, LogicalBlockAddre
     }
 
     AllocationBitmap_SetBlockInUse(self->bitmap, lba, true);
-    try(SerenaFS_WriteBackAllocationBitmapForLba(self, lba));
+    AllocationBitmap_SetBlockInUse(self->dirtyBitmapBlocks, (lba >> 3) / self->blockSize, true);
     Lock_Unlock(&self->lock);
 
     *pOutLba = lba;
@@ -138,6 +124,7 @@ catch:
     }
     Lock_Unlock(&self->lock);
     *pOutLba = 0;
+
     return err;
 }
 
@@ -149,8 +136,36 @@ void BlockAllocator_Deallocate(BlockAllocator* _Nonnull self, LogicalBlockAddres
 
     Lock_Lock(&self->lock);
     AllocationBitmap_SetBlockInUse(self->bitmap, lba, false);
-
-    // XXX check for error here?
-    SerenaFS_WriteBackAllocationBitmapForLba(self, lba);
+    AllocationBitmap_SetBlockInUse(self->dirtyBitmapBlocks, (lba >> 3) / self->blockSize, true);
     Lock_Unlock(&self->lock);
+}
+
+errno_t BlockAllocator_CommitToDisk(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer)
+{
+    decl_try_err();
+
+    Lock_Lock(&self->lock);
+
+    for (LogicalBlockAddress i = 0; i < self->bitmapBlockCount; i++) {
+        if (AllocationBitmap_IsBlockInUse(self->dirtyBitmapBlocks, i)) {
+            const LogicalBlockAddress allocationBitmapBlockLba = self->bitmapLba + i;
+            const uint8_t* pBitmapData = &self->bitmap[i * self->blockSize];
+            DiskBlockRef pBlock;
+
+            if ((err = FSContainer_AcquireBlock(fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &pBlock)) == EOK) {
+                memcpy(DiskBlock_GetMutableData(pBlock), pBitmapData, self->bitmapByteSize);
+                FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+            }
+
+            if (err != EOK) {
+                break;
+            }
+
+            AllocationBitmap_SetBlockInUse(self->dirtyBitmapBlocks, i, false);
+        }
+    }
+
+    Lock_Unlock(&self->lock);
+
+    return err;
 }

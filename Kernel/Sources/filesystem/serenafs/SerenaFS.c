@@ -23,7 +23,7 @@ errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullabl
     try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
     SELock_Init(&self->seLock);
     Lock_Init(&self->moveLock);
-    BlockAllocator_Init(&self->blockAllocator, pContainer);
+    BlockAllocator_Init(&self->blockAllocator);
 
     *pOutSelf = self;
     return EOK;
@@ -93,7 +93,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 
 
     // Cache the allocation bitmap in RAM
-    try(BlockAllocator_Start(&self->blockAllocator, vhp, blockSize));
+    try(BlockAllocator_Start(&self->blockAllocator, fsContainer, vhp, blockSize));
 
 
     self->mountFlags.isMounted = 1;

@@ -42,7 +42,10 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
     return err;
 }
 
-// Acquires the file block 'fba' in the file 'pInode'.
+// Acquires the file block 'fba' in the file 'pInode'. Note that this function
+// allocates a new file block if 'mode' implies a write operation and the required
+// file block doesn't exist yet. However this function does not commit the updated
+// allocation bitmap back to disk. The caller has to trigger this.
 // XXX 'fba' should be LogicalBlockAddress. However we want to be able to detect overflows
 errno_t SerenaFS_AcquireFileBlock(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, int fba, AcquireBlock mode, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
@@ -195,6 +198,11 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
         offset += (FileOffset)nBytesToWriteInCurrentBlock;
     }
 
+    const errno_t e2 = BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
+    if (err == EOK) {
+        err = e2;
+    }
+
     if (nBytesWritten > 0) {
         if (offset > Inode_GetFileSize(pNode)) {
             Inode_SetFileSize(pNode, offset);
@@ -264,6 +272,7 @@ errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked 
 void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode, FileOffset newLength)
 {
     decl_try_err();
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     const FileOffset oldLength = Inode_GetFileSize(pNode);
     SFSBlockNumber* ino_bmap = Inode_GetBlockMap(pNode);
     const SFSBlockNumber bn_nlen = (SFSBlockNumber)(newLength >> (FileOffset)kSFSBlockSizeShift);   //XXX should be 64bit
@@ -283,7 +292,6 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     const LogicalBlockAddress i1_lba = UInt32_BigToHost(ino_bmap[kSFSDirectBlockPointersCount]);
 
     if (i1_lba != 0) {
-        FSContainerRef fsContainer = Filesystem_GetContainer(self);
         DiskBlockRef pBlock;
 
         err = FSContainer_AcquireBlock(fsContainer, i1_lba, kAcquireBlock_Update, &pBlock);
@@ -310,6 +318,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
         }
     }
 
+    BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
 
     Inode_SetFileSize(pNode, newLength);
     Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);

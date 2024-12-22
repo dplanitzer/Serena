@@ -57,11 +57,15 @@ typedef struct SFSDirectoryEntryPointer {
 
 typedef struct BlockAllocator {
     Lock                    lock;                   // Protects all block allocation related state
-    FSContainerRef _Nonnull fsContainer; 
-    LogicalBlockAddress     bitmapLba;              // Info for writing the allocation bitmap back to disk
-    LogicalBlockCount       bitmapBlockCount;       // -"-
+
     uint8_t* _Nullable      bitmap;
     size_t                  bitmapByteSize;
+    LogicalBlockAddress     bitmapLba;              // Info for writing the allocation bitmap back to disk
+    LogicalBlockCount       bitmapBlockCount;       // -"-
+
+    uint8_t* _Nullable      dirtyBitmapBlocks;      // Each bit represents a block of the bitmap that has changed and needs to be committed to disk
+
+    size_t                  blockSize;              // Disk block size in bytes
     uint32_t                volumeBlockCount;
 } BlockAllocator;
 
@@ -89,13 +93,14 @@ typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSr
 typedef void (*SFSWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
 
 
-extern void BlockAllocator_Init(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer);
+extern void BlockAllocator_Init(BlockAllocator* _Nonnull self);
 extern void BlockAllocator_Deinit(BlockAllocator* _Nonnull self);
-extern errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize);
+extern errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize);
 extern void BlockAllocator_Stop(BlockAllocator* _Nonnull self);
 extern void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bool inUse);
 extern errno_t BlockAllocator_Allocate(BlockAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba);
 extern void BlockAllocator_Deallocate(BlockAllocator* _Nonnull self, LogicalBlockAddress lba);
+extern errno_t BlockAllocator_CommitToDisk(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer);
 
 extern errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);

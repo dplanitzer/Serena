@@ -314,6 +314,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
             }
 
             try(BlockAllocator_Allocate(&self->blockAllocator, &lba));
+            try(BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer));
             ino_bmap[idx] = UInt32_HostToBig(lba);
             
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock));

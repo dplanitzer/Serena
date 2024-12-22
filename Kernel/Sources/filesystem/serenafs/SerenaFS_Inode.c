@@ -57,6 +57,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
         fileSize = 2 * sizeof(SFSDirectoryEntry);
     }
 
+    try(BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer));
+
     try(Inode_Create(
         (FilesystemRef)self,
         (InodeId)inodeLba,
@@ -107,6 +109,7 @@ catch:
     if (inodeLba != 0) {
         BlockAllocator_Deallocate(&self->blockAllocator, inodeLba);
     }
+    BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
     *pOutNode = NULL;
 
     return err;
@@ -186,10 +189,9 @@ catch:
     return err;
 }
 
-static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
+static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, FSContainerRef _Nonnull fsContainer, InodeRef _Nonnull pNode)
 {
     decl_try_err();
-    FSContainerRef fsContainer = Filesystem_GetContainer(self);
     DiskBlockRef pBlock;
     const SFSBlockNumber* l0_bmap = (const SFSBlockNumber*)Inode_GetBlockMap(pNode);
 
@@ -218,7 +220,9 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, Inod
 void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull pNode)
 {
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
+    FSContainerRef fsContainer = Filesystem_GetContainer(self);
 
-    SerenaFS_DeallocateFileContentBlocks(self, pNode);
+    SerenaFS_DeallocateFileContentBlocks(self, fsContainer, pNode);
     BlockAllocator_Deallocate(&self->blockAllocator, lba);
+    BlockAllocator_CommitToDisk(&self->blockAllocator, fsContainer);
 }
