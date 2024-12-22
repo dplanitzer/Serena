@@ -6,7 +6,9 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#include "SerenaFSPriv.h"
+#include "BlockAllocator.h"
+#include <filesystem/FSContainer.h>
+#include <filesystem/FSUtilities.h>
 #include <System/ByteOrder.h>
 
 
