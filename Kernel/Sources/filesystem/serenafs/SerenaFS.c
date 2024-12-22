@@ -21,9 +21,9 @@ errno_t SerenaFS_Create(FSContainerRef _Nonnull pContainer, SerenaFSRef _Nullabl
     assert(sizeof(SFSDirectoryEntry) * kSFSDirectoryEntriesPerBlock == kSFSBlockSize);
     
     try(ContainerFilesystem_Create(&kSerenaFSClass, pContainer, (FilesystemRef*)&self));
-    Lock_Init(&self->allocationLock);
     SELock_Init(&self->seLock);
     Lock_Init(&self->moveLock);
+    BlockAllocator_Init(&self->blockAllocator, pContainer);
 
     *pOutSelf = self;
     return EOK;
@@ -37,7 +37,8 @@ void SerenaFS_deinit(SerenaFSRef _Nonnull self)
 {
     Lock_Deinit(&self->moveLock);
     SELock_Deinit(&self->seLock);
-    Lock_Deinit(&self->allocationLock);
+
+    BlockAllocator_Deinit(&self->blockAllocator);
 }
 
 errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, ssize_t paramsSize)
@@ -78,18 +79,13 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
     const uint32_t signature = UInt32_BigToHost(vhp->signature);
     const uint32_t version = UInt32_BigToHost(vhp->version);
     const uint32_t blockSize = UInt32_BigToHost(vhp->blockSize);
-    const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volumeBlockCount);
-    const uint32_t allocationBitmapByteSize = UInt32_BigToHost(vhp->allocationBitmapByteSize);
 
     if (signature != kSFSSignature_SerenaFS || version != kSFSVersion_v0_1) {
         throw(EIO);
     }
-    if (blockSize != kSFSBlockSize || volumeBlockCount < kSFSVolume_MinBlockCount || allocationBitmapByteSize < 1) {
+    if (blockSize != kSFSBlockSize) {
         throw(EIO);
     }
-
-    const size_t diskBlockSize = blockSize;
-    size_t allocBitmapByteSize = allocationBitmapByteSize;
 
 
     // Cache the root directory info
@@ -97,26 +93,7 @@ errno_t SerenaFS_start(SerenaFSRef _Nonnull self, const void* _Nonnull pParams, 
 
 
     // Cache the allocation bitmap in RAM
-    self->allocationBitmapLba = UInt32_BigToHost(vhp->allocationBitmapLba);
-    self->allocationBitmapBlockCount = (allocBitmapByteSize + (diskBlockSize - 1)) / diskBlockSize;
-    self->allocationBitmapByteSize = allocBitmapByteSize;
-    self->volumeBlockCount = volumeBlockCount;
-
-    try(FSAllocate(allocBitmapByteSize, (void**)&self->allocationBitmap));
-    uint8_t* pAllocBitmap = self->allocationBitmap;
-
-    for (LogicalBlockAddress lba = 0; lba < self->allocationBitmapBlockCount; lba++) {
-        const size_t nBytesToCopy = __min(kSFSBlockSize, allocBitmapByteSize);
-        DiskBlockRef pBlock;
-
-        try(FSContainer_AcquireBlock(fsContainer, self->allocationBitmapLba + lba, kAcquireBlock_ReadOnly, &pBlock));
-        memcpy(pAllocBitmap, DiskBlock_GetData(pBlock), nBytesToCopy);
-        FSContainer_RelinquishBlock(fsContainer, pBlock);
-        pBlock = NULL;
-
-        allocBitmapByteSize -= nBytesToCopy;
-        pAllocBitmap += diskBlockSize;
-    }
+    try(BlockAllocator_Start(&self->blockAllocator, vhp, blockSize));
 
 
     self->mountFlags.isMounted = 1;
@@ -155,10 +132,10 @@ errno_t SerenaFS_stop(SerenaFSRef _Nonnull self)
     // XXX flush all still cached file data to disk (synchronously)
 
     // XXX flush the allocation bitmap to disk (synchronously)
-    // XXX free the allocation bitmap and clear self->volumeBlockCount
 
-    // XXX clear rootDirLba
-    
+    self->rootDirLba = 0;
+    BlockAllocator_Stop(&self->blockAllocator);
+
     self->mountFlags.isMounted = 0;
 
 catch:

@@ -35,14 +35,14 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
     }
 
     try(kalloc_cleared(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bmap));
-    try(SerenaFS_AllocateBlock(self, &inodeLba));
+    try(BlockAllocator_Allocate(&self->blockAllocator, &inodeLba));
     
     if (type == kFileType_Directory) {
         // Write the initial directory content. These are just the '.' and '..'
         // entries
         DiskBlockRef pBlock;
 
-        try(SerenaFS_AllocateBlock(self, &dirContLba));
+        try(BlockAllocator_Allocate(&self->blockAllocator, &dirContLba));
         bmap[0] = UInt32_HostToBig(dirContLba);
 
         try(FSContainer_AcquireBlock(fsContainer, dirContLba, kAcquireBlock_Cleared, &pBlock));
@@ -102,10 +102,10 @@ catch:
     FSDeallocate(bmap);
 
     if (dirContLba != 0) {
-        SerenaFS_DeallocateBlock(self, dirContLba);
+        BlockAllocator_Deallocate(&self->blockAllocator, dirContLba);
     }
     if (inodeLba != 0) {
-        SerenaFS_DeallocateBlock(self, inodeLba);
+        BlockAllocator_Deallocate(&self->blockAllocator, inodeLba);
     }
     *pOutNode = NULL;
 
@@ -199,18 +199,18 @@ static void SerenaFS_DeallocateFileContentBlocks(SerenaFSRef _Nonnull self, Inod
 
             for (int i = 0; i < kSFSBlockPointersPerBlockCount; i++) {
                 if (l1_bmap[i] != 0) {
-                    SerenaFS_DeallocateBlock(self, UInt32_BigToHost(l1_bmap[i]));
+                    BlockAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l1_bmap[i]));
                 }
             }
 
             FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
         }
-        SerenaFS_DeallocateBlock(self, UInt32_BigToHost(l0_bmap[kSFSDirectBlockPointersCount]));
+        BlockAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l0_bmap[kSFSDirectBlockPointersCount]));
     }
 
     for (int i = 0; i < kSFSDirectBlockPointersCount; i++) {
         if (l0_bmap[i] != 0) {
-            SerenaFS_DeallocateBlock(self, UInt32_BigToHost(l0_bmap[i]));
+            BlockAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(l0_bmap[i]));
         }
     }
 }
@@ -220,5 +220,5 @@ void SerenaFS_onRemoveNodeFromDisk(SerenaFSRef _Nonnull self, InodeRef _Nonnull 
     const LogicalBlockAddress lba = (LogicalBlockAddress)Inode_GetId(pNode);
 
     SerenaFS_DeallocateFileContentBlocks(self, pNode);
-    SerenaFS_DeallocateBlock(self, lba);
+    BlockAllocator_Deallocate(&self->blockAllocator, lba);
 }

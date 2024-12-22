@@ -30,7 +30,7 @@ static errno_t acquire_disk_block(SerenaFSRef _Nonnull self, LogicalBlockAddress
         else {
             LogicalBlockAddress new_lba;
 
-            if((err = SerenaFS_AllocateBlock(self, &new_lba)) == EOK) {
+            if((err = BlockAllocator_Allocate(&self->blockAllocator, &new_lba)) == EOK) {
                 *pOutLba = UInt32_HostToBig(new_lba);
                 *pOutIsAlloc = true;
 
@@ -273,7 +273,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     if (bn_first_to_discard < kSFSDirectBlockPointersCount) {
         for (SFSBlockNumber bn = bn_first_to_discard; bn < kSFSDirectBlockPointersCount; bn++) {
             if (ino_bmap[bn] != 0) {
-                SerenaFS_DeallocateBlock(self, UInt32_BigToHost(ino_bmap[bn]));
+                BlockAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(ino_bmap[bn]));
                 ino_bmap[bn] = 0;
             }
         }
@@ -292,7 +292,7 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
 
             for (SFSBlockNumber bn = bn_first_i1_to_discard; bn < kSFSBlockPointersPerBlockCount; bn++) {
                 if (i1_bmap[bn] != 0) {
-                    SerenaFS_DeallocateBlock(self, UInt32_BigToHost(i1_bmap[bn]));
+                    BlockAllocator_Deallocate(&self->blockAllocator, UInt32_BigToHost(i1_bmap[bn]));
                     i1_bmap[bn] = 0;
                 }
             }

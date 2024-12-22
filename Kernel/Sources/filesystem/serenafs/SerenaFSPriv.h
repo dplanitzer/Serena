@@ -55,6 +55,17 @@ typedef struct SFSDirectoryEntryPointer {
 // SerenaFS
 //
 
+typedef struct BlockAllocator {
+    Lock                    lock;                   // Protects all block allocation related state
+    FSContainerRef _Nonnull fsContainer; 
+    LogicalBlockAddress     bitmapLba;              // Info for writing the allocation bitmap back to disk
+    LogicalBlockCount       bitmapBlockCount;       // -"-
+    uint8_t* _Nullable      bitmap;
+    size_t                  bitmapByteSize;
+    uint32_t                volumeBlockCount;
+} BlockAllocator;
+
+
 // SerenaFS Locking:
 //
 // seLock:         provides exclusion for mount, unmount and acquire-root-node
@@ -69,12 +80,7 @@ final_class_ivars(SerenaFS, ContainerFilesystem,
         unsigned int    reserved:29;
     }                       mountFlags; // Flags that remain constant as long as the FS is mounted
 
-    Lock                    allocationLock;                 // Protects all block allocation related state    
-    LogicalBlockAddress     allocationBitmapLba;            // Info for writing the allocation bitmap back to disk
-    LogicalBlockCount       allocationBitmapBlockCount;     // -"-
-    uint8_t* _Nullable      allocationBitmap;
-    size_t                  allocationBitmapByteSize;
-    uint32_t                volumeBlockCount;
+    BlockAllocator          blockAllocator;
 
     LogicalBlockAddress     rootDirLba;                     // Root directory LBA (This is the inode id at the same time)
 );
@@ -83,9 +89,13 @@ typedef ssize_t (*SFSReadCallback)(void* _Nonnull pDst, const void* _Nonnull pSr
 typedef void (*SFSWriteCallback)(void* _Nonnull pDst, const void* _Nonnull pSrc, ssize_t n);
 
 
+extern void BlockAllocator_Init(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer);
+extern void BlockAllocator_Deinit(BlockAllocator* _Nonnull self);
+extern errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize);
+extern void BlockAllocator_Stop(BlockAllocator* _Nonnull self);
 extern void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bool inUse);
-extern errno_t SerenaFS_AllocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba);
-extern void SerenaFS_DeallocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress lba);
+extern errno_t BlockAllocator_Allocate(BlockAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba);
+extern void BlockAllocator_Deallocate(BlockAllocator* _Nonnull self, LogicalBlockAddress lba);
 
 extern errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t SerenaFS_onReadNodeFromDisk(SerenaFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);

@@ -7,8 +7,70 @@
 //
 
 #include "SerenaFSPriv.h"
+#include <System/ByteOrder.h>
 
 
+void BlockAllocator_Init(BlockAllocator* _Nonnull self, FSContainerRef _Nonnull fsContainer)
+{
+    memset(self, 0, sizeof(BlockAllocator));
+    Lock_Init(&self->lock);
+    self->fsContainer = fsContainer;
+}
+
+void BlockAllocator_Deinit(BlockAllocator* _Nonnull self)
+{
+    self->fsContainer = NULL;
+    Lock_Deinit(&self->lock);
+}
+
+errno_t BlockAllocator_Start(BlockAllocator* _Nonnull self, const SFSVolumeHeader* _Nonnull vhp, size_t blockSize)
+{
+    decl_try_err();
+    const uint32_t volumeBlockCount = UInt32_BigToHost(vhp->volumeBlockCount);
+    const uint32_t allocationBitmapByteSize = UInt32_BigToHost(vhp->allocationBitmapByteSize);
+
+    if (allocationBitmapByteSize < 1 || volumeBlockCount < kSFSVolume_MinBlockCount) {
+        return EIO;
+    }
+
+    size_t allocBitmapByteSize = allocationBitmapByteSize;
+    self->bitmapLba = UInt32_BigToHost(vhp->allocationBitmapLba);
+    self->bitmapBlockCount = (allocBitmapByteSize + (blockSize - 1)) / blockSize;
+    self->bitmapByteSize = allocBitmapByteSize;
+    self->volumeBlockCount = volumeBlockCount;
+
+
+    try(FSAllocate(allocBitmapByteSize, (void**)&self->bitmap));
+    uint8_t* pAllocBitmap = self->bitmap;
+
+
+    for (LogicalBlockAddress lba = 0; lba < self->bitmapBlockCount; lba++) {
+        const size_t nBytesToCopy = __min(kSFSBlockSize, allocBitmapByteSize);
+        DiskBlockRef pBlock;
+
+        try(FSContainer_AcquireBlock(self->fsContainer, self->bitmapLba + lba, kAcquireBlock_ReadOnly, &pBlock));
+        memcpy(pAllocBitmap, DiskBlock_GetData(pBlock), nBytesToCopy);
+        FSContainer_RelinquishBlock(self->fsContainer, pBlock);
+        pBlock = NULL;
+
+        allocBitmapByteSize -= nBytesToCopy;
+        pAllocBitmap += blockSize;
+    }
+
+catch:
+    return err;
+}
+
+void BlockAllocator_Stop(BlockAllocator* _Nonnull self)
+{
+    FSDeallocate(self->bitmap);
+    self->bitmap = NULL;
+
+    self->bitmapBlockCount = 0;
+    self->bitmapByteSize = 0;
+    self->bitmapLba = 0;
+    self->volumeBlockCount = 0;
+}
 
 // Returns true if the allocation block 'lba' is in use and false otherwise
 static bool AllocationBitmap_IsBlockInUse(const uint8_t *bitmap, LogicalBlockAddress lba)
@@ -31,31 +93,30 @@ void AllocationBitmap_SetBlockInUse(uint8_t *bitmap, LogicalBlockAddress lba, bo
 }
 
 
-static errno_t SerenaFS_WriteBackAllocationBitmapForLba(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
+static errno_t SerenaFS_WriteBackAllocationBitmapForLba(BlockAllocator* _Nonnull self, LogicalBlockAddress lba)
 {
     decl_try_err();
     const LogicalBlockAddress idxOfAllocBitmapBlockModified = (lba >> 3) / kSFSBlockSize;
-    const uint8_t* pBitmapData = &self->allocationBitmap[idxOfAllocBitmapBlockModified * kSFSBlockSize];
-    const LogicalBlockAddress allocationBitmapBlockLba = self->allocationBitmapLba + idxOfAllocBitmapBlockModified;
-    FSContainerRef fsContainer = Filesystem_GetContainer(self);
+    const uint8_t* pBitmapData = &self->bitmap[idxOfAllocBitmapBlockModified * kSFSBlockSize];
+    const LogicalBlockAddress allocationBitmapBlockLba = self->bitmapLba + idxOfAllocBitmapBlockModified;
     DiskBlockRef pBlock;
 
-    if ((err = FSContainer_AcquireBlock(fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &pBlock)) == EOK) {
-        memcpy(DiskBlock_GetMutableData(pBlock), pBitmapData, self->allocationBitmapByteSize);
-        FSContainer_RelinquishBlockWriting(fsContainer, pBlock, kWriteBlock_Sync);
+    if ((err = FSContainer_AcquireBlock(self->fsContainer, allocationBitmapBlockLba, kAcquireBlock_Cleared, &pBlock)) == EOK) {
+        memcpy(DiskBlock_GetMutableData(pBlock), pBitmapData, self->bitmapByteSize);
+        FSContainer_RelinquishBlockWriting(self->fsContainer, pBlock, kWriteBlock_Sync);
     }
     return err;
 }
 
-errno_t SerenaFS_AllocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
+errno_t BlockAllocator_Allocate(BlockAllocator* _Nonnull self, LogicalBlockAddress* _Nonnull pOutLba)
 {
     decl_try_err();
     LogicalBlockAddress lba = 0;    // Safe because LBA #0 is the volume header which is always allocated when the FS is mounted
 
-    Lock_Lock(&self->allocationLock);
+    Lock_Lock(&self->lock);
 
     for (LogicalBlockAddress i = 1; i < self->volumeBlockCount; i++) {
-        if (!AllocationBitmap_IsBlockInUse(self->allocationBitmap, i)) {
+        if (!AllocationBitmap_IsBlockInUse(self->bitmap, i)) {
             lba = i;
             break;
         }
@@ -64,32 +125,32 @@ errno_t SerenaFS_AllocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress* _
         throw(ENOSPC);
     }
 
-    AllocationBitmap_SetBlockInUse(self->allocationBitmap, lba, true);
+    AllocationBitmap_SetBlockInUse(self->bitmap, lba, true);
     try(SerenaFS_WriteBackAllocationBitmapForLba(self, lba));
-    Lock_Unlock(&self->allocationLock);
+    Lock_Unlock(&self->lock);
 
     *pOutLba = lba;
     return EOK;
 
 catch:
     if (lba > 0) {
-        AllocationBitmap_SetBlockInUse(self->allocationBitmap, lba, false);
+        AllocationBitmap_SetBlockInUse(self->bitmap, lba, false);
     }
-    Lock_Unlock(&self->allocationLock);
+    Lock_Unlock(&self->lock);
     *pOutLba = 0;
     return err;
 }
 
-void SerenaFS_DeallocateBlock(SerenaFSRef _Nonnull self, LogicalBlockAddress lba)
+void BlockAllocator_Deallocate(BlockAllocator* _Nonnull self, LogicalBlockAddress lba)
 {
     if (lba == 0) {
         return;
     }
 
-    Lock_Lock(&self->allocationLock);
-    AllocationBitmap_SetBlockInUse(self->allocationBitmap, lba, false);
+    Lock_Lock(&self->lock);
+    AllocationBitmap_SetBlockInUse(self->bitmap, lba, false);
 
     // XXX check for error here?
     SerenaFS_WriteBackAllocationBitmapForLba(self, lba);
-    Lock_Unlock(&self->allocationLock);
+    Lock_Unlock(&self->lock);
 }

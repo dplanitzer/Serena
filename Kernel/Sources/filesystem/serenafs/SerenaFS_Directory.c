@@ -313,7 +313,7 @@ errno_t SerenaFS_InsertDirectoryEntry(SerenaFSRef _Nonnull self, InodeRef _Nonnu
                 throw(EIO);
             }
 
-            try(SerenaFS_AllocateBlock(self, &lba));
+            try(BlockAllocator_Allocate(&self->blockAllocator, &lba));
             ino_bmap[idx] = UInt32_HostToBig(lba);
             
             try(FSContainer_AcquireBlock(fsContainer, lba, kAcquireBlock_Cleared, &pBlock));
