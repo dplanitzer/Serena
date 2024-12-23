@@ -12,6 +12,36 @@
 #include <filesystem/FileChannel.h>
 
 
+errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode)
+{
+    decl_try_err();
+    FilesystemRef fs = Inode_GetFilesystem(pFile);
+    AccessMode accessMode = 0;
+
+    if (Inode_IsDirectory(pFile)) {
+        return EISDIR;
+    }
+
+    if ((mode & kOpen_ReadWrite) == 0) {
+        return EACCESS;
+    }
+    if ((mode & kOpen_Read) == kOpen_Read) {
+        accessMode |= kAccess_Readable;
+    }
+    if ((mode & kOpen_Write) == kOpen_Write || (mode & kOpen_Truncate) == kOpen_Truncate) {
+        accessMode |= kAccess_Writable;
+    }
+
+    err = Filesystem_OpenFile(fs, pFile, self->realUser, accessMode);
+    if (err == EOK) {
+        if ((mode & kOpen_Truncate) == kOpen_Truncate) {
+            err = Filesystem_TruncateFile(fs, pFile, self->realUser, 0);
+        }
+    }
+    
+    return err;
+}
+
 // Creates a file in the given filesystem location.
 errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnull path, unsigned int mode, FilePermissions permissions, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
@@ -48,7 +78,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
         }
         else {
             Inode_Lock(fileInode);
-            err = Filesystem_OpenFile(pFS, fileInode, mode, self->realUser);
+            err = _FileManager_OpenFile(self, fileInode, mode);
             Inode_Unlock(fileInode);
             throw_iferr(err);
         }
@@ -107,7 +137,7 @@ errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
     Inode_Lock(r.inode);
-    err = Filesystem_OpenFile(Inode_GetFilesystem(r.inode), r.inode, mode, self->realUser);
+    err = _FileManager_OpenFile(self, r.inode, mode);
     Inode_Unlock(r.inode);
     throw_iferr(err);
 
@@ -146,7 +176,7 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
         err = Filesystem_CheckAccess(fs, execFile, self->realUser, kAccess_Readable | kAccess_Executable);
         if (err == EOK) {
             // Open the executable file
-            err = Filesystem_OpenFile(fs, execFile, kOpen_Read, self->realUser);
+            err = _FileManager_OpenFile(self, execFile, kOpen_Read);
         }
     }
     else {
@@ -157,7 +187,7 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
 
 
     // Note that this call takes ownership of the inode reference
-    try(Filesystem_CreateChannel(Inode_GetFilesystem(execFile), execFile, kOpen_Read, pOutChannel));
+    try(Filesystem_CreateChannel(fs, execFile, kOpen_Read, pOutChannel));
 
 
     ResolvedPath_Deinit(&r);

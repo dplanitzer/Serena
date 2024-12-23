@@ -213,42 +213,6 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
     return err;
 }
 
-errno_t SerenaFS_openFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode, User user)
-{
-    decl_try_err();
-    AccessMode accessMode = 0;
-
-    if (Inode_IsDirectory(pFile)) {
-        throw(EISDIR);
-    }
-
-    if ((mode & kOpen_ReadWrite) == 0) {
-        throw(EACCESS);
-    }
-    if ((mode & kOpen_Read) == kOpen_Read) {
-        accessMode |= kAccess_Readable;
-    }
-    if ((mode & kOpen_Write) == kOpen_Write || (mode & kOpen_Truncate) == kOpen_Truncate) {
-        accessMode |= kAccess_Writable;
-    }
-
-    try(Filesystem_CheckAccess(self, pFile, user, accessMode));
-
-
-    // A negative file size is treated as an overflow
-    if (Inode_GetFileSize(pFile) < 0ll || Inode_GetFileSize(pFile) > kSFSLimit_FileSizeMax) {
-        throw(EOVERFLOW);
-    }
-
-
-    if ((mode & kOpen_Truncate) == kOpen_Truncate) {
-        SerenaFS_xTruncateFile(self, pFile, 0);
-    }
-    
-catch:
-    return err;
-}
-
 errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();

@@ -299,9 +299,19 @@ errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     return EOK;
 }
 
-errno_t Filesystem_openFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode, User user)
+errno_t Filesystem_openFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, AccessMode mode)
 {
-    return EIO;
+    decl_try_err();
+
+    err = Filesystem_CheckAccess(self, pFile, user, mode);
+    if (err == EOK) {
+        // A negative file size is treated as an overflow
+        if (Inode_GetFileSize(pFile) < 0ll) {
+            err = EOVERFLOW;
+        }
+    }
+    
+    return err;
 }
 
 errno_t Filesystem_readFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
@@ -321,7 +331,7 @@ errno_t Filesystem_truncateFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _
 
 errno_t Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, User user)
 {
-    return EACCESS;
+    return Filesystem_CheckAccess(self, pDir, user, kAccess_Readable);
 }
 
 errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)

@@ -129,4 +129,11 @@ extern errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonn
 extern errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull atDirPath, uint32_t options);
 #endif  /* __DISKIMAGE__ */
 
+
+//
+// Internal
+//
+
+extern errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode);
+
 #endif /* FileManager_h */

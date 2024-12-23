@@ -223,7 +223,7 @@ open_class_funcs(Filesystem, Object,
 
     // Opens the file identified by the given inode. The file is opened for
     // reading and or writing, depending on the 'mode' bits.
-    errno_t (*openFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, unsigned int mode, User user);
+    errno_t (*openFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, AccessMode mode);
 
     // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
     // from the file 'pFile'.
@@ -375,8 +375,8 @@ invoke_n(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 invoke_n(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
-#define Filesystem_OpenFile(__self, __pFile, __mode, __user) \
-invoke_n(openFile, Filesystem, __self, __pFile, __mode, __user)
+#define Filesystem_OpenFile(__self, __pFile, __user, __mode) \
+invoke_n(openFile, Filesystem, __self, __pFile, __user, __mode)
 
 #define Filesystem_ReadFile(__self, __pFile, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
 invoke_n(readFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)

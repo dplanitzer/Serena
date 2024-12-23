@@ -31,12 +31,13 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull con
 
 
     // Open the disk driver
-    if (Inode_GetFileType(rp_container.inode) != kFileType_Device) {
-        throw(ENODEV);
-    }
-
     Inode_Lock(rp_container.inode);
-    err = Filesystem_OpenFile(Inode_GetFilesystem(rp_container.inode), rp_container.inode, kOpen_ReadWrite, self->realUser);
+    if (Inode_GetFileType(rp_container.inode) == kFileType_Device) {
+        err = _FileManager_OpenFile(self, rp_container.inode, kOpen_ReadWrite);
+    }
+    else {
+        err = ENODEV;
+    }
     Inode_Unlock(rp_container.inode);
     throw_iferr(err);
 

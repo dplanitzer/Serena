@@ -338,11 +338,6 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_openDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, User user)
-{
-    return Filesystem_CheckAccess(self, pDir, user, kAccess_Readable);
-}
-
 errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
