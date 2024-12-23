@@ -18,10 +18,14 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     FilesystemRef fs = Inode_GetFilesystem(pFile);
     AccessMode accessMode = 0;
 
+
+    // This must be some kind of file and not a directory
     if (Inode_IsDirectory(pFile)) {
         return EISDIR;
     }
 
+
+    // Calculate the desired access mode
     if ((mode & kOpen_ReadWrite) == 0) {
         return EACCESS;
     }
@@ -32,10 +36,19 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
         accessMode |= kAccess_Writable;
     }
 
-    err = Filesystem_OpenFile(fs, pFile, self->realUser, accessMode);
+
+    // Check access mode, validate the file size and truncate the file if
+    // requested
+    err = Filesystem_CheckAccess(fs, pFile, self->realUser, accessMode);
     if (err == EOK) {
-        if ((mode & kOpen_Truncate) == kOpen_Truncate) {
-            err = Filesystem_TruncateFile(fs, pFile, self->realUser, 0);
+        if (Inode_GetFileSize(pFile) >= 0ll) {
+            if ((mode & kOpen_Truncate) == kOpen_Truncate) {
+                err = Filesystem_TruncateFile(fs, pFile, self->realUser, 0);
+            }
+        }
+        else {
+            // A negative file size is treated as an overflow
+            err = EOVERFLOW;
         }
     }
     
@@ -134,6 +147,8 @@ errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull 
     decl_try_err();
     ResolvedPath r;
 
+    *pOutChannel = NULL;
+    
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
     Inode_Lock(r.inode);

@@ -19,18 +19,18 @@ static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const
     // Get the inode that represents the new directory
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
-    Inode_Lock(r.inode);
 
     // Make sure that it is actually a directory and that we have at least search
     // permission
+    Inode_Lock(r.inode);
     if (Inode_IsDirectory(r.inode)) {
         err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Searchable);
     }
     else {
         err = ENOTDIR;
     }
-
     Inode_Unlock(r.inode);
+
 
     if (err == EOK) {
         // Remember the new inode as our new directory
@@ -108,6 +108,8 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     decl_try_err();
     ResolvedPath r;
 
+    *pOutChannel = NULL;
+    
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
     Inode_Lock(r.inode);

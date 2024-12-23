@@ -299,21 +299,6 @@ errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     return EOK;
 }
 
-errno_t Filesystem_openFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, AccessMode mode)
-{
-    decl_try_err();
-
-    err = Filesystem_CheckAccess(self, pFile, user, mode);
-    if (err == EOK) {
-        // A negative file size is treated as an overflow
-        if (Inode_GetFileSize(pFile) < 0ll) {
-            err = EOVERFLOW;
-        }
-    }
-    
-    return err;
-}
-
 errno_t Filesystem_readFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
@@ -422,7 +407,6 @@ func_def(createChannel, Filesystem)
 func_def(getFileInfo, Filesystem)
 func_def(setFileInfo, Filesystem)
 func_def(createNode, Filesystem)
-func_def(openFile, Filesystem)
 func_def(readFile, Filesystem)
 func_def(writeFile, Filesystem)
 func_def(truncateFile, Filesystem)

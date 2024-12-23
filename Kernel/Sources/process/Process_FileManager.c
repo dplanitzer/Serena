@@ -77,7 +77,6 @@ errno_t Process_OpenDirectory(ProcessRef _Nonnull self, const char* _Nonnull pat
         IOChannel_Release(chan);
         *pOutIoc = -1;
     }
-
     return err;
 }
 
@@ -109,20 +108,19 @@ void Process_SetFileCreationMask(ProcessRef _Nonnull self, FilePermissions mask)
 errno_t Process_CreateFile(ProcessRef _Nonnull self, const char* _Nonnull path, unsigned int mode, FilePermissions permissions, int* _Nonnull pOutIoc)
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
+    IOChannelRef chan;
 
     Lock_Lock(&self->lock);
     err = FileManager_CreateFile(&self->fm, path, mode, permissions, &chan);
-    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, chan, pOutIoc));
-    chan = NULL;
+    if (err == EOK) {
+        err = IOChannelTable_AdoptChannel(&self->ioChannelTable, chan, pOutIoc);
+    }
     Lock_Unlock(&self->lock);
-    return EOK;
 
-catch:
-    Lock_Unlock(&self->lock);
-    
-    IOChannel_Release(chan);
-    *pOutIoc = -1;
+    if (err != EOK) {
+        IOChannel_Release(chan);
+        *pOutIoc = -1;
+    }
     return err;
 }
 
@@ -131,21 +129,19 @@ catch:
 errno_t Process_OpenFile(ProcessRef _Nonnull self, const char* _Nonnull path, unsigned int mode, int* _Nonnull pOutIoc)
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
+    IOChannelRef chan;
 
     Lock_Lock(&self->lock);
     err = FileManager_OpenFile(&self->fm, path, mode, &chan);
-    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, chan, pOutIoc));
-    chan = NULL;
-
-catch:
+    if (err == EOK) {
+        err = IOChannelTable_AdoptChannel(&self->ioChannelTable, chan, pOutIoc);
+    }
     Lock_Unlock(&self->lock);
 
     if (err != EOK) {
         IOChannel_Release(chan);
         *pOutIoc = -1;
     }
-
     return err;
 }
 
