@@ -288,11 +288,9 @@ void SerenaFS_xTruncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked
     Inode_SetModified(pNode, kInodeFlag_Updated | kInodeFlag_StatusChanged);
 }
 
-errno_t SerenaFS_truncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, FileOffset length)
+errno_t SerenaFS_truncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length)
 {
     decl_try_err();
-
-    try(Filesystem_CheckAccess(self, pFile, user, kAccess_Writable));
 
     const FileOffset oldLength = Inode_GetFileSize(pFile);
     if (oldLength < length) {
@@ -307,6 +305,5 @@ errno_t SerenaFS_truncateFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Lock
         SerenaFS_xTruncateFile(self, pFile, length);
     }
 
-catch:
     return err;
 }

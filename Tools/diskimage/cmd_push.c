@@ -34,7 +34,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
         info.gid = owner.gid;
         info.permissions = perms;
         info.permissionsModifyMask = 0xffff;
-        err = FileManager_SetFileInfoFromIOChannel(fm, chan, &info);
+        err = FileManager_SetFileInfo_ioc(fm, chan, &info);
 
         if (err != EOK) {
             FileManager_Unlink(fm, path);

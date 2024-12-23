@@ -309,7 +309,7 @@ errno_t Filesystem_writeFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Loc
     return EIO;
 }
 
-errno_t Filesystem_truncateFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, FileOffset length)
+errno_t Filesystem_truncateFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length)
 {
     return EIO;
 }

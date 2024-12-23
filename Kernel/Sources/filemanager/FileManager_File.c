@@ -43,7 +43,7 @@ errno_t _FileManager_OpenFile(FileManagerRef _Nonnull self, InodeRef _Nonnull _L
     if (err == EOK) {
         if (Inode_GetFileSize(pFile) >= 0ll) {
             if ((mode & kOpen_Truncate) == kOpen_Truncate) {
-                err = Filesystem_TruncateFile(fs, pFile, self->realUser, 0);
+                err = Filesystem_TruncateFile(fs, pFile, 0);
             }
         }
         else {
@@ -223,7 +223,7 @@ errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t FileManager_GetFileInfoFromIOChannel(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileInfo* _Nonnull pOutInfo)
+errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileInfo* _Nonnull pOutInfo)
 {
     decl_try_err();
 
@@ -241,14 +241,14 @@ errno_t FileManager_GetFileInfoFromIOChannel(FileManagerRef _Nonnull self, IOCha
 }
 
 // Modifies information about the file at the given path.
-errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo)
+errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, MutableFileInfo* _Nonnull info)
 {
     decl_try_err();
     ResolvedPath r;
 
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, pPath, self->rootDirectory, self->workingDirectory, self->realUser, &r)) == EOK) {
         Inode_Lock(r.inode);
-        err = Filesystem_SetFileInfo(Inode_GetFilesystem(r.inode), r.inode, self->realUser, pInfo);
+        err = Filesystem_SetFileInfo(Inode_GetFilesystem(r.inode), r.inode, self->realUser, info);
         Inode_Unlock(r.inode);
     }
 
@@ -258,15 +258,15 @@ errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnu
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t FileManager_SetFileInfoFromIOChannel(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, MutableFileInfo* _Nonnull pInfo)
+errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, MutableFileInfo* _Nonnull info)
 {
     decl_try_err();
 
     if (instanceof(pChannel, FileChannel)) {
-        err = FileChannel_SetInfo((FileChannelRef)pChannel, self->realUser, pInfo);
+        err = FileChannel_SetInfo((FileChannelRef)pChannel, self->realUser, info);
     }
     else if (instanceof(pChannel, DirectoryChannel)) {
-        err = DirectoryChannel_SetInfo((DirectoryChannelRef)pChannel, self->realUser, pInfo);
+        err = DirectoryChannel_SetInfo((DirectoryChannelRef)pChannel, self->realUser, info);
     }
     else {
         err = EBADF;
@@ -289,7 +289,10 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
     if ((err = FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r)) == EOK) {
         Inode_Lock(r.inode);
         if (Inode_IsRegularFile(r.inode)) {
-            err = Filesystem_TruncateFile(Inode_GetFilesystem(r.inode), r.inode, self->realUser, length);
+            err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Writable);
+            if (err == EOK) {
+                err = Filesystem_TruncateFile(Inode_GetFilesystem(r.inode), r.inode, length);
+            }
         }
         else {
             err = EISDIR;
@@ -303,12 +306,12 @@ errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonn
 }
 
 // Same as above but the file is identified by the given I/O channel.
-errno_t FileManager_TruncateFileFromIOChannel(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset length)
+errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset length)
 {
     decl_try_err();
 
     if (instanceof(pChannel, FileChannel)) {
-        err = FileChannel_Truncate((FileChannelRef)pChannel, self->realUser, length);
+        err = FileChannel_Truncate((FileChannelRef)pChannel, length);
     }
     else if (instanceof(pChannel, DirectoryChannel)) {
         err = EISDIR;

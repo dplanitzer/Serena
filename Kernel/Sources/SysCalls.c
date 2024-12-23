@@ -199,7 +199,7 @@ SYSCALL_2(fgetfileinfo, int ioc, FileInfo* _Nullable pOutInfo)
         return EINVAL;
     }
 
-    return Process_GetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->ioc, pArgs->pOutInfo);
+    return Process_GetFileInfo_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->pOutInfo);
 }
 
 SYSCALL_2(fsetfileinfo, int ioc, MutableFileInfo* _Nullable pInfo)
@@ -208,7 +208,7 @@ SYSCALL_2(fsetfileinfo, int ioc, MutableFileInfo* _Nullable pInfo)
         return EINVAL;
     }
 
-    return Process_SetFileInfoFromIOChannel(Process_GetCurrent(), pArgs->ioc, pArgs->pInfo);
+    return Process_SetFileInfo_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->pInfo);
 }
 
 SYSCALL_2(truncate, const char* _Nullable path, FileOffset length)
@@ -222,7 +222,7 @@ SYSCALL_2(truncate, const char* _Nullable path, FileOffset length)
 
 SYSCALL_2(ftruncate, int ioc, FileOffset length)
 {
-    return Process_TruncateFileFromIOChannel(Process_GetCurrent(), pArgs->ioc, pArgs->length);
+    return Process_TruncateFile_ioc(Process_GetCurrent(), pArgs->ioc, pArgs->length);
 }
 
 SYSCALL_3(ioctl, int ioc, int cmd, va_list _Nullable ap)

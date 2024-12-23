@@ -93,20 +93,20 @@ extern errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const cha
 extern errno_t FileManager_GetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t FileManager_GetFileInfoFromIOChannel(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileInfo* _Nonnull pOutInfo);
+extern errno_t FileManager_GetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileInfo* _Nonnull pOutInfo);
 
 // Modifies information about the file at the given path.
-extern errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo);
+extern errno_t FileManager_SetFileInfo(FileManagerRef _Nonnull self, const char* _Nonnull pPath, MutableFileInfo* _Nonnull info);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t FileManager_SetFileInfoFromIOChannel(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, MutableFileInfo* _Nonnull pInfo);
+extern errno_t FileManager_SetFileInfo_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, MutableFileInfo* _Nonnull info);
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 extern errno_t FileManager_TruncateFile(FileManagerRef _Nonnull self, const char* _Nonnull pPath, FileOffset length);
 
 // Same as above but the file is identified by the given I/O channel.
-extern errno_t FileManager_TruncateFileFromIOChannel(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset length);
+extern errno_t FileManager_TruncateFile_ioc(FileManagerRef _Nonnull self, IOChannelRef _Nonnull pChannel, FileOffset length);
 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the

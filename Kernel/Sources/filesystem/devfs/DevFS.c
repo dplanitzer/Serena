@@ -170,7 +170,7 @@ errno_t DevFS_writeFile(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile,
     return EPERM;
 }
 
-errno_t DevFS_truncateFile(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, FileOffset length)
+errno_t DevFS_truncateFile(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length)
 {
     return EPERM;
 }

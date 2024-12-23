@@ -167,7 +167,7 @@ errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, User user, MutableFile
     return err;
 }
 
-errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset length)
+errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, FileOffset length)
 {
     if (length < 0ll) {
         return EINVAL;
@@ -175,7 +175,7 @@ errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, User user, FileOffset
     
     // Does not adjust the file offset
     Inode_Lock(self->inode);
-    const errno_t err = Filesystem_TruncateFile(Inode_GetFilesystem(self->inode), self->inode, user, length);
+    const errno_t err = Filesystem_TruncateFile(Inode_GetFilesystem(self->inode), self->inode, length);
     Inode_Unlock(self->inode);
     return err;
 }

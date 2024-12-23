@@ -218,20 +218,20 @@ extern errno_t Process_CreatePipe(ProcessRef _Nonnull pProc, int* _Nonnull pOutR
 extern errno_t Process_GetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FileInfo* _Nonnull pOutInfo);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, FileInfo* _Nonnull pOutInfo);
+extern errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull pProc, int fd, FileInfo* _Nonnull pOutInfo);
 
 // Modifies information about the file at the given path.
 extern errno_t Process_SetFileInfo(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, MutableFileInfo* _Nonnull pInfo);
 
 // Same as above but with respect to the given I/O channel.
-extern errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull pProc, int fd, MutableFileInfo* _Nonnull pInfo);
+extern errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull pProc, int fd, MutableFileInfo* _Nonnull pInfo);
 
 // Sets the length of an existing file. The file may either be reduced in size
 // or expanded.
 extern errno_t Process_TruncateFile(ProcessRef _Nonnull pProc, const char* _Nonnull pPath, FileOffset length);
 
 // Same as above but the file is identified by the given I/O channel.
-extern errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull pProc, int fd, FileOffset length);
+extern errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull pProc, int fd, FileOffset length);
 
 // Returns EOK if the given file is accessible assuming the given access mode;
 // returns a suitable error otherwise. If the mode is 0, then a check whether the

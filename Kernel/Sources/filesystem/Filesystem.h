@@ -235,7 +235,7 @@ open_class_funcs(Filesystem, Object,
     // to the file if the new length is longer than the old length. Note that a
     // filesystem implementation is free to defer the actual allocation of the
     // new blocks until an attempt is made to read or write them.
-    errno_t (*truncateFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, User user, FileOffset length);
+    errno_t (*truncateFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, FileOffset length);
 
 
     //
@@ -373,8 +373,8 @@ invoke_n(readFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToRead, __pIn
 #define Filesystem_WriteFile(__self, __pFile, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten) \
 invoke_n(writeFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten)
 
-#define Filesystem_TruncateFile(__self, __pFile, __user, __length) \
-invoke_n(truncateFile, Filesystem, __self, __pFile, __user, __length)
+#define Filesystem_TruncateFile(__self, __pFile, __length) \
+invoke_n(truncateFile, Filesystem, __self, __pFile, __length)
 
 
 #define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \

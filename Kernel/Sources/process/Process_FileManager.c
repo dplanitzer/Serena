@@ -158,13 +158,13 @@ errno_t Process_GetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull path,
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t Process_GetFileInfoFromIOChannel(ProcessRef _Nonnull self, int ioc, FileInfo* _Nonnull pOutInfo)
+errno_t Process_GetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, FileInfo* _Nonnull pOutInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
     if ((err = IOChannelTable_AcquireChannel(&self->ioChannelTable, ioc, &pChannel)) == EOK) {
-        err = FileManager_GetFileInfoFromIOChannel(&self->fm, pChannel, pOutInfo);
+        err = FileManager_GetFileInfo_ioc(&self->fm, pChannel, pOutInfo);
         IOChannelTable_RelinquishChannel(&self->ioChannelTable, pChannel);
     }
     return err;
@@ -183,13 +183,13 @@ errno_t Process_SetFileInfo(ProcessRef _Nonnull self, const char* _Nonnull path,
 }
 
 // Same as above but with respect to the given I/O channel.
-errno_t Process_SetFileInfoFromIOChannel(ProcessRef _Nonnull self, int ioc, MutableFileInfo* _Nonnull pInfo)
+errno_t Process_SetFileInfo_ioc(ProcessRef _Nonnull self, int ioc, MutableFileInfo* _Nonnull pInfo)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
     if ((err = IOChannelTable_AcquireChannel(&self->ioChannelTable, ioc, &pChannel)) == EOK) {
-        err = FileManager_SetFileInfoFromIOChannel(&self->fm, pChannel, pInfo);
+        err = FileManager_SetFileInfo_ioc(&self->fm, pChannel, pInfo);
         IOChannelTable_RelinquishChannel(&self->ioChannelTable, pChannel);
     }
 
@@ -210,13 +210,13 @@ errno_t Process_TruncateFile(ProcessRef _Nonnull self, const char* _Nonnull path
 }
 
 // Same as above but the file is identified by the given I/O channel.
-errno_t Process_TruncateFileFromIOChannel(ProcessRef _Nonnull self, int ioc, FileOffset length)
+errno_t Process_TruncateFile_ioc(ProcessRef _Nonnull self, int ioc, FileOffset length)
 {
     decl_try_err();
     IOChannelRef pChannel;
 
     if ((err = IOChannelTable_AcquireChannel(&self->ioChannelTable, ioc, &pChannel)) == EOK) {
-        err = FileManager_TruncateFileFromIOChannel(&self->fm, pChannel, length);
+        err = FileManager_TruncateFile_ioc(&self->fm, pChannel, length);
         IOChannelTable_RelinquishChannel(&self->ioChannelTable, pChannel);
     }
     return err;
