@@ -74,40 +74,28 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     decl_try_err();
     ResolvedPath r;
     DirectoryEntryInsertionHint dih;
-    InodeRef parentDir = NULL;
     InodeRef newDir = NULL;
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
-    const PathComponent* pName = &r.lastPathComponent;
+    const PathComponent* dirName = &r.lastPathComponent;
     const FilePermissions dirPerms = ~self->fileCreationMask & (permissions & 0777);
-    FilesystemRef fs = Inode_GetFilesystem(r.inode);
-    parentDir = r.inode;
-    r.inode = NULL;
-    Inode_Lock(parentDir);
-
-
-    // Can not create a directory with names . or ..
-    if ((pName->count == 1 && pName->name[0] == '.')
-        || (pName->count == 2 && pName->name[0] == '.' && pName->name[1] == '.')) {
-        throw(EEXIST);
-    }
 
 
     // Create the new directory and add it to the parent directory if it doesn't
     // exist; otherwise error out
-    err = Filesystem_AcquireNodeForName(fs, parentDir, pName, self->realUser, &dih, NULL);
+    Inode_Lock(r.inode);
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, self->realUser, &dih, NULL);
     if (err == ENOENT) {
-        try(Filesystem_CreateNode(fs, kFileType_Directory, self->realUser, dirPerms, parentDir, pName, &dih, &newDir));
+        err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, self->realUser, dirPerms, r.inode, dirName, &dih, &newDir);
     }
     else if (err == EOK) {
-        throw(EEXIST);
+        err = EEXIST;
     }
+    Inode_Unlock(r.inode);
 
 catch:
     Inode_Relinquish(newDir);
-    Inode_UnlockRelinquish(parentDir);
-
     ResolvedPath_Deinit(&r);
     
     return err;

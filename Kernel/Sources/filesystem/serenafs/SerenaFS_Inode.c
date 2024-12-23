@@ -34,7 +34,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user,
         }
     }
 
-    try(kalloc_cleared(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bmap));
+    try(FSAllocateCleared(sizeof(SFSBlockNumber) * kSFSInodeBlockPointersCount, (void**)&bmap));
     try(BlockAllocator_Allocate(&self->blockAllocator, &inodeLba));
     
     if (type == kFileType_Directory) {
