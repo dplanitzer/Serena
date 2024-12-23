@@ -148,7 +148,7 @@ errno_t FileManager_OpenFile(FileManagerRef _Nonnull self, const char* _Nonnull 
     ResolvedPath r;
 
     *pOutChannel = NULL;
-    
+
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
     Inode_Lock(r.inode);
@@ -171,45 +171,35 @@ errno_t FileManager_OpenExecutable(FileManagerRef _Nonnull self, const char* _No
 {
     decl_try_err();
     ResolvedPath r;
-    InodeRef execFile = NULL;
-    FilesystemRef fs = NULL;
-    void* imageBase = NULL;
-    void* entryPoint = NULL;
-    const char* null_sptr[1] = {NULL};
+
+    *pOutChannel = NULL;
 
     // Resolve the path to the executable file
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
-    execFile = r.inode;
-    fs = Inode_GetFilesystem(execFile);
-    r.inode = NULL;
 
 
-    // Make sure that the executable is a regular file and that it has the correct
-    // access mode
-    Inode_Lock(execFile); 
-    if (Inode_IsRegularFile(execFile)) {
-        err = Filesystem_CheckAccess(fs, execFile, self->realUser, kAccess_Readable | kAccess_Executable);
-        if (err == EOK) {
-            // Open the executable file
-            err = _FileManager_OpenFile(self, execFile, kOpen_Read);
+    // Make sure that the executable is a regular file and that it has the
+    // correct access mode
+    Inode_Lock(r.inode); 
+    if (Inode_IsRegularFile(r.inode)) {
+        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Readable | kAccess_Executable);
+        if (err == EOK && Inode_GetFileSize(r.inode) < 0ll) {
+            // Negative file size means that the file size overflowed
+            err = E2BIG;
         }
     }
     else {
         err = EACCESS;
     }
-    Inode_Unlock(execFile);
+    Inode_Unlock(r.inode);
     throw_iferr(err);
 
 
     // Note that this call takes ownership of the inode reference
-    try(Filesystem_CreateChannel(fs, execFile, kOpen_Read, pOutChannel));
-
-
-    ResolvedPath_Deinit(&r);
-    return EOK;
+    try(Filesystem_CreateChannel(Inode_GetFilesystem(r.inode), r.inode, kOpen_Read, pOutChannel));
+    r.inode = NULL;
 
 catch:
-    Inode_Relinquish(execFile);
     ResolvedPath_Deinit(&r);
 
     return err;
