@@ -123,7 +123,12 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
     Inode_Lock(r.inode);
-    err = Filesystem_OpenDirectory(Inode_GetFilesystem(r.inode), r.inode, self->realUser);
+    if (Inode_GetFileType(r.inode) == kFileType_Directory) {
+        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Readable);
+    }
+    else {
+        err = ENOTDIR;
+    }
     Inode_Unlock(r.inode);
     throw_iferr(err);
     

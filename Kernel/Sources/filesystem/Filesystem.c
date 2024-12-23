@@ -329,11 +329,6 @@ errno_t Filesystem_truncateFile(FilesystemRef _Nonnull self, InodeRef _Nonnull _
     return EIO;
 }
 
-errno_t Filesystem_openDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, User user)
-{
-    return Filesystem_CheckAccess(self, pDir, user, kAccess_Readable);
-}
-
 errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
 {
     return EIO;
@@ -431,7 +426,6 @@ func_def(openFile, Filesystem)
 func_def(readFile, Filesystem)
 func_def(writeFile, Filesystem)
 func_def(truncateFile, Filesystem)
-func_def(openDirectory, Filesystem)
 func_def(readDirectory, Filesystem)
 func_def(isReadOnly, Filesystem)
 func_def(checkAccess, Filesystem)

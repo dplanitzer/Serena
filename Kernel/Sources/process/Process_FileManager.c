@@ -64,19 +64,20 @@ errno_t Process_CreateDirectory(ProcessRef _Nonnull self, const char* _Nonnull p
 errno_t Process_OpenDirectory(ProcessRef _Nonnull self, const char* _Nonnull path, int* _Nonnull pOutIoc)
 {
     decl_try_err();
-    IOChannelRef chan = NULL;
+    IOChannelRef chan;
 
     Lock_Lock(&self->lock);
     err = FileManager_OpenDirectory(&self->fm, path, &chan);
-    try(IOChannelTable_AdoptChannel(&self->ioChannelTable, chan, pOutIoc));
-    chan = NULL;
-    
-catch:
+    if (err == EOK) {
+        err = IOChannelTable_AdoptChannel(&self->ioChannelTable, chan, pOutIoc);
+    }
     Lock_Unlock(&self->lock);
+    
     if (err != EOK) {
         IOChannel_Release(chan);
         *pOutIoc = -1;
     }
+
     return err;
 }
 

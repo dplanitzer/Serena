@@ -246,10 +246,6 @@ open_class_funcs(Filesystem, Object,
     // Directory Specific Operations
     //
 
-    // Opens the directory represented by the given node. The filesystem is
-    // expected to validate whether the user has access to the directory content.
-    errno_t (*openDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, User user);
-
     // Reads the next set of directory entries. The first entry read is the one
     // at the current directory index stored in 'pDir'. This function guarantees
     // that it will only ever return complete directories entries. It will never
@@ -387,9 +383,6 @@ invoke_n(writeFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToWrite, __p
 #define Filesystem_TruncateFile(__self, __pFile, __user, __length) \
 invoke_n(truncateFile, Filesystem, __self, __pFile, __user, __length)
 
-
-#define Filesystem_OpenDirectory(__self, __pDir, __user) \
-invoke_n(openDirectory, Filesystem, __self, __pDir, __user)
 
 #define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
 invoke_n(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
