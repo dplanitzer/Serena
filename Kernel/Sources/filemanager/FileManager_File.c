@@ -62,11 +62,13 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
     ResolvedPath r;
     DirectoryEntryInsertionHint dih;
     InodeRef dir = NULL;
-    InodeRef fileInode = NULL;
+    InodeRef filein = NULL;
+
+    *pOutChannel = NULL;
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
-    const PathComponent* pName = &r.lastPathComponent;
+    const PathComponent* name = &r.lastPathComponent;
     FilesystemRef pFS = Inode_GetFilesystem(r.inode);
     dir = r.inode;
     r.inode = NULL;
@@ -74,14 +76,14 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
     // Can not create a file with names . or ..
-    if ((pName->count == 1 && pName->name[0] == '.')
-        || (pName->count == 2 && pName->name[0] == '.' && pName->name[1] == '.')) {
+    if ((name->count == 1 && name->name[0] == '.')
+        || (name->count == 2 && name->name[0] == '.' && name->name[1] == '.')) {
         throw(EISDIR);
     }
 
 
     // The last path component must not exist
-    err = Filesystem_AcquireNodeForName(pFS, dir, pName, self->realUser, &dih, &fileInode);
+    err = Filesystem_AcquireNodeForName(pFS, dir, name, self->realUser, &dih, &filein);
     if (err == EOK) {
         // File exists - reject the operation in exclusive mode and open the
         // file otherwise
@@ -90,9 +92,9 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
             throw(EEXIST);
         }
         else {
-            Inode_Lock(fileInode);
-            err = _FileManager_OpenFile(self, fileInode, mode);
-            Inode_Unlock(fileInode);
+            Inode_Lock(filein);
+            err = _FileManager_OpenFile(self, filein, mode);
+            Inode_Unlock(filein);
             throw_iferr(err);
         }
     }
@@ -114,7 +116,7 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
         // Create the new file and add it to its parent directory
-        try(Filesystem_CreateNode(pFS, kFileType_RegularFile, self->realUser, filePerms, dir, pName, &dih, &fileInode));
+        try(Filesystem_CreateNode(pFS, kFileType_RegularFile, dir, name, &dih, self->realUser, filePerms, &filein));
     }
     else {
         throw(err);
@@ -125,15 +127,15 @@ errno_t FileManager_CreateFile(FileManagerRef _Nonnull self, const char* _Nonnul
 
 
     // Note that the file channel takes ownership of the inode reference
-    try(FileChannel_Create(fileInode, mode, pOutChannel));
-    fileInode = NULL;
+    try(FileChannel_Create(filein, mode, pOutChannel));
+    filein = NULL;
 
     ResolvedPath_Deinit(&r);
     return EOK;
 
 catch:
     Inode_UnlockRelinquish(dir);
-    Inode_Relinquish(fileInode);
+    Inode_Relinquish(filein);
 
     ResolvedPath_Deinit(&r);
     

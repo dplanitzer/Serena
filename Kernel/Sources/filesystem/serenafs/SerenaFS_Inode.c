@@ -10,7 +10,7 @@
 #include <System/ByteOrder.h>
 
 
-errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);

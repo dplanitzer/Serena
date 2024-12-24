@@ -101,7 +101,7 @@ void DevFS_AddItem(DevFSRef _Nonnull _Locked self, DfsItem* _Nonnull item);
 void DevFS_RemoveItem(DevFSRef _Nonnull _Locked self, InodeId inid);
 DfsItem* _Nullable DevFS_GetItem(DevFSRef _Nonnull _Locked self, InodeId inid);
 
-extern errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode);
+extern errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, InodeId id, InodeRef _Nullable * _Nonnull pOutNode);
 extern errno_t DevFS_onWriteNodeToDisk(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNode);
 extern void DevFS_onRemoveNodeFromDisk(DevFSRef _Nonnull self, InodeRef _Nonnull pNode);

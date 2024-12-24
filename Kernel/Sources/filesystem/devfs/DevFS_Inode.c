@@ -21,7 +21,7 @@ DriverRef _Nullable DevFS_CopyDriverForNode(DevFSRef _Nonnull self, InodeRef _No
     }
 }
 
-static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable extra1, intptr_t extra2, InodeRef _Nullable * _Nonnull pOutNode)
+static errno_t _DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable extra1, intptr_t extra2, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     const TimeInterval curTime = FSGetCurrentTime();
@@ -84,14 +84,14 @@ catch:
 }
 
 // Creates a new device node in the file system.
-errno_t DevFS_CreateDevice(DevFSRef _Nonnull self, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull pDriverInstance, intptr_t arg, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t DevFS_CreateDevice(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, DriverRef _Nonnull pDriverInstance, intptr_t arg, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _DevFS_createNode(self, kFileType_Device, user, permissions, dir, name, pDriverInstance, arg, pOutNode);
+    return _DevFS_createNode(self, kFileType_Device, dir, name, pDriverInstance, arg, user, permissions, pOutNode);
 }
 
-errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t DevFS_createNode(DevFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked dir, const PathComponent* _Nonnull name, void* _Nullable dirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
-    return _DevFS_createNode(self, type, user, permissions, dir, name, dirInsertionHint, 0, pOutNode);
+    return _DevFS_createNode(self, type, dir, name, dirInsertionHint, 0, user, permissions, pOutNode);
 }
 
 errno_t DevFS_onReadNodeFromDisk(DevFSRef _Nonnull self, InodeId inid, InodeRef _Nullable * _Nonnull pOutNode)

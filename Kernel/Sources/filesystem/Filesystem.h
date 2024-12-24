@@ -259,7 +259,7 @@ open_class_funcs(Filesystem, Object,
     // 'permissions' and adds it to the directory 'pDir'. The new node will be
     // added to 'pDir' with the name 'pName'. Returns the newly acquired inode
     // on success and NULL otherwise.
-    errno_t (*createNode)(void* _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode);
+    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Verifies that the given node is accessible assuming the given access mode.
     // Override: Optional
@@ -356,8 +356,8 @@ invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __user, __pName)
 invoke_n(createChannel, Filesystem, __self, __pNode, __mode, __pOutChannel)
 
 
-#define Filesystem_CreateNode(__self, __type, __user, __permissions, __pDir, __pName, __pDirInsertionHint, __pOutNode) \
-invoke_n(createNode, Filesystem, __self, __type, __user, __permissions, __pDir, __pName, __pDirInsertionHint, __pOutNode)
+#define Filesystem_CreateNode(__self, __type, __pDir, __pName, __pDirInsertionHint, __user, __permissions, __pOutNode) \
+invoke_n(createNode, Filesystem, __self, __type, __pDir, __pName, __pDirInsertionHint, __user, __permissions, __pOutNode)
 
 
 #define Filesystem_GetFileInfo(__self, __pNode, __pOutInfo) \

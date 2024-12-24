@@ -81,7 +81,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnu
     const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
     try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(DevFS_CreateDevice(self->devfs, kUser_Root, permissions, rootDir, &pc, driver, arg, &pNode));
+    try(DevFS_CreateDevice(self->devfs, rootDir, &pc, driver, arg, kUser_Root, permissions, &pNode));
     *pOutDriverCatalogId = (DriverCatalogId)Inode_GetId(pNode);
 
 catch:

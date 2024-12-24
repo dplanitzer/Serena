@@ -319,7 +319,7 @@ errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, InodeRef _Nonnull 
     return EIO;
 }
 
-errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, User user, FilePermissions permissions, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
