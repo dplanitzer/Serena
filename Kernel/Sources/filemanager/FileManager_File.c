@@ -354,21 +354,21 @@ errno_t FileManager_Unlink(FileManagerRef _Nonnull self, const char* _Nonnull pa
 
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
 
-    const PathComponent* pName = &r.lastPathComponent;
+    const PathComponent* name = &r.lastPathComponent;
     dir = r.inode;
     r.inode = NULL;
     Inode_Lock(dir);
 
 
     // A path that ends in . or .. is not legal
-    if ((pName->count == 1 && pName->name[0] == '.')
-        || (pName->count == 2 && pName->name[0] == '.' && pName->name[1] == '.')) {
+    if ((name->count == 1 && name->name[0] == '.')
+        || (name->count == 2 && name->name[0] == '.' && name->name[1] == '.')) {
         throw(EINVAL);
     }
 
 
     // Figure out what the target and parent node is
-    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(dir), dir, pName, self->realUser, NULL, &target));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(dir), dir, name, self->realUser, NULL, &target));
     Inode_Lock(target);
 
     if (Inode_IsDirectory(target)) {
@@ -440,17 +440,17 @@ errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* oldPath, co
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, oldPath, self->rootDirectory, self->workingDirectory, self->realUser, &or));
     try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, newPath, self->rootDirectory, self->workingDirectory, self->realUser, &nr));
 
-    const PathComponent* pOldName = &or.lastPathComponent;
-    const PathComponent* pNewName = &nr.lastPathComponent;
+    const PathComponent* oldName = &or.lastPathComponent;
+    const PathComponent* newName = &nr.lastPathComponent;
 
 
     // Final path components of . and .. are not supported
-    if ((pOldName->count == 1 && pOldName->name[0] == '.')
-        || (pOldName->count == 2 && pOldName->name[0] == '.' && pOldName->name[1] == '.')) {
+    if ((oldName->count == 1 && oldName->name[0] == '.')
+        || (oldName->count == 2 && oldName->name[0] == '.' && oldName->name[1] == '.')) {
         throw(EINVAL);
     }
-    if ((pNewName->count == 1 && pNewName->name[0] == '.')
-        || (pNewName->count == 2 && pNewName->name[0] == '.' && pNewName->name[1] == '.')) {
+    if ((newName->count == 1 && newName->name[0] == '.')
+        || (newName->count == 2 && newName->name[0] == '.' && newName->name[1] == '.')) {
         throw(EINVAL);
     }
 
@@ -476,12 +476,12 @@ errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* oldPath, co
 
 
     // Get the source node. It must exist
-    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(oldDir), oldDir, pOldName, self->realUser, NULL, &oldNode));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(oldDir), oldDir, oldName, self->realUser, NULL, &oldNode));
     ilock_ordered(oldNode, lockedNodes, &lockedNodeCount);
 
 
     // The destination may exist
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(newDir), newDir, pNewName, self->realUser, &dih, &newNode);
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(newDir), newDir, newName, self->realUser, &dih, &newNode);
     if (err != EOK && err != ENOENT) {
         throw(err);
     }
@@ -520,10 +520,10 @@ errno_t FileManager_Rename(FileManagerRef _Nonnull self, const char* oldPath, co
 
     // Do the move or rename
     if (isMove) {
-        err = Filesystem_Move(Inode_GetFilesystem(oldNode), oldNode, oldDir, newDir, pNewName, self->realUser, &dih);
+        err = Filesystem_Move(Inode_GetFilesystem(oldNode), oldNode, oldDir, newDir, newName, self->realUser, &dih);
     }
     else {
-        err = Filesystem_Rename(Inode_GetFilesystem(oldNode), oldNode, oldDir, pNewName, self->realUser);
+        err = Filesystem_Rename(Inode_GetFilesystem(oldNode), oldNode, oldDir, newName, self->realUser);
     }
 
 catch:
