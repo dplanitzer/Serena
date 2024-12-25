@@ -84,6 +84,22 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
     VirtualProcessorScheduler_SwitchToBootVirtualProcessor();
 }
 
+
+// Creates and starts the platform controller which in turn discovers all platform
+// specific drivers and gets them up and running.
+static errno_t init_platform_controller(void)
+{
+    static PlatformControllerRef gPlatformController;
+    decl_try_err();
+
+    err = AmigaController_Create(&gPlatformController);
+
+    if (err == EOK) {
+        err = Driver_Start((DriverRef)gPlatformController);
+    }
+    return err;
+}
+
 // Invoked by onBoot(). The code here runs in the boot virtual processor execution
 // context. Interrupts and DMAs are still turned off.
 //
@@ -91,6 +107,8 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 // basic memory management, monotonic clock and the kernel main dispatch queue.
 static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
 {
+    decl_try_err();
+
     // Initialize the kernel heap
     try_bang(kalloc_init(pSysDesc, gInitialHeapBottom, gInitialHeapTop));
     
@@ -112,47 +130,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try_bang(VirtualProcessorPool_Create(&gVirtualProcessorPool));
     
     
-    // Initialize the dispatch queue services
-    try_bang(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&gMainDispatchQueue));
-    
-    
     // Enable interrupts
     cpu_enable_irqs();
 
     
-    // Continue the kernel startup on the kernel main queue
-    DispatchQueue_DispatchAsync(gMainDispatchQueue, (VoidFunc_1)OnMain, NULL);
-
-    
-    // The boot virtual processor now takes over the duties of running the
-    // virtual processor scheduler service tasks.
-    VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
-}
-
-// Creates and starts the platform controller which in turn discovers all platform
-// specific drivers and gets them up and running.
-static errno_t init_platform_controller(void)
-{
-    static PlatformControllerRef gPlatformController;
-    decl_try_err();
-
-    err = AmigaController_Create(&gPlatformController);
-
-    if (err == EOK) {
-        err = Driver_Start((DriverRef)gPlatformController);
-    }
-    return err;
-}
-
-// Called by the boot virtual processor after it has finished initializing all
-// dispatch queue related services.
-//
-// This is the kernel main entry point which is responsible for bringing up the
-// driver manager and the first process.
-static void OnMain(void)
-{
-    decl_try_err();
-
     // Create the driver catalog
     try_bang(DriverCatalog_Create(&gDriverCatalog));
 
@@ -174,11 +155,8 @@ static void OnMain(void)
     try(FilesystemManager_Create(&gFilesystemManager));
 
     
-    // Create the root file hierarchy.
+    // Create the root file hierarchy and process.
     FileHierarchyRef pRootFh = create_root_file_hierarchy();
-
-
-    // Create the root process
     ProcessRef pRootProc;
     try(RootProcess_Create(pRootFh, &pRootProc));
     Object_Release(pRootFh);
@@ -191,8 +169,12 @@ static void OnMain(void)
     // Get the root process going
     print("Starting login...\n");
     try(RootProcess_Exec(pRootProc, "/System/Commands/login"));
-    return;
+
     
+    // The boot virtual processor now takes over the duties of running the
+    // virtual processor scheduler service tasks.
+    VirtualProcessorScheduler_Run(gVirtualProcessorScheduler);
+
 catch:
     print("Error: unable to complete startup: %d\nHalting.\n", err);
     while(1);

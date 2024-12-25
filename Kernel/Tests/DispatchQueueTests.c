@@ -87,47 +87,6 @@ void dq_sync_test(int argc, char *argv[])
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
-// MARK: Repeating timer
-////////////////////////////////////////////////////////////////////////////////
-
-
-#if 0
-struct State {
-    TimerRef    timer;
-    int         value;
-};
-
-static void OnPrintClosure(void* _Nonnull pValue)
-{
-    struct State* pState = (struct State*)pValue;
-
-    if (pState->value < 10) {
-        print("%d\n", pState->value);
-    } else {
-        print("Cancelled\n");
-        Timer_Cancel(pState->timer);
-    }
-    pState->value++;
-}
-
-
-void DispatchQueue_RunTests(void)
-{
-    struct State* pState;
-    
-    try_bang(kalloc(sizeof(struct State), &pState));
-    
-    Timer_Create(TimeInterval_Add(MonotonicClock_GetCurrentTime(), TimeInterval_MakeSeconds(1)), TimeInterval_MakeSeconds(1), DispatchQueueClosure_Make(OnPrintClosure, pState), &pState->timer);
-    pState->value = 0;
-
-    print("Repeating timer\n");
-    DispatchQueue_DispatchTimer(gMainDispatchQueue, pState->timer);
-}
-#endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
 // MARK: System info
 ////////////////////////////////////////////////////////////////////////////////
 

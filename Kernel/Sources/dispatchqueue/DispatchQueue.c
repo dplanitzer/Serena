@@ -10,9 +10,6 @@
 #include <hal/MonotonicClock.h>
 
 
-DispatchQueueRef    gMainDispatchQueue;
-
-
 errno_t DispatchQueue_Create(int minConcurrency, int maxConcurrency, int qos, int priority, VirtualProcessorPoolRef _Nonnull vpPoolRef, ProcessRef _Nullable _Weak pProc, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
 {
     decl_try_err();

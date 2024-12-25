@@ -37,9 +37,6 @@ enum {
 // Dispatch Queues
 //
 
-// The kernel main queue. This is a serial queue
-extern DispatchQueueRef _Nonnull    gMainDispatchQueue;
-
 // Creates a new dispatch queue. A dispatch queue maintains a list of work items
 // and timers and it dispatches those things for execution to a pool of virtual
 // processors. Virtual processors are automatically acquired and relinquished
