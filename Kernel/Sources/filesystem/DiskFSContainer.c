@@ -64,7 +64,7 @@ errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, Log
     return DiskCache_PrefetchBlock(gDiskCache, self->diskId, self->mediaId, lba);
 }
 
-errno_t DiskFSContainer_flushBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
+errno_t DiskFSContainer_syncBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
     return DiskCache_SyncBlock(gDiskCache, self->diskId, self->mediaId, lba);
 }
@@ -89,7 +89,7 @@ errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull 
     return DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, mode);
 }
 
-errno_t DiskFSContainer_flush(struct DiskFSContainer* _Nonnull self)
+errno_t DiskFSContainer_sync(struct DiskFSContainer* _Nonnull self)
 {
     return DiskCache_Sync(gDiskCache, self->diskId, self->mediaId);
 }
@@ -99,10 +99,10 @@ class_func_defs(DiskFSContainer, Object,
 override_func_def(deinit, DiskFSContainer, Object)
 override_func_def(getInfo, DiskFSContainer, FSContainer)
 override_func_def(prefetchBlock, DiskFSContainer, FSContainer)
-override_func_def(flushBlock, DiskFSContainer, FSContainer)
+override_func_def(syncBlock, DiskFSContainer, FSContainer)
 override_func_def(acquireEmptyBlock, DiskFSContainer, FSContainer)
 override_func_def(acquireBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlock, DiskFSContainer, FSContainer)
 override_func_def(relinquishBlockWriting, DiskFSContainer, FSContainer)
-override_func_def(flush, DiskFSContainer, FSContainer)
+override_func_def(sync, DiskFSContainer, FSContainer)
 );

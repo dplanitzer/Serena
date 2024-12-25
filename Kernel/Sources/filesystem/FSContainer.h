@@ -38,9 +38,10 @@ open_class_funcs(FSContainer, Object,
     // whether the read operation as such was successful or not.
     errno_t (*prefetchBlock)(void* _Nonnull self, LogicalBlockAddress lba);
 
-    // Flushes the block at the logical block address 'lba' to disk if it
-    // contains unwritten (dirty) data. Does nothing if the block is clean.
-    errno_t (*flushBlock)(void* _Nonnull self, LogicalBlockAddress lba);
+    // Synchronously flushes the block at the logical block address 'lba' to
+    // disk if it contains unwritten (dirty) data. Does nothing if the block is
+    // clean.
+    errno_t (*syncBlock)(void* _Nonnull self, LogicalBlockAddress lba);
 
     // Acquires an empty block, filled with zero bytes. This block is not attached
     // to any disk address and thus may not be written back to disk.
@@ -60,9 +61,9 @@ open_class_funcs(FSContainer, Object,
     // disk according to the write back mode 'mode'.
     errno_t (*relinquishBlockWriting)(void* _Nonnull self, DiskBlockRef _Nullable pBlock, WriteBlock mode);
 
-    // Flushes all cached and unwritten blocks belonging to this FS container
-    // to disk(s).
-    errno_t (*flush)(void* _Nonnull self);
+    // Synchronously flushes all cached and unwritten blocks belonging to this
+    // FS container to disk(s).
+    errno_t (*sync)(void* _Nonnull self);
 );
 
 
@@ -76,8 +77,8 @@ invoke_n(getInfo, FSContainer, __self, __pOutInfo)
 #define FSContainer_PrefetchBlock(__self, __driverId, __mediaId, __lba) \
 invoke_n(prefetchBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
-#define FSContainer_FlushBlock(__self, __driverId, __mediaId, __lba) \
-invoke_n(flushBlock, FSContainer, __self, __driverId, __mediaId, __lba)
+#define FSContainer_SyncBlock(__self, __driverId, __mediaId, __lba) \
+invoke_n(syncBlock, FSContainer, __self, __driverId, __mediaId, __lba)
 
 #define FSContainer_AcquireEmptyBlock(__self, __pOutBlock) \
 invoke_n(acquireEmptyBlock, FSContainer, __self, __pOutBlock)
@@ -91,7 +92,7 @@ invoke_n(relinquishBlock, FSContainer, __self, __pBlock)
 #define FSContainer_RelinquishBlockWriting(__self, __pBlock, __mode) \
 invoke_n(relinquishBlockWriting, FSContainer, __self, __pBlock, __mode)
 
-#define FSContainer_Flush(__self) \
-invoke_0(flush, FSContainer, __self)
+#define FSContainer_Sync(__self) \
+invoke_0(sync, FSContainer, __self)
 
 #endif /* FSContainer_h */

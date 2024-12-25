@@ -23,7 +23,7 @@ errno_t FSContainer_prefetchBlock(FSContainerRef _Nonnull self, LogicalBlockAddr
     return EOK;
 }
 
-errno_t FSContainer_flushBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba)
+errno_t FSContainer_syncBlock(FSContainerRef _Nonnull self, LogicalBlockAddress lba)
 {
     return EOK;
 }
@@ -47,7 +47,7 @@ errno_t FSContainer_relinquishBlockWriting(FSContainerRef _Nonnull self, DiskBlo
     return EIO;
 }
 
-errno_t FSContainer_flush(FSContainerRef _Nonnull self)
+errno_t FSContainer_sync(FSContainerRef _Nonnull self)
 {
     return EOK;
 }
@@ -56,10 +56,10 @@ errno_t FSContainer_flush(FSContainerRef _Nonnull self)
 class_func_defs(FSContainer, Object,
 func_def(getInfo, FSContainer)
 func_def(prefetchBlock, FSContainer)
-func_def(flushBlock, FSContainer)
+func_def(syncBlock, FSContainer)
 func_def(acquireEmptyBlock, FSContainer)
 func_def(acquireBlock, FSContainer)
 func_def(relinquishBlock, FSContainer)
 func_def(relinquishBlockWriting, FSContainer)
-func_def(flush, FSContainer)
+func_def(sync, FSContainer)
 );
