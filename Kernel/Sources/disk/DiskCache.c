@@ -7,6 +7,7 @@
 //
 
 #include "DiskCachePriv.h"
+#include <hal/MonotonicClock.h>
 
 // Define to force all writes to be synchronous
 //#define __FORCE_WRITES_SYNC 1
@@ -20,11 +21,13 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     DiskCache* self;
     
     try(kalloc_cleared(sizeof(DiskCache), (void**) &self));
+    try(DispatchQueue_Create(0, 1, kDispatchQoS_Background, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->autoSyncQueue));
     try(DiskBlock_Create(kDiskId_None, kMediaId_None, 0, &self->emptyBlock));
 
     Lock_Init(&self->interlock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->lruChain);
+
     self->blockCount = 0;
     self->blockCapacity = SystemDescription_GetRamSize(pSysDesc) >> 5;
     assert(self->blockCapacity > 0);
@@ -37,6 +40,8 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     }
 
     self->nextProposedDiskId = 1;
+
+    _DiskCache_ScheduleAutoSync(self);
 
     *pOutSelf = self;
     return EOK;
@@ -238,8 +243,8 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
     );
 
     if (pBlock) {
-        // Flush the block to disk if necessary
-        _DiskCache_FlushBlock(self, pBlock);
+        // Sync the block to disk if necessary
+        _DiskCache_SyncBlock(self, pBlock);
 
         _DiskCache_UnregisterBlock(self, pBlock);
         DiskBlock_SetTarget(pBlock, diskId, mediaId, lba);
@@ -485,7 +490,7 @@ errno_t DiskCache_PrefetchBlock(DiskCacheRef _Nonnull self, DiskId diskId, Media
 
 // Check whether the given block has dirty data and write it synchronously to
 // disk, if so.
-static errno_t _DiskCache_FlushBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock)
+static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock)
 {
     decl_try_err();
 
@@ -502,7 +507,7 @@ static errno_t _DiskCache_FlushBlock(DiskCacheRef _Nonnull _Locked self, DiskBlo
     return err;
 }
 
-errno_t DiskCache_FlushBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba)
+errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba)
 {
     decl_try_err();
     DiskBlockRef pBlock = NULL;
@@ -521,7 +526,7 @@ errno_t DiskCache_FlushBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId 
     // Get the block
     err = _DiskCache_GetBlock(self, diskId, mediaId, lba, &pBlock);
     if (err == EOK) {
-        err = _DiskCache_FlushBlock(self, pBlock);
+        err = _DiskCache_SyncBlock(self, pBlock);
         _DiskCache_PutBlock(self, pBlock);
     }
 
@@ -848,7 +853,7 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriv
 
 // Synchronously flushes all cached and unwritten disk block for drive 'diskId'
 // and media 'mediaId', to disk. Does nothing if either value is kXXX_None. 
-errno_t DiskCache_Flush(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId)
+static errno_t _DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, bool bSyncAll)
 {
     decl_try_err();
 
@@ -874,8 +879,9 @@ errno_t DiskCache_Flush(DiskCacheRef _Nonnull self, DiskId diskId, MediaId media
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
                 DiskBlock_BeginUse(pBlock);
-                if (pBlock->address.diskId == diskId && pBlock->address.mediaId == mediaId) {
-                    const errno_t err1 = _DiskCache_FlushBlock(self, pBlock);
+                if (bSyncAll || (pBlock->address.diskId == diskId && pBlock->address.mediaId == mediaId)) {
+                    const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
+                    
                     if (err == EOK) {
                         // Return the first error that we encountered. However,
                         // we continue flushing as many blocks as we can
@@ -895,4 +901,27 @@ errno_t DiskCache_Flush(DiskCacheRef _Nonnull self, DiskId diskId, MediaId media
         }
     }
     Lock_Unlock(&self->interlock);
+}
+
+// Synchronously flushes all cached and unwritten disk block for drive 'diskId'
+// and media 'mediaId', to disk. Does nothing if either value is kXXX_None. 
+errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId)
+{
+    return _DiskCache_Sync(self, diskId, mediaId, false);
+}
+
+// Auto syncs cache blocks to their associated disks
+static void _DiskCache_AutoSync(DiskCacheRef _Nonnull self)
+{
+    _DiskCache_Sync(self, kDiskId_None, kMediaId_None, true);
+    _DiskCache_ScheduleAutoSync(self);
+}
+
+// Schedule an automatic sync of cached blocks to the disk(s)
+static void _DiskCache_ScheduleAutoSync(DiskCacheRef _Nonnull self)
+{
+    const TimeInterval curTime = MonotonicClock_GetCurrentTime();
+    const TimeInterval deadline = TimeInterval_Add(curTime, TimeInterval_MakeSeconds(30));
+
+    try_bang(DispatchQueue_DispatchAsyncAfter(self->autoSyncQueue, deadline, (VoidFunc_1) _DiskCache_AutoSync, self, 0));
 }

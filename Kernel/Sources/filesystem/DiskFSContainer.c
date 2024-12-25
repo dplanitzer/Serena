@@ -66,7 +66,7 @@ errno_t DiskFSContainer_prefetchBlock(struct DiskFSContainer* _Nonnull self, Log
 
 errno_t DiskFSContainer_flushBlock(struct DiskFSContainer* _Nonnull self, LogicalBlockAddress lba)
 {
-    return DiskCache_FlushBlock(gDiskCache, self->diskId, self->mediaId, lba);
+    return DiskCache_SyncBlock(gDiskCache, self->diskId, self->mediaId, lba);
 }
 
 errno_t DiskFSContainer_acquireEmptyBlock(struct DiskFSContainer* self, DiskBlockRef _Nullable * _Nonnull pOutBlock)
@@ -91,7 +91,7 @@ errno_t DiskFSContainer_relinquishBlockWriting(struct DiskFSContainer* _Nonnull 
 
 errno_t DiskFSContainer_flush(struct DiskFSContainer* _Nonnull self)
 {
-    return DiskCache_Flush(gDiskCache, self->diskId, self->mediaId);
+    return DiskCache_Sync(gDiskCache, self->diskId, self->mediaId);
 }
 
 

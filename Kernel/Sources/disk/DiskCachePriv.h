@@ -14,6 +14,7 @@
 #include <klib/List.h>
 #include <dispatcher/ConditionVariable.h>
 #include <dispatcher/Lock.h>
+#include <dispatchqueue/DispatchQueue.h>
 #include <driver/disk/DiskDriver.h>
 
 
@@ -93,7 +94,9 @@
 #define ASSERT_LOCKED_SHARED(__block)
 #endif
 
-static errno_t _DiskCache_FlushBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock);
+static void _DiskCache_ScheduleAutoSync(DiskCacheRef _Nonnull self);
+static errno_t _DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, bool bSyncAll);
+static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock);
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
 
 
@@ -120,17 +123,18 @@ typedef struct DiskEntry {
 
 
 typedef struct DiskCache {
-    Lock                interlock;
-    ConditionVariable   condition;
-    DiskBlockRef        emptyBlock;             // Single, shared empty block (for read only access)
-    size_t              lruChainGeneration;     // Incremented every time the LRU chain is modified
-    List/*<DiskBlock>*/ lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
-    size_t              blockCount;             // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
-    size_t              blockCapacity;          // Maximum number of disk blocks that may exist at any given time
-    size_t              dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
-    List/*<DiskBlock>*/ diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
-    List/*<DiskEntry>*/ driverHash[DISK_DRIVER_HASH_CHAIN_COUNT];   // Hash table mapping DiskId -> DiskDriverRef
-    DiskId              nextProposedDiskId;
+    Lock                        interlock;
+    ConditionVariable           condition;
+    DispatchQueueRef _Nonnull   autoSyncQueue;
+    DiskBlockRef _Nonnull       emptyBlock;             // Single, shared empty block (for read only access)
+    size_t                      lruChainGeneration;     // Incremented every time the LRU chain is modified
+    List/*<DiskBlock>*/         lruChain;               // Cached disk blocks stored in a LRU chain; first -> most recently used; last -> least recently used
+    size_t                      blockCount;             // Number of disk blocks owned and managed by the disk cache (blocks in use + blocks held on the cache lru chain)
+    size_t                      blockCapacity;          // Maximum number of disk blocks that may exist at any given time
+    size_t                      dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
+    List/*<DiskBlock>*/         diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
+    List/*<DiskEntry>*/         driverHash[DISK_DRIVER_HASH_CHAIN_COUNT];   // Hash table mapping DiskId -> DiskDriverRef
+    DiskId                      nextProposedDiskId;
 } DiskCache;
 
 #endif /* DiskCachePriv_h */
