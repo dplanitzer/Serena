@@ -25,7 +25,7 @@ static const ColorTable gANSIColorTable = {
     gANSIColors
 };
 
-static const char* kCursorBlinkerTimerTag = "tag.console.cursor";
+#define CURSOR_BLINKER_TAG  ((uintptr_t)0x1010)
 
 
 // Initializes the video subsystem
@@ -67,7 +67,7 @@ catch:
 void Console_DeinitVideoOutput(ConsoleRef _Nonnull self)
 {
     GraphicsDriver_RelinquishSprite(self->gdevice, self->textCursor);
-    DispatchQueue_RemoveByTag(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
+    DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
 }
 
 
@@ -109,22 +109,22 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
     if (self->flags.isTextCursorVisible) {
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
-        DispatchQueue_RemoveByTag(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
+        DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
         GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
 
         if (self->flags.isTextCursorBlinkerEnabled) {
-            try_bang(DispatchQueue_DispatchAsyncPeriodically(gMainDispatchQueue, 
+            try_bang(DispatchQueue_DispatchAsyncPeriodically(self->dispatchQueue, 
                 kTimeInterval_Zero,
                 TimeInterval_MakeMilliseconds(500),
                 (VoidFunc_1)Console_OnTextCursorBlink,
                 self,
-                (uintptr_t)kCursorBlinkerTimerTag));
+                CURSOR_BLINKER_TAG));
         }
     } else {
         // Make sure that the text cursor and blinker are off
-        DispatchQueue_RemoveByTag(gMainDispatchQueue, (uintptr_t)kCursorBlinkerTimerTag);
+        DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
         GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, false);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;

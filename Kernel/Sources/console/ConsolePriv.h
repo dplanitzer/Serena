@@ -159,6 +159,7 @@ typedef struct GraphicsContext {
 // The console object.
 final_class_ivars(Console, Driver,
     Lock                        lock;
+    DispatchQueueRef _Nonnull   dispatchQueue;
     IOChannelRef _Nonnull       eventDriverChannel;
     GraphicsDriverRef _Nonnull  gdevice;
     const KeyMap* _Nonnull      keyMap;

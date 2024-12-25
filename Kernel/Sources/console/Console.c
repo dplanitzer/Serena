@@ -28,6 +28,8 @@ errno_t Console_Create(const char* _Nonnull eventDriverPath, GraphicsDriverRef _
     
     Lock_Init(&self->lock);
 
+    try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
+
     try(DriverCatalog_OpenDriver(gDriverCatalog, eventDriverPath, kOpen_Read, &self->eventDriverChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
@@ -65,6 +67,13 @@ catch:
 void Console_deinit(ConsoleRef _Nonnull self)
 {
     Console_SetCursorBlinkingEnabled_Locked(self, false);
+
+    if (self->dispatchQueue) {
+        DispatchQueue_Terminate(self->dispatchQueue);
+        Object_Release(self->dispatchQueue);
+        self->dispatchQueue = NULL;
+    }
+
     Console_DeinitVideoOutput(self);
     RingBuffer_Deinit(&self->reportsQueue);
 
