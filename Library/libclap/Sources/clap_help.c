@@ -183,8 +183,8 @@ static bool clap_print_commands_help(clap_t* _Nonnull self)
 
 void _clap_help(clap_t* _Nonnull self, const clap_param_t* _Nonnull param)
 {
-    const hasUsage = clap_print_usage(self->cur_params.p);
-    const hasProlog = clap_print_prolog_epilog(self->cur_params.p, clap_type_prolog, hasUsage);
+    const bool hasUsage = clap_print_usage(self->cur_params.p);
+    const bool hasProlog = clap_print_prolog_epilog(self->cur_params.p, clap_type_prolog, hasUsage);
 
     if (hasProlog || hasUsage) {
         putchar('\n');

@@ -11,9 +11,9 @@
 
 #if defined(__M68K__)
 #define __ILP32__ 1
-#elif defined(_M_X64)
+#elif defined(_M_X64) || defined(__x86_64__) || defined(__APPLE__)
 #define __LLP64__ 1
-#elif defined(_M_IX86)
+#elif defined(_M_IX86) || defined(__i386__)
 #define __ILP32__ 1
 #else
 #error "Unknown platform"

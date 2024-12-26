@@ -1188,7 +1188,7 @@ CLAP_DECL(params,
 int main(int argc, char* argv[])
 {
     gArgv_Zero = argv[0];
-    clap_parse(0, params, argc, argv);
+    clap_parse(0, params, argc, (const char**)argv);
 
     if (!strcmp(argv[1], "compile")) {
         compileKeyMap(path, format_id);

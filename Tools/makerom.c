@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <clap.h>
 
 
@@ -152,7 +153,7 @@ CLAP_DECL(params,
 int main(int argc, char* argv[])
 {
     gArgv_Zero = argv[0];
-    clap_parse(0, params, argc, argv);
+    clap_parse(0, params, argc, (const char**)argv);
 
     if (paths.count < 2) {
         fatal("missing image file paths");

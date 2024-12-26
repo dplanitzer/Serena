@@ -14,9 +14,9 @@
 
 __CPP_BEGIN
 
-#if defined(__M68K__)
+#if defined(__M68K__) || defined(__BIG_ENDIAN__)
 #define __BYTE_ORDER_BIG__ 1
-#elif defined(_M_IX86) || defined(_M_X64)
+#elif defined(_M_IX86) || defined(_M_X64) || defined(__x86_64__) || defined(__i386__) || defined(__LITTLE_ENDIAN__)
 #define __BYTE_ORDER_LITTLE__ 1
 #else
 #error "Unknown platform"

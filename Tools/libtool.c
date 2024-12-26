@@ -141,7 +141,7 @@ static void itoa_unterminated(int val, char* buffer, int bufsiz)
 {
     char digits[11];
 
-    itoa(val, digits, 10);
+    sprintf(digits, "%d", val);
     
     const int ndigits = (int)strlen(digits);
     if (ndigits > bufsiz) {
@@ -645,7 +645,7 @@ CLAP_DECL(params,
 int main(int argc, char* argv[])
 {
     gArgv_Zero = argv[0];
-    clap_parse(0, params, argc, argv);
+    clap_parse(0, params, argc, (const char**)argv);
 
     if (!strcmp("create", cmd_id)) {
         if (paths.count < 2) {
