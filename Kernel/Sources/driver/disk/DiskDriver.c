@@ -22,6 +22,20 @@ struct BeginIOReq {
 };
 
 
+// Generates a new unique media ID. Call this function to generate a new media
+// ID after a media change has been detected and use the returned value as the
+// new current media ID.
+// Note: must be called from the disk driver dispatch queue.
+MediaId DiskDriver_GetNewMediaId(DiskDriverRef _Nonnull self)
+{
+    self->nextMediaId++;
+    while (self->nextMediaId == kMediaId_None || self->nextMediaId == kMediaId_Current) {
+        self->nextMediaId++;
+    }
+
+    return self->nextMediaId;
+}
+
 // Publishes the driver instance to the driver catalog with the given name.
 errno_t DiskDriver_publish(DiskDriverRef _Nonnull self, const char* name, intptr_t arg)
 {
@@ -104,7 +118,8 @@ void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull
 {
     decl_try_err();
 
-    if (targetAddr->mediaId == DiskDriver_GetCurrentMediaId(self)) {
+    if (targetAddr->mediaId == kMediaId_Current
+        || targetAddr->mediaId == DiskDriver_GetCurrentMediaId(self)) {
         switch (DiskBlock_GetOp(pBlock)) {
             case kDiskBlockOp_Read:
                 err = DiskDriver_GetBlock(self, pBlock, targetAddr);

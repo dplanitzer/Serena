@@ -13,8 +13,19 @@
 
 __CPP_BEGIN
 
+// Means no disk drive
+#define kDiskId_None   0
+
+// Indicates that disk blocks cached for all disk drives should be synced
+#define kDiskId_All     (~0)
+
+
 // No media/empty drive
 #define kMediaId_None   0
+
+// Indicates that the cached disk blocks for the currently loaded disk media
+// should be synced
+#define kMediaId_Current    (~0)
 
 
 // Returns information about a disk drive.
@@ -28,6 +39,14 @@ typedef struct DiskInfo {
     size_t              blockSize;          // byte size of a single disk block. This is the data portion only without any header information
     LogicalBlockCount   blockCount;         // overall number of addressable blocks on the disk
 } DiskInfo;
+
+
+#if !defined(__KERNEL__)
+
+// Synchronously writes all dirty disk blocks back to disk.
+extern void Sync(void);
+
+#endif /* __KERNEL__ */
 
 __CPP_END
 

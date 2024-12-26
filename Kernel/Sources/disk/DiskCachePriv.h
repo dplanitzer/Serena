@@ -94,8 +94,8 @@
 #define ASSERT_LOCKED_SHARED(__block)
 #endif
 
+static DiskId _DiskCache_GetNewDiskId(DiskCacheRef _Nonnull _Locked self);
 static void _DiskCache_ScheduleAutoSync(DiskCacheRef _Nonnull self);
-static errno_t _DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, bool bSyncAll);
 static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef pBlock);
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
 
@@ -134,7 +134,7 @@ typedef struct DiskCache {
     size_t                      dirtyBlockCount;        // Number of blocks in the cache that are currently marked dirty
     List/*<DiskBlock>*/         diskAddrHash[DISK_BLOCK_HASH_CHAIN_COUNT];  // Hash table organizing disk blocks by disk address
     List/*<DiskEntry>*/         driverHash[DISK_DRIVER_HASH_CHAIN_COUNT];   // Hash table mapping DiskId -> DiskDriverRef
-    DiskId                      nextProposedDiskId;
+    DiskId                      nextDiskId;
 } DiskCache;
 
 #endif /* DiskCachePriv_h */

@@ -6,11 +6,13 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
+#include <disk/DiskCache.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <filesystem/IOChannel.h>
 #include <hal/MonotonicClock.h>
 #include <process/Process.h>
+#include <System/Disk.h>
 #include "User.h"
 
 typedef intptr_t (*SystemCall)(void* _Nonnull);
@@ -495,6 +497,12 @@ SYSCALL_2(unmount, const char* _Nullable atDirPath, uint32_t options)
     return Process_Unmount(Process_GetCurrent(), pArgs->atDirPath, pArgs->options);
 }
 
+SYSCALL_0(sync)
+{
+    DiskCache_Sync(gDiskCache, kDiskId_All, kMediaId_Current);
+    return EOK;
+}
+
 
 SystemCall gSystemCallTable[] = {
     REF_SYSCALL(read),
@@ -550,4 +558,5 @@ SystemCall gSystemCallTable[] = {
     REF_SYSCALL(mount),
     REF_SYSCALL(unmount),
     REF_SYSCALL(getgid),
+    REF_SYSCALL(sync),
 };

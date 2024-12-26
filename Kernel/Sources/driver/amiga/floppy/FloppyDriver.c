@@ -49,8 +49,7 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnu
     self->cylinder = -1;
     self->readErrorCount = 0;
 
-    self->currentMediaId = 0;
-    self->nextMediaId = 1;
+    self->currentMediaId = DiskDriver_GetNewMediaId((DiskDriverRef)self);
 
     self->flags.motorState = kMotor_Off;
     self->flags.wasMostRecentSeekInward = 0;
@@ -150,12 +149,7 @@ static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
         FloppyDriver_ScheduleUpdateHasDiskState(self);
     }
     else {
-        self->currentMediaId = self->nextMediaId;
-        self->nextMediaId++;
-        if (self->nextMediaId == 0) {
-            // 0 means no media. So increment to 1 if we wrapped around
-            self->nextMediaId++;
-        }
+        self->currentMediaId = DiskDriver_GetNewMediaId((DiskDriverRef)self);
         FloppyDriver_CancelUpdateHasDiskState(self);
     }
 }

@@ -27,6 +27,7 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
     Lock_Init(&self->interlock);
     ConditionVariable_Init(&self->condition);
     List_Init(&self->lruChain);
+    self->nextDiskId = 0;
 
     self->blockCount = 0;
     self->blockCapacity = SystemDescription_GetRamSize(pSysDesc) >> 5;
@@ -39,8 +40,6 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
         List_Init(&self->driverHash[i]);
     }
 
-    self->nextProposedDiskId = 1;
-
     _DiskCache_ScheduleAutoSync(self);
 
     *pOutSelf = self;
@@ -49,6 +48,17 @@ errno_t DiskCache_Create(const SystemDescription* _Nonnull pSysDesc, DiskCacheRe
 catch:
     *pOutSelf = NULL;
     return err;
+}
+
+// Generates a new unique disk ID.
+static DiskId _DiskCache_GetNewDiskId(DiskCacheRef _Nonnull _Locked self)
+{
+    self->nextDiskId++;
+    while (self->nextDiskId == kDiskId_None || self->nextDiskId == kDiskId_All) {
+        self->nextDiskId++;
+    }
+
+    return self->nextDiskId;
 }
 
 // Locks the given block in shared or exclusive mode. Multiple clients may lock
@@ -390,7 +400,7 @@ errno_t DiskCache_RegisterDisk(DiskCacheRef _Nonnull self, DiskDriverRef _Nonnul
 
     // Get a unique disk ID
     while (!isUnique) {
-        diskId = self->nextProposedDiskId++;
+        diskId = _DiskCache_GetNewDiskId(self);
         isUnique = true;
 
         for (size_t i = 0; i < DISK_DRIVER_HASH_CHAIN_COUNT; i++) {
@@ -851,9 +861,10 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriv
 }
 
 
-// Synchronously flushes all cached and unwritten disk block for drive 'diskId'
-// and media 'mediaId', to disk. Does nothing if either value is kXXX_None. 
-static errno_t _DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId, bool bSyncAll)
+// Synchronously writes all dirty disk blocks for drive 'diskId' and media
+// 'mediaId' to disk. Does nothing if 'diskId' is kDisk_None. Flushes all dirty
+// blocks for all drives and media if 'diskId' is kDisk_All. 
+errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId)
 {
     decl_try_err();
 
@@ -879,7 +890,7 @@ static errno_t _DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaI
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
                 DiskBlock_BeginUse(pBlock);
-                if (bSyncAll || (pBlock->address.diskId == diskId && pBlock->address.mediaId == mediaId)) {
+                if ((diskId == kDiskId_All) || (pBlock->address.diskId == diskId && (pBlock->address.mediaId == mediaId || mediaId == kMediaId_Current))) {
                     const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
                     
                     if (err == EOK) {
@@ -903,17 +914,10 @@ static errno_t _DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaI
     Lock_Unlock(&self->interlock);
 }
 
-// Synchronously flushes all cached and unwritten disk block for drive 'diskId'
-// and media 'mediaId', to disk. Does nothing if either value is kXXX_None. 
-errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaId)
-{
-    return _DiskCache_Sync(self, diskId, mediaId, false);
-}
-
 // Auto syncs cache blocks to their associated disks
 static void _DiskCache_AutoSync(DiskCacheRef _Nonnull self)
 {
-    _DiskCache_Sync(self, kDiskId_None, kMediaId_None, true);
+    DiskCache_Sync(self, kDiskId_All, kMediaId_Current);
     _DiskCache_ScheduleAutoSync(self);
 }
 

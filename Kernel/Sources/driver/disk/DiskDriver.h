@@ -34,6 +34,7 @@
 // other driver.
 open_class(DiskDriver, Driver,
     DiskId      diskId;
+    MediaId     nextMediaId;
 );
 open_class_funcs(DiskDriver, Driver,
 
@@ -96,6 +97,12 @@ extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Non
 // this ID is only valid between the end of start() and the beginning of stop().
 #define DiskDriver_GetDiskId(__self) \
 (((DiskDriverRef)__self)->diskId)
+
+// Generates a new unique media ID. Call this function to generate a new media
+// ID after a media change has been detected and use the returned value as the
+// new current media ID.
+// Note: must be called from the disk driver dispatch queue.
+extern MediaId DiskDriver_GetNewMediaId(DiskDriverRef _Nonnull self);
 
 // The ID of the current media in the disk driver. kMediaId_None means that no
 // disk is in the drive. This ID is only good enough to detect whether the media

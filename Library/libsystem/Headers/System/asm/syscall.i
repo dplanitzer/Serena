@@ -62,9 +62,10 @@ SC_dispatch_remove_by_tag   equ 49
 SC_mount                    equ 50
 SC_unmount                  equ 51
 SC_getgid                   equ 52
+SC_sync                     equ 53
 
 
-SC_numberOfCalls            equ 53
+SC_numberOfCalls            equ 54
 
 
 ; System call macro.
