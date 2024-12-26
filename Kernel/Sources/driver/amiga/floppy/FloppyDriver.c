@@ -461,6 +461,10 @@ static void FloppyDriver_UpdateHasDiskState(FloppyDriverRef _Nonnull self)
         FloppyDriver_ResetDriveDiskChange(self);
 
         self->flags.hasDisk = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_DiskChanged) == 0) ? 1 : 0;
+
+        if (self->flags.hasDisk) {
+            FloppyDriver_OnMediaChanged(self);
+        }
     }
 
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
