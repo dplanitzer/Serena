@@ -24,12 +24,23 @@ open_class(DriverChannel, IOChannel,
     DriverChannelOptions    options;
 );
 open_class_funcs(DriverChannel, IOChannel,
+
+    // Invoked when the driver channel needs the size of the seekable space. The
+    // maximum position to which a client is allowed to seek is this value minus
+    // one.
+    // Override: Optional
+    // Default Behavior: Returns 0
+    FileOffset (*getSeekableRange)(void* _Nonnull self);
 );
 
 
 extern errno_t DriverChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, DriverChannelOptions options, DriverRef _Nonnull pDriver, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
 #define DriverChannel_GetOffset(__self) \
-(__self)->offset
+((DriverChannelRef)(__self))->offset
+
+// Returns the size of the seekable range
+#define DriverChannel_GetSeekableRange(__self) \
+invoke_0(getSeekableRange, DriverChannel, __self)
 
 #endif /* DriverChannel_h */

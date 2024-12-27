@@ -7,6 +7,7 @@
 //
 
 #include "DiskDriver.h"
+#include "DiskDriverChannel.h"
 #include <disk/DiskCache.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
@@ -175,16 +176,26 @@ void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock,
 // I/O Channel API
 //
 
-errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+errno_t DiskDriver_createChannel(DiskDriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     DiskInfo info;
+
+    err = DiskDriver_GetInfo(self, &info);
+    if (err == EOK) {
+        err = DiskDriverChannel_Create(self, &info, mode, pOutChannel);
+    }
+    return err;
+}
+
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+{
+    decl_try_err();
+    const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
+    const FileOffset diskSize = DriverChannel_GetSeekableRange(pChannel);
     FileOffset offset = DriverChannel_GetOffset(pChannel);
     uint8_t* dp = pBuffer;
     ssize_t nBytesRead = 0;
-
-    DiskDriver_GetInfo(self, &info);
-    const FileOffset diskSize = info.blockCount * info.blockSize;
 
     if (nBytesToRead > 0) {
         if (offset < 0ll || offset >= diskSize) {
@@ -202,12 +213,12 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull p
     }
 
     while (nBytesToRead > 0 && offset < diskSize) {
-        const int blockIdx = (int)(offset / (FileOffset)info.blockSize);    //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset % (FileOffset)info.blockSize;     //XXX optimize for power-of-2
-        const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(info.blockSize - blockOffset), __min(diskSize - offset, (FileOffset)nBytesToRead));
+        const int blockIdx = (int)(offset / (FileOffset)info->blockSize);    //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset % (FileOffset)info->blockSize;     //XXX optimize for power-of-2
+        const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(info->blockSize - blockOffset), __min(diskSize - offset, (FileOffset)nBytesToRead));
         DiskBlockRef pBlock;
 
-        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info.diskId, info.mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info->diskId, info->mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
         if (e1 == EOK) {
             const uint8_t* bp = DiskBlock_GetData(pBlock);
             
@@ -230,15 +241,13 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull p
     return err;
 }
 
-errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
 {
     decl_try_err();
-    DiskInfo info;
+    const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
+    const FileOffset diskSize = DriverChannel_GetSeekableRange(pChannel);
     FileOffset offset = DriverChannel_GetOffset(pChannel);
     ssize_t nBytesWritten = 0;
-
-    DiskDriver_GetInfo(self, &info);
-    const FileOffset diskSize = info.blockCount * info.blockSize;
 
     if (nBytesToWrite > 0) {
         if (offset < 0ll || offset >= diskSize) {
@@ -256,13 +265,13 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull 
     }
 
     while (nBytesToWrite > 0) {
-        const int blockIdx = (int)(offset / (FileOffset)info.blockSize);    //XXX blockIdx should be 64bit
-        const size_t blockOffset = offset % (FileOffset)info.blockSize;     //XXX optimize for power-of-2
-        const size_t nBytesToWriteInCurrentBlock = __min(info.blockSize - blockOffset, nBytesToWrite);
-        AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == info.blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        const int blockIdx = (int)(offset / (FileOffset)info->blockSize);    //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset % (FileOffset)info->blockSize;     //XXX optimize for power-of-2
+        const size_t nBytesToWriteInCurrentBlock = __min(info->blockSize - blockOffset, nBytesToWrite);
+        AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == info->blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
         DiskBlockRef pBlock;
 
-        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info.diskId, info.mediaId, blockIdx, acquireMode, &pBlock);
+        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info->diskId, info->mediaId, blockIdx, acquireMode, &pBlock);
         if (e1 == EOK) {
             uint8_t* bp = DiskBlock_GetMutableData(pBlock);
         
@@ -283,7 +292,7 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull 
     return err;
 }
 
-FileOffset DiskDriver_getSeekableRangeSize(DiskDriverRef _Nonnull self)
+FileOffset DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 {
     DiskInfo info;
 
@@ -312,8 +321,9 @@ func_def(beginIO_async, DiskDriver)
 func_def(getBlock, DiskDriver)
 func_def(putBlock, DiskDriver)
 func_def(endIO, DiskDriver)
+override_func_def(createChannel, DiskDriver, Driver)
 override_func_def(read, DiskDriver, Driver)
 override_func_def(write, DiskDriver, Driver)
-override_func_def(getSeekableRangeSize, DiskDriver, Driver)
+override_func_def(getSeekableRange, DiskDriver, Driver)
 override_func_def(ioctl, DiskDriver, Driver)
 );

@@ -152,7 +152,7 @@ open_class_funcs(Driver, Object,
     // one.
     // Override: Optional
     // Default Behavior: Returns 0
-    FileOffset (*getSeekableRangeSize)(void* _Nonnull self);
+    FileOffset (*getSeekableRange)(void* _Nonnull self);
     
     // Invoked as the result of calling Driver_Ioctl(). A driver subclass should
     // override this method to implement support for the ioctl() system call.
@@ -228,8 +228,8 @@ invoke_0(unpublish, Driver, __self)
 
 
 // Returns the size of the seekable range
-#define Driver_GetSeekableRangeSize(__self) \
-invoke_0(getSeekableRangeSize, Driver, __self)
+#define Driver_GetSeekableRange(__self) \
+invoke_0(getSeekableRange, Driver, __self)
 
 
 // Adds the given driver as a child to the receiver.

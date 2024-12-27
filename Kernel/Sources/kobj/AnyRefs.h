@@ -27,6 +27,7 @@ class_ref(DirectoryChannel);
 class_ref(DiskBlock);
 class_ref(DiskCache);
 class_ref(DiskDriver);
+class_ref(DiskDriverChannel);
 class_ref(DispatchQueue);
 class_ref(Driver);
 class_ref(DriverChannel);

@@ -10,6 +10,7 @@
 #include <disk/DiskCache.h>
 #include <driver/DriverCatalog.h>
 #include <driver/disk/DiskDriver.h>
+#include <driver/disk/DiskDriverChannel.h>
 #include <filesystem/IOChannel.h>
 
 
@@ -17,27 +18,25 @@ final_class_ivars(DiskFSContainer, FSContainer,
     IOChannelRef _Nonnull   channel;
     DiskId                  diskId;
     MediaId                 mediaId;
-    size_t                  blockSize;
-    LogicalBlockAddress     blockCount;
-    bool                    isReadOnly;
 );
 
 
 errno_t DiskFSContainer_Create(IOChannelRef _Nonnull pChannel, FSContainerRef _Nullable * _Nonnull pOutContainer)
 {
     decl_try_err();
-    struct DiskFSContainer* self = NULL;
-    DiskInfo info;
 
-    if ((err = IOChannel_Ioctl(pChannel, kIODiskCommand_GetInfo, &info)) == EOK) {
-        if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
-            self->channel = IOChannel_Retain(pChannel);
-            self->diskId = info.diskId;
-            self->mediaId = info.mediaId;
-            self->blockSize = info.blockSize;
-            self->blockCount = info.blockCount;
-            self->isReadOnly = info.isReadOnly;
-        }
+    if (!instanceof(pChannel, DiskDriverChannel)) {
+        *pOutContainer = NULL;
+        return EINVAL;
+    }
+
+    struct DiskFSContainer* self;
+    const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
+
+    if ((err = Object_Create(DiskFSContainer, (struct DiskFSContainer*)&self)) == EOK) {
+        self->channel = IOChannel_Retain(pChannel);
+        self->diskId = info->diskId;
+        self->mediaId = info->mediaId;
     }
 
     *pOutContainer = (FSContainerRef)self;
@@ -52,9 +51,11 @@ void DiskFSContainer_deinit(struct DiskFSContainer* _Nonnull self)
 
 errno_t DiskFSContainer_getInfo(struct DiskFSContainer* _Nonnull self, FSContainerInfo* pOutInfo)
 {
-    pOutInfo->isReadOnly = self->isReadOnly;
-    pOutInfo->blockSize = self->blockSize;
-    pOutInfo->blockCount = self->blockCount;
+    const DiskInfo* info = DiskDriverChannel_GetInfo(self->channel);
+
+    pOutInfo->isReadOnly = info->isReadOnly;
+    pOutInfo->blockSize = info->blockSize;
+    pOutInfo->blockCount = info->blockCount;
     
     return EOK;
 }

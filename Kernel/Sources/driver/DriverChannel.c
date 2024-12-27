@@ -96,7 +96,7 @@ errno_t DriverChannel_seek(DriverChannelRef _Nonnull self, FileOffset offset, Fi
             break;
 
         case kSeek_End: {
-            const FileOffset fileSize = Driver_GetSeekableRangeSize(self);
+            const FileOffset fileSize = DriverChannel_GetSeekableRange(self);
             if (offset < 0ll && -offset > fileSize) {
                 throw(EINVAL);
             }
@@ -122,6 +122,11 @@ catch:
     return err;
 }
 
+FileOffset DriverChannel_getSeekableRange(DriverChannelRef _Nonnull self)
+{
+    return Driver_GetSeekableRange(self);
+}
+
 
 class_func_defs(DriverChannel, IOChannel,
 override_func_def(finalize, DriverChannel, IOChannel)
@@ -130,4 +135,5 @@ override_func_def(ioctl, DriverChannel, IOChannel)
 override_func_def(read, DriverChannel, IOChannel)
 override_func_def(write, DriverChannel, IOChannel)
 override_func_def(seek, DriverChannel, IOChannel)
+func_def(getSeekableRange, DriverChannel)
 );

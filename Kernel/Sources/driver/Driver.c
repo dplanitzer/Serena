@@ -218,7 +218,7 @@ errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, co
     return EBADF;
 }
 
-FileOffset Driver_getSeekableRangeSize(DriverRef _Nonnull self)
+FileOffset Driver_getSeekableRange(DriverRef _Nonnull self)
 {
     return 0ll;
 }
@@ -300,6 +300,6 @@ func_def(createChannel, Driver)
 func_def(close, Driver)
 func_def(read, Driver)
 func_def(write, Driver)
-func_def(getSeekableRangeSize, Driver)
+func_def(getSeekableRange, Driver)
 func_def(ioctl, Driver)
 );
