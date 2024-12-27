@@ -19,7 +19,8 @@ typedef enum DriverModel {
 } DriverModel;
 
 typedef enum DriverOptions {
-    kDriverOption_Exclusive = 1,    // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
+    kDriver_Exclusive = 1,    // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
+    kDriver_Seekable = 2,       // Driver defines a seekable space and driver channel should allow seeking with the seek() system call
 } DriverOptions;
 
 
@@ -133,6 +134,7 @@ open_class_funcs(Driver, Object,
     // Default Behavior: Does nothing and returns EOK
     errno_t (*close)(void* _Nonnull self, IOChannelRef _Nonnull pChannel);
 
+
     // Invoked as the result of calling Driver_Read(). A driver subclass should
     // override this method to implement support for the read() system call.
     // Override: Optional
@@ -145,6 +147,13 @@ open_class_funcs(Driver, Object,
     // Default Behavior: Returns EBADF
     errno_t (*write)(void* _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
+    // Invoked by the driver channel to get the size of the seekable space. The
+    // maximum position to which a client is allowed to seek is this value minus
+    // one.
+    // Override: Optional
+    // Default Behavior: Returns 0
+    FileOffset (*getSeekableRangeSize)(void* _Nonnull self);
+    
     // Invoked as the result of calling Driver_Ioctl(). A driver subclass should
     // override this method to implement support for the ioctl() system call.
     // Override: Optional
@@ -216,6 +225,11 @@ invoke_n(publish, Driver, __self, __name, __arg)
 // Removes the driver instance from the driver catalog.
 #define Driver_Unpublish(__self) \
 invoke_0(unpublish, Driver, __self)
+
+
+// Returns the size of the seekable range
+#define Driver_GetSeekableRangeSize(__self) \
+invoke_0(getSeekableRangeSize, Driver, __self)
 
 
 // Adds the given driver as a child to the receiver.

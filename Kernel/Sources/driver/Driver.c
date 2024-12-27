@@ -158,7 +158,7 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
 
     Lock_Lock(&self->lock);
     if (self->state == kDriverState_Running) {
-        if ((self->options & kDriverOption_Exclusive) == kDriverOption_Exclusive) {
+        if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
             if ((self->flags & kDriverFlag_IsOpen) == 0) {
                 err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
         
@@ -187,12 +187,18 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
 
 errno_t Driver_createChannel(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, self, pOutChannel);
+    DriverChannelOptions dcOpts = 0;
+
+    if ((self->options & kDriver_Seekable) == kDriver_Seekable) {
+        dcOpts |= kDriverChannel_Seekable;
+    }
+    
+    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, dcOpts, self, pOutChannel);
 }
 
 errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
-    if ((self->options & kDriverOption_Exclusive) == kDriverOption_Exclusive) {
+    if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
         Lock_Lock(&self->lock);
         self->flags &= ~kDriverFlag_IsOpen;
         Lock_Unlock(&self->lock);
@@ -200,6 +206,7 @@ errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 
     return EOK;
 }
+
 
 errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
@@ -209,6 +216,11 @@ errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, voi
 errno_t Driver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return EBADF;
+}
+
+FileOffset Driver_getSeekableRangeSize(DriverRef _Nonnull self)
+{
+    return 0ll;
 }
 
 errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...)
@@ -288,5 +300,6 @@ func_def(createChannel, Driver)
 func_def(close, Driver)
 func_def(read, Driver)
 func_def(write, Driver)
+func_def(getSeekableRangeSize, Driver)
 func_def(ioctl, Driver)
 );

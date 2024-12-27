@@ -121,6 +121,6 @@ invoke_n(putBlock, DiskDriver, __self, __pBlock, __targetAddr)
 invoke_n(endIO, DiskDriver, __self, __pBlock, __status)
 
 #define DiskDriver_Create(__className, __pOutDriver) \
-    _Driver_Create(&k##__className##Class, kDriverModel_Async, kDriverOption_Exclusive, (DriverRef*)__pOutDriver)
+    _Driver_Create(&k##__className##Class, kDriverModel_Async, kDriver_Exclusive | kDriver_Seekable, (DriverRef*)__pOutDriver)
 
 #endif /* DiskDriver_h */

@@ -175,6 +175,122 @@ void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock,
 // I/O Channel API
 //
 
+errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
+{
+    decl_try_err();
+    DiskInfo info;
+    FileOffset offset = DriverChannel_GetOffset(pChannel);
+    uint8_t* dp = pBuffer;
+    ssize_t nBytesRead = 0;
+
+    DiskDriver_GetInfo(self, &info);
+    const FileOffset diskSize = info.blockCount * info.blockSize;
+
+    if (nBytesToRead > 0) {
+        if (offset < 0ll || offset >= diskSize) {
+            *pOutBytesRead = 0;
+            return EOVERFLOW;
+        }
+
+        const FileOffset targetOffset = offset + (FileOffset)nBytesToRead;
+        if (targetOffset < 0ll || targetOffset > diskSize) {
+            nBytesToRead = (ssize_t)(diskSize - offset);
+        }
+    }
+    else if (nBytesToRead < 0) {
+        return EINVAL;
+    }
+
+    while (nBytesToRead > 0 && offset < diskSize) {
+        const int blockIdx = (int)(offset / (FileOffset)info.blockSize);    //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset % (FileOffset)info.blockSize;     //XXX optimize for power-of-2
+        const size_t nBytesToReadInCurrentBlock = (size_t)__min((FileOffset)(info.blockSize - blockOffset), __min(diskSize - offset, (FileOffset)nBytesToRead));
+        DiskBlockRef pBlock;
+
+        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info.diskId, info.mediaId, blockIdx, kAcquireBlock_ReadOnly, &pBlock);
+        if (e1 == EOK) {
+            const uint8_t* bp = DiskBlock_GetData(pBlock);
+            
+            memcpy(dp, bp + blockOffset, nBytesToReadInCurrentBlock);
+            DiskCache_RelinquishBlock(gDiskCache, pBlock);
+        }
+        if (e1 != EOK) {
+            err = (nBytesRead == 0) ? e1 : EOK;
+            break;
+        }
+
+        nBytesToRead -= nBytesToReadInCurrentBlock;
+        nBytesRead += nBytesToReadInCurrentBlock;
+        offset += (FileOffset)nBytesToReadInCurrentBlock;
+        dp += nBytesToReadInCurrentBlock;
+    }
+
+    *pOutBytesRead = nBytesRead;
+
+    return err;
+}
+
+errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DriverChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull pOutBytesWritten)
+{
+    decl_try_err();
+    DiskInfo info;
+    FileOffset offset = DriverChannel_GetOffset(pChannel);
+    ssize_t nBytesWritten = 0;
+
+    DiskDriver_GetInfo(self, &info);
+    const FileOffset diskSize = info.blockCount * info.blockSize;
+
+    if (nBytesToWrite > 0) {
+        if (offset < 0ll || offset >= diskSize) {
+            *pOutBytesWritten = 0;
+            return EOVERFLOW;
+        }
+
+        const FileOffset targetOffset = offset + (FileOffset)nBytesToWrite;
+        if (targetOffset < 0ll || targetOffset > diskSize) {
+            nBytesToWrite = (ssize_t)(diskSize - offset);
+        }
+    }
+    else if (nBytesToWrite < 0) {
+        return EINVAL;
+    }
+
+    while (nBytesToWrite > 0) {
+        const int blockIdx = (int)(offset / (FileOffset)info.blockSize);    //XXX blockIdx should be 64bit
+        const size_t blockOffset = offset % (FileOffset)info.blockSize;     //XXX optimize for power-of-2
+        const size_t nBytesToWriteInCurrentBlock = __min(info.blockSize - blockOffset, nBytesToWrite);
+        AcquireBlock acquireMode = (nBytesToWriteInCurrentBlock == info.blockSize) ? kAcquireBlock_Replace : kAcquireBlock_Update;
+        DiskBlockRef pBlock;
+
+        errno_t e1 = DiskCache_AcquireBlock(gDiskCache, info.diskId, info.mediaId, blockIdx, acquireMode, &pBlock);
+        if (e1 == EOK) {
+            uint8_t* bp = DiskBlock_GetMutableData(pBlock);
+        
+            memcpy(bp + blockOffset, ((const uint8_t*) pBuffer) + nBytesWritten, nBytesToWriteInCurrentBlock);
+            e1 = DiskCache_RelinquishBlockWriting(gDiskCache, pBlock, kWriteBlock_Sync);
+        }
+        if (e1 != EOK) {
+            err = (nBytesWritten == 0) ? e1 : EOK;
+            break;
+        }
+
+        nBytesToWrite -= nBytesToWriteInCurrentBlock;
+        nBytesWritten += nBytesToWriteInCurrentBlock;
+        offset += (FileOffset)nBytesToWriteInCurrentBlock;
+    }
+
+    *pOutBytesWritten = nBytesWritten;
+    return err;
+}
+
+FileOffset DiskDriver_getSeekableRangeSize(DiskDriverRef _Nonnull self)
+{
+    DiskInfo info;
+
+    DiskDriver_GetInfo(self, &info);
+    return info.blockCount * info.blockSize;
+}
+
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
@@ -196,5 +312,8 @@ func_def(beginIO_async, DiskDriver)
 func_def(getBlock, DiskDriver)
 func_def(putBlock, DiskDriver)
 func_def(endIO, DiskDriver)
+override_func_def(read, DiskDriver, Driver)
+override_func_def(write, DiskDriver, Driver)
+override_func_def(getSeekableRangeSize, DiskDriver, Driver)
 override_func_def(ioctl, DiskDriver, Driver)
 );
