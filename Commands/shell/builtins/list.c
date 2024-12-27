@@ -29,7 +29,8 @@ typedef struct ListContext {
     int     uidWidth;
     int     gidWidth;
     int     sizeWidth;
-    int     inodeIdWidth;
+    int     fsidWidth;
+    int     inidWidth;
 
     struct Flags {
         unsigned int printAll:1;
@@ -72,8 +73,10 @@ static errno_t format_inode(ListContextRef _Nonnull self, const char* _Nonnull p
         self->gidWidth = __max(self->gidWidth, strlen(self->digitBuffer));
         lltoa(info.size, self->digitBuffer, 10);
         self->sizeWidth = __max(self->sizeWidth, strlen(self->digitBuffer));
+        itoa(info.filesystemId, self->digitBuffer, 10);
+        self->fsidWidth = __max(self->fsidWidth, strlen(self->digitBuffer));
         itoa(info.inodeId, self->digitBuffer, 10);
-        self->inodeIdWidth = __max(self->inodeIdWidth, strlen(self->digitBuffer));
+        self->inidWidth = __max(self->inidWidth, strlen(self->digitBuffer));
     }
     return err;
 }
@@ -97,13 +100,14 @@ static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull pa
         file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &tp[7]);
         tp[10] = '\0';
 
-        printf("%s %*d  %*u %*u  %*lld %*" PINID " %s\n",
+        printf("%s %*d  %*u %*u  %*lld %*x`%*"PINID" %s\n",
             tp,
             self->linkCountWidth, info.linkCount,
             self->uidWidth, info.uid,
             self->gidWidth, info.gid,
             self->sizeWidth, info.size,
-            self->inodeIdWidth, info.inodeId,
+            self->fsidWidth, info.filesystemId,
+            self->inidWidth, info.inodeId,
             entryName);
     }
     return err;
