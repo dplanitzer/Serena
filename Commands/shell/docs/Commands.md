@@ -273,6 +273,14 @@ Writes the provided data to a new file at location 'path'. Any existing data is 
 * `data`: the input data which may be text or raw bytes
 * `path`: path to a file
 
+## `shutdown`
+
+Prepares the computer for power off by writing still cached data to disk. It is safe to turn off power once this command has finished running.
+
+### Signature
+
+`shutdown`
+
 ## `type`
 
 Prints the contents of the file 'path' to the console. Pass the switch '--hex' to print the file contents as a series of hexadecimal numbers.
