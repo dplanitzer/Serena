@@ -49,6 +49,7 @@ class_ref(IOChannel);
 class_ref(KeyboardDriver);
 class_ref(LightPenDriver);
 class_ref(MouseDriver);
+class_ref(PartitionDriver);
 class_ref(PipeChannel);
 class_ref(Pipe);
 class_ref(PlatformController);
