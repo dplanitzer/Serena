@@ -1,8 +1,13 @@
 # About The Project
 
-Serena is an experimental operating system based on modern design principles with support for pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It runs on Amiga systems with a 68030 or better CPU installed.
+Serena OS is what you get when modern operating system design and implementation meets vintage hardware. Serena is built around pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It currently runs on Amiga systems with a 68030 or better CPU installed.
 
-One aspect that sets it aside from traditional threading-based OSs is that it is purely built around dispatch queues somewhat similar to Apple's Grand Central Dispatch. There is no support for creating threads in user space nor in kernel space. Instead the kernel implements a virtual processor concept where it dynamically manages a pool of virtual processors. The size of the pool is automatically adjusted based on the needs of the dispatch queues and virtual processors are assigned to processes as needed. All kernel and user space concurrency is achieved by creating dispatch queues and by submitting work items to dispatch queues. Work items are simply closures (a function with associated state) from the viewpoint of the user.
+
+<p align="center">
+<video src='Serena.mp4' height=200 autoplay loop muted/>
+</p>
+
+One of the most significant differences to other existing operating systems is that there are no threads in Serena OS. Instead the kernel and applications achieve parallism with the help of dispatch queues. An application creates a dispatch queues and it then uses the queue to dispatch work (functions/callbacks/closures) that should execute concurrently. It does not need to create threads and implement a work queue or messaging system on its own. Dispatch queues take care of the queuing and they automatically acquire virtual processors to do the work and as needed. Virtual processors are shared between processes and move between them as needed.
 
 Another interesting aspect is interrupt handling. Code which wants to react to an interrupt can register a counting semaphore with the interrupt controller for the interrupt it wants to handle. The interrupt controller will then signal the semaphore every time the interrupt occurs. Use of a counting semaphore ensures that the code which is interested in the interrupt does not miss the occurrence of an interrupt. The advantage of translating interrupts into signals on a semaphore is that the interrupt handling code executes in a well-defined context that is the same kind of context that any other kind of code runs in. It also gives the interrupt handling code more flexibility since it does not have to immediately react to an interrupt. The information that an interrupt has happened is never lost, whether the interrupt handler code happened to be busy with other things at the time of the interrupt or not.
 
@@ -37,10 +42,9 @@ The following kernel services are implemented at this time:
 * Hierarchical processes with support for command line arguments, environment variables and I/O resource descriptor inheritance
 * Hierarchical file system structure with support for mounting/unmounting file systems
 * The SerenaFS file system
-* Support for ROM and RAM-based disks
+* Support for floppy disks, ROM and RAM-based disks
 * Support for aout/GemDos executables
 * Support for pipes
-* Floppy disk driver
 * Monotonic clock
 * Repeating timers
 * Counting semaphores, condition variables and locks (mutexes)
@@ -66,11 +70,12 @@ The level of completeness and correctness of the various modules varies quite a 
 
 The following hardware is supported at this time:
 
-* Amiga 2000, 3000 and 4000 motherboards
+* Amiga 500, 600, 1200 and 2000 with at least 1MB and a 68030 accelerator installed
+* Amiga 3000 and 4000
 * Newer than the original chipsets work, but their specific features are not used
 * Motorola 68030, 68040 and 68060 CPU. Note that the CPU has to be at least a 68030 class CPU
 * Motorola 68881 and 68882 FPU
-* Standard Commodore Amiga floppy drive
+* Commodore Amiga floppy disk drive
 * Zorro II and Zorro III memory expansion boards
 
 ## Getting Started
