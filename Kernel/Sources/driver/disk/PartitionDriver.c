@@ -82,7 +82,7 @@ void PartitionDriver_beginIO_async(PartitionDriverRef _Nonnull self, DiskBlockRe
     da.diskId = self->wholeDiskId;
     da.mediaId = self->wholeMediaId;
     da.lba = targetAddr->lba + self->startBlock;
-    return DiskDriver_BeginIO(self->diskDriver, pBlock, &da);
+    DiskDriver_BeginIO(self->diskDriver, pBlock, &da);
 }
 
 
