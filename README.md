@@ -2,10 +2,7 @@
 
 Serena OS is what you get when modern operating system design and implementation meets vintage hardware. Serena is built around pervasive preemptive concurrency and multiple users. The kernel is object-oriented and designed to be cross-platform and future proof. It currently runs on Amiga systems with a 68030 or better CPU installed.
 
-
-<p align="center">
-<video src='Serena.mp4' height=200 autoplay loop muted/>
-</p>
+https://github.com/user-attachments/assets/c60bad93-5011-49ef-907d-ff006c287c9f
 
 One of the most significant differences to other existing operating systems is that there are no threads in Serena OS. Instead the kernel and applications achieve parallism with the help of dispatch queues. An application creates a dispatch queues and it then uses the queue to dispatch work (functions/callbacks/closures) that should execute concurrently. It does not need to create threads and implement a work queue or messaging system on its own. Dispatch queues take care of the queuing and they automatically acquire virtual processors to do the work and as needed. Virtual processors are shared between processes and move between them as needed.
 
