@@ -167,7 +167,6 @@ errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull se
     if (pBlock) {
         switch (mode) {
             case kWriteBlock_Sync:
-            case kWriteBlock_Async:
             case kWriteBlock_Deferred:
                 err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), DiskBlock_GetLba(pBlock));
                 break;

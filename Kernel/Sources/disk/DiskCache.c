@@ -698,10 +698,6 @@ errno_t DiskCache_RelinquishBlockWriting(DiskCacheRef _Nonnull self, DiskBlockRe
             err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
             break;
 
-        case kWriteBlock_Async:
-            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, false);
-            break;
-
         case kWriteBlock_Deferred:
             if (pBlock->flags.isDirty == 0) {
                 pBlock->flags.isDirty = 1;
