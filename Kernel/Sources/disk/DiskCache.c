@@ -634,6 +634,9 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaI
             ASSERT_LOCKED_EXCLUSIVE(pBlock);
             if (!pBlock->flags.hasData) {
                 try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true));
+                if (pBlock->readError != EOK) {
+                    throw(pBlock->readError);
+                }
             }
             break;
 
@@ -641,7 +644,12 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaI
             if (!pBlock->flags.hasData) {
                 ASSERT_LOCKED_SHARED(pBlock);
                 try(_DiskCache_UpgradeBlockLock(self, pBlock));
+
                 try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Read, true));
+                if (pBlock->readError != EOK) {
+                    throw(pBlock->readError);
+                }
+
                 _DiskCache_DowngradeBlockLock(self, pBlock);
             }
             break;
@@ -731,7 +739,7 @@ static errno_t _DiskCache_WaitIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRe
         }
     }
 
-    return pBlock->status;
+    return EOK;
 }
 
 // Starts an operation to read the contents of the provided block from disk or
@@ -767,7 +775,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 
     pBlock->flags.op = op;
     pBlock->flags.async = (isSync) ? 0 : 1;
-    pBlock->status = EOK;
+    pBlock->readError = EOK;
     pBlock->physicalAddress = pBlock->virtualAddress;
 
     if (op == kDiskBlockOp_Write) {
@@ -834,9 +842,15 @@ void DiskCache_OnBlockFinishedIO(DiskCacheRef _Nonnull self, DiskDriverRef pDriv
             break;
     }
 
-    pBlock->flags.op = kDiskBlockOp_Idle;
+    if (pBlock->flags.op == kDiskBlockOp_Read) {
+        // We only note read related errors since there's noone who could ever
+        // look at a write-related error (because writes are often deferred and
+        // thus they may happen a long time after the process that initiated the
+        // write exited).
+        pBlock->readError = status;
+    }
     pBlock->flags.async = 0;
-    pBlock->status = status;
+    pBlock->flags.op = kDiskBlockOp_Idle;
 
     if (isAsync) {
         // Drops exclusive lock if this is a read op

@@ -57,7 +57,7 @@ typedef struct DiskBlock {
         unsigned int        async:1;        // Read: shared lock; Modify: exclusive lock
         unsigned int        reserved:10;
     }                   flags;
-    errno_t             status;             // Read: shared lock; Modify: exclusive lock
+    errno_t             readError;          // Read: shared lock; Modify: exclusive lock
     uint8_t             data[1];            // Read: shared lock; Modify: exclusive lock
 } DiskBlock;
 
@@ -70,9 +70,6 @@ typedef struct DiskBlock {
 
 #define DiskBlock_GetByteSize(__self) \
     (__self)->flags.byteSize
-
-#define DiskBlock_GetStatus(__self) \
-    (__self)->status
 
 #define DiskBlock_GetVirtualAddress(__self) \
     (&(__self)->virtualAddress)
