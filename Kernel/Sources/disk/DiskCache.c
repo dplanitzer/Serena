@@ -201,7 +201,7 @@ static void _DiskCache_Print(DiskCacheRef _Nonnull _Locked self)
     print("{");
     for (size_t i = 0; i < DISK_BLOCK_HASH_CHAIN_COUNT; i++) {
         List_ForEach(&self->diskAddrHash[i], DiskBlock,
-            print("%u [%u], ", pCurNode->address.lba, i);
+            print("%u [%u], ", DiskBlock_GetVirtualAddress(pCurNode)->lba, i);
         );
     }
     print("}");
@@ -212,7 +212,7 @@ static void _DiskCache_PrintLruChain(DiskCacheRef _Nonnull _Locked self)
     print("{");
     List_ForEach(&self->lruChain, ListNode,
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
-        print("%u", pb->address.lba);
+        print("%u", DiskBlock_GetVirtualAddress(pb)->lba);
         if (pCurNode->next) {
             print(", ");
         }
@@ -257,7 +257,7 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
         _DiskCache_SyncBlock(self, pBlock);
 
         _DiskCache_UnregisterBlock(self, pBlock);
-        DiskBlock_SetTarget(pBlock, diskId, mediaId, lba);
+        DiskBlock_SetVirtualAddress(pBlock, diskId, mediaId, lba);
         _DiskCache_RegisterBlock(self, pBlock);
     }
 
@@ -375,7 +375,7 @@ static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskId diskId, Me
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
         DiskBlock_BeginUse(pb);
-        if (pb->address.diskId == diskId && (mediaId == kMediaId_None || mediaId == pb->address.mediaId)) {
+        if (pb->virtualAddress.diskId == diskId && (mediaId == kMediaId_None || mediaId == pb->virtualAddress.mediaId)) {
             // XXX do something about blocks that are currently doing I/O (cancel I/O)
             assert(pb->flags.op == kDiskBlockOp_Idle);
             DiskBlock_Purge(pb);
@@ -760,7 +760,7 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
 
 
     // Start a new I/O operation
-    DiskDriverRef pDriver = _DiskCache_CopyDriverForDiskId(self, pBlock->address.diskId);
+    DiskDriverRef pDriver = _DiskCache_CopyDriverForDiskId(self, DiskBlock_GetVirtualAddress(pBlock)->diskId);
     if (pDriver == NULL) {
         return ENODEV;
     }
@@ -768,13 +768,13 @@ static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef 
     pBlock->flags.op = op;
     pBlock->flags.async = (isSync) ? 0 : 1;
     pBlock->status = EOK;
+    pBlock->physicalAddress = pBlock->virtualAddress;
 
     if (op == kDiskBlockOp_Write) {
         _DiskCache_DowngradeBlockLock(self, pBlock);
     }
 
-    DiskAddress dAddr = DiskBlock_GetDiskAddress(pBlock);
-    err = DiskDriver_BeginIO(pDriver, pBlock, &dAddr);
+    err = DiskDriver_BeginIO(pDriver, pBlock);
     if (err == EOK && isSync) {
         err = _DiskCache_WaitIO(self, pBlock, op);
         // The lock is now held in exclusive mode again, if succeeded
@@ -886,7 +886,7 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaI
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
                 DiskBlock_BeginUse(pBlock);
-                if ((diskId == kDiskId_All) || (pBlock->address.diskId == diskId && (pBlock->address.mediaId == mediaId || mediaId == kMediaId_Current))) {
+                if ((diskId == kDiskId_All) || (pBlock->virtualAddress.diskId == diskId && (pBlock->virtualAddress.mediaId == mediaId || mediaId == kMediaId_Current))) {
                     const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
                     
                     if (err == EOK) {

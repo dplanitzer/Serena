@@ -75,14 +75,12 @@ MediaId PartitionDriver_getCurrentMediaId(PartitionDriverRef _Nonnull self)
     return self->wholeMediaId;
 }
 
-void PartitionDriver_beginIO_async(PartitionDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
+void PartitionDriver_beginIO_async(PartitionDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
-    DiskAddress da;
+    pBlock->physicalAddress.diskId = self->wholeDiskId;
+    pBlock->physicalAddress.lba += self->startBlock;
 
-    da.diskId = self->wholeDiskId;
-    da.mediaId = self->wholeMediaId;
-    da.lba = targetAddr->lba + self->startBlock;
-    DiskDriver_BeginIO(self->diskDriver, pBlock, &da);
+    DiskDriver_BeginIO(self->diskDriver, pBlock);
 }
 
 

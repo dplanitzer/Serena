@@ -55,7 +55,7 @@ open_class_funcs(DiskDriver, Driver,
     // putBlock() will only return once the I/O operation is done or an error
     // has been encountered.
     // Default Behavior: Calls getBlock/putBlock
-    void (*beginIO_async)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr);
+    void (*beginIO_async)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
 
     // Reads the contents of the bloc at the disk address 'targetAddr' into the
     // in-memory block 'pBlock'. Blocks the caller until the read operation has
@@ -63,7 +63,7 @@ open_class_funcs(DiskDriver, Driver,
     // block. Either it succeeds and the full block data is returned, or it
     // fails and no block data is returned.
     // Default Behavior: returns EIO
-    errno_t (*getBlock)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr);
+    errno_t (*getBlock)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
 
     // Writes the contents of 'pBlock' to the disk block 'targetAddr'. Blocks
     // the caller until the write has completed. The contents of the block on
@@ -71,7 +71,7 @@ open_class_funcs(DiskDriver, Driver,
     // of the write. The block may contain a mix of old and new data.
     // The abstract implementation returns EIO.
     // Default Behavior: returns EIO
-    errno_t (*putBlock)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr);
+    errno_t (*putBlock)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
 
     // Notifies the system that the I/O operation on the given block has finished
     // and that all data has been read in and stored in the block (if reading) or
@@ -87,7 +87,7 @@ open_class_funcs(DiskDriver, Driver,
 
 extern errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo);
 
-extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr);
+extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock);
 
 //
 // Subclassers
@@ -111,11 +111,11 @@ extern MediaId DiskDriver_GetNewMediaId(DiskDriverRef _Nonnull self);
 #define DiskDriver_GetCurrentMediaId(__self) \
 invoke_0(getCurrentMediaId, DiskDriver, __self)
 
-#define DiskDriver_GetBlock(__self, __pBlock, __targetAddr) \
-invoke_n(getBlock, DiskDriver, __self, __pBlock, __targetAddr)
+#define DiskDriver_GetBlock(__self, __pBlock) \
+invoke_n(getBlock, DiskDriver, __self, __pBlock)
 
-#define DiskDriver_PutBlock(__self, __pBlock, __targetAddr) \
-invoke_n(putBlock, DiskDriver, __self, __pBlock, __targetAddr)
+#define DiskDriver_PutBlock(__self, __pBlock) \
+invoke_n(putBlock, DiskDriver, __self, __pBlock)
 
 #define DiskDriver_EndIO(__self, __pBlock, __status) \
 invoke_n(endIO, DiskDriver, __self, __pBlock, __status)

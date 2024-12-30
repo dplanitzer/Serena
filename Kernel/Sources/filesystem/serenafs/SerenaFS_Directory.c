@@ -134,13 +134,13 @@ errno_t SerenaFS_GetDirectoryEntry(
         const int nDirEntries = nBytesAvailable / sizeof(SFSDirectoryEntry);
         hasMatch = xHasMatchingDirectoryEntry(&swappedQuery, pDirBuffer, nDirEntries, &pEmptyEntry, &pMatchingEntry);
         if (pEmptyEntry) {
-            pOutEmptyPtr->lba = DiskBlock_GetLba(pBlock);
+            pOutEmptyPtr->lba = DiskBlock_GetVirtualAddress(pBlock)->lba;
             pOutEmptyPtr->blockOffset = ((uint8_t*)pEmptyEntry) - ((uint8_t*)pDirBuffer);
             pOutEmptyPtr->fileOffset = offset + pOutEmptyPtr->blockOffset;
         }
         if (hasMatch) {
             if (pOutEntryPtr) {
-                pOutEntryPtr->lba = DiskBlock_GetLba(pBlock);
+                pOutEntryPtr->lba = DiskBlock_GetVirtualAddress(pBlock)->lba;
                 pOutEntryPtr->blockOffset = ((uint8_t*)pMatchingEntry) - ((uint8_t*)pDirBuffer);
                 pOutEntryPtr->fileOffset = offset + pOutEntryPtr->blockOffset;
             }

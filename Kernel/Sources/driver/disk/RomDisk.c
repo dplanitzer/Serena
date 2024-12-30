@@ -70,9 +70,9 @@ MediaId RomDisk_getCurrentMediaId(RomDiskRef _Nonnull self)
     return 1;
 }
 
-errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
+errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
-    const LogicalBlockAddress lba = targetAddr->lba;
+    const LogicalBlockAddress lba = DiskBlock_GetPhysicalAddress(pBlock)->lba;
 
     if (lba < self->blockCount) {
         memcpy(DiskBlock_GetMutableData(pBlock), self->diskImage + lba * self->blockSize, self->blockSize);

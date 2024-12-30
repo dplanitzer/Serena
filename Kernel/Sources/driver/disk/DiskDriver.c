@@ -17,11 +17,6 @@ struct GetInfoReq {
     errno_t             err;        // out
 };
 
-struct BeginIOReq {
-    DiskBlockRef _Nonnull   block;
-    DiskAddress             addr;
-};
-
 
 // Generates a new unique media ID. Call this function to generate a new media
 // ID after a media change has been detected and use the returned value as the
@@ -100,34 +95,30 @@ MediaId DiskDriver_getCurrentMediaId(DiskDriverRef _Nonnull self)
 }
 
 
-static void DiskDriver_beginIOStub(DiskDriverRef _Nonnull self, struct BeginIOReq* _Nonnull rq)
+static void DiskDriver_beginIOStub(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
-    invoke_n(beginIO_async, DiskDriver, self, rq->block, &rq->addr);
+    invoke_n(beginIO_async, DiskDriver, self, pBlock);
 }
 
-errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
+errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
-    struct BeginIOReq rq;
-
-    rq.block = pBlock;
-    rq.addr = *targetAddr;
-
-    return DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_beginIOStub, self, &rq, sizeof(struct BeginIOReq), 0, 0);
+    return DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_beginIOStub, self, pBlock, 0, 0, 0);
 }
 
-void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
+void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
+    const MediaId physMediaId = DiskBlock_GetPhysicalAddress(pBlock)->mediaId;
 
-    if (targetAddr->mediaId == kMediaId_Current
-        || targetAddr->mediaId == DiskDriver_GetCurrentMediaId(self)) {
+    if (physMediaId == kMediaId_Current
+        || physMediaId == DiskDriver_GetCurrentMediaId(self)) {
         switch (DiskBlock_GetOp(pBlock)) {
             case kDiskBlockOp_Read:
-                err = DiskDriver_GetBlock(self, pBlock, targetAddr);
+                err = DiskDriver_GetBlock(self, pBlock);
                 break;
 
             case kDiskBlockOp_Write:
-                err = DiskDriver_PutBlock(self, pBlock, targetAddr);
+                err = DiskDriver_PutBlock(self, pBlock);
                 break;
 
             default:
@@ -148,7 +139,7 @@ void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
 // The abstract implementation returns EIO.
-errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
+errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     return EIO;
 }
@@ -159,7 +150,7 @@ errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull p
 // disk is left in an indeterminate state of the write fails in the middle
 // of the write. The block may contain a mix of old and new data.
 // The abstract implementation returns EIO.
-errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, const DiskAddress* _Nonnull targetAddr)
+errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     return EIO;
 }
