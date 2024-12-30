@@ -508,7 +508,7 @@ static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBloc
     if (err == EOK && pBlock->flags.isDirty) {
         ASSERT_LOCKED_SHARED(pBlock);
         err = _DiskCache_UpgradeBlockLock(self, pBlock);
-        if (err == EOK) {
+        if (err == EOK && pBlock->flags.isDirty) {
             err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
         }
         _DiskCache_UnlockBlock(self, pBlock);
@@ -584,14 +584,6 @@ errno_t DiskCache_AcquireBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaI
     // caller wants to modify the block contents or not.
     const LockMode lockMode = (mode == kAcquireBlock_ReadOnly) ? kLockMode_Shared : kLockMode_Exclusive;
     try(_DiskCache_GetAndLockBlock(self, diskId, mediaId, lba, lockMode, &pBlock));
-
-
-    // Check whether we want to modify the block contents and whether the block
-    // is dirty. If so, write the current block data to the disk first. We do
-    // this synchronously.
-    if (lockMode == kLockMode_Exclusive && pBlock->flags.isDirty) {
-        try(_DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true));
-    }
 
 
     // States:
