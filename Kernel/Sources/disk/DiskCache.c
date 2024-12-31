@@ -509,11 +509,14 @@ static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBloc
 {
     decl_try_err();
 
-    err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Shared);
-    if (err == EOK && pBlock->flags.isDirty && pBlock->flags.op != kDiskBlockOp_Write) {
-        ASSERT_LOCKED_SHARED(pBlock);
-        err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
-        _DiskCache_UnlockBlockContent(self, pBlock);
+    if (pBlock->flags.isDirty && pBlock->flags.op != kDiskBlockOp_Write) {
+        err = _DiskCache_LockBlockContent(self, pBlock, kLockMode_Shared);
+        
+        if (err == EOK) {
+            ASSERT_LOCKED_SHARED(pBlock);
+            err = _DiskCache_DoIO(self, pBlock, kDiskBlockOp_Write, true);
+            _DiskCache_UnlockBlockContent(self, pBlock);
+        }
     }
 
     return err;
@@ -535,9 +538,10 @@ errno_t DiskCache_SyncBlock(DiskCacheRef _Nonnull self, DiskId diskId, MediaId m
 
     Lock_Lock(&self->interlock);
 
-    // Get the block
-    err = _DiskCache_GetBlock(self, diskId, mediaId, lba, &pBlock);
-    if (err == EOK) {
+    // Find the block and only sync it if no one else is currently using it
+    pBlock = _DiskCache_FindBlock(self, diskId, mediaId, lba);
+    if (pBlock && !DiskBlock_InUse(pBlock)) {
+        DiskBlock_BeginUse(pBlock);
         err = _DiskCache_SyncBlock(self, pBlock);
         _DiskCache_PutBlock(self, pBlock);
     }
@@ -865,17 +869,19 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaI
             List_ForEachReversed(&self->lruChain, ListNode, 
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
-                DiskBlock_BeginUse(pBlock);
-                if ((diskId == kDiskId_All) || (pBlock->virtualAddress.diskId == diskId && (pBlock->virtualAddress.mediaId == mediaId || mediaId == kMediaId_Current))) {
-                    const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
+                if (!DiskBlock_InUse(pBlock)) {
+                    DiskBlock_BeginUse(pBlock);
+                    if ((diskId == kDiskId_All) || (pBlock->virtualAddress.diskId == diskId && (pBlock->virtualAddress.mediaId == mediaId || mediaId == kMediaId_Current))) {
+                        const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
                     
-                    if (err == EOK) {
-                        // Return the first error that we encountered. However,
-                        // we continue flushing as many blocks as we can
-                        err = err1;
+                        if (err == EOK) {
+                            // Return the first error that we encountered. However,
+                            // we continue flushing as many blocks as we can
+                            err = err1;
+                        }
                     }
+                    _DiskCache_PutBlock(self, pBlock);
                 }
-                DiskBlock_EndUse(pBlock);
 
                 if (myLruChainGeneration != self->lruChainGeneration) {
                     loop = true;
