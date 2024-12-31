@@ -100,7 +100,7 @@ static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull pa
         file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &tp[7]);
         tp[10] = '\0';
 
-        printf("%s %*d  %*u %*u  %*lld %*x`%*"PINID" %s\n",
+        printf("%s %*d  %*u %*u  %*lld %*x-%*"PINID" %s\n",
             tp,
             self->linkCountWidth, info.linkCount,
             self->uidWidth, info.uid,

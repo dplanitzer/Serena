@@ -138,10 +138,19 @@ static errno_t _DiskCache_SyncBlock(DiskCacheRef _Nonnull _Locked self, DiskBloc
 static errno_t _DiskCache_DoIO(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull _Locked pBlock, DiskBlockOp op, bool isSync);
 
 
+// Locking modes for the block content lock
 typedef enum LockMode {
     kLockMode_Shared,
     kLockMode_Exclusive
 } LockMode;
+
+
+// _DiskCache_GetBlock() options
+enum {
+    kGetBlock_RecentUse = 1,        // Count this GetBlock() as a recent use and adjust the LRU chain accordingly
+    kGetBlock_Allocate = 2,         // Allocate a disk block with the given address if there isn't already a block with this address in the cache
+    kGetBlock_Exclusive = 4,        // Only return the requested block if it isn't in use
+};
 
 
 #define DISK_BLOCK_HASH_CHAIN_COUNT         8

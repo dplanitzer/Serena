@@ -58,9 +58,9 @@ typedef struct DiskBlock {
         unsigned int        isDirty:1;      // Protected by Interlock
         unsigned int        op:2;           // Protected by Interlock
         unsigned int        async:1;        // Protected by Interlock
-        unsigned int        reserved:10;
+        unsigned int        readError:8;    // Read: shared lock; Modify: exclusive lock
+        unsigned int        reserved:2;
     }                   flags;
-    errno_t             readError;          // Read: shared lock; Modify: exclusive lock
     uint8_t             data[1];            // Read: shared lock; Modify: exclusive lock
 } DiskBlock;
 
