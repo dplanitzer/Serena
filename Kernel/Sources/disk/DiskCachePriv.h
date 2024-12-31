@@ -83,7 +83,45 @@
 //   exclusively. However locking the block exclusively is only possible after
 //   all shared lock holders have dropped their lock and no other exclusive lock
 //   holder exists
-// * a blocks's isDirty can not be true if hasData is false 
+// * a blocks's isDirty can not be true if hasData is false
+//
+// Cache operations:
+// * Acquire for read-only
+//      - if hasData
+//          - lock content shared
+//          - use data
+//          - unlock content (shared)
+//      - if !hasData
+//          - lock content exclusive
+//          - do sync I/O read
+//          - downgrade content lock to shared
+//          - use data
+//          - unlock content (shared)
+//
+// * Acquire for sync-write
+//      - lock content exclusive
+//      - modify data
+//      - downgrade content lock to shared
+//      - do sync I/O write
+//      - unlock content (shared)
+//
+// * Acquire for deferred-write
+//      - lock content exclusive
+//      - modify data
+//      - mark as dirty
+//      - unlock content (exclusive)
+//
+// * Prefetch (async-read) block
+//      - if !hasData
+//          - lock content exclusive
+//          - do async I/O read
+//          - unlock content (exclusive)
+//
+// * Sync dirty block (sync-write)
+//      - if isCached (useCount == 0) && isDirty
+//          - lock content shared
+//          - sync I/O write
+//          - unlock content (shared)
 // 
 
 #if DEBUG

@@ -41,6 +41,9 @@ typedef struct DiskAddress {
 } DiskAddress;
 
 
+// General locking model:
+// Management state is protected by the interlock
+// Block data and error status is protected by the shared/exclusive lock
 typedef struct DiskBlock {
     ListNode            hashNode;           // Protected by Interlock
     ListNode            lruNode;            // Protected by Interlock
@@ -51,10 +54,10 @@ typedef struct DiskBlock {
     struct __Flags {
         unsigned int        byteSize:16;    // Constant value
         unsigned int        exclusive:1;    // Protected by Interlock
-        unsigned int        hasData:1;      // Read: shared lock; Modify: exclusive lock
-        unsigned int        isDirty:1;      // Read: shared lock; Modify: exclusive lock
-        unsigned int        op:2;           // Read: shared lock; Modify: exclusive lock
-        unsigned int        async:1;        // Read: shared lock; Modify: exclusive lock
+        unsigned int        hasData:1;      // Protected by Interlock
+        unsigned int        isDirty:1;      // Protected by Interlock
+        unsigned int        op:2;           // Protected by Interlock
+        unsigned int        async:1;        // Protected by Interlock
         unsigned int        reserved:10;
     }                   flags;
     errno_t             readError;          // Read: shared lock; Modify: exclusive lock
