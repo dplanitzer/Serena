@@ -256,8 +256,8 @@ static DiskBlockRef _DiskCache_ReuseCachedBlock(DiskCacheRef _Nonnull _Locked se
 
 // Returns the block that corresponds to the disk address (diskId, mediaId, lba).
 // A new block is created if needed or an existing block is retrieved from the
-// cached list of blocks. The caller must lock the block before doing anything
-// with it.
+// cached list of blocks. The caller must lock the content of the block before
+// doing I/O on it or before handing it to a filesystem.
 static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, unsigned int options, DiskBlockRef _Nullable * _Nonnull pOutBlock)
 {
     decl_try_err();
@@ -309,8 +309,6 @@ static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskId di
         }
 
         if (pBlock) {
-            DiskBlock_BeginUse(pBlock);
-
             if ((options & kGetBlock_RecentUse) == kGetBlock_RecentUse) {
                 List_Remove(&self->lruChain, &pBlock->lruNode);
                 List_InsertBeforeFirst(&self->lruChain, &pBlock->lruNode);
@@ -325,11 +323,8 @@ static errno_t _DiskCache_GetBlock(DiskCacheRef _Nonnull _Locked self, DiskId di
 
 static void _DiskCache_PutBlock(DiskCacheRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
-    DiskBlock_EndUse(pBlock);
-
     if (!DiskBlock_InUse(pBlock)) {
         assert(pBlock->flags.op == kDiskBlockOp_Idle);
-        assert(pBlock->flags.exclusive == 0 && pBlock->shareCount == 0);
 
         // Wake the wait() in _DiskBlock_Get() if this isn't the (singleton) empty block
         if (pBlock != self->emptyBlock) {
@@ -375,13 +370,11 @@ static void _DiskCache_PurgeBlocks(DiskCacheRef _Nonnull self, DiskId diskId, Me
     List_ForEach(&self->lruChain, DiskBlock, 
         DiskBlockRef pb = DiskBlockFromLruChainPointer(pCurNode);
 
-        DiskBlock_BeginUse(pb);
         if (pb->virtualAddress.diskId == diskId && (mediaId == kMediaId_None || mediaId == pb->virtualAddress.mediaId)) {
             // XXX do something about blocks that are currently doing I/O (cancel I/O)
             assert(pb->flags.op == kDiskBlockOp_Idle);
             DiskBlock_Purge(pb);
         }
-        DiskBlock_EndUse(pb);
     );
 }
 
@@ -552,13 +545,8 @@ errno_t DiskCache_AcquireEmptyBlock(DiskCacheRef _Nonnull self, DiskBlockRef _Nu
 {
     decl_try_err();
 
-    Lock_Lock(&self->interlock);
-    
+    Lock_Lock(&self->interlock);    
     err = _DiskCache_LockBlockContent(self, self->emptyBlock, kLockMode_Shared);
-    if (err == EOK) {
-        DiskBlock_BeginUse(self->emptyBlock);
-    }
-
     Lock_Unlock(&self->interlock);
     *pOutBlock = self->emptyBlock;
 
@@ -868,8 +856,6 @@ errno_t DiskCache_Sync(DiskCacheRef _Nonnull self, DiskId diskId, MediaId mediaI
                 DiskBlockRef pBlock = DiskBlockFromLruChainPointer(pCurNode);
 
                 if (!DiskBlock_InUse(pBlock)) {
-                    DiskBlock_BeginUse(pBlock);
-                    
                     if ((diskId == kDiskId_All) || (pBlock->virtualAddress.diskId == diskId && (pBlock->virtualAddress.mediaId == mediaId || mediaId == kMediaId_Current))) {
                         const errno_t err1 = _DiskCache_SyncBlock(self, pBlock);
                     

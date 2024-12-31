@@ -49,7 +49,6 @@ typedef struct DiskBlock {
     ListNode            lruNode;            // Protected by Interlock
     DiskAddress         virtualAddress;     // Protected by Interlock. Address by which a block is identified in the cache
     DiskAddress         physicalAddress;    // Protected by protocol: no mutation in idle state. Mutable in R/W state. DiskCache may mutate at the start of a R/W cycle; after that a driver may mutate it while being the block owner. Block must be locked shared or exclusive
-    int                 useCount;           // Protected by Interlock
     int                 shareCount;         // Protected by Interlock
     struct __Flags {
         unsigned int        byteSize:16;    // Constant value
@@ -91,14 +90,8 @@ typedef struct DiskBlock {
 extern errno_t DiskBlock_Create(DiskId diskId, MediaId mediaId, LogicalBlockAddress lba, DiskBlockRef _Nullable * _Nonnull pOutSelf);
 extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
 
-#define DiskBlock_BeginUse(__self) \
-    (__self)->useCount++
-
-#define DiskBlock_EndUse(__self) \
-    (__self)->useCount--
-
 #define DiskBlock_InUse(__self) \
-    ((__self)->useCount > 0)
+    ((__self)->shareCount > 0 || (__self)->flags.exclusive)
 
 #define DiskBlock_Hash(__self) \
     DiskBlock_HashKey((__self)->virtualAddress.diskId, (__self)->virtualAddress.mediaId, (__self)->virtualAddress.lba)

@@ -30,22 +30,28 @@
 //
 // Assumptions, rules, etc:
 //
-// * a block has a use count. A block is in use as long as the use count > 0
-// * a block that's sitting passively in the cache has a use count == 0
-// * a block may not be reused while it is in use
-// * conversely, a block may be reused for another disk address while its use
-//   count == 0
-// * a block may be locked for shared or exclusive operations as long as its
-//   use count > 0
-// * conversely, a block may not be locked exclusive or shared while its use
-//   count is == 0
-// * you have to increment the use count on a block if you want to use it
-// * you have to decrement the user count when you are done with the block
-// * using a block means:
-//    - you want to acquire it
-//    - it should be read from disk
-//    - its data should be initialized to 0
-//    - it should be written to disk
+// * the state of a block is protected by the interlock
+// * the content of a block is protected by a shared/exclusive lock
+// * the block shared/exclusive lock is an extension of the interlock
+//    - thus the shared/exclusive lock can not change state as long as someone
+//      holds the interlock
+// * a block counts as being in use if it's content is locked shared or exclusive
+// * there are three block use scenarios:
+//    - prefetch: block content is being prefetched for later use
+//    - acquired: block is being used by a filesystem
+//    - writeback: block content was changed earlier and is now being written
+//                 back to disk
+// * each one of the three block use scenarios counts as using a block and thus
+//   the block content must be locked before the use begins and unlocked after
+//   the use has ended
+// * prefetch and writeback are exclusive in the sense that they are only
+//   executed if the blocks isn't already in use (ie acquired)
+// * acquisition is the most flexible use in the sense that it is the only use
+//   that allows multiple users at a time. Ie multiple filesystems may read from
+//   the same block at the same time
+// * note that you can acquire a disk block for read-only while it is doing a
+//   writeback to disk
+//
 // * every disk block is on the 'disk address hash chain'. This is a hash table
 //   that organizes disk blocks by their disk address
 // * a disk address is the tuple (driver-id, media-id, lba)
