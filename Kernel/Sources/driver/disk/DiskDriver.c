@@ -18,6 +18,11 @@ struct GetInfoReq {
 };
 
 
+errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
+{
+    return _Driver_Create(pClass, kDriverModel_Async, kDriver_Exclusive | kDriver_Seekable, pOutSelf);
+}
+
 // Generates a new unique media ID. Call this function to generate a new media
 // ID after a media change has been detected and use the returned value as the
 // new current media ID.

@@ -120,7 +120,9 @@ invoke_n(putBlock, DiskDriver, __self, __pBlock)
 #define DiskDriver_EndIO(__self, __pBlock, __status) \
 invoke_n(endIO, DiskDriver, __self, __pBlock, __status)
 
-#define DiskDriver_Create(__className, __pOutDriver) \
-    _Driver_Create(&k##__className##Class, kDriverModel_Async, kDriver_Exclusive | kDriver_Seekable, (DriverRef*)__pOutDriver)
+#define DiskDriver_Create(__className, __pOutSelf) \
+    _DiskDriver_Create(&k##__className##Class, (DriverRef*)__pOutSelf)
+
+extern errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

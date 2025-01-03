@@ -15,38 +15,35 @@ enum {
     kDriverFlag_IsOpen = 2
 };
 
+#define DriverFromChildNode(__ptr) \
+(DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
 
-errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions options, DriverRef _Nullable * _Nonnull pOutDriver)
-{
-    errno_t err = _Object_Create(pClass, 0, (ObjectRef*)pOutDriver);
 
-    if (err == EOK) {
-        err = Driver_Init(*pOutDriver, model, options);
-    }
-    else {
-        Object_Release(*pOutDriver);
-        *pOutDriver = NULL;
-    }
-    return err;
-}
-
-errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOptions options)
+errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
+    DriverRef self = NULL;
 
-    self->dispatchQueue = NULL;
+    try(_Object_Create(pClass, 0, (ObjectRef*)&self));
+
     Lock_Init(&self->lock);
     List_Init(&self->children);
     ListNode_Init(&self->childNode);
     self->state = kDriverState_Inactive;
     self->model = model;
     self->options = options;
-    self->flags = 0;
 
     if (model == kDriverModel_Async) {
-        err = invoke_n(createDispatchQueue, Driver, self, &self->dispatchQueue);
+        try(invoke_n(createDispatchQueue, Driver, self, &self->dispatchQueue));
     }
 
+
+    *pOutSelf = self;
+    return EOK;
+
+catch:
+    Object_Release(self);
+    *pOutSelf = NULL;
     return err;
 }
 
@@ -136,7 +133,7 @@ void Driver_Terminate(DriverRef _Nonnull self)
     // The list of child drivers is now frozen and can not change anymore.
     // Synchronously terminate all our child drivers
     List_ForEach(&self->children, struct Driver,
-        Driver_Terminate(pCurNode);
+        Driver_Terminate(DriverFromChildNode(pCurNode));
     );
 
 
@@ -162,6 +159,17 @@ void Driver_Terminate(DriverRef _Nonnull self)
 
 
 
+errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+{
+    DriverChannelOptions dcOpts = 0;
+
+    if ((self->options & kDriver_Seekable) == kDriver_Seekable) {
+        dcOpts |= kDriverChannel_Seekable;
+    }
+    
+    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, dcOpts, self, pOutChannel);
+}
+
 errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
@@ -169,7 +177,7 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
     Driver_Synchronized(self,
         if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
             if ((self->flags & kDriverFlag_IsOpen) == 0) {
-                err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
+                err = Driver_CreateChannel(self, mode, arg, pOutChannel);
         
                 if (err == EOK) {
                     self->flags |= kDriverFlag_IsOpen;
@@ -183,22 +191,11 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
             }
         }
         else {
-            err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
+            err = Driver_CreateChannel(self, mode, arg, pOutChannel);
         }
     );
 
     return err;
-}
-
-errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    DriverChannelOptions dcOpts = 0;
-
-    if ((self->options & kDriver_Seekable) == kDriver_Seekable) {
-        dcOpts |= kDriverChannel_Seekable;
-    }
-    
-    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, dcOpts, self, pOutChannel);
 }
 
 errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
@@ -306,7 +303,9 @@ void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChi
     }
 
     List_ForEach(&self->children, struct Driver,
-        if (pCurNode == pChild) {
+        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
+
+        if (pCurDriver == pChild) {
             isChild = true;
             break;
         }

@@ -76,7 +76,7 @@ typedef enum DriverState {
 open_class(Driver, Object,
     Lock                        lock;
     ListNode                    childNode;
-    List                        children;
+    List/*<Driver>*/            children;
     DispatchQueueRef _Nullable  dispatchQueue;
     int8_t                      state;
     int8_t                      model;
@@ -218,9 +218,6 @@ invoke_n(ioctl, Driver, __self, __cmd, __ap)
 #define Driver_Create(__className, __model, __options, __pOutDriver) \
     _Driver_Create(&k##__className##Class, __model, __options, (DriverRef*)__pOutDriver)
 
-// Initializes a driver instance.
-extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOptions options);
-
 // Returns the driver's serial dispatch queue. Only call this if the driver is
 // an asynchronous driver.
 #define Driver_GetDispatchQueue(__self) \
@@ -264,6 +261,12 @@ extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* _Nonn
 extern void Driver_Unpublish(DriverRef _Nonnull _Locked self);
 
 
+// Creates an I/O channel that connects the driver to a user space application
+// or a kernel space service
+#define Driver_CreateChannel(__self, __mode, __arg, __pOutChannel) \
+invoke_n(createChannel, Driver, __self, __mode, __arg, __pOutChannel)
+
+
 // Returns the size of the seekable range
 #define Driver_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, Driver, __self)
@@ -293,6 +296,6 @@ Driver_Unlock(__self)
 
 
 // Do not call directly. Use the Driver_Create() macro instead
-extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions options, DriverRef _Nullable * _Nonnull pOutDriver);
+extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* Driver_h */
