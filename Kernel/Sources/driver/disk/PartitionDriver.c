@@ -46,9 +46,9 @@ catch:
     return err;
 }
 
-errno_t PartitionDriver_start(PartitionDriverRef _Nonnull self)
+errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, self->name, 0);
+    return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
 errno_t PartitionDriver_getInfo_async(PartitionDriverRef _Nonnull self, DiskInfo* pOutInfo)
@@ -85,7 +85,7 @@ void PartitionDriver_beginIO_async(PartitionDriverRef _Nonnull self, DiskBlockRe
 
 
 class_func_defs(PartitionDriver, DiskDriver,
-override_func_def(start, PartitionDriver, Driver)
+override_func_def(onStart, PartitionDriver, Driver)
 override_func_def(getInfo_async, PartitionDriver, DiskDriver)
 override_func_def(getCurrentMediaId, PartitionDriver, DiskDriver)
 override_func_def(beginIO_async, PartitionDriver, DiskDriver)

@@ -116,7 +116,7 @@ void EventDriver_deinit(EventDriverRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-static errno_t EventDriver_start(EventDriverRef _Nonnull self)
+static errno_t EventDriver_onStart(DriverRef _Nonnull _Locked self)
 {
     return Driver_Publish(self, kEventDriverName, 0);
 }
@@ -587,7 +587,7 @@ errno_t EventDriver_read(EventDriverRef _Nonnull self, EventChannelRef _Nonnull 
 
 class_func_defs(EventDriver, Driver,
 override_func_def(deinit, EventDriver, Object)
-override_func_def(start, EventDriver, Driver)
+override_func_def(onStart, EventDriver, Driver)
 override_func_def(createChannel, EventDriver, Driver)
 override_func_def(read, EventDriver, Driver)
 );

@@ -89,7 +89,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
     self->eventDriverChannel = NULL;
 }
 
-static errno_t Console_start(ConsoleRef _Nonnull self)
+static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
 {
     // Clear the console screen
     Console_BeginDrawing_Locked(self);
@@ -100,7 +100,7 @@ static errno_t Console_start(ConsoleRef _Nonnull self)
     // Start cursor blinking
     Console_SetCursorBlinkingEnabled_Locked(self, true);
 
-    return Driver_Publish(self, kConsoleName, 0);
+    return Driver_Publish((DriverRef)self, kConsoleName, 0);
 }
 
 errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCursorBlinking)
@@ -659,7 +659,7 @@ errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChan
 
 class_func_defs(Console, Driver,
 override_func_def(deinit, Console, Object)
-override_func_def(start, Console, Driver)
+override_func_def(onStart, Console, Driver)
 override_func_def(createChannel, Console, Driver)
 override_func_def(read, Console, Driver)
 override_func_def(write, Console, Driver)

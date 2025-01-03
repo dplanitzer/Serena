@@ -54,9 +54,9 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
     SList_Deinit(&self->extents);
 }
 
-errno_t RamDisk_start(RamDiskRef _Nonnull self)
+errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 {
-    return Driver_Publish(self, self->name, 0);
+    return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
 errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
@@ -178,7 +178,7 @@ catch:
 
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
-override_func_def(start, RamDisk, Driver)
+override_func_def(onStart, RamDisk, Driver)
 override_func_def(getInfo_async, RamDisk, DiskDriver)
 override_func_def(getCurrentMediaId, RamDisk, DiskDriver)
 override_func_def(getBlock, RamDisk, DiskDriver)

@@ -78,7 +78,7 @@ static void FloppyController_deinit(FloppyControllerRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-errno_t FloppyController_start(FloppyControllerRef _Nonnull self)
+errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
@@ -336,5 +336,5 @@ errno_t FloppyController_DoIO(FloppyControllerRef _Nonnull self, DriveState cb, 
 
 class_func_defs(FloppyController, Driver,
 override_func_def(deinit, FloppyController, Object)
-override_func_def(start, FloppyController, Driver)
+override_func_def(onStart, FloppyController, Driver)
 );

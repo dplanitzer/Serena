@@ -22,7 +22,7 @@ errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf)
     return Driver_Create(ZorroController, kDriverModel_Sync, 0, (DriverRef*)pOutSelf);
 }
 
-errno_t ZorroController_start(ZorroControllerRef _Nonnull self)
+errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 {
     // Auto config the Zorro bus
     zorro_auto_config(&self->zorroBus);
@@ -46,5 +46,5 @@ errno_t ZorroController_start(ZorroControllerRef _Nonnull self)
 }
 
 class_func_defs(ZorroController, Driver,
-override_func_def(start, ZorroController, Driver)
+override_func_def(onStart, ZorroController, Driver)
 );

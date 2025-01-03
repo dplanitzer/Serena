@@ -17,7 +17,7 @@ errno_t NullDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
     return Driver_Create(NullDriver, kDriverModel_Sync, 0, pOutSelf);
 }
 
-errno_t NullDriver_start(DriverRef _Nonnull self)
+errno_t NullDriver_onStart(DriverRef _Nonnull _Locked self)
 {
     return Driver_Publish(self, "null", 0);
 }
@@ -37,7 +37,7 @@ errno_t NullDriver_write(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel
 
 
 class_func_defs(NullDriver, Driver,
-override_func_def(start, NullDriver, Driver)
+override_func_def(onStart, NullDriver, Driver)
 override_func_def(read, NullDriver, Driver)
 override_func_def(write, NullDriver, Driver)
 );

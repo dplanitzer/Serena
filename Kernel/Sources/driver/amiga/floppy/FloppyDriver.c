@@ -123,19 +123,23 @@ static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull sel
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 }
 
-static errno_t FloppyDriver_start(FloppyDriverRef _Nonnull self)
+static errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
     char name[4];
 
-    if ((err = DispatchQueue_DispatchAsync(Driver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_EstablishInitialDriveState, self)) == EOK) {
-        name[0] = 'f';
-        name[1] = 'd';
-        name[2] = '0' + self->drive;
-        name[3] = '\0';
+    name[0] = 'f';
+    name[1] = 'd';
+    name[2] = '0' + self->drive;
+    name[3] = '\0';
 
-        err = Driver_Publish(self, name, 0);
-    }
+    if ((err = Driver_Publish((DriverRef)self, name, 0)) == EOK) {
+        if ((err = DispatchQueue_DispatchAsync(Driver_GetDispatchQueue(self), (VoidFunc_1)FloppyDriver_EstablishInitialDriveState, self)) == EOK) {
+            return EOK;
+        }
+
+        Driver_Unpublish((DriverRef)self);
+    };
 
     return err;
 }
@@ -998,7 +1002,7 @@ class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
 override_func_def(getInfo_async, FloppyDriver, DiskDriver)
 override_func_def(getCurrentMediaId, FloppyDriver, DiskDriver)
-override_func_def(start, FloppyDriver, Driver)
+override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getBlock, FloppyDriver, DiskDriver)
 override_func_def(putBlock, FloppyDriver, DiskDriver)
 );

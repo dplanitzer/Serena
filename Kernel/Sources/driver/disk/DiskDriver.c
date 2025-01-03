@@ -32,28 +32,17 @@ MediaId DiskDriver_GetNewMediaId(DiskDriverRef _Nonnull self)
     return self->nextMediaId;
 }
 
-// Publishes the driver instance to the driver catalog with the given name.
-errno_t DiskDriver_publish(DiskDriverRef _Nonnull self, const char* name, intptr_t arg)
+errno_t DiskDriver_onPublish(DiskDriverRef _Nonnull self)
 {
-    decl_try_err();
-
-    if ((err = super_n(publish, Driver, DiskDriver, self, name, arg)) == EOK) {
-        if ((err = DiskCache_RegisterDisk(gDiskCache, self, &self->diskId)) != EOK) {
-            Driver_Unpublish(self);
-        }
-    }
-    return err;
+    return DiskCache_RegisterDisk(gDiskCache, self, &self->diskId);
 }
 
-// Removes the driver instance from the driver catalog.
-void DiskDriver_unpublish(DiskDriverRef _Nonnull self)
+void DiskDriver_onUnpublish(DiskDriverRef _Nonnull self)
 {
     if (self->diskId != kDiskId_None) {
         DiskCache_UnregisterDisk(gDiskCache, self->diskId);
         self->diskId = kDiskId_None;
     }
-
-    super_0(unpublish, Driver, DiskDriver, self);
 }
 
 static void DiskDriver_getInfoStub(DiskDriverRef _Nonnull self, struct GetInfoReq* _Nonnull rq)
@@ -304,8 +293,8 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 
 
 class_func_defs(DiskDriver, Driver,
-override_func_def(publish, DiskDriver, Driver)
-override_func_def(unpublish, DiskDriver, Driver)
+override_func_def(onPublish, DiskDriver, Driver)
+override_func_def(onUnpublish, DiskDriver, Driver)
 func_def(getInfo_async, DiskDriver)
 func_def(getCurrentMediaId, DiskDriver)
 func_def(beginIO_async, DiskDriver)

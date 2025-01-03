@@ -67,7 +67,7 @@ void RealtimeClock_deinit(RealtimeClockRef _Nonnull self)
     Lock_Deinit(&self->lock);
 }
 
-errno_t RealtimeClock_start(RealtimeClockRef _Nonnull self)
+errno_t RealtimeClock_onStart(DriverRef _Nonnull _Locked self)
 {
     return Driver_Publish(self, kRealtimeClockName, 0);
 }
@@ -145,7 +145,7 @@ catch:
 
 class_func_defs(RealtimeClock, Driver,
 override_func_def(deinit, RealtimeClock, Object)
-override_func_def(start, RealtimeClock, Driver)
+override_func_def(onStart, RealtimeClock, Driver)
 override_func_def(read, RealtimeClock, Driver)
 override_func_def(write, RealtimeClock, Driver)
 );

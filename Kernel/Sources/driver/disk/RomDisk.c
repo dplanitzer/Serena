@@ -46,9 +46,9 @@ void RomDisk_deinit(RomDiskRef _Nonnull self)
     }
 }
 
-errno_t RomDisk_start(RomDiskRef _Nonnull self)
+errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
 {
-    return Driver_Publish(self, self->name, 0);
+    return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
 errno_t RomDisk_getInfo_async(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
@@ -86,7 +86,7 @@ errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
-override_func_def(start, RomDisk, Driver)
+override_func_def(onStart, RomDisk, Driver)
 override_func_def(getInfo_async, RomDisk, DiskDriver)
 override_func_def(getCurrentMediaId, RomDisk, DiskDriver)
 override_func_def(getBlock, RomDisk, DiskDriver)

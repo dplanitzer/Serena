@@ -23,6 +23,13 @@ typedef enum DriverOptions {
     kDriver_Seekable = 2,       // Driver defines a seekable space and driver channel should allow seeking with the seek() system call
 } DriverOptions;
 
+typedef enum DriverState {
+    kDriverState_Inactive = 0,
+    kDriverState_Active,
+    kDriverState_Terminating,
+    kDriverState_Terminated
+} DriverState;
+
 
 // A driver object binds to and manages a device. A device is a piece of hardware
 // while a driver is the software that manages the hardware.
@@ -92,27 +99,29 @@ open_class_funcs(Driver, Object,
     // driver catalog.
     // Override: Recommended
     // Default Behavior: Returns EOK and does nothing
-    errno_t (*start)(void* _Nonnull self);
+    errno_t (*onStart)(void* _Nonnull _Locked self);
 
-    // Invoked as the result of calling Driver_Stop(). A driver subclass should
-    // override this method and configure the hardware such that it is in an
-    // idle and powered-down state.
+    // Invoked as the result of calling Driver_Terminate(). A driver subclass
+    // should override this method and configure the hardware such that it is in
+    // an idle and powered-down state.
     // Override: Optional
     // Default Behavior: Unpublishes the driver
-    void (*stop)(void* _Nonnull self);
+    void (*onStop)(void* _Nonnull self);
 
 
-    // Publish the driver to the driver catalog. This method should be called
-    // from start().
+    // Invoked as part of the publishing the driver to the driver catalog. A
+    // subclass may override this method to do extra work after the driver has
+    // been published.
     // Override: Optional
-    // Default behavior: publish to the driver catalog
-    errno_t (*publish)(void* _Nonnull self, const char* name, intptr_t arg);
+    // Default behavior: does nothing
+    errno_t (*onPublish)(void* _Nonnull _Locked self);
 
-    // unpublish the driver from the driver catalog. This method should be called
-    // from stop().
+    // Invoked after the driver has been removed from the driver catalog. A
+    // subclass may override this method to do extra work before the driver is
+    // unpublished.
     // Override: Optional
-    // Default behavior: unpublish from the driver catalog
-    void (*unpublish)(void* _Nonnull self);
+    // Default behavior: does nothing
+    void (*onUnpublish)(void* _Nonnull _Locked self);
 
    
     // Invoked as the result of calling Driver_Open(). A driver subclass may
@@ -218,13 +227,32 @@ extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOpt
     ((DriverRef)__self)->dispatchQueue
 
 
-// Publishes the driver instance to the driver catalog with the given name.
-#define Driver_Publish(__self, __name, __arg) \
-invoke_n(publish, Driver, __self, __name, __arg)
+// Returns true if the driver is in active state; false otherwise
+#define Driver_IsActive(__self) \
+(((DriverRef)__self)->state == kDriverState_Active ? true : false)
 
-// Removes the driver instance from the driver catalog.
-#define Driver_Unpublish(__self) \
-invoke_0(unpublish, Driver, __self)
+
+#define Driver_OnStart(__self) \
+invoke_0(onStart, Driver, __self)
+
+#define Driver_OnStop(__self) \
+invoke_0(onStop, Driver, __self)
+
+
+#define Driver_OnPublish(__self) \
+invoke_0(onPublish, Driver, __self)
+
+#define Driver_OnUnpublish(__self) \
+invoke_0(onUnpublish, Driver, __self)
+
+
+// Publishes the driver instance to the driver catalog with the given name. This
+// method should be called from a onStart() override.
+extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* _Nonnull name, intptr_t arg);
+
+// Removes the driver instance from the driver catalog. Called as part of the
+// driver termination process.
+extern void Driver_Unpublish(DriverRef _Nonnull _Locked self);
 
 
 // Returns the size of the seekable range
@@ -232,16 +260,17 @@ invoke_0(unpublish, Driver, __self)
 invoke_0(getSeekableRange, Driver, __self)
 
 
-// Adds the given driver as a child to the receiver.
-extern void Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild);
+// Adds the given driver as a child to the receiver. Call this function from a
+// onStart() override.
+extern void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
 
 // Adds the given driver to the receiver as a child. Consumes the provided strong
-// reference.
-extern void Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming pChild);
+// reference. Call this function from a onStart() override.
+extern void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild);
 
-// Removes the given driver from teh receiver. The given driver has to be a child
-// of the receiver.
-extern void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild);
+// Removes the given driver from the receiver. The given driver has to be a child
+// of the receiver. Call this function from a onStop() override.
+extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
 
 
 

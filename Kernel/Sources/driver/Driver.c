@@ -11,12 +11,6 @@
 #include "DriverCatalog.h"
 #include <dispatchqueue/DispatchQueue.h>
 
-typedef enum DriverState {
-    kDriverState_Stopped = 0,
-    kDriverState_Running,
-    kDriverState_Terminated
-} DriverState;
-
 enum {
     kDriverFlag_IsOpen = 2
 };
@@ -44,7 +38,7 @@ errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOptions op
     Lock_Init(&self->lock);
     List_Init(&self->children);
     ListNode_Init(&self->childNode);
-    self->state = kDriverState_Stopped;
+    self->state = kDriverState_Inactive;
     self->model = model;
     self->options = options;
     self->flags = 0;
@@ -79,31 +73,39 @@ errno_t Driver_createDispatchQueue(DriverRef _Nonnull self, DispatchQueueRef _Nu
 // Note that the actual start code is always executed asynchronously.
 errno_t Driver_Start(DriverRef _Nonnull self)
 {
+    decl_try_err();
+
     Lock_Lock(&self->lock);
     switch (self->state) {
-        case kDriverState_Running:
-            Lock_Unlock(&self->lock);
-            return EBUSY;
+        case kDriverState_Active:
+            err = EBUSY;
+            break;
 
+        case kDriverState_Terminating:
         case kDriverState_Terminated:
-            Lock_Unlock(&self->lock);
-            return ETERMINATED;
-
+            err = ENODEV;
+            break;
+            
         default:
-            self->state = kDriverState_Running;
+            self->state = kDriverState_Active;
+            Driver_OnStart(self);
             break;
     }
     Lock_Unlock(&self->lock);
 
-    return invoke_0(start, Driver, self);
+    return err;
 }
 
-errno_t Driver_start(DriverRef _Nonnull self)
+errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
 {
     return EOK;
 }
 
 
+
+void Driver_onStop(DriverRef _Nonnull self)
+{
+}
 
 // Terminates a driver. A terminated driver does not access its underlying hardware
 // anymore. Terminating a driver also terminates all of its child drivers. Once a
@@ -112,24 +114,38 @@ void Driver_Terminate(DriverRef _Nonnull self)
 {
     bool doTerminate = true;
 
+    // Change the state to terminating. 
     Lock_Lock(&self->lock);
-    if (self->state == kDriverState_Terminated) {
-        doTerminate = false;
+    switch (self->state) {
+        case kDriverState_Terminating:
+        case kDriverState_Terminated:
+            doTerminate = false;
+            break;
+
+        default:
+            self->state = kDriverState_Terminating;
+            break;
     }
     Lock_Unlock(&self->lock);
+
     if (!doTerminate) {
         return;
     }
 
     
-    // First terminate all our child drivers
+    // The list of child drivers is now frozen and can not change anymore.
+    // Synchronously terminate all our child drivers
     List_ForEach(&self->children, struct Driver,
         Driver_Terminate(pCurNode);
     );
 
 
-    // Stop ourselves
-    invoke_0(stop, Driver, self);
+    Lock_Lock(&self->lock);
+    Driver_Unpublish(self);
+
+
+    // Stop myself
+    Driver_OnStop(self);
 
 
     // Stop the dispatch queue if necessary
@@ -139,15 +155,9 @@ void Driver_Terminate(DriverRef _Nonnull self)
     }
 
 
-    // And mark myself as terminated
-    Lock_Lock(&self->lock);
+    // And mark the driver as terminated
     self->state = kDriverState_Terminated;
     Lock_Unlock(&self->lock);
-}
-
-void Driver_stop(DriverRef _Nonnull self)
-{
-    Driver_Unpublish(self);
 }
 
 
@@ -157,7 +167,7 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
     decl_try_err();
 
     Lock_Lock(&self->lock);
-    if (self->state == kDriverState_Running) {
+    if (self->state == kDriverState_Active) {
         if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
             if ((self->flags & kDriverFlag_IsOpen) == 0) {
                 err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
@@ -241,38 +251,62 @@ errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
 }
 
 
+errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
+{
+    return EOK;
+}
 
 // Publishes the driver instance to the driver catalog with the given name.
-errno_t Driver_publish(DriverRef _Nonnull self, const char* name, intptr_t arg)
+errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, intptr_t arg)
 {
-    return DriverCatalog_Publish(gDriverCatalog, name, self, arg, &self->driverCatalogId);
+    decl_try_err();
+
+    if ((err = DriverCatalog_Publish(gDriverCatalog, name, self, arg, &self->driverCatalogId)) == EOK) {
+        if ((err = Driver_OnPublish(self)) == EOK) {
+            return EOK;
+        }
+
+        DriverCatalog_Unpublish(gDriverCatalog, self->driverCatalogId);
+    }
+    return err;
+}
+
+void Driver_onUnpublish(DriverRef _Nonnull _Locked self)
+{
 }
 
 // Removes the driver instance from the driver catalog.
-void Driver_unpublish(DriverRef _Nonnull self)
+void Driver_Unpublish(DriverRef _Nonnull _Locked self)
 {
+    Driver_OnUnpublish(self);
     DriverCatalog_Unpublish(gDriverCatalog, self->driverCatalogId);
 }
 
 
 // Adds the given driver as a child to the receiver.
-void Driver_AddChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild)
+void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)
 {
     Driver_AdoptChild(self, Object_RetainAs(pChild, Driver));
 }
 
 // Adds the given driver to the receiver as a child. Consumes the provided strong
 // reference.
-void Driver_AdoptChild(DriverRef _Nonnull self, DriverRef _Nonnull _Consuming pChild)
+void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild)
 {
-    List_InsertAfterLast(&self->children, &pChild->childNode);
+    if (Driver_IsActive(self)) {
+        List_InsertAfterLast(&self->children, &pChild->childNode);
+    }
 }
 
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver.
-void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild)
+void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)
 {
     bool isChild = false;
+
+    if (!Driver_IsActive(self)) {
+        return;
+    }
 
     List_ForEach(&self->children, struct Driver,
         if (pCurNode == pChild) {
@@ -291,10 +325,10 @@ void Driver_RemoveChild(DriverRef _Nonnull self, DriverRef _Nonnull pChild)
 class_func_defs(Driver, Object,
 override_func_def(deinit, Driver, Object)
 func_def(createDispatchQueue, Driver)
-func_def(start, Driver)
-func_def(stop, Driver)
-func_def(publish, Driver)
-func_def(unpublish, Driver)
+func_def(onStart, Driver)
+func_def(onStop, Driver)
+func_def(onPublish, Driver)
+func_def(onUnpublish, Driver)
 func_def(open, Driver)
 func_def(createChannel, Driver)
 func_def(close, Driver)
