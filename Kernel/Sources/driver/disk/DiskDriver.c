@@ -20,7 +20,32 @@ struct GetInfoReq {
 
 errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return _Driver_Create(pClass, kDriverModel_Async, kDriver_Exclusive | kDriver_Seekable, pOutSelf);
+    decl_try_err();
+    DiskDriverRef self = NULL;
+
+    try(_Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, (DriverRef*)&self));
+    try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
+
+    *pOutSelf = (DriverRef)self;
+    return EOK;
+
+catch:
+    Object_Release(self);
+    *pOutSelf = NULL;
+    return err;
+}
+
+static void DiskDriver_deinit(DiskDriverRef _Nonnull self)
+{
+    if (self->dispatchQueue) {
+        Object_Release(self->dispatchQueue);
+        self->dispatchQueue = NULL;
+    }
+}
+
+errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
+{
+    return DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, pOutQueue);
 }
 
 // Generates a new unique media ID. Call this function to generate a new media
@@ -47,6 +72,14 @@ void DiskDriver_onUnpublish(DiskDriverRef _Nonnull self)
     if (self->diskId != kDiskId_None) {
         DiskCache_UnregisterDisk(gDiskCache, self->diskId);
         self->diskId = kDiskId_None;
+    }
+}
+
+void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
+{
+    if (self->dispatchQueue) {
+        DispatchQueue_Terminate(self->dispatchQueue);
+        DispatchQueue_WaitForTerminationCompleted(self->dispatchQueue);
     }
 }
 
@@ -298,8 +331,11 @@ errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 
 
 class_func_defs(DiskDriver, Driver,
+override_func_def(deinit, DiskDriver, Object)
+func_def(createDispatchQueue, DiskDriver)
 override_func_def(onPublish, DiskDriver, Driver)
 override_func_def(onUnpublish, DiskDriver, Driver)
+override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo_async, DiskDriver)
 func_def(getCurrentMediaId, DiskDriver)
 func_def(beginIO_async, DiskDriver)

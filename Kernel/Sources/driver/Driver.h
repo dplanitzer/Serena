@@ -13,11 +13,6 @@
 #include <klib/List.h>
 #include <kobj/Object.h>
 
-typedef enum DriverModel {
-    kDriverModel_Sync,
-    kDriverModel_Async
-} DriverModel;
-
 typedef enum DriverOptions {
     kDriver_Exclusive = 1,    // At most one I/O channel can be open at any given time. Attempts to open more will generate a EBUSY error
     kDriver_Seekable = 2,       // Driver defines a seekable space and driver channel should allow seeking with the seek() system call
@@ -31,67 +26,32 @@ typedef enum DriverState {
 } DriverState;
 
 
-// A driver object binds to and manages a device. A device is a piece of hardware
-// while a driver is the software that manages the hardware.
+// A driver object manages a device. A device is a piece of hardware while a
+// driver is the software that manages the hardware.
 //
-// A driver may implement a synchronous or an asynchronous model. The driver
-// model determines which kind of functionality the driver supports.
+// A driver implements an immediate synchronous model. This means that calls to
+// start, read, write, ioctl and terminate execute immediately and atomically.
 //
-// A synchronous driver is a very simple kind of driver that is created and then
-// stays alive until the system is shut down. It is not able to detect loss of
-// hardware and it can not be terminated. A synchronous driver executes all
-// driver functions immediately and in the same execution context as the calling
-// function.
-//
-// An asynchronous driver is created and then stays alive until it is terminated.
-// The termination function may be called at any time and it blocks the caller
-// until the driver has finished shutting down. Terminating a driver relinquishes
-// control of the hardware that the driver managed. Once Driver_Terminate()
-// returns, a new driver instance of the same of a different class may be created
-// and bound to the hardware.
-// An asynchronous driver supports detecting loss of hardware. Meaning that the
-// driver detects in the course of its normal operation that there is a problem
-// with the hardware that it manages. Ie the hardware has lost power, has been
-// disconnected from the bus to which it was connected or has become defective.
-// An asynchronous driver executes all of its functionality on a driver-specific
-// dispatch queue. Note that the functionality may either execute synchronously
-// or asynchronously from the viewpoint of the code that invoked the
-// functionality.
-// 
-// Driver Model Summary:
-//
-// Synchronous:
-//    - lives until system shutdown
-//    - does not support Driver_Terminate()
-//    - executes all functions in the context of the calling execution thread
-//    - all functions are executed synchronously from the viewpoint of the caller
-//
-// Asynchronous:
-//     - lives until Driver_Terminate() is called
-//     - supports Driver_Terminate()
-//     - executes all functions as work items on its own dispatch queue
-//     - driver functions may execute synchronously or asynchronously from the
-//       viewpoint of the caller
-// 
+// A driver has to be started by calling Driver_Start() after it has been created
+// and before any other function is called on the driver. The start function
+// completes the driver initialization and publishes the driver to the driver
+// catalog.
+// Once started the read, write and ioctl functions may be called repeatedly in
+// any order.
+// A driver is stopped by calling the Driver_Terminate() method. This method
+// blocks the caller until the driver and all its child drivers are terminated.
+// A driver can not be restarted after it has been terminated. The only thing
+// that can be done at this point is to release it by calling Object_Release(). 
 open_class(Driver, Object,
-    Lock                        lock;
-    ListNode                    childNode;
-    List/*<Driver>*/            children;
-    DispatchQueueRef _Nullable  dispatchQueue;
-    int8_t                      state;
-    int8_t                      model;
-    uint8_t                     options;
-    uint8_t                     flags;
-    DriverCatalogId             driverCatalogId;
+    Lock                lock;
+    ListNode            childNode;
+    List/*<Driver>*/    children;
+    uint16_t            options;
+    uint8_t             flags;
+    int8_t              state;
+    DriverCatalogId     driverCatalogId;
 );
 open_class_funcs(Driver, Object,
-
-    // Invoked when the driver needs to create its dispatch queue. This will
-    // only happen for an asynchronous driver.
-    // Override: Optional
-    // Default Behavior: create a dispatch queue with priority Normal
-    errno_t (*createDispatchQueue)(void* _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
-
     
     // Invoked as the result of calling Driver_Start(). A driver subclass should
     // override this method to reset the hardware, configure it such that
@@ -174,13 +134,11 @@ open_class_funcs(Driver, Object,
 // Starts the driver. This function must be called before any other driver
 // function is called. It causes the driver to finish initialization and to
 // publish its catalog entry to the driver catalog.
-// Driver Model: All
 extern errno_t Driver_Start(DriverRef _Nonnull self);
 
 // Terminates the driver. This function blocks the caller until the termination
 // has completed. Note that the termination will only complete after all still
 // queued driver requested have finished executing.
-// Driver Model: Asynchronous
 extern void Driver_Terminate(DriverRef _Nonnull self);
 
 
@@ -210,18 +168,9 @@ invoke_n(ioctl, Driver, __self, __cmd, __ap)
 // Subclassers
 //
 
-// Create a driver instance. 'model' defines the driver model. A driver which
-// implements the kDriverModel_Async executes all of its operations on a driver
-// specific serial dispatch queue and it supports plug & play hardware. A driver
-// which implements the kDriverModel_Sync model executes all operations
-// synchronously and it does not support plug & play hardware. 
-#define Driver_Create(__className, __model, __options, __pOutDriver) \
-    _Driver_Create(&k##__className##Class, __model, __options, (DriverRef*)__pOutDriver)
-
-// Returns the driver's serial dispatch queue. Only call this if the driver is
-// an asynchronous driver.
-#define Driver_GetDispatchQueue(__self) \
-    ((DriverRef)__self)->dispatchQueue
+// Create a driver instance. 
+#define Driver_Create(__className, __options, __pOutDriver) \
+    _Driver_Create(&k##__className##Class, __options, (DriverRef*)__pOutDriver)
 
 
 // Returns true if the driver is in active state; false otherwise
@@ -296,6 +245,6 @@ Driver_Unlock(__self)
 
 
 // Do not call directly. Use the Driver_Create() macro instead
-extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* Driver_h */

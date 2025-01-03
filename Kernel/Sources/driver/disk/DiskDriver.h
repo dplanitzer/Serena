@@ -33,10 +33,18 @@
 // and it then invokes the beginIO() method with the new target address on this
 // other driver.
 open_class(DiskDriver, Driver,
-    DiskId      diskId;
-    MediaId     nextMediaId;
+    DispatchQueueRef _Nullable  dispatchQueue;
+    DiskId                      diskId;
+    MediaId                     nextMediaId;
 );
 open_class_funcs(DiskDriver, Driver,
+
+    // Invoked when the driver needs to create its dispatch queue. This will
+    // only happen for an asynchronous driver.
+    // Override: Optional
+    // Default Behavior: create a dispatch queue with priority Normal
+    errno_t (*createDispatchQueue)(void* _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
+
 
     // Returns information about the disk drive and the media loaded into the
     // drive.
@@ -92,6 +100,15 @@ extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Non
 //
 // Subclassers
 //
+
+// Returns the driver's serial dispatch queue. Only call this if the driver is
+// an asynchronous driver.
+#define Driver_GetDispatchQueue(__self) \
+    ((DiskDriverRef)__self)->dispatchQueue
+
+#define DiskDriver_CreateDispatchQueue(__self, __pOutQueue) \
+invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
+
 
 // The globally unique, non-persistent disk ID of this disk driver. Note that
 // this ID is only valid between the end of start() and the beginning of stop().

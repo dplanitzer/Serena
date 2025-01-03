@@ -33,7 +33,7 @@ final_class_ivars(AmigaController, PlatformController,
 
 errno_t AmigaController_Create(PlatformControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(AmigaController, kDriverModel_Sync, 0, (DriverRef*)pOutSelf);
+    return Driver_Create(AmigaController, 0, pOutSelf);
 }
 
 // Scans the ROM area following the end of the kernel looking for an embedded

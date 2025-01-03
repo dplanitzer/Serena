@@ -50,7 +50,7 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
     decl_try_err();
     EventDriverRef self;
     
-    try(Driver_Create(EventDriver, kDriverModel_Sync, 0, &self));
+    try(Driver_Create(EventDriver, 0, &self));
 
     Lock_Init(&self->lock);
     self->gdevice = Object_RetainAs(gdevice, GraphicsDriver);

@@ -9,7 +9,6 @@
 #include "Driver.h"
 #include "DriverChannel.h"
 #include "DriverCatalog.h"
-#include <dispatchqueue/DispatchQueue.h>
 
 enum {
     kDriverFlag_IsOpen = 2
@@ -19,7 +18,7 @@ enum {
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
 
 
-errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
@@ -29,14 +28,8 @@ errno_t _Driver_Create(Class* _Nonnull pClass, DriverModel model, DriverOptions 
     Lock_Init(&self->lock);
     List_Init(&self->children);
     ListNode_Init(&self->childNode);
-    self->state = kDriverState_Inactive;
-    self->model = model;
     self->options = options;
-
-    if (model == kDriverModel_Async) {
-        try(invoke_n(createDispatchQueue, Driver, self, &self->dispatchQueue));
-    }
-
+    self->state = kDriverState_Inactive;
 
     *pOutSelf = self;
     return EOK;
@@ -45,20 +38,6 @@ catch:
     Object_Release(self);
     *pOutSelf = NULL;
     return err;
-}
-
-static void Driver_deinit(DriverRef _Nonnull self)
-{
-    if (self->dispatchQueue) {
-        Object_Release(self->dispatchQueue);
-        self->dispatchQueue = NULL;
-    }
-}
-
-
-errno_t Driver_createDispatchQueue(DriverRef _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue)
-{
-    return DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, pOutQueue);
 }
 
 // Starts the driver. A driver may only be started once. It can not be restarted
@@ -143,13 +122,6 @@ void Driver_Terminate(DriverRef _Nonnull self)
 
     // Stop myself
     Driver_OnStop(self);
-
-
-    // Stop the dispatch queue if necessary
-    if (self->dispatchQueue) {
-        DispatchQueue_Terminate(self->dispatchQueue);
-        DispatchQueue_WaitForTerminationCompleted(self->dispatchQueue);
-    }
 
 
     // And mark the driver as terminated
@@ -319,8 +291,6 @@ void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChi
 
 
 class_func_defs(Driver, Object,
-override_func_def(deinit, Driver, Object)
-func_def(createDispatchQueue, Driver)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
 func_def(onPublish, Driver)
