@@ -106,7 +106,7 @@ open_class_funcs(Driver, Object,
     // an idle and powered-down state.
     // Override: Optional
     // Default Behavior: Unpublishes the driver
-    void (*onStop)(void* _Nonnull self);
+    void (*onStop)(void* _Nonnull _Locked self);
 
 
     // Invoked as part of the publishing the driver to the driver catalog. A
@@ -136,7 +136,7 @@ open_class_funcs(Driver, Object,
     // be returned to the caller.
     // Override: Optional
     // Default Behavior: returns a DriverChannel instance
-    errno_t (*createChannel)(void* _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    errno_t (*createChannel)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Invoked as the result of calling Driver_Close().
     // Override: Optional
@@ -232,6 +232,15 @@ extern errno_t Driver_Init(DriverRef _Nonnull self, DriverModel model, DriverOpt
 (((DriverRef)__self)->state == kDriverState_Active ? true : false)
 
 
+// Locks the driver instance
+#define Driver_Lock(__self) \
+Lock_Lock(&((DriverRef)__self)->lock)
+
+// Unlocks the driver instance
+#define Driver_Unlock(__self) \
+Lock_Unlock(&((DriverRef)__self)->lock)
+
+
 #define Driver_OnStart(__self) \
 invoke_0(onStart, Driver, __self)
 
@@ -272,6 +281,15 @@ extern void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnul
 // of the receiver. Call this function from a onStop() override.
 extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
 
+
+#define Driver_Synchronized(__self, __closure) \
+Driver_Lock(__self); \
+if (!Driver_IsActive(__self)) { \
+    Driver_Unlock(__self); \
+    return ENODEV; \
+} \
+{ __closure } \
+Driver_Unlock(__self)
 
 
 // Do not call directly. Use the Driver_Create() macro instead

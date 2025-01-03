@@ -75,7 +75,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     switch (self->state) {
         case kDriverState_Active:
             err = EBUSY;
@@ -91,7 +91,7 @@ errno_t Driver_Start(DriverRef _Nonnull self)
             Driver_OnStart(self);
             break;
     }
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 
     return err;
 }
@@ -103,7 +103,7 @@ errno_t Driver_onStart(DriverRef _Nonnull _Locked self)
 
 
 
-void Driver_onStop(DriverRef _Nonnull self)
+void Driver_onStop(DriverRef _Nonnull _Locked self)
 {
 }
 
@@ -115,7 +115,7 @@ void Driver_Terminate(DriverRef _Nonnull self)
     bool doTerminate = true;
 
     // Change the state to terminating. 
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     switch (self->state) {
         case kDriverState_Terminating:
         case kDriverState_Terminated:
@@ -126,7 +126,7 @@ void Driver_Terminate(DriverRef _Nonnull self)
             self->state = kDriverState_Terminating;
             break;
     }
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 
     if (!doTerminate) {
         return;
@@ -140,7 +140,7 @@ void Driver_Terminate(DriverRef _Nonnull self)
     );
 
 
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     Driver_Unpublish(self);
 
 
@@ -157,7 +157,7 @@ void Driver_Terminate(DriverRef _Nonnull self)
 
     // And mark the driver as terminated
     self->state = kDriverState_Terminated;
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 }
 
 
@@ -166,8 +166,7 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
-    if (self->state == kDriverState_Active) {
+    Driver_Synchronized(self,
         if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
             if ((self->flags & kDriverFlag_IsOpen) == 0) {
                 err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
@@ -186,16 +185,12 @@ errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IO
         else {
             err = invoke_n(createChannel, Driver, self, mode, arg, pOutChannel);
         }
-    }
-    else {
-        err = ENODEV;
-    }
-    Lock_Unlock(&self->lock);
+    );
 
     return err;
 }
 
-errno_t Driver_createChannel(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     DriverChannelOptions dcOpts = 0;
 
@@ -208,11 +203,13 @@ errno_t Driver_createChannel(DriverRef _Nonnull self, unsigned int mode, intptr_
 
 errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
 {
-    if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
-        Lock_Lock(&self->lock);
-        self->flags &= ~kDriverFlag_IsOpen;
-        Lock_Unlock(&self->lock);
-    }
+    decl_try_err();
+
+    Driver_Synchronized(self,
+        if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
+            self->flags &= ~kDriverFlag_IsOpen;
+        }
+    );
 
     return EOK;
 }
@@ -233,6 +230,11 @@ FileOffset Driver_getSeekableRange(DriverRef _Nonnull self)
     return 0ll;
 }
 
+errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
+{
+    return ENOTIOCTLCMD;
+}
+
 errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...)
 {
     decl_try_err();
@@ -243,11 +245,6 @@ errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...)
     va_end(ap);
 
     return err;
-}
-
-errno_t Driver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
-{
-    return ENOTIOCTLCMD;
 }
 
 

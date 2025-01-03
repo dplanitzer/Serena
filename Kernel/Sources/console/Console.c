@@ -485,7 +485,7 @@ void Console_Execute_DL_Locked(ConsoleRef _Nonnull self, int nLines)
 }
 
 
-errno_t Console_createChannel(ConsoleRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Console_createChannel(ConsoleRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     return ConsoleChannel_Create(self, mode, pOutChannel);
 }
