@@ -10,10 +10,6 @@
 #include "DriverChannel.h"
 #include "DriverCatalog.h"
 
-enum {
-    kDriverFlag_IsOpen = 2
-};
-
 #define DriverFromChildNode(__ptr) \
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
 
@@ -86,37 +82,52 @@ void Driver_onStop(DriverRef _Nonnull _Locked self)
 // Terminates a driver. A terminated driver does not access its underlying hardware
 // anymore. Terminating a driver also terminates all of its child drivers. Once a
 // driver has been terminated, it can not be restarted anymore.
-void Driver_Terminate(DriverRef _Nonnull self)
+errno_t Driver_Terminate(DriverRef _Nonnull self)
 {
-    bool doTerminate = true;
+    decl_try_err();
 
     // Change the state to terminating. 
     Driver_Lock(self);
     switch (self->state) {
         case kDriverState_Terminating:
         case kDriverState_Terminated:
-            doTerminate = false;
+            err = ETERMINATED;
             break;
 
         default:
-            self->state = kDriverState_Terminating;
+            if (self->openCount == 0) {
+                self->state = kDriverState_Terminating;
+            }
+            else {
+                err = EBUSY;
+            }
             break;
     }
     Driver_Unlock(self);
 
-    if (!doTerminate) {
-        return;
+    if (err != EOK) {
+        return err;
     }
 
     
     // The list of child drivers is now frozen and can not change anymore.
     // Synchronously terminate all our child drivers
     List_ForEach(&self->children, struct Driver,
-        Driver_Terminate(DriverFromChildNode(pCurNode));
+        err = Driver_Terminate(DriverFromChildNode(pCurNode));
+        if (err != EOK) {
+            break;
+        }
     );
 
 
     Driver_Lock(self);
+
+    if (err != EOK) {
+        self->state = kDriverState_Active;
+        Driver_Unlock(self);
+        return err;
+    }
+
     Driver_Unpublish(self);
 
 
@@ -127,6 +138,8 @@ void Driver_Terminate(DriverRef _Nonnull self)
     // And mark the driver as terminated
     self->state = kDriverState_Terminated;
     Driver_Unlock(self);
+
+    return EOK;
 }
 
 
@@ -142,47 +155,68 @@ errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode,
     return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, dcOpts, self, pOutChannel);
 }
 
-errno_t Driver_open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t Driver_open(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
-    Driver_Synchronized(self,
-        if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
-            if ((self->flags & kDriverFlag_IsOpen) == 0) {
-                err = Driver_CreateChannel(self, mode, arg, pOutChannel);
-        
-                if (err == EOK) {
-                    self->flags |= kDriverFlag_IsOpen;
-                }
-                else {
-                    *pOutChannel = NULL;
-                }
-            }
-            else {
-                err = EBUSY;
-            }
-        }
-        else {
-            err = Driver_CreateChannel(self, mode, arg, pOutChannel);
-        }
-    );
+    if (self->openCount > 0 && (self->options & kDriver_Exclusive) == kDriver_Exclusive) {
+        *pOutChannel = NULL;
+        return EBUSY;
+    }
+
+    err = Driver_CreateChannel(self, mode, arg, pOutChannel);    
+    if (err == EOK) {
+        self->openCount++;
+    }
+    else {
+        *pOutChannel = NULL;
+    }
 
     return err;
 }
 
-errno_t Driver_close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
+errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
 
-    Driver_Synchronized(self,
-        if ((self->options & kDriver_Exclusive) == kDriver_Exclusive) {
-            self->flags &= ~kDriverFlag_IsOpen;
-        }
-    );
+    Driver_Lock(self);
+    if (Driver_IsActive(self)) {
+        err = invoke_n(open, Driver, self, mode, arg, pOutChannel);
+    }
+    else {
+        err = ENODEV;
+    }
+    Driver_Unlock(self);
 
-    return EOK;
+    return err;
 }
 
+errno_t Driver_close(DriverRef _Nonnull _Locked self, IOChannelRef _Nonnull pChannel)
+{
+    if (self->openCount > 0) {
+        self->openCount--;
+        return EOK;
+    }
+    else {
+        return EBADF;
+    }
+}
+
+errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (Driver_IsActive(self)) {
+        err = invoke_n(close, Driver, self, pChannel);
+    }
+    else {
+        err = ENODEV;
+    }
+    Driver_Unlock(self);
+
+    return err;
+}
 
 errno_t Driver_read(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {

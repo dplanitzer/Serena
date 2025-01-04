@@ -29,19 +29,93 @@ typedef enum DriverState {
 // A driver object manages a device. A device is a piece of hardware while a
 // driver is the software that manages the hardware.
 //
-// A driver implements an immediate synchronous model. This means that calls to
-// start, read, write, ioctl and terminate execute immediately and atomically.
+// A driver has a lifecycle:
+// - create: driver was just created
+// - active: entered by calling Driver_Start()
+// - terminating: entered by calling Driver_Terminate()
 //
-// A driver has to be started by calling Driver_Start() after it has been created
-// and before any other function is called on the driver. The start function
-// completes the driver initialization and publishes the driver to the driver
-// catalog.
-// Once started the read, write and ioctl functions may be called repeatedly in
-// any order.
-// A driver is stopped by calling the Driver_Terminate() method. This method
-// blocks the caller until the driver and all its child drivers are terminated.
-// A driver can not be restarted after it has been terminated. The only thing
-// that can be done at this point is to release it by calling Object_Release(). 
+// A driver must be started by calling Driver_Start() before any other driver
+// function is called. It is however possible to release a driver reference by
+// calling Object_Release() even before Driver_Start() is called.
+//
+// The Driver_Start() function transitions the driver lifecycle state to active
+// and it invokes the onStart() method. A driver subclass is expected to override
+// onStart() to publish the driver to the driver catalog by calling
+// Driver_Publish(). Additionally the driver subclass can do device specific
+// initialization work in onStart(). A driver will only enter active state if
+// the onStart() override returns with EOK.
+//
+// Once a driver has been started, driver channels may be created by calling
+// Driver_Open() and a driver channel should be closed by calling
+// IOChannel_Close() on the channel. IOChannel_Close() in turn invokes
+// Driver_Close().
+//
+// A driver may be voluntarily terminated by calling Driver_Terminate(). This
+// function must be called before the last reference to the driver is released
+// by calling Object_Release(). Note however that Driver_Terminate() will only
+// terminate the driver if there are no more channels open. It returns EBUSY as
+// long as there is at least one channel still open.
+//
+// The Start(). Open(), Close() and Terminate() functions execute atomically
+// with respect to each other. Ie an Open() call will not be interrupted by a
+// Terminate() call.
+//
+// The driver Read(), Write() and Ioctl() functions are generically not expected
+// to provide full atomicity since the driver channel class implements atomicity
+// for those functions. However a driver subclass may have to implement some
+// form of atomicity for read, write and ioctl to ensure that users using
+// different driver channel at the same time can not inadvertently break the
+// consistency of the hardware state.
+//
+// If a driver subclass introduces additional low-level functions that operate
+// on a level below the driver channel and these functions are for consumption
+// by other kernel components (ie DiskDriver.beginIO), then these functions must
+// be protected by the driver lock (see Driver_Lock) to ensure that a
+// termination can not happen in the middle of executing those low-level
+// functions.
+//
+// A typical driver lifecycle looks like this:
+//
+// Driver_Create()
+//   Driver_Start()
+//     Driver_Open()
+//       IOChannel_Read()
+//       ...
+//     Driver_Close()
+//   Driver_Terminate()
+// Object_Release()
+//
+// Note that I/O channels are really used in connection with drivers to track
+// when a driver is in use. A driver can not be terminated while it is still
+// being used by someone (a channel is still open). Thus you must access a
+// driver through a channel.
+//
+// An important advantage of this design where a Terminate() is only possible
+// after all channels have been closed, is that the read, write and ioctl
+// driver functions do not need to use the driver lock. They can implement their
+// own kind of locking if really needed and otherwise just rely on the locking
+// provided by the driver channel.
+//
+// A driver may create and manage child drivers. Child drivers are attached to
+// their parent drivers and the parent driver maintains a strong reference to
+// its child driver(s). This strong reference keeps a child driver alive as long
+// as it remains attached to its parent.
+//
+// Note that if a child driver needs to use its parent driver to do its job,
+// the child driver should receive a driver channel and use it. This allows the
+// parent driver to properly track whether it is still in use or not (see
+// Terminate()).
+// 
+// The parent-child driver relationship can be used to properly represent
+// relationships like a bus and the devices on the bus. The bus is represented
+// by the parent driver and each device on the bus is represented by a child
+// driver.
+//
+// Another use case for the parent-child driver relationship is that of a multi-
+// function expansion board: an expansion board which features a sound chip and
+// a CD-ROM driver can be represented by a parent driver that manages the overall
+// card functionality plus a child driver for the sound chip and another child
+// driver for the CD-ROM drive.
 open_class(Driver, Object,
     Lock                lock;
     ListNode            childNode;
@@ -49,6 +123,7 @@ open_class(Driver, Object,
     uint16_t            options;
     uint8_t             flags;
     int8_t              state;
+    int                 openCount;
     DriverCatalogId     driverCatalogId;
 );
 open_class_funcs(Driver, Object,
@@ -90,7 +165,7 @@ open_class_funcs(Driver, Object,
     // read, write, ioctl operations.
     // Override: Optional
     // Default Behavior: Creates a DriverChannel instance
-    errno_t (*open)(void* _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
+    errno_t (*open)(void* _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
     // Invoked by the open() function to create the driver channel that should
     // be returned to the caller.
@@ -101,7 +176,7 @@ open_class_funcs(Driver, Object,
     // Invoked as the result of calling Driver_Close().
     // Override: Optional
     // Default Behavior: Does nothing and returns EOK
-    errno_t (*close)(void* _Nonnull self, IOChannelRef _Nonnull pChannel);
+    errno_t (*close)(void* _Nonnull _Locked self, IOChannelRef _Nonnull pChannel);
 
 
     // Invoked as the result of calling Driver_Read(). A driver subclass should
@@ -139,18 +214,16 @@ extern errno_t Driver_Start(DriverRef _Nonnull self);
 // Terminates the driver. This function blocks the caller until the termination
 // has completed. Note that the termination will only complete after all still
 // queued driver requested have finished executing.
-extern void Driver_Terminate(DriverRef _Nonnull self);
+extern errno_t Driver_Terminate(DriverRef _Nonnull self);
 
 
 // Opens an I/O channel to the driver with the mode 'mode'. EOK and the channel
 // is returned in 'pOutChannel' on success and a suitable error code is returned
 // otherwise.
-#define Driver_Open(__self, __mode, __arg, __pOutChannel) \
-invoke_n(open, Driver, __self, __mode, __arg, __pOutChannel)
+extern errno_t Driver_Open(DriverRef _Nonnull self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
 // Closes the given driver channel.
-#define Driver_Close(__self, __pChannel) \
-invoke_n(close, Driver, __self, __pChannel)
+extern errno_t Driver_Close(DriverRef _Nonnull self, IOChannelRef _Nonnull pChannel);
 
 #define Driver_Read(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
 invoke_n(read, Driver, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
@@ -232,16 +305,6 @@ extern void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnul
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver. Call this function from a onStop() override.
 extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
-
-
-#define Driver_Synchronized(__self, __closure) \
-Driver_Lock(__self); \
-if (!Driver_IsActive(__self)) { \
-    Driver_Unlock(__self); \
-    return ENODEV; \
-} \
-{ __closure } \
-Driver_Unlock(__self)
 
 
 // Do not call directly. Use the Driver_Create() macro instead
