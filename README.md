@@ -67,13 +67,13 @@ The level of completeness and correctness of the various modules varies quite a 
 
 The following hardware is supported at this time:
 
-* Amiga 500, 600, 1200 and 2000 with at least 1MB and a 68030 accelerator installed
+* Amiga 500, 600, 1200 and 2000 with at least 1MB RAM and a 68030 accelerator installed
 * Amiga 3000 and 4000
 * Newer than the original chipsets work, but their specific features are not used
 * Motorola 68030, 68040 and 68060 CPU. Note that the CPU has to be at least a 68030 class CPU
 * Motorola 68881 and 68882 FPU
 * Commodore Amiga floppy disk drive
-* Zorro II and Zorro III memory expansion boards
+* Zorro II and Zorro III RAM expansion boards
 
 ## Getting Started
 
