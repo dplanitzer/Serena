@@ -223,11 +223,11 @@ open_class_funcs(Filesystem, Object,
 
     // Reads up to 'nBytesToRead' bytes starting at the file offset 'pInOutOffset'
     // from the file 'pFile'.
-    errno_t (*readFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*readFile)(void* _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes starting at file offset 'pInOutOffset'
     // to the file 'pFile'.
-    errno_t (*writeFile)(void* _Nonnull self, InodeRef _Nonnull _Locked pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*writeFile)(void* _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Change the size of the file 'pFile' to 'length'. 'length' is guaranteed
     // to be >= 0. No longer needed blocks are deallocated if the new length is
@@ -243,12 +243,12 @@ open_class_funcs(Filesystem, Object,
     //
 
     // Reads the next set of directory entries. The first entry read is the one
-    // at the current directory index stored in 'pDir'. This function guarantees
+    // at the current directory index stored in 'channel'. This function guarantees
     // that it will only ever return complete directories entries. It will never
     // return a partial entry. Consequently the provided buffer must be big enough
     // to hold at least one directory entry. Note that this function is expected
     // to return "." for the entry at index #0 and ".." for the entry at index #1.
-    errno_t (*readDirectory)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*readDirectory)(void* _Nonnull self, DirectoryChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
 
     //
@@ -367,18 +367,18 @@ invoke_n(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 invoke_n(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
 
 
-#define Filesystem_ReadFile(__self, __pFile, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
-invoke_n(readFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
+#define Filesystem_ReadFile(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(readFile, Filesystem, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
-#define Filesystem_WriteFile(__self, __pFile, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten) \
-invoke_n(writeFile, Filesystem, __self, __pFile, __pBuffer, __nBytesToWrite, __pInOutOffset, __nOutBytesWritten)
+#define Filesystem_WriteFile(__self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten) \
+invoke_n(writeFile, Filesystem, __self, __pChannel, __pBuffer, __nBytesToWrite, __nOutBytesWritten)
 
 #define Filesystem_TruncateFile(__self, __pFile, __length) \
 invoke_n(truncateFile, Filesystem, __self, __pFile, __length)
 
 
-#define Filesystem_ReadDirectory(__self, __pDir, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead) \
-invoke_n(readDirectory, Filesystem, __self, __pDir, __pBuffer, __nBytesToRead, __pInOutOffset, __nOutBytesRead)
+#define Filesystem_ReadDirectory(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
+invoke_n(readDirectory, Filesystem, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 
 #define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \

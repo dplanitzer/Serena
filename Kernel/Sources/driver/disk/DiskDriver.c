@@ -210,8 +210,8 @@ errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnu
 {
     decl_try_err();
     const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
-    const FileOffset diskSize = DriverChannel_GetSeekableRange(pChannel);
-    FileOffset offset = DriverChannel_GetOffset(pChannel);
+    const FileOffset diskSize = IOChannel_GetSeekableRange(pChannel);
+    FileOffset offset = IOChannel_GetOffset(pChannel);
     uint8_t* dp = pBuffer;
     ssize_t nBytesRead = 0;
 
@@ -263,8 +263,8 @@ errno_t DiskDriver_write(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonn
 {
     decl_try_err();
     const DiskInfo* info = DiskDriverChannel_GetInfo(pChannel);
-    const FileOffset diskSize = DriverChannel_GetSeekableRange(pChannel);
-    FileOffset offset = DriverChannel_GetOffset(pChannel);
+    const FileOffset diskSize = IOChannel_GetSeekableRange(pChannel);
+    FileOffset offset = IOChannel_GetOffset(pChannel);
     ssize_t nBytesWritten = 0;
 
     if (nBytesToWrite > 0) {

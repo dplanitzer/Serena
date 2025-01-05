@@ -17,10 +17,9 @@ errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pDir, IOChannelRef 
     decl_try_err();
     DirectoryChannelRef self;
 
-    try(IOChannel_Create(&kDirectoryChannelClass, kIOChannelType_Directory, kOpen_Read, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kDirectoryChannelClass, kIOChannel_Seekable, kIOChannelType_Directory, kOpen_Read, (IOChannelRef*)&self));
     Lock_Init(&self->lock);
     self->inode = pDir;
-    self->offset = 0ll;
 
 catch:
     *pOutDir = (IOChannelRef)self;
@@ -45,12 +44,12 @@ ssize_t DirectoryChannel_copy(DirectoryChannelRef _Nonnull self, IOChannelRef _N
     decl_try_err();
     DirectoryChannelRef pNewDir = NULL;
 
-    try(IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
+    try(IOChannel_Create(classof(self), kIOChannel_Seekable,IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
     Lock_Init(&pNewDir->lock);
     pNewDir->inode = Inode_Reacquire(self->inode);
     
     Lock_Lock(&self->lock);
-    pNewDir->offset = self->offset;
+    ((IOChannelRef)pNewDir)->offset = IOChannel_GetOffset(self);
     Lock_Unlock(&self->lock);
 
 catch:
@@ -65,7 +64,7 @@ errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull self, void* _Nonnull 
 
     Lock_Lock(&self->lock);
     Inode_Lock(self->inode);
-    err = Filesystem_ReadDirectory(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
+    err = Filesystem_ReadDirectory(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToRead, nOutBytesRead);
     Inode_Unlock(self->inode);
     Lock_Unlock(&self->lock);
 
@@ -76,19 +75,12 @@ errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull self, FileOffset offs
 {
     decl_try_err();
 
-    if (whence != kSeek_Set || offset < 0) {
-        return EINVAL;
+    if (whence == kSeek_Set) {
+        err = super_n(seek, IOChannel, DirectoryChannel, self, offset, pOutOldPosition, whence);
     }
-    if (offset > kFileOffset_Max) {
-        return EOVERFLOW;
+    else {
+        err = EINVAL;
     }
-
-    Lock_Lock(&self->lock);
-    if(pOutOldPosition) {
-        *pOutOldPosition = self->offset;
-    }
-    self->offset = offset;
-    Lock_Unlock(&self->lock);
 
     return err;
 }

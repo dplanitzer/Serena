@@ -7,6 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
+#include <filesystem/DirectoryChannel.h>
 #include <System/ByteOrder.h>
 
 
@@ -338,17 +339,17 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
+errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, DirectoryChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
-    FileOffset offset = *pInOutOffset;
+    FileOffset offset = IOChannel_GetOffset(pChannel);
     SFSDirectoryEntry dirent;
     ssize_t nAllDirBytesRead = 0;
     ssize_t nBytesRead = 0;
 
     while (nBytesToRead > 0) {
         ssize_t nDirBytesRead;
-        const errno_t e1 = SerenaFS_xRead(self, pDir, offset, &dirent, sizeof(SFSDirectoryEntry), &nDirBytesRead);
+        const errno_t e1 = SerenaFS_xRead(self, DirectoryChannel_GetInode(pChannel), offset, &dirent, sizeof(SFSDirectoryEntry), &nDirBytesRead);
 
         if (e1 != EOK) {
             err = (nBytesRead == 0) ? e1 : EOK;
@@ -376,7 +377,7 @@ errno_t SerenaFS_readDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Loc
     }
 
     if (nBytesRead > 0) {
-        *pInOutOffset += nAllDirBytesRead;
+        IOChannel_IncrementOffsetBy(pChannel, nAllDirBytesRead);
     }
     *nOutBytesRead = nBytesRead;
 

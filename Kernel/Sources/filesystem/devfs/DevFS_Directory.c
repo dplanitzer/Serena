@@ -7,6 +7,7 @@
 //
 
 #include "DevFSPriv.h"
+#include <filesystem/DirectoryChannel.h>
 
 
 
@@ -93,17 +94,17 @@ catch:
 }
 
 
-errno_t DevFS_readDirectory(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
+errno_t DevFS_readDirectory(DevFSRef _Nonnull self, DirectoryChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     DirectoryEntry* pOutEntry = (DirectoryEntry*)pBuffer;
-    FileOffset offset = *pInOutOffset;  // in terms of #entries
+    FileOffset offset = IOChannel_GetOffset(pChannel);  // in terms of #entries
     ssize_t nAllDirEntriesRead = 0;
     ssize_t nBytesRead = 0;
 
     try_bang(SELock_LockShared(&self->seLock));
 
-    DfsDirectoryItem* ip = Inode_GetDfsDirectoryItem(pDir);
+    DfsDirectoryItem* ip = Inode_GetDfsDirectoryItem(DirectoryChannel_GetInode(pChannel));
     DfsDirectoryEntry* curEntry = (DfsDirectoryEntry*)ip->entries.first;
 
     // Move to the first entry that we are supposed to read
@@ -128,7 +129,7 @@ errno_t DevFS_readDirectory(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pD
     }
 
     if (nBytesRead > 0) {
-        *pInOutOffset += nAllDirEntriesRead;
+        IOChannel_IncrementOffsetBy(pChannel, nAllDirEntriesRead);
     }
     *nOutBytesRead = nBytesRead;
 

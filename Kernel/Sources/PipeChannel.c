@@ -17,7 +17,7 @@ errno_t PipeChannel_Create(PipeRef _Nonnull pPipe, unsigned int mode, IOChannelR
 
     assert((mode & kOpen_ReadWrite) == kOpen_Read || (mode & kOpen_ReadWrite) == kOpen_Write);
 
-    try(IOChannel_Create(&kPipeChannelClass, kIOChannelType_Pipe, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kPipeChannelClass, 0, kIOChannelType_Pipe, mode, (IOChannelRef*)&self));
     self->pipe = Object_RetainAs(pPipe, Pipe);
 
 catch:
@@ -40,7 +40,7 @@ errno_t PipeChannel_copy(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * 
     decl_try_err();
     PipeChannelRef pNewChannel;
 
-    try(IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
+    try(IOChannel_Create(classof(self), 0, IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
     pNewChannel->pipe = Object_RetainAs(self->pipe, Pipe);
 
 catch:

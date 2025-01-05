@@ -7,6 +7,7 @@
 //
 
 #include "SerenaFSPriv.h"
+#include <filesystem/FileChannel.h>
 #include <System/ByteOrder.h>
 
 
@@ -213,21 +214,32 @@ errno_t SerenaFS_xWrite(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNo
     return err;
 }
 
-errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, void* _Nonnull pBuffer, ssize_t nBytesToRead, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesRead)
+errno_t SerenaFS_readFile(SerenaFSRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
 
-    err = SerenaFS_xRead(self, pFile, *pInOutOffset, pBuffer, nBytesToRead, nOutBytesRead);
-    *pInOutOffset += *nOutBytesRead;
+    err = SerenaFS_xRead(self, FileChannel_GetInode(pChannel), IOChannel_GetOffset(pChannel), pBuffer, nBytesToRead, nOutBytesRead);
+    IOChannel_IncrementOffsetBy(pChannel, *nOutBytesRead);
+
     return err;
 }
 
-errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pFile, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, FileOffset* _Nonnull pInOutOffset, ssize_t* _Nonnull nOutBytesWritten)
+errno_t SerenaFS_writeFile(SerenaFSRef _Nonnull self, FileChannelRef _Nonnull _Locked pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
+    InodeRef pNode = FileChannel_GetInode(pChannel);
+    FileOffset offset;
 
-    err = SerenaFS_xWrite(self, pFile, *pInOutOffset, pBuffer, nBytesToWrite, nOutBytesWritten);
-    *pInOutOffset += *nOutBytesWritten;
+    if ((IOChannel_GetMode(self) & kOpen_Append) == kOpen_Append) {
+        offset = Inode_GetFileSize(pNode);
+    }
+    else {
+        offset = IOChannel_GetOffset(pChannel);
+    }
+
+    err = SerenaFS_xWrite(self, pNode, offset, pBuffer, nBytesToWrite, nOutBytesWritten);
+    IOChannel_IncrementOffsetBy(pChannel, *nOutBytesWritten);
+
     return err;
 }
 

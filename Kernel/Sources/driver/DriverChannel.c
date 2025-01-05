@@ -10,14 +10,13 @@
 #include "Driver.h"
 
 
-errno_t DriverChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, DriverChannelOptions options, DriverRef _Nonnull pDriver, IOChannelRef _Nullable * _Nonnull pOutSelf)
+errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, DriverRef _Nonnull pDriver, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverChannelRef self = NULL;
 
-    if ((err = IOChannel_Create(pClass, kIOChannelType_Driver, mode, (IOChannelRef*)&self)) == EOK) {
+    if ((err = IOChannel_Create(pClass, options, kIOChannelType_Driver, mode, (IOChannelRef*)&self)) == EOK) {
         self->driver = Object_RetainAs(pDriver, Driver);
-        self->options = options;
     }
 
     *pOutSelf = (IOChannelRef)self;
@@ -41,7 +40,7 @@ errno_t DriverChannel_copy(DriverChannelRef _Nonnull self, IOChannelRef _Nullabl
     decl_try_err();
     DriverChannelRef pNewChannel = NULL;
 
-    if ((err = IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel)) == EOK) {
+    if ((err = IOChannel_Create(classof(self), IOChannel_GetOptions(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel)) == EOK) {
         pNewChannel->driver = Object_RetainAs(self->driver, Driver);
     }
 
@@ -69,59 +68,6 @@ errno_t DriverChannel_write(DriverChannelRef _Nonnull self, const void* _Nonnull
     return Driver_Write(self->driver, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
-errno_t DriverChannel_seek(DriverChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
-{
-    decl_try_err();
-    FileOffset newOffset;
-
-    if ((self->options & kDriverChannel_Seekable) == 0) {
-        *pOutOldPosition = 0ll;
-        return ESPIPE;
-    }
-
-    
-    switch (whence) {
-        case kSeek_Set:
-            if (offset < 0ll) {
-                throw(EINVAL);
-            }
-            newOffset = offset;
-            break;
-
-        case kSeek_Current:
-            if (offset < 0ll && -offset > self->offset) {
-                throw(EINVAL);
-            }
-            newOffset = self->offset + offset;
-            break;
-
-        case kSeek_End: {
-            const FileOffset fileSize = DriverChannel_GetSeekableRange(self);
-            if (offset < 0ll && -offset > fileSize) {
-                throw(EINVAL);
-            }
-            newOffset = fileSize + offset;
-            break;
-        }
-
-        default:
-            throw(EINVAL);
-    }
-
-    if (newOffset < 0 || newOffset > kFileOffset_Max) {
-        throw(EOVERFLOW);
-    }
-
-    if(pOutOldPosition) {
-        *pOutOldPosition = self->offset;
-    }
-    self->offset = newOffset;
-
-catch:
-
-    return err;
-}
-
 FileOffset DriverChannel_getSeekableRange(DriverChannelRef _Nonnull self)
 {
     return Driver_GetSeekableRange(self);
@@ -134,6 +80,5 @@ override_func_def(copy, DriverChannel, IOChannel)
 override_func_def(ioctl, DriverChannel, IOChannel)
 override_func_def(read, DriverChannel, IOChannel)
 override_func_def(write, DriverChannel, IOChannel)
-override_func_def(seek, DriverChannel, IOChannel)
-func_def(getSeekableRange, DriverChannel)
+override_func_def(getSeekableRange, DriverChannel, IOChannel)
 );

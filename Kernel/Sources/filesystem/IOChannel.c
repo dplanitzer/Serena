@@ -14,21 +14,22 @@ typedef errno_t (*IOChannel_Finalize_Impl)(void* _Nonnull self);
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
+errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef self;
 
-    try(kalloc_cleared(pClass->instanceSize, (void**) &self));
-    self->super.clazz = pClass;
-    Lock_Init(&self->countLock);
-    self->ownerCount = 1;
-    self->useCount = 0;
-    self->mode = mode & (kOpen_ReadWrite | kOpen_Append);
-    self->channelType = channelType;
-
-catch:
+    if ((err = kalloc_cleared(pClass->instanceSize, (void**) &self)) == EOK) {
+        self->super.clazz = pClass;
+        Lock_Init(&self->countLock);
+        self->ownerCount = 1;
+        self->useCount = 0;
+        self->mode = mode & (kOpen_ReadWrite | kOpen_Append);
+        self->options = options;
+        self->channelType = channelType;
+    }
     *pOutChannel = self;
+    
     return err;
 }
 
@@ -190,10 +191,70 @@ errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer
     }
 }
 
-errno_t IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutPosition, int whence)
+errno_t IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutOldPosition, int whence)
 {
-    *pOutPosition = 0;
-    return ESPIPE;
+    decl_try_err();
+    FileOffset newOffset;
+
+    if ((self->options & kIOChannel_Seekable) == 0) {
+        *pOutOldPosition = 0ll;
+        return ESPIPE;
+    }
+
+    
+    switch (whence) {
+        case kSeek_Set:
+            if (offset < 0ll) {
+                err = EINVAL;
+            }
+            else {
+                newOffset = offset;
+            }
+            break;
+
+        case kSeek_Current:
+            if (offset < 0ll && -offset > self->offset) {
+                err = EINVAL;
+            }
+            else {
+                newOffset = self->offset + offset;
+            }
+            break;
+
+        case kSeek_End: {
+            const FileOffset fileSize = IOChannel_GetSeekableRange(self);
+            if (offset < 0ll && -offset > fileSize) {
+                err = EINVAL;
+            }
+            else {
+                newOffset = fileSize + offset;
+            }
+            break;
+        }
+
+        default:
+            err = EINVAL;
+            break;
+    }
+
+    if (err == EOK) {
+        if (newOffset < 0 || newOffset > kFileOffset_Max) {
+            err = EOVERFLOW;
+        }
+        else {
+            if (pOutOldPosition) {
+                *pOutOldPosition = self->offset;
+            }
+            self->offset = newOffset;
+        }
+    }
+
+    return err;
+}
+
+FileOffset IOChannel_getSeekableRange(IOChannelRef _Nonnull self)
+{
+    return 0ll;
 }
 
 
@@ -204,4 +265,5 @@ func_def(ioctl, IOChannel)
 func_def(read, IOChannel)
 func_def(write, IOChannel)
 func_def(seek, IOChannel)
+func_def(getSeekableRange, IOChannel)
 );

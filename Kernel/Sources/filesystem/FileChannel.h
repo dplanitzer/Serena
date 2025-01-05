@@ -16,7 +16,6 @@
 
 
 open_class(FileChannel, IOChannel,
-    FileOffset          offset;
     InodeRef _Nonnull   inode;
     Lock                lock;           // Protects 'offset' and to provide read/write/seek serialization. See IOChannel
 );
@@ -26,6 +25,10 @@ open_class_funcs(FileChannel, IOChannel,
 
 // Creates a file object.
 extern errno_t FileChannel_Create(InodeRef _Consuming _Nonnull pNode, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutFile);
+
+#define FileChannel_GetInode(__self) \
+((FileChannelRef)(__self))->inode
+
 
 extern FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self);
 

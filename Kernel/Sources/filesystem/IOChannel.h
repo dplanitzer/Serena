@@ -87,8 +87,10 @@ open_class(IOChannel, Any,
     Lock            countLock;
     int32_t         ownerCount;
     int32_t         useCount;
-    uint16_t        mode;           // Constant over the lifetime of a channel
-    int16_t         channelType;    // Constant over the lifetime of a channel
+    uint16_t        mode;           // Constant
+    uint8_t         options;        // Constant
+    int8_t          channelType;    // Constant
+    FileOffset      offset;
 );
 any_subclass_funcs(IOChannel,
     // Called once an I/O channel is ready to be deallocated for good. Overrides
@@ -138,10 +140,39 @@ any_subclass_funcs(IOChannel,
     // channel read/write operation will start reading/writing from this
     // position.
     errno_t (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
+
+    // Invoked by seek() to get the size of the seekable space. The maximum
+    // position to which a client is allowed to seek is this value minus one.
+    // Override: Optional
+    // Default Behavior: Returns 0
+    FileOffset (*getSeekableRange)(void* _Nonnull self);
 );
 
 
-// I/O Channel functions for use by I/O channel users.
+// Returns the I/O channel options.
+#define IOChannel_GetOptions(__self) \
+    ((IOChannelOptions)((IOChannelRef)(__self))->options)
+
+// Returns the I/O channel type.
+#define IOChannel_GetChannelType(__self) \
+    ((int)((IOChannelRef)(__self))->channelType)
+
+// Returns the I/O channel mode.
+#define IOChannel_GetMode(__self) \
+    ((unsigned int)((IOChannelRef)(__self))->mode)
+
+// Returns the current seek position
+#define IOChannel_GetOffset(__self) \
+((IOChannelRef)(__self))->offset
+
+// Sets the current seek position
+#define IOChannel_SetOffset(__self, __pos) \
+((IOChannelRef)(__self))->offset = (__pos)
+
+// Increment the current seek position by the give signed value
+#define IOChannel_IncrementOffsetBy(__self, __delta) \
+((IOChannelRef)(__self))->offset += (__delta)
+
 
 #define IOChannel_Copy(__self, __pOutChannel) \
 invoke_n(copy, IOChannel, __self, __pOutChannel)
@@ -159,28 +190,35 @@ extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull 
 invoke_n(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
 
 
-// I/O Channel functions for use by subclassers
+extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);
+#define IOChannel_RetainAs(__pChannel, __type) \
+    ((__type)IOChannel_Retain((IOChannelRef)__pChannel))
+
+extern errno_t IOChannel_Release(IOChannelRef _Nullable self);
+
+
+//
+// Subclassers
+//
+
+typedef enum IOChannelOptions {
+    kIOChannel_Seekable = 1,        // I/O channel allows seeking via seek()
+} IOChannelOptions;
+
 
 // Creates an instance of an I/O channel. Subclassers should call this method in
 // their own constructor implementation and then initialize the subclass specific
 // properties. 
-extern errno_t IOChannel_Create(Class* _Nonnull pClass, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
+extern errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutChannel);
 
-extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);
-#define IOChannel_RetainAs(__pChannel, __type) \
-    ((__type)IOChannel_Retain((IOChannelRef)__pChannel))
-extern errno_t IOChannel_Release(IOChannelRef _Nullable self);
-
-// Returns the I/O channel type.
-#define IOChannel_GetChannelType(__self) \
-    ((int)((IOChannelRef)__self)->channelType)
-
-// Returns the I/O channel mode.
-#define IOChannel_GetMode(__self) \
-    ((unsigned int)((IOChannelRef)__self)->mode)
+// Returns the size of the seekable range
+#define IOChannel_GetSeekableRange(__self) \
+invoke_0(getSeekableRange, IOChannel, __self)
 
 
-// I/O channel functions for use by IOChannelTable
+//
+// For use by IOChannelTable
+//
 
 extern void IOChannel_BeginOperation(IOChannelRef _Nonnull self);
 extern void IOChannel_EndOperation(IOChannelRef _Nonnull self);

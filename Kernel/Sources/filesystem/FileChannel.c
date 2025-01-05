@@ -17,10 +17,9 @@ errno_t FileChannel_Create(InodeRef _Consuming _Nonnull pNode, unsigned int mode
     decl_try_err();
     FileChannelRef self;
 
-    try(IOChannel_Create(&kFileChannelClass, kIOChannelType_File, mode, (IOChannelRef*)&self));
+    try(IOChannel_Create(&kFileChannelClass, kIOChannel_Seekable, kIOChannelType_File, mode, (IOChannelRef*)&self));
     Lock_Init(&self->lock);
     self->inode = pNode;
-    self->offset = 0ll;
 
 catch:
     *pOutFile = (IOChannelRef)self;
@@ -45,12 +44,12 @@ errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * 
     decl_try_err();
     FileChannelRef pNewFile = NULL;
 
-    try(IOChannel_Create(classof(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
+    try(IOChannel_Create(classof(self), kIOChannel_Seekable, IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
     Lock_Init(&pNewFile->lock);
     pNewFile->inode = Inode_Reacquire(self->inode);
         
     Lock_Lock(&self->lock);
-    pNewFile->offset = self->offset;
+    ((IOChannelRef)pNewFile)->offset = IOChannel_GetOffset(self);
     Lock_Unlock(&self->lock);
 
 catch:
@@ -65,7 +64,7 @@ errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, s
 
     Lock_Lock(&self->lock);
     Inode_Lock(self->inode);
-    err = Filesystem_ReadFile(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToRead, &self->offset, nOutBytesRead);
+    err = Filesystem_ReadFile(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToRead, nOutBytesRead);
     Inode_Unlock(self->inode);
     Lock_Unlock(&self->lock);
 
@@ -75,80 +74,27 @@ errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, s
 errno_t FileChannel_write(FileChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     decl_try_err();
-    FileOffset offset;
 
     Lock_Lock(&self->lock);
     Inode_Lock(self->inode);
-    if ((IOChannel_GetMode(self) & kOpen_Append) == kOpen_Append) {
-        offset = Inode_GetFileSize(self->inode);
-    }
-    else {
-        offset = self->offset;
-    }
-
-    err = Filesystem_WriteFile(Inode_GetFilesystem(self->inode), self->inode, pBuffer, nBytesToWrite, &offset, nOutBytesWritten);
-    self->offset = offset;
+    err = Filesystem_WriteFile(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToWrite, nOutBytesWritten);
     Inode_Unlock(self->inode);
     Lock_Unlock(&self->lock);
 
     return err;
 }
 
-errno_t FileChannel_seek(FileChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
-{
-    decl_try_err();
-    FileOffset newOffset;
-
-    Lock_Lock(&self->lock);
-    switch (whence) {
-        case kSeek_Set:
-            if (offset < 0ll) {
-                throw(EINVAL);
-            }
-            newOffset = offset;
-            break;
-
-        case kSeek_Current:
-            if (offset < 0ll && -offset > self->offset) {
-                throw(EINVAL);
-            }
-            newOffset = self->offset + offset;
-            break;
-
-        case kSeek_End: {
-            const FileOffset fileSize = FileChannel_GetFileSize(self);
-            if (offset < 0ll && -offset > fileSize) {
-                throw(EINVAL);
-            }
-            newOffset = fileSize + offset;
-            break;
-        }
-
-        default:
-            throw(EINVAL);
-    }
-
-    if (newOffset < 0 || newOffset > kFileOffset_Max) {
-        throw(EOVERFLOW);
-    }
-
-    if(pOutOldPosition) {
-        *pOutOldPosition = self->offset;
-    }
-    self->offset = newOffset;
-
-catch:
-    Lock_Unlock(&self->lock);
-
-    return err;
-}
-
-FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self)
+FileOffset FileChannel_getSeekableRange(FileChannelRef _Nonnull self)
 {
     Inode_Lock(self->inode);
     const FileOffset size = Inode_GetFileSize(self->inode);
     Inode_Unlock(self->inode);
     return size;
+}
+
+FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self)
+{
+    return IOChannel_GetSeekableRange(self);
 }
 
 errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
@@ -186,5 +132,5 @@ override_func_def(finalize, FileChannel, IOChannel)
 override_func_def(copy, FileChannel, IOChannel)
 override_func_def(read, FileChannel, IOChannel)
 override_func_def(write, FileChannel, IOChannel)
-override_func_def(seek, FileChannel, IOChannel)
+override_func_def(getSeekableRange, FileChannel, IOChannel)
 );

@@ -146,13 +146,13 @@ errno_t Driver_Terminate(DriverRef _Nonnull self)
 
 errno_t Driver_createChannel(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    DriverChannelOptions dcOpts = 0;
+    IOChannelOptions iocOpts = 0;
 
     if ((self->options & kDriver_Seekable) == kDriver_Seekable) {
-        dcOpts |= kDriverChannel_Seekable;
+        iocOpts |= kIOChannel_Seekable;
     }
     
-    return DriverChannel_Create(&kDriverChannelClass, kIOChannelType_Driver, mode, dcOpts, self, pOutChannel);
+    return DriverChannel_Create(&kDriverChannelClass, iocOpts, kIOChannelType_Driver, mode, self, pOutChannel);
 }
 
 errno_t Driver_open(DriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
