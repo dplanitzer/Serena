@@ -35,19 +35,6 @@ errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
     return EOK;
 }
 
-errno_t DriverChannel_copy(DriverChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    DriverChannelRef pNewChannel = NULL;
-
-    if ((err = IOChannel_Create(classof(self), IOChannel_GetOptions(self), IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel)) == EOK) {
-        pNewChannel->driver = Object_RetainAs(self->driver, Driver);
-    }
-
-    *pOutChannel = (IOChannelRef)pNewChannel;
-    return err;
-}
-
 errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
 {
     if (IsIOChannelCommand(cmd)) {
@@ -76,7 +63,6 @@ FileOffset DriverChannel_getSeekableRange(DriverChannelRef _Nonnull self)
 
 class_func_defs(DriverChannel, IOChannel,
 override_func_def(finalize, DriverChannel, IOChannel)
-override_func_def(copy, DriverChannel, IOChannel)
 override_func_def(ioctl, DriverChannel, IOChannel)
 override_func_def(read, DriverChannel, IOChannel)
 override_func_def(write, DriverChannel, IOChannel)

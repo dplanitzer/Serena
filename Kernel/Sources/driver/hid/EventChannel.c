@@ -23,20 +23,6 @@ errno_t EventChannel_Create(EventDriverRef _Nonnull pDriver, unsigned int mode, 
     return err;
 }
 
-errno_t EventChannel_copy(EventChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    EventChannelRef pNewChannel;
-
-    if ((err = super_n(copy, IOChannel, EventChannel, self, (IOChannelRef*)&pNewChannel)) == EOK) {
-        pNewChannel->timeout = self->timeout;
-    }
-
-    *pOutChannel = (IOChannelRef)pNewChannel;
-    return err;
-}
-
 
 class_func_defs(EventChannel, DriverChannel,
-override_func_def(copy, EventChannel, IOChannel)
 );

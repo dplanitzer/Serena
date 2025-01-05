@@ -128,11 +128,6 @@ errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
     return EOK;
 }
 
-errno_t IOChannel_copy(IOChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    return EBADF;
-}
-
 errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
 {
     decl_try_err();
@@ -260,7 +255,6 @@ FileOffset IOChannel_getSeekableRange(IOChannelRef _Nonnull self)
 
 any_subclass_func_defs(IOChannel,
 func_def(finalize, IOChannel)
-func_def(copy, IOChannel)
 func_def(ioctl, IOChannel)
 func_def(read, IOChannel)
 func_def(write, IOChannel)

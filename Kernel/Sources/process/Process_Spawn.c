@@ -70,7 +70,7 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
         terminationNotificationQueue = NULL;
     }
 
-    IOChannelTable_CopyFrom(&pChildProc->ioChannelTable, &pProc->ioChannelTable);
+    IOChannelTable_DupFrom(&pChildProc->ioChannelTable, &pProc->ioChannelTable);
 
     if (so.root_dir && *so.root_dir != '\0') {
         try(Process_SetRootDirectoryPath(pChildProc, so.root_dir));

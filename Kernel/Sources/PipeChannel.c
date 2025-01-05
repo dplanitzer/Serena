@@ -35,19 +35,6 @@ errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
     return EOK;
 }
 
-errno_t PipeChannel_copy(PipeChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    decl_try_err();
-    PipeChannelRef pNewChannel;
-
-    try(IOChannel_Create(classof(self), 0, IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewChannel));
-    pNewChannel->pipe = Object_RetainAs(self->pipe, Pipe);
-
-catch:
-    *pOutChannel = (IOChannelRef)pNewChannel;
-    return err;
-}
-
 errno_t PipeChannel_read(PipeChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return Pipe_Read((PipeRef)self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
@@ -61,7 +48,6 @@ errno_t PipeChannel_write(PipeChannelRef _Nonnull self, const void* _Nonnull pBu
 
 class_func_defs(PipeChannel, IOChannel,
 override_func_def(finalize, PipeChannel, IOChannel)
-override_func_def(copy, PipeChannel, IOChannel)
 override_func_def(read, PipeChannel, IOChannel)
 override_func_def(write, PipeChannel, IOChannel)
 );

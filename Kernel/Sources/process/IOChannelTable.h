@@ -60,7 +60,7 @@ extern errno_t IOChannelTable_DupChannel(IOChannelTable* _Nonnull self, int ioc,
 // closed.
 extern errno_t IOChannelTable_DupChannelTo(IOChannelTable* _Nonnull self, int ioc, int targetIoc);
 
-// Copies all I/O channels from 'pOther' to self. Expects that self is empty.
-extern errno_t IOChannelTable_CopyFrom(IOChannelTable* _Nonnull self, IOChannelTable* _Nonnull pOther);
+// Dups all I/O channels from 'pOther' to self. Expects that self is empty.
+extern errno_t IOChannelTable_DupFrom(IOChannelTable* _Nonnull self, IOChannelTable* _Nonnull pOther);
 
 #endif /* IOChannelTable_h */

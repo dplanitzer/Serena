@@ -223,8 +223,8 @@ catch:
     return err;
 }
 
-// Copies all I/O channels from 'pOther' to self. Expects that self is empty.
-errno_t IOChannelTable_CopyFrom(IOChannelTable* _Nonnull self, IOChannelTable* _Nonnull pOther)
+// Dups all I/O channels from 'pOther' to self. Expects that self is empty.
+errno_t IOChannelTable_DupFrom(IOChannelTable* _Nonnull self, IOChannelTable* _Nonnull pOther)
 {
     decl_try_err();
 
@@ -239,7 +239,7 @@ errno_t IOChannelTable_CopyFrom(IOChannelTable* _Nonnull self, IOChannelTable* _
         IOChannelRef pChannel = pOther->table[i];
 
         if (pChannel) {
-            try(IOChannel_Copy(pChannel, &self->table[i]));
+            self->table[i] = IOChannel_Retain(pChannel);
             self->channelCount++;
         }
     }

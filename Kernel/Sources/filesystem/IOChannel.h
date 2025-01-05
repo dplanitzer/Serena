@@ -106,19 +106,6 @@ any_subclass_funcs(IOChannel,
     // taken care of automatically.
     errno_t (*finalize)(void* _Nonnull self);
 
-    // Creates a copy of the receiver. Copying an I/O channel means that the new
-    // channel should be equipped with an independent copy of the channel state.
-    // However the underlying I/O resource should typically not be copied and
-    // instead it should be shared between the channel. Ie copying a file channel
-    // means that the current file offset, channel open mode, etc is copied but
-    // the original channel and the copied channel will share the underlying
-    // file object.
-    // All that said, it may sometimes be appropriate for a channel to copy the
-    // underlying I/O resource too.
-    errno_t (*copy)(void* _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutChannel);
-
-    // Execute an I/O channel specific command.
-    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
 
     // Reads up to 'nBytesToRead' bytes of data from the (current position of the)
     // I/O channel and returns it in 'pBuffer'. An I/O channel may read less data
@@ -146,6 +133,10 @@ any_subclass_funcs(IOChannel,
     // Override: Optional
     // Default Behavior: Returns 0
     FileOffset (*getSeekableRange)(void* _Nonnull self);
+
+
+    // Execute an I/O channel specific command.
+    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
 );
 
 
@@ -174,14 +165,6 @@ any_subclass_funcs(IOChannel,
 ((IOChannelRef)(__self))->offset += (__delta)
 
 
-#define IOChannel_Copy(__self, __pOutChannel) \
-invoke_n(copy, IOChannel, __self, __pOutChannel)
-
-extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
-
-#define IOChannel_vIoctl(__self, __cmd, __ap) \
-invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
-
 extern errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
 extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
@@ -190,7 +173,14 @@ extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull 
 invoke_n(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
 
 
+extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
+
+#define IOChannel_vIoctl(__self, __cmd, __ap) \
+invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
+
+
 extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);
+
 #define IOChannel_RetainAs(__pChannel, __type) \
     ((__type)IOChannel_Retain((IOChannelRef)__pChannel))
 

@@ -37,27 +37,6 @@ errno_t DirectoryChannel_finalize(DirectoryChannelRef _Nonnull self)
     return err;
 }
 
-// Creates an independent copy of the receiver. The copy receives its own strong
-// filesystem and inode references.
-ssize_t DirectoryChannel_copy(DirectoryChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutDir)
-{
-    decl_try_err();
-    DirectoryChannelRef pNewDir = NULL;
-
-    try(IOChannel_Create(classof(self), kIOChannel_Seekable,IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewDir));
-    Lock_Init(&pNewDir->lock);
-    pNewDir->inode = Inode_Reacquire(self->inode);
-    
-    Lock_Lock(&self->lock);
-    ((IOChannelRef)pNewDir)->offset = IOChannel_GetOffset(self);
-    Lock_Unlock(&self->lock);
-
-catch:
-    *pOutDir = (IOChannelRef)pNewDir;
-
-    return err;
-}
-
 errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
@@ -106,7 +85,6 @@ errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, M
 
 class_func_defs(DirectoryChannel, IOChannel,
 override_func_def(finalize, DirectoryChannel, IOChannel)
-override_func_def(copy, DirectoryChannel, IOChannel)
 override_func_def(read, DirectoryChannel, IOChannel)
 override_func_def(seek, DirectoryChannel, IOChannel)
 );

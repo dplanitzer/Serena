@@ -37,27 +37,6 @@ errno_t FileChannel_finalize(FileChannelRef _Nonnull self)
     return err;
 }
 
-// Creates an independent copy of the receiver. The newly created file channel
-// receives its own independent strong file system and inode references.
-errno_t FileChannel_copy(FileChannelRef _Nonnull self, IOChannelRef _Nullable * _Nonnull pOutFile)
-{
-    decl_try_err();
-    FileChannelRef pNewFile = NULL;
-
-    try(IOChannel_Create(classof(self), kIOChannel_Seekable, IOChannel_GetChannelType(self), IOChannel_GetMode(self), (IOChannelRef*)&pNewFile));
-    Lock_Init(&pNewFile->lock);
-    pNewFile->inode = Inode_Reacquire(self->inode);
-        
-    Lock_Lock(&self->lock);
-    ((IOChannelRef)pNewFile)->offset = IOChannel_GetOffset(self);
-    Lock_Unlock(&self->lock);
-
-catch:
-    *pOutFile = (IOChannelRef)pNewFile;
-
-    return err;
-}
-
 errno_t FileChannel_read(FileChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
@@ -129,7 +108,6 @@ errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, FileOffset length)
 
 class_func_defs(FileChannel, IOChannel,
 override_func_def(finalize, FileChannel, IOChannel)
-override_func_def(copy, FileChannel, IOChannel)
 override_func_def(read, FileChannel, IOChannel)
 override_func_def(write, FileChannel, IOChannel)
 override_func_def(getSeekableRange, FileChannel, IOChannel)
