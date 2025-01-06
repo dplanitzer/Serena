@@ -12,12 +12,10 @@
 #include <filesystem/IOChannel.h>
 #include <filesystem/Inode.h>
 #include <User.h>
-#include <dispatcher/Lock.h>
 
 
 open_class(FileChannel, IOChannel,
     InodeRef _Nonnull   inode;
-    Lock                lock;           // Protects 'offset' and to provide read/write/seek serialization. See IOChannel
 );
 open_class_funcs(FileChannel, IOChannel,
 );

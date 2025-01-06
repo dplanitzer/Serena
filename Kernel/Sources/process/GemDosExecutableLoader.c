@@ -112,7 +112,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileC
 
 
     // Read the executable header, text and data segments into memory
-    IOChannel_Seek(chan, 0ll, NULL, kSeek_Set);
+    IOChannel_Seek((IOChannelRef)chan, 0ll, NULL, kSeek_Set);
     try(IOChannel_Read((IOChannelRef)chan, pImageBase, nbytes_to_read, &nBytesRead));
     if (nBytesRead != nbytes_to_read) {
         throw(EIO);
@@ -121,7 +121,7 @@ errno_t GemDosExecutableLoader_Load(GemDosExecutableLoader* _Nonnull self, FileC
 
     // Read the relocation information into memory
     uint8_t* pRelocBase = pImageBase + nbytes_to_read;
-    IOChannel_Seek(chan, fileOffset_to_reloc, NULL, kSeek_Set);
+    IOChannel_Seek((IOChannelRef)chan, fileOffset_to_reloc, NULL, kSeek_Set);
     try(IOChannel_Read((IOChannelRef)chan, pRelocBase, reloc_size, &nBytesRead));
     if (nBytesRead != reloc_size) {
         throw(EIO);

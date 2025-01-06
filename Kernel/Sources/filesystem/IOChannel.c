@@ -123,10 +123,128 @@ void IOChannel_EndOperation(IOChannelRef _Nonnull self)
     }
 }
 
+
+
 errno_t IOChannel_finalize(IOChannelRef _Nonnull self)
 {
     return EOK;
 }
+
+
+void IOChannel_lock(IOChannelRef _Nonnull self)
+{
+}
+
+void IOChannel_unlock(IOChannelRef _Nonnull _Locked self)
+{
+}
+
+
+errno_t IOChannel_read(IOChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    return EBADF;
+}
+
+errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    decl_try_err();
+
+    IOChannel_Lock(self);
+    if ((self->mode & kOpen_Read) == kOpen_Read) {
+        err = invoke_n(read, IOChannel, self, pBuffer, nBytesToRead, nOutBytesRead);
+    } else {
+        *nOutBytesRead = 0;
+        err = EBADF;
+    }
+    IOChannel_Unlock(self);
+
+    return err;
+}
+
+errno_t IOChannel_write(IOChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+{
+    return EBADF;
+}
+
+
+errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+{
+    decl_try_err();
+
+    IOChannel_Lock(self);
+    if ((self->mode & kOpen_Write) == kOpen_Write) {
+        err = invoke_n(write, IOChannel, self, pBuffer, nBytesToWrite, nOutBytesWritten);
+    } else {
+        *nOutBytesWritten = 0;
+        err = EBADF;
+    }
+    IOChannel_Unlock(self);
+
+    return err;
+}
+
+
+errno_t IOChannel_seek(IOChannelRef _Nonnull _Locked self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
+{
+    if (whence == kSeek_Set) {
+        if (offset >= 0ll) {
+            if (pOutOldPosition) {
+                *pOutOldPosition = self->offset;
+            }
+
+            self->offset = offset;
+            return EOK;
+        }
+        else {
+            return EINVAL;
+        }
+    }
+    else if(whence == kSeek_Current || whence == kSeek_End) {
+        const FileOffset refPos = (whence == kSeek_End) ? IOChannel_GetSeekableRange(self) : self->offset;
+            
+        if (offset < 0ll && -offset > refPos) {
+            return EINVAL;
+        }
+        else {
+            const FileOffset newOffset = refPos + offset;
+
+            if (newOffset < 0ll) {
+                return EOVERFLOW;
+            }
+
+            if (pOutOldPosition) {
+                *pOutOldPosition = self->offset;
+            }
+            self->offset = newOffset;
+            return EOK;
+        }
+    }
+    else {
+        return EINVAL;
+    }
+}
+
+errno_t IOChannel_Seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutOldPosition, int whence)
+{
+    decl_try_err();
+
+    IOChannel_Lock(self);
+    if ((self->options & kIOChannel_Seekable) == kIOChannel_Seekable) {
+        err = invoke_n(seek, IOChannel, self, offset, pOutOldPosition, whence);
+    } else {
+        *pOutOldPosition = 0ll;
+        err = ESPIPE;
+    }
+    IOChannel_Unlock(self);
+
+    return err;
+}
+
+FileOffset IOChannel_getSeekableRange(IOChannelRef _Nonnull _Locked self)
+{
+    return 0ll;
+}
+
 
 errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
 {
@@ -140,7 +258,18 @@ errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...)
     return err;
 }
 
-errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
+errno_t IOChannel_vIoctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
+{
+    decl_try_err();
+
+    IOChannel_Lock(self);
+    err = invoke_n(ioctl, IOChannel, self, cmd, ap);
+    IOChannel_Unlock(self);
+
+    return err;
+}
+
+errno_t IOChannel_ioctl(IOChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 {
     switch (cmd) {
         case kIOChannelCommand_GetType:
@@ -156,105 +285,11 @@ errno_t IOChannel_ioctl(IOChannelRef _Nonnull self, int cmd, va_list ap)
     }
 }
 
-errno_t IOChannel_read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    return EBADF;
-}
-
-errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
-{
-    if ((self->mode & kOpen_Read) == kOpen_Read) {
-        return invoke_n(read, IOChannel, self, pBuffer, nBytesToRead, nOutBytesRead);
-    } else {
-        *nOutBytesRead = 0;
-        return EBADF;
-    }
-}
-
-errno_t IOChannel_write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    return EBADF;
-}
-
-errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
-{
-    if ((self->mode & kOpen_Write) == kOpen_Write) {
-        return invoke_n(write, IOChannel, self, pBuffer, nBytesToWrite, nOutBytesWritten);
-    } else {
-        *nOutBytesWritten = 0;
-        return EBADF;
-    }
-}
-
-errno_t IOChannel_seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* pOutOldPosition, int whence)
-{
-    decl_try_err();
-    FileOffset newOffset;
-
-    if ((self->options & kIOChannel_Seekable) == 0) {
-        *pOutOldPosition = 0ll;
-        return ESPIPE;
-    }
-
-    
-    switch (whence) {
-        case kSeek_Set:
-            if (offset < 0ll) {
-                err = EINVAL;
-            }
-            else {
-                newOffset = offset;
-            }
-            break;
-
-        case kSeek_Current:
-            if (offset < 0ll && -offset > self->offset) {
-                err = EINVAL;
-            }
-            else {
-                newOffset = self->offset + offset;
-            }
-            break;
-
-        case kSeek_End: {
-            const FileOffset fileSize = IOChannel_GetSeekableRange(self);
-            if (offset < 0ll && -offset > fileSize) {
-                err = EINVAL;
-            }
-            else {
-                newOffset = fileSize + offset;
-            }
-            break;
-        }
-
-        default:
-            err = EINVAL;
-            break;
-    }
-
-    if (err == EOK) {
-        if (newOffset < 0 || newOffset > kFileOffset_Max) {
-            err = EOVERFLOW;
-        }
-        else {
-            if (pOutOldPosition) {
-                *pOutOldPosition = self->offset;
-            }
-            self->offset = newOffset;
-        }
-    }
-
-    return err;
-}
-
-FileOffset IOChannel_getSeekableRange(IOChannelRef _Nonnull self)
-{
-    return 0ll;
-}
-
 
 any_subclass_func_defs(IOChannel,
 func_def(finalize, IOChannel)
+func_def(lock, IOChannel)
+func_def(unlock, IOChannel)
 func_def(ioctl, IOChannel)
 func_def(read, IOChannel)
 func_def(write, IOChannel)

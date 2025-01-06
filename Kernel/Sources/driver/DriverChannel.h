@@ -10,9 +10,11 @@
 #define DriverChannel_h
 
 #include <filesystem/IOChannel.h>
+#include <dispatcher/Lock.h>
 
 
 open_class(DriverChannel, IOChannel,
+    Lock                lock;
     DriverRef _Nonnull  driver;
 );
 open_class_funcs(DriverChannel, IOChannel,

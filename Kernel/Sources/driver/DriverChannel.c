@@ -16,6 +16,7 @@ errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, i
     DriverChannelRef self = NULL;
 
     if ((err = IOChannel_Create(pClass, options, kIOChannelType_Driver, mode, (IOChannelRef*)&self)) == EOK) {
+        Lock_Init(&self->lock);
         self->driver = Object_RetainAs(pDriver, Driver);
     }
 
@@ -26,6 +27,7 @@ errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, i
 errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
 {
     if (self->driver) {
+        Lock_Deinit(&self->lock);
         Driver_Close(self->driver, (IOChannelRef)self);
         
         Object_Release(self->driver);
@@ -35,7 +37,20 @@ errno_t DriverChannel_finalize(DriverChannelRef _Nonnull self)
     return EOK;
 }
 
-errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
+void DriverChannel_lock(DriverChannelRef _Nonnull self)
+{
+    // XXX disabled for now because the unlock does sometimes trap an ownership
+    // XXX violation error. Ignoring it leads to a perma locked stdin
+//  try_bang(Lock_Lock(&self->lock));
+}
+
+void DriverChannel_unlock(DriverChannelRef _Nonnull _Locked self)
+{
+    // XXX see above
+//  try_bang(Lock_Unlock(&self->lock));
+}
+
+errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull _Locked self, int cmd, va_list ap)
 {
     if (IsIOChannelCommand(cmd)) {
         return super_n(ioctl, IOChannel, DriverChannel, self, cmd, ap);
@@ -45,17 +60,17 @@ errno_t DriverChannel_ioctl(DriverChannelRef _Nonnull self, int cmd, va_list ap)
     }
 }
 
-errno_t DriverChannel_read(DriverChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t DriverChannel_read(DriverChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return Driver_Read(self->driver, (IOChannelRef)self, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-errno_t DriverChannel_write(DriverChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t DriverChannel_write(DriverChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return Driver_Write(self->driver, (IOChannelRef)self, pBuffer, nBytesToWrite, nOutBytesWritten);
 }
 
-FileOffset DriverChannel_getSeekableRange(DriverChannelRef _Nonnull self)
+FileOffset DriverChannel_getSeekableRange(DriverChannelRef _Nonnull _Locked self)
 {
     return Driver_GetSeekableRange(self);
 }
@@ -63,6 +78,8 @@ FileOffset DriverChannel_getSeekableRange(DriverChannelRef _Nonnull self)
 
 class_func_defs(DriverChannel, IOChannel,
 override_func_def(finalize, DriverChannel, IOChannel)
+override_func_def(lock, DriverChannel, IOChannel)
+override_func_def(unlock, DriverChannel, IOChannel)
 override_func_def(ioctl, DriverChannel, IOChannel)
 override_func_def(read, DriverChannel, IOChannel)
 override_func_def(write, DriverChannel, IOChannel)

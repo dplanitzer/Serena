@@ -85,12 +85,12 @@
 // the other modes is planned for the future.
 open_class(IOChannel, Any,
     Lock            countLock;
-    int32_t         ownerCount;
-    int32_t         useCount;
+    int32_t         ownerCount;     // countLock
+    int32_t         useCount;       // countLock
     uint16_t        mode;           // Constant
     uint8_t         options;        // Constant
     int8_t          channelType;    // Constant
-    FileOffset      offset;
+    FileOffset      offset;         // I/O channel lock
 );
 any_subclass_funcs(IOChannel,
     // Called once an I/O channel is ready to be deallocated for good. Overrides
@@ -107,6 +107,13 @@ any_subclass_funcs(IOChannel,
     errno_t (*finalize)(void* _Nonnull self);
 
 
+    // Locks the I/O channel state.
+    void (*lock)(void* _Nonnull self);
+
+    // Unlocks the I/O channel state.
+    void (*unlock)(void* _Nonnull _Locked self);
+
+
     // Reads up to 'nBytesToRead' bytes of data from the (current position of the)
     // I/O channel and returns it in 'pBuffer'. An I/O channel may read less data
     // than request. The actual number of bytes read is returned in 'nOutBytesRead'.
@@ -116,67 +123,57 @@ any_subclass_funcs(IOChannel,
     // is only returned if a channel can not read at least one byte. If it can read
     // at least one byte then the number of bytes successfully read is returned
     // and no error code.
-    errno_t (*read)(void* _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
+    errno_t (*read)(void* _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
 
     // Writes up to 'nBytesToWrite' bytes to the I/O channel. Works similar to
     // how read() works.
-    errno_t (*write)(void* _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
+    errno_t (*write)(void* _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
 
     // Sets the current file position of an I/O channel. A channel which doesn't
     // support seeking will return ESPIPE and 0 as the old position. The next
     // channel read/write operation will start reading/writing from this
     // position.
-    errno_t (*seek)(void* _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
+    errno_t (*seek)(void* _Nonnull _Locked self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
 
     // Invoked by seek() to get the size of the seekable space. The maximum
     // position to which a client is allowed to seek is this value minus one.
     // Override: Optional
     // Default Behavior: Returns 0
-    FileOffset (*getSeekableRange)(void* _Nonnull self);
+    FileOffset (*getSeekableRange)(void* _Nonnull _Locked self);
 
 
     // Execute an I/O channel specific command.
-    errno_t (*ioctl)(void* _Nonnull self, int cmd, va_list ap);
+    errno_t (*ioctl)(void* _Nonnull _Locked self, int cmd, va_list ap);
 );
 
 
-// Returns the I/O channel options.
-#define IOChannel_GetOptions(__self) \
-    ((IOChannelOptions)((IOChannelRef)(__self))->options)
-
 // Returns the I/O channel type.
-#define IOChannel_GetChannelType(__self) \
+#define IOChannel_GetChannelType(/*_Nonnull*/ __self) \
     ((int)((IOChannelRef)(__self))->channelType)
 
 // Returns the I/O channel mode.
-#define IOChannel_GetMode(__self) \
+#define IOChannel_GetMode(/*_Nonnull*/ __self) \
     ((unsigned int)((IOChannelRef)(__self))->mode)
 
 // Returns the current seek position
-#define IOChannel_GetOffset(__self) \
+#define IOChannel_GetOffset(/*_Nonnull _Locked*/ __self) \
 ((IOChannelRef)(__self))->offset
 
 // Sets the current seek position
-#define IOChannel_SetOffset(__self, __pos) \
+#define IOChannel_SetOffset(/*_Nonnull _Locked*/ __self, __pos) \
 ((IOChannelRef)(__self))->offset = (__pos)
 
 // Increment the current seek position by the give signed value
-#define IOChannel_IncrementOffsetBy(__self, __delta) \
+#define IOChannel_IncrementOffsetBy(/*_Nonnull _Locked*/ __self, __delta) \
 ((IOChannelRef)(__self))->offset += (__delta)
 
 
 extern errno_t IOChannel_Read(IOChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead);
-
 extern errno_t IOChannel_Write(IOChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten);
-
-#define IOChannel_Seek(__self, __offset, __pOutOldPosition, __whence) \
-invoke_n(seek, IOChannel, __self, __offset, __pOutOldPosition, __whence)
-
+extern errno_t IOChannel_Seek(IOChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence);
 
 extern errno_t IOChannel_Ioctl(IOChannelRef _Nonnull self, int cmd, ...);
-
-#define IOChannel_vIoctl(__self, __cmd, __ap) \
-invoke_n(ioctl, IOChannel, __self, __cmd, __ap)
+extern errno_t IOChannel_vIoctl(IOChannelRef _Nonnull self, int cmd, va_list ap);
 
 
 extern IOChannelRef IOChannel_Retain(IOChannelRef _Nonnull self);
@@ -204,6 +201,12 @@ extern errno_t IOChannel_Create(Class* _Nonnull pClass, IOChannelOptions options
 // Returns the size of the seekable range
 #define IOChannel_GetSeekableRange(__self) \
 invoke_0(getSeekableRange, IOChannel, __self)
+
+#define IOChannel_Lock(__self) \
+invoke_0(lock, IOChannel, __self)
+
+#define IOChannel_Unlock(__self) \
+invoke_0(unlock, IOChannel, __self)
 
 
 //

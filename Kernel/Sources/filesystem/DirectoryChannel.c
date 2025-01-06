@@ -9,6 +9,8 @@
 #include "DirectoryChannel.h"
 #include "Filesystem.h"
 
+// DirectoryChannel uses the Inode lock to protect its seek state
+
 
 // Creates a directory channel which takes ownership of the provided inode
 // reference. This reference will be released by deinit().
@@ -18,7 +20,6 @@ errno_t DirectoryChannel_Create(InodeRef _Consuming _Nonnull pDir, IOChannelRef 
     DirectoryChannelRef self;
 
     try(IOChannel_Create(&kDirectoryChannelClass, kIOChannel_Seekable, kIOChannelType_Directory, kOpen_Read, (IOChannelRef*)&self));
-    Lock_Init(&self->lock);
     self->inode = pDir;
 
 catch:
@@ -33,24 +34,25 @@ errno_t DirectoryChannel_finalize(DirectoryChannelRef _Nonnull self)
     err = Inode_Relinquish(self->inode);
     self->inode = NULL;
 
-    Lock_Deinit(&self->lock);
     return err;
 }
 
-errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+void DirectoryChannel_lock(DirectoryChannelRef _Nonnull self)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
     Inode_Lock(self->inode);
-    err = Filesystem_ReadDirectory(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToRead, nOutBytesRead);
-    Inode_Unlock(self->inode);
-    Lock_Unlock(&self->lock);
-
-    return err;
 }
 
-errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
+void DirectoryChannel_unlock(DirectoryChannelRef _Nonnull _Locked self)
+{
+    Inode_Unlock(self->inode);
+}
+
+errno_t DirectoryChannel_read(DirectoryChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+{
+    return Filesystem_ReadDirectory(Inode_GetFilesystem(self->inode), self, pBuffer, nBytesToRead, nOutBytesRead);
+}
+
+errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull _Locked self, FileOffset offset, FileOffset* _Nullable pOutOldPosition, int whence)
 {
     decl_try_err();
 
@@ -66,18 +68,18 @@ errno_t DirectoryChannel_seek(DirectoryChannelRef _Nonnull self, FileOffset offs
 
 errno_t DirectoryChannel_GetInfo(DirectoryChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo)
 {
-    Inode_Lock(self->inode);
+    IOChannel_Lock(self);
     const errno_t err = Filesystem_GetFileInfo(Inode_GetFilesystem(self->inode), self->inode, pOutInfo);
-    Inode_Unlock(self->inode);
+    IOChannel_Unlock(self);
     
     return err;
 }
 
 errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
 {
-    Inode_Lock(self->inode);
+    IOChannel_Lock(self);
     const errno_t err = Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, user, pInfo);
-    Inode_Unlock(self->inode);
+    IOChannel_Unlock(self);
 
     return err;
 }
@@ -85,6 +87,8 @@ errno_t DirectoryChannel_SetInfo(DirectoryChannelRef _Nonnull self, User user, M
 
 class_func_defs(DirectoryChannel, IOChannel,
 override_func_def(finalize, DirectoryChannel, IOChannel)
+override_func_def(lock, DirectoryChannel, IOChannel)
+override_func_def(unlock, DirectoryChannel, IOChannel)
 override_func_def(read, DirectoryChannel, IOChannel)
 override_func_def(seek, DirectoryChannel, IOChannel)
 );

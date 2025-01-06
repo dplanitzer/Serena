@@ -9,7 +9,10 @@
 #include "PipeChannel.h"
 #include "Pipe.h"
 
-
+// PipeChannel does not need locking because:
+// - it doesn't support seeking. Thus seeking state is constant
+// - the pipe implementation protects read/write with a pipe lock anyway
+ 
 errno_t PipeChannel_Create(PipeRef _Nonnull pPipe, unsigned int mode, IOChannelRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
@@ -35,12 +38,12 @@ errno_t PipeChannel_finalize(PipeChannelRef _Nonnull self)
     return EOK;
 }
 
-errno_t PipeChannel_read(PipeChannelRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t PipeChannel_read(PipeChannelRef _Nonnull _Locked self, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
 {
     return Pipe_Read((PipeRef)self->pipe, pBuffer, nBytesToRead, nOutBytesRead);
 }
 
-errno_t PipeChannel_write(PipeChannelRef _Nonnull self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
+errno_t PipeChannel_write(PipeChannelRef _Nonnull _Locked self, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
     return Pipe_Write((PipeRef)self->pipe, pBuffer, nBytesToWrite, nOutBytesWritten);
 }

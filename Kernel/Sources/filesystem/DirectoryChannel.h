@@ -12,7 +12,6 @@
 #include <filesystem/IOChannel.h>
 #include <filesystem/Inode.h>
 #include <User.h>
-#include <dispatcher/Lock.h>
 
 
 // File positions/seeking and directories:
@@ -26,7 +25,6 @@
 // See FileChannel.
 open_class(DirectoryChannel, IOChannel,
     InodeRef _Nonnull   inode;
-    Lock                lock;
 );
 open_class_funcs(DirectoryChannel, IOChannel,
 );
