@@ -14,6 +14,16 @@
 #include <driver/Driver.h>
 #include <System/Disk.h>
 
+enum DiskDriverOptions {
+    kDiskDriver_Queuing = 256,  // BeginIO should queue incoming requested and the requests will by asynchronously processed by a dispatch queue work item
+};
+
+typedef struct MediaInfo {
+    LogicalBlockCount   blockCount;
+    size_t              blockSize;
+    bool                isReadOnly;
+} MediaInfo;
+
 
 // A disk driver manages the data stored on a disk. It provides read and write
 // access to the disk data. Data on a disk is organized in blocks. All blocks
@@ -26,21 +36,35 @@
 // storage to another disk driver. To support the later use case, the DiskDriver
 // class supports disk block address virtualization.
 //
-// The beginIO() method receives the cached disk block that should be read or
+// The BeginIO() method receives the cached disk block that should be read or
 // written plus a separate target address that indicates the physical disk block
 // that should be read or written. A logical disk driver may map the target
 // address that it has received to a new address suitable for another disk driver
 // and it then invokes the beginIO() method with the new target address on this
 // other driver.
+//
+// A disk driver may operate synchronously or queue-based. A synchronous disk
+// driver is a driver where the BeginIO() method immediately processes the I/O
+// request. The Begin() method of a queueing driver on the other hand simply
+// adds the request to an internal queue. The requests on the queue are then
+// asynchronously processed by the driver dispatch queue.
+//
+// A synchronous driver should override:
+// - getBlock()/putBlock(), doIO() or beginIO()
+//
+// A queueing driver should override:
+// - getBlock()/putBlock() or doIO()
+//
 open_class(DiskDriver, Driver,
     DispatchQueueRef _Nullable  dispatchQueue;
     DiskId                      diskId;
-    MediaId                     nextMediaId;
+    MediaId                     currentMediaId;
+    MediaInfo                   mediaInfo;
 );
 open_class_funcs(DiskDriver, Driver,
 
     // Invoked when the driver needs to create its dispatch queue. This will
-    // only happen for an asynchronous driver.
+    // only happen for a queueing driver.
     // Override: Optional
     // Default Behavior: create a dispatch queue with priority Normal
     errno_t (*createDispatchQueue)(void* _Nonnull self, DispatchQueueRef _Nullable * _Nonnull pOutQueue);
@@ -49,12 +73,8 @@ open_class_funcs(DiskDriver, Driver,
     // Returns information about the disk drive and the media loaded into the
     // drive.
     // Default Behavior: returns info for an empty disk
-    errno_t (*getInfo_async)(void* _Nonnull self, DiskInfo* pOutInfo);
+    void (*getInfo)(void* _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo);
 
-    // Returns the media ID associated with the currently inserted disk.
-    // kMedia_None is returned if no media is inserted.
-    // Default behavior: returns kMedia_None
-    MediaId (*getCurrentMediaId)(void* _Nonnull self);
 
     // Starts an I/O operation on the given block and disk block address
     // 'targetAddr'. Calls getBlock() if the block should be read and putBlock()
@@ -62,12 +82,12 @@ open_class_funcs(DiskDriver, Driver,
     // about the completed I/O operation. This function assumes that getBlock()/
     // putBlock() will only return once the I/O operation is done or an error
     // has been encountered.
-    // Default Behavior: Dispatches an async call to beginIO_async
-    errno_t (*beginIO)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
+    // Default Behavior: Dispatches an async call to doIO()
+    errno_t (*beginIO)(void* _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock);
 
-    // Async version of beginIO.
+    // Executes an I/O request.
     // Default Behavior: Calls getBlock/putBlock
-    void (*beginIO_async)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
+    void (*doIO)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
 
     // Reads the contents of the bloc at the disk address 'targetAddr' into the
     // in-memory block 'pBlock'. Blocks the caller until the read operation has
@@ -89,7 +109,7 @@ open_class_funcs(DiskDriver, Driver,
     // and that all data has been read in and stored in the block (if reading) or
     // committed to disk (if writing).
     // Default Behavior: Notifies the disk cache
-    void (*endIO)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status);
+    void (*endIO)(void* _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, errno_t status);
 );
 
 
@@ -114,23 +134,16 @@ extern errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Non
 invoke_n(createDispatchQueue, DiskDriver, __self, __pOutQueue)
 
 
-// The globally unique, non-persistent disk ID of this disk driver. Note that
-// this ID is only valid between the end of start() and the beginning of stop().
-#define DiskDriver_GetDiskId(__self) \
-(((DiskDriverRef)__self)->diskId)
+// Must be called by a subclass whenever a new media is loaded into the driver
+// or removed from the drive. Note that DiskDriver assumes that there is no
+// media loaded into the drive, initially. Thus even a fixed disk driver must
+// call this function at creation/start time to indicate that a fixed media has
+// been "loaded" into the drive. If the user removes the disk from the drive
+// then this function must be called with NULL as the info argument; otherwise
+// it must be called with a properly filled in media info record.
+// This function generates the required unique media id. 
+extern void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo);
 
-// Generates a new unique media ID. Call this function to generate a new media
-// ID after a media change has been detected and use the returned value as the
-// new current media ID.
-// Note: must be called from the disk driver dispatch queue.
-extern MediaId DiskDriver_GetNewMediaId(DiskDriverRef _Nonnull self);
-
-// The ID of the current media in the disk driver. kMediaId_None means that no
-// disk is in the drive. This ID is only good enough to detect whether the media
-// has changed or is still the same. It is not good enough to identify a
-// particular media after it has been removed from the drive and re-inserted.
-#define DiskDriver_GetCurrentMediaId(__self) \
-invoke_0(getCurrentMediaId, DiskDriver, __self)
 
 #define DiskDriver_GetBlock(__self, __pBlock) \
 invoke_n(getBlock, DiskDriver, __self, __pBlock)
@@ -141,9 +154,10 @@ invoke_n(putBlock, DiskDriver, __self, __pBlock)
 #define DiskDriver_EndIO(__self, __pBlock, __status) \
 invoke_n(endIO, DiskDriver, __self, __pBlock, __status)
 
-#define DiskDriver_Create(__className, __pOutSelf) \
-    _DiskDriver_Create(&k##__className##Class, (DriverRef*)__pOutSelf)
 
-extern errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf);
+#define DiskDriver_Create(__className, __options, __pOutSelf) \
+    _DiskDriver_Create(&k##__className##Class, __options, (DriverRef*)__pOutSelf)
+
+extern errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* DiskDriver_h */

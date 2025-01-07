@@ -26,12 +26,18 @@ errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, s
     RomDiskRef self = NULL;
 
     assert(pImage != NULL);
-    try(DiskDriver_Create(RomDisk, &self));
+    try(DiskDriver_Create(RomDisk, 0, &self));
     self->diskImage = pImage;
     self->blockCount = blockCount;
     self->blockSize = blockSize;
     self->freeDiskImageOnClose = freeOnClose;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
+
+    MediaInfo info;
+    info.blockCount = self->blockCount;
+    info.blockSize = self->blockSize;
+    info.isReadOnly = true;
+    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
 
 catch:
     *pOutSelf = self;
@@ -51,25 +57,6 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
-errno_t RomDisk_getInfo_async(RomDiskRef _Nonnull self, DiskInfo* pOutInfo)
-{
-    pOutInfo->diskId = DiskDriver_GetDiskId(self);
-    pOutInfo->mediaId = 1;
-    pOutInfo->isReadOnly = true;
-    pOutInfo->reserved[0] = 0;
-    pOutInfo->reserved[1] = 0;
-    pOutInfo->reserved[2] = 0;
-    pOutInfo->blockSize = self->blockSize;
-    pOutInfo->blockCount = self->blockCount;
-
-    return EOK;
-}
-
-MediaId RomDisk_getCurrentMediaId(RomDiskRef _Nonnull self)
-{
-    return 1;
-}
-
 errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     const LogicalBlockAddress lba = DiskBlock_GetPhysicalAddress(pBlock)->lba;
@@ -87,7 +74,5 @@ errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 class_func_defs(RomDisk, DiskDriver,
 override_func_def(deinit, RomDisk, Object)
 override_func_def(onStart, RomDisk, Driver)
-override_func_def(getInfo_async, RomDisk, DiskDriver)
-override_func_def(getCurrentMediaId, RomDisk, DiskDriver)
 override_func_def(getBlock, RomDisk, DiskDriver)
 );

@@ -31,7 +31,7 @@ errno_t PartitionDriver_Create(const char* _Nonnull name, LogicalBlockAddress st
     PartitionDriverRef self = NULL;
 
     try(DiskDriver_GetInfo(disk, &info));
-    try(DiskDriver_Create(PartitionDriver, &self));
+    try(DiskDriver_Create(PartitionDriver, 0, &self));
     self->diskDriver = disk;
     self->wholeDiskId = info.diskId;
     self->wholeMediaId = info.mediaId;
@@ -40,6 +40,12 @@ errno_t PartitionDriver_Create(const char* _Nonnull name, LogicalBlockAddress st
     self->blockSize = info.blockSize;
     self->isReadOnly = info.isReadOnly ? info.isReadOnly : isReadOnly;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
+
+    MediaInfo mediaInfo;
+    mediaInfo.blockCount = self->blockCount;
+    mediaInfo.blockSize = self->blockSize;
+    mediaInfo.isReadOnly = self->isReadOnly;
+    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &mediaInfo);
 
 catch:
     *pOutSelf = self;
@@ -51,31 +57,7 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
-errno_t PartitionDriver_getInfo_async(PartitionDriverRef _Nonnull self, DiskInfo* pOutInfo)
-{
-    decl_try_err();
-
-    err = DiskDriver_GetInfo(self->diskDriver, pOutInfo);
-    if (err == EOK) {
-        pOutInfo->diskId = DiskDriver_GetDiskId(self);
-        pOutInfo->mediaId = self->wholeMediaId;
-        pOutInfo->isReadOnly = self->isReadOnly;
-        pOutInfo->reserved[0] = 0;
-        pOutInfo->reserved[1] = 0;
-        pOutInfo->reserved[2] = 0;
-        pOutInfo->blockSize = self->blockSize;
-        pOutInfo->blockCount = self->blockCount;
-    }
-
-    return err;
-}
-
-MediaId PartitionDriver_getCurrentMediaId(PartitionDriverRef _Nonnull self)
-{
-    return self->wholeMediaId;
-}
-
-void PartitionDriver_beginIO_async(PartitionDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     pBlock->physicalAddress.diskId = self->wholeDiskId;
     pBlock->physicalAddress.lba += self->startBlock;
@@ -86,7 +68,5 @@ void PartitionDriver_beginIO_async(PartitionDriverRef _Nonnull self, DiskBlockRe
 
 class_func_defs(PartitionDriver, DiskDriver,
 override_func_def(onStart, PartitionDriver, Driver)
-override_func_def(getInfo_async, PartitionDriver, DiskDriver)
-override_func_def(getCurrentMediaId, PartitionDriver, DiskDriver)
-override_func_def(beginIO_async, PartitionDriver, DiskDriver)
+override_func_def(beginIO, PartitionDriver, DiskDriver)
 );

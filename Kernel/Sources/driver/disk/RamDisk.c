@@ -33,12 +33,18 @@ errno_t RamDisk_Create(const char* _Nonnull name, size_t blockSize, LogicalBlock
     decl_try_err();
     RamDiskRef self = NULL;
 
-    try(DiskDriver_Create(RamDisk, &self));
+    try(DiskDriver_Create(RamDisk, 0, &self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(extentBlockCount, blockCount);
     self->blockCount = blockCount;
     self->blockSize = blockSize;
     String_CopyUpTo(self->name, name, MAX_NAME_LENGTH);
+
+    MediaInfo info;
+    info.blockCount = self->blockCount;
+    info.blockSize = self->blockSize;
+    info.isReadOnly = false;
+    DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
 
 catch:
     *pOutSelf = self;
@@ -57,25 +63,6 @@ void RamDisk_deinit(RamDiskRef _Nonnull self)
 errno_t RamDisk_onStart(RamDiskRef _Nonnull self)
 {
     return Driver_Publish((DriverRef)self, self->name, 0);
-}
-
-errno_t RamDisk_getInfo_async(RamDiskRef _Nonnull self, DiskInfo* pOutInfo)
-{
-    pOutInfo->diskId = DiskDriver_GetDiskId(self);
-    pOutInfo->mediaId = 1;
-    pOutInfo->isReadOnly = false;
-    pOutInfo->reserved[0] = 0;
-    pOutInfo->reserved[1] = 0;
-    pOutInfo->reserved[2] = 0;
-    pOutInfo->blockSize = self->blockSize;
-    pOutInfo->blockCount = self->blockCount;
-
-    return EOK;
-}
-
-MediaId RamDisk_getCurrentMediaId(RamDiskRef _Nonnull self)
-{
-    return 1;
 }
 
 // Tries to find the disk extent that contains the given block index. This disk
@@ -179,8 +166,6 @@ catch:
 class_func_defs(RamDisk, DiskDriver,
 override_func_def(deinit, RamDisk, Object)
 override_func_def(onStart, RamDisk, Driver)
-override_func_def(getInfo_async, RamDisk, DiskDriver)
-override_func_def(getCurrentMediaId, RamDisk, DiskDriver)
 override_func_def(getBlock, RamDisk, DiskDriver)
 override_func_def(putBlock, RamDisk, DiskDriver)
 );

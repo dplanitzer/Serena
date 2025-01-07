@@ -30,7 +30,7 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnu
     decl_try_err();
     FloppyDriverRef self;
     
-    try(DiskDriver_Create(FloppyDriver, &self));
+    try(DiskDriver_Create(FloppyDriver, kDiskDriver_Queuing, &self));
 
     self->fdc = fdc;
     self->drive = drive;
@@ -48,8 +48,6 @@ errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnu
     self->head = -1;
     self->cylinder = -1;
     self->readErrorCount = 0;
-
-    self->currentMediaId = DiskDriver_GetNewMediaId((DiskDriverRef)self);
 
     self->flags.motorState = kMotor_Off;
     self->flags.wasMostRecentSeekInward = 0;
@@ -75,27 +73,6 @@ static void FloppyDriver_deinit(FloppyDriverRef _Nonnull self)
     FloppyDriver_DisposeTrackCompositionBuffer(self);
 
     self->fdc = NULL;
-}
-
-// Returns information about the disk drive and the media loaded into the
-// drive.
-errno_t FloppyDriver_getInfo_async(FloppyDriverRef _Nonnull self, DiskInfo* pOutInfo)
-{
-    pOutInfo->diskId = DiskDriver_GetDiskId(self);
-    pOutInfo->mediaId = self->currentMediaId;
-    pOutInfo->isReadOnly = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
-    pOutInfo->reserved[0] = 0;
-    pOutInfo->reserved[1] = 0;
-    pOutInfo->reserved[2] = 0;
-    pOutInfo->blockSize = ADF_SECTOR_DATA_SIZE;
-    pOutInfo->blockCount = self->blocksPerDisk;
-
-    return EOK;
-}
-
-MediaId FloppyDriver_getCurrentMediaId(FloppyDriverRef _Nonnull self)
-{
-    return self->currentMediaId;
 }
 
 // Establishes the base state for a newly discovered drive. This means that we
@@ -148,12 +125,17 @@ static errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self)
 {
     if (!self->flags.hasDisk) {
-        self->currentMediaId = 0;
+        DiskDriver_NoteMediaLoaded((DiskDriverRef)self, NULL);
         FloppyDriver_ResetTrackBuffer(self);
         FloppyDriver_ScheduleUpdateHasDiskState(self);
     }
     else {
-        self->currentMediaId = DiskDriver_GetNewMediaId((DiskDriverRef)self);
+        MediaInfo info;
+
+        info.isReadOnly = ((FloppyController_GetStatus(self->fdc, self->driveState) & kDriveStatus_IsReadOnly) == kDriveStatus_IsReadOnly) ? true : false;
+        info.blockSize = ADF_SECTOR_DATA_SIZE;
+        info.blockCount = self->blocksPerDisk;
+        DiskDriver_NoteMediaLoaded((DiskDriverRef)self, &info);
         FloppyDriver_CancelUpdateHasDiskState(self);
     }
 }
@@ -1000,8 +982,6 @@ catch:
 
 class_func_defs(FloppyDriver, DiskDriver,
 override_func_def(deinit, FloppyDriver, Object)
-override_func_def(getInfo_async, FloppyDriver, DiskDriver)
-override_func_def(getCurrentMediaId, FloppyDriver, DiskDriver)
 override_func_def(onStart, FloppyDriver, Driver)
 override_func_def(getBlock, FloppyDriver, DiskDriver)
 override_func_def(putBlock, FloppyDriver, DiskDriver)

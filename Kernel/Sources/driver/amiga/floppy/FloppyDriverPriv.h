@@ -72,8 +72,6 @@ final_class_ivars(FloppyDriver, DiskDriver,
 
     int                         readErrorCount;                         // Number of read errors since last disk driver reset / disk change
 
-    MediaId                     currentMediaId;
-
     int8_t                      head;                                   // currently selected drive head; -1 means unknown -> need to call FloppyDriver_ResetDrive()
     int8_t                      cylinder;                               // currently selected drive cylinder; -1 means unknown -> need to call FloppyDriver_ResetDrive()
     int8_t                      drive;                                  // drive number that this fd object represents

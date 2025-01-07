@@ -18,13 +18,18 @@ struct GetInfoReq {
 };
 
 
-errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskDriverRef self = NULL;
 
     try(_Driver_Create(pClass, kDriver_Exclusive | kDriver_Seekable, (DriverRef*)&self));
-    try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
+    self->diskId = kDiskId_None;
+    self->currentMediaId = kMediaId_None;
+
+    if ((options & kDiskDriver_Queuing) == kDiskDriver_Queuing) {
+        try(DiskDriver_CreateDispatchQueue(self, &self->dispatchQueue));
+    }
 
     *pOutSelf = (DriverRef)self;
     return EOK;
@@ -48,20 +53,6 @@ errno_t DiskDriver_createDispatchQueue(DiskDriverRef _Nonnull self, DispatchQueu
     return DispatchQueue_Create(0, 1, kDispatchQoS_Utility, kDispatchPriority_Normal, gVirtualProcessorPool, NULL, pOutQueue);
 }
 
-// Generates a new unique media ID. Call this function to generate a new media
-// ID after a media change has been detected and use the returned value as the
-// new current media ID.
-// Note: must be called from the disk driver dispatch queue.
-MediaId DiskDriver_GetNewMediaId(DiskDriverRef _Nonnull self)
-{
-    self->nextMediaId++;
-    while (self->nextMediaId == kMediaId_None || self->nextMediaId == kMediaId_Current) {
-        self->nextMediaId++;
-    }
-
-    return self->nextMediaId;
-}
-
 errno_t DiskDriver_onPublish(DiskDriverRef _Nonnull self)
 {
     return DiskCache_RegisterDisk(gDiskCache, self, &self->diskId);
@@ -83,36 +74,56 @@ void DiskDriver_onStop(DiskDriverRef _Nonnull _Locked self)
     }
 }
 
-static void DiskDriver_getInfoStub(DiskDriverRef _Nonnull self, struct GetInfoReq* _Nonnull rq)
+
+// Returns information about the disk drive and the media loaded into the
+// drive.
+void DiskDriver_getInfo(DiskDriverRef _Nonnull _Locked self, DiskInfo* _Nonnull pOutInfo)
 {
-    rq->err = invoke_n(getInfo_async, DiskDriver, self, rq->info);
+    pOutInfo->diskId = self->diskId;
+    pOutInfo->mediaId = self->currentMediaId;
+    pOutInfo->isReadOnly = self->mediaInfo.isReadOnly;
+    pOutInfo->reserved[0] = 0;
+    pOutInfo->reserved[1] = 0;
+    pOutInfo->reserved[2] = 0;
+    pOutInfo->blockSize = self->mediaInfo.blockSize;
+    pOutInfo->blockCount = self->mediaInfo.blockCount;
 }
 
 errno_t DiskDriver_GetInfo(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
 {
-    struct GetInfoReq rq;
+    decl_try_err();
 
-    rq.info = pOutInfo;
-    rq.err = EOK;
+    Driver_Lock(self);
+    if (Driver_IsActive(self)) {
+        invoke_n(getInfo, DiskDriver, self, pOutInfo);
+    }
+    else {
+        err = ENODEV;
+    }
+    Driver_Unlock(self);
 
-    DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_getInfoStub, self, &rq, 0, kDispatchOption_Sync, 0);
-    return rq.err;
+    return err;
 }
 
-// Returns information about the disk drive and the media loaded into the
-// drive.
-errno_t DiskDriver_getInfo_async(DiskDriverRef _Nonnull self, DiskInfo* pOutInfo)
+void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _Nullable pInfo)
 {
-    pOutInfo->diskId = DiskDriver_GetDiskId(self);
-    pOutInfo->mediaId = DiskDriver_GetCurrentMediaId(self);
-    pOutInfo->isReadOnly = true;
-    pOutInfo->reserved[0] = 0;
-    pOutInfo->reserved[1] = 0;
-    pOutInfo->reserved[2] = 0;
-    pOutInfo->blockSize = 512;
-    pOutInfo->blockCount = 0;
+    Driver_Lock(self);
+    if (pInfo) {
+        self->mediaInfo = *pInfo;
 
-    return EOK;
+        self->currentMediaId++;
+        while (self->currentMediaId == kMediaId_None || self->currentMediaId == kMediaId_Current) {
+            self->currentMediaId++;
+        }
+    }
+    else {
+        self->mediaInfo.blockCount = 0;
+        self->mediaInfo.blockSize = 0;
+        self->mediaInfo.isReadOnly = true;
+
+        self->currentMediaId = kMediaId_None;
+    }
+    Driver_Unlock(self);
 }
 
 
@@ -122,13 +133,16 @@ MediaId DiskDriver_getCurrentMediaId(DiskDriverRef _Nonnull self)
 }
 
 
-void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
     const MediaId physMediaId = DiskBlock_GetPhysicalAddress(pBlock)->mediaId;
 
-    if (physMediaId == kMediaId_Current
-        || physMediaId == DiskDriver_GetCurrentMediaId(self)) {
+    Driver_Lock(self);
+    const MediaId curMediaId = self->currentMediaId;
+    Driver_Unlock(self);
+
+    if (physMediaId == kMediaId_Current || physMediaId == curMediaId) {
         switch (DiskBlock_GetOp(pBlock)) {
             case kDiskBlockOp_Read:
                 err = DiskDriver_GetBlock(self, pBlock);
@@ -150,9 +164,15 @@ void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull
     DiskDriver_EndIO(self, pBlock, err);
 }
 
-errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
 {
-    return DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)implementationof(beginIO_async, DiskDriver, classof(self)), self, pBlock, 0, 0, 0);
+    if (self->dispatchQueue) {
+        return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(doIO, DiskDriver, classof(self)), self, pBlock, 0, 0, 0);
+    }
+    else {
+        invoke_n(doIO, DiskDriver, self, pBlock);
+        return EOK;
+    }
 }
 
 errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
@@ -194,7 +214,7 @@ errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull p
 }
 
 
-void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock, errno_t status)
+void DiskDriver_endIO(DiskDriverRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock, errno_t status)
 {
     DiskCache_OnBlockFinishedIO(gDiskCache, self, pBlock, status);
 }
@@ -207,14 +227,10 @@ void DiskDriver_endIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock,
 
 errno_t DiskDriver_createChannel(DiskDriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
-    decl_try_err();
     DiskInfo info;
 
-    err = DiskDriver_GetInfo(self, &info);
-    if (err == EOK) {
-        err = DiskDriverChannel_Create(self, &info, mode, pOutChannel);
-    }
-    return err;
+    invoke_n(getInfo, DiskDriver, self, &info);
+    return DiskDriverChannel_Create(self, &info, mode, pOutChannel);
 }
 
 errno_t DiskDriver_read(DiskDriverRef _Nonnull self, DiskDriverChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull pOutBytesRead)
@@ -347,10 +363,9 @@ func_def(createDispatchQueue, DiskDriver)
 override_func_def(onPublish, DiskDriver, Driver)
 override_func_def(onUnpublish, DiskDriver, Driver)
 override_func_def(onStop, DiskDriver, Driver)
-func_def(getInfo_async, DiskDriver)
-func_def(getCurrentMediaId, DiskDriver)
+func_def(getInfo, DiskDriver)
 func_def(beginIO, DiskDriver)
-func_def(beginIO_async, DiskDriver)
+func_def(doIO, DiskDriver)
 func_def(getBlock, DiskDriver)
 func_def(putBlock, DiskDriver)
 func_def(endIO, DiskDriver)
