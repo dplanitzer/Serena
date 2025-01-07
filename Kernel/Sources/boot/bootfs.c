@@ -10,7 +10,9 @@
 #include <klib/klib.h>
 #include <dispatcher/VirtualProcessor.h>
 #include <driver/DriverCatalog.h>
+#include <driver/disk/DiskDriver.h>
 #include <filemanager/FilesystemManager.h>
+#include <filesystem/IOChannel.h>
 
 
 // Finds a RAM or ROM disk to boot from and returns the in-kernel path to the
@@ -56,6 +58,28 @@ static const char* _Nullable get_boot_floppy_driver_path(void)
     return NULL;
 }
 
+static void wait_for_disk_load_detected(const char* _Nonnull driverPath)
+{
+    decl_try_err();
+    IOChannelRef chan;
+    int tries = 10;
+
+    if ((err = DriverCatalog_OpenDriver(gDriverCatalog, driverPath, kOpen_ReadWrite, &chan)) == EOK) {
+        while (tries-- > 0) {
+            DiskInfo info;
+
+            if (IOChannel_Ioctl(chan, kIODiskCommand_GetInfo, &info) != EOK) {
+                break;
+            }
+            if (info.mediaId != kMediaId_None) {
+                break;
+            }
+
+            VirtualProcessor_Sleep(TimeInterval_MakeMilliseconds(100));
+        }
+    } 
+    IOChannel_Release(chan);
+}
 
 // Tries to mount the root filesystem stored on the mass storage device
 // represented by 'pDriver'.
@@ -66,19 +90,22 @@ static errno_t boot_from_disk(const char* _Nonnull driverPath, bool shouldRetry,
     FilesystemRef fs;
     bool shouldPromptForDisk = true;
 
+    // Wait a bit for the disk loaded detection mechanism to actually pick up
+    // that a disk is loaded. This may take a couple hundred milliseconds
+    // depending on how exactly the driver hardware and software work.
+    // We do it this way because we don't want to print a bogus "insert a disk"
+    // to the screen although the disk is (mechanically) already loaded, the
+    // drive mechanics just hasn't picked this fact up yet.
+    wait_for_disk_load_detected(driverPath);
+
+
+    // Try to boot from the disk
     while (true) {
         fs = NULL;
         err = FilesystemManager_DiscoverAndStartFilesystem(gFilesystemManager, driverPath, NULL, 0, &fs);
 
         if (err == EOK) {
             break;
-        }
-        else if (err == EDISKCHANGE) {
-            // This means that the user inserted a new disk and that the disk
-            // hardware isn't able to automatically pick this change up on its
-            // own. Just try mounting again. 2nd time around should work.
-            lastError = err;
-            continue;
         }
         else if (err != ENOMEDIUM && err != lastError) {
             lastError = err;
