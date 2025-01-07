@@ -62,6 +62,10 @@ open_class_funcs(DiskDriver, Driver,
     // about the completed I/O operation. This function assumes that getBlock()/
     // putBlock() will only return once the I/O operation is done or an error
     // has been encountered.
+    // Default Behavior: Dispatches an async call to beginIO_async
+    errno_t (*beginIO)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
+
+    // Async version of beginIO.
     // Default Behavior: Calls getBlock/putBlock
     void (*beginIO_async)(void* _Nonnull self, DiskBlockRef _Nonnull pBlock);
 

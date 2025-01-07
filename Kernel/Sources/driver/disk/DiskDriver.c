@@ -122,16 +122,6 @@ MediaId DiskDriver_getCurrentMediaId(DiskDriverRef _Nonnull self)
 }
 
 
-static void DiskDriver_beginIOStub(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
-{
-    invoke_n(beginIO_async, DiskDriver, self, pBlock);
-}
-
-errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
-{
-    return DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)DiskDriver_beginIOStub, self, pBlock, 0, 0, 0);
-}
-
 void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
 {
     decl_try_err();
@@ -158,6 +148,27 @@ void DiskDriver_beginIO_async(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull
     }
 
     DiskDriver_EndIO(self, pBlock, err);
+}
+
+errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+{
+    return DispatchQueue_DispatchClosure(Driver_GetDispatchQueue(self), (VoidFunc_2)implementationof(beginIO_async, DiskDriver, classof(self)), self, pBlock, 0, 0, 0);
+}
+
+errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (Driver_IsActive(self)) {
+        err = invoke_n(beginIO, DiskDriver, self, pBlock);
+    }
+    else {
+        err = ENODEV;
+    }
+    Driver_Unlock(self);
+
+    return err;
 }
 
 
@@ -338,6 +349,7 @@ override_func_def(onUnpublish, DiskDriver, Driver)
 override_func_def(onStop, DiskDriver, Driver)
 func_def(getInfo_async, DiskDriver)
 func_def(getCurrentMediaId, DiskDriver)
+func_def(beginIO, DiskDriver)
 func_def(beginIO_async, DiskDriver)
 func_def(getBlock, DiskDriver)
 func_def(putBlock, DiskDriver)
