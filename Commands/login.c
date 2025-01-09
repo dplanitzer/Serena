@@ -83,7 +83,7 @@ catch:
 static void login_user(void)
 {
     decl_try_err();
-    const char* homePath = "/Users/Administrator";
+    const char* homePath = "/Users/admin";
     const char* shellPath = "/System/Commands/shell";
 
     // Make the current directory the user's home directory

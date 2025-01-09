@@ -54,7 +54,7 @@ Adjacent non-whitespace separated strings are automatically concatenated into a 
 ```
 > echo abc"$HOME"def abc(1+2)def
 
-abc/Users/Administratordef abc3def
+abc/Users/admindef abc3def
 ```
 
 Here the shell first evaluates the variable reference '$HOME' and the embedded expression '1+2'. It then concatenates the strings 'abc', 'def' and the string value of the variable '$HOME' to generate a single argument string for the command because all 3 strings are directly adjacent to each other (not whitespace separated). It does the same with the result of the '1+2' expression: it concatenates 'abc', 'def' and the string '3' to generate the second argument to the command.
