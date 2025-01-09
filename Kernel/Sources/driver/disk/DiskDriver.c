@@ -12,11 +12,6 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverChannel.h>
 
-struct GetInfoReq {
-    DiskInfo* _Nonnull  info;       // out
-    errno_t             err;        // out
-};
-
 
 errno_t _DiskDriver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf)
 {
@@ -133,23 +128,22 @@ MediaId DiskDriver_getCurrentMediaId(DiskDriverRef _Nonnull self)
 }
 
 
-void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+void DiskDriver_doIO(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     decl_try_err();
-    const MediaId physMediaId = DiskBlock_GetPhysicalAddress(pBlock)->mediaId;
 
     Driver_Lock(self);
     const MediaId curMediaId = self->currentMediaId;
     Driver_Unlock(self);
 
-    if (physMediaId == kMediaId_Current || physMediaId == curMediaId) {
-        switch (DiskBlock_GetOp(pBlock)) {
+    if (ior->address.mediaId == kMediaId_Current || ior->address.mediaId == curMediaId) {
+        switch (DiskBlock_GetOp(ior->block)) {
             case kDiskBlockOp_Read:
-                err = DiskDriver_GetBlock(self, pBlock);
+                err = DiskDriver_GetBlock(self, ior);
                 break;
 
             case kDiskBlockOp_Write:
-                err = DiskDriver_PutBlock(self, pBlock);
+                err = DiskDriver_PutBlock(self, ior);
                 break;
 
             default:
@@ -161,27 +155,27 @@ void DiskDriver_doIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
         err = EDISKCHANGE;
     }
 
-    DiskDriver_EndIO(self, pBlock, err);
+    DiskDriver_EndIO(self, ior->block, err);
 }
 
-errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_beginIO(DiskDriverRef _Nonnull _Locked self, const IORequest* _Nonnull ior)
 {
     if (self->dispatchQueue) {
-        return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(doIO, DiskDriver, classof(self)), self, pBlock, 0, 0, 0);
+        return DispatchQueue_DispatchClosure(self->dispatchQueue, (VoidFunc_2)implementationof(doIO, DiskDriver, classof(self)), self, ior, sizeof(IORequest), 0, 0);
     }
     else {
-        invoke_n(doIO, DiskDriver, self, pBlock);
+        invoke_n(doIO, DiskDriver, self, ior);
         return EOK;
     }
 }
 
-errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     decl_try_err();
 
     Driver_Lock(self);
     if (Driver_IsActive(self)) {
-        err = invoke_n(beginIO, DiskDriver, self, pBlock);
+        err = invoke_n(beginIO, DiskDriver, self, ior);
     }
     else {
         err = ENODEV;
@@ -197,7 +191,7 @@ errno_t DiskDriver_BeginIO(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pB
 // partially read block. Either it succeeds and the full block data is
 // returned, or it fails and no block data is returned.
 // The abstract implementation returns EIO.
-errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     return EIO;
 }
@@ -208,7 +202,7 @@ errno_t DiskDriver_getBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull p
 // disk is left in an indeterminate state of the write fails in the middle
 // of the write. The block may contain a mix of old and new data.
 // The abstract implementation returns EIO.
-errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t DiskDriver_putBlock(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     return EIO;
 }

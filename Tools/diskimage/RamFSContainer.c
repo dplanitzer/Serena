@@ -120,7 +120,7 @@ errno_t RamFSContainer_acquireBlock(struct RamFSContainer* _Nonnull self, Logica
         switch (mode) {
             case kAcquireBlock_ReadOnly:
             case kAcquireBlock_Update:
-                err = RamFSContainer_GetBlock(self, DiskBlock_GetMutableData(pBlock), DiskBlock_GetVirtualAddress(pBlock)->lba);
+                err = RamFSContainer_GetBlock(self, DiskBlock_GetMutableData(pBlock), DiskBlock_GetDiskAddress(pBlock)->lba);
                 break;
 
             case kAcquireBlock_Replace:
@@ -168,7 +168,7 @@ errno_t RamFSContainer_relinquishBlockWriting(struct RamFSContainer* _Nonnull se
         switch (mode) {
             case kWriteBlock_Sync:
             case kWriteBlock_Deferred:
-                err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), DiskBlock_GetVirtualAddress(pBlock)->lba);
+                err = RamFSContainer_PutBlock(self, DiskBlock_GetData(pBlock), DiskBlock_GetDiskAddress(pBlock)->lba);
                 break;
 
             default:

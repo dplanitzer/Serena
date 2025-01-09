@@ -57,12 +57,16 @@ errno_t PartitionDriver_onStart(PartitionDriverRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
-void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+void PartitionDriver_beginIO(PartitionDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
-    pBlock->physicalAddress.diskId = self->wholeDiskId;
-    pBlock->physicalAddress.lba += self->startBlock;
+    IORequest dior;
 
-    DiskDriver_BeginIO(self->diskDriver, pBlock);
+    dior.block = ior->block;
+    dior.address.diskId = self->wholeDiskId;
+    dior.address.mediaId = ior->address.mediaId;
+    dior.address.lba = self->startBlock + ior->address.lba;
+
+    DiskDriver_BeginIO(self->diskDriver, &dior);
 }
 
 

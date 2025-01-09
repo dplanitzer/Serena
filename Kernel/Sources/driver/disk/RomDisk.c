@@ -57,12 +57,12 @@ errno_t RomDisk_onStart(RomDiskRef _Nonnull _Locked self)
     return Driver_Publish((DriverRef)self, self->name, 0);
 }
 
-errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, DiskBlockRef _Nonnull pBlock)
+errno_t RomDisk_getBlock(RomDiskRef _Nonnull self, const IORequest* _Nonnull ior)
 {
-    const LogicalBlockAddress lba = DiskBlock_GetPhysicalAddress(pBlock)->lba;
+    const LogicalBlockAddress lba = ior->address.lba;
 
     if (lba < self->blockCount) {
-        memcpy(DiskBlock_GetMutableData(pBlock), self->diskImage + lba * self->blockSize, self->blockSize);
+        memcpy(DiskBlock_GetMutableData(ior->block), self->diskImage + lba * self->blockSize, self->blockSize);
         return EOK;
     }
     else {

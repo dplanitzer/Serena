@@ -47,8 +47,7 @@ typedef struct DiskAddress {
 typedef struct DiskBlock {
     ListNode            hashNode;           // Protected by Interlock
     ListNode            lruNode;            // Protected by Interlock
-    DiskAddress         virtualAddress;     // Protected by Interlock. Address by which a block is identified in the cache
-    DiskAddress         physicalAddress;    // Protected by protocol: no mutation in idle state. Mutable in R/W state. DiskCache may mutate at the start of a R/W cycle; after that a driver may mutate it while being the block owner. Block must be locked shared or exclusive
+    DiskAddress         address;            // Protected by Interlock. Address by which a block is identified in the cache
     int                 shareCount;         // Protected by Interlock
     struct __Flags {
         unsigned int        byteSize:16;    // Constant value
@@ -73,11 +72,8 @@ typedef struct DiskBlock {
 #define DiskBlock_GetByteSize(__self) \
     (__self)->flags.byteSize
 
-#define DiskBlock_GetVirtualAddress(__self) \
-    (&(__self)->virtualAddress)
-
-#define DiskBlock_GetPhysicalAddress(__self) \
-    (&(__self)->physicalAddress)
+#define DiskBlock_GetDiskAddress(__self) \
+    (&(__self)->address)
 
 #define DiskBlock_GetOp(__self) \
     (DiskBlockOp)(__self)->flags.op
@@ -94,18 +90,18 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
     ((__self)->shareCount > 0 || (__self)->flags.exclusive)
 
 #define DiskBlock_Hash(__self) \
-    DiskBlock_HashKey((__self)->virtualAddress.diskId, (__self)->virtualAddress.mediaId, (__self)->virtualAddress.lba)
+    DiskBlock_HashKey((__self)->address.diskId, (__self)->address.mediaId, (__self)->address.lba)
 
 #define DiskBlock_IsEqual(__self, __other) \
-    DiskBlock_IsEqualKey(__self, (__other)->virtualAddress.diskId, (__other)->virtualAddress.mediaId, (__other)->virtualAddress.lba)
+    DiskBlock_IsEqualKey(__self, (__other)->address.diskId, (__other)->address.mediaId, (__other)->address.lba)
 
 #define DiskBlock_Purge(__self) \
     (__self)->flags.hasData = 0
 
-#define DiskBlock_SetVirtualAddress(__self, __diskId, __mediaId, __lba)\
-    (__self)->virtualAddress.diskId = diskId;\
-    (__self)->virtualAddress.mediaId = __mediaId;\
-    (__self)->virtualAddress.lba = __lba;\
+#define DiskBlock_SetDiskAddress(__self, __diskId, __mediaId, __lba)\
+    (__self)->address.diskId = diskId;\
+    (__self)->address.mediaId = __mediaId;\
+    (__self)->address.lba = __lba;\
     DiskBlock_Purge(__self)
 
 
@@ -113,6 +109,6 @@ extern void DiskBlock_Destroy(DiskBlockRef _Nullable self);
     (size_t)((__diskId) + (__mediaId) + (__lba))
 
 #define DiskBlock_IsEqualKey(__self, __diskId, __mediaId, __lba) \
-    (((__self)->virtualAddress.diskId == (__diskId) && (__self)->virtualAddress.mediaId == (__mediaId) && (__self)->virtualAddress.lba == (__lba)) ? true : false)
+    (((__self)->address.diskId == (__diskId) && (__self)->address.mediaId == (__mediaId) && (__self)->address.lba == (__lba)) ? true : false)
 
 #endif /* DiskBlock_h */
