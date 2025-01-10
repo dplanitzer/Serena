@@ -6,12 +6,13 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#define _POSIX_SOURCE
 #include <time.h>
 
 
-static struct tm gGmTimeBuffer;
-
 struct tm *gmtime(const time_t *timer)
 {
+    static struct tm gGmTimeBuffer;
+
     return gmtime_r(timer, &gGmTimeBuffer);
 }

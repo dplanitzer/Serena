@@ -6,12 +6,13 @@
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
+#define _POSIX_SOURCE
 #include <time.h>
 
 
-static struct tm gLocaltimeBuffer;
-
 struct tm *localtime(const time_t *timer)
 {
+    static struct tm gLocaltimeBuffer;
+
     return localtime_r(timer, &gLocaltimeBuffer);
 }
