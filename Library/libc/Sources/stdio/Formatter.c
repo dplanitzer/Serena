@@ -440,7 +440,7 @@ int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format,
     while (true) {
         switch (*format) {
             case '\0':
-                return 0;
+                return (self->charactersWritten > INT_MAX) ? INT_MAX : (int)self->charactersWritten;
 
             case '%':
                 format = Formatter_ParseConversionSpec(self, ++format, &ap, &spec);
@@ -464,6 +464,4 @@ int __Formatter_vFormat(FormatterRef _Nonnull self, const char* _Nonnull format,
             return -errno;
         }
     }
-    
-    return (self->charactersWritten > INT_MAX) ? INT_MAX : (int)self->charactersWritten;
 }
