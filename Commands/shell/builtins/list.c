@@ -8,37 +8,48 @@
 
 #include "Interpreter.h"
 #include "Utilities.h"
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
+#define _POSIX_SOURCE
+#include <time.h>
 #include <clap.h>
 #include <System/_math.h>
 
+extern const char* __gc_abbrev_ymon(unsigned m);
 
-#if defined(__ILP32__)
-#define PINID   PRIu32
-#elif defined(__LP64__) || defined(__LLP64__)
-#define PINID   PRIu64
-#else
-#error "Unknown data model"
-#endif
+
+// Jan 12  2025
+#define DATE_WIDTH (3 + 1 + 2 + 1 + 4)
+
+// Jan 12 13:45
+#define TIME_WIDTH (3 + 1 + 2 + 1 + 5)
+
+// Buffer used for various conversions
+#define BUF_SIZE    32
+
+// Max length of a permission string
+#define PERMISSIONS_STRING_LENGTH  11
 
 typedef struct ListContext {
-    int     linkCountWidth;
-    int     uidWidth;
-    int     gidWidth;
-    int     sizeWidth;
-    int     fsidWidth;
-    int     inidWidth;
+    int         currentYear;
+    int         currentMonth;
+
+    int         linkCountWidth;
+    int         uidWidth;
+    int         gidWidth;
+    int         sizeWidth;
+    int         dateWidth;
 
     struct Flags {
         unsigned int printAll:1;
         unsigned int reserved:31;
-    }       flags;
+    }           flags;
 
-    char    digitBuffer[32];
-    char    pathBuffer[PATH_MAX];
+    struct tm   date;
+    char        buf[BUF_SIZE];
+    char        pathBuffer[PATH_MAX];
 } ListContext;
 typedef ListContext* ListContextRef;
 
@@ -65,18 +76,23 @@ static errno_t format_inode(ListContextRef _Nonnull self, const char* _Nonnull p
     const errno_t err = File_GetInfo(path, &info);
     
     if (err == EOK) {
-        itoa(info.linkCount, self->digitBuffer, 10);
-        self->linkCountWidth = __max(self->linkCountWidth, strlen(self->digitBuffer));
-        itoa(info.uid, self->digitBuffer, 10);
-        self->uidWidth = __max(self->uidWidth, strlen(self->digitBuffer));
-        itoa(info.gid, self->digitBuffer, 10);
-        self->gidWidth = __max(self->gidWidth, strlen(self->digitBuffer));
-        lltoa(info.size, self->digitBuffer, 10);
-        self->sizeWidth = __max(self->sizeWidth, strlen(self->digitBuffer));
-        itoa(info.filesystemId, self->digitBuffer, 10);
-        self->fsidWidth = __max(self->fsidWidth, strlen(self->digitBuffer));
-        itoa(info.inodeId, self->digitBuffer, 10);
-        self->inidWidth = __max(self->inidWidth, strlen(self->digitBuffer));
+        itoa(info.linkCount, self->buf, 10);
+        self->linkCountWidth = __max(self->linkCountWidth, strlen(self->buf));
+        itoa(info.uid, self->buf, 10);
+        self->uidWidth = __max(self->uidWidth, strlen(self->buf));
+        itoa(info.gid, self->buf, 10);
+        self->gidWidth = __max(self->gidWidth, strlen(self->buf));
+        lltoa(info.size, self->buf, 10);
+        self->sizeWidth = __max(self->sizeWidth, strlen(self->buf));
+
+        // Show time if the date is less than 12 months old; otherwise show date
+        localtime_r(&info.modificationTime.tv_sec, &self->date);
+        if (self->date.tm_year == self->currentYear || (self->date.tm_year == self->currentYear - 1 && self->date.tm_mon > self->currentMonth)) {
+            self->dateWidth = TIME_WIDTH;
+        }
+        else {
+            self->dateWidth = DATE_WIDTH;
+        }
     }
     return err;
 }
@@ -87,28 +103,40 @@ static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull pa
     const errno_t err = File_GetInfo(path, &info);
     
     if (err == EOK) {
-        char tp[11];
-
-        for (int i = 0; i < sizeof(tp); i++) {
-            tp[i] = '-';
+        for (int i = 0; i < PERMISSIONS_STRING_LENGTH; i++) {
+            self->buf[i] = '-';
         }
         if (info.type == kFileType_Directory) {
-            tp[0] = 'd';
+            self->buf[0] = 'd';
         }
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &tp[1]);
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &tp[4]);
-        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &tp[7]);
-        tp[10] = '\0';
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_User), &self->buf[1]);
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Group), &self->buf[4]);
+        file_permissions_to_text(FilePermissions_Get(info.permissions, kFilePermissionsClass_Other), &self->buf[7]);
+        self->buf[PERMISSIONS_STRING_LENGTH - 1] = '\0';
 
-        printf("%s %*d  %*u %*u  %*lld %*x-%*"PINID" %s\n",
-            tp,
+        localtime_r(&info.modificationTime.tv_sec, &self->date);
+        
+        printf("%s %*d  %*u %*u  %*lld  ",
+            self->buf,
             self->linkCountWidth, info.linkCount,
             self->uidWidth, info.uid,
             self->gidWidth, info.gid,
-            self->sizeWidth, info.size,
-            self->fsidWidth, info.filesystemId,
-            self->inidWidth, info.inodeId,
-            entryName);
+            self->sizeWidth, info.size);
+        if (self->dateWidth == DATE_WIDTH) {
+            printf("%s %d %d  ",
+                __gc_abbrev_ymon(self->date.tm_mon - 1),
+                self->date.tm_mday,
+                self->date.tm_year + 1900);
+        }
+        else {
+            printf("%s %d %d:%d  ",
+                __gc_abbrev_ymon(self->date.tm_mon - 1),
+                self->date.tm_mday,
+                self->date.tm_hour,
+                self->date.tm_min);
+        }
+        fputs(entryName, stdout);
+        fputc('\n', stdout);
     }
     return err;
 }
@@ -212,13 +240,18 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
 {
     decl_try_err();
     errno_t firstErr = EOK;
-    ListContext* ctx = calloc(1, sizeof(ListContext));
+    const time_t now = time(NULL);
 
-    if (ctx == NULL) {
+    ListContext* self = calloc(1, sizeof(ListContext));
+    if (self == NULL) {
         return ENOMEM;
     }
 
-    ctx->flags.printAll = isPrintAll;
+    localtime_r(&now, &self->date);
+
+    self->currentYear = self->date.tm_year;
+    self->currentMonth = self->date.tm_mon;
+    self->flags.printAll = isPrintAll;
 
     for (size_t i = 0; i < paths->count; i++) {
         const char* path = paths->strings[i];
@@ -228,10 +261,10 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
         }
 
         if (is_dir(path)) {
-            err = list_dir(ctx, path);
+            err = list_dir(self, path);
         }
         else {
-            err = list_file(ctx, path);
+            err = list_file(self, path);
         }
         if (err != EOK) {
             firstErr = err;
@@ -242,7 +275,7 @@ static errno_t do_list(clap_string_array_t* _Nonnull paths, bool isPrintAll, con
             putchar('\n');
         }
     }
-    free(ctx);
+    free(self);
 
     return firstErr;
 }
