@@ -124,13 +124,13 @@ static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull pa
             self->sizeWidth, info.size);
         if (self->dateWidth == DATE_WIDTH) {
             printf("%s %d %d  ",
-                __gc_abbrev_ymon(self->date.tm_mon - 1),
+                __gc_abbrev_ymon(self->date.tm_mon + 1),
                 self->date.tm_mday,
                 self->date.tm_year + 1900);
         }
         else {
             printf("%s %d %d:%d  ",
-                __gc_abbrev_ymon(self->date.tm_mon - 1),
+                __gc_abbrev_ymon(self->date.tm_mon + 1),
                 self->date.tm_mday,
                 self->date.tm_hour,
                 self->date.tm_min);
