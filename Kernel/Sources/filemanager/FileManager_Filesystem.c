@@ -26,8 +26,8 @@ errno_t FileManager_Mount(FileManagerRef _Nonnull self, const char* _Nonnull con
     IOChannelRef devChan = NULL;
     FilesystemRef fs = NULL;
 
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, containerPath, self->rootDirectory, self->workingDirectory, self->realUser, &rp_container));
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, atDirPath, self->rootDirectory, self->workingDirectory, self->realUser, &rp_atDir));
+    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, containerPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &rp_container));
+    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, atDirPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &rp_atDir));
 
 
     // Open the disk driver
@@ -76,7 +76,7 @@ errno_t FileManager_Unmount(FileManagerRef _Nonnull self, const char* _Nonnull a
     ResolvedPath rp_atDir;
     bool forced = ((options & kUnmount_Forced) == kUnmount_Forced) ? true : false;
 
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, atDirPath, self->rootDirectory, self->workingDirectory, self->realUser, &rp_atDir));
+    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, atDirPath, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &rp_atDir));
 
 
     // Detach the filesystem

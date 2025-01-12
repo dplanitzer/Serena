@@ -374,7 +374,8 @@ static int parseOwnerId(const char* _Nonnull proc_name, const struct clap_param_
 
     try(parse_required_ulong(p, &p, &uid));
     if (*p == '\0') {
-        owner->u.uid = (UserId)uid;
+        owner->uid = (UserId)uid;
+        owner->gid = (GroupId)uid;
         owner->isValid = true;
         return EXIT_SUCCESS;
     }
@@ -383,8 +384,8 @@ static int parseOwnerId(const char* _Nonnull proc_name, const struct clap_param_
         try(parse_required_ulong(p + 1, &p, &gid));
 
         if (*p == '\0') {
-            owner->u.uid = (UserId)uid;
-            owner->u.gid = (GroupId)gid;
+            owner->uid = (UserId)uid;
+            owner->gid = (GroupId)gid;
             owner->isValid = true;
             return EXIT_SUCCESS;
         }
@@ -411,7 +412,7 @@ static void assert_has_slice_type(const di_slice_t* _Nonnull slice)
 
 
 static di_permissions_spec_t permissions = {0, false};
-static di_owner_spec_t owner = {{0, 0}, false};
+static di_owner_spec_t owner = {kRootUserId, kRootGroupId, false};
 static clap_string_array_t paths = {NULL, 0};
 static const char* cmd_id = "";
 
@@ -587,9 +588,11 @@ int main(int argc, char* argv[])
             permissions.p = FilePermissions_MakeFromOctal(0755);
         }
         if (!owner.isValid) {
-            owner.u = kUser_Root;
+            owner.uid = kRootUserId;
+            owner.gid = kRootGroupId;
+            owner.isValid = true;
         }
-        try(cmd_format(should_quick_format, permissions.p, owner.u, fs_type, dmg_path));
+        try(cmd_format(should_quick_format, permissions.p, owner.uid, owner.gid, fs_type, dmg_path));
     }
     else if (!strcmp(argv[1], "list")) {
         // diskimage list
@@ -601,9 +604,11 @@ int main(int argc, char* argv[])
             permissions.p = FilePermissions_MakeFromOctal(0755);
         }
         if (!owner.isValid) {
-            owner.u = kUser_Root;
+            owner.uid = kRootUserId;
+            owner.gid = kRootGroupId;
+            owner.isValid = true;
         }
-        try(cmd_makedir(should_create_parents, permissions.p, owner.u, path, dmg_path));
+        try(cmd_makedir(should_create_parents, permissions.p, owner.uid, owner.gid, path, dmg_path));
     }
     else if (!strcmp(argv[1], "pull")) {
         // diskimage pull
@@ -615,9 +620,11 @@ int main(int argc, char* argv[])
             permissions.p = FilePermissions_MakeFromOctal(0644);
         }
         if (!owner.isValid) {
-            owner.u = kUser_Root;
+            owner.uid = kRootUserId;
+            owner.gid = kRootGroupId;
+            owner.isValid = true;
         }
-        try(cmd_push(permissions.p, owner.u, src_path, path, dmg_path));
+        try(cmd_push(permissions.p, owner.uid, owner.gid, src_path, path, dmg_path));
     }
 
 

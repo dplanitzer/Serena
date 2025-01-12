@@ -11,7 +11,7 @@
 #include <string.h>
 
 
-errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, User rootDirOwner, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
+errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, UserId rootDirUid, GroupId rootDirGid, const char* _Nonnull fsType, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     RamFSContainerRef fsContainer = NULL;
@@ -26,7 +26,7 @@ errno_t cmd_format(bool bQuick, FilePermissions rootDirPerms, User rootDirOwner,
         RamFSContainer_WipeDisk(fsContainer);
     }
 
-    try(SerenaFS_FormatDrive((FSContainerRef)fsContainer, rootDirOwner, rootDirPerms));
+    try(SerenaFS_FormatDrive((FSContainerRef)fsContainer, rootDirUid, rootDirGid, rootDirPerms));
     err = RamFSContainer_WriteToPath(fsContainer, dmgPath);
 
 catch:

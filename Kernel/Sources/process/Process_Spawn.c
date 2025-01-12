@@ -40,7 +40,8 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
     Lock_Lock(&pProc->lock);
     needsUnlock = true;
 
-    User childUser = pProc->fm.realUser;
+    UserId childUid = pProc->fm.ruid;
+    GroupId childGid = pProc->fm.rgid;
     FilePermissions childUMask = FileManager_GetFileCreationMask(&pProc->fm);
     if ((so.options & kSpawn_OverrideUserMask) == kSpawn_OverrideUserMask) {
         childUMask = so.umask & 0777;
@@ -49,13 +50,13 @@ errno_t Process_SpawnChildProcess(ProcessRef _Nonnull pProc, const char* _Nonnul
         throw(EPERM);
     }
     if ((so.options & kSpawn_OverrideUserId) == kSpawn_OverrideUserId) {
-        childUser.uid = so.uid;
+        childUid = so.uid;
     }
     if ((so.options & kSpawn_OverrideGroupId) == kSpawn_OverrideGroupId) {
-        childUser.gid = so.gid;
+        childGid = so.gid;
     }
 
-    try(Process_Create(pProc->pid, pProc->fm.fileHierarchy, childUser, pProc->fm.rootDirectory, pProc->fm.workingDirectory, childUMask, &pChildProc));
+    try(Process_Create(pProc->pid, pProc->fm.fileHierarchy, childUid, childGid, pProc->fm.rootDirectory, pProc->fm.workingDirectory, childUMask, &pChildProc));
 
 
     // Note that we do not lock the child process although we're reaching directly

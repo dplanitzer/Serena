@@ -13,7 +13,7 @@
 // Formats the given disk drive and installs a SerenaFS with an empty root
 // directory on it. 'user' and 'permissions' are the user and permissions that
 // should be assigned to the root directory.
-errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, User user, FilePermissions permissions)
+errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, UserId uid, GroupId gid, FilePermissions permissions)
 {
     decl_try_err();
     DiskBlockRef pBlock;
@@ -99,8 +99,8 @@ errno_t SerenaFS_FormatDrive(FSContainerRef _Nonnull fsContainer, User user, Fil
     ip->statusChangeTime.tv_sec = UInt32_HostToBig(curTime.tv_sec);
     ip->statusChangeTime.tv_nsec = UInt32_HostToBig(curTime.tv_nsec);
     ip->size = Int64_HostToBig(2 * sizeof(SFSDirectoryEntry));
-    ip->uid = UInt32_HostToBig(user.uid);
-    ip->gid = UInt32_HostToBig(user.gid);
+    ip->uid = UInt32_HostToBig(uid);
+    ip->gid = UInt32_HostToBig(gid);
     ip->linkCount = Int32_HostToBig(1);
     ip->permissions = UInt16_HostToBig(permissions);
     ip->type = kFileType_Directory;

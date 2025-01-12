@@ -14,7 +14,7 @@
 #define BLOCK_SIZE  4096
 
 
-static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, FilePermissions perms, User owner, IOChannelRef _Nullable * _Nonnull pOutChannel)
+static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull path, FilePermissions perms, UserId uid, GroupId gid, IOChannelRef _Nullable * _Nonnull pOutChannel)
 {
     decl_try_err();
     IOChannelRef chan = NULL;
@@ -30,8 +30,8 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
         MutableFileInfo info;
 
         info.modify = kModifyFileInfo_Permissions | kModifyFileInfo_UserId | kModifyFileInfo_GroupId;
-        info.uid = owner.uid;
-        info.gid = owner.gid;
+        info.uid = uid;
+        info.gid = gid;
         info.permissions = perms;
         info.permissionsModifyMask = 0xffff;
         err = FileManager_SetFileInfo_ioc(fm, chan, &info);
@@ -45,7 +45,7 @@ static errno_t _create_file(FileManagerRef _Nonnull fm, const char* _Nonnull pat
     return err;
 }
 
-errno_t cmd_push(FilePermissions filePerms, User owner, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
+errno_t cmd_push(FilePermissions filePerms, UserId uid, GroupId gid, const char* _Nonnull srcPath, const char* _Nonnull path, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     DiskControllerRef self;
@@ -58,7 +58,7 @@ errno_t cmd_push(FilePermissions filePerms, User owner, const char* _Nonnull src
     try_null(buf, malloc(BLOCK_SIZE), ENOMEM);
     try_null(dstPath, create_dst_path(srcPath, path), ENOMEM);
 
-    try(_create_file(&self->fm, dstPath, filePerms, owner, &chan));
+    try(_create_file(&self->fm, dstPath, filePerms, uid, gid, &chan));
     try_null(fp, fopen(srcPath, "rb"), errno);
 
     while (true) {

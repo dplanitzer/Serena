@@ -16,12 +16,4 @@ enum {
     kRootGroupId = 0
 };
 
-typedef struct User {
-    UserId  uid;
-    GroupId gid;
-} User;
-
-
-extern User kUser_Root;
-
 #endif /* User_h */

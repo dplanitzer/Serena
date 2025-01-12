@@ -81,7 +81,7 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnu
     const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
     try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(DevFS_CreateDevice(self->devfs, rootDir, &pc, driver, arg, kUser_Root, permissions, &pNode));
+    try(DevFS_CreateDevice(self->devfs, rootDir, &pc, driver, arg, kRootUserId, kRootGroupId, permissions, &pNode));
     *pOutDriverCatalogId = (DriverCatalogId)Inode_GetId(pNode);
 
 catch:
@@ -103,7 +103,7 @@ errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId 
     
     try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
     try(Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverCatalogId, &pNode));
-    try(Filesystem_Unlink(self->devfs, pNode, rootDir, kUser_Root));
+    try(Filesystem_Unlink(self->devfs, pNode, rootDir, kRootUserId, kRootGroupId));
 
 catch:
     Inode_Relinquish(pNode);
@@ -117,7 +117,7 @@ errno_t DriverCatalog_IsDriverPublished(DriverCatalogRef _Nonnull self, const ch
     decl_try_err();
     ResolvedPath rp;
 
-    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUser_Root, &rp);
+    err = FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kRootUserId, kRootGroupId, &rp);
     ResolvedPath_Deinit(&rp);
 
     return err;
@@ -128,7 +128,7 @@ errno_t DriverCatalog_OpenDriver(DriverCatalogRef _Nonnull self, const char* _No
     decl_try_err();
     ResolvedPath rp;
 
-    try(FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kUser_Root, &rp));
+    try(FileHierarchy_AcquireNodeForPath(self->fh, kPathResolution_Target, path, self->rootDirectory, self->rootDirectory, kRootUserId, kRootGroupId, &rp));
     try(Filesystem_CreateChannel(self->devfs, rp.inode, mode, pOutChannel));
     rp.inode = NULL;    // Consumed by CreateChannel()
 

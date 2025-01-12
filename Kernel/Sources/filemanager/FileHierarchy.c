@@ -94,7 +94,7 @@ void ResolvedPath_Deinit(ResolvedPath* _Nonnull self)
 
 static void destroy_atnode(AtNode* _Nullable self);
 static void _FileHierarchy_DestroyAllKeys(FileHierarchyRef _Nonnull self);
-static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeId* _Nullable pInOutMountingDirId, InodeRef _Nullable * _Nonnull pOutParentDir);
+static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, UserId uid, GroupId gid, InodeId* _Nullable pInOutMountingDirId, InodeRef _Nullable * _Nonnull pOutParentDir);
 
 
 static void destroy_fsnode(FsNode* _Nullable self)
@@ -471,19 +471,19 @@ static InodeRef _Nullable _FileHierarchy_AcquireDirectoryMountedAtDirectory(File
 // 'pDir' and returns it in 'pc' if successful. This lookup may fail with ENOENT
 // which happens if the node has been removed from the directory. It may fail
 // with EACCESS if the directory lacks search and read permissions for the user
-// 'user'.
-static errno_t get_name_of_node(InodeId idOfNodeToLookup, InodeRef _Nonnull pDir, User user, MutablePathComponent* _Nonnull pc)
+// 'uid'.
+static errno_t get_name_of_node(InodeId idOfNodeToLookup, InodeRef _Nonnull pDir, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pc)
 {
     decl_try_err();
 
     Inode_Lock(pDir);
-    err = Filesystem_GetNameOfNode(Inode_GetFilesystem(pDir), pDir, idOfNodeToLookup, user, pc);
+    err = Filesystem_GetNameOfNode(Inode_GetFilesystem(pDir), pDir, idOfNodeToLookup, uid, gid, pc);
     Inode_Unlock(pDir);
     return err;
 }
 
 // Returns a path from 'rootDir' to 'dir' in 'buffer'.
-errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, InodeRef _Nonnull rootDir, User user, char* _Nonnull  pBuffer, size_t bufferSize)
+errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, InodeRef _Nonnull dir, InodeRef _Nonnull rootDir, UserId uid, GroupId gid, char* _Nonnull  pBuffer, size_t bufferSize)
 {
     decl_try_err();
     MutablePathComponent pc;
@@ -505,14 +505,14 @@ errno_t FileHierarchy_GetDirectoryPath(FileHierarchyRef _Nonnull self, InodeRef 
         InodeId childInodeIdToLookup = Inode_GetId(pCurDir);
         InodeRef pParentDir = NULL;
 
-        try(FileHierarchy_AcquireParentDirectory(self, pCurDir, rootDir, user, &childInodeIdToLookup, &pParentDir));
+        try(FileHierarchy_AcquireParentDirectory(self, pCurDir, rootDir, uid, gid, &childInodeIdToLookup, &pParentDir));
         Inode_Relinquish(pCurDir);
         pCurDir = pParentDir; pParentDir = NULL;
 
         pc.name = pBuffer;
         pc.count = 0;
         pc.capacity = p - pBuffer;
-        try(get_name_of_node(childInodeIdToLookup, pCurDir, user, &pc));
+        try(get_name_of_node(childInodeIdToLookup, pCurDir, uid, gid, &pc));
 
         p -= pc.count;
         memcpy(p, pc.name, pc.count);
@@ -547,7 +547,7 @@ catch:
 // if that inode is the path resolver's root directory. Returns a suitable error
 // code and leaves the iterator unchanged if an error (eg access denied) occurs.
 // Walking up means resolving a path component of the form '..'.
-static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, User user, InodeId* _Nullable pInOutMountingDirId, InodeRef _Nullable * _Nonnull pOutParentDir)
+static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, InodeRef _Nonnull rootDir, UserId uid, GroupId gid, InodeId* _Nullable pInOutMountingDirId, InodeRef _Nullable * _Nonnull pOutParentDir)
 {
     decl_try_err();
     InodeRef pParentDir = NULL;
@@ -563,7 +563,7 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
     }
 
 
-    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, &kPathComponent_Parent, user, NULL, &pParentDir));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, &kPathComponent_Parent, uid, gid, NULL, &pParentDir));
 
     if (!Inode_Equals(pDir, pParentDir)) {
         // We're moving to a parent directory in the same file system
@@ -588,7 +588,7 @@ static errno_t FileHierarchy_AcquireParentDirectory(FileHierarchyRef _Nonnull _L
         }
 
         Inode_Lock(pMountingDir);
-        err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pMountingDir), pMountingDir, &kPathComponent_Parent, user, NULL, &pParentOfMountingDir);
+        err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(pMountingDir), pMountingDir, &kPathComponent_Parent, uid, gid, NULL, &pParentOfMountingDir);
         Inode_UnlockRelinquish(pMountingDir);
 
         *pOutParentDir = pParentOfMountingDir;
@@ -603,7 +603,7 @@ catch:
 // This function handles the case that we want to walk down the filesystem tree
 // (meaning that the given path component is a file or directory name and
 // neither '.' nor '..').
-static errno_t FileHierarchy_AcquireChildNode(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, User user, InodeRef _Nullable * _Nonnull pOutChildNode)
+static errno_t FileHierarchy_AcquireChildNode(FileHierarchyRef _Nonnull _Locked self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, InodeRef _Nullable * _Nonnull pOutChildNode)
 {
     decl_try_err();
     InodeRef pChildNode = NULL;
@@ -611,7 +611,7 @@ static errno_t FileHierarchy_AcquireChildNode(FileHierarchyRef _Nonnull _Locked 
     *pOutChildNode = NULL;
 
     // Ask the filesystem for the inode that is named by the tuple (pDir, pName)
-    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pName, user, NULL, &pChildNode));
+    try(Filesystem_AcquireNodeForName(Inode_GetFilesystem(pDir), pDir, pName, uid, gid, NULL, &pChildNode));
 
 
     // This can only happen if the filesystem is in a corrupted state.
@@ -690,7 +690,7 @@ catch:
 }
 
 // Looks up the inode named by the given path. The path may be relative or absolute.
-errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathResolution mode, const char* _Nonnull pPath, InodeRef _Nonnull rootDir, InodeRef _Nonnull cwDir, User user, ResolvedPath* _Nonnull pResult)
+errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathResolution mode, const char* _Nonnull pPath, InodeRef _Nonnull rootDir, InodeRef _Nonnull cwDir, UserId uid, GroupId gid, ResolvedPath* _Nonnull pResult)
 {
     decl_try_err();
     InodeRef pCurNode = NULL;
@@ -743,10 +743,10 @@ errno_t FileHierarchy_AcquireNodeForPath(FileHierarchyRef _Nonnull self, PathRes
             continue;
         }
         else if (pc.count == 2 && pc.name[0] == '.' && pc.name[1] == '.') {
-            try(FileHierarchy_AcquireParentDirectory(self, pCurNode, rootDir, user, NULL, &pNextNode));
+            try(FileHierarchy_AcquireParentDirectory(self, pCurNode, rootDir, uid, gid, NULL, &pNextNode));
         }
         else {
-            try(FileHierarchy_AcquireChildNode(self, pCurNode, &pc, user, &pNextNode));
+            try(FileHierarchy_AcquireChildNode(self, pCurNode, &pc, uid, gid, &pNextNode));
         }
 
         Inode_UnlockRelinquish(pCurNode);

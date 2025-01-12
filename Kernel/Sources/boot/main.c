@@ -21,6 +21,7 @@
 #include <hal/Platform.h>
 #include <process/Process.h>
 #include <process/ProcessManager.h>
+#include <security/SecurityManager.h>
 #include "BootAllocator.h"
 
 extern char _text, _etext, _data, _edata, _bss, _ebss;
@@ -142,6 +143,10 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try(DiskCache_Create(gSystemDescription, &gDiskCache));
 
 
+    // Create the security manager
+    try(SecurityManager_Create(&gSecurityManager));
+
+    
     // Create the platform controller
     try_bang(init_platform_controller());
 

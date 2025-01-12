@@ -175,7 +175,7 @@ open_class_funcs(Filesystem, Object,
     // with a given name without forcing the acquisition of the node itself.
     // Override: Advised
     // Default Behavior: Returns NULL and ENOENT (EIO for '..' lookups)
-    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
+    errno_t (*acquireNodeForName)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode);
 
     // Returns the name of the node with the id 'id' which a child of the
     // directory node 'pDir'. 'id' may be of any type. The name is returned in
@@ -187,7 +187,7 @@ open_class_funcs(Filesystem, Object,
     // should be returned.
     // Override: Advised
     // Default Behavior: Returns EIO and sets 'pName' to an empty name
-    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, User user, MutablePathComponent* _Nonnull pName);
+    errno_t (*getNameOfNode)(void* _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName);
 
 
     //
@@ -214,7 +214,7 @@ open_class_funcs(Filesystem, Object,
     // node. The node may be of any type.
     // Override: Optional
     // Default Behavior: Updates the inode's file info
-    errno_t (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo);
+    errno_t (*setFileInfo)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
 
 
     //
@@ -259,12 +259,7 @@ open_class_funcs(Filesystem, Object,
     // 'permissions' and adds it to the directory 'pDir'. The new node will be
     // added to 'pDir' with the name 'pName'. Returns the newly acquired inode
     // on success and NULL otherwise.
-    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
-
-    // Verifies that the given node is accessible assuming the given access mode.
-    // Override: Optional
-    // Default Behavior: Returns EOK if the given node is accessible; EACCESS or EROFS otherwise
-    errno_t (*checkAccess)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode);
+    errno_t (*createNode)(void* _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode);
 
     // Unlink the node 'pNode' which is an immediate child of 'pDir'. Both nodes
     // are guaranteed to be members of the same filesystem. 'pNode' is guaranteed
@@ -272,16 +267,16 @@ open_class_funcs(Filesystem, Object,
     // filesystem.
     // This function must validate that that if 'pNode' is a directory, that the
     // directory is empty (contains nothing except "." and ".." entries).
-    errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pDir, User user);
+    errno_t (*unlink)(void* _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid);
 
     // Moves the node 'pSrcNode' from its current parent directory 'pSrcDir' to
     // the new parent directory 'pDstDir' and assigns it the name 'pName' in this
     // new directory.
-    errno_t (*move)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint);
+    errno_t (*move)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint);
 
     // Changes the existing name of the node 'pSrcNode' which is an immediate
     // child of the directory 'pSrcDir' such that it will be 'pNewName'.
-    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, User user);
+    errno_t (*rename)(void* _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid);
 
 
     //
@@ -345,26 +340,26 @@ invoke_0(stop, Filesystem, __self)
 #define Filesystem_AcquireRootDirectory(__self, __pOutDir) \
 invoke_n(acquireRootDirectory, Filesystem, __self, __pOutDir)
 
-#define Filesystem_AcquireNodeForName(__self, __pDir, __pName, __user, __pDirInsHint, __pOutNode) \
-invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __user, __pDirInsHint, __pOutNode)
+#define Filesystem_AcquireNodeForName(__self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode) \
+invoke_n(acquireNodeForName, Filesystem, __self, __pDir, __pName, __uid, __gid, __pDirInsHint, __pOutNode)
 
-#define Filesystem_GetNameOfNode(__self, __pDir, __id, __user, __pName) \
-invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __user, __pName)
+#define Filesystem_GetNameOfNode(__self, __pDir, __id, __uid, __gid, __pName) \
+invoke_n(getNameOfNode, Filesystem, __self, __pDir, __id, __uid, __gid, __pName)
 
 
 #define Filesystem_CreateChannel(__self, __pNode, __mode, __pOutChannel) \
 invoke_n(createChannel, Filesystem, __self, __pNode, __mode, __pOutChannel)
 
 
-#define Filesystem_CreateNode(__self, __type, __pDir, __pName, __pDirInsertionHint, __user, __permissions, __pOutNode) \
-invoke_n(createNode, Filesystem, __self, __type, __pDir, __pName, __pDirInsertionHint, __user, __permissions, __pOutNode)
+#define Filesystem_CreateNode(__self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode) \
+invoke_n(createNode, Filesystem, __self, __type, __pDir, __pName, __pDirInsertionHint, __uid, __gid, __permissions, __pOutNode)
 
 
 #define Filesystem_GetFileInfo(__self, __pNode, __pOutInfo) \
 invoke_n(getFileInfo, Filesystem, __self, __pNode, __pOutInfo)
 
-#define Filesystem_SetFileInfo(__self, __pNode, __user, __pInfo) \
-invoke_n(setFileInfo, Filesystem, __self, __pNode, __user, __pInfo)
+#define Filesystem_SetFileInfo(__self, __pNode, __uid, __gid, __pInfo) \
+invoke_n(setFileInfo, Filesystem, __self, __pNode, __uid, __gid, __pInfo)
 
 
 #define Filesystem_ReadFile(__self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead) \
@@ -381,17 +376,14 @@ invoke_n(truncateFile, Filesystem, __self, __pFile, __length)
 invoke_n(readDirectory, Filesystem, __self, __pChannel, __pBuffer, __nBytesToRead, __nOutBytesRead)
 
 
-#define Filesystem_CheckAccess(__self, __pNode, __user, __mode) \
-invoke_n(checkAccess, Filesystem, __self, __pNode, __user, __mode)
+#define Filesystem_Unlink(__self, __pNode, __pDir, __uid, __gid) \
+invoke_n(unlink, Filesystem, __self, __pNode, __pDir, __uid, __gid)
 
-#define Filesystem_Unlink(__self, __pNode, __pDir, __user) \
-invoke_n(unlink, Filesystem, __self, __pNode, __pDir, __user)
+#define Filesystem_Move(__self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __uid, __gid, __pDirInstHint) \
+invoke_n(move, Filesystem, __self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __uid, __gid, __pDirInstHint)
 
-#define Filesystem_Move(__self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __user, __pDirInstHint) \
-invoke_n(move, Filesystem, __self, __pSrcNode, __pSrcDir, __pDstDir, __pNewName, __user, __pDirInstHint)
-
-#define Filesystem_Rename(__self, __pSrcNode, __pSrcDir, __pNewName, __user) \
-invoke_n(rename, Filesystem, __self, __pSrcNode, __pSrcDir, __pNewName, __user)
+#define Filesystem_Rename(__self, __pSrcNode, __pSrcDir, __pNewName, __uid, __gid) \
+invoke_n(rename, Filesystem, __self, __pSrcNode, __pSrcDir, __pNewName, __uid, __gid)
 
 // Acquires a new reference to the given node.
 extern InodeRef _Nonnull _Locked Filesystem_ReacquireNode(FilesystemRef _Nonnull self, InodeRef _Nonnull pNode);

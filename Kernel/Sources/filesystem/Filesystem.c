@@ -10,6 +10,7 @@
 #include "FSUtilities.h"
 #include "DirectoryChannel.h"
 #include "FileChannel.h"
+#include <security/SecurityManager.h>
 
 
 // Returns the next available FSID.
@@ -180,7 +181,7 @@ errno_t Filesystem_acquireRootDirectory(FilesystemRef _Nonnull self, InodeRef _N
     return EIO;
 }
 
-errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     if (pOutNode) {
         *pOutNode = NULL;
@@ -193,7 +194,7 @@ errno_t Filesystem_acquireNodeForName(FilesystemRef _Nonnull self, InodeRef _Non
     }
 }
 
-errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, User user, MutablePathComponent* _Nonnull pName)
+errno_t Filesystem_getNameOfNode(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
 {
     pName->count = 0;
     return EIO;
@@ -251,7 +252,7 @@ errno_t Filesystem_getFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     return EOK;
 }
 
-errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, MutableFileInfo* _Nonnull pInfo)
+errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo)
 {
     const uint32_t  modify = pInfo->modify & kModifyFileInfo_All;
 
@@ -260,7 +261,7 @@ errno_t Filesystem_setFileInfo(FilesystemRef _Nonnull self, InodeRef _Nonnull _L
     }
 
     // Only the owner of a file may change its metadata.
-    if (user.uid != Inode_GetUserId(pNode) && user.uid != kRootUserId) {
+    if (uid != Inode_GetUserId(pNode) && !SecurityManager_IsSuperuser(gSecurityManager, uid)) {
         return EPERM;
     }
 
@@ -319,7 +320,7 @@ errno_t Filesystem_readDirectory(FilesystemRef _Nonnull self, DirectoryChannelRe
     return EIO;
 }
 
-errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t Filesystem_createNode(FilesystemRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, DirectoryEntryInsertionHint* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     return EIO;
 }
@@ -329,65 +330,17 @@ bool Filesystem_isReadOnly(FilesystemRef _Nonnull self)
     return true;
 }
 
-errno_t Filesystem_checkAccess(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, User user, AccessMode mode)
-{
-    const FilePermissions nodePerms = Inode_GetFilePermissions(pNode);
-    FilePermissions reqPerms = 0;
-
-    // XXX probably temporary until we're getting around to designing a full permission model
-    if (user.uid == 0) {
-        return EOK;
-    }
-    // XXX
-    
-    if ((mode & kAccess_Readable) == kAccess_Readable) {
-        reqPerms |= kFilePermission_Read;
-    }
-    if ((mode & kAccess_Writable) == kAccess_Writable) {
-        reqPerms |= kFilePermission_Write;
-
-        // Return EROFS if write permissions are requested but the disk is read-only.
-        if (Filesystem_IsReadOnly(self)) {
-            return EROFS;
-        }
-    }
-    if ((mode & kAccess_Executable) == kAccess_Executable) {
-        reqPerms |= kFilePermission_Execute;
-    }
-
-
-    FilePermissions finalPerms;
-
-    if (Inode_GetUserId(pNode) == user.uid) {
-        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_User);
-    }
-    else if (Inode_GetGroupId(pNode) == user.gid) {
-        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Group);
-    }
-    else {
-        finalPerms = FilePermissions_Get(nodePerms, kFilePermissionsClass_Other);
-    }
-
-
-    if ((finalPerms & reqPerms) == reqPerms) {
-        return EOK;
-    }
-    else {
-        return EACCESS;
-    }
-}
-
-errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pDir, User user)
+errno_t Filesystem_unlink(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pNode, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid)
 {
     return EACCESS;
 }
 
-errno_t Filesystem_move(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t Filesystem_move(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     return EACCESS;
 }
 
-errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, User user)
+errno_t Filesystem_rename(FilesystemRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid)
 {
     return EACCESS;
 }
@@ -412,7 +365,6 @@ func_def(writeFile, Filesystem)
 func_def(truncateFile, Filesystem)
 func_def(readDirectory, Filesystem)
 func_def(isReadOnly, Filesystem)
-func_def(checkAccess, Filesystem)
 func_def(unlink, Filesystem)
 func_def(move, Filesystem)
 func_def(rename, Filesystem)

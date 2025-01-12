@@ -87,7 +87,6 @@ $(OBJS_DIR)/clap.lib: $(LIBCLAP_C_SOURCES) $(LIBCLAP_H_SOURCES) | $(OBJS_DIR)
 KERNEL_DIR := ../Kernel/Sources
 KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/Array.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/klib/List.c
-KERNEL_C_SOURCES += $(KERNEL_DIR)/User.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/disk/DiskBlock.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileHierarchy.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filemanager/FileManager_Directory.c
@@ -101,6 +100,7 @@ KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/DirectoryChannel.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/IOChannel.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/Inode.c
 KERNEL_C_SOURCES += $(KERNEL_DIR)/filesystem/PathComponent.c
+KERNEL_C_SOURCES += $(KERNEL_DIR)/security/SecurityManager.c
 
 KOBJ_C_SOURCES := $(wildcard $(KERNEL_DIR)/kobj/*.c)
 SERENAFS_C_SOURCES := $(wildcard $(KERNEL_DIR)/filesystem/serenafs/*.c)

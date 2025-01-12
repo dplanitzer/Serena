@@ -57,6 +57,7 @@ class_ref(Process);
 class_ref(RamDisk);
 class_ref(RealtimeClock);
 class_ref(RomDisk);
+class_ref(SecurityManager);
 class_ref(SerenaFS);
 class_ref(UConditionVariable);
 class_ref(UDispatchQueue);

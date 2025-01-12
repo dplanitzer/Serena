@@ -32,7 +32,7 @@ FileHierarchyRef _Nonnull create_root_file_hierarchy(void)
 
     try(FileHierarchy_Create(bootfs, &fh));
     rootDir = FileHierarchy_AcquireRootDirectory(fh);
-    err = FileHierarchy_AcquireNodeForPath(fh, kPathResolution_Target, "/System/Devices", rootDir, rootDir, kUser_Root, &rp);
+    err = FileHierarchy_AcquireNodeForPath(fh, kPathResolution_Target, "/System/Devices", rootDir, rootDir, kRootUserId, kRootGroupId, &rp);
     if (err == EOK) {
         try(FileHierarchy_AttachFilesystem(fh, (FilesystemRef)DriverCatalog_GetDevicesFilesystem(gDriverCatalog), rp.inode));
     }

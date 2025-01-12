@@ -31,7 +31,7 @@ extern errno_t FileChannel_Create(InodeRef _Consuming _Nonnull pNode, unsigned i
 extern FileOffset FileChannel_GetFileSize(FileChannelRef _Nonnull self);
 
 extern errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOutInfo);
-extern errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo);
+extern errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo);
 
 extern errno_t FileChannel_Truncate(FileChannelRef _Nonnull self, FileOffset length);
 

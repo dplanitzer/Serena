@@ -8,7 +8,7 @@
 
 #include "DevFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
-
+#include <security/SecurityManager.h>
 
 
 // Inserts a new directory entry of the form (pName, id) into the directory node
@@ -54,13 +54,13 @@ errno_t DevFS_acquireRootDirectory(DevFSRef _Nonnull self, InodeRef _Nullable * 
     return err;
 }
 
-errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t DevFS_acquireNodeForName(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     decl_try_err();
     DfsDirectoryEntry* entry;
 
     try_bang(SELock_LockShared(&self->seLock));
-    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Searchable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Searchable));
     try(DfsDirectoryItem_GetEntryForName(Inode_GetDfsDirectoryItem(pDir), pName, &entry));
 
     if (pOutNode) {
@@ -77,12 +77,12 @@ catch:
     return err;
 }
 
-errno_t DevFS_getNameOfNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, User user, MutablePathComponent* _Nonnull pName)
+errno_t DevFS_getNameOfNode(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
 {
     decl_try_err();
 
     try_bang(SELock_LockShared(&self->seLock));
-    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Readable | kAccess_Searchable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Readable | kAccess_Searchable));
     try(DfsDirectoryItem_GetNameOfEntryWithId(Inode_GetDfsDirectoryItem(pDir), id, pName));
     SELock_Unlock(&self->seLock);
     return EOK;

@@ -66,7 +66,7 @@ final_class_ivars(Process, Object,
 );
 
 
-extern errno_t Process_Create(ProcessId ppid, FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Process_Create(ProcessId ppid, FileHierarchyRef _Nonnull pFileHierarchy, UserId uid, GroupId gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask, ProcessRef _Nullable * _Nonnull pOutSelf);
 extern void Process_deinit(ProcessRef _Nonnull self);
 
 // Frees all tombstones

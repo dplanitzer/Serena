@@ -8,9 +8,10 @@
 
 #include "SerenaFSPriv.h"
 #include <System/ByteOrder.h>
+#include <security/SecurityManager.h>
 
 
-errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, User user, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
+errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, SFSDirectoryEntryPointer* _Nullable pDirInsertionHint, UserId uid, GroupId gid, FilePermissions permissions, InodeRef _Nullable * _Nonnull pOutNode)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -24,7 +25,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
     bool isPublished = false;
 
     // We must have write permissions for the parent directory
-    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Writable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Writable));
 
 
     if (type == kFileType_Directory) {
@@ -64,8 +65,8 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
         (InodeId)inodeLba,
         type,
         1,
-        user.uid,
-        user.gid,
+        uid,
+        gid,
         permissions,
         fileSize,
         curTime,
@@ -96,7 +97,7 @@ errno_t SerenaFS_createNode(SerenaFSRef _Nonnull self, FileType type, InodeRef _
 
 catch:
     if (isPublished) {
-        Filesystem_Unlink((FilesystemRef)self, pNode, pDir, user);
+        Filesystem_Unlink((FilesystemRef)self, pNode, pDir, uid, gid);
         Filesystem_RelinquishNode((FilesystemRef)self, pNode);
     } else {
         Inode_Destroy(pNode);

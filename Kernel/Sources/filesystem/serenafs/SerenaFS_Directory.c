@@ -9,6 +9,7 @@
 #include "SerenaFSPriv.h"
 #include <filesystem/DirectoryChannel.h>
 #include <System/ByteOrder.h>
+#include <security/SecurityManager.h>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -194,13 +195,13 @@ errno_t SerenaFS_acquireRootDirectory(SerenaFSRef _Nonnull self, InodeRef _Nulla
     return err;
 }
 
-errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, User user, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
+errno_t SerenaFS_acquireNodeForName(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, DirectoryEntryInsertionHint* _Nullable pDirInsHint, InodeRef _Nullable * _Nullable pOutNode)
 {
     decl_try_err();
     SFSDirectoryQuery q;
     InodeId entryId;
 
-    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Searchable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_PathComponent;
     q.u.pc = pName;
     try(SerenaFS_GetDirectoryEntry(self, pDir, &q, (pDirInsHint) ? (SFSDirectoryEntryPointer*)pDirInsHint->data : NULL, NULL, &entryId, NULL));
@@ -216,12 +217,12 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, User user, MutablePathComponent* _Nonnull pName)
+errno_t SerenaFS_getNameOfNode(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pDir, InodeId id, UserId uid, GroupId gid, MutablePathComponent* _Nonnull pName)
 {
     decl_try_err();
     SFSDirectoryQuery q;
 
-    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Readable | kAccess_Searchable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Readable | kAccess_Searchable));
     q.kind = kSFSDirectoryQuery_InodeId;
     q.u.id = id;
     try(SerenaFS_GetDirectoryEntry(self, pDir, &q, NULL, NULL, NULL, pName));

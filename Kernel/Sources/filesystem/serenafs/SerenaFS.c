@@ -8,6 +8,7 @@
 
 #include "SerenaFSPriv.h"
 #include <System/ByteOrder.h>
+#include <security/SecurityManager.h>
 
 
 // Creates an instance of SerenaFS.
@@ -178,12 +179,12 @@ catch:
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir, User user)
+errno_t SerenaFS_unlink(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid)
 {
     decl_try_err();
 
     // We must have write permissions for 'pDir'
-    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Writable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Writable));
 
 
     // A directory must be empty in order to be allowed to unlink it
@@ -200,7 +201,7 @@ catch:
 
 // Returns true if the function can establish that 'pDir' is a subdirectory of
 // 'pAncestorDir' or that it is in fact 'pAncestorDir' itself.
-static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pAncestorDir, InodeRef _Nonnull _Locked pGrandAncestorDir, InodeRef _Nonnull _Locked pDir, User user)
+static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pAncestorDir, InodeRef _Nonnull _Locked pGrandAncestorDir, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid)
 {
     InodeRef pCurDir = Inode_Reacquire(pDir);
     bool r = false;
@@ -218,7 +219,7 @@ static bool SerenaFS_IsAncestorOfDirectory(SerenaFSRef _Nonnull self, InodeRef _
             Inode_Lock(pCurDir);
             didLock = true;
         }
-        const errno_t err = Filesystem_AcquireNodeForName(self, pCurDir, &kPathComponent_Parent, user, NULL, &pParentDir);
+        const errno_t err = Filesystem_AcquireNodeForName(self, pCurDir, &kPathComponent_Parent, uid, gid, NULL, &pParentDir);
         if (didLock) {
             Inode_Unlock(pCurDir);
         }
@@ -238,7 +239,7 @@ catch:
     return r;
 }
 
-errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t SerenaFS_link(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
 
@@ -250,7 +251,7 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);
@@ -262,7 +263,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
     // stays meaningful while we are busy executing the move.
     Lock_Lock(&self->moveLock);
 
-    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pSrcNode, pSrcDir, pDstDir, user)) {
+    if (isMovingDir && SerenaFS_IsAncestorOfDirectory(self, pSrcNode, pSrcDir, pDstDir, uid, gid)) {
         // oldpath is an ancestor of newpath (Don't allow moving a directory inside of itself)
         throw(EINVAL);
     }
@@ -270,7 +271,7 @@ errno_t SerenaFS_move(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcN
 
     // Add a new entry in the destination directory and remove the old entry from
     // the source directory
-    try(SerenaFS_link(self, pSrcNode, pDstDir, pNewName, user, pDirInstHint));
+    try(SerenaFS_link(self, pSrcNode, pDstDir, pNewName, uid, gid, pDirInstHint));
     try(SerenaFS_unlinkCore(self, pSrcNode, pSrcDir));  // XXX should theoretically be able to use unlink() here. Fails with resource busy because we trigger the empty check on the destination directory
 
 
@@ -302,7 +303,7 @@ catch:
     return err;
 }
 
-errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, User user)
+errno_t SerenaFS_rename(SerenaFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid)
 {
     decl_try_err();
     FSContainerRef fsContainer = Filesystem_GetContainer(self);

@@ -80,10 +80,10 @@ errno_t FileChannel_GetInfo(FileChannelRef _Nonnull self, FileInfo* _Nonnull pOu
     return err;
 }
 
-errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, User user, MutableFileInfo* _Nonnull pInfo)
+errno_t FileChannel_SetInfo(FileChannelRef _Nonnull self, UserId uid, GroupId gid, MutableFileInfo* _Nonnull pInfo)
 {
     IOChannel_Lock((IOChannelRef)self);
-    const errno_t err = Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, user, pInfo);
+    const errno_t err = Filesystem_SetFileInfo(Inode_GetFilesystem(self->inode), self->inode, uid, gid, pInfo);
     IOChannel_Unlock((IOChannelRef)self);
     
     return err;

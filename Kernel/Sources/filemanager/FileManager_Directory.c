@@ -9,6 +9,7 @@
 #include "FileManager.h"
 #include "FileHierarchy.h"
 #include <filesystem/DirectoryChannel.h>
+#include <security/SecurityManager.h>
 
 
 static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const char* _Nonnull path, InodeRef _Nonnull * _Nonnull pDirToAssign)
@@ -17,14 +18,14 @@ static errno_t _FileManager_SetDirectoryPath(FileManagerRef _Nonnull self, const
     ResolvedPath r;
 
     // Get the inode that represents the new directory
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
+    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
 
     // Make sure that it is actually a directory and that we have at least search
     // permission
     Inode_Lock(r.inode);
     if (Inode_IsDirectory(r.inode)) {
-        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Searchable);
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Searchable);
     }
     else {
         err = ENOTDIR;
@@ -63,7 +64,7 @@ errno_t FileManager_SetWorkingDirectoryPath(FileManagerRef _Nonnull self, const 
 // large as length(path) + 1.
 errno_t FileManager_GetWorkingDirectoryPath(FileManagerRef _Nonnull self, char* _Nonnull pBuffer, size_t bufferSize)
 {
-    return FileHierarchy_GetDirectoryPath(self->fileHierarchy, self->workingDirectory, self->rootDirectory, self->realUser, pBuffer, bufferSize);
+    return FileHierarchy_GetDirectoryPath(self->fileHierarchy, self->workingDirectory, self->rootDirectory, self->ruid, self->rgid, pBuffer, bufferSize);
 }
 
 
@@ -76,7 +77,7 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     DirectoryEntryInsertionHint dih;
     InodeRef newDir = NULL;
 
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
+    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_PredecessorOfTarget, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     const PathComponent* dirName = &r.lastPathComponent;
     const FilePermissions dirPerms = ~self->fileCreationMask & (permissions & 0777);
@@ -85,9 +86,9 @@ errno_t FileManager_CreateDirectory(FileManagerRef _Nonnull self, const char* _N
     // Create the new directory and add it to the parent directory if it doesn't
     // exist; otherwise error out
     Inode_Lock(r.inode);
-    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, self->realUser, &dih, NULL);
+    err = Filesystem_AcquireNodeForName(Inode_GetFilesystem(r.inode), r.inode, dirName, self->ruid, self->rgid, &dih, NULL);
     if (err == ENOENT) {
-        err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, r.inode, dirName, &dih, self->realUser, dirPerms, &newDir);
+        err = Filesystem_CreateNode(Inode_GetFilesystem(r.inode), kFileType_Directory, r.inode, dirName, &dih, self->ruid, self->rgid, dirPerms, &newDir);
     }
     else if (err == EOK) {
         err = EEXIST;
@@ -110,11 +111,11 @@ errno_t FileManager_OpenDirectory(FileManagerRef _Nonnull self, const char* _Non
 
     *pOutChannel = NULL;
     
-    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->realUser, &r));
+    try(FileHierarchy_AcquireNodeForPath(self->fileHierarchy, kPathResolution_Target, path, self->rootDirectory, self->workingDirectory, self->ruid, self->rgid, &r));
 
     Inode_Lock(r.inode);
     if (Inode_GetFileType(r.inode) == kFileType_Directory) {
-        err = Filesystem_CheckAccess(Inode_GetFilesystem(r.inode), r.inode, self->realUser, kAccess_Readable);
+        err = SecurityManager_CheckNodeAccess(gSecurityManager, r.inode, self->ruid, self->rgid, kAccess_Readable);
     }
     else {
         err = ENOTDIR;

@@ -13,7 +13,7 @@
 #include <string.h>
 
 
-static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, FilePermissions perms, User owner)
+static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnull path, FilePermissions perms, UserId uid, GroupId gid)
 {
     decl_try_err();
 
@@ -22,8 +22,8 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
         MutableFileInfo info;
 
         info.modify = kModifyFileInfo_UserId | kModifyFileInfo_GroupId;
-        info.uid = owner.uid;
-        info.gid = owner.gid;
+        info.uid = uid;
+        info.gid = gid;
         err = FileManager_SetFileInfo(fm, path, &info);
 
         if (err != EOK) {
@@ -34,7 +34,7 @@ static errno_t _create_directory(FileManagerRef _Nonnull fm, const char* _Nonnul
     return err;
 }
 
-static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, User owner)
+static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, UserId uid, GroupId gid)
 {
     decl_try_err();
     char* p = path;
@@ -48,7 +48,7 @@ static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, ch
 
         if (ps) { *ps = '\0'; }
 
-        err = _create_directory(&self->fm, path, permissions, owner);
+        err = _create_directory(&self->fm, path, permissions, uid, gid);
         if (ps) { *ps = '/'; }
 
         if (err != EOK && err != EEXIST || ps == NULL) {
@@ -75,13 +75,13 @@ static errno_t _create_directory_recursively(DiskControllerRef _Nonnull self, ch
 // may now come back with ENOENT because X was empty and it got deleted by
 // another process. We simply start over again from the root of our path in
 // this case.
-static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, User owner)
+static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, char* _Nonnull path, FilePermissions permissions, UserId uid, GroupId gid)
 {
     decl_try_err();
     int i = 0;
 
     while (i < 16) {
-        err = _create_directory_recursively(self, path, permissions, owner);
+        err = _create_directory_recursively(self, path, permissions, uid, gid);
         if (err == EOK || err != ENOENT) {
             break;
         }
@@ -96,7 +96,7 @@ static errno_t create_directory_recursively(DiskControllerRef _Nonnull self, cha
 ////////////////////////////////////////////////////////////////////////////////
 
 
-errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, User owner, const char* _Nonnull path_, const char* _Nonnull dmgPath)
+errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, UserId uid, GroupId gid, const char* _Nonnull path_, const char* _Nonnull dmgPath)
 {
     decl_try_err();
     DiskControllerRef self;
@@ -105,10 +105,10 @@ errno_t cmd_makedir(bool shouldCreateParents, FilePermissions dirPerms, User own
     try(DiskController_CreateWithContentsOfPath(dmgPath, &self));
     try_null(path, strdup(path_), ENOMEM);
 
-    err = _create_directory(&self->fm, path, dirPerms, owner);
+    err = _create_directory(&self->fm, path, dirPerms, uid, gid);
     if (err != EOK) {
         if (err == ENOENT && shouldCreateParents) {
-            err = create_directory_recursively(self, path, dirPerms, owner);
+            err = create_directory_recursively(self, path, dirPerms, uid, gid);
         }
     }
 

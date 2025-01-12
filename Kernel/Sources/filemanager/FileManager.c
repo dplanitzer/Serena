@@ -11,13 +11,14 @@
 #include <filesystem/FSUtilities.h>
 
 
-void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, User user, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask)
+void FileManager_Init(FileManagerRef _Nonnull self, FileHierarchyRef _Nonnull pFileHierarchy, UserId uid, GroupId gid, InodeRef _Nonnull pRootDir, InodeRef _Nonnull pWorkingDir, FilePermissions fileCreationMask)
 {
     self->fileHierarchy = Object_RetainAs(pFileHierarchy, FileHierarchy);
     self->rootDirectory = Inode_Reacquire(pRootDir);
     self->workingDirectory = Inode_Reacquire(pWorkingDir);
     self->fileCreationMask = fileCreationMask;
-    self->realUser = user;
+    self->ruid = uid;
+    self->rgid = gid;
 }
 
 void FileManager_Deinit(FileManagerRef _Nonnull self)
@@ -33,12 +34,12 @@ void FileManager_Deinit(FileManagerRef _Nonnull self)
 
 UserId FileManager_GetRealUserId(FileManagerRef _Nonnull self)
 {
-    return self->realUser.uid;
+    return self->ruid;
 }
 
 GroupId FileManager_GetRealGroupId(FileManagerRef _Nonnull self)
 {
-    return self->realUser.gid;
+    return self->rgid;
 }
 
 // Returns the file creation mask of the receiver. Bits cleared in this mask

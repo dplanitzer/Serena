@@ -9,6 +9,7 @@
 #include "DevFSPriv.h"
 #include <driver/Driver.h>
 #include <filesystem/DirectoryChannel.h>
+#include <security/SecurityManager.h>
 
 
 // Creates an instance of DevFS.
@@ -31,7 +32,7 @@ errno_t DevFS_Create(DevFSRef _Nullable * _Nonnull pOutSelf)
     const FilePermissions rootDirPerms = FilePermissions_Make(dirOwnerPerms, dirOtherPerms, dirOtherPerms);
     const InodeId rootDirInid = DevFS_GetNextAvailableInodeId(self);
 
-    try(DfsDirectoryItem_Create(rootDirInid, rootDirPerms, kUser_Root.uid, kUser_Root.gid, rootDirInid, &rootDir));
+    try(DfsDirectoryItem_Create(rootDirInid, rootDirPerms, kRootUserId, kRootGroupId, rootDirInid, &rootDir));
     DevFS_AddItem(self, (DfsItem*)rootDir);
     self->rootDirInodeId = rootDirInid;
 
@@ -204,14 +205,14 @@ catch:
 // node of the filesystem.
 // This function must validate that that if 'pNode' is a directory, that the
 // directory is empty (contains nothing except "." and "..").
-errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir, User user)
+errno_t DevFS_unlink(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pNodeToUnlink, InodeRef _Nonnull _Locked pDir, UserId uid, GroupId gid)
 {
     decl_try_err();
 
     try_bang(SELock_LockExclusive(&self->seLock));
 
     // We must have write permissions for 'pDir'
-    try(Filesystem_CheckAccess(self, pDir, user, kAccess_Writable));
+    try(SecurityManager_CheckNodeAccess(gSecurityManager, pDir, uid, gid, kAccess_Writable));
 
 
     // A directory must be empty in order to be allowed to unlink it
@@ -227,7 +228,7 @@ catch:
     return err;
 }
 
-errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t DevFS_link(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     decl_try_err();
 
@@ -241,12 +242,12 @@ catch:
     return err;
 }
 
-errno_t DevFS_move(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, User user, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
+errno_t DevFS_move(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, InodeRef _Nonnull _Locked pDstDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid, const DirectoryEntryInsertionHint* _Nonnull pDirInstHint)
 {
     return EPERM;
 }
 
-errno_t DevFS_rename(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, User user)
+errno_t DevFS_rename(DevFSRef _Nonnull self, InodeRef _Nonnull _Locked pSrcNode, InodeRef _Nonnull _Locked pSrcDir, const PathComponent* _Nonnull pNewName, UserId uid, GroupId gid)
 {
     return EPERM;
 }
