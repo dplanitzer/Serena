@@ -68,7 +68,7 @@ static void wait_for_disk_load_detected(const char* _Nonnull driverPath)
         while (tries-- > 0) {
             DiskInfo info;
 
-            if (IOChannel_Ioctl(chan, kIODiskCommand_GetInfo, &info) != EOK) {
+            if (IOChannel_Ioctl(chan, kDiskCommand_GetInfo, &info) != EOK) {
                 break;
             }
             if (info.mediaId != kMediaId_None) {

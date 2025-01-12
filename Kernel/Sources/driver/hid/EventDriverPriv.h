@@ -12,7 +12,10 @@
 #include "EventDriver.h"
 #include <dispatcher/Lock.h>
 #include "HIDEventQueue.h"
-#include <driver/amiga/InputDriver.h>
+#include <driver/amiga/hid/JoystickDriver.h>
+#include <driver/amiga/hid/KeyboardDriver.h>
+#include <driver/amiga/hid/LightPenDriver.h>
+#include <driver/amiga/hid/MouseDriver.h>
 #include "USBHIDKeys.h"
 
 

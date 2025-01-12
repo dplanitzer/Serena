@@ -45,6 +45,7 @@ class_ref(FloppyDriver);
 class_ref(FSContainer);
 class_ref(GraphicsDriver);
 class_ref(Inode);
+class_ref(InputDriver);
 class_ref(IOChannel);
 class_ref(KeyboardDriver);
 class_ref(LightPenDriver);

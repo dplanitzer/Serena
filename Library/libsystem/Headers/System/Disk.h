@@ -29,7 +29,7 @@ __CPP_BEGIN
 
 
 // Returns information about a disk drive.
-#define kIODiskCommand_GetInfo  IOResourceCommand(0)
+#define kDiskCommand_GetInfo  IOResourceCommand(0)
 
 typedef struct DiskInfo {
     DiskId              diskId;             // Globally unique, non-persistent disk drive ID

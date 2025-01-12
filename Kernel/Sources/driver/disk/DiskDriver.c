@@ -122,12 +122,6 @@ void DiskDriver_NoteMediaLoaded(DiskDriverRef _Nonnull self, const MediaInfo* _N
 }
 
 
-MediaId DiskDriver_getCurrentMediaId(DiskDriverRef _Nonnull self)
-{
-    return kMediaId_None;
-}
-
-
 void DiskDriver_doIO(DiskDriverRef _Nonnull self, const IORequest* _Nonnull ior)
 {
     decl_try_err();
@@ -342,7 +336,7 @@ FileOffset DiskDriver_getSeekableRange(DiskDriverRef _Nonnull self)
 errno_t DiskDriver_ioctl(DiskDriverRef _Nonnull self, int cmd, va_list ap)
 {
     switch (cmd) {
-        case kIODiskCommand_GetInfo:
+        case kDiskCommand_GetInfo:
             return DiskDriver_GetInfo(self, va_arg(ap, DiskInfo*));
             
         default:
