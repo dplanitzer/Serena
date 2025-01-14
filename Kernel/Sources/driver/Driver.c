@@ -355,47 +355,9 @@ void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChi
     }
 }
 
-// Removes the first child driver with the tag 'tag'.
-void Driver_RemoveChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag)
-{
-    Driver_ReplaceChildWithTag(self, tag, NULL);
-}
-
-// Replaces the first child with the tag 'tag' with the new driver 'pNewChild'.
-// Simply removes the existing child if 'pNewChild' is NULL.
-void Driver_ReplaceChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag, DriverRef _Nonnull pNewChild)
-{
-    DriverRef pOldChild = NULL;
-
-    if (!Driver_IsActive(self)) {
-        return;
-    }
-
-    List_ForEach(&self->children, struct Driver,
-        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
-
-        if (pCurDriver->tag == tag) {
-            pOldChild = pCurDriver;
-            break;
-        }
-    );
-
-    if (pOldChild) {
-        ListNode* prevNode = pOldChild->childNode.prev;
-
-        List_Remove(&self->children, &pOldChild->childNode);
-        Object_Release(pOldChild);
-
-        if (pNewChild) {
-            List_InsertAfter(&self->children, &pNewChild->childNode, prevNode);
-            Object_Retain(pNewChild);
-        }
-    }
-}
-
-// Returns a strong reference to the child driver with tag 'tag'. NULL is returned
-// if no such child driver exists.
-DriverRef _Nullable Driver_CopyChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag)
+// Returns a reference to the child driver with tag 'tag'. NULL is returned if
+// no such child driver exists.
+DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag)
 {
     if (!Driver_IsActive(self)) {
         return NULL;
@@ -405,7 +367,7 @@ DriverRef _Nullable Driver_CopyChildWithTag(DriverRef _Nonnull _Locked self, int
         DriverRef pCurDriver = DriverFromChildNode(pCurNode);
 
         if (pCurDriver->tag == tag) {
-            return Object_RetainAs(pCurDriver, Driver);
+            return pCurDriver;
         }
     );
 

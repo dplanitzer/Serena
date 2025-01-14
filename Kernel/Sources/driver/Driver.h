@@ -318,16 +318,9 @@ extern void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnul
 // of the receiver. Call this function from a onStop() override.
 extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
 
-// Removes the first child driver with the tag 'tag'.
-extern void Driver_RemoveChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag);
-
-// Replaces the first child with the tag 'tag' with the new driver 'pNewChild'.
-// Simply removes the existing child if 'pNewChild' is NULL.
-extern void Driver_ReplaceChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag, DriverRef _Nonnull pNewChild);
-
-// Returns a strong reference to the child driver with tag 'tag'. NULL is returned
-// if no such child driver exists.
-extern DriverRef _Nullable Driver_CopyChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag);
+// Returns a reference to the child driver with tag 'tag'. NULL is returned if
+// no such child driver exists.
+extern DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag);
 
 
 // Do not call directly. Use the Driver_Create() macro instead

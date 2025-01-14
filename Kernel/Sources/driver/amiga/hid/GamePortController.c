@@ -62,14 +62,8 @@ static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull s
         return EINVAL;
     }
 
-    dp = Driver_CopyChildWithTag((DriverRef)self, port);
-    if (dp) {
-        *pOutType = InputDriver_GetInputType(dp);
-        Object_Release(dp);
-    }
-    else {
-        *pOutType = kInputType_None;
-    }
+    dp = Driver_GetChildWithTag((DriverRef)self, port);
+    *pOutType = (dp) ? InputDriver_GetInputType(dp) : kInputType_None;
 
     return EOK;
 }
@@ -117,11 +111,10 @@ static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull s
 
 
     Driver_Lock(self);
-    pOldDriver = Driver_CopyChildWithTag((DriverRef)self, port);
+    pOldDriver = Driver_GetChildWithTag((DriverRef)self, port);
     if (pOldDriver) {
         Driver_Terminate((DriverRef)pOldDriver);
         Driver_RemoveChild((DriverRef)self, pOldDriver);
-        Object_Release(pOldDriver);
     }
 
     if (type != kInputType_None) {
