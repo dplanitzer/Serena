@@ -11,11 +11,10 @@
 
 #include <klib/klib.h>
 #include <driver/hid/InputDriver.h>
-#include <driver/hid/EventDriver.h>
 
 
 final_class(MouseDriver, InputDriver);
 
-extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, MouseDriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* MouseDriver_h */

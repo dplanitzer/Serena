@@ -7,6 +7,7 @@
 //
 
 #include "JoystickDriver.h"
+#include <driver/hid/EventDriver.h>
 #include <hal/InterruptController.h>
 
 
@@ -30,7 +31,7 @@ final_class_ivars(DigitalJoystickDriver, InputDriver,
 extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self);
 
 
-errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -65,7 +66,7 @@ errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int p
                                                       &self->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
 
-    *pOutSelf = self;
+    *pOutSelf = (DriverRef)self;
     return EOK;
     
 catch:
@@ -158,7 +159,7 @@ final_class_ivars(AnalogJoystickDriver, InputDriver,
 extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self);
 
 
-errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -190,7 +191,7 @@ errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int po
                                                       &self->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
 
-    *pOutSelf = self;
+    *pOutSelf = (DriverRef)self;
     return EOK;
     
 catch:

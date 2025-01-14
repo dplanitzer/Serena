@@ -12,9 +12,8 @@
 #include "EventDriver.h"
 #include <dispatcher/Lock.h>
 #include "HIDEventQueue.h"
-#include <driver/amiga/hid/JoystickDriver.h>
+#include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/amiga/hid/KeyboardDriver.h>
-#include <driver/amiga/hid/LightPenDriver.h>
 #include <driver/amiga/hid/MouseDriver.h>
 #include "USBHIDKeys.h"
 
@@ -35,13 +34,6 @@ typedef struct LogicalJoystick {
 } LogicalJoystick;
 
 
-// Per port input controller state
-typedef struct InputControllerState {
-    InputControllerType     type;
-    ObjectRef _Nullable     driver;
-} InputControllerState;
-
-
 // Explanation of logical keyboard/mouse device:
 //
 // The event driver maintains a logical keyboard and mouse device. These devices
@@ -56,7 +48,6 @@ final_class_ivars(EventDriver, Driver,
     GraphicsDriverRef _Nonnull  gdevice;
     HIDEventQueueRef _Nonnull   eventQueue;
     KeyboardDriverRef _Nonnull  keyboardDriver;
-    InputControllerState        port[MAX_INPUT_CONTROLLER_PORTS];
 
     // Keyboard Configuration
     const uint8_t*              keyFlags;
@@ -92,9 +83,5 @@ final_class_ivars(EventDriver, Driver,
     // Logical Joystick Devices
     LogicalJoystick             joystick[MAX_INPUT_CONTROLLER_PORTS];
 );
-
-
-extern errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull self, InputControllerType type, int portId);
-extern void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull self, int portId);
 
 #endif /* EventDriverPriv_h */

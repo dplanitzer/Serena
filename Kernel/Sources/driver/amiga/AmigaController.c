@@ -12,6 +12,7 @@
 #include <dispatcher/Lock.h>
 #include <driver/amiga/floppy/FloppyController.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
+#include <driver/amiga/hid/GamePortController.h>
 #include <driver/amiga/RealtimeClock.h>
 #include <driver/amiga/zorro/ZorroController.h>
 #include <driver/disk/RamDisk.h>
@@ -134,11 +135,18 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     Driver_AdoptChild((DriverRef)self, (DriverRef)graphDriver);
 
 
-    // Event Driver
+    // HID
     EventDriverRef eventDriver = NULL;
     try(EventDriver_Create(graphDriver, &eventDriver));
     try(Driver_Start((DriverRef)eventDriver));
     Driver_AdoptChild((DriverRef)self, (DriverRef)eventDriver);
+
+
+    // GamePort
+    GamePortControllerRef gpc = NULL;
+    try(GamePortController_Create(eventDriver, &gpc));
+    try(Driver_Start((DriverRef)gpc));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)gpc);
 
 
     // Initialize the console

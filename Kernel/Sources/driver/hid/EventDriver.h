@@ -11,23 +11,12 @@
 
 #include <klib/klib.h>
 #include <driver/Driver.h>
-#include <driver/amiga/graphics/GraphicsDriver.h>
 #include "HIDEvent.h"
 
 extern const char* const kEventDriverName;
 
 
 final_class(EventDriver, Driver);
-
-
-// Input controller types
-typedef enum InputControllerType {
-    kInputControllerType_None = 0,      // No input controller configured for the port
-    kInputControllerType_Mouse,
-    kInputControllerType_DigitalJoystick,
-    kInputControllerType_AnalogJoystick,
-    kInputControllerType_LightPen
-} InputControllerType;
 
 
 // HID key state
@@ -48,11 +37,6 @@ extern void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull self,
 extern void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull self, int16_t xDelta, int16_t yDelta, uint32_t buttonsDown);
 extern void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull self, int port, int16_t xAbs, int16_t yAbs, uint32_t buttonsDown);
 extern void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull self, int16_t xAbs, int16_t yAbs, bool hasPosition, uint32_t buttonsDown);
-
-
-// Configuring the HID assignment of HID ports to HID drivers
-extern InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull self, int portId);
-extern errno_t EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull self, InputControllerType type, int portId);
 
 
 // Configuring the keyboard

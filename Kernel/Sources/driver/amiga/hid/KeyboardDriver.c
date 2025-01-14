@@ -7,6 +7,7 @@
 //
 
 #include "KeyboardDriver.h"
+#include <driver/hid/EventDriver.h>
 #include <driver/hid/HIDKeyRepeater.h>
 #include <hal/InterruptController.h>
 
@@ -42,7 +43,7 @@ extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self);
 extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self);
 
 
-errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     KeyboardDriverRef self;
@@ -71,7 +72,7 @@ errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, KeyboardDriv
                                                       &self->vblIrqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->vblIrqHandler, true);
 
-    *pOutSelf = self;
+    *pOutSelf = (DriverRef)self;
     return EOK;
 
 catch:

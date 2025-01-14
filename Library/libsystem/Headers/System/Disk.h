@@ -29,6 +29,7 @@ __CPP_BEGIN
 
 
 // Returns information about a disk drive.
+// get_info(DiskInfo* _Nonnull pOutInfo)
 #define kDiskCommand_GetInfo  IOResourceCommand(0)
 
 typedef struct DiskInfo {

@@ -11,16 +11,15 @@
 
 #include <klib/klib.h>
 #include <driver/hid/InputDriver.h>
-#include <driver/hid/EventDriver.h>
 
 
 final_class(DigitalJoystickDriver, InputDriver);
 
-extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DigitalJoystickDriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 final_class(AnalogJoystickDriver, InputDriver);
 
-extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, AnalogJoystickDriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* JoystickDriver_h */

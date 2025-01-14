@@ -7,31 +7,33 @@
 //
 
 #include "LightPenDriver.h"
+#include <driver/amiga/graphics/GraphicsDriver.h>
+#include <driver/hid/EventDriver.h>
 #include <hal/InterruptController.h>
 
 
-final_class_ivars(LightPenDriver, Driver,
+final_class_ivars(LightPenDriver, InputDriver,
     EventDriverRef _Nonnull     eventDriver;
     GraphicsDriverRef _Nonnull  gdevice;
     InterruptHandlerID          irqHandler;
-    volatile uint16_t*            reg_potgor;
-    uint16_t                      right_button_mask;
-    uint16_t                      middle_button_mask;
-    int16_t                       smoothedX;
-    int16_t                       smoothedY;
+    volatile uint16_t*          reg_potgor;
+    uint16_t                    right_button_mask;
+    uint16_t                    middle_button_mask;
+    int16_t                     smoothedX;
+    int16_t                     smoothedY;
     bool                        hasSmoothedPosition;    // True if the light pen position is available (pen triggered the position latching hardware); false otherwise
-    int16_t                       sumX;
-    int16_t                       sumY;
-    int8_t                        sampleCount;    // How many samples to average to produce a smoothed value
-    int8_t                        sampleIndex;    // Current sample in the range 0..<sampleCount
-    int8_t                        triggerCount;   // Number of times that the light pen has triggered in the 'sampleCount' interval
-    int8_t                        port;
+    int16_t                     sumX;
+    int16_t                     sumY;
+    int8_t                      sampleCount;    // How many samples to average to produce a smoothed value
+    int8_t                      sampleIndex;    // Current sample in the range 0..<sampleCount
+    int8_t                      triggerCount;   // Number of times that the light pen has triggered in the 'sampleCount' interval
+    int8_t                      port;
 );
 
 extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self);
 
 
-errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, LightPenDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -69,7 +71,7 @@ errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Li
                                                       &self->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
 
-    *pOutSelf = self;
+    *pOutSelf = (DriverRef)self;
     return EOK;
     
 catch:
@@ -87,6 +89,11 @@ static void LightPenDriver_deinit(LightPenDriverRef _Nonnull self)
 
     Object_Release(self->eventDriver);
     self->eventDriver = NULL;
+}
+
+InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)
+{
+    return kInputType_LightPen;
 }
 
 void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
@@ -139,6 +146,7 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
 }
 
 
-class_func_defs(LightPenDriver, Driver,
+class_func_defs(LightPenDriver, InputDriver,
 override_func_def(deinit, LightPenDriver, Object)
+override_func_def(getInputType, LightPenDriver, InputDriver)
 );

@@ -116,7 +116,7 @@ static errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
         }
 
         Driver_Unpublish((DriverRef)self);
-    };
+    }
 
     return err;
 }

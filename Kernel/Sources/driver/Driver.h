@@ -117,14 +117,15 @@ typedef enum DriverState {
 // card functionality plus a child driver for the sound chip and another child
 // driver for the CD-ROM drive.
 open_class(Driver, Object,
-    Lock                lock;
-    ListNode            childNode;
-    List/*<Driver>*/    children;
-    uint16_t            options;
-    uint8_t             flags;
-    int8_t              state;
-    int                 openCount;
-    DriverCatalogId     driverCatalogId;
+    Lock                    lock;
+    ListNode/*<Driver>*/    childNode;
+    List/*<Driver>*/        children;
+    uint16_t                options;
+    uint8_t                 flags;
+    int8_t                  state;
+    int                     openCount;
+    DriverCatalogId         driverCatalogId;
+    intptr_t                tag;
 );
 open_class_funcs(Driver, Object,
     
@@ -237,6 +238,17 @@ extern errno_t Driver_Ioctl(DriverRef _Nonnull self, int cmd, ...);
 invoke_n(ioctl, Driver, __self, __cmd, __ap)
 
 
+// Set a tag on the driver. A tag is a value that a controller driver may assign
+// to one of its child drivers. It can then look up a child based on its tag.
+// Note that a tag must be set on a driver before its start() method is called
+// and once set, the tag can not be changed anymore.
+extern errno_t Driver_SetTag(DriverRef _Nonnull self, intptr_t tag);
+
+// Returns the driver's tag. 0 is returned if the driver has no tag assigned to
+// it.
+extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
+
+
 //
 // Subclassers
 //
@@ -305,6 +317,17 @@ extern void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnul
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver. Call this function from a onStop() override.
 extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
+
+// Removes the first child driver with the tag 'tag'.
+extern void Driver_RemoveChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag);
+
+// Replaces the first child with the tag 'tag' with the new driver 'pNewChild'.
+// Simply removes the existing child if 'pNewChild' is NULL.
+extern void Driver_ReplaceChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag, DriverRef _Nonnull pNewChild);
+
+// Returns a strong reference to the child driver with tag 'tag'. NULL is returned
+// if no such child driver exists.
+extern DriverRef _Nullable Driver_CopyChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag);
 
 
 // Do not call directly. Use the Driver_Create() macro instead

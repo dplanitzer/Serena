@@ -7,6 +7,7 @@
 //
 
 #include "MouseDriver.h"
+#include <driver/hid/EventDriver.h>
 #include <hal/InterruptController.h>
 
 
@@ -28,7 +29,7 @@ final_class_ivars(MouseDriver, InputDriver,
 extern void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull self);
 
 
-errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, MouseDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -64,7 +65,7 @@ errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Mouse
                                                       &self->irqHandler));
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, self->irqHandler, true);
 
-    *pOutSelf = self;
+    *pOutSelf = (DriverRef)self;
     return EOK;
     
 catch:

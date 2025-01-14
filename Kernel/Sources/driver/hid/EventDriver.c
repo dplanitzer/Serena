@@ -76,16 +76,9 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
 
 
     // Open the keyboard driver
-    try(KeyboardDriver_Create(self, &self->keyboardDriver));
+    try(KeyboardDriver_Create(self, (DriverRef*)&self->keyboardDriver));
     try(Driver_Start((DriverRef)self->keyboardDriver));
     Driver_AdoptChild((DriverRef)self, (DriverRef)self->keyboardDriver);
-
-
-    // Open the mouse/joystick/light pen driver
-    for (int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
-        self->port[i].type = kInputControllerType_None;
-    }
-    try(EventDriver_CreateInputControllerForPort(self, kInputControllerType_Mouse, 0));
 
 
     // XXX
@@ -104,10 +97,6 @@ catch:
 
 void EventDriver_deinit(EventDriverRef _Nonnull self)
 {
-    for (int i = 0; i < MAX_INPUT_CONTROLLER_PORTS; i++) {
-        EventDriver_DestroyInputControllerForPort(self, i);
-    }
-    
     HIDEventQueue_Destroy(self->eventQueue);
 
     Object_Release(self->gdevice);
@@ -327,96 +316,6 @@ void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull self, int po
 // MARK: -
 // MARK: Kernel API
 ////////////////////////////////////////////////////////////////////////////////
-
-// Creates a new input controller driver instance for the port 'portId'. Expects that the port
-// is currently unassigned (aka type is == 'none').
-errno_t EventDriver_CreateInputControllerForPort(EventDriverRef _Nonnull self, InputControllerType type, int portId)
-{
-    decl_try_err();
-
-    switch (type) {
-        case kInputControllerType_None:
-            self->port[portId].driver = NULL;
-            break;
-            
-        case kInputControllerType_Mouse:
-            try(MouseDriver_Create(self, portId, (MouseDriverRef*)&self->port[portId].driver));
-            break;
-            
-        case kInputControllerType_DigitalJoystick:
-            try(DigitalJoystickDriver_Create(self, portId, (DigitalJoystickDriverRef*)&self->port[portId].driver));
-            self->joystick[portId].buttonsDown = 0;
-            self->joystick[portId].xAbs = 0;
-            self->joystick[portId].yAbs = 0;
-            break;
-            
-        case kInputControllerType_AnalogJoystick:
-            try(AnalogJoystickDriver_Create(self, portId, (AnalogJoystickDriverRef*)&self->port[portId].driver));
-            self->joystick[portId].buttonsDown = 0;
-            self->joystick[portId].xAbs = 0;
-            self->joystick[portId].yAbs = 0;
-            break;
-            
-        case kInputControllerType_LightPen:
-            try(LightPenDriver_Create(self, portId, (LightPenDriverRef*)&self->port[portId].driver));
-            break;
-            
-        default:
-            abort();
-    }
-    
-    try(Driver_Start((DriverRef)self->port[portId].driver));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)self->port[portId].driver);
-    self->port[portId].type = type;
-
-catch:
-    return err;
-}
-
-// Destroys the input controller that is configured for port 'portId'. This frees the input controller
-// specific driver and all associated state
-void EventDriver_DestroyInputControllerForPort(EventDriverRef _Nonnull self, int portId)
-{
-    if (self->port[portId].driver) {
-        Driver_Terminate((DriverRef) self->port[portId].driver);
-        Driver_RemoveChild((DriverRef)self, (DriverRef) self->port[portId].driver);
-        self->port[portId].driver = NULL;
-        self->port[portId].type = kInputControllerType_None;
-    }
-}
-
-InputControllerType EventDriver_GetInputControllerTypeForPort(EventDriverRef _Nonnull self, int portId)
-{
-    assert(portId >= 0 && portId < MAX_INPUT_CONTROLLER_PORTS);
-    
-    Lock_Lock(&self->lock);
-    const InputControllerType type = self->port[portId].type;
-    Lock_Unlock(&self->lock);
-    return type;
-}
-
-errno_t EventDriver_SetInputControllerTypeForPort(EventDriverRef _Nonnull self, InputControllerType type, int portId)
-{
-    decl_try_err();
-    bool needsUnlock = false;
-
-    if (portId < 0 || portId >= MAX_INPUT_CONTROLLER_PORTS) {
-        throw(ENODEV);
-    }
-
-    Lock_Lock(&self->lock);
-    needsUnlock = true;
-    EventDriver_DestroyInputControllerForPort(self, portId);
-    try(EventDriver_CreateInputControllerForPort(self, type, portId));
-    Lock_Unlock(&self->lock);
-    return EOK;
-
-catch:
-    if (needsUnlock) {
-        Lock_Unlock(&self->lock);
-    }
-    return err;
-}
 
 void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {

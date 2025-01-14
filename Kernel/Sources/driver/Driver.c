@@ -36,6 +36,15 @@ catch:
     return err;
 }
 
+void Driver_deinit(DriverRef _Nonnull self)
+{
+    List_ForEach(&self->children, struct Driver,
+        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
+
+        Object_Release(pCurDriver);
+    );
+}
+
 // Starts the driver. A driver may only be started once. It can not be restarted
 // after it has been stopped. A driver is started after the hardware has been
 // detected and the driver instance created. The driver should reset the hardware
@@ -283,6 +292,29 @@ void Driver_Unpublish(DriverRef _Nonnull _Locked self)
 }
 
 
+errno_t Driver_SetTag(DriverRef _Nonnull self, intptr_t tag)
+{
+    Driver_Lock(self);
+    if (self->state != kDriverState_Inactive) {
+        return EBUSY;
+    }
+
+    self->tag = tag;
+    Driver_Unlock(self);
+    return EOK;
+}
+
+// Returns the driver's tag. 0 is returned if the driver has no tag assigned to
+// it.
+intptr_t Driver_GetTag(DriverRef _Nonnull self)
+{
+    Driver_Lock(self);
+    const intptr_t tag = self->tag;
+    Driver_Unlock(self);
+    return tag;
+}
+
+
 // Adds the given driver as a child to the receiver.
 void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)
 {
@@ -323,8 +355,66 @@ void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChi
     }
 }
 
+// Removes the first child driver with the tag 'tag'.
+void Driver_RemoveChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag)
+{
+    Driver_ReplaceChildWithTag(self, tag, NULL);
+}
+
+// Replaces the first child with the tag 'tag' with the new driver 'pNewChild'.
+// Simply removes the existing child if 'pNewChild' is NULL.
+void Driver_ReplaceChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag, DriverRef _Nonnull pNewChild)
+{
+    DriverRef pOldChild = NULL;
+
+    if (!Driver_IsActive(self)) {
+        return;
+    }
+
+    List_ForEach(&self->children, struct Driver,
+        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
+
+        if (pCurDriver->tag == tag) {
+            pOldChild = pCurDriver;
+            break;
+        }
+    );
+
+    if (pOldChild) {
+        ListNode* prevNode = pOldChild->childNode.prev;
+
+        List_Remove(&self->children, &pOldChild->childNode);
+        Object_Release(pOldChild);
+
+        if (pNewChild) {
+            List_InsertAfter(&self->children, &pNewChild->childNode, prevNode);
+            Object_Retain(pNewChild);
+        }
+    }
+}
+
+// Returns a strong reference to the child driver with tag 'tag'. NULL is returned
+// if no such child driver exists.
+DriverRef _Nullable Driver_CopyChildWithTag(DriverRef _Nonnull _Locked self, intptr_t tag)
+{
+    if (!Driver_IsActive(self)) {
+        return NULL;
+    }
+
+    List_ForEach(&self->children, struct Driver,
+        DriverRef pCurDriver = DriverFromChildNode(pCurNode);
+
+        if (pCurDriver->tag == tag) {
+            return Object_RetainAs(pCurDriver, Driver);
+        }
+    );
+
+    return NULL;
+}
+
 
 class_func_defs(Driver, Object,
+override_func_def(deinit, Driver, Object)
 func_def(onStart, Driver)
 func_def(onStop, Driver)
 func_def(onPublish, Driver)
