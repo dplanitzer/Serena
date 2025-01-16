@@ -8,12 +8,11 @@
 
 #include "LightPenDriver.h"
 #include <driver/amiga/graphics/GraphicsDriver.h>
-#include <driver/hid/EventDriver.h>
+#include <driver/hid/HIDManager.h>
 #include <hal/InterruptController.h>
 
 
 final_class_ivars(LightPenDriver, InputDriver,
-    EventDriverRef _Nonnull     eventDriver;
     GraphicsDriverRef _Nonnull  gdevice;
     InterruptHandlerID          irqHandler;
     volatile uint16_t*          reg_potgor;
@@ -33,7 +32,7 @@ final_class_ivars(LightPenDriver, InputDriver,
 extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self);
 
 
-errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -45,8 +44,7 @@ errno_t LightPenDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Dr
     
     try(Driver_Create(LightPenDriver, 0, &self));
     
-    self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    self->gdevice = Object_RetainAs(EventDriver_GetGraphicsDriver(pEventDriver), GraphicsDriver);
+    self->gdevice = Object_RetainAs(HIDManager_GetGraphicsDriver(gHIDManager), GraphicsDriver);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
     self->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
@@ -86,9 +84,6 @@ static void LightPenDriver_deinit(LightPenDriverRef _Nonnull self)
     
     Object_Release(self->gdevice);
     self->gdevice = NULL;
-
-    Object_Release(self->eventDriver);
-    self->eventDriver = NULL;
 }
 
 InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)
@@ -142,7 +137,7 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
     }
     
 
-    EventDriver_ReportLightPenDeviceChange(self->eventDriver, xAbs, yAbs, hasPosition, buttonsDown);
+    HIDManager_ReportLightPenDeviceChange(gHIDManager, xAbs, yAbs, hasPosition, buttonsDown);
 }
 
 

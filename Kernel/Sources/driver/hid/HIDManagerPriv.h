@@ -1,21 +1,21 @@
 //
-//  EventDriverPriv.h
+//  HIDManagerPriv.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 10/04/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef EventDriverPriv_h
-#define EventDriverPriv_h
+#ifndef HIDManagerPriv_h
+#define HIDManagerPriv_h
 
-#include "EventDriver.h"
-#include <dispatcher/Lock.h>
+#include "HIDManager.h"
 #include "HIDEventQueue.h"
+#include "USBHIDKeys.h"
+#include <dispatcher/Lock.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/amiga/hid/KeyboardDriver.h>
 #include <driver/amiga/hid/MouseDriver.h>
-#include "USBHIDKeys.h"
 
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep
@@ -42,12 +42,12 @@ typedef struct LogicalJoystick {
 // However these devices are logical in the sense that multiple hardware devices
 // may contribute to their state. Eg multiple keyboards may contribute to the
 // logical keyboard and multiple mice and other devices such as a joystick or
-// light pen may contribute to the state of the logical mouse. 
-final_class_ivars(EventDriver, Driver,
+// light pen may contribute to the state of the logical mouse.
+typedef struct HIDManager {
     Lock                        lock;
     GraphicsDriverRef _Nonnull  gdevice;
     HIDEventQueueRef _Nonnull   eventQueue;
-    KeyboardDriverRef _Nonnull  keyboardDriver;
+    KeyboardDriverRef _Nullable keyboardDriver;
 
     // Keyboard Configuration
     const uint8_t*              keyFlags;
@@ -82,6 +82,6 @@ final_class_ivars(EventDriver, Driver,
 
     // Logical Joystick Devices
     LogicalJoystick             joystick[MAX_INPUT_CONTROLLER_PORTS];
-);
+} HIDManager;
 
-#endif /* EventDriverPriv_h */
+#endif /* HIDManagerPriv_h */

@@ -103,4 +103,12 @@ typedef struct HIDEvent {
     HIDEventData    data;
 } HIDEvent;
 
+
+// HID key state
+typedef enum HIDKeyState {
+    kHIDKeyState_Down,
+    kHIDKeyState_Repeat,
+    kHIDKeyState_Up
+} HIDKeyState;
+
 #endif /* HIDEvent_h */

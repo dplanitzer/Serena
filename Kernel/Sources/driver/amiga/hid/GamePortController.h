@@ -11,11 +11,10 @@
 
 #include <klib/klib.h>
 #include <driver/Driver.h>
-#include <driver/hid/EventDriver.h>
 
 
 final_class(GamePortController, Driver);
 
-extern errno_t GamePortController_Create(EventDriverRef _Nonnull pEventDriver, GamePortControllerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* GamePortController_h */

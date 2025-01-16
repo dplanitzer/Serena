@@ -1,15 +1,15 @@
 //
-//  EventDriver.c
+//  HIDManager.c
 //  kernel
 //
-//  Created by Dietmar Planitzer on 5/31/21.
-//  Copyright © 2021 Dietmar Planitzer. All rights reserved.
+//  Created by Dietmar Planitzer on 1/14/25.
+//  Copyright © 2025 Dietmar Planitzer. All rights reserved.
 //
 
-#include "EventDriverPriv.h"
-#include "EventChannel.h"
+#include "HIDManagerPriv.h"
 
-const char* const kEventDriverName = "events";
+HIDManagerRef _Nonnull gHIDManager;
+
 
 //extern const uint16_t gArrow_Bits[];
 //extern const uint16_t gArrow_Mask[];
@@ -45,12 +45,12 @@ static const uint8_t gUSBHIDKeyFlags[256] = {
 };
 
 
-errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t HIDManager_Create(GraphicsDriverRef _Nonnull gdevice, HIDManagerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
-    EventDriverRef self;
+    HIDManagerRef self;
     
-    try(Driver_Create(EventDriver, 0, &self));
+    try(kalloc_cleared(sizeof(HIDManager), (void**)&self));
 
     Lock_Init(&self->lock);
     self->gdevice = Object_RetainAs(gdevice, GraphicsDriver);
@@ -74,18 +74,6 @@ errno_t EventDriver_Create(GraphicsDriverRef _Nonnull gdevice, EventDriverRef _N
     // Create the HID event queue
     try(HIDEventQueue_Create(REPORT_QUEUE_MAX_EVENTS, &self->eventQueue));
 
-
-    // Open the keyboard driver
-    try(KeyboardDriver_Create(self, (DriverRef*)&self->keyboardDriver));
-    try(Driver_Start((DriverRef)self->keyboardDriver));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)self->keyboardDriver);
-
-
-    // XXX
-    //GraphicsDriver_SetMouseCursor(gdevice, gArrow_Bits, gArrow_Mask);
-    //EventDriver_ShowMouseCursor(self);
-    // XXX
-
     *pOutSelf = self;
     return EOK;
     
@@ -95,19 +83,28 @@ catch:
     return err;
 }
 
-void EventDriver_deinit(EventDriverRef _Nonnull self)
+errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 {
-    HIDEventQueue_Destroy(self->eventQueue);
+    decl_try_err();
+    
+    // Open the keyboard driver
+//    try(KeyboardDriver_Create((DriverRef*)&self->keyboardDriver));
+//    try(Driver_Start((DriverRef)self->keyboardDriver));
+//    Driver_AdoptChild((DriverRef)self, (DriverRef)self->keyboardDriver);
 
-    Object_Release(self->gdevice);
-    self->gdevice = NULL;
 
-    Lock_Deinit(&self->lock);
+    // XXX
+    //GraphicsDriver_SetMouseCursor(gdevice, gArrow_Bits, gArrow_Mask);
+    //HIDManager_ShowMouseCursor(self);
+    // XXX
+
+catch:
+    return err;
 }
 
-static errno_t EventDriver_onStart(DriverRef _Nonnull _Locked self)
+void HIDManager_SetKeyboard(HIDManagerRef _Nonnull self, DriverRef _Nonnull kb)
 {
-    return Driver_Publish(self, kEventDriverName, 0);
+    self->keyboardDriver = Object_RetainAs(kb, KeyboardDriver);
 }
 
 
@@ -116,12 +113,7 @@ static errno_t EventDriver_onStart(DriverRef _Nonnull _Locked self)
 // MARK: Input Driver API
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t EventDriver_createChannel(EventDriverRef _Nonnull _Locked self, unsigned int mode, intptr_t arg, IOChannelRef _Nullable * _Nonnull pOutChannel)
-{
-    return EventChannel_Create(self, mode, pOutChannel);
-}
-
-GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull self)
+GraphicsDriverRef _Nonnull HIDManager_GetGraphicsDriver(HIDManagerRef _Nonnull self)
 {
     return self->gdevice;
 }
@@ -130,7 +122,7 @@ GraphicsDriverRef _Nonnull EventDriver_GetGraphicsDriver(EventDriverRef _Nonnull
 // the state of the logical keyboard and it posts a suitable keyboard event to
 // the event queue.
 // Must be called from the interrupt context with interrupts turned off.
-void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull self, HIDKeyState keyState, uint16_t keyCode)
+void HIDManager_ReportKeyboardDeviceChange(HIDManagerRef _Nonnull self, HIDKeyState keyState, uint16_t keyCode)
 {
     // Update the key map
     const uint32_t wordIdx = keyCode >> 5;
@@ -187,7 +179,7 @@ void EventDriver_ReportKeyboardDeviceChange(EventDriverRef _Nonnull self, HIDKey
 // \param xDelta change in mouse position X since last invocation
 // \param yDelta change in mouse position Y since last invocation
 // \param buttonsDown absolute state of the mouse buttons (0 -> left button, 1 -> right button, 2-> middle button, ...) 
-void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull self, int16_t xDelta, int16_t yDelta, uint32_t buttonsDown)
+void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDelta, int16_t yDelta, uint32_t buttonsDown)
 {
     const uint32_t oldButtonsDown = self->mouseButtons;
     const bool hasButtonsChange = (oldButtonsDown != buttonsDown);
@@ -247,12 +239,12 @@ void EventDriver_ReportMouseDeviceChange(EventDriverRef _Nonnull self, int16_t x
 // \param yAbs absolute light pen Y coordinate
 // \param hasPosition true if the light pen triggered and a position could be sampled
 // \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull self, int16_t xAbs, int16_t yAbs, bool hasPosition, uint32_t buttonsDown)
+void HIDManager_ReportLightPenDeviceChange(HIDManagerRef _Nonnull self, int16_t xAbs, int16_t yAbs, bool hasPosition, uint32_t buttonsDown)
 {
     const int16_t xDelta = (hasPosition) ? xAbs - self->mouseX : self->mouseX;
     const int16_t yDelta = (hasPosition) ? yAbs - self->mouseY : self->mouseY;
     
-    EventDriver_ReportMouseDeviceChange(self, xDelta, yDelta, buttonsDown);
+    HIDManager_ReportMouseDeviceChange(self, xDelta, yDelta, buttonsDown);
 }
 
 // Reports a change in the state of a joystick device. Posts suitable events to
@@ -262,7 +254,7 @@ void EventDriver_ReportLightPenDeviceChange(EventDriverRef _Nonnull self, int16_
 // \param xAbs current joystick X axis state (int16_t.min -> 100% left, 0 -> resting, int16_t.max -> 100% right)
 // \param yAbs current joystick Y axis state (int16_t.min -> 100% up, 0 -> resting, int16_t.max -> 100% down)
 // \param buttonsDown absolute state of the buttons (Button #0 -> 0, Button #1 -> 1, ...) 
-void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull self, int port, int16_t xAbs, int16_t yAbs, uint32_t buttonsDown)
+void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port, int16_t xAbs, int16_t yAbs, uint32_t buttonsDown)
 {
     // Generate joystick button up/down events
     const uint32_t oldButtonsDown = self->joystick[port].buttonsDown;
@@ -317,14 +309,14 @@ void EventDriver_ReportJoystickDeviceChange(EventDriverRef _Nonnull self, int po
 // MARK: Kernel API
 ////////////////////////////////////////////////////////////////////////////////
 
-void EventDriver_GetKeyRepeatDelays(EventDriverRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
+void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
     Lock_Lock(&self->lock);
     KeyboardDriver_GetKeyRepeatDelays(self->keyboardDriver, pInitialDelay, pRepeatDelay);
     Lock_Unlock(&self->lock);
 }
 
-void EventDriver_SetKeyRepeatDelays(EventDriverRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
+void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
 {
     Lock_Lock(&self->lock);
     KeyboardDriver_SetKeyRepeatDelays(self->keyboardDriver, initialDelay, repeatDelay);
@@ -347,7 +339,7 @@ static inline bool KeyMap_IsKeyDown(const uint32_t* _Nonnull pKeyMap, uint16_t k
 // potentially (slightly) different from the state you get from inspecting the
 // events in the event stream because the event stream lags the hardware state
 // slightly.
-void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
+void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown)
 {
     int oi = 0;
     const int irs = cpu_disable_irqs();
@@ -390,7 +382,7 @@ void EventDriver_GetDeviceKeysDown(EventDriverRef _Nonnull self, const HIDKeyCod
     *nKeysDown = oi;
 }
 
-void EventDriver_SetMouseCursor(EventDriverRef _Nonnull self, const void* pBitmap, const void* pMask)
+void HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const void* pBitmap, const void* pMask)
 {
     GraphicsDriver_SetMouseCursor(self->gdevice, pBitmap, pMask);
 }
@@ -398,7 +390,7 @@ void EventDriver_SetMouseCursor(EventDriverRef _Nonnull self, const void* pBitma
 // Show the mouse cursor. This decrements the hidden counter. The mouse cursor
 // is only shown if this counter reaches zero. The operation is carried out at
 // the next vertical blank.
-void EventDriver_ShowMouseCursor(EventDriverRef _Nonnull self)
+void HIDManager_ShowMouseCursor(HIDManagerRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
     self->mouseCursorHiddenCounter--;
@@ -414,7 +406,7 @@ void EventDriver_ShowMouseCursor(EventDriverRef _Nonnull self)
 // Hides the mouse cursor. This increments the hidden counter. The mouse remains
 // hidden as long as the counter does not reach the value zero. The operation is
 // carried out at the next vertical blank.
-void EventDriver_HideMouseCursor(EventDriverRef _Nonnull self)
+void HIDManager_HideMouseCursor(HIDManagerRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
     if (self->mouseCursorHiddenCounter == 0) {
@@ -424,13 +416,13 @@ void EventDriver_HideMouseCursor(EventDriverRef _Nonnull self)
     Lock_Unlock(&self->lock);
 }
 
-void EventDriver_SetMouseCursorHiddenUntilMouseMoves(EventDriverRef _Nonnull self, bool flag)
+void HIDManager_SetMouseCursorHiddenUntilMouseMoves(HIDManagerRef _Nonnull self, bool flag)
 {
     GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(self->gdevice, flag);
 }
 
 // Returns the current mouse location in screen space.
-Point EventDriver_GetMouseDevicePosition(EventDriverRef _Nonnull self)
+Point HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self)
 {
     Point loc;
     
@@ -442,7 +434,7 @@ Point EventDriver_GetMouseDevicePosition(EventDriverRef _Nonnull self)
 }
 
 // Returns a bit mask of all the mouse buttons that are currently pressed.
-uint32_t EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull self)
+uint32_t HIDManager_GetMouseDeviceButtonsDown(HIDManagerRef _Nonnull self)
 {
     const int irs = cpu_disable_irqs();
     const uint32_t buttons = self->mouseButtons;
@@ -458,14 +450,14 @@ uint32_t EventDriver_GetMouseDeviceButtonsDown(EventDriverRef _Nonnull self)
 
 // Returns events in the order oldest to newest. As many events are returned as
 // fit in the provided buffer. Only blocks the caller if no events are queued.
-errno_t EventDriver_read(EventDriverRef _Nonnull self, EventChannelRef _Nonnull pChannel, void* _Nonnull pBuffer, ssize_t nBytesToRead, ssize_t* _Nonnull nOutBytesRead)
+errno_t HIDManager_GetEvents(HIDManagerRef _Nonnull self, void* _Nonnull pBuffer, ssize_t nBytesToRead, TimeInterval timeout, ssize_t* _Nonnull nOutBytesRead)
 {
     decl_try_err();
     HIDEvent* pEvent = (HIDEvent*)pBuffer;
     ssize_t nBytesRead = 0;
 
     while ((nBytesRead + sizeof(HIDEvent)) <= nBytesToRead) {
-        const errno_t e1 = HIDEventQueue_Get(self->eventQueue, pEvent, pChannel->timeout);
+        const errno_t e1 = HIDEventQueue_Get(self->eventQueue, pEvent, timeout);
 
         if (e1 != EOK) {
             // Return with an error if we were not able to read any event data at
@@ -482,11 +474,3 @@ errno_t EventDriver_read(EventDriverRef _Nonnull self, EventChannelRef _Nonnull 
     *nOutBytesRead = nBytesRead;
     return err;
 }
-
-
-class_func_defs(EventDriver, Driver,
-override_func_def(deinit, EventDriver, Object)
-override_func_def(onStart, EventDriver, Driver)
-override_func_def(createChannel, EventDriver, Driver)
-override_func_def(read, EventDriver, Driver)
-);

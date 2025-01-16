@@ -15,7 +15,7 @@
 
 final_class(KeyboardDriver, InputDriver);
 
-extern errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf);
 
 extern void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);
 extern void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay);

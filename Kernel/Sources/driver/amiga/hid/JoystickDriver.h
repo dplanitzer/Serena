@@ -15,11 +15,11 @@
 
 final_class(DigitalJoystickDriver, InputDriver);
 
-extern errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t DigitalJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 
 final_class(AnalogJoystickDriver, InputDriver);
 
-extern errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t AnalogJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* JoystickDriver_h */

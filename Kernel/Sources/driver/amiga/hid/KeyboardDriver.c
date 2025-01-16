@@ -7,7 +7,7 @@
 //
 
 #include "KeyboardDriver.h"
-#include <driver/hid/EventDriver.h>
+#include <driver/hid/HIDManager.h>
 #include <driver/hid/HIDKeyRepeater.h>
 #include <hal/InterruptController.h>
 
@@ -29,7 +29,6 @@ static const uint8_t gUSBHIDKeycodes[128] = {
 
 final_class_ivars(KeyboardDriver, InputDriver,
     const uint8_t* _Nonnull     keyCodeMap;
-    EventDriverRef _Nonnull     eventDriver;
     HIDKeyRepeaterRef _Nonnull  keyRepeater;
     InterruptHandlerID          keyboardIrqHandler;
     InterruptHandlerID          vblIrqHandler;
@@ -43,7 +42,7 @@ extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self);
 extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self);
 
 
-errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     KeyboardDriverRef self;
@@ -51,8 +50,7 @@ errno_t KeyboardDriver_Create(EventDriverRef _Nonnull pEventDriver, DriverRef _N
     try(InputDriver_Create(KeyboardDriver, 0, &self));
     
     self->keyCodeMap = gUSBHIDKeycodes;
-    self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-    try(HIDKeyRepeater_Create(pEventDriver, &self->keyRepeater));
+    try(HIDKeyRepeater_Create(&self->keyRepeater));
 
     ksb_init();
 
@@ -88,9 +86,6 @@ static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
 
     HIDKeyRepeater_Destroy(self->keyRepeater);
     self->keyRepeater = NULL;
-
-    Object_Release(self->eventDriver);
-    self->eventDriver = NULL;
 }
 
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
@@ -119,7 +114,7 @@ void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self)
     const uint16_t code = (uint16_t)self->keyCodeMap[keyCode & 0x7f];
 
     if (code > 0) {
-        EventDriver_ReportKeyboardDeviceChange(self->eventDriver, state, code);
+        HIDManager_ReportKeyboardDeviceChange(gHIDManager, state, code);
         if (state == kHIDKeyState_Up) {
             HIDKeyRepeater_KeyUp(self->keyRepeater, code);
         } else {

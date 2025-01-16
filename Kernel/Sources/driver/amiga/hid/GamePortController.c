@@ -16,35 +16,16 @@
 
 
 final_class_ivars(GamePortController, Driver,
-    EventDriverRef _Nonnull eventDriver;
 );
 
 
-errno_t GamePortController_Create(EventDriverRef _Nonnull pEventDriver, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    decl_try_err();
-    GamePortControllerRef self;
-    
-    try(Driver_Create(GamePortController, 0, &self));
-    self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
-
-    *pOutSelf = self;
-    return EOK;
-
-catch:
-    Object_Release(self);
-    *pOutSelf = NULL;
-    return err;
-}
-
-void GamePortController_deinit(GamePortControllerRef _Nonnull self)
-{
-    Object_Release(self->eventDriver);
-    self->eventDriver = NULL;
+    return Driver_Create(GamePortController, 0, (DriverRef*)pOutSelf);
 }
 
 
-static errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
+errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
 {
     return Driver_Publish((DriverRef)self, "gp-bus", 0);
 }
@@ -72,16 +53,16 @@ static errno_t GamePortController_CreateInputDriver(GamePortControllerRef _Nonnu
 {
     switch (type) {
         case kInputType_Mouse:
-            return MouseDriver_Create(self->eventDriver, port, pOutDriver);
+            return MouseDriver_Create(port, pOutDriver);
 
         case kInputType_DigitalJoystick:
-            return DigitalJoystickDriver_Create(self->eventDriver, port, pOutDriver);
+            return DigitalJoystickDriver_Create(port, pOutDriver);
 
         case kInputType_AnalogJoystick:
-            return AnalogJoystickDriver_Create(self->eventDriver, port, pOutDriver);
+            return AnalogJoystickDriver_Create(port, pOutDriver);
 
         case kInputType_LightPen:
-            return LightPenDriver_Create(self->eventDriver, port, pOutDriver);
+            return LightPenDriver_Create(port, pOutDriver);
 
         default:
             abort();
@@ -143,7 +124,6 @@ errno_t GamePortController_ioctl(GamePortControllerRef _Nonnull self, int cmd, v
 
 
 class_func_defs(GamePortController, Driver,
-override_func_def(deinit, GamePortController, Object)
 override_func_def(onStart, GamePortController, Driver)
 override_func_def(ioctl, GamePortController, Driver)
 );

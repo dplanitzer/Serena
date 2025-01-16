@@ -13,11 +13,13 @@
 #include <driver/amiga/floppy/FloppyController.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/amiga/hid/GamePortController.h>
+#include <driver/amiga/hid/KeyboardDriver.h>
 #include <driver/amiga/RealtimeClock.h>
 #include <driver/amiga/zorro/ZorroController.h>
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
-#include <driver/hid/EventDriver.h>
+#include <driver/hid/HIDDriver.h>
+#include <driver/hid/HIDManager.h>
 #include <driver/DriverCatalog.h>
 #include <driver/NullDriver.h>
 #include <filesystem/DiskFSContainer.h>
@@ -129,29 +131,39 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
         //pVideoConfig = &kScreenConfig_PAL_640_512_25;
     }
     
-    GraphicsDriverRef graphDriver = NULL;
-    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &graphDriver));
-    try(Driver_Start((DriverRef)graphDriver));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)graphDriver);
+    GraphicsDriverRef fb = NULL;
+    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &fb));
+    try(Driver_Start((DriverRef)fb));
+    Driver_AdoptChild((DriverRef)self, (DriverRef)fb);
 
 
     // HID
-    EventDriverRef eventDriver = NULL;
-    try(EventDriver_Create(graphDriver, &eventDriver));
-    try(Driver_Start((DriverRef)eventDriver));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)eventDriver);
+    try(HIDManager_Create(fb, &gHIDManager));//XXX
+
+    DriverRef hid = NULL;
+    try(HIDDriver_Create(&hid));
+    try(Driver_Start(hid));
+    Driver_AdoptChild((DriverRef)self, hid);
+
+
+    // Keyboard
+    DriverRef kb;
+    try(KeyboardDriver_Create(&kb));
+    try(Driver_Start(kb));
+    Driver_AdoptChild((DriverRef)self, kb);
+    HIDManager_SetKeyboard(gHIDManager, kb);//XXX
 
 
     // GamePort
     GamePortControllerRef gpc = NULL;
-    try(GamePortController_Create(eventDriver, &gpc));
+    try(GamePortController_Create(&gpc));
     try(Driver_Start((DriverRef)gpc));
     Driver_AdoptChild((DriverRef)self, (DriverRef)gpc);
 
 
     // Initialize the console
     ConsoleRef console = NULL;
-    try(Console_Create("/events", graphDriver, &console));
+    try(Console_Create("/hid", fb, &console));
     try(Driver_Start((DriverRef)console));
     Driver_AdoptChild((DriverRef)self, (DriverRef)console);
 

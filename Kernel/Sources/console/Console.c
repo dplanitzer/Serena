@@ -9,7 +9,6 @@
 #include "ConsolePriv.h"
 #include "ConsoleChannel.h"
 #include <driver/DriverCatalog.h>
-#include <driver/hid/EventChannel.h>
 
 const char* const kConsoleName = "console";
 
@@ -30,7 +29,7 @@ errno_t Console_Create(const char* _Nonnull eventDriverPath, GraphicsDriverRef _
 
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
-    try(DriverCatalog_OpenDriver(gDriverCatalog, eventDriverPath, kOpen_Read, &self->eventDriverChannel));
+    try(DriverCatalog_OpenDriver(gDriverCatalog, eventDriverPath, kOpen_Read, &self->hidDriverChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     self->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);
@@ -85,8 +84,8 @@ void Console_deinit(ConsoleRef _Nonnull self)
     Object_Release(self->gdevice);
     self->gdevice = NULL;
 
-    IOChannel_Release(self->eventDriverChannel);
-    self->eventDriverChannel = NULL;
+    IOChannel_Release(self->hidDriverChannel);
+    self->hidDriverChannel = NULL;
 }
 
 static errno_t Console_onStart(ConsoleRef _Nonnull _Locked self)
@@ -546,7 +545,7 @@ static errno_t Console_ReadEvents_Locked(ConsoleRef _Nonnull self, ConsoleChanne
         Lock_Unlock(&self->lock);
         // XXX Need an API that allows me to read as many events as possible without blocking and that only blocks if there are no events available
         // XXX Or, probably, that's how the event driver read() should work in general
-        const errno_t e1 = IOChannel_Read(self->eventDriverChannel, &evt, sizeof(evt), &nEvtBytesRead);
+        const errno_t e1 = IOChannel_Read(self->hidDriverChannel, &evt, sizeof(evt), &nEvtBytesRead);
         Lock_Lock(&self->lock);
         // XXX we are currently assuming here that no relevant console state has
         // XXX changed while we didn't hold the lock. Confirm that this is okay

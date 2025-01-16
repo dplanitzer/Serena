@@ -14,6 +14,7 @@
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
 #include <driver/amiga/AmigaController.h>
+#include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
 #include <hal/InterruptController.h>
@@ -93,11 +94,11 @@ static errno_t init_platform_controller(void)
     static PlatformControllerRef gPlatformController;
     decl_try_err();
 
-    err = AmigaController_Create(&gPlatformController);
+    try(AmigaController_Create(&gPlatformController));
+    try(Driver_Start((DriverRef)gPlatformController));
+//    try(HIDManager_Start(gHIDManager));
 
-    if (err == EOK) {
-        err = Driver_Start((DriverRef)gPlatformController);
-    }
+catch:
     return err;
 }
 

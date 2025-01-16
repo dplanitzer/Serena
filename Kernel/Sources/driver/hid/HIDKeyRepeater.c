@@ -7,6 +7,7 @@
 //
 
 #include "HIDKeyRepeater.h"
+#include "HIDManager.h"
 #include "USBHIDKeys.h"
 #include <hal/MonotonicClock.h>
 
@@ -18,7 +19,6 @@ enum {
 };
 
 typedef struct HIDKeyRepeater {
-    EventDriverRef  eventDriver;
     int8_t          repeatersInUseCount;    // number of repeaters currently in use
     int8_t          reserved[3];
     TimeInterval    initialKeyRepeatDelay;        // [200ms...3s]
@@ -33,13 +33,12 @@ typedef struct HIDKeyRepeater {
 
 
 // Allocates a key repeater object.
-errno_t HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf)
+errno_t HIDKeyRepeater_Create(HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     HIDKeyRepeater* self;
     
     try(kalloc_cleared(sizeof(HIDKeyRepeater), (void**) &self));
-    self->eventDriver = pEventDriver;
     self->repeatersInUseCount = 0;
     self->initialKeyRepeatDelay = TimeInterval_MakeMilliseconds(300);
     self->keyRepeatDelay = TimeInterval_MakeMilliseconds(100);
@@ -56,10 +55,7 @@ catch:
 // Frees the key repeater.
 void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull self)
 {
-    if (self) {
-        self->eventDriver = NULL;
-        kfree(self);
-    }
+    kfree(self);
 }
 
 void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
@@ -193,7 +189,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
         case kState_InitialDelaying:
             if (TimeInterval_GreaterEquals(now, self->nextEventTime)) {
                 self->state = kState_Repeating;
-                EventDriver_ReportKeyboardDeviceChange(self->eventDriver, kHIDKeyState_Repeat, self->keyCode);
+                HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
                 while (TimeInterval_Less(self->nextEventTime, now)) {
                     self->nextEventTime = TimeInterval_Add(self->nextEventTime, self->keyRepeatDelay);
@@ -203,7 +199,7 @@ void HIDKeyRepeater_Tick(HIDKeyRepeaterRef _Nonnull self)
 
         case kState_Repeating:
             if (TimeInterval_GreaterEquals(now, self->nextEventTime)) {
-                EventDriver_ReportKeyboardDeviceChange(self->eventDriver, kHIDKeyState_Repeat, self->keyCode);
+                HIDManager_ReportKeyboardDeviceChange(gHIDManager, kHIDKeyState_Repeat, self->keyCode);
                 
                 while (TimeInterval_Less(self->nextEventTime, now)) {
                     self->nextEventTime = TimeInterval_Add(self->nextEventTime, self->keyRepeatDelay);

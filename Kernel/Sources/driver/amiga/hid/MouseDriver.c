@@ -7,29 +7,28 @@
 //
 
 #include "MouseDriver.h"
-#include <driver/hid/EventDriver.h>
+#include <driver/hid/HIDManager.h>
 #include <hal/InterruptController.h>
 
 
 
 final_class_ivars(MouseDriver, InputDriver,
-    EventDriverRef _Nonnull eventDriver;
-    InterruptHandlerID      irqHandler;
-    volatile uint16_t*      reg_joydat;
-    volatile uint16_t*      reg_potgor;
-    volatile uint8_t*       reg_ciaa_pra;
-    int16_t                 old_hcount;
-    int16_t                 old_vcount;
-    uint16_t                right_button_mask;
-    uint16_t                middle_button_mask;
-    uint8_t                 left_button_mask;
-    int8_t                  port;
+    InterruptHandlerID          irqHandler;
+    volatile uint16_t* _Nonnull reg_joydat;
+    volatile uint16_t* _Nonnull reg_potgor;
+    volatile uint8_t* _Nonnull  reg_ciaa_pra;
+    int16_t                     old_hcount;
+    int16_t                     old_vcount;
+    uint16_t                    right_button_mask;
+    uint16_t                    middle_button_mask;
+    uint8_t                     left_button_mask;
+    int8_t                      port;
 );
 
 extern void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull self);
 
 
-errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t MouseDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -42,7 +41,6 @@ errno_t MouseDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, Drive
     
     try(Driver_Create(MouseDriver, 0, &self));
     
-    self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->reg_ciaa_pra = CIA_REG_8(ciaa, 0);
@@ -77,9 +75,6 @@ catch:
 static void MouseDriver_deinit(MouseDriverRef _Nonnull self)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
-
-    Object_Release(self->eventDriver);
-    self->eventDriver = NULL;
 }
 
 InputType MouseDriver_getInputType(MouseDriverRef _Nonnull self)
@@ -142,7 +137,7 @@ void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull self)
     }
 
 
-    EventDriver_ReportMouseDeviceChange(self->eventDriver, xDelta, yDelta, buttonsDown);
+    HIDManager_ReportMouseDeviceChange(gHIDManager, xDelta, yDelta, buttonsDown);
 }
 
 

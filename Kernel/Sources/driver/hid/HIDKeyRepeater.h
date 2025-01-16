@@ -9,14 +9,13 @@
 #ifndef HIDKeyRepeater_h
 #define HIDKeyRepeater_h
 
-#include <klib/klib.h>
-#include "EventDriver.h"
+#include "HIDEvent.h"
 
 struct HIDKeyRepeater;
 typedef struct HIDKeyRepeater* HIDKeyRepeaterRef;
 
 
-extern errno_t HIDKeyRepeater_Create(EventDriverRef pEventDriver, HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf);
+extern errno_t HIDKeyRepeater_Create(HIDKeyRepeaterRef _Nullable * _Nonnull pOutSelf);
 extern void HIDKeyRepeater_Destroy(HIDKeyRepeaterRef _Nonnull self);
 
 extern void HIDKeyRepeater_GetKeyRepeatDelays(HIDKeyRepeaterRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay);

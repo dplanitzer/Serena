@@ -7,7 +7,7 @@
 //
 
 #include "JoystickDriver.h"
-#include <driver/hid/EventDriver.h>
+#include <driver/hid/HIDManager.h>
 #include <hal/InterruptController.h>
 
 
@@ -18,20 +18,19 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 final_class_ivars(DigitalJoystickDriver, InputDriver,
-    EventDriverRef _Nonnull eventDriver;
-    InterruptHandlerID      irqHandler;
-    volatile uint16_t*      reg_joydat;
-    volatile uint16_t*      reg_potgor;
-    volatile uint8_t*       reg_ciaa_pra;
-    uint16_t                right_button_mask;
-    uint8_t                 fire_button_mask;
-    int8_t                  port;
+    InterruptHandlerID          irqHandler;
+    volatile uint16_t* _Nonnull reg_joydat;
+    volatile uint16_t* _Nonnull reg_potgor;
+    volatile uint8_t* _Nonnull  reg_ciaa_pra;
+    uint16_t                    right_button_mask;
+    uint8_t                     fire_button_mask;
+    int8_t                      port;
 );
 
 extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self);
 
 
-errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DigitalJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -44,7 +43,6 @@ errno_t DigitalJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int p
     
     try(Driver_Create(DigitalJoystickDriver, 0, &self));
     
-    self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->reg_ciaa_pra = CIA_REG_8(ciaa, 0);
@@ -75,12 +73,9 @@ catch:
     return err;
 }
 
-static void DigitalJoystickDriver_deinit(DigitalJoystickDriverRef _Nonnull self)
+void DigitalJoystickDriver_deinit(DigitalJoystickDriverRef _Nonnull self)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
-    
-    Object_Release(self->eventDriver);
-    self->eventDriver = NULL;
 }
 
 InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
@@ -126,7 +121,7 @@ void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self)
     }
 
 
-    EventDriver_ReportJoystickDeviceChange(self->eventDriver, self->port, xAbs, yAbs, buttonsDown);
+    HIDManager_ReportJoystickDeviceChange(gHIDManager, self->port, xAbs, yAbs, buttonsDown);
 }
 
 
@@ -142,24 +137,23 @@ override_func_def(getInputType, DigitalJoystickDriver, InputDriver)
 ////////////////////////////////////////////////////////////////////////////////
 
 final_class_ivars(AnalogJoystickDriver, InputDriver,
-    EventDriverRef _Nonnull eventDriver;
-    InterruptHandlerID      irqHandler;
-    volatile uint16_t*      reg_joydat;
-    volatile uint16_t*      reg_potdat;
-    volatile uint16_t*      reg_potgo;
-    int16_t                 smoothedX;
-    int16_t                 smoothedY;
-    int16_t                 sumX;
-    int16_t                 sumY;
-    int8_t                  sampleCount;    // How many samples to average to produce a smoothed value
-    int8_t                  sampleIndex;    // Current sample in the range 0..<sampleCount
-    int8_t                  port;
+    InterruptHandlerID          irqHandler;
+    volatile uint16_t* _Nonnull reg_joydat;
+    volatile uint16_t* _Nonnull reg_potdat;
+    volatile uint16_t* _Nonnull reg_potgo;
+    int16_t                     smoothedX;
+    int16_t                     smoothedY;
+    int16_t                     sumX;
+    int16_t                     sumY;
+    int8_t                      sampleCount;    // How many samples to average to produce a smoothed value
+    int8_t                      sampleIndex;    // Current sample in the range 0..<sampleCount
+    int8_t                      port;
 );
 
 extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self);
 
 
-errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AnalogJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -171,7 +165,6 @@ errno_t AnalogJoystickDriver_Create(EventDriverRef _Nonnull pEventDriver, int po
     
     try(Driver_Create(AnalogJoystickDriver, 0, &self));
     
-    self->eventDriver = Object_RetainAs(pEventDriver, EventDriver);
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potdat = (port == 0) ? CHIPSET_REG_16(cp, POT0DAT) : CHIPSET_REG_16(cp, POT1DAT);
     self->reg_potgo = CHIPSET_REG_16(cp, POTGO);
@@ -200,12 +193,9 @@ catch:
     return err;
 }
 
-static void AnalogJoystickDriver_deinit(AnalogJoystickDriverRef _Nonnull self)
+void AnalogJoystickDriver_deinit(AnalogJoystickDriverRef _Nonnull self)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
-    
-    Object_Release(self->eventDriver);
-    self->eventDriver = NULL;
 }
 
 InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)
@@ -262,7 +252,7 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self)
     *(self->reg_potgo) = 0x0001;
     
     
-    EventDriver_ReportJoystickDeviceChange(self->eventDriver, self->port, xAbs, yAbs, buttonsDown);
+    HIDManager_ReportJoystickDeviceChange(gHIDManager, self->port, xAbs, yAbs, buttonsDown);
 }
 
 
