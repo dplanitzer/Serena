@@ -85,7 +85,7 @@ extern void MousePainter_SetSurface(MousePainter* _Nonnull self, Surface* _Nulla
 extern void MousePainter_SetCursor(MousePainter* _Nonnull self, const void* pBitmap, const void* pMask);
 extern void MousePainter_SetPosition(MousePainter* _Nonnull self, Point pt);
 extern void MousePainter_SetVisible(MousePainter* _Nonnull self, bool isVisible);
-extern void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull self, bool flag);
+extern void MousePainter_SetHiddenUntilMove(MousePainter* _Nonnull self, bool flag);
 
 extern Point MousePainter_GetPosition(MousePainter* _Nonnull self);
 

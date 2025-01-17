@@ -48,6 +48,18 @@ errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
             HIDManager_SetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval), va_arg(ap, TimeInterval));
             return EOK;
 
+        case kHIDCommand_ShowMouseCursor:
+            HIDManager_ShowMouseCursor(gHIDManager);
+            return EOK;
+
+        case kHIDCommand_HideMouseCursor:
+            HIDManager_HideMouseCursor(gHIDManager);
+            return EOK;
+
+        case kHIDCommand_SetMouseCursorHiddenUntilMove:
+            HIDManager_SetMouseCursorHiddenUntilMove(gHIDManager, va_arg(ap, bool));
+            return EOK;
+
         case kHIDCommand_GetPortDevice:
             return HIDManager_GetPortDevice(gHIDManager, va_arg(ap, int), va_arg(ap, InputType*));
 

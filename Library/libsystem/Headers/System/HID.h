@@ -41,13 +41,29 @@ typedef int InputType;
 // set_key_repeat_delays(TimeInterval initialDelay, TimeInterval repeatDelay)
 #define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(1)
 
+
+// Show the mouse cursor. This increments the mouse-cursor-hidden counter. The
+// cursor becomes visible once the counter reaches 0.
+// show_mouse_cursor(void)
+#define kHIDCommand_ShowMouseCursor IOResourceCommand(2)
+
+// Hide the mouse cursor. This decrements the mouse-cursor-hidden counter. The
+// cursor becomes invisible once the counter reaches < 0.
+// hide_mouse_cursor(void)
+#define kHIDCommand_HideMouseCursor IOResourceCommand(3)
+
+// Marks the mouse cursor as hidden until the user moves the mouse.
+// set_mouse_cursor_hidden_until_move(bool flag)
+#define kHIDCommand_SetMouseCursorHiddenUntilMove IOResourceCommand(4)
+
+
 // Returns the type of input device for a port. There are two port: 0 and 1.
 // get_port_device(int port, InputType* _Nonnull pOutType)
-#define kHIDCommand_GetPortDevice  IOResourceCommand(2)
+#define kHIDCommand_GetPortDevice  IOResourceCommand(5)
 
 // Selects the type of input device for a port. There are two port: 0 and 1.
 // set_port_device(int port, InputType type)
-#define kHIDCommand_SetPortDevice  IOResourceCommand(3)
+#define kHIDCommand_SetPortDevice  IOResourceCommand(6)
 
 
 

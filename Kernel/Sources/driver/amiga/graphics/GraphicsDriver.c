@@ -728,10 +728,10 @@ void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool 
     Lock_Unlock(&self->lock);
 }
 
-void GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(GraphicsDriverRef _Nonnull self, bool flag)
+void GraphicsDriver_SetMouseCursorHiddenUntilMove(GraphicsDriverRef _Nonnull self, bool flag)
 {
     Lock_Lock(&self->lock);
-    MousePainter_SetHiddenUntilMouseMoves(&self->mousePainter, flag);
+    MousePainter_SetHiddenUntilMove(&self->mousePainter, flag);
     Lock_Unlock(&self->lock);
 }
 

@@ -44,11 +44,11 @@ extern errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, I
 extern errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputType type);
 
 
-// The mouse cursor state
+// Mouse cursor state
 extern void HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const void* pBitmap, const void* pMask);
 extern void HIDManager_ShowMouseCursor(HIDManagerRef _Nonnull self);
 extern void HIDManager_HideMouseCursor(HIDManagerRef _Nonnull self);
-extern void HIDManager_SetMouseCursorHiddenUntilMouseMoves(HIDManagerRef _Nonnull self, bool flag);
+extern void HIDManager_SetMouseCursorHiddenUntilMove(HIDManagerRef _Nonnull self, bool flag);
 
 // Returns the mouse hardware state
 extern Point HIDManager_GetMouseDevicePosition(HIDManagerRef _Nonnull self);

@@ -162,7 +162,7 @@ void MousePainter_SetVisible(MousePainter* _Nonnull self, bool isVisible)
     cpu_restore_irqs(irs);
 }
 
-void MousePainter_SetHiddenUntilMouseMoves(MousePainter* _Nonnull self, bool flag)
+void MousePainter_SetHiddenUntilMove(MousePainter* _Nonnull self, bool flag)
 {
     const int irs = cpu_disable_irqs();
     // Cursor will be hidden while this flag is true. The vertical blank paint()

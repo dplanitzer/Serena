@@ -430,9 +430,9 @@ void HIDManager_HideMouseCursor(HIDManagerRef _Nonnull self)
     Lock_Unlock(&self->lock);
 }
 
-void HIDManager_SetMouseCursorHiddenUntilMouseMoves(HIDManagerRef _Nonnull self, bool flag)
+void HIDManager_SetMouseCursorHiddenUntilMove(HIDManagerRef _Nonnull self, bool flag)
 {
-    GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(self->fb, flag);
+    GraphicsDriver_SetMouseCursorHiddenUntilMove(self->fb, flag);
 }
 
 // Returns the current mouse location in screen space.
