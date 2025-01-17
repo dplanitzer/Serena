@@ -129,7 +129,7 @@ static errno_t print_inode(ListContextRef _Nonnull self, const char* _Nonnull pa
                 self->date.tm_year + 1900);
         }
         else {
-            printf("%s %d %d:%d  ",
+            printf("%s %d %0.2d:%0.2d  ",
                 __gc_abbrev_ymon(self->date.tm_mon + 1),
                 self->date.tm_mday,
                 self->date.tm_hour,
