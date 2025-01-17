@@ -89,14 +89,15 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 
 // Creates and starts the platform controller which in turn discovers all platform
 // specific drivers and gets them up and running.
-static errno_t init_platform_controller(void)
+static errno_t drivers_init(void)
 {
     static PlatformControllerRef gPlatformController;
     decl_try_err();
 
+    try(HIDManager_Create(&gHIDManager));
     try(AmigaController_Create(&gPlatformController));
     try(Driver_Start((DriverRef)gPlatformController));
-//    try(HIDManager_Start(gHIDManager));
+    try(HIDManager_Start(gHIDManager));
 
 catch:
     return err;
@@ -148,8 +149,8 @@ static _Noreturn OnStartup(const SystemDescription* _Nonnull pSysDesc)
     try(SecurityManager_Create(&gSecurityManager));
 
     
-    // Create the platform controller
-    try_bang(init_platform_controller());
+    // Detect hardware and initialize drivers
+    try_bang(drivers_init());
 
 
     // Initialize the Kernel Runtime Services so that we can make it available

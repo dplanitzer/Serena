@@ -45,7 +45,8 @@ typedef struct LogicalJoystick {
 // light pen may contribute to the state of the logical mouse.
 typedef struct HIDManager {
     Lock                        lock;
-    GraphicsDriverRef _Nonnull  gdevice;
+    IOChannelRef _Nullable      fbChannel;
+    GraphicsDriverRef _Nullable fb;
     HIDEventQueueRef _Nonnull   eventQueue;
     KeyboardDriverRef _Nullable keyboardDriver;
 

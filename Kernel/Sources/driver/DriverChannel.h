@@ -23,4 +23,9 @@ open_class_funcs(DriverChannel, IOChannel,
 
 extern errno_t DriverChannel_Create(Class* _Nonnull pClass, IOChannelOptions options, int channelType, unsigned int mode, DriverRef _Nonnull pDriver, IOChannelRef _Nullable * _Nonnull pOutSelf);
 
+// Returns a weak reference to the driver at the other end of this I/O channel.
+// The driver reference remains valid as long as the I/O channel remains open.
+#define DriverChannel_GetDriver(__self) \
+((DriverRef)((DriverChannelRef)(__self))->driver)
+
 #endif /* DriverChannel_h */

@@ -7,6 +7,8 @@
 //
 
 #include "HIDManagerPriv.h"
+#include <driver/DriverCatalog.h>
+#include <driver/DriverChannel.h>
 
 HIDManagerRef _Nonnull gHIDManager;
 
@@ -45,7 +47,7 @@ static const uint8_t gUSBHIDKeyFlags[256] = {
 };
 
 
-errno_t HIDManager_Create(GraphicsDriverRef _Nonnull gdevice, HIDManagerRef _Nullable * _Nonnull pOutSelf)
+errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     HIDManagerRef self;
@@ -53,22 +55,10 @@ errno_t HIDManager_Create(GraphicsDriverRef _Nonnull gdevice, HIDManagerRef _Nul
     try(kalloc_cleared(sizeof(HIDManager), (void**)&self));
 
     Lock_Init(&self->lock);
-    self->gdevice = Object_RetainAs(gdevice, GraphicsDriver);
 
     self->keyFlags = gUSBHIDKeyFlags;
-
-    self->screenLeft = 0;
-    self->screenTop = 0;
-    self->screenRight = (int16_t) GraphicsDriver_GetFramebufferSize(gdevice).width;
-    self->screenBottom = (int16_t) GraphicsDriver_GetFramebufferSize(gdevice).height;
     self->mouseCursorHiddenCounter = 1;
     self->isMouseMoveReportingEnabled = false;
-
-    self->modifierFlags = 0;
-
-    self->mouseX = 0;
-    self->mouseY = 0;
-    self->mouseButtons = 0;
 
 
     // Create the HID event queue
@@ -86,7 +76,16 @@ catch:
 errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
 {
     decl_try_err();
-    
+
+    // Open a channel to the framebuffer
+    try(DriverCatalog_OpenDriver(gDriverCatalog, kFramebufferName, kOpen_ReadWrite, &self->fbChannel));
+    self->fb = (GraphicsDriverRef)DriverChannel_GetDriver(self->fbChannel);
+
+    self->screenLeft = 0;
+    self->screenTop = 0;
+    self->screenRight = (int16_t) GraphicsDriver_GetFramebufferSize(self->fb).width;
+    self->screenBottom = (int16_t) GraphicsDriver_GetFramebufferSize(self->fb).height;
+
     // Open the keyboard driver
 //    try(KeyboardDriver_Create((DriverRef*)&self->keyboardDriver));
 //    try(Driver_Start((DriverRef)self->keyboardDriver));
@@ -113,9 +112,10 @@ void HIDManager_SetKeyboard(HIDManagerRef _Nonnull self, DriverRef _Nonnull kb)
 // MARK: Input Driver API
 ////////////////////////////////////////////////////////////////////////////////
 
-GraphicsDriverRef _Nonnull HIDManager_GetGraphicsDriver(HIDManagerRef _Nonnull self)
+// Returns the current position of the light pen if the light pen triggered.
+bool HIDManager_GetLightPenPosition(HIDManagerRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
 {
-    return self->gdevice;
+    return GraphicsDriver_GetLightPenPosition(self->fb, pPosX, pPosY);
 }
 
 // Reports a key down, repeat or up from a keyboard device. This function updates
@@ -191,7 +191,7 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
         self->mouseX = __min(__max(self->mouseX, self->screenLeft), self->screenRight);
         self->mouseY = __min(__max(self->mouseY, self->screenTop), self->screenBottom);
 
-        GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->gdevice, self->mouseX, self->mouseY);
+        GraphicsDriver_SetMouseCursorPositionFromInterruptContext(self->fb, self->mouseX, self->mouseY);
     }
     self->mouseButtons = buttonsDown;
 
@@ -384,7 +384,7 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
 
 void HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const void* pBitmap, const void* pMask)
 {
-    GraphicsDriver_SetMouseCursor(self->gdevice, pBitmap, pMask);
+    GraphicsDriver_SetMouseCursor(self->fb, pBitmap, pMask);
 }
 
 // Show the mouse cursor. This decrements the hidden counter. The mouse cursor
@@ -398,7 +398,7 @@ void HIDManager_ShowMouseCursor(HIDManagerRef _Nonnull self)
         self->mouseCursorHiddenCounter = 0;
     }
     if (self->mouseCursorHiddenCounter == 0) {
-        GraphicsDriver_SetMouseCursorVisible(self->gdevice, true);
+        GraphicsDriver_SetMouseCursorVisible(self->fb, true);
     }
     Lock_Unlock(&self->lock);
 }
@@ -410,7 +410,7 @@ void HIDManager_HideMouseCursor(HIDManagerRef _Nonnull self)
 {
     Lock_Lock(&self->lock);
     if (self->mouseCursorHiddenCounter == 0) {
-        GraphicsDriver_SetMouseCursorVisible(self->gdevice, false);
+        GraphicsDriver_SetMouseCursorVisible(self->fb, false);
     }
     self->mouseCursorHiddenCounter++;
     Lock_Unlock(&self->lock);
@@ -418,7 +418,7 @@ void HIDManager_HideMouseCursor(HIDManagerRef _Nonnull self)
 
 void HIDManager_SetMouseCursorHiddenUntilMouseMoves(HIDManagerRef _Nonnull self, bool flag)
 {
-    GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(self->gdevice, flag);
+    GraphicsDriver_SetMouseCursorHiddenUntilMouseMoves(self->fb, flag);
 }
 
 // Returns the current mouse location in screen space.

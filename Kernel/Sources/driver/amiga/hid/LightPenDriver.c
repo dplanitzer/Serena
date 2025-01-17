@@ -7,15 +7,13 @@
 //
 
 #include "LightPenDriver.h"
-#include <driver/amiga/graphics/GraphicsDriver.h>
 #include <driver/hid/HIDManager.h>
 #include <hal/InterruptController.h>
 
 
 final_class_ivars(LightPenDriver, InputDriver,
-    GraphicsDriverRef _Nonnull  gdevice;
     InterruptHandlerID          irqHandler;
-    volatile uint16_t*          reg_potgor;
+    volatile uint16_t* _Nonnull reg_potgor;
     uint16_t                    right_button_mask;
     uint16_t                    middle_button_mask;
     int16_t                     smoothedX;
@@ -44,7 +42,6 @@ errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
     
     try(Driver_Create(LightPenDriver, 0, &self));
     
-    self->gdevice = Object_RetainAs(HIDManager_GetGraphicsDriver(gHIDManager), GraphicsDriver);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;
     self->middle_button_mask = (port == 0) ? POTGORF_DATLX : POTGORF_DATRX;
@@ -81,9 +78,6 @@ catch:
 static void LightPenDriver_deinit(LightPenDriverRef _Nonnull self)
 {
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
-    
-    Object_Release(self->gdevice);
-    self->gdevice = NULL;
 }
 
 InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)
@@ -116,7 +110,7 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
         // Get the position
         int16_t xPos, yPos;
         
-        if (GraphicsDriver_GetLightPenPosition(self->gdevice, &xPos, &yPos)) {
+        if (HIDManager_GetLightPenPosition(gHIDManager, &xPos, &yPos)) {
             self->triggerCount++;
             self->sumX += xPos;
             self->sumY += yPos;

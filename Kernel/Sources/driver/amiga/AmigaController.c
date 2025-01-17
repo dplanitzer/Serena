@@ -137,9 +137,7 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     Driver_AdoptChild((DriverRef)self, (DriverRef)fb);
 
 
-    // HID
-    try(HIDManager_Create(fb, &gHIDManager));//XXX
-
+    // HID driver
     DriverRef hid = NULL;
     try(HIDDriver_Create(&hid));
     try(Driver_Start(hid));
