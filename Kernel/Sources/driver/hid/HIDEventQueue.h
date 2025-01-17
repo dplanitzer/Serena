@@ -10,7 +10,7 @@
 #define HIDEventQueue_h
 
 #include <klib/klib.h>
-#include "HIDEvent.h"
+#include <System/HIDEvent.h>
 
 struct HIDEventQueue;
 typedef struct HIDEventQueue* HIDEventQueueRef;

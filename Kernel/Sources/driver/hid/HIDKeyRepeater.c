@@ -8,8 +8,8 @@
 
 #include "HIDKeyRepeater.h"
 #include "HIDManager.h"
-#include "USBHIDKeys.h"
 #include <hal/MonotonicClock.h>
+#include <System/HIDKeyCodes.h>
 
 
 enum {

@@ -212,8 +212,8 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
                 }
                 evt.mouse.buttonNumber = i;
                 evt.mouse.flags = self->modifierFlags;
-                evt.mouse.location.x = self->mouseX;
-                evt.mouse.location.y = self->mouseY;
+                evt.mouse.x = self->mouseX;
+                evt.mouse.y = self->mouseY;
                 HIDEventQueue_Put(self->eventQueue, evtType, &evt);
             }
         }
@@ -222,8 +222,8 @@ void HIDManager_ReportMouseDeviceChange(HIDManagerRef _Nonnull self, int16_t xDe
         HIDEventData evt;
 
         evt.mouseMoved.flags = self->modifierFlags;
-        evt.mouseMoved.location.x = self->mouseX;
-        evt.mouseMoved.location.y = self->mouseY;
+        evt.mouseMoved.x = self->mouseX;
+        evt.mouseMoved.y = self->mouseY;
         HIDEventQueue_Put(self->eventQueue, kHIDEventType_MouseMoved, &evt);
     }
 }
@@ -275,8 +275,8 @@ void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port
                 evt.joystick.port = port;
                 evt.joystick.buttonNumber = i;
                 evt.joystick.flags = self->modifierFlags;
-                evt.joystick.direction.dx = xAbs;
-                evt.joystick.direction.dy = yAbs;
+                evt.joystick.dx = xAbs;
+                evt.joystick.dy = yAbs;
                 HIDEventQueue_Put(self->eventQueue, evtType, &evt);
             }
         }
@@ -291,8 +291,8 @@ void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port
         HIDEventData evt;
 
         evt.joystickMotion.port = port;
-        evt.joystickMotion.direction.dx = xAbs;
-        evt.joystickMotion.direction.dy = yAbs;
+        evt.joystickMotion.dx = xAbs;
+        evt.joystickMotion.dy = yAbs;
         HIDEventQueue_Put(self->eventQueue, kHIDEventType_JoystickMotion, &evt);
     }
 

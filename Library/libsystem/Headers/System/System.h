@@ -21,6 +21,8 @@
 #include <System/File.h>
 #include <System/FilePermissions.h>
 #include <System/HID.h>
+#include <System/HIDEvent.h>
+#include <System/HIDKeyCodes.h>
 #include <System/IOChannel.h>
 #include <System/Lock.h>
 #include <System/Pipe.h>

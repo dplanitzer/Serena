@@ -9,8 +9,8 @@
  * https://source.android.com/devices/input/keyboard-devices.html
  */
 
-#ifndef USB_HID_KEYS
-#define USB_HID_KEYS
+#ifndef _SYS_HID_USB_KEYCODES_H
+#define _SYS_HID_USB_KEYCODES_H 1
 
 /**
  * Modifier masks - used for the first byte in the HID report.
@@ -284,4 +284,4 @@
 #define KEY_MEDIA_REFRESH 0xfa
 #define KEY_MEDIA_CALC 0xfb
 
-#endif // USB_HID_KEYS
+#endif /* _SYS_HID_USB_KEYCODES_H */

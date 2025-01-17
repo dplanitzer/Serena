@@ -6,10 +6,11 @@
 //  Copyright © 2021 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef HIDEvent_h
-#define HIDEvent_h
+#ifndef _SYS_HID_EVENT_H
+#define _SYS_HID_EVENT_H 1
 
-#include <klib/klib.h>
+#include <System/TimeInterval.h>
+#include <System/Types.h>
 
 
 // Event types
@@ -62,12 +63,14 @@ typedef struct HIDEventData_FlagsChanged {
 typedef struct HIDEventData_MouseButton {
     int         buttonNumber;   // 0 -> left button, 1 -> right button, 2-> middle button, ...
     uint32_t    flags;          // modifier keys
-    Point       location;       // Mouse position when the button was pressed / released
+    int         x;              // Mouse position when the button was pressed / released
+    int         y;
 } HIDEventData_MouseButton;
 
 
 typedef struct HIDEventData_MouseMove {
-    Point       location;       // Current mouse position
+    int         x;              // Current mouse position
+    int         y;
     uint32_t    flags;          // Modifier keys
 } HIDEventData_MouseMove;
 
@@ -76,13 +79,15 @@ typedef struct HIDEventData_JoystickButton {
     int         port;           // Input controller port number
     int         buttonNumber;
     uint32_t    flags;          // Modifier keys
-    Vector      direction;      // Joystick direction when the button was pressed / released
+    int         dx;             // Joystick direction when the button was pressed / released
+    int         dy;
 } HIDEventData_JoystickButton;
 
 
 typedef struct HIDEventData_JoystickMotion {
     int         port;           // Input controller port number
-    Vector      direction;
+    int         dx;
+    int         dy;
 } HIDEventData_JoystickMotion;
 
 
@@ -111,4 +116,4 @@ typedef enum HIDKeyState {
     kHIDKeyState_Up
 } HIDKeyState;
 
-#endif /* HIDEvent_h */
+#endif /* _SYS_HID_EVENT_H */

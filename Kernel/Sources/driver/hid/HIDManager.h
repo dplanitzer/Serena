@@ -9,9 +9,11 @@
 #ifndef HIDManager_h
 #define HIDManager_h
 
+#include <klib/Geometry.h>
 #include <kobj/Object.h>
-#include "HIDEvent.h"
+#include <System/Error.h>
 #include <System/HID.h>
+#include <System/HIDEvent.h>
 
 
 extern HIDManagerRef _Nonnull gHIDManager;
