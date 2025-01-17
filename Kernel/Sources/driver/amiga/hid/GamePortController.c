@@ -24,13 +24,6 @@ errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOu
     return Driver_Create(GamePortController, kDriver_Exclusive, (DriverRef*)pOutSelf);
 }
 
-
-errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
-{
-    return Driver_Publish((DriverRef)self, "gp-bus", 0);
-}
-
-
 static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nullable pOutType)
 {
     DriverRef dp;
@@ -69,7 +62,7 @@ static errno_t GamePortController_CreateInputDriver(GamePortControllerRef _Nonnu
     }
 }
 
-static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType type)
+static errno_t GamePortController_SetPortDevice_Locked(GamePortControllerRef _Nonnull _Locked self, int port, InputType type)
 {
     decl_try_err();
     DriverRef pOldDriver = NULL;
@@ -91,7 +84,6 @@ static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull s
     }
 
 
-    Driver_Lock(self);
     pOldDriver = Driver_GetChildWithTag((DriverRef)self, port);
     if (pOldDriver) {
         Driver_Terminate((DriverRef)pOldDriver);
@@ -104,7 +96,30 @@ static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull s
     }
 
 catch:
+    return err;
+}
+
+static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType type)
+{
+    Driver_Lock(self);
+    const errno_t err = GamePortController_SetPortDevice_Locked(self, port, type);
     Driver_Unlock(self);
+
+    return err;
+}
+
+
+errno_t GamePortController_onStart(GamePortControllerRef _Nonnull _Locked self)
+{
+    decl_try_err();
+
+    if ((err = Driver_Publish((DriverRef)self, "gp-bus", 0)) == EOK) {
+        err = GamePortController_SetPortDevice_Locked(self, 0, kInputType_Mouse);
+        if (err != EOK) {
+            Driver_Unpublish((DriverRef)self);
+        }
+    }
+    
     return err;
 }
 
