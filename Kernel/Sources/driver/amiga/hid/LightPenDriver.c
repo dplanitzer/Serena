@@ -80,6 +80,20 @@ static void LightPenDriver_deinit(LightPenDriverRef _Nonnull self)
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
 }
 
+errno_t LightPenDriver_onStart(LightPenDriverRef _Nonnull _Locked self)
+{
+    char name[6];
+
+    name[0] = 'l';
+    name[1] = 'p';
+    name[2] = 'e';
+    name[3] = 'n';
+    name[4] = '0' + self->port;
+    name[5] = '\0';
+
+    return Driver_Publish((DriverRef)self, name, 0);
+}
+
 InputType LightPenDriver_getInputType(LightPenDriverRef _Nonnull self)
 {
     return kInputType_LightPen;
@@ -137,5 +151,6 @@ void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self)
 
 class_func_defs(LightPenDriver, InputDriver,
 override_func_def(deinit, LightPenDriver, Object)
+override_func_def(onStart, LightPenDriver, Driver)
 override_func_def(getInputType, LightPenDriver, InputDriver)
 );

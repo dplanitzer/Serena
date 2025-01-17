@@ -88,6 +88,11 @@ static void KeyboardDriver_deinit(KeyboardDriverRef _Nonnull self)
     self->keyRepeater = NULL;
 }
 
+errno_t KeyboardDriver_onStart(KeyboardDriverRef _Nonnull _Locked self)
+{
+    return Driver_Publish((DriverRef)self, "kb", 0);
+}
+
 InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
 {
     return kInputType_Keyboard;
@@ -134,5 +139,6 @@ void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self)
 
 class_func_defs(KeyboardDriver, InputDriver,
 override_func_def(deinit, KeyboardDriver, Object)
+override_func_def(onStart, KeyboardDriver, Driver)
 override_func_def(getInputType, KeyboardDriver, InputDriver)
 );

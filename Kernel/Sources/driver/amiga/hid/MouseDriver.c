@@ -77,6 +77,21 @@ static void MouseDriver_deinit(MouseDriverRef _Nonnull self)
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
 }
 
+errno_t MouseDriver_onStart(MouseDriverRef _Nonnull _Locked self)
+{
+    char name[7];
+
+    name[0] = 'm';
+    name[1] = 'o';
+    name[2] = 'u';
+    name[3] = 's';
+    name[4] = 'e';
+    name[5] = '0' + self->port;
+    name[6] = '\0';
+
+    return Driver_Publish((DriverRef)self, name, 0);
+}
+
 InputType MouseDriver_getInputType(MouseDriverRef _Nonnull self)
 {
     return kInputType_Mouse;
@@ -143,5 +158,6 @@ void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull self)
 
 class_func_defs(MouseDriver, InputDriver,
 override_func_def(deinit, MouseDriver, Object)
+override_func_def(onStart, MouseDriver, Driver)
 override_func_def(getInputType, MouseDriver, InputDriver)
 );

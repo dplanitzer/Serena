@@ -100,7 +100,7 @@ static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull sel
     LOG(0, "%d: online: %d, has disk: %d\n", self->drive, (int)self->flags.isOnline, (int)self->flags.hasDisk);
 }
 
-static errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
+errno_t FloppyDriver_onStart(FloppyDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
     char name[4];

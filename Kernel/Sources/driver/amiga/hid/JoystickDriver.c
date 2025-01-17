@@ -78,6 +78,20 @@ void DigitalJoystickDriver_deinit(DigitalJoystickDriverRef _Nonnull self)
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
 }
 
+errno_t DigitalJoystickDriver_onStart(DigitalJoystickDriverRef _Nonnull _Locked self)
+{
+    char name[6];
+
+    name[0] = 'd';
+    name[1] = 'j';
+    name[2] = 'o';
+    name[3] = 'y';
+    name[4] = '0' + self->port;
+    name[5] = '\0';
+
+    return Driver_Publish((DriverRef)self, name, 0);
+}
+
 InputType DigitalJoystickDriver_getInputType(DigitalJoystickDriverRef _Nonnull self)
 {
     return kInputType_DigitalJoystick;
@@ -127,6 +141,7 @@ void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self)
 
 class_func_defs(DigitalJoystickDriver, InputDriver,
 override_func_def(deinit, DigitalJoystickDriver, Object)
+override_func_def(onStart, DigitalJoystickDriver, Driver)
 override_func_def(getInputType, DigitalJoystickDriver, InputDriver)
 );
 
@@ -198,6 +213,20 @@ void AnalogJoystickDriver_deinit(AnalogJoystickDriverRef _Nonnull self)
     try_bang(InterruptController_RemoveInterruptHandler(gInterruptController, self->irqHandler));
 }
 
+errno_t AnalogJoystickDriver_onStart(AnalogJoystickDriverRef _Nonnull _Locked self)
+{
+    char name[6];
+
+    name[0] = 'a';
+    name[1] = 'j';
+    name[2] = 'o';
+    name[3] = 'y';
+    name[4] = '0' + self->port;
+    name[5] = '\0';
+
+    return Driver_Publish((DriverRef)self, name, 0);
+}
+
 InputType AnalogJoystickDriver_getInputType(AnalogJoystickDriverRef _Nonnull self)
 {
     return kInputType_AnalogJoystick;
@@ -258,5 +287,6 @@ void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self)
 
 class_func_defs(AnalogJoystickDriver, InputDriver,
 override_func_def(deinit, AnalogJoystickDriver, Object)
+override_func_def(onStart, AnalogJoystickDriver, Driver)
 override_func_def(getInputType, AnalogJoystickDriver, InputDriver)
 );
