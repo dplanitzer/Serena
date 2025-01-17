@@ -9,7 +9,6 @@
 #ifndef LightPenDriver_h
 #define LightPenDriver_h
 
-#include <klib/klib.h>
 #include <driver/hid/InputDriver.h>
 
 

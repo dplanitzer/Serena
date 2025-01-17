@@ -86,24 +86,18 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     self->screenRight = (int16_t) GraphicsDriver_GetFramebufferSize(self->fb).width;
     self->screenBottom = (int16_t) GraphicsDriver_GetFramebufferSize(self->fb).height;
 
+
     // Open the keyboard driver
-//    try(KeyboardDriver_Create((DriverRef*)&self->keyboardDriver));
-//    try(Driver_Start((DriverRef)self->keyboardDriver));
-//    Driver_AdoptChild((DriverRef)self, (DriverRef)self->keyboardDriver);
+    try(DriverCatalog_OpenDriver(gDriverCatalog, "/kb", kOpen_ReadWrite, &self->kbChannel));
 
 
     // XXX
-    //GraphicsDriver_SetMouseCursor(gdevice, gArrow_Bits, gArrow_Mask);
+    //GraphicsDriver_SetMouseCursor(self->fb, gArrow_Bits, gArrow_Mask);
     //HIDManager_ShowMouseCursor(self);
     // XXX
 
 catch:
     return err;
-}
-
-void HIDManager_SetKeyboard(HIDManagerRef _Nonnull self, DriverRef _Nonnull kb)
-{
-    self->keyboardDriver = Object_RetainAs(kb, KeyboardDriver);
 }
 
 
@@ -312,14 +306,14 @@ void HIDManager_ReportJoystickDeviceChange(HIDManagerRef _Nonnull self, int port
 void HIDManager_GetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
     Lock_Lock(&self->lock);
-    KeyboardDriver_GetKeyRepeatDelays(self->keyboardDriver, pInitialDelay, pRepeatDelay);
+    IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_GetKeyRepeatDelays, pInitialDelay, pRepeatDelay);
     Lock_Unlock(&self->lock);
 }
 
 void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
 {
     Lock_Lock(&self->lock);
-    KeyboardDriver_SetKeyRepeatDelays(self->keyboardDriver, initialDelay, repeatDelay);
+    IOChannel_Ioctl(self->kbChannel, kKeyboardCommand_SetKeyRepeatDelays, initialDelay, repeatDelay);
     Lock_Unlock(&self->lock);
 }
 

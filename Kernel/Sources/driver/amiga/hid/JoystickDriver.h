@@ -9,7 +9,6 @@
 #ifndef JoystickDriver_h
 #define JoystickDriver_h
 
-#include <klib/klib.h>
 #include <driver/hid/InputDriver.h>
 
 

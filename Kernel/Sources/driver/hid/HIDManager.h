@@ -9,7 +9,6 @@
 #ifndef HIDManager_h
 #define HIDManager_h
 
-#include <klib/klib.h>
 #include <kobj/Object.h>
 #include "HIDEvent.h"
 
@@ -17,11 +16,7 @@
 extern HIDManagerRef _Nonnull gHIDManager;
 
 extern errno_t HIDManager_Create(HIDManagerRef _Nullable * _Nonnull pOutSelf);
-
 extern errno_t HIDManager_Start(HIDManagerRef _Nonnull self);
-
-//XXX
-extern void HIDManager_SetKeyboard(HIDManagerRef _Nonnull self, DriverRef _Nonnull kb);
 
 
 // APIs for use by input drivers

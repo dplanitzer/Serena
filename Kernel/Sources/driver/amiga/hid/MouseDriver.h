@@ -9,7 +9,6 @@
 #ifndef MouseDriver_h
 #define MouseDriver_h
 
-#include <klib/klib.h>
 #include <driver/hid/InputDriver.h>
 
 

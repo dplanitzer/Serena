@@ -47,7 +47,7 @@ errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(InputDriver_Create(KeyboardDriver, 0, &self));
+    try(InputDriver_Create(KeyboardDriver, kDriver_Exclusive, &self));
     
     self->keyCodeMap = gUSBHIDKeycodes;
     try(HIDKeyRepeater_Create(&self->keyRepeater));
@@ -98,19 +98,36 @@ InputType KeyboardDriver_getInputType(KeyboardDriverRef _Nonnull self)
     return kInputType_Keyboard;
 }
 
-void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
+static void KeyboardDriver_GetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval* _Nullable pInitialDelay, TimeInterval* _Nullable pRepeatDelay)
 {
     const int irs = cpu_disable_irqs();
     HIDKeyRepeater_GetKeyRepeatDelays(self->keyRepeater, pInitialDelay, pRepeatDelay);
     cpu_restore_irqs(irs);
 }
 
-void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
+static void KeyboardDriver_SetKeyRepeatDelays(KeyboardDriverRef _Nonnull self, TimeInterval initialDelay, TimeInterval repeatDelay)
 {
     const int irs = cpu_disable_irqs();
     HIDKeyRepeater_SetKeyRepeatDelays(self->keyRepeater, initialDelay, repeatDelay);
     cpu_restore_irqs(irs);
 }
+
+errno_t KeyboardDriver_ioctl(KeyboardDriverRef _Nonnull self, int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kKeyboardCommand_GetKeyRepeatDelays:
+            KeyboardDriver_GetKeyRepeatDelays(self, va_arg(ap, TimeInterval*), va_arg(ap, TimeInterval*));
+            return EOK;
+
+        case kKeyboardCommand_SetKeyRepeatDelays:
+            KeyboardDriver_SetKeyRepeatDelays(self, va_arg(ap, TimeInterval), va_arg(ap, TimeInterval));
+            return EOK;
+
+        default:
+            return super_n(ioctl, Driver, KeyboardDriver, self, cmd, ap);
+    }
+}
+
 
 void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self)
 {
@@ -141,4 +158,5 @@ class_func_defs(KeyboardDriver, InputDriver,
 override_func_def(deinit, KeyboardDriver, Object)
 override_func_def(onStart, KeyboardDriver, Driver)
 override_func_def(getInputType, KeyboardDriver, InputDriver)
+override_func_def(ioctl, KeyboardDriver, Driver)
 );

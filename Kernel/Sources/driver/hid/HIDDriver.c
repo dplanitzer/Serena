@@ -9,6 +9,7 @@
 #include "HIDDriver.h"
 #include "HIDChannel.h"
 #include "HIDManager.h"
+#include <System/HID.h>
 
 final_class_ivars(HIDDriver, Driver,
 );
@@ -36,9 +37,26 @@ errno_t HIDDriver_read(DriverRef _Nonnull self, HIDChannelRef _Nonnull pChannel,
     return HIDManager_GetEvents(gHIDManager, pBuffer, nBytesToRead, pChannel->timeout, nOutBytesRead);
 }
 
+errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kHIDCommand_GetKeyRepeatDelays:
+            HIDManager_GetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval*), va_arg(ap, TimeInterval*));
+            return EOK;
+
+        case kHIDCommand_SetKeyRepeatDelays:
+            HIDManager_SetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval), va_arg(ap, TimeInterval));
+            return EOK;
+
+        default:
+            return super_n(ioctl, Driver, HIDDriver, self, cmd, ap);
+    }
+}
+
 
 class_func_defs(HIDDriver, Driver,
 override_func_def(onStart, HIDDriver, Driver)
 override_func_def(createChannel, HIDDriver, Driver)
 override_func_def(read, HIDDriver, Driver)
+override_func_def(ioctl, HIDDriver, Driver)
 );

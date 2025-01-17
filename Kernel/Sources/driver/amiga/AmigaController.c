@@ -19,7 +19,6 @@
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
 #include <driver/hid/HIDDriver.h>
-#include <driver/hid/HIDManager.h>
 #include <driver/DriverCatalog.h>
 #include <driver/NullDriver.h>
 #include <filesystem/DiskFSContainer.h>
@@ -149,7 +148,6 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     try(KeyboardDriver_Create(&kb));
     try(Driver_Start(kb));
     Driver_AdoptChild((DriverRef)self, kb);
-    HIDManager_SetKeyboard(gHIDManager, kb);//XXX
 
 
     // GamePort
