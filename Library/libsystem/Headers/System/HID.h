@@ -41,6 +41,14 @@ typedef int InputType;
 // set_key_repeat_delays(TimeInterval initialDelay, TimeInterval repeatDelay)
 #define kHIDCommand_SetKeyRepeatDelays IOResourceCommand(1)
 
+// Returns the type of input device for a port. There are two port: 0 and 1.
+// get_port_device(int port, InputType* _Nonnull pOutType)
+#define kHIDCommand_GetPortDevice  IOResourceCommand(2)
+
+// Selects the type of input device for a port. There are two port: 0 and 1.
+// set_port_device(int port, InputType type)
+#define kHIDCommand_SetPortDevice  IOResourceCommand(3)
+
 
 
 //

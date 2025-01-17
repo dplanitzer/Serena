@@ -14,7 +14,6 @@
 #include "USBHIDKeys.h"
 #include <dispatcher/Lock.h>
 #include <driver/amiga/graphics/GraphicsDriver.h>
-#include <System/HID.h>
 
 
 // XXX 16 is confirmed to work without overflows on a A2000. Still want to keep
@@ -47,6 +46,7 @@ typedef struct HIDManager {
 
     // Input Drivers
     IOChannelRef _Nullable      kbChannel;
+    IOChannelRef _Nullable      gpChannel;
 
 
     // Framebuffer interface

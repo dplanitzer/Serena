@@ -11,6 +11,7 @@
 
 #include <kobj/Object.h>
 #include "HIDEvent.h"
+#include <System/HID.h>
 
 
 extern HIDManagerRef _Nonnull gHIDManager;
@@ -34,6 +35,11 @@ extern void HIDManager_SetKeyRepeatDelays(HIDManagerRef _Nonnull self, TimeInter
 
 // Returns the keyboard hardware state
 extern void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode* _Nullable pKeysToCheck, int nKeysToCheck, HIDKeyCode* _Nullable pKeysDown, int* _Nonnull nKeysDown);
+
+
+// GamePort control
+extern errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, InputType* _Nullable pOutType);
+extern errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputType type);
 
 
 // The mouse cursor state

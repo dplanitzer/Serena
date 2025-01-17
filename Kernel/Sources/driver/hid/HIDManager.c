@@ -91,6 +91,10 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     try(DriverCatalog_OpenDriver(gDriverCatalog, "/kb", kOpen_ReadWrite, &self->kbChannel));
 
 
+    // Open the game port driver
+    try(DriverCatalog_OpenDriver(gDriverCatalog, "/gp-bus", kOpen_ReadWrite, &self->gpChannel));
+
+
     // XXX
     //GraphicsDriver_SetMouseCursor(self->fb, gArrow_Bits, gArrow_Mask);
     //HIDManager_ShowMouseCursor(self);
@@ -374,6 +378,22 @@ void HIDManager_GetDeviceKeysDown(HIDManagerRef _Nonnull self, const HIDKeyCode*
     cpu_restore_irqs(irs);
     
     *nKeysDown = oi;
+}
+
+errno_t HIDManager_GetPortDevice(HIDManagerRef _Nonnull self, int port, InputType* _Nullable pOutType)
+{
+    Lock_Lock(&self->lock);
+    const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_GetPortDevice, port, pOutType);
+    Lock_Unlock(&self->lock);
+    return err;
+}
+
+errno_t HIDManager_SetPortDevice(HIDManagerRef _Nonnull self, int port, InputType type)
+{
+    Lock_Lock(&self->lock);
+    const errno_t err = IOChannel_Ioctl(self->gpChannel, kGamePortCommand_SetPortDevice, port, type);
+    Lock_Unlock(&self->lock);
+    return err;
 }
 
 void HIDManager_SetMouseCursor(HIDManagerRef _Nonnull self, const void* pBitmap, const void* pMask)

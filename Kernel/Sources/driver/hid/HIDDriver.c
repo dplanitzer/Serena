@@ -48,6 +48,12 @@ errno_t HIDDriver_ioctl(DriverRef _Nonnull self, int cmd, va_list ap)
             HIDManager_SetKeyRepeatDelays(gHIDManager, va_arg(ap, TimeInterval), va_arg(ap, TimeInterval));
             return EOK;
 
+        case kHIDCommand_GetPortDevice:
+            return HIDManager_GetPortDevice(gHIDManager, va_arg(ap, int), va_arg(ap, InputType*));
+
+        case kHIDCommand_SetPortDevice:
+            return HIDManager_SetPortDevice(gHIDManager, va_arg(ap, int), va_arg(ap, InputType));
+
         default:
             return super_n(ioctl, Driver, HIDDriver, self, cmd, ap);
     }
