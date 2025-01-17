@@ -15,10 +15,9 @@ const char* const kConsoleName = "console";
 
 // Creates a new console object. This console will display its output on the
 // provided graphics device.
-// \param pEventDriver the event driver to provide keyboard input
 // \param pGDevice the graphics device
 // \return the console; NULL on failure
-errno_t Console_Create(const char* _Nonnull eventDriverPath, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf)
+errno_t Console_Create(GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     ConsoleRef self;
@@ -29,7 +28,7 @@ errno_t Console_Create(const char* _Nonnull eventDriverPath, GraphicsDriverRef _
 
     try(DispatchQueue_Create(0, 1, kDispatchQoS_Interactive, 0, gVirtualProcessorPool, NULL, (DispatchQueueRef*)&self->dispatchQueue));
 
-    try(DriverCatalog_OpenDriver(gDriverCatalog, eventDriverPath, kOpen_Read, &self->hidDriverChannel));
+    try(DriverCatalog_OpenDriver(gDriverCatalog, "/hid", kOpen_Read, &self->hidDriverChannel));
     try(RingBuffer_Init(&self->reportsQueue, 4 * (MAX_MESSAGE_LENGTH + 1)));
 
     self->gdevice = Object_RetainAs(pGDevice, GraphicsDriver);

@@ -146,7 +146,7 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
 
     // Initialize the console
     ConsoleRef console = NULL;
-    try(Console_Create("/hid", fb, &console));
+    try(Console_Create(fb, &console));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)console));
 
 

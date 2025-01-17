@@ -9,7 +9,6 @@
 #ifndef Console_h
 #define Console_h
 
-#include <klib/klib.h>
 #include <driver/Driver.h>
 
 //
@@ -23,6 +22,6 @@ extern const char* const kConsoleName;
 
 final_class(Console, Driver);
 
-extern errno_t Console_Create(const char* _Nonnull eventDriverPath, GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf);
+extern errno_t Console_Create(GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* Console_h */
