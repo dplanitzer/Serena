@@ -166,7 +166,7 @@ void HIDManager_ReportKeyboardDeviceChange(HIDManagerRef _Nonnull self, HIDKeySt
     }
     evt.key.flags = flags;
     evt.key.keyCode = keyCode;
-    evt.key.isRepeat = false;
+    evt.key.isRepeat = (keyState == kHIDKeyState_Repeat) ? true : false;
 
     HIDEventQueue_Put(self->eventQueue, evtType, &evt);
 }

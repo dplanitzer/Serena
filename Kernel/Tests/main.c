@@ -22,6 +22,9 @@ extern void dq_sync_test(int argc, char *argv[]);
 // File
 extern void overwrite_file_test(int argc, char *argv[]);
 
+// HID
+extern void hid_test(int argc, char *argv[]);
+
 // Lock
 extern void lock_test(int argc, char *argv[]);
 
@@ -51,6 +54,8 @@ static const test_t gTests[] = {
     {"dq_async", dq_async_test, true},
     {"dq_async_after", dq_async_after_test, true},
     {"dq_sync", dq_sync_test, true},
+
+    {"hid", hid_test, false},
 
     {"lock", lock_test, true},
 
