@@ -13,7 +13,9 @@
 #include <dispatcher/VirtualProcessorPool.h>
 #include <dispatchqueue/DispatchQueue.h>
 #include <driver/DriverCatalog.h>
+#include <driver/NullDriver.h>
 #include <driver/amiga/AmigaController.h>
+#include <driver/hid/HIDDriver.h>
 #include <driver/hid/HIDManager.h>
 #include <filemanager/FilesystemManager.h>
 #include <filesystem/Filesystem.h>
@@ -92,12 +94,28 @@ _Noreturn OnBoot(SystemDescription* _Nonnull pSysDesc)
 static errno_t drivers_init(void)
 {
     static PlatformControllerRef gPlatformController;
+    static DriverRef gHidDriver;
+    static DriverRef gNullDriver;
     decl_try_err();
 
+    // HID manager & driver
     try(HIDManager_Create(&gHIDManager));
+    try(HIDDriver_Create(&gHidDriver));
+    try(Driver_Start(gHidDriver));
+
+
+    // Platform controller
     try(AmigaController_Create(&gPlatformController));
     try(Driver_Start((DriverRef)gPlatformController));
+
+
+    // Start the HID manager
     try(HIDManager_Start(gHIDManager));
+
+
+    // Null driver
+    try(NullDriver_Create(&gNullDriver));
+    try(Driver_Start(gNullDriver));
 
 catch:
     return err;

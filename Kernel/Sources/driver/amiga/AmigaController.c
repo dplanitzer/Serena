@@ -7,7 +7,6 @@
 //
 
 #include "AmigaController.h"
-#include "DriverCatalog.h"
 #include <console/Console.h>
 #include <dispatcher/Lock.h>
 #include <driver/amiga/floppy/FloppyController.h>
@@ -18,9 +17,7 @@
 #include <driver/amiga/zorro/ZorroController.h>
 #include <driver/disk/RamDisk.h>
 #include <driver/disk/RomDisk.h>
-#include <driver/hid/HIDDriver.h>
 #include <driver/DriverCatalog.h>
-#include <driver/NullDriver.h>
 #include <filesystem/DiskFSContainer.h>
 #include <filesystem/IOChannel.h>
 #include <filesystem/SerenaDiskImage.h>
@@ -135,12 +132,6 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fb));
 
 
-    // HID driver
-    DriverRef hid = NULL;
-    try(HIDDriver_Create(&hid));
-    try(Driver_StartAdoptChild((DriverRef)self, hid));
-
-
     // Keyboard
     DriverRef kb;
     try(KeyboardDriver_Create(&kb));
@@ -161,12 +152,6 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
 
     // Let the kernel know that the console is now available
     PlatformController_NoteConsoleAvailable((PlatformControllerRef)self);
-
-
-    // Null driver
-    DriverRef nd = NULL;
-    try(NullDriver_Create(&nd));
-    try(Driver_StartAdoptChild((DriverRef)self, nd));
 
 
     // Floppy Bus
