@@ -330,6 +330,18 @@ void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Cons
     }
 }
 
+// Starts the given driver instance and adopts the driver instance as a child if
+// the start has been successful.
+errno_t Driver_StartAdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild)
+{
+    decl_try_err();
+
+    if ((err = Driver_Start(pChild)) == EOK) {
+        Driver_AdoptChild(self, pChild);
+    }
+    return err;
+}
+
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver.
 void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild)

@@ -100,7 +100,7 @@ static errno_t GamePortController_SetPortDevice(GamePortControllerRef _Nonnull s
 
     if (type != kInputType_None) {
         try(GamePortController_CreateInputDriver(self, port, type, &pNewDriver));
-        Driver_AdoptChild((DriverRef)self, pNewDriver);
+        try(Driver_StartAdoptChild((DriverRef)self, pNewDriver));
     }
 
 catch:

@@ -132,36 +132,31 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     
     GraphicsDriverRef fb = NULL;
     try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &fb));
-    try(Driver_Start((DriverRef)fb));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)fb);
+    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fb));
 
 
     // HID driver
     DriverRef hid = NULL;
     try(HIDDriver_Create(&hid));
-    try(Driver_Start(hid));
-    Driver_AdoptChild((DriverRef)self, hid);
+    try(Driver_StartAdoptChild((DriverRef)self, hid));
 
 
     // Keyboard
     DriverRef kb;
     try(KeyboardDriver_Create(&kb));
-    try(Driver_Start(kb));
-    Driver_AdoptChild((DriverRef)self, kb);
+    try(Driver_StartAdoptChild((DriverRef)self, kb));
 
 
     // GamePort
     GamePortControllerRef gpc = NULL;
     try(GamePortController_Create(&gpc));
-    try(Driver_Start((DriverRef)gpc));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)gpc);
+    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)gpc));
 
 
     // Initialize the console
     ConsoleRef console = NULL;
     try(Console_Create("/hid", fb, &console));
-    try(Driver_Start((DriverRef)console));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)console);
+    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)console));
 
 
     // Let the kernel know that the console is now available
@@ -171,15 +166,13 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     // Null driver
     DriverRef nd = NULL;
     try(NullDriver_Create(&nd));
-    try(Driver_Start(nd));
-    Driver_AdoptChild((DriverRef)self, nd);
+    try(Driver_StartAdoptChild((DriverRef)self, nd));
 
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
     try(FloppyController_Create(&fdc));
-    try(Driver_Start((DriverRef)fdc));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)fdc);
+    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fdc));
 
 
     // Realtime Clock
@@ -187,16 +180,14 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     // XXX not yet
     RealtimeClockRef rtcDriver = NULL;
     try(RealtimeClock_Create(gSystemDescription, &rtcDriver));
-    try(Driver_Start((DriverRef)rtcDriver));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)rtcDriver);
+    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)rtcDriver));
     #endif
 
 
     // Zorro Bus
     ZorroControllerRef zorroController = NULL;
     try(ZorroController_Create(&zorroController));
-    try(Driver_Start((DriverRef)zorroController));
-    Driver_AdoptChild((DriverRef)self, (DriverRef)zorroController);
+    try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)zorroController));
 
 
     // Create a boot ram/rom disk if a disk image exists in ROM

@@ -314,6 +314,10 @@ extern void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull 
 // reference. Call this function from a onStart() override.
 extern void Driver_AdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild);
 
+// Starts the given driver instance and adopts the driver instance as a child if
+// the start has been successful.
+extern errno_t Driver_StartAdoptChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull _Consuming pChild);
+
 // Removes the given driver from the receiver. The given driver has to be a child
 // of the receiver. Call this function from a onStop() override.
 extern void Driver_RemoveChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
