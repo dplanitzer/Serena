@@ -8,7 +8,6 @@
 
 #include "ZorroController.h"
 #include "zorro_bus.h"
-#include <driver/DriverCatalog.h>
 #include <klib/Kalloc.h>
 
 
@@ -24,18 +23,16 @@ errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf)
 
 static void ZorroController_RegisterRamExpansions(ZorroControllerRef _Nonnull self)
 {
-    for (size_t i = 0; i < self->bus.count; i++) {
-        const zorro_board_t* board = &self->bus.board[i];
-       
-        if (board->type == BOARD_TYPE_RAM && board->start != NULL && board->logical_size > 0) {
+    List_ForEach(&self->bus.boards, zorro_board_t,
+        if (pCurNode->type == BOARD_TYPE_RAM && pCurNode->start != NULL && pCurNode->logical_size > 0) {
             MemoryDescriptor md = {0};
 
-            md.lower = board->start;
-            md.upper = board->start + board->logical_size;
+            md.lower = pCurNode->start;
+            md.upper = pCurNode->start + pCurNode->logical_size;
             md.type = MEM_TYPE_MEMORY;
             (void) kalloc_add_memory_region(&md);
         }
-    }
+    );
 }
 
 errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)

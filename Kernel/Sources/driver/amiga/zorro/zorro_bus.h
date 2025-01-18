@@ -9,11 +9,9 @@
 #ifndef zorro_bus_h
 #define zorro_bus_h
 
-#include <System/Types.h>
+#include <klib/Error.h>
+#include <klib/List.h>
 
-
-// Supported max number of expansion boards
-#define ZORRO_BUS_CAPACITY  16
 
 // Expansion board types
 #define BOARD_TYPE_RAM  0
@@ -23,34 +21,6 @@
 #define ZORRO_2_BUS 0
 #define ZORRO_3_BUS 1
 
-
-// An expansion board
-typedef struct zorro_board {
-    uint8_t* _Nonnull   start;          // base address
-    size_t              physical_size;  // size of memory space reserved for this board
-    size_t              logical_size;   // size of memory space actually occupied by the board
-    uint32_t            serial_number;
-    uint16_t            manufacturer;
-    uint16_t            product;
-    int8_t              type;
-    int8_t              bus;
-    int8_t              slot;
-    int8_t              reserved;
-} zorro_board_t;
-
-
-typedef struct zorro_bus {
-    size_t          count;
-    zorro_board_t   board[ZORRO_BUS_CAPACITY];
-} zorro_bus_t;
-
-
-extern void zorro_auto_config(zorro_bus_t* _Nonnull bus);
-
-
-//
-// Internal
-//
 
 // Space for Zorro II auto configuration
 #define ZORRO_2_CONFIG_BASE         ((uint8_t*)0x00e80000)
@@ -84,17 +54,28 @@ extern void zorro_auto_config(zorro_bus_t* _Nonnull bus);
 #define ZORRO_FLAG_NEXT_IS_RELATED  0x02
 
 
-// Zorro board configuration information
-typedef struct board_config {
-    size_t      physical_size;  // physical board size
-    size_t      logical_size;   // logical board size which may be smaller than the physical size; 0 means the kernel should auto-size the board
-    uint32_t    serial_number;
-    uint16_t    manufacturer;
-    uint16_t    product;
-    uint8_t     bus;
-    uint8_t     type;
-    uint8_t     flags;
-    uint8_t     reserved;
-} board_config_t;
+// An expansion board
+typedef struct zorro_board {
+    ListNode            node;
+    uint8_t* _Nonnull   start;          // base address
+    size_t              physical_size;  // size of memory space reserved for this board
+    size_t              logical_size;   // size of memory space actually occupied by the board
+    uint32_t            serial_number;
+    uint16_t            manufacturer;
+    uint16_t            product;
+    int8_t              type;
+    int8_t              bus;
+    int8_t              slot;
+    uint8_t             flags;
+} zorro_board_t;
+
+
+typedef struct zorro_bus {
+    List    boards;
+    size_t  count;
+} zorro_bus_t;
+
+
+extern errno_t zorro_auto_config(zorro_bus_t* _Nonnull bus);
 
 #endif /* zorro_bus_h */
