@@ -9,44 +9,43 @@
 #ifndef zorro_bus_h
 #define zorro_bus_h
 
-#include <klib/Types.h>
+#include <System/Types.h>
 
 
 // Supported max number of expansion boards
-#define EXPANSION_BOARDS_CAPACITY    16
+#define ZORRO_BUS_CAPACITY  16
 
-// Expanion board types
-#define EXPANSION_TYPE_RAM  0
-#define EXPANSION_TYPE_IO   1
+// Expansion board types
+#define BOARD_TYPE_RAM  0
+#define BOARD_TYPE_IO   1
 
 // Expansion bus types
-#define EXPANSION_BUS_ZORRO_2   0
-#define EXPANSION_BUS_ZORRO_3   1
+#define ZORRO_2_BUS 0
+#define ZORRO_3_BUS 1
 
 
 // An expansion board
-typedef struct ExpansionBoard {
+typedef struct zorro_board {
     uint8_t* _Nonnull   start;          // base address
     size_t              physical_size;  // size of memory space reserved for this board
     size_t              logical_size;   // size of memory space actually occupied by the board
+    uint32_t            serial_number;
+    uint16_t            manufacturer;
+    uint16_t            product;
     int8_t              type;
     int8_t              bus;
     int8_t              slot;
     int8_t              reserved;
-    uint16_t            manufacturer;
-    uint16_t            product;
-    uint32_t            serial_number;
-    // Update lowmem.i if you add a new property here
-} ExpansionBoard;
+} zorro_board_t;
 
 
-typedef struct ExpansionBus {
-    int                 board_count;
-    ExpansionBoard      board[EXPANSION_BOARDS_CAPACITY];
-} ExpansionBus;
+typedef struct zorro_bus {
+    size_t          count;
+    zorro_board_t   board[ZORRO_BUS_CAPACITY];
+} zorro_bus_t;
 
 
-extern void zorro_auto_config(ExpansionBus* pExpansionBus);
+extern void zorro_auto_config(zorro_bus_t* _Nonnull bus);
 
 
 //
@@ -86,16 +85,16 @@ extern void zorro_auto_config(ExpansionBus* pExpansionBus);
 
 
 // Zorro board configuration information
-typedef struct Zorro_BoardConfiguration {
+typedef struct board_config {
     size_t      physical_size;  // physical board size
     size_t      logical_size;   // logical board size which may be smaller than the physical size; 0 means the kernel should auto-size the board
+    uint32_t    serial_number;
+    uint16_t    manufacturer;
+    uint16_t    product;
     uint8_t     bus;
     uint8_t     type;
     uint8_t     flags;
     uint8_t     reserved;
-    uint16_t    manufacturer;
-    uint16_t    product;
-    uint32_t    serial_number;
-} Zorro_BoardConfiguration;
+} board_config_t;
 
 #endif /* zorro_bus_h */

@@ -13,7 +13,7 @@
 
 
 final_class_ivars(ZorroController, Driver,
-    ExpansionBus    zorroBus;
+    zorro_bus_t bus;
 );
 
 
@@ -22,17 +22,12 @@ errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf)
     return Driver_Create(ZorroController, 0, pOutSelf);
 }
 
-errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
+static void ZorroController_RegisterRamExpansions(ZorroControllerRef _Nonnull self)
 {
-    // Auto config the Zorro bus
-    zorro_auto_config(&self->zorroBus);
-
-
-    // Find all RAM expansion boards and add them to the kalloc package
-    for (int i = 0; i < self->zorroBus.board_count; i++) {
-        const ExpansionBoard* board = &self->zorroBus.board[i];
+    for (size_t i = 0; i < self->bus.count; i++) {
+        const zorro_board_t* board = &self->bus.board[i];
        
-        if (board->type == EXPANSION_TYPE_RAM && board->start != NULL && board->logical_size > 0) {
+        if (board->type == BOARD_TYPE_RAM && board->start != NULL && board->logical_size > 0) {
             MemoryDescriptor md = {0};
 
             md.lower = board->start;
@@ -41,8 +36,22 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
             (void) kalloc_add_memory_region(&md);
         }
     }
+}
 
-    return EOK;
+errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
+{
+    decl_try_err();
+
+    if ((err = Driver_Publish((DriverRef)self, "zorro-bus", 0)) == EOK) {
+        // Auto config the Zorro bus
+        zorro_auto_config(&self->bus);
+
+
+        // Find all RAM expansion boards and add them to the kalloc package
+        ZorroController_RegisterRamExpansions(self);
+    }
+
+    return err;
 }
 
 class_func_defs(ZorroController, Driver,

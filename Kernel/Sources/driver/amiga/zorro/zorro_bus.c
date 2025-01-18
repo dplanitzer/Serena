@@ -28,16 +28,16 @@ static uint8_t zorro_read(volatile uint8_t* _Nonnull addr, bool invert, bool isZ
 // the board that was found. The contents of 'board' is undefined if no board was
 // found.
 // NOTE: We do not check whether cards actually return 0 for auto config locations
-// for which they are supposed to retur 0 according to the spec because at least
+// for which they are supposed to return 0 according to the spec because at least
 // some cards do in fact return non-zero values. Eg Commodore A2091 SCSI card.
-static bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, uint8_t busToScan)
+static bool zorro_read_config_space(board_config_t* _Nonnull config, uint8_t busToScan)
 {
-    const bool isZorro3Machine = busToScan == EXPANSION_BUS_ZORRO_3;
+    const bool isZorro3Machine = busToScan == ZORRO_3_BUS;
     register uint8_t* pAutoConfigBase = (isZorro3Machine) ? ZORRO_3_CONFIG_BASE : ZORRO_2_CONFIG_BASE;
     
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C7.html
     // See: http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node02C8.html
-    memset(config, 0, sizeof(Zorro_BoardConfiguration));
+    memset(config, 0, sizeof(board_config_t));
     
     
     // Type
@@ -45,15 +45,15 @@ static bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, u
     switch((type >> 6) & 0x03) {
         case 0:     return false;
         case 1:     return false;
-        case 2:     config->bus = EXPANSION_BUS_ZORRO_3; break;
-        case 3:     config->bus = EXPANSION_BUS_ZORRO_2; break;
+        case 2:     config->bus = ZORRO_3_BUS; break;
+        case 3:     config->bus = ZORRO_2_BUS; break;
         default:    abort();
     }
     
     if (type & (1 << 5)) {
-        config->type = EXPANSION_TYPE_RAM;
+        config->type = BOARD_TYPE_RAM;
     } else {
-        config->type = EXPANSION_TYPE_IO;
+        config->type = BOARD_TYPE_IO;
     }
     if (type & (1 << 3)) {
         config->flags |= ZORRO_FLAG_NEXT_IS_RELATED;
@@ -70,7 +70,7 @@ static bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, u
         config->flags |= ZORRO_FLAG_CANT_SHUTUP;
     }
     
-    const bool isExtendedSize = (config->bus == EXPANSION_BUS_ZORRO_3) && (flags & (1 <<5)) != 0;
+    const bool isExtendedSize = (config->bus == ZORRO_3_BUS) && (flags & (1 <<5)) != 0;
     const uint8_t physsiz = type & 0x07;
     static const size_t gBoardSizes[8] = {
         SIZE_MB(8),   SIZE_KB(64), SIZE_KB(128), SIZE_KB(256),
@@ -92,7 +92,7 @@ static bool zorro_read_config_space(Zorro_BoardConfiguration* _Nonnull config, u
         SIZE_MB(8),  SIZE_MB(10),  SIZE_MB(12),  SIZE_MB(14)
     };
     
-    const uint8_t logsiz = (config->bus == EXPANSION_BUS_ZORRO_3) ? flags & 0x0f : 0;
+    const uint8_t logsiz = (config->bus == ZORRO_3_BUS) ? flags & 0x0f : 0;
     switch (logsiz) {
         case 0x00: config->logical_size = config->physical_size; // logical size is same as physical size
             break;
@@ -154,7 +154,7 @@ static void zorro3_auto_config_shutup(void)
 // system reset.
 static void zorro_auto_config_shutup(uint8_t bus)
 {
-    if (bus == EXPANSION_BUS_ZORRO_3) {
+    if (bus == ZORRO_3_BUS) {
         zorro3_auto_config_shutup();
     } else {
         zorro2_auto_config_shutup();
@@ -202,7 +202,7 @@ static void zorro3_auto_config_assign_base_address(uint8_t* _Nullable addr)
 // board becomes visible in auto config space.
 static void zorro_auto_config_assign_base_address(uint8_t* _Nullable addr, uint8_t bus)
 {
-    if (bus == EXPANSION_BUS_ZORRO_3) {
+    if (bus == ZORRO_3_BUS) {
         zorro3_auto_config_assign_base_address(addr);
     } else {
         zorro2_auto_config_assign_base_address(addr);
@@ -230,16 +230,16 @@ static uint8_t* _Nonnull zorro2_align_board_address(uint8_t* _Nonnull base_ptr, 
     }
 }
 
-static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const Zorro_BoardConfiguration* _Nonnull pConfig, const ExpansionBus* _Nonnull pExpansionBus, uint8_t* board_space_base_addr, uint8_t* board_space_top_addr)
+static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const board_config_t* _Nonnull pConfig, const zorro_bus_t* _Nonnull bus, uint8_t* board_space_base_addr, uint8_t* board_space_top_addr)
 {
-    const bool isMemoryBoard = pConfig->type == EXPANSION_TYPE_RAM;
-    const bool isZorro3Board = pConfig->bus == EXPANSION_BUS_ZORRO_3;
+    const bool isMemoryBoard = pConfig->type == BOARD_TYPE_RAM;
+    const bool isZorro3Board = pConfig->bus == ZORRO_3_BUS;
     uint8_t* highest_occupied_board_addr = board_space_base_addr;
-    const ExpansionBoard* pHighestAllocatedBoard = NULL;
+    const zorro_board_t* pHighestAllocatedBoard = NULL;
 
     // Find the board with a matching Zorro bus, board type and expansion space adress range that has the highest assigned address
-    for (int i = 0; i < pExpansionBus->board_count; i++) {
-        const ExpansionBoard* pCurBoard = &pExpansionBus->board[i];
+    for (size_t i = 0; i < bus->count; i++) {
+        const zorro_board_t* pCurBoard = &bus->board[i];
 
         if (pCurBoard->bus == pConfig->bus
             && pCurBoard->type == pConfig->type
@@ -271,20 +271,20 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board_in_range(const 
     return (board_top_addr <= board_space_top_addr) ? board_base_addr : NULL;
 }
 
-static uint8_t* _Nullable zorro_calculate_base_address_for_board(const Zorro_BoardConfiguration* _Nonnull pConfig, const ExpansionBus* _Nonnull pExpansionBus)
+static uint8_t* _Nullable zorro_calculate_base_address_for_board(const board_config_t* _Nonnull pConfig, const zorro_bus_t* _Nonnull bus)
 {
     uint8_t* board_base_addr = NULL;
 
-    if (pConfig->bus == EXPANSION_BUS_ZORRO_3) {
-        board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_3_EXPANSION_LOW, ZORRO_3_EXPANSION_HIGH);
+    if (pConfig->bus == ZORRO_3_BUS) {
+        board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, bus, ZORRO_3_EXPANSION_LOW, ZORRO_3_EXPANSION_HIGH);
     } else {
-        if (pConfig->type == EXPANSION_TYPE_RAM) {
-            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_2_MEMORY_LOW, ZORRO_2_MEMORY_HIGH);
+        if (pConfig->type == BOARD_TYPE_RAM) {
+            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, bus, ZORRO_2_MEMORY_LOW, ZORRO_2_MEMORY_HIGH);
         } else {
-            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_2_IO_LOW, ZORRO_2_IO_HIGH);
+            board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, bus, ZORRO_2_IO_LOW, ZORRO_2_IO_HIGH);
             if (board_base_addr == NULL && chipset_get_ramsey_version() > 0) {
                 // Zorro 3 based machines support an extra Zorro 2 I/O address range
-                board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, pExpansionBus, ZORRO_2_EXTRA_IO_LOW, ZORRO_2_EXTRA_IO_HIGH);
+                board_base_addr = zorro_calculate_base_address_for_board_in_range(pConfig, bus, ZORRO_2_EXTRA_IO_LOW, ZORRO_2_EXTRA_IO_HIGH);
             }
         }
     }
@@ -293,7 +293,7 @@ static uint8_t* _Nullable zorro_calculate_base_address_for_board(const Zorro_Boa
 }
 
 // Dynamically determines the size of the given memory expansion board.
-static size_t zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
+static size_t zorro3_auto_size_memory_board(zorro_board_t* _Nonnull board)
 {
     uint8_t* pLower = board->start;
     uint8_t* pUpper = board->start + board->physical_size;
@@ -313,24 +313,24 @@ static size_t zorro3_auto_size_memory_board(ExpansionBoard* _Nonnull board)
 
 
 
-void zorro_auto_config(ExpansionBus* pExpansionBus)
+void zorro_auto_config(zorro_bus_t* _Nonnull bus)
 {
     const bool isZorro3Machine = chipset_get_ramsey_version() > 0;
     uint8_t prev_config_flags = ZORRO_FLAG_NEXT_IS_RELATED;
     int slot = 0;
     
-    pExpansionBus->board_count = 0;
-    while (pExpansionBus->board_count < EXPANSION_BOARDS_CAPACITY) {
-        Zorro_BoardConfiguration config;
+    bus->count = 0;
+    while (bus->count < ZORRO_BUS_CAPACITY) {
+        board_config_t config;
         
-        if (!zorro_read_config_space(&config, EXPANSION_BUS_ZORRO_2)) {
-            if (!isZorro3Machine || (isZorro3Machine && !zorro_read_config_space(&config, EXPANSION_BUS_ZORRO_3))) {
+        if (!zorro_read_config_space(&config, ZORRO_2_BUS)) {
+            if (!isZorro3Machine || (isZorro3Machine && !zorro_read_config_space(&config, ZORRO_3_BUS))) {
                 break;
             }
         }
 
         // calculate the base address for RAM or I/O. Growing bottom to top
-        uint8_t* board_base_addr = zorro_calculate_base_address_for_board(&config, pExpansionBus);
+        uint8_t* board_base_addr = zorro_calculate_base_address_for_board(&config, bus);
 
         
         // check whether we still got enough space left to map the board. If not then
@@ -359,7 +359,7 @@ void zorro_auto_config(ExpansionBus* pExpansionBus)
         
         
         // add the board to the globals
-        ExpansionBoard* board = &pExpansionBus->board[pExpansionBus->board_count++];
+        zorro_board_t* board = &bus->board[bus->count++];
         board->start = board_base_addr;
         board->physical_size = config.physical_size;
         board->logical_size = config.logical_size;
@@ -373,7 +373,7 @@ void zorro_auto_config(ExpansionBus* pExpansionBus)
 
         // if RAM and logical_size == 0, auto-size the board
         if (board->logical_size == 0) {
-            if (board->type == EXPANSION_TYPE_RAM) {
+            if (board->type == BOARD_TYPE_RAM) {
                 board->logical_size = zorro3_auto_size_memory_board(board);
             } else {
                 // This is really a hardware bug. Auto sizing for I/O boards makes no

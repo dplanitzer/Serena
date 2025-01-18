@@ -136,10 +136,10 @@ void DispatchQueue_RunTests(void)
     const int boardCount = DriverManager_GetExpansionBoardCount(gDriverManager);
     if (boardCount > 0) {
         for(int i = 0; i < boardCount; i++) {
-            const ExpansionBoard board = DriverManager_GetExpansionBoardAtIndex(gDriverManager, i);
+            const zorro_board_t board = DriverManager_GetExpansionBoardAtIndex(gDriverManager, i);
 
             print("start: 0x%p, psize: %u, lsize: %u\n", board.start, board.physical_size, board.logical_size);
-            print("type: %s %s\n", board.type == EXPANSION_TYPE_RAM ? "RAM" : "I/O", board.bus == EXPANSION_BUS_ZORRO_2 ? "[Z2]" : "[Z3]");
+            print("type: %s %s\n", board.type == BOARD_TYPE_RAM ? "RAM" : "I/O", board.bus == ZORRO_2_BUS ? "[Z2]" : "[Z3]");
             print("slot: %d\n", board.slot);
             print("manu: $%x, prod: $%x\n", board.manufacturer, board.product);
             print("ser#: $%x\n", board.serial_number);
