@@ -8,11 +8,11 @@
 
 #include "ZorroController.h"
 #include "zorro_bus.h"
-#include <klib/Kalloc.h>
+#include "ZRamDriver.h"
 
 
 final_class_ivars(ZorroController, Driver,
-    zorro_bus_t bus;
+    ZorroBus    bus;
 );
 
 
@@ -21,33 +21,31 @@ errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf)
     return Driver_Create(ZorroController, 0, pOutSelf);
 }
 
-static void ZorroController_RegisterRamExpansions(ZorroControllerRef _Nonnull self)
-{
-    List_ForEach(&self->bus.boards, zorro_board_t,
-        if (pCurNode->type == BOARD_TYPE_RAM && pCurNode->start != NULL && pCurNode->logical_size > 0) {
-            MemoryDescriptor md = {0};
-
-            md.lower = pCurNode->start;
-            md.upper = pCurNode->start + pCurNode->logical_size;
-            md.type = MEM_TYPE_MEMORY;
-            (void) kalloc_add_memory_region(&md);
-        }
-    );
-}
-
 errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
 {
     decl_try_err();
 
-    if ((err = Driver_Publish((DriverRef)self, "zorro-bus", 0)) == EOK) {
-        // Auto config the Zorro bus
-        zorro_auto_config(&self->bus);
+    try(Driver_Publish((DriverRef)self, "zorro-bus", 0));
 
 
-        // Find all RAM expansion boards and add them to the kalloc package
-        ZorroController_RegisterRamExpansions(self);
-    }
+    // Auto config the Zorro bus
+    zorro_auto_config(&self->bus);
 
+
+    // Instantiate the board drivers 
+    List_ForEach(&self->bus.boards, ZorroBoard,
+        const ZorroConfiguration* cfg = &pCurNode->cfg;
+
+        if (cfg->type == BOARD_TYPE_RAM && cfg->start && cfg->logicalSize > 0) {
+            DriverRef dp;
+
+            if (ZRamDriver_Create(cfg, &dp) == EOK) {
+                Driver_StartAdoptChild((DriverRef)self, dp);
+            }
+        }
+    );
+
+catch:
     return err;
 }
 

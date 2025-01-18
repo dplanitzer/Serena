@@ -9,6 +9,7 @@
 #ifndef zorro_bus_h
 #define zorro_bus_h
 
+#include <System/Zorro.h>
 #include <klib/Error.h>
 #include <klib/List.h>
 
@@ -55,27 +56,18 @@
 
 
 // An expansion board
-typedef struct zorro_board {
+typedef struct ZorroBoard {
     ListNode            node;
-    uint8_t* _Nonnull   start;          // base address
-    size_t              physical_size;  // size of memory space reserved for this board
-    size_t              logical_size;   // size of memory space actually occupied by the board
-    uint32_t            serial_number;
-    uint16_t            manufacturer;
-    uint16_t            product;
-    int8_t              type;
-    int8_t              bus;
-    int8_t              slot;
-    uint8_t             flags;
-} zorro_board_t;
+    ZorroConfiguration  cfg;
+} ZorroBoard;
 
 
-typedef struct zorro_bus {
+typedef struct ZorroBus {
     List    boards;
     size_t  count;
-} zorro_bus_t;
+} ZorroBus;
 
 
-extern errno_t zorro_auto_config(zorro_bus_t* _Nonnull bus);
+extern errno_t zorro_auto_config(ZorroBus* _Nonnull bus);
 
 #endif /* zorro_bus_h */
