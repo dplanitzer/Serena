@@ -272,6 +272,11 @@ Lock_Lock(&((DriverRef)__self)->lock)
 #define Driver_Unlock(__self) \
 Lock_Unlock(&((DriverRef)__self)->lock)
 
+// Returns a reference to the driver lock. For use cases like integrating with
+// a condition variable
+#define Driver_GetLock(__self) \
+(&((DriverRef)(__self))->lock)
+
 
 #define Driver_OnStart(__self) \
 invoke_0(onStart, Driver, __self)
