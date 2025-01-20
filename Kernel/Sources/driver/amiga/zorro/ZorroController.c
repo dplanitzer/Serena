@@ -16,9 +16,9 @@ final_class_ivars(ZorroController, Driver,
 );
 
 
-errno_t ZorroController_Create(ZorroControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t ZorroController_Create(DriverRef _Nullable parent, ZorroControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(ZorroController, 0, pOutSelf);
+    return Driver_Create(ZorroController, 0, parent, pOutSelf);
 }
 
 errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
@@ -39,7 +39,7 @@ errno_t ZorroController_onStart(ZorroControllerRef _Nonnull _Locked self)
         if (cfg->type == BOARD_TYPE_RAM && cfg->start && cfg->logicalSize > 0) {
             DriverRef dp;
 
-            if (ZRamDriver_Create(cfg, &dp) == EOK) {
+            if (ZRamDriver_Create((DriverRef)self, cfg, &dp) == EOK) {
                 Driver_StartAdoptChild((DriverRef)self, dp);
             }
         }

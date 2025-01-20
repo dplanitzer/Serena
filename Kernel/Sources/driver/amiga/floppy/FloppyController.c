@@ -37,12 +37,12 @@ static void _FloppyController_SetMotor(FloppyControllerRef _Locked _Nonnull self
 
 
 // Creates the floppy controller
-errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     FloppyControllerRef self;
     
-    try(Driver_Create(FloppyController, 0, &self));
+    try(Driver_Create(FloppyController, 0, parent, &self));
 
     Lock_Init(&self->lock);
     ConditionVariable_Init(&self->cv);
@@ -90,7 +90,7 @@ errno_t FloppyController_onStart(FloppyControllerRef _Nonnull _Locked self)
         if (FloppyController_GetDriveType(self, &ds) == kDriveType_3_5) {
             FloppyDriverRef drive;
             
-            if ((err = FloppyDriver_Create(i, ds, self, &drive)) == EOK) {
+            if ((err = FloppyDriver_Create((DriverRef)self, i, ds, &drive)) == EOK) {
                 err = Driver_StartAdoptChild((DriverRef)self, (DriverRef)drive);
                 if (err != EOK) {
                     Object_Release(drive);

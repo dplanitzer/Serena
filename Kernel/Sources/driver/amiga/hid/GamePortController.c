@@ -19,9 +19,9 @@ final_class_ivars(GamePortController, Driver,
 );
 
 
-errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOutSelf)
+errno_t GamePortController_Create(DriverRef _Nullable parent, GamePortControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(GamePortController, kDriver_Exclusive, (DriverRef*)pOutSelf);
+    return Driver_Create(GamePortController, kDriver_Exclusive, parent, (DriverRef*)pOutSelf);
 }
 
 static errno_t GamePortController_GetPortDevice(GamePortControllerRef _Nonnull self, int port, InputType* _Nullable pOutType)
@@ -46,16 +46,16 @@ static errno_t GamePortController_CreateInputDriver(GamePortControllerRef _Nonnu
 {
     switch (type) {
         case kInputType_Mouse:
-            return MouseDriver_Create(port, pOutDriver);
+            return MouseDriver_Create((DriverRef)self, port, pOutDriver);
 
         case kInputType_DigitalJoystick:
-            return DigitalJoystickDriver_Create(port, pOutDriver);
+            return DigitalJoystickDriver_Create((DriverRef)self, port, pOutDriver);
 
         case kInputType_AnalogJoystick:
-            return AnalogJoystickDriver_Create(port, pOutDriver);
+            return AnalogJoystickDriver_Create((DriverRef)self, port, pOutDriver);
 
         case kInputType_LightPen:
-            return LightPenDriver_Create(port, pOutDriver);
+            return LightPenDriver_Create((DriverRef)self, port, pOutDriver);
 
         default:
             abort();

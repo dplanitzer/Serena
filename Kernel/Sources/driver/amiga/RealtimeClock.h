@@ -37,7 +37,7 @@ extern const char* const kRealtimeClockName;
 final_class(RealtimeClock, Driver);
 
 
-extern errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RealtimeClock_Create(DriverRef _Nullable parent, const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutSelf);
 
 extern errno_t RealtimeClock_GetDate(RealtimeClockRef _Nonnull self, GregorianDate* _Nonnull pDate);
 extern errno_t RealtimeClock_SetDate(RealtimeClockRef _Nonnull self, const GregorianDate* _Nonnull pDate);

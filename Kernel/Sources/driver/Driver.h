@@ -117,15 +117,16 @@ typedef enum DriverState {
 // card functionality plus a child driver for the sound chip and another child
 // driver for the CD-ROM drive.
 open_class(Driver, Object,
-    Lock                    lock;
-    ListNode/*<Driver>*/    childNode;
-    List/*<Driver>*/        children;
-    uint16_t                options;
-    uint8_t                 flags;
-    int8_t                  state;
-    int                     openCount;
-    DriverCatalogId         driverCatalogId;
-    intptr_t                tag;
+    Lock                        lock;
+    DriverRef _Nullable _Weak   parent;
+    ListNode/*<Driver>*/        childNode;
+    List/*<Driver>*/            children;
+    uint16_t                    options;
+    uint8_t                     flags;
+    int8_t                      state;
+    int                         openCount;
+    DriverCatalogId             driverCatalogId;
+    intptr_t                    tag;
 );
 open_class_funcs(Driver, Object,
     
@@ -254,8 +255,8 @@ extern intptr_t Driver_GetTag(DriverRef _Nonnull self);
 //
 
 // Create a driver instance. 
-#define Driver_Create(__className, __options, __pOutDriver) \
-    _Driver_Create(&k##__className##Class, __options, (DriverRef*)__pOutDriver)
+#define Driver_Create(__className, __options, __parent, __pOutDriver) \
+    _Driver_Create(&k##__className##Class, __options, __parent, (DriverRef*)__pOutDriver)
 
 
 // Returns true if the driver is in active state; false otherwise
@@ -306,6 +307,13 @@ invoke_n(createChannel, Driver, __self, __mode, __arg, __pOutChannel)
 invoke_0(getSeekableRange, Driver, __self)
 
 
+#define Driver_GetParent(__self) \
+(((DriverRef)(__self))->parent)
+
+#define Driver_GetParentAs(__self, __class) \
+((__class##Ref)Driver_GetParent(__self))
+
+
 // Adds the given driver as a child to the receiver. Call this function from a
 // onStart() override.
 extern void Driver_AddChild(DriverRef _Nonnull _Locked self, DriverRef _Nonnull pChild);
@@ -328,6 +336,6 @@ extern DriverRef _Nullable Driver_GetChildWithTag(DriverRef _Nonnull _Locked sel
 
 
 // Do not call directly. Use the Driver_Create() macro instead
-extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* Driver_h */

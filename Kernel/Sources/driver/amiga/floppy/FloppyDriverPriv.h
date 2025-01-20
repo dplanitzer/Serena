@@ -50,8 +50,6 @@ typedef struct ADFSector {
 // Stores the state of a single floppy drive.
 final_class_ivars(FloppyDriver, DiskDriver,
 
-    FloppyControllerRef _Nonnull _Weak  fdc;
-
     // Buffer used to cache a read track
     ADFSector                   sectors[ADF_MAX_SECS_PER_TRACK];    // table of sectorsPerTrack good and bad sectors in the track stored in the track buffer  
     uint16_t* _Nullable         trackBuffer;                        // cached read track data (MFM encoded)
@@ -88,7 +86,7 @@ final_class_ivars(FloppyDriver, DiskDriver,
 );
 
 
-extern errno_t FloppyDriver_Create(int drive, DriveState ds, FloppyControllerRef _Nonnull pFdc, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
+extern errno_t FloppyDriver_Create(DriverRef _Nullable parent, int drive, DriveState ds, FloppyDriverRef _Nullable * _Nonnull pOutDisk);
 static void FloppyDriver_EstablishInitialDriveState(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnMediaChanged(FloppyDriverRef _Nonnull self);
 static void FloppyDriver_OnHardwareLost(FloppyDriverRef _Nonnull self);
@@ -119,5 +117,8 @@ static errno_t FloppyDriver_DoIO(FloppyDriverRef _Nonnull self, bool bWrite);
 static errno_t FloppyDriver_EndIO(FloppyDriverRef _Nonnull self, errno_t err);
 
 #define FloppyDriver_TrackFromCylinderAndHead(__cylinder, __head) (2*__cylinder + __head)
+
+#define FloppyDriver_GetController(__self) \
+Driver_GetParentAs(__self, FloppyController)
 
 #endif /* FloppyDriverPriv_h */

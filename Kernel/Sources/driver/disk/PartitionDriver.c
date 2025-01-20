@@ -24,14 +24,14 @@ final_class_ivars(PartitionDriver, DiskDriver,
 );
 
 
-errno_t PartitionDriver_Create(const char* _Nonnull name, LogicalBlockAddress startBlock, LogicalBlockCount blockCount, bool isReadOnly, DiskDriverRef disk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t PartitionDriver_Create(DriverRef _Nullable parent, const char* _Nonnull name, LogicalBlockAddress startBlock, LogicalBlockCount blockCount, bool isReadOnly, DiskDriverRef disk, PartitionDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DiskInfo info;
     PartitionDriverRef self = NULL;
 
     try(DiskDriver_GetInfo(disk, &info));
-    try(DiskDriver_Create(PartitionDriver, 0, &self));
+    try(DiskDriver_Create(PartitionDriver, 0, parent, &self));
     self->diskDriver = disk;
     self->wholeDiskId = info.diskId;
     self->wholeMediaId = info.mediaId;

@@ -368,13 +368,13 @@ static const ColorTable gDefaultColorTable = {
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
-errno_t GraphicsDriver_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
+errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     GraphicsDriverRef self;
     Screen* pScreen;
     
-    try(Driver_Create(GraphicsDriver, 0, &self));
+    try(Driver_Create(GraphicsDriver, 0, parent, &self));
     self->isLightPenEnabled = false;
     Lock_Init(&self->lock);
     

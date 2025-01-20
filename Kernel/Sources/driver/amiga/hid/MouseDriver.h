@@ -14,6 +14,6 @@
 
 final_class(MouseDriver, InputDriver);
 
-extern errno_t MouseDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t MouseDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* MouseDriver_h */

@@ -47,7 +47,7 @@ extern errno_t InputDriver_GetInfo(InputDriverRef _Nonnull self, InputInfo* pOut
 ((InputType) invoke_0(getInputType, InputDriver, __self))
 
 
-#define InputDriver_Create(__className, __options, __pOutSelf) \
-    _Driver_Create(&k##__className##Class, __options, (DriverRef*)__pOutSelf)
+#define InputDriver_Create(__className, __options, __parent, __pOutSelf) \
+    _Driver_Create(&k##__className##Class, __options, __parent, (DriverRef*)__pOutSelf)
 
 #endif /* InputDriver_h */

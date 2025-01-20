@@ -20,13 +20,13 @@ final_class_ivars(RomDisk, DiskDriver,
 );
 
 
-errno_t RomDisk_Create(const char* _Nonnull name, const void* _Nonnull pImage, size_t blockSize, LogicalBlockCount blockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RomDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, const void* _Nonnull pImage, size_t blockSize, LogicalBlockCount blockCount, bool freeOnClose, RomDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RomDiskRef self = NULL;
 
     assert(pImage != NULL);
-    try(DiskDriver_Create(RomDisk, 0, &self));
+    try(DiskDriver_Create(RomDisk, 0, parent, &self));
     self->diskImage = pImage;
     self->blockCount = blockCount;
     self->blockSize = blockSize;

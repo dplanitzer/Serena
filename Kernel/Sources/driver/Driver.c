@@ -14,7 +14,7 @@
 (DriverRef) (((uint8_t*)__ptr) - offsetof(struct Driver, childNode))
 
 
-errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     DriverRef self = NULL;
@@ -24,6 +24,7 @@ errno_t _Driver_Create(Class* _Nonnull pClass, DriverOptions options, DriverRef 
     Lock_Init(&self->lock);
     List_Init(&self->children);
     ListNode_Init(&self->childNode);
+    self->parent = parent;
     self->options = options;
     self->state = kDriverState_Inactive;
 
@@ -38,6 +39,8 @@ catch:
 
 void Driver_deinit(DriverRef _Nonnull self)
 {
+    self->parent = NULL;
+    
     List_ForEach(&self->children, struct Driver,
         DriverRef pCurDriver = DriverFromChildNode(pCurNode);
 

@@ -30,7 +30,7 @@ final_class_ivars(DigitalJoystickDriver, InputDriver,
 extern void DigitalJoystickDriver_OnInterrupt(DigitalJoystickDriverRef _Nonnull self);
 
 
-errno_t DigitalJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t DigitalJoystickDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -41,7 +41,7 @@ errno_t DigitalJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pO
         throw(ENODEV);
     }
     
-    try(Driver_Create(DigitalJoystickDriver, kDriver_Exclusive, &self));
+    try(Driver_Create(DigitalJoystickDriver, kDriver_Exclusive, parent, &self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
@@ -168,7 +168,7 @@ final_class_ivars(AnalogJoystickDriver, InputDriver,
 extern void AnalogJoystickDriver_OnInterrupt(AnalogJoystickDriverRef _Nonnull self);
 
 
-errno_t AnalogJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t AnalogJoystickDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -178,7 +178,7 @@ errno_t AnalogJoystickDriver_Create(int port, DriverRef _Nullable * _Nonnull pOu
         throw(ENODEV);
     }
     
-    try(Driver_Create(AnalogJoystickDriver, kDriver_Exclusive, &self));
+    try(Driver_Create(AnalogJoystickDriver, kDriver_Exclusive, parent, &self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potdat = (port == 0) ? CHIPSET_REG_16(cp, POT0DAT) : CHIPSET_REG_16(cp, POT1DAT);

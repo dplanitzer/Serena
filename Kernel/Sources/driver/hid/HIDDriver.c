@@ -17,7 +17,7 @@ final_class_ivars(HIDDriver, Driver,
 
 errno_t HIDDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(HIDDriver, 0, pOutSelf);
+    return Driver_Create(HIDDriver, 0, NULL, pOutSelf);
 }
 
 errno_t HIDDriver_onStart(DriverRef _Nonnull _Locked self)

@@ -28,7 +28,7 @@ final_class_ivars(MouseDriver, InputDriver,
 extern void MouseDriver_OnInterrupt(MouseDriverRef _Nonnull self);
 
 
-errno_t MouseDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t MouseDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -39,7 +39,7 @@ errno_t MouseDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(Driver_Create(MouseDriver, kDriver_Exclusive, &self));
+    try(Driver_Create(MouseDriver, kDriver_Exclusive, parent, &self));
     
     self->reg_joydat = (port == 0) ? CHIPSET_REG_16(cp, JOY0DAT) : CHIPSET_REG_16(cp, JOY1DAT);
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);

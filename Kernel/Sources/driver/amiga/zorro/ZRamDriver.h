@@ -17,6 +17,6 @@ open_class(ZRamDriver, Driver,
 open_class_funcs(ZRamDriver, Driver,
 );
 
-extern errno_t ZRamDriver_Create(const ZorroConfiguration* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf);
+extern errno_t ZRamDriver_Create(DriverRef _Nullable parent, const ZorroConfiguration* _Nonnull config, DriverRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* ZRamDriver_h */

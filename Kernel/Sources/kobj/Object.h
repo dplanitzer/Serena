@@ -50,22 +50,22 @@ any_subclass_funcs(Object,
 // Retains the given object and returns a (new) strong reference to the given
 // object. Retaining an object keeps it alive.
 #define Object_Retain(__self) \
-    _Object_Retain((ObjectRef) __self)
+    _Object_Retain((ObjectRef)(__self))
 
-#define Object_RetainAs(__self, __classType) \
-    ((__classType##Ref) _Object_Retain((ObjectRef) __self))
+#define Object_RetainAs(__self, __class) \
+    ((__class##Ref)_Object_Retain((ObjectRef)(__self)))
 
 
 // Releases a strong reference on the given object. Deallocates the object when
 // the reference count transitions from 1 to 0. Invokes the deinit method on
 // the object if the object should be deallocated.
 #define Object_Release(__self) \
-    _Object_Release((ObjectRef) __self)
+    _Object_Release((ObjectRef)(__self))
 
 
 // For debugging purposes only: returns the current retain count.
 #define Object_GetRetainCount(__self) \
-    ((ObjectRef) __self)->retainCount
+    (((ObjectRef)(__self))->retainCount)
 
 
 // Do not call these functions directly. Use the macros defined above instead.

@@ -20,6 +20,6 @@ final_class(FloppyController, Driver);
 
 
 // Creates a floppy controller
-extern errno_t FloppyController_Create(FloppyControllerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t FloppyController_Create(DriverRef _Nullable parent, FloppyControllerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* FloppyController_h */

@@ -22,7 +22,7 @@ errno_t Console_Create(GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable
     decl_try_err();
     ConsoleRef self;
 
-    try(Driver_Create(Console, 0, &self));
+    try(Driver_Create(Console, 0, NULL, &self));
     
     Lock_Init(&self->lock);
 

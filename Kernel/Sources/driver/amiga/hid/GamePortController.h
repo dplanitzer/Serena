@@ -14,6 +14,6 @@
 
 final_class(GamePortController, Driver);
 
-extern errno_t GamePortController_Create(GamePortControllerRef _Nullable * _Nonnull pOutSelf);
+extern errno_t GamePortController_Create(DriverRef _Nullable parent, GamePortControllerRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* GamePortController_h */

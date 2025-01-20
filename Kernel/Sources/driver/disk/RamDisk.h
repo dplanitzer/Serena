@@ -29,6 +29,6 @@ final_class(RamDisk, DiskDriver);
 // deallocated.
 // Note that the provided disk image is expected to be initialized with a valid
 // file system since there is no way to write to this disk.
-extern errno_t RamDisk_Create(const char* _Nonnull name, size_t blockSize, LogicalBlockCount blockCount, LogicalBlockCount extentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf);
+extern errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, size_t blockSize, LogicalBlockCount blockCount, LogicalBlockCount extentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf);
 
 #endif /* RamDisk_h */

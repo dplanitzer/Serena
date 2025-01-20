@@ -28,12 +28,12 @@ final_class_ivars(RamDisk, DiskDriver,
 );
 
 
-errno_t RamDisk_Create(const char* _Nonnull name, size_t blockSize, LogicalBlockCount blockCount, LogicalBlockCount extentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
+errno_t RamDisk_Create(DriverRef _Nullable parent, const char* _Nonnull name, size_t blockSize, LogicalBlockCount blockCount, LogicalBlockCount extentBlockCount, RamDiskRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RamDiskRef self = NULL;
 
-    try(DiskDriver_Create(RamDisk, 0, &self));
+    try(DiskDriver_Create(RamDisk, 0, parent, &self));
     SList_Init(&self->extents);
     self->extentBlockCount = __min(extentBlockCount, blockCount);
     self->blockCount = blockCount;

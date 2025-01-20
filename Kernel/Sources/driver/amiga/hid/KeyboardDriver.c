@@ -42,12 +42,12 @@ extern void KeyboardDriver_OnKeyboardInterrupt(KeyboardDriverRef _Nonnull self);
 extern void KeyboardDriver_OnVblInterrupt(KeyboardDriverRef _Nonnull self);
 
 
-errno_t KeyboardDriver_Create(DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t KeyboardDriver_Create(DriverRef _Nullable parent, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     KeyboardDriverRef self;
     
-    try(InputDriver_Create(KeyboardDriver, kDriver_Exclusive, &self));
+    try(InputDriver_Create(KeyboardDriver, kDriver_Exclusive, parent, &self));
     
     self->keyCodeMap = gUSBHIDKeycodes;
     try(HIDKeyRepeater_Create(&self->keyRepeater));

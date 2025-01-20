@@ -30,7 +30,7 @@ final_class_ivars(LightPenDriver, InputDriver,
 extern void LightPenDriver_OnInterrupt(LightPenDriverRef _Nonnull self);
 
 
-errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
+errno_t LightPenDriver_Create(DriverRef _Nullable parent, int port, DriverRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     CHIPSET_BASE_DECL(cp);
@@ -40,7 +40,7 @@ errno_t LightPenDriver_Create(int port, DriverRef _Nullable * _Nonnull pOutSelf)
         throw(ENODEV);
     }
     
-    try(Driver_Create(LightPenDriver, kDriver_Exclusive, &self));
+    try(Driver_Create(LightPenDriver, kDriver_Exclusive, parent, &self));
     
     self->reg_potgor = CHIPSET_REG_16(cp, POTGOR);
     self->right_button_mask = (port == 0) ? POTGORF_DATLY : POTGORF_DATRY;

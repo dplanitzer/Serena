@@ -45,12 +45,12 @@ bool GregorianDate_Equals(const GregorianDate* _Nonnull a, const GregorianDate* 
 
 // Checks whether the system has a RTC installed and returns a realtime clock
 // object if that's the case; otherwise NULL is returned
-errno_t RealtimeClock_Create(const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutSelf)
+errno_t RealtimeClock_Create(DriverRef _Nullable parent, const SystemDescription* _Nonnull pSysDesc, RealtimeClockRef _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     RealtimeClockRef self;
     
-    try(Driver_Create(RealtimeClock, 0, &self));
+    try(Driver_Create(RealtimeClock, 0, parent, &self));
     Lock_Init(&self->lock);
     
     *pOutSelf = self;

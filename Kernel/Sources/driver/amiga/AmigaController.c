@@ -32,7 +32,7 @@ final_class_ivars(AmigaController, PlatformController,
 
 errno_t AmigaController_Create(PlatformControllerRef _Nullable * _Nonnull pOutSelf)
 {
-    return Driver_Create(AmigaController, 0, pOutSelf);
+    return Driver_Create(AmigaController, 0, NULL, pOutSelf);
 }
 
 // Scans the ROM area following the end of the kernel looking for an embedded
@@ -78,13 +78,13 @@ static errno_t AmigaController_AutoDetectBootMemoryDisk(struct AmigaController* 
     const char* dmg = ((const char*)smg_hdr) + smg_hdr->headerSize;
 
     if ((smg_hdr->options & SMG_OPTION_READONLY) == SMG_OPTION_READONLY) {
-        try(RomDisk_Create("rom", dmg, smg_hdr->blockSize, smg_hdr->physicalBlockCount, false, (RomDiskRef*)&disk));
+        try(RomDisk_Create((DriverRef)self, "rom", dmg, smg_hdr->blockSize, smg_hdr->physicalBlockCount, false, (RomDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
     }
     else {
         FSContainerRef fsContainer = NULL;
 
-        try(RamDisk_Create("ram", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
+        try(RamDisk_Create((DriverRef)self, "ram", smg_hdr->blockSize, smg_hdr->physicalBlockCount, 128, (RamDiskRef*)&disk));
         try(Driver_Start((DriverRef)disk));
 
         try(DriverCatalog_OpenDriver(gDriverCatalog, "/ram", kOpen_ReadWrite, &chan));
@@ -128,19 +128,19 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     }
     
     GraphicsDriverRef fb = NULL;
-    try(GraphicsDriver_Create(pVideoConfig, kPixelFormat_RGB_Indexed3, &fb));
+    try(GraphicsDriver_Create((DriverRef)self, pVideoConfig, kPixelFormat_RGB_Indexed3, &fb));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fb));
 
 
     // Keyboard
     DriverRef kb;
-    try(KeyboardDriver_Create(&kb));
+    try(KeyboardDriver_Create((DriverRef)self, &kb));
     try(Driver_StartAdoptChild((DriverRef)self, kb));
 
 
     // GamePort
     GamePortControllerRef gpc = NULL;
-    try(GamePortController_Create(&gpc));
+    try(GamePortController_Create((DriverRef)self, &gpc));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)gpc));
 
 
@@ -156,7 +156,7 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
 
     // Floppy Bus
     FloppyControllerRef fdc = NULL;
-    try(FloppyController_Create(&fdc));
+    try(FloppyController_Create((DriverRef)self, &fdc));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fdc));
 
 
@@ -164,14 +164,14 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
     #if 0
     // XXX not yet
     RealtimeClockRef rtcDriver = NULL;
-    try(RealtimeClock_Create(gSystemDescription, &rtcDriver));
+    try(RealtimeClock_Create((DriverRef)self, gSystemDescription, &rtcDriver));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)rtcDriver));
     #endif
 
 
     // Zorro Bus
     ZorroControllerRef zorroController = NULL;
-    try(ZorroController_Create(&zorroController));
+    try(ZorroController_Create((DriverRef)self, &zorroController));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)zorroController));
 
 
