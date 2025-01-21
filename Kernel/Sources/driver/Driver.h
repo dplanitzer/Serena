@@ -126,6 +126,7 @@ open_class(Driver, Object,
     int8_t                      state;
     int                         openCount;
     DriverCatalogId             driverCatalogId;
+    DriverCatalogId             busCatalogId;
     intptr_t                    tag;
 );
 open_class_funcs(Driver, Object,
@@ -296,9 +297,21 @@ invoke_0(onUnpublish, Driver, __self)
 // method should be called from a onStart() override.
 extern errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* _Nonnull name, intptr_t arg);
 
+// Publishes the receiver to the driver catalog as a bus controller. This means
+// that first a directory with name 'name' is created which represents the bus.
+// Then an entry with name 'self' is created inside this new bus directory. This
+// entry represents the bus driver itself. All immediate children of the bus
+// driver will be published as additional entries to the bus directory.
+// The extra argument 'arg' is associated with the 'self' entry.
+extern errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, intptr_t arg);
+
 // Removes the driver instance from the driver catalog. Called as part of the
 // driver termination process.
 extern void Driver_Unpublish(DriverRef _Nonnull _Locked self);
+
+// Returns the bus driver catalog ID of the bus that the receiver represents.
+// Returns kDriverCatalogId_None if the receiver does not manage a bus.
+extern DriverCatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self);
 
 
 // Creates an I/O channel that connects the driver to a user space application

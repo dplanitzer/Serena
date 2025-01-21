@@ -64,10 +64,20 @@ DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull s
     return self->devfs;
 }
 
-errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId)
+static errno_t DriverCatalog_AcquireBusDirectory(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, InodeRef _Nullable * _Nonnull pOutDir)
+{
+    if (busCatalogId == kDriverCatalogId_None) {
+        return Filesystem_AcquireRootDirectory(self->devfs, pOutDir);
+    }
+    else {
+        return Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)busCatalogId, pOutDir);
+    }
+}
+
+errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId)
 {
     decl_try_err();
-    InodeRef rootDir = NULL;
+    InodeRef pDir = NULL;
     InodeRef pNode = NULL;
     PathComponent pc;
 
@@ -80,34 +90,85 @@ errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnu
     const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Write;
     const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
 
-    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(DevFS_CreateDevice(self->devfs, rootDir, &pc, driver, arg, kRootUserId, kRootGroupId, permissions, &pNode));
-    *pOutDriverCatalogId = (DriverCatalogId)Inode_GetId(pNode);
+    err = DriverCatalog_AcquireBusDirectory(self, busCatalogId, &pDir);
+    if (err == EOK) {
+        err = DevFS_CreateDevice(self->devfs, pDir, &pc, driver, arg, kRootUserId, kRootGroupId, permissions, &pNode);
+        if (err == EOK) {
+            *pOutDriverCatalogId = (DriverCatalogId)Inode_GetId(pNode);
+        }
+    }
 
-catch:
     Inode_Relinquish(pNode);
-    Inode_Relinquish(rootDir);
+    Inode_Relinquish(pDir);
 
     return err;
 }
 
-errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId driverCatalogId)
+// Publishes a bus directory with the name 'name' to the driver catalog.
+errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, DriverCatalogId* _Nonnull pOutBusCatalogId)
 {
     decl_try_err();
-    InodeRef rootDir = NULL;
+    InodeRef pDir = NULL;
+    InodeRef pNode = NULL;
+    PathComponent pc;
+
+    *pOutBusCatalogId = kDriverCatalogId_None;
+
+    pc.name = name;
+    pc.count = String_Length(name);
+
+    const FilePermissions ownerPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    const FilePermissions otherPerms = kFilePermission_Read | kFilePermission_Write | kFilePermission_Execute;
+    const FilePermissions permissions = FilePermissions_Make(ownerPerms, otherPerms, otherPerms);
+
+    err = DriverCatalog_AcquireBusDirectory(self, parentBusId, &pDir);
+    if (err == EOK) {
+        err = Filesystem_CreateNode((FilesystemRef)self->devfs, kFileType_Directory, pDir, &pc, NULL, kRootUserId, kRootGroupId, permissions, &pNode);
+        if (err == EOK) {
+            *pOutBusCatalogId = (DriverCatalogId)Inode_GetId(pNode);
+        }
+    }
+
+    Inode_Relinquish(pNode);
+    Inode_Relinquish(pDir);
+
+    return err;
+}
+
+errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, DriverCatalogId driverCatalogId)
+{
+    decl_try_err();
+    InodeRef pDir = NULL;
     InodeRef pNode = NULL;
 
-    if (driverCatalogId == kDriverCatalogId_None) {
+    if (busCatalogId == kDriverCatalogId_None && driverCatalogId == kDriverCatalogId_None) {
         return EOK;
     }
     
-    try(Filesystem_AcquireRootDirectory(self->devfs, &rootDir));
-    try(Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverCatalogId, &pNode));
-    try(Filesystem_Unlink(self->devfs, pNode, rootDir, kRootUserId, kRootGroupId));
+    // Get the bus directory or devfs root
+    err = DriverCatalog_AcquireBusDirectory(self, busCatalogId, &pDir);
+    if (err == EOK) {
+        // Get the parent of the bus directory or the driver entry
+        if (driverCatalogId == kDriverCatalogId_None) {
+            pNode = pDir;
+            pDir = NULL;
+
+            err = Filesystem_AcquireNodeForName(self->devfs, pDir, &kPathComponent_Parent, kRootUserId, kRootGroupId, NULL, &pDir);
+        }
+        else {
+            err = Filesystem_AcquireNodeWithId((FilesystemRef)self->devfs, (InodeId)driverCatalogId, &pNode);
+        }
+
+
+        // Delete the bus directory or the driver entry
+        if (err == EOK) {
+            err = Filesystem_Unlink(self->devfs, pNode, pDir, kRootUserId, kRootGroupId);
+        }
+    }
 
 catch:
     Inode_Relinquish(pNode);
-    Inode_Relinquish(rootDir);
+    Inode_Relinquish(pDir);
 
     return err;
 }

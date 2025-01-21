@@ -18,14 +18,24 @@ extern void DriverCatalog_Destroy(DriverCatalogRef _Nullable self);
 
 extern DevFSRef _Nonnull DriverCatalog_GetDevicesFilesystem(DriverCatalogRef _Nonnull self);
 
-// Publish the driver instance 'driver' with the name 'name' in the driver
-// catalog. Returns a suitable error if another entry with the same name already
-// exists. 'arg' is an optional argument that will be passed to the Driver_Open()
-// method when the driver needs to be opened.
-extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId);
+// Publish the driver instance 'driver' with the name 'name' as a child of the
+// bus directory 'busCatalogId', in the driver catalog. The device is published
+// as a child of the root directory if 'busCatalogId' is kDriverCatalogId_None.
+// Returns a suitable error if another entry with the same name already exists.
+// 'arg' is an optional argument that will be passed to the Driver_Open() method
+// when the driver needs to be opened.
+extern errno_t DriverCatalog_Publish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, const char* _Nonnull name, DriverRef _Nonnull driver, intptr_t arg, DriverCatalogId* _Nonnull pOutDriverCatalogId);
 
-// Removes a published driver entry from the driver catalog.
-extern errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId driverCatalogId);
+// Publishes a bus directory with the name 'name' to the driver catalog.
+extern errno_t DriverCatalog_PublishBus(DriverCatalogRef _Nonnull self, DriverCatalogId parentBusId, const char* _Nonnull name, DriverCatalogId* _Nonnull pOutBusCatalogId);
+
+// Either removes a published driver entry from the driver catalog or a published
+// bus entry. Pass the bus and the driver catalog ID if you want to remove a
+// driver entry. Note that this removes just the driver entry and not the bus
+// directory. Pass a bus catalog ID and kDriverCatalog_None as the driver catalog
+// ID to remove a bus directory. Note that the bus directory has to be empty in
+// order to remove it.
+extern errno_t DriverCatalog_Unpublish(DriverCatalogRef _Nonnull self, DriverCatalogId busCatalogId, DriverCatalogId driverCatalogId);
 
 // Returns EOK if a driver is published at the in-kernel path 'path'. Otherwise
 // ENOENT is returned.

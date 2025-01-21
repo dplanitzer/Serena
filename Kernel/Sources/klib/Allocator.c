@@ -151,7 +151,7 @@ static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegio
     }
     else {
         // Case 2: We want to allocate the first 'nBytesToAlloc' bytes of the free block
-        MemBlock* pRemainingFreeBlock = (MemBlock*)((char*)pCurBlock + nBytesToAlloc);
+        MemBlock* pRemainingFreeBlock = (MemBlock*)((char*)pFoundBlock + nBytesToAlloc);
 
         pRemainingFreeBlock->next = pFoundBlock->next;
         pRemainingFreeBlock->size = pFoundBlock->size - nBytesToAlloc;
@@ -409,7 +409,7 @@ errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nulla
     
     MemBlock* pBlockToFree = (MemBlock*)(((char*)ptr) - sizeof(MemBlock));
     
-    
+
     // Remove the block 'ptr' from the list of allocated blocks
     MemBlock* pPrevBlock = NULL;
     MemBlock* pCurBlock = pAllocator->first_allocated_block;

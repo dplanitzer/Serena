@@ -272,13 +272,38 @@ errno_t Driver_onPublish(DriverRef _Nonnull _Locked self)
 errno_t Driver_Publish(DriverRef _Nonnull _Locked self, const char* name, intptr_t arg)
 {
     decl_try_err();
+    DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
 
-    if ((err = DriverCatalog_Publish(gDriverCatalog, name, self, arg, &self->driverCatalogId)) == EOK) {
+    if ((err = DriverCatalog_Publish(gDriverCatalog, parentBusCatalogId, name, self, arg, &self->driverCatalogId)) == EOK) {
         if ((err = Driver_OnPublish(self)) == EOK) {
             return EOK;
         }
 
-        DriverCatalog_Unpublish(gDriverCatalog, self->driverCatalogId);
+        DriverCatalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
+    }
+    return err;
+}
+
+// Publishes the receiver to the driver catalog as a bus controller. This means
+// that first a directory with name 'name' is created which represents the bus.
+// Then an entry with name 'self' is created inside this new bus directory. This
+// entry represents the bus driver itself. All immediate children of the bus
+// driver will be published as additional entries to the bus directory.
+// The extra argument 'arg' is associated with the 'self' entry.
+errno_t Driver_PublishBus(DriverRef _Nonnull _Locked self, const char* name, intptr_t arg)
+{
+    decl_try_err();
+    DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
+
+    if ((err = DriverCatalog_PublishBus(gDriverCatalog, parentBusCatalogId, name, &self->busCatalogId)) == EOK) {
+        if ((err = DriverCatalog_Publish(gDriverCatalog, self->busCatalogId, "self", self, arg, &self->driverCatalogId)) == EOK) {
+            if ((err = Driver_OnPublish(self)) == EOK) {
+                return EOK;
+            }
+
+            DriverCatalog_Unpublish(gDriverCatalog, self->busCatalogId, self->driverCatalogId);
+        }
+        DriverCatalog_Unpublish(gDriverCatalog, self->busCatalogId, kDriverCatalogId_None);
     }
     return err;
 }
@@ -290,8 +315,21 @@ void Driver_onUnpublish(DriverRef _Nonnull _Locked self)
 // Removes the driver instance from the driver catalog.
 void Driver_Unpublish(DriverRef _Nonnull _Locked self)
 {
+    DriverCatalogId parentBusCatalogId = (self->parent) ? Driver_GetBusCatalogId(self->parent) : 0;
+
     Driver_OnUnpublish(self);
-    DriverCatalog_Unpublish(gDriverCatalog, self->driverCatalogId);
+    DriverCatalog_Unpublish(gDriverCatalog, parentBusCatalogId, self->driverCatalogId);
+}
+
+// Returns the bus driver catalog ID of the bus that the receiver represents.
+// Returns kDriverCatalogId_None if the receiver does not manage a bus.
+DriverCatalogId Driver_GetBusCatalogId(DriverRef _Nonnull self)
+{
+    //Driver_Lock(self);
+    // XXX gets called at onStart() time and the parent typically is inside its onStart() and thus locked too
+    const DriverCatalogId id = self->busCatalogId;
+    //Driver_Unlock(self);
+    return id;
 }
 
 
