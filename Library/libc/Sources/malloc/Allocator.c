@@ -171,6 +171,11 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
         return false;
     }
 
+    if (bhdr->size >= 0) {
+        printf("** mem_region: ignoring double free at: %p\n", p);
+        return false;
+    }
+    
     const word_t gross_bsize = __abs(bhdr->size);
     block_trailer_t* btrl = (block_trailer_t*)((char*)bhdr + gross_bsize - sizeof(block_trailer_t));
     if (!__validate_block_trailer(btrl, ptr)) {
