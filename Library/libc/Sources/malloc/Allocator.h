@@ -10,35 +10,70 @@
 #define _ALLOCATOR_H 1
 
 #include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <System/Error.h>
 
+#if defined(__ILP32__)
+typedef int32_t word_t;
+#define WORD_SIZE       4
+#define WORD_SIZMASK    3
+#define WORD_SHIFT      2
+#define WORD_FROM_BYTE(b) ((b) << 24) | ((b) << 16) | ((b) << 8) | (b)
+
+#define WORD_MAX    INT_MAX
+
+// 'bhdr'
+#define HEADER_PATTERN  ((word_t)0x62686472)
+
+// 'btrl'
+#define TRAILER_PATTERN  ((word_t)0x6274726c)
+#elif defined(__LLP64__) || defined(__LP64__)
+typedef int64_t word_t;
+#define WORD_SIZE       8
+#define WORD_SIZMASK    7
+#define WORD_SHIFT      3
+#define WORD_FROM_BYTE(b) ((b) << 56) | ((b) << 48) | ((b) << 40) | ((b) << 32) | ((b) << 24) | ((b) << 16) | ((b) << 8) | (b)
+
+#define WORD_MAX    LLONG_MAX
+
+// 'bhdr'
+#define HEADER_PATTERN  ((word_t)0x6268647272646862)
+
+// 'btrl'
+#define TRAILER_PATTERN  ((word_t)0x6274726c6c727462)
+#else
+#error "unknown data model"
+#endif
+
+#define MIN_GROSS_BLOCK_SIZE    (sizeof(block_header_t) + sizeof(word_t) + sizeof(block_trailer_t))
+#define MAX_NET_BLOCK_SIZE      (WORD_MAX - sizeof(block_header_t) - sizeof(block_trailer_t))
+
+
 struct Allocator;
 
+// A memory block (freed or allocated) has a header at the beginning (lowest address)
+// and a trailer (highest address) at its end. The header and trailer store the
+// block size. The size is the gross block size in terms of bytes. So it includes
+// the size of the header and the trailer. The sign bit of the block size indicates
+// whether the block is in allocated or freed state: sign bit set to 1 means
+// allocated and sign bit set to 0 means freed.
 
-#if __LP64__
-#define HEAP_ALIGNMENT  16
-#elif __ILP32__
-// XXX Should be 8. This is a hack to work around a bug in the allocator where it
-// XXX fails to properly keep track of the number of bytes that we've allocated.
-// XXX Ie Allocate small blocks repeatedly until we have exhausted the available
-// XXX memory. The last block that the allocator allocates doesn't fully fit in
-// XXX the available memory. It should detect this and return ENOMEM, but it fails
-// XXX to detect this because the last free block has recorded too many bytes which
-// XXX makes it look bigger than it is.
-// The problem is with teh alignment. We fail to always take it properly into
-// account. Changing the alignment from 8 to 4 makes it work for now. We'll
-// replace the allocator soon anyway.
-#define HEAP_ALIGNMENT  4
-#else
-#error "don't know how to align heap blocks"
-#endif
+typedef struct block_header {
+    word_t  size;       // < 0 -> allocated block; > 0 -> free block; == 0 -> invalid; gross block size in bytes := |size|
+    word_t  pat;        // HEADER_PATTERN
+} block_header_t;
+
+typedef struct block_trailer {
+    word_t  pat;        // TRAILER_PATTERN
+    word_t  size;       // < 0 -> allocated block; > 0 -> free block; == 0 -> invalid; gross block size in bytes := |size|
+} block_trailer_t;
 
 
 // Callback that is invoked by the allocator if it needs more backing store
-typedef errno_t (*AllocatorGrowFunc)(struct Allocator* _Nonnull pAllocator, size_t minByteCount);
+typedef errno_t (*AllocatorGrowFunc)(struct Allocator* _Nonnull allocator, size_t minByteCount);
 
 
 // A memory descriptor describes a contiguous range of RAM that should be managed
@@ -49,30 +84,18 @@ typedef struct MemoryDescriptor {
 } MemoryDescriptor;
 
 
-// A memory block structure describes a freed or allocated block of memory. The
-// structure is placed right in front of the memory block. Note that the block
-// size includes the header size.
-typedef struct MemBlock {
-    struct MemBlock* _Nullable  next;
-    size_t                      size;   // The size includes sizeof(MemBlock).
-} MemBlock;
+// A memory region manages a contiguous range of memory.
+typedef struct mem_region {
+    struct mem_region* _Nullable    next;
+    char* _Nonnull                  lower;  // Lowest address from which to allocate (word aligned)
+    char* _Nonnull                  upper;  // Address just beyond the last allocatable address (word aligned)
+} mem_region_t;
 
 
-// A heap memory region is a region of contiguous memory which is managed by the
-// heap. Each such region has its own private list of free memory blocks.
-typedef struct MemRegion {
-    struct MemRegion* _Nullable next;
-    char* _Nonnull              lower;
-    char* _Nonnull              upper;
-    MemBlock* _Nullable         first_free_block;   // Every memory region has its own private free list. Note that the blocks on this list are ordered by increasing base address
-} MemRegion;
-
-
-// An allocator manages memory from a pool of memory contiguous regions.
+// An allocator manages memory from a pool of memory regions.
 typedef struct Allocator {
-    MemRegion* _Nonnull         first_region;
-    MemRegion* _Nonnull         last_region;
-    MemBlock* _Nullable         first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
+    mem_region_t* _Nonnull      first_region;
+    mem_region_t* _Nonnull      last_region;
     AllocatorGrowFunc _Nullable grow_func;
 } Allocator;
 
@@ -82,7 +105,7 @@ typedef struct Allocator* AllocatorRef;
 extern AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc);
 
 // Adds the given memory region to the allocator's available memory pool.
-extern errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull md);
+extern errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const MemoryDescriptor* _Nonnull md);
 
 extern void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes);
 extern void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, size_t new_size);
@@ -94,7 +117,7 @@ extern errno_t __Allocator_Deallocate(AllocatorRef _Nonnull self, void* _Nullabl
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-extern errno_t __Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr, size_t* _Nonnull pOutSize);
+extern errno_t __Allocator_GetBlockSize(AllocatorRef _Nonnull self, void* _Nonnull ptr, size_t* _Nonnull pOutSize);
 
 // Returns true if the given pointer is a base pointer of a memory block that
 // was allocated with the given allocator.
