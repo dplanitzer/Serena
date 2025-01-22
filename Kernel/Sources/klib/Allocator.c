@@ -7,262 +7,254 @@
 //
 
 #include "Allocator.h"
-#include "List.h"
 #include "Log.h"
+#include "Memory.h"
 
-
-#if __LP64__
-#define HEAP_ALIGNMENT  16
-#elif __ILP32__
-// XXX Should be 8. This is a hack to work around a bug in the allocator where it
-// XXX fails to properly keep track of the number of bytes that we've allocated.
-// XXX Ie Allocate small blocks repeatedly until we have exhausted the available
-// XXX memory. The last block that the allocator allocates doesn't fully fit in
-// XXX the available memory. It should detect this and return ENOMEM, but it fails
-// XXX to detect this because the last free block has recorded too many bytes which
-// XXX makes it look bigger than it is.
-// The problem is with teh alignment. We fail to always take it properly into
-// account. Changing the alignment from 8 to 4 makes it work for now. We'll
-// replace the allocator soon anyway.
-#define HEAP_ALIGNMENT  4
-#else
-#error "don't know how to align heap blocks"
-#endif
-
-
-// A memory block structure describes a freed or allocated block of memory. The
-// structure is placed right in front of the memory block. Note that the block
-// size includes the header size.
-typedef struct MemBlock {
-    struct MemBlock* _Nullable  next;
-    size_t                      size;   // The size includes sizeof(MemBlock).
-} MemBlock;
-
-
-// A heap memory region is a region of contiguous memory which is managed by the
-// heap. Each such region has its own private list of free memory blocks.
-typedef struct MemRegion {
-    SListNode           node;
-    char* _Nonnull      lower;
-    char* _Nonnull      upper;
-    MemBlock* _Nullable first_free_block;   // Every memory region has its own private free list. Note that the blocks on this list are ordered by increasing base address
-} MemRegion;
-
-
-// An allocator manages memory from a pool of memory contiguous regions.
-typedef struct Allocator {
-    SList               regions;
-    MemBlock* _Nullable first_allocated_block;  // Unordered list of allocated blocks (no matter from which memory region they were allocated)
-} Allocator;
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MARK: -
-// MARK: Memory Region
-// MARK: -
-////////////////////////////////////////////////////////////////////////////////
 
 // Initializes a new mem region structure in the given memory region. Assumes
 // that the memory region structure is placed at the very bottom of the region
 // and that all memory following the memory region header up to the top of the
 // region should be allocatable.
-// \param pMemRegionHeader where the mem region header structure should be placed.
-//                         Usually equal to pMemDesc->lower, except for region #0
-//                         which stores the allocator structure in front of it
-// \param pMemDesc the memory descriptor describing the memory region to manage
-// \return an error or EOK
-static MemRegion* MemRegion_Create(char* _Nonnull pMemRegionHeader, const MemoryDescriptor* _Nonnull pMemDesc)
+// \param md the memory descriptor describing the memory region to manage
+// \return pointer to the mem_region object
+static mem_region_t* mem_region_create(const MemoryDescriptor* _Nonnull md)
 {
-    char* pMemRegionBase = __Ceil_Ptr_PowerOf2(pMemRegionHeader, HEAP_ALIGNMENT);
-    char* pFreeLower = __Ceil_Ptr_PowerOf2(pMemRegionBase + sizeof(MemRegion), HEAP_ALIGNMENT);
-    char* pFreeUpper = __Floor_Ptr_PowerOf2(pMemDesc->upper, HEAP_ALIGNMENT);
+    char* bptr = __Ceil_Ptr_PowerOf2(md->lower, WORD_SIZE);
+    char* tptr = __Floor_Ptr_PowerOf2(md->upper, WORD_SIZE);
 
-    // Make sure that the MemRegion and the first free MemBlock fit in the memory
-    // area
-    if (pFreeUpper > pMemDesc->upper) {
+    if (tptr < bptr) {
         return NULL;
     }
-    if (pFreeUpper - pFreeLower <= sizeof(MemBlock)) {
+    if ((tptr - bptr) < sizeof(mem_region_t)) {
         return NULL;
     }
 
 
-    // Create a single free mem block that covers the whole remaining memory
-    // region (everything minus the MemRegion structure).
-    MemBlock* pFreeBlock = (MemBlock*)pFreeLower;
-    pFreeBlock->next = NULL;
-    pFreeBlock->size = (uintptr_t)pFreeUpper - (uintptr_t)pFreeLower;
+    // Places the memory region header at the very bottom of the memory region
+    mem_region_t* mr = (mem_region_t*)bptr;
+    mr->next = NULL;
+    mr->lower = __Ceil_Ptr_PowerOf2(bptr + sizeof(mem_region_t), WORD_SIZE);
+    mr->upper = tptr;
+
+    if ((mr->upper - mr->lower) < MIN_GROSS_BLOCK_SIZE) {
+        return NULL;
+    }
 
 
-    // Create the MemRegion header
-    MemRegion* pMemRegion = (MemRegion*)pMemRegionBase;
-    SListNode_Init(&pMemRegion->node);
-    pMemRegion->lower = pMemDesc->lower;
-    pMemRegion->upper = pMemDesc->upper;
-    pMemRegion->first_free_block = pFreeBlock;
+    // Cover all the rest in the memory region with a single freed block
+    block_header_t* bhdr = (block_header_t*)mr->lower;
+    bhdr->size = mr->upper - mr->lower;
+    bhdr->pat = HEADER_PATTERN;
 
-    return pMemRegion;
+    block_trailer_t* btrl = (block_trailer_t*)(mr->upper - sizeof(block_trailer_t));
+    btrl->size = mr->upper - mr->lower;
+    btrl->pat = TRAILER_PATTERN;
+
+    return mr;
+}
+
+static bool __validate_block_header(block_header_t* _Nonnull bhdr, void* _Nonnull ptr)
+{
+    if (bhdr->pat == HEADER_PATTERN) {
+        return true;
+    }
+
+    print("*** kmem: heap corruption at %p\n", ptr);
+    return false;
+}
+
+static bool __validate_block_trailer(block_trailer_t* _Nonnull btrl, void* _Nonnull ptr)
+{
+    if (btrl->pat == TRAILER_PATTERN) {
+        return true;
+    }
+
+    print("*** kmem: heap corruption at %p\n", ptr);
+    return false;
 }
 
 // Returns true if the given memory address is managed by this memory region
 // and false otherwise.
-static bool MemRegion_IsManaging(const MemRegion* _Nonnull pMemRegion, char* _Nullable pAddress)
+static bool mem_region_manages(const mem_region_t* _Nonnull mr, char* _Nullable addr)
 {
-    return (pAddress >= pMemRegion->lower && pAddress < pMemRegion->upper) ? true : false;
+    return (addr >= mr->lower && addr < mr->upper) ? true : false;
 }
 
-// Allocates 'nBytesToAlloc' from the given memory region. Note that
-// 'nBytesToAlloc' has to include the heap block header and the correct alignment.
-static MemBlock* _Nullable MemRegion_AllocMemBlock(MemRegion* _Nonnull pMemRegion, size_t nBytesToAlloc)
+// Returns the size of the given memory block. This is the size minus the block
+// header and plus whatever additional memory the allocator added based on its
+// internal alignment constraints.
+static size_t mem_region_block_size(void* _Nonnull ptr)
 {
-    // first fit search
-    MemBlock* pCurBlock = pMemRegion->first_free_block;
-    MemBlock* pFoundBlock = NULL;
-    MemBlock* pPrevFoundBlock = NULL;
-    
-    while (pCurBlock) {
-        if (pCurBlock->size >= nBytesToAlloc) {
-            pFoundBlock = pCurBlock;
-            break;
-        }
-        
-        pPrevFoundBlock = pCurBlock;
-        pCurBlock = pCurBlock->next;
-    }
-    
-    if (pFoundBlock == NULL) {
-        return NULL;
-    }
-    
-    MemBlock* pAllocatedBlock = NULL;
+    block_header_t* bhdr = (block_header_t*)ptr;
 
-    if (pFoundBlock->size == nBytesToAlloc) {
-        // Case 1: We want to allocate the whole free block
-        if (pPrevFoundBlock) {
-            pPrevFoundBlock->next = pFoundBlock->next;
-        }
-        else {
-            pMemRegion->first_free_block = pFoundBlock->next;
-        }
-        // Size doesn't change
-        pFoundBlock->next = NULL;
-        pAllocatedBlock = pFoundBlock;
+    if (__validate_block_header(bhdr, ptr)) {
+        return __abs(bhdr->size) - sizeof(block_header_t) - sizeof(block_trailer_t);
     }
     else {
-        // Case 2: We want to allocate the first 'nBytesToAlloc' bytes of the free block
-        MemBlock* pRemainingFreeBlock = (MemBlock*)((char*)pFoundBlock + nBytesToAlloc);
-
-        pRemainingFreeBlock->next = pFoundBlock->next;
-        pRemainingFreeBlock->size = pFoundBlock->size - nBytesToAlloc;
-
-        if (pPrevFoundBlock) {
-            pPrevFoundBlock->next = pRemainingFreeBlock;
-        }
-        else {
-            pMemRegion->first_free_block = pRemainingFreeBlock;
-        }
-
-        pFoundBlock->size = nBytesToAlloc;
-        pFoundBlock->next = NULL;
-        pAllocatedBlock = pFoundBlock;
+        return 0;
     }
-    
-    
-    // Return the allocated memory
-    return pAllocatedBlock;
+}
+
+// Allocates 'nbytes' from the given memory region.
+static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes)
+{
+    if (nbytes > MAX_NET_BLOCK_SIZE) {
+        return NULL;
+    }
+
+    // Find a suitable free block
+    const word_t gross_nbytes = sizeof(block_header_t) + __Ceil_PowerOf2(nbytes, WORD_SIZE) + sizeof(block_trailer_t);
+    char* p = mr->lower;
+
+    while (p < mr->upper) {
+        if (((block_header_t*)p)->size >= gross_nbytes) {
+            break;
+        }
+
+        p += __abs(((block_header_t*)p)->size);
+    }
+    if (p >= mr->upper) {
+        return NULL;
+    }
+
+
+    // We found a suitable free block. Split the front portion off for our new
+    // allocated block. However, the remainder of the free block might not be
+    // big enough to hold a new free block. We simply turn the whole free block
+    // into the allocated block in this case.
+    const word_t gross_fsize = ((block_header_t*)p)->size - gross_nbytes;
+
+    if (gross_fsize >= MIN_GROSS_BLOCK_SIZE) {
+        block_header_t* bhdr = (block_header_t*)p;
+        block_trailer_t* btrl = (block_trailer_t*)(p + gross_nbytes - sizeof(block_trailer_t));
+        block_header_t* fhdr = (block_header_t*)(p + gross_nbytes);
+        block_trailer_t* ftrl = (block_trailer_t*)(p + ((block_header_t*)p)->size - sizeof(block_trailer_t));
+
+        bhdr->size = -gross_nbytes;
+        bhdr->pat = HEADER_PATTERN;
+        btrl->size = -gross_nbytes;
+        btrl->pat = TRAILER_PATTERN;
+
+        fhdr->size = gross_fsize;
+        fhdr->pat = HEADER_PATTERN;
+        ftrl->size = gross_fsize;
+        ftrl->pat = TRAILER_PATTERN;
+
+        return ((char*)bhdr) + sizeof(block_header_t);
+    }
+    else {
+        // Turn the whole free block into our allocated block
+        block_header_t* bhdr = (block_header_t*)p;
+        block_trailer_t* btrl = (block_trailer_t*)(p + bhdr->size - sizeof(block_trailer_t));
+
+        bhdr->size = -bhdr->size;
+        bhdr->pat = HEADER_PATTERN;
+        btrl->size = -btrl->size;
+        btrl->pat = TRAILER_PATTERN;
+
+        return ((char*)bhdr) + sizeof(block_header_t);
+    }
 }
 
 // Deallocates the given memory block. Expects that the memory block is managed
-// by the given mem region. Expects that the memory block is already removed from
-// the allocators list of allocated memory blocks.
-// \param pMemRegion the memory region header
-// \param pBlockToFree pointer to the header of the memory block to free
-void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull pBlockToFree)
+// by the given mem region.
+// \param mr the memory region header
+// \param ptr pointer to the block of the memory to free
+static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
 {
-    assert(pBlockToFree->next == NULL);
-    
-    
-    // Compute the lower and the upper bound of the block that we want to free.
-    char* pLowerToFree = (char*)pBlockToFree;
-    char* pUpperToFree = pLowerToFree + pBlockToFree->size;
-    
-    
-    // Find the free memory blocks just below and above 'pBlockToFree'. These
-    // will be the predecessor and successor of 'pBlockToFree' on the free list
-    bool isUpperFreeBlockAdjacent = false;
-    bool isLowerFreeBlockAdjacent = false;
-    MemBlock* pLowerFreeBlock = NULL;
-    MemBlock* pUpperFreeBlock = NULL;
-    MemBlock* pCurBlock = pMemRegion->first_free_block;
+    char* p = ptr;
 
-    while (pCurBlock) {
-        char* pCurBlockLower = (char*)pCurBlock;
-        char* pCurBlockUpper = pCurBlockLower + pCurBlock->size;
+    // Calculate the 'ptr' block header, trailer & gross block size
+    block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
+    if (!__validate_block_header(bhdr, ptr)) {
+        return false;
+    }
 
-        if (pCurBlockUpper <= pLowerToFree) {
-            pLowerFreeBlock = pCurBlock;
-            isLowerFreeBlockAdjacent = pCurBlockUpper == pLowerToFree;
-        }
-        else if (pCurBlockLower >= pUpperToFree) {
-            pUpperFreeBlock = pCurBlock;
-            isUpperFreeBlockAdjacent = pCurBlockLower == pUpperToFree;
+    if (bhdr->size >= 0) {
+        print("*** kmem: ignoring double free at: %p\n", p);
+        return false;
+    }
+    
+    const word_t gross_bsize = __abs(bhdr->size);
+    block_trailer_t* btrl = (block_trailer_t*)((char*)bhdr + gross_bsize - sizeof(block_trailer_t));
+    if (!__validate_block_trailer(btrl, ptr)) {
+        return false;
+    }
+
+
+    // Calculate the block header, trailer & gross block size of the block in
+    // front of 'ptr'. This one may be freed or allocated.
+    block_trailer_t* pred_trl = (block_trailer_t*)((char*)bhdr - sizeof(block_trailer_t));
+    if (!__validate_block_trailer(pred_trl, ptr)) {
+        return false;
+    }
+
+    const word_t gross_pred_size = __abs(pred_trl->size);
+    block_header_t* pred_hdr = (block_header_t*)((char*)pred_trl - gross_pred_size + sizeof(block_trailer_t));
+    if (!__validate_block_header(pred_hdr, ptr)) {
+        return false;
+    }
+
+
+    // Calculate the block header, trailer & gross block size of the block
+    // following the 'ptr' block. This one may be freed or allocated.
+    block_header_t* succ_hdr = (block_header_t*)((char*)btrl + sizeof(block_trailer_t));
+    if (!__validate_block_header(succ_hdr, ptr)) {
+        return false;
+    }
+
+    const word_t gross_succ_size = __abs(succ_hdr->size);
+    block_trailer_t* succ_trl = (block_trailer_t*)((char*)succ_hdr + gross_succ_size - sizeof(block_trailer_t));
+    if (!__validate_block_trailer(succ_trl, ptr)) {
+        return false;
+    }
+
+
+    // Figure out the memory configuration:
+    // 0 -> pred & succ are allocated
+    // 1 -> pred allocated; succ freed
+    // 2 -> pred freed; succ allocated
+    // 3 -> pred & succ freed
+    unsigned int config = 0;
+    if (succ_hdr->size >= 0) {
+        config |= 0x01;
+    }
+    if (pred_hdr->size >= 0) {
+        config |= 0x10;
+    }
+
+    switch (config) {
+        case 0x00:
+            // Pred & succ are allocated. Just mark the block as free
+            bhdr->size = -bhdr->size;
+            btrl->size = -btrl->size;
             break;
-        }
 
-        pCurBlock = pCurBlock->next;
+        case 0x01:
+            bhdr->size = ((char*)succ_trl) - ((char*)bhdr) + sizeof(block_trailer_t);
+            btrl->pat = 0;
+            succ_hdr->pat = 0;
+            succ_trl->size = bhdr->size;
+            break;
+
+        case 0x10:
+            pred_hdr->size = ((char*)btrl) - ((char*)pred_hdr) + sizeof(block_trailer_t);
+            pred_trl->pat = 0;
+            bhdr->pat = 0;
+            btrl->size = pred_hdr->size;
+            break;
+
+        case 0x11:
+            pred_hdr->size = ((char*)succ_trl) - ((char*)pred_hdr) + sizeof(block_trailer_t);
+            pred_trl->pat = 0;
+            bhdr->pat = 0;
+            btrl->pat = 0;
+            succ_hdr->pat = 0;
+            succ_trl->size = pred_hdr->size;
+            break;
     }
-    
 
-    // Update the free list
-    if (!isLowerFreeBlockAdjacent && !isUpperFreeBlockAdjacent) {
-        // Case 1: our block is surrounded by allocated blocks.
-        // Merging: nothing.
-        if (pLowerFreeBlock) {
-            pBlockToFree->next = pLowerFreeBlock->next;
-            pLowerFreeBlock->next = pBlockToFree;
-        }
-        else {
-            pBlockToFree->next = pUpperFreeBlock;
-            pMemRegion->first_free_block = pBlockToFree;
-        }
-    }
-    else if (isUpperFreeBlockAdjacent && !isLowerFreeBlockAdjacent) {
-        // Case 2: our block has a free upper neighbor and an allocated lower neighbor
-        // Merging: upper & me
-        pBlockToFree->size += pUpperFreeBlock->size;
-
-        if (pLowerFreeBlock) {
-            pBlockToFree->next = pUpperFreeBlock->next;
-            pLowerFreeBlock->next = pBlockToFree;
-        }
-        else {
-            pBlockToFree->next = pUpperFreeBlock->next;
-            pMemRegion->first_free_block = pBlockToFree;
-        }
-
-        pUpperFreeBlock->next = NULL;
-        pUpperFreeBlock->size = 0;
-    }
-    else if (!isUpperFreeBlockAdjacent && isLowerFreeBlockAdjacent) {
-        // Case 3: our block has a free lower neighbor and an allocated upper neighbor
-        // Merging: lower & me
-        pLowerFreeBlock->size += pBlockToFree->size;
-
-        pBlockToFree->next = NULL;
-        pBlockToFree->size = 0;
-    }
-    else {
-        // Case 4: our block is surrounded by free blocks
-        // Merging: upper & lower & me
-        pLowerFreeBlock->size = pLowerFreeBlock->size + pBlockToFree->size + pUpperFreeBlock->size;
-        pLowerFreeBlock->next = pUpperFreeBlock->next;
-
-        pBlockToFree->next = NULL;
-        pBlockToFree->size = 0;
-        pUpperFreeBlock->next = NULL;
-        pUpperFreeBlock->size = 0;
-    }
+    return true;
 }
 
 
@@ -272,232 +264,163 @@ void MemRegion_FreeMemBlock(MemRegion* _Nonnull pMemRegion, MemBlock* _Nonnull p
 // MARK: -
 ////////////////////////////////////////////////////////////////////////////////
 
-// Allocates a new heap. An allocator manages the memory region described by the
-// given memory descriptor. Additional memory regions may be added later. The
-// heap management data structures are stored inside those memory regions.
-// \param pMemDesc the initial memory region to manage
-// \param pOutAllocator receives the allocator reference
-// \return an error or EOK
-errno_t Allocator_Create(const MemoryDescriptor* _Nonnull pMemDesc, AllocatorRef _Nullable * _Nonnull pOutAllocator)
+// Allocates a new heap.
+AllocatorRef _Nullable __Allocator_Create(const MemoryDescriptor* _Nonnull md, AllocatorGrowFunc _Nullable growFunc)
 {
-    decl_try_err();
+    AllocatorRef self = NULL;
+    mem_region_t* mr = mem_region_create(md);
 
-    // Reserve space for the allocator structure in the first memory region.
-    char* pAllocatorBase = __Ceil_Ptr_PowerOf2(pMemDesc->lower, HEAP_ALIGNMENT);
-    char* pFirstMemRegionBase = pAllocatorBase + sizeof(Allocator);
-
-    AllocatorRef pAllocator = (AllocatorRef)pAllocatorBase;
-    pAllocator->first_allocated_block = NULL;
-    SList_Init(&pAllocator->regions);
-    
-    MemRegion* pFirstRegion;
-    try_null(pFirstRegion, MemRegion_Create(pFirstMemRegionBase, pMemDesc), ENOMEM);
-    SList_InsertAfterLast(&pAllocator->regions, &pFirstRegion->node);
-    
-    *pOutAllocator = pAllocator;
-    return EOK;
-
-catch:
-    *pOutAllocator = NULL;
-    return err;
-}
-
-// Adds the given memory region to the allocator's available memory pool.
-errno_t Allocator_AddMemoryRegion(AllocatorRef _Nonnull pAllocator, const MemoryDescriptor* _Nonnull pMemDesc)
-{
-    decl_try_err();
-
-    if (pMemDesc->lower == NULL || pMemDesc->upper == pMemDesc->lower) {
-        return EINVAL;
+    if (mr) {
+        self = mem_region_alloc(mr, sizeof(Allocator));
+        if (self) {
+            self->first_region = mr;
+            self->last_region = mr;
+            self->grow_func = growFunc;
+        }
     }
 
-    MemRegion* pMemRegion = MemRegion_Create(pMemDesc->lower, pMemDesc);
-    if (pMemRegion) {
-        SList_InsertAfterLast(&pAllocator->regions, &pMemRegion->node);
-        return EOK;
-    }
-    return ENOMEM;
+    return self;
 }
 
 // Returns the MemRegion managing the given address. NULL is returned if this
 // allocator does not manage the given address.
-static MemRegion* _Nullable Allocator_GetMemRegionManaging_Locked(AllocatorRef _Nonnull pAllocator, char* _Nullable pAddress)
+static mem_region_t* _Nullable __Allocator_GetMemRegionFor(AllocatorRef _Nonnull self, void* _Nullable addr)
 {
-    SList_ForEach(&pAllocator->regions, MemRegion, {
-        if (MemRegion_IsManaging(pCurNode, pAddress)) {
-            return pCurNode;
+    mem_region_t* mr = self->first_region;
+
+    while (mr) {
+        if (mem_region_manages(mr, addr)) {
+            return mr;
         }
-    });
+
+        mr = mr->next;
+    }
 
     return NULL;
 }
 
-bool Allocator_IsManaging(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+bool __Allocator_IsManaging(AllocatorRef _Nonnull self, void* _Nullable ptr)
 {
-    if (ptr == NULL || ptr == CHAR_PTR_MAX) {
+    if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         // Any allocator can take responsibility of that since deallocating these
         // things is a NOP anyway
         return true;
     }
 
-    const bool r = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) != NULL;
-    return r;
+    return __Allocator_GetMemRegionFor(self, ptr) != NULL;
 }
 
-errno_t Allocator_AllocateBytes(AllocatorRef _Nonnull pAllocator, size_t nbytes, void* _Nullable * _Nonnull pOutPtr)
+// Adds the given memory region to the allocator's available memory pool.
+errno_t __Allocator_AddMemoryRegion(AllocatorRef _Nonnull self, const MemoryDescriptor* _Nonnull md)
 {
+    decl_try_err();
+
+    if (md->lower == NULL || md->upper == md->lower) {
+        return EINVAL;
+    }
+
+    mem_region_t* mr = mem_region_create(md);
+    if (mr) {
+        self->last_region->next = mr;
+        self->last_region = mr;
+        return EOK;
+    }
+    return ENOMEM;
+}
+
+static errno_t __Allocator_TryExpandBackingStore(AllocatorRef _Nonnull self, size_t minByteCount)
+{
+    return (self->grow_func) ? self->grow_func(self, minByteCount) : ENOMEM;
+}
+
+void* _Nullable __Allocator_Allocate(AllocatorRef _Nonnull self, size_t nbytes)
+{
+    decl_try_err();
+
     // Return the "empty memory block singleton" if the requested size is 0
     if (nbytes == 0) {
-        *pOutPtr = CHAR_PTR_MAX;
-        return EOK;
+        return (void*)UINTPTR_MAX;
     }
     
     
-    // Compute how many bytes we have to take from free memory
-    const size_t nBytesToAlloc = __Ceil_PowerOf2(sizeof(MemBlock) + nbytes, HEAP_ALIGNMENT);
-    
-    
-    // Note that the code here assumes desc 0 is chip RAM and all the others are
-    // fast RAM. This is enforced by Allocator_Create().
-    MemBlock* pMemBlock = NULL;
-    decl_try_err();
-
     // Go through the available memory region trying to allocate the memory block
     // until it works.
-    MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
-    while (pCurRegion) {
-        pMemBlock = MemRegion_AllocMemBlock(pCurRegion, nBytesToAlloc);
-        if (pMemBlock != NULL) {
+    void* ptr = NULL;
+    mem_region_t* mr = self->first_region;
+
+    while (mr) {
+        ptr = mem_region_alloc(mr, nbytes);
+        if (ptr != NULL) {
             break;
         }
 
-        pCurRegion = (MemRegion*)pCurRegion->node.next;
+        mr = mr->next;
     }
 
 
-    // Make sure we got the memory
-    throw_ifnull(pMemBlock, ENOMEM);
+    // Try expanding the backing store if we've exhausted our existing memory regions
+    if (ptr == NULL) {
+        if ((err = __Allocator_TryExpandBackingStore(self, nbytes)) == EOK) {
+            ptr = mem_region_alloc(self->last_region, nbytes);
+        }
+    }
 
-
-    // Add the allocated block to the list of allocated blocks
-    pMemBlock->next = pAllocator->first_allocated_block;
-    pAllocator->first_allocated_block = pMemBlock;
-
-    // Calculate and return the user memory block pointer
-    *pOutPtr = ((char*)pMemBlock) + sizeof(MemBlock);
-    return EOK;
-
-catch:
-    *pOutPtr = NULL;
-    return err;
+    return ptr;
 }
 
 // Attempts to deallocate the given memory block. Returns EOK on success and
 // ENOTBLK if the allocator does not manage the given memory block.
-errno_t Allocator_DeallocateBytes(AllocatorRef _Nonnull pAllocator, void* _Nullable ptr)
+errno_t __Allocator_Deallocate(AllocatorRef _Nonnull self, void* _Nullable ptr)
 {
-    if (ptr == NULL || ptr == CHAR_PTR_MAX) {
+    if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         return EOK;
     }
     
     // Find out which memory region contains the block that we want to free
-    MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, ptr);
-    if (pMemRegion == NULL) {
+    mem_region_t* mr = __Allocator_GetMemRegionFor(self, ptr);
+    if (mr == NULL) {
         // 'ptr' isn't managed by this allocator
         return ENOTBLK;
     }
-    
-    MemBlock* pBlockToFree = (MemBlock*)(((char*)ptr) - sizeof(MemBlock));
-    
 
-    // Remove the block 'ptr' from the list of allocated blocks
-    MemBlock* pPrevBlock = NULL;
-    MemBlock* pCurBlock = pAllocator->first_allocated_block;
-    while (pCurBlock) {
-        if (pCurBlock == pBlockToFree) {
-            if (pPrevBlock) {
-                pPrevBlock->next = pBlockToFree->next;
-            } else {
-                pAllocator->first_allocated_block = pBlockToFree->next;
-            }
-            pBlockToFree->next = NULL;
-            break;
-        }
-        
-        pPrevBlock = pCurBlock;
-        pCurBlock = pCurBlock->next;
-    }
-    
 
-    // Looks like 'ptr' isn't a pointer to an allocated memory block
-    if (pBlockToFree->next != NULL) {
-        return ENOTBLK;
-    }
-    
-    
     // Tell the memory region to free the memory block
-    MemRegion_FreeMemBlock(pMemRegion, pBlockToFree);
+    mem_region_free(mr, ptr);
     
     return EOK;
+}
+
+void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, size_t new_size)
+{
+    void* np;
+
+    const size_t old_size = (ptr) ? mem_region_block_size(ptr) : 0;
+    
+    if (old_size != new_size) {
+        np = __Allocator_Allocate(self, new_size);
+
+        memcpy(np, ptr, __min(old_size, new_size));
+        __Allocator_Deallocate(self, ptr);
+    }
+    else {
+        np = ptr;
+    }
+
+    return np;
 }
 
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-errno_t Allocator_GetBlockSize(AllocatorRef _Nonnull pAllocator, void* _Nonnull ptr, size_t* _Nonnull pOutSize)
+errno_t __Allocator_GetBlockSize(AllocatorRef _Nonnull self, void* _Nonnull ptr, size_t* _Nonnull pOutSize)
 {
     // Make sure that we actually manage this memory block
-    if (Allocator_GetMemRegionManaging_Locked(pAllocator, ptr) == NULL) {
+    if (__Allocator_GetMemRegionFor(self, ptr) == NULL) {
         // 'ptr' isn't managed by this allocator
         return ENOTBLK;
     }
 
-    MemBlock* pMemBlock = (MemBlock*) (((char*)ptr) - sizeof(MemBlock));
-    *pOutSize = pMemBlock->size - sizeof(MemBlock);
+    *pOutSize = mem_region_block_size(ptr);
 
     return EOK;
-}
-
-void Allocator_Dump(AllocatorRef _Nonnull pAllocator)
-{
-    print("Free:\n");
-    MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
-    while (pCurRegion != NULL) {
-        MemBlock* pCurBlock = pCurRegion->first_free_block;
-        int i = 1;
-
-        print(" Region: %p - %p, s: %p\n", pCurRegion->lower, pCurRegion->upper, pCurRegion->first_free_block);
-        while (pCurBlock) {
-            print("  %d:  %p: {a: %p, n: %p, s: %zu}\n", i, ((char*)pCurBlock) + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
-            pCurBlock = pCurBlock->next;
-            i++;
-        }
-
-        pCurRegion = (MemRegion*)pCurRegion->node.next;
-    }
-    print("\n");
-
-    MemBlock* pCurBlock = pAllocator->first_allocated_block;
-    int i = 1;
-    print("Allocated (s: %p):\n", pCurBlock);
-    while (pCurBlock) {
-        char* pCurBlockBase = (char*)pCurBlock;
-        MemRegion* pMemRegion = Allocator_GetMemRegionManaging_Locked(pAllocator, pCurBlockBase);
-        
-        print(" %d:  %p, {a: %p, n: %p s: %zu}\n", i, pCurBlockBase + sizeof(MemBlock), pCurBlock, pCurBlock->next, pCurBlock->size);
-        pCurBlock = pCurBlock->next;
-        i++;
-    }
-    print("\n");
-}
-
-void Allocator_DumpMemoryRegions(AllocatorRef _Nonnull pAllocator)
-{
-    MemRegion* pCurRegion = (MemRegion*)pAllocator->regions.first;
-
-    while (pCurRegion != NULL) {
-        print("   [%p - %p] (%zu)\n", pCurRegion->lower, pCurRegion->upper, (uintptr_t)pCurRegion->upper - (uintptr_t)pCurRegion->lower);
-
-        pCurRegion = (MemRegion*)pCurRegion->node.next;
-    }
 }

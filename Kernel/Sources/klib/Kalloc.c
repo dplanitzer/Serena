@@ -48,7 +48,7 @@ static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnul
     // First valid memory descriptor. Create the allocator based on that. We'll
     // get an ENOMEM error if this memory region isn't big enough
     adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i], pInitialHeapBottom, pInitialHeapTop);
-    try(Allocator_Create(&adjusted_md, &pAllocator));
+    try_null(pAllocator, __Allocator_Create(&adjusted_md, NULL), ENOMEM);
 
 
     // Pick up all other memory regions that are at least partially below the
@@ -57,7 +57,7 @@ static errno_t create_allocator(MemoryLayout* _Nonnull pMemLayout, char* _Nonnul
     while (i < pMemLayout->descriptor_count && pMemLayout->descriptor[i].lower < pInitialHeapTop) {
         if (pMemLayout->descriptor[i].type == memoryType) {
             adjusted_md = adjusted_memory_descriptor(&pMemLayout->descriptor[i], pInitialHeapBottom, pInitialHeapTop);
-            try(Allocator_AddMemoryRegion(pAllocator, &adjusted_md));
+            try(__Allocator_AddMemoryRegion(pAllocator, &adjusted_md));
         }
         i++;
     }
@@ -89,28 +89,26 @@ catch:
 errno_t kalloc_options(size_t nbytes, unsigned int options, void* _Nullable * _Nonnull pOutPtr)
 {
     decl_try_err();
-    
+    void* ptr = NULL;
+
     Lock_Lock(&gLock);
     if ((options & KALLOC_OPTION_UNIFIED) != 0) {
-        try(Allocator_AllocateBytes(gUnifiedMemory, nbytes, pOutPtr));
+        ptr = __Allocator_Allocate(gUnifiedMemory, nbytes);
     } else {
-        if (Allocator_AllocateBytes(gCpuOnlyMemory, nbytes, pOutPtr) == ENOMEM) {
-            try(Allocator_AllocateBytes(gUnifiedMemory, nbytes, pOutPtr));
+        ptr = __Allocator_Allocate(gCpuOnlyMemory, nbytes);
+        if (ptr == NULL) {
+            ptr = __Allocator_Allocate(gUnifiedMemory, nbytes);
         }
     }
     Lock_Unlock(&gLock);
 
     // Zero the memory if requested
-    if ((options & KALLOC_OPTION_CLEAR) != 0) {
-        memset(*pOutPtr, 0, nbytes);
+    if (ptr && (options & KALLOC_OPTION_CLEAR) != 0) {
+        memset(ptr, 0, nbytes);
     }
 
-    return EOK;
-
-catch:
-    Lock_Unlock(&gLock);
-    *pOutPtr = NULL;
-    return err;
+    *pOutPtr = ptr;
+    return (ptr) ? EOK : ENOMEM;
 }
 
 // Frees kernel memory allocated with the kalloc() function.
@@ -119,10 +117,10 @@ void kfree(void* _Nullable ptr)
     decl_try_err();
 
     Lock_Lock(&gLock);
-    err = Allocator_DeallocateBytes(gUnifiedMemory, ptr);
+    err = __Allocator_Deallocate(gUnifiedMemory, ptr);
 
     if (err == ENOTBLK) {
-        try_bang(Allocator_DeallocateBytes(gCpuOnlyMemory, ptr));
+        try_bang(__Allocator_Deallocate(gCpuOnlyMemory, ptr));
     } else if (err != EOK) {
         abort();
     }
@@ -137,10 +135,10 @@ size_t ksize(void* _Nullable ptr)
     size_t nbytes = 0;
 
     Lock_Lock(&gLock);
-    err = Allocator_GetBlockSize(gUnifiedMemory, ptr, &nbytes);
+    err = __Allocator_GetBlockSize(gUnifiedMemory, ptr, &nbytes);
 
     if (err == ENOTBLK) {
-        err = Allocator_GetBlockSize(gCpuOnlyMemory, ptr, &nbytes);
+        err = __Allocator_GetBlockSize(gCpuOnlyMemory, ptr, &nbytes);
     }
 
     Lock_Unlock(&gLock);
@@ -162,21 +160,8 @@ errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc)
         pAllocator = gCpuOnlyMemory;
     }
 
-    err = Allocator_AddMemoryRegion(pAllocator, pMemDesc);
+    err = __Allocator_AddMemoryRegion(pAllocator, pMemDesc);
     Lock_Unlock(&gLock);
 
     return err;
-}
-
-// Dumps a description of the kalloc heap to the console
-void kalloc_dump(void)
-{
-    Lock_Lock(&gLock);
-    print("Unified:\n");
-    Allocator_DumpMemoryRegions(gUnifiedMemory);
-
-    print("\nCPU-only:\n");
-    Allocator_DumpMemoryRegions(gCpuOnlyMemory);
-    print("\n");
-    Lock_Unlock(&gLock);
 }

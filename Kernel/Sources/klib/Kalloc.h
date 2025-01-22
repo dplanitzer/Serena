@@ -51,9 +51,6 @@ extern size_t ksize(void* _Nullable ptr);
 // heap.
 extern errno_t kalloc_add_memory_region(const MemoryDescriptor* _Nonnull pMemDesc);
 
-// Dumps a description of the kalloc heap to the console
-extern void kalloc_dump(void);
-
 // Initializes the kalloc heap.
 extern errno_t kalloc_init(const SystemDescription* _Nonnull pSysDesc, void* _Nonnull pInitialHeapBottom, void* _Nonnull pInitialHeapTop);
 
