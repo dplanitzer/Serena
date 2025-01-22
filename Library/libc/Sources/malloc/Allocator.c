@@ -16,11 +16,8 @@
 // that the memory region structure is placed at the very bottom of the region
 // and that all memory following the memory region header up to the top of the
 // region should be allocatable.
-// \param pMemRegionHeader where the mem region header structure should be placed.
-//                         Usually equal to pMemDesc->lower, except for region #0
-//                         which stores the allocator structure in front of it
-// \param pMemDesc the memory descriptor describing the memory region to manage
-// \return an error or EOK
+// \param md the memory descriptor describing the memory region to manage
+// \return pointer to the mem_region object
 static mem_region_t* mem_region_create(const MemoryDescriptor* _Nonnull md)
 {
     char* bptr = __Ceil_Ptr_PowerOf2(md->lower, WORD_SIZE);
@@ -99,8 +96,7 @@ static size_t mem_region_block_size(void* _Nonnull ptr)
     }
 }
 
-// Allocates 'nBytesToAlloc' from the given memory region. Note that
-// 'nBytesToAlloc' has to include the heap block header and the correct alignment.
+// Allocates 'nbytes' from the given memory region.
 static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes)
 {
     if (nbytes > MAX_NET_BLOCK_SIZE) {
@@ -162,10 +158,9 @@ static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes
 }
 
 // Deallocates the given memory block. Expects that the memory block is managed
-// by the given mem region. Expects that the memory block is already removed from
-// the allocators list of allocated memory blocks.
-// \param pMemRegion the memory region header
-// \param pBlockToFree pointer to the header of the memory block to free
+// by the given mem region.
+// \param mr the memory region header
+// \param ptr pointer to the block of the memory to free
 static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
 {
     char* p = ptr;
