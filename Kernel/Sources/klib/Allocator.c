@@ -11,6 +11,65 @@
 #include "Memory.h"
 
 
+#if defined(__ILP32__)
+typedef int32_t word_t;
+#define WORD_SIZE   4
+#define WORD_MAX    INT_MAX
+// 'bhdr'
+#define HEADER_PATTERN  ((word_t)0x62686472)
+// 'btrl'
+#define TRAILER_PATTERN  ((word_t)0x6274726c)
+#elif defined(__LLP64__) || defined(__LP64__)
+typedef int64_t word_t;
+#define WORD_SIZE       8
+#define WORD_MAX    LLONG_MAX
+// 'bhdr'
+#define HEADER_PATTERN  ((word_t)0x6268647272646862)
+// 'btrl'
+#define TRAILER_PATTERN  ((word_t)0x6274726c6c727462)
+#else
+#error "unknown data model"
+#endif
+
+#define MIN_GROSS_BLOCK_SIZE    (sizeof(block_header_t) + sizeof(word_t) + sizeof(block_trailer_t))
+#define MAX_NET_BLOCK_SIZE      (WORD_MAX - sizeof(block_header_t) - sizeof(block_trailer_t))
+
+
+// A memory block (freed or allocated) has a header at the beginning (lowest address)
+// and a trailer (highest address) at its end. The header and trailer store the
+// block size. The size is the gross block size in terms of bytes. So it includes
+// the size of the header and the trailer. The sign bit of the block size indicates
+// whether the block is in allocated or freed state: sign bit set to 1 means
+// allocated and sign bit set to 0 means freed.
+
+typedef struct block_header {
+    word_t  size;       // < 0 -> allocated block; > 0 -> free block; == 0 -> invalid; gross block size in bytes := |size|
+    word_t  pat;        // HEADER_PATTERN
+} block_header_t;
+
+typedef struct block_trailer {
+    word_t  pat;        // TRAILER_PATTERN
+    word_t  size;       // < 0 -> allocated block; > 0 -> free block; == 0 -> invalid; gross block size in bytes := |size|
+} block_trailer_t;
+
+
+// A memory region manages a contiguous range of memory.
+typedef struct mem_region {
+    struct mem_region* _Nullable    next;
+    char* _Nonnull                  lower;  // Lowest address from which to allocate (word aligned)
+    char* _Nonnull                  upper;  // Address just beyond the last allocatable address (word aligned)
+} mem_region_t;
+
+
+// An allocator manages memory from a pool of memory regions.
+typedef struct Allocator {
+    mem_region_t* _Nonnull      first_region;
+    mem_region_t* _Nonnull      last_region;
+    AllocatorGrowFunc _Nullable grow_func;
+} Allocator;
+
+
+
 // Initializes a new mem region structure in the given memory region. Assumes
 // that the memory region structure is placed at the very bottom of the region
 // and that all memory following the memory region header up to the top of the
