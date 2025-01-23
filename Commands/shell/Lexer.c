@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INITIAL_TEXT_BUFFER_CAPACITY    16
+#define INITIAL_TEXT_BUFFER_CAPACITY    128
 
 
 typedef struct Keyword {
@@ -70,8 +70,8 @@ void Lexer_SetInput(Lexer* _Nonnull self, const char* _Nullable source)
 static void Lexer_AddCharToTextBuffer(Lexer* _Nonnull self, char ch)
 {
     if (self->textBufferCount == self->textBufferCapacity) {
-        int newCapacity = (self->textBufferCapacity > 0) ? self->textBufferCapacity * 2 : INITIAL_TEXT_BUFFER_CAPACITY;
-        char* pNewTextBuffer = (char*) realloc(self->textBuffer, newCapacity);
+        const size_t newCapacity = (self->textBufferCapacity > 0) ? self->textBufferCapacity * 2 : INITIAL_TEXT_BUFFER_CAPACITY;
+        char* pNewTextBuffer = realloc(self->textBuffer, newCapacity);
 
         assert(pNewTextBuffer != NULL);
         self->textBuffer = pNewTextBuffer;
@@ -100,7 +100,6 @@ static void Lexer_ScanVariableName(Lexer* _Nonnull self)
     }
 
     Lexer_AddCharToTextBuffer(self, '\0');
-    self->textBufferCount--;
 }
 
 // Scans a single quoted/backticked string. Expects that the current input
@@ -129,7 +128,6 @@ static bool Lexer_ScanString(Lexer* _Nonnull self, char closingMark)
     }
 
     Lexer_AddCharToTextBuffer(self, '\0');
-    self->textBufferCount--;
     return isIncomplete;
 }
 
@@ -274,7 +272,6 @@ static void Lexer_ScanStringSegment(Lexer* _Nonnull self)
     }
 
     Lexer_AddCharToTextBuffer(self, '\0');
-    self->textBufferCount--;
 }
 
 // Tries scanning a variable name of the form:
@@ -327,7 +324,6 @@ static bool Lexer_TryScanVariableName(Lexer* _Nonnull self)
     }
 
     Lexer_AddCharToTextBuffer(self, '\0');
-    self->textBufferCount--;
 
     if (nameLen > 0) {
         return true;
@@ -446,7 +442,6 @@ static bool Lexer_ScanIdentifier(Lexer* _Nonnull self)
     }
 
     Lexer_AddCharToTextBuffer(self, '\0');
-    self->textBufferCount--;
     return isIncomplete;
 }
 
@@ -459,7 +454,7 @@ static TokenId Lexer_GetIdentifierTokenId(Lexer* _Nonnull self)
 {
     const Keyword* kw = NULL;
 
-    if (self->textBufferCount >= 2 && isalpha(self->textBuffer[0])) {
+    if (self->textBufferCount > 2 && isalpha(self->textBuffer[0])) {
         kw = bsearch(self->textBuffer, gKeywords, sizeof(gKeywords) / sizeof(Keyword), sizeof(Keyword), (int (*)(const void*, const void*))kw_cmp);
     }
 
@@ -659,7 +654,7 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                     self->t.id = kToken_BacktickString;
                     self->t.isIncomplete = Lexer_ScanString(self, '`');
                     self->t.u.string = self->textBuffer;
-                    self->t.length = self->textBufferCount;
+                    self->t.length = self->textBufferCount - 1;
                 }
                 return;
 
@@ -670,7 +665,7 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                 self->t.id = kToken_SingleQuoteString;
                 self->t.isIncomplete = Lexer_ScanString(self, '\'');
                 self->t.u.string = self->textBuffer;
-                self->t.length = self->textBufferCount;
+                self->t.length = self->textBufferCount - 1;
                 return;
 
             case '0':
@@ -692,7 +687,7 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                     if (Lexer_TryScanVariableName(self)) {
                         self->t.id = kToken_VariableName;
                         self->t.u.string = self->textBuffer;
-                        self->t.length = self->textBufferCount;
+                        self->t.length = self->textBufferCount - 1;
                         return;
                     }
                 }
@@ -700,7 +695,7 @@ static void Lexer_ConsumeToken_DefaultMode(Lexer* _Nonnull self)
                 self->t.isIncomplete = Lexer_ScanIdentifier(self);
                 self->t.id = Lexer_GetIdentifierTokenId(self);
                 self->t.u.string = self->textBuffer;
-                self->t.length = self->textBufferCount;
+                self->t.length = self->textBufferCount - 1;
                 return;
         }
     }
@@ -751,11 +746,10 @@ static void Lexer_ConsumeToken_StringMode(Lexer* _Nonnull self)
                 self->textBufferCount = 0;
                 self->t.isIncomplete = Lexer_ScanStringEscapeSequence(self);
                 Lexer_AddCharToTextBuffer(self, '\0');
-                self->textBufferCount--;
 
                 self->t.id = kToken_EscapeSequence;
                 self->t.u.string = self->textBuffer;
-                self->t.length = self->textBufferCount;
+                self->t.length = self->textBufferCount - 1;
             }
             break;
 
@@ -763,7 +757,7 @@ static void Lexer_ConsumeToken_StringMode(Lexer* _Nonnull self)
             if (Lexer_TryScanVariableName(self)) {
                 self->t.id = kToken_VariableName;
                 self->t.u.string = self->textBuffer;
-                self->t.length = self->textBufferCount;
+                self->t.length = self->textBufferCount - 1;
                 return;
             }
             // fall through
@@ -772,7 +766,7 @@ static void Lexer_ConsumeToken_StringMode(Lexer* _Nonnull self)
             Lexer_ScanStringSegment(self);
             self->t.id = kToken_StringSegment;
             self->t.u.string = self->textBuffer;
-            self->t.length = self->textBufferCount;
+            self->t.length = self->textBufferCount - 1;
             break;
     }
 }
