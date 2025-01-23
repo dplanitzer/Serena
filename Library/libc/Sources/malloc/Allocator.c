@@ -37,6 +37,10 @@ typedef int64_t word_t;
 #define MAX_NET_BLOCK_SIZE      (WORD_MAX - sizeof(block_header_t) - sizeof(block_trailer_t))
 
 
+#define MERR_CORRUPTION     1
+#define MERR_DOUBLE_FREE    2
+
+
 // A memory block (freed or allocated) has a header at the beginning (lowest address)
 // and a trailer (highest address) at its end. The header and trailer store the
 // block size. The size is the gross block size in terms of bytes. So it includes
@@ -69,6 +73,9 @@ typedef struct Allocator {
     mem_region_t* _Nonnull      last_region;
     AllocatorGrowFunc _Nullable grow_func;
 } Allocator;
+
+
+static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable ptr);
 
 
 
@@ -114,23 +121,39 @@ static mem_region_t* mem_region_create(const MemoryDescriptor* _Nonnull md)
     return mr;
 }
 
-static bool __validate_block_header(block_header_t* _Nonnull bhdr, void* _Nonnull ptr)
+static void mem_error(int err, const char* _Nonnull funcName, void* _Nullable ptr)
+{
+    switch (err) {
+        case MERR_CORRUPTION:
+            printf("** %s: heap corruption at %p\n", funcName, ptr);
+            break;
+
+        case MERR_DOUBLE_FREE:
+            printf("** %s: ignoring double free at: %p\n", ptr);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static bool __validate_block_header(block_header_t* _Nonnull bhdr, const char* _Nonnull funcName, void* _Nonnull ptr)
 {
     if (bhdr->pat == HEADER_PATTERN) {
         return true;
     }
 
-    printf("** mem_region: heap corruption at %p\n", ptr);
+    mem_error(MERR_CORRUPTION, funcName, ptr);
     return false;
 }
 
-static bool __validate_block_trailer(block_trailer_t* _Nonnull btrl, void* _Nonnull ptr)
+static bool __validate_block_trailer(block_trailer_t* _Nonnull btrl, const char* _Nonnull funcName, void* _Nonnull ptr)
 {
     if (btrl->pat == TRAILER_PATTERN) {
         return true;
     }
 
-    printf("** mem_region: heap corruption at %p\n", ptr);
+    mem_error(MERR_CORRUPTION, funcName, ptr);
     return false;
 }
 
@@ -148,7 +171,7 @@ static size_t mem_region_block_size(void* _Nonnull ptr)
 {
     block_header_t* bhdr = (block_header_t*)ptr;
 
-    if (__validate_block_header(bhdr, ptr)) {
+    if (__validate_block_header(bhdr, "msize", ptr)) {
         return __abs(bhdr->size) - sizeof(block_header_t) - sizeof(block_trailer_t);
     }
     else {
@@ -227,18 +250,18 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
 
     // Calculate the 'ptr' block header, trailer & gross block size
     block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
-    if (!__validate_block_header(bhdr, ptr)) {
+    if (!__validate_block_header(bhdr, "mfree", ptr)) {
         return false;
     }
 
     if (bhdr->size >= 0) {
-        printf("** mem_region: ignoring double free at: %p\n", p);
+        mem_error(MERR_DOUBLE_FREE, "mfree", p);
         return false;
     }
     
     const word_t gross_bsize = __abs(bhdr->size);
     block_trailer_t* btrl = (block_trailer_t*)((char*)bhdr + gross_bsize - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(btrl, ptr)) {
+    if (!__validate_block_trailer(btrl, "mfree", ptr)) {
         return false;
     }
 
@@ -246,13 +269,13 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
     // Calculate the block header, trailer & gross block size of the block in
     // front of 'ptr'. This one may be freed or allocated.
     block_trailer_t* pred_trl = (block_trailer_t*)((char*)bhdr - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(pred_trl, ptr)) {
+    if (!__validate_block_trailer(pred_trl, "mfree", ptr)) {
         return false;
     }
 
     const word_t gross_pred_size = __abs(pred_trl->size);
     block_header_t* pred_hdr = (block_header_t*)((char*)pred_trl - gross_pred_size + sizeof(block_trailer_t));
-    if (!__validate_block_header(pred_hdr, ptr)) {
+    if (!__validate_block_header(pred_hdr, "mfree", ptr)) {
         return false;
     }
 
@@ -260,13 +283,13 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
     // Calculate the block header, trailer & gross block size of the block
     // following the 'ptr' block. This one may be freed or allocated.
     block_header_t* succ_hdr = (block_header_t*)((char*)btrl + sizeof(block_trailer_t));
-    if (!__validate_block_header(succ_hdr, ptr)) {
+    if (!__validate_block_header(succ_hdr, "mfree", ptr)) {
         return false;
     }
 
     const word_t gross_succ_size = __abs(succ_hdr->size);
     block_trailer_t* succ_trl = (block_trailer_t*)((char*)succ_hdr + gross_succ_size - sizeof(block_trailer_t));
-    if (!__validate_block_trailer(succ_trl, ptr)) {
+    if (!__validate_block_trailer(succ_trl, "mfree", ptr)) {
         return false;
     }
 
