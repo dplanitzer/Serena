@@ -167,9 +167,10 @@ static bool mem_region_manages(const mem_region_t* _Nonnull mr, char* _Nullable 
 // internal alignment constraints.
 static size_t mem_region_block_size(void* _Nonnull ptr)
 {
-    block_header_t* bhdr = (block_header_t*)ptr;
+    char* p = ptr;
+    block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
 
-    if (__validate_block_header(bhdr, "ksize", ptr)) {
+    if (__validate_block_header(bhdr, "ksize", p)) {
         return __abs(bhdr->size) - sizeof(block_header_t) - sizeof(block_trailer_t);
     }
     else {

@@ -69,7 +69,7 @@ void Lexer_SetInput(Lexer* _Nonnull self, const char* _Nullable source)
 
 static void Lexer_AddCharToTextBuffer(Lexer* _Nonnull self, char ch)
 {
-    if (self->textBufferCount == self->textBufferCapacity) {
+    if (self->textBufferCount >= self->textBufferCapacity) {
         const size_t newCapacity = (self->textBufferCapacity > 0) ? self->textBufferCapacity * 2 : INITIAL_TEXT_BUFFER_CAPACITY;
         char* pNewTextBuffer = realloc(self->textBuffer, newCapacity);
 
