@@ -64,6 +64,7 @@ typedef struct mem_region {
     struct mem_region* _Nullable    next;
     char* _Nonnull                  lower;  // Lowest address from which to allocate (word aligned)
     char* _Nonnull                  upper;  // Address just beyond the last allocatable address (word aligned)
+    char* _Nonnull                  alloc_hint; // Start looking for an allocatable block here
 } mem_region_t;
 
 
@@ -103,6 +104,7 @@ static mem_region_t* mem_region_create(const MemoryDescriptor* _Nonnull md)
     mr->next = NULL;
     mr->lower = __Ceil_Ptr_PowerOf2(bptr + sizeof(mem_region_t), WORD_SIZE);
     mr->upper = tptr;
+    mr->alloc_hint = mr->lower;
 
     if ((mr->upper - mr->lower) < MIN_GROSS_BLOCK_SIZE) {
         return NULL;
@@ -187,17 +189,27 @@ static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes
         return NULL;
     }
 
-    // Find a suitable free block
+    // Find a suitable free block. Note that we do up to two scans:
+    // - first one starts at the alloc_hint which is somewhere inside the memory
+    //   region
+    // - second one starts at the memory region bottom and scans the portion that
+    //   we didn't in the first run. Second scan run only comes into play if the
+    //   first one didn't find a suitable free block
     const word_t gross_nbytes = sizeof(block_header_t) + __Ceil_PowerOf2(nbytes, WORD_SIZE) + sizeof(block_trailer_t);
-    char* p = mr->lower;
+    char* p = mr->alloc_hint;
 
-    while (p < mr->upper) {
-        if (((block_header_t*)p)->size >= gross_nbytes) {
-            break;
+    for (int i = 0; i < 2; i++) {
+        while (p < mr->upper) {
+            if (((block_header_t*)p)->size >= gross_nbytes) {
+                goto done;
+            }
+
+            p += __abs(((block_header_t*)p)->size);
         }
 
-        p += __abs(((block_header_t*)p)->size);
+        p = mr->lower;
     }
+done:
     if (p >= mr->upper) {
         return NULL;
     }
@@ -225,6 +237,8 @@ static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes
         ftrl->size = gross_fsize;
         ftrl->pat = TRAILER_PATTERN;
 
+        mr->alloc_hint = (char*)bhdr;
+
         return ((char*)bhdr) + sizeof(block_header_t);
     }
     else {
@@ -236,6 +250,8 @@ static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes
         bhdr->pat = HEADER_PATTERN;
         btrl->size = -btrl->size;
         btrl->pat = TRAILER_PATTERN;
+
+        mr->alloc_hint = (char*)bhdr;
 
         return ((char*)bhdr) + sizeof(block_header_t);
     }
@@ -395,29 +411,36 @@ static bool mem_region_free(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
             // Pred & succ are allocated. Just mark the block as free
             bhdr->size = -bhdr->size;
             btrl->size = -btrl->size;
+            mr->alloc_hint = (char*)bhdr;
             break;
 
         case 0x01:
+            // Successor is free
             bhdr->size = ((char*)succ_trl) - ((char*)bhdr) + sizeof(block_trailer_t);
             btrl->pat = 0;
             succ_hdr->pat = 0;
             succ_trl->size = bhdr->size;
+            mr->alloc_hint = (char*)bhdr;
             break;
 
         case 0x10:
+            // Predecessor is free
             pred_hdr->size = ((char*)btrl) - ((char*)pred_hdr) + sizeof(block_trailer_t);
             pred_trl->pat = 0;
             bhdr->pat = 0;
             btrl->size = pred_hdr->size;
+            mr->alloc_hint = (char*)pred_hdr;
             break;
 
         case 0x11:
+            // Pred & succ are free
             pred_hdr->size = ((char*)succ_trl) - ((char*)pred_hdr) + sizeof(block_trailer_t);
             pred_trl->pat = 0;
             bhdr->pat = 0;
             btrl->pat = 0;
             succ_hdr->pat = 0;
             succ_trl->size = pred_hdr->size;
+            mr->alloc_hint = (char*)pred_hdr;
             break;
     }
 
