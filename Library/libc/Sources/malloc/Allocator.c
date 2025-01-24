@@ -561,12 +561,12 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, si
 {
     void* np;
 
-    if (new_size == 0) {
-        return NULL;
-    }
-
     if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
         return __Allocator_Allocate(self, new_size);
+    }
+
+    if (new_size == 0) {
+        return NULL;
     }
 
 
