@@ -167,7 +167,7 @@ static bool mem_region_manages(const mem_region_t* _Nonnull mr, char* _Nullable 
 // Returns the size of the given memory block. This is the size minus the block
 // header and plus whatever additional memory the allocator added based on its
 // internal alignment constraints.
-static size_t mem_region_block_size(void* _Nonnull ptr)
+static size_t mem_region_block_size(mem_region_t* _Nonnull mr, void* _Nonnull ptr)
 {
     char* p = ptr;
     block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
@@ -239,6 +239,88 @@ static void* _Nullable mem_region_alloc(mem_region_t* _Nonnull mr, size_t nbytes
 
         return ((char*)bhdr) + sizeof(block_header_t);
     }
+}
+
+// Attempts to grow the size of the given memory block from its current size to
+// 'new_size' bytes. Returns true on success and false on failure.
+static bool mem_region_grow_block(mem_region_t* _Nonnull mr, void* _Nonnull ptr, size_t new_size)
+{    
+    if (new_size > MAX_NET_BLOCK_SIZE) {
+        return false;
+    }
+
+
+    // Calculate the 'ptr' block header, trailer & gross block size
+    char* p = ptr;
+    block_header_t* bhdr = (block_header_t*)(p - sizeof(block_header_t));
+    if (!__validate_block_header(bhdr, "mgrow", ptr)) {
+        return false;
+    }
+
+    if (bhdr->size >= 0) {
+        // this block isn't allocated
+        return false;
+    }
+    
+    const word_t gross_bsize = __abs(bhdr->size);
+    block_trailer_t* btrl = (block_trailer_t*)((char*)bhdr + gross_bsize - sizeof(block_trailer_t));
+    if (!__validate_block_trailer(btrl, "mgrow", ptr)) {
+        return false;
+    }
+
+
+    // Calculate the block header, trailer & gross block size of the block
+    // following the 'ptr' block. Ignore if the successor block isn't free.
+    block_header_t* succ_hdr = (block_header_t*)((char*)btrl + sizeof(block_trailer_t));
+    if (!__validate_block_header(succ_hdr, "mgrow", ptr)) {
+        return false;
+    }
+
+    if (bhdr->size < 0) {
+        // this block isn't free
+        return false;
+    }
+
+    const word_t gross_succ_size = __abs(succ_hdr->size);
+    block_trailer_t* succ_trl = (block_trailer_t*)((char*)succ_hdr + gross_succ_size - sizeof(block_trailer_t));
+    if (!__validate_block_trailer(succ_trl, "mgrow", ptr)) {
+        return false;
+    }
+
+    // A free block follows the allocated block. Expand the allocated block so
+    // by suitably shrinking the freed block.
+    const word_t gross_new_size = sizeof(block_header_t) + __Ceil_PowerOf2(new_size, WORD_SIZE) + sizeof(block_trailer_t);
+    const word_t avail_gross_size = (char*)succ_trl + sizeof(block_trailer_t) - (char*)bhdr;
+    const word_t gross_fsize = avail_gross_size - gross_new_size;
+
+    if (gross_fsize >= MIN_GROSS_BLOCK_SIZE) {
+        block_header_t* new_bhdr = bhdr;
+        block_trailer_t* new_btrl = (block_trailer_t*)((char*)bhdr + gross_new_size - sizeof(block_trailer_t));
+        block_header_t* new_fhdr = (block_header_t*)((char*)new_btrl + sizeof(block_trailer_t));
+        block_trailer_t* new_ftrl = succ_trl;
+
+        btrl->pat = 0;
+        succ_hdr->pat = 0;
+
+        new_bhdr->size = -gross_new_size;
+        new_bhdr->pat = HEADER_PATTERN;
+        new_btrl->size = -gross_new_size;
+        new_btrl->pat = TRAILER_PATTERN;
+
+        new_fhdr->size = gross_fsize;
+        new_fhdr->pat = HEADER_PATTERN;
+        new_ftrl->size = gross_fsize;
+        new_ftrl->pat = TRAILER_PATTERN;
+    }
+    else {
+        // The allocated block swallows all of the successor free block
+        bhdr->size = -gross_new_size;
+        bhdr->pat = HEADER_PATTERN;
+        succ_trl->size = -gross_new_size;
+        succ_trl->pat = TRAILER_PATTERN;
+    }
+
+    return true;
 }
 
 // Deallocates the given memory block. Expects that the memory block is managed
@@ -479,8 +561,30 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, si
 {
     void* np;
 
-    const size_t old_size = (ptr) ? mem_region_block_size(ptr) : 0;
-    
+    if (new_size == 0) {
+        return NULL;
+    }
+
+    if (ptr == NULL || ((uintptr_t) ptr) == UINTPTR_MAX) {
+        return __Allocator_Allocate(self, new_size);
+    }
+
+
+    mem_region_t* mr = __Allocator_GetMemRegionFor(self, ptr);
+    if (mr == NULL) {
+        // 'ptr' isn't managed by this allocator
+        return NULL;
+    }
+
+
+    // Try growing the block in place
+    if (mem_region_grow_block(mr, ptr, new_size)) {
+        return ptr;
+    }
+
+
+    // No luck, allocate a new block of memory and copy the data over
+    const size_t old_size = (ptr) ? mem_region_block_size(mr, ptr) : 0;
     if (old_size != new_size) {
         np = __Allocator_Allocate(self, new_size);
 
@@ -500,12 +604,13 @@ void* _Nullable __Allocator_Reallocate(AllocatorRef _Nonnull self, void *ptr, si
 errno_t __Allocator_GetBlockSize(AllocatorRef _Nonnull self, void* _Nonnull ptr, size_t* _Nonnull pOutSize)
 {
     // Make sure that we actually manage this memory block
-    if (__Allocator_GetMemRegionFor(self, ptr) == NULL) {
+    mem_region_t* mr = __Allocator_GetMemRegionFor(self, ptr);
+    if (mr == NULL) {
         // 'ptr' isn't managed by this allocator
         return ENOTBLK;
     }
 
-    *pOutSize = mem_region_block_size(ptr);
+    *pOutSize = mem_region_block_size(mr, ptr);
 
     return EOK;
 }
