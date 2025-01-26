@@ -29,7 +29,7 @@ size_t PixelFormat_GetPlaneCount(PixelFormat format)
 // Returns the number of entries the hardware CLUT supports if the screen is
 // configured for the given pixel format. Returns 0 if the pixel format is not
 // a CLUT-based format. 
-size_t PixelFormat_GetCLUTCapacity(PixelFormat format)
+size_t PixelFormat_GetCLUTEntryCount(PixelFormat format)
 {
     switch (format) {
         case kPixelFormat_RGB_Indexed1:

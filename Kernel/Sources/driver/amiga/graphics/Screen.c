@@ -24,7 +24,7 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat p
     pScreen->pixelFormat = pixelFormat;
     pScreen->nullSprite = pNullSprite;
     pScreen->isInterlaced = ScreenConfiguration_IsInterlaced(pConfig);
-    pScreen->clutCapacity = PixelFormat_GetCLUTCapacity(pixelFormat);
+    pScreen->clutCapacity = PixelFormat_GetCLUTEntryCount(pixelFormat);
 
     
     // Allocate an appropriate framebuffer

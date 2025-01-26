@@ -27,6 +27,11 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
     self->pixelFormat = pixelFormat;
+    self->clutEntryCount = (int16_t)PixelFormat_GetCLUTEntryCount(pixelFormat);
+
+    if (self->clutEntryCount > 0) {
+        try(kalloc_cleared(sizeof(CLUTEntry) * self->clutEntryCount, (void**)&self->clut));
+    }
 
     if (width > 0 && height > 0) {
         self->width = width;
@@ -82,6 +87,11 @@ void Surface_Destroy(Surface* _Nullable self)
         }
         for (int i = 0; i < self->planeCount; i++) {
             self->plane[i] = NULL;
+        }
+        
+        if (self->clut) {
+            kfree(self->clut);
+            self->clut = NULL;
         }
         
         kfree(self);
