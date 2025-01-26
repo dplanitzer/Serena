@@ -21,8 +21,12 @@ typedef struct ColorTable {
 } ColorTable;
 
 
+#ifndef __screen_configuration_is_defined
+#define __screen_configuration_is_defined 1
 struct ScreenConfiguration;
 typedef struct ScreenConfiguration ScreenConfiguration;
+#endif
+
 
 // The supported screen configurations
 extern const ScreenConfiguration kScreenConfig_NTSC_320_200_60;
