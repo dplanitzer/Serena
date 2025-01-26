@@ -10,8 +10,8 @@
 #define Surface_h
 
 #include <klib/klib.h>
-#include <driver/amiga/graphics/Color.h>
-#include <driver/amiga/graphics/PixelFormat.h>
+#include "Color.h"
+#include "PixelFormat.h"
 
 
 // Specifies what you want to do with the pixels when you call LockPixels()

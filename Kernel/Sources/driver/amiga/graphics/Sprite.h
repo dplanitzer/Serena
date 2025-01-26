@@ -9,13 +9,12 @@
 #ifndef Sprite_h
 #define Sprite_h
 
+#include <klib/Error.h>
 #include <klib/Types.h>
-#include "GraphicsDriver.h"
+#include "ScreenConfiguration.h"
 
 
-//
-// Sprite
-//
+typedef int SpriteID;
 
 #define NUM_HARDWARE_SPRITES    8
 #define MAX_SPRITE_WIDTH        16

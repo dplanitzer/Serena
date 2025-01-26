@@ -14,7 +14,7 @@
 
 
 #define MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION   5
-struct ScreenConfiguration {
+typedef struct ScreenConfiguration {
     int16_t       uniqueId;
     int16_t       width;
     int16_t       height;
@@ -30,11 +30,23 @@ struct ScreenConfiguration {
     uint8_t       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert them from screen coords to sprite coords [h:4,v:4]
     int8_t        pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
-};
+} ScreenConfiguration;
 
-#ifndef __screen_configuration_is_defined
-#define __screen_configuration_is_defined 1
-typedef struct ScreenConfiguration ScreenConfiguration;
-#endif
+
+// The supported screen configurations
+extern const ScreenConfiguration kScreenConfig_NTSC_320_200_60;
+extern const ScreenConfiguration kScreenConfig_NTSC_640_200_60;
+extern const ScreenConfiguration kScreenConfig_NTSC_320_400_30;
+extern const ScreenConfiguration kScreenConfig_NTSC_640_400_30;
+
+extern const ScreenConfiguration kScreenConfig_PAL_320_256_50;
+extern const ScreenConfiguration kScreenConfig_PAL_640_256_50;
+extern const ScreenConfiguration kScreenConfig_PAL_320_512_25;
+extern const ScreenConfiguration kScreenConfig_PAL_640_512_25;
+
+extern int ScreenConfiguration_GetPixelWidth(const ScreenConfiguration* pConfig);
+extern int ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* pConfig);
+extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig);
+extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
 
 #endif /* ScreenConfiguration_h */

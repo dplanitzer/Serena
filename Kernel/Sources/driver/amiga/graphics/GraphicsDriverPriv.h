@@ -12,7 +12,6 @@
 #include "GraphicsDriver.h"
 #include <dispatcher/Lock.h>
 #include <dispatcher/Semaphore.h>
-#include <dispatchqueue/DispatchQueue.h>
 #include <hal/InterruptController.h>
 #include <hal/Platform.h>
 #include "CopperProgram.h"

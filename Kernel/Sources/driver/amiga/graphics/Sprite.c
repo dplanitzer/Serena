@@ -7,8 +7,7 @@
 //
 
 #include "Sprite.h"
-#include "Screen.h"
-
+#include <klib/Kalloc.h>
 
 
 // Creates a sprite object.

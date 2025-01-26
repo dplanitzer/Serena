@@ -12,6 +12,8 @@
 #include <klib/klib.h>
 #include <driver/Driver.h>
 #include "Color.h"
+#include "ScreenConfiguration.h"
+#include "Sprite.h"
 #include "Surface.h"
 
 
@@ -21,36 +23,10 @@ typedef struct ColorTable {
 } ColorTable;
 
 
-#ifndef __screen_configuration_is_defined
-#define __screen_configuration_is_defined 1
-struct ScreenConfiguration;
-typedef struct ScreenConfiguration ScreenConfiguration;
-#endif
-
-
-// The supported screen configurations
-extern const ScreenConfiguration kScreenConfig_NTSC_320_200_60;
-extern const ScreenConfiguration kScreenConfig_NTSC_640_200_60;
-extern const ScreenConfiguration kScreenConfig_NTSC_320_400_30;
-extern const ScreenConfiguration kScreenConfig_NTSC_640_400_30;
-
-extern const ScreenConfiguration kScreenConfig_PAL_320_256_50;
-extern const ScreenConfiguration kScreenConfig_PAL_640_256_50;
-extern const ScreenConfiguration kScreenConfig_PAL_320_512_25;
-extern const ScreenConfiguration kScreenConfig_PAL_640_512_25;
-
-extern int ScreenConfiguration_GetPixelWidth(const ScreenConfiguration* pConfig);
-extern int ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* pConfig);
-extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig);
-extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
-
 extern const char* const kFramebufferName;
 
 
 final_class(GraphicsDriver, Driver);
-
-
-typedef int SpriteID;
 
 
 extern errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
