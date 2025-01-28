@@ -23,7 +23,6 @@ typedef struct Screen {
     PixelFormat                         pixelFormat;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
-    int16_t                             clutCapacity;       // how many entries the physical CLUT supports for this screen configuration
     struct __Flags {
         unsigned int        isInterlaced:1;
         unsigned int        isNewCopperProgNeeded:1;
@@ -36,6 +35,9 @@ typedef struct Screen {
 
 extern errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
 extern void Screen_Destroy(Screen* _Nullable pScreen);
+
+extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
+extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
 extern errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId);
 extern errno_t Screen_RelinquishSprite(Screen* _Nonnull self, SpriteID spriteId);

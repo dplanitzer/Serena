@@ -25,7 +25,6 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat p
     self->nullSprite = pNullSprite;
     self->flags.isInterlaced = ScreenConfiguration_IsInterlaced(pConfig);
     self->flags.isNewCopperProgNeeded = 1;
-    self->clutCapacity = PixelFormat_GetCLUTEntryCount(pixelFormat);
 
     
     // Allocate an appropriate framebuffer
@@ -55,6 +54,51 @@ void Screen_Destroy(Screen* _Nullable self)
     }
 }
 
+// Writes the given RGB color to the color register at index idx
+errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color)
+{
+    decl_try_err();
+
+    // Need to be able to access all CLUT entries in a screen even if the screen
+    // supports < MAX_CLUT_ENTRIES (because of sprites).
+    if (idx < MAX_CLUT_ENTRIES) {
+        CLUTEntry* ep = Surface_GetCLUTEntry(self->framebuffer, idx);
+
+        ep->r = RGBColor32_GetRed(color);
+        ep->g = RGBColor32_GetGreen(color);
+        ep->b = RGBColor32_GetBlue(color);
+        Screen_SetNeedsUpdate(self);
+    }
+    else {
+        err = EINVAL;
+    }
+
+    return err;
+}
+
+// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
+// to the colors in the array 'entries'.
+errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+{
+    if (idx + count > MAX_CLUT_ENTRIES) {
+        return EINVAL;
+    }
+
+    if (count > 0) {
+        for (size_t i = 0; i < count; i++) {
+            const RGBColor32 color = entries[i];
+            CLUTEntry* ep = Surface_GetCLUTEntry(self->framebuffer, idx + i);
+
+            ep->r = RGBColor32_GetRed(color);
+            ep->g = RGBColor32_GetGreen(color);
+            ep->b = RGBColor32_GetBlue(color);
+        }
+        Screen_SetNeedsUpdate(self);
+    }
+
+    return EOK;
+}
+
 errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
 {
     decl_try_err();
@@ -80,7 +124,7 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPl
         Sprite_SetPosition(pSprite, x, y, pConfig);
 
         self->sprite[priority] = pSprite;
-        self->flags.isNewCopperProgNeeded = 1;
+        Screen_SetNeedsUpdate(self);
         *pOutSpriteId = priority;
     }
 
@@ -102,7 +146,7 @@ errno_t Screen_RelinquishSprite(Screen* _Nonnull self, SpriteID spriteId)
         // XXX yet because we need to ensure that the DMA is no longer accessing
         // XXX the data before it freeing it.
         self->sprite[spriteId] = self->nullSprite;
-        self->flags.isNewCopperProgNeeded = 1;
+        Screen_SetNeedsUpdate(self);
     }
     return EOK;
 }

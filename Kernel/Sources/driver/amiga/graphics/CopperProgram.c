@@ -14,13 +14,14 @@
 // number of Copper instruction words.
 static size_t cop_screen_refresh_prog_size(Screen* _Nonnull pScreen)
 {
-    Surface* pFramebuffer = pScreen->framebuffer;
+    Surface* fb = pScreen->framebuffer;
 
-    return 3                                // BPLCON0, BPLCON1, BPLCON2
+    return 2 * fb->clutEntryCount           // CLUT
+            + 3                             // BPLCON0, BPLCON1, BPLCON2
             + 2                             // DIWSTART, DIWSTOP
             + 2                             // DDFSTART, DDFSTOP
             + 2                             // BPL1MOD, BPL2MOD
-            + 2 * pFramebuffer->planeCount  // BPLxPT[nplanes]
+            + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
             + 1;                            // DMACON
 }
@@ -30,32 +31,40 @@ static size_t cop_screen_refresh_prog_size(Screen* _Nonnull pScreen)
 // \return a pointer to where the next instruction after the program would go 
 static CopperInstruction* _Nonnull cop_make_screen_refresh_prog(CopperInstruction* _Nonnull pCode, Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField)
 {
-    const ScreenConfiguration* pConfig = pScreen->screenConfig;
-    const uint32_t firstLineByteOffset = isOddField ? 0 : pConfig->ddf_mod;
+    const ScreenConfiguration* cfg = pScreen->screenConfig;
+    const uint32_t firstLineByteOffset = isOddField ? 0 : cfg->ddf_mod;
     const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
-    Surface* pFramebuffer = pScreen->framebuffer;
-    register CopperInstruction* ip = pCode;
+    Surface* fb = pScreen->framebuffer;
+    CopperInstruction* ip = pCode;
     
+    // CLUT
+    for (int i = 0, r = COLOR_BASE; i < Surface_GetCLUTEntryCount(fb); i++, r += 2) {
+        const CLUTEntry* ep = Surface_GetCLUTEntry(fb, i);
+        const uint16_t rgb12 = (ep->r >> 4 & 0x0f) << 8 | (ep->g >> 4 & 0x0f) << 4 | (ep->b >> 4 & 0x0f);
+
+        *ip++ = COP_MOVE(r, rgb12);
+    }
+
     // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, pConfig->bplcon0 | lpen_bit | ((uint16_t)pFramebuffer->planeCount & 0x07) << 12);
+    *ip++ = COP_MOVE(BPLCON0, cfg->bplcon0 | lpen_bit | ((uint16_t)fb->planeCount & 0x07) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
     
     // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (pConfig->diw_start_v << 8) | pConfig->diw_start_h);
-    *ip++ = COP_MOVE(DIWSTOP, (pConfig->diw_stop_v << 8) | pConfig->diw_stop_h);
+    *ip++ = COP_MOVE(DIWSTART, (cfg->diw_start_v << 8) | cfg->diw_start_h);
+    *ip++ = COP_MOVE(DIWSTOP, (cfg->diw_stop_v << 8) | cfg->diw_stop_h);
     
     // DDFSTART / DDFSTOP
-    *ip++ = COP_MOVE(DDFSTART, pConfig->ddf_start);
-    *ip++ = COP_MOVE(DDFSTOP, pConfig->ddf_stop);
+    *ip++ = COP_MOVE(DDFSTART, cfg->ddf_start);
+    *ip++ = COP_MOVE(DDFSTOP, cfg->ddf_stop);
     
     // BPLxMOD
-    *ip++ = COP_MOVE(BPL1MOD, pConfig->ddf_mod);
-    *ip++ = COP_MOVE(BPL2MOD, pConfig->ddf_mod);
+    *ip++ = COP_MOVE(BPL1MOD, cfg->ddf_mod);
+    *ip++ = COP_MOVE(BPL2MOD, cfg->ddf_mod);
     
     // BPLxPT
-    for (int i = 0, r = BPL_BASE; i < pFramebuffer->planeCount; i++, r += 4) {
-        const uint32_t bplpt = (uint32_t)(pFramebuffer->plane[i]) + firstLineByteOffset;
+    for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
+        const uint32_t bplpt = (uint32_t)(fb->plane[i]) + firstLineByteOffset;
         
         *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);

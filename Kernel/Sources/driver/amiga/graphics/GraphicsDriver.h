@@ -43,8 +43,8 @@ extern void GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull se
 
 
 // CLUT
-extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int idx, RGBColor32 color);
-extern errno_t GraphicsDriver_SetCLUTRange(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
+extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, size_t idx, RGBColor32 color);
+extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
 
 // Sprites

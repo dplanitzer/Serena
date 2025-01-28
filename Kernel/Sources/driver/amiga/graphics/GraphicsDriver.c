@@ -11,42 +11,6 @@
 const char* const kFramebufferName = "fb";
 
 
-static const RGBColor32 gDefaultColors[32] = {
-    0xff000000,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xffffffff,
-    0xff000000,     // XXX Mouse cursor
-    0xff000000,     // XXX Mouse cursor
-};
-
-
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
 errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutSelf)
@@ -93,10 +57,6 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfigurat
     InterruptController_SetInterruptHandlerEnabled(gInterruptController, 
         self->vb_irq_handler,
         true);
-
-
-    // Initialize the video config related stuff
-    GraphicsDriver_SetCLUTRange(self, 0, sizeof(gDefaultColors), gDefaultColors);
 
 
     // Activate the screen
@@ -464,57 +424,23 @@ void GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self)
     Lock_Unlock(&self->lock);
 }
 
-static uint16_t RGBColor12_Make(RGBColor32 clr)
-{
-    const uint8_t r = RGBColor32_GetRed(clr);
-    const uint8_t g = RGBColor32_GetGreen(clr);
-    const uint8_t b = RGBColor32_GetBlue(clr);
-
-    return (uint16_t)(r >> 4 & 0x0f) << 8 | (g >> 4 & 0x0f) << 4 | (b >> 4 & 0x0f);
-}
-
 // Writes the given RGB color to the color register at index idx
-errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, int idx, RGBColor32 color)
+errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, size_t idx, RGBColor32 color)
 {
-    decl_try_err();
-
     Lock_Lock(&self->lock);
-
-    // Need to be able to access all CLUT entries in a screen even if the screen
-    // supports < MAX_CLUT_ENTRIES (because of sprites).
-    if (idx < 0 || idx >= MAX_CLUT_ENTRIES) {
-        throw(EINVAL);
-    }
-
-    CHIPSET_BASE_DECL(cp);
-    *CHIPSET_REG_16(cp, COLOR_BASE + (idx << 1)) = RGBColor12_Make(color);
-
-catch:
+    const errno_t err = Screen_SetCLUTEntry(self->screen, idx, color);
     Lock_Unlock(&self->lock);
     return err;
 }
 
 // Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
 // to the colors in the array 'entries'.
-errno_t GraphicsDriver_SetCLUTRange(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 {
     Lock_Lock(&self->lock);
-
-    if (idx + count > MAX_CLUT_ENTRIES) {
-        Lock_Unlock(&self->lock);
-        return EINVAL;
-    }
-
-    CHIPSET_BASE_DECL(cp);
-
-    for (int i = 0; i < count; i++) {
-        const RGBColor32 color = entries[i];
-        const uint16_t rgb12 = RGBColor12_Make(color);
-
-        *CHIPSET_REG_16(cp, COLOR_BASE + ((idx + i) << 1)) = rgb12;
-    }
-
+    const errno_t err = Screen_SetCLUTEntries(self->screen, idx, count, entries);
     Lock_Unlock(&self->lock);
+    return err;
 }
 
 

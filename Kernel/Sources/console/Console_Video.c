@@ -29,7 +29,7 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
     decl_try_err();
 
     // Install an ANSI color table
-    GraphicsDriver_SetCLUTRange(self->gdevice, 0, sizeof(gANSIColors), gANSIColors);
+    GraphicsDriver_SetCLUTEntries(self->gdevice, 0, sizeof(gANSIColors), gANSIColors);
 
 
     // Get the framebuffer size
@@ -64,6 +64,7 @@ catch:
 void Console_DeinitVideoOutput(ConsoleRef _Nonnull self)
 {
     GraphicsDriver_RelinquishSprite(self->gdevice, self->textCursor);
+    GraphicsDriver_UpdateDisplay(self->gdevice);
     DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
 }
 
@@ -78,6 +79,7 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     GraphicsDriver_SetCLUTEntry(self->gdevice, 17, gANSIColors[color.u.index]);
     GraphicsDriver_SetCLUTEntry(self->gdevice, 18, gANSIColors[color.u.index]);
     GraphicsDriver_SetCLUTEntry(self->gdevice, 19, gANSIColors[color.u.index]);
+    GraphicsDriver_UpdateDisplay(self->gdevice);
 }
 
 // Sets the console's background color to the given color
