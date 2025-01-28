@@ -31,7 +31,10 @@ final_class(GraphicsDriver, Driver);
 
 extern errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
 
+// Display
 extern const ScreenConfiguration* _Nonnull GraphicsDriver_GetCurrentScreenConfiguration(GraphicsDriverRef _Nonnull self);
+extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
+
 
 // Framebuffer access
 extern Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull self);

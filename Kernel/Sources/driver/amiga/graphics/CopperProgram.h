@@ -23,7 +23,7 @@ typedef struct CopperProgram {
 } CopperProgram;
 
 
-extern errno_t CopperProgram_CreateScreenRefresh(struct Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg);
-extern void CopperProgram_Destroy(CopperProgram* _Nullable pProg);
+extern errno_t CopperProgram_CreateScreenRefresh(struct Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutSelf);
+extern void CopperProgram_Destroy(CopperProgram* _Nullable self);
 
 #endif /* CopperProgram_h */

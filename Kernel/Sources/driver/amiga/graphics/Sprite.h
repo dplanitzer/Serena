@@ -29,10 +29,10 @@ typedef struct Sprite {
 } Sprite;
 
 
-extern errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, Sprite* _Nonnull * _Nonnull pOutSprite);
-extern void Sprite_Destroy(Sprite* _Nullable pSprite);
+extern errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, Sprite* _Nonnull * _Nonnull pOutSelf);
+extern void Sprite_Destroy(Sprite* _Nullable self);
 
-extern void Sprite_SetPosition(Sprite* _Nonnull pSprite, int x, int y, const ScreenConfiguration* pConfig);
-extern void Sprite_SetVisible(Sprite* _Nonnull pSprite, bool isVisible, const ScreenConfiguration* pConfig);
+extern void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y, const ScreenConfiguration* pConfig);
+extern void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible, const ScreenConfiguration* pConfig);
 
 #endif /* Sprite_h */

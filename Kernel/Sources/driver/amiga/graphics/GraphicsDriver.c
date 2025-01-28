@@ -190,28 +190,40 @@ catch:
     return err;
 }
 
-// Compiles the Copper program(s) for the currently active screen and schedules
-// their execution by the Copper. Note that this function typically returns
-// before the Copper program has started running.
-static errno_t GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(GraphicsDriverRef _Nonnull self)
+// Triggers an update of the display so that it accurately reflects the current
+// display configuration.
+static errno_t GraphicsDriver_UpdateDisplay_Locked(GraphicsDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
     Screen* pScreen = self->screen;
-    CopperProgram* oddFieldProg;
-    CopperProgram* evenFieldProg;
 
-    if (pScreen->isInterlaced) {
-        try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
-        try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, false, &evenFieldProg));
-    } else {
-        try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
-        evenFieldProg = NULL;
+    if (pScreen->flags.isNewCopperProgNeeded) {
+        CopperProgram* oddFieldProg;
+        CopperProgram* evenFieldProg;
+
+        if (pScreen->flags.isInterlaced) {
+            try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
+            try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, false, &evenFieldProg));
+        } else {
+            try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
+            evenFieldProg = NULL;
+        }
+
+        CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
+        pScreen->flags.isNewCopperProgNeeded = false;
     }
 
-    CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
-    return EOK;
-
 catch:
+    return err;
+}
+
+// Triggers an update of the display so that it accurately reflects the current
+// display configuration.
+errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
+{
+    Lock_Lock(&self->lock);
+    const errno_t err = GraphicsDriver_UpdateDisplay_Locked(self);
+    Lock_Unlock(&self->lock);
     return err;
 }
 
@@ -236,7 +248,7 @@ errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull self, 
     
 
     // Turn video refresh back on and point it to the new copper program
-    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
+    try(GraphicsDriver_UpdateDisplay_Locked(self));
     hasSwitchedScreens = true;
     
 
@@ -272,7 +284,7 @@ errno_t GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool 
     Lock_Lock(&self->lock);
     if (self->isLightPenEnabled != enabled) {
         self->isLightPenEnabled = enabled;
-        try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
+        Screen_SetNeedsUpdate(self->screen);
     }
     Lock_Unlock(&self->lock);
 
@@ -330,50 +342,26 @@ bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t
 // Acquires a hardware sprite
 errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
 {
-    decl_try_err();
-
     Lock_Lock(&self->lock);
-    try(Screen_AcquireSprite(self->screen, pPlanes, x, y, width, height, priority, pOutSpriteId));
-    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
+    const errno_t err = Screen_AcquireSprite(self->screen, pPlanes, x, y, width, height, priority, pOutSpriteId);
     Lock_Unlock(&self->lock);
-
-    return EOK;
-
-catch:
-    Lock_Unlock(&self->lock);
-    *pOutSpriteId = -1;
     return err;
 }
 
 // Relinquishes a hardware sprite
 errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, SpriteID spriteId)
 {
-    decl_try_err();
-
     Lock_Lock(&self->lock);
-    try(Screen_RelinquishSprite(self->screen, spriteId));
-    try(GraphicsDriver_CompileAndScheduleCopperProgramsAsync_Locked(self));
+    const errno_t err = Screen_RelinquishSprite(self->screen, spriteId);
     Lock_Unlock(&self->lock);
-
-    return EOK;
-
-catch:
-    Lock_Unlock(&self->lock);
-    return err; // XXX clarify whether that's a thing or not
+    return err;
 }
 
 // Updates the position of a hardware sprite.
 errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, SpriteID spriteId, int x, int y)
 {
-    decl_try_err();
-
     Lock_Lock(&self->lock);
-    try(Screen_SetSpritePosition(self->screen, spriteId, x, y));
-    Lock_Unlock(&self->lock);
-
-    return EOK;
-
-catch:
+    const errno_t err = Screen_SetSpritePosition(self->screen, spriteId, x, y);
     Lock_Unlock(&self->lock);
     return err;
 }
@@ -381,15 +369,8 @@ catch:
 // Updates the visibility of a hardware sprite.
 errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, SpriteID spriteId, bool isVisible)
 {
-    decl_try_err();
-
     Lock_Lock(&self->lock);
-    try(Screen_SetSpriteVisible(self->screen, spriteId, isVisible));
-    Lock_Unlock(&self->lock);
-
-    return EOK;
-
-catch:
+    const errno_t err = Screen_SetSpriteVisible(self->screen, spriteId, isVisible);
     Lock_Unlock(&self->lock);
     return err;
 }

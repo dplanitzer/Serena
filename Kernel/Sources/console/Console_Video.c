@@ -59,6 +59,8 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
     self->flags.isTextCursorOn = false;
     self->flags.isTextCursorSingleCycleOn = false;
 
+    try(GraphicsDriver_UpdateDisplay(self->gdevice));
+
 catch:
     return err;
 }
