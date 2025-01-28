@@ -17,16 +17,24 @@
 #include "Surface.h"
 
 
+// Specifies what you want to do with the pixels when you call LockPixels()
+typedef enum PixelAccess {
+    kPixelAccess_Read,
+    kPixelAccess_ReadWrite
+} PixelAccess;
+
+
 typedef struct Screen {
     Surface* _Nullable                  framebuffer;        // the screen framebuffer
     const ScreenConfiguration* _Nonnull screenConfig;
     PixelFormat                         pixelFormat;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
-    struct __Flags {
+    struct __ScreenFlags {
         unsigned int        isInterlaced:1;
         unsigned int        isNewCopperProgNeeded:1;
-        unsigned int        reserved:30;
+        unsigned int        isFramebufferLocked:1;
+        unsigned int        reserved:29;
     }                                   flags;
 } Screen;
 
@@ -38,6 +46,9 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
 extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
+
+extern errno_t Screen_LockPixels(Screen* _Nonnull self, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull pOutPlaneCount);
+extern errno_t Screen_UnlockPixels(Screen* _Nonnull self);
 
 extern errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId);
 extern errno_t Screen_RelinquishSprite(Screen* _Nonnull self, SpriteID spriteId);

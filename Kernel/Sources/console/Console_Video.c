@@ -162,7 +162,7 @@ void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 
 errno_t Console_BeginDrawing_Locked(ConsoleRef _Nonnull self)
 {
-    return GraphicsDriver_LockFramebufferPixels(self->gdevice, kSurfaceAccess_ReadWrite, (void**)self->gc.plane, self->gc.bytesPerRow, &self->gc.planeCount);
+    return GraphicsDriver_LockFramebufferPixels(self->gdevice, kPixelAccess_ReadWrite, (void**)self->gc.plane, self->gc.bytesPerRow, &self->gc.planeCount);
 }
 
 void Console_EndDrawing_Locked(ConsoleRef _Nonnull self)

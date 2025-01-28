@@ -392,36 +392,28 @@ Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull self)
     return fbSize;
 }
 
-errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, SurfaceAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount)
+errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount)
 {
     decl_try_err();
 
     Lock_Lock(&self->lock);
-
-    Surface* pSurface = self->screen->framebuffer;
-
-    if (pSurface == NULL) {
-        throw(ENODEV);
+    err = Screen_LockPixels(self->screen, access, plane, bytesPerRow, planeCount);
+    if (err == EOK) {
+        MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(0, 0, self->screen->framebuffer->width, self->screen->framebuffer->height));
     }
-
-    for (int8_t i = 0; i < pSurface->planeCount; i++) {
-        plane[i] = pSurface->plane[i];
-        bytesPerRow[i] = pSurface->bytesPerRow;
-    }
-    *planeCount = pSurface->planeCount;
-
-    MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(0, 0, pSurface->width, pSurface->height));
-
-catch:
     Lock_Unlock(&self->lock);
-    return EOK;
+    return err;
 }
 
-void GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self)
+errno_t GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self)
 {
+    decl_try_err();
+
     Lock_Lock(&self->lock);
     MousePainter_UnshieldCursor(&self->mousePainter);
+    err = Screen_UnlockPixels(self->screen);
     Lock_Unlock(&self->lock);
+    return err;
 }
 
 // Writes the given RGB color to the color register at index idx

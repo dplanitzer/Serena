@@ -12,9 +12,8 @@
 #include <klib/klib.h>
 #include <driver/Driver.h>
 #include "Color.h"
+#include "Screen.h"
 #include "ScreenConfiguration.h"
-#include "Sprite.h"
-#include "Surface.h"
 
 
 extern const char* const kFramebufferName;
@@ -32,8 +31,8 @@ extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
 
 // Framebuffer access
 extern Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull self);
-extern errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, SurfaceAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount);
-extern void GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self);
+extern errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount);
+extern errno_t GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self);
 
 
 // CLUT

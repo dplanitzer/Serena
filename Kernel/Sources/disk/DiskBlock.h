@@ -49,7 +49,7 @@ typedef struct DiskBlock {
     ListNode            lruNode;            // Protected by Interlock
     DiskAddress         address;            // Protected by Interlock. Address by which a block is identified in the cache
     int                 shareCount;         // Protected by Interlock
-    struct __Flags {
+    struct __DiskBlockFlags {
         unsigned int        byteSize:16;    // Constant value
         unsigned int        exclusive:1;    // Protected by Interlock
         unsigned int        hasData:1;      // Protected by Interlock

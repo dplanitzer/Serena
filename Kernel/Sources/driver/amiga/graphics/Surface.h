@@ -22,18 +22,10 @@ typedef struct CLUTEntry {
 } CLUTEntry;
 
 
-// Specifies what you want to do with the pixels when you call LockPixels()
-typedef enum SurfaceAccess {
-    kSurfaceAccess_Read,
-    kSurfaceAccess_ReadWrite
-} SurfaceAccess;
-
-
 #define MAX_PLANE_COUNT  6
 
 enum {
-    kSurfaceFlag_Locked = 0x01,
-    kSurfaceFlag_ClusteredPlanes = 0x02,    // Surface is planar and all planes share a single kalloc() memory block. Ptr of this memory block is in planes[0]
+    kSurfaceFlag_ClusteredPlanes = 0x01,    // Surface is planar and all planes share a single kalloc() memory block. Ptr of this memory block is in planes[0]
 };
 
 typedef struct Surface {
@@ -77,15 +69,6 @@ extern void Surface_Destroy(Surface* _Nullable self);
 // Returns a reference to the CLUT entry at index 'idx'
 #define Surface_GetCLUTEntry(__self, __idx) \
 (&(__self)->clut[__idx])
-
-// Locks the surface for read or read and write access. You must lock a surface
-// for read and write access before you can call any of the drawing related
-// functions. You must unlock the surface once you are done drawing. 
-extern errno_t Surface_LockPixels(Surface* _Nonnull self, SurfaceAccess access);
-
-// Unlocks the surface.
-extern void Surface_UnlockPixels(Surface* _Nonnull self);
-
 
 // Clears all pixels in the surface. Clearing means that all pixels are set to
 // color black/index 0.

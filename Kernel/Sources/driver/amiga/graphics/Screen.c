@@ -30,10 +30,6 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat p
     // Allocate an appropriate framebuffer
     try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &self->framebuffer));
     
-    
-    // Lock the new surface
-    try(Surface_LockPixels(self->framebuffer, kSurfaceAccess_Read|kSurfaceAccess_ReadWrite));
-    
     *pOutSelf = self;
     return EOK;
     
@@ -46,7 +42,6 @@ catch:
 void Screen_Destroy(Screen* _Nullable self)
 {
     if (self) {
-        Surface_UnlockPixels(self->framebuffer);
         Surface_Destroy(self->framebuffer);
         self->framebuffer = NULL;
         
@@ -97,6 +92,41 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
     }
 
     return EOK;
+}
+
+// Locks the screen pixels for access. 'access' specifies whether the pixels
+// will be read, written or both.
+// \param self the screen
+// \param access the access mode
+// \return EOK if the screen pixels could be locked; EBUSY otherwise
+errno_t Screen_LockPixels(Screen* _Nonnull self, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull pOutPlaneCount)
+{
+    if (!self->flags.isFramebufferLocked) {
+        size_t planeCount = self->framebuffer->planeCount;
+
+        for (size_t i = 0; i < planeCount; i++) {
+            plane[i] = self->framebuffer->plane[i];
+            bytesPerRow[i] = self->framebuffer->bytesPerRow;
+        }
+        *pOutPlaneCount = planeCount;
+
+        self->flags.isFramebufferLocked = 1;
+        return EOK;
+    }
+    else {
+        return EBUSY;
+    }
+}
+
+errno_t Screen_UnlockPixels(Screen* _Nonnull self)
+{
+    if (self->flags.isFramebufferLocked) {
+        self->flags.isFramebufferLocked = 0;
+        return EOK;
+    }
+    else {
+        return EPERM;
+    }
 }
 
 errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)

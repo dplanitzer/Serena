@@ -98,27 +98,6 @@ void Surface_Destroy(Surface* _Nullable self)
     }
 }
 
-// Locks the surface pixels for access. 'access' specifies whether the pixels
-// will be read, written or both.
-// \param pSurface the surface
-// \param access the access mode
-// \return EOK if the surface pixels could be locked; EBUSY otherwise
-errno_t Surface_LockPixels(Surface* _Nonnull self, SurfaceAccess access)
-{
-    if ((self->flags & kSurfaceFlag_Locked) != 0) {
-        return EBUSY;
-    }
-    
-    self->flags |= kSurfaceFlag_Locked;
-    return EOK;
-}
-
-void Surface_UnlockPixels(Surface* _Nonnull self)
-{
-    assert((self->flags & kSurfaceFlag_Locked) != 0);
-    self->flags &= ~kSurfaceFlag_Locked;
-}
-
 // Clears all pixels in the surface. Clearing means that all pixels are set to
 // color black/index 0.
 void Surface_Clear(Surface* _Nonnull self)
