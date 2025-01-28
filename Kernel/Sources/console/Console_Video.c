@@ -20,11 +20,6 @@ static const RGBColor32 gANSIColors[8] = {
     0xffffffff,     // White
 };
 
-static const ColorTable gANSIColorTable = {
-    8,
-    gANSIColors
-};
-
 #define CURSOR_BLINKER_TAG  ((uintptr_t)0x1010)
 
 
@@ -34,7 +29,7 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
     decl_try_err();
 
     // Install an ANSI color table
-    GraphicsDriver_SetCLUT(self->gdevice, &gANSIColorTable);
+    GraphicsDriver_SetCLUTRange(self->gdevice, 0, sizeof(gANSIColors), gANSIColors);
 
 
     // Get the framebuffer size

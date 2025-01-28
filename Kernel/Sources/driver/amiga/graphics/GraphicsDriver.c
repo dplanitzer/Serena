@@ -46,11 +46,6 @@ static const RGBColor32 gDefaultColors[32] = {
     0xff000000,     // XXX Mouse cursor
 };
 
-static const ColorTable gDefaultColorTable = {
-    32,
-    gDefaultColors
-};
-
 
 // Creates a graphics driver instance with a framebuffer based on the given video
 // configuration and pixel format.
@@ -101,7 +96,7 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfigurat
 
 
     // Initialize the video config related stuff
-    GraphicsDriver_SetCLUT(self, &gDefaultColorTable);
+    GraphicsDriver_SetCLUTRange(self, 0, sizeof(gDefaultColors), gDefaultColors);
 
 
     // Activate the screen
@@ -499,19 +494,24 @@ catch:
     return err;
 }
 
-// Sets the CLUT
-void GraphicsDriver_SetCLUT(GraphicsDriverRef _Nonnull self, const ColorTable* pCLUT)
+// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
+// to the colors in the array 'entries'.
+errno_t GraphicsDriver_SetCLUTRange(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 {
     Lock_Lock(&self->lock);
 
+    if (idx + count > MAX_CLUT_ENTRIES) {
+        Lock_Unlock(&self->lock);
+        return EINVAL;
+    }
+
     CHIPSET_BASE_DECL(cp);
 
-    int count = __min(pCLUT->entryCount, self->screen->clutCapacity);
     for (int i = 0; i < count; i++) {
-        const RGBColor32 color = pCLUT->entry[i];
+        const RGBColor32 color = entries[i];
         const uint16_t rgb12 = RGBColor12_Make(color);
 
-        *CHIPSET_REG_16(cp, COLOR_BASE + (i << 1)) = rgb12;
+        *CHIPSET_REG_16(cp, COLOR_BASE + ((idx + i) << 1)) = rgb12;
     }
 
     Lock_Unlock(&self->lock);
