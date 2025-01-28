@@ -17,11 +17,11 @@ static size_t cop_screen_refresh_prog_size(Screen* _Nonnull pScreen)
     Surface* fb = pScreen->framebuffer;
 
     return 2 * fb->clutEntryCount           // CLUT
+            + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 3                             // BPLCON0, BPLCON1, BPLCON2
             + 2                             // DIWSTART, DIWSTOP
             + 2                             // DDFSTART, DDFSTOP
             + 2                             // BPL1MOD, BPL2MOD
-            + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
             + 1;                            // DMACON
 }
@@ -45,6 +45,14 @@ static CopperInstruction* _Nonnull cop_make_screen_refresh_prog(CopperInstructio
         *ip++ = COP_MOVE(r, rgb12);
     }
 
+    // BPLxPT
+    for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
+        const uint32_t bplpt = (uint32_t)(fb->plane[i]) + firstLineByteOffset;
+        
+        *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
+    }
+
     // BPLCONx
     *ip++ = COP_MOVE(BPLCON0, cfg->bplcon0 | lpen_bit | ((uint16_t)fb->planeCount & 0x07) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
@@ -62,14 +70,6 @@ static CopperInstruction* _Nonnull cop_make_screen_refresh_prog(CopperInstructio
     *ip++ = COP_MOVE(BPL1MOD, cfg->ddf_mod);
     *ip++ = COP_MOVE(BPL2MOD, cfg->ddf_mod);
     
-    // BPLxPT
-    for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
-        const uint32_t bplpt = (uint32_t)(fb->plane[i]) + firstLineByteOffset;
-        
-        *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
-        *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
-    }
-
     // SPRxPT
     uint16_t dmaf_sprite = 0;
     for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
