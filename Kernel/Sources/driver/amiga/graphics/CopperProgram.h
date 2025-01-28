@@ -12,9 +12,15 @@
 #include <klib/Error.h>
 #include <klib/List.h>
 #include <klib/Types.h>
-#include <hal/Platform.h>
 
 struct Screen;
+
+
+// Copper instructions
+typedef uint32_t  CopperInstruction;
+
+#define COP_MOVE(reg, val)  (((reg) << 16) | (val))
+#define COP_END()           0xfffffffe
 
 
 typedef struct CopperProgram {

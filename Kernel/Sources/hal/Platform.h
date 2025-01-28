@@ -848,13 +848,6 @@ typedef struct MemoryLayout {
 #define VPOSRF_LOF          0x8000
 
 
-// Copper instructions
-typedef uint32_t  CopperInstruction;
-
-#define COP_MOVE(reg, val)  (((reg) << 16) | (val))
-#define COP_END()           0xfffffffe
-
-
 // The supported interrupts
 // http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0142.html
 // http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0036.html

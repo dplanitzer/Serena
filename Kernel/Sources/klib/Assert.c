@@ -11,6 +11,13 @@
 #include "Log.h"
 #include "Memory.h"
 
+// Copper instructions
+typedef uint32_t  CopperInstruction;
+
+#define COP_MOVE(reg, val)  (((reg) << 16) | (val))
+#define COP_END()           0xfffffffe
+
+
 static errno_t fprintv_micro_console_sink(FormatterRef _Nonnull self, const char* _Nonnull pBuffer, ssize_t nBytes);
 
 

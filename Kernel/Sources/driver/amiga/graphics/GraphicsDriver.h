@@ -17,12 +17,6 @@
 #include "Surface.h"
 
 
-typedef struct ColorTable {
-    size_t                      entryCount;
-    const RGBColor32* _Nonnull  entry;
-} ColorTable;
-
-
 extern const char* const kFramebufferName;
 
 
