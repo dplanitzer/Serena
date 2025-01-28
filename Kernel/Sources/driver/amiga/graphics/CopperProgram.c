@@ -18,11 +18,11 @@ static size_t cop_screen_refresh_prog_size(Screen* _Nonnull pScreen)
 
     return 2 * fb->clutEntryCount           // CLUT
             + 2 * fb->planeCount            // BPLxPT[nplanes]
+            + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
+            + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
             + 2                             // DIWSTART, DIWSTOP
             + 2                             // DDFSTART, DDFSTOP
-            + 2                             // BPL1MOD, BPL2MOD
-            + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
             + 1;                            // DMACON
 }
 
@@ -53,23 +53,15 @@ static CopperInstruction* _Nonnull cop_make_screen_refresh_prog(CopperInstructio
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
     }
 
+    // BPLxMOD
+    *ip++ = COP_MOVE(BPL1MOD, cfg->ddf_mod);
+    *ip++ = COP_MOVE(BPL2MOD, cfg->ddf_mod);
+
     // BPLCONx
     *ip++ = COP_MOVE(BPLCON0, cfg->bplcon0 | lpen_bit | ((uint16_t)fb->planeCount & 0x07) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
-    
-    // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (cfg->diw_start_v << 8) | cfg->diw_start_h);
-    *ip++ = COP_MOVE(DIWSTOP, (cfg->diw_stop_v << 8) | cfg->diw_stop_h);
-    
-    // DDFSTART / DDFSTOP
-    *ip++ = COP_MOVE(DDFSTART, cfg->ddf_start);
-    *ip++ = COP_MOVE(DDFSTOP, cfg->ddf_stop);
-    
-    // BPLxMOD
-    *ip++ = COP_MOVE(BPL1MOD, cfg->ddf_mod);
-    *ip++ = COP_MOVE(BPL2MOD, cfg->ddf_mod);
-    
+            
     // SPRxPT
     uint16_t dmaf_sprite = 0;
     for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
@@ -88,6 +80,14 @@ static CopperInstruction* _Nonnull cop_make_screen_refresh_prog(CopperInstructio
         *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
+
+    // DIWSTART / DIWSTOP
+    *ip++ = COP_MOVE(DIWSTART, (cfg->diw_start_v << 8) | cfg->diw_start_h);
+    *ip++ = COP_MOVE(DIWSTOP, (cfg->diw_stop_v << 8) | cfg->diw_stop_h);
+    
+    // DDFSTART / DDFSTOP
+    *ip++ = COP_MOVE(DDFSTART, cfg->ddf_start);
+    *ip++ = COP_MOVE(DDFSTOP, cfg->ddf_stop);
 
     // DMACON
     *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | dmaf_sprite | DMACONF_DMAEN);
