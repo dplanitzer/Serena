@@ -13,8 +13,6 @@
 #include <klib/List.h>
 #include <klib/Types.h>
 
-struct Screen;
-
 
 // Copper instructions
 typedef uint32_t  CopperInstruction;
@@ -29,7 +27,7 @@ typedef struct CopperProgram {
 } CopperProgram;
 
 
-extern errno_t CopperProgram_CreateScreenRefresh(struct Screen* _Nonnull pScreen, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutSelf);
+extern errno_t CopperProgram_Create(size_t instrCount, CopperProgram* _Nullable * _Nonnull pOutSelf);
 extern void CopperProgram_Destroy(CopperProgram* _Nullable self);
 
 #endif /* CopperProgram_h */

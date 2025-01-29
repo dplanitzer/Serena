@@ -206,3 +206,89 @@ errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, SpriteID spriteId, bool i
     Sprite_SetVisible(self->sprite[spriteId], isVisible, self->screenConfig);
     return EOK;
 }
+
+
+// Computes the size of a Copper program. The size is given in terms of the
+// number of Copper instruction words.
+size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
+{
+    Surface* fb = self->framebuffer;
+
+    return 2 * fb->clutEntryCount           // CLUT
+            + 2 * fb->planeCount            // BPLxPT[nplanes]
+            + 2                             // BPL1MOD, BPL2MOD
+            + 3                             // BPLCON0, BPLCON1, BPLCON2
+            + 2 * NUM_HARDWARE_SPRITES      // SPRxPT
+            + 2                             // DIWSTART, DIWSTOP
+            + 2                             // DDFSTART, DDFSTOP
+            + 1;                            // DMACON
+}
+
+// Compiles a screen refresh Copper program into the given buffer (which must be
+// big enough to store the program).
+// \return a pointer to where the next instruction after the program would go 
+CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull pCode, bool isLightPenEnabled, bool isOddField)
+{
+    const ScreenConfiguration* cfg = self->screenConfig;
+    const uint32_t firstLineByteOffset = isOddField ? 0 : cfg->ddf_mod;
+    const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
+    Surface* fb = self->framebuffer;
+    CopperInstruction* ip = pCode;
+    
+    // CLUT
+    for (int i = 0, r = COLOR_BASE; i < Surface_GetCLUTEntryCount(fb); i++, r += 2) {
+        const CLUTEntry* ep = Surface_GetCLUTEntry(fb, i);
+        const uint16_t rgb12 = (ep->r >> 4 & 0x0f) << 8 | (ep->g >> 4 & 0x0f) << 4 | (ep->b >> 4 & 0x0f);
+
+        *ip++ = COP_MOVE(r, rgb12);
+    }
+
+    // BPLxPT
+    for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
+        const uint32_t bplpt = (uint32_t)(fb->plane[i]) + firstLineByteOffset;
+        
+        *ip++ = COP_MOVE(r + 0, (bplpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
+    }
+
+    // BPLxMOD
+    *ip++ = COP_MOVE(BPL1MOD, cfg->ddf_mod);
+    *ip++ = COP_MOVE(BPL2MOD, cfg->ddf_mod);
+
+    // BPLCONx
+    *ip++ = COP_MOVE(BPLCON0, cfg->bplcon0 | lpen_bit | ((uint16_t)fb->planeCount & 0x07) << 12);
+    *ip++ = COP_MOVE(BPLCON1, 0);
+    *ip++ = COP_MOVE(BPLCON2, 0x0024);
+            
+    // SPRxPT
+    uint16_t dmaf_sprite = 0;
+    for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
+        Sprite* sprite;
+
+        if (self->sprite[i]) {
+            sprite = self->sprite[i];
+            dmaf_sprite = DMACONF_SPREN;
+        }
+        else {
+            sprite = self->nullSprite;
+        }
+
+
+        const uint32_t sprpt = (uint32_t)sprite->data;
+        *ip++ = COP_MOVE(r + 0, (sprpt >> 16) & UINT16_MAX);
+        *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
+    }
+
+    // DIWSTART / DIWSTOP
+    *ip++ = COP_MOVE(DIWSTART, (cfg->diw_start_v << 8) | cfg->diw_start_h);
+    *ip++ = COP_MOVE(DIWSTOP, (cfg->diw_stop_v << 8) | cfg->diw_stop_h);
+    
+    // DDFSTART / DDFSTOP
+    *ip++ = COP_MOVE(DDFSTART, cfg->ddf_start);
+    *ip++ = COP_MOVE(DDFSTOP, cfg->ddf_stop);
+
+    // DMACON
+    *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | dmaf_sprite | DMACONF_DMAEN);
+
+    return ip;
+}

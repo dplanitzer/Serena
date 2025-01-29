@@ -145,6 +145,27 @@ catch:
     return err;
 }
 
+// Compiles a Copper program to display a non-interlaced screen or a single
+// field of an interlaced screen.
+static errno_t create_copper_prog(Screen* _Nonnull pScreen, size_t instrCount, bool isLightPenEnabled, bool isOddField, CopperProgram* _Nullable * _Nonnull pOutProg)
+{
+    decl_try_err();
+    CopperProgram* prog;
+    
+    err = CopperProgram_Create(instrCount, &prog);
+    if (err == EOK) {
+        CopperInstruction* ip = prog->entry;
+
+        ip = Screen_MakeCopperProgram(pScreen, ip, isLightPenEnabled, isOddField);
+
+        // end instruction
+        *ip = COP_END();
+    }
+    
+    *pOutProg = prog;
+    return err;
+}
+
 // Triggers an update of the display so that it accurately reflects the current
 // display configuration.
 static errno_t GraphicsDriver_UpdateDisplay_Locked(GraphicsDriverRef _Nonnull _Locked self)
@@ -153,15 +174,14 @@ static errno_t GraphicsDriver_UpdateDisplay_Locked(GraphicsDriverRef _Nonnull _L
     Screen* pScreen = self->screen;
 
     if (pScreen->flags.isNewCopperProgNeeded) {
-        CopperProgram* oddFieldProg;
-        CopperProgram* evenFieldProg;
+        const size_t instrCount = Screen_CalcCopperProgramLength(pScreen) + 1;
+        CopperProgram* oddFieldProg = NULL;
+        CopperProgram* evenFieldProg = NULL;
+
+        try(create_copper_prog(pScreen, instrCount, self->isLightPenEnabled, true, &oddFieldProg));
 
         if (pScreen->flags.isInterlaced) {
-            try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
-            try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, false, &evenFieldProg));
-        } else {
-            try(CopperProgram_CreateScreenRefresh(pScreen, self->isLightPenEnabled, true, &oddFieldProg));
-            evenFieldProg = NULL;
+            try(create_copper_prog(pScreen, instrCount, self->isLightPenEnabled, false, &evenFieldProg));
         }
 
         CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
