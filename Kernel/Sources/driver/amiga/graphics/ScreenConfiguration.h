@@ -23,8 +23,6 @@ typedef struct ScreenConfiguration {
     uint8_t       diw_start_v;
     uint8_t       diw_stop_h;         // display window stop
     uint8_t       diw_stop_v;
-    uint8_t       ddf_start;          // data fetch start
-    uint8_t       ddf_stop;           // data fetch stop
     uint8_t       ddf_mod;            // number of padding bytes stored in memory between scan lines
     uint16_t      bplcon0;            // BPLCON0 template value
     uint8_t       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert them from screen coords to sprite coords [h:4,v:4]
@@ -44,9 +42,10 @@ extern const ScreenConfiguration kScreenConfig_PAL_640_256_50;
 extern const ScreenConfiguration kScreenConfig_PAL_320_512_25;
 extern const ScreenConfiguration kScreenConfig_PAL_640_512_25;
 
-extern int ScreenConfiguration_GetPixelWidth(const ScreenConfiguration* pConfig);
-extern int ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* pConfig);
-extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* pConfig);
-extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* pConfig);
+extern int ScreenConfiguration_GetPixelWidth(const ScreenConfiguration* _Nonnull self);
+extern int ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* _Nonnull self);
+extern int ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* _Nonnull self);
+extern bool ScreenConfiguration_IsInterlaced(const ScreenConfiguration* _Nonnull self);
+extern bool ScreenConfiguration_IsHires(const ScreenConfiguration* _Nonnull self);
 
 #endif /* ScreenConfiguration_h */

@@ -28,7 +28,7 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat p
 
     
     // Allocate an appropriate framebuffer
-    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &self->framebuffer));
+    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &self->surface));
     
     *pOutSelf = self;
     return EOK;
@@ -42,11 +42,17 @@ catch:
 void Screen_Destroy(Screen* _Nullable self)
 {
     if (self) {
-        Surface_Destroy(self->framebuffer);
-        self->framebuffer = NULL;
+        Surface_Destroy(self->surface);
+        self->surface = NULL;
         
         kfree(self);
     }
+}
+
+void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight)
+{
+    *pOutWidth = Surface_GetWidth(self->surface);
+    *pOutHeight = Surface_GetHeight(self->surface);
 }
 
 // Writes the given RGB color to the color register at index idx
@@ -57,7 +63,7 @@ errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color)
     // Need to be able to access all CLUT entries in a screen even if the screen
     // supports < MAX_CLUT_ENTRIES (because of sprites).
     if (idx < MAX_CLUT_ENTRIES) {
-        CLUTEntry* ep = Surface_GetCLUTEntry(self->framebuffer, idx);
+        CLUTEntry* ep = Surface_GetCLUTEntry(self->surface, idx);
 
         ep->r = RGBColor32_GetRed(color);
         ep->g = RGBColor32_GetGreen(color);
@@ -82,7 +88,7 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
     if (count > 0) {
         for (size_t i = 0; i < count; i++) {
             const RGBColor32 color = entries[i];
-            CLUTEntry* ep = Surface_GetCLUTEntry(self->framebuffer, idx + i);
+            CLUTEntry* ep = Surface_GetCLUTEntry(self->surface, idx + i);
 
             ep->r = RGBColor32_GetRed(color);
             ep->g = RGBColor32_GetGreen(color);
@@ -101,16 +107,16 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
 // \return EOK if the screen pixels could be locked; EBUSY otherwise
 errno_t Screen_LockPixels(Screen* _Nonnull self, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull pOutPlaneCount)
 {
-    if (!self->flags.isFramebufferLocked) {
-        size_t planeCount = self->framebuffer->planeCount;
+    if (!self->flags.isSurfaceLocked) {
+        size_t planeCount = self->surface->planeCount;
 
         for (size_t i = 0; i < planeCount; i++) {
-            plane[i] = self->framebuffer->plane[i];
-            bytesPerRow[i] = self->framebuffer->bytesPerRow;
+            plane[i] = self->surface->plane[i];
+            bytesPerRow[i] = self->surface->bytesPerRow;
         }
         *pOutPlaneCount = planeCount;
 
-        self->flags.isFramebufferLocked = 1;
+        self->flags.isSurfaceLocked = 1;
         return EOK;
     }
     else {
@@ -120,8 +126,8 @@ errno_t Screen_LockPixels(Screen* _Nonnull self, PixelAccess access, void* _Nonn
 
 errno_t Screen_UnlockPixels(Screen* _Nonnull self)
 {
-    if (self->flags.isFramebufferLocked) {
-        self->flags.isFramebufferLocked = 0;
+    if (self->flags.isSurfaceLocked) {
+        self->flags.isSurfaceLocked = 0;
         return EOK;
     }
     else {
@@ -212,7 +218,7 @@ errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, SpriteID spriteId, bool i
 // number of Copper instruction words.
 size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
 {
-    Surface* fb = self->framebuffer;
+    Surface* fb = self->surface;
 
     return 2 * fb->clutEntryCount           // CLUT
             + 2 * fb->planeCount            // BPLxPT[nplanes]
@@ -232,9 +238,11 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
     const ScreenConfiguration* cfg = self->screenConfig;
     const uint32_t firstLineByteOffset = isOddField ? 0 : cfg->ddf_mod;
     const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
-    Surface* fb = self->framebuffer;
+    const bool isHires = ScreenConfiguration_IsHires(cfg);
+    Surface* fb = self->surface;
     CopperInstruction* ip = pCode;
     
+
     // CLUT
     for (int i = 0, r = COLOR_BASE; i < Surface_GetCLUTEntryCount(fb); i++, r += 2) {
         const CLUTEntry* ep = Surface_GetCLUTEntry(fb, i);
@@ -242,6 +250,7 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
 
         *ip++ = COP_MOVE(r, rgb12);
     }
+
 
     // BPLxPT
     for (int i = 0, r = BPL_BASE; i < fb->planeCount; i++, r += 4) {
@@ -251,15 +260,18 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
         *ip++ = COP_MOVE(r + 2, bplpt & UINT16_MAX);
     }
 
+
     // BPLxMOD
     *ip++ = COP_MOVE(BPL1MOD, cfg->ddf_mod);
     *ip++ = COP_MOVE(BPL2MOD, cfg->ddf_mod);
+
 
     // BPLCONx
     *ip++ = COP_MOVE(BPLCON0, cfg->bplcon0 | lpen_bit | ((uint16_t)fb->planeCount & 0x07) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
-            
+
+
     // SPRxPT
     uint16_t dmaf_sprite = 0;
     for (int i = 0, r = SPRITE_BASE; i < NUM_HARDWARE_SPRITES; i++, r += 4) {
@@ -279,13 +291,21 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
         *ip++ = COP_MOVE(r + 2, sprpt & UINT16_MAX);
     }
 
+
     // DIWSTART / DIWSTOP
     *ip++ = COP_MOVE(DIWSTART, (cfg->diw_start_v << 8) | cfg->diw_start_h);
     *ip++ = COP_MOVE(DIWSTOP, (cfg->diw_stop_v << 8) | cfg->diw_stop_h);
-    
+
+
     // DDFSTART / DDFSTOP
-    *ip++ = COP_MOVE(DDFSTART, cfg->ddf_start);
-    *ip++ = COP_MOVE(DDFSTOP, cfg->ddf_stop);
+    // DDFSTART = low res: DIWSTART / 2 - 8; high res: DIWSTART / 2 - 4
+    // DDFSTOP = low res: DDFSTART + 8*(nwords - 1); high res: DDFSTART + 4*(nwords - 2)
+    const uint16_t nWords = Surface_GetWidth(fb) >> 4;
+    const uint16_t ddfStart = (cfg->diw_start_h >> 1) - ((isHires) ?  4 : 8);
+    const uint16_t ddfStop = ddfStart + ((isHires) ? 4*(nWords - 2) : 8*(nWords - 1));
+    *ip++ = COP_MOVE(DDFSTART, ddfStart);
+    *ip++ = COP_MOVE(DDFSTOP, ddfStop);
+
 
     // DMACON
     *ip++ = COP_MOVE(DMACON, DMACONF_SETCLR | DMACONF_BPLEN | dmaf_sprite | DMACONF_DMAEN);

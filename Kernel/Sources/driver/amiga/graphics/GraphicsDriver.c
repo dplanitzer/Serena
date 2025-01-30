@@ -129,14 +129,14 @@ void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull self)
 
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
 // that it will wait for some vblank to happen after this function has been invoked.
-// No vblank that occured before this function was called will make it return.
+// No vblank that occurred before this function was called will make it return.
 static errno_t GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull self)
 {
     decl_try_err();
 
-    // First purge the vblank sema to ensure that we don't accidentaly pick up some
-    // vblank that has happened before this function has been called. Then wait
-    // for the actual vblank.
+    // First purge the vblank sema to ensure that we don't accidentally pick up
+    // some vblank that has happened before this function has been called. Then
+    // wait for the actual vblank.
     try(Semaphore_TryAcquire(&self->vblank_sema));
     try(Semaphore_Acquire(&self->vblank_sema, kTimeInterval_Infinity));
     return EOK;
@@ -233,7 +233,7 @@ errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull self, 
     
     
     // Associate the mouse painter with the new screen
-    MousePainter_SetSurface(&self->mousePainter, pNewScreen->framebuffer);
+    MousePainter_SetSurface(&self->mousePainter, pNewScreen->surface);
     MousePainter_SetVisible(&self->mousePainter, wasMouseCursorVisible);
 
 
@@ -246,7 +246,7 @@ catch:
     if (!hasSwitchedScreens) {
         self->screen = pOldScreen;
     }
-    MousePainter_SetSurface(&self->mousePainter, pOldScreen->framebuffer);
+    MousePainter_SetSurface(&self->mousePainter, pOldScreen->surface);
     MousePainter_SetVisible(&self->mousePainter, wasMouseCursorVisible);
     return err;
 }
@@ -400,13 +400,7 @@ Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull self)
     Size fbSize;
 
     Lock_Lock(&self->lock);
-    Surface* pFramebuffer = self->screen->framebuffer;
-    if (pFramebuffer) {
-        fbSize = Size_Make(Surface_GetWidth(pFramebuffer), Surface_GetHeight(pFramebuffer));
-    }
-    else {
-        fbSize = Size_Zero;
-    }
+    Screen_GetPixelSize(self->screen, &fbSize.width, &fbSize.height);
     Lock_Unlock(&self->lock);
 
     return fbSize;
@@ -419,7 +413,7 @@ errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, Pi
     Lock_Lock(&self->lock);
     err = Screen_LockPixels(self->screen, access, plane, bytesPerRow, planeCount);
     if (err == EOK) {
-        MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(0, 0, self->screen->framebuffer->width, self->screen->framebuffer->height));
+        MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(0, 0, self->screen->surface->width, self->screen->surface->height));
     }
     Lock_Unlock(&self->lock);
     return err;

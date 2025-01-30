@@ -26,7 +26,7 @@ typedef enum PixelAccess {
 
 
 typedef struct Screen {
-    Surface* _Nullable                  framebuffer;        // the screen framebuffer
+    Surface* _Nullable                  surface;        // the screen framebuffer
     const ScreenConfiguration* _Nonnull screenConfig;
     PixelFormat                         pixelFormat;
     Sprite* _Nonnull                    nullSprite;
@@ -34,7 +34,7 @@ typedef struct Screen {
     struct __ScreenFlags {
         unsigned int        isInterlaced:1;
         unsigned int        isNewCopperProgNeeded:1;
-        unsigned int        isFramebufferLocked:1;
+        unsigned int        isSurfaceLocked:1;
         unsigned int        reserved:29;
     }                                   flags;
 } Screen;
@@ -47,6 +47,8 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags.isNewCopperProgNeeded = 1)
+
+extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 
 extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
 extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
