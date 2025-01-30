@@ -19,16 +19,16 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat p
     Screen* self;
     
     try(kalloc_cleared(sizeof(Screen), (void**) &self));
-    
+
+    // Allocate an appropriate framebuffer
+    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &self->surface));
+
     self->screenConfig = pConfig;
     self->pixelFormat = pixelFormat;
     self->nullSprite = pNullSprite;
-    self->flags.isInterlaced = ScreenConfiguration_IsInterlaced(pConfig);
     self->flags.isNewCopperProgNeeded = 1;
-
-    
-    // Allocate an appropriate framebuffer
-    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &self->surface));
+    self->flags.needsInterlace = (Surface_GetHeight(self->surface) > 256) ? 1 : 0;
+    self->flags.needsHires = (Surface_GetWidth(self->surface) > 320) ? 1 : 0;
     
     *pOutSelf = self;
     return EOK;
@@ -238,10 +238,11 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
     Surface* fb = self->surface;
     CopperInstruction* ip = pCode;
     const ScreenConfiguration* cfg = self->screenConfig;
-    const bool isHires = ScreenConfiguration_IsHires(cfg);
-    const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
     const uint16_t w = Surface_GetWidth(fb);
+    const uint16_t h = Surface_GetHeight(fb);
     const uint16_t bpr = Surface_GetBytesPerRow(fb);
+    const bool isHires = Screen_NeedsHires(self);
+    const bool isLace = Screen_NeedsInterlacing(self);
     const uint16_t ddfMod = isLace ? bpr : bpr - (w >> 3);
     const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
     const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
@@ -273,8 +274,23 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
     *ip++ = COP_MOVE(BPL2MOD, ddfMod);
 
 
+    // BPLCON0
+    uint16_t bplcon0 = BPLCON0F_COLOR | (uint16_t)((fb->planeCount & 0x07) << 12);
+
+    if (isLightPenEnabled) {
+        bplcon0 |= BPLCON0F_LPEN;
+    }
+    if (isHires) {
+        bplcon0 |= BPLCON0F_HIRES;
+    }
+    if (isLace) {
+        bplcon0 |= BPLCON0F_LACE;
+    }
+
+    *ip++ = COP_MOVE(BPLCON0, bplcon0);
+
+
     // BPLCONx
-    *ip++ = COP_MOVE(BPLCON0, cfg->bplcon0 | lpen_bit | ((uint16_t)fb->planeCount & 0x07) << 12);
     *ip++ = COP_MOVE(BPLCON1, 0);
     *ip++ = COP_MOVE(BPLCON2, 0x0024);
 

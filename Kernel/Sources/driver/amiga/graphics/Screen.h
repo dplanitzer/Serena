@@ -32,10 +32,11 @@ typedef struct Screen {
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
     struct __ScreenFlags {
-        unsigned int        isInterlaced:1;
         unsigned int        isNewCopperProgNeeded:1;
         unsigned int        isSurfaceLocked:1;
-        unsigned int        reserved:29;
+        unsigned int        needsInterlace:1;
+        unsigned int        needsHires:1;
+        unsigned int        reserved:28;
     }                                   flags;
 } Screen;
 
@@ -47,6 +48,12 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags.isNewCopperProgNeeded = 1)
+
+#define Screen_NeedsInterlacing(__self) \
+(((__self)->flags.needsInterlace) ? true : false)
+
+#define Screen_NeedsHires(__self) \
+(((__self)->flags.needsHires) ? true : false)
 
 extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 

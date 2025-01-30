@@ -180,7 +180,7 @@ static errno_t GraphicsDriver_UpdateDisplay_Locked(GraphicsDriverRef _Nonnull _L
 
         try(create_copper_prog(pScreen, instrCount, self->isLightPenEnabled, true, &oddFieldProg));
 
-        if (pScreen->flags.isInterlaced) {
+        if (Screen_NeedsInterlacing(pScreen)) {
             try(create_copper_prog(pScreen, instrCount, self->isLightPenEnabled, false, &evenFieldProg));
         }
 

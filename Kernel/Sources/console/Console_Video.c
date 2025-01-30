@@ -39,12 +39,12 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
 
 
     // Allocate the text cursor (sprite)
-    const bool isInterlaced = ScreenConfiguration_IsInterlaced(GraphicsDriver_GetCurrentScreenConfiguration(self->gdevice));
+    const bool isLace = ScreenConfiguration_GetPixelHeight(GraphicsDriver_GetCurrentScreenConfiguration(self->gdevice)) > 256 ? true : false;
     const uint16_t* textCursorPlanes[2];
-    textCursorPlanes[0] = (isInterlaced) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
-    textCursorPlanes[1] = (isInterlaced) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
-    const int textCursorWidth = (isInterlaced) ? gBlock4x4_Width : gBlock4x8_Width;
-    const int textCursorHeight = (isInterlaced) ? gBlock4x4_Height : gBlock4x8_Height;
+    textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
+    textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
+    const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
+    const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
     try(GraphicsDriver_AcquireSprite(self->gdevice, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &self->textCursor));
     self->flags.isTextCursorVisible = false;
 
