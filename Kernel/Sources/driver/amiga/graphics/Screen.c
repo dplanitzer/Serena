@@ -27,8 +27,6 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat p
     self->pixelFormat = pixelFormat;
     self->nullSprite = pNullSprite;
     self->flags.isNewCopperProgNeeded = 1;
-    self->flags.needsInterlace = (Surface_GetHeight(self->surface) > 256) ? 1 : 0;
-    self->flags.needsHires = (Surface_GetWidth(self->surface) > 320) ? 1 : 0;
     
     *pOutSelf = self;
     return EOK;
@@ -138,7 +136,6 @@ errno_t Screen_UnlockPixels(Screen* _Nonnull self)
 errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
 {
     decl_try_err();
-    const ScreenConfiguration* pConfig = self->screenConfig;
     Sprite* pSprite;
 
     *pOutSpriteId = -1;
@@ -156,8 +153,8 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPl
         return EBUSY;
     }
 
-    if ((err = Sprite_Create(pPlanes, height, &pSprite)) == EOK) {
-        Sprite_SetPosition(pSprite, x, y, pConfig);
+    if ((err = Sprite_Create(pPlanes, height, self->screenConfig, &pSprite)) == EOK) {
+        Sprite_SetPosition(pSprite, x, y);
 
         self->sprite[priority] = pSprite;
         Screen_SetNeedsUpdate(self);
@@ -196,7 +193,7 @@ errno_t Screen_SetSpritePosition(Screen* _Nonnull self, SpriteID spriteId, int x
         return EINVAL;
     }
 
-    Sprite_SetPosition(self->sprite[spriteId], x, y, self->screenConfig);
+    Sprite_SetPosition(self->sprite[spriteId], x, y);
     return EOK;
 }
 
@@ -209,7 +206,7 @@ errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, SpriteID spriteId, bool i
         return EINVAL;
     }
 
-    Sprite_SetVisible(self->sprite[spriteId], isVisible, self->screenConfig);
+    Sprite_SetVisible(self->sprite[spriteId], isVisible);
     return EOK;
 }
 
@@ -241,8 +238,9 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
     const uint16_t w = Surface_GetWidth(fb);
     const uint16_t h = Surface_GetHeight(fb);
     const uint16_t bpr = Surface_GetBytesPerRow(fb);
-    const bool isHires = Screen_NeedsHires(self);
-    const bool isLace = Screen_NeedsInterlacing(self);
+    const bool isHires = ScreenConfiguration_IsHires(cfg);
+    const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
+    const bool isPal = ScreenConfiguration_IsPal(cfg);
     const uint16_t ddfMod = isLace ? bpr : bpr - (w >> 3);
     const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
     const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
@@ -316,15 +314,19 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
 
 
     // DIWSTART / DIWSTOP
-    *ip++ = COP_MOVE(DIWSTART, (cfg->diw_start_v << 8) | cfg->diw_start_h);
-    *ip++ = COP_MOVE(DIWSTOP, (cfg->diw_stop_v << 8) | cfg->diw_stop_h);
+    const uint16_t vStart = (isPal) ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
+    const uint16_t hStart = (isPal) ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
+    const uint16_t vStop = (isPal) ? DIW_PAL_VSTOP : DIW_NTSC_VSTOP;
+    const uint16_t hStop = (isPal) ? DIW_PAL_HSTOP : DIW_NTSC_HSTOP;
+    *ip++ = COP_MOVE(DIWSTART, (vStart << 8) | hStart);
+    *ip++ = COP_MOVE(DIWSTOP, (vStop << 8) | hStop);
 
 
     // DDFSTART / DDFSTOP
     // DDFSTART = low res: DIWSTART / 2 - 8; high res: DIWSTART / 2 - 4
     // DDFSTOP = low res: DDFSTART + 8*(nwords - 1); high res: DDFSTART + 4*(nwords - 2)
     const uint16_t nVisibleWords = w >> 4;
-    const uint16_t ddfStart = (cfg->diw_start_h >> 1) - ((isHires) ?  4 : 8);
+    const uint16_t ddfStart = (hStart >> 1) - ((isHires) ?  4 : 8);
     const uint16_t ddfStop = ddfStart + ((isHires) ? 4*(nVisibleWords - 2) : 8*(nVisibleWords - 1));
     *ip++ = COP_MOVE(DDFSTART, ddfStart);
     *ip++ = COP_MOVE(DDFSTOP, ddfStop);

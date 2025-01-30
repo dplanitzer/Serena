@@ -34,13 +34,9 @@ typedef struct Screen {
     struct __ScreenFlags {
         unsigned int        isNewCopperProgNeeded:1;
         unsigned int        isSurfaceLocked:1;
-        unsigned int        needsInterlace:1;
-        unsigned int        needsHires:1;
-        unsigned int        reserved:28;
+        unsigned int        reserved:30;
     }                                   flags;
 } Screen;
-
-#define MAX_CLUT_ENTRIES    32
 
 
 extern errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
@@ -49,11 +45,8 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags.isNewCopperProgNeeded = 1)
 
-#define Screen_NeedsInterlacing(__self) \
-(((__self)->flags.needsInterlace) ? true : false)
-
-#define Screen_NeedsHires(__self) \
-(((__self)->flags.needsHires) ? true : false)
+#define Screen_IsInterlaced(__self) \
+ScreenConfiguration_IsInterlaced((__self)->screenConfig)
 
 extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 

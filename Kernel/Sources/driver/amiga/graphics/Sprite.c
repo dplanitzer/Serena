@@ -11,15 +11,19 @@
 
 
 // Creates a sprite object.
-errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, Sprite* _Nonnull * _Nonnull pOutSelf)
+errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const ScreenConfiguration* _Nonnull cfg, Sprite* _Nonnull * _Nonnull pOutSelf)
 {
     decl_try_err();
+    const bool isPal = ScreenConfiguration_IsPal(cfg);
     Sprite* self;
     
     try(kalloc_cleared(sizeof(Sprite), (void**) &self));
     self->x = 0;
     self->y = 0;
     self->height = (uint16_t)height;
+    self->diwVStart = (isPal) ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
+    self->diwHStart = (isPal) ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
+    self->shift = cfg->spr_shift;
     self->isVisible = true;
 
 
@@ -61,13 +65,13 @@ void Sprite_Destroy(Sprite* _Nullable self)
 // Called when the position or visibility of a hardware sprite has changed.
 // Recalculates the sprxpos and sprxctl control words and updates them in the
 // sprite DMA data block.
-static void Sprite_StateDidChange(Sprite* _Nonnull self, const ScreenConfiguration* cfg)
+static void Sprite_StateDidChange(Sprite* _Nonnull self)
 {
     // Hiding a sprite means to move it all the way to X max.
-    const uint16_t hshift = (cfg->spr_shift & 0xf0) >> 4;
-    const uint16_t vshift = cfg->spr_shift & 0x0f;
-    const uint16_t hstart = (self->isVisible) ? cfg->diw_start_h - 1 + (self->x >> hshift) : 511;
-    const uint16_t vstart = cfg->diw_start_v + (self->y >> vshift);
+    const uint16_t hshift = (self->shift & 0xf0) >> 4;
+    const uint16_t vshift = self->shift & 0x0f;
+    const uint16_t hstart = (self->isVisible) ? self->diwHStart - 1 + (self->x >> hshift) : 511;
+    const uint16_t vstart = self->diwVStart + (self->y >> vshift);
     const uint16_t vstop = vstart + self->height;
     const uint16_t sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
     const uint16_t sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
@@ -77,16 +81,16 @@ static void Sprite_StateDidChange(Sprite* _Nonnull self, const ScreenConfigurati
 }
 
 // Updates the position of a hardware sprite.
-void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y, const ScreenConfiguration* cfg)
+void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y)
 {
     self->x = x;
     self->y = y;
-    Sprite_StateDidChange(self, cfg);
+    Sprite_StateDidChange(self);
 }
 
 // Updates the visibility state of a hardware sprite.
-void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible, const ScreenConfiguration* cfg)
+void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible)
 {
     self->isVisible = isVisible;
-    Sprite_StateDidChange(self, cfg);
+    Sprite_StateDidChange(self);
 }

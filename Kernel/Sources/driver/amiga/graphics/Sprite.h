@@ -21,18 +21,21 @@ typedef int SpriteID;
 #define MAX_SPRITE_HEIGHT       511
 
 typedef struct Sprite {
-    uint16_t*     data;   // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
-    int16_t       x;
-    int16_t       y;
-    uint16_t      height;
-    bool        isVisible;
+    uint16_t* _Nonnull  data;   // sprxctl, sprxctl, (plane0, plane1)..., 0, 0
+    int16_t             x;
+    int16_t             y;
+    uint16_t            height;
+    uint16_t            diwVStart;
+    uint16_t            diwHStart;
+    uint16_t            shift;
+    bool                isVisible;
 } Sprite;
 
 
-extern errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, Sprite* _Nonnull * _Nonnull pOutSelf);
+extern errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const ScreenConfiguration* _Nonnull cfg, Sprite* _Nonnull * _Nonnull pOutSelf);
 extern void Sprite_Destroy(Sprite* _Nullable self);
 
-extern void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y, const ScreenConfiguration* pConfig);
-extern void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible, const ScreenConfiguration* pConfig);
+extern void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y);
+extern void Sprite_SetVisible(Sprite* _Nonnull self, bool isVisible);
 
 #endif /* Sprite_h */

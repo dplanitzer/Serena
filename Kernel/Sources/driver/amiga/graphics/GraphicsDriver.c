@@ -36,7 +36,7 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfigurat
     const uint16_t* nullSpritePlanes[2];
     nullSpritePlanes[0] = NULL;
     nullSpritePlanes[1] = NULL;
-    try(Sprite_Create(nullSpritePlanes, 0, &self->nullSprite));
+    try(Sprite_Create(nullSpritePlanes, 0, &kScreenConfig_NTSC_320_200_60, &self->nullSprite));
 
 
     // Allocate a new screen
@@ -180,7 +180,7 @@ static errno_t GraphicsDriver_UpdateDisplay_Locked(GraphicsDriverRef _Nonnull _L
 
         try(create_copper_prog(pScreen, instrCount, self->isLightPenEnabled, true, &oddFieldProg));
 
-        if (Screen_NeedsInterlacing(pScreen)) {
+        if (Screen_IsInterlaced(pScreen)) {
             try(create_copper_prog(pScreen, instrCount, self->isLightPenEnabled, false, &evenFieldProg));
         }
 
