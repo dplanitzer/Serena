@@ -23,7 +23,6 @@ typedef struct ScreenConfiguration {
     uint8_t       diw_start_v;
     uint8_t       diw_stop_h;         // display window stop
     uint8_t       diw_stop_v;
-    uint8_t       ddf_mod;            // number of padding bytes stored in memory between scan lines
     uint16_t      bplcon0;            // BPLCON0 template value
     uint8_t       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert them from screen coords to sprite coords [h:4,v:4]
     int8_t        pixelFormatCount;   // Number of supported pixel formats

@@ -235,12 +235,16 @@ size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
 // \return a pointer to where the next instruction after the program would go 
 CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, CopperInstruction* _Nonnull pCode, bool isLightPenEnabled, bool isOddField)
 {
-    const ScreenConfiguration* cfg = self->screenConfig;
-    const uint32_t firstLineByteOffset = isOddField ? 0 : cfg->ddf_mod;
-    const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
-    const bool isHires = ScreenConfiguration_IsHires(cfg);
     Surface* fb = self->surface;
     CopperInstruction* ip = pCode;
+    const ScreenConfiguration* cfg = self->screenConfig;
+    const bool isHires = ScreenConfiguration_IsHires(cfg);
+    const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
+    const uint16_t w = Surface_GetWidth(fb);
+    const uint16_t bpr = Surface_GetBytesPerRow(fb);
+    const uint16_t ddfMod = isLace ? bpr : bpr - (w >> 3);
+    const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
+    const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
     
 
     // CLUT
@@ -262,8 +266,11 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
 
 
     // BPLxMOD
-    *ip++ = COP_MOVE(BPL1MOD, cfg->ddf_mod);
-    *ip++ = COP_MOVE(BPL2MOD, cfg->ddf_mod);
+    // Calculate the modulo:
+    // - the whole scanline (visible + padding bytes) if interlace mode
+    // - just the padding bytes (bytes per row - visible bytes) if non-interlace mode
+    *ip++ = COP_MOVE(BPL1MOD, ddfMod);
+    *ip++ = COP_MOVE(BPL2MOD, ddfMod);
 
 
     // BPLCONx
@@ -300,9 +307,9 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
     // DDFSTART / DDFSTOP
     // DDFSTART = low res: DIWSTART / 2 - 8; high res: DIWSTART / 2 - 4
     // DDFSTOP = low res: DDFSTART + 8*(nwords - 1); high res: DDFSTART + 4*(nwords - 2)
-    const uint16_t nWords = Surface_GetWidth(fb) >> 4;
+    const uint16_t nVisibleWords = w >> 4;
     const uint16_t ddfStart = (cfg->diw_start_h >> 1) - ((isHires) ?  4 : 8);
-    const uint16_t ddfStop = ddfStart + ((isHires) ? 4*(nWords - 2) : 8*(nWords - 1));
+    const uint16_t ddfStop = ddfStart + ((isHires) ? 4*(nVisibleWords - 2) : 8*(nVisibleWords - 1));
     *ip++ = COP_MOVE(DDFSTART, ddfStart);
     *ip++ = COP_MOVE(DDFSTOP, ddfStop);
 
