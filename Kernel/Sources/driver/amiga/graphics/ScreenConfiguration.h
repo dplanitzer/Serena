@@ -37,18 +37,18 @@
 
 
 // Amiga Hardware Reference, 3rd Edition, p80
-#define MAX_LORES_WIDTH         368
+#define MAX_LORES_WIDTH     368
 
 #define FPS_PAL     25
 #define FPS_NTSC    30
 
 
 typedef struct ScreenConfiguration {
-    int16_t       uniqueId;
-    int16_t       width;
-    int16_t       height;
-    int8_t        fps;
-    int8_t        pixelFormatCount;   // Number of supported pixel formats
+    int16_t     uniqueId;
+    int16_t     width;
+    int16_t     height;
+    int8_t      fps;
+    int8_t      pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
 } ScreenConfiguration;
 

@@ -48,7 +48,7 @@ extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, 
 
 
 // Light Pen
-extern errno_t GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
+extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
 extern bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY);
 
 

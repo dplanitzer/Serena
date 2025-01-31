@@ -20,8 +20,6 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfigurat
     Screen* pScreen;
     
     try(Driver_Create(GraphicsDriver, 0, parent, &self));
-    self->isLightPenEnabled = false;
-    Lock_Init(&self->lock);
     
 
     // Allocate the mouse painter
@@ -40,8 +38,6 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, const ScreenConfigurat
 
 
     // Allocate a new screen
-//    pConfig = &kScreenConfig_NTSC_320_200_60;
-//    pConfig = &kScreenConfig_PAL_640_512_25;
     try(Screen_Create(pConfig, pixelFormat, self->nullSprite, &pScreen));
 
 
@@ -89,8 +85,6 @@ void GraphicsDriver_deinit(GraphicsDriverRef _Nonnull self)
     CopperScheduler_Deinit(&self->copperScheduler);
 
     MousePainter_Deinit(&self->mousePainter);
-
-    Lock_Deinit(&self->lock);
 }
 
 void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self)
@@ -113,14 +107,14 @@ static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
 
 const ScreenConfiguration* _Nonnull GraphicsDriver_GetCurrentScreenConfiguration(GraphicsDriverRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const ScreenConfiguration* pConfig = self->screen->screenConfig;
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return pConfig;
 }
 
 // Stops the video refresh circuitry
-void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull self)
+void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull _Locked self)
 {
     CHIPSET_BASE_DECL(cp);
 
@@ -130,7 +124,7 @@ void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull self)
 // Waits for a vblank to occur. This function acts as a vblank barrier meaning
 // that it will wait for some vblank to happen after this function has been invoked.
 // No vblank that occurred before this function was called will make it return.
-static errno_t GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull self)
+static errno_t GraphicsDriver_WaitForVerticalBlank_Locked(GraphicsDriverRef _Nonnull _Locked self)
 {
     decl_try_err();
 
@@ -196,9 +190,9 @@ catch:
 // display configuration.
 errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const errno_t err = GraphicsDriver_UpdateDisplay_Locked(self);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
@@ -206,7 +200,7 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
 // command apply to this new screen once this function has returned.
 // \param pNewScreen the new screen
 // \return the error code
-errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull self, Screen* _Nonnull pNewScreen)
+errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull _Locked self, Screen* _Nonnull pNewScreen)
 {
     decl_try_err();
     Screen* pOldScreen = self->screen;
@@ -252,29 +246,24 @@ catch:
 }
 
 // Enables / disables the h/v raster position latching triggered by a light pen.
-errno_t GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
+void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled)
 {
-    decl_try_err();
-
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     if (self->isLightPenEnabled != enabled) {
         self->isLightPenEnabled = enabled;
         Screen_SetNeedsUpdate(self->screen);
     }
-    Lock_Unlock(&self->lock);
-
-    return EOK;
-
-catch:
-    Lock_Unlock(&self->lock);
-    return err;
+    Driver_Unlock(self);
 }
 
 // Returns the current position of the light pen if the light pen triggered.
 bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY)
 {
     CHIPSET_BASE_DECL(cp);
+    bool r = false;
     
+    Driver_Lock(self);
+
     // Read VHPOSR first time
     const uint32_t posr0 = *CHIPSET_REG_32(cp, VPOSR);
 
@@ -301,11 +290,13 @@ bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t
                 // long frame (odd field) is offset in Y by one
                 *pPosY += 1;
             }
-            return true;
+            r = true;
         }
     }
 
-    return false;
+    Driver_Unlock(self);
+
+    return r;
 }
 
 
@@ -317,36 +308,36 @@ bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t
 // Acquires a hardware sprite
 errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const errno_t err = Screen_AcquireSprite(self->screen, pPlanes, x, y, width, height, priority, pOutSpriteId);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
 // Relinquishes a hardware sprite
 errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, SpriteID spriteId)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const errno_t err = Screen_RelinquishSprite(self->screen, spriteId);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
 // Updates the position of a hardware sprite.
 errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, SpriteID spriteId, int x, int y)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const errno_t err = Screen_SetSpritePosition(self->screen, spriteId, x, y);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
 // Updates the visibility of a hardware sprite.
 errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, SpriteID spriteId, bool isVisible)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const errno_t err = Screen_SetSpriteVisible(self->screen, spriteId, isVisible);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
@@ -358,30 +349,30 @@ errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, SpriteI
 
 void GraphicsDriver_SetMouseCursor(GraphicsDriverRef _Nonnull self, const void* pBitmap, const void* pMask)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     MousePainter_SetCursor(&self->mousePainter, pBitmap, pMask);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 }
 
 void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self, bool isVisible)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     MousePainter_SetVisible(&self->mousePainter, isVisible);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 }
 
 void GraphicsDriver_SetMouseCursorHiddenUntilMove(GraphicsDriverRef _Nonnull self, bool flag)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     MousePainter_SetHiddenUntilMove(&self->mousePainter, flag);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 }
 
 void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, Point loc)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     MousePainter_SetPosition(&self->mousePainter, loc);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 }
 
 void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t x, int16_t y)
@@ -399,9 +390,9 @@ Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull self)
 {
     Size fbSize;
 
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     Screen_GetPixelSize(self->screen, &fbSize.width, &fbSize.height);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
 
     return fbSize;
 }
@@ -410,12 +401,12 @@ errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, Pi
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     err = Screen_LockPixels(self->screen, access, plane, bytesPerRow, planeCount);
     if (err == EOK) {
         MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(0, 0, self->screen->surface->width, self->screen->surface->height));
     }
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
@@ -423,19 +414,19 @@ errno_t GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self)
 {
     decl_try_err();
 
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     MousePainter_UnshieldCursor(&self->mousePainter);
     err = Screen_UnlockPixels(self->screen);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
 // Writes the given RGB color to the color register at index idx
 errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, size_t idx, RGBColor32 color)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const errno_t err = Screen_SetCLUTEntry(self->screen, idx, color);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
@@ -443,9 +434,9 @@ errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, size_t idx,
 // to the colors in the array 'entries'.
 errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 {
-    Lock_Lock(&self->lock);
+    Driver_Lock(self);
     const errno_t err = Screen_SetCLUTEntries(self->screen, idx, count, entries);
-    Lock_Unlock(&self->lock);
+    Driver_Unlock(self);
     return err;
 }
 
