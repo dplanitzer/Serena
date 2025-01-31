@@ -39,9 +39,6 @@
 // Amiga Hardware Reference, 3rd Edition, p80
 #define MAX_LORES_WIDTH     368
 
-#define FPS_PAL     25
-#define FPS_NTSC    30
-
 
 typedef struct ScreenConfiguration {
     int16_t     uniqueId;
@@ -79,7 +76,10 @@ extern const ScreenConfiguration kScreenConfig_PAL_640_512_25;
 #define ScreenConfiguration_IsHires(__self) \
 (((__self)->width > MAX_LORES_WIDTH) ? true : false)
 
-#define ScreenConfiguration_IsPal(__self) \
-(((__self)->fps == FPS_PAL) ? true : false)
+#define ScreenConfiguration_IsPAL(__self) \
+(((__self)->fps == 25 || (__self)->fps == 50) ? true : false)
+
+#define ScreenConfiguration_IsNTSC(__self) \
+(((__self)->fps == 30 || (__self)->fps == 60) ? true : false)
 
 #endif /* ScreenConfiguration_h */

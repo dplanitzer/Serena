@@ -14,7 +14,7 @@
 errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const ScreenConfiguration* _Nonnull cfg, Sprite* _Nonnull * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const bool isPal = ScreenConfiguration_IsPal(cfg);
+    const bool isPal = ScreenConfiguration_IsPAL(cfg);
     const bool isHires = ScreenConfiguration_IsHires(cfg);
     const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
     Sprite* self;

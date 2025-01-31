@@ -240,7 +240,7 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
     const uint16_t bpr = Surface_GetBytesPerRow(fb);
     const bool isHires = ScreenConfiguration_IsHires(cfg);
     const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
-    const bool isPal = ScreenConfiguration_IsPal(cfg);
+    const bool isPal = ScreenConfiguration_IsPAL(cfg);
     const uint16_t ddfMod = isLace ? bpr : bpr - (w >> 3);
     const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
     const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;
