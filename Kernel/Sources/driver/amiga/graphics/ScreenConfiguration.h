@@ -48,7 +48,6 @@ typedef struct ScreenConfiguration {
     int16_t       width;
     int16_t       height;
     int8_t        fps;
-    uint8_t       spr_shift;          // Shift factors that should be applied to X & Y coordinates to convert them from screen coords to sprite coords [h:4,v:4]
     int8_t        pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
 } ScreenConfiguration;
@@ -65,9 +64,14 @@ extern const ScreenConfiguration kScreenConfig_PAL_640_256_50;
 extern const ScreenConfiguration kScreenConfig_PAL_320_512_25;
 extern const ScreenConfiguration kScreenConfig_PAL_640_512_25;
 
-extern size_t ScreenConfiguration_GetPixelWidth(const ScreenConfiguration* _Nonnull self);
-extern size_t ScreenConfiguration_GetPixelHeight(const ScreenConfiguration* _Nonnull self);
-extern size_t ScreenConfiguration_GetRefreshRate(const ScreenConfiguration* _Nonnull self);
+#define ScreenConfiguration_GetPixelWidth(__self) \
+((__self)->width)
+
+#define ScreenConfiguration_GetPixelHeight(__self) \
+((__self)->height)
+
+#define ScreenConfiguration_GetRefreshRate(__self) \
+((__self)->fps)
 
 #define ScreenConfiguration_IsInterlaced(__self) \
 (((__self)->height > MAX_PAL_HEIGHT) ? true : false)

@@ -25,9 +25,10 @@ typedef struct Sprite {
     int16_t             x;
     int16_t             y;
     uint16_t            height;
-    uint16_t            diwVStart;
-    uint16_t            diwHStart;
-    uint16_t            shift;
+    uint8_t             hDiwStart;
+    uint8_t             vDiwStart;
+    uint8_t             hShift;
+    uint8_t             vShift;
     bool                isVisible;
 } Sprite;
 

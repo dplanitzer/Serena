@@ -15,15 +15,18 @@ errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const Scr
 {
     decl_try_err();
     const bool isPal = ScreenConfiguration_IsPal(cfg);
+    const bool isHires = ScreenConfiguration_IsHires(cfg);
+    const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
     Sprite* self;
     
     try(kalloc_cleared(sizeof(Sprite), (void**) &self));
     self->x = 0;
     self->y = 0;
     self->height = (uint16_t)height;
-    self->diwVStart = (isPal) ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
-    self->diwHStart = (isPal) ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
-    self->shift = cfg->spr_shift;
+    self->hDiwStart = isPal ? DIW_PAL_HSTART : DIW_NTSC_HSTART;
+    self->vDiwStart = isPal ? DIW_PAL_VSTART : DIW_NTSC_VSTART;
+    self->hShift = isHires ? 0x01 : 0x00;
+    self->vShift = isLace ? 0x01 : 0x00;
     self->isVisible = true;
 
 
@@ -68,10 +71,8 @@ void Sprite_Destroy(Sprite* _Nullable self)
 static void Sprite_StateDidChange(Sprite* _Nonnull self)
 {
     // Hiding a sprite means to move it all the way to X max.
-    const uint16_t hshift = (self->shift & 0xf0) >> 4;
-    const uint16_t vshift = self->shift & 0x0f;
-    const uint16_t hstart = (self->isVisible) ? self->diwHStart - 1 + (self->x >> hshift) : 511;
-    const uint16_t vstart = self->diwVStart + (self->y >> vshift);
+    const uint16_t hstart = (self->isVisible) ? self->hDiwStart - 1 + (self->x >> self->hShift) : 511;
+    const uint16_t vstart = self->vDiwStart + (self->y >> self->vShift);
     const uint16_t vstop = vstart + self->height;
     const uint16_t sprxpos = ((vstart & 0x00ff) << 8) | ((hstart & 0x01fe) >> 1);
     const uint16_t sprxctl = ((vstop & 0x00ff) << 8) | (((vstart >> 8) & 0x0001) << 2) | (((vstop >> 8) & 0x0001) << 1) | (hstart & 0x0001);
