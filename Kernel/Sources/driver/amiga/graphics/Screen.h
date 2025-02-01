@@ -45,6 +45,9 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags.isNewCopperProgNeeded = 1)
 
+#define Screen_GetConfiguration(__self) \
+((__self)->screenConfig)
+
 #define Screen_IsInterlaced(__self) \
 ScreenConfiguration_IsInterlaced((__self)->screenConfig)
 

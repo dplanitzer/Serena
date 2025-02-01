@@ -116,19 +116,9 @@ errno_t AmigaController_onStart(struct AmigaController* _Nonnull _Locked self)
 {
     decl_try_err();
 
-
     // Graphics Driver
-    const ScreenConfiguration* pVideoConfig;
-    if (chipset_is_ntsc()) {
-        pVideoConfig = &kScreenConfig_NTSC_640_200_60;
-        //pVideoConfig = &kScreenConfig_NTSC_640_400_30;
-    } else {
-        pVideoConfig = &kScreenConfig_PAL_640_256_50;
-        //pVideoConfig = &kScreenConfig_PAL_640_512_25;
-    }
-    
     GraphicsDriverRef fb = NULL;
-    try(GraphicsDriver_Create((DriverRef)self, pVideoConfig, kPixelFormat_RGB_Indexed3, &fb));
+    try(GraphicsDriver_Create((DriverRef)self, &fb));
     try(Driver_StartAdoptChild((DriverRef)self, (DriverRef)fb));
 
 

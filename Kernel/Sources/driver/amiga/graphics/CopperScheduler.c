@@ -36,12 +36,11 @@ void CopperScheduler_Deinit(CopperScheduler* _Nonnull self)
 // Schedules the given odd and even field Copper programs for execution. The
 // programs will start executing at the next vertical blank. Expects at least
 // an odd field program if the current video mode is non-interlaced and both
-// and odd and an even field program if the video mode is interlaced. The video
-// display is turned off if the odd field program is NULL.
+// and odd and an even field program if the video mode is interlaced.
 //
 // !! Note that the odd and even field programs must be two separate programs.
 // !! They can not be shared.
-void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull self, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg)
+void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull self, const CopperProgram* _Nonnull pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg)
 {
     const int irs = cpu_disable_irqs();
     self->readyEvenFieldProg = pEvenFieldProg;

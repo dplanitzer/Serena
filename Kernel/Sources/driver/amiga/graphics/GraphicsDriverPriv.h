@@ -31,11 +31,6 @@ final_class_ivars(GraphicsDriver, Driver,
 );
 
 
-extern void _GraphicsDriver_Deinit(GraphicsDriverRef _Nonnull self);
-
 extern void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull self);
-extern void GraphicsDriver_StopVideoRefresh_Locked(GraphicsDriverRef _Nonnull self);
-
-extern errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull self, Screen* _Nonnull pScreen);
 
 #endif /* GraphicsDriverPriv_h */

@@ -162,6 +162,7 @@ final_class_ivars(Console, Driver,
     DispatchQueueRef _Nonnull   dispatchQueue;
     IOChannelRef _Nonnull       hidDriverChannel;
     GraphicsDriverRef _Nonnull  gdevice;
+    Screen* _Nonnull            screen;
     const KeyMap* _Nonnull      keyMap;
     vtparser_t                  vtparser;
     RingBuffer                  reportsQueue;

@@ -52,7 +52,8 @@ char *strerror(int err_no)
         /*EMLINK*/          "Too many links",
         /*EMFILE*/          "Too many open I/O channels",
         /*EXDEV*/           "Cross-device link not permitted",
-        /*ETERMINATED*/     "Terminated"
+        /*ETERMINATED*/     "Terminated",
+        /*ENOTSUP*/         "Operation not supported"
     };
 
     if (err_no >= __EFIRST && err_no <= __ELAST) {

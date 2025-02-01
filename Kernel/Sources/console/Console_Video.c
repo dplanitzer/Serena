@@ -28,6 +28,22 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
 {
     decl_try_err();
 
+    // Create a suitable screen
+    const ScreenConfiguration* pVideoConfig;
+    if (chipset_is_ntsc()) {
+        pVideoConfig = &kScreenConfig_NTSC_640_200_60;
+        //pVideoConfig = &kScreenConfig_NTSC_640_400_30;
+    } else {
+        pVideoConfig = &kScreenConfig_PAL_640_256_50;
+        //pVideoConfig = &kScreenConfig_PAL_640_512_25;
+    }
+    try(GraphicsDriver_CreateScreen(self->gdevice, pVideoConfig, kPixelFormat_RGB_Indexed3, &self->screen));
+
+
+    // Make our screen the current screen
+    try(GraphicsDriver_SetCurrentScreen(self->gdevice, self->screen));
+
+
     // Install an ANSI color table
     GraphicsDriver_SetCLUTEntries(self->gdevice, 0, sizeof(gANSIColors), gANSIColors);
 
@@ -39,7 +55,7 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
 
 
     // Allocate the text cursor (sprite)
-    const bool isLace = ScreenConfiguration_GetPixelHeight(GraphicsDriver_GetCurrentScreenConfiguration(self->gdevice)) > 256 ? true : false;
+    const bool isLace = ScreenConfiguration_IsInterlaced(pVideoConfig) ? true : false;
     const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
@@ -63,8 +79,11 @@ catch:
 // Deinitializes the video output subsystem
 void Console_DeinitVideoOutput(ConsoleRef _Nonnull self)
 {
+    GraphicsDriver_SetCurrentScreen(self->gdevice, NULL);
+
     GraphicsDriver_RelinquishSprite(self->gdevice, self->textCursor);
-    GraphicsDriver_UpdateDisplay(self->gdevice);
+    GraphicsDriver_DestroyScreen(self->gdevice, self->screen);
+    
     DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
 }
 

@@ -33,7 +33,7 @@ typedef struct CopperScheduler {
 
 extern void CopperScheduler_Init(CopperScheduler* _Nonnull self);
 extern void CopperScheduler_Deinit(CopperScheduler* _Nonnull self);
-extern void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull self, const CopperProgram* _Nullable pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg);
+extern void CopperScheduler_ScheduleProgram(CopperScheduler* _Nonnull self, const CopperProgram* _Nonnull pOddFieldProg, const CopperProgram* _Nullable pEvenFieldProg);
 extern void CopperScheduler_Run(CopperScheduler* _Nonnull self);
 
 #endif /* CopperScheduler_h */

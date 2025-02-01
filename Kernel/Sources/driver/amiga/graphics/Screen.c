@@ -217,7 +217,7 @@ size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
 {
     Surface* fb = self->surface;
 
-    return 2 * fb->clutEntryCount           // CLUT
+    return fb->clutEntryCount               // CLUT
             + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
