@@ -133,7 +133,7 @@ errno_t Screen_UnlockPixels(Screen* _Nonnull self)
     }
 }
 
-errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId)
+errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
 {
     decl_try_err();
     Sprite* pSprite;
@@ -165,7 +165,7 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPl
 }
 
 // Relinquishes a hardware sprite
-errno_t Screen_RelinquishSprite(Screen* _Nonnull self, SpriteID spriteId)
+errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int spriteId)
 {
     decl_try_err();
 
@@ -185,7 +185,7 @@ errno_t Screen_RelinquishSprite(Screen* _Nonnull self, SpriteID spriteId)
 }
 
 // Updates the position of a hardware sprite.
-errno_t Screen_SetSpritePosition(Screen* _Nonnull self, SpriteID spriteId, int x, int y)
+errno_t Screen_SetSpritePosition(Screen* _Nonnull self, int spriteId, int x, int y)
 {
     decl_try_err();
 
@@ -198,7 +198,7 @@ errno_t Screen_SetSpritePosition(Screen* _Nonnull self, SpriteID spriteId, int x
 }
 
 // Updates the visibility of a hardware sprite.
-errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, SpriteID spriteId, bool isVisible)
+errno_t Screen_SetSpriteVisible(Screen* _Nonnull self, int spriteId, bool isVisible)
 {
     decl_try_err();
 

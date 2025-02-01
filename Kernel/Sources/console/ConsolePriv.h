@@ -177,7 +177,7 @@ final_class_ivars(Console, Driver,
     int                         y;
     SavedState                  savedCursorState;
     GraphicsContext             gc;
-    SpriteID                    textCursor;
+    int                         textCursor;
     CompatibilityMode           compatibilityMode;
     struct {
         unsigned int    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past the right margin

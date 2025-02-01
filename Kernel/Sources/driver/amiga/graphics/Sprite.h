@@ -14,8 +14,6 @@
 #include "ScreenConfiguration.h"
 
 
-typedef int SpriteID;
-
 #define NUM_HARDWARE_SPRITES    8
 #define MAX_SPRITE_WIDTH        16
 #define MAX_SPRITE_HEIGHT       511

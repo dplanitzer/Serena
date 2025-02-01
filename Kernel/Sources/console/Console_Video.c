@@ -29,15 +29,15 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
     decl_try_err();
 
     // Create a suitable screen
-    const ScreenConfiguration* pVideoConfig;
+    const ScreenConfiguration* vidCfg;
     if (chipset_is_ntsc()) {
-        pVideoConfig = &kScreenConfig_NTSC_640_200_60;
-        //pVideoConfig = &kScreenConfig_NTSC_640_400_30;
+        vidCfg = &kScreenConfig_NTSC_640_200_60;
+        //vidCfg = &kScreenConfig_NTSC_640_400_30;
     } else {
-        pVideoConfig = &kScreenConfig_PAL_640_256_50;
-        //pVideoConfig = &kScreenConfig_PAL_640_512_25;
+        vidCfg = &kScreenConfig_PAL_640_256_50;
+        //vidCfg = &kScreenConfig_PAL_640_512_25;
     }
-    try(GraphicsDriver_CreateScreen(self->gdevice, pVideoConfig, kPixelFormat_RGB_Indexed3, &self->screen));
+    try(GraphicsDriver_CreateScreen(self->gdevice, vidCfg, kPixelFormat_RGB_Indexed3, &self->screen));
 
 
     // Make our screen the current screen
@@ -45,23 +45,22 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
 
 
     // Install an ANSI color table
-    GraphicsDriver_SetCLUTEntries(self->gdevice, 0, sizeof(gANSIColors), gANSIColors);
+    GraphicsDriver_SetCLUTEntries(self->gdevice, self->screen, 0, sizeof(gANSIColors), gANSIColors);
 
 
     // Get the framebuffer size
-    const Size fbSize = GraphicsDriver_GetFramebufferSize(self->gdevice);
-    self->gc.pixelsWidth = fbSize.width;
-    self->gc.pixelsHeight = fbSize.height;
+    self->gc.pixelsWidth = ScreenConfiguration_GetPixelWidth(vidCfg);
+    self->gc.pixelsHeight = ScreenConfiguration_GetPixelHeight(vidCfg);
 
 
     // Allocate the text cursor (sprite)
-    const bool isLace = ScreenConfiguration_IsInterlaced(pVideoConfig) ? true : false;
+    const bool isLace = ScreenConfiguration_IsInterlaced(vidCfg) ? true : false;
     const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];
     const int textCursorWidth = (isLace) ? gBlock4x4_Width : gBlock4x8_Width;
     const int textCursorHeight = (isLace) ? gBlock4x4_Height : gBlock4x8_Height;
-    try(GraphicsDriver_AcquireSprite(self->gdevice, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &self->textCursor));
+    try(GraphicsDriver_AcquireSprite(self->gdevice, self->screen, textCursorPlanes, 0, 0, textCursorWidth, textCursorHeight, 0, &self->textCursor));
     self->flags.isTextCursorVisible = false;
 
 
@@ -81,7 +80,7 @@ void Console_DeinitVideoOutput(ConsoleRef _Nonnull self)
 {
     GraphicsDriver_SetCurrentScreen(self->gdevice, NULL);
 
-    GraphicsDriver_RelinquishSprite(self->gdevice, self->textCursor);
+    GraphicsDriver_RelinquishSprite(self->gdevice, self->screen, self->textCursor);
     GraphicsDriver_DestroyScreen(self->gdevice, self->screen);
     
     DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
@@ -95,9 +94,9 @@ void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color)
     self->foregroundColor = color;
 
     // Sync up the sprite color registers with the selected foreground color
-    GraphicsDriver_SetCLUTEntry(self->gdevice, 17, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(self->gdevice, 18, gANSIColors[color.u.index]);
-    GraphicsDriver_SetCLUTEntry(self->gdevice, 19, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(self->gdevice, self->screen, 17, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(self->gdevice, self->screen, 18, gANSIColors[color.u.index]);
+    GraphicsDriver_SetCLUTEntry(self->gdevice, self->screen, 19, gANSIColors[color.u.index]);
     GraphicsDriver_UpdateDisplay(self->gdevice);
 }
 
@@ -115,7 +114,7 @@ void Console_OnTextCursorBlink(ConsoleRef _Nonnull self)
     
     self->flags.isTextCursorOn = !self->flags.isTextCursorOn;
     if (self->flags.isTextCursorVisible) {
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screen, self->textCursor, self->flags.isTextCursorOn || self->flags.isTextCursorSingleCycleOn);
     }
     self->flags.isTextCursorSingleCycleOn = false;
 
@@ -128,7 +127,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
         // Changing the visibility to on should restart the blinking timer if
         // blinking is on too so that we always start out with a cursor-on phase
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screen, self->textCursor, true);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
 
@@ -143,7 +142,7 @@ static void Console_UpdateCursorVisibilityAndRestartBlinking_Locked(ConsoleRef _
     } else {
         // Make sure that the text cursor and blinker are off
         DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, false);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screen, self->textCursor, false);
         self->flags.isTextCursorOn = false;
         self->flags.isTextCursorSingleCycleOn = false;
     }
@@ -167,26 +166,26 @@ void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVisible)
 
 void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_SetSpritePosition(self->gdevice, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
+    GraphicsDriver_SetSpritePosition(self->gdevice, self->screen, self->textCursor, self->x * self->characterWidth, self->y * self->lineHeight);
     // Temporarily force the cursor to be visible, but without changing the text
     // cursor visibility state officially. We just want to make sure that the
     // cursor is on when the user types a character. This however should not
     // change anything about the blinking phase and frequency.
     if (!self->flags.isTextCursorSingleCycleOn && !self->flags.isTextCursorOn && self->flags.isTextCursorBlinkerEnabled && self->flags.isTextCursorVisible) {
         self->flags.isTextCursorSingleCycleOn = true;
-        GraphicsDriver_SetSpriteVisible(self->gdevice, self->textCursor, true);
+        GraphicsDriver_SetSpriteVisible(self->gdevice, self->screen, self->textCursor, true);
     }
 }
 
 
 errno_t Console_BeginDrawing_Locked(ConsoleRef _Nonnull self)
 {
-    return GraphicsDriver_LockFramebufferPixels(self->gdevice, kPixelAccess_ReadWrite, (void**)self->gc.plane, self->gc.bytesPerRow, &self->gc.planeCount);
+    return GraphicsDriver_LockScreenPixels(self->gdevice, self->screen, kPixelAccess_ReadWrite, (void**)self->gc.plane, self->gc.bytesPerRow, &self->gc.planeCount);
 }
 
 void Console_EndDrawing_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_UnlockFramebufferPixels(self->gdevice);
+    GraphicsDriver_UnlockScreenPixels(self->gdevice, self->screen);
 }
 
 static void Console_DrawGlyphBitmap_Locked(ConsoleRef _Nonnull self, const uint8_t* _Nonnull pSrc, int xc, int yc, const Color* _Nonnull fgColor, const Color* _Nonnull bgColor)

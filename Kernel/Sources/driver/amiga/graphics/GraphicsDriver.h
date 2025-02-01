@@ -26,36 +26,34 @@ extern errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverR
 
 // Screens
 extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Screen* _Nullable * _Nonnull pOutScreen);
-extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable pScreen);
-extern const ScreenConfiguration* _Nonnull GraphicsDriver_GetScreenConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull pScreen);
+extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
+extern const ScreenConfiguration* _Nonnull GraphicsDriver_GetScreenConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr);
+extern Size GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
-// Display
-extern errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable pScreen);
-extern Screen* _Nullable GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self);
+extern errno_t GraphicsDriver_LockScreenPixels(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount);
+extern errno_t GraphicsDriver_UnlockScreenPixels(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
-extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
-
-extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
-extern bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY);
-
-
-// Framebuffer access
-extern Size GraphicsDriver_GetFramebufferSize(GraphicsDriverRef _Nonnull self);
-extern errno_t GraphicsDriver_LockFramebufferPixels(GraphicsDriverRef _Nonnull self, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount);
-extern errno_t GraphicsDriver_UnlockFramebufferPixels(GraphicsDriverRef _Nonnull self);
-
-
-// CLUT
-extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, size_t idx, RGBColor32 color);
-extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
+extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, RGBColor32 color);
+extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
 
 // Sprites
-extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, SpriteID* _Nonnull pOutSpriteId);
-extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, SpriteID spriteId);
-extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, SpriteID spriteId, int x, int y);
-extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, SpriteID spriteId, bool isVisible);
+extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
+extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId);
+extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId, int x, int y);
+extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, int spriteId, bool isVisible);
+
+
+// Display
+extern errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
+extern Screen* _Nullable GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self);
+
+extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
+extern Size GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self);
+
+extern void GraphicsDriver_SetLightPenEnabled(GraphicsDriverRef _Nonnull self, bool enabled);
+extern bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t* _Nonnull pPosX, int16_t* _Nonnull pPosY);
 
 
 // Mouse Cursor

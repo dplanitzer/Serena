@@ -80,11 +80,12 @@ errno_t HIDManager_Start(HIDManagerRef _Nonnull self)
     // Open a channel to the framebuffer
     try(DriverCatalog_OpenDriver(gDriverCatalog, kFramebufferName, kOpen_ReadWrite, &self->fbChannel));
     self->fb = (GraphicsDriverRef)DriverChannel_GetDriver(self->fbChannel);
+    const Size siz = GraphicsDriver_GetDisplaySize(self->fb);
 
     self->screenLeft = 0;
     self->screenTop = 0;
-    self->screenRight = (int16_t) GraphicsDriver_GetFramebufferSize(self->fb).width;
-    self->screenBottom = (int16_t) GraphicsDriver_GetFramebufferSize(self->fb).height;
+    self->screenRight = (int16_t) siz.width;
+    self->screenBottom = (int16_t) siz.height;
 
 
     // Open the keyboard driver
