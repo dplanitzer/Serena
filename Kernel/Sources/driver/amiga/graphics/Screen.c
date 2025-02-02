@@ -7,6 +7,7 @@
 //
 
 #include "Screen.h"
+#include <klib/Kalloc.h>
 
 
 // Creates a screen object.

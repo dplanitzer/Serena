@@ -9,7 +9,8 @@
 #ifndef Surface_h
 #define Surface_h
 
-#include <klib/klib.h>
+#include <klib/Error.h>
+#include <klib/Types.h>
 #include "Color.h"
 #include "PixelFormat.h"
 
@@ -69,11 +70,5 @@ extern void Surface_Destroy(Surface* _Nullable self);
 // Returns a reference to the CLUT entry at index 'idx'
 #define Surface_GetCLUTEntry(__self, __idx) \
 (&(__self)->clut[__idx])
-
-// Clears all pixels in the surface. Clearing means that all pixels are set to
-// color black/index 0.
-extern void Surface_Clear(Surface* _Nonnull self);
-
-extern void Surface_FillRect(Surface* _Nonnull self, int left, int top, int right, int bottom, Color clr);
 
 #endif /* Surface_h */
