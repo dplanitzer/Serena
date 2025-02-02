@@ -15,11 +15,12 @@
 #include <System/Clock.h>
 #include <System/ConditionVariable.h>
 #include <System/DispatchQueue.h>
-#include <System/Error.h>
 #include <System/Directory.h>
 #include <System/Disk.h>
+#include <System/Error.h>
 #include <System/File.h>
 #include <System/FilePermissions.h>
+#include <System/Framebuffer.h>
 #include <System/HID.h>
 #include <System/HIDEvent.h>
 #include <System/HIDKeyCodes.h>

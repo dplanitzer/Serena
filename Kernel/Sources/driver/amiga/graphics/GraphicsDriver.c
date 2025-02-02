@@ -603,25 +603,26 @@ static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnu
 
 errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, int* _Nonnull pOutId)
 {
-    decl_try_err();
-    Surface* srf;
-    Screen* scr;
-
     Driver_Lock(self);
-    err = VideoConfiguration_Validate(vidCfg);
-    if (err == EOK) {
-        srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
-        if (srf) {
+
+    decl_try_err();
+    Screen* scr;
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
+    
+    if (srf) {
+        err = VideoConfiguration_Validate(vidCfg, Surface_GetPixelFormat(srf));
+        if (err == EOK) {
             err = Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, self->nullSprite, &scr);
             if (err == EOK) {
                 List_InsertBeforeFirst(&self->screens, &scr->chain);
                 *pOutId = Screen_GetId(scr);
             }
         }
-        else {
-            err = EINVAL;
-        }
     }
+    else {
+        err = EINVAL;
+    }
+
     Driver_Unlock(self);
     return err;
 }

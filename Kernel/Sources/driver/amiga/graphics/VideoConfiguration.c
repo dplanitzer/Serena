@@ -7,59 +7,93 @@
 //
 
 #include "VideoConfiguration.h"
-#include <hal/Platform.h>
 
 
 // DDIWSTART = specific to mode. See hardware reference manual
 // DDIWSTOP = last 8 bits of pixel position
-const VideoConfigurationRange kVideoConfig_NTSC_320_200_60 = {320, 200, 60,
+static const VideoConfigurationRange gSupportedRanges[] = {
+// NTSC 320x200 60fps
+{320, 200, 60,
     5, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
         kPixelFormat_RGB_Indexed4,
-        kPixelFormat_RGB_Indexed5}};
-const VideoConfigurationRange kVideoConfig_NTSC_640_200_60 = {640, 200, 60,
+        kPixelFormat_RGB_Indexed5}
+},
+// NTSC 640x200 60fps
+{640, 200, 60,
     4, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
-        kPixelFormat_RGB_Indexed4}};
-const VideoConfigurationRange kVideoConfig_NTSC_320_400_30 = {320, 400, 30,
+        kPixelFormat_RGB_Indexed4}
+},
+// NTSC 320x400 30fps (interlaced)
+{320, 400, 30,
     5, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
         kPixelFormat_RGB_Indexed4,
-        kPixelFormat_RGB_Indexed5}};
-const VideoConfigurationRange kVideoConfig_NTSC_640_400_30 = {640, 400, 30,
+        kPixelFormat_RGB_Indexed5}
+},
+// NTSC 640x400 30fps (interlaced)
+{640, 400, 30,
     4, {kPixelFormat_RGB_Indexed1,
         kPixelFormat_RGB_Indexed2,
         kPixelFormat_RGB_Indexed3,
-        kPixelFormat_RGB_Indexed4}};
+        kPixelFormat_RGB_Indexed4}
+},
+// PAL 320x256 50fps
+{320, 256, 50,
+    5, {kPixelFormat_RGB_Indexed1,
+        kPixelFormat_RGB_Indexed2,
+        kPixelFormat_RGB_Indexed3,
+        kPixelFormat_RGB_Indexed4,
+        kPixelFormat_RGB_Indexed5}
+},
+// PAL 640x256 50fps
+{640, 256, 50,
+    4, {kPixelFormat_RGB_Indexed1,
+        kPixelFormat_RGB_Indexed2,
+        kPixelFormat_RGB_Indexed3,
+        kPixelFormat_RGB_Indexed4}
+},
+// PAL 320x512 25fps (interlaced)
+{320, 512, 25,
+    5, {kPixelFormat_RGB_Indexed1,
+        kPixelFormat_RGB_Indexed2,
+        kPixelFormat_RGB_Indexed3,
+        kPixelFormat_RGB_Indexed4,
+        kPixelFormat_RGB_Indexed5}
+},
+// PAL 640x512 25fps (interlaced)
+{640, 512, 25,
+    4, {kPixelFormat_RGB_Indexed1,
+        kPixelFormat_RGB_Indexed2,
+        kPixelFormat_RGB_Indexed3,
+        kPixelFormat_RGB_Indexed4}
+},
+// NULL
+{0, 0, 0, 0},
+};
 
-const VideoConfigurationRange kVideoConfig_PAL_320_256_50 = {320, 256, 50,
-    5, {kPixelFormat_RGB_Indexed1,
-        kPixelFormat_RGB_Indexed2,
-        kPixelFormat_RGB_Indexed3,
-        kPixelFormat_RGB_Indexed4,
-        kPixelFormat_RGB_Indexed5}};
-const VideoConfigurationRange kVideoConfig_PAL_640_256_50 = {640, 256, 50,
-    4, {kPixelFormat_RGB_Indexed1,
-        kPixelFormat_RGB_Indexed2,
-        kPixelFormat_RGB_Indexed3,
-        kPixelFormat_RGB_Indexed4}};
-const VideoConfigurationRange kVideoConfig_PAL_320_512_25 = {320, 512, 25,
-    5, {kPixelFormat_RGB_Indexed1,
-        kPixelFormat_RGB_Indexed2,
-        kPixelFormat_RGB_Indexed3,
-        kPixelFormat_RGB_Indexed4,
-        kPixelFormat_RGB_Indexed5}};
-const VideoConfigurationRange kVideoConfig_PAL_640_512_25 = {640, 512, 25,
-    4, {kPixelFormat_RGB_Indexed1,
-        kPixelFormat_RGB_Indexed2,
-        kPixelFormat_RGB_Indexed3,
-        kPixelFormat_RGB_Indexed4}};
 
-
-errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull cfg)
+errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull vidCfg, PixelFormat pixelFormat)
 {
-    return EOK;
+    const VideoConfigurationRange* vcr = gSupportedRanges;
+
+    while (vcr->width > 0) {
+        if (vcr->width == vidCfg->width
+            && vcr->height == vidCfg->height
+            && vcr->fps == vidCfg->fps) {
+            for (int i = 0; i < MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION; i++) {
+                if (vcr->pixelFormat[i] == pixelFormat) {
+                    return EOK;
+                }
+            }
+        }
+
+        vcr++;
+    }
+
+    return ENOTSUP;
 }
