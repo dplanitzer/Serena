@@ -18,16 +18,29 @@
 #include "Surface.h"
 
 
+typedef struct CLUTEntry {
+    uint8_t     r;
+    uint8_t     g;
+    uint8_t     b;
+    uint8_t     flags;
+} CLUTEntry;
+#define MAX_CLUT_ENTRIES    32
+
+
+enum {
+    kScreenFlag_IsNewCopperProgNeeded = 0x0001,
+};
+
+
 typedef struct Screen {
-    Surface* _Nullable                  surface;        // the screen framebuffer
     const ScreenConfiguration* _Nonnull screenConfig;
-    PixelFormat                         pixelFormat;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
-    struct __ScreenFlags {
-        unsigned int        isNewCopperProgNeeded:1;
-        unsigned int        reserved:31;
-    }                                   flags;
+    Surface* _Nullable                  surface;        // The screen pixels
+    CLUTEntry* _Nullable                clut;           // The screen color lookup table
+    int16_t                             clutEntryCount;
+    uint16_t                            flags;
+    PixelFormat                         pixelFormat;
 } Screen;
 
 
@@ -35,7 +48,7 @@ extern errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelF
 extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 #define Screen_SetNeedsUpdate(__self) \
-((__self)->flags.isNewCopperProgNeeded = 1)
+((__self)->flags |= kScreenFlag_IsNewCopperProgNeeded)
 
 #define Screen_GetConfiguration(__self) \
 ((__self)->screenConfig)
@@ -48,7 +61,7 @@ extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, 
 extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
 extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
 
-extern errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, MappingInfo* _Nonnull pOutInfo);
+extern errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo);
 extern errno_t Screen_Unmap(Screen* _Nonnull self);
 
 extern errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);

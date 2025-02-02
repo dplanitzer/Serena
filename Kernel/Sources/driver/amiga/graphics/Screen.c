@@ -27,8 +27,13 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat p
     self->screenConfig = pConfig;
     self->pixelFormat = pixelFormat;
     self->nullSprite = pNullSprite;
-    self->flags.isNewCopperProgNeeded = 1;
+    self->clutEntryCount = (int16_t)MAX_CLUT_ENTRIES;
+    self->flags = kScreenFlag_IsNewCopperProgNeeded;
     
+    if (self->clutEntryCount > 0) {
+        try(kalloc_cleared(sizeof(CLUTEntry) * self->clutEntryCount, (void**)&self->clut));
+    }
+
     *pOutSelf = self;
     return EOK;
     
@@ -44,6 +49,11 @@ void Screen_Destroy(Screen* _Nullable self)
         Surface_Destroy(self->surface);
         self->surface = NULL;
         
+        if (self->clut) {
+            kfree(self->clut);
+            self->clut = NULL;
+        }
+
         kfree(self);
     }
 }
@@ -59,23 +69,37 @@ errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color)
 {
     decl_try_err();
 
-    err = Surface_SetCLUTEntry(self->surface, idx, color);
-    if (err == EOK) {
-        Screen_SetNeedsUpdate(self);
+    if (idx >= self->clutEntryCount) {
+        return EINVAL;
     }
 
-    return err;
+    CLUTEntry* ep = &self->clut[idx];
+    ep->r = RGBColor32_GetRed(color);
+    ep->g = RGBColor32_GetGreen(color);
+    ep->b = RGBColor32_GetBlue(color);
+    Screen_SetNeedsUpdate(self);
+
+    return EOK;
 }
 
 // Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
 // to the colors in the array 'entries'.
 errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 {
-    decl_try_err();
+    if (idx + count > self->clutEntryCount) {
+        return EINVAL;
+    }
 
-    err = Surface_SetCLUTEntries(self->surface, idx, count, entries);
-    if (err == EOK) {
-        Screen_SetNeedsUpdate(self);
+    if (count > 0) {
+        for (size_t i = 0; i < count; i++) {
+            const RGBColor32 color = entries[i];
+            CLUTEntry* ep = &self->clut[idx + i];
+
+            ep->r = RGBColor32_GetRed(color);
+            ep->g = RGBColor32_GetGreen(color);
+            ep->b = RGBColor32_GetBlue(color);
+            Screen_SetNeedsUpdate(self);
+        }
     }
 
     return EOK;
@@ -86,7 +110,7 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
 // \param self the screen
 // \param mode the mapping mode
 // \return EOK if the screen pixels could be locked; EBUSY otherwise
-errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
+errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
 {
     return Surface_Map(self->surface, mode, pOutInfo);
 }
@@ -180,7 +204,7 @@ size_t Screen_CalcCopperProgramLength(Screen* _Nonnull self)
 {
     Surface* fb = self->surface;
 
-    return fb->clutEntryCount               // CLUT
+    return self->clutEntryCount             // CLUT
             + 2 * fb->planeCount            // BPLxPT[nplanes]
             + 2                             // BPL1MOD, BPL2MOD
             + 3                             // BPLCON0, BPLCON1, BPLCON2
@@ -210,8 +234,8 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
     
 
     // CLUT
-    for (int i = 0, r = COLOR_BASE; i < Surface_GetCLUTEntryCount(fb); i++, r += 2) {
-        const CLUTEntry* ep = Surface_GetCLUTEntry(fb, i);
+    for (int i = 0, r = COLOR_BASE; i < self->clutEntryCount; i++, r += 2) {
+        const CLUTEntry* ep = &self->clut[i];
         const uint16_t rgb12 = (ep->r >> 4 & 0x0f) << 8 | (ep->g >> 4 & 0x0f) << 4 | (ep->b >> 4 & 0x0f);
 
         *ip++ = COP_MOVE(r, rgb12);

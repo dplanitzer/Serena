@@ -28,12 +28,6 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
     self->pixelFormat = pixelFormat;
-    self->clutEntryCount = (int16_t)PixelFormat_GetCLUTEntryCount(pixelFormat);
-
-    if (self->clutEntryCount > 0) {
-        try(kalloc_cleared(sizeof(CLUTEntry) * self->clutEntryCount, (void**)&self->clut));
-    }
-
     self->width = width;
     self->height = height;
     self->bytesPerRow = ((width + 15) >> 4) << 1;       // Must be a multiple of at least words (16bits)
@@ -87,55 +81,9 @@ void Surface_Destroy(Surface* _Nullable self)
         for (int i = 0; i < self->planeCount; i++) {
             self->plane[i] = NULL;
         }
-        
-        if (self->clut) {
-            kfree(self->clut);
-            self->clut = NULL;
-        }
-        
+                
         kfree(self);
     }
-}
-
-// Writes the given RGB color to the color register at index idx
-errno_t Surface_SetCLUTEntry(Surface* _Nonnull self, size_t idx, RGBColor32 color)
-{
-    decl_try_err();
-
-    if (idx < self->clutEntryCount) {
-        CLUTEntry* ep = Surface_GetCLUTEntry(self, idx);
-
-        ep->r = RGBColor32_GetRed(color);
-        ep->g = RGBColor32_GetGreen(color);
-        ep->b = RGBColor32_GetBlue(color);
-    }
-    else {
-        err = EINVAL;
-    }
-
-    return err;
-}
-
-// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
-// to the colors in the array 'entries'.
-errno_t Surface_SetCLUTEntries(Surface* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
-{
-    if (idx + count > self->clutEntryCount) {
-        return EINVAL;
-    }
-
-    if (count > 0) {
-        for (size_t i = 0; i < count; i++) {
-            const RGBColor32 color = entries[i];
-            CLUTEntry* ep = Surface_GetCLUTEntry(self, idx + i);
-
-            ep->r = RGBColor32_GetRed(color);
-            ep->g = RGBColor32_GetGreen(color);
-            ep->b = RGBColor32_GetBlue(color);
-        }
-    }
-
-    return EOK;
 }
 
 // Maps the surface pixels for access. 'mode' specifies whether the pixels
@@ -143,7 +91,7 @@ errno_t Surface_SetCLUTEntries(Surface* _Nonnull self, size_t idx, size_t count,
 // \param self the screen
 // \param mode the mapping mode
 // \return EOK if the screen pixels could be locked; EBUSY otherwise
-errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
+errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
 {
     if ((self->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped) {
         return EBUSY;

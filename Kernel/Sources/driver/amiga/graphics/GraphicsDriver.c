@@ -272,14 +272,14 @@ errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self)
     Driver_Lock(self);
     Screen* scr = self->screen;
 
-    if (scr && scr->flags.isNewCopperProgNeeded) {
+    if (scr && (scr->flags & kScreenFlag_IsNewCopperProgNeeded) == kScreenFlag_IsNewCopperProgNeeded) {
         CopperProgram* oddFieldProg;
         CopperProgram* evenFieldProg;
 
         err = create_field_copper_progs(scr, self->isLightPenEnabled, &oddFieldProg, &evenFieldProg);
         if (err == EOK) {
             CopperScheduler_ScheduleProgram(&self->copperScheduler, oddFieldProg, evenFieldProg);
-            scr->flags.isNewCopperProgNeeded = false;
+            scr->flags &= ~kScreenFlag_IsNewCopperProgNeeded;
         }
     }
 
@@ -392,7 +392,7 @@ errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, Surface* 
     return EOK;
 }
 
-errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
+errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
 {
     decl_try_err();
 
@@ -414,39 +414,6 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _N
     Driver_Lock(self);
     if (srf) {
         err = Surface_Unmap(srf);
-    }
-    else {
-        err = ENOTSUP;
-    }
-    Driver_Unlock(self);
-    return err;
-}
-
-// Writes the given RGB color to the color register at index idx
-errno_t GraphicsDriver_SetSurfaceCLUTEntry(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, size_t idx, RGBColor32 color)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (srf) {
-        err = Surface_SetCLUTEntry(srf, idx, color);
-    }
-    else {
-        err = ENOTSUP;
-    }
-    Driver_Unlock(self);
-    return err;
-}
-
-// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
-// to the colors in the array 'entries'.
-errno_t GraphicsDriver_SetSurfaceCLUTEntries(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (srf) {
-        err = Surface_SetCLUTEntries(srf, idx, count, entries);
     }
     else {
         err = ENOTSUP;
@@ -504,7 +471,7 @@ Size GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, Screen* _Null
     return siz;
 }
 
-errno_t GraphicsDriver_MapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
+errno_t GraphicsDriver_MapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
 {
     decl_try_err();
 

@@ -21,19 +21,11 @@ typedef enum MapPixels {
     kMapPixels_ReadWrite
 } MapPixels;
 
-typedef struct MappingInfo {
+typedef struct SurfaceMapping {
     void* _Nonnull  plane[8];
     size_t          bytesPerRow[8];
     size_t _Nonnull planeCount;
-} MappingInfo;
-
-
-typedef struct CLUTEntry {
-    uint8_t     r;
-    uint8_t     g;
-    uint8_t     b;
-    uint8_t     flags;
-} CLUTEntry;
+} SurfaceMapping;
 
 
 #define MAX_PLANE_COUNT  6
@@ -44,16 +36,14 @@ enum {
 };
 
 typedef struct Surface {
-    uint8_t* _Nullable      plane[MAX_PLANE_COUNT];
-    CLUTEntry* _Nullable    clut;
-    int                     width;
-    int                     height;
-    int                     bytesPerRow;
-    int                     bytesPerPlane;
-    int16_t                 clutEntryCount;
-    int8_t                  planeCount;
-    int8_t                  pixelFormat;
-    uint8_t                 flags;
+    uint8_t* _Nullable  plane[MAX_PLANE_COUNT];
+    int                 width;
+    int                 height;
+    int                 bytesPerRow;
+    int                 bytesPerPlane;
+    int8_t              planeCount;
+    int8_t              pixelFormat;
+    uint8_t             flags;
 } Surface;
 
 
@@ -76,19 +66,7 @@ extern void Surface_Destroy(Surface* _Nullable self);
 #define Surface_GetPixelFormat(__self) \
 ((__self)->pixelFormat)
 
-// Returns the number of entries in the color lookup table that is associated
-// with this surface; 0 is returned if the pixel format is a direct format.
-#define Surface_GetCLUTEntryCount(__self) \
-((__self)->clutEntryCount)
-
-// Returns a reference to the CLUT entry at index 'idx'
-#define Surface_GetCLUTEntry(__self, __idx) \
-(&(__self)->clut[__idx])
-
-extern errno_t Surface_SetCLUTEntry(Surface* _Nonnull self, size_t idx, RGBColor32 color);
-extern errno_t Surface_SetCLUTEntries(Surface* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
-
-extern errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, MappingInfo* _Nonnull pOutInfo);
+extern errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo);
 extern errno_t Surface_Unmap(Surface* _Nonnull self);
 
 #endif /* Surface_h */

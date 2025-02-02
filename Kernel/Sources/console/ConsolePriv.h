@@ -166,7 +166,7 @@ final_class_ivars(Console, Driver,
     int                         x;
     int                         y;
     SavedState                  savedCursorState;
-    MappingInfo                 pixels;
+    SurfaceMapping              pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;
     int                         textCursor;
