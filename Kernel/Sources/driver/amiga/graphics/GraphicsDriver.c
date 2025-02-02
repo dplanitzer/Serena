@@ -636,12 +636,12 @@ errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, int id, s
 ////////////////////////////////////////////////////////////////////////////////
 
 // Acquires a hardware sprite
-errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int id, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
+errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)
 {
     decl_try_err();
 
     Driver_Lock(self);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr) {
         err = Screen_AcquireSprite(scr, pPlanes, x, y, width, height, priority, pOutSpriteId);
     }
@@ -653,12 +653,12 @@ errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int id, co
 }
 
 // Relinquishes a hardware sprite
-errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int id, int spriteId)
+errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int screenId, int spriteId)
 {
     decl_try_err();
 
     Driver_Lock(self);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr) {
         err = Screen_RelinquishSprite(scr, spriteId);
     }
@@ -670,12 +670,12 @@ errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int id,
 }
 
 // Updates the position of a hardware sprite.
-errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int id, int spriteId, int x, int y)
+errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, int x, int y)
 {
     decl_try_err();
 
     Driver_Lock(self);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr) {
         err = Screen_SetSpritePosition(scr, spriteId, x, y);
     }
@@ -687,12 +687,12 @@ errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int id
 }
 
 // Updates the visibility of a hardware sprite.
-errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int id, int spriteId, bool isVisible)
+errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, bool isVisible)
 {
     decl_try_err();
 
     Driver_Lock(self);
-    Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
+    Screen* scr = _GraphicsDriver_GetScreenForId(self, screenId);
     if (scr) {
         err = Screen_SetSpriteVisible(scr, spriteId, isVisible);
     }

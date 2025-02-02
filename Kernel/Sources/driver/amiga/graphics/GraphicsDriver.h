@@ -52,10 +52,10 @@ extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, in
 
 
 // Sprites
-extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int id, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
-extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int id, int spriteId);
-extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int id, int spriteId, int x, int y);
-extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int id, int spriteId, bool isVisible);
+extern errno_t GraphicsDriver_AcquireSprite(GraphicsDriverRef _Nonnull self, int screenId, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
+extern errno_t GraphicsDriver_RelinquishSprite(GraphicsDriverRef _Nonnull self, int screenId, int spriteId);
+extern errno_t GraphicsDriver_SetSpritePosition(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, int x, int y);
+extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, int screenId, int spriteId, bool isVisible);
 
 
 // Display
