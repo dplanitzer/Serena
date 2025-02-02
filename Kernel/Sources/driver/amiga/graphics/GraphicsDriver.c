@@ -377,7 +377,7 @@ errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width,
 errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf)
 {
     Driver_Lock(self);
-    Surface_Destroy(srf);
+    Surface_Release(srf);
     Driver_Unlock(self);
     return EOK;
 }
@@ -428,10 +428,10 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _N
 // MARK: Screens
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Screen* _Nullable * _Nonnull pOutScreen)
+errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen)
 {
     Driver_Lock(self);
-    const errno_t err = Screen_Create(pConfig, pixelFormat, self->nullSprite, pOutScreen);
+    const errno_t err = Screen_Create(vidCfg, srf, self->nullSprite, pOutScreen);
     Driver_Unlock(self);
     return err;
 }
@@ -452,53 +452,6 @@ const ScreenConfiguration* _Nonnull GraphicsDriver_GetScreenConfiguration(Graphi
     const ScreenConfiguration* cfg = Screen_GetConfiguration(scr);
     Driver_Unlock(self);
     return cfg;
-}
-
-Size GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr)
-{
-    Size siz;
-
-    Driver_Lock(self);
-    if (scr) {
-        Screen_GetPixelSize(scr, &siz.width, &siz.height);
-    }
-    else {
-        siz.width = 0;
-        siz.height = 0;
-    }
-    Driver_Unlock(self);
-
-    return siz;
-}
-
-errno_t GraphicsDriver_MapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (scr) {
-        err = Screen_Map(scr, mode, pOutInfo);
-    }
-    else {
-        err = ENOTSUP;
-    }
-    Driver_Unlock(self);
-    return err;
-}
-
-errno_t GraphicsDriver_UnmapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr)
-{
-    decl_try_err();
-
-    Driver_Lock(self);
-    if (scr) {
-        err = Screen_Unmap(scr);
-    }
-    else {
-        err = ENOTSUP;
-    }
-    Driver_Unlock(self);
-    return err;
 }
 
 // Writes the given RGB color to the color register at index idx

@@ -150,12 +150,21 @@ typedef struct SavedState {
 final_class_ivars(Console, Driver,
     Lock                        lock;
     DispatchQueueRef _Nonnull   dispatchQueue;
+
+    vtparser_t                  vtparser;
+
     IOChannelRef _Nonnull       hidDriverChannel;
+    const KeyMap* _Nonnull      keyMap;
+    RingBuffer                  reportsQueue;
+
     GraphicsDriverRef _Nonnull  gdevice;
     Screen* _Nonnull            screen;
-    const KeyMap* _Nonnull      keyMap;
-    vtparser_t                  vtparser;
-    RingBuffer                  reportsQueue;
+    Surface* _Nonnull           surface;
+    SurfaceMapping              pixels;
+    int                         pixelsWidth;
+    int                         pixelsHeight;
+    int                         textCursor;
+    
     Color                       backgroundColor;
     Color                       foregroundColor;
     CharacterRendition          characterRendition;
@@ -166,10 +175,6 @@ final_class_ivars(Console, Driver,
     int                         x;
     int                         y;
     SavedState                  savedCursorState;
-    SurfaceMapping              pixels;
-    int                         pixelsWidth;
-    int                         pixelsHeight;
-    int                         textCursor;
     CompatibilityMode           compatibilityMode;
     struct {
         unsigned int    isAutoWrapEnabled: 1;   // true if the cursor should move to the next line if printing a character would move it past the right margin

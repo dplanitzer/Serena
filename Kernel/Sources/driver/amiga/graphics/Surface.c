@@ -27,6 +27,7 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
+    self->retainCount = 1;
     self->pixelFormat = pixelFormat;
     self->width = width;
     self->height = height;
@@ -60,29 +61,36 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
     return EOK;
     
 catch:
-    Surface_Destroy(self);
+    Surface_Release(self);
     *pOutSelf = NULL;
     return err;
 }
 
 // Deallocates the given surface.
 // \param pSurface the surface
-void Surface_Destroy(Surface* _Nullable self)
+static void _Surface_Deinit(Surface* _Nonnull self)
+{
+    if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
+        kfree(self->plane[0]);
+    }
+    else {
+        for (int i = 0; i < self->planeCount; i++) {
+            kfree(self->plane[i]);
+        }
+    }
+    for (int i = 0; i < self->planeCount; i++) {
+        self->plane[i] = NULL;
+    }
+}
+
+void Surface_Release(Surface* _Nullable self)
 {
     if (self) {
-        if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
-            kfree(self->plane[0]);
+        self->retainCount--;
+        if (self->retainCount == 0) {
+            _Surface_Deinit(self);
+            kfree(self);
         }
-        else {
-            for (int i = 0; i < self->planeCount; i++) {
-                kfree(self->plane[i]);
-            }
-        }
-        for (int i = 0; i < self->planeCount; i++) {
-            self->plane[i] = NULL;
-        }
-                
-        kfree(self);
     }
 }
 

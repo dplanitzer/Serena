@@ -44,11 +44,16 @@ typedef struct Surface {
     int8_t              planeCount;
     int8_t              pixelFormat;
     uint8_t             flags;
+    int                 retainCount;
 } Surface;
 
 
 extern errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
-extern void Surface_Destroy(Surface* _Nullable self);
+
+#define Surface_Retain(__self) \
+((__self)->retainCount++)
+
+extern void Surface_Release(Surface* _Nullable self);
 
 // Returns the pixel width of the surface.
 #define Surface_GetWidth(__self) \

@@ -41,14 +41,10 @@ extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surf
 
 
 // Screens
-extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Screen* _Nullable * _Nonnull pOutScreen);
+extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen);
 extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
 extern const ScreenConfiguration* _Nonnull GraphicsDriver_GetScreenConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr);
-extern Size GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
-
-extern errno_t GraphicsDriver_MapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo);
-extern errno_t GraphicsDriver_UnmapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
 extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, RGBColor32 color);
 extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, size_t count, const RGBColor32* _Nonnull entries);

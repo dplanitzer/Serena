@@ -14,18 +14,16 @@
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
 // \return the screen or null
-errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf)
+errno_t Screen_Create(const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Screen* self;
     
     try(kalloc_cleared(sizeof(Screen), (void**) &self));
 
-    // Allocate an appropriate framebuffer
-    try(Surface_Create(pConfig->width, pConfig->height, pixelFormat, &self->surface));
-
-    self->screenConfig = pConfig;
-    self->pixelFormat = pixelFormat;
+    Surface_Retain(srf);
+    self->surface = srf;
+    self->screenConfig = vidCfg;
     self->nullSprite = pNullSprite;
     self->clutEntryCount = (int16_t)MAX_CLUT_ENTRIES;
     self->flags = kScreenFlag_IsNewCopperProgNeeded;
@@ -46,7 +44,7 @@ catch:
 void Screen_Destroy(Screen* _Nullable self)
 {
     if (self) {
-        Surface_Destroy(self->surface);
+        Surface_Release(self->surface);
         self->surface = NULL;
         
         if (self->clut) {
@@ -103,21 +101,6 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
     }
 
     return EOK;
-}
-
-// Maps the screen pixels for access. 'mode' specifies whether the pixels
-// will be read, written or both.
-// \param self the screen
-// \param mode the mapping mode
-// \return EOK if the screen pixels could be locked; EBUSY otherwise
-errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
-{
-    return Surface_Map(self->surface, mode, pOutInfo);
-}
-
-errno_t Screen_Unmap(Screen* _Nonnull self)
-{
-    return Surface_Unmap(self->surface);
 }
 
 errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)

@@ -40,11 +40,10 @@ typedef struct Screen {
     CLUTEntry* _Nullable                clut;           // The screen color lookup table
     int16_t                             clutEntryCount;
     uint16_t                            flags;
-    PixelFormat                         pixelFormat;
 } Screen;
 
 
-extern errno_t Screen_Create(const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
+extern errno_t Screen_Create(const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
 extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 #define Screen_SetNeedsUpdate(__self) \
@@ -60,9 +59,6 @@ extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, 
 
 extern errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color);
 extern errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
-
-extern errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo);
-extern errno_t Screen_Unmap(Screen* _Nonnull self);
 
 extern errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId);
 extern errno_t Screen_RelinquishSprite(Screen* _Nonnull self, int spriteId);
