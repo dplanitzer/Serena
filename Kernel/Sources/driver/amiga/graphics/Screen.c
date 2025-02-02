@@ -14,7 +14,7 @@
 // \param pConfig the video configuration
 // \param pixelFormat the pixel format (must be supported by the config)
 // \return the screen or null
-errno_t Screen_Create(const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf)
+errno_t Screen_Create(const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Screen* self;
@@ -23,7 +23,7 @@ errno_t Screen_Create(const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonn
 
     Surface_Retain(srf);
     self->surface = srf;
-    self->screenConfig = vidCfg;
+    self->videoConfig = vidCfg;
     self->nullSprite = pNullSprite;
     self->clutEntryCount = (int16_t)MAX_CLUT_ENTRIES;
     self->flags = kScreenFlag_IsNewCopperProgNeeded;
@@ -123,7 +123,7 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPl
         return EBUSY;
     }
 
-    if ((err = Sprite_Create(pPlanes, height, self->screenConfig, &pSprite)) == EOK) {
+    if ((err = Sprite_Create(pPlanes, height, self->videoConfig, &pSprite)) == EOK) {
         Sprite_SetPosition(pSprite, x, y);
 
         self->sprite[priority] = pSprite;
@@ -204,13 +204,13 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
 {
     Surface* fb = self->surface;
     CopperInstruction* ip = pCode;
-    const ScreenConfiguration* cfg = self->screenConfig;
+    const VideoConfiguration* cfg = self->videoConfig;
     const uint16_t w = Surface_GetWidth(fb);
     const uint16_t h = Surface_GetHeight(fb);
     const uint16_t bpr = Surface_GetBytesPerRow(fb);
-    const bool isHires = ScreenConfiguration_IsHires(cfg);
-    const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
-    const bool isPal = ScreenConfiguration_IsPAL(cfg);
+    const bool isHires = VideoConfiguration_IsHires(cfg);
+    const bool isLace = VideoConfiguration_IsInterlaced(cfg);
+    const bool isPal = VideoConfiguration_IsPAL(cfg);
     const uint16_t ddfMod = isLace ? bpr : bpr - (w >> 3);
     const uint32_t firstLineByteOffset = isOddField ? 0 : ddfMod;
     const uint16_t lpen_bit = isLightPenEnabled ? BPLCON0F_LPEN : 0;

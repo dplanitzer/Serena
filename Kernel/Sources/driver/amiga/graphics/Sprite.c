@@ -11,12 +11,12 @@
 
 
 // Creates a sprite object.
-errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const ScreenConfiguration* _Nonnull cfg, Sprite* _Nonnull * _Nonnull pOutSelf)
+errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const VideoConfiguration* _Nonnull cfg, Sprite* _Nonnull * _Nonnull pOutSelf)
 {
     decl_try_err();
-    const bool isPal = ScreenConfiguration_IsPAL(cfg);
-    const bool isHires = ScreenConfiguration_IsHires(cfg);
-    const bool isLace = ScreenConfiguration_IsInterlaced(cfg);
+    const bool isPal = VideoConfiguration_IsPAL(cfg);
+    const bool isHires = VideoConfiguration_IsHires(cfg);
+    const bool isLace = VideoConfiguration_IsInterlaced(cfg);
     Sprite* self;
     
     try(kalloc_cleared(sizeof(Sprite), (void**) &self));

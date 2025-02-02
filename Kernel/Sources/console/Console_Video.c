@@ -29,16 +29,16 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     decl_try_err();
 
     // Create a suitable screen
-    const ScreenConfiguration* vidCfg;
+    const VideoConfiguration* vidCfg;
     if (chipset_is_ntsc()) {
-        vidCfg = &kScreenConfig_NTSC_640_200_60;
-        //vidCfg = &kScreenConfig_NTSC_640_400_30;
+        vidCfg = &kVideoConfig_NTSC_640_200_60;
+        //vidCfg = &kVideoConfig_NTSC_640_400_30;
     } else {
-        vidCfg = &kScreenConfig_PAL_640_256_50;
-        //vidCfg = &kScreenConfig_PAL_640_512_25;
+        vidCfg = &kVideoConfig_PAL_640_256_50;
+        //vidCfg = &kVideoConfig_PAL_640_512_25;
     }
-    const int pixelsWidth = ScreenConfiguration_GetPixelWidth(vidCfg);
-    const int pixelsHeight = ScreenConfiguration_GetPixelHeight(vidCfg);
+    const int pixelsWidth = VideoConfiguration_GetPixelWidth(vidCfg);
+    const int pixelsHeight = VideoConfiguration_GetPixelHeight(vidCfg);
 
     try(GraphicsDriver_CreateSurface(self->gdevice, pixelsWidth, pixelsHeight, kPixelFormat_RGB_Indexed3, &self->surface));
     try(GraphicsDriver_CreateScreen(self->gdevice, vidCfg, self->surface, &self->screen));
@@ -58,7 +58,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 
 
     // Allocate the text cursor (sprite)
-    const bool isLace = ScreenConfiguration_IsInterlaced(vidCfg) ? true : false;
+    const bool isLace = VideoConfiguration_IsInterlaced(vidCfg) ? true : false;
     const uint16_t* textCursorPlanes[2];
     textCursorPlanes[0] = (isLace) ? &gBlock4x4_Plane0[0] : &gBlock4x8_Plane0[0];
     textCursorPlanes[1] = (isLace) ? &gBlock4x4_Plane0[1] : &gBlock4x8_Plane0[1];

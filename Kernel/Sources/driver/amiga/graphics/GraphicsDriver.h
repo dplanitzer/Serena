@@ -13,7 +13,7 @@
 #include <driver/Driver.h>
 #include "Color.h"
 #include "Screen.h"
-#include "ScreenConfiguration.h"
+#include "VideoConfiguration.h"
 
 
 extern const char* const kFramebufferName;
@@ -41,10 +41,10 @@ extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surf
 
 
 // Screens
-extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen);
+extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen);
 extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
-extern const ScreenConfiguration* _Nonnull GraphicsDriver_GetScreenConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr);
+extern const VideoConfiguration* _Nonnull GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr);
 
 extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, RGBColor32 color);
 extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, size_t count, const RGBColor32* _Nonnull entries);

@@ -35,7 +35,7 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nul
     const uint16_t* nullSpritePlanes[2];
     nullSpritePlanes[0] = NULL;
     nullSpritePlanes[1] = NULL;
-    try(Sprite_Create(nullSpritePlanes, 0, &kScreenConfig_NTSC_320_200_60, &self->nullSprite));
+    try(Sprite_Create(nullSpritePlanes, 0, &kVideoConfig_NTSC_320_200_60, &self->nullSprite));
 
 
     // Initialize vblank tools
@@ -428,7 +428,7 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _N
 // MARK: Screens
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen)
+errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen)
 {
     Driver_Lock(self);
     const errno_t err = Screen_Create(vidCfg, srf, self->nullSprite, pOutScreen);
@@ -446,10 +446,10 @@ errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _N
     return EOK;
 }
 
-const ScreenConfiguration* _Nonnull GraphicsDriver_GetScreenConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr)
+const VideoConfiguration* _Nonnull GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr)
 {
     Driver_Lock(self);
-    const ScreenConfiguration* cfg = Screen_GetConfiguration(scr);
+    const VideoConfiguration* cfg = Screen_GetConfiguration(scr);
     Driver_Unlock(self);
     return cfg;
 }

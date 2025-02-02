@@ -13,7 +13,7 @@
 #include <klib/Types.h>
 #include "CopperProgram.h"
 #include "PixelFormat.h"
-#include "ScreenConfiguration.h"
+#include "VideoConfiguration.h"
 #include "Sprite.h"
 #include "Surface.h"
 
@@ -33,7 +33,7 @@ enum {
 
 
 typedef struct Screen {
-    const ScreenConfiguration* _Nonnull screenConfig;
+    const VideoConfiguration* _Nonnull  videoConfig;
     Sprite* _Nonnull                    nullSprite;
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
     Surface* _Nullable                  surface;        // The screen pixels
@@ -43,17 +43,17 @@ typedef struct Screen {
 } Screen;
 
 
-extern errno_t Screen_Create(const ScreenConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
+extern errno_t Screen_Create(const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Sprite* _Nonnull pNullSprite, Screen* _Nullable * _Nonnull pOutSelf);
 extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags |= kScreenFlag_IsNewCopperProgNeeded)
 
 #define Screen_GetConfiguration(__self) \
-((__self)->screenConfig)
+((__self)->videoConfig)
 
 #define Screen_IsInterlaced(__self) \
-ScreenConfiguration_IsInterlaced((__self)->screenConfig)
+VideoConfiguration_IsInterlaced((__self)->videoConfig)
 
 extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 

@@ -11,7 +11,7 @@
 
 #include <klib/Error.h>
 #include <klib/Types.h>
-#include "ScreenConfiguration.h"
+#include "VideoConfiguration.h"
 
 
 #define NUM_HARDWARE_SPRITES    8
@@ -31,7 +31,7 @@ typedef struct Sprite {
 } Sprite;
 
 
-extern errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const ScreenConfiguration* _Nonnull cfg, Sprite* _Nonnull * _Nonnull pOutSelf);
+extern errno_t Sprite_Create(const uint16_t* _Nonnull pPlanes[2], int height, const VideoConfiguration* _Nonnull cfg, Sprite* _Nonnull * _Nonnull pOutSelf);
 extern void Sprite_Destroy(Sprite* _Nullable self);
 
 extern void Sprite_SetPosition(Sprite* _Nonnull self, int x, int y);

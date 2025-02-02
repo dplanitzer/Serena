@@ -1,13 +1,13 @@
 //
-//  ScreenConfiguration.h
+//  VideoConfiguration.h
 //  kernel
 //
 //  Created by Dietmar Planitzer on 9/23/23.
 //  Copyright © 2023 Dietmar Planitzer. All rights reserved.
 //
 
-#ifndef ScreenConfiguration_h
-#define ScreenConfiguration_h
+#ifndef VideoConfiguration_h
+#define VideoConfiguration_h
 
 #include <klib/Types.h>
 #include "PixelFormat.h"
@@ -40,46 +40,46 @@
 #define MAX_LORES_WIDTH     368
 
 
-typedef struct ScreenConfiguration {
+typedef struct VideoConfiguration {
     int16_t     uniqueId;
     int16_t     width;
     int16_t     height;
     int8_t      fps;
     int8_t      pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
-} ScreenConfiguration;
+} VideoConfiguration;
 
 
 // The supported screen configurations
-extern const ScreenConfiguration kScreenConfig_NTSC_320_200_60;
-extern const ScreenConfiguration kScreenConfig_NTSC_640_200_60;
-extern const ScreenConfiguration kScreenConfig_NTSC_320_400_30;
-extern const ScreenConfiguration kScreenConfig_NTSC_640_400_30;
+extern const VideoConfiguration kVideoConfig_NTSC_320_200_60;
+extern const VideoConfiguration kVideoConfig_NTSC_640_200_60;
+extern const VideoConfiguration kVideoConfig_NTSC_320_400_30;
+extern const VideoConfiguration kVideoConfig_NTSC_640_400_30;
 
-extern const ScreenConfiguration kScreenConfig_PAL_320_256_50;
-extern const ScreenConfiguration kScreenConfig_PAL_640_256_50;
-extern const ScreenConfiguration kScreenConfig_PAL_320_512_25;
-extern const ScreenConfiguration kScreenConfig_PAL_640_512_25;
+extern const VideoConfiguration kVideoConfig_PAL_320_256_50;
+extern const VideoConfiguration kVideoConfig_PAL_640_256_50;
+extern const VideoConfiguration kVideoConfig_PAL_320_512_25;
+extern const VideoConfiguration kVideoConfig_PAL_640_512_25;
 
-#define ScreenConfiguration_GetPixelWidth(__self) \
+#define VideoConfiguration_GetPixelWidth(__self) \
 ((__self)->width)
 
-#define ScreenConfiguration_GetPixelHeight(__self) \
+#define VideoConfiguration_GetPixelHeight(__self) \
 ((__self)->height)
 
-#define ScreenConfiguration_GetRefreshRate(__self) \
+#define VideoConfiguration_GetRefreshRate(__self) \
 ((__self)->fps)
 
-#define ScreenConfiguration_IsInterlaced(__self) \
+#define VideoConfiguration_IsInterlaced(__self) \
 (((__self)->height > MAX_PAL_HEIGHT) ? true : false)
 
-#define ScreenConfiguration_IsHires(__self) \
+#define VideoConfiguration_IsHires(__self) \
 (((__self)->width > MAX_LORES_WIDTH) ? true : false)
 
-#define ScreenConfiguration_IsPAL(__self) \
+#define VideoConfiguration_IsPAL(__self) \
 (((__self)->fps == 25 || (__self)->fps == 50) ? true : false)
 
-#define ScreenConfiguration_IsNTSC(__self) \
+#define VideoConfiguration_IsNTSC(__self) \
 (((__self)->fps == 30 || (__self)->fps == 60) ? true : false)
 
-#endif /* ScreenConfiguration_h */
+#endif /* VideoConfiguration_h */
