@@ -11,20 +11,14 @@
 
 #include <klib/klib.h>
 #include <driver/Driver.h>
+#include <System/Framebuffer.h>
 #include "Color.h"
-#include "PixelFormat.h"
 #include "Screen.h"
 #include "VideoConfiguration.h"
 
 
 extern const char* const kFramebufferName;
 
-
-typedef struct SurfaceInfo {
-    int         width;
-    int         height;
-    PixelFormat pixelFormat;
-} SurfaceInfo;
 
 final_class(GraphicsDriver, Driver);
 
@@ -60,7 +54,7 @@ extern errno_t GraphicsDriver_SetSpriteVisible(GraphicsDriverRef _Nonnull self, 
 
 // Display
 extern errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int screenId);
-extern Screen* _Nullable GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self);
+extern int GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self);
 
 extern errno_t GraphicsDriver_UpdateDisplay(GraphicsDriverRef _Nonnull self);
 extern Size GraphicsDriver_GetDisplaySize(GraphicsDriverRef _Nonnull self);

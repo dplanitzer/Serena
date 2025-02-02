@@ -24,8 +24,8 @@ errno_t Screen_Create(int id, const VideoConfiguration* _Nonnull vidCfg, Surface
     Surface_BeginUse(srf);
     self->id = id;
     self->surface = srf;
-    self->videoConfig = vidCfg;
     self->nullSprite = pNullSprite;
+    self->vidConfig = *vidCfg;
     self->clutEntryCount = (int16_t)MAX_CLUT_ENTRIES;
     self->flags = kScreenFlag_IsNewCopperProgNeeded;
     
@@ -126,7 +126,7 @@ errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPl
         return EBUSY;
     }
 
-    if ((err = Sprite_Create(pPlanes, height, self->videoConfig, &pSprite)) == EOK) {
+    if ((err = Sprite_Create(pPlanes, height, &self->vidConfig, &pSprite)) == EOK) {
         Sprite_SetPosition(pSprite, x, y);
 
         self->sprite[priority] = pSprite;
@@ -207,7 +207,7 @@ CopperInstruction* _Nonnull Screen_MakeCopperProgram(Screen* _Nonnull self, Copp
 {
     Surface* fb = self->surface;
     CopperInstruction* ip = pCode;
-    const VideoConfiguration* cfg = self->videoConfig;
+    const VideoConfiguration* cfg = &self->vidConfig;
     const uint16_t w = Surface_GetWidth(fb);
     const uint16_t h = Surface_GetHeight(fb);
     const uint16_t bpr = Surface_GetBytesPerRow(fb);

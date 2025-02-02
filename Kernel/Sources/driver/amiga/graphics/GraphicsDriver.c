@@ -37,7 +37,9 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nul
     const uint16_t* nullSpritePlanes[2];
     nullSpritePlanes[0] = NULL;
     nullSpritePlanes[1] = NULL;
-    try(Sprite_Create(nullSpritePlanes, 0, &kVideoConfig_NTSC_320_200_60, &self->nullSprite));
+    VideoConfiguration vc;
+    vc.width = 320; vc.height = 200; vc.fps = 60;
+    try(Sprite_Create(nullSpritePlanes, 0, &vc, &self->nullSprite));
 
 
     // Initialize vblank tools
@@ -72,6 +74,69 @@ void GraphicsDriver_VerticalBlankInterruptHandler(GraphicsDriverRef _Nonnull sel
 static errno_t GraphicsDriver_onStart(DriverRef _Nonnull _Locked self)
 {
     return Driver_Publish(self, kFramebufferName, 0);
+}
+
+errno_t GraphicsDriver_ioctl(GraphicsDriverRef _Nonnull self, int cmd, va_list ap)
+{
+    switch (cmd) {
+        case kFBCommand_CreateSurface:
+            return GraphicsDriver_CreateSurface(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, PixelFormat), va_arg(ap, int*));
+
+        case kFBCommand_DestroySurface:
+            return GraphicsDriver_DestroySurface(self, va_arg(ap, int));
+
+        case kFBCommand_GetSurfaceInfo:
+            return GraphicsDriver_GetSurfaceInfo(self, va_arg(ap, int), va_arg(ap, SurfaceInfo*));
+
+        case kFBCommand_MapSurface:
+            return GraphicsDriver_MapSurface(self, va_arg(ap, int), va_arg(ap, MapPixels), va_arg(ap, SurfaceMapping*));
+
+        case kFBCommand_UnmapSurface:
+            return GraphicsDriver_UnmapSurface(self, va_arg(ap, int));
+
+
+        case kFBCommand_CreateScreen:
+            return GraphicsDriver_CreateScreen(self, va_arg(ap, const VideoConfiguration*), va_arg(ap, int), va_arg(ap, int*));
+
+        case kFBCommand_DestroyScreen:
+            return GraphicsDriver_DestroyScreen(self, va_arg(ap, int));
+
+        case kFBCommand_SetCLUTEntries:
+            return GraphicsDriver_SetCLUTEntries(self, va_arg(ap, int), va_arg(ap, size_t), va_arg(ap, size_t), va_arg(ap, const RGBColor32*));
+
+        case kFBCommand_AcquireSprite:
+            return GraphicsDriver_AcquireSprite(self, va_arg(ap, int), va_arg(ap, const uint16_t**), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int*));
+
+        case kFBCommand_RelinquishSprite:
+            return GraphicsDriver_RelinquishSprite(self, va_arg(ap, int), va_arg(ap, int));
+
+        case kFBCommand_SetSpritePosition:
+            return GraphicsDriver_SetSpritePosition(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
+
+        case kFBCommand_SetSpriteVisible:
+            return GraphicsDriver_SetSpriteVisible(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, bool));
+
+
+        case kFBCommand_SetCurrentScreen:
+            return GraphicsDriver_SetCurrentScreen(self, va_arg(ap, int));
+
+        case kFBCommand_GetCurrentScreen:
+            return GraphicsDriver_GetCurrentScreen(self);
+
+        case kFBCommand_UpdateDisplay:
+            return GraphicsDriver_UpdateDisplay(self);
+
+        case kFBCommand_ShieldMouseCursor:
+            GraphicsDriver_ShieldMouseCursor(self, va_arg(ap, int), va_arg(ap, int), va_arg(ap, int), va_arg(ap, int));
+            return EOK;
+
+        case kFBCommand_UnshieldMouseCursor:
+            GraphicsDriver_UnshieldMouseCursor(self);
+            return EOK;
+
+        default:
+            return super_n(ioctl, Driver, GraphicsDriver, self, cmd, ap);
+    }
 }
 
 
@@ -274,12 +339,12 @@ errno_t GraphicsDriver_SetCurrentScreen(GraphicsDriverRef _Nonnull self, int scr
     return err;
 }
 
-Screen* _Nullable GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self)
+int GraphicsDriver_GetCurrentScreen(GraphicsDriverRef _Nonnull self)
 {
     Driver_Lock(self);
-    Screen* scr = self->screen;
+    int id = (self->screen) ? Surface_GetId(self->screen) : 0;
     Driver_Unlock(self);
-    return scr;
+    return id;
 }
 
 // Triggers an update of the display so that it accurately reflects the current
@@ -539,20 +604,23 @@ static Screen* _Nullable _GraphicsDriver_GetScreenForId(GraphicsDriverRef _Nonnu
 errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, int* _Nonnull pOutId)
 {
     decl_try_err();
+    Surface* srf;
+    Screen* scr;
 
     Driver_Lock(self);
-    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
-    Screen* scr;
-    
-    if (srf) {
-        err = Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, self->nullSprite, &scr);
-        if (err == EOK) {
-            List_InsertBeforeFirst(&self->screens, &scr->chain);
-            *pOutId = Screen_GetId(scr);
+    err = VideoConfiguration_Validate(vidCfg);
+    if (err == EOK) {
+        srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
+        if (srf) {
+            err = Screen_Create(_GraphicsDriver_GetNewScreenId(self), vidCfg, srf, self->nullSprite, &scr);
+            if (err == EOK) {
+                List_InsertBeforeFirst(&self->screens, &scr->chain);
+                *pOutId = Screen_GetId(scr);
+            }
         }
-    }
-    else {
-        err = EINVAL;
+        else {
+            err = EINVAL;
+        }
     }
     Driver_Unlock(self);
     return err;
@@ -585,7 +653,7 @@ errno_t GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, in
     decl_try_err();
     Screen* scr = _GraphicsDriver_GetScreenForId(self, id);
     if (scr) {
-        *pOutVidConfig = *Screen_GetConfiguration(scr);
+        *pOutVidConfig = *Screen_GetVideoConfiguration(scr);
     }
     else {
         err = EINVAL;
@@ -761,4 +829,5 @@ void GraphicsDriver_UnshieldMouseCursor(GraphicsDriverRef _Nonnull self)
 
 class_func_defs(GraphicsDriver, Driver,
 override_func_def(onStart, GraphicsDriver, Driver)
+override_func_def(ioctl, GraphicsDriver, Driver)
 );

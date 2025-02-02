@@ -12,21 +12,8 @@
 #include <klib/Error.h>
 #include <klib/Types.h>
 #include <klib/List.h>
+#include <System/Framebuffer.h>
 #include "Color.h"
-#include "PixelFormat.h"
-
-
-// Specifies what you want to do with the pixels when you call LockPixels()
-typedef enum MapPixels {
-    kMapPixels_Read,
-    kMapPixels_ReadWrite
-} MapPixels;
-
-typedef struct SurfaceMapping {
-    void* _Nonnull  plane[8];
-    size_t          bytesPerRow[8];
-    size_t _Nonnull planeCount;
-} SurfaceMapping;
 
 
 #define MAX_PLANE_COUNT  6

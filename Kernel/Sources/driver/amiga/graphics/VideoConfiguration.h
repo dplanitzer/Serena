@@ -10,7 +10,7 @@
 #define VideoConfiguration_h
 
 #include <klib/Types.h>
-#include "PixelFormat.h"
+#include <System/Framebuffer.h>
 
 
 #define MAX_CLUT_ENTRIES    32
@@ -40,26 +40,27 @@
 #define MAX_LORES_WIDTH     368
 
 
-typedef struct VideoConfiguration {
-    int16_t     uniqueId;
+typedef struct VideoConfigurationRange {
     int16_t     width;
     int16_t     height;
     int8_t      fps;
     int8_t      pixelFormatCount;   // Number of supported pixel formats
     PixelFormat pixelFormat[MAX_PIXEL_FORMATS_PER_VIDEO_CONFIGURATION];
-} VideoConfiguration;
+} VideoConfigurationRange;
 
 
 // The supported screen configurations
-extern const VideoConfiguration kVideoConfig_NTSC_320_200_60;
-extern const VideoConfiguration kVideoConfig_NTSC_640_200_60;
-extern const VideoConfiguration kVideoConfig_NTSC_320_400_30;
-extern const VideoConfiguration kVideoConfig_NTSC_640_400_30;
+extern const VideoConfigurationRange kVideoConfig_NTSC_320_200_60;
+extern const VideoConfigurationRange kVideoConfig_NTSC_640_200_60;
+extern const VideoConfigurationRange kVideoConfig_NTSC_320_400_30;
+extern const VideoConfigurationRange kVideoConfig_NTSC_640_400_30;
 
-extern const VideoConfiguration kVideoConfig_PAL_320_256_50;
-extern const VideoConfiguration kVideoConfig_PAL_640_256_50;
-extern const VideoConfiguration kVideoConfig_PAL_320_512_25;
-extern const VideoConfiguration kVideoConfig_PAL_640_512_25;
+extern const VideoConfigurationRange kVideoConfig_PAL_320_256_50;
+extern const VideoConfigurationRange kVideoConfig_PAL_640_256_50;
+extern const VideoConfigurationRange kVideoConfig_PAL_320_512_25;
+extern const VideoConfigurationRange kVideoConfig_PAL_640_512_25;
+
+
 
 #define VideoConfiguration_GetPixelWidth(__self) \
 ((__self)->width)
@@ -81,5 +82,7 @@ extern const VideoConfiguration kVideoConfig_PAL_640_512_25;
 
 #define VideoConfiguration_IsNTSC(__self) \
 (((__self)->fps == 30 || (__self)->fps == 60) ? true : false)
+
+extern errno_t VideoConfiguration_Validate(const VideoConfiguration* _Nonnull cfg);
 
 #endif /* VideoConfiguration_h */

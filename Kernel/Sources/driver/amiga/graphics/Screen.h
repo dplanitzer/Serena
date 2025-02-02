@@ -13,7 +13,6 @@
 #include <klib/List.h>
 #include <klib/Types.h>
 #include "CopperProgram.h"
-#include "PixelFormat.h"
 #include "VideoConfiguration.h"
 #include "Sprite.h"
 #include "Surface.h"
@@ -35,15 +34,15 @@ enum {
 
 
 typedef struct Screen {
-    ListNode                            chain;
-    const VideoConfiguration* _Nonnull  videoConfig;
-    Sprite* _Nonnull                    nullSprite;
-    Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
-    Surface* _Nullable                  surface;        // The screen pixels
-    CLUTEntry* _Nullable                clut;           // The screen color lookup table
-    int16_t                             clutEntryCount;
-    uint16_t                            flags;
-    int                                 id;
+    ListNode                chain;
+    Sprite* _Nonnull        nullSprite;
+    Sprite* _Nonnull        sprite[NUM_HARDWARE_SPRITES];
+    Surface* _Nullable      surface;        // The screen pixels
+    CLUTEntry* _Nullable    clut;           // The screen color lookup table
+    int16_t                 clutEntryCount;
+    uint16_t                flags;
+    VideoConfiguration      vidConfig;
+    int                     id;
 } Screen;
 
 
@@ -56,11 +55,11 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 #define Screen_SetNeedsUpdate(__self) \
 ((__self)->flags |= kScreenFlag_IsNewCopperProgNeeded)
 
-#define Screen_GetConfiguration(__self) \
-((__self)->videoConfig)
+#define Screen_GetVideoConfiguration(__self) \
+(&(__self)->vidConfig)
 
 #define Screen_IsInterlaced(__self) \
-VideoConfiguration_IsInterlaced((__self)->videoConfig)
+VideoConfiguration_IsInterlaced(&(__self)->vidConfig)
 
 #define Screen_SetVisible(__self, __flag) \
 if (__flag) { \

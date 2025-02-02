@@ -10,6 +10,23 @@
 #include <klib/Kalloc.h>
 
 
+// Returns how many planes are needed to store a pixel in the given pixel format.
+// Returns 1 if the pixel format is a direct pixel format.
+static int8_t PixelFormat_GetPlaneCount(PixelFormat format)
+{
+    switch (format) {
+        case kPixelFormat_RGB_Indexed1:
+        case kPixelFormat_RGB_Indexed2:
+        case kPixelFormat_RGB_Indexed3:
+        case kPixelFormat_RGB_Indexed4:
+        case kPixelFormat_RGB_Indexed5:
+            return format + 1;
+
+        default:
+            return 1;
+    }
+}
+
 // Allocates a new surface with the given pixel width and height and pixel
 // format.
 // \param width the width in pixels
@@ -34,7 +51,7 @@ errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, S
     self->height = height;
     self->bytesPerRow = ((width + 15) >> 4) << 1;       // Must be a multiple of at least words (16bits)
     self->bytesPerPlane = self->bytesPerRow * height;
-    self->planeCount = (int8_t)PixelFormat_GetPlaneCount(pixelFormat);
+    self->planeCount = PixelFormat_GetPlaneCount(pixelFormat);
 
     // Allocate the planes. Note that we try to cluster the planes whenever possible.
     // This means that we allocate a single contiguous memory range big enough to
