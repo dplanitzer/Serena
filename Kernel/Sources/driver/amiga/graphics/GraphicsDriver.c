@@ -363,6 +363,101 @@ bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t
 
 ////////////////////////////////////////////////////////////////////////////////
 // MARK: -
+// MARK: Surfaces
+////////////////////////////////////////////////////////////////////////////////
+
+errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
+{
+    Driver_Lock(self);
+    const errno_t err = Surface_Create(width, height, pixelFormat, pOutSurface);
+    Driver_Unlock(self);
+    return err;
+}
+
+errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf)
+{
+    Driver_Lock(self);
+    Surface_Destroy(srf);
+    Driver_Unlock(self);
+    return EOK;
+}
+
+errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, SurfaceInfo* _Nonnull pOutInfo)
+{
+    Driver_Lock(self);
+    pOutInfo->width = Surface_GetWidth(srf);
+    pOutInfo->height = Surface_GetHeight(srf);
+    pOutInfo->pixelFormat = Surface_GetPixelFormat(srf);
+    Driver_Unlock(self);
+    return EOK;
+}
+
+errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (srf) {
+        err = Surface_Map(srf, mode, pOutInfo);
+    }
+    else {
+        err = ENOTSUP;
+    }
+    Driver_Unlock(self);
+    return err;
+}
+
+errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (srf) {
+        err = Surface_Unmap(srf);
+    }
+    else {
+        err = ENOTSUP;
+    }
+    Driver_Unlock(self);
+    return err;
+}
+
+// Writes the given RGB color to the color register at index idx
+errno_t GraphicsDriver_SetSurfaceCLUTEntry(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, size_t idx, RGBColor32 color)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (srf) {
+        err = Surface_SetCLUTEntry(srf, idx, color);
+    }
+    else {
+        err = ENOTSUP;
+    }
+    Driver_Unlock(self);
+    return err;
+}
+
+// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
+// to the colors in the array 'entries'.
+errno_t GraphicsDriver_SetSurfaceCLUTEntries(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    if (srf) {
+        err = Surface_SetCLUTEntries(srf, idx, count, entries);
+    }
+    else {
+        err = ENOTSUP;
+    }
+    Driver_Unlock(self);
+    return err;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// MARK: -
 // MARK: Screens
 ////////////////////////////////////////////////////////////////////////////////
 

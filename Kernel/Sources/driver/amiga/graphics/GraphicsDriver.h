@@ -19,10 +19,29 @@
 extern const char* const kFramebufferName;
 
 
+typedef struct SurfaceInfo {
+    int         width;
+    int         height;
+    PixelFormat pixelFormat;
+} SurfaceInfo;
+
 final_class(GraphicsDriver, Driver);
 
 
 extern errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
+
+// Surfaces
+extern errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
+extern errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf);
+
+extern errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, SurfaceInfo* _Nonnull pOutInfo);
+
+extern errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, MappingInfo* _Nonnull pOutInfo);
+extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf);
+
+extern errno_t GraphicsDriver_SetSurfaceCLUTEntry(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, size_t idx, RGBColor32 color);
+extern errno_t GraphicsDriver_SetSurfaceCLUTEntries(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
+
 
 // Screens
 extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const ScreenConfiguration* _Nonnull pConfig, PixelFormat pixelFormat, Screen* _Nullable * _Nonnull pOutScreen);

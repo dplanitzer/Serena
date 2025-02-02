@@ -59,18 +59,9 @@ errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color)
 {
     decl_try_err();
 
-    // Need to be able to access all CLUT entries in a screen even if the screen
-    // supports < MAX_CLUT_ENTRIES (because of sprites).
-    if (idx < MAX_CLUT_ENTRIES) {
-        CLUTEntry* ep = Surface_GetCLUTEntry(self->surface, idx);
-
-        ep->r = RGBColor32_GetRed(color);
-        ep->g = RGBColor32_GetGreen(color);
-        ep->b = RGBColor32_GetBlue(color);
+    err = Surface_SetCLUTEntry(self->surface, idx, color);
+    if (err == EOK) {
         Screen_SetNeedsUpdate(self);
-    }
-    else {
-        err = EINVAL;
     }
 
     return err;
@@ -80,19 +71,10 @@ errno_t Screen_SetCLUTEntry(Screen* _Nonnull self, size_t idx, RGBColor32 color)
 // to the colors in the array 'entries'.
 errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
 {
-    if (idx + count > MAX_CLUT_ENTRIES) {
-        return EINVAL;
-    }
+    decl_try_err();
 
-    if (count > 0) {
-        for (size_t i = 0; i < count; i++) {
-            const RGBColor32 color = entries[i];
-            CLUTEntry* ep = Surface_GetCLUTEntry(self->surface, idx + i);
-
-            ep->r = RGBColor32_GetRed(color);
-            ep->g = RGBColor32_GetGreen(color);
-            ep->b = RGBColor32_GetBlue(color);
-        }
+    err = Surface_SetCLUTEntries(self->surface, idx, count, entries);
+    if (err == EOK) {
         Screen_SetNeedsUpdate(self);
     }
 
@@ -106,32 +88,12 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
 // \return EOK if the screen pixels could be locked; EBUSY otherwise
 errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
 {
-    if (!self->flags.isSurfaceLocked) {
-        size_t planeCount = self->surface->planeCount;
-
-        for (size_t i = 0; i < planeCount; i++) {
-            pOutInfo->plane[i] = self->surface->plane[i];
-            pOutInfo->bytesPerRow[i] = self->surface->bytesPerRow;
-        }
-        pOutInfo->planeCount = planeCount;
-
-        self->flags.isSurfaceLocked = 1;
-        return EOK;
-    }
-    else {
-        return EBUSY;
-    }
+    return Surface_Map(self->surface, mode, pOutInfo);
 }
 
 errno_t Screen_Unmap(Screen* _Nonnull self)
 {
-    if (self->flags.isSurfaceLocked) {
-        self->flags.isSurfaceLocked = 0;
-        return EOK;
-    }
-    else {
-        return EPERM;
-    }
+    return Surface_Unmap(self->surface);
 }
 
 errno_t Screen_AcquireSprite(Screen* _Nonnull self, const uint16_t* _Nonnull pPlanes[2], int x, int y, int width, int height, int priority, int* _Nonnull pOutSpriteId)

@@ -18,19 +18,6 @@
 #include "Surface.h"
 
 
-// Specifies what you want to do with the pixels when you call LockPixels()
-typedef enum MapPixels {
-    kMapPixels_Read,
-    kMapPixels_ReadWrite
-} MapPixels;
-
-typedef struct MappingInfo {
-    void* _Nonnull  plane[8];
-    size_t          bytesPerRow[8];
-    size_t _Nonnull planeCount;
-} MappingInfo;
-
-
 typedef struct Screen {
     Surface* _Nullable                  surface;        // the screen framebuffer
     const ScreenConfiguration* _Nonnull screenConfig;
@@ -39,8 +26,7 @@ typedef struct Screen {
     Sprite* _Nonnull                    sprite[NUM_HARDWARE_SPRITES];
     struct __ScreenFlags {
         unsigned int        isNewCopperProgNeeded:1;
-        unsigned int        isSurfaceLocked:1;
-        unsigned int        reserved:30;
+        unsigned int        reserved:31;
     }                                   flags;
 } Screen;
 

@@ -96,3 +96,77 @@ void Surface_Destroy(Surface* _Nullable self)
         kfree(self);
     }
 }
+
+// Writes the given RGB color to the color register at index idx
+errno_t Surface_SetCLUTEntry(Surface* _Nonnull self, size_t idx, RGBColor32 color)
+{
+    decl_try_err();
+
+    if (idx < self->clutEntryCount) {
+        CLUTEntry* ep = Surface_GetCLUTEntry(self, idx);
+
+        ep->r = RGBColor32_GetRed(color);
+        ep->g = RGBColor32_GetGreen(color);
+        ep->b = RGBColor32_GetBlue(color);
+    }
+    else {
+        err = EINVAL;
+    }
+
+    return err;
+}
+
+// Sets the contents of 'count' consecutive CLUT entries starting at index 'idx'
+// to the colors in the array 'entries'.
+errno_t Surface_SetCLUTEntries(Surface* _Nonnull self, size_t idx, size_t count, const RGBColor32* _Nonnull entries)
+{
+    if (idx + count > self->clutEntryCount) {
+        return EINVAL;
+    }
+
+    if (count > 0) {
+        for (size_t i = 0; i < count; i++) {
+            const RGBColor32 color = entries[i];
+            CLUTEntry* ep = Surface_GetCLUTEntry(self, idx + i);
+
+            ep->r = RGBColor32_GetRed(color);
+            ep->g = RGBColor32_GetGreen(color);
+            ep->b = RGBColor32_GetBlue(color);
+        }
+    }
+
+    return EOK;
+}
+
+// Maps the surface pixels for access. 'mode' specifies whether the pixels
+// will be read, written or both.
+// \param self the screen
+// \param mode the mapping mode
+// \return EOK if the screen pixels could be locked; EBUSY otherwise
+errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
+{
+    if ((self->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped) {
+        return EBUSY;
+    }
+
+    const size_t planeCount = self->planeCount;
+
+    for (size_t i = 0; i < planeCount; i++) {
+        pOutInfo->plane[i] = self->plane[i];
+        pOutInfo->bytesPerRow[i] = self->bytesPerRow;
+    }
+    pOutInfo->planeCount = planeCount;
+
+    self->flags |= kSurfaceFlag_IsMapped;
+    return EOK;
+}
+
+errno_t Surface_Unmap(Surface* _Nonnull self)
+{
+    if ((self->flags & kSurfaceFlag_IsMapped) == 0) {
+        return EPERM;
+    }
+
+    self->flags &= ~kSurfaceFlag_IsMapped;
+    return EOK;
+}
