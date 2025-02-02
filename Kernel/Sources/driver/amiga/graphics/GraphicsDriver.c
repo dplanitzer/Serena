@@ -409,16 +409,13 @@ Size GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, Screen* _Null
     return siz;
 }
 
-errno_t GraphicsDriver_LockScreenPixels(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount)
+errno_t GraphicsDriver_MapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
 {
     decl_try_err();
 
     Driver_Lock(self);
     if (scr) {
-        err = Screen_LockPixels(scr, access, plane, bytesPerRow, planeCount);
-        if (err == EOK) {
-            MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(0, 0, scr->surface->width, scr->surface->height));
-        }
+        err = Screen_Map(scr, mode, pOutInfo);
     }
     else {
         err = ENOTSUP;
@@ -427,14 +424,13 @@ errno_t GraphicsDriver_LockScreenPixels(GraphicsDriverRef _Nonnull self, Screen*
     return err;
 }
 
-errno_t GraphicsDriver_UnlockScreenPixels(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr)
+errno_t GraphicsDriver_UnmapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr)
 {
     decl_try_err();
 
     Driver_Lock(self);
     if (scr) {
-        MousePainter_UnshieldCursor(&self->mousePainter);
-        err = Screen_UnlockPixels(scr);
+        err = Screen_Unmap(scr);
     }
     else {
         err = ENOTSUP;
@@ -583,6 +579,22 @@ void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, Poin
 void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t x, int16_t y)
 {
     MousePainter_SetPosition_VerticalBlank(&self->mousePainter, x, y);
+}
+
+void GraphicsDriver_ShieldMouseCursor(GraphicsDriverRef _Nonnull self, int x, int y, int width, int height)
+{
+    Driver_Lock(self);
+    MousePainter_ShieldCursor(&self->mousePainter, Rect_Make(x, y, width, height));
+    Driver_Unlock(self);
+}
+
+void GraphicsDriver_UnshieldMouseCursor(GraphicsDriverRef _Nonnull self)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    MousePainter_UnshieldCursor(&self->mousePainter);
+    Driver_Unlock(self);
 }
 
 

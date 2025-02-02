@@ -24,7 +24,7 @@ static const RGBColor32 gANSIColors[8] = {
 
 
 // Initializes the video subsystem
-errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
+errno_t Console_InitVideo(ConsoleRef _Nonnull self)
 {
     decl_try_err();
 
@@ -49,8 +49,8 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
 
 
     // Get the framebuffer size
-    self->gc.pixelsWidth = ScreenConfiguration_GetPixelWidth(vidCfg);
-    self->gc.pixelsHeight = ScreenConfiguration_GetPixelHeight(vidCfg);
+    self->pixelsWidth = ScreenConfiguration_GetPixelWidth(vidCfg);
+    self->pixelsHeight = ScreenConfiguration_GetPixelHeight(vidCfg);
 
 
     // Allocate the text cursor (sprite)
@@ -70,14 +70,17 @@ errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self)
     self->flags.isTextCursorSingleCycleOn = false;
 
     try(GraphicsDriver_UpdateDisplay(self->gdevice));
+    try(GraphicsDriver_MapScreen(self->gdevice, self->screen, kMapPixels_ReadWrite, &self->pixels));
 
 catch:
     return err;
 }
 
 // Deinitializes the video output subsystem
-void Console_DeinitVideoOutput(ConsoleRef _Nonnull self)
+void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
+    GraphicsDriver_UnmapScreen(self->gdevice, self->screen);
+
     GraphicsDriver_SetCurrentScreen(self->gdevice, NULL);
 
     GraphicsDriver_RelinquishSprite(self->gdevice, self->screen, self->textCursor);
@@ -178,24 +181,24 @@ void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self)
 }
 
 
-errno_t Console_BeginDrawing_Locked(ConsoleRef _Nonnull self)
+void Console_BeginDrawing_Locked(ConsoleRef _Nonnull self)
 {
-    return GraphicsDriver_LockScreenPixels(self->gdevice, self->screen, kPixelAccess_ReadWrite, (void**)self->gc.plane, self->gc.bytesPerRow, &self->gc.planeCount);
+    GraphicsDriver_ShieldMouseCursor(self->gdevice, 0, 0, INT_MAX, INT_MAX);
 }
 
 void Console_EndDrawing_Locked(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_UnlockScreenPixels(self->gdevice, self->screen);
+    GraphicsDriver_UnshieldMouseCursor(self->gdevice);
 }
 
 static void Console_DrawGlyphBitmap_Locked(ConsoleRef _Nonnull self, const uint8_t* _Nonnull pSrc, int xc, int yc, const Color* _Nonnull fgColor, const Color* _Nonnull bgColor)
 {
-    for (size_t p = 0; p < self->gc.planeCount; p++) {
+    for (size_t p = 0; p < self->pixels.planeCount; p++) {
         const int_fast8_t fgOne = fgColor->u.index & (1 << p);
         const int_fast8_t bgOne = bgColor->u.index & (1 << p);
-        register const size_t bytesPerRow = self->gc.bytesPerRow[p];
+        register const size_t bytesPerRow = self->pixels.bytesPerRow[p];
         register const uint8_t* sp = pSrc;
-        register uint8_t* dp = self->gc.plane[p] + (yc << 3) * bytesPerRow + xc;
+        register uint8_t* dp = (uint8_t*)self->pixels.plane[p] + (yc << 3) * bytesPerRow + xc;
 
         if (fgOne && !bgOne) {
             *dp = *sp++;    dp += bytesPerRow;
@@ -242,8 +245,8 @@ static void Console_DrawGlyphBitmap_Locked(ConsoleRef _Nonnull self, const uint8
 
 void Console_DrawGlyph_Locked(ConsoleRef _Nonnull self, char glyph, int xc, int yc)
 {
-    const int maxX = self->gc.pixelsWidth >> 3;
-    const int maxY = self->gc.pixelsHeight >> 3;
+    const int maxX = self->pixelsWidth >> 3;
+    const int maxY = self->pixelsHeight >> 3;
     
     if (xc >= 0 && yc >= 0 && xc < maxX && yc < maxY) {
         if (self->characterRendition.isHidden) {
@@ -284,7 +287,7 @@ void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Point dstLo
     xOffset <<= 3;
     yOffset <<= 3;
 
-    for(size_t p = 0; p < self->gc.planeCount; p++) {
+    for(size_t p = 0; p < self->pixels.planeCount; p++) {
         for (int dst_y = dst_r.top; dst_y < dst_r.bottom; dst_y++) {
             const int src_y = dst_y - yOffset;
 
@@ -297,9 +300,9 @@ void Console_CopyRect_Locked(ConsoleRef _Nonnull self, Rect srcRect, Point dstLo
             const int src_w = (src_rx - src_lx) >> 3;
             const int dst_w = (dst_r.right - dst_r.left) >> 3;
             const size_t w = __min(src_w, dst_w);
-            const size_t rowbytes = self->gc.bytesPerRow[p];
-            const uint8_t* sp = self->gc.plane[p] + src_y * rowbytes + (src_lx >> 3);
-            uint8_t* dp = self->gc.plane[p] + dst_y * rowbytes + (dst_r.left >> 3);
+            const size_t rowbytes = self->pixels.bytesPerRow[p];
+            const uint8_t* sp = (const uint8_t*)self->pixels.plane[p] + src_y * rowbytes + (src_lx >> 3);
+            uint8_t* dp = (uint8_t*)self->pixels.plane[p] + dst_y * rowbytes + (dst_r.left >> 3);
 
             memmove(dp, sp, w);
         }
@@ -324,11 +327,11 @@ void Console_FillRect_Locked(ConsoleRef _Nonnull self, Rect rect, char ch)
         r.top <<= 3;
         r.bottom <<= 3;
 
-        for (size_t p = 0; p < self->gc.planeCount; p++) {
+        for (size_t p = 0; p < self->pixels.planeCount; p++) {
             const int bgOne = (bgColor->u.index & (1 << p)) ? 0xff : 0;
-            const size_t rowbytes = self->gc.bytesPerRow[p];
+            const size_t rowbytes = self->pixels.bytesPerRow[p];
             const size_t w = (r.right - r.left) >> 3;
-            uint8_t* lp = self->gc.plane[p] + r.top * rowbytes + (r.left >> 3);
+            uint8_t* lp = (uint8_t*)self->pixels.plane[p] + r.top * rowbytes + (r.left >> 3);
 
             for (int y = r.top; y < r.bottom; y++) {
                 memset(lp, bgOne, w);

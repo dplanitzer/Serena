@@ -146,16 +146,6 @@ typedef struct SavedState {
 } SavedState;
 
 
-// Drawing state set up by BeginDrawing() and valid until EndDrawing()
-typedef struct GraphicsContext {
-    uint8_t* _Nullable  plane[8];
-    size_t              bytesPerRow[8];
-    size_t              planeCount;
-    int                 pixelsWidth;
-    int                 pixelsHeight;
-} GraphicsContext;
-
-
 // The console object.
 final_class_ivars(Console, Driver,
     Lock                        lock;
@@ -176,7 +166,9 @@ final_class_ivars(Console, Driver,
     int                         x;
     int                         y;
     SavedState                  savedCursorState;
-    GraphicsContext             gc;
+    MappingInfo                 pixels;
+    int                         pixelsWidth;
+    int                         pixelsHeight;
     int                         textCursor;
     CompatibilityMode           compatibilityMode;
     struct {
@@ -192,8 +184,8 @@ final_class_ivars(Console, Driver,
 
 
 
-extern errno_t Console_InitVideoOutput(ConsoleRef _Nonnull self);
-extern void Console_DeinitVideoOutput(ConsoleRef _Nonnull self);
+extern errno_t Console_InitVideo(ConsoleRef _Nonnull self);
+extern void Console_DeinitVideo(ConsoleRef _Nonnull self);
 
 extern void Console_SetForegroundColor_Locked(ConsoleRef _Nonnull self, Color color);
 extern void Console_SetBackgroundColor_Locked(ConsoleRef _Nonnull self, Color color);
@@ -209,7 +201,7 @@ extern void Console_SetCursorVisible_Locked(ConsoleRef _Nonnull self, bool isVis
 extern void Console_OnTextCursorBlink(ConsoleRef _Nonnull self);
 extern void Console_CursorDidMove_Locked(ConsoleRef _Nonnull self);
 
-extern errno_t Console_BeginDrawing_Locked(ConsoleRef _Nonnull self);
+extern void Console_BeginDrawing_Locked(ConsoleRef _Nonnull self);
 extern void Console_EndDrawing_Locked(ConsoleRef _Nonnull self);
 
 extern void Console_DrawGlyph_Locked(ConsoleRef _Nonnull self, char glyph, int x, int y);

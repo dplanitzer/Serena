@@ -31,10 +31,10 @@ enum {
 typedef struct Surface {
     uint8_t* _Nullable      plane[MAX_PLANE_COUNT];
     CLUTEntry* _Nullable    clut;
-    size_t                  width;
-    size_t                  height;
-    size_t                  bytesPerRow;
-    size_t                  bytesPerPlane;
+    int                     width;
+    int                     height;
+    int                     bytesPerRow;
+    int                     bytesPerPlane;
     int16_t                 clutEntryCount;
     int8_t                  planeCount;
     int8_t                  pixelFormat;
@@ -42,7 +42,7 @@ typedef struct Surface {
 } Surface;
 
 
-extern errno_t Surface_Create(size_t width, size_t height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+extern errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
 extern void Surface_Destroy(Surface* _Nullable self);
 
 // Returns the pixel width of the surface.

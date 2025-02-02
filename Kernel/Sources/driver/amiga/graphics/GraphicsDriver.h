@@ -31,8 +31,8 @@ extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Scr
 extern const ScreenConfiguration* _Nonnull GraphicsDriver_GetScreenConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr);
 extern Size GraphicsDriver_GetScreenSize(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
-extern errno_t GraphicsDriver_LockScreenPixels(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull planeCount);
-extern errno_t GraphicsDriver_UnlockScreenPixels(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
+extern errno_t GraphicsDriver_MapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, MapPixels mode, MappingInfo* _Nonnull pOutInfo);
+extern errno_t GraphicsDriver_UnmapScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
 extern errno_t GraphicsDriver_SetCLUTEntry(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, RGBColor32 color);
 extern errno_t GraphicsDriver_SetCLUTEntries(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr, size_t idx, size_t count, const RGBColor32* _Nonnull entries);
@@ -62,5 +62,8 @@ extern void GraphicsDriver_SetMouseCursorVisible(GraphicsDriverRef _Nonnull self
 extern void GraphicsDriver_SetMouseCursorHiddenUntilMove(GraphicsDriverRef _Nonnull self, bool flag);
 extern void GraphicsDriver_SetMouseCursorPosition(GraphicsDriverRef _Nonnull self, Point loc);
 extern void GraphicsDriver_SetMouseCursorPositionFromInterruptContext(GraphicsDriverRef _Nonnull self, int16_t x, int16_t y);
+
+extern void GraphicsDriver_ShieldMouseCursor(GraphicsDriverRef _Nonnull self, int x, int y, int width, int height);
+extern void GraphicsDriver_UnshieldMouseCursor(GraphicsDriverRef _Nonnull self);
 
 #endif /* GraphicsDriver_h */

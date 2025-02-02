@@ -44,7 +44,7 @@ errno_t Console_Create(GraphicsDriverRef _Nonnull pGDevice, ConsoleRef _Nullable
 
 
     // Initialize the video subsystem
-    Console_InitVideoOutput(self);
+    Console_InitVideo(self);
 
 
     // Reset the console to the default configuration
@@ -72,7 +72,7 @@ void Console_deinit(ConsoleRef _Nonnull self)
         self->dispatchQueue = NULL;
     }
 
-    Console_DeinitVideoOutput(self);
+    Console_DeinitVideo(self);
     RingBuffer_Deinit(&self->reportsQueue);
 
     self->keyMap = NULL;
@@ -105,7 +105,7 @@ errno_t Console_ResetState_Locked(ConsoleRef _Nonnull self, bool shouldStartCurs
 {
     decl_try_err();
     
-    self->bounds = Rect_Make(0, 0, self->gc.pixelsWidth / self->characterWidth, self->gc.pixelsHeight / self->lineHeight);
+    self->bounds = Rect_Make(0, 0, self->pixelsWidth / self->characterWidth, self->pixelsHeight / self->lineHeight);
     self->savedCursorState.x = 0;
     self->savedCursorState.y = 0;
 
@@ -633,25 +633,23 @@ errno_t Console_read(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChann
 // \return the number of bytes written; a negative error code if an error was encountered
 errno_t Console_write(ConsoleRef _Nonnull self, ConsoleChannelRef _Nonnull pChannel, const void* _Nonnull pBuffer, ssize_t nBytesToWrite, ssize_t* _Nonnull nOutBytesWritten)
 {
-    decl_try_err();
     const unsigned char* pChars = pBuffer;
     const unsigned char* pCharsEnd = pChars + nBytesToWrite;
 
     Lock_Lock(&self->lock);
-    err = Console_BeginDrawing_Locked(self);
-    if (err == EOK) {
-        while (pChars < pCharsEnd) {
-            const unsigned char by = *pChars++;
+    
+    Console_BeginDrawing_Locked(self);
+    while (pChars < pCharsEnd) {
+        const unsigned char by = *pChars++;
 
-            vtparser_byte(&self->vtparser, by);
-        }
-
-        Console_EndDrawing_Locked(self);
+        vtparser_byte(&self->vtparser, by);
     }
-    *nOutBytesWritten = (err == EOK) ? nBytesToWrite : 0;
+    Console_EndDrawing_Locked(self);
+    
+    *nOutBytesWritten = nBytesToWrite;
     Lock_Unlock(&self->lock);
 
-    return err;
+    return EOK;
 }
 
 

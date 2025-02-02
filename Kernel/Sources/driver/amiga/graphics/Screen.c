@@ -98,21 +98,21 @@ errno_t Screen_SetCLUTEntries(Screen* _Nonnull self, size_t idx, size_t count, c
     return EOK;
 }
 
-// Locks the screen pixels for access. 'access' specifies whether the pixels
+// Maps the screen pixels for access. 'mode' specifies whether the pixels
 // will be read, written or both.
 // \param self the screen
-// \param access the access mode
+// \param mode the mapping mode
 // \return EOK if the screen pixels could be locked; EBUSY otherwise
-errno_t Screen_LockPixels(Screen* _Nonnull self, PixelAccess access, void* _Nonnull plane[8], size_t bytesPerRow[8], size_t* _Nonnull pOutPlaneCount)
+errno_t Screen_Map(Screen* _Nonnull self, MapPixels mode, MappingInfo* _Nonnull pOutInfo)
 {
     if (!self->flags.isSurfaceLocked) {
         size_t planeCount = self->surface->planeCount;
 
         for (size_t i = 0; i < planeCount; i++) {
-            plane[i] = self->surface->plane[i];
-            bytesPerRow[i] = self->surface->bytesPerRow;
+            pOutInfo->plane[i] = self->surface->plane[i];
+            pOutInfo->bytesPerRow[i] = self->surface->bytesPerRow;
         }
-        *pOutPlaneCount = planeCount;
+        pOutInfo->planeCount = planeCount;
 
         self->flags.isSurfaceLocked = 1;
         return EOK;
@@ -122,7 +122,7 @@ errno_t Screen_LockPixels(Screen* _Nonnull self, PixelAccess access, void* _Nonn
     }
 }
 
-errno_t Screen_UnlockPixels(Screen* _Nonnull self)
+errno_t Screen_Unmap(Screen* _Nonnull self)
 {
     if (self->flags.isSurfaceLocked) {
         self->flags.isSurfaceLocked = 0;

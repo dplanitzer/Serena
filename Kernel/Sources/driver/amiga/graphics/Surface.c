@@ -15,12 +15,12 @@
 // \param height the height in pixels
 // \param pixelFormat the pixel format
 // \return the surface; NULL on failure
-errno_t Surface_Create(size_t width, size_t height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
+errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Surface* self;
     
-    if (width == 0 || height == 0) {
+    if (width <= 0 || height <= 0) {
         return EINVAL;
     }
 
