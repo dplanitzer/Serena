@@ -21,7 +21,7 @@ errno_t Screen_Create(const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnu
     
     try(kalloc_cleared(sizeof(Screen), (void**) &self));
 
-    Surface_Retain(srf);
+    Surface_BeginUse(srf);
     self->surface = srf;
     self->videoConfig = vidCfg;
     self->nullSprite = pNullSprite;
@@ -44,8 +44,10 @@ catch:
 void Screen_Destroy(Screen* _Nullable self)
 {
     if (self) {
-        Surface_Release(self->surface);
-        self->surface = NULL;
+        if (self->surface) {
+            Surface_EndUse(self->surface);
+            self->surface = NULL;
+        }
         
         if (self->clut) {
             kfree(self->clut);

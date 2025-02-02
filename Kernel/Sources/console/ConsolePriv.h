@@ -159,7 +159,7 @@ final_class_ivars(Console, Driver,
 
     GraphicsDriverRef _Nonnull  gdevice;
     Screen* _Nonnull            screen;
-    Surface* _Nonnull           surface;
+    int                         surfaceId;
     SurfaceMapping              pixels;
     int                         pixelsWidth;
     int                         pixelsHeight;

@@ -14,6 +14,7 @@
 #include <dispatcher/Semaphore.h>
 #include <hal/InterruptController.h>
 #include <hal/Platform.h>
+#include <klib/List.h>
 #include "CopperProgram.h"
 #include "CopperScheduler.h"
 #include "MousePainter.h"
@@ -27,6 +28,8 @@ final_class_ivars(GraphicsDriver, Driver,
     InterruptHandlerID  vb_irq_handler;
     Semaphore           vblank_sema;
     MousePainter        mousePainter;
+    List                surfaces;
+    int                 nextSurfaceId;
     bool                isLightPenEnabled;  // Applies to all screens
 );
 

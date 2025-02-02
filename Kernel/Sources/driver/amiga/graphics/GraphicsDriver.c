@@ -21,7 +21,8 @@ errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nul
     GraphicsDriverRef self;
     
     try(Driver_Create(GraphicsDriver, 0, parent, &self));
-    
+    self->nextSurfaceId = 1;
+
 
     // Allocate the mouse painter
     try(MousePainter_Init(&self->mousePainter));
@@ -376,37 +377,96 @@ bool GraphicsDriver_GetLightPenPosition(GraphicsDriverRef _Nonnull self, int16_t
 // MARK: Surfaces
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface)
+static int _GraphicsDriver_GetNewSurfaceId(GraphicsDriverRef _Nonnull _Locked self)
 {
+    bool hasCollision = true;
+    int id;
+
+    while (hasCollision) {
+        hasCollision = false;
+        id = self->nextSurfaceId++;
+
+        List_ForEach(&self->surfaces, Surface,
+            if (Surface_GetId(pCurNode) == id) {
+                hasCollision = true;
+                break;
+            }
+        );
+    }
+    return id;
+}
+
+static Surface* _Nullable _GraphicsDriver_GetSurfaceForId(GraphicsDriverRef _Nonnull self, int id)
+{
+    List_ForEach(&self->surfaces, Surface,
+        if (Surface_GetId(pCurNode) == id) {
+            return pCurNode;
+        }
+    );
+    return NULL;
+}
+
+errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId)
+{
+    Surface* srf;
+
     Driver_Lock(self);
-    const errno_t err = Surface_Create(width, height, pixelFormat, pOutSurface);
+    const errno_t err = Surface_Create(_GraphicsDriver_GetNewSurfaceId(self), width, height, pixelFormat, &srf);
+    if (err == EOK) {
+        List_InsertBeforeFirst(&self->surfaces, &srf->chain);
+        *pOutId = Surface_GetId(srf);
+    }
     Driver_Unlock(self);
     return err;
 }
 
-errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf)
-{
-    Driver_Lock(self);
-    Surface_Release(srf);
-    Driver_Unlock(self);
-    return EOK;
-}
-
-errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, SurfaceInfo* _Nonnull pOutInfo)
-{
-    Driver_Lock(self);
-    pOutInfo->width = Surface_GetWidth(srf);
-    pOutInfo->height = Surface_GetHeight(srf);
-    pOutInfo->pixelFormat = Surface_GetPixelFormat(srf);
-    Driver_Unlock(self);
-    return EOK;
-}
-
-errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping)
+errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
+
+    if (srf) {
+        if (!Surface_IsUsed(srf)) {
+            Surface_Destroy(srf);
+        }
+        else {
+            err = EBUSY;
+        }
+    }
+    else {
+        err = EINVAL;
+    }
+    Driver_Unlock(self);
+    return err;
+}
+
+errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, SurfaceInfo* _Nonnull pOutInfo)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
+
+    if (srf) {
+        pOutInfo->width = Surface_GetWidth(srf);
+        pOutInfo->height = Surface_GetHeight(srf);
+        pOutInfo->pixelFormat = Surface_GetPixelFormat(srf);
+    }
+    else {
+        err = EINVAL;
+    }
+    Driver_Unlock(self);
+    return EOK;
+}
+
+errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping)
+{
+    decl_try_err();
+
+    Driver_Lock(self);
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
         err = Surface_Map(srf, mode, pOutMapping);
     }
@@ -417,11 +477,12 @@ errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nul
     return err;
 }
 
-errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf)
+errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id)
 {
     decl_try_err();
 
     Driver_Lock(self);
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, id);
     if (srf) {
         err = Surface_Unmap(srf);
     }
@@ -438,10 +499,19 @@ errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _N
 // MARK: Screens
 ////////////////////////////////////////////////////////////////////////////////
 
-errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen)
+errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, Screen* _Nullable * _Nonnull pOutScreen)
 {
+    decl_try_err();
+
     Driver_Lock(self);
-    const errno_t err = Screen_Create(vidCfg, srf, self->nullSprite, pOutScreen);
+    Surface* srf = _GraphicsDriver_GetSurfaceForId(self, surfaceId);
+    
+    if (srf) {
+        err = Screen_Create(vidCfg, srf, self->nullSprite, pOutScreen);
+    }
+    else {
+        err = EINVAL;
+    }
     Driver_Unlock(self);
     return err;
 }

@@ -31,17 +31,17 @@ final_class(GraphicsDriver, Driver);
 extern errno_t GraphicsDriver_Create(DriverRef _Nullable parent, GraphicsDriverRef _Nullable * _Nonnull pOutSelf);
 
 // Surfaces
-extern errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSurface);
-extern errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf);
+extern errno_t GraphicsDriver_CreateSurface(GraphicsDriverRef _Nonnull self, int width, int height, PixelFormat pixelFormat, int* _Nonnull pOutId);
+extern errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, int id);
 
-extern errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, SurfaceInfo* _Nonnull pOutInfo);
+extern errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, int id, SurfaceInfo* _Nonnull pOutInfo);
 
-extern errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping);
-extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf);
+extern errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, int id, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping);
+extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, int id);
 
 
 // Screens
-extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, Surface* _Nonnull srf, Screen* _Nullable * _Nonnull pOutScreen);
+extern errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const VideoConfiguration* _Nonnull vidCfg, int surfaceId, Screen* _Nullable * _Nonnull pOutScreen);
 extern errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr);
 
 extern const VideoConfiguration* _Nonnull GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr);

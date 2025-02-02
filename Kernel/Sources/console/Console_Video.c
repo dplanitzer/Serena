@@ -40,8 +40,8 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     const int pixelsWidth = VideoConfiguration_GetPixelWidth(vidCfg);
     const int pixelsHeight = VideoConfiguration_GetPixelHeight(vidCfg);
 
-    try(GraphicsDriver_CreateSurface(self->gdevice, pixelsWidth, pixelsHeight, kPixelFormat_RGB_Indexed3, &self->surface));
-    try(GraphicsDriver_CreateScreen(self->gdevice, vidCfg, self->surface, &self->screen));
+    try(GraphicsDriver_CreateSurface(self->gdevice, pixelsWidth, pixelsHeight, kPixelFormat_RGB_Indexed3, &self->surfaceId));
+    try(GraphicsDriver_CreateScreen(self->gdevice, vidCfg, self->surfaceId, &self->screen));
 
 
     // Make our screen the current screen
@@ -74,7 +74,7 @@ errno_t Console_InitVideo(ConsoleRef _Nonnull self)
     self->flags.isTextCursorSingleCycleOn = false;
 
     try(GraphicsDriver_UpdateDisplay(self->gdevice));
-    try(GraphicsDriver_MapSurface(self->gdevice, self->surface, kMapPixels_ReadWrite, &self->pixels));
+    try(GraphicsDriver_MapSurface(self->gdevice, self->surfaceId, kMapPixels_ReadWrite, &self->pixels));
 
 catch:
     return err;
@@ -83,13 +83,13 @@ catch:
 // Deinitializes the video output subsystem
 void Console_DeinitVideo(ConsoleRef _Nonnull self)
 {
-    GraphicsDriver_UnmapSurface(self->gdevice, self->surface);
+    GraphicsDriver_UnmapSurface(self->gdevice, self->surfaceId);
 
     GraphicsDriver_SetCurrentScreen(self->gdevice, NULL);
 
     GraphicsDriver_RelinquishSprite(self->gdevice, self->screen, self->textCursor);
     GraphicsDriver_DestroyScreen(self->gdevice, self->screen);
-    GraphicsDriver_DestroySurface(self->gdevice, self->surface);
+    GraphicsDriver_DestroySurface(self->gdevice, self->surfaceId);
     
     DispatchQueue_RemoveByTag(self->dispatchQueue, CURSOR_BLINKER_TAG);
 }

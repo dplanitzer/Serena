@@ -16,7 +16,7 @@
 // \param height the height in pixels
 // \param pixelFormat the pixel format
 // \return the surface; NULL on failure
-errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
+errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf)
 {
     decl_try_err();
     Surface* self;
@@ -27,7 +27,8 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
 
     try(kalloc_cleared(sizeof(Surface), (void**) &self));
     
-    self->retainCount = 1;
+    self->id = id;
+    self->useCount = 0;
     self->pixelFormat = pixelFormat;
     self->width = width;
     self->height = height;
@@ -61,36 +62,29 @@ errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* 
     return EOK;
     
 catch:
-    Surface_Release(self);
+    Surface_Destroy(self);
     *pOutSelf = NULL;
     return err;
 }
 
 // Deallocates the given surface.
 // \param pSurface the surface
-static void _Surface_Deinit(Surface* _Nonnull self)
-{
-    if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
-        kfree(self->plane[0]);
-    }
-    else {
-        for (int i = 0; i < self->planeCount; i++) {
-            kfree(self->plane[i]);
-        }
-    }
-    for (int i = 0; i < self->planeCount; i++) {
-        self->plane[i] = NULL;
-    }
-}
-
-void Surface_Release(Surface* _Nullable self)
+void Surface_Destroy(Surface* _Nonnull self)
 {
     if (self) {
-        self->retainCount--;
-        if (self->retainCount == 0) {
-            _Surface_Deinit(self);
-            kfree(self);
+        if ((self->flags & kSurfaceFlag_ClusteredPlanes) != 0) {
+            kfree(self->plane[0]);
         }
+        else {
+            for (int i = 0; i < self->planeCount; i++) {
+                kfree(self->plane[i]);
+            }
+        }
+        for (int i = 0; i < self->planeCount; i++) {
+            self->plane[i] = NULL;
+        }
+
+        kfree(self);
     }
 }
 

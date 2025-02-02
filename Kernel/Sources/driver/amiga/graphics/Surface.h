@@ -11,6 +11,7 @@
 
 #include <klib/Error.h>
 #include <klib/Types.h>
+#include <klib/List.h>
 #include "Color.h"
 #include "PixelFormat.h"
 
@@ -36,6 +37,7 @@ enum {
 };
 
 typedef struct Surface {
+    ListNode            chain;
     uint8_t* _Nullable  plane[MAX_PLANE_COUNT];
     int                 width;
     int                 height;
@@ -44,16 +46,27 @@ typedef struct Surface {
     int8_t              planeCount;
     int8_t              pixelFormat;
     uint8_t             flags;
-    int                 retainCount;
+    int                 useCount;
+    int                 id;
 } Surface;
 
 
-extern errno_t Surface_Create(int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+extern errno_t Surface_Create(int id, int width, int height, PixelFormat pixelFormat, Surface* _Nullable * _Nonnull pOutSelf);
+extern void Surface_Destroy(Surface* _Nullable self);
 
-#define Surface_Retain(__self) \
-((__self)->retainCount++)
+#define Surface_BeginUse(__self) \
+((__self)->useCount++)
 
-extern void Surface_Release(Surface* _Nullable self);
+#define Surface_EndUse(__self) \
+((__self)->useCount--)
+
+#define Surface_IsUsed(__self) \
+((__self)->useCount > 0)
+
+
+#define Surface_GetId(__self) \
+((__self)->id)
+
 
 // Returns the pixel width of the surface.
 #define Surface_GetWidth(__self) \
@@ -70,6 +83,7 @@ extern void Surface_Release(Surface* _Nullable self);
 // Returns the pixel format
 #define Surface_GetPixelFormat(__self) \
 ((__self)->pixelFormat)
+
 
 extern errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping);
 extern errno_t Surface_Unmap(Surface* _Nonnull self);
