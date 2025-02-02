@@ -99,7 +99,7 @@ void Surface_Release(Surface* _Nullable self)
 // \param self the screen
 // \param mode the mapping mode
 // \return EOK if the screen pixels could be locked; EBUSY otherwise
-errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
+errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping)
 {
     if ((self->flags & kSurfaceFlag_IsMapped) == kSurfaceFlag_IsMapped) {
         return EBUSY;
@@ -108,10 +108,10 @@ errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Non
     const size_t planeCount = self->planeCount;
 
     for (size_t i = 0; i < planeCount; i++) {
-        pOutInfo->plane[i] = self->plane[i];
-        pOutInfo->bytesPerRow[i] = self->bytesPerRow;
+        pOutMapping->plane[i] = self->plane[i];
+        pOutMapping->bytesPerRow[i] = self->bytesPerRow;
     }
-    pOutInfo->planeCount = planeCount;
+    pOutMapping->planeCount = planeCount;
 
     self->flags |= kSurfaceFlag_IsMapped;
     return EOK;

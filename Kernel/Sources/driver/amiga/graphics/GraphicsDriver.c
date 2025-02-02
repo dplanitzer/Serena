@@ -205,6 +205,12 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
     CopperProgram* evenFieldProg = NULL;
     
 
+    // Can't show a screen that's already being shown
+    if (Screen_IsVisible(scr)) {
+        return EBUSY;
+    }
+
+
     // Compile the Copper program(s) for the new screen
     if (scr) {
         err = create_field_copper_progs(scr, self->isLightPenEnabled, &oddFieldProg, &evenFieldProg);
@@ -223,6 +229,7 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
     // Update the display configuration.
     self->screen = scr;
+    Screen_SetVisible(scr, true);
 
 
     // Schedule the new Copper programs
@@ -242,7 +249,10 @@ static errno_t GraphicsDriver_SetCurrentScreen_Locked(GraphicsDriverRef _Nonnull
 
 
     // Free the old screen
-    Screen_Destroy(pOldScreen);
+    if (pOldScreen) {
+        Screen_SetVisible(pOldScreen, false);
+        Screen_Destroy(pOldScreen);
+    }
 
     return EOK;
 }
@@ -392,13 +402,13 @@ errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, Surface* 
     return EOK;
 }
 
-errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo)
+errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping)
 {
     decl_try_err();
 
     Driver_Lock(self);
     if (srf) {
-        err = Surface_Map(srf, mode, pOutInfo);
+        err = Surface_Map(srf, mode, pOutMapping);
     }
     else {
         err = ENOTSUP;
@@ -438,12 +448,19 @@ errno_t GraphicsDriver_CreateScreen(GraphicsDriverRef _Nonnull self, const Video
 
 errno_t GraphicsDriver_DestroyScreen(GraphicsDriverRef _Nonnull self, Screen* _Nullable scr)
 {
+    decl_try_err();
+
     Driver_Lock(self);
     if (scr) {
-        Screen_Destroy(scr);
+        if (!Screen_IsVisible(scr)) {
+            Screen_Destroy(scr);
+        }
+        else {
+            err = EBUSY;
+        }
     }
     Driver_Unlock(self);
-    return EOK;
+    return err;
 }
 
 const VideoConfiguration* _Nonnull GraphicsDriver_GetVideoConfiguration(GraphicsDriverRef _Nonnull self, Screen* _Nonnull scr)

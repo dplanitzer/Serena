@@ -36,7 +36,7 @@ extern errno_t GraphicsDriver_DestroySurface(GraphicsDriverRef _Nonnull self, Su
 
 extern errno_t GraphicsDriver_GetSurfaceInfo(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, SurfaceInfo* _Nonnull pOutInfo);
 
-extern errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo);
+extern errno_t GraphicsDriver_MapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping);
 extern errno_t GraphicsDriver_UnmapSurface(GraphicsDriverRef _Nonnull self, Surface* _Nullable srf);
 
 

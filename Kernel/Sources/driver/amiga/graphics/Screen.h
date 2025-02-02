@@ -28,7 +28,8 @@ typedef struct CLUTEntry {
 
 
 enum {
-    kScreenFlag_IsNewCopperProgNeeded = 0x0001,
+    kScreenFlag_IsNewCopperProgNeeded = 0x01,   // We need to re-compile the current screen state into a new Copper program
+    kScreenFlag_IsVisible = 0x02,               // Is visible on screen
 };
 
 
@@ -54,6 +55,17 @@ extern void Screen_Destroy(Screen* _Nullable pScreen);
 
 #define Screen_IsInterlaced(__self) \
 VideoConfiguration_IsInterlaced((__self)->videoConfig)
+
+#define Screen_SetVisible(__self, __flag) \
+if (__flag) { \
+    (__self)->flags |= kScreenFlag_IsVisible; \
+} else { \
+    (__self)->flags &= ~kScreenFlag_IsVisible; \
+}
+
+// Returns true if this screen is currently visible
+#define Screen_IsVisible(__self) \
+((((__self)->flags & kScreenFlag_IsVisible) == kScreenFlag_IsVisible) ? true : false)
 
 extern void Screen_GetPixelSize(Screen* _Nonnull self, int* _Nonnull pOutWidth, int* _Nonnull pOutHeight);
 

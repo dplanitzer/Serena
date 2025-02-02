@@ -71,7 +71,7 @@ extern void Surface_Release(Surface* _Nullable self);
 #define Surface_GetPixelFormat(__self) \
 ((__self)->pixelFormat)
 
-extern errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutInfo);
+extern errno_t Surface_Map(Surface* _Nonnull self, MapPixels mode, SurfaceMapping* _Nonnull pOutMapping);
 extern errno_t Surface_Unmap(Surface* _Nonnull self);
 
 #endif /* Surface_h */
